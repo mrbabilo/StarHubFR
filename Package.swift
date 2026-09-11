@@ -208,6 +208,7 @@ let package = Package(
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
                 "Models/FrenchCoveragePass.swift",
+                "Models/TranslationTarget.swift",
                 "Models/ModListScoping.swift",
                 "Stores/InstalledModRegistryStore.swift",
                 "Stores/FilePicking.swift",
@@ -269,6 +270,11 @@ let package = Package(
             name: "FrenchCoveragePassTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/FrenchCoveragePassTests"
+        ),
+        .testTarget(
+            name: "TranslationTargetTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationTargetTests"
         ),
         .testTarget(
             name: "ModListScopingTests",

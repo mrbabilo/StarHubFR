@@ -1320,97 +1320,20 @@ class StarHubTHViewModel: ObservableObject {
             return .failed(message)
         }
 
-        // Un dossier i18n range ses fichiers de deux façons, et SMAPI accepte
-        // les deux (voir `I18nLocaleResolver`) : layout A, un fichier par
-        // locale à la racine (`fr.json`) ; layout B, un sous-dossier par
-        // locale (`fr/dialogue.json`, `fr/items.json`…). Composer
-        // "i18n/<locale>.json" à la main revient à ignorer le second cas — et
-        // pire, à *casser* un mod en layout B : un seul `.json` écrit à la
-        // racine suffit à faire ignorer tous les sous-dossiers par SMAPI, pour
-        // toutes les locales (« la racine gagne, entièrement »).
-        let sourceFiles = I18nLocaleResolver.files(in: i18n, locale: "default")
-        guard !sourceFiles.isEmpty else {
-            let message = "Traduction non enregistrée : aucun default.json dans \(i18n.path)"
-            log(message, level: .warning)
-            return .failed(message)
-        }
-        let localeFiles = I18nLocaleResolver.files(in: i18n, locale: locale)
-
+        // Où écrire, et sous quelle clé : `TranslationTarget` décide — layouts
+        // A et B, repli sur la casse déjà présente, refus plutôt que deviner
+        // la section d'un layout B. La règle est éprouvée là-bas (14 tests) ;
+        // ici ne restent que l'écriture, le journal et les effets.
         let target: URL
         let realKey: String
-        if !localeFiles.isEmpty {
-            // La locale existe déjà, sur un ou plusieurs fichiers (layout B).
-            // Quand la clé y est déjà, on édite le fichier qui la porte —
-            // repliée, puisque SMAPI compare ses clés en `OrdinalIgnoreCase`
-            // (`TranslationCoverage.fold`) — jamais un autre : y écrire une
-            // clé absente créerait un doublon invisible en jeu (voir la
-            // Critique 2 plus bas). `files(in:locale:)` rend ses fichiers
-            // triés par nom ; le premier qui porte la clé l'emporte, comme
-            // `I18nLocaleResolver.merge` le ferait à la lecture.
-            let folded = TranslationCoverage.fold(row.key)
-            var found: (file: URL, key: String)?
-            for file in localeFiles {
-                guard let data = FileManager.default.contents(atPath: file.path),
-                      let text = I18nFileDecoder.decode(data)?.text,
-                      let parsed = try? I18nLenientParser.parse(text) else { continue }
-                if let match = parsed.keys.first(where: { TranslationCoverage.fold($0) == folded }) {
-                    found = (file, match)
-                    break
-                }
-            }
-            if let found {
-                target = found.file
-                realKey = found.key
-            } else if localeFiles.count == 1 {
-                // Un seul fichier pour cette locale : aucune ambiguïté à
-                // résoudre, que ce soit layout A (`fr.json`) ou layout B à un
-                // seul composant. La clé est neuve pour cette locale — le cas
-                // central de l'écran, une ligne « À traduire » — donc écrite
-                // sous la casse de la source dans cet unique fichier.
-                target = localeFiles[0]
-                realKey = row.key
-            } else {
-                // Layout B à plusieurs fichiers, et aucun ne porte déjà la
-                // clé : refuser plutôt qu'inventer celui où la ranger, faute
-                // de savoir laquelle des sections (`fr/dialogue.json`,
-                // `fr/items.json`…) devrait l'accueillir.
-                let message = "Traduction non enregistrée : \(row.key) absente des "
-                    + "\(localeFiles.count) fichiers de \(locale) dans \(i18n.path)"
-                log(message, level: .warning)
-                return .failed(message)
-            }
-        } else {
-            // La locale n'existe pas encore. La créer à la racine (layout A)
-            // n'est légitime que si le dossier n'est **pas** déjà en layout B
-            // — `sourceFiles` en layout A vit dans `i18n` lui-même ; en
-            // layout B, dans un sous-dossier `default/`. Le confondre
-            // écrirait un `fr.json` à la racine d'un dossier en layout B, et
-            // SMAPI cesserait d'y lire quoi que ce soit.
-            let sourceIsLayoutA = sourceFiles.allSatisfy {
-                $0.deletingLastPathComponent().path == i18n.path
-            }
-            guard sourceIsLayoutA else {
-                let message = "Traduction non enregistrée : \(locale) inexistante et \(i18n.path) "
-                    + "est en layout B — créer un fichier à la racine casserait la lecture des "
-                    + "sous-dossiers existants"
-                log(message, level: .warning)
-                return .failed(message)
-            }
-            target = i18n.appendingPathComponent("\(locale).json")
-            realKey = row.key
-        }
-
-        // Le texte source correspondant : celui qui porte le même nom de
-        // fichier que la cible choisie, à défaut le premier. Il ne sert qu'à
-        // la garde de lisibilité et à l'ordre des clés *nouvelles* — jamais
-        // consulté ici, puisqu'une clé trouvée par le bloc ci-dessus a déjà
-        // son rang dans le fichier cible, et qu'une création en layout A n'a
-        // qu'un seul fichier source possible.
-        let sourceFile = sourceFiles.first { $0.lastPathComponent == target.lastPathComponent }
-            ?? sourceFiles[0]
-        guard let sourceData = FileManager.default.contents(atPath: sourceFile.path),
-              let sourceText = I18nFileDecoder.decode(sourceData)?.text else {
-            let message = "Traduction non enregistrée : \(sourceFile.path) illisible"
+        let sourceText: String
+        switch TranslationTarget.resolve(inI18nDirectory: i18n, locale: locale, key: row.key) {
+        case .success(let destination):
+            target = destination.file
+            realKey = destination.key
+            sourceText = destination.sourceText
+        case .failure(let refusal):
+            let message = "Traduction non enregistrée : \(refusal.reason)"
             log(message, level: .warning)
             return .failed(message)
         }
