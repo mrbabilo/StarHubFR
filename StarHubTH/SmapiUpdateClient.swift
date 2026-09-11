@@ -18,7 +18,7 @@ final class SmapiUpdateClient {
     private let endpoint = URL(string: "https://smapi.io/api/v3.0/mods")!
     private let session: URLSession
 
-    enum Failure: Error {
+    enum Failure: Error, Equatable {
         case transport(String)
         case http(Int)
         case decoding(String)

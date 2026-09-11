@@ -3722,6 +3722,15 @@ class StarHubTHViewModel: ObservableObject {
     /// jugeant chaque composant d'un pack sur *sa* version. Ce que l'app
     /// fournit, c'est la version qu'elle **affirme** installée — d'ancre s'il
     /// y en a une, de manifest sinon.
+    ///
+    /// La composition des deux requêtes (le filet Pathoschild part
+    /// systématiquement, en parallèle ; l'application n'est rendue qu'une
+    /// fois les deux résolues) vit dans `NexusUpdateCheck` (Core, testé) —
+    /// les tampons qui capturaient le résultat smapi.io étaient des
+    /// propriétés du ViewModel, ce sont désormais des variables locales au
+    /// type. Ici ne restent que les gardes, la construction des candidats,
+    /// les effets (journal, publications, application) et le relâchement de
+    /// fin de passe.
     func checkNexusUpdates() {
         guard !isCheckingNexusUpdates else { return }
         isCheckingNexusUpdates = true
@@ -3760,137 +3769,85 @@ class StarHubTHViewModel: ObservableObject {
                                    updateKeys: $0.updateKeys)
         }
 
-        // Les deux requêtes partent en parallèle, mais `applySmapiResults` n'est
-        // appelée qu'une fois les deux résolues : `PathoschildNexusIndex` lit
-        // le cache disque, qui n'est posé qu'au retour de `fetch`. Un
-        // `DispatchGroup` synchronise l'arrivée — sinon smapi.io peut
-        // répondre avant le dump et `applySmapiResults` lirait un index vide.
-        let group = DispatchGroup()
-        var pathoschildFetchFailed = false
-
-        // Filet Pathoschild déclenché **systématiquement**, en parallèle de
-        // smapi.io — pas seulement sur échec. Justification : smapi.io répond
-        // souvent `success([])` avec un sous-ensemble seulement du parc (478
-        // entrées sur 1080 envoyées, mesuré sur le parc réel 2026-09-01), et
-        // omet silencieusement les `UniqueID` qu'elle ne connaît pas. Pour ces
-        // mods, on a besoin d'un `nexusID` local pour amorcer le recheck
-        // Nexus direct — c'est exactement ce que le dump Pathoschild porte.
-        //
-        // Le cache est posé sur disque (TTL 6 h) ; les lancements suivants ne
-        // paient rien. Le coût d'une seule requête au premier lancement est
-        // négligeable face au bénéfice (couverture offline sur ~4 000 mods).
-        group.enter()
-        PathoschildCompatibilityList.fetch { [weak self] result in
-            if case .failure = result { pathoschildFetchFailed = true }
-            // Le dump vient d'être posé : c'est le seul moment où les lignes
-            // « à savoir » peuvent changer sans que le parc bouge. Sans ça,
-            // elles n'apparaîtraient qu'au scan suivant.
-            self?.refreshModWarnings()
-            group.leave()
-        }
-
-        group.enter()
-        SmapiUpdateClient.shared.fetch(
-            entries: entries,
-            // Passe par `sanitizedGameVersion` : la version vient d'une regex
-            // sur le journal SMAPI, et une valeur qui ne s'analyse pas fait
-            // rendre une liste vide à smapi.io — le lot entier disparaîtrait
-            // sans erreur.
-            gameVersion: SmapiUpdateRequest.sanitizedGameVersion(smapiDiagnostics?.gameVersion),
+        NexusUpdateCheck.run(
+            entries: entries, folders: folders,
+            gameVersion: smapiDiagnostics?.gameVersion,
+            smapiFetch: { entries, gameVersion, progress, completion in
+                SmapiUpdateClient.shared.fetch(
+                    entries: entries, gameVersion: gameVersion,
+                    progress: { done, total in progress(done, total) },
+                    completion: { result in
+                        // La progression smapi.io se tait dès son retour — pas
+                        // à la fin de la composition : on attend alors encore
+                        // le dump Pathoschild, et l'UI ne se relâche pas entre
+                        // les deux requêtes.
+                        self.nexusCheckProgress = nil
+                        completion(result)
+                    })
+            },
+            pathoschildFetch: { [weak self] done in
+                PathoschildCompatibilityList.fetch { result in
+                    switch result {
+                    case .failure:
+                        done(true)
+                    case .success:
+                        done(false)
+                    }
+                    // Le dump vient d'être posé : c'est le seul moment où les
+                    // lignes « à savoir » peuvent changer sans que le parc
+                    // bouge. Sans ça, elles n'apparaîtraient qu'au scan
+                    // suivant.
+                    self?.refreshModWarnings()
+                }
+            },
             progress: { [weak self] done, total in
                 self?.nexusCheckProgress = (done, total)
             },
-            completion: { [weak self] result in
-                guard let self else {
-                    group.leave()
-                    return
+            completion: { [weak self] composition in
+                guard let self else { return }
+                for line in composition.journal {
+                    self.log(line.text, level: line.level)
                 }
-                // Ne touche pas à `isCheckingNexusUpdates` ici : on attend
-                // aussi le retour de Pathoschild avant de signaler la fin,
-                // pour que l'UI ne se relâche pas entre les deux requêtes.
+                switch composition.resolution {
+                case .applied(let isComplete):
+                    guard case .success(let outcome) = composition.smapiResult else { return }
+                    self.applySmapiResults(outcome.mods, entries: composition.entries,
+                                           folders: composition.folders)
+                    self.compatibilitySource = .live
+                    // Une passe amputée n'est pas un passage réussi du parc.
+                    // Enregistrer un succès couperait la vérification automatique
+                    // pendant douze heures (`UpdateCheckPolicy`) pour des mods qui
+                    // n'ont pas été interrogés. Ils repartent bien en reprise
+                    // Nexus faute de verdict — mais aux dépens du quota Nexus, là
+                    // où smapi.io est gratuit et sans quota. Depuis X47, un lot en
+                    // échec ne sacrifie plus les suivants : une passe amputée
+                    // signifie un lot échoué **deux fois** (première passe et
+                    // seconde chance) ou un budget de re-découpage épuisé (X64).
+                    if isComplete {
+                        NexusUpdateChecker.shared.recordSuccessfulCheck()
+                    }
+                case .failed:
+                    self.nexusCheckError = composition.checkError
+                    self.applyPathoschildFallback(entries: composition.entries)
+                case .noResult:
+                    break
+                }
+                // Reset AFTER the heavy work (applySmapiResults /
+                // applyPathoschildFallback can take seconds on large parks).
+                // Setting it before would let a fast user re-trigger a 2nd
+                // check before the 1st has finished processing.
+                //
+                // Sauf si une reprise Nexus vient de partir : `applySmapiResults`
+                // l'a lancée quelques lignes plus haut, dans ce même bloc, et elle
+                // interroge Nexus page par page bien après ce point. Relâcher ici
+                // rouvrirait précisément le re-déclenchement que le paragraphe
+                // ci-dessus décrit — et cette fois sur le quota Nexus.
+                // `finishNexusFallback` relâche les deux à sa place.
+                guard !self.nexusFallbackInFlight else { return }
+                self.isCheckingNexusUpdates = false
                 self.nexusCheckProgress = nil
-                // Le résultat smapi.io est mémorisé via une variable capturée ;
-                // le branchement final se fait dans `group.notify`.
-                self.pendingSmapiResult = result
-                self.pendingSmapiEntries = entries
-                self.pendingSmapiFolders = folders
-                group.leave()
             })
-
-        group.notify(queue: .main) { [weak self] in
-            guard let self else { return }
-            let result = self.pendingSmapiResult
-            let entries = self.pendingSmapiEntries ?? []
-            let folders = self.pendingSmapiFolders ?? []
-            // Nettoyage des buffers — libère les références.
-            self.pendingSmapiResult = nil
-            self.pendingSmapiEntries = nil
-            self.pendingSmapiFolders = nil
-            if pathoschildFetchFailed {
-                self.log("Dump Pathoschild indisponible (réseau + cache vide) : filet limité à smapi.io",
-                         level: .warning)
-            }
-            switch result {
-            case .success(let outcome)?:
-                self.applySmapiResults(outcome.mods, entries: entries, folders: folders)
-                self.compatibilitySource = .live
-                // Une passe amputée n'est pas un passage réussi du parc.
-                // Enregistrer un succès couperait la vérification automatique
-                // pendant douze heures (`UpdateCheckPolicy`) pour des mods qui
-                // n'ont pas été interrogés. Ils repartent bien en reprise
-                // Nexus faute de verdict — mais aux dépens du quota Nexus, là
-                // où smapi.io est gratuit et sans quota. Depuis X47, un lot en
-                // échec ne sacrifie plus les suivants : une passe amputée
-                // signifie un lot échoué **deux fois** (première passe et
-                // seconde chance) ou un budget de re-découpage épuisé (X64).
-                if outcome.isComplete {
-                    NexusUpdateChecker.shared.recordSuccessfulCheck()
-                } else {
-                    let cause = outcome.failure.map { " — cause : \($0)" } ?? ""
-                    self.log("[MAJ] Passe smapi.io incomplète : \(outcome.batchesCompleted) "
-                             + "lot(s) sur \(outcome.batchesTotal)\(cause) — les mods des lots "
-                             + "restants gardent leurs lignes précédentes, et la prochaine "
-                             + "vérification automatique repartira au lieu d'attendre 12 h",
-                             level: .warning)
-                }
-            case .failure(let failure)?:
-                if case .http(429) = failure {
-                    self.nexusCheckError = "rate_limited"
-                } else {
-                    self.nexusCheckError = "\(failure)"
-                }
-                self.log("Vérification des mises à jour en échec : \(failure)", level: .warning)
-                self.applyPathoschildFallback(entries: entries)
-            case .none:
-                // Cas dégradé : ni smapi.io ni la complétion n'ont été appelées.
-                self.log("Vérification terminée sans résultat smapi.io", level: .warning)
-            }
-            // Reset AFTER the heavy work (applySmapiResults /
-            // applyPathoschildFallback can take seconds on large parks).
-            // Setting it before would let a fast user re-trigger a 2nd
-            // check before the 1st has finished processing.
-            //
-            // Sauf si une reprise Nexus vient de partir : `applySmapiResults`
-            // l'a lancée quelques lignes plus haut, dans ce même bloc, et elle
-            // interroge Nexus page par page bien après ce point. Relâcher ici
-            // rouvrirait précisément le re-déclenchement que le paragraphe
-            // ci-dessus décrit — et cette fois sur le quota Nexus.
-            // `finishNexusFallback` relâche les deux à sa place.
-            guard !self.nexusFallbackInFlight else { return }
-            self.isCheckingNexusUpdates = false
-            self.nexusCheckProgress = nil
-        }
     }
-
-    // MARK: - Buffers temporaires pour la synchronisation checkNexusUpdates
-
-    /// Tampon du résultat smapi.io en attendant que `PathoschildCompatibilityList.fetch`
-    /// ait posé son cache. `nil` tant que la complétion smapi.io n'a pas eu lieu.
-    private var pendingSmapiResult: Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>?
-    /// Tampon des `entries` envoyées, pour la même raison.
-    private var pendingSmapiEntries: [SmapiUpdateRequest.Entry]?
-    /// Tampon des `folders` (NexusIdLearning), pour la même raison.
-    private var pendingSmapiFolders: [NexusIdLearning.Folder]?
 
     /// Le verdict de compatibilité qui **demande une décision** pour ce mod,
     /// et le composant qui le porte.
