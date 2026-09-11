@@ -5900,32 +5900,18 @@ class StarHubTHViewModel: ObservableObject {
         // six fois sur dix sur le parc réel. Le navigateur intégré, lui, garde
         // la main entière : ce qu'il sait vient de Nexus, pas d'une lecture.
         let now = Date()
-        let learned = nexus == nil ? NexusArchiveName.parse(sourceName) : nil
         // **Une seule lecture de l'identité**, pour la sonde de doublon
         // ci-dessous comme pour la ligne qui entrera au registre : deux
         // lectures qui divergeraient donneraient une identité au comparateur
-        // et une autre à ce qui est gardé.
-        //
-        // La date retenue est celle du dépôt, jamais celle que porte le nom :
-        // c'est la règle de `linkToNexus`, et pour la même raison — on sait
-        // quand il l'a posée, tout ce que Nexus a publié depuis est plus récent.
-        // Sans elle, `isNewer` refuse de conclure et l'identifiant appris ne
-        // servirait à rien. Un identifiant venu du téléchargement compte
-        // autant qu'un identifiant lu dans le nom : dans les deux cas on sait
-        // de quelle page l'archive vient.
-        let identifiedModId = nexus?.modId ?? learned?.modId ?? downloadedModId ?? 0
-        let identifiedVersion = nexus?.version ?? learned?.version ?? ""
-        let identifiedDate = nexus?.updatedAt ?? (identifiedModId == 0 ? nil : now)
-        let entry = InstalledTranslation(
-            hostFolderName: host.folderName,
-            nexusModId: identifiedModId,
-            nexusName: sourceName, version: identifiedVersion,
-            updatedAt: identifiedDate,
-            installedAt: now, files: [], replacedFiles: [:])
-        let incumbent: InstalledTranslation? = plan.kind == .translation
-            ? installedTranslations.translation(forHost: host.folderName)
-            : installedTranslations.addons(forHost: host.folderName)
-                .first { InstalledTranslationRegistry.sameAddon($0, entry) }
+        // et une autre à ce qui est gardé. La règle — fiche Nexus, puis nom du
+        // fichier, puis identifiant du téléchargement ; date du dépôt et non
+        // celle que porte le nom — vit dans `DepositIdentity` (Core, 13 tests).
+        let identity = DepositIdentity.resolve(nexus: nexus, sourceName: sourceName,
+                                               downloadedModId: downloadedModId, at: now)
+        let entry = identity.entry(hostFolderName: host.folderName, sourceName: sourceName,
+                                   installedAt: now, files: [], replacedFiles: [:])
+        let incumbent = DepositIdentity.incumbent(in: installedTranslations, kind: plan.kind,
+                                                  host: host.folderName, probe: entry)
         if let incumbent {
             let failures = ManifestlessInstaller.uninstall(incumbent, hostPath: hostPath)
             guard failures.isEmpty else {
@@ -5976,12 +5962,9 @@ class StarHubTHViewModel: ObservableObject {
         // ligne-ci** qui entre au registre, et deux lectures du même nom qui
         // divergeraient donneraient une identité au comparateur et une autre à
         // ce qui est gardé.
-        let recorded = InstalledTranslation(
-            hostFolderName: host.folderName,
-            nexusModId: identifiedModId,
-            nexusName: sourceName, version: identifiedVersion,
-            updatedAt: identifiedDate, installedAt: now,
-            files: written.written, replacedFiles: written.replaced)
+        let recorded = identity.entry(hostFolderName: host.folderName, sourceName: sourceName,
+                                      installedAt: now, files: written.written,
+                                      replacedFiles: written.replaced)
         if plan.kind == .translation {
             installedTranslations.record(recorded)
         } else {
