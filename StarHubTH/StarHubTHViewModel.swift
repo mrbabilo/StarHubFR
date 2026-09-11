@@ -53,21 +53,27 @@ final class StarHubTHViewModel {
     let localization: LocalizationStore
     
     var outOfDateMods: [ModUpdateInfo] = []
-    var smapiErrors: [String] = []
+    // MARK: Santé SMAPI — le store du domaine (cadrage §4, domaine 2,
+    // tranche 2). Il porte ce que le journal dit de l'installation ; les
+    // lignes affichées, elles, vivent dans `logStore`.
+    private let smapiHealth = SmapiHealthStore()
+
+    /// Les alertes système de la dernière lecture.
+    var smapiErrors: [String] { smapiHealth.errors }
     /// Structured health diagnostics parsed from SMAPI-latest.txt (nil until
     /// first parse). Drives the SMAPI health card in LogsView.
-    var smapiDiagnostics: SmapiDiagnostics?
+    var smapiDiagnostics: SmapiDiagnostics? { smapiHealth.diagnostics }
     /// mtime of the parsed SMAPI log (nil if unread); used for the "stale" badge.
-    var smapiLogDate: Date?
+    var smapiLogDate: Date? { smapiHealth.logDate }
     /// True when the log's mtime predates this app session (= no game launch
     /// logged since StarHubFR was opened).
-    var smapiLogStale: Bool = false
+    var smapiLogStale: Bool { smapiHealth.isStale }
     /// Les conflits de chargement que Content Patcher a constatés lors de la
     /// **dernière partie** journalisée. La date de ce constat est `smapiLogDate`
     /// (mtime de `SMAPI-latest.txt`), pas maintenant : ce n'est pas l'état du
     /// parc aujourd'hui, un conflit rapporté peut concerner deux mods qui sont
     /// en pause à l'instant où on le lit.
-    private(set) var contentPatcherConflicts: [LoadConflict] = []
+    var contentPatcherConflicts: [LoadConflict] { smapiHealth.contentPatcherConflicts }
     /// App-session start captured once at init (= app launch for the single
     /// @StateObject VM). Reference for SMAPI-log staleness.
     private let sessionStart = Date()
@@ -1925,11 +1931,6 @@ final class StarHubTHViewModel {
 
     var quarantineActionMessage: QuarantineMessage? = nil
 
-    /// Tracks the set of SMAPI errors already journaled, so only genuinely
-    /// new alerts are logged on each re-parse (prevents re-logging the full
-    /// list when the count fluctuates between game sessions).
-    private var lastLoggedSMAPIErrors: Set<String> = []
-
     // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
     // les deux sources : les lignes que StarHubFR écrit lui-même et le bloc
     // relu depuis `SMAPI-latest.txt`. Le plafond mémoire et sa règle de
@@ -2215,7 +2216,7 @@ final class StarHubTHViewModel {
 
     /// `true` pendant qu'un `refreshSmapiLog()` tourne — piloter le bouton de
     /// la page des alertes système (spinner, anti double-clic).
-    private(set) var isRefreshingSmapiLog = false
+    var isRefreshingSmapiLog: Bool { smapiHealth.isRefreshing }
 
     /// Relit le journal SMAPI et recalcule ce qui en découle : alertes
     /// système, diagnostics, mods signalés à jour. Sortie ciblée de
@@ -2229,12 +2230,11 @@ final class StarHubTHViewModel {
     /// mutations qu'elle a mises en file sur main — l'ordre est celui de la
     /// file.
     func refreshSmapiLog() {
-        guard !isRefreshingSmapiLog else { return }
-        isRefreshingSmapiLog = true
+        guard smapiHealth.beginRefresh() else { return }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             self.parseSMAPILog()
-            DispatchQueue.main.async { self.isRefreshingSmapiLog = false }
+            DispatchQueue.main.async { self.smapiHealth.endRefresh() }
         }
     }
 
@@ -2676,15 +2676,10 @@ final class StarHubTHViewModel {
               let logContent = try? String(contentsOfFile: logPath, encoding: .utf8) else {
             DispatchQueue.main.async {
                 self.outOfDateMods = []
-                self.smapiErrors = []
-                self.smapiDiagnostics = nil
-                self.smapiLogDate = nil
-                self.smapiLogStale = false
-                // Même trou que `smapiLogDate` : sans ce reset, un journal
-                // disparu laisserait les conflits de la lecture précédente
-                // affichés à côté d'une date à `nil` — la même désynchronisation
-                // que celle évitée plus bas entre date et liste.
-                self.contentPatcherConflicts = []
+                // Un journal disparu ne laisse rien derrière lui : sans ce
+                // reset, les conflits de la lecture précédente restaient
+                // affichés à côté d'une date à `nil`.
+                self.smapiHealth.reset()
             }
             return
         }
@@ -2773,26 +2768,22 @@ final class StarHubTHViewModel {
             self.outOfDateMods = updates.sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
-            self.smapiErrors = uniqueErrors
-            self.smapiDiagnostics = smapiDiag
-            self.smapiLogDate = smapiDate
-            self.smapiLogStale = smapiStale
-            // Publié dans le même bloc `main.async` que `smapiLogDate` :
-            // date et liste doivent changer ensemble, jamais l'une sans
-            // l'autre — voir le commentaire au-dessus de `conflictEntries`.
-            self.contentPatcherConflicts = conflicts
-            // Log only genuinely new SMAPI alerts (not seen in the previous
-            // parse) so the Journaux tab stays clean across re-parses. Diff
-            // by content — not count — to catch both added and replaced errors.
-            let currentSet = Set(uniqueErrors)
-            let newAlerts = currentSet.subtracting(self.lastLoggedSMAPIErrors)
+            // Date, diagnostics et conflits viennent d'une même lecture et
+            // changent ensemble — le store le garantit.
+            self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
+                                   isStale: smapiStale, conflicts: conflicts)
+            // Seules les alertes **neuves** méritent une ligne, pour que
+            // l'onglet Journaux reste lisible d'une relecture à l'autre. La
+            // règle vit dans `SmapiHealthFold` ; le store la tient, et rend
+            // ici ce qu'il reste à écrire — la localisation n'appartient
+            // qu'au ViewModel.
+            let newAlerts = self.smapiHealth.apply(errors: uniqueErrors)
             if !newAlerts.isEmpty {
-                self.lastLoggedSMAPIErrors = currentSet
                 self.log(
                     String(format: self.localization.L(L10n.Logs.alertLogged), Int64(newAlerts.count)),
                     level: .warning
                 )
-                for err in uniqueErrors where newAlerts.contains(err) {
+                for err in newAlerts {
                     self.log(err, level: .warning)
                 }
             }
@@ -3431,20 +3422,21 @@ final class StarHubTHViewModel {
             // l'app laissent — les deux règles vivent dans `LogBudget`, avec
             // leurs deux bugs historiques.
             self.logStore.replaceSmapi(with: displayed)
-            self.smapiDiagnostics = smapiDiag
-            self.smapiLogDate = smapiDate
-            self.smapiLogStale = smapiStale
+            // Les conflits Content Patcher se lisent sur `entries` (le parse
+            // complet), pas sur la liste écrêtée : le cap sacrifie les TRACE
+            // en premier, donc les ERROR de conflit survivraient sans doute,
+            // mais lire la liste complète retire la question — elle est déjà
+            // sous la main ici. La date du constat est `logDate`, publiée
+            // dans le même appel : le store garantit qu'elles ne divergent
+            // pas, ce que deux affectations voisines ne garantissaient que
+            // par convention.
+            self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
+                                   isStale: smapiStale,
+                                   conflicts: ContentPatcherConflicts.read(from: entries))
             // Fold this log into the per-version error history. Uses `entries`
             // (the full parse), not the capped list: the display cap must not
             // cost us recorded errors.
             self.recordErrorHistory(from: entries, logDate: smapiDate)
-            // Même raisonnement pour les conflits Content Patcher : `entries`
-            // (non écrêté), pas `trimmedEntries`. Le cap sacrifie les TRACE en
-            // premier donc les ERROR de conflit survivraient sans doute, mais
-            // lire la liste complète retire la question — elle est déjà sous
-            // la main ici. `smapiLogDate` (publié juste au-dessus) porte déjà
-            // la date de ce journal, pas besoin d'un second champ.
-            self.contentPatcherConflicts = ContentPatcherConflicts.read(from: entries)
             completion?()
         }
     }
