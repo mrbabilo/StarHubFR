@@ -6,9 +6,28 @@ import SwiftUI
 
 @Observable
 final class StarHubTHViewModel {
-    var saveViewMode: SaveViewMode = .list
-    var saveSortOption: SaveSortOption = .lastPlayed
-    var saveFilterTag: String = ""
+    // MARK: Sauvegardes — le store du domaine (cadrage §4, domaine 1). Les
+    // étiquettes arrivent en closure : le store ne connaît pas
+    // `SaveNotesStore`, et la lecture se faisant à l'appel, le suivi
+    // d'observation traverse jusqu'au magasin de notes.
+    private let savesStore = SavesStore(
+        tagForSave: { SaveNotesStore.shared.note(for: $0).tag }
+    )
+
+    var saveViewMode: SaveViewMode {
+        get { savesStore.viewMode }
+        set { savesStore.viewMode = newValue }
+    }
+    var saveSortOption: SaveSortOption {
+        get { savesStore.sortOption }
+        set { savesStore.sortOption = newValue }
+    }
+    var saveFilterTag: String {
+        get { savesStore.filterTag }
+        set { savesStore.filterTag = newValue }
+    }
+    var saves: [SaveGameInfo] { savesStore.saves }
+    var isSaveOperationRunning: Bool { savesStore.isOperationRunning }
 
     // MARK: Environnement — le store du domaine (REFACTORING §6), et ses
     // façades provisoires (condition 1) : les vues lisent encore
@@ -1918,7 +1937,6 @@ final class StarHubTHViewModel {
     private let maxLogEntries = 2000
     var alertMessage: String = ""
     var showAlert: Bool = false
-    var saves: [SaveGameInfo] = []
     var editingSave: SaveGameInfo? = nil {
         didSet {
             guard let save = editingSave else {
@@ -1945,16 +1963,6 @@ final class StarHubTHViewModel {
     
     var saveToDuplicate: SaveGameInfo? = nil
     var backupToBranch: SaveBackup? = nil
-
-    /// Vrai pendant qu'une écriture de sauvegarde (suppression, duplication,
-    /// backup, restauration) tourne en tâche de fond.
-    ///
-    /// Ces opérations bloquaient le fil principal, ce qui empêchait par
-    /// accident un second clic. Une fois asynchrones, le bouton reste vivant :
-    /// sans ce drapeau, deux clics sur « Dupliquer » lanceraient deux copies
-    /// concurrentes du même dossier. Même rôle qu'`isApplyingProfile` —
-    /// `guard` dans le ViewModel, `.disabled` sur les boutons.
-    private(set) var isSaveOperationRunning = false
 
     var modProfiles: [ModProfile] = []
     var activeProfileId: UUID? = nil
@@ -7153,7 +7161,7 @@ final class StarHubTHViewModel {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let saves = SaveManager.shared.fetchSaves()
             DispatchQueue.main.async {
-                self?.saves = saves
+                self?.savesStore.replace(saves: saves)
             }
         }
     }
@@ -7195,14 +7203,13 @@ final class StarHubTHViewModel {
         // sauvegarde est un lecture-modification-écriture entier — deux
         // opérations qui s'entrelacent valent « dernier gagne », les
         // changements de l'autre perdus (audit 2026-08-05).
-        guard !isSaveOperationRunning else { return }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return }
         // `updateSave` parses and rewrites the full save XML — dispatched
         // off main so it doesn't block the UI on a large save file.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
             DispatchQueue.main.async {
-                self.isSaveOperationRunning = false
+                self.savesStore.endOperation()
                 if success {
                     self.reloadSaves()
                     self.showModal(message: self.localization.L(L10n.VM.saveSuccess))
@@ -7217,15 +7224,14 @@ final class StarHubTHViewModel {
         guard let save = editingSave else { return }
         let items = inventoryToEdit
         // Même verrou qu'`editSave` (audit 2026-08-05).
-        guard !isSaveOperationRunning else { return }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return }
         // Same rationale as `editSave` — the save file read/write below
         // must not run on the main thread.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateInventory(info: save, items: items)
             let refetched = success ? SaveManager.shared.fetchInventory(for: save) : nil
             DispatchQueue.main.async {
-                self.isSaveOperationRunning = false
+                self.savesStore.endOperation()
                 if success {
                     self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
                     if let refetched = refetched {
@@ -7246,12 +7252,11 @@ final class StarHubTHViewModel {
     /// le fil principal, les `@Published` touchés après l'`await` y restent.
     @MainActor
     func deleteSave(info: SaveGameInfo) async {
-        guard !isSaveOperationRunning else { return }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return }
         let deleted = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.deleteSave(info: info)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         if deleted {
             // Fermer l'éditeur ici, pas côté vue : la suppression est
             // asynchrone, et un `editingSave = nil` enchaîné après l'appel
@@ -7266,25 +7271,11 @@ final class StarHubTHViewModel {
         }
     }
     
-    /// L'arbre des sauvegardes tel qu'il s'affiche.
-    ///
-    /// La filiation et le tri vivent dans `SaveTree` (module testable) ; ne
-    /// reste ici que le filtre par étiquette, qui dépend d'un magasin sur
-    /// disque. Le filtre s'applique aux racines seulement, comme avant.
-    var savesHierarchy: [SaveNode] {
-        var roots = SaveTree.build(from: saves, sortedBy: saveSortOption)
-        if !saveFilterTag.isEmpty {
-            roots = roots.filter {
-                SaveNotesStore.shared.note(for: $0.info.folderName).tag == saveFilterTag
-            }
-        }
-        return roots
-    }
-
-    var availableFilterTags: [String] {
-        let allTags = saves.compactMap { SaveNotesStore.shared.note(for: $0.folderName).tag }.filter { !$0.isEmpty }
-        return Array(Set(allTags)).sorted()
-    }
+    /// Façades de lecture vers le store du domaine — le suivi d'observation
+    /// les traverse (cadrage §2, cas 1), la composition (filiation, tri,
+    /// filtre par étiquette) est prouvée dans `SavesStoreTests`.
+    var savesHierarchy: [SaveNode] { savesStore.hierarchy }
+    var availableFilterTags: [String] { savesStore.availableFilterTags }
     
     func setAvatar(forSave folderName: String, iconPath: String) {
         let note = SaveNotesStore.shared.note(for: folderName)
@@ -7324,12 +7315,11 @@ final class StarHubTHViewModel {
     /// réessayer sous le modal d'erreur.
     @MainActor
     func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) async -> Bool {
-        guard !isSaveOperationRunning else { return false }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return false }
         let duplicated = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.duplicateSave(info: info, newName: newName, newFarm: newFarm)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         if duplicated {
             reloadSaves()
             showModal(message: localization.L(L10n.VM.duplicateSaveSuccess))
@@ -7362,23 +7352,21 @@ final class StarHubTHViewModel {
     /// principal, bouton « Sauvegarder » compris.
     @MainActor
     func createBackup(info: SaveGameInfo) async -> Bool {
-        guard !isSaveOperationRunning else { return false }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return false }
         let created = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.backupSave(info: info)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         return created
     }
 
     @MainActor
     func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) async -> Bool {
-        guard !isSaveOperationRunning else { return false }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return false }
         let branched = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.branchFromBackup(backup: backup, newName: newName, newFarm: newFarm)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         if branched {
             reloadSaves()
             showModal(message: localization.L(L10n.VM.branchSuccess))
@@ -7391,12 +7379,11 @@ final class StarHubTHViewModel {
 
     @MainActor
     func restoreBackup(backup: SaveBackup, info: SaveGameInfo) async {
-        guard !isSaveOperationRunning else { return }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return }
         let restored = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.restoreBackup(backup: backup, info: info)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         if restored {
             reloadSaves()
             viewingSaveTimeline = nil
@@ -7409,12 +7396,11 @@ final class StarHubTHViewModel {
 
     @MainActor
     func deleteBackup(_ backup: SaveBackup) async -> Bool {
-        guard !isSaveOperationRunning else { return false }
-        isSaveOperationRunning = true
+        guard savesStore.beginOperation() else { return false }
         let deleted = await Task.detached(priority: .userInitiated) {
             SaveManager.shared.deleteBackup(backup)
         }.value
-        isSaveOperationRunning = false
+        savesStore.endOperation()
         return deleted
     }
 

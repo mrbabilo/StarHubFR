@@ -103,6 +103,7 @@ LOT_FILES = (
     "StarHubTH/StarHubTHViewModel.swift",
     "StarHubTH/Stores/GameEnvironmentStore.swift",
     "StarHubTH/Stores/NexusMetadataStore.swift",
+    "StarHubTH/Stores/SavesStore.swift",
     "StarHubTH/SaveManager.swift",
 )
 # Les instances Combine que le VM peut lire dans un corps calculé — le défaut
