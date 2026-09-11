@@ -18,7 +18,7 @@ class ConfigTreeNode: Identifiable {
 }
 
 struct ModConfigEditorView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     

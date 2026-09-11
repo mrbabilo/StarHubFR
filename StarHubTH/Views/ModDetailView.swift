@@ -20,7 +20,7 @@ enum DetailTab: Hashable {
 }
 
 struct ModDetailView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     /// Le rapport de raccourcis vit sur ce service (tâche 9) : il est
@@ -1445,7 +1445,7 @@ private struct TranslationProgressBar: View {
 /// (**A1-T3**) s'en charge, et un compte gratuit ne peut de toute façon pas
 /// télécharger depuis l'API. Le bouton mène à la page Nexus.
 private struct SupplementSection: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
@@ -1657,7 +1657,7 @@ private struct SupplementSection: View {
 /// Absente des composants de pack : c'est le dossier de premier niveau qu'on
 /// traduit, comme c'est lui qu'on met en pause ou qu'on sauvegarde.
 private struct TranslationSection: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     @State private var showDeclareSheet = false
@@ -2006,7 +2006,7 @@ private struct TranslationSection: View {
 /// sans rapport. Chaque ligne offre d'abord d'ouvrir la fiche — vérifier avant
 /// de désigner — et l'adoption reste un geste.
 private struct NexusIdentitySection: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 

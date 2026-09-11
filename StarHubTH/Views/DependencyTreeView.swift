@@ -5,7 +5,7 @@ import SwiftUI
 /// actions, click-through. Rebuilds from `vm.dependencyTree(for:)`, which reads
 /// `@Published mods` — so an "Enable" action re-resolves automatically.
 struct DependencyTreeView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
@@ -30,7 +30,7 @@ struct DependencyTreeView: View {
 /// per-node `├─`/`└─` glyph bookkeeping.
 struct DependencyNodeTree: View {
     let node: DependencyNode
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
@@ -60,7 +60,7 @@ struct DependencyNodeTree: View {
 /// pane (SP2 navigation).
 struct DependencyRowView: View {
     let node: DependencyNode
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// La dépendance dont l'activation attend une confirmation : smapi.io la
     /// signale cassée. Voir `CompatibilityWarning`.
@@ -207,7 +207,7 @@ struct DependencyRowView: View {
 /// the dependency is installed (a missing dep has no pane to show).
 private struct NodeTapModifier: ViewModifier {
     let mod: ModItem?
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     func body(content: Content) -> some View {
         if let mod {
             content.onTapGesture { vm.viewingModDetail = mod }.pointingHandCursor()

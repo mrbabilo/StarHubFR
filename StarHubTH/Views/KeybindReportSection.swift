@@ -32,7 +32,7 @@ import SwiftUI
 ///   (ronde de revue 2, constat 3). Le bouton « Relancer l'analyse » reste
 ///   inconditionnel, lui : voir `header`.
 struct KeybindReportSection: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var service: KeybindScanService
     /// La bascule d'onglet fait partie du geste « ouvrir la config » : le

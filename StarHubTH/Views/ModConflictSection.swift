@@ -114,7 +114,7 @@ import SwiftUI
 /// `vm.conflictWarning(for:)` en ont besoin aussi, une seule correspondance
 /// partagée plutôt que trois copies qui auraient fini par diverger.
 struct ModConflictSection: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {

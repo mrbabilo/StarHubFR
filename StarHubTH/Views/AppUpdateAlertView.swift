@@ -5,7 +5,7 @@ import SwiftUI
 /// cycle de vie des fenêtres au lancement, on n'en ajoute pas. Les deux
 /// boutons acquittent le tag : l'alerte se montre une fois par release.
 struct AppUpdateAlertView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let release: GitHubRelease
 

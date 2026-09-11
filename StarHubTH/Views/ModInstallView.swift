@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// Main view for mod installation via drag-and-drop of zip files.
 struct ModInstallView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// C2-T4 — le bouton « Voir la fiche » de l'écran de succès conduit au
     /// bon onglet : même canal que `SystemAlertsView` (pending posé avant le

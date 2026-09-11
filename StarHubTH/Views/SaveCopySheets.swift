@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DuplicateSaveSheet: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     @Environment(\.dismiss) var dismiss
@@ -59,7 +59,7 @@ struct DuplicateSaveSheet: View {
 }
 
 struct BranchBackupSheet: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let backup: SaveBackup
     @Environment(\.dismiss) var dismiss

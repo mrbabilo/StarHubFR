@@ -186,7 +186,7 @@ struct SaveTimelineView: View {
 }
 
 struct BackupRow: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let backup: SaveBackup
     let isLast: Bool

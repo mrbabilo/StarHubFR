@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ThaiTranslationHubView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var searchText = ""
     
@@ -107,7 +107,7 @@ struct ThaiTranslationHubView: View {
 }
 
 struct ThaiModRow: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ThaiTranslationMod
     @State private var isHovered = false
@@ -197,7 +197,7 @@ private struct InfoDivider: View {
 }
 
 struct ThaiModDetailView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ThaiTranslationMod
 

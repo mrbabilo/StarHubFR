@@ -10,7 +10,7 @@ import SwiftUI
 /// `ModDetailView`. Le signalement et la suppression sont des closures pour
 /// la même raison — feuille et confirmation y vivent.
 struct ModDetailActionBar: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// La copie figée à l'ouverture — pour l'identité (dossier, libellés).
     let mod: ModItem

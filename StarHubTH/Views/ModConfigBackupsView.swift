@@ -11,7 +11,7 @@ private enum ModConfigBackupsConfirmation {
 }
 
 struct ModConfigBackupsView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     @State private var backups: [ModConfigBackup] = []
@@ -315,7 +315,7 @@ struct ModConfigBackupsView: View {
 // MARK: - Row
 
 private struct ModConfigBackupRow: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let backup: ModConfigBackup
     let isExpanded: Bool

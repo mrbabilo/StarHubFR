@@ -10,7 +10,7 @@ struct DiscoverView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
     /// rien montrer, et le dire sans offrir le chemin des réglages laisse
@@ -355,7 +355,7 @@ private struct ProminentButton: ViewModifier {
 
 /// La fiche éclair (spec §7.2) : sheet, jamais un état global.
 struct DiscoveryDetailSheet: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let row: StarHubTHViewModel.DiscoveryRow
     @Environment(\.dismiss) private var dismiss

@@ -15,7 +15,7 @@ enum AppWindowID {
 /// fait rien bouger à l'écran. Réouverture idempotente : `openWindow` sur une
 /// fenêtre déjà ouverte l'amène au premier plan et le contenu se remplace.
 struct InstallReportWindow: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     /// `dismissWindow`, pas `dismiss` : sur une racine de scène, `dismiss`
     /// n'est pas garanti de viser la fenêtre, et il échouerait sans bruit —
@@ -52,7 +52,7 @@ struct InstallReportWindow: View {
 }
 
 private struct ReportContent: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let report: InstallReport
 
@@ -162,7 +162,7 @@ private struct ReportContent: View {
 /// la feuille (compteurs non nuls joints par « · »), sans refermer quoi que
 /// ce soit : la fenêtre de bilan reste ouverte.
 private struct DeltaRow: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let delta: ModUpdateKeyDelta
 

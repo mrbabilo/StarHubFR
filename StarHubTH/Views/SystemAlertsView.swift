@@ -33,7 +33,7 @@ private enum SystemAlertsSheet: Identifiable {
 }
 
 struct SystemAlertsView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
 

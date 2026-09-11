@@ -9,7 +9,7 @@ import SwiftUI
 /// fichier installé n'a plus : ce qui a été traduit depuis est montré, jamais
 /// proposé au remplacement.
 struct TranslationRecoveryDiffView: View {
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let file: RecoverableFile
     @Binding var isPresented: Bool

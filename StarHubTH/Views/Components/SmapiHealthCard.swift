@@ -26,7 +26,7 @@ enum PathoschildDateLabel {
 
 struct SmapiHealthCard: View {
 
-     var vm: StarHubTHViewModel
+    var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     /// nil = follow the default (collapsed when healthy). Once the user taps the
