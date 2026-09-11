@@ -5064,7 +5064,9 @@ class StarHubTHViewModel: ObservableObject {
     /// `handleNexusDownloadResult`, et chaque branche de
     /// `NexusDownloader.download` appelle sa complétion exactement une fois.
     private func rejectNexusDownloadIfBusy() -> Bool {
-        guard isDownloadingFromNexus || pendingDownloadedZip != nil else { return false }
+        guard NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
+                                       hasPendingZip: pendingDownloadedZip != nil)
+        else { return false }
         showModal(message: localization.L(L10n.VM.nexusDlBusy))
         return true
     }
@@ -5093,14 +5095,18 @@ class StarHubTHViewModel: ObservableObject {
     /// répété sur un fichier déjà en attente ne duplique pas l'entrée
     /// (dédupliquée par `NexusDownloadQueue`) et ne rejournalise pas.
     private func enqueueOrStartNexusDownload(_ entry: NexusDownloadQueue.Entry) {
-        if isDownloadingFromNexus || pendingDownloadedZip != nil {
+        switch NexusDownloadFlow.route(
+            entry,
+            isBusy: NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
+                                             hasPendingZip: pendingDownloadedZip != nil)) {
+        case .enqueue(let entry):
             if nexusDownloadQueue.enqueue(entry) {
                 log(nexusDownloadLogMessage(named: L10n.VM.nexusDlQueuedNamed,
                                             plain: L10n.VM.nexusDlQueued, modId: entry.modId))
             }
-            return
+        case .start(let entry):
+            startNexusDownload(entry)
         }
-        startNexusDownload(entry)
     }
 
     /// Lance effectivement le téléchargement — appelé sur un état de repos
@@ -5129,7 +5135,8 @@ class StarHubTHViewModel: ObservableObject {
     /// d'un téléchargement de mod, la feuille est ouverte : le garde tient
     /// le suivant jusqu'à sa fermeture.
     func drainQueuedNexusDownloads() {
-        guard !isDownloadingFromNexus, pendingDownloadedZip == nil,
+        guard !NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
+                                        hasPendingZip: pendingDownloadedZip != nil),
               let next = nexusDownloadQueue.dequeue() else { return }
         startNexusDownload(next)
     }
@@ -5142,28 +5149,27 @@ class StarHubTHViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.clearNexusDownloadState()
-            switch result {
-            case .success(let outcome):
-                self.pendingDownloadedZip = outcome.zip
-                self.pendingNexusSource = NexusInstallSource(
-                    modId: modId,
-                    facts: outcome.resolvedFile.flatMap {
-                        NexusInstallFacts(resolvedFile: $0, modId: String(modId))
-                    })
+            switch NexusDownloadFlow.completion(for: result, modId: modId) {
+            case .installable(let zip, let modId, let facts, _):
+                self.pendingDownloadedZip = zip
+                self.pendingNexusSource = NexusInstallSource(modId: modId, facts: facts)
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCompletedNamed,
                                                       plain: L10n.VM.nexusDlCompleted,
                                                       modId: modId))
-            case .failure(.cancelled):
+            case .cancelled:
                 // Annuler son propre téléchargement n'est pas une panne : une
                 // alerte sur un geste volontaire serait du bruit. La ligne de
                 // journal, elle, garde la trace de ce qui n'a pas été installé.
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCancelledNamed,
                                                       plain: L10n.VM.nexusDlCancelled,
                                                       modId: modId))
-            case .failure(let error):
-                let message = self.nexusDownloadMessage(error)
-                self.showModal(message: message)
-                self.log(message, level: .warning)
+            case .failed(let message):
+                // Résolu avec le bundle **vivant** du ViewModel, qui suit un
+                // changement de langue en session — là où `errorDescription`
+                // passe par `NSLocalizedString`. Même table, deux résolveurs.
+                let text = message.resolved { self.localization.L($0) }
+                self.showModal(message: text)
+                self.log(text, level: .warning)
             }
             // Fin d'un téléchargement sans feuille ouverte (échec,
             // annulation) : le créneau est libre, la file peut reprendre.
@@ -5224,23 +5230,15 @@ class StarHubTHViewModel: ObservableObject {
     /// Renders a `NexusDownloadError` through the app's live per-language bundle
     /// (`localization.L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
     /// doesn't follow in-session language switching.
+    /// Rend un `NexusDownloadError` avec le bundle **vivant** de l'app
+    /// (`localization.L`) plutôt qu'avec `errorDescription`, dont le
+    /// `NSLocalizedString` ne suit pas un changement de langue en session.
+    ///
+    /// La table des neuf cas vit dans `NexusDownloadFlow.message(for:)` — elle
+    /// était ici **en double** de celle d'`errorDescription`, deux copies
+    /// d'une même règle. Il n'en reste qu'une, et deux résolveurs.
     private func nexusDownloadMessage(_ error: NexusDownloadError) -> String {
-        switch error {
-        case .noApiKey:            return localization.L(L10n.VM.nexusDlNoApiKey)
-        case .noValidFile:         return localization.L(L10n.VM.nexusDlNoValidFile)
-        case .noDownloadLink:      return localization.L(L10n.VM.nexusDlNoLink)
-        case .authFailed:          return localization.L(L10n.VM.nexusDlAuthFailed)
-        case .linkExpired:         return localization.L(L10n.VM.nexusDlLinkExpired)
-        case .rateLimited:         return localization.L(L10n.VM.nexusDlRateLimited)
-        case .serverError(let code): return String(format: localization.L(L10n.VM.nexusDlServerError), code)
-        case .requestFailed(let msg): return String(format: localization.L(L10n.VM.nexusDlRequestFailed), msg)
-        // Ne devrait jamais s'afficher : les appelants traitent `.cancelled`
-        // avant d'en arriver là, une alerte sur un geste volontaire étant du
-        // bruit. Le cas est là pour que le switch reste exhaustif — c'est lui
-        // qui a fait échouer la compilation quand ce cas est apparu, plutôt
-        // que de laisser passer une chaîne anglaise en silence.
-        case .cancelled:           return localization.L(L10n.VM.nexusDlCancelledError)
-        }
+        NexusDownloadFlow.message(for: error).resolved { localization.L($0) }
     }
 
     /// Renders an installation-time error through the app's live per-language

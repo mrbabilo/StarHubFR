@@ -22,22 +22,15 @@ enum NexusDownloadError: Error, LocalizedError, Equatable {
     /// `error.localizedDescription`, never a hand-written English string.
     case requestFailed(String)
 
+    /// La table des neuf cas vit dans `NexusDownloadFlow.message(for:)` —
+    /// elle était ici **et** dans le ViewModel, deux copies d'une même règle
+    /// que rien ne tenait d'accord. Il n'en reste qu'une, résolue de deux
+    /// façons : ici par le bundle principal, et par le bundle vivant du
+    /// ViewModel (le seul qui suive un changement de langue en session) pour
+    /// ce que l'utilisateur voit.
     var errorDescription: String? {
-        switch self {
-        case .noApiKey:            return L10nKey("vm_nexus_dl_no_api_key")
-        case .noValidFile:         return L10nKey("vm_nexus_dl_no_valid_file")
-        case .noDownloadLink:      return L10nKey("vm_nexus_dl_no_link")
-        case .authFailed:          return L10nKey("vm_nexus_dl_auth_failed")
-        case .rateLimited:         return L10nKey("vm_nexus_dl_rate_limited")
-        case .linkExpired:         return L10nKey("vm_nexus_dl_link_expired")
-        case .cancelled:           return L10nKey("vm_nexus_dl_cancelled_error")
-        case .serverError(let c):  return String(format: L10nKey("vm_nexus_dl_server_error"), c)
-        case .requestFailed(let m): return String(format: L10nKey("vm_nexus_dl_request_failed"), m)
-        }
+        NexusDownloadFlow.message(for: self).resolved { NSLocalizedString($0, comment: "") }
     }
-    // Small localized-string helper (the ViewModel owns the language bundle;
-    // here we fall back to the main bundle, which build_app.py populates).
-    private func L10nKey(_ k: String) -> String { NSLocalizedString(k, comment: "") }
 }
 
 /// Ce qu'un 403 veut dire **sur l'appel qui le reçoit** — le même statut
@@ -63,6 +56,20 @@ enum Forbidden403Meaning {
 ///   GET /v1/games/{game}/mods/{modId}/files/{fileId}/download_link.json
 /// Premium accounts authenticate with the API key alone; non-premium accounts
 /// MUST pass key+expires taken from an nxm:// link.
+// Déplacé depuis `NexusDownloader.swift` le 2026-09-11 : la
+// classification d'un résultat de téléchargement est de la logique
+// pure, et elle ne pouvait pas rejoindre Core tant que son type de
+// résultat vivait dans le fichier réseau. Déplacement pur.
+/// Le fruit d'un téléchargement abouti : l'archive posée, et le fichier Nexus
+/// qu'elle matérialise quand l'app l'a **choisi** elle-même (MAIN le plus
+/// récent, résolu via files.json). Un lien `nxm://` désigne son fichier
+/// explicitement : X9 n'interroge pas la liste en plus pour le dater, donc
+/// `resolvedFile` y reste nil.
+struct NexusDownloadOutcome {
+    let zip: URL
+    let resolvedFile: NexusModFile?
+}
+
 struct NexusModFile: Decodable {
     let fileId: Int
     let categoryId: Int

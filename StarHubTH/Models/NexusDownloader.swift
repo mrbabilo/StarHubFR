@@ -1,15 +1,5 @@
 import Foundation
 
-/// Le fruit d'un téléchargement abouti : l'archive posée, et le fichier Nexus
-/// qu'elle matérialise quand l'app l'a **choisi** elle-même (MAIN le plus
-/// récent, résolu via files.json). Un lien `nxm://` désigne son fichier
-/// explicitement : X9 n'interroge pas la liste en plus pour le dater, donc
-/// `resolvedFile` y reste nil.
-struct NexusDownloadOutcome {
-    let zip: URL
-    let resolvedFile: NexusModFile?
-}
-
 /// Downloads a Nexus mod file to a temp `.zip`, then hands the URL back to the
 /// caller (which feeds it into ModZipInstaller). Two paths converge here:
 ///  - premium: key/expires nil → API key alone authorizes the link.
