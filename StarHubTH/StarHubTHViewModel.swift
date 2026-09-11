@@ -441,19 +441,6 @@ class StarHubTHViewModel: ObservableObject {
         }
     }
 
-    /// Compte les problèmes de raccourcis (collisions + conflits jeu) pour
-    /// les pastilles de la barre latérale et de l'accueil (tâche 7) — les
-    /// « non reconnus » n'y entrent pas, ce sont des valeurs illisibles, pas
-    /// des problèmes avérés. Zéro tant qu'aucun rapport n'existe : une
-    /// pastille qui n'a pas encore la réponse n'invente pas de chiffre.
-    /// `@MainActor` explicite comme `reloadOutdatedKeyIndex()` juste en
-    /// dessous : `keybindScanService` est isolé à l'acteur principal, cette
-    /// classe ne l'est pas.
-    @MainActor
-    var keybindProblemCount: Int {
-        keybindScanService.report?.problemCount ?? 0
-    }
-
     /// Les problèmes de santé du parc, résolus une seule fois.
     ///
     /// L'accueil, le badge de la barre latérale et l'écran d'alertes lisent
@@ -499,7 +486,7 @@ class StarHubTHViewModel: ObservableObject {
             detail: { joined in joined + " " + self.localization.L(L10n.Health.modWarningSource) })
 
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
-                                           keybindReport: keybindScanService.report,
+                                           keybindReport: keybindReport,
                                            conflicts: live,
                                            folderCollisions: collisionIssues + warningIssues,
                                            displayName: { folderName in
@@ -1947,6 +1934,19 @@ class StarHubTHViewModel: ObservableObject {
     // elle-même isolée, et l'appeler ici — `StarHubTHViewModel` n'est pas
     // `@MainActor` au niveau de la classe — échoue à la compilation.
     let keybindScanService = KeybindScanService()
+
+    /// Miroir du rapport du scanner de raccourcis. `KeybindScanService` reste
+    /// un `ObservableObject` hors lot (cadrage §3) : sous `@Observable`, une
+    /// lecture de son `report` depuis un corps calculé ne serait pas suivie —
+    /// la fin d'un scan n'invaliderait plus la pastille d'alertes. On
+    /// souscrit à `$report`, pas à `objectWillChange` : le payload est la
+    /// valeur NEUVE (@Published émettra l'ancienne), et la valeur courante est
+    /// re-émise à la souscription — la convergence est structurelle, pas un
+    /// accident de l'ordre des écritures du scanner. `removeDuplicates()` :
+    /// un scan émet plusieurs fois sans toujours changer le rapport.
+    /// (Revue du chantier A, Task 1.)
+    @Published private(set) var keybindReport: KeybindScanner.KeybindReport?
+    private var keybindCancellable: AnyCancellable?
     
     init(localization: LocalizationStore) {
         self.localization = localization
@@ -1976,6 +1976,15 @@ class StarHubTHViewModel: ObservableObject {
         // Automatically retrieve saved game path, or attempt to find the
         // default Steam path on Mac.
         environment.restoreGameDir()
+        // Remède cadrage §3 bis : le rapport des raccourcis rejoint l'état du
+        // VM (voir `keybindReport`). `$report` est isolé au main (service
+        // @MainActor), l'init du VM ne l'est pas — mais son unique site de
+        // construction est le main (`StarHubTHApp.init`). `assumeIsolated`
+        // borne cet accès à la seule expression qui en a besoin.
+        let reports = MainActor.assumeIsolated { keybindScanService.$report }
+        keybindCancellable = reports
+            .removeDuplicates()
+            .sink { [weak self] in self?.keybindReport = $0 }
         // Le relais : les vues n'observent pas encore le store directement
         // (façades provisoires ci-dessus) — sans lui, elles resteraient sur
         // l'ancienne valeur après chaque écriture du store.
