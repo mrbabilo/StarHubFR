@@ -1978,19 +1978,26 @@ final class StarHubTHViewModel {
     var saveToDuplicate: SaveGameInfo? = nil
     var backupToBranch: SaveBackup? = nil
 
-    var modProfiles: [ModProfile] = []
-    var activeProfileId: UUID? = nil
+    // MARK: Profils — le store du domaine (cadrage §4, domaine 5). Les
+    // décisions d'activation, la capture des configs et la reprise vivent
+    // déjà en Core (`ProfileActivation`, `ProfileConfigCapture`,
+    // `ProfileRecovery`) ; le store n'est que l'état.
+    private let profilesStore = ProfileStore()
+
+    var modProfiles: [ModProfile] { profilesStore.profiles }
+    var activeProfileId: UUID? { profilesStore.activeProfileId }
 
     /// True while a profile is being applied to disk (mod folders moving, then
     /// the rescan). Blocks starting another activation until it finishes, and
     /// lets the UI disable the Activate/Manage buttons meanwhile.
-    var isApplyingProfile = false
+    var isApplyingProfile: Bool { profilesStore.isApplying }
 
     /// Id of the profile currently being applied, or nil when none is in
     /// flight. Drives the per-row spinner in ModProfilesView (the Activate
     /// button of the matching row is replaced by a ProgressView). Cleared
-    /// together with `isApplyingProfile` once the move + rescan completes.
-    var applyingProfileId: UUID? = nil
+    /// together with `isApplyingProfile` once the move + rescan completes —
+    /// `ProfileStore.endApplying()`.
+    var applyingProfileId: UUID? { profilesStore.applyingId }
 
     /// Délai anti double-lancement (R2bis) : ponte la fenêtre où le jeu lancé
     /// n'apparaît pas encore dans `NSWorkspace.runningApplications`. La porte
@@ -7657,21 +7664,21 @@ final class StarHubTHViewModel {
     
     // MARK: - Mod Profiles
     func loadProfiles() {
-        // Must be called on the main actor: `modProfiles` and `activeProfileId`
-        // are `@Published`, and mutating them off-main triggers a SwiftUI
-        // runtime warning ("Publishing changes from background threads").
-        // `performInitialLoad` honours this by calling us from its `main.async`
-        // block (we're the only caller).
+        // Les mutations se font sur le fil principal — `performInitialLoad`
+        // appelle d'ici son bloc `main.async`. ⚠️ Ce commentaire disait
+        // autrefois que SwiftUI émet un diagnostic sur une écriture hors fil :
+        // sous `@Observable`, plus aucun diagnostic n'est émis — mais l'ordre
+        // des publications reste ce que l'UI suppose.
         if let data = UserDefaults.standard.data(forKey: UDKey.modProfiles),
            let profiles = try? JSONDecoder().decode([ModProfile].self, from: data) {
-            self.modProfiles = profiles
+            self.profilesStore.setProfiles(profiles)
         } else {
-            self.modProfiles = []
+            self.profilesStore.setProfiles([])
         }
 
         if let activeIdStr = UserDefaults.standard.string(forKey: UDKey.activeProfileId),
            let activeId = UUID(uuidString: activeIdStr) {
-            self.activeProfileId = activeId
+            self.profilesStore.setActiveProfile(activeId)
         }
 
         sweepOrphanProfileConfigStores()
@@ -7715,10 +7722,8 @@ final class StarHubTHViewModel {
     }
     
     /// The currently-active profile, if any (nil when none is applied).
-    var activeProfile: ModProfile? {
-        guard let id = activeProfileId else { return nil }
-        return modProfiles.first { $0.id == id }
-    }
+    /// Un identifiant orphelin (profil supprimé) ne rend rien.
+    var activeProfile: ModProfile? { profilesStore.activeProfile }
 
     private static let defaultProfileKey = "defaultProfileId"
 
@@ -7793,12 +7798,12 @@ final class StarHubTHViewModel {
         let made = ProfileFactory.make(name: name,
                                        seed: seed,
                                        enabledMods: mods.flattenedMods.filter(\.isEnabled))
-        modProfiles.append(made.profile)
+        profilesStore.add(made.profile)
         // Un instantané peut devenir actif sur-le-champ : il décrit déjà l'état
         // du disque, aucun dossier à déplacer. Un profil vide, non — voir
         // `ProfileFactory.make`.
         if made.activate {
-            activeProfileId = made.profile.id
+            profilesStore.setActiveProfile(made.profile.id)
         }
         saveProfiles()
         log(String(format: localization.L(L10n.VM.profileCreated), name, made.profile.enabledModIds.count))
@@ -8033,8 +8038,10 @@ final class StarHubTHViewModel {
         // qui restera le jour où il aura été désinstallé.
         let added = mods.flattenedMods.first(where: { $0.uniqueId.lowercased() == key })
         if let added {
-            modProfiles[index].modMetadata[added.uniqueId] = ProfileModMetadata(name: added.name,
-                                                                               nexusModId: added.nexusModId)
+            profilesStore.mutateProfile(with: id) {
+                $0.modMetadata[added.uniqueId] = ProfileModMetadata(name: added.name,
+                                                                    nexusModId: added.nexusModId)
+            }
         }
         var ids = modProfiles[index].enabledModIds
         ids.append(uniqueId)
@@ -8169,7 +8176,7 @@ final class StarHubTHViewModel {
     /// un des deux textes ne se parse pas — l'écran affiche l'explication,
     /// jamais un diff inventé.
     func profileConfigDiffs(mod: ModItem, other: ModProfile) -> [ConfigKeyDiff]? {
-        guard let active = modProfiles.first(where: { $0.id == activeProfileId }),
+        guard let active = profilesStore.activeProfile,
               let textA = profileConfigText(mod: mod, profile: active),
               let textB = profileConfigText(mod: mod, profile: other),
               let treeA = ConfigJSONTree.parse(textA),
@@ -8220,7 +8227,7 @@ final class StarHubTHViewModel {
     /// écrire. Sert à l'écran : dire combien de mods entreraient, et lesquels
     /// ne le peuvent pas, **avant** de toucher au disque.
     func favoriteImportPreview(profileId: UUID) -> FavoriteResolution.Result {
-        guard let profile = modProfiles.first(where: { $0.id == profileId }) else {
+        guard let profile = profilesStore.profile(with: profileId) else {
             return FavoriteResolution.Result(ids: [], unresolved: [])
         }
         return FavoriteResolution.profileIds(favorites: favoriteMods, in: mods,
@@ -8260,8 +8267,10 @@ final class StarHubTHViewModel {
         // La résolution (casse, composants de pack, doublons d'identifiant)
         // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
         // ici en deux exemplaires, un par import.
-        modProfiles[index].modMetadata.merge(
-            ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
+        profilesStore.mutateProfile(with: profileId) {
+            $0.modMetadata.merge(
+                ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
+        }
         // Capturés **avant** `updateProfile` : sur un profil actif, il
         // réapplique le profil au disque, et le rescan qui suit fait passer
         // `syncActiveProfileIds`, qui réécrit `enabledModIds` depuis les mods
@@ -8280,7 +8289,7 @@ final class StarHubTHViewModel {
     /// `favoriteImportPreview` pour l'esprit — la résolution est strictement
     /// symétrique (folders → UniqueIDs, dédupliqué contre `existing`).
     func blacklistImportPreview(profileId: UUID) -> BlacklistResolution.Result {
-        guard let profile = modProfiles.first(where: { $0.id == profileId }) else {
+        guard let profile = profilesStore.profile(with: profileId) else {
             return BlacklistResolution.Result(ids: [], unresolved: [])
         }
         return BlacklistResolution.profileIds(blacklist: blacklistedMods, in: mods,
@@ -8308,8 +8317,10 @@ final class StarHubTHViewModel {
         // La résolution (casse, composants de pack, doublons d'identifiant)
         // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
         // ici en deux exemplaires, un par import.
-        modProfiles[index].modMetadata.merge(
-            ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
+        profilesStore.mutateProfile(with: profileId) {
+            $0.modMetadata.merge(
+                ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
+        }
         let name = modProfiles[index].name
         let newIds = modProfiles[index].enabledModIds + resolution.ids
         let importedCount = resolution.ids.count
@@ -8325,9 +8336,9 @@ final class StarHubTHViewModel {
     /// la modifier, et une activation déplacerait aussitôt des dossiers de mods
     /// que personne n'a demandé de bouger.
     func duplicateProfile(id: UUID) {
-        guard let source = modProfiles.first(where: { $0.id == id }) else { return }
+        guard let source = profilesStore.profile(with: id) else { return }
         let copy = ProfileFactory.duplicate(source, nameFormat: localization.L(L10n.Profiles.copyNameFormat))
-        modProfiles.append(copy)
+        profilesStore.add(copy)
         saveProfiles()
         log(String(format: localization.L(L10n.VM.profileCreated), copy.name, copy.enabledModIds.count))
     }
@@ -8335,17 +8346,17 @@ final class StarHubTHViewModel {
     func deleteProfile(id: UUID) {
         // The default profile is protected — never delete it.
         guard !isDefaultProfile(id) else { return }
-        if let name = modProfiles.first(where: { $0.id == id })?.name {
+        if let name = profilesStore.profile(with: id)?.name {
             log(String(format: localization.L(L10n.VM.profileDeleted), name))
         }
-        modProfiles.removeAll { $0.id == id }
+        profilesStore.removeProfile(with: id)
         // Le magasin de configs part avec le profil (B3-T7) : plus aucun
         // écran ne pourrait le nommer, et rien ne le relirait jamais. Le
         // dialogue de confirmation prévient quand il y a quelque chose à
         // perdre — c'est là que la décision se prend, pas ici.
         ProfileConfigStore.delete(profileId: id)
         if activeProfileId == id {
-            activeProfileId = nil
+            profilesStore.setActiveProfile(nil)
         }
         saveProfiles()
     }
@@ -8356,14 +8367,15 @@ final class StarHubTHViewModel {
         // profil non actif, `guardProfileApply` est permissif : rien ne
         // bouge, l'édition passe.
         guard guardProfileApply(for: id, name: newName) else { return }
-        if let index = modProfiles.firstIndex(where: { $0.id == id }) {
-            modProfiles[index].name = newName
-            modProfiles[index].enabledModIds = enabledModIds
+        if profilesStore.mutateProfile(with: id, {
+            $0.name = newName
+            $0.enabledModIds = enabledModIds
+        }) {
             saveProfiles()
 
             // If this is the active profile, apply the new mod selection to the filesystem
-            if activeProfileId == id {
-                applyProfileToFilesystem(profile: modProfiles[index])
+            if activeProfileId == id, let updated = profilesStore.profile(with: id) {
+                applyProfileToFilesystem(profile: updated)
             }
         }
     }
@@ -8382,14 +8394,16 @@ final class StarHubTHViewModel {
     func setModNote(_ text: String?, for mod: ModItem) {
         guard let activeId = activeProfileId,
               let index = modProfiles.firstIndex(where: { $0.id == activeId }) else { return }
-        modProfiles[index].setNote(text, forModId: mod.uniqueId)
+        profilesStore.mutateProfile(with: activeId) {
+            $0.setNote(text, forModId: mod.uniqueId)
+        }
         saveProfiles()
     }
 
     /// Renames a profile in place (its enabled-mod set is untouched).
     func renameProfile(id: UUID, newName: String) {
-        guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
-        modProfiles[index].name = newName
+        guard modProfiles.firstIndex(where: { $0.id == id }) != nil else { return }
+        profilesStore.mutateProfile(with: id) { $0.name = newName }
         saveProfiles()
     }
 
@@ -8472,9 +8486,9 @@ final class StarHubTHViewModel {
                 .filter { !$0.isEmpty }
         )
         let savedActiveProfile = activeProfileId
-        activeProfileId = nil
+        profilesStore.setActiveProfile(nil)
         applyProfileToFilesystem(profile: ephemeral, journaling: false) { [weak self] moveFailures in
-            self?.activeProfileId = savedActiveProfile
+            self?.profilesStore.setActiveProfile(savedActiveProfile)
             completion(BisectionRestoreOutcome(moveFailures: moveFailures))
         }
     }
@@ -8587,7 +8601,7 @@ final class StarHubTHViewModel {
         // mémorisés » quand un seul a bougé donnerait une fausse idée de ce
         // que la bascule vient de faire. Symétrique du compte de restauration.
         let touched = ProfileConfigCapture.touchedCount(before: before, after: entries)
-        let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
+        let name = profilesStore.profile(with: profileId)?.name ?? ""
         log(String(format: localization.L(L10n.VM.profileConfigsCaptured), name, touched))
     }
 
@@ -8657,7 +8671,7 @@ final class StarHubTHViewModel {
         // n'avoir *que* leurs configurations de différent — le parc ne bouge
         // alors pas, et la signature de `scanIfNeeded` ne verrait rien.
         rescanKeybindsAfterConfigWrite()
-        let name = modProfiles.first(where: { $0.id == profileId })?.name ?? ""
+        let name = profilesStore.profile(with: profileId)?.name ?? ""
         // Deux comptes plutôt qu'un : « restaurés » masquerait qu'une partie
         // l'a été sans merge, faute d'un texte lisible — la seule information
         // qui distingue une restauration fidèle d'un repli.
@@ -8743,8 +8757,8 @@ final class StarHubTHViewModel {
             showModal(message: message)
 
         case .resume(let profileId):
-            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
-            applyingProfileId = profileId
+            guard let profile = profilesStore.profile(with: profileId) else { return }
+            profilesStore.setApplyingId(profileId)
             applyProfileToFilesystem(profile: profile) { [weak self] _ in
                 self?.restoreProfileConfigs(for: profileId)
             }
@@ -8819,22 +8833,22 @@ final class StarHubTHViewModel {
                 clearUnresolvedJournal(implicitKeepNamed: clearingJournalNamed)
             }
             syncProfileConfigsDesyncMarker(entering: nil)
-            activeProfileId = nil
+            profilesStore.setActiveProfile(nil)
             saveProfiles()
 
         case .presentRecovery:
             pendingApplyRecovery = unresolvedApplyJournal
 
         case .resume(let profileId):
-            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
-            applyingProfileId = profileId
+            guard let profile = profilesStore.profile(with: profileId) else { return }
+            profilesStore.setApplyingId(profileId)
             applyProfileToFilesystem(profile: profile)
 
         case .adoptManualToggles:
             syncActiveProfileIds()
 
         case .activate(let profileId, let capturing, let clearingJournalNamed):
-            guard let profile = modProfiles.first(where: { $0.id == profileId }) else { return }
+            guard let profile = profilesStore.profile(with: profileId) else { return }
             // Capture AVANT tout : le disque porte encore les réglages du
             // profil sortant. C'est la seule fenêtre où ils existent.
             if let capturing { captureProfileConfigs(for: capturing) }
@@ -8842,9 +8856,9 @@ final class StarHubTHViewModel {
                 clearUnresolvedJournal(implicitKeepNamed: clearingJournalNamed)
             }
             syncProfileConfigsDesyncMarker(entering: profileId)
-            activeProfileId = profileId
+            profilesStore.setActiveProfile(profileId)
             saveProfiles()
-            applyingProfileId = profileId
+            profilesStore.setApplyingId(profileId)
             // Restauration dans le completion : après les déplacements de
             // dossiers et après le rescane, quand les chemins sont ceux du
             // profil entrant.
@@ -8877,7 +8891,7 @@ final class StarHubTHViewModel {
         // Mark an application in progress so `applyProfile` refuses to start a
         // second one and the UI disables the Activate/Manage buttons until the
         // move + rescan below completes.
-        isApplyingProfile = true
+        profilesStore.setApplying(true)
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
@@ -9091,8 +9105,7 @@ final class StarHubTHViewModel {
                 } else {
                     self.incompletelyAppliedProfileIds.insert(profileId)
                 }
-                self.isApplyingProfile = false
-                self.applyingProfileId = nil
+                self.profilesStore.endApplying()
                 // Surface the outcome to the user. A partial application
                 // is the dangerous case: the profile is "active" but the
                 // filesystem doesn't fully match it, so the next toggle
@@ -9869,12 +9882,16 @@ final class StarHubTHViewModel {
 
         let enabledMods = mods.flattenedMods.filter(\.isEnabled).filter { !$0.uniqueId.isEmpty }
 
-        modProfiles[index].enabledModIds = enabledMods.map(\.uniqueId)
+        profilesStore.mutateProfile(with: id) {
+            $0.enabledModIds = enabledMods.map(\.uniqueId)
+        }
         // Le nom et l'identifiant Nexus sont rafraîchis en même temps : ce sont
         // les seules traces qui resteront le jour où l'un de ces mods aura été
         // désinstallé. Ce qui était su des mods **sortis** du profil est
         // abandonné avec eux — le profil ne les réclame plus.
-        modProfiles[index].modMetadata = ProfileFactory.metadata(of: enabledMods)
+        profilesStore.mutateProfile(with: id) {
+            $0.modMetadata = ProfileFactory.metadata(of: enabledMods)
+        }
         saveProfiles()
         // Le profil vient d'adopter l'état du disque : il n'y a plus d'écart
         // en suspens à protéger.

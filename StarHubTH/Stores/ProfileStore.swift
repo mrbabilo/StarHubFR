@@ -50,6 +50,26 @@ final class ProfileStore {
         activeProfileId = id
     }
 
+    // MARK: - Les mutations de la liste
+
+    func add(_ profile: ModProfile) {
+        profiles.append(profile)
+    }
+
+    /// Retire le profil portant cet identifiant, s'il existe.
+    func removeProfile(with id: UUID) {
+        profiles.removeAll { $0.id == id }
+    }
+
+    /// Modifie le profil portant cet identifiant. Rend `false` s'il
+    /// n'existe pas — un appelant qui ignore le retour n'a rien modifié.
+    @discardableResult
+    func mutateProfile(with id: UUID, _ change: (inout ModProfile) -> Void) -> Bool {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return false }
+        change(&profiles[index])
+        return true
+    }
+
     /// Pose l'identité de l'activation en vol — avant l'orchestration.
     func setApplyingId(_ id: UUID?) {
         applyingId = id

@@ -54,6 +54,35 @@ import Foundation
         #expect(s.activeProfile == nil)
     }
 
+    // MARK: - Les mutations de la liste
+
+    @Test func addingThenRemovingLeavesTheListClean() {
+        let s = ProfileStore()
+        let a = profile("A")
+        s.add(a)
+        #expect(s.profiles == [a])
+        s.removeProfile(with: a.id)
+        #expect(s.profiles.isEmpty)
+    }
+
+    /// La mutation par `inout` : le seul chemin d'écriture qui ne se voit
+    /// ni dans un grep des `=`, ni dans un relevé des appels de méthode.
+    @Test func mutateChangesOnlyTheTargetedProfile() {
+        let s = ProfileStore()
+        let a = profile("A"), b = profile("B")
+        s.setProfiles([a, b])
+        let changed = s.mutateProfile(with: a.id) { $0.name = "A2" }
+        #expect(changed)
+        #expect(s.profile(with: a.id)?.name == "A2")
+        #expect(s.profile(with: b.id)?.name == "B")   // le voisin intact
+    }
+
+    @Test func mutatingAMissingProfileIsRefusedAndChangesNothing() {
+        let s = ProfileStore()
+        #expect(s.mutateProfile(with: UUID()) { $0.name = "fantôme" } == false)
+        #expect(s.profiles.isEmpty)
+    }
+
     // MARK: - Le couple drapeau/identité
 
     /// Deux rythmes de pose, un seul effacement : l'identité est posée avant
