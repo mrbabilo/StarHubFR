@@ -641,6 +641,50 @@ compteur de requêtes en vol). Ce qui a été exercé :
 4. ouvrir la fiche d'un mod l'affiche, la refermer et en ouvrir une autre
    n'affiche pas la précédente.
 
+### Domaine 4 — Entretien & corbeille, livré le 2026-09-11
+
+Deux commits (`b96d3c9`, `d8db57b`), gate exit 0, **3 046 tests verts**.
+`MaintenanceStore` (`@Observable`, 7 tests, trois sabotages). ViewModel
+10 246 → **10 252** (⚠️ +6, voir plus bas) ; `viewmodel_stored_state`
+143 → **138**.
+
+Les quatre calculs du domaine étaient déjà en Core et testés
+(`MaintenanceInventory`, `ModFolderRepairer`, `ModTrash`,
+`DisabledModsCleanup`) — il ne restait que l'état et le verrou de
+construction, devenu test-et-pose. Deux distinctions épinglées qui ne
+l'étaient pas : `report` a `nil` tant que l'inventaire n'est pas construit,
+**distinct** d'un rapport vide (« rien à faire ») ; `setTrashEvents`
+**remplace** en bloc, la corbeille étant relue du disque à chaque demande.
+
+⚠️ **Deux façades sont `get`+`set`, et ce n'est pas un choix.**
+`QuarantineView` **écrit** l'état du domaine directement — quatre
+`vm.quarantineActionMessage = …` et un `vm.lastRepairReport = nil`. Le
+relevé des écritures (leçon `LogsView`, domaine 2) les a trouvés **dans la
+vue** avant le gate ; les façades ont été écrites en conséquence, et aucune
+vue n'a bougé.
+
+⚠️ **Le verrou de taille du ViewModel monte de 6 lignes (10 246 → 10 252),
+assumé et explicite dans le diff du cliquet.** Les deux façades `get`+`set`
+coûtent plus de lignes que les cinq déclarations retirées. Les compteurs que
+le chantier mesure sont **l'état**, et ils baissent tous ; la ligne brute est
+le prix de ne pas toucher la vue. **Si le domaine 5 reproduit ce profil, la
+question d'une reprise des vues (P8) se reposera au cas par cas** : une façade
+`get`+`set` est le signe qu'une vue écrit de l'état de domaine, et le vrai
+remède est de lui donner un verbe nommé — pas d'écrire le champ nu.
+
+**Vérification à l'écran — due, auteur.** Quatre contrôles, sur l'écran
+Entretien et la vue Quarantaine :
+
+1. construire l'inventaire affiche son rapport, le spinner tourne **et se
+   réactive** (le verrou) ;
+2. réparer un dossier cassé affiche la bannière de réparation ; relancer un
+   scan **sans** réparation ne l'efface pas (c'est la garde
+   `setRepairReport(nil)` : seuls « vide + rien à voir » l'effacent) ;
+3. vider la quarantaine affiche son message vert ; le message d'erreur rouge
+   s'affiche si l'opération échoue ;
+4. la corbeille affiche ses événements, un geste de remise/purge la
+   rafraîchit **en remplaçant** la liste (pas de doublon).
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
