@@ -88,7 +88,7 @@ rendu, pas le rendu. La vérification à l'écran reste due (§5, condition 4).
 | `@Published` des trois autres classes du lot | **6** (`GameEnvironmentStore` 4, `NexusMetadataStore` 2, `SaveNotesStore` 0) | — (à retirer) |
 | Classes à convertir | **4** | — (voir ci-dessous) |
 | `@ObservedObject var vm:` dans les vues | **87** | **oui** |
-| `@StateObject` (les deux de l'App) | 2 | **oui** |
+| `@StateObject` de l'App | **1** (`vm`, L113 — `localization` L112 reste `@StateObject`, son type étant hors lot) | **oui** |
 | `objectWillChange.send()` | 6 | **oui** |
 | Bindings `$vm.…` (à passer en `@Bindable`) | 5 | **oui** |
 | `didSet`/`willSet` sur `@Published` | **10** | **non** — mais prouvés préservés par la macro (§2, troisième fait) |
@@ -238,8 +238,9 @@ vérifiable par compilation :
    `@Published`, `final`) : `StarHubTHViewModel`, `GameEnvironmentStore`,
    `NexusMetadataStore`, `SaveNotesStore`. Le build casse — c'est voulu, et la
    liste des erreurs **est** la liste de travail.
-2. Reprendre les 87 `@ObservedObject var vm` → propriété simple, les
-   2 `@StateObject` → `@State`, les 5 bindings → `@Bindable`.
+2. Reprendre les 87 `@ObservedObject var vm` → propriété simple, l'unique
+   `@StateObject` du VM (`StarHubTHApp.swift:113`) → `@State`, les 5 bindings
+   → `@Bindable`.
 3. Supprimer la **publication** des deux relais `objectWillChange`
    (`:1982`, `:1988`) — le cas 1 la rend inutile. ⚠️ **Pas leurs
    `AnyCancellable` sans examen : le relais `:1988` porte aussi la purge du
@@ -446,12 +447,14 @@ cadrage : la phase coûte une passe mécanique, pas une refonte des vues.
 
 ## 8. Découpage — ce que ce document ne fait pas
 
-Le plan d'exécution (tâches, tests, ordre des commits) n'est pas ici. Il sera
-écrit séparément, et sa particularité est connue d'avance : **la conversion est
-atomique (§3), donc ce qui se séquence est la vérification, pas le code** —
-elle commence par un écran, avec les 8 sites à remède en tête d'affiche.
-
-Deux conventions du dépôt s'appliquent à l'ouverture du chantier : un tag
-`pre-refactor-observable` sur le commit de départ (§4.6 de `REFACTORING.md` —
-c'est ce qui rend le `git diff` final lisible et la marche arrière possible),
-et un commit par étape.
+Le plan d'exécution (tâches, tests, ordre des commits) n'est pas ici. Il est
+écrit — **`docs/superpowers/plans/2026-09-11-chantier-a-observable.md`**
+(local, gitignoré comme tout ce dossier), et il couvre le **chantier A
+seul** : la mesure A/B F3 en préambule, les 8 remèdes, la conversion atomique,
+le cliquet, la vérification à l'écran. Sa particularité est connue d'avance :
+**la conversion est atomique (§3), donc ce qui se séquence est la vérification,
+pas le code**. Le chantier B fera un plan par domaine, dans l'ordre du §4.
+Deux conventions du dépôt s'appliquent à l'ouverture : le tag
+`pre-refactor-observable` posé par le plan (§4.6 de `REFACTORING.md` — c'est
+ce qui rend le `git diff` final lisible et la marche arrière possible), et un
+commit par étape.
