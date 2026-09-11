@@ -31,7 +31,7 @@ faite jusqu'ici :
 
 Les confondre a coûté cher. Deux des quatre stores déjà extraits
 (`GameEnvironmentStore`, `NexusMetadataStore`) **relaient `objectWillChange`**
-vers le ViewModel (`StarHubTHViewModel.swift:1982`, `:1988`) : ils ont gagné la
+vers le ViewModel (les sinks `environmentCancellable` et `nexusMetadataCancellable` du `init` — les numéros de ligne ici vieillissent mal, les noms non) : ils ont gagné la
 testabilité, et **perdu** sur le rendu — une écriture du store invalide
 désormais toute la fenêtre en passant par deux objets au lieu d'un. Le code
 l'assume comme provisoire ; ce document dit ce qui le remplace.
@@ -192,7 +192,7 @@ apparaître ces treize-là.
 | --- | --- | --- |
 | **Couvert par le lot** — lit une source qui devient `@Observable` | 19, dont les 4 façades `gameDir`…, les façades `nexusMetadata`, `savesHierarchy`/`availableFilterTags` (la lecture `SaveNotesStore.shared.note(…)` devient trackée dès que le store entre dans le lot), `coreExtensionsSnapshot` (lit `mods`), et les dérivées d'état publié (`systemAlertCount`, `enabledMods`, `activeProfile`…) | Rien à faire |
 | **UserDefaults / Trousseau** | 6 — `localAIEndpoint`, `localAIModelName`, `isLocalAIConfigured`, `deepLCredentials`, `isFallbackEnabled`, `defaultProfileId` | Le patron existe déjà : `hasDeepLKey` est **mémorisé** dans une propriété suivie, invalidée par le chemin d'écriture. Généraliser ; ne jamais interroger `UserDefaults` dans un corps calculé |
-| **Service Combine hors lot** | 2 — `keybindProblemCount`, `healthIssues` (toutes deux lisent `keybindScanService.report`) | Voir ci-dessous — **la découverte de l'inventaire** |
+| **Service Combine hors lot** | 1 vivant — `healthIssues` (lit `keybindScanService.report`). ⚠️ Le second du relevé initial, `keybindProblemCount`, était du **code mort** (zéro appelant, 4ᵉ instance de la famille « membres VM non câblés ») : supprimé au premier commit du chantier. Le remède vivant est le miroir `keybindReport` (plan, Task 1) | Voir ci-dessous — **la découverte de l'inventaire** |
 | **Disque / PATH** | 4 — `unarInstalled`, `sevenZipInstalled`, `coreExtensionsSnapshot` (indirect), `smapiLogPath` (chemin dérivé du home, constant — rien à rafraîchir) | Rattrapé par le scan : le snapshot lit aussi `mods`, tracké — la valeur se recalcule au prochain scan. Dégradation minime, acceptée |
 
 ⚠️ **Limite de cet inventaire : il couvre les propriétés calculées, pas les
@@ -242,7 +242,10 @@ vérifiable par compilation :
    `@StateObject` du VM (`StarHubTHApp.swift:113`) → `@State`, les 5 bindings
    → `@Bindable`.
 3. Supprimer la **publication** des deux relais `objectWillChange`
-   (`:1982`, `:1988`) — le cas 1 la rend inutile. ⚠️ **Pas leurs
+   (`environmentCancellable`, `nexusMetadataCancellable`) — le cas 1 la rend
+   inutile. ⚠️ **Il y en a un troisième depuis le chantier A : `keybindCancellable`
+   (miroir `keybindReport`, Task 1 du plan) — lui doit **survivre** : le service
+   reste hors lot, le miroir est ce qui suit son rapport après conversion.** ⚠️ **Pas leurs
    `AnyCancellable` sans examen : le relais `:1988` porte aussi la purge du
    `categoryCache` (`:1990`), et cette purge-là doit survivre.** Le cache est
    un `private var` stocké du VM : sous `@Observable` il devient tracké, donc
