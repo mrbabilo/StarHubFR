@@ -4,11 +4,6 @@ import Combine
 import Cocoa
 import SwiftUI
 
-enum SaveViewMode: String, Codable {
-    case list
-    case grid
-}
-
 @Observable
 final class StarHubTHViewModel {
     var saveViewMode: SaveViewMode = .list

@@ -7,6 +7,14 @@ public enum SaveSortOption: String, Codable, Sendable {
     case money
 }
 
+/// Liste ou grille, dans l'onglet Sauvegardes. Vit ici, en Core, parce que
+/// `SavesStore` le porte — l'`enum` était en tête du ViewModel, fichier
+/// hors module testable.
+public enum SaveViewMode: String, Codable, Sendable {
+    case list
+    case grid
+}
+
 /// Reconstruit l'arborescence des sauvegardes à partir de leurs seuls noms de
 /// dossier.
 ///

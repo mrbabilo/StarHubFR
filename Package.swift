@@ -225,6 +225,7 @@ let package = Package(
                 "Stores/GameEnvironmentStore.swift",
                 "Stores/LocalizationStore.swift",
                 "Stores/NexusMetadataStore.swift",
+                "Stores/SavesStore.swift",
                 "Models/ModScanner.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
@@ -755,6 +756,11 @@ let package = Package(
             name: "XMLEntitiesTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/XMLEntitiesTests"
+        ),
+        .testTarget(
+            name: "SavesStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SavesStoreTests"
         ),
         .testTarget(
             name: "SaveTreeTests",
