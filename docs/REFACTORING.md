@@ -662,11 +662,66 @@ coordonnées et leur outillage ne se transposent pas (§3).
 | **P2 Corriger les violations de couche** | Oui, partiellement fait | `LogLevel.color` et les méthodes de `ThaiTranslationMod` prenant le ViewModel : faits. **Restent** : `Mod.Kind` (qui supprimerait les `flatMap { isGroup ? children : [self] }` réécrits trois fois), les identifiants typés (`Mod.ID` / `NexusID` / `FolderName`), et le `uniqueId` vide des groupes (**F4**) |
 | **P3 Protocoles et injection** | Oui — **plus urgent chez nous**, et l'écart se creuse | Ils comptaient 26 accès directs à `UserDefaults` ; nous en avions 33 dans le seul ViewModel au 2026-08-01, **52 au 2026-09-10** (hors commentaires ; 73 au `grep` nu). `NSOpenPanel` y est toujours appelé deux fois (`:2321`, `:8728`). Pas besoin de leur `DependencyContainer` : un protocole ici, c'est un fichier de plus dans `Package.swift` |
 | **P4 Découper le ViewModel** | Oui — c'est le §6 | Leur ordre vaut, leurs numéros de ligne non |
-| **P5 Concurrence structurée** | **Douteux — et angle mort** | Ni `build_app.py` ni `Package.swift` ne passent `-swift-version 6` ou `-strict-concurrency` : **nous ne savons pas combien de problèmes existent**, faute de les avoir jamais fait compter (leur 0.4 sert à ça). À ne pas ouvrir avant que les domaines soient séparés — `@MainActor` sur un fourre-tout de 4000 lignes en révélerait des dizaines d'un coup, sans moyen de les isoler. **Première étape, peu coûteuse : mesurer** en ajoutant l'avertissement, sans rien corriger |
+| **P5 Concurrence structurée** | **Mesuré le 2026-09-11 — l'angle mort est levé, la phase reste fermée** | Le chiffre manquait ; il est pris (détail ci-dessous). **467 avertissements** sous `-strict-concurrency=complete`, contre **13** sans le drapeau : la concurrence stricte en ajoute **454**, sur **37 fichiers des 294**, et **248 — 53 % — dans le seul ViewModel**. La compilation **aboutit** (code 0, zéro erreur) : rien n'est cassé, c'est une distance au modèle Swift 6. L'intuition d'origine est confirmée et chiffrée : ouvrir P5 avant que les domaines soient séparés, c'est traiter 248 avertissements dans un fichier de 10 212 lignes |
 | **P6 Balayage de nommage** | **Non** | Des centaines d'appels touchés pour un gain cosmétique, sans revue automatisée. Écarté (§7) |
 | **P7 Erreurs typées** | Oui | **Swift 6.3.3** ici : `throws(E)` est disponible. Ce qui les a mordus (une CI sur Xcode 15.4) ne nous concerne pas |
 | **P8 Découpage des vues** | Oui — **et ça manquait à ce plan** | Ils visent ~150 lignes par vue. Chez nous, au 2026-09-10 : `ModListView` **2340**, `ModDetailView` **2145**, `MainView` **1536**, `SavesView` **1162**, `LogsView` 746. À traiter au contact, en même temps que le domaine correspondant |
 | **P9 Verrouiller** | Oui — **et ça manquait aussi** | Leur `check_standards.py` empêche la dette de revenir. L'équivalent ici est bon marché : un contrôle dans `build_app.py` refusant qu'un fichier de `Models/` importe SwiftUI, sur le modèle du contrôle de parité des clés qui existe déjà |
+
+### P5 — la mesure du 2026-09-11, et ce qu'elle ne dit pas
+
+Relevé en compilant **hors du gate** (binaire et cache de module dans un dossier
+temporaire, `.build` intact), les 294 fichiers en whole-module, deux fois :
+
+| Passe | Avertissements | Durée |
+| --- | ---: | ---: |
+| Sans drapeau — ce que le build rend aujourd'hui | 13 | 210 s |
+| `-strict-concurrency=complete` | **467** | 212 s |
+
+⚠️ Le drapeau du plan, `-Xfrontend -warn-concurrency`, est l'**ancienne
+orthographe** ; l'équivalent d'aujourd'hui est `-strict-concurrency=complete`.
+Et son coût en temps est **nul** — 2 s sur 210, dans le bruit de mesure : ce
+n'est pas la compilation qui décide s'il faut le câbler, c'est le bruit.
+
+**Où la dette vit** — 37 fichiers touchés sur 294 :
+
+| Fichier | Avertissements |
+| --- | ---: |
+| `StarHubTHViewModel.swift` | **248** (53 %) |
+| `SmapiInstaller.swift` | 56 |
+| `NexusUpdateChecker.swift` | 32 |
+| `SmapiUpdateClient.swift` | 28 |
+| 33 autres | ≤ 14 chacun |
+
+**De quoi il s'agit** — deux familles font 80 % du total : **226 captures de
+type non-`Sendable` dans une closure** (180 + 35 références à une `var` capturée
++ 11) et **150 `sending … risks causing data races`**. C'est la signature du
+patron `DispatchQueue.global().async { [weak self] … }` du ViewModel, pas une
+découverte de course. Suivent 16 états globaux mutables, ~30 franchissements
+d'isolation `@MainActor`, et une poignée de conformances.
+
+**Ce que le chiffre ne dit pas : 467 n'est pas un nombre de bugs.** Premier
+échantillon vérifié — `SaveManager.regexCache`, signalé « nonisolated global
+shared mutable state » — est **protégé par un `NSLock` dédié** (`regexCacheLock`,
+pris à la lecture comme à l'écriture) : la règle du dépôt est respectée, le
+compilateur ne voit simplement pas un verrou manuel. Compter n'est pas lire.
+
+**Les 13 qui passent déjà sous les yeux à chaque build** méritent en revanche
+d'être regardés, et personne ne les regarde. Quatre ne sont pas des formalités :
+`SmapiUpdateClient.swift:110/112` prend et rend un `NSLock` **dans un contexte
+asynchrone** (`unavailable from asynchronous contexts`) — un verrou tenu à
+travers une suspension ; `NexusArchiveStore.swift:117` porte un `??` dont le
+membre gauche est **non optionnel**, donc une branche morte ;
+`StarHubTHViewModel.swift:2909` calcule un `seedFolder` **jamais utilisé** ; et
+`StarHubTHApp.swift:105` infère `Void` pour `bootstrapDefaults`. Aucun n'est
+corrigé ici : la consigne de P5 est de mesurer.
+
+**Recommandation, pas décision** : ne pas câbler `-strict-concurrency=complete`
+dans `build_app.py` en l'état — 467 avertissements à chaque build est un mur de
+bruit, et un gate qu'on apprend à ignorer est pire que pas de gate (c'est la
+leçon de F1-T2 au §1). Le chiffre vaut comme **jalon** : le reprendre après la
+phase « vider le VM de son état publié » dira ce que cette phase a réellement
+réglé, puisque 53 % de la dette vit dans le fichier qu'elle vide.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
