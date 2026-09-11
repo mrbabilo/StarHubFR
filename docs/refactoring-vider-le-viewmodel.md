@@ -324,6 +324,81 @@ Commencer par ce qui n'est lu que chez soi, finir par ce que tout le monde lit.
 | 7 | **Nexus** | ~20 propriétés, cinq types déjà en Core, mais le domaine est enchevêtré avec le réseau et l'installation |
 | 8 | **Scan & parc** (`mods`, `scanProgress`, `duplicateIndex`, `modsFolderSizes`) | **En dernier, délibérément** : `mods` est lu par presque toutes les vues et par la moitié des autres domaines. C'est le seul dont l'extraction rate peut tout casser à la fois |
 
+### Domaine 1 — Sauvegardes, livré le 2026-09-11
+
+Trois commits (`d3280b9`, `c6dbc8c`, `594e4e5`), gate exit 0, **2 987 tests
+verts** (+11). Plan : `docs/superpowers/plans/2026-09-11-chantier-b1-savesstore.md`.
+
+`SavesStore` (Core, `@Observable`) porte désormais **cinq** propriétés
+stockées, les deux calculs de l'onglet et le verrou d'écriture. **Aucune vue
+n'a été touchée** — le premier domaine du chantier B confirme le cas 1 à
+l'usage, et pas seulement au spike : `SavesView`, `SaveTimelineView`,
+`SaveCopySheets`, `MainView` et `CommandPaletteView` lisent les mêmes
+`vm.saves`, `vm.savesHierarchy`, `vm.saveSortOption`… qu'avant.
+
+| Descendue | Reste au VM, et pourquoi |
+| --- | --- |
+| `saves`, `isSaveOperationRunning`, `saveViewMode`, `saveSortOption`, `saveFilterTag` | `editingSave` et `viewingSaveTimeline` — **présentation inter-vues** : deux des cinq états que `MainView.swift:232` remet à `nil` au changement d'onglet. Elles vont au store de navigation, avec les dix `pending…` |
+| `savesHierarchy`, `availableFilterTags` (les calculs) | `inventoryToEdit` — écrite par le `didSet` d'`editingSave`, elle suit celle-ci |
+| | `saveToDuplicate`, `backupToBranch` — présentation locale, mais les faire redescendre en `@State` **toucherait des vues** |
+
+**Deux points qui valent d'être repris pour les domaines 2 à 8 :**
+
+1. **L'étiquette arrive en closure.** `hierarchy` filtre sur le tag d'une
+   sauvegarde, qui vit dans `SaveNotesStore` (préférences). Injecter le magasin
+   aurait rendu le filtre intestable sans écrire dans le vrai domaine ; une
+   closure `tagForSave: (String) -> String` le rend testable **et préserve le
+   suivi** — la lecture se fait à l'appel, donc dans le corps de rendu.
+2. **Le verrou d'écriture devient un test-et-pose en une opération.** Huit
+   fonctions écrivaient `guard !isSaveOperationRunning` puis
+   `isSaveOperationRunning = true`. `beginOperation()` / `endOperation()` les
+   remplacent : le refus concurrent est enfin sous test, et il reste
+   exactement 8 prises pour 8 relâchements — un relâchement manquant figerait
+   l'onglet en silence jusqu'au prochain lancement.
+
+**Compteurs — prédits dans le plan, puis mesurés :**
+
+| Compteur | Avant | Prédit | Mesuré |
+| --- | ---: | ---: | ---: |
+| `viewmodel_stored_state` | 168 | 163 | **163** ✓ |
+| `observable_stored_without_private_set` | 123 | 122 | **122** ✓ |
+| `viewmodel_facades_to_combine` | 0 | 0 | **0** ✓ |
+| `our_shared_singletons` | 91 | 89 | **90** ✗ |
+| `StarHubTHViewModel.swift` | 10 331 l. | — | **10 312 l.** |
+
+⚠️ L'écart sur les singletons est la **prédiction** qui était fausse, pas le
+code : les deux `SaveNotesStore.shared` retirés du ViewModel sont remplacés
+par **un** dans la closure d'init du store. 91 − 2 + 1 = 90. Prédire chaque
+compteur avant de le lire reste la bonne règle — c'est ce qui a fait voir
+l'oubli.
+
+**`SavesStore.swift` rejoint `LOT_FILES` de `check_standards.py` dans le commit
+qui le câble.** Sans ça, l'état sorti du ViewModel échapperait à
+`observable_stored_without_private_set` : le compteur aurait baissé de 4 sans
+qu'aucune règle ne s'applique aux 3 propriétés arrivées ailleurs. **Chaque
+domaine du chantier B doit le faire au même moment.**
+
+**L'écart assumé — une dette, pas une condition remplie.** L'orchestration
+d'I/O (`reloadSaves`, `editSave`, `saveInventory`, `deleteSave`,
+`duplicateSave`, les quatre fonctions de backup) **reste au ViewModel** et
+mute le store par `replace(saves:)` / `beginOperation()` / `endOperation()`.
+La condition 1 assouplie autorise une façade de **lecture** à demeure ; ces
+fonctions sont des verbes, et elles traversent `showModal` et `localization`.
+Les descendre est une tranche à part, pas un oubli.
+
+**Vérification à l'écran — due, auteur.** Même angle mort que le chantier A :
+une vue qui cesse de se rafraîchir sans erreur ni plantage. À exercer :
+
+1. l'onglet Sauvegardes s'affiche, en arbre **et** en grille ;
+2. changer le tri (nom / dernière partie / argent) — l'ordre bouge ;
+3. poser une étiquette sur une sauvegarde, puis filtrer dessus — la liste se
+   réduit, et l'étiquette **apparaît** dans le menu de filtre ;
+4. le bouton de rafraîchissement recharge la liste ;
+5. dupliquer une sauvegarde — les boutons se désactivent pendant l'opération
+   **et se réactivent après** (c'est le verrou : s'il reste pris, l'onglet est
+   figé jusqu'au prochain lancement) ;
+6. la palette de commandes (⌘K) trouve toujours une sauvegarde par son nom.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
