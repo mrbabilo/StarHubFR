@@ -518,6 +518,33 @@ ne couvre pas ce chantier.
   à un succès* — c'est le troisième outil de contrôle de ce dépôt pris en
   défaut de cette façon.
 
+### Le remède est mesuré, pas seulement le danger
+
+La forme `@ObservationIgnored` + révision suivie + `trackCategoryCache()` a été
+exécutée telle qu'elle est livrée (`-O`), trois assertions :
+
+| | Question | Résultat |
+| --- | --- | --- |
+| 1 | Remplir le cache pour un mod réveille-t-il encore la vue sœur ? | **non** — la tempête de rendu a disparu |
+| 2 | Une vue servie par un **succès** de cache est-elle réveillée par l'invalidation ? | **oui** — l'épinglage se rafraîchit toujours |
+| 3 | Sabotage : la même sans l'appel à `track()` | **muette** — c'est bien cet appel qui enregistre |
+
+La 2 est celle qui comptait : elle vérifie que `_ = categoryCacheRevision`,
+dans une fonction privée, enregistre réellement un accès malgré l'optimiseur.
+La 3 interdit de la croire sur parole.
+
+### ⚠️ Un garde-fou perdu au passage
+
+`@Published` émettait à l'exécution le diagnostic *« Publishing changes from
+background threads is not allowed »*. `@Observable` **ne l'émet pas**. Or
+`scanMods()` peut tourner concurremment avec lui-même (piège connu,
+`CLAUDE.md`), et un `manifestCache` sans verrou a déjà causé un
+`EXC_BAD_ACCESS` réel. La revue a balayé les blocs
+`DispatchQueue.global().async` du VM et n'a trouvé **aucune** écriture directe
+à un stocké suivi hors d'un saut par `DispatchQueue.main` — donc rien à
+corriger aujourd'hui. Mais le filet qui prévenait est parti : une écriture
+hors du fil principal sera désormais silencieuse.
+
 ### Compteurs après
 
 | Compteur | Valeur | Ce qu'il verrouille |
