@@ -1152,6 +1152,76 @@ conditionnelle retenue n'a pas besoin qu'ils le restent.
 latence sur le chemin « couverture française d'un profil → fiche », mesuré
 et consigné en ROADMAP (voir ci-dessous).
 
+### P8 — tranche 2 (le store de navigation), livrée le 2026-09-12
+
+Trois commits (`2b7ef69`, `fa35521`, `aec7036`), gate exit 0, **3 136 tests
+verts**. Plan : `docs/superpowers/plans/2026-09-12-p8-2-store-navigation.md`.
+ViewModel **10 251 → 10 247** — la tranche se juge à l'état déplacé, pas aux
+lignes : `viewmodel_stored_state` **104 → 89** (−15). `NavigationStore`
+(Core, 215 l.), **14 tests** (234 l.).
+
+Les **quinze propriétés** de navigation quittent le VM : les cinq vues de
+détail (`viewingModDetail`, `editingModConfig`, `editingSave` +
+`inventoryToEdit`, `viewingSaveTimeline`, `viewingThaiMod`), les sept
+requêtes (`pendingModFocus`, `pendingTranslationFocus`, `pendingConfigFocus`,
+`pendingModDetailFocus`, `pendingDetailTab`, `pendingTranslationDiffFilter`,
+`pendingLogFocus`) et les deux canaux pose-consomme (`reportDetailFocus`,
+`pendingTabRequest`). Les documentations voyagent avec elles. **Aucune vue
+touchée** : façades de mêmes noms, marquées provisoires — la reprise des
+vues (tranche P8 suivante, ~55 sites d'écriture) les appellera directement.
+
+**Les décisions :**
+
+- **Setters nommés, pas `didSet`, sur une propriété `@Observable`.** Les
+  trois poses à effet (`setViewingModDetail`, `setEditingModConfig`,
+  `setEditingSave`) portent la décision ; le dépôt n'a **aucun** exemplaire
+  du couple macro Observation + observer, on n'introduit pas l'expérience.
+- **L'I/O par closures, câblée par `wireEffects` dans
+  `init(localization:)`.** Le plan prévoyait un `lazy var` — le compilateur
+  l'a refusé : le VM est lui-même `@Observable`, la macro transforme les
+  propriétés stockées en computed et `lazy` y est interdit. Le store garde
+  un `init` à paramètres pour les tests (espions), `wireEffects` est la voie
+  de l'app. Les closures restent `private(set)` : le câblage ne se refait
+  pas en vol.
+- **`inventoryToEdit` reste publique en écriture** — déviation du plan (qui
+  prévoyait `private(set)`) : `SavesView` lie les `stack` par binding
+  sous-indexé (`$vm.inventoryToEdit[index].stack`), et `saveInventory()`
+  rafraîchit l'affichage depuis une re-lecture du fichier sans reposer
+  `editingSave` — deux écritures sans règle attachée, dans les deux mondes.
+- **`DetailTab` et `DiffFilter` descendent en Core** (commit 1) — un store
+  Core ne peut pas référencer un type de vue. `DiffFilter` vit dans
+  `TranslationDiffFilter.swift`, imbriqué dans son modèle par extension
+  cross-fichier : `TranslationCoverage.swift` est verrouillé par le cliquet
+  des tailles (patron `ArchivePaths`). Alias dans les vues (patron
+  `DiscoveryRow`).
+
+**Ce qui reste au VM, relevé avec raison** : `saveToDuplicate`,
+`backupToBranch` (présentation locale, cadrage du domaine 1) ;
+`pendingToggleFolder`/`pendingDeleteFolder` (état d'**opération**
+bascule/suppression, posé et consommé par le VM lui-même) ;
+`alertMessage`/`showAlert` (famille « alertes » du tableau P8) ;
+`modDetailState` (décision du domaine 7).
+
+**Douze sabotages posés, six mécanismes rougis** (pose qui déclenche, nil
+qui ne déclenche pas, X66 à l'ouverture, X66 à non-nil→non-nil, garde
+anti-course retirée, vidage préalable retiré, nil qui ne vide plus) — et
+**deux tests creux trouvés en chemin, renforcés** : le vidage préalable
+était invisible tant que la closure espion était synchrone (le `done`
+écrasait le vieux contenu de toute façon — différencié), et
+`fermerLaSauvegardeVideSansCharger` ne portait pas son propre mécanisme
+(l'inventaire était déjà vide avant le `nil`). Le cas voisin
+(`linventaireFraisAtterrit`) reste vert : un garde trop large serait vu.
+
+⚠️ **Vérification à l'écran — par l'auteur** (condition 4, jamais un agent) :
+(1) fiche depuis la liste, retour, autre fiche ; (2) alerte système → fiche
+sur l'onglet État après changement d'onglet ; (3) éditeur de config depuis
+le rapport de raccourcis, fermeture → rescan (X66) ; (4) éditeur
+d'inventaire, deux sauvegardes vite enchaînées — l'affiché est le second
+(anti-course) ; (5) timeline de sauvegarde, fiche thaï ; (6) couverture de
+profil → « traduis ce mod » → fiche sur l'onglet Traduction ; (7) alerte
+sans mod → focus recherche des Journaux ; (8) ⌘1…⌘9 et « voir la fiche » du
+bilan ; (9) « Traduire les nouveaux textes » → diff cadré.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
