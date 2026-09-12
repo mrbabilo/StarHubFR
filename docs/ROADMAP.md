@@ -1818,6 +1818,60 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       deuxième fois et *augmenté* la surface de page blanche.
 ---
 
+## 7 bis. F7 — l'onglet Traduction met 1,7 s à s'ouvrir *(mesuré le 2026-09-12)*
+
+**Le constat, de l'auteur** : ouvrir une fiche de mod depuis la couverture
+française d'un profil a « un gros temps de latence ». Vérifié, mesuré sur le
+parc réel — ce n'est pas une régression de P8, c'est préexistant.
+
+**Mesure, chaîne complète du `.task` de `TranslationDiffView` :**
+
+| mod | clés | `diffRows` | reste | total |
+| --- | --- | --- | --- | --- |
+| `.Bear Family Custom NPCs` (1,6 Mo, **pas de `fr`**) | 10 597 | **1 730 ms** | 42 ms | 1 772 ms |
+| `[CP] Stardew Valley Expanded` (2,7 Mo) | 11 317 | **2 315 ms** | 70 ms | 2 385 ms |
+| `[CP] Sunberry Village` (1,4 Mo) | 5 385 | **1 180 ms** | 58 ms | 1 238 ms |
+
+`diffRows` fait **98 %** du temps. Sa décomposition, sur le fichier de
+1 666 587 caractères :
+
+| étape | temps | part |
+| --- | --- | --- |
+| décodage (`Data` → `String`) | 2 ms | — |
+| **`I18nLenientParser.parse`** | **1 041 ms** | 63 % |
+| **`I18nOutline.read`** | **543 ms** | 32 % |
+| le diff lui-même (dictionnaires) | 90 ms | 5 % |
+
+**La cause : six passes caractère par caractère sur le même fichier.** Le
+parseur tolérant en fait cinq, chacune reconstruisant une `String` complète
+(`stripComments`, `stripTrailingCommas`, `quoteBareKeys`,
+`escapeRawControlCharacters`, `neutralizeDuplicateKeys`) avant
+`JSONSerialization` ; puis `I18nOutline.read` en refait une sixième, pour
+l'ordre et les sections.
+
+⚠️ **Une hypothèse mesurée puis écartée** : `Array(text)` (la
+matérialisation en `Character`, soupçonnée parce que `I18nOutline` indexe un
+tableau de clusters) ne coûte que **16 ms** sur ce fichier — 12 ms en
+scalaires, 0 ms en UTF-8. Le coût est dans les **boucles**, pas dans la
+conversion.
+
+**Deux remèdes possibles, à arbitrer :**
+
+1. **Un cache de diff par empreinte de fichiers.** Le patron existe déjà
+   (`TranslationCoverageCache` + `TranslationStamp`) : le diff ne change que
+   si les fichiers changent. Zéro risque sur les règles du parseur, gain
+   total dès la deuxième ouverture — mais la **première** coûte toujours
+   1,7 s. À noter : la passe de couverture de profil vient de lire ces mêmes
+   fichiers juste avant, pour un autre résultat.
+2. **Fusionner les passes.** Une seule traversée rendrait les paires, l'ordre
+   et les sections. Le gain porterait sur la première ouverture aussi, mais
+   le parseur tolérant porte des règles mesurées et des bugs historiques
+   (clé dupliquée → le jeu retient la dernière, commentaires bloc, clés
+   nues, caractères de contrôle bruts) : y toucher demande que chaque règle
+   reste prouvée.
+
+Le 1 est sûr et partiel, le 2 est complet et risqué. Ils ne s'excluent pas.
+
 ## 8. Ordre recommandé et arbitrage
 
 ### 8.0 Priorité courante — **le risque de perte de données** (2026-09-04)

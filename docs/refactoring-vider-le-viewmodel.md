@@ -1106,6 +1106,52 @@ une couture publique inutile et une double persistance.
 réseau — la composition des deux requêtes (`NexusUpdateCheck`), la reprise
 page à page, et la résolution des liens de téléchargement.
 
+### P8 — la reprise des vues, tranche 1 (la règle du changement d'onglet), livrée le 2026-09-12
+
+Un commit (`62f1581`), gate exit 0, **3 111 tests verts**. `TabChangePlan`
+(Core pur, 11 tests, six sabotages). MainView 1 570 → **1 554** ;
+ViewModel 10 254 → **10 251**.
+
+**Pourquoi P8 avant le domaine 8.** La mesure de composition du ViewModel,
+faite le 2026-09-12 : sur ses 10 255 lignes, **38 % sont du commentaire**
+(2 380 `///` + 1 582 `//`), 7 % des lignes vides, et 54 % du code effectif —
+dont 3 980 lignes dans **344 fonctions** (moyenne 11,6 ; la plus grosse,
+`toggleAllMods`, fait 105 lignes). Ce n'est pas un monolithe, c'est un
+annuaire. Et le chantier B, qui extrait l'**état**, troque une déclaration
+contre une façade à coût nul en lignes : **57 façades d'une ligne coûtent
+170 lignes brutes** avec leur documentation, et **38 fonctions sont de purs
+relais** d'une seule instruction. D'où le classement des cibles :
+
+| Ce que les vues écrivent | sites |
+| --- | --- |
+| **navigation** (`viewingModDetail` 13, `editingSave` 10, `editingModConfig` 9, `pendingDetailTab` 6, `viewingSaveTimeline` 6, la famille `pending*Focus`) | ~55 |
+| les 5 façades `get`+`set` vers un store (`saveViewMode`, `saveSortOption`, `saveFilterTag`, `lastRepairReport`, `quarantineActionMessage`) | 8 |
+| le reste (alertes, focus divers) | ~23 |
+
+**24 propriétés, 86 sites.** La navigation domine, et c'est la seule famille
+dont la règle a déjà mordu trois fois.
+
+**Ce que la tranche achète.** `MainView.handleTabChange` portait quarante
+lignes de règles hors de portée d'un test. Elles sont maintenant dans
+`TabChangePlan`, avec ce qu'un relevé rapide aurait aplati : les trois
+intentions n'ont **pas le même sort** (la traduction survit, les deux autres
+s'effacent) ; une demande introuvable **emporte l'onglet demandé** (le cas
+voisin — une demande qui aboutit le garde — est testé aussi) ; et il y a
+**deux parcs**, le déplié pour les intentions par dossier, le premier niveau
+pour `ModFocusResolver` qui déplie lui-même. Le sabotage qui unifie les deux
+casse l'accès au pack.
+
+⚠️ **Une différence de comportement évitée**, invisible aux 11 tests parce
+que la règle est pure : le premier jet affectait `viewingModDetail` et
+`editingModConfig` **sans condition**, rejouant leurs `didSet` sur un second
+`nil`. Vérifié inerte dans les deux cas (l'un ne fait rien sans valeur,
+l'autre est gardé par `oldValue != nil`, écrit pour X66) — la forme
+conditionnelle retenue n'a pas besoin qu'ils le restent.
+
+**Vérification à l'écran — OK, auteur, 2026-09-12**, avec un constat de
+latence sur le chemin « couverture française d'un profil → fiche », mesuré
+et consigné en ROADMAP (voir ci-dessous).
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
