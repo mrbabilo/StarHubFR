@@ -89,6 +89,17 @@ public struct ModItem: Identifiable, Equatable, Sendable {
     /// sorted; for a pack (group) it's the union across children. Empty when the
     /// mod has no `i18n` folder or wasn't constructed with it (test helpers).
     public let languages: [String]
+    /// Offline "type" tag, computed **once at construction** from the same
+    /// immutable fields the views used to feed `inferTag` on every access.
+    ///
+    /// Pourquoi le stocker : l'inférence enchaîne ~150 regexes `\bmot\b` sur
+    /// `name + uniqueId + description` (F3, capture du 2026-09-12) — relancée
+    /// par chaque frappe de la recherche via les compteurs de la barre latérale
+    /// et les badges de lignes, elle bloquait le fil principal ~0,7 s par
+    /// lettre sur un grand parc. La valeur ne dépend que de champs `let` : le
+    /// calcul à l'init est toujours identique à celui que faisaient les vues,
+    /// il cesse juste de se répéter.
+    public let inferredTag: String
 
     public init(
         uniqueId: String,
@@ -106,7 +117,8 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         isGroup: Bool = false,
         installedFileDate: Date? = nil,
         hasConfigFile: Bool = false,
-        languages: [String] = []
+        languages: [String] = [],
+        inferredTag: String? = nil
     ) {
         self.uniqueId = uniqueId
         self.name = name
@@ -123,6 +135,8 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         self.isGroup = isGroup
         self.installedFileDate = installedFileDate
         self.hasConfigFile = hasConfigFile
+        self.inferredTag = inferredTag ?? Self.inferTag(name: name, uniqueId: uniqueId,
+                                                        description: description)
         self.languages = languages
     }
 }

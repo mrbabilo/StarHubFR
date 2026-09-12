@@ -253,6 +253,18 @@ struct ModListScopingTests {
             == ModListScoping.inferredTagKey(for: mod("Core")))
     }
 
+    /// F3 (2026-09-12) : la clé d'un pack lit le tag **stocké** de son
+    /// composant de tête — pas une ré-inférence sur le nom de l'en-tête. Le
+    /// nom du pack (« MonPack ») n'a aucun mot-clé : si l'implémentation
+    /// repartait de l'en-tête, ce test verrait « Other » au lieu du tag du
+    /// composant de tête.
+    @Test func aPackReadsTheStoredTagOfItsLeadComponent() {
+        let head = mod("Core")
+        let pack = mod("MonPack", children: [head, mod("Extras")])
+        #expect(ModListScoping.inferredTagKey(for: pack) == head.inferredTag)
+        #expect(ModListScoping.inferredTagKey(for: pack) != "Other")
+    }
+
     @Test func anEmptyPackFallsBackToItself() {
         let empty = ModItem(uniqueId: "", name: "Vide", folderName: "Vide", version: "",
                             author: "", description: "", nexusUrl: "", nexusModId: "",

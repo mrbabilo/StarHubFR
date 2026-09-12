@@ -346,10 +346,10 @@ enum ModListScoping {
 
     /// La clé de type inférée d'un mod, stable. Pour un pack, celle de son
     /// composant **principal** (le premier) — le pack montre le tag de son
-    /// composant de tête, comme en amont.
+    /// composant de tête, comme en amont. Le tag est déjà **stocké** sur
+    /// chaque `ModItem` (calculé à l'init — F3) : cette fonction ne fait plus
+    /// que choisir l'item qui le porte.
     static func inferredTagKey(for mod: ModItem) -> String {
-        let target = (mod.isGroup ? (mod.children?.first ?? mod) : mod)
-        return ModItem.inferTag(name: target.name, uniqueId: target.uniqueId,
-                                description: target.description)
+        (mod.isGroup ? (mod.children?.first ?? mod) : mod).inferredTag
     }
 }

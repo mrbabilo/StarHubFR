@@ -36,4 +36,20 @@ struct ModTagTests {
         #expect(L10n.ModTag.key(for: "UI") == "mod_tag_ui")
         #expect(L10n.ModTag.key(for: "anything else") == "mod_tag_other")
     }
+
+    /// F3 (2026-09-12) : l'inférence coûte ~150 regexes sur
+    /// `name + uniqueId + description`. Le tag est donc calculé **une fois à
+    /// la construction** de l'item et porté par lui — jamais relancé par
+    /// frappe dans les vues. Mesuré avant correctif : ~0,7 s de fil principal
+    /// bloqué par lettre (deux passes pleines de la base + les badges).
+    @Test func inferredTagStoredAtInit() {
+        let item = ModItem(uniqueId: "cd.uiinfosuite", name: "UI Info Suite",
+                           folderName: "UIInfoSuite", version: "1.0", author: "",
+                           description: "Adds UI elements", nexusUrl: "",
+                           nexusModId: "", isEnabled: true, dependencies: [])
+        #expect(item.inferredTag == "UI")
+        #expect(item.inferredTag == ModItem.inferTag(name: item.name,
+                                                     uniqueId: item.uniqueId,
+                                                     description: item.description))
+    }
 }
