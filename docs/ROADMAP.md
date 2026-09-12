@@ -1449,9 +1449,21 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       d'un groupe, jamais le groupe lui-même, donc la chaîne d'exploitation semble
       coupée. À instruire avant de conclure, puis soit clore, soit corriger
       structurellement (leur réponse : un groupe cesse de porter une identité de mod). · **S**
-- [ ] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
+- [x] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
       l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
       réelle (822 dossiers de premier niveau, 918 manifests).
+      ▸ **Livrée le 2026-09-12** (`fd6f0d08`, vérifiée à l'écran par l'auteur le jour
+      même) — le délai ne venait ni du filtrage ni de la conversion `@Observable` :
+      l'A/B des trois témoins a tranché « défaut préexistant » (gênant sur les trois),
+      puis la capture Instruments a nommé `ModItem.inferTag` **relancé par frappe**
+      (deux passes pleines de la base + les badges de lignes, ~150 regexes par mod,
+      sans mémoïsation — ~0,7 s de fil principal bloqué par lettre). Le tag se calcule
+      maintenant **une fois à l'init** de `ModItem` et `inferredTagKey` lit la valeur
+      stockée ; la règle du pack (tag du composant de tête) est préservée et prouvée
+      par test. Arbitrage révisé par l'auteur le jour même : correctif immédiat pour
+      la mémoïsation seule. **Les constats accumulés ci-dessous (`healthIssues`, le
+      lot de traduction à 3,2 s) restent ouverts dans le seau de la passe groupée** —
+      la case fermée ne les emporte pas.
       **Déjà mesuré, et écarté — ne pas y revenir** :
   - le filtrage (`filteredMods`) coûte **~2 à 5 ms par frappe** à cette échelle ;
   - le tri **0,04 ms**, y compris le cas `.name` dont la closure renvoie toujours `false` ;
