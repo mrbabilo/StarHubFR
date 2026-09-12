@@ -1490,6 +1490,17 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       F5 : premier lancement = re-scan et recréation de l'ancien dossier
       AppSupport (supprimé par X105) — test en lecture seule, aucune écriture
       (installation, bascule, backup) depuis ce build.
+      ▸ **Verdict de l'A/B (2026-09-12, auteur)** — **gênant sur les trois** :
+      v1.11.1, `pre-refactor-observable` et la tête actuelle laguent pareil. La
+      question est tranchée : **défaut préexistant**, aucune régression à ouvrir —
+      et le gain de la conversion `@Observable` sur la frappe est nul (le risque
+      « gain de réactivité nul » du cadrage §7 s'est réalisé). La piste restante
+      est le **rendu**, et elle vaut pour deux UI — v1.11.1 est d'avant la refonte
+      d'août — : chercher ce que les deux reconstructions de page partagent par
+      frappe. Instruction avant d'écrire quoi que ce soit : une capture
+      Instruments pendant la frappe (`xctrace`, template `SwiftUI`), pour nommer
+      où va le temps au lieu de le déduire du code. La case reste dans le seau de
+      la passe groupée (arbitrage du 2026-08-01).
       **Constat accumulé (audit du 2026-09-02), à joindre à la passe groupée** — autre
       sujet, même seau : `healthIssues` (`StarHubTHViewModel.swift:379`, `@MainActor`
       computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
