@@ -71,7 +71,12 @@ final class NexusAccountStore {
         quota = nil
     }
 
-    func setAccount(_ account: NexusAccount?) {
+    /// Nexus a répondu. **Non optionnel, délibérément** : le seul appelant
+    /// écarte déjà le cas « pas de réponse » (`guard let account else
+    /// { return }`), et accepter `nil` ici offrirait à un appelant futur un
+    /// moyen d'annuler en silence ce que `keyAccepted()` vient de poser. Pour
+    /// oublier un compte, c'est `clearKey()` — qui dit ce qu'il fait.
+    func setAccount(_ account: NexusAccount) {
         self.account = account
     }
 

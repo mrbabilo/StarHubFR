@@ -991,6 +991,11 @@ réglages :
    reste** (elle ne doit rien à la clé) ;
 3. remplacer une clé par une autre — le bouton « télécharger » ne reste pas
    dans l'état premium de l'ancienne le temps que Nexus réponde.
+   ⚠️ **Précondition, sans quoi ce contrôle est vide** : l'ancienne clé doit
+   être premium et la neuve gratuite (ou l'inverse). Entre deux clés de même
+   type, le bouton a la même apparence avant et après, et le contrôle ne
+   discrimine rien. À défaut de deux clés de types différents, s'en tenir
+   aux contrôles 1 et 2 — le 2 est celui qui porte.
 
 ### Quand un domaine est-il extrait ?
 
