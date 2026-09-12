@@ -111,6 +111,7 @@ LOT_FILES = (
     "StarHubTH/Stores/MaintenanceStore.swift",
     "StarHubTH/Stores/ProfileStore.swift",
     "StarHubTH/Stores/TranslationHubStore.swift",
+    "StarHubTH/Stores/ProfileTranslationStore.swift",
     "StarHubTH/SaveManager.swift",
 )
 # Les instances Combine que le VM peut lire dans un corps calculé — le défaut

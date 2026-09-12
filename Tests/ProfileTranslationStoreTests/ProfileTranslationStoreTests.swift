@@ -25,6 +25,8 @@ import Foundation
     /// juge pas l'empreinte.
     private let stamp = TranslationStamp(fileCount: 1, totalSize: 10, newestModified: 100)
 
+    /// Le disque en lecture seule : le store ne l'ecrit plus, il rend ce
+    /// qu'il faut ecrire et l'appelant s'en charge hors du fil principal.
     private final class FakeCache {
         private(set) var loadCount = 0
         var stored: [String: TranslationCoverageCache.Entry] = [:]
@@ -33,13 +35,10 @@ import Foundation
             loadCount += 1
             return stored
         }
-        func save(_ entries: [String: TranslationCoverageCache.Entry], to url: URL) {
-            stored = entries
-        }
     }
 
     private func store(_ cache: FakeCache) -> ProfileTranslationStore {
-        ProfileTranslationStore(loadCache: cache.load(from:), saveCache: cache.save(_:to:))
+        ProfileTranslationStore(loadCache: cache.load(from:))
     }
 
     // MARK: - Le verrou de la passe
@@ -112,9 +111,9 @@ import Foundation
         s.mergeMeasured(["garde": .init(total: 1, translated: 1, missing: [], empty: [], orphan: [], identicalToSource: [])],
                         entries: ["garde": .init(stamp: stamp, total: 1, translated: 1),
                                   "parti": .init(stamp: stamp, total: 2, translated: 2)])
-        let written = s.pruneCache(keeping: ["garde"], to: URL(fileURLWithPath: "/tmp/x.json"))
+        let written = s.pruneCache(keeping: ["garde"])
+        // L'appelant écrit ce qui est rendu ; l'état est déjà élagué.
         #expect(Array(written.keys) == ["garde"])
-        #expect(Array(cache.stored.keys) == ["garde"])
         #expect(s.cacheEntries["parti"] == nil)
     }
 }

@@ -33,14 +33,10 @@ final class ProfileTranslationStore {
     @ObservationIgnored private(set) var cacheLoaded = false
 
     @ObservationIgnored private let loadCache: (URL) -> [String: TranslationCoverageCache.Entry]
-    @ObservationIgnored private let saveCache: ([String: TranslationCoverageCache.Entry], URL) -> Void
 
     init(loadCache: @escaping (URL) -> [String: TranslationCoverageCache.Entry]
-            = { TranslationCoverageCache.load(from: $0) },
-         saveCache: @escaping ([String: TranslationCoverageCache.Entry], URL) -> Void
-            = { TranslationCoverageCache.save($0, to: $1) }) {
+            = { TranslationCoverageCache.load(from: $0) }) {
         self.loadCache = loadCache
-        self.saveCache = saveCache
     }
 
     // MARK: - Lecture
@@ -87,14 +83,14 @@ final class ProfileTranslationStore {
         coverage.removeValue(forKey: uniqueId.lowercased())
     }
 
-    /// Élagge le cache des mods désinstallés, **écrit**, et met l'état à
-    /// jour. Rend ce qui a été écrit.
+    /// Élagge le cache des mods désinstallés et met l'état à jour.
+    /// **Rend ce qui reste** : l'écriture disque reste à l'appelant, hors du
+    /// fil principal — l'encodage n'a pas à retenir l'interface.
     @discardableResult
-    func pruneCache(keeping installedIds: Set<String>, to url: URL)
+    func pruneCache(keeping installedIds: Set<String>)
     -> [String: TranslationCoverageCache.Entry] {
         let entries = TranslationCoverageCache.pruned(cacheEntries, keeping: installedIds)
         cacheEntries = entries
-        saveCache(entries, url)
         return entries
     }
 
