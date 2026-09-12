@@ -296,6 +296,17 @@ raisonnement derrière les choix anciens, `.kilo/plans/`.
   Swift Testing (`import Testing`) requiert Xcode.app complet, pas les
   Command Line Tools. Sans `DEVELOPER_DIR` : `no such module 'Testing'` — c'est
   une **limite d'environnement**, pas une régression.
+- **`build_app.py` a la même exigence, avec un symptôme trompeur.** Il invoque
+  `swiftc` via `xcrun`, qui résout la chaîne **active** (`xcode-select -p`).
+  Si elle pointe sur `/Library/Developer/CommandLineTools` — une mise à jour
+  macOS suffit à la faire basculer — le build échoue sur
+  `external macro implementation type 'SwiftUIMacros.StateMacro' could not be
+  found`, répété sur chaque `@State` du dépôt : des centaines de lignes qui
+  **ressemblent à une erreur de code** et n'en sont pas. Vérifier
+  `xcode-select -p` avant de chercher dans les sources ; remède durable
+  `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`, dépannage
+  immédiat `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3
+  build_app.py` (2026-09-12).
 - **Parité des clés L10n obligatoire** : `en.json` et `fr.json` doivent
   contenir exactement les mêmes clés. `build_app.py` valide ça — un ajout
   dans un seul fichier fait échouer le build.
