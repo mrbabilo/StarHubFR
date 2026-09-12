@@ -257,10 +257,12 @@ final class StarHubTHViewModel {
     // `ModDetailState` vit en Core (Models/ModDetailState.swift, REFACTORING
     // §6) avec ses transitions testées ; le VM garde l'état publié.
     var modDetailState: ModDetailState?
-    /// Non-nil = the detail pane is showing this mod. Its didSet kicks off
-    /// loading (cache/local instantly, then a background refresh).
+    // ⚠️ Façade provisoire (P8) — l'état vit dans `navigationStore`, qui
+    // déclenche `loadModDetail` par sa closure câblée ci-dessus ; poser nil
+    // ne charge rien (fermer n'est pas charger).
     var viewingModDetail: ModItem? {
-        didSet { if let m = viewingModDetail { loadModDetail(for: m) } }
+        get { navigationStore.viewingModDetail }
+        set { navigationStore.setViewingModDetail(newValue) }
     }
 
     /// Loads a mod's rich detail: cached raw shown instantly (parsed), then a
@@ -1889,21 +1891,12 @@ final class StarHubTHViewModel {
         get { navigationStore.viewingThaiMod }
         set { navigationStore.viewingThaiMod = newValue }
     }
-    var editingModConfig: ModItem? = nil {
-        didSet {
-            // Fermeture de l'éditeur ⇒ rescan du rapport de raccourcis
-            // (ronde finale de revue). `saveConfig()` écrit le `config.json`
-            // sans toucher `mods`, et la signature du scan ne couvre que
-            // `folderName`/`isEnabled` : `scanIfNeeded` ne verrait rien, et
-            // le rapport comme la pastille resteraient sur l'état d'avant —
-            // le conflit que l'utilisateur vient de corriger encore affiché.
-            // Transition vers nil seulement : ouvrir l'éditeur n'a rien à
-            // rescanner, et un rescan de trop après une annulation est sans
-            // coût. La règle vit dans `rescanKeybindsAfterConfigWrite()` —
-            // ce `didSet` n'est plus qu'un de ses appelants (X66).
-            guard oldValue != nil, editingModConfig == nil else { return }
-            rescanKeybindsAfterConfigWrite()
-        }
+    // ⚠️ Façade provisoire (P8) — l'état et la règle X66 (seule la FERMETURE
+    // rescanne) vivent dans `navigationStore`, qui rappelle
+    // `rescanKeybindsAfterConfigWrite` par sa closure câblée ci-dessus.
+    var editingModConfig: ModItem? {
+        get { navigationStore.editingModConfig }
+        set { navigationStore.setEditingModConfig(newValue) }
     }
 
     /// **Toute écriture dans un `config.json` périme le rapport de
@@ -1969,28 +1962,19 @@ final class StarHubTHViewModel {
     func clearAppLog() { logStore.clearApp() }
     var alertMessage: String = ""
     var showAlert: Bool = false
-    var editingSave: SaveGameInfo? = nil {
-        didSet {
-            guard let save = editingSave else {
-                inventoryToEdit = []
-                return
-            }
-            // `fetchInventory` reads and parses the full save file from
-            // disk — dispatched off main so opening the inventory editor
-            // doesn't freeze the UI on a large save (verified against a
-            // real ~40MB save file).
-            inventoryToEdit = []
-            let requestedSaveId = save.id
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                let items = SaveManager.shared.fetchInventory(for: save) ?? []
-                DispatchQueue.main.async {
-                    guard let self = self, self.editingSave?.id == requestedSaveId else { return }
-                    self.inventoryToEdit = items
-                }
-            }
-        }
+    // ⚠️ Façade provisoire (P8) — l'état et la règle (vidage d'abord, lecture
+    // hors fil, garde anti-course par id) vivent dans `navigationStore` ; la
+    // plomberie est câblée dans sa closure `loadInventory` ci-dessus.
+    var editingSave: SaveGameInfo? {
+        get { navigationStore.editingSave }
+        set { navigationStore.setEditingSave(newValue) }
     }
-    var inventoryToEdit: [InventoryItem] = []
+    /// Publique en écriture : `SavesView` lie les `stack` par binding
+    /// sous-indexé (`$vm.inventoryToEdit[index].stack`).
+    var inventoryToEdit: [InventoryItem] {
+        get { navigationStore.inventoryToEdit }
+        set { navigationStore.inventoryToEdit = newValue }
+    }
     // ⚠️ Façade provisoire (P8) — l'état vit dans `navigationStore` ; la
     // reprise des vues fera écrire le store directement.
     var viewingSaveTimeline: SaveGameInfo? {
@@ -2086,6 +2070,19 @@ final class StarHubTHViewModel {
         smapiInstaller.onWarning = { [weak self] message in
             self?.log(message, level: .warning)
         }
+        // Navigation (P8) : le store porte les poses à effet ; l'app câble
+        // ici leur plomberie — lecture de fiche, rescan raccourcis (X66),
+        // inventaire hors fil principal (un vrai fichier de sauvegarde
+        // fait ~40 Mo).
+        navigationStore.wireEffects(
+            onModDetailOpen: { [weak self] in self?.loadModDetail(for: $0) },
+            onConfigEditorClosed: { [weak self] in self?.rescanKeybindsAfterConfigWrite() },
+            loadInventory: { save, done in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let items = SaveManager.shared.fetchInventory(for: save) ?? []
+                    DispatchQueue.main.async { done(items) }
+                }
+            })
         // `AppleLanguages` is resynced from the store's `currentLanguage.didSet`
         // (`LocalizationStore`); no manual write needed here. The previous
         // 3-line block caused a triple write on first launch (initializer →

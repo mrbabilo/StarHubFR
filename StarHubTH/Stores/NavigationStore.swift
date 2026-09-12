@@ -124,4 +124,92 @@ final class NavigationStore {
     func consumePendingTabRequest() {
         pendingTabRequest = nil
     }
+
+    // MARK: - Poses à effet
+
+    /// Les closures d'effet — I/O injectées (patron du dépôt) : le store
+    /// décide, l'app câble la plomberie. Défauts `nil` : rien ne se
+    /// déclenche tant que le VM n'a pas câblé, et les tests injectent des
+    /// espions.
+    @ObservationIgnored private(set) var onModDetailOpen: ((ModItem) -> Void)?
+    @ObservationIgnored private(set) var onConfigEditorClosed: (() -> Void)?
+    @ObservationIgnored private(set) var loadInventory:
+        ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)?
+
+    init(onModDetailOpen: ((ModItem) -> Void)? = nil,
+         onConfigEditorClosed: (() -> Void)? = nil,
+         loadInventory: ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)? = nil) {
+        self.onModDetailOpen = onModDetailOpen
+        self.onConfigEditorClosed = onConfigEditorClosed
+        self.loadInventory = loadInventory
+    }
+
+    /// Câblage **après construction** — la voie de l'app : le ViewModel est
+    /// lui-même `@Observable`, une propriété `lazy` y est impossible et son
+    /// `init(localization:)` câble les effets une fois le store posé. (Les
+    /// tests passent plutôt les espions à l'`init`.)
+    func wireEffects(onModDetailOpen: ((ModItem) -> Void)?,
+                     onConfigEditorClosed: (() -> Void)?,
+                     loadInventory: ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)?) {
+        self.onModDetailOpen = onModDetailOpen
+        self.onConfigEditorClosed = onConfigEditorClosed
+        self.loadInventory = loadInventory
+    }
+
+    /// Non-nil = the detail pane is showing this mod. Le poser déclenche le
+    /// chargement de la fiche (cache/local instantané, puis un
+    /// rafraîchissement en fond — `loadModDetail`, resté au VM) — sauf pour
+    /// `nil`, qui ne déclenche rien : fermer n'est pas charger.
+    private(set) var viewingModDetail: ModItem?
+
+    func setViewingModDetail(_ mod: ModItem?) {
+        viewingModDetail = mod
+        guard let mod else { return }
+        onModDetailOpen?(mod)
+    }
+
+    /// Le mod dont l'éditeur de configuration est ouvert. **X66 — toute
+    /// écriture dans un `config.json` périme le rapport de raccourcis**, et
+    /// la fermeture de l'éditeur en est une : seule la transition
+    /// non-nil → nil déclenche le rescan. La garde éprouve trois
+    /// conséquences : ouvrir l'éditeur n'a rien à rescanner (nil → non-nil),
+    /// une transition non-nil → non-nil n'est pas une fermeture, et une
+    /// « fermeture » depuis nil n'en est pas une non plus. La règle en un
+    /// seul exemplaire vit dans `rescanKeybindsAfterConfigWrite()` (VM) ;
+    /// le canal ci-dessous n'est que l'un de ses appelants.
+    private(set) var editingModConfig: ModItem?
+
+    func setEditingModConfig(_ mod: ModItem?) {
+        let oldValue = editingModConfig
+        editingModConfig = mod
+        guard oldValue != nil, editingModConfig == nil else { return }
+        onConfigEditorClosed?()
+    }
+
+    /// La sauvegarde dont l'éditeur d'inventaire est ouvert, et l'inventaire
+    /// qu'elle affiche. Poser une sauvegarde **vide l'inventaire d'abord** —
+    /// l'éditeur ne doit jamais montrer celui de la sauvegarde précédente
+    /// pendant le chargement — puis lance la lecture par `loadInventory`
+    /// (l'app la câble hors fil principal : un gros fichier de sauvegarde ne
+    /// doit pas geler l'interface). Le résultat n'atterrit que si la
+    /// sauvegarde affichée est toujours celle demandée — garde anti-course
+    /// par `id`, l'utilisateur peut changer de cible pendant que le fichier
+    /// se lit. `nil` vide sans charger.
+    private(set) var editingSave: SaveGameInfo?
+    /// Publique en écriture : `SavesView` lie les `stack` par binding
+    /// sous-indexé (`$vm.inventoryToEdit[index].stack`) — la mutation passe
+    /// par le set de la façade, sans règle à préserver ici (le vidage vit
+    /// dans `setEditingSave`).
+    var inventoryToEdit: [InventoryItem] = []
+
+    func setEditingSave(_ save: SaveGameInfo?) {
+        editingSave = save
+        inventoryToEdit = []
+        guard let save, let load = loadInventory else { return }
+        let requestedId = save.id
+        load(save) { [weak self] items in
+            guard let self, self.editingSave?.id == requestedId else { return }
+            self.inventoryToEdit = items
+        }
+    }
 }
