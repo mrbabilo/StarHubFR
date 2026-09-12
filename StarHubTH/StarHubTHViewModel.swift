@@ -222,11 +222,18 @@ final class StarHubTHViewModel {
         root: NexusArchiveStore.defaultRoot(
             applicationSupport: AppSupport.directory
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())))
-    var isDownloadingFromNexus = false
+    // MARK: Téléchargement Nexus — le store du domaine (cadrage §4, domaine
+    // 7, tranche 3). Il porte le cycle d'un transfert, sa file et le lissage
+    // du débit. Le jugement « suis-je occupé ? » reste ici :
+    // `NexusDownloadFlow` tranche aussi sur `pendingDownloadedZip`, qui est
+    // de l'installation.
+    private let downloadStore = NexusDownloadStore()
+
+    var isDownloadingFromNexus: Bool { downloadStore.isDownloading }
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
     /// Drives the per-row spinner in the Updates list while a premium update
     /// is in flight (isDownloadingFromNexus only tells "one is running").
-    var downloadingNexusModId: Int? = nil
+    var downloadingNexusModId: Int? { downloadStore.downloadingModId }
     private let nexusDownloader = NexusDownloader()
 
     /// Où en est le téléchargement Nexus en cours (B2-T1). `nil` au repos, et
@@ -236,23 +243,10 @@ final class StarHubTHViewModel {
     ///
     /// Un seul téléchargement en vol à la fois, à dessein : deux se
     /// disputeraient `pendingDownloadedZip`. Les demandes surnuméraires ne
-    /// sont plus refusées pour autant — elles attendent dans
-    /// `nexusDownloadQueue` et reprennent tour à tour à chaque bascule de
-    /// repos.
-    private(set) var nexusDownloadProgress: DownloadProgress?
-
-    /// Le téléchargement en vol, seul point d'annulation. Existe dès la
-    /// demande, donc avant que le lien ne soit résolu.
-    private var nexusDownloadInFlight: NexusFileDownload?
-    /// Téléchargements Nexus mis en file au lieu d'être refusés pendant
-    /// qu'un autre tourne ou que la feuille d'installation est ouverte.
-    /// Vidée par `drainQueuedNexusDownloads()`, appelé aux bascules de
-    /// repos : fin d'un téléchargement sans feuille (échec, annulation,
-    /// traduction) et fermeture de la feuille d'installation.
-    private var nexusDownloadQueue = NexusDownloadQueue()
-    /// Le débit, lissé sur trois secondes. Vit ici et non dans la vue : le
-    /// téléchargement continue quand l'onglet change.
-    private var nexusDownloadRate = DownloadRateEstimator()
+    /// sont plus refusées pour autant — elles attendent dans la file du
+    /// store et reprennent tour à tour à chaque bascule de repos
+    /// (`drainQueuedNexusDownloads`).
+    var nexusDownloadProgress: DownloadProgress? { downloadStore.progress }
 
     /// Rich detail state for the mod currently shown in the detail pane
     /// (Task 3 data layer; nav wiring lands in a later task).
@@ -4995,7 +4989,7 @@ final class StarHubTHViewModel {
             isBusy: NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
                                              hasPendingZip: pendingDownloadedZip != nil)) {
         case .enqueue(let entry):
-            if nexusDownloadQueue.enqueue(entry) {
+            if downloadStore.enqueue(entry) {
                 log(nexusDownloadLogMessage(named: L10n.VM.nexusDlQueuedNamed,
                                             plain: L10n.VM.nexusDlQueued, modId: entry.modId))
             }
@@ -5007,11 +5001,10 @@ final class StarHubTHViewModel {
     /// Lance effectivement le téléchargement — appelé sur un état de repos
     /// garanti par l'appelant (entrée directe ou drainage de la file).
     private func startNexusDownload(_ entry: NexusDownloadQueue.Entry) {
-        isDownloadingFromNexus = true
-        downloadingNexusModId = entry.modId
+        downloadStore.beginDownload(modId: entry.modId)
         log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
                                     plain: L10n.VM.nexusDlStarting, modId: entry.modId))
-        nexusDownloadInFlight = nexusDownloader.download(
+        downloadStore.track(nexusDownloader.download(
             modId: entry.modId, fileId: entry.fileId, game: entry.game,
             key: entry.key, expires: entry.expires,
             onProgress: { [weak self] received, expected in
@@ -5019,7 +5012,7 @@ final class StarHubTHViewModel {
                                                 modId: entry.modId)
             }) { [weak self] result in
             self?.handleNexusDownloadResult(result, modId: entry.modId)
-        }
+        })
     }
 
     /// Démarre le téléchargement suivant de la file, si le couple
@@ -5032,7 +5025,7 @@ final class StarHubTHViewModel {
     func drainQueuedNexusDownloads() {
         guard !NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
                                         hasPendingZip: pendingDownloadedZip != nil),
-              let next = nexusDownloadQueue.dequeue() else { return }
+              let next = downloadStore.dequeue() else { return }
         startNexusDownload(next)
     }
 
@@ -5088,12 +5081,8 @@ final class StarHubTHViewModel {
                                                        modId: Int) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.nexusDownloadRate.record(totalBytes: received, at: Date())
-            self.nexusDownloadProgress = DownloadProgress(
-                bytesReceived: received,
-                totalBytes: expected,
-                bytesPerSecond: self.nexusDownloadRate.bytesPerSecond,
-                nexusModId: modId)
+            self.downloadStore.noteProgress(received: received, expected: expected,
+                                            modId: modId)
         }
     }
 
@@ -5104,11 +5093,7 @@ final class StarHubTHViewModel {
     /// `rejectNexusDownloadIfBusy` condamnerait le bouton pour la session.
     @MainActor
     private func clearNexusDownloadState() {
-        isDownloadingFromNexus = false
-        downloadingNexusModId = nil
-        nexusDownloadProgress = nil
-        nexusDownloadInFlight = nil
-        nexusDownloadRate.reset()
+        downloadStore.endDownload()
     }
 
     /// Annule le téléchargement en cours. Sans effet s'il n'y en a pas.
@@ -5119,7 +5104,7 @@ final class StarHubTHViewModel {
     /// transfert continue.
     @MainActor
     func cancelNexusDownload() {
-        nexusDownloadInFlight?.cancel()
+        downloadStore.cancel()
     }
 
     /// Renders a `NexusDownloadError` through the app's live per-language bundle
@@ -5807,9 +5792,8 @@ final class StarHubTHViewModel {
         // disputeraient `pendingDownloadedZip`.
         if rejectNexusDownloadIfBusy() { return }
         translationHub.setBusy(true, for: mod.folderName)
-        isDownloadingFromNexus = true
-        downloadingNexusModId = hit.modId
-        nexusDownloadInFlight = nexusDownloader.download(
+        downloadStore.beginDownload(modId: hit.modId)
+        downloadStore.track(nexusDownloader.download(
             modId: hit.modId, fileId: nil, game: NexusRequestBuilder.gameDomain,
             key: nil, expires: nil,
             onProgress: { [weak self] received, expected in
@@ -5843,7 +5827,7 @@ final class StarHubTHViewModel {
                 // : les mods mis en file derrière elle peuvent reprendre.
                 self.drainQueuedNexusDownloads()
             }
-        }
+        })
     }
 
     private func depositTranslation(archive: URL, hit: NexusModSearch.Hit, into mod: ModItem) {

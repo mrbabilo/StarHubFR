@@ -241,6 +241,7 @@ let package = Package(
                 "Stores/ProfileTranslationStore.swift",
                 "Stores/ModUpdateStore.swift",
                 "Stores/NexusAccountStore.swift",
+                "Stores/NexusDownloadStore.swift",
                 "Models/ModScanner.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
@@ -651,6 +652,11 @@ let package = Package(
             name: "SmapiLogDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "NexusDownloadStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusDownloadStoreTests"
         ),
         .testTarget(
             name: "NexusAccountStoreTests",
