@@ -92,13 +92,18 @@ final class StarHubTHViewModel {
     /// removal + rescan.
     var pendingDeleteFolder: String? = nil
 
+    // MARK: Mises à jour — le store du domaine (cadrage §4, domaine 7,
+    // tranche 1). Il porte les lignes et le verrou à deux détenteurs des
+    // deux passes ; le cache plat reste chez `NexusUpdateChecker.shared`.
+    private let updateStore = ModUpdateStore()
+
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
-    var nexusUpdates: [NexusUpdateChecker.ModUpdate] = []
+    var nexusUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.updates }
     /// R3 — les mises à jour en veille : vraies, mais repoussées par un
     /// snooze encore vivant. Affichées repliées sous la liste, jamais dans
     /// l'inventaire masquées. Le badge sidebar ne les compte pas (`nexusUpdates`
     /// seul y figure).
-    private(set) var snoozedUpdates: [NexusUpdateChecker.ModUpdate] = []
+    var snoozedUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.snoozed }
     /// R3 — le store des snoozes (persistance UserDefaults, expiration
     /// paresseuse). Touche principale uniquement, comme `nexusUpdates`.
     let updateSnoozer = ModUpdateSnoozer()
@@ -111,9 +116,7 @@ final class StarHubTHViewModel {
     /// L'`UniqueID` accompagne le nom depuis B2-T10 : une ligne sur laquelle on
     /// veut agir — ici la retirer quand Nexus a fini par la trancher — doit
     /// pouvoir être désignée, et deux mods peuvent porter le même nom.
-    private(set) var unverifiableMods: [(uniqueId: String,
-                                                    name: String,
-                                                    blocker: SmapiUpdateResponse.Blocker)] = []
+    var unverifiableMods: [SmapiVerdicts.Unverifiable] { updateStore.unverifiable }
     /// Les mods que « Je l'ai déjà » a fait taire (X12).
     ///
     /// **Publié, et non calculé à la demande** : le construire relit et décode
@@ -122,7 +125,7 @@ final class StarHubTHViewModel {
     /// `healthIssues` et rangé en F3. Rafraîchi aux trois seuls moments où la
     /// liste peut changer : après un scan, après une affirmation, après un
     /// réaffichage.
-    private(set) var affirmedUpdates: [AffirmedUpdates.Row] = []
+    var affirmedUpdates: [AffirmedUpdates.Row] { updateStore.affirmed }
 
     /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
     ///
@@ -169,11 +172,11 @@ final class StarHubTHViewModel {
     /// décodeur, ou `nil` quand aucun dump n'a jamais été posé).
     private(set) var pathoschildDumpDate: Date? = nil
     /// True while a Nexus check is in flight.
-    var isCheckingNexusUpdates: Bool = false
+    var isCheckingNexusUpdates: Bool { updateStore.isChecking }
     /// Last error message from a Nexus check (nil = none / not run yet).
-    var nexusCheckError: String? = nil
-    /// Progress of the in-flight Nexus check: `(done, total)`. `nil` when idle.
-    var nexusCheckProgress: (done: Int, total: Int)? = nil
+    var nexusCheckError: String? { updateStore.checkError }
+    /// Progress of the in-flight Nexus check. `nil` when idle.
+    var nexusCheckProgress: UpdateCheckProgress? { updateStore.progress }
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool = false
     /// Le compte Nexus, `nil` tant qu'on ne sait pas.
@@ -3626,7 +3629,7 @@ final class StarHubTHViewModel {
         // sert plus qu'au téléchargement intégré et aux fiches.
         nexusCategories = [:]
         nexusModExtras = [:]
-        nexusCheckError = nil
+        updateStore.setCheckError(nil)
     }
 
     /// Demande à smapi.io, en un appel groupé, s'il existe plus récent.
@@ -3647,9 +3650,7 @@ final class StarHubTHViewModel {
     /// fin de passe.
     func checkNexusUpdates() {
         guard !isCheckingNexusUpdates else { return }
-        isCheckingNexusUpdates = true
-        nexusCheckError = nil
-        nexusCheckProgress = nil
+        updateStore.beginCheck()
         log("Vérification des mises à jour démarrée", level: .info)
 
         let anchors = anchorStore.all()
@@ -3695,7 +3696,7 @@ final class StarHubTHViewModel {
                         // à la fin de la composition : on attend alors encore
                         // le dump Pathoschild, et l'UI ne se relâche pas entre
                         // les deux requêtes.
-                        self.nexusCheckProgress = nil
+                        self.updateStore.setProgress(nil)
                         completion(result)
                     })
             },
@@ -3715,7 +3716,7 @@ final class StarHubTHViewModel {
                 }
             },
             progress: { [weak self] done, total in
-                self?.nexusCheckProgress = (done, total)
+                self?.updateStore.setProgress(.init(done: done, total: total))
             },
             completion: { [weak self] composition in
                 guard let self else { return }
@@ -3741,7 +3742,7 @@ final class StarHubTHViewModel {
                         NexusUpdateChecker.shared.recordSuccessfulCheck()
                     }
                 case .failed:
-                    self.nexusCheckError = composition.checkError
+                    self.updateStore.setCheckError(composition.checkError)
                     self.applyPathoschildFallback(entries: composition.entries)
                 case .noResult:
                     break
@@ -3757,9 +3758,9 @@ final class StarHubTHViewModel {
                 // rouvrirait précisément le re-déclenchement que le paragraphe
                 // ci-dessus décrit — et cette fois sur le quota Nexus.
                 // `finishNexusFallback` relâche les deux à sa place.
-                guard !self.nexusFallbackInFlight else { return }
-                self.isCheckingNexusUpdates = false
-                self.nexusCheckProgress = nil
+                // La décision de relâcher — ou pas — vit dans le store : elle
+                // était ici un `guard` qu'il fallait penser à écrire.
+                self.updateStore.endCheck()
             })
     }
 
@@ -3881,9 +3882,7 @@ final class StarHubTHViewModel {
             previousRows: NexusUpdateChecker.shared.cachedUpdates(),
             previousVerdicts: modCompatibility)
 
-        unverifiableMods = app.unverifiable.map {
-            (uniqueId: $0.uniqueId, name: $0.name, blocker: $0.blocker)
-        }
+        updateStore.setUnverifiable(app.unverifiable)
         modCompatibility = app.verdicts
         if !ModCompatibilityStore.save(app.verdicts) {
             // Les verdicts valent pour cette session, mais l'avertissement à
@@ -4045,25 +4044,9 @@ final class StarHubTHViewModel {
         let modCount = targets.reduce(0) { $0 + $1.mods.count }
         log("Reprise Nexus : \(modCount) mods sans verdict, \(targets.count) pages à interroger",
             level: .info)
-        isCheckingNexusUpdates = true
-        nexusFallbackInFlight = true
-        nexusCheckProgress = (0, targets.count)
+        updateStore.beginFallback(pages: targets.count)
         fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0)
     }
-
-    /// Vrai entre le lancement d'une reprise Nexus et sa fin.
-    ///
-    /// La reprise démarre **dans** `applySmapiResults`, donc avant que le
-    /// `group.notify` de `checkNexusUpdates` n'ait fini son propre travail :
-    /// sans ce drapeau, le relâchement de fin de passe (`isCheckingNexusUpdates
-    /// = false`, `nexusCheckProgress = nil`) écrasait le `true` que la reprise
-    /// venait de poser. La vérification se déclarait terminée alors qu'elle
-    /// interrogeait encore Nexus page par page — le bouton « Vérifier »
-    /// réapparaissait, et un second passage complet pouvait démarrer par-dessus,
-    /// aux dépens du quota Nexus là où smapi.io est gratuit. C'est exactement le
-    /// re-déclenchement que ce relâchement tardif avait été placé là pour
-    /// empêcher.
-    private var nexusFallbackInFlight = false
 
     /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
     /// rendu un verdict — mise à jour trouvée **ou** confirmation qu'il n'y en
@@ -4097,7 +4080,7 @@ final class StarHubTHViewModel {
                                          failures: outcome.failures, attempted: index)
                 return
             }
-            self.nexusCheckProgress = (index + 1, targets.count)
+            self.updateStore.setProgress(.init(done: index + 1, total: targets.count))
             self.fetchNexusFallback(targets, index: index + 1,
                                     found: outcome.found, settled: outcome.settled,
                                     failures: outcome.failures)
@@ -4118,9 +4101,7 @@ final class StarHubTHViewModel {
         // de `fetchNexusFallback` (dernière page atteinte, et l'abandon sur
         // limitation de débit) passent par ici, et un drapeau resté levé
         // laisserait la vérification bloquée « en cours » pour la session.
-        nexusFallbackInFlight = false
-        isCheckingNexusUpdates = false
-        nexusCheckProgress = nil
+        updateStore.endFallback()
 
         let settlement = NexusResume.settle(
             found: found, settled: settled, failures: failures,
@@ -4131,7 +4112,7 @@ final class StarHubTHViewModel {
             republishUpdatesFromCache()
         }
         if !settled.isEmpty {
-            unverifiableMods = unverifiableMods.filter { !settled.contains($0.uniqueId) }
+            updateStore.settle(settled)
         }
         for line in settlement.journal {
             log(line.text, level: line.level)
@@ -4378,13 +4359,13 @@ final class StarHubTHViewModel {
     /// affirmation porte sur un `UniqueID`, donc sur un composant, jamais sur
     /// l'en-tête qui le contient.
     func refreshAffirmedUpdates() {
-        affirmedUpdates = AffirmedUpdates.rows(
+        updateStore.setAffirmed(AffirmedUpdates.rows(
             anchors: anchorStore.all(),
             installed: allInstalledMods().map {
                 AffirmedUpdates.InstalledMod(uniqueId: $0.uniqueId, name: $0.name,
                                              version: $0.version,
                                              folderName: $0.folderName)
-            })
+            }))
     }
 
     /// « Réafficher » : retire l'affirmation posée sur un mod.
@@ -4506,8 +4487,9 @@ final class StarHubTHViewModel {
                 active.append(row)
             }
         }
-        nexusUpdates = active
-        snoozedUpdates = sleeping
+        // Les deux moitiés d'un seul geste : publiées séparément, un instant
+        // de rendu verrait un mod dans les deux, ou dans aucune.
+        updateStore.setPartition(active: active, sleeping: sleeping)
     }
 
     /// R3 — met en veille la mise à jour d'un mod. La ligne quitte la liste
