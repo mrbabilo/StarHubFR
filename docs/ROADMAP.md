@@ -1857,12 +1857,17 @@ conversion.
 
 **Deux remèdes possibles, à arbitrer :**
 
-1. **Un cache de diff par empreinte de fichiers.** Le patron existe déjà
-   (`TranslationCoverageCache` + `TranslationStamp`) : le diff ne change que
-   si les fichiers changent. Zéro risque sur les règles du parseur, gain
-   total dès la deuxième ouverture — mais la **première** coûte toujours
-   1,7 s. À noter : la passe de couverture de profil vient de lire ces mêmes
-   fichiers juste avant, pour un autre résultat.
+1. ~~**Un cache de diff par empreinte de fichiers.**~~ ✅ **Livré le 2026-09-12**
+   (17e62d5 + 5a2f38f) — `TranslationDiffCache` (Core, trois entrées LRU, 11
+   tests dont cinq sabotages) : gain mesuré **1 731 ms → 0,3 ms** à la
+   réouverture. Son invalidation est **explicite**, pas déduite de l'empreinte :
+   une correction de même longueur dans la même seconde la laisse identique.
+   Sept chemins d'écriture câblés — six par l'entonnoir
+   `invalidateFrenchCoverage(for:)`, un direct (`recoverTranslationKeys`,
+   qui doit garder ses baselines ; trou trouvé par la vérification du
+   câblage, corrigé dans le même mouvement). **La première ouverture coûte
+   toujours 1,7 s.** À noter : la passe de couverture de profil vient de lire
+   ces mêmes fichiers juste avant, pour un autre résultat.
 2. **Fusionner les passes.** Une seule traversée rendrait les paires, l'ordre
    et les sections. Le gain porterait sur la première ouverture aussi, mais
    le parseur tolérant porte des règles mesurées et des bugs historiques
@@ -1870,7 +1875,8 @@ conversion.
    nues, caractères de contrôle bruts) : y toucher demande que chaque règle
    reste prouvée.
 
-Le 1 est sûr et partiel, le 2 est complet et risqué. Ils ne s'excluent pas.
+Le 1 est livré et couvre le geste courant (rouvrir une fiche). Le 2 reste
+ouvert — le faire si la première ouverture reste trop lente à l'usage.
 
 ## 8. Ordre recommandé et arbitrage
 
