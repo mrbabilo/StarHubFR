@@ -3196,7 +3196,7 @@ final class StarHubTHViewModel {
     /// Consommé au `.task` de `TranslationDiffView` (là seul où le filtre
     /// existe avant que les groupes se rebâtissent), remis à `nil` aussitôt —
     /// la réouverture manuelle de l'onglet ne rejoue pas le cadrage.
-    var pendingTranslationDiffFilter: TranslationDiffView.DiffFilter? = nil
+    var pendingTranslationDiffFilter: TranslationCoverage.DiffFilter? = nil
 
     /// Le texte à préremplir dans la recherche des Journaux après un
     /// changement d'onglet. Posé par `SystemAlertsView` (H-T6b) pour ses

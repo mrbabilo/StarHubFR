@@ -12,13 +12,6 @@ import SwiftUI
 /// fresh instance is created whenever the user switches to a different mod:
 /// that resets `selectedTab` and, more importantly, the Nexus-id draft below
 /// so an in-progress edit can never leak onto the wrong mod's folder.
-/// Les onglets de la fiche, **nommés** : le parcours « traduis ce mod »
-/// (`pendingTranslationFocus`) pointait un index entier — chaque
-/// réordonnancement d'onglets le recassait en silence.
-enum DetailTab: Hashable {
-    case description, changelog, dependencies, state, translation
-}
-
 struct ModDetailView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore

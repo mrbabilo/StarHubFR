@@ -27,11 +27,10 @@ struct TranslationDiffView: View {
     let mod: ModItem
 
     /// Ce que la barre de filtres peut cadrer : un état du diff, ou le
-    /// drapeau « À relire » posé par le lot.
-    enum DiffFilter: Equatable {
-        case state(TranslationCoverage.DiffRow.State)
-        case reviewNeeded
-    }
+    /// drapeau « À relire » posé par le lot — le type vit désormais en Core,
+    /// à côté de son modèle (`TranslationCoverage.DiffRow`) : le store de
+    /// navigation le porte, et Core ne peut pas référencer un type de vue.
+    typealias DiffFilter = TranslationCoverage.DiffFilter
 
     @State private var rows: [TranslationCoverage.DiffRow] = []
     @State private var isLoading = true
