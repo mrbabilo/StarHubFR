@@ -856,7 +856,7 @@ sont passés. Ce qui a été exercé :
 ### Domaine 7 — Nexus, tranche 1 (les mises à jour), livrée le 2026-09-12
 
 Deux commits (`110dfa8` pour le store, et celui du câblage), gate exit 0,
-**3 082 tests verts**. `ModUpdateStore` (`@Observable`, 8 tests, cinq
+**3 082 tests verts**. `ModUpdateStore` (`@Observable`, 11 tests, huit
 sabotages). ViewModel 10 288 → **10 270** (−18) ;
 `viewmodel_stored_state` 122 → **114** ;
 `observable_stored_without_private_set` 104 → **99**.
@@ -920,9 +920,15 @@ fenêtre des mises à jour :
 1. « Vérifier » sur le parc complet — la progression avance, le bouton reste
    indisponible, l'erreur d'une passe précédente a disparu ;
 2. **le contrôle qui porte** : quand la passe smapi.io se termine et qu'une
-   reprise Nexus enchaîne (elle s'annonce au journal, « Reprise Nexus : N
-   mods sans verdict »), le voyant **ne s'éteint pas entre les deux** et le
-   bouton ne redevient pas cliquable ;
+   reprise Nexus enchaîne, le voyant **ne s'éteint pas entre les deux** et le
+   bouton ne redevient pas cliquable.
+   ⚠️ **Précondition, sans quoi ce contrôle est vide** : une clé d'API Nexus
+   doit être configurée — `resumeNexusFallback` sort sur un `guard` **avant**
+   d'ouvrir la reprise quand il n'y en a pas, et le voyant se comporterait
+   alors « correctement » sans que le verrou ait jamais été sollicité. La
+   preuve que la reprise a bien démarré est la ligne de journal
+   « Reprise Nexus : N mods sans verdict, M pages à interroger » : sans elle,
+   le contrôle n'a pas eu lieu ;
 3. les invérifiables que la reprise a tranchés quittent la liste repliée,
    **ceux qu'elle n'a pas atteints y restent** ;
 4. mettre une mise à jour en veille — elle quitte la liste et le badge, et

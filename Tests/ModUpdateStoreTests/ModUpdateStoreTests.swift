@@ -71,6 +71,37 @@ import Foundation
         #expect(s.checkError == nil)
     }
 
+    /// La progression pilote la barre visible, et se tait entre les deux
+    /// requêtes d'une même passe sans relâcher le voyant.
+    @Test func progressIsPublishedAndCanBeSilencedWithoutEndingTheCheck() {
+        let s = ModUpdateStore()
+        s.beginCheck()
+        s.setProgress(UpdateCheckProgress(done: 3, total: 10))
+        #expect(s.progress == UpdateCheckProgress(done: 3, total: 10))
+        s.setProgress(nil)
+        #expect(s.progress == nil)
+        #expect(s.isChecking)          // se taire n'est pas se terminer
+    }
+
+    /// La reprise peut **s'ouvrir seule** : elle allume le voyant elle-même
+    /// plutôt que de compter sur la passe qui la précède.
+    @Test func aFallbackOpenedOnItsOwnTurnsTheLightOn() {
+        let s = ModUpdateStore()
+        s.beginFallback(pages: 4)
+        #expect(s.isChecking)
+        #expect(s.fallbackInFlight)
+        #expect(s.progress == UpdateCheckProgress(done: 0, total: 4))
+    }
+
+    @Test func affirmedRowsArePublished() {
+        let s = ModUpdateStore()
+        s.setAffirmed([AffirmedUpdates.Row(uniqueId: "mod", name: "Mod",
+                                           affirmedVersion: "2.0",
+                                           manifestVersion: "2.0",
+                                           folderName: "Mod")])
+        #expect(s.affirmed.map(\.uniqueId) == ["mod"])
+    }
+
     /// Le cas qui porte : la reprise Nexus est partie **pendant** la passe
     /// smapi.io. Quand celle-ci se referme, le voyant doit rester allumé —
     /// sinon le bouton « Vérifier » réapparaît alors que Nexus est encore
