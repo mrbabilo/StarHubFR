@@ -1270,6 +1270,44 @@ la ligne mis à jour ; (4) pastille d'alertes sans ouvrir l'onglet ;
 (5) couverture FR recalculée après un scan ; (6) pied de barre « mesure
 en cours » puis poids total ; (7) deux scans rapprochés sans crash.
 
+### P8 — la reprise des vues, tranches 3-5 (les façades sortent), livrées le 2026-09-12
+
+Trois commits (`b2c64633`, `f59c8a50`, `431f29ca`) : les vues écrivent les
+stores directement, les façades provisoires sortent du ViewModel.
+
+- **Navigation** (~70 sites, 9 fichiers) : lectures `vm.navigationStore.X`,
+  écritures à règle par les setters nommés (`setViewingModDetail`,
+  `setEditingModConfig`, `setEditingSave`), affectations simples pour
+  `viewingThaiMod`, `viewingSaveTimeline` et `inventoryToEdit`. Le binding
+  sous-indexé de `SavesView` (`$…inventoryToEdit[index].stack`) passe par une
+  projection `@Bindable` locale — `vm.navigationStore` reste un `let`, un
+  chemin de binding doit être écrivable (+4 lignes assumées au cliquet).
+- **Scan & entretien** (~68 sites) : `vm.scanStore.mods`/`.scanProgress` ;
+  la Quarantaine écrit par `setRepairReport`/`setQuarantineMessage`. `mods`
+  reste en façade de **lecture assumée** (cond. 1 assouplie — dizaines
+  d'usages internes) ; `scanProgress`, `duplicateIndex` et les deux façades
+  maintenance sortent.
+- **`pending*`** (30 sites, 7 façades) : `vm.navigationStore.pending*`.
+  `pendingNexusSource`/`pendingToggleFolder`/`pendingDeleteFolder` restent de
+  l'état du VM — jamais des façades.
+
+Deux rats du sed, corrigés au gate : la **fonction** `vm.mods(matching:)`
+(pas la façade) et le nom `quarantineMessage` côté store. Les quatre
+écritures internes du VM (reset de `scanMods`, phases de lancement, bascule
+X57) passent par `scanStore.setMods`/`.scanProgress`. Marquées provisoires
+restantes : **zéro** — les cinq « cond. 1 » suivantes sont des façades de
+lecture assumées à demeure. Reste hors périmètre : la famille **alertes**
+(`alertMessage`/`showAlert`, état stocké du VM — extraction puis reprise,
+une tranche propre). VM : 10 236 → 10 129 lignes.
+
+**Vérification à l'écran — par l'auteur** : (1) fiche mod ouvre et ferme
+depuis liste, arbre de dépendances et alertes système ; (2) éditeur de
+config ouvre et une écriture rejoue le scan de raccourcis (X66) ; (3)
+sauvegardes — édition d'inventaire (quantités), duplication, timeline ; (4)
+hub thaï ; (5) Quarantaine — vider vers la corbeille met à jour bannière et
+message ; (6) splash — barre par mod puis compte final ; (7) les foci
+depuis un autre onglet (Alertes système → config, recherche → fiche).
+
 ## Bilan du chantier B — clos le 2026-09-12
 
 Les **huit domaines** sont extraits pour leur état. `viewmodel_stored_state`
@@ -1282,12 +1320,14 @@ mais la tranche se juge à l'état déplacé et aux règles passées sous test,
 pas aux lignes : **23 stores** dans `Stores/`, tous en Core, tous testés.
 
 Ce que le chantier n'a **pas** fait, et qui reste ouvert :
-- **P8 — la reprise des vues** : les vues lisent encore le VM (façades
-  provisoires, marquées). Faire écrire les ~86 sites directement aux
-  stores, puis supprimer les façades. Tranche suivante naturelle.
-- **F3** (la latence de frappe de la recherche, §5 bis) — le juge de la
-  réactivité, à re-mesurer sur le parc réel maintenant que l'état est
-  déplacé.
+- **P8 — la reprise des vues** : **fait aux trois quarts** le 2026-09-12
+  (tranches 3-5, voir ci-dessus) ; reste la famille **alertes**
+  (`alertMessage`/`showAlert` — extraction puis reprise) et les cinq façades
+  de lecture assumées (cond. 1, à demeure).
+- **F3** — **fermée le 2026-09-12** : mesurée par A/B des témoins
+  (défaut préexistant), diagnostiquée par capture Instruments (`inferTag`
+  relancé par frappe), corrigée (`fd6f0d08` — tag calculé à l'init de
+  `ModItem`), vérifiée à l'écran. Voir la case ROADMAP.
 - Le **domaine Scan pour ses fonctions** (`parseModFolder` imbriquée,
   REFACTORING §5 point 4) — non extractible au critère des entrées, à
   reprendre au contact.
