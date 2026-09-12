@@ -353,6 +353,26 @@ public enum TranslationCoverage {
             .flatMap(\.rows)
     }
 
+    /// Les rangées de diff, **gardées** tant que les fichiers `i18n` du mod
+    /// n'ont pas changé (F7).
+    ///
+    /// Point d'entrée **unique** du cache, à dessein : l'empreinte se calcule
+    /// ici, sur la liste de dossiers que `diffRows` parcourt réellement. La
+    /// faire calculer par l'appelant l'exposerait à n'empreindre que la racine
+    /// du mod — et un pack dont un seul composant change ne serait alors
+    /// jamais réinvalidé.
+    static func diffRows(forModAt modDirectory: URL, locale: String,
+                         cache: TranslationDiffCache,
+                         fileManager: FileManager = .default) -> [DiffRow] {
+        let directories = I18nLocaleResolver.i18nDirectories(inModDirectory: modDirectory,
+                                                             fileManager: fileManager)
+        let stamp = TranslationStamp.of(directories: directories, fileManager: fileManager)
+        if let kept = cache.rows(forModAt: modDirectory, stamp: stamp) { return kept }
+        let rows = diffRows(forModAt: modDirectory, locale: locale, fileManager: fileManager)
+        cache.store(rows, forModAt: modDirectory, stamp: stamp)
+        return rows
+    }
+
     /// La structure du fichier anglais : l'ordre de ses clés et ses sections.
     /// `nil` s'il n'est pas lisible — les rangées repassent alors par le tri
     /// alphabétique.

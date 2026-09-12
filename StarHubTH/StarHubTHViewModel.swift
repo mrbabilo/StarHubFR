@@ -679,13 +679,23 @@ final class StarHubTHViewModel {
     ///
     /// Rien n'est mis en cache ici : le diff ne sert qu'à une vue ouverte à la
     /// demande, là où la couverture alimente une liste entière.
+    /// Les rangées de diff gardées d'un appel à l'autre (F7). Trois entrées,
+    /// mesurées à 1,1–2,3 Mo chacune.
+    private let translationDiffCache = TranslationDiffCache()
+
     func translationDiff(for mod: ModItem) async -> [TranslationCoverage.DiffRow] {
         let directory = URL(fileURLWithPath: (gameDir as NSString)
             .appendingPathComponent("Mods"))
             .appendingPathComponent(mod.physicalFolderName)
         let folderName = mod.folderName
+        let cache = translationDiffCache
         let rows = await Task.detached(priority: .userInitiated) {
-            let rows = TranslationCoverage.diffRows(forModAt: directory, locale: "fr")
+            // Gardé tant que les fichiers `i18n` ne changent pas : le calcul
+            // coûte 1,2 à 2,6 s sur le parc réel, l'empreinte 0,3 ms (F7).
+            // **Seul `diffRows` est gardé** — ce qui suit adopte et réancre la
+            // référence et réécrit l'index, et doit rejouer à chaque appel.
+            let rows = TranslationCoverage.diffRows(forModAt: directory, locale: "fr",
+                                                    cache: cache)
             guard let store = TranslationBaseline.defaultDirectory() else { return rows }
 
             // La référence d'abord : elle ne dépend que de ce qu'on a déjà vu.
