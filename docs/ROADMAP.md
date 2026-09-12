@@ -1503,6 +1503,24 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       Instruments pendant la frappe (`xctrace`, template `SwiftUI`), pour nommer
       où va le temps au lieu de le déduire du code. La case reste dans le seau de
       la passe groupée (arbitrage du 2026-08-01).
+      ▸ **Capture Instruments analysée (2026-09-12)** — trace `SwiftUI` 45 s sur
+      le témoin v1.41.1 pendant la frappe : 23 gels du fil principal — un Severe
+      Hang de 2,3 s, quinze de 0,5 à 1,0 s — soit **~0,7 s de fil principal
+      bloqué par lettre** (17,6 s de fil occupé sur la fenêtre, contre 1,5 s pour
+      tout le démarrage). Attribution : **27 % du temps occupé (4,7 s) dans
+      `ModItem.inferTag`/`inferredTagKey`** — la chaîne
+      `Regex.firstMatch → Processor.atSimpleBoundary → matchesWord` du moteur
+      Unicode. Mécanisme : chaque frappe relance `inferredTagBuckets` et
+      `uncategorizedCount` (`ModListView`) sur toute la base, chacun appelle
+      `inferredTagKey` **par mod**, et `inferTag` enchaîne ~150 regexes
+      `\bmot\b` sur `name + uniqueId + description` **sans mémoïsation** — les
+      badges `InferredTagBadge` repassent une troisième fois sur les lignes
+      visibles. La mesure « filtrage 2–5 ms » de cette case ne voyait pas ce
+      chemin : il vit dans la couche vue, pas dans `filteredMods`. Le même code
+      est vérifié présent à la tête (mêmes fonctions, mêmes appels). Remède
+      candidat : le tag d'un mod ne dépend pas du texte cherché — le mémoïser
+      (calcul à l'init de `ModItem`, pure logique Core, testable) fait tomber la
+      répétition par frappe ; il restera le rendu proprement dit des 15 lignes.
       **Constat accumulé (audit du 2026-09-02), à joindre à la passe groupée** — autre
       sujet, même seau : `healthIssues` (`StarHubTHViewModel.swift:379`, `@MainActor`
       computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
