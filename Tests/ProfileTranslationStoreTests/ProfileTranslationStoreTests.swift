@@ -63,9 +63,14 @@ import Foundation
 
     @Test func theCacheIsLoadedOnceThenServedFromMemory() {
         let cache = FakeCache()
+        cache.stored = ["deja": .init(stamp: stamp, total: 5, translated: 2)]
         let s = store(cache)
         let url = URL(fileURLWithPath: "/tmp/hub.json")
         s.loadCacheIfNotLoaded(from: url)
+        // Ce qui est lu **atterrit** dans l'etat : c'est la garantie qui
+        // epargne les 15,7 s d'analyse au lancement. Compter les lectures ne
+        // la tient pas — sans cette attente, `_ = loadCache(url)` passe.
+        #expect(s.cacheEntries["deja"]?.total == 5)
         s.loadCacheIfNotLoaded(from: url)
         #expect(cache.loadCount == 1)
     }
