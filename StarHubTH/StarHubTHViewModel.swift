@@ -1603,6 +1603,10 @@ final class StarHubTHViewModel {
            !uniqueId.isEmpty {
             profileTranslationStore.invalidate(uniqueId: uniqueId)
         }
+        // Les rangées gardées (F7) ne voient pas tout changement : une
+        // correction de même longueur dans la même seconde laisse l'empreinte
+        // intacte. Voir `TranslationDiffCache.removeAll()`.
+        translationDiffCache.removeAll()
     }
 
     // MARK: - Couverture française d'un profil (B3-T4)
@@ -7957,6 +7961,13 @@ final class StarHubTHViewModel {
                 try TranslationFileStore.write(text, to: target)
             }
             log(String(format: localization.L(L10n.Recovery.keysRecovered), Int64(edits.count), file.modName))
+            // Une écriture de même taille dans la même seconde laisse
+            // l'empreinte intacte : les rangées gardées (F7) serviraient
+            // l'état d'avant récupération. On ne repasse pas par
+            // `invalidateFrenchCoverage(for:)` — son retrait d'index effacerait
+            // les baselines que le mod conserve — c'est le cache qu'on vide
+            // directement. Voir `TranslationDiffCache.removeAll()`.
+            translationDiffCache.removeAll()
             scanRecoverableFiles()
             return true
         } catch {

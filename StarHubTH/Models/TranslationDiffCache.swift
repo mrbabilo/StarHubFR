@@ -74,6 +74,27 @@ final class TranslationDiffCache: @unchecked Sendable {
         }
     }
 
+    /// Vide tout. Appelé par `invalidateFrenchCoverage(for:)`, l'entonnoir
+    /// des six chemins qui changent les fichiers d'un mod, et directement
+    /// par `recoverTranslationKeys` (qui doit garder ses baselines).
+    ///
+    /// **Pourquoi tout et non l'entrée du mod concerné.** L'empreinte seule ne
+    /// suffit pas à voir un enregistrement : corriger une valeur par un texte
+    /// de **même longueur** dans la **même seconde** que la précédente
+    /// écriture laisse `fileCount`, `totalSize` et `newestModified` identiques
+    /// — et l'éditeur montrerait alors à l'auteur sa propre correction comme
+    /// non faite. Il faut donc invalider explicitement. Retrouver le chemin
+    /// depuis un `folderName` demanderait de rejouer le préfixe point, le
+    /// dossier d'un composant de pack et le cas du mod déjà supprimé du
+    /// parc — trois devinettes que ce dépôt a déjà payées. Trois entrées
+    /// jetées coûtent au pire un recalcul.
+    func removeAll() {
+        lock.lock()
+        defer { lock.unlock() }
+        entries.removeAll()
+        order.removeAll()
+    }
+
     /// Appelé sous le verrou.
     private func touch(_ key: String) {
         order.removeAll { $0 == key }

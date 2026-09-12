@@ -38,6 +38,30 @@ import Foundation
         #expect(cache.rows(forModAt: dir("Mod"), stamp: stamp(11)) == nil)
     }
 
+    // MARK: - L'invalidation explicite
+
+    /// L'empreinte seule ne voit pas tout : une correction de **même longueur**
+    /// dans la **même seconde** la laisse identique — le piège que documente
+    /// `removeAll()`. L'invalidation explicite doit l'emporter sur l'empreinte :
+    /// c'est l'appel que fait `invalidateFrenchCoverage(for:)` après toute
+    /// écriture dans les fichiers d'un mod.
+    @Test func removeAllDropsEvenAnEntryTheStampWouldStillServe() {
+        let cache = TranslationDiffCache()
+        cache.store(rows("a"), forModAt: dir("Mod"), stamp: stamp(10))
+        cache.removeAll()
+        #expect(cache.rows(forModAt: dir("Mod"), stamp: stamp(10)) == nil)
+    }
+
+    /// Vider ne doit pas abîmer le cache pour la suite : le mod réapparaît
+    /// avec de nouvelles rangées dès le prochain calcul.
+    @Test func removeAllLeavesAUsableCache() {
+        let cache = TranslationDiffCache()
+        cache.store(rows("a"), forModAt: dir("Mod"), stamp: stamp(10))
+        cache.removeAll()
+        cache.store(rows("b", "c"), forModAt: dir("Mod"), stamp: stamp(11))
+        #expect(cache.rows(forModAt: dir("Mod"), stamp: stamp(11))?.count == 2)
+    }
+
     // MARK: - Ce qu'il refuse de garder
 
     /// **Le cas qui porte.** Sans fichier de traduction, l'empreinte est
