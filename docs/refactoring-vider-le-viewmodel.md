@@ -1308,6 +1308,21 @@ hub thaï ; (5) Quarantaine — vider vers la corbeille met à jour bannière et
 message ; (6) splash — barre par mod puis compte final ; (7) les foci
 depuis un autre onglet (Alertes système → config, recherche → fiche).
 
+### P8 — tranche 6 (la famille alertes), livrée le 2026-09-13
+
+Un commit (`22ebddc1`) : **`AlertStore`** (Core, `@Observable`, 3 tests rouges
+prouvés) porte `message` + `shown` et la transition `show(_:)`. Le VM garde
+`showModal` — entrée unique, 69 appelants — et délègue ; les deux champs
+stockés sortent. MainView présente via un `Binding` inline sur
+`vm.alertStore` (fichier verrouillé à 1 554 lignes, delta zéro) ; les
+quatre paires d'écriture de `ModConfigBackupsView` passent par `show()`.
+**Le P8 est clos** : restent du ViewModel les cinq façades de lecture
+cond. 1, assumées à demeure. VM : 10 129 → 10 127 lignes.
+
+**Vérification à l'écran — par l'auteur** : une alerte se présente et se
+ferme (n'importe quel message d'erreur, p. ex. sauvegarde de config en
+échec), et une seconde alerte affiche le message neuf après la première.
+
 ## Bilan du chantier B — clos le 2026-09-12
 
 Les **huit domaines** sont extraits pour leur état. `viewmodel_stored_state`
@@ -1320,10 +1335,9 @@ mais la tranche se juge à l'état déplacé et aux règles passées sous test,
 pas aux lignes : **23 stores** dans `Stores/`, tous en Core, tous testés.
 
 Ce que le chantier n'a **pas** fait, et qui reste ouvert :
-- **P8 — la reprise des vues** : **fait aux trois quarts** le 2026-09-12
-  (tranches 3-5, voir ci-dessus) ; reste la famille **alertes**
-  (`alertMessage`/`showAlert` — extraction puis reprise) et les cinq façades
-  de lecture assumées (cond. 1, à demeure).
+- **P8 — la reprise des vues** : **clos** (tranches 1-6, 2026-09-12 et
+  2026-09-13 — voir ci-dessus). Restent du ViewModel les cinq façades de
+  lecture assumées (cond. 1, à demeure) — c'est l'état d'arrivée voulu.
 - **F3** — **fermée le 2026-09-12** : mesurée par A/B des témoins
   (défaut préexistant), diagnostiquée par capture Instruments (`inferTag`
   relancé par frappe), corrigée (`fd6f0d08` — tag calculé à l'init de
