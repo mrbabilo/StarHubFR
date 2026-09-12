@@ -218,7 +218,7 @@ final class StarHubTHViewModel {
     var pendingNexusSource: NexusInstallSource?
     /// X103-C — le magasin d'archives Nexus. Inerte tant que le réglage
     /// `keepNexusArchives` est éteint : rien n'appelle `keep`.
-    var nexusArchiveStore = NexusArchiveStore(
+    let nexusArchiveStore = NexusArchiveStore(
         root: NexusArchiveStore.defaultRoot(
             applicationSupport: AppSupport.directory
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())))

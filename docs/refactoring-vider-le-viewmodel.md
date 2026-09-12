@@ -1079,6 +1079,33 @@ téléchargement direct) :
    feuille d'installation du premier se ferme ; son débit repart de zéro et
    n'hérite pas de celui du précédent.
 
+### Domaine 7 — Nexus : clos à trois tranches, le 2026-09-12
+
+Il n'y aura **pas de tranche 4.** Les quatre propriétés qui restaient ont
+été examinées et laissées au ViewModel — pour des raisons qui tiennent, et
+qu'il valait mieux écrire que de fabriquer un store qui n'épingle rien.
+
+| Ce qui reste | Pourquoi |
+| --- | --- |
+| `nexusCategories`, `nexusModExtras` | Une décision antérieure les excluait déjà de `NexusMetadataStore` (« miroirs du cache du checker »), et la reconnaissance confirme que la raison tient : la copie qui fait foi vit dans `NexusUpdateChecker`, derrière `withMetadataCacheLock`, et `saveCachedCategories`/`saveCachedExtras` lui sont **privées**. Un store autour de ces deux cartes ne posséderait ni la persistance ni le verrou : il n'épinglerait aucune règle que le checker ne tient déjà. **L'inverse exact de la tranche 2**, où trois propriétés portaient cinq règles découplées. |
+| `modDetailState` | Un seul optionnel, un seul lecteur (`ModDetailView`), et les transitions (`initial`, `refreshed`, `stopLoading(ifShowing:)`) vivent déjà dans le type `ModDetailState`. L'extraire n'achèterait qu'une façade. |
+| `nexusArchives`, `nexusArchiveStore` | `nexusArchiveStore` est une référence à un magasin **déjà** en Core, et `nexusArchives` n'est qu'un miroir publié de ses `entries()`. Un store d'une propriété ne vaut pas la peine. Seul resserrage réel appliqué : `var` → **`let`** — aucune vue ne remplace la référence, et `var` non privé offrait de le faire. |
+
+🚩 **Une hypothèse de défaut, vérifiée puis abandonnée.** `fetchMetadata`
+écrit les deux cartes en mémoire sans rien persister : j'en ai conclu qu'une
+catégorie apprise par la recherche à la demande ne survivrait pas au
+relancement. C'est faux. `fetchSingleMod`, que cette fonction appelle,
+persiste **déjà** catégorie et extra dans le cache partagé, sous le verrou,
+avec même une garde contre la clé effacée pendant le vol
+(`metadataGeneration`). Le commentaire le dit en toutes lettres. Lire le
+chemin du ViewModel sans lire la fonction qu'il appelle m'avait fait voir un
+trou là où il n'y en a pas — un correctif écrit sur cette base aurait ajouté
+une couture publique inutile et une double persistance.
+
+**Le domaine est clos pour son état.** Ne reste que de l'orchestration
+réseau — la composition des deux requêtes (`NexusUpdateCheck`), la reprise
+page à page, et la résolution des liens de téléchargement.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
