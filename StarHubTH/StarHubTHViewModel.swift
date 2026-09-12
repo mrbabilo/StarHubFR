@@ -177,22 +177,25 @@ final class StarHubTHViewModel {
     var nexusCheckError: String? { updateStore.checkError }
     /// Progress of the in-flight Nexus check. `nil` when idle.
     var nexusCheckProgress: UpdateCheckProgress? { updateStore.progress }
+    // MARK: Compte Nexus — le store du domaine (cadrage §4, domaine 7,
+    // tranche 2). Le Trousseau n'y entre pas : la clé reste chez
+    // `NexusUpdateChecker.shared`, le store n'en retient que le fait
+    // qu'elle a été acceptée.
+    private let accountStore = NexusAccountStore()
+
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
-    var hasNexusApiKey: Bool = false
+    var hasNexusApiKey: Bool { accountStore.hasApiKey }
     /// Le compte Nexus, `nil` tant qu'on ne sait pas.
-    ///
-    /// Sert à ne pas proposer ce qui échouera : le téléchargement direct par
-    /// l'API est réservé aux comptes premium.
-    private(set) var nexusAccount: NexusAccount? = nil
+    var nexusAccount: NexusAccount? { accountStore.account }
 
     /// `true` seulement quand on **sait** que le compte n'est pas premium.
     /// L'ignorance ne retire rien : mieux vaut un bouton qui échoue qu'un
     /// bouton absent chez quelqu'un qui y avait droit.
-    var nexusDirectDownloadUnavailable: Bool { nexusAccount?.isPremium == false }
+    var nexusDirectDownloadUnavailable: Bool { accountStore.directDownloadUnavailable }
 
     /// Dernier quota Nexus relevé, `nil` tant qu'aucune réponse de l'API n'a été
     /// vue. Rafraîchi à l'ouverture des réglages et à chaque relevé (B2-T6).
-    private(set) var nexusQuota: NexusQuota? = nil
+    var nexusQuota: NexusQuota? { accountStore.quota }
     /// Set when a Nexus download finishes; MainView observes it to open the
     /// install sheet pre-loaded with the downloaded .zip.
     var pendingDownloadedZip: URL?
@@ -2154,13 +2157,11 @@ final class StarHubTHViewModel {
         let conflictVerdicts = ModConflictVerdictsStore.load()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.hasNexusApiKey = hasKey
-            self.nexusQuota = quota
-            self.nexusAccount = account
+            self.accountStore.apply(hasApiKey: hasKey, quota: quota, account: account)
             // Redemandé quand on ne sait pas, ou quand le renseignement a plus
             // d'une semaine : un compte peut devenir premium, ou cesser de
-            // l'être.
-            if account == nil || account?.isStale() == true { self.refreshNexusAccount() }
+            // l'être. La règle vit dans le store.
+            if self.accountStore.needsAccountRefresh() { self.refreshNexusAccount() }
             // `republishUpdatesFromCache` et non une consolidation calculée en
             // amont : elle lit `mods`, qui est `@Published`, et la lire depuis
             // la file de fond était une lecture non synchronisée. Sur le fil
@@ -3595,10 +3596,10 @@ final class StarHubTHViewModel {
         // l'UI affichait « configurée » et le prochain check partait en .noApiKey
         // (Keychain locked, quota, sandbox).
         if NexusUpdateChecker.shared.setApiKey(trimmed) {
-            hasNexusApiKey = true
             // Le statut appartient à la clé : une nouvelle clé, un nouveau
-            // compte, éventuellement d'un autre type.
-            nexusAccount = nil
+            // compte, éventuellement d'un autre type — `keyAccepted()` les
+            // pose ensemble.
+            accountStore.keyAccepted()
             refreshNexusAccount()
         }
     }
@@ -3607,7 +3608,7 @@ final class StarHubTHViewModel {
     /// et sur `NexusUpdateChecker.quotaDidChange` : l'app ne parle à l'API Nexus
     /// qu'à la demande, la valeur ne bouge donc qu'après une action.
     func refreshNexusQuota() {
-        nexusQuota = NexusUpdateChecker.shared.cachedQuota()
+        accountStore.setQuota(NexusUpdateChecker.shared.cachedQuota())
     }
 
     /// Redemande à Nexus si ce compte est premium.
@@ -3615,18 +3616,17 @@ final class StarHubTHViewModel {
         guard hasNexusApiKey || NexusUpdateChecker.shared.apiKey()?.isEmpty == false else { return }
         NexusUpdateChecker.shared.fetchAccount { [weak self] account in
             guard let account else { return }
-            self?.nexusAccount = account
+            self?.accountStore.setAccount(account)
         }
     }
 
     /// Removes the stored Nexus Mods API key.
     func clearNexusApiKey() {
         NexusUpdateChecker.shared.clearApiKey()
-        hasNexusApiKey = false
-        nexusQuota = nil
-        nexusAccount = nil
-        // Les mises à jour restent : elles ne doivent rien à la clé, qui ne
-        // sert plus qu'au téléchargement intégré et aux fiches.
+        // Clé, compte et quota partent ensemble — et eux seuls : les mises à
+        // jour ne doivent rien à la clé, qui ne sert plus qu'au
+        // téléchargement intégré et aux fiches.
+        accountStore.clearKey()
         nexusCategories = [:]
         nexusModExtras = [:]
         updateStore.setCheckError(nil)
