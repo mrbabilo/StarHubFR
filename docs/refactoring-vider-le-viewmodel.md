@@ -934,6 +934,64 @@ fenêtre des mises à jour :
 4. mettre une mise à jour en veille — elle quitte la liste et le badge, et
    reparaît sous « en veille » sans que l'inventaire bouge.
 
+### Domaine 7 — Nexus, tranche 2 (le compte et la clé), livrée le 2026-09-12
+
+Un commit (`62bd694` : store **et** câblage — trois propriétés, séparer les
+deux n'aurait rien montré de plus), gate exit 0, **3 092 tests verts**.
+`NexusAccountStore` (`@Observable`, 7 tests, six sabotages).
+`viewmodel_stored_state` 114 → **111** ;
+`observable_stored_without_private_set` 99 → **98** ; ViewModel inchangé à
+**10 270** — sur trois propriétés, les façades coûtent ce que les
+déclarations rendent.
+
+**Trois propriétés, cinq règles.** C'est le rapport qui justifie la tranche :
+ce n'est pas la taille de l'état qui décide, c'est ce qu'il tient
+implicitement.
+
+1. **Le compte appartient à la clé.** Poser une clé neuve invalide le compte
+   connu — ce peut être un autre compte, d'un autre type ; le garder
+   afficherait « premium » à qui ne l'est plus.
+2. **Retirer la clé emporte compte et quota, et eux seuls.** Les mises à jour
+   déjà relevées restent dues : elles ne doivent rien à la clé, qui ne sert
+   qu'au téléchargement intégré et aux fiches. Le commentaire le disait ;
+   rien ne le tenait.
+3. **L'ignorance ne retire rien.** `directDownloadUnavailable` n'est vrai que
+   quand on *sait* que le compte n'est pas premium. Le sabotage qui compte
+   est `account?.isPremium != true` — la forme qu'on écrit sans y penser,
+   et qui cacherait le bouton à qui y a droit tant que Nexus n'a pas répondu.
+4. **Le renseignement vieillit** — une semaine, épinglée des deux côtés du
+   seuil.
+5. **Le lot du lancement** publie les trois d'un coup.
+
+⚠️ **Le Trousseau n'entre pas dans le store.** La clé reste chez
+`NexusUpdateChecker.shared` ; le store n'en retient que le **fait** qu'elle a
+été acceptée. La nuance est celle d'un défaut déjà corrigé : déclarer la clé
+configurée sans que le Trousseau l'ait prise faisait afficher « configurée »
+à une UI dont la vérification suivante repartait en `.noApiKey`.
+
+⚠️ **Une redondance laissée en place**, délibérément : `refreshNexusAccount`
+garde `guard hasNexusApiKey || NexusUpdateChecker.shared.apiKey()?.isEmpty
+== false`. Les deux sources répondent à la même question, mais le lot du
+lancement est asynchrone — la seconde couvre l'instant où la clé existe et
+où le store ne le sait pas encore. La retirer demanderait de prouver cet
+ordre, ce que la tranche ne fait pas.
+
+Aucune vue touchée : les six qui lisent ces valeurs
+(`SettingsView`, `ModDetailView`, `DiscoverView`, `ProfileDiagnosticsView`,
+`MainView`) ne font que les lire — `disabled`, `help`, `if`.
+
+**Vérification à l'écran — due, auteur.** Trois contrôles, depuis les
+réglages :
+
+1. coller une clé d'API valide — « configurée » apparaît, le quota se
+   remplit, et les boutons de recherche Nexus des fiches de mod
+   redeviennent actifs ;
+2. **le contrôle qui porte** : retirer la clé — le quota et le compte
+   disparaissent avec elle, mais la **liste des mises à jour déjà relevées
+   reste** (elle ne doit rien à la clé) ;
+3. remplacer une clé par une autre — le bouton « télécharger » ne reste pas
+   dans l'état premium de l'ancienne le temps que Nexus réponde.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
