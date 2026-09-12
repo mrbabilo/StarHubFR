@@ -997,6 +997,78 @@ réglages :
    discrimine rien. À défaut de deux clés de types différents, s'en tenir
    aux contrôles 1 et 2 — le 2 est celui qui porte.
 
+### Domaine 7 — Nexus, tranche 3 (le téléchargement en vol), livrée le 2026-09-12
+
+Deux commits (`72f4097` store + câblage, `65aabd6` le cliquet), gate exit 0,
+**3 100 tests verts**. `NexusDownloadStore` (`@Observable`, 8 tests, cinq
+sabotages). ViewModel 10 270 → **10 254** (−16, troisième baisse d'affilée) ;
+`viewmodel_stored_state` 111 → **105**.
+
+**La moitié de la famille n'était pas de l'état.** Sur les huit propriétés
+relevées, quatre sont des **collaborateurs** — la tâche annulable, la file,
+l'estimateur de débit, le magasin d'archives — tous déjà en Core. Le store
+les possède (sauf les archives, reportées en tranche 4) ; seules trois sont
+publiées.
+
+**L'asymétrie qu'il corrige.** La remise au repos était déjà regroupée dans
+`clearNexusDownloadState`, dont le commentaire disait pourquoi : quatre
+témoins remis à zéro à trois endroits, et en oublier un condamnait le bouton
+pour la session. L'**ouverture** restait posée à la main — sur les deux
+seuls sites qui démarrent un transfert, un mod et une traduction. *Deux,
+vérifié par grep sur tout le dépôt* : deux mises à `true`, une seule mise à
+`false`.
+
+Trois règles épinglées : la barre reste **muette** pendant que le lien se
+résout (les deux appels d'API n'ont rien à mesurer, le drapeau porte
+l'attente) ; **annuler ne conclut pas** (`URLSession` rapporte l'annulation
+par le chemin d'échec, conclure des deux côtés laisserait l'état au repos
+pendant qu'un transfert continue) ; **le débit ne survit pas à son
+transfert**.
+
+🚩 **Deux tests étaient creux — trouvés par sabotage, pas par relecture.**
+Les deux premiers jets passaient avec *et* sans leur mécanisme :
+
+- le **débit**, parce que deux relevés posés dans la même milliseconde ne
+  rendent aucun débit : `noteProgress` prend désormais un `now` injectable,
+  et le sabotage mesure la survie à 0,5 o/s ;
+- la **barre remise à zéro à l'ouverture**, parce qu'un store neuf a déjà
+  `progress == nil` : il fallait ouvrir un **second** transfert pour que
+  l'attente discrimine.
+
+C'est la troisième fois en une session qu'un test écrit de bonne foi ne
+tient rien. Le point commun des trois : **l'état initial du store satisfait
+déjà l'attente**, ou la valeur mesurée est indisponible pour une raison
+étrangère au mécanisme (ici l'horloge).
+
+🚩 **Le cliquet surcomptait de 44 %** — trouvé parce que les deux `private
+var` du store faisaient monter `observable_stored_without_private_set`.
+**29 des 95 violations comptées étaient des `private var`**, plus strictes
+que `private(set)`. Et le motif ne voyait pas du tout `public private(set)
+var` (l'ordre idiomatique Swift) ni `private static var` : 3 membres
+échappaient au décompte, tous conformes — le cliquet surcomptait, il ne
+laissait rien passer. Base 95 → **66**, et l'outil corrigé a été prouvé
+encore capable d'échouer (une stockée exposée : exit 1 ; la même en
+`private` : exit 0).
+
+⚠️ Le jugement « suis-je occupé ? » reste au ViewModel : `NexusDownloadFlow`
+tranche sur le couple (`isDownloading`, `pendingDownloadedZip`), et la
+seconde moitié appartient à l'installation — même forme que l'entrée du
+snooze en tranche 1.
+
+**Vérification à l'écran — due, auteur.** Trois contrôles, depuis une fiche
+de mod ou la liste des mises à jour (clé d'API premium requise pour le
+téléchargement direct) :
+
+1. lancer un téléchargement — l'attente d'abord **sans barre** (le lien se
+   résout), puis la barre avec volume et débit ;
+2. **le contrôle qui porte** : annuler en cours — le bouton ne redevient pas
+   cliquable *avant* que l'annulation ne soit rapportée, et l'état ne se
+   remet pas au repos pendant que le transfert s'arrête ;
+3. lancer un second téléchargement pendant le premier — il est **mis en
+   file** (ligne de journal « en attente ») et démarre tout seul quand la
+   feuille d'installation du premier se ferme ; son débit repart de zéro et
+   n'hérite pas de celui du précédent.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
