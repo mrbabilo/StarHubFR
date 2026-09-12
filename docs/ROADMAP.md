@@ -1476,6 +1476,20 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       est la version d'avant B1-T2 et sert de témoin pour un A/B — première étape de la
       passe, avant d'écrire quoi que ce soit : les deux réponses mènent à des travaux
       opposés.
+      ▸ **Témoins produits (2026-09-12)** — les trois zips de l'A/B sont dans
+      `bundles/`, chacun bâti par le gate de son commit (exit 0) :
+      `StarHubFR_v1.11.1.zip` (tag `v1.11.1`, `8a48b518` — identité pré-F5
+      `com.appleboiy.StarHubTH`), `StarHubFR_pre-refactor-observable.zip`
+      (`e1bb12f`) et `StarHubFR_post-refactor-46fe7bf6.zip` (tête actuelle).
+      Les deux derniers partagent identité (`com.mrbabilo.StarHubFR`) et numéro
+      (1.43.1) : ne pas les départager à l'À propos, mais au dossier d'où chacun
+      est lancé. Recette : extraire chaque zip dans son propre dossier, quitter
+      complètement (Cmd+Q) entre deux builds, taper la même requête lettre à
+      lettre sur le parc réel, noter la sensation par build, consigner le verdict
+      ici puis fermer ou instruire la case. ⚠️ v1.11.1 relit le domaine d'avant
+      F5 : premier lancement = re-scan et recréation de l'ancien dossier
+      AppSupport (supprimé par X105) — test en lecture seule, aucune écriture
+      (installation, bascule, backup) depuis ce build.
       **Constat accumulé (audit du 2026-09-02), à joindre à la passe groupée** — autre
       sujet, même seau : `healthIssues` (`StarHubTHViewModel.swift:379`, `@MainActor`
       computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
