@@ -239,6 +239,7 @@ let package = Package(
                 "Stores/ProfileStore.swift",
                 "Stores/TranslationHubStore.swift",
                 "Stores/ProfileTranslationStore.swift",
+                "Stores/ModUpdateStore.swift",
                 "Models/ModScanner.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
@@ -649,6 +650,11 @@ let package = Package(
             name: "SmapiLogDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "ModUpdateStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModUpdateStoreTests"
         ),
         .testTarget(
             name: "ProfileTranslationStoreTests",
