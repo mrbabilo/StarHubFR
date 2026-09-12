@@ -1055,6 +1055,16 @@ tranche sur le couple (`isDownloading`, `pendingDownloadedZip`), et la
 seconde moitié appartient à l'installation — même forme que l'entrée du
 snooze en tranche 1.
 
+⚠️ **Deux surfaces publiques retirées après coup**, dont l'unique
+consommateur était leur propre test : `inFlight` est passé `private` (le
+lire inviterait à prendre `inFlight != nil` pour un test d'occupation, le
+jugement qu'on vient justement de laisser au ViewModel) et
+`hasQueuedDownloads` a été supprimé (le test interroge `dequeue()`, ce qui
+prouve en plus que la file se vide). Conséquence assumée et écrite dans le
+store : la remise à `nil` de `inFlight` n'est couverte par aucun test —
+`NexusFileDownload` est `final`, donc pas de doublure ; ce qui la tient est
+qu'elle n'a qu'**un** point d'écriture.
+
 **Vérification à l'écran — due, auteur.** Trois contrôles, depuis une fiche
 de mod ou la liste des mises à jour (clé d'API premium requise pour le
 téléchargement direct) :

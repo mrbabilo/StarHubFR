@@ -45,7 +45,9 @@ import Foundation
         #expect(s.isDownloading == false)
         #expect(s.downloadingModId == nil)
         #expect(s.progress == nil)
-        #expect(s.inFlight == nil)
+        // `inFlight` n'est pas observable : il est `private`, et
+        // `NexusFileDownload` est `final` — donc pas de doublure. Sa remise à
+        // `nil` n'a qu'un point d'écriture, ici même.
     }
 
     // MARK: - Annuler n'est pas conclure
@@ -105,13 +107,12 @@ import Foundation
 
     // MARK: - La file
 
-    @Test func aQueuedDownloadComesBackOut() {
+    @Test func aQueuedDownloadComesBackOutAndLeavesTheQueueEmpty() {
         let s = NexusDownloadStore()
-        #expect(s.hasQueuedDownloads == false)
+        #expect(s.dequeue() == nil)                 // rien en attente
         #expect(s.enqueue(entry(7)))
-        #expect(s.hasQueuedDownloads)
         #expect(s.dequeue() == entry(7))
-        #expect(s.hasQueuedDownloads == false)
+        #expect(s.dequeue() == nil)                 // et elle s'est vidée
     }
 
     /// La même demande deux fois ne fait pas deux téléchargements.

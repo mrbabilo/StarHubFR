@@ -43,9 +43,16 @@ final class NexusDownloadStore {
     /// du lien (règle 2).
     private(set) var progress: DownloadProgress?
 
-    /// Le transfert en vol, seul point d'annulation. Interne : ce n'est pas
-    /// un signal de rendu.
-    @ObservationIgnored private(set) var inFlight: NexusFileDownload?
+    /// Le transfert en vol, seul point d'annulation.
+    ///
+    /// **`private`, délibérément** : le lire de l'extérieur inviterait à
+    /// prendre `inFlight != nil` pour un test d'occupation, alors que ce
+    /// jugement appartient à `NexusDownloadFlow` — qui voit aussi la feuille
+    /// d'installation. Conséquence assumée : sa remise à `nil` dans
+    /// `endDownload()` n'est couverte par aucun test, `NexusFileDownload`
+    /// étant `final` (pas de doublure possible). Ce qui la tient est qu'elle
+    /// n'a qu'**un** point d'écriture.
+    @ObservationIgnored private var inFlight: NexusFileDownload?
 
     /// Les demandes mises en file au lieu d'être refusées pendant qu'un
     /// autre tourne ou que la feuille d'installation est ouverte.
@@ -118,6 +125,4 @@ final class NexusDownloadStore {
     func dequeue() -> NexusDownloadQueue.Entry? {
         queue.dequeue()
     }
-
-    var hasQueuedDownloads: Bool { !queue.isEmpty }
 }
