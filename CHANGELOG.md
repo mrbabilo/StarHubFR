@@ -12,11 +12,15 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.43.2] - 2026-09-12
+
 ### Added
 
 - **Les dossiers de `Mods/` sans aucun manifeste sont signalés.** Dossiers d'outils, installations cassées : l'onglet Quarantaine les liste désormais sous « Dossiers sans manifeste — laissés en place », avec un bouton pour les révéler dans le Finder. Rien n'est déplacé automatiquement.
 
 ### Changed
+
+- **La recherche de la liste ne ralentit plus la frappe sur les grands parcs.** Chaque lettre relançait l'inférence des tags de tous les mods — ~150 recherches de mot entières par mod, sur le nom, l'identifiant et la description. Le tag se calcule désormais une seule fois, à l'analyse.
 
 - **Le compteur du splash compte les mods trouvés, plus les entrées de `Mods/`.** Pendant l'analyse, il monte désormais vers le chiffre que la liste affichera — les dossiers d'outils et les packs sans manifeste ne gonflent plus un total que rien ne rattrapait (961 vu au splash pour 956 dans la liste).
 
