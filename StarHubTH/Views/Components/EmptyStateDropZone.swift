@@ -5,7 +5,7 @@ import SwiftUI
 // utilisation). Remplace le simple message textuel par une zone visuelle
 // qui invite explicitement au drag-and-drop de fichiers .zip.
 //
-// Intégré dans ModListView.swift dans la branche `if vm.mods.isEmpty`.
+// Intégré dans ModListView.swift dans la branche `if vm.scanStore.mods.isEmpty`.
 
 struct EmptyStateDropZone: View {
     var vm: StarHubTHViewModel

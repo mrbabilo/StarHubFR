@@ -26,7 +26,7 @@ struct ModFolderRenameSection: View {
     /// Les mods qui réclament ce nom logique. Deux en général ; la vue tient
     /// n'en trouver qu'un (le parc a bougé depuis l'ouverture de la feuille).
     private var claimants: [ModItem] {
-        vm.mods.filter { $0.folderName == folderName }
+        vm.scanStore.mods.filter { $0.folderName == folderName }
     }
 
     private var chosen: ModItem? {
@@ -36,7 +36,7 @@ struct ModFolderRenameSection: View {
     private var verdict: ModFolderRename.Verdict {
         guard let chosen else { return .empty }
         return ModFolderRename.validate(newName, renaming: chosen.folderName,
-                                        existing: vm.mods.map(\.folderName))
+                                        existing: vm.scanStore.mods.map(\.folderName))
     }
 
     var body: some View {

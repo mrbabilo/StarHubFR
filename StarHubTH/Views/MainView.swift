@@ -108,7 +108,7 @@ struct MainView: View {
                 pending: .init(translationFocus: vm.pendingTranslationFocus,
                                configFocus: vm.pendingConfigFocus,
                                modDetailFocus: vm.pendingModDetailFocus),
-                mods: vm.mods)
+                mods: vm.scanStore.mods)
             if plan.clearsConfigFocus { vm.pendingConfigFocus = nil }
             if plan.clearsModDetailFocus { vm.pendingModDetailFocus = nil }
             if plan.clearsPendingDetailTab { vm.pendingDetailTab = nil }
@@ -304,8 +304,8 @@ struct MainView: View {
                     // voile de démarrage : on le montre plutôt que de laisser
                     // la barre pleine du temps d'avant.
                     ModalProgressOverlay(label: localization.L(L10n.Profiles.applyingScanning),
-                                         done: vm.scanProgress?.done ?? 0,
-                                         total: vm.scanProgress?.total ?? 0)
+                                         done: vm.scanStore.scanProgress?.done ?? 0,
+                                         total: vm.scanStore.scanProgress?.total ?? 0)
                 }
             }
 
@@ -325,7 +325,7 @@ struct MainView: View {
         .environment(\.locale, Locale(identifier: localization.currentLanguage))
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in
             if let modName = notification.object as? String {
-                vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.mods)?.folderName
+                vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)?.folderName
                 // Hand the request to the list itself: it may not be on screen
                 // yet (tabs are created on demand), so it picks this up on
                 // appear and scopes itself to the mod.
@@ -426,7 +426,7 @@ struct MainView: View {
         .onChange(of: vm.reportDetailFocus) { _, folder in
             guard let folder else { return }
             if currentTab == .mods,
-               let target = ModFocusResolver.resolve(folder, in: vm.mods) {
+               let target = ModFocusResolver.resolve(folder, in: vm.scanStore.mods) {
                 vm.navigationStore.setViewingModDetail(target)
                 vm.pendingDetailTab = .state
             } else {
@@ -495,7 +495,7 @@ struct SidebarNavGroups: View {
         case .systemAlerts:
             return (vm.systemAlertCount, .orange)
         case .quarantine:
-            return (vm.lastRepairReport?.quarantined.count ?? 0, .purple)
+            return (vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0, .purple)
         default:
             return nil
         }

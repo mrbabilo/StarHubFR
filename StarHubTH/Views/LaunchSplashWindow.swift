@@ -351,7 +351,7 @@ struct LaunchProgressBar: View {
         // ratio. Une fois la boucle finie le ratio vaut 1 et resterait
         // immobile pendant les phases qui suivent — c'est `launchProgress`
         // qui prend le relais.
-        if let scan = vm.scanProgress, scan.total > 0, scan.phase == nil {
+        if let scan = vm.scanStore.scanProgress, scan.total > 0, scan.phase == nil {
             let span = StarHubTHViewModel.launchScanProgressEnd - StarHubTHViewModel.launchScanProgressStart
             let ratio = Double(scan.done) / Double(scan.total)
             return StarHubTHViewModel.launchScanProgressStart + span * ratio
@@ -388,7 +388,7 @@ struct LaunchProgressBar: View {
     }
 
     private var caption: String {
-        if let scan = vm.scanProgress, scan.total > 0 {
+        if let scan = vm.scanStore.scanProgress, scan.total > 0 {
             let label = scan.phase ?? scan.currentName
             if let found = scan.modsFound {
                 return "\(label) — \(String(format: localization.L(L10n.Main.modsFound), found))"

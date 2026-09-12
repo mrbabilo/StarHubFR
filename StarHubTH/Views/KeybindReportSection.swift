@@ -84,7 +84,7 @@ struct KeybindReportSection: View {
             // ne relance que si elle diffère (ronde de revue 2, constat 3).
             // Le bouton « Relancer l'analyse » reste inconditionnel : voir
             // `header`.
-            service.scanIfNeeded(mods: vm.mods, gameDir: vm.gameDir)
+            service.scanIfNeeded(mods: vm.scanStore.mods, gameDir: vm.gameDir)
         }
     }
 
@@ -95,7 +95,7 @@ struct KeybindReportSection: View {
                 .font(.system(size: 14, weight: .bold))
                 .lineLimit(1)
             Spacer(minLength: AppDesign.Spacing.sm)
-            Button(action: { service.scan(mods: vm.mods, gameDir: vm.gameDir) }) {
+            Button(action: { service.scan(mods: vm.scanStore.mods, gameDir: vm.gameDir) }) {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)

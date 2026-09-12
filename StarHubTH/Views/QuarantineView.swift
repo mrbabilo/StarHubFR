@@ -28,7 +28,7 @@ struct QuarantineView: View {
                 }
 
                 // Last repair report (or empty state when none yet).
-                if let report = vm.lastRepairReport {
+                if let report = vm.maintenanceStore.lastRepairReport {
                     RepairReportCard(report: report, localization: localization, gameDir: vm.gameDir)
                 } else {
                     // Atteignable depuis que l'entrée est permanente (B2-T3) :
@@ -53,8 +53,8 @@ struct QuarantineView: View {
                     // chemin qui relance la réparation dont cette page publie
                     // le rapport. Inactif pendant le scan : un second clic
                     // lancerait une double traversée du parc.
-                    .disabled(vm.scanProgress != nil)
-                    if vm.scanProgress != nil {
+                    .disabled(vm.scanStore.scanProgress != nil)
+                    if vm.scanStore.scanProgress != nil {
                         ProgressView().controlSize(.small)
                     }
 
@@ -74,7 +74,7 @@ struct QuarantineView: View {
                     .disabled(quarantineDir == nil)
                 }
 
-                if let result = vm.quarantineActionMessage {
+                if let result = vm.maintenanceStore.quarantineMessage {
                     Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
                         .font(.system(size: 13))
                         .foregroundColor(result.isError ? AppDesign.Color.error : AppDesign.Color.success)
@@ -126,7 +126,7 @@ struct QuarantineView: View {
         guard let entries = try? FileManager.default.contentsOfDirectory(atPath: gameDirURL.path) else { return nil }
         // Prefer the path from the last report, fall back to the newest
         // _Trash_* folder on disk.
-        if let reported = vm.lastRepairReport?.trashPath,
+        if let reported = vm.maintenanceStore.lastRepairReport?.trashPath,
            FileManager.default.fileExists(atPath: reported) {
             let reportedURL = URL(fileURLWithPath: reported).resolvingSymlinksInPath()
             let lastComponent = reportedURL.lastPathComponent
@@ -166,17 +166,17 @@ struct QuarantineView: View {
             .map { gameDirURL.appendingPathComponent($0) }
 
         guard !trashURLs.isEmpty else {
-            vm.quarantineActionMessage = .init(text: localization.L(L10n.Quarantine.noQuarantine), isError: false)
+            vm.maintenanceStore.setQuarantineMessage(.init(text: localization.L(L10n.Quarantine.noQuarantine), isError: false))
             return
         }
 
         NSWorkspace.shared.recycle(trashURLs, completionHandler: { _, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    vm.quarantineActionMessage = .init(text: error.localizedDescription, isError: true)
+                    vm.maintenanceStore.setQuarantineMessage(.init(text: error.localizedDescription, isError: true))
                 } else {
-                    vm.quarantineActionMessage = .init(text: localization.L(L10n.Quarantine.emptied), isError: false)
-                    vm.lastRepairReport = nil
+                    vm.maintenanceStore.setQuarantineMessage(.init(text: localization.L(L10n.Quarantine.emptied), isError: false))
+                    vm.maintenanceStore.setRepairReport(nil)
                 }
             }
         })

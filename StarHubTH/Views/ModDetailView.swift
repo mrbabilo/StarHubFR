@@ -327,7 +327,7 @@ struct ModDetailView: View {
     /// Le pack dont `mod` est un composant, s'il en est un.
     private var parentPack: ModItem? {
         guard !isTopLevel else { return nil }
-        return vm.mods.first { pack in
+        return vm.scanStore.mods.first { pack in
             pack.children?.contains { $0.folderName == mod.folderName } ?? false
         }
     }
@@ -352,7 +352,7 @@ struct ModDetailView: View {
 
     private func chevron(icon: String, target: String?, help: String) -> some View {
         Group {
-            if let target, let destination = vm.mods.first(where: { $0.folderName == target }) {
+            if let target, let destination = vm.scanStore.mods.first(where: { $0.folderName == target }) {
                 Button {
                     vm.navigationStore.setViewingModDetail(destination)
                 } label: {
@@ -406,22 +406,22 @@ struct ModDetailView: View {
     }
 
     /// Whether this mod is a top-level folder rather than one component of a
-    /// pack. Same test as `performToggle`'s seed resolution: `vm.mods` holds
+    /// pack. Same test as `performToggle`'s seed resolution: `vm.scanStore.mods` holds
     /// pack headers and standalone mods, never children.
     private var isTopLevel: Bool {
-        vm.mods.contains { $0.folderName == mod.folderName }
+        vm.scanStore.mods.contains { $0.folderName == mod.folderName }
     }
 
-    /// L'état courant du mod, relu dans `vm.mods` à chaque rendu.
+    /// L'état courant du mod, relu dans `vm.scanStore.mods` à chaque rendu.
     ///
     /// `mod` est une **copie figée** au moment où la fiche a été ouverte
     /// (`vm.navigationStore.viewingModDetail`), et rien ne la rafraîchit : mettre le mod en
-    /// pause renomme bien le dossier et met à jour `vm.mods`, mais la copie
+    /// pause renomme bien le dossier et met à jour `vm.scanStore.mods`, mais la copie
     /// garde son ancien `isEnabled`. L'interrupteur revenait donc en position
     /// « activé » dès que la valeur optimiste s'effaçait — l'affichage
     /// contredisait le disque.
     private var live: ModItem {
-        vm.mods.first { $0.folderName == mod.folderName } ?? mod
+        vm.scanStore.mods.first { $0.folderName == mod.folderName } ?? mod
     }
 
     /// Les racines de l'arbre des dépendances rendu par l'onglet — fusionnées
@@ -1202,7 +1202,7 @@ struct ModDetailView: View {
                     .font(.system(size: 13, weight: .semibold))
                 ForEach(pairs, id: \.self) { pair in
                     let otherFolder = pair.first == mod.folderName ? pair.second : pair.first
-                    let otherName = vm.mods.flattenedMods.first(where: { $0.folderName == otherFolder })?.name
+                    let otherName = vm.scanStore.mods.flattenedMods.first(where: { $0.folderName == otherFolder })?.name
                         ?? otherFolder
                     HStack(spacing: AppDesign.Spacing.xs) {
                         Text("· \(otherName)")
@@ -1228,7 +1228,7 @@ struct ModDetailView: View {
     /// produirait une paire `(X, X)`, la même clé qu'un `withinOnePack` du
     /// journal, ce qui collision­nerait avec un cas déjà modélisé.
     private var reportConflictCandidates: [ModItem] {
-        vm.mods.flattenedMods
+        vm.scanStore.mods.flattenedMods
             .filter { $0.folderName != mod.folderName }
             .alphabeticalListOrder
     }

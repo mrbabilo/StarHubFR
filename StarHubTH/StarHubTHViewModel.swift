@@ -238,7 +238,7 @@ final class StarHubTHViewModel {
     // scans concurrents touchent le même cache) ; ce store porte l'état
     // publié : le parc, la progression, l'index de duplication, les poids.
     // Poser le parc prévient les trois consommateurs câblés dans l'init.
-    private let scanStore = ScanStore()
+    let scanStore = ScanStore()
 
     var isDownloadingFromNexus: Bool { downloadStore.isDownloading }
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
@@ -366,7 +366,7 @@ final class StarHubTHViewModel {
     // domaine 4). Les calculs vivent en Core (`MaintenanceInventory`,
     // `ModFolderRepairer`, `ModTrash`) ; ici ne restent que l'état et le
     // verrou de construction.
-    private let maintenanceStore = MaintenanceStore()
+    let maintenanceStore = MaintenanceStore()
 
     /// L'inventaire de l'écran « Entretien » (X25). `nil` tant qu'il n'a pas
     /// été construit — distinct d'un rapport vide, qui veut dire « rien à
@@ -393,13 +393,6 @@ final class StarHubTHViewModel {
     /// slice of the launch bar.
     // `ScanProgress` vit désormais en Core (`Models/ModScanner.swift`, avec
     // le scanner qui le produit) — même nom, mêmes champs, `phase` compris.
-    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`.
-    var scanProgress: ScanProgress? {
-        get { scanStore.scanProgress }
-        set { scanStore.scanProgress = newValue }
-    }
-
-
     /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
     /// constants so `performInitialLoad` and the launch overlay agree on how
     /// far the bar should move while `scanMods` streams per-mod progress.
@@ -438,7 +431,7 @@ final class StarHubTHViewModel {
             // lancement repassait ici avec un poids inférieur.
             self.launchProgress = max(self.launchProgress, progress)
             guard entries.total > 0 else { return }
-            self.scanProgress = ScanProgress(done: entries.done, total: entries.total,
+            self.scanStore.scanProgress = ScanProgress(done: entries.done, total: entries.total,
                                              currentName: "", phase: label,
                                              modsFound: modsFound)
         }
@@ -457,13 +450,12 @@ final class StarHubTHViewModel {
                            entries: entries, modsFound: modsFound)
     }
 
-    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`,
-    // qui prévient les trois consommateurs câblés dans l'init ; les vues ne
-    // changent pas.
-    var mods: [ModItem] {
-        get { scanStore.mods }
-        set { scanStore.setMods(newValue) }
-    }
+    /// Façade de **lecture** assumée (cadrage §6, cond. 1 assouplie) — l'état
+    /// vit dans `scanStore`, qui prévient les trois consommateurs câblés dans
+    /// l'init. Les vues lisent `vm.scanStore.mods` directement ; cette forme
+    /// courte reste pour les dizaines d'usages internes du VM. Écritures :
+    /// `scanStore.setMods(...)` (les cascades du store), jamais par ici.
+    var mods: [ModItem] { scanStore.mods }
 
     /// Les problèmes de santé du parc, résolus une seule fois.
     ///
@@ -1847,15 +1839,6 @@ final class StarHubTHViewModel {
     /// `installedModsByUniqueId`) vivent dans la struct ; `duplicateIndex`
     /// reste publié tel quel — c'est lui qui nourrit les anomalies de ligne.
     private var dependencyIndex = DependencyIndex.empty
-    /// Les mods installés plusieurs fois, reconstruit à chaque scan.
-    ///
-    /// Mesuré le 2026-08-25 : **7 identifiants sur 14 dossiers**, dont trois
-    /// avec leurs deux copies actives (le mod Swim, à plat et dans son dossier
-    /// de téléchargement). Rien ne le disait jusqu'ici.
-    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`
-    // ; reconstruit à chaque scan, écrit seulement par le VM.
-    var duplicateIndex: ModDuplicateIndex { scanStore.duplicateIndex }
-
     /// Manifest decode cache, keyed by manifest.json absolute path. Each
     /// entry stores the file's mtime alongside the decoded JSON so a stale
     /// cache entry is detected by `stat()` instead of a full re-read + decode.
@@ -1908,25 +1891,6 @@ final class StarHubTHViewModel {
             guard let self else { return }
             self.keybindScanService.scan(mods: self.mods, gameDir: self.gameDir)
         }
-    }
-
-    /// Result of the last automatic mod-folder repair run. Non-nil when the
-    /// repairer quarantined corrupt items or found duplicates; the UI surfaces
-    /// a banner so the user knows what was moved to `_Trash_` and can review.
-    /// `set` : la vue Quarantaine l'efface après avoir vidé la corbeille.
-    var lastRepairReport: ModFolderRepairer.Report? {
-        get { maintenanceStore.lastRepairReport }
-        set { maintenanceStore.setRepairReport(newValue) }
-    }
-
-    /// Transient result message from the Quarantine view's "empty to Mac
-    /// Trash" action. Published (not @State on the view) because the recycle
-    /// completion fires asynchronously after the view struct may have been
-    /// recreated — capturing the VM reference keeps the update observable.
-    /// `get`+`set` : c'est la vue Quarantaine qui le pose après chaque action.
-    var quarantineActionMessage: QuarantineMessage? {
-        get { maintenanceStore.quarantineMessage }
-        set { maintenanceStore.setQuarantineMessage(newValue) }
     }
 
     // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
@@ -2437,7 +2401,7 @@ final class StarHubTHViewModel {
             // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
             // dispatcher sur main, comme l'affectation principale plus bas.
             DispatchQueue.main.async { [weak self] in
-                self?.mods = []
+                self?.scanStore.setMods([])
                 // Reset selection so the detail pane doesn't reference a mod
                 // that just disappeared from the list.
                 self?.selectedMod = nil
@@ -2468,7 +2432,7 @@ final class StarHubTHViewModel {
         if let topCount = try? fm.contentsOfDirectory(atPath: modsPath).count, topCount > 0 {
             let preparing = self.localization.L(L10n.Main.launchStepPreparing)
             DispatchQueue.main.async {
-                self.scanProgress = ScanProgress(done: 0, total: topCount, currentName: preparing)
+                self.scanStore.scanProgress = ScanProgress(done: 0, total: topCount, currentName: preparing)
             }
         }
 
@@ -2488,7 +2452,7 @@ final class StarHubTHViewModel {
             installedModDate: { installedModDate(for: $0) },
             onProgress: { [weak self] progress in
                 DispatchQueue.main.async {
-                    self?.scanProgress = progress
+                    self?.scanStore.scanProgress = progress
                 }
             },
             log: { [weak self] message in
@@ -2548,7 +2512,7 @@ final class StarHubTHViewModel {
             // falls back to launchScanProgressEnd (not the stale scan-start
             // value) and the bar never visibly regresses before step 3 runs.
             self.launchProgress = Self.launchScanPhasesEnd
-            self.scanProgress = nil
+            self.scanStore.scanProgress = nil
             // Publish the repair report on the main thread (the scan itself
             // runs on a background queue via refresh()).
             // Only touch lastRepairReport when a repair actually ran. A
@@ -2577,7 +2541,7 @@ final class StarHubTHViewModel {
             // tri d'origine plaçait les packs en tête (retour du 2026-08-26).
             // C'est aussi l'ordre que le tri « Nom » de la liste suppose
             // déjà établi (voir le cas `.name` de ModListView).
-            self.mods = scannedMods.alphabeticalListOrder
+            self.scanStore.setMods(scannedMods.alphabeticalListOrder)
             self.rebuildDependencyIndexes()
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
@@ -2795,7 +2759,7 @@ final class StarHubTHViewModel {
     func anomaly(for mod: ModItem) -> ModAnomaly? {
         ModAnomalyReport.anomaly(for: mod, history: modErrorHistory,
                                  dependencyIssue: { self.hasDependencyIssue($0) },
-                                 duplicates: duplicateIndex,
+                                 duplicates: scanStore.duplicateIndex,
                                  compatibility: compatibilityStatuses)
     }
 
@@ -3064,7 +3028,7 @@ final class StarHubTHViewModel {
                     completion?()
                     return
                 }
-                self.mods = TogglePlan.flipped(self.mods, folders: foldersToToggle, target: targetState)
+                scanStore.setMods(TogglePlan.flipped(scanStore.mods, folders: foldersToToggle, target: targetState))
                 self.rebuildDependencyIndexes()
                 self.syncActiveProfileIds()
                 completion?()

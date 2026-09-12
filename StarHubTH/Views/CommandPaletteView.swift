@@ -31,7 +31,7 @@ struct CommandPaletteView: View {
         var out: [CommandPaletteEntry] = SidebarOrder
             .visible(showThaiHub: showThaiTranslationHub)
             .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
-        out += vm.mods.flattenedMods.map(CommandPaletteEntry.forMod)
+        out += vm.scanStore.mods.flattenedMods.map(CommandPaletteEntry.forMod)
         out += vm.modProfiles.map { CommandPaletteEntry.forProfile(name: $0.name) }
         out += vm.saves.map {
             CommandPaletteEntry.forSave(playerName: $0.playerName,

@@ -261,7 +261,7 @@ struct BisectionCard: View {
     /// débordent de la carte.
     @ViewBuilder
     private func culpritActions(_ folder: String) -> some View {
-        let mod = ModFocusResolver.resolve(folder, in: vm.mods)
+        let mod = ModFocusResolver.resolve(folder, in: vm.scanStore.mods)
         let nexus = mod.map { vm.nexusLink(for: $0) } ?? ""
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {

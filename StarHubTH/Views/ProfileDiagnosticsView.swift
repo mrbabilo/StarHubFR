@@ -85,10 +85,10 @@ struct ProfileDiagnosticsView: View {
         .frame(width: 560, height: 460)
         .onAppear { reload() }
         // La restauration relance un scan **asynchrone** : recalculer juste
-        // après l'avoir lancée lit encore l'ancien `vm.mods`, et le mod
+        // après l'avoir lancée lit encore l'ancien `vm.scanStore.mods`, et le mod
         // restauré resterait affiché comme manquant. On refait le calcul quand
         // le parc a réellement changé.
-        .onChange(of: vm.mods.count) { _, _ in reload() }
+        .onChange(of: vm.scanStore.mods.count) { _, _ in reload() }
         // Ajouter une dépendance au profil change le profil, pas le parc : le
         // compte de mods est le signal qui l'annonce.
         .onChange(of: vm.modProfiles) { _, _ in reload() }
@@ -103,7 +103,7 @@ struct ProfileDiagnosticsView: View {
         // qu'on vient d'y ajouter.
         let current = vm.modProfiles.first { $0.id == profile.id } ?? profile
         missing = vm.missingMods(in: current)
-        gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: vm.mods.flattenedMods)
+        gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: vm.scanStore.mods.flattenedMods)
         translation = vm.translationSummary(for: current)
     }
 

@@ -491,10 +491,10 @@ struct ModInstallView: View {
         }
 
         // Captured before dispatching so a concurrent `vm.refresh()` on the
-        // main thread can't reassign `vm.mods`/`vm.gameDir` mid-flight out
+        // main thread can't reassign `vm.scanStore.mods`/`vm.gameDir` mid-flight out
         // from under this background read.
         let gameDir = vm.gameDir
-        let existingMods = vm.mods
+        let existingMods = vm.scanStore.mods
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
@@ -673,7 +673,7 @@ struct ModInstallView: View {
     private func considerManifestlessArchive() -> Bool {
         guard let tempDir else { return false }
         let paths = ManifestlessArchive.paths(under: tempDir)
-        let installed = vm.mods.map(\.folderName)
+        let installed = vm.scanStore.mods.map(\.folderName)
         switch ManifestlessArchive.classify(paths: paths, installedFolderNames: installed,
                                             rootFileOwners: vm.rootFileOwners()) {
         case .plan(let plan):
@@ -712,7 +712,7 @@ struct ModInstallView: View {
     /// défaisable.
     private func deposit(_ plan: ManifestlessArchive.Plan) {
         guard let tempDir,
-              let host = vm.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
+              let host = vm.scanStore.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
             showFailure(localization.L(L10n.ModInstall.depositFailed))
             showError = true
             return
@@ -755,7 +755,7 @@ struct ModInstallView: View {
         for match in found where match.rule == first.rule {
             switch DroppedContentRecognizer.destination(for: match.rule,
                                                         fileName: match.fileURL.lastPathComponent,
-                                                        installedMods: vm.mods,
+                                                        installedMods: vm.scanStore.mods,
                                                         gameDir: vm.gameDir) {
             case .ready(let destination, let hostIsPaused):
                 files.append(.init(source: match.fileURL, destination: destination))
@@ -775,7 +775,7 @@ struct ModInstallView: View {
 
         // Le dépliage était réécrit ici à la main — la 23e copie de
         // `flattenedMods`, dont le commentaire raconte les 22 premières.
-        guard let host = vm.mods.mod(withUniqueId: first.rule.hostUniqueId)
+        guard let host = vm.scanStore.mods.mod(withUniqueId: first.rule.hostUniqueId)
         else { return .hostMissing(first.rule.hostDisplayName) }
         return .proposal(DroppedProposal(hostDisplayName: first.rule.hostDisplayName,
                                          host: host, files: files, hostIsPaused: paused))
@@ -887,7 +887,7 @@ struct ModInstallView: View {
         let modsBeingInstalled = info.detectedMods.filter { selectedModIds.contains($0.id) }
         // Captured before dispatching — see analyzeZip's identical comment.
         let gameDir = vm.gameDir
-        let existingMods = vm.mods
+        let existingMods = vm.scanStore.mods
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {

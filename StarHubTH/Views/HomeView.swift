@@ -70,8 +70,8 @@ struct HomeView: View {
         let counters = HomeAttention.counters(
             updates: vm.outOfDateMods.count + vm.nexusUpdates.count,
             alerts: vm.systemAlertCount,
-            quarantined: vm.lastRepairReport?.quarantined.count ?? 0,
-            mods: vm.mods.count)
+            quarantined: vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0,
+            mods: vm.scanStore.mods.count)
         return HStack(spacing: AppDesign.Spacing.md) {
             ForEach(counters) { counter in
                 AttentionCounterTile(
@@ -208,7 +208,7 @@ struct HomeView: View {
                     )
                     StandardRow(
                         title: LocalizedStringKey(localization.L(L10n.Home.installedMods)),
-                        detail: LocalizedStringKey(String(format: localization.L(L10n.Home.itemCount), Int64(vm.mods.count))),
+                        detail: LocalizedStringKey(String(format: localization.L(L10n.Home.itemCount), Int64(vm.scanStore.mods.count))),
                         showDivider: false
                     )
                 }

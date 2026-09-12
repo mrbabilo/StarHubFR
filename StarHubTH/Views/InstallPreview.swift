@@ -83,7 +83,7 @@ struct InstallPreview: View {
                             onSelectionChange: { newSelection in
                                 selections[mod.id] = newSelection
                             },
-                            existingMods: vm.mods,
+                            existingMods: vm.scanStore.mods,
                             vm: vm,
                             localization: localization
                         )
@@ -162,7 +162,7 @@ struct InstallPreview: View {
                 // déclarations du parc désignent un composant (`Rafseazz.RSVCC`,
                 // `FlashShifter.SVE-FTM`…), qu'une recherche limitée aux lignes
                 // de premier niveau annonçait manquant.
-                if let installed = vm.mods.mod(withUniqueId: depId) {
+                if let installed = vm.scanStore.mods.mod(withUniqueId: depId) {
                     if installed.isEnabled {
                         entries.append(DepEntry(uniqueId: depId, isRequired: depDetail.isRequired, status: .satisfied, nexusUrl: nil))
                     } else {
@@ -280,7 +280,7 @@ struct InstallPreview: View {
         // pas dans l'ensemble, où ils apparieraient les archives dont le
         // manifest n'en déclare aucun.
         UpdateCaution.warnings(in: zipModInfo.detectedMods,
-                               installedUniqueIds: vm.mods.allUniqueIds)
+                               installedUniqueIds: vm.scanStore.mods.allUniqueIds)
     }
 
     private var updateCautionsSection: some View {

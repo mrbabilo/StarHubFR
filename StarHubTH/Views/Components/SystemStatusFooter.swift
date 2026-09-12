@@ -14,7 +14,7 @@ struct SystemStatusFooter: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
-    private var enabledCount: Int { vm.mods.filter(\.isEnabled).count }
+    private var enabledCount: Int { vm.scanStore.mods.filter(\.isEnabled).count }
     private var updatesCount: Int { vm.outOfDateMods.count + vm.nexusUpdates.count }
     private var errorsCount: Int { vm.smapiErrors.count }
 
@@ -22,7 +22,7 @@ struct SystemStatusFooter: View {
         HStack(spacing: AppDesign.Spacing.md) {
             statusPill(
                 count: enabledCount,
-                total: vm.mods.count,
+                total: vm.scanStore.mods.count,
                 color: AppDesign.Color.success,
                 icon: "puzzlepiece.extension"
             )
@@ -116,7 +116,7 @@ struct AccountHeaderCard: View {
     }
 
     /// Nombre de mods activés sur le total installé.
-    private var enabledCount: Int { vm.mods.filter(\.isEnabled).count }
+    private var enabledCount: Int { vm.scanStore.mods.filter(\.isEnabled).count }
 
     var body: some View {
         Button(action: onTap) {
@@ -159,8 +159,8 @@ struct AccountHeaderCard: View {
                 HStack(spacing: 0) {
                     metricPill(
                         icon: "puzzlepiece.extension.fill",
-                        value: "\(enabledCount)/\(vm.mods.count)",
-                        color: vm.mods.isEmpty ? AppDesign.Color.secondary : AppDesign.Color.success
+                        value: "\(enabledCount)/\(vm.scanStore.mods.count)",
+                        color: vm.scanStore.mods.isEmpty ? AppDesign.Color.secondary : AppDesign.Color.success
                     )
                     Divider()
                         .frame(height: 14)

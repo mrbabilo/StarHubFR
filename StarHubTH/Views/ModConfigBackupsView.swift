@@ -258,7 +258,7 @@ struct ModConfigBackupsView: View {
         // Tous les mods, pas seulement les actifs : le filet pris avant
         // d'écraser doit couvrir les mods **en pause**, où vivent presque
         // toutes les configurations du parc.
-        let currentMods = vm.mods
+        let currentMods = vm.scanStore.mods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let report = try ModConfigBackupManager.shared.restoreBackup(

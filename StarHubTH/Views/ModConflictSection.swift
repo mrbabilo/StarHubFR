@@ -19,9 +19,9 @@ import SwiftUI
 ///   par les deux chemins de lecture du journal (`refreshSmapiLog` et le
 ///   scan ordinaire). Un scan ici serait un second chemin qui doublonnerait
 ///   le travail sans rien ajouter.
-/// - **`vm.mods.flattenedMods`, pas `vm.mods`** : un content pack est un
+/// - **`vm.scanStore.mods.flattenedMods`, pas `vm.scanStore.mods`** : un content pack est un
 ///   enfant de son pack parent (`ModItem.children`), pas une entrée de
-///   premier niveau — comparer directement contre `vm.mods` manquerait tout
+///   premier niveau — comparer directement contre `vm.scanStore.mods` manquerait tout
 ///   pack, et c'est justement le terrain de Content Patcher. Même repli que
 ///   `resolveModFolder(forLoggedName:)` dans le ViewModel.
 /// - **Correspondance « paire écartée » pour `withinOnePack`** : le brief
@@ -48,7 +48,7 @@ import SwiftUI
 ///   dépôt déjà posée par `KeybindReportSection` (`keybinds_collisions_header`
 ///   et consorts) — `Int` est 64 bits sur cette plateforme, `%d` attend un
 ///   `Int32` et rendrait un nombre au hasard.
-/// - **Noms d'affichage résolus via `vm.mods.flattenedMods`** partout,
+/// - **Noms d'affichage résolus via `vm.scanStore.mods.flattenedMods`** partout,
 ///   y compris pour les paires déclarées par l'utilisateur : `ModConflictPair`
 ///   ne porte que des `folderName`, illisibles tels quels dans une liste
 ///   destinée à l'utilisateur. Un nom non résolu (mod désinstallé, ou nom
@@ -157,7 +157,7 @@ struct ModConflictSection: View {
     /// Les mods installés aujourd'hui, packs dépliés — c'est contre cette
     /// liste, jamais contre le journal, que « les deux actifs » se juge.
     private var installedMods: [ModItem] {
-        vm.mods.flattenedMods
+        vm.scanStore.mods.flattenedMods
     }
 
     private func displayName(_ folderName: String) -> String {

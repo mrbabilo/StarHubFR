@@ -63,7 +63,7 @@ struct ModListView: View {
         // differ from the manifest, and the search matches on name/uniqueId.
         // The request may also carry a folder name (the guided search works in
         // those) — `ModFocusResolver` accepts either.
-        let resolved = ModFocusResolver.resolve(modName, in: vm.mods)
+        let resolved = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)
         listState.filters.focus(on: resolved?.name ?? modName)
         vm.pendingModFocus = nil
     }
@@ -128,7 +128,7 @@ struct ModListView: View {
     ///
     /// Le tri n'entre pas ici : il ne change pas quels mods sont là.
     private func facetBases() -> (category: [ModItem], translation: [ModItem]) {
-        let scoped = vm.scopedMods(from: vm.mods.filter { mod in
+        let scoped = vm.scopedMods(from: vm.scanStore.mods.filter { mod in
             vm.matchesSearch(mod, filters: filters)
                 && vm.matchesConfig(mod, filters: filters)
                 && vm.matchesFavorites(mod, filters: filters)
@@ -355,7 +355,7 @@ struct ModListView: View {
                     // is already in the target state), or while a bulk
                     // toggle operation is already in flight.
                     bulkToggleMenu(scoped: display)
-                        .disabled(vm.mods.isEmpty || vm.bulkToggleProgress != nil)
+                        .disabled(vm.scanStore.mods.isEmpty || vm.bulkToggleProgress != nil)
 
                     Button {
                         showInstallSheet = true
@@ -440,7 +440,7 @@ struct ModListView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
                     if filtered.isEmpty {
-                        if vm.mods.isEmpty {
+                        if vm.scanStore.mods.isEmpty {
                             // Première utilisation : zone de drop XXL
                             EmptyStateDropZone(vm: vm, localization: localization, onInstall: { showInstallSheet = true })
                                 .padding(.top, 40)
@@ -547,7 +547,7 @@ struct ModListView: View {
         // peut plus oublier sa remise à la page 1. Reste celui-ci, qui ne
         // dépend d'aucun filtre : la liste a changé de taille sous nos pieds
         // (installation, suppression, activation d'un profil).
-        .onChange(of: vm.mods.count)    { _, _ in listState.filters.page = 1 }
+        .onChange(of: vm.scanStore.mods.count)    { _, _ in listState.filters.page = 1 }
         // Clicking a mod name in the logs must land on that mod, not on the full
         // list. `selectedModID` alone only tints the row — with filters and
         // pagination the mod may not even be on the visible page — so scope the
@@ -731,7 +731,7 @@ struct ModListView: View {
     /// dernier ne s'affiche qu'à partir de deux pages, et disparaîtrait donc
     /// juste au moment où un filtre resserré rend le total le plus parlant.
     ///
-    /// Somme le cadrage **entier**, pas la page affichée. `vm.mods` ne porte
+    /// Somme le cadrage **entier**, pas la page affichée. `vm.scanStore.mods` ne porte
     /// que des mods de premier niveau et des en-têtes de pack, jamais de
     /// composant : chaque ligne comptée a bien un poids à elle.
     ///
@@ -1329,7 +1329,7 @@ struct ModListRow: View {
 
     /// The effective enabled state, honoring the optimistic `localIsOn` value
     /// so the visual styling reacts instantly when the toggle is flipped
-    /// (before `vm.mods` catches up).
+    /// (before `vm.scanStore.mods` catches up).
     private var effectiveEnabled: Bool { localIsOn ?? mod.isEnabled }
 
     /// Compact metadata strip shown under the category/author/version line:
@@ -1423,7 +1423,7 @@ struct ModListRow: View {
         // brute, la colonne restait vide sur toutes les lignes de pack.
         let installed = mod.effectiveInstallDate
         let langs = mod.languages
-        // `mod` vient de `vm.mods`, donc de la même analyse que la mesure : sa
+        // `mod` vient de `vm.scanStore.mods`, donc de la même analyse que la mesure : sa
         // clé physique désigne le dossier tel qu'il était sur le disque quand
         // le poids a été relevé. Un composant de pack n'en a pas — c'est
         // l'en-tête du pack qui porte le poids du dossier entier.
@@ -2016,7 +2016,7 @@ struct ModListRow: View {
                                         return
                                     }
                                     // Keep the optimistic value until toggleMod's completion
-                                    // confirms vm.mods has actually caught up — clearing it
+                                    // confirms vm.scanStore.mods has actually caught up — clearing it
                                     // eagerly here races the background scanMods() and made
                                     // the switch visibly snap back to its old position.
                                     vm.toggleMod(mod) {

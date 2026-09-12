@@ -22,11 +22,11 @@ struct ModDetailActionBar: View {
     /// L'état relu à chaque rendu : la pause renomme le dossier physique,
     /// la copie figée ne suit pas.
     private var live: ModItem {
-        vm.mods.first { $0.folderName == mod.folderName } ?? mod
+        vm.scanStore.mods.first { $0.folderName == mod.folderName } ?? mod
     }
 
     /// Position optimiste du toggle pendant que le dossier est renommé,
-    /// `nil` dès que `vm.mods` a rattrapé — sinon l'interrupteur revient
+    /// `nil` dès que `vm.scanStore.mods` a rattrapé — sinon l'interrupteur revient
     /// visiblement en arrière le temps du rescan.
     @State private var localIsOn: Bool? = nil
 

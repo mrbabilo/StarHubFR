@@ -178,8 +178,8 @@ struct ModProfilesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
                 } else {
-                    let flattened = vm.mods.flattenedMods
-                    let installedIds = vm.mods.allUniqueIds
+                    let flattened = vm.scanStore.mods.flattenedMods
+                    let installedIds = vm.scanStore.mods.allUniqueIds
                     LazyVStack(spacing: 0) {
                         ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
                             // Compte brut, hissé hors de l'initialiseur le
