@@ -231,7 +231,7 @@ final class StarHubTHViewModel {
     // requêtes posées d'une vue, consommées par une autre. La règle du
     // changement d'onglet reste dans `TabChangePlan` (Core, testée) ; le
     // store ne détient que l'état.
-    private let navigationStore = NavigationStore()
+    let navigationStore = NavigationStore()
 
     // MARK: Scan & parc — le store du domaine (cadrage §3, domaine 8). Le
     // lourd vit dans `ModScanner` (cache mtime et verrou dedans — deux
@@ -264,13 +264,6 @@ final class StarHubTHViewModel {
     // `ModDetailState` vit en Core (Models/ModDetailState.swift, REFACTORING
     // §6) avec ses transitions testées ; le VM garde l'état publié.
     var modDetailState: ModDetailState?
-    // ⚠️ Façade provisoire (P8) — l'état vit dans `navigationStore`, qui
-    // déclenche `loadModDetail` par sa closure câblée ci-dessus ; poser nil
-    // ne charge rien (fermer n'est pas charger).
-    var viewingModDetail: ModItem? {
-        get { navigationStore.viewingModDetail }
-        set { navigationStore.setViewingModDetail(newValue) }
-    }
 
     /// Loads a mod's rich detail: cached raw shown instantly (parsed), then a
     /// background refresh. Offline / no-cache → falls back to the local manifest
@@ -293,7 +286,7 @@ final class StarHubTHViewModel {
             ModDetailCache.save(modId: modId, raw)
             DispatchQueue.main.async {
                 // Anti-race: only apply if still viewing this mod.
-                guard self.viewingModDetail.map({ Int(self.resolvedNexusModId(for: $0)) }) == modId else { return }
+                guard self.navigationStore.viewingModDetail.map({ Int(self.resolvedNexusModId(for: $0)) }) == modId else { return }
                 self.modDetailState = ModDetailState.refreshed(modId: modId, raw: raw)
             }
         }
@@ -1784,7 +1777,7 @@ final class StarHubTHViewModel {
         guard let mod = mods.flattenedMods.first(where: { $0.folderName == folderName })
         else { return }
         pendingTranslationFocus = folderName
-        viewingModDetail = mod
+        navigationStore.setViewingModDetail(mod)
     }
 
     /// Ouvre l'éditeur de configuration d'un mod **depuis un autre onglet**
@@ -1885,19 +1878,6 @@ final class StarHubTHViewModel {
     /// spinning forever, since thaiTranslations staying empty is otherwise
     /// indistinguishable from "still loading".
     var thaiTranslationsError: String? = nil
-    // ⚠️ Façade provisoire (P8) — l'état vit dans `navigationStore` ; la
-    // reprise des vues fera écrire le store directement.
-    var viewingThaiMod: ThaiTranslationMod? {
-        get { navigationStore.viewingThaiMod }
-        set { navigationStore.viewingThaiMod = newValue }
-    }
-    // ⚠️ Façade provisoire (P8) — l'état et la règle X66 (seule la FERMETURE
-    // rescanne) vivent dans `navigationStore`, qui rappelle
-    // `rescanKeybindsAfterConfigWrite` par sa closure câblée ci-dessus.
-    var editingModConfig: ModItem? {
-        get { navigationStore.editingModConfig }
-        set { navigationStore.setEditingModConfig(newValue) }
-    }
 
     /// **Toute écriture dans un `config.json` périme le rapport de
     /// raccourcis** — la règle, en un seul exemplaire (X66).
@@ -1962,25 +1942,6 @@ final class StarHubTHViewModel {
     func clearAppLog() { logStore.clearApp() }
     var alertMessage: String = ""
     var showAlert: Bool = false
-    // ⚠️ Façade provisoire (P8) — l'état et la règle (vidage d'abord, lecture
-    // hors fil, garde anti-course par id) vivent dans `navigationStore` ; la
-    // plomberie est câblée dans sa closure `loadInventory` ci-dessus.
-    var editingSave: SaveGameInfo? {
-        get { navigationStore.editingSave }
-        set { navigationStore.setEditingSave(newValue) }
-    }
-    /// Publique en écriture : `SavesView` lie les `stack` par binding
-    /// sous-indexé (`$vm.inventoryToEdit[index].stack`).
-    var inventoryToEdit: [InventoryItem] {
-        get { navigationStore.inventoryToEdit }
-        set { navigationStore.inventoryToEdit = newValue }
-    }
-    // ⚠️ Façade provisoire (P8) — l'état vit dans `navigationStore` ; la
-    // reprise des vues fera écrire le store directement.
-    var viewingSaveTimeline: SaveGameInfo? {
-        get { navigationStore.viewingSaveTimeline }
-        set { navigationStore.viewingSaveTimeline = newValue }
-    }
 
     var saveToDuplicate: SaveGameInfo? = nil
     var backupToBranch: SaveBackup? = nil
@@ -7129,8 +7090,8 @@ final class StarHubTHViewModel {
     }
 
     func saveInventory() {
-        guard let save = editingSave else { return }
-        let items = inventoryToEdit
+        guard let save = navigationStore.editingSave else { return }
+        let items = navigationStore.inventoryToEdit
         // Même verrou qu'`editSave` (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
         // Same rationale as `editSave` — the save file read/write below
@@ -7143,7 +7104,7 @@ final class StarHubTHViewModel {
                 if success {
                     self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
                     if let refetched = refetched {
-                        self.inventoryToEdit = refetched
+                        self.navigationStore.inventoryToEdit = refetched
                     }
                 } else {
                     self.showModal(message: self.localization.L(L10n.Saves.inventoryError))
@@ -7167,11 +7128,11 @@ final class StarHubTHViewModel {
         savesStore.endOperation()
         if deleted {
             // Fermer l'éditeur ici, pas côté vue : la suppression est
-            // asynchrone, et un `editingSave = nil` enchaîné après l'appel
+            // asynchrone, et un `setEditingSave(nil)` enchaîné après l'appel
             // fermait la fiche même quand le `guard` ci-dessus avait renvoyé
             // sans rien supprimer. Ne ferme que la fiche de la sauvegarde
             // supprimée — on peut en éditer une autre depuis l'arbre.
-            if editingSave?.id == info.id { editingSave = nil }
+            if navigationStore.editingSave?.id == info.id { navigationStore.setEditingSave(nil) }
             reloadSaves()
             showModal(message: localization.L(L10n.VM.deleteSaveSuccess))
         } else {
@@ -7294,8 +7255,8 @@ final class StarHubTHViewModel {
         savesStore.endOperation()
         if restored {
             reloadSaves()
-            viewingSaveTimeline = nil
-            editingSave = nil
+            navigationStore.viewingSaveTimeline = nil
+            navigationStore.setEditingSave(nil)
             showModal(message: localization.L(L10n.VM.restoreSuccess))
         } else {
             showModal(message: localization.L(L10n.VM.restoreError))

@@ -66,7 +66,7 @@ struct ModDetailActionBar: View {
             // depuis le dossier physique, que la pause renomme.
             if !live.isGroup && live.hasConfigFile {
                 Button {
-                    vm.editingModConfig = live
+                    vm.navigationStore.setEditingModConfig(live)
                 } label: {
                     Label(localization.L(L10n.Settings.configModSettings), systemImage: "gearshape")
                 }

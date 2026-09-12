@@ -33,7 +33,7 @@ struct SaveTimelineView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Button(action: { vm.viewingSaveTimeline = nil }) {
+                Button(action: { vm.navigationStore.viewingSaveTimeline = nil }) {
                     HStack(spacing: AppDesign.Spacing.xs) {
                         Image(systemName: "chevron.left")
                             .font(AppDesign.Font.rowTitle(.bold))

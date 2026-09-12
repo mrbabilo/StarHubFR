@@ -60,11 +60,11 @@ struct MainView: View {
     
 
     private var navigationTitleText: String {
-        if currentTab == .saves && vm.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
-        if currentTab == .saves && vm.editingSave != nil { return vm.editingSave!.playerName }
-        if currentTab == .thaiHub && vm.viewingThaiMod != nil { return vm.viewingThaiMod!.name }
-        if currentTab == .mods && vm.editingModConfig != nil { return vm.editingModConfig!.name }
-        if currentTab == .mods && vm.viewingModDetail != nil { return vm.viewingModDetail!.name }
+        if currentTab == .saves && vm.navigationStore.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
+        if currentTab == .saves && vm.navigationStore.editingSave != nil { return vm.navigationStore.editingSave!.playerName }
+        if currentTab == .thaiHub && vm.navigationStore.viewingThaiMod != nil { return vm.navigationStore.viewingThaiMod!.name }
+        if currentTab == .mods && vm.navigationStore.editingModConfig != nil { return vm.navigationStore.editingModConfig!.name }
+        if currentTab == .mods && vm.navigationStore.viewingModDetail != nil { return vm.navigationStore.viewingModDetail!.name }
         // Le titre de base — exhaustif, **jamais de `default:`** : une
         // destination ajoutée sans titre est une erreur de build, pas une
         // fenêtre qui s'intitule « Accueil » sans qu'on le remarque.
@@ -91,11 +91,11 @@ struct MainView: View {
     /// Extrait du `.onChange` en même temps que `destinationView`, pour
     /// la même raison.
     private func handleTabChange() {
-            vm.editingSave = nil
-            vm.viewingThaiMod = nil
-            vm.viewingSaveTimeline = nil
-            vm.editingModConfig = nil
-            vm.viewingModDetail = nil
+            vm.navigationStore.setEditingSave(nil)
+            vm.navigationStore.viewingThaiMod = nil
+            vm.navigationStore.viewingSaveTimeline = nil
+            vm.navigationStore.setEditingModConfig(nil)
+            vm.navigationStore.setViewingModDetail(nil)
 
             // …sauf ce qu'une intention en attente demande d'ouvrir. Les
             // trois n'ont pas le même sort — la traduction survit (la vue la
@@ -114,8 +114,8 @@ struct MainView: View {
             if plan.clearsPendingDetailTab { vm.pendingDetailTab = nil }
             // Conditionnel : les cinq `nil` sont déjà passés, et une
             // affectation `nil` de plus rejouerait deux `didSet`.
-            if let detail = plan.openModDetail { vm.viewingModDetail = detail }
-            if let config = plan.openModConfig { vm.editingModConfig = config }
+            if let detail = plan.openModDetail { vm.navigationStore.setViewingModDetail(detail) }
+            if let config = plan.openModConfig { vm.navigationStore.setEditingModConfig(config) }
 
             if !isNavigatingBackOrForward {
                 if tabHistory.last != currentTab {
@@ -136,12 +136,12 @@ struct MainView: View {
     private var destinationView: some View {
                     switch currentTab {
                     case .mods:
-                        if let mod = vm.editingModConfig {
+                        if let mod = vm.navigationStore.editingModConfig {
                             // L'onglet visuel par défaut : c'est celui qui montre
                             // les réglages du mod, l'onglet de code étant le repli
                             // pour ce que l'écran ne sait pas rendre.
                             ModConfigEditorView(vm: vm, localization: localization, mod: mod)
-                        } else if let mod = vm.viewingModDetail {
+                        } else if let mod = vm.navigationStore.viewingModDetail {
                             ModDetailView(vm: vm, localization: localization, mod: mod)
                                 .id(mod.folderName)
                         } else {
@@ -154,9 +154,9 @@ struct MainView: View {
                     case .installBackups:
                         ModInstallBackupsView(vm: vm, localization: localization)
                     case .saves:
-                        if let save = vm.viewingSaveTimeline {
+                        if let save = vm.navigationStore.viewingSaveTimeline {
                             SaveTimelineView(vm: vm, localization: localization, save: save)
-                        } else if let save = vm.editingSave {
+                        } else if let save = vm.navigationStore.editingSave {
                             SaveEditorView(vm: vm, localization: localization, save: save)
                         } else {
                             SavesView(vm: vm, localization: localization)
@@ -190,16 +190,16 @@ struct MainView: View {
     private var navHistoryButtons: some View {
                     HStack(spacing: 8) {
                     Button(action: {
-                        if vm.editingSave != nil {
-                            vm.editingSave = nil
-                        } else if vm.viewingThaiMod != nil {
-                            vm.viewingThaiMod = nil
-                        } else if vm.viewingSaveTimeline != nil {
-                            vm.viewingSaveTimeline = nil
-                        } else if vm.editingModConfig != nil {
-                            vm.editingModConfig = nil
-                        } else if vm.viewingModDetail != nil {
-                            vm.viewingModDetail = nil
+                        if vm.navigationStore.editingSave != nil {
+                            vm.navigationStore.setEditingSave(nil)
+                        } else if vm.navigationStore.viewingThaiMod != nil {
+                            vm.navigationStore.viewingThaiMod = nil
+                        } else if vm.navigationStore.viewingSaveTimeline != nil {
+                            vm.navigationStore.viewingSaveTimeline = nil
+                        } else if vm.navigationStore.editingModConfig != nil {
+                            vm.navigationStore.setEditingModConfig(nil)
+                        } else if vm.navigationStore.viewingModDetail != nil {
+                            vm.navigationStore.setViewingModDetail(nil)
                         } else if tabHistory.count > 1 {
                             isNavigatingBackOrForward = true
                             let current = tabHistory.removeLast()
@@ -211,7 +211,7 @@ struct MainView: View {
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navBack))
                     .help(localization.L(L10n.Main.navBack))
-                    .disabled(vm.editingSave == nil && vm.viewingThaiMod == nil && vm.viewingSaveTimeline == nil && vm.editingModConfig == nil && vm.viewingModDetail == nil && tabHistory.count <= 1)
+                    .disabled(vm.navigationStore.editingSave == nil && vm.navigationStore.viewingThaiMod == nil && vm.navigationStore.viewingSaveTimeline == nil && vm.navigationStore.editingModConfig == nil && vm.navigationStore.viewingModDetail == nil && tabHistory.count <= 1)
                     
                     Button(action: {
                         if let next = forwardHistory.popLast() {
@@ -427,7 +427,7 @@ struct MainView: View {
             guard let folder else { return }
             if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.mods) {
-                vm.viewingModDetail = target
+                vm.navigationStore.setViewingModDetail(target)
                 vm.pendingDetailTab = .state
             } else {
                 vm.pendingModDetailFocus = folder

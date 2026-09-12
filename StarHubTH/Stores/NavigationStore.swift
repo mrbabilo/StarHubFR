@@ -197,7 +197,7 @@ final class NavigationStore {
     /// se lit. `nil` vide sans charger.
     private(set) var editingSave: SaveGameInfo?
     /// Publique en écriture : `SavesView` lie les `stack` par binding
-    /// sous-indexé (`$vm.inventoryToEdit[index].stack`) — la mutation passe
+    /// sous-indexé (`$vm.navigationStore.inventoryToEdit[index].stack`) — la mutation passe
     /// par le set de la façade, sans règle à préserver ici (le vidage vit
     /// dans `setEditingSave`).
     var inventoryToEdit: [InventoryItem] = []

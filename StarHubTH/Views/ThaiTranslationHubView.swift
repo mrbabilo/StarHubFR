@@ -14,7 +14,7 @@ struct ThaiTranslationHubView: View {
     }
     
     var body: some View {
-        if let mod = vm.viewingThaiMod {
+        if let mod = vm.navigationStore.viewingThaiMod {
             ThaiModDetailView(vm: vm, localization: localization, mod: mod)
         } else {
             ScrollView {
@@ -77,7 +77,7 @@ struct ThaiTranslationHubView: View {
                             ThaiModRow(vm: vm, localization: localization, mod: mod)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    vm.viewingThaiMod = mod
+                                    vm.navigationStore.viewingThaiMod = mod
                                 }
                             
                             if index < filteredMods.count - 1 {

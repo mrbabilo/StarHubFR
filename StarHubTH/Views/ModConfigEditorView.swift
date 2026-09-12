@@ -225,7 +225,7 @@ struct ModConfigEditorView: View {
                 
                 Button(localization.L(L10n.Saves.saveChanges)) {
                     if saveConfig() {
-                        vm.editingModConfig = nil
+                        vm.navigationStore.setEditingModConfig(nil)
                     }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -255,7 +255,7 @@ struct ModConfigEditorView: View {
                                     set: { if !$0 { blockedWrite = nil } })) {
             Button(localization.L(L10n.Settings.configOverwriteAnyway), role: .destructive) {
                 blockedWrite = nil
-                if writeConfig() { vm.editingModConfig = nil }
+                if writeConfig() { vm.navigationStore.setEditingModConfig(nil) }
             }
             Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { blockedWrite = nil }
         } message: {

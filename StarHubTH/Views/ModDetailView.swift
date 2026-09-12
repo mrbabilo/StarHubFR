@@ -5,7 +5,7 @@ import SwiftUI
 /// Description/Changelog/Dependencies segmented tabs — the last rendering
 /// `DescriptionBlock`s produced by `StarHubTHViewModel.loadModDetail(for:)`.
 /// Lives in the NavigationSplitView detail column (pushed via
-/// `vm.viewingModDetail`, wired in `MainView`) — never a sheet/modal, so it
+/// `vm.navigationStore.viewingModDetail`, wired in `MainView`) — never a sheet/modal, so it
 /// behaves like any other master-detail drill-down (back chevron pops it).
 ///
 /// The caller (`MainView`) applies `.id(mod.folderName)` to this view so a
@@ -157,7 +157,7 @@ struct ModDetailView: View {
                 // Refermer la fiche : le mod qu'elle décrit n'existe plus.
                 // La laisser ouverte afficherait une version, des
                 // dépendances et une description d'un dossier supprimé.
-                vm.viewingModDetail = nil
+                vm.navigationStore.setViewingModDetail(nil)
             }
             Button(localization.L(L10n.Saves.cancel), role: .cancel) { }
         } message: {
@@ -247,7 +247,7 @@ struct ModDetailView: View {
             HeroHeader(title: mod.name,
                        subtitle: heroSubtitle,
                        imageURL: heroPictureURL) {
-                vm.viewingModDetail = nil
+                vm.navigationStore.setViewingModDetail(nil)
             }
             fineBand
             statStrip
@@ -292,7 +292,7 @@ struct ModDetailView: View {
         HStack(spacing: 16) {
             if let pack = parentPack {
                 Button {
-                    vm.viewingModDetail = pack
+                    vm.navigationStore.setViewingModDetail(pack)
                 } label: {
                     Label(String(format: localization.L(L10n.Mods.backToPack), pack.name),
                           systemImage: "chevron.backward")
@@ -354,7 +354,7 @@ struct ModDetailView: View {
         Group {
             if let target, let destination = vm.mods.first(where: { $0.folderName == target }) {
                 Button {
-                    vm.viewingModDetail = destination
+                    vm.navigationStore.setViewingModDetail(destination)
                 } label: {
                     Image(systemName: icon)
                         .font(.system(size: AppDesign.Icon.sm))
@@ -415,7 +415,7 @@ struct ModDetailView: View {
     /// L'état courant du mod, relu dans `vm.mods` à chaque rendu.
     ///
     /// `mod` est une **copie figée** au moment où la fiche a été ouverte
-    /// (`vm.viewingModDetail`), et rien ne la rafraîchit : mettre le mod en
+    /// (`vm.navigationStore.viewingModDetail`), et rien ne la rafraîchit : mettre le mod en
     /// pause renomme bien le dossier et met à jour `vm.mods`, mais la copie
     /// garde son ancien `isEnabled`. L'interrupteur revenait donc en position
     /// « activé » dès que la valeur optimiste s'effaçait — l'affichage
@@ -501,7 +501,7 @@ struct ModDetailView: View {
                         // Chaque composant ouvre sa fiche : la liste muette
                         // faisait de la fiche du pack un couloir sans portes.
                         Button {
-                            vm.viewingModDetail = child
+                            vm.navigationStore.setViewingModDetail(child)
                         } label: {
                             HStack(spacing: 10) {
                                 Circle()
@@ -1306,7 +1306,7 @@ struct ModDetailView: View {
                 // `pending…Focus` (consommés seulement par un CHANGEMENT
                 // d'onglet dans MainView).
                 ModUpdateDeltaSection(vm: vm, localization: localization, mod: mod,
-                                      onOpenConfig: { vm.editingModConfig = mod },
+                                      onOpenConfig: { vm.navigationStore.setEditingModConfig(mod) },
                                       onOpenTranslation: {
                                           vm.pendingTranslationDiffFilter = .state(.missing)
                                           selectedTab = .translation

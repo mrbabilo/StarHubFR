@@ -210,7 +210,7 @@ private struct NodeTapModifier: ViewModifier {
     var vm: StarHubTHViewModel
     func body(content: Content) -> some View {
         if let mod {
-            content.onTapGesture { vm.viewingModDetail = mod }.pointingHandCursor()
+            content.onTapGesture { vm.navigationStore.setViewingModDetail(mod) }.pointingHandCursor()
         } else {
             content
         }

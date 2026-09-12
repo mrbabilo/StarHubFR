@@ -514,7 +514,7 @@ struct ModListView: View {
                                                 usesDefaultArtwork: true,
                                                 attributes: gridAttributes(for: mod),
                                                 L: localization.L,
-                                                action: { vm.viewingModDetail = mod })
+                                                action: { vm.navigationStore.setViewingModDetail(mod) })
                                     }
                                 }
                             }
@@ -1896,7 +1896,7 @@ struct ModListRow: View {
                 // context-menu entry stays as an additional entry point.
                 if !mod.isGroup && mod.hasConfigFile {
                     Button {
-                        vm.editingModConfig = mod
+                        vm.navigationStore.setEditingModConfig(mod)
                     } label: {
                         Image(systemName: "gearshape")
                             .font(AppDesign.Font.rowTitle)
@@ -1931,7 +1931,7 @@ struct ModListRow: View {
                 // category / Nexus link even when it has no dependencies or
                 // pre-existing Nexus URL.
                 Button {
-                    vm.viewingModDetail = mod
+                    vm.navigationStore.setViewingModDetail(mod)
                 } label: {
                     Image(systemName: "info.circle")
                         .font(AppDesign.Font.rowTitle)
@@ -2087,7 +2087,7 @@ struct ModListRow: View {
                 NSWorkspace.shared.open(url)
             }
             Button(localization.L(L10n.Settings.configModSettings)) {
-                vm.editingModConfig = mod
+                vm.navigationStore.setEditingModConfig(mod)
             }
             let effectiveLink = vm.nexusLink(for: mod)
             if !effectiveLink.isEmpty {

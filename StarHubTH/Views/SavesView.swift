@@ -178,7 +178,7 @@ struct SavesView: View {
                             SaveTreeListView(vm: vm, localization: localization, nodes: vm.savesHierarchy, depth: 0)
                         } else {
                             ForEach(filteredSaves, id: \.id) { save in
-                                Button(action: { vm.editingSave = save }) {
+                                Button(action: { vm.navigationStore.setEditingSave(save) }) {
                                     SaveRow(vm: vm, localization: localization, save: save, depth: 0, hasChildren: false, isExpanded: false, onToggleExpand: nil)
                                 }
                                 .buttonStyle(.plain)
@@ -366,7 +366,7 @@ struct SaveCardView: View {
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: { vm.editingSave = save }) {
+        Button(action: { vm.navigationStore.setEditingSave(save) }) {
             VStack(spacing: AppDesign.Spacing.md) {
                 SaveAvatarView(folderName: save.folderName, size: 64, vm: vm)
 
@@ -408,8 +408,8 @@ struct SaveCardView: View {
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .contextMenu {
-            Button(localization.L(L10n.Saves.edit)) { vm.editingSave = save }
-            Button(localization.L(L10n.Saves.timeline)) { vm.viewingSaveTimeline = save }
+            Button(localization.L(L10n.Saves.edit)) { vm.navigationStore.setEditingSave(save) }
+            Button(localization.L(L10n.Saves.timeline)) { vm.navigationStore.viewingSaveTimeline = save }
             Divider()
             Button(localization.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save }
             Button(localization.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
@@ -448,7 +448,7 @@ struct SaveTreeListView: View {
             let hasChildren = !node.children.isEmpty
             let isExpanded = expandedSaves.contains(node.info.folderName)
             
-            Button(action: { vm.editingSave = node.info }) {
+            Button(action: { vm.navigationStore.setEditingSave(node.info) }) {
                 SaveRow(
                     vm: vm,
                     localization: localization,
@@ -545,10 +545,10 @@ struct SaveRow: View {
             moneyColumns
 
             Menu {
-                Button(action: { vm.editingSave = save }) {
+                Button(action: { vm.navigationStore.setEditingSave(save) }) {
                     Label(localization.L(L10n.Saves.saveManagement), systemImage: "pencil")
                 }
-                Button(action: { vm.viewingSaveTimeline = save }) {
+                Button(action: { vm.navigationStore.viewingSaveTimeline = save }) {
                     Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
                 }
                 Divider()
@@ -863,7 +863,7 @@ struct SaveEditorView: View {
                          dayLine: heroDayLine,
                          farmName: heroFarmName,
                          closeHelp: localization.L(L10n.Saves.cancel),
-                         onClose: { vm.editingSave = nil },
+                         onClose: { vm.navigationStore.setEditingSave(nil) },
                          whichFarm: save.whichFarm,
                          iconPath: iconPath,
                          isFemale: save.isFemale,
@@ -890,7 +890,7 @@ struct SaveEditorView: View {
             // La bande fine reçoit l'exclu du strip : l'historique des
             // sauvegardes, qui déménage de l'ancien en-tête.
             HStack {
-                Button(action: { vm.viewingSaveTimeline = save }) {
+                Button(action: { vm.navigationStore.viewingSaveTimeline = save }) {
                     Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
                         .font(AppDesign.Font.footnote(.medium))
                 }
@@ -1012,8 +1012,12 @@ struct SaveEditorView: View {
                 }
                 
                 Section(localization.L(L10n.Saves.inventoryEditor)) {
-                    ForEach(vm.inventoryToEdit.indices, id: \.self) { index in
-                        let item = vm.inventoryToEdit[index]
+                    // Le binding sous-indexé exige un chemin écrivable :
+                    // `vm.navigationStore` est un `let`, la projection
+                    // `@Bindable` fournit la vue écrivable du store.
+                    @Bindable var navigationStore = vm.navigationStore
+                    ForEach(navigationStore.inventoryToEdit.indices, id: \.self) { index in
+                        let item = navigationStore.inventoryToEdit[index]
                         if item.isObject {
                             HStack {
                                 Text("\(item.name)")
@@ -1022,12 +1026,12 @@ struct SaveEditorView: View {
                                     .foregroundColor(.secondary)
                                 Spacer()
                                 Text(localization.L(L10n.Saves.itemQuantity))
-                                TextField("", value: $vm.inventoryToEdit[index].stack, formatter: NumberFormatter())
+                                TextField("", value: $navigationStore.inventoryToEdit[index].stack, formatter: NumberFormatter())
                                     .frame(width: 60)
                                     .textFieldStyle(.roundedBorder)
                                 
                                 Button(action: {
-                                    vm.inventoryToEdit[index] = InventoryItem.empty(slot: index)
+                                    navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
                                 }) {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
@@ -1049,7 +1053,7 @@ struct SaveEditorView: View {
                                     .foregroundColor(.secondary)
                                     
                                 Button(action: {
-                                    vm.inventoryToEdit[index] = InventoryItem.empty(slot: index)
+                                    navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
                                 }) {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
@@ -1071,7 +1075,7 @@ struct SaveEditorView: View {
                 Section(localization.L(L10n.Saves.saveManagement)) {
                     HStack {
                         Button(localization.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
-                        Button(localization.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save; vm.editingSave = nil }
+                        Button(localization.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save; vm.navigationStore.setEditingSave(nil) }
                         Spacer()
                         // La fermeture de l'éditeur est faite par `deleteSave`
                         // lui-même, sur succès seulement (voir le ViewModel).
@@ -1163,6 +1167,6 @@ struct SaveEditorView: View {
 
         vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
         vm.editSave(info: save, newName: name, newFarm: farm, newFav: fav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newHealth, newMaxStamina: newStam, newGoldenWalnuts: newWalnuts, newQiGems: newQi, newClubCoins: newClub, newSpouse: spouse)
-        vm.editingSave = nil
+        vm.navigationStore.setEditingSave(nil)
     }
 }
