@@ -185,9 +185,6 @@ final class StarHubTHViewModel {
 
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
-    /// Le compte Nexus, `nil` tant qu'on ne sait pas.
-    var nexusAccount: NexusAccount? { accountStore.account }
-
     /// `true` seulement quand on **sait** que le compte n'est pas premium.
     /// L'ignorance ne retire rien : mieux vaut un bouton qui échoue qu'un
     /// bouton absent chez quelqu'un qui y avait droit.

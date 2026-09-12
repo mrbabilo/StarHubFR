@@ -97,41 +97,25 @@ struct MainView: View {
             vm.editingModConfig = nil
             vm.viewingModDetail = nil
 
-            // …sauf une demande de traduction, qui est précisément **ce
-            // qui** amène sur cet onglet (B3-T4, depuis la couverture
-            // française d'un profil). La poser avant de changer d'onglet
-            // ne servait à rien : la remise à zéro ci-dessus l'effaçait
-            // aussitôt, et le bouton n'ouvrait que la liste des mods.
-            if currentTab == .mods, let folderName = vm.pendingTranslationFocus {
-                vm.viewingModDetail = vm.mods.flattenedMods
-                    .first { $0.folderName == folderName }
-            }
-
-            // T8 — même piège, même cure pour l'éditeur de config,
-            // demandé depuis le rapport de raccourcis (Alertes système).
-            // Contrairement à la traduction, rien ne se consomme plus
-            // tard dans la vue : l'éditeur n'a pas d'onglet à présélectionner,
-            // on l'ouvre donc ici et on efface la demande aussitôt — sans
-            // quoi chaque retour sur l'onglet la rejouerait.
-            if currentTab == .mods, let folderName = vm.pendingConfigFocus {
-                vm.pendingConfigFocus = nil
-                vm.editingModConfig = vm.mods.flattenedMods
-                    .first { $0.folderName == folderName }
-            }
-
-            // H-T6b — même piège, même cure pour la fiche mod, demandée
-            // depuis l'écran d'alertes système : une ligne SMAPI porte un
-            // nom affiché, une ligne de conflit un `folderName` —
-            // `ModFocusResolver` accepte les deux.
-            if currentTab == .mods, let query = vm.pendingModDetailFocus {
-                vm.pendingModDetailFocus = nil
-                vm.viewingModDetail = ModFocusResolver.resolve(query, in: vm.mods)
-                // Résolution vide : aucune fiche ne s'ouvrira, donc
-                // personne ne consommera l'onglet demandé — il faut
-                // l'effacer ici, sinon la prochaine fiche ouverte à la
-                // main s'ouvrirait sur « État » sans raison.
-                if vm.viewingModDetail == nil { vm.pendingDetailTab = nil }
-            }
+            // …sauf ce qu'une intention en attente demande d'ouvrir. Les
+            // trois n'ont pas le même sort — la traduction survit (la vue la
+            // consomme plus tard pour l'onglet), les deux autres s'effacent —
+            // et trois fonctionnalités s'y sont cassé les dents. La règle
+            // vit désormais dans `TabChangePlan` (Core, 11 tests, six
+            // sabotages) : elle était ici, hors de portée d'un test.
+            let plan = TabChangePlan.decide(
+                entering: currentTab,
+                pending: .init(translationFocus: vm.pendingTranslationFocus,
+                               configFocus: vm.pendingConfigFocus,
+                               modDetailFocus: vm.pendingModDetailFocus),
+                mods: vm.mods)
+            if plan.clearsConfigFocus { vm.pendingConfigFocus = nil }
+            if plan.clearsModDetailFocus { vm.pendingModDetailFocus = nil }
+            if plan.clearsPendingDetailTab { vm.pendingDetailTab = nil }
+            // Conditionnel : les cinq `nil` sont déjà passés, et une
+            // affectation `nil` de plus rejouerait deux `didSet`.
+            if let detail = plan.openModDetail { vm.viewingModDetail = detail }
+            if let config = plan.openModConfig { vm.editingModConfig = config }
 
             if !isNavigatingBackOrForward {
                 if tabHistory.last != currentTab {

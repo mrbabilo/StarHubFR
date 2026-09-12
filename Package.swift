@@ -97,6 +97,7 @@ let package = Package(
                 "Models/BisectionSession.swift",
                 "Models/BisectionSnapshot.swift",
                 "Models/ModFocusResolver.swift",
+                "Models/TabChangePlan.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
                 "Models/DroppedContentRecognizer.swift",
@@ -652,6 +653,11 @@ let package = Package(
             name: "SmapiLogDiagnosticsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogDiagnosticsTests"
+        ),
+        .testTarget(
+            name: "TabChangePlanTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TabChangePlanTests"
         ),
         .testTarget(
             name: "NexusDownloadStoreTests",
