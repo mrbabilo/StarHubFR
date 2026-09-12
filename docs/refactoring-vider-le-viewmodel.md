@@ -839,8 +839,8 @@ collectionné plusieurs.
 (ses cinq stockées sont déjà `private(set)`, le compteur ne bouge pas) : hors
 du lot, un store peut relâcher la règle que le cliquet protège.
 
-**Vérification à l'écran — due, auteur.** Quatre contrôles, depuis la page
-des profils :
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les quatre contrôles
+sont passés. Ce qui a été exercé :
 
 1. ouvrir la page des profils sur un parc jamais mesuré — le **témoin**
    s'affiche pendant la passe, pas un pourcentage faux, puis les
