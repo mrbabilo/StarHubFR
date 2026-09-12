@@ -245,6 +245,7 @@ let package = Package(
                 "Stores/NexusAccountStore.swift",
                 "Stores/NexusDownloadStore.swift",
                 "Stores/NavigationStore.swift",
+                "Stores/ScanStore.swift",
                 "Models/DetailTab.swift",
                 "Models/TranslationDiffFilter.swift",
                 "Models/ModScanner.swift",
@@ -262,6 +263,11 @@ let package = Package(
             name: "NavigationStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NavigationStoreTests"
+        ),
+        .testTarget(
+            name: "ScanStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ScanStoreTests"
         ),
         .testTarget(
             name: "ModScannerTests",

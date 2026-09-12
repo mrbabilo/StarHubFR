@@ -233,6 +233,13 @@ final class StarHubTHViewModel {
     // store ne détient que l'état.
     private let navigationStore = NavigationStore()
 
+    // MARK: Scan & parc — le store du domaine (cadrage §3, domaine 8). Le
+    // lourd vit dans `ModScanner` (cache mtime et verrou dedans — deux
+    // scans concurrents touchent le même cache) ; ce store porte l'état
+    // publié : le parc, la progression, l'index de duplication, les poids.
+    // Poser le parc prévient les trois consommateurs câblés dans l'init.
+    private let scanStore = ScanStore()
+
     var isDownloadingFromNexus: Bool { downloadStore.isDownloading }
     /// Nexus mod id of the mod currently being downloaded, or nil when idle.
     /// Drives the per-row spinner in the Updates list while a premium update
@@ -393,7 +400,11 @@ final class StarHubTHViewModel {
     /// slice of the launch bar.
     // `ScanProgress` vit désormais en Core (`Models/ModScanner.swift`, avec
     // le scanner qui le produit) — même nom, mêmes champs, `phase` compris.
-    var scanProgress: ScanProgress? = nil
+    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`.
+    var scanProgress: ScanProgress? {
+        get { scanStore.scanProgress }
+        set { scanStore.scanProgress = newValue }
+    }
 
 
     /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
@@ -453,25 +464,12 @@ final class StarHubTHViewModel {
                            entries: entries, modsFound: modsFound)
     }
 
-    var mods: [ModItem] = [] {
-        didSet {
-            invalidateCategoryCache()
-            recomputeFrenchCoverage()
-            // Le parc est connu ici, avant même qu'on ouvre l'onglet Alertes
-            // système — c'est ce qui rend le compte de la pastille (tâche 7)
-            // vrai sans avoir ouvert la section. `scanIfNeeded` est sûr à
-            // appeler souvent : il compare une signature du parc à celle de
-            // son dernier scan et ne relance que si elle a changé, ou s'il
-            // n'y a pas encore de rapport (il refuse déjà de scanner sans
-            // `gameDir` — pas de deuxième garde ici). `Task { @MainActor … }`,
-            // comme `recomputeFrenchCoverage()` juste au-dessus pour
-            // `reloadOutdatedKeyIndex()` : cette classe n'est pas elle-même
-            // `@MainActor`, et `KeybindScanService` l'est.
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.keybindScanService.scanIfNeeded(mods: self.mods, gameDir: self.gameDir)
-            }
-        }
+    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`,
+    // qui prévient les trois consommateurs câblés dans l'init ; les vues ne
+    // changent pas.
+    var mods: [ModItem] {
+        get { scanStore.mods }
+        set { scanStore.setMods(newValue) }
     }
 
     /// Les problèmes de santé du parc, résolus une seule fois.
@@ -1861,7 +1859,9 @@ final class StarHubTHViewModel {
     /// Mesuré le 2026-08-25 : **7 identifiants sur 14 dossiers**, dont trois
     /// avec leurs deux copies actives (le mod Swim, à plat et dans son dossier
     /// de téléchargement). Rien ne le disait jusqu'ici.
-    private(set) var duplicateIndex: ModDuplicateIndex = .empty
+    // ⚠️ Façade provisoire (P8, domaine 8) — l'état vit dans `scanStore`
+    // ; reconstruit à chaque scan, écrit seulement par le VM.
+    var duplicateIndex: ModDuplicateIndex { scanStore.duplicateIndex }
 
     /// Manifest decode cache, keyed by manifest.json absolute path. Each
     /// entry stores the file's mtime alongside the decoded JSON so a stale
@@ -2083,6 +2083,19 @@ final class StarHubTHViewModel {
                     DispatchQueue.main.async { done(items) }
                 }
             })
+        // Scan (domaine 8) : poser le parc enchaîne les trois cascades que
+        // le `didSet` d'origine portait — le cache de catégories Nexus, la
+        // couverture française, et le rapport de raccourcis (la signature
+        // de `scanIfNeeded` ne relance que si le parc a changé).
+        scanStore.wireEffects(onModsChanged: { [weak self] _ in
+            guard let self else { return }
+            self.invalidateCategoryCache()
+            self.recomputeFrenchCoverage()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.keybindScanService.scanIfNeeded(mods: self.mods, gameDir: self.gameDir)
+            }
+        })
         // `AppleLanguages` is resynced from the store's `currentLanguage.didSet`
         // (`LocalizationStore`); no manual write needed here. The previous
         // 3-line block caused a triple write on first launch (initializer →
@@ -2621,20 +2634,12 @@ final class StarHubTHViewModel {
 
     // MARK: - Poids du parc (B2-T2)
 
-    /// Ce que pèsent les mods, `nil` tant qu'aucune mesure n'a abouti.
-    private(set) var modsFolderSizes: ModsFolderSizes? = nil
-    /// `true` pendant la traversée. Le pied de barre l'annonce : sans ça, il
-    /// reste vide quelques secondes au lancement, ce qui se lit comme un bug.
-    private(set) var isMeasuringModsFolder: Bool = false
-
-    /// Sérialise les mesures : `scanMods()` est appelé depuis 29 endroits
-    /// (installation, suppression, bascule, application de profil…) et deux
-    /// traversées simultanées de 100 000 fichiers ne serviraient à rien.
-    private let modsSizeLock = NSLock()
-    private var isModsSizeMeasureInFlight = false
-    /// Une demande arrivée pendant une mesure n'est pas perdue : elle relance
-    /// une passe à la fin, sinon le chiffre resterait celui d'avant l'action.
-    private var modsSizeMeasureRequestedAgain = false
+    // ⚠️ Façades provisoires (P8, domaine 8) — l'état et le mécanisme de
+    // sérialisation (une passe à la fois, demande rejouée, mesure ratée qui
+    // n'efface pas pendant qu'une passe est en route) vivent dans
+    // `scanStore` ; seule l'orchestration de files reste ici.
+    var modsFolderSizes: ModsFolderSizes? { scanStore.modsFolderSizes }
+    var isMeasuringModsFolder: Bool { scanStore.isMeasuringModsFolder }
 
     /// Mesure le poids du parc en tâche de fond, en une passe à la fois.
     ///
@@ -2646,32 +2651,18 @@ final class StarHubTHViewModel {
         // le « Mesure en cours… » du pied de barre serait un clignotement pour
         // rien.
         guard !gameDir.isEmpty else { return }
-        let alreadyRunning: Bool = modsSizeLock.withLock {
-            if isModsSizeMeasureInFlight {
-                modsSizeMeasureRequestedAgain = true
-                return true
-            }
-            isModsSizeMeasureInFlight = true
-            return false
-        }
+        let alreadyRunning = scanStore.beginSizeMeasure()
         guard !alreadyRunning else { return }
 
         let dir = gameDir
-        DispatchQueue.main.async { self.isMeasuringModsFolder = true }
+        DispatchQueue.main.async { self.scanStore.setSizeMeasureRunning(true) }
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self else { return }
             let sizes = ModsFolderSizer.measure(
                 modsFolder: URL(fileURLWithPath: dir).appendingPathComponent("Mods"))
-            let again: Bool = self.modsSizeLock.withLock {
-                self.isModsSizeMeasureInFlight = false
-                defer { self.modsSizeMeasureRequestedAgain = false }
-                return self.modsSizeMeasureRequestedAgain
-            }
+            let again = self.scanStore.endSizeMeasure()
             DispatchQueue.main.async {
-                // Une mesure ratée (dossier absent) n'efface pas la précédente
-                // pendant qu'une nouvelle passe est en route.
-                if sizes != nil || !again { self.modsFolderSizes = sizes }
-                self.isMeasuringModsFolder = again
+                self.scanStore.setSizeMeasureResult(sizes, again: again)
                 if again { self.measureModsFolderSize() }
             }
         }
@@ -2694,7 +2685,7 @@ final class StarHubTHViewModel {
     private func rebuildDependencyIndexes() {
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
-        duplicateIndex = index.duplicateIndex
+        scanStore.setDuplicateIndex(index.duplicateIndex)
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
@@ -3080,8 +3071,7 @@ final class StarHubTHViewModel {
                 // sa clé physique est l'ancienne, `dstName` la nouvelle.
                 // Sans ce déplacement, fiche et rangées perdraient le poids
                 // jusqu'au prochain scan complet.
-                self.modsFolderSizes = self.modsFolderSizes?
-                    .renamingFolder(from: m.physicalFolderName, to: dstName)
+                self.scanStore.renameSizeKey(from: m.physicalFolderName, to: dstName)
                 if targetState {
                     self.modActivationTimestamps[folderName] = Date()
                 }
@@ -4324,9 +4314,8 @@ final class StarHubTHViewModel {
 
         // Et deux caches, qui ne survivent pas au lancement mais mentiraient
         // d'ici là. Le poids est indexé sur le nom **physique**.
-        modsFolderSizes = modsFolderSizes?
-            .renamingFolder(from: old, to: new)
-            .renamingFolder(from: "." + old, to: "." + new)
+        scanStore.renameSizeKey(from: old, to: new)
+        scanStore.renameSizeKey(from: "." + old, to: "." + new)
         // `invalidateFrenchCoverage` est `@MainActor` (trois mutations
         // `@Published`). Le renommage part d'une action de vue, toujours sur le
         // fil principal : `assumeIsolated` garde l'invalidation **synchrone**,
