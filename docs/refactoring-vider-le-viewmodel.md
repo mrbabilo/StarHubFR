@@ -853,6 +853,81 @@ sont passés. Ce qui a été exercé :
    (le cache de session relu du disque), et un profil dont un mod a été
    désinstallé ne traîne plus son entrée.
 
+### Domaine 7 — Nexus, tranche 1 (les mises à jour), livrée le 2026-09-12
+
+Deux commits (`110dfa8` pour le store, et celui du câblage), gate exit 0,
+**3 082 tests verts**. `ModUpdateStore` (`@Observable`, 8 tests, cinq
+sabotages). ViewModel 10 288 → **10 270** (−18) ;
+`viewmodel_stored_state` 122 → **114** ;
+`observable_stored_without_private_set` 104 → **99**.
+
+🚩 **Le cadrage annonçait ~20 propriétés ; le relevé en trouve 28**, et le
+domaine est composite comme le 6. Cinq familles :
+
+| Famille | Propriétés | État |
+| --- | --- | --- |
+| **Les mises à jour** | `nexusUpdates`, `snoozedUpdates`, `affirmedUpdates`, `unverifiableMods`, `isCheckingNexusUpdates`, `nexusCheckError`, `nexusCheckProgress`, `nexusFallbackInFlight` | ✅ cette tranche |
+| **Le compte & la clé** | `hasNexusApiKey`, `nexusAccount`, `nexusQuota` | tranche 2 |
+| **Le téléchargement** | `isDownloadingFromNexus`, `downloadingNexusModId`, `nexusDownloadProgress`, `nexusDownloadInFlight`, `nexusDownloadQueue`, `nexusDownloadRate`, `nexusArchiveStore`, `nexusArchives` | tranche 3 |
+| **Les métadonnées** | `nexusCategories`, `nexusModExtras`, `modDetailState` | tranche 4 |
+| **Hors domaine** | navigation (`viewingModDetail`, `pendingModDetailFocus`), installation (`pendingDownloadedZip`, `pendingNexusSource`, `recentNexusInstalls`), plomberie (`updateKeyDeltasRevision`), préférence (`autoCheckNexusUpdates`) | reste |
+
+**Le discriminant qui a servi à l'ordre des tranches** : *où les vues
+écrivent*. Elles écrivent 13 fois `viewingModDetail`, 4 fois
+`pendingModDetailFocus`, 3 fois `pendingNexusSource` — **toutes dans
+navigation et installation, aucune dans les trois premières familles**. Les
+domaines 4 et 5 ont payé leur verrou de taille en façades `get`+`set` ;
+celui-ci n'en crée aucune, et la ligne brute baisse pour la deuxième fois
+d'affilée. Le diagnostic de la tranche 1 du domaine 6 tient, et il se
+mesure : c'est l'écriture par la vue qui coûte.
+
+🚩 **Le verrou avait deux détenteurs, et vivait en `guard` au point
+d'appel.** La reprise Nexus démarre **dans** `applySmapiResults`, donc avant
+que le `group.notify` de `checkNexusUpdates` n'ait fini : le relâchement de
+la première passe éteignait le voyant que la seconde venait d'allumer, le
+bouton « Vérifier » réapparaissait pendant que Nexus était interrogé page
+par page, et un second passage complet pouvait démarrer par-dessus — aux
+dépens du quota Nexus là où smapi.io est gratuit. La défense était un
+`guard !nexusFallbackInFlight else { return }` qu'il fallait penser à
+écrire ; c'est maintenant `endCheck()` qui refuse de relâcher, et l'appelant
+n'a plus de décision à prendre. Même forme que la garde `if
+errorHistoryLoaded` de la tranche 3 du domaine 2 : **une règle qui cesse
+d'être facultative**.
+
+⚠️ **Ce que le store ne voit pas, délibérément : le cache plat.** Il reste
+chez `NexusUpdateChecker.shared`, avec la consolidation par pack et la
+fusion d'une passe partielle (429, 503) — pièges mesurés, consignés dans
+`CLAUDE.md`. L'appelant consolide, juge le snooze, puis remet les deux
+moitiés d'un coup ; y réécrire la liste consolidée aplatirait ce que le
+cache doit garder à plat. `updateSnoozer` reste donc au ViewModel : c'est
+l'**entrée** de la partition, pas la partition, et il lui faut la version du
+jeu, qui vient d'un autre domaine.
+
+**Deux tuples deviennent des types.** `unverifiableMods` était
+`[(uniqueId:name:blocker:)]`, remappé à la main depuis
+`SmapiVerdicts.Unverifiable` — qui a exactement cette forme, est `Equatable`
+et vit déjà en Core. `nexusCheckProgress` devient `UpdateCheckProgress` : un
+tuple n'est pas `Equatable`, donc la vue ne pouvait animer que `done`.
+
+**Trouvé en chemin, corrigé à part** : `outOfDateMods` n'était pas du Nexus
+malgré son voisinage d'affichage — voir le correctif du domaine 2 du même
+jour. Leçon de méthode : classer un relevé par **producteur**, jamais par
+préfixe de nom.
+
+**Vérification à l'écran — due, auteur.** Quatre contrôles, depuis la
+fenêtre des mises à jour :
+
+1. « Vérifier » sur le parc complet — la progression avance, le bouton reste
+   indisponible, l'erreur d'une passe précédente a disparu ;
+2. **le contrôle qui porte** : quand la passe smapi.io se termine et qu'une
+   reprise Nexus enchaîne (elle s'annonce au journal, « Reprise Nexus : N
+   mods sans verdict »), le voyant **ne s'éteint pas entre les deux** et le
+   bouton ne redevient pas cliquable ;
+3. les invérifiables que la reprise a tranchés quittent la liste repliée,
+   **ceux qu'elle n'a pas atteints y restent** ;
+4. mettre une mise à jour en veille — elle quitte la liste et le badge, et
+   reparaît sous « en veille » sans que l'inventaire bouge.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
