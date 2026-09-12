@@ -41,7 +41,7 @@
   "file:StarHubTH/Views/TranslationEditorView.swift": 495,
   "get_prefixed_funcs": 4,
   "non_final_classes": 8,
-  "observable_stored_without_private_set": 95,
+  "observable_stored_without_private_set": 66,
   "our_shared_singletons": 90,
   "oversized_excess_lines": 25845,
   "oversized_files": 37,

@@ -129,9 +129,26 @@ COMBINE_INSTANCES = ("keybindScanService", "smapiInstaller", "bisection", "modLi
 # est `nil`). Le premier jet exigeait l'un des deux et manquait ces
 # propriétés-là — trouvé par la vérification à la main exigée avant de poser
 # la base, sur `keybindReport`.
+# ⚠️ Deux défauts mesurés le 2026-09-12, corrigés ici. Le motif d'origine
+# exigeait `private(set)` **en tête** et n'admettait qu'un seul modificateur
+# ensuite :
+#   - il ne voyait pas du tout `public private(set) var` (l'ordre idiomatique
+#     Swift) ni `private static var` — 3 membres du lot échappaient au
+#     décompte, tous conformes, donc aucune violation n'était cachée ;
+#   - il tenait `private var` pour une violation de « pas de stockée mutable
+#     exposée » alors que `private` est **plus strict** que `private(set)` :
+#     29 des 95 violations comptées étaient de celles-là.
+# Le motif capture désormais toute la liste de modificateurs, et le jugement
+# se fait dessus.
 _VAR_DECL = re.compile(
-    r"^\s*(?:@\w+\s+)*((?:private\(set\) )?)"
-    r"(?:private |public |fileprivate )?var (\w+)\b(.*)$")
+    r"^\s*(?:@\w+\s+)*"
+    r"((?:(?:private\(set\)|fileprivate\(set\)|private|fileprivate|public|internal|"
+    r"final|static|lazy|weak|unowned|nonisolated)\s+)*)"
+    r"var (\w+)\b(.*)$")
+
+# `private` et `fileprivate` satisfont la règle **mieux** que `private(set)` :
+# ils interdisent aussi la lecture depuis l'extérieur.
+_SEALED = re.compile(r"\b(?:private|fileprivate)(?:\(set\))?\b")
 
 
 def class_members_with_lines(path: str) -> list[tuple[str, bool, bool, int]]:
@@ -168,7 +185,8 @@ def class_members_with_lines(path: str) -> list[tuple[str, bool, bool, int]]:
             continue
         m = _VAR_DECL.match(line) if depth == 1 else None
         if m:
-            pset, name, rest = bool(m.group(1)), m.group(2), m.group(3).rstrip()
+            pset = bool(_SEALED.search(m.group(1)))
+            name, rest = m.group(2), m.group(3).rstrip()
             # Ce qui décide est l'ordre de `=` et `{` — un corps peut tenir sur
             # la même ligne (`var x: Int { healthIssues.count }`), et une
             # stockée peut s'initialiser par une closure (`var x = { … }()`).
