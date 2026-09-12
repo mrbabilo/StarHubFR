@@ -1491,7 +1491,9 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       AppSupport (supprimé par X105) — test en lecture seule, aucune écriture
       (installation, bascule, backup) depuis ce build.
       ▸ **Verdict de l'A/B (2026-09-12, auteur)** — **gênant sur les trois** :
-      v1.11.1, `pre-refactor-observable` et la tête actuelle laguent pareil. La
+      les builds essayés furent v1.41.1 (le zip déjà présent, identité pré-F5 —
+      le v1.11.1 rebâti n'a pas servi), `pre-refactor-observable` et la tête
+      actuelle ; trois binaires distincts vérifiés au md5, tous laguent pareil. La
       question est tranchée : **défaut préexistant**, aucune régression à ouvrir —
       et le gain de la conversion `@Observable` sur la frappe est nul (le risque
       « gain de réactivité nul » du cadrage §7 s'est réalisé). La piste restante
