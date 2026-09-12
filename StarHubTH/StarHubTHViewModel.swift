@@ -52,7 +52,9 @@ final class StarHubTHViewModel {
     // publie plus rien pour lui : plus de façade, plus de relais.
     let localization: LocalizationStore
     
-    var outOfDateMods: [ModUpdateInfo] = []
+    /// Les mods que **SMAPI** signale périmés — publiés par `smapiHealth`
+    /// dans le même geste que la date (même lecture).
+    var outOfDateMods: [ModUpdateInfo] { smapiHealth.outOfDateMods }
     // MARK: Santé SMAPI — le store du domaine (cadrage §4, domaine 2,
     // tranche 2). Il porte ce que le journal dit de l'installation ; les
     // lignes affichées, elles, vivent dans `logStore`.
@@ -2688,7 +2690,6 @@ final class StarHubTHViewModel {
         guard FileManager.default.fileExists(atPath: logPath),
               let logContent = try? String(contentsOfFile: logPath, encoding: .utf8) else {
             DispatchQueue.main.async {
-                self.outOfDateMods = []
                 // Un journal disparu ne laisse rien derrière lui : sans ce
                 // reset, les conflits de la lecture précédente restaient
                 // affichés à côté d'une date à `nil`.
@@ -2773,18 +2774,12 @@ final class StarHubTHViewModel {
         )
         
         DispatchQueue.main.async {
-            // Par ordre alphabétique, et non dans celui du journal : SMAPI les
-            // liste dans son ordre de chargement, qui n'a pas de sens pour qui
-            // cherche un mod précis — et qui change d'un lancement à l'autre.
-            // La liste des mises à jour Nexus est triée de même, dans
-            // `republishUpdatesFromCache`.
-            self.outOfDateMods = updates.sorted {
-                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
-            // Date, diagnostics et conflits viennent d'une même lecture et
-            // changent ensemble — le store le garantit.
+            // Date, diagnostics, conflits et mods périmés viennent d'une même
+            // lecture et changent ensemble — le store le garantit, tri par nom
+            // compris (l'ordre de SMAPI est celui du chargement).
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
-                                   isStale: smapiStale, conflicts: conflicts)
+                                   isStale: smapiStale, conflicts: conflicts,
+                                   outOfDate: updates)
             // Seules les alertes **neuves** méritent une ligne, pour que
             // l'onglet Journaux reste lisible d'une relecture à l'autre. La
             // règle vit dans `SmapiHealthFold` ; le store la tient, et rend
@@ -3443,9 +3438,14 @@ final class StarHubTHViewModel {
             // dans le même appel : le store garantit qu'elles ne divergent
             // pas, ce que deux affectations voisines ne garantissaient que
             // par convention.
+            // ⚠️ `outOfDate` se relit **ici aussi** : ce chemin republiait une
+            // date fraîche en laissant la liste du dernier scan (même trou
+            // que celui bouché juste au-dessus pour les conflits). `text` est
+            // le fichier entier, non écrêté, qu'exige `updates(in:)`.
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
                                    isStale: smapiStale,
-                                   conflicts: ContentPatcherConflicts.read(from: entries))
+                                   conflicts: ContentPatcherConflicts.read(from: entries),
+                                   outOfDate: SmapiLogParser.updates(in: text))
             // Fold this log into the per-version error history. Uses `entries`
             // (the full parse), not the capped list: the display cap must not
             // cost us recorded errors.

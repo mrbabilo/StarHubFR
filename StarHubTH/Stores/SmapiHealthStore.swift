@@ -22,6 +22,16 @@ final class SmapiHealthStore {
     private(set) var errors: [String] = []
     private(set) var contentPatcherConflicts: [LoadConflict] = []
 
+    /// Les mods que **SMAPI lui-même** signale périmés (bloc « You can update
+    /// N mods », écrit au démarrage) — distinct des mises à jour Nexus, qui
+    /// viennent d'une requête réseau. Les deux s'additionnent dans la pastille
+    /// d'accueil et le pied de page.
+    ///
+    /// Trié par nom **ici** : l'ordre de SMAPI est celui du chargement, qui
+    /// change d'un lancement à l'autre. Deux tris chez deux appelants
+    /// divergeraient un jour.
+    private(set) var outOfDateMods: [ModUpdateInfo] = []
+
     /// Vrai pendant qu'une relecture tourne — pilote le spinner et
     /// l'anti-double-clic du bouton de la page des alertes système.
     private(set) var isRefreshing = false
@@ -30,15 +40,23 @@ final class SmapiHealthStore {
     /// Survit à un `reset()` : voir `SmapiHealthFold.alertsToLog`.
     @ObservationIgnored private var loggedAlerts: Set<String> = []
 
-    /// Ce qu'une lecture du journal rend. **Les quatre changent ensemble** :
+    /// Ce qu'une lecture du journal rend. **Les cinq changent ensemble** :
     /// une date sans ses conflits, ou l'inverse, afficherait les conflits de
     /// la lecture précédente à côté de la date d'aujourd'hui.
+    ///
+    /// `outOfDate` a rejoint le lot le 2026-09-12 : il sortait de la même
+    /// lecture mais était publié à part, et **un des deux chemins de lecture
+    /// ne le recalculait pas du tout**.
     func apply(diagnostics: SmapiDiagnostics?, logDate: Date?,
-               isStale: Bool, conflicts: [LoadConflict]) {
+               isStale: Bool, conflicts: [LoadConflict],
+               outOfDate: [ModUpdateInfo]) {
         self.diagnostics = diagnostics
         self.logDate = logDate
         self.isStale = isStale
         self.contentPatcherConflicts = conflicts
+        self.outOfDateMods = outOfDate.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
     }
 
     /// Publie les alertes et rend **celles qui méritent une ligne de
@@ -63,6 +81,7 @@ final class SmapiHealthStore {
         isStale = false
         errors = []
         contentPatcherConflicts = []
+        outOfDateMods = []
     }
 
     /// Prend le verrou de relecture, ou rend `false` s'il est déjà tenu.
