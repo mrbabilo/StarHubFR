@@ -199,8 +199,7 @@ struct ModConfigBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     self.isBusy = false
-                    self.vm.alertMessage = self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.backupFailed)
-                    self.vm.showAlert = true
+                    self.vm.alertStore.show(self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.backupFailed))
                 }
             }
         }
@@ -271,8 +270,7 @@ struct ModConfigBackupsView: View {
                 DispatchQueue.main.async {
                     self.backups = fetched
                     self.isBusy = false
-                    self.vm.alertMessage = self.restoreReportMessage(report)
-                    self.vm.showAlert = true
+                    self.vm.alertStore.show(self.restoreReportMessage(report))
                     self.vm.log(self.restoreReportMessage(report),
                                 level: report.isComplete ? .info : .warning)
                     // Des `config.json` viennent d'être réécrits, et le parc
@@ -283,8 +281,7 @@ struct ModConfigBackupsView: View {
             } catch {
                 DispatchQueue.main.async {
                     self.isBusy = false
-                    self.vm.alertMessage = self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.restoreFailed)
-                    self.vm.showAlert = true
+                    self.vm.alertStore.show(self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.restoreFailed))
                 }
             }
         }
@@ -304,8 +301,7 @@ struct ModConfigBackupsView: View {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.vm.alertMessage = self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.deleteFailed)
-                    self.vm.showAlert = true
+                    self.vm.alertStore.show(self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.deleteFailed))
                 }
             }
         }

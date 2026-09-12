@@ -1904,8 +1904,7 @@ final class StarHubTHViewModel {
     /// « Vider les journaux » de l'onglet Journaux. Ne retire que les lignes
     /// de StarHubFR — voir `LogStore.clearApp()`.
     func clearAppLog() { logStore.clearApp() }
-    var alertMessage: String = ""
-    var showAlert: Bool = false
+    let alertStore = AlertStore()
 
     var saveToDuplicate: SaveGameInfo? = nil
     var backupToBranch: SaveBackup? = nil
@@ -6949,8 +6948,7 @@ final class StarHubTHViewModel {
     }
 
     func showModal(message: String) {
-        self.alertMessage = message
-        self.showAlert = true
+        alertStore.show(message)
     }
     
     // MARK: - Saves

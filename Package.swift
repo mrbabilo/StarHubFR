@@ -237,6 +237,7 @@ let package = Package(
                 "Stores/SmapiHealthStore.swift",
                 "Stores/ErrorHistoryStore.swift",
                 "Stores/DiscoveryStore.swift",
+                "Stores/AlertStore.swift",
                 "Stores/MaintenanceStore.swift",
                 "Stores/ProfileStore.swift",
                 "Stores/TranslationHubStore.swift",
@@ -258,6 +259,11 @@ let package = Package(
             name: "LocalizationStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/LocalizationStoreTests"
+        ),
+        .testTarget(
+            name: "AlertStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/AlertStoreTests"
         ),
         .testTarget(
             name: "NavigationStoreTests",

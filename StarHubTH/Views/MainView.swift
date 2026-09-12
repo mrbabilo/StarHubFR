@@ -357,10 +357,10 @@ struct MainView: View {
                 showCommandPalette = true
             }
         }
-        .alert(isPresented: $vm.showAlert) {
+        .alert(isPresented: Binding(get: { vm.alertStore.shown }, set: { vm.alertStore.shown = $0 })) {
             Alert(
                 title: Text(localization.L(L10n.Main.alert)),
-                message: Text(vm.alertMessage),
+                message: Text(vm.alertStore.message),
                 dismissButton: .default(Text(localization.L(L10n.Main.ok)))
             )
         }
