@@ -185,12 +185,12 @@ struct ModDetailView: View {
             // d'alertes) : consommé sans condition de mod — il vient d'être
             // posé pour CETTE navigation — et effacé aussitôt, pour que la
             // fiche suivante s'ouvre normalement.
-            if let tab = vm.pendingDetailTab {
-                vm.pendingDetailTab = nil
+            if let tab = vm.navigationStore.pendingDetailTab {
+                vm.navigationStore.pendingDetailTab = nil
                 selectedTab = tab
             }
-            if vm.pendingTranslationFocus == mod.folderName {
-                vm.pendingTranslationFocus = nil
+            if vm.navigationStore.pendingTranslationFocus == mod.folderName {
+                vm.navigationStore.pendingTranslationFocus = nil
                 if mod.languages.contains("fr") || mod.languages.contains("en") {
                     selectedTab = .translation
                 }
@@ -1308,7 +1308,7 @@ struct ModDetailView: View {
                 ModUpdateDeltaSection(vm: vm, localization: localization, mod: mod,
                                       onOpenConfig: { vm.navigationStore.setEditingModConfig(mod) },
                                       onOpenTranslation: {
-                                          vm.pendingTranslationDiffFilter = .state(.missing)
+                                          vm.navigationStore.pendingTranslationDiffFilter = .state(.missing)
                                           selectedTab = .translation
                                       })
                 blocksView(isChangelog: false)

@@ -237,12 +237,12 @@ struct SystemAlertsView: View {
     private func perform(_ action: HealthIssue.Action) {
         switch action {
         case .openMod(let query):
-            vm.pendingModDetailFocus = query
+            vm.navigationStore.pendingModDetailFocus = query
             // Une alerte parle de l'état du mod, pas de sa description.
-            vm.pendingDetailTab = .state
+            vm.navigationStore.pendingDetailTab = .state
             currentTab = .mods
         case .openLogs(let searchText):
-            vm.pendingLogFocus = searchText
+            vm.navigationStore.pendingLogFocus = searchText
             currentTab = .logs
         case .revealInFinder(let paths):
             // Les deux dossiers sélectionnés **ensemble** : c'est ce qui montre

@@ -105,13 +105,13 @@ struct MainView: View {
             // sabotages) : elle était ici, hors de portée d'un test.
             let plan = TabChangePlan.decide(
                 entering: currentTab,
-                pending: .init(translationFocus: vm.pendingTranslationFocus,
-                               configFocus: vm.pendingConfigFocus,
-                               modDetailFocus: vm.pendingModDetailFocus),
+                pending: .init(translationFocus: vm.navigationStore.pendingTranslationFocus,
+                               configFocus: vm.navigationStore.pendingConfigFocus,
+                               modDetailFocus: vm.navigationStore.pendingModDetailFocus),
                 mods: vm.scanStore.mods)
-            if plan.clearsConfigFocus { vm.pendingConfigFocus = nil }
-            if plan.clearsModDetailFocus { vm.pendingModDetailFocus = nil }
-            if plan.clearsPendingDetailTab { vm.pendingDetailTab = nil }
+            if plan.clearsConfigFocus { vm.navigationStore.pendingConfigFocus = nil }
+            if plan.clearsModDetailFocus { vm.navigationStore.pendingModDetailFocus = nil }
+            if plan.clearsPendingDetailTab { vm.navigationStore.pendingDetailTab = nil }
             // Conditionnel : les cinq `nil` sont déjà passés, et une
             // affectation `nil` de plus rejouerait deux `didSet`.
             if let detail = plan.openModDetail { vm.navigationStore.setViewingModDetail(detail) }
@@ -329,7 +329,7 @@ struct MainView: View {
                 // Hand the request to the list itself: it may not be on screen
                 // yet (tabs are created on demand), so it picks this up on
                 // appear and scopes itself to the mod.
-                vm.pendingModFocus = modName
+                vm.navigationStore.pendingModFocus = modName
                 currentTab = .mods
             }
         }
@@ -428,10 +428,10 @@ struct MainView: View {
             if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.scanStore.mods) {
                 vm.navigationStore.setViewingModDetail(target)
-                vm.pendingDetailTab = .state
+                vm.navigationStore.pendingDetailTab = .state
             } else {
-                vm.pendingModDetailFocus = folder
-                vm.pendingDetailTab = .state
+                vm.navigationStore.pendingModDetailFocus = folder
+                vm.navigationStore.pendingDetailTab = .state
                 currentTab = .mods
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la
@@ -1179,8 +1179,8 @@ struct UpdatesView: View {
                                         // deux mods homonymes ouvriraient la
                                         // fiche du premier venu.
                                         Button {
-                                            vm.pendingModDetailFocus = row.folderName
-                                            vm.pendingDetailTab = .state
+                                            vm.navigationStore.pendingModDetailFocus = row.folderName
+                                            vm.navigationStore.pendingDetailTab = .state
                                             currentTab = .mods
                                         } label: {
                                             Text(localization.L(L10n.Updates.affirmedOpenMod))

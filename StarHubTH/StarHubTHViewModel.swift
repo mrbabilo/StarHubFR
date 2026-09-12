@@ -1768,7 +1768,7 @@ final class StarHubTHViewModel {
     func openTranslation(forFolder folderName: String) {
         guard let mod = mods.flattenedMods.first(where: { $0.folderName == folderName })
         else { return }
-        pendingTranslationFocus = folderName
+        navigationStore.pendingTranslationFocus = folderName
         navigationStore.setViewingModDetail(mod)
     }
 
@@ -1785,7 +1785,7 @@ final class StarHubTHViewModel {
     func openModConfig(forFolder folderName: String) -> Bool {
         guard mods.flattenedMods.contains(where: { $0.folderName == folderName })
         else { return false }
-        pendingConfigFocus = folderName
+        navigationStore.pendingConfigFocus = folderName
         return true
     }
     /// Cache for `category(for:)`, invalidated whenever `mods`,
@@ -3073,38 +3073,6 @@ final class StarHubTHViewModel {
                 selectedModID = mod.folderName
             }
         }
-    }
-    // ⚠️ Les sept requêtes de navigation ci-dessous sont des façades
-    // provisoires (P8) — l'état et sa documentation vivent dans
-    // `navigationStore` ; la reprise des vues fera écrire le store
-    // directement.
-    var pendingModFocus: String? {
-        get { navigationStore.pendingModFocus }
-        set { navigationStore.pendingModFocus = newValue }
-    }
-    var pendingTranslationFocus: String? {
-        get { navigationStore.pendingTranslationFocus }
-        set { navigationStore.pendingTranslationFocus = newValue }
-    }
-    var pendingConfigFocus: String? {
-        get { navigationStore.pendingConfigFocus }
-        set { navigationStore.pendingConfigFocus = newValue }
-    }
-    var pendingModDetailFocus: String? {
-        get { navigationStore.pendingModDetailFocus }
-        set { navigationStore.pendingModDetailFocus = newValue }
-    }
-    var pendingDetailTab: DetailTab? {
-        get { navigationStore.pendingDetailTab }
-        set { navigationStore.pendingDetailTab = newValue }
-    }
-    var pendingTranslationDiffFilter: TranslationCoverage.DiffFilter? {
-        get { navigationStore.pendingTranslationDiffFilter }
-        set { navigationStore.pendingTranslationDiffFilter = newValue }
-    }
-    var pendingLogFocus: String? {
-        get { navigationStore.pendingLogFocus }
-        set { navigationStore.pendingLogFocus = newValue }
     }
 
     /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.

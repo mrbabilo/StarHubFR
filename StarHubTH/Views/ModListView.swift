@@ -58,14 +58,14 @@ struct ModListView: View {
     /// Scopes the list to the mod the user asked to jump to, clearing anything
     /// that could filter it out, then clears the request so it fires once.
     private func consumePendingModFocus() {
-        guard let modName = vm.pendingModFocus else { return }
+        guard let modName = vm.navigationStore.pendingModFocus else { return }
         // Prefer the resolved mod's own name: SMAPI logs a display name that can
         // differ from the manifest, and the search matches on name/uniqueId.
         // The request may also carry a folder name (the guided search works in
         // those) — `ModFocusResolver` accepts either.
         let resolved = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)
         listState.filters.focus(on: resolved?.name ?? modName)
-        vm.pendingModFocus = nil
+        vm.navigationStore.pendingModFocus = nil
     }
 
     // MARK: - Cadrage : amincissements de la règle du ViewModel
@@ -555,7 +555,7 @@ struct ModListView: View {
         // A jump request can arrive before this view exists (from the Logs tab),
         // so it's read on appear as well as while already on screen.
         .onAppear { consumePendingModFocus() }
-        .onChange(of: vm.pendingModFocus) { _, _ in consumePendingModFocus() }
+        .onChange(of: vm.navigationStore.pendingModFocus) { _, _ in consumePendingModFocus() }
         // Publier l'instantané du cadrage au patrimoine commun : la fiche
         // (qui s'exclut de la liste dans MainView) y lira l'ordre de son
         // pager. Non publié sur ModListState — voir là-bas le pourquoi.

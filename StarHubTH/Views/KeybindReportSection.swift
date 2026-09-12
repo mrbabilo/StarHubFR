@@ -226,7 +226,7 @@ struct KeybindReportSection: View {
     /// Le chemin vers la config du mod cité par une ligne du rapport. La
     /// demande doit traverser le changement d'onglet, qui remet
     /// `editingModConfig` à nil (piège documenté dans `MainView`) : elle
-    /// passe par `vm.pendingConfigFocus`, consommé dans le `onChange`
+    /// passe par `vm.navigationStore.pendingConfigFocus`, consommé dans le `onChange`
     /// **après** la remise à zéro — même patron que
     /// `pendingTranslationFocus`. Glyphe seul, donc cible de 18×18 avec
     /// `contentShape` : un glyph de 11 pt est plus petit que le curseur
