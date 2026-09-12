@@ -789,6 +789,70 @@ exercé :
 5. deux recherches de suites sur deux mods différents — la seconde
    n'hérite rien de la première (les deux moitiés se vident ensemble).
 
+### Domaine 6 — Traduction FR, tranche 2 (la couverture de profil), livrée le 2026-09-12
+
+Deux commits (`0942fca` pour le store, et celui-ci pour le câblage), gate
+exit 0, **3 070 tests verts**. `ProfileTranslationStore` (`@Observable`,
+7 tests, trois sabotages). ViewModel 10 295 → **10 288** ;
+`viewmodel_stored_state` 129 → **123** ;
+`observable_stored_without_private_set` 109 → **105**.
+
+**Première baisse de ligne brute depuis quatre domaines.** Elle ne dit pas
+que le constat de la tranche 1 était faux — elle dit d'où venait la hausse :
+ce domaine-ci n'a livré **aucune façade `get`+`set`** (les deux vues qui
+lisent l'état ne l'écrivent pas), là où Entretien et Profils en devaient
+plusieurs. Le diagnostic tient : c'est la façade en écriture qui coûte, et
+la reprise des vues (P8) reste la tranche à faire.
+
+🚩 **La `Task` n'était pas un verrou, elle en tenait lieu.**
+`refreshProfileTranslationCoverage` gardait sur la non-nullité de
+`profileTranslationTask`, et cette `Task` n'a **jamais** été annulée nulle
+part — elle n'était retenue que pour qu'on puisse tester si elle existait. Le store porte maintenant un vrai
+test-et-pose (`beginMeasure()` rend `false` si une passe tourne), la `Task`
+détachée n'est plus retenue du tout, et le verrou a une obligation que
+l'ancienne forme n'avait pas : **le rendre sur le chemin « rien à mesurer »**.
+Ce chemin sortait auparavant avant même de poser le drapeau ; en remontant
+le verrou en tête, l'oublier aurait figé le témoin jusqu'au prochain
+lancement. Le sabotage qui le prouve est le second appel à `beginMeasure()`.
+
+⚠️ **L'écriture disque sort du store, délibérément.** Le premier jet lui
+injectait *deux* closures (lire, écrire) ; l'écriture a été retirée.
+`pruneCache(keeping:)` élague l'état et **rend** ce qui reste, l'appelant
+écrit hors du fil principal — comme le faisait déjà le ViewModel. Un store
+qui écrit ne dirait pas *quand* : l'appelant, lui, sait que l'écriture suit
+la passe et non chaque invalidation. Effet de bord honnête : le faux cache
+des tests perd son `save`, devenu mort.
+
+Deux distinctions préservées du ViewModel et consignées dans le store :
+`coverage` est en `@ObservationIgnored` (interne de travail — le signal de
+rendu est `summaries`, et observer les deux ferait redessiner la page à
+chaque mod mesuré), et le cache est lu **une fois par session** y compris
+quand l'URL manque (sans quoi chaque affichage de la page réessaierait un
+Application Support qui ne deviendra pas trouvable).
+
+`summary(for:)` était sans appelant à la sortie du store ; le
+`translationSummary(for:)` du ViewModel lui délègue désormais — une fonction
+publique sans appelant passe les revues sans bruit, le dépôt en a déjà
+collectionné plusieurs.
+
+`ProfileTranslationStore.swift` entre dans `LOT_FILES` de `check_standards.py`
+(ses cinq stockées sont déjà `private(set)`, le compteur ne bouge pas) : hors
+du lot, un store peut relâcher la règle que le cliquet protège.
+
+**Vérification à l'écran — due, auteur.** Quatre contrôles, depuis la page
+des profils :
+
+1. ouvrir la page des profils sur un parc jamais mesuré — le **témoin**
+   s'affiche pendant la passe, pas un pourcentage faux, puis les
+   pourcentages le remplacent ;
+2. quitter la page et y revenir **pendant** la mesure — aucune seconde passe
+   ne démarre (le verrou), et le témoin ne reste pas allumé ;
+3. traduire un mod contenu dans un profil, puis rouvrir la page — le
+   pourcentage de ce profil **a bougé** (l'invalidation par `UniqueID`) ;
+4. relancer l'application — la page s'affiche sans nouvelle analyse longue
+   (le cache de session relu du disque), et un profil dont un mod a été
+   désinstallé ne traîne plus son entrée.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
