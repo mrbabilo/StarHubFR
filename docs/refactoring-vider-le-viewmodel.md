@@ -914,7 +914,7 @@ malgré son voisinage d'affichage — voir le correctif du domaine 2 du même
 jour. Leçon de méthode : classer un relevé par **producteur**, jamais par
 préfixe de nom.
 
-**Vérification à l'écran — due, auteur.** Quatre contrôles, depuis la
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les quatre contrôles sont passés, dont celui qui porte : le voyant ne s'éteint pas entre la passe smapi.io et la reprise Nexus. Ce qui a été exercé :
 fenêtre des mises à jour :
 
 1. « Vérifier » sur le parc complet — la progression avance, le bouton reste
@@ -980,7 +980,7 @@ Aucune vue touchée : les six qui lisent ces valeurs
 (`SettingsView`, `ModDetailView`, `DiscoverView`, `ProfileDiagnosticsView`,
 `MainView`) ne font que les lire — `disabled`, `help`, `if`.
 
-**Vérification à l'écran — due, auteur.** Trois contrôles, depuis les
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : retirer la clé n'emporte pas les mises à jour déjà relevées. Ce qui a été exercé :
 réglages :
 
 1. coller une clé d'API valide — « configurée » apparaît, le quota se
@@ -1065,7 +1065,7 @@ store : la remise à `nil` de `inFlight` n'est couverte par aucun test —
 `NexusFileDownload` est `final`, donc pas de doublure ; ce qui la tient est
 qu'elle n'a qu'**un** point d'écriture.
 
-**Vérification à l'écran — due, auteur.** Trois contrôles, depuis une fiche
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : annuler ne remet pas l'état au repos avant que l'annulation ne soit rapportée. Ce qui a été exercé :
 de mod ou la liste des mises à jour (clé d'API premium requise pour le
 téléchargement direct) :
 
