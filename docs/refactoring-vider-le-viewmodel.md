@@ -1222,6 +1222,76 @@ profil → « traduis ce mod » → fiche sur l'onglet Traduction ; (7) alerte
 sans mod → focus recherche des Journaux ; (8) ⌘1…⌘9 et « voir la fiche » du
 bilan ; (9) « Traduire les nouveaux textes » → diff cadré.
 
+### Domaine 8 — Scan & parc, livré le 2026-09-12
+
+Un commit (`6b5de04`), gate exit 0, **3 146 tests verts**. Plan :
+`docs/superpowers/plans/2026-09-12-domaine-8-scan-parc.md`. ViewModel
+10 247 → **10 236** ; `viewmodel_stored_state` 89 → **82**. `ScanStore`
+(Core, 128 l.), **10 tests** (125 l.).
+
+**Le lourd vivait déjà en Core** — c'est ce qui a rendu le dernier domaine
+le plus court : le balayage, la lecture des manifestes, le cache mtime et
+**son verrou** (`ModScanner`, une classe — deux `scanMods()` concurrents
+doivent toucher le même cache, verrouillé dedans, crash de juillet 2026),
+`ModsFolderSizer`, `ModDuplicateIndex`, `ScanProgress`. Le store ne porte
+que l'état publié (`mods`, `scanProgress`, `duplicateIndex`,
+`modsFolderSizes`, `isMeasuringModsFolder`) et le mécanisme de
+sérialisation des poids (une passe à la fois, demande rejouée, mesure
+ratée qui n'efface pas pendant qu'une passe est en route — règle :2671
+passée sous test). `performInitialLoad`/`scanMods`/`parseModFolder`
+restent au VM : orchestration disque.
+
+**Les cascades du parc** : poser `mods` **prévient**, sans garde
+d'égalité (fidèle au `didSet` Swift, qui ne compare pas) ; les trois
+consommateurs (cache de catégories Nexus, couverture française, rapport
+de raccourcis) sont câblés en un seul `onModsChanged` dans l'init — la
+règle testée est « toute pose prévient », le détail des trois est de
+l'app.
+
+**Le N+1ᵉ et le N+2ᵉ chemin, trouvés par le compilateur** : le relevé
+annonçait `modsFolderSizes` écrit seulement par la mesure — le câblage en
+a fait sortir **deux** autres sites, tous deux la règle « la clé des
+poids suit le renommage » (B2-T2) : la bascule (une clé) et le renommage
+X60 (**deux** clés physiques — actif et pause). Ils passent par
+`renameSizeKey(from:to:)`, verbe documenté du store ; le commentaire
+« joindre sur le nom logique rendrait 0 octet pour tout mod en pause »
+voyage avec lui.
+
+**Sept mécanismes rougis par sabotage**, deux vagues (la pose identique
+non notifiée, la notification jamais émise, l'index avalé, le verrou
+retiré, le drapeau jamais consommé, la pose inconditionnelle qui efface,
+le nil jamais posé). ⚠️ T1 et T2 du plan sont livrés en **un** commit :
+les tests écrits en avance sur la T2 rendaient le découpage artificiel —
+le target doit compiler à chaque commit, la CI juge chaque poussée.
+
+**Vérification à l'écran — par l'auteur** : (1) lancement, barre par mod
+puis compte final ; (2) la liste affiche le parc ; (3) bascule → poids de
+la ligne mis à jour ; (4) pastille d'alertes sans ouvrir l'onglet ;
+(5) couverture FR recalculée après un scan ; (6) pied de barre « mesure
+en cours » puis poids total ; (7) deux scans rapprochés sans crash.
+
+## Bilan du chantier B — clos le 2026-09-12
+
+Les **huit domaines** sont extraits pour leur état. `viewmodel_stored_state`
+est descendu de **128 à 82** — l'écart restant est relevé, nommé, et
+pour l'essentiel retenu exprès (les décisions des domaines 2, 7 et du
+P8-2 : orchestration réseau, miroirs de caches verrouillés ailleurs,
+présentation locale). `viewmodel_facades_to_combine` reste à 0. Le
+ViewModel fait **10 236 lignes** contre 11 902 au relevé du 2026-09-10 —
+mais la tranche se juge à l'état déplacé et aux règles passées sous test,
+pas aux lignes : **23 stores** dans `Stores/`, tous en Core, tous testés.
+
+Ce que le chantier n'a **pas** fait, et qui reste ouvert :
+- **P8 — la reprise des vues** : les vues lisent encore le VM (façades
+  provisoires, marquées). Faire écrire les ~86 sites directement aux
+  stores, puis supprimer les façades. Tranche suivante naturelle.
+- **F3** (la latence de frappe de la recherche, §5 bis) — le juge de la
+  réactivité, à re-mesurer sur le parc réel maintenant que l'état est
+  déplacé.
+- Le **domaine Scan pour ses fonctions** (`parseModFolder` imbriquée,
+  REFACTORING §5 point 4) — non extractible au critère des entrées, à
+  reprendre au contact.
+
 ### Quand un domaine est-il extrait ?
 
 Les quatre conditions du §6 s'appliquent telles quelles, avec un ajustement
