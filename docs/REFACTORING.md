@@ -728,6 +728,7 @@ sur `1b4f9888` par `scripts/p5-strict.sh`, et ses états aux clôtures de L1 et 
 | **Jalon de départ** (2026-09-13, `1b4f9888`, 318 fichiers) | **453** | **202** | 505 s |
 | **Après L1** (15 globales éteintes, `SaveNotesStore.shared` reportée) | **427** | **184** | 518 s |
 | **Après L2** (`@MainActor` sur le ViewModel) | **237** | **85** | 594 s / 4379 s |
+| **Après L3** (les deux boucles disque exécutent en Core) | **216** | **83** | 527 s |
 
 *Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
 Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
@@ -846,6 +847,18 @@ en closure globale, cascade `readMaintenanceReport` entièrement
 L3/LS (workers des closures lourdes, captures `SaveGameInfo`/`BackupsRead`).
 ✅ **Vérifié à l'écran par l'auteur le 2026-09-13 — L2 close.** Détail du
 chantier (rulings, revues, tri des mineurs) : `p5-swift6-ledger-archive.md`.
+**Repris à la clôture de L3 (le même jour)** : 216 avertissements, 83
+bloquants — la baisse du compteur est **modeste** (−2 bloquants), et c'est
+à lire pour ce qu'elle dit : le gain de la tranche est ailleurs.
+L'**exécution** des boucles en masse est testée en Core pour la première
+fois (8 tests disque, `ModFolderBulkMoveTests`) ; le patron « log-hop »
+(7 `DispatchQueue`) est converti dans les deux boucles au profit du canal
+d'événements (`AsyncStream`, messages pré-calculés en `String`) ; et la
+revue a attrapé le rescan plein parc remonté sur le main actor — gel UI de
+plusieurs secondes par application de profil, rendu au fond avant fusion.
+Le VM (11 bloquants) reste 3ᵉ ; `SmapiInstaller` (25) et
+`SmapiUpdateClient` (22) confirment le cadrage L4. La sortie d'acteur
+complète de `scanMods` reste à la tranche d'isolation.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 

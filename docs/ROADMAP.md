@@ -148,8 +148,17 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       2026-09-13** (liste des mods, bascule d'un mod, application d'un
       profil, ouverture d'une sauvegarde, recalcul de couverture de
       traduction, glisser-déposer en échec, recherche Nexus) — **L2 est
-      close**. La fin de jeu structurée (exécuteurs Core + `AsyncStream`)
-      reste pour L3. Détail et mécanismes : `REFACTORING.md` §9.
+      close**. **L3 close le même jour : 216 / 83 bloquants** — les deux
+      boucles disque (bascule en masse, application de profil) exécutent
+      en Core via `ModFolderBulkMove` (canal `AsyncStream`, exécution
+      testée pour la première fois) ; baisse de compteur modeste (−2
+      bloquants), le gain est la testabilité et le rescan rendu au fond.
+      ⚠️ **Vérification à l'écran de L3 due** : bascule en masse « tout
+      activer / tout désactiver » avec un filtre actif, application d'un
+      profil, application d'un profil avec un mod manquant, bissection
+      profil. La fin de jeu structurée (exécuteurs Core + `AsyncStream`)
+      est faite ; reste la sortie d'acteur de `scanMods` (tranche
+      d'isolation). Détail et mécanismes : `REFACTORING.md` §9.
 ---
 
 
