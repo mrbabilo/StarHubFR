@@ -28,6 +28,11 @@ struct SmapiUpdateClientTests {
         nonisolated(unsafe) static var received = 0
         private static let lock = NSLock()
 
+        /// Quand posé, la **première** requête s'y bloque jusqu'au signal —
+        /// l'épingle à « passe en vol, immobilisée à dessein » du test de
+        /// sérialisation. `nil` dans tous les autres essais.
+        nonisolated(unsafe) static var firstRequestGate: DispatchSemaphore?
+
         static func next() -> (Int, Data) {
             lock.lock(); defer { lock.unlock() }
             let step = received < script.count ? script[received] : (500, Data("[]".utf8))
@@ -39,6 +44,9 @@ struct SmapiUpdateClientTests {
         override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
         override func startLoading() {
             let (code, body) = Self.next()
+            // Après consommation du script, donc `received == 1` dit « la
+            // première requête est prise, sa réponse encore non rendue ».
+            if let gate = Self.firstRequestGate, Self.received == 1 { gate.wait() }
             let response = HTTPURLResponse(url: request.url!, statusCode: code,
                                            httpVersion: nil, headerFields: nil)!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -92,6 +100,21 @@ struct SmapiUpdateClientTests {
     private final class Box {
         nonisolated(unsafe) var value: Result<SmapiUpdateClient.Outcome,
                                               SmapiUpdateClient.Failure>?
+    }
+
+    /// Sonde avec borne — jamais un sommeil nu : on attend une condition,
+    /// on ne parie pas sur un calendrier. ⚠️ Appeler **hors** de `#expect` :
+    /// le macro réécrit l'autoclosure et fige sa condition à sa première
+    /// évaluation (constaté le 2026-09-13 — la sonde brûlait son timeout
+    /// sur une condition déjà fausse tandis que le code, lui, répondait).
+    private func waitUntil(_ condition: @autoclosure () -> Bool,
+                           timeout: TimeInterval, step: UInt32 = 10_000) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            if Date() >= deadline { return false }
+            usleep(step)
+        }
+        return true
     }
 
     // MARK: - Ce que la passe a couvert
@@ -284,5 +307,72 @@ struct SmapiUpdateClientTests {
             Issue.record("les 150 verdicts du lot 2 doivent être rendus"); return
         }
         #expect(StubProtocol.received == 3)
+    }
+
+    // MARK: - X87 — la sérialisation des appels et le retour du créneau
+
+    /// Deux `fetch` qui se chevauchent ne doivent jamais doubler la charge
+    /// **en parallèle** (X87) : le second attend la passe en vol, puis
+    /// repart — séquentiellement, jamais entremêlé. Et la passe doit rendre
+    /// son créneau en finissant (le nettoyage de `inFlight`) : sinon tout
+    /// appel suivant attendrait une tâche morte en boucle, et sa complétion
+    /// ne partirait jamais.
+    ///
+    /// L'épingle à « passe en vol » est volontaire : la première requête se
+    /// bloque sur un sémaphore tenu par le test. Tant qu'il est tenu, la
+    /// passe de tête ne peut rien envoyer de plus — toute requête qui
+    /// pointerait pendant la fenêtre d'observation ne peut venir que d'une
+    /// seconde passe partie en parallèle, c'est-à-dire du défaut.
+    @Test func anOverlappingCallWaitsItsTurnAndTheSlotIsReturned() {
+        let all = entries(300)          // deux lots de 150
+        let first = Array(all[..<150])
+        let second = Array(all[150...])
+        let gate = DispatchSemaphore(value: 0)
+        StubProtocol.firstRequestGate = gate
+        defer { StubProtocol.firstRequestGate = nil }
+        let c = client(script: [(200, body(for: first)), (200, body(for: second))])
+
+        let headBox = Box()
+        let tailBox = Box()
+        let headDone = DispatchSemaphore(value: 0)
+        let tailDone = DispatchSemaphore(value: 0)
+        c.fetch(entries: all, gameVersion: "1.6.15") { headBox.value = $0; headDone.signal() }
+        c.fetch(entries: all, gameVersion: "1.6.15") { tailBox.value = $0; tailDone.signal() }
+
+        // La passe de tête est bien engagée — et bloquée à dessein.
+        let engaged = waitUntil(StubProtocol.received == 1, timeout: 5)
+        #expect(engaged, "la passe de tête doit engager sa première requête")
+        // Fenêtre d'observation : 0,3 s où la passe de tête, bloquée, ne peut
+        // rien envoyer de plus. Toute requête de plus pendant la fenêtre vient
+        // d'un chevauchement.
+        var quietWindow = true
+        let windowEnd = Date().addingTimeInterval(0.3)
+        while Date() < windowEnd {
+            if StubProtocol.received != 1 { quietWindow = false; break }
+            usleep(10_000)
+        }
+        #expect(quietWindow,
+                "aucune requête ne doit partir pendant que la passe de tête est en vol")
+        gate.signal()
+
+        // La passe de tête, intacte : ses deux lots, ses 300 verdicts.
+        #expect(headDone.wait(timeout: .now() + 10) == .success)
+        guard case .success(let head)? = headBox.value else {
+            Issue.record("la passe de tête doit réussir en entier"); return
+        }
+        #expect(head.isComplete)
+        #expect(head.mods.count == 300)
+
+        // Le second appel rend SA complétion — jamais perdue : sa re-passe,
+        // sérialisée après la première, a tourné jusqu'au bout (le script
+        // épuisé lui rend des 500 ; son verdict exact n'est pas ce que le
+        // test épingle — ce qui compte est qu'elle a tourné et rendu).
+        #expect(tailDone.wait(timeout: .now() + 10) == .success,
+                "la complétion du second appel ne doit jamais se perdre")
+        // La re-passe de queue a bien tourné : au moins ses deux lots en
+        // plus des deux de la tête. (Le compte exact dépend de la politique
+        // de retrait X47 — deux 500 transitoires repartent une fois chacun,
+        // soit 6 au total — et n'est pas ce que ce test épingle.)
+        #expect(StubProtocol.received >= 4)
     }
 }

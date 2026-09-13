@@ -74,6 +74,45 @@ final class SmapiUpdateClient {
     private let retryPause: TimeInterval
     private let rateLimitPause: TimeInterval
 
+    /// L'issue d'une demande de vérification, tranchée sous verrou.
+    private enum Engagement {
+        /// Une passe est déjà en vol : l'attendre, puis re-demander.
+        case deferred(Task<Void, Never>)
+        /// La passe demandée est posée ; son nettoyage revient au demandeur.
+        case engaged(Task<Void, Never>)
+    }
+
+    /// Prise et pose de `inFlight` **en un seul tenant** sous le même
+    /// verrou : c'est l'atomicité du check-and-set qui empêche deux passes
+    /// en parallèle (X87), pas la seule présence du verrou.
+    ///
+    /// X106 — la section vit dans une fonction **synchrone**, d'un tenant :
+    /// les diagnostics « unavailable from asynchronous contexts » visaient
+    /// le contexte `Task` qui entourait prise et rend, pas une vraie
+    /// suspension — aucune des deux sections ne contenait d'`await`. Borner
+    /// les deux dans une fonction sans point de suspension le prouve au
+    /// compilateur (et devient exigence en mode Swift 6), sans changer la
+    /// sémantique.
+    private func engage(makeTask: () -> Task<Void, Never>) -> Engagement {
+        inFlightLock.lock()
+        defer { inFlightLock.unlock() }
+        if let existing = inFlight { return .deferred(existing) }
+        let task = makeTask()
+        inFlight = task
+        return .engaged(task)
+    }
+
+    /// Rend le créneau une fois la passe finie. Appelé après `task.value`,
+    /// il ne peut effacer que la passe qui vient de finir : tant qu'elle
+    /// est inscrite, tout nouvel appel est mis en attente par `engage`,
+    /// donc rien de plus récent ne peut se trouver à sa place. Même borne
+    /// synchrone que `engage` (X106).
+    private func clearInFlight() {
+        inFlightLock.lock()
+        defer { inFlightLock.unlock() }
+        inFlight = nil
+    }
+
     /// - Parameters:
     ///   - progress: `(lots terminés, lots au total)`, sur le fil principal.
     ///   - completion: sur le fil principal.
@@ -85,11 +124,15 @@ final class SmapiUpdateClient {
         // déclenchement automatique (UpdateCheckPolicy) qui tomberait
         // pendant qu'une vérification manuelle est en cours doublerait la
         // charge sur l'API. La `Task` antérieure est attendue par
-        // `await inFlight?.value` : on ne perd pas son résultat, on
+        // `await existing.value` : on ne perd pas son résultat, on
         // attend qu'elle finisse.
-        inFlightLock.lock()
-        if let existing = inFlight {
-            inFlightLock.unlock()
+        switch engage(makeTask: {
+            Task { [entries, gameVersion, progress, completion] in
+                await self.runFetch(entries: entries, gameVersion: gameVersion,
+                                    progress: progress, completion: completion)
+            }
+        }) {
+        case .deferred(let existing):
             Task {
                 _ = await existing.value
                 await MainActor.run { [entries, gameVersion, progress, completion] in
@@ -97,19 +140,11 @@ final class SmapiUpdateClient {
                                progress: progress, completion: completion)
                 }
             }
-            return
-        }
-        let task = Task { [entries, gameVersion, progress, completion] in
-            await self.runFetch(entries: entries, gameVersion: gameVersion,
-                                progress: progress, completion: completion)
-        }
-        inFlight = task
-        inFlightLock.unlock()
-        Task {
-            await task.value
-            self.inFlightLock.lock()
-            self.inFlight = nil
-            self.inFlightLock.unlock()
+        case .engaged(let task):
+            Task {
+                await task.value
+                self.clearInFlight()
+            }
         }
     }
 
