@@ -134,7 +134,7 @@ public enum DeepLClient {
         }
         request.httpBody = body
 
-        let first = await send(request, session: session)
+        let (first, firstResponse) = await send(request, session: session)
         // Un 429 vaut **une** seconde tentative, temporisée. Le second refus
         // arrête là : l'appelant coupe le secours pour le reste du lot.
         guard case .rateLimited = first else { return first }
@@ -146,21 +146,15 @@ public enum DeepLClient {
         // à 60 s — au-delà, on retombe sur `retryDelay` (mieux que d'attendre
         // un délai arbitraire que DeepL aurait pu poser sur un incident).
         let wait: Duration
-        if let retryAfter = retryAfterSeconds(from: lastResponse) {
+        if let retryAfter = retryAfterSeconds(from: firstResponse) {
             wait = .seconds(min(retryAfter, 60))
         } else {
             wait = retryDelay
         }
         try? await Task.sleep(for: wait)
-        return await send(request, session: session)
+        let (second, _) = await send(request, session: session)
+        return second
     }
-
-    /// La dernière réponse lue par `send` — portée module pour que
-    /// `translate` puisse consulter le header `Retry-After` sans changer le
-    /// contrat de `send` (qui reste un simple `Outcome`). Pas de concurrence
-    /// à protéger : tout passe par `await`, un seul appel en vol à la fois
-    /// par `translate`, et `send` n'est pas partagé.
-    private static var lastResponse: URLResponse?
 
     /// « HTTP 400 : Value for 'ignore_tags' not supported. », ou « HTTP 400 »
     /// si le corps ne porte rien de lisible.
@@ -173,38 +167,41 @@ public enum DeepLClient {
         return "HTTP \(status) : \(message)"
     }
 
-    private static func send(_ request: URLRequest, session: URLSession) async -> Outcome {
+    /// Rend son verdict **et** la réponse qui l'a produit : c'est ce dont
+    /// `translate` a besoin pour lire le `Retry-After` d'un 429. Déposer
+    /// cette réponse dans un état de type la faisait partager par toutes les
+    /// traductions en vol — deux fragments d'un même lot se volaient leur
+    /// temporisation, et la variable non protégée écrasait son propre
+    /// compteur de références (SIGSEGV reproduit 3 fois sur 3).
+    private static func send(_ request: URLRequest,
+                             session: URLSession) async -> (Outcome, URLResponse?) {
         do {
             let (data, response) = try await session.data(for: request)
-            // Mémorisée pour que `translate` puisse consulter `Retry-After`
-            // après un 429, sans élargir le contrat de retour de `send`.
-            lastResponse = response
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            if status == 456 { return .quotaExhausted }
-            if status == 429 { return .rateLimited }
-            if status == 401 || status == 403 { return .unauthorized }
+            if status == 456 { return (.quotaExhausted, response) }
+            if status == 429 { return (.rateLimited, response) }
+            if status == 401 || status == 403 { return (.unauthorized, response) }
             // Ce que le service dit de son refus, quand il le dit : un
             // « HTTP 400 » nu a masqué une journée durant un paramètre mal
             // formé que la réponse nommait en toutes lettres. Le message de
             // DeepL décrit la requête, jamais la clé.
             guard status == 200 else {
-                return .rejected(refusal(status: status, body: data))
+                return (.rejected(refusal(status: status, body: data)), response)
             }
             guard data.count <= maxResponseBytes,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let list = json["translations"] as? [[String: Any]],
                   let text = list.first?["text"] as? String, !text.isEmpty else {
-                return .rejected("réponse illisible")
+                return (.rejected("réponse illisible"), response)
             }
-            return .translated(TokenShield.unwrap(text))
+            return (.translated(TokenShield.unwrap(text)), response)
         } catch {
             // Jamais la clé : `error` peut porter l'URL, pas l'en-tête.
-            lastResponse = nil
-            return .transportError("\(error)")
+            return (.transportError("\(error)"), nil)
         }
     }
 
-    /// Parse le `Retry-After` de la dernière réponse. Renvoie `nil` si le
+    /// Parse le `Retry-After` de la réponse rendue par `send`. Renvoie `nil` si le
     /// header est absent, vide, malformé, ou au format date HTTP — seule la
     /// forme secondes entières (RFC 7231 §7.1.3) est lue ici, qui est celle
     /// que DeepL documente sur ses 429. `nil` laisse `translate` retomber sur

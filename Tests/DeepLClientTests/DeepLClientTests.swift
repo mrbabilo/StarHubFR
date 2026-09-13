@@ -41,15 +41,21 @@ private final class DeepLStub: URLProtocol {
     nonisolated(unsafe) static var status = 200
     nonisolated(unsafe) static var payload = Data()
     nonisolated(unsafe) static var statuses: [Int] = []
+    /// Le `Retry-After` porté par **chaque** réponse, ou `nil` pour n'en
+    /// porter aucun. Le stub n'en émettait aucun jusqu'ici : la temporisation
+    /// du 429 n'était donc couverte par rien.
+    nonisolated(unsafe) static var retryAfter: String?
     nonisolated(unsafe) static var seenURLs: [URL] = []
     nonisolated(unsafe) static var seenHeaders: [[String: String]] = []
     nonisolated(unsafe) static var seenBodies: [Data] = []
 
     /// Une réponse pour toutes les requêtes. `statuses` permet d'en enchaîner
     /// de différentes — c'est ce qui rend le retry observable.
-    static func reply(_ json: String, status: Int = 200, then statuses: [Int] = []) {
+    static func reply(_ json: String, status: Int = 200,
+                      retryAfter: String? = nil, then statuses: [Int] = []) {
         self.status = status
         self.statuses = statuses
+        self.retryAfter = retryAfter
         payload = Data(json.utf8)
         seenURLs = []
         seenHeaders = []
@@ -76,8 +82,9 @@ private final class DeepLStub: URLProtocol {
         } else {
             status = Self.status
         }
+        let headers = Self.retryAfter.map { ["Retry-After": $0] }
         let response = HTTPURLResponse(url: request.url!, statusCode: status,
-                                       httpVersion: "HTTP/1.1", headerFields: nil)!
+                                       httpVersion: "HTTP/1.1", headerFields: headers)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Self.payload)
         client?.urlProtocolDidFinishLoading(self)
@@ -234,6 +241,39 @@ extension DeepLUsageTests {
         #expect(DeepLStub.seenURLs.count == 2)
     }
 
+    /// Le `Retry-After` que porte le 429 prime sur le délai par défaut : le
+    /// plan gratuit en pose un plus long que nos 2 s, et retenter avant
+    /// redéclencherait le 429 sans rien apprendre. Aucun test ne couvrait
+    /// cette politique — le stub n'émettait pas d'en-tête.
+    @Test func theRetryAfterHeaderDrivesTheWait() async {
+        DeepLStub.reply(body("Salut"), status: 429, retryAfter: "1", then: [200])
+        let start = ContinuousClock.now
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session(),
+                                                  retryDelay: .zero)
+        let elapsed = ContinuousClock.now - start
+        #expect(outcome == .translated("Salut"))
+        // Le délai par défaut vaut zéro ici : seul l'en-tête peut expliquer
+        // une demi-seconde d'attente.
+        #expect(elapsed > .milliseconds(500), "attendu ~1 s d'attente, mesuré \(elapsed)")
+    }
+
+    /// Un `Retry-After` illisible ne vaut **pas** zéro : il ne dit rien, et
+    /// c'est le délai par défaut qui s'applique. Le confondre avec zéro
+    /// remettrait la requête aussitôt sur un service qui vient de dire non.
+    @Test func anUnreadableRetryAfterFallsBackToTheDefaultDelay() async {
+        DeepLStub.reply(body("Salut"), status: 429, retryAfter: "bientôt", then: [200])
+        let start = ContinuousClock.now
+        let outcome = await DeepLClient.translate("Hi", context: nil,
+                                                  credentials: free,
+                                                  session: DeepLStub.session(),
+                                                  retryDelay: .seconds(1))
+        let elapsed = ContinuousClock.now - start
+        #expect(outcome == .translated("Salut"))
+        #expect(elapsed > .milliseconds(500), "attendu le délai par défaut, mesuré \(elapsed)")
+    }
+
     /// Une clé refusée ne se retente pas, et ne se confond pas avec une
     /// réponse illisible : c'est une panne **définitive**, la seule que
     /// retenter à chaque clé d'un lot ne peut pas réparer.
@@ -285,5 +325,136 @@ extension DeepLUsageTests {
         guard case .rejected = outcome else {
             Issue.record("attendu .rejected, reçu \(outcome)"); return
         }
+    }
+}
+
+// MARK: - La course sur la dernière réponse
+
+/// Les stubs de la course ont un comportement **figé** : aucun `static`
+/// mutable, donc rien à protéger. Réutiliser `DeepLStub` ici ferait tomber
+/// la suite sur les écritures concurrentes de ses journaux — on déboguerait
+/// le harnais au lieu du défaut.
+private class DeepLFixedStub: URLProtocol {
+    class var status: Int { 200 }
+    class var retryAfter: String { "0" }
+    class var payload: Data { Data() }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        let kind = Swift.type(of: self)
+        let response = HTTPURLResponse(url: request.url!, statusCode: kind.status,
+                                       httpVersion: "HTTP/1.1",
+                                       headerFields: ["Retry-After": kind.retryAfter])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: kind.payload)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
+/// La victime : 429 portant `Retry-After: 0`. Avec `retryDelay: .zero`, une
+/// traduction qui lit **sa** réponse n'attend rien du tout.
+private final class DeepLZeroRetryStub: DeepLFixedStub {
+    override class var status: Int { 429 }
+    override class var retryAfter: String { "0" }
+}
+
+/// Le bruit : 200 portant `Retry-After: 2`. Une réponse **réussie** écrit la
+/// dernière réponse aussi sûrement qu'un 429, et rend la main aussitôt —
+/// c'est ce qui rend le martèlement bon marché.
+private final class DeepLNoisyStub: DeepLFixedStub {
+    override class var status: Int { 200 }
+    override class var retryAfter: String { "2" }
+    override class var payload: Data {
+        Data(#"{"translations":[{"detected_source_language":"EN","text":"Salut"}]}"#.utf8)
+    }
+}
+
+private func stubSession(_ protocolClass: AnyClass) -> URLSession {
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [protocolClass]
+    // Des centaines de requêtes de front : la limite par hôte (6 par défaut)
+    // les sérialiserait et effacerait la concurrence qu'on met sous tension.
+    config.httpMaximumConnectionsPerHost = 128
+    return URLSession(configuration: config, delegate: nil, delegateQueue: nil)
+}
+
+/// Un drapeau d'arrêt pour les tâches de bruit. Verrou explicite : c'est la
+/// seule donnée que ce test partage entre threads, et elle, elle est protégée.
+private final class StopFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var raised = false
+    private var count = 0
+    var isRaised: Bool { lock.lock(); defer { lock.unlock() }; return raised }
+    var ticks: Int { lock.lock(); defer { lock.unlock() }; return count }
+    func tick() { lock.lock(); count += 1; lock.unlock() }
+    func raise() { lock.lock(); raised = true; lock.unlock() }
+}
+
+/// La course que la dernière réponse portée par le **type** rendait possible.
+@Suite(.serialized, .timeLimit(.minutes(1)))
+struct DeepLConcurrentRetryAfterTests {
+
+    /// Chaque traduction doit lire le `Retry-After` de **sa** réponse.
+    ///
+    /// Les victimes reçoivent toutes un 429 `Retry-After: 0` et un
+    /// `retryDelay` nul : leur attente correcte est zéro. Le bruit, lui,
+    /// écrit sans cesse une réponse portant `Retry-After: 2`. Si l'état est
+    /// partagé, une victime finit par lire la réponse du voisin et dort deux
+    /// secondes — c'est la seule chose qui puisse expliquer une attente.
+    @Test func concurrentTranslationsKeepTheirOwnRetryAfter() async {
+        let credentials = DeepLClient.Credentials(key: "k:fx")!
+        let victims = stubSession(DeepLZeroRetryStub.self)
+        let noisy = stubSession(DeepLNoisyStub.self)
+        let stop = StopFlag()
+
+        let noise = (0..<6).map { _ in
+            Task.detached {
+                while !stop.isRaised {
+                    _ = await DeepLClient.translate("Hi", context: nil,
+                                                    credentials: credentials,
+                                                    session: noisy)
+                    stop.tick()
+                }
+            }
+        }
+        // Montée en régime du bruit, **bornée** : une attente sans butée
+        // resterait pendue une minute entière sous `.timeLimit`, et la suite
+        // ne dirait que « délai dépassé ». Au pire, les victimes partent dans
+        // un bruit plus maigre — un vert qui a moins cherché, pas un blocage.
+        let rampDeadline = ContinuousClock.now + .seconds(5)
+        while stop.ticks < 500, ContinuousClock.now < rampDeadline {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+
+        var worst = Duration.zero
+        var rounds = 0
+        // Dix vagues, ou moins si le vol se produit avant : la sonde du
+        // 2026-09-13 l'a vu à la quatrième, avec l'état partagé protégé par
+        // un verrou (sans verrou, le compteur de références lui-même casse
+        // et le processus tombe en SIGSEGV — c'est la même course).
+        while worst < .seconds(1), rounds < 10 {
+            rounds += 1
+            await withTaskGroup(of: Duration.self) { group in
+                for _ in 0..<200 {
+                    group.addTask {
+                        let start = ContinuousClock.now
+                        _ = await DeepLClient.translate("Hi", context: nil,
+                                                        credentials: credentials,
+                                                        session: victims,
+                                                        retryDelay: .zero)
+                        return ContinuousClock.now - start
+                    }
+                }
+                for await elapsed in group where elapsed > worst { worst = elapsed }
+            }
+        }
+        stop.raise()
+        for task in noise { await task.value }
+
+        #expect(worst < .seconds(1),
+                "une traduction a attendu \(worst) alors que son 429 portait « Retry-After: 0 » : elle a lu la réponse d'une voisine")
     }
 }
