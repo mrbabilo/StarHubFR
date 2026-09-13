@@ -153,12 +153,14 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       en Core via `ModFolderBulkMove` (canal `AsyncStream`, exécution
       testée pour la première fois) ; baisse de compteur modeste (−2
       bloquants), le gain est la testabilité et le rescan rendu au fond.
-      ⚠️ **Vérification à l'écran de L3 due** : bascule en masse « tout
-      activer / tout désactiver » avec un filtre actif, application d'un
-      profil, application d'un profil avec un mod manquant, bissection
-      profil. La fin de jeu structurée (exécuteurs Core + `AsyncStream`)
-      est faite ; reste la sortie d'acteur de `scanMods` (tranche
-      d'isolation). Détail et mécanismes : `REFACTORING.md` §9.
+      ✅ **Vérifié à l'écran par l'auteur le 2026-09-13/14** (bascule en
+      masse filtrée, application de profil, profil avec mod manquant,
+      bissection profil) — ce rejeu a révélé le doublon SotV et déclenché
+      le chantier « collision de nom logique à l'installation » (signal +
+      choix dans l'aperçu, vérifié le 2026-09-14). **L3 est close.** La fin
+      de jeu structurée (exécuteurs Core + `AsyncStream`) est faite ; reste
+      la sortie d'acteur de `scanMods` (tranche d'isolation). Détail et
+      mécanismes : `REFACTORING.md` §9.
 ---
 
 
