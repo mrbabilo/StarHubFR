@@ -137,7 +137,10 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `[weak x]` **défait** la liaison `nonisolated(unsafe)`, prouvé au gate.
       Passe sans drapeau : **7 → 0** ; gate + 3 152 tests verts. ✅ Vérifié à
       l'écran par l'auteur le 2026-09-13. **La phase P5
-      reste fermée** : 466 diagnostics stricts (467 au 2026-09-11) — la fin de
+      reste fermée** : 453 diagnostics stricts — 202 bloquants Swift 6 — au
+      jalon du chantier (467 au 2026-09-11) ; **L1 close le 2026-09-13 :
+      427 / 184 bloquants**, quinze globales éteintes sur seize
+      (`SaveNotesStore.shared` reportée à la tranche des stores) — la fin de
       jeu structurée (exécuteurs Core, `@MainActor`) s'y décidera. Détail et
       mécanismes : `REFACTORING.md` §9.
 ---

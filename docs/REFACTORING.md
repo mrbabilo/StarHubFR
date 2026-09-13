@@ -717,12 +717,22 @@ coordonnées et leur outillage ne se transposent pas (§3).
 ### P5 — la mesure du 2026-09-11, et ce qu'elle ne dit pas
 
 Relevé en compilant **hors du gate** (binaire et cache de module dans un dossier
-temporaire, `.build` intact), les 294 fichiers en whole-module, deux fois :
+temporaire, `.build` intact). Premier relevé du 2026-09-11 (294 fichiers en
+whole-module, deux fois) ; puis le **jalon du chantier P5**, mesuré deux fois
+sur `1b4f9888` par `scripts/p5-strict.sh`, et son état à la clôture de L1 :
 
-| Passe | Avertissements | Durée |
-| --- | ---: | ---: |
-| Sans drapeau — le code tel qu'il compile aujourd'hui | 13 | 210 s |
-| `-strict-concurrency=complete` | **467** | 212 s |
+| Relevé | Avertissements | Bloquants Swift 6 | Durée |
+| --- | ---: | ---: | ---: |
+| 2026-09-11, sans drapeau | 13 | — | 210 s |
+| 2026-09-11, `-strict-concurrency=complete` | 467 | — | 212 s |
+| **Jalon de départ** (2026-09-13, `1b4f9888`, 318 fichiers) | **453** | **202** | 505 s |
+| **Après L1** (15 globales éteintes, `SaveNotesStore.shared` reportée) | **427** | **184** | 518 s |
+
+*Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
+Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
+montrent que le mur suivant (mode 6). La baisse L1 dépasse la prévision
+(−18 bloquants pour 15 globales) : plusieurs globales portaient un diagnostic
+de déclaration **et** des diagnostics d'usage.*
 
 ⚠️ Ces 13 ne sont **pas** « ce que le build rend » : le gate compile en
 **incrémental** depuis F2-T2, et seul un fichier recompilé réémet ses
@@ -806,18 +816,23 @@ conformance en Core depuis le 2026-09-11. Les sept, chacun à son verdict :
 gate + cliquet verts, 3 152 tests verts. ✅ **Vérifié à l'écran par l'auteur
 le 2026-09-13.** Cliquet **+7 VM / +2 NexusModSearch,
 assumés** — les consignations tiennent en 7 lignes de code, le raisonnement
-vit ici. **La phase P5 reste fermée** : la passe stricte rend 466 diagnostics
-de tête (467 au 2026-09-11) — la phase « vider le VM de son état publié » n'a
+vit ici. **La phase P5 reste fermée** : la passe stricte rend 453 diagnostics
+de tête au jalon du chantier (467 au 2026-09-11) — la phase « vider le VM de
+son état publié » n'a
 pas réduit la dette de concurrence (elle a déplacé de l'état, pas les patterns
 asynchrones). La fin de jeu structurée des deux boucles disque (exécuteurs
 Core + `AsyncStream`, store `@MainActor`) s'y décidera, pas avant.
 
 **Recommandation, pas décision** : ne pas câbler `-strict-concurrency=complete`
-dans `build_app.py` en l'état — 467 avertissements à chaque build est un mur de
+dans `build_app.py` en l'état — 453 avertissements à chaque build (427 après
+L1) est un mur de
 bruit, et un gate qu'on apprend à ignorer est pire que pas de gate (c'est la
 leçon de F1-T2 au §1). Le chiffre vaut comme **jalon** : le reprendre après la
 phase « vider le VM de son état publié » dira ce que cette phase a réellement
 réglé, puisque 53 % de la dette vit dans le fichier qu'elle vide.
+**Repris à la clôture de L1 (2026-09-13)** : 427 avertissements, 184 bloquants
+Swift 6 — la baisse vient des quinze globales éteintes, pas de la phase VM ;
+le reste du compte attend L2 (`@MainActor` sur le ViewModel) et L3.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
