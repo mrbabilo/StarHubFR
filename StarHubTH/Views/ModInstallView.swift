@@ -922,28 +922,15 @@ struct ModInstallView: View {
                     existingMods: existingMods
                 )
 
-                // Une installation **renommée** laisse l'original en place :
-                // deux dossiers portent alors le même `UniqueID`, quand une
-                // ancre de version est unique par identifiant. Affirmer la
-                // version de la copie renommée décrirait mal celle qui reste
-                // active — et si l'utilisateur supprimait la copie sans
-                // l'activer, la mise à jour ne serait plus jamais annoncée.
-                // On s'abstient donc pour elles, comme avant ; la différence
-                // est qu'on le fait sciemment, et non faute de connaître le
-                // chemin.
-                let renamedIds = Set(selections
-                    .filter { $0.conflictResolution == .rename }
-                    .map(\.modId))
-                // X63 — une installation **déplacée** est un renommage par
-                // d'autres moyens, et la même abstention s'impose. Le
-                // déclencheur n'est pas toujours un identifiant étranger :
-                // une racine de pack ne porte pas de manifeste, et le mod qui
-                // s'en écarte peut très bien partager son `UniqueID` avec un
-                // composant vivant sous cette racine. Deux dossiers pour un
-                // identifiant, exactement ce que l'abstention évite.
-                let installedFolderPaths = written
-                    .filter { !renamedIds.contains($0.modId) && $0.displacedFrom == nil }
-                    .map(\.path)
+                // Les chemins qui comptent pour la comptabilité Nexus
+                // (ancre, réconciliation, enregistrement) : l'installateur
+                // les connaît, la règle d'abstention vit testée dans Core
+                // (`accountingPaths`) — copie du même identifiant restée en
+                // place et déplacement X63 exceptés.
+                let installedFolderPaths = ModZipInstaller.accountingPaths(
+                    written: written,
+                    selections: selections,
+                    detectedMods: info.detectedMods)
 
                 DispatchQueue.main.async {
                     self.isInstalling = false

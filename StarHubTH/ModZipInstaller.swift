@@ -82,6 +82,41 @@ class ModZipInstaller {
         }
         return (nil, [])
     }
+
+    /// Les chemins qui comptent pour la comptabilité **post-installation** —
+    /// ancre de version, réconciliation du manifest, enregistrement
+    /// id→dossier (`ModInstallView`, branche `pendingNexusSource`).
+    ///
+    /// L'abstention vise le seul cas où une **copie du même `UniqueID` reste
+    /// en place** : le conflit d'identifiant résolu par renommage — l'ancien
+    /// dossier survit, deux dossiers pour un identifiant, et affirmer la
+    /// version de la copie décrirait mal celle qui reste active (et si
+    /// l'utilisateur supprimait la copie sans l'activer, la mise à jour ne
+    /// serait plus jamais annoncée). Le critère n'est donc **pas** la valeur
+    /// brute `.rename` : c'est la présence d'une copie du même identifiant
+    /// (`DetectedMod.existingVersion`, posé par `detectConflicts`). Un nom
+    /// pris par un **autre** mod se décale aussi — mais rien de son
+    /// identifiant ne survit ailleurs : il compte, exactement comme avant
+    /// que ce conflit existe.
+    ///
+    /// Le déplacement physique (X63, `displacedFrom`) reste exclu : un
+    /// renommage par d'autres moyens, et la même abstention s'impose — le
+    /// déclencheur n'est pas toujours un identifiant étranger, une racine de
+    /// pack sans manifeste peut partager l'identifiant d'un composant.
+    static func accountingPaths(written: [InstalledModPath],
+                                selections: [InstallSelection],
+                                detectedMods: [DetectedMod]) -> [String] {
+        let sameUniqueIdCopyRemains = Set(selections
+            .filter { selection in
+                guard selection.conflictResolution == .rename else { return false }
+                return detectedMods.first { $0.id == selection.modId }?
+                    .existingVersion != nil
+            }
+            .map(\.modId))
+        return written
+            .filter { !sameUniqueIdCopyRemains.contains($0.modId) && $0.displacedFrom == nil }
+            .map(\.path)
+    }
     // Caps the *uncompressed* payload a zip is allowed to expand to, checked
     // via `unzip -l` before any extraction happens. `maxZipSize` alone only
     // bounds the compressed archive on disk — a crafted zip well under that

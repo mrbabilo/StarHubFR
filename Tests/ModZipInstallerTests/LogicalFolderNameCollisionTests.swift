@@ -125,4 +125,88 @@ import Testing
         #expect(ConflictResolution.default(for: .folderExists) == .overwriteWithBackup)
         #expect(ConflictResolution.default(for: .nameTakenByOtherMod) == .rename)
     }
+
+    // MARK: - La comptabilité post-installation (`accountingPaths`)
+
+    /// Le défaut armé `.rename` ne doit pas faire perdre la comptabilité
+    /// Nexus (ancre de version, réconciliation, enregistrement id→dossier) :
+    /// l'abstention vise la **copie du même UniqueID restée en place**, pas
+    /// la valeur brute de la résolution. Un nom pris par un **autre** mod se
+    /// décale, mais rien de son identifiant ne survit ailleurs — sans cela,
+    /// le mod à peine posé réapparaît dans Mod Updates. C'est le scénario
+    /// cible du chantier (SotV 4.0.0 posée par téléchargement intégré).
+    @Test func aNameTakenConflictRenamedStillCountsForNexusAccounting() {
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil) // aucun mod du même identifiant en place
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .rename)
+        let written = InstalledModPath(modId: detected.id,
+                                       path: "/Mods/.[CP] Sounds of the Valley",
+                                       displacedFrom: nil)
+
+        let paths = ModZipInstaller.accountingPaths(
+            written: [written], selections: [selection], detectedMods: [detected])
+
+        #expect(paths == [written.path],
+                "renommé pour nom pris par un autre mod : la comptabilité doit le compter")
+    }
+
+    /// Le cas voisin qui ne doit **pas** bouger : un conflit d'identifiant
+    /// résolu par renommage laisse une copie du même `UniqueID` en place —
+    /// l'ancien dossier survit, et l'ancre (unique par identifiant) doit
+    /// décrire **celle qui reste active**. Abstention comme avant.
+    @Test func aSameUniqueIdConflictRenamedIsStillExcludedFromAccounting() {
+        let existing = modItem(folderName: "[CP] Sounds of the Valley",
+                               uniqueId: "Juanpa98ar.SotV", version: "3.1.0",
+                               isEnabled: true)
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: existing) // une copie du même identifiant survit
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .rename)
+        let written = InstalledModPath(modId: detected.id,
+                                       path: "/Mods/.[CP] Sounds of the Valley 2",
+                                       displacedFrom: nil)
+
+        let paths = ModZipInstaller.accountingPaths(
+            written: [written], selections: [selection], detectedMods: [detected])
+
+        #expect(paths.isEmpty,
+                "renommé pour conflit d'identifiant : la copie restée en place interdit l'ancre")
+    }
+
+    /// Le déplacement physique (X63) reste exclu des deux types : le critère
+    /// corrigé ne doit pas le faire rentrer.
+    @Test func aDisplacedWriteIsStillExcludedFromAccounting() {
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil)
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .rename)
+        let written = InstalledModPath(modId: detected.id,
+                                       path: "/Mods/.[CP] Sounds of the Valley 2026-09-13",
+                                       displacedFrom: "[CP] Sounds of the Valley")
+
+        let paths = ModZipInstaller.accountingPaths(
+            written: [written], selections: [selection], detectedMods: [detected])
+
+        #expect(paths.isEmpty,
+                "déplacé (X63) : renommage par d'autres moyens, même abstention")
+    }
 }
