@@ -209,4 +209,236 @@ import Testing
         #expect(paths.isEmpty,
                 "déplacé (X63) : renommage par d'autres moyens, même abstention")
     }
+
+    // MARK: - L'installation honore la résolution (l'occupant traité comme l'existant)
+
+    // Les quatre tests qui suivent touchent le disque : harnais
+    // `InstallerTestEnv` (tmp UUID, magasin de sauvegardes du test), même
+    // patron que `InstallFolderCollisionTests`. Aujourd'hui la résolution
+    // n'est honorée que derrière un existant d'identifiant — un nom pris par
+    // un autre mod ignore `.skip` (le mod s'installe quand même) et
+    // `.overwriteWithBackup` (le nouveau se décale, l'occupant reste).
+    // Seul `.rename` est déjà le bon comportement : son test verdit d'entrée
+    // et le restera — c'est la preuve de fidélité du chemin inchangé.
+
+    /// Résolution `.overwriteWithBackup` sur un nom pris : la sauvegarde
+    /// porte l'**occupant** (ses octets, pas ceux du neuf), l'occupant
+    /// disparaît, le nouveau vit à son chemin logique — **actif** quand
+    /// l'occupant l'était (le geste demandé : remplacer un mod actif par sa
+    /// suite d'identifiant changé).
+    @Test func overwriteResolutionReplacesTheOccupantWithBackup() throws {
+        let env = InstallerTestEnv()
+        defer { env.cleanup() }
+
+        // L'occupant est ACTIF : `Mods/[CP] Sounds of the Valley`, sans point.
+        try makeModFolder(base: env.modsDir, relativePath: "[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.SotV", name: "[CP] Sounds of the Valley",
+                          version: "3.1.0", extraContent: "l'original de Liana")
+        let occupant = modItem(folderName: "[CP] Sounds of the Valley",
+                               uniqueId: "Juanpa98ar.SotV", version: "3.1.0",
+                               isEnabled: true)
+
+        // L'archive : la suite du mod, l'auteur ayant changé l'identifiant
+        // (le scénario réel qui a déclenché le chantier).
+        try makeModFolder(base: env.tempExtractDir, relativePath: "[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.Source.SotV", name: "[CP] Sounds of the Valley",
+                          version: "4.0.0", extraContent: "le nouveau")
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil) // aucun mod du même identifiant en place
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .overwriteWithBackup)
+
+        let installer = ModZipInstaller(backupManager: env.backupManager)
+        let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
+                                            selections: [selection], detectedMods: [detected],
+                                            gameDir: env.gameDir, existingMods: [occupant])
+
+        // Une sauvegarde — et c'est celle de l'OCCUPANT : ses octets y sont.
+        let backups = env.backupManager.loadBackups()
+        #expect(backups.count == 1,
+                "écraser l'occupant exige sa sauvegarde AVANT toute touche")
+        let backup = try #require(backups.first)
+        #expect(backup.originalFolderName == "[CP] Sounds of the Valley")
+        #expect(backup.backupPath.hasPrefix(env.backupsRoot.path),
+                "la sauvegarde va dans le magasin du test, pas ailleurs")
+        let backupData = (backup.backupPath as NSString).appendingPathComponent("data.txt")
+        #expect(try String(contentsOfFile: backupData, encoding: .utf8) == "l'original de Liana")
+
+        // Le nouveau vit à la place exacte de l'occupant — ACTIF (sans
+        // point), puisque l'occupant l'était.
+        #expect(written.count == 1)
+        let expected = env.modsDir.appendingPathComponent("[CP] Sounds of the Valley").path
+        #expect(written.first?.path == expected,
+                "l'installé reprend le chemin logique de l'occupant actif")
+        let dataFile = (expected as NSString).appendingPathComponent("data.txt")
+        #expect(try String(contentsOfFile: dataFile, encoding: .utf8) == "le nouveau")
+
+        // Aucun double en pause à côté : remplacer un mod actif ne pose pas
+        // une seconde copie que SMAPI chargerait en plus.
+        let dotted = env.modsDir.appendingPathComponent(".[CP] Sounds of the Valley").path
+        #expect(!FileManager.default.fileExists(atPath: dotted))
+    }
+
+    /// Le `config.json` et la traduction FR de l'**occupant** survivent à
+    /// l'écrasement — le patron `PreserveUserConfigsTests`, bout en bout par
+    /// `install` : la résolution porte sur l'occupant, la préservation aussi.
+    @Test func overwriteResolutionPreservesUserConfigsOfTheOccupant() throws {
+        let env = InstallerTestEnv()
+        defer { env.cleanup() }
+
+        // L'occupant, en pause : un config.json et un fr.json communautaire —
+        // ce que l'utilisateur a réglé et que l'archive neuve ne porte pas.
+        let occupantDir = try makeModFolder(
+            base: env.modsDir, relativePath: ".[CP] Sounds of the Valley",
+            uniqueId: "Juanpa98ar.SotV", name: "[CP] Sounds of the Valley",
+            version: "3.1.0", extraContent: "l'original de Liana")
+        try #"{"OldConfig":true}"#.data(using: .utf8)!
+            .write(to: occupantDir.appendingPathComponent("config.json"))
+        let occupantI18n = occupantDir.appendingPathComponent("i18n", isDirectory: true)
+        try FileManager.default.createDirectory(at: occupantI18n, withIntermediateDirectories: true)
+        try #"{"key":"Bonjour"}"#.data(using: .utf8)!
+            .write(to: occupantI18n.appendingPathComponent("fr.json"))
+        let occupant = modItem(folderName: "[CP] Sounds of the Valley",
+                               uniqueId: "Juanpa98ar.SotV", version: "3.1.0",
+                               isEnabled: false)
+
+        // L'archive neuve : ni config.json ni fr.json — le cas courant,
+        // l'auteur ne redistribue pas la traduction.
+        try makeModFolder(base: env.tempExtractDir, relativePath: "[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.Source.SotV", name: "[CP] Sounds of the Valley",
+                          version: "4.0.0", extraContent: "le nouveau")
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil)
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .overwriteWithBackup)
+
+        let installer = ModZipInstaller(backupManager: env.backupManager)
+        let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
+                                            selections: [selection], detectedMods: [detected],
+                                            gameDir: env.gameDir, existingMods: [occupant])
+
+        // Le remplacement a bien eu lieu, à la place de l'occupant (en pause).
+        #expect(written.count == 1)
+        let expected = env.modsDir.appendingPathComponent(".[CP] Sounds of the Valley").path
+        #expect(written.first?.path == expected,
+                "l'occupant était en pause : l'installé arrive en pause")
+        #expect(try String(contentsOfFile: (expected as NSString).appendingPathComponent("data.txt"),
+                           encoding: .utf8) == "le nouveau")
+
+        // Et la config de l'utilisateur a survécu à l'écrasement.
+        let config = try String(contentsOfFile: (expected as NSString)
+            .appendingPathComponent("config.json"), encoding: .utf8)
+        #expect(config.contains("OldConfig"),
+                "le config.json de l'occupant doit être préservé")
+        let fr = try String(contentsOfFile: (expected as NSString)
+            .appendingPathComponent("i18n/fr.json"), encoding: .utf8)
+        #expect(fr.contains("Bonjour"))
+    }
+
+    /// Résolution `.rename` : le comportement du neuf, inchangé — un nom
+    /// horodaté, l'écart annoncé, l'occupant intact. Le cas voisin qui ne
+    /// doit **pas** fusionner avec l'écrasement : décaler n'a jamais détruit
+    /// personne, et ne doit toujours pas.
+    @Test func renameResolutionKeepsBothAliveUnderDistinctNames() throws {
+        let env = InstallerTestEnv()
+        defer { env.cleanup() }
+
+        try makeModFolder(base: env.modsDir, relativePath: ".[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.SotV", name: "[CP] Sounds of the Valley",
+                          version: "3.1.0", extraContent: "l'original de Liana")
+        let occupant = modItem(folderName: "[CP] Sounds of the Valley",
+                               uniqueId: "Juanpa98ar.SotV", version: "3.1.0",
+                               isEnabled: false)
+
+        try makeModFolder(base: env.tempExtractDir, relativePath: "[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.Source.SotV", name: "[CP] Sounds of the Valley",
+                          version: "4.0.0", extraContent: "le nouveau")
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil)
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .rename)
+
+        let installer = ModZipInstaller(backupManager: env.backupManager)
+        let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
+                                            selections: [selection], detectedMods: [detected],
+                                            gameDir: env.gameDir, existingMods: [occupant])
+
+        // L'occupant est intact, là où tous les magasins persistés le
+        // cherchent (`ModItem.id` est le nom de dossier).
+        let occupantFile = env.modsDir
+            .appendingPathComponent(".[CP] Sounds of the Valley/data.txt")
+        #expect(try String(contentsOf: occupantFile, encoding: .utf8) == "l'original de Liana")
+
+        // Le nouveau vit sous un nom horodaté, l'écart annoncé à la vue.
+        #expect(written.count == 1)
+        let newPath = try #require(written.first?.path)
+        #expect(newPath != occupantFile.deletingLastPathComponent().path)
+        #expect((newPath as NSString).lastPathComponent.hasPrefix(".[CP] Sounds of the Valley_"))
+        #expect(try String(contentsOfFile: (newPath as NSString).appendingPathComponent("data.txt"),
+                           encoding: .utf8) == "le nouveau")
+        #expect(written.first?.displacedFrom == "[CP] Sounds of the Valley")
+
+        // Exactement deux dossiers : personne n'a disparu.
+        #expect(try FileManager.default.contentsOfDirectory(atPath: env.modsDir.path).count == 2)
+    }
+
+    /// Résolution `.skip` sur un nom pris : **rien ne s'installe**. Le choix
+    /// était perdu — la branche skip ne vivait que derrière un existant
+    /// d'identifiant, et le mod s'installait quand même au nom pris.
+    @Test func skipResolutionInstallsNothing() throws {
+        let env = InstallerTestEnv()
+        defer { env.cleanup() }
+
+        try makeModFolder(base: env.modsDir, relativePath: ".[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.SotV", name: "[CP] Sounds of the Valley",
+                          version: "3.1.0", extraContent: "l'original de Liana")
+        let occupant = modItem(folderName: "[CP] Sounds of the Valley",
+                               uniqueId: "Juanpa98ar.SotV", version: "3.1.0",
+                               isEnabled: false)
+
+        try makeModFolder(base: env.tempExtractDir, relativePath: "[CP] Sounds of the Valley",
+                          uniqueId: "Juanpa98ar.Source.SotV", name: "[CP] Sounds of the Valley",
+                          version: "4.0.0", extraContent: "le nouveau")
+        let detected = DetectedMod(
+            folderName: "[CP] Sounds of the Valley",
+            relativePath: "[CP] Sounds of the Valley",
+            manifest: parsedManifest(uniqueId: "Juanpa98ar.Source.SotV",
+                                     name: "[CP] Sounds of the Valley",
+                                     version: "4.0.0"),
+            hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+            existingVersion: nil)
+        let selection = InstallSelection(modId: detected.id, selected: true,
+                                         conflictResolution: .skip)
+
+        let installer = ModZipInstaller(backupManager: env.backupManager)
+        let written = try installer.install(from: env.tempExtractDir, to: env.modsDisabledDir.path,
+                                            selections: [selection], detectedMods: [detected],
+                                            gameDir: env.gameDir, existingMods: [occupant])
+
+        #expect(written.isEmpty, "skip : aucun dossier ne doit être posé")
+        let occupantFile = env.modsDir
+            .appendingPathComponent(".[CP] Sounds of the Valley/data.txt")
+        #expect(try String(contentsOf: occupantFile, encoding: .utf8) == "l'original de Liana")
+        // Ni occupant décalé, ni dossier horodaté à côté : Mods/ n'a pas bougé.
+        #expect(try FileManager.default.contentsOfDirectory(atPath: env.modsDir.path)
+            == [".[CP] Sounds of the Valley"])
+    }
 }

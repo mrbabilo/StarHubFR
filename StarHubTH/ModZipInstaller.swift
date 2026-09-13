@@ -95,7 +95,8 @@ class ModZipInstaller {
     /// serait plus jamais annoncée). Le critère n'est donc **pas** la valeur
     /// brute `.rename` : c'est la présence d'une copie du même identifiant
     /// (`DetectedMod.existingVersion`, posé par `detectConflicts`). Un nom
-    /// pris par un **autre** mod se décale aussi — mais rien de son
+    /// pris par un **autre** mod se décale (`.rename`) ou remplace
+    /// l'occupant (`.overwriteWithBackup`) — dans les deux cas rien de son
     /// identifiant ne survit ailleurs : il compte, exactement comme avant
     /// que ce conflit existe.
     ///
@@ -1141,6 +1142,32 @@ class ModZipInstaller {
             // already exists as an enabled or disabled mod under Mods/).
             let existingMod = findExistingMod(detectedMod.uniqueId, in: existingMods)
 
+            // Le nom **logique** visé peut aussi être pris par un mod d'autre
+            // UniqueID (`.nameTakenByOtherMod`, détecté à l'aperçu). Sans
+            // occupant d'identifiant, la résolution posée à l'aperçu décide :
+            // `.skip` → rien ne s'installe (le choix était perdu : la branche
+            // ne vivait que derrière un existant d'identifiant, le mod
+            // s'installait quand même au nom pris) ; `.overwriteWithBackup` →
+            // l'occupant devient l'« existing » effectif : toute la mécanique
+            // d'écrasement ci-dessous (sauvegarde obligatoire avant toute
+            // touche, purge des redondances, delta de clés, configs
+            // préservées, suppression) tourne sur lui telle quelle, et
+            // l'installé reste actif si l'occupant l'était. `.rename` et
+            // l'absence de conflit gardent le chemin du neuf
+            // (`nonCollidingDestination` décale si le disque est occupé) —
+            // inchangé. Les deux types de conflit restent exclusifs : avec un
+            // existant d'identifiant, ce bloc ne s'ouvre pas.
+            var effectiveExisting = existingMod
+            if existingMod == nil,
+               let occupant = existingMods.mod(withLogicalFolderName: detectedMod.folderName) {
+                if selection.conflictResolution == .skip {
+                    continue
+                }
+                if selection.conflictResolution == .overwriteWithBackup {
+                    effectiveExisting = occupant
+                }
+            }
+
             let finalDestFolderName: String
             // User config files (config.json/fr.json) snapshotted from the
             // existing mod folder *before* it is removed, then restored on
@@ -1160,7 +1187,7 @@ class ModZipInstaller {
                     try? fm.removeItem(at: tmp)
                 }
             }
-            if let existing = existingMod, let resolution = selection.conflictResolution {
+            if let existing = effectiveExisting, let resolution = selection.conflictResolution {
                 switch resolution {
                 case .skip:
                     continue
@@ -1231,7 +1258,7 @@ class ModZipInstaller {
             let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
             let destBasePath: String
             let destFolderPrefix: String
-            if let existing = existingMod, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
+            if let existing = effectiveExisting, existing.isEnabled, selection.conflictResolution == .overwriteWithBackup {
                 destBasePath = modsPath
                 destFolderPrefix = ""   // enabled
             } else {
