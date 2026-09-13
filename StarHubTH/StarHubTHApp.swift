@@ -102,7 +102,11 @@ struct StarHubTHApp: App {
     /// a déjà une valeur »), laissant les vrais profils orphelins dans
     /// l'ancien plist. La reprise est idempotente : deux déclencheurs, un seul
     /// effet.
-    private let bootstrapDefaults = DefaultsMigration.runOnce
+    /// L'annotation explicite est porteuse : déclarée **avant** `@AppStorage`
+    /// (L.114), cette propriété garantit que la reprise s'exécute avant le
+    /// premier lecteur defaults de l'App — la déplacer dans `init()` inverserait
+    /// l'ordre pour le wrapper, qui lit `UserDefaults` à son initialisation.
+    private let bootstrapDefaults: Void = DefaultsMigration.runOnce
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     // La langue d'interface appartient à l'App (REFACTORING §6, domaine

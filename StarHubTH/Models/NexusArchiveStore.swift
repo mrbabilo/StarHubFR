@@ -114,7 +114,7 @@ public final class NexusArchiveStore {
         let size = (try? fm.attributesOfItem(atPath: archive.path)[.size] as? Int64) ?? 0
         let entry = NexusArchiveEntry(
             uniqueId: uniqueId, version: version, modName: modName,
-            fileName: archive.lastPathComponent, byteSize: size ?? 0)
+            fileName: archive.lastPathComponent, byteSize: size)
 
         try fm.createDirectory(at: filesDir, withIntermediateDirectories: true)
         let destination = fileURL(of: entry)

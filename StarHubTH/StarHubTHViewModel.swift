@@ -2937,7 +2937,6 @@ final class StarHubTHViewModel {
         // requises. Ici ne reste que le COMMENT : les renommages disque et
         // la publication.
         let plan = TogglePlan.make(mod: mod, mods: mods, chain: chainToggleDependencies)
-        let seedFolder = plan.seedFolder
         let targetState = plan.targetState
         let foldersToToggle = plan.folders
 
@@ -4164,7 +4163,8 @@ final class StarHubTHViewModel {
         // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
         // de lui.
         // Sous verrou (`mutateIfChanged`) — réécrire hors verrou perd la course (2026-08-05) ; sans entrée à migrer, rien ne s'écrit.
-        installedModRegistryStore.mutateIfChanged {
+        // Le `Bool` rendu (« est-ce que ça a bougé ») n'a pas d'action ici — l'abandon est dit par le `_ =`.
+        _ = installedModRegistryStore.mutateIfChanged {
             ModFolderRename.migrate(&$0, from: old, to: new,
                                     shared: shared, policy: .leaveBehind)
         }
@@ -8249,7 +8249,7 @@ final class StarHubTHViewModel {
     /// `ModProfile.setNote` (Core, testée) ; le VM ne fait que router.
     func setModNote(_ text: String?, for mod: ModItem) {
         guard let activeId = activeProfileId,
-              let index = modProfiles.firstIndex(where: { $0.id == activeId }) else { return }
+              modProfiles.contains(where: { $0.id == activeId }) else { return }
         profilesStore.mutateProfile(with: activeId) {
             $0.setNote(text, forModId: mod.uniqueId)
         }
@@ -9727,7 +9727,7 @@ final class StarHubTHViewModel {
     /// Call this after any toggleMod so the profile stays up to date.
     func syncActiveProfileIds() {
         guard let id = activeProfileId,
-              let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
+              modProfiles.contains(where: { $0.id == id }) else { return }
 
         // R2 : adopter l'état du disque tant qu'une application est morte en
         // route, c'est écrire l'accident dans le profil — le mod resté actif
