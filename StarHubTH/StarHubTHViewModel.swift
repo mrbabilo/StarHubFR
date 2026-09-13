@@ -8819,6 +8819,7 @@ final class StarHubTHViewModel {
                                                skipMissingSource: false,
                                                progressStep: max(1, total / 100))
         Task { [weak self] in
+            var anyEnabled = false
             var outcome: BulkMoveOutcome?
             for await event in events {
                 guard let self else { continue }
@@ -8829,13 +8830,14 @@ final class StarHubTHViewModel {
                                                                      phase: .movingFolders)
                 case .activated(let folderName):
                     self.modActivationTimestamps[folderName] = Date()
+                    anyEnabled = true
                 case .finished(let final):
                     outcome = final
                 }
             }
             guard let self, let outcome else { return }
             let failedNames = outcome.failures.map(\.modName)
-            if outcome.movedCount > 0 {
+            if anyEnabled {
                 Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
             for failure in outcome.failures {
@@ -8856,7 +8858,21 @@ final class StarHubTHViewModel {
             self.profileApplyProgress = ProfileApplyProgress(done: total,
                                                              total: total,
                                                              phase: .rescanning)
-            self.scanMods()
+            // Le scan est lourd (parcours du parc, décodage des manifestes,
+            // journal SMAPI — des secondes sur un grand parc) : il tourne
+            // HORS main, comme l'appelaient la file globale d'avant et
+            // `refresh()` (T10). La suspension laisse le voile se rendre ;
+            // la reprise revient sur main, et la suite garde l'ordre
+            // d'origine. `scanMods` reste annoté main-actor (sortir tout
+            // son call-graph de l'acteur est le travail de la tranche
+            // d'isolation) : le saut passe donc par la file globale, le
+            // même saut que le sien partout ailleurs dans le fichier.
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    self?.scanMods()
+                    continuation.resume()
+                }
+            }
             if journaling {
                 ProfileApplyJournalStore.clear(in: self.applyJournalDirectory)
                 self.unresolvedApplyJournal = nil
@@ -9166,7 +9182,17 @@ final class StarHubTHViewModel {
             // Rescan so the list reflects the real on-disk state, whatever it
             // is after partial failures. syncActiveProfileIds runs after so the
             // active profile's stored id list tracks the actual enabled set.
-            self.scanMods()
+            // Le scan est lourd : il vit hors main (T10) — la suspension
+            // laisse la barre de bascule se rendre avant le blocage, la
+            // reprise revient sur main et la suite garde l'ordre d'origine.
+            // `scanMods` reste annoté main-actor : le saut passe par la file
+            // globale, le même saut que partout ailleurs dans le fichier.
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    self?.scanMods()
+                    continuation.resume()
+                }
+            }
             self.bulkToggleProgress = nil
             self.syncActiveProfileIds()
             if outcome.failures.isEmpty {
