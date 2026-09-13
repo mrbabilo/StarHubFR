@@ -9212,14 +9212,6 @@ final class StarHubTHViewModel {
     /// qu'on bascule, sans quoi le mod est refusé et compté dans le bilan.
     /// Progress is published after every move. Activation
     /// timestamps are stamped only for mods that were actually moved.
-    ///
-    /// X57 : « every installed mod » s'entend **au cadrage près** — la règle
-    /// de la liste (`mods(matching:)` + `scopedMods(from:scope:)`), lue sur
-    /// Boîte `weak` traversable par une closure `@Sendable` : l'`@unchecked`
-    /// affirme les conventions du type (hops main) que le compilateur ne lit pas.
-    private struct WeakViewModelBox: @unchecked Sendable {
-        weak var viewModel: StarHubTHViewModel?
-    }
 
     /// `modList.filters`. Filtrer puis « Tout désactiver » ne touche que
     /// l'ensemble cadré, pas les 949 dossiers du parc.
@@ -9253,133 +9245,65 @@ final class StarHubTHViewModel {
         let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        // Capture `@MainActor` → file globale : le VM passe par la boîte
-        // `weak` ci-dessus (conventions du type, écritures via hops main).
-        let contextBox = WeakViewModelBox(viewModel: self)
-        DispatchQueue.global(qos: .userInitiated).async {
-            guard let context = contextBox.viewModel else { return } // `weak` (règle du dépôt)
-            let fm = FileManager.default
+        // La bascule en masse construit ses moves depuis l'instantané :
+        // la source porte le nom physique actuel, la destination l'état
+        // visé — la même primitive que le plan de profil.
+        let moves = modsToMove.map { mod in
+            ProfileApplyPlan.Move(
+                folderName: mod.folderName, modName: mod.name,
+                uniqueId: mod.uniqueId,
+                source: mod.physicalFolderName,
+                destination: enable ? mod.folderName : "." + mod.folderName,
+                direction: enable ? .enable : .disable)
+        }
+        let events = ModFolderBulkMove.execute(moves, in: modsPath,
+                                               skipMissingSource: true,
+                                               progressStep: 1)
 
-            struct MoveFailure {
-                let modName: String
-                let direction: String
-                let error: Error
-            }
-            var failures: [MoveFailure] = []
-            var attempted = 0
-            var movedCount = 0
+        // Le Task hérite de @MainActor : les écritures d'état sont directes.
+        // L'arrière-plan vit DANS l'exécutant — plus aucune closure lourde ici.
+        Task { [weak self] in
             var anyEnabled = false
-
-            for (index, mod) in modsToMove.enumerated() {
-                attempted += 1
-                // Dot-prefix rename: source uses the current physical name,
-                // destination uses the target state's name (with/without dot).
-                let src = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-                let dstName = enable ? mod.folderName : "." + mod.folderName
-                let dst = (modsPath as NSString).appendingPathComponent(dstName)
-                let direction = enable ? "→ activé" : "→ désactivé"
-
-                var didMove = false
-
-                // Safety: trust the filesystem over the cached isEnabled flag.
-                // If the source is already gone, this mod was already renamed —
-                // skip instead of operating on a non-existent path.
-                guard fm.fileExists(atPath: src) else {
-                    DispatchQueue.main.async {
-                        context.bulkToggleProgress = (done: index + 1, total: total)
-                    }
-                    continue
-                }
-
-                do {
-                    // Un dossier déjà présent à destination n'est mis de côté —
-                    // puis **supprimé** quelques lignes plus bas — que si c'est
-                    // un résidu de ce mod-là.
-                    //
-                    // Le raisonnement d'origine tenait : sur un renommage à
-                    // parent identique, une collision ne pouvait être qu'une
-                    // bascule plantée. Le parc le dément — `[CP] Seaside Sounds`
-                    // (`witchtopia.SeasideSounds`, actif) et
-                    // `.[CP] Seaside Sounds` (`Liana.SeasideSounds`, en pause)
-                    // sont deux mods de deux auteurs. Sans cette garde, un clic
-                    // sur « Tout activer » effaçait celui d'à côté : ni
-                    // corbeille, ni journal, ni retour possible.
-                    //
-                    // La règle vit dans `renameModFolder`, partagé par les
-                    // trois chemins de bascule : `ModFolderCollision` existe
-                    // pour ça (« ce fichier se borne à empêcher le dégât
-                    // irréversible »), et deux copies de la même précaution
-                    // avaient déjà divergé sur le nom du dossier écarté.
-                    //
-                    // Le refus est **jeté**, pas sauté : il rejoint `failures`,
-                    // donc le bilan de fin le compte et le nomme. Un `continue`
-                    // aurait laissé « 42 mods activés » sur une bascule
-                    // silencieusement déclinée.
-                    try context.renameModFolder(from: src, to: dst,
-                                                destinationName: dstName,
-                                                uniqueId: mod.uniqueId, fm: fm)
-                    didMove = true
-                } catch {
-                    failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
-                }
-
-                if didMove {
-                    movedCount += 1
-                    if enable {
-                        DispatchQueue.main.async {
-                            context.modActivationTimestamps[mod.folderName] = Date()
-                        }
-                        anyEnabled = true
-                    }
-                }
-
-                // Publish progress on the main thread after each move.
-                DispatchQueue.main.async {
-                    context.bulkToggleProgress = (done: index + 1, total: total)
+            var outcome: BulkMoveOutcome?
+            for await event in events {
+                guard let self else { continue }
+                switch event {
+                case .progress(let doneSoFar, _):
+                    self.bulkToggleProgress = (done: doneSoFar, total: total)
+                case .activated(let folderName):
+                    self.modActivationTimestamps[folderName] = Date()
+                    anyEnabled = true
+                case .finished(let final):
+                    outcome = final
                 }
             }
+            guard let self, let outcome else { return }
+            let movedCount = outcome.movedCount
 
             if anyEnabled {
-                DispatchQueue.main.async {
-                    Self.saveModActivationTimestamps(context.modActivationTimestamps)
-                }
+                Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
-
-            for failure in failures {
-                // P5-T9 : un rollback raté remonte dans l'erreur — la ligne
-                // CRITICAL (une seule définition, dans
-                // `ModFolderRenameFailure.rollbackCriticalLog`) est dite ici,
-                // avant le bilan qui ne montre que la cause d'origine. La
-                // valeur est extraite hors du saut sur le fil principal :
-                // seul un `String` (ou rien) le traverse.
-                let critical = (failure.error as? ModFolderRenameFailure)?.rollbackCriticalLog
-                DispatchQueue.main.async {
-                    if let critical { context.log(critical, level: .error) }
-                    context.log(
-                        String(format: "%@ %@: %@",
-                               failure.modName, failure.direction, failure.error.localizedDescription),
-                        level: .error
-                    )
-                }
+            for failure in outcome.failures {
+                if let critical = failure.criticalLog { self.log(critical, level: .error) }
+                let direction = failure.direction == .enable ? "→ activé" : "→ désactivé"
+                self.log(String(format: "%@ %@: %@", failure.modName, direction, failure.message),
+                         level: .error)
             }
-
             // Rescan so the list reflects the real on-disk state, whatever it
             // is after partial failures. syncActiveProfileIds runs after so the
             // active profile's stored id list tracks the actual enabled set.
-            context.scanMods()
-            DispatchQueue.main.async {
-                context.bulkToggleProgress = nil
-                context.syncActiveProfileIds()
-                if failures.isEmpty {
-                    context.log(String(format: enable ? context.localization.L(L10n.Mods.enabledAllCount) : context.localization.L(L10n.Mods.disabledAllCount),
-                                       movedCount))
-                } else if attempted == failures.count {
-                    context.showModal(message: String(format: context.localization.L(L10n.Mods.bulkToggleFailed), failures.count))
-                } else {
-                    context.showModal(message: String(format: context.localization.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
-                    context.log(String(format: enable ? context.localization.L(L10n.Mods.enabledAllCount) : context.localization.L(L10n.Mods.disabledAllCount),
-                                       movedCount), level: .warning)
-                }
+            self.scanMods()
+            self.bulkToggleProgress = nil
+            self.syncActiveProfileIds()
+            if outcome.failures.isEmpty {
+                self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
+                               movedCount))
+            } else if outcome.attempted == outcome.failures.count {
+                self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkToggleFailed), outcome.failures.count))
+            } else {
+                self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkTogglePartial), movedCount, outcome.failures.count))
+                self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
+                               movedCount), level: .warning)
             }
         }
     }
