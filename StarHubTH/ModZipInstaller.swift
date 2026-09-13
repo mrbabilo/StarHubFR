@@ -1152,12 +1152,22 @@ class ModZipInstaller {
             // d'écrasement ci-dessous (sauvegarde obligatoire avant toute
             // touche, purge des redondances, delta de clés, configs
             // préservées, suppression) tourne sur lui telle quelle, et
-            // l'installé reste actif si l'occupant l'était. `.rename` et
-            // l'absence de conflit gardent le chemin du neuf
-            // (`nonCollidingDestination` décale si le disque est occupé) —
-            // inchangé. Les deux types de conflit restent exclusifs : avec un
-            // existant d'identifiant, ce bloc ne s'ouvre pas.
+            // l'installé reste actif si l'occupant l'était. `.rename` pose un
+            // nom horodaté **logique** — symétrique de la branche
+            // d'identifiant ci-dessous ; `nonCollidingDestination` reste là
+            // pour le cas où le nom horodaté serait, lui aussi, physiquement
+            // pris. L'absence de conflit garde le chemin du neuf, inchangé.
+            // Les deux types de conflit restent exclusifs : avec un existant
+            // d'identifiant, ce bloc ne s'ouvre pas.
             var effectiveExisting = existingMod
+            // Le renommage d'un nom pris doit porter sur le NOM LOGIQUE, pas
+            // sur le seul chemin disque : `[CP] X` et `.[CP] X` sont le même
+            // nom logique, et un occupant ACTIF laisse le chemin pointé
+            // (`Mods/.[CP] X`) libre — un décalage de chemin n'aurait rien vu
+            // à décaler, et le nouveau se serait posé sous l'identité de
+            // l'occupant (`ModItem.id` est le nom de dossier) : un seul mod
+            // rendu à l'écran, sans un mot de log.
+            var renamesForNameTaken = false
             if existingMod == nil,
                let occupant = existingMods.mod(withLogicalFolderName: detectedMod.folderName) {
                 if selection.conflictResolution == .skip {
@@ -1165,6 +1175,9 @@ class ModZipInstaller {
                 }
                 if selection.conflictResolution == .overwriteWithBackup {
                     effectiveExisting = occupant
+                }
+                if selection.conflictResolution == .rename {
+                    renamesForNameTaken = true
                 }
             }
 
@@ -1248,6 +1261,13 @@ class ModZipInstaller {
                 case .rename:
                     finalDestFolderName = "\(detectedMod.folderName)_\(timestampStamp)"
                 }
+            } else if renamesForNameTaken {
+                // Nom pris par un autre mod, résolu `.rename` : le nom
+                // horodaté vit dans le nom **logique**, comme pour un conflit
+                // d'identifiant — `ModItem.id` distinct, les deux mods
+                // rendus à l'écran, et l'écriture tombe sur la destination
+                // visée (`displacedFrom == nil`, la comptabilité compte).
+                finalDestFolderName = "\(detectedMod.folderName)_\(timestampStamp)"
             } else {
                 finalDestFolderName = detectedMod.folderName
             }
