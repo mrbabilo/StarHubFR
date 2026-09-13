@@ -772,10 +772,44 @@ membre gauche est **non optionnel**, donc une branche morte ;
 quatre sont corrigées le 2026-09-13** — le verrou par X106, les trois autres
 avec trois trouvailles de plus repérées en passant au même build (un
 `mutateIfChanged` dont le `Bool` était ignoré sans le dire, deux `index` de
-garde jamais lus, exprimés en `contains(where:)`). Ne reste du relevé que la
-classe concurrency — quatre captures `@Sendable` du VM, deux captures de
-`FileManager` marquées *error in the Swift 6 language mode* : une passe de
-design à elle seule, pas des correctifs au vol.
+garde jamais lus, exprimés en `contains(where:)`).
+
+**La classe concurrency — la passe de design, livrée le 2026-09-13.** ⚠️ **Le
+relevé était faux sur le compte : la re-mesure sans drapeau rendait 7
+diagnostics de tête, pas les 6 annoncés** (« 4 captures `@Sendable` du VM, 2
+de `FileManager` ») — le refactor lui-même avait introduit 4 brèches de
+conformance en Core depuis le 2026-09-11. Les sept, chacun à son verdict :
+
+- **4 brèches de conformance** (`BackupBrowser.swift:26/42`,
+  `ModCatalog.swift:35/38`) : structs **publiques** — jamais de `Sendable`
+  implicite — portées par des types `Sendable`. Membres tous en types de
+  valeur : `BackupReason`, `ModMetadata`, `ModInstallBackup` et
+  `NexusModSearch.Page` gagnent la conformité explicite (précédent
+  `ModInstallRestoreReport`, même fichier).
+- **La capture `fm` du profil** (`StarHubTHViewModel.swift:8840`) : fix **par
+  construction** — `FileManager.default` est créé **dans** la closure, patron
+  de la boucle sœur de bascule en masse (`:9283`, qui ne signalait jamais).
+  Zéro traversée, zéro annotation.
+- **Le relais de progression Nexus** (`:4955`, fonction `nonisolated`) : le
+  bloc ne touche que `downloadStore` — liaison `nonisolated(unsafe)` **bornée
+  au store**, capture libre forte (la closure ne capture plus du tout le VM).
+- **La bascule en masse** (`:9282`, `@MainActor` → file globale) : 🚩 **la
+  découverte de la passe — une capture-liste `[weak x]` défait la liaison
+  `nonisolated(unsafe)`** (le gate l'a prouvé : l'avertissement persiste sur
+  l'entrée de liste, alors que la capture libre forte du même binding passe).
+  La sémantique `weak` (règle du dépôt) est conservée par une boîte nichée,
+  `WeakViewModelBox: @unchecked Sendable` — l'`@unchecked` affirme les
+  conventions du type (`log` saute sur main, écritures d'état via hops main)
+  que le compilateur ne lit pas.
+
+**Preuve** : passe sans drapeau fraîche (whole-module, zéro cache) **7 → 0** ;
+gate + cliquet verts, 3 152 tests verts. Cliquet **+7 VM / +2 NexusModSearch,
+assumés** — les consignations tiennent en 7 lignes de code, le raisonnement
+vit ici. **La phase P5 reste fermée** : la passe stricte rend 466 diagnostics
+de tête (467 au 2026-09-11) — la phase « vider le VM de son état publié » n'a
+pas réduit la dette de concurrence (elle a déplacé de l'état, pas les patterns
+asynchrones). La fin de jeu structurée des deux boucles disque (exécuteurs
+Core + `AsyncStream`, store `@MainActor`) s'y décidera, pas avant.
 
 **Recommandation, pas décision** : ne pas câbler `-strict-concurrency=complete`
 dans `build_app.py` en l'état — 467 avertissements à chaque build est un mur de

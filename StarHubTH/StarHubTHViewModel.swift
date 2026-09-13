@@ -4942,8 +4942,8 @@ final class StarHubTHViewModel {
     /// Relève la progression du téléchargement en cours.
     ///
     /// Appelée depuis la file de délégué d'`URLSession`, donc **hors du fil
-    /// principal** : le saut est explicite, sans quoi trois `@Published`
-    /// seraient mutés depuis un autre fil.
+    /// principal** : le saut est explicite, sans quoi l'état du store de
+    /// téléchargement serait muté depuis un autre fil.
     ///
     /// `expected` vaut `-1` quand le serveur n'annonce pas la taille — le cas
     /// est fréquent sur un CDN. `DownloadProgress` le traduit en « taille
@@ -4951,10 +4951,11 @@ final class StarHubTHViewModel {
     /// le débit, qui sont vrais.
     nonisolated private func noteNexusDownloadProgress(received: Int64, expected: Int64,
                                                        modId: Int) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.downloadStore.noteProgress(received: received, expected: expected,
-                                            modId: modId)
+        // Seule la référence du store traverse (écritures toutes sur main) :
+        // `nonisolated(unsafe)` borné à lui ; store `@MainActor` = voie P5.
+        nonisolated(unsafe) let store = self.downloadStore
+        DispatchQueue.main.async {
+            store.noteProgress(received: received, expected: expected, modId: modId)
         }
     }
 
@@ -8748,7 +8749,6 @@ final class StarHubTHViewModel {
         // second one and the UI disables the Activate/Manage buttons until the
         // move + rescan below completes.
         profilesStore.setApplying(true)
-        let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
         // Records each mod that could not be moved, with the underlying
@@ -8816,6 +8816,8 @@ final class StarHubTHViewModel {
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
+            // Créé dans la closure : capturé de l'extérieur, il traverserait l'isolement.
+            let fm = FileManager.default
             var failures: [MoveFailure] = []
             var attempted = 0
             var anyEnabled = false
@@ -9242,6 +9244,12 @@ final class StarHubTHViewModel {
     ///
     /// X57 : « every installed mod » s'entend **au cadrage près** — la règle
     /// de la liste (`mods(matching:)` + `scopedMods(from:scope:)`), lue sur
+    /// Boîte `weak` traversable par une closure `@Sendable` : l'`@unchecked`
+    /// affirme les conventions du type (hops main) que le compilateur ne lit pas.
+    private struct WeakViewModelBox: @unchecked Sendable {
+        weak var viewModel: StarHubTHViewModel?
+    }
+
     /// `modList.filters`. Filtrer puis « Tout désactiver » ne touche que
     /// l'ensemble cadré, pas les 949 dossiers du parc.
     @MainActor
@@ -9274,12 +9282,11 @@ final class StarHubTHViewModel {
         let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            // Règle du dépôt : `weak self` obligatoire dans toute closure
-            // passée à DispatchQueue.global().async (CLAUDE.md, Concurrence).
-            // La VM vit autant que l'app aujourd'hui, mais refresh() pose déjà
-            // ce weak pour le futur refactor non-singleton documenté.
-            guard let self else { return }
+        // Capture `@MainActor` → file globale : le VM passe par la boîte
+        // `weak` ci-dessus (conventions du type, écritures via hops main).
+        let contextBox = WeakViewModelBox(viewModel: self)
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let context = contextBox.viewModel else { return } // `weak` (règle du dépôt)
             let fm = FileManager.default
 
             struct MoveFailure {
@@ -9308,7 +9315,7 @@ final class StarHubTHViewModel {
                 // skip instead of operating on a non-existent path.
                 guard fm.fileExists(atPath: src) else {
                     DispatchQueue.main.async {
-                        self.bulkToggleProgress = (done: index + 1, total: total)
+                        context.bulkToggleProgress = (done: index + 1, total: total)
                     }
                     continue
                 }
@@ -9337,9 +9344,9 @@ final class StarHubTHViewModel {
                     // donc le bilan de fin le compte et le nomme. Un `continue`
                     // aurait laissé « 42 mods activés » sur une bascule
                     // silencieusement déclinée.
-                    try self.renameModFolder(from: src, to: dst,
-                                             destinationName: dstName,
-                                             uniqueId: mod.uniqueId, fm: fm)
+                    try context.renameModFolder(from: src, to: dst,
+                                                destinationName: dstName,
+                                                uniqueId: mod.uniqueId, fm: fm)
                     didMove = true
                 } catch {
                     failures.append(MoveFailure(modName: mod.name, direction: direction, error: error))
@@ -9349,7 +9356,7 @@ final class StarHubTHViewModel {
                     movedCount += 1
                     if enable {
                         DispatchQueue.main.async {
-                            self.modActivationTimestamps[mod.folderName] = Date()
+                            context.modActivationTimestamps[mod.folderName] = Date()
                         }
                         anyEnabled = true
                     }
@@ -9357,19 +9364,19 @@ final class StarHubTHViewModel {
 
                 // Publish progress on the main thread after each move.
                 DispatchQueue.main.async {
-                    self.bulkToggleProgress = (done: index + 1, total: total)
+                    context.bulkToggleProgress = (done: index + 1, total: total)
                 }
             }
 
             if anyEnabled {
                 DispatchQueue.main.async {
-                    Self.saveModActivationTimestamps(self.modActivationTimestamps)
+                    Self.saveModActivationTimestamps(context.modActivationTimestamps)
                 }
             }
 
             for failure in failures {
                 DispatchQueue.main.async {
-                    self.log(
+                    context.log(
                         String(format: "%@ %@: %@",
                                failure.modName, failure.direction, failure.error.localizedDescription),
                         level: .error
@@ -9380,19 +9387,19 @@ final class StarHubTHViewModel {
             // Rescan so the list reflects the real on-disk state, whatever it
             // is after partial failures. syncActiveProfileIds runs after so the
             // active profile's stored id list tracks the actual enabled set.
-            self.scanMods()
+            context.scanMods()
             DispatchQueue.main.async {
-                self.bulkToggleProgress = nil
-                self.syncActiveProfileIds()
+                context.bulkToggleProgress = nil
+                context.syncActiveProfileIds()
                 if failures.isEmpty {
-                    self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
-                                    movedCount))
+                    context.log(String(format: enable ? context.localization.L(L10n.Mods.enabledAllCount) : context.localization.L(L10n.Mods.disabledAllCount),
+                                       movedCount))
                 } else if attempted == failures.count {
-                    self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkToggleFailed), failures.count))
+                    context.showModal(message: String(format: context.localization.L(L10n.Mods.bulkToggleFailed), failures.count))
                 } else {
-                    self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
-                    self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
-                                    movedCount), level: .warning)
+                    context.showModal(message: String(format: context.localization.L(L10n.Mods.bulkTogglePartial), movedCount, failures.count))
+                    context.log(String(format: enable ? context.localization.L(L10n.Mods.enabledAllCount) : context.localization.L(L10n.Mods.disabledAllCount),
+                                       movedCount), level: .warning)
                 }
             }
         }

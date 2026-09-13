@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reason for creating a mod install backup
-public enum BackupReason: String, Codable {
+public enum BackupReason: String, Codable, Sendable {
     case beforeInstall
     case beforeUpdate
     /// The live version set aside just before a backup was restored over
@@ -11,7 +11,7 @@ public enum BackupReason: String, Codable {
 }
 
 /// Metadata about a mod extracted from manifest.json
-public struct ModMetadata: Codable, Equatable {
+public struct ModMetadata: Codable, Equatable, Sendable {
     public let name: String
     public let version: String
     public let author: String
@@ -27,7 +27,11 @@ public struct ModMetadata: Codable, Equatable {
 
 /// Backup of a complete mod folder before installation or update.
 /// Stored in ~/Library/Application Support/StarHubFR/Backups/ModInstalls/
-public struct ModInstallBackup: Identifiable, Codable, Equatable {
+///
+/// `Sendable` explicite : type public, donc jamais de conformance implicite —
+/// et il traverse la concurrence en pratique (groupes de `BackupBrowser`,
+/// rapports de restauration). Membres tous en types de valeur.
+public struct ModInstallBackup: Identifiable, Codable, Equatable, Sendable {
     public var id: UUID = UUID()
     public let timestamp: Date
     public let originalFolderName: String

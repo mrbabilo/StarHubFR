@@ -81,7 +81,9 @@ public enum NexusModSearch {
     /// en montre moins encore ; sur un nom générique — « Content Patcher » rend
     /// **428** résultats — taire le total laisserait croire que la poignée
     /// affichée est tout ce qui existe.
-    public struct Page: Equatable, Codable {
+    /// `Sendable` explicite (type public : jamais implicite) — `SectionState`
+    /// le porte en valeur associée. `Hit` l'est déjà.
+    public struct Page: Equatable, Codable, Sendable {
         public let hits: [Hit]
         public let totalCount: Int
 

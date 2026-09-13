@@ -124,10 +124,21 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `contains(where:)`. Le `Void` explicite de `bootstrapDefaults` est
       **porteur d'ordre** : la propriété est déclarée avant le `@AppStorage` de
       l'App, qui lit `UserDefaults` à son initialisation — déplacer
-      l'appel dans `init()` inverserait la reprise pour ce lecteur. Ne reste du
-      relevé que la classe concurrency : quatre captures `@Sendable` du VM,
-      deux captures de `FileManager` en *error in the Swift 6 language mode* —
-      une passe de design, pas des correctifs au vol.)*
+      l'appel dans `init()` inverserait la reprise pour ce lecteur.)*
+      **La classe concurrency — traitée le même jour (2026-09-13).** ⚠️ Le
+      relevé annonçait 6 diagnostics ; la re-mesure sans drapeau en rendait
+      **7** — le refactor avait lui-même introduit 4 brèches de conformance
+      `Sendable` en Core (types publics : jamais d'implicite). Les sept
+      éteints, chacun à son verdict : conformités explicites
+      (`ModInstallBackup` + 2, `NexusModSearch.Page`) ; `FileManager` créé
+      **dans** la closure (patron de la boucle sœur) ; `nonisolated(unsafe)`
+      borné au store pour le relais de progression Nexus ; boîte `weak`
+      `@unchecked Sendable` pour la bascule en masse — 🚩 une capture-liste
+      `[weak x]` **défait** la liaison `nonisolated(unsafe)`, prouvé au gate.
+      Passe sans drapeau : **7 → 0** ; gate + 3 152 tests verts. **La phase P5
+      reste fermée** : 466 diagnostics stricts (467 au 2026-09-11) — la fin de
+      jeu structurée (exécuteurs Core, `@MainActor`) s'y décidera. Détail et
+      mécanismes : `REFACTORING.md` §9.
 ---
 
 
