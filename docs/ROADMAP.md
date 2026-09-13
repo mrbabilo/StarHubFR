@@ -82,7 +82,7 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-- [ ] **X106** — **Un `NSLock` est pris et rendu dans un contexte asynchrone.**
+- [x] **X106** ✅ *(livré le 2026-09-13)* — **Un `NSLock` est pris et rendu dans un contexte asynchrone.**
       `SmapiUpdateClient.swift:110` et `:112` — le compilateur le dit déjà
       (`instance method 'lock' is unavailable from asynchronous contexts`), et
       c'est l'un des **13 avertissements que le code porte aujourd'hui**, qu'un
@@ -94,11 +94,31 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       porté par un acteur, ou borner la section critique en dehors de tout
       `await`. ⚠️ Mesurer d'abord s'il y a réellement un `await` **dans** la
       section : le diagnostic vise le contexte, pas la portée du verrou.
-      *(Trois autres trouvailles du même relevé, sans risque d'exécution :
-      `NexusArchiveStore.swift:117` un `??` à membre gauche non optionnel donc
-      une branche morte, `StarHubTHViewModel.swift:2909` un `seedFolder` calculé
-      jamais utilisé, `StarHubTHApp.swift:105` un `bootstrapDefaults` inféré
-      `Void`.)*
+      **Le verdict de la mesure** : la crainte ne s'est **pas** réalisée —
+      aucune des deux sections critiques ne contenait d'`await`. La première
+      vivait dans `fetch`, fonction synchrone ; la seconde (`lock / inFlight =
+      nil / unlock`) est une ligne droite **après** le `await task.value` qui
+      précède la prise du verrou. Aucun thread du pool coopératif n'a jamais
+      été immobilisé. Le danger réel était ailleurs : le SDK précise *this is
+      an error in the Swift 6 language mode* — la migration Swift 6 aurait
+      cassé le build. **Livré** : les deux sections bornées dans des helpers
+      **synchrones** (`engage(makeTask:)` d'un tenant, l'atomicité du
+      check-and-set X87 préservée au même verrou ; `clearInFlight()`),
+      2 diagnostics → 0. Le mécanisme X87, jusque-là sans **aucun** test (le
+      filet existant ne couvrait ni la sérialisation ni le nettoyage), est
+      épinglé par `anOverlappingCallWaitsItsTurnAndTheSlotIsReturned` — épingle
+      à sémaphore, prouvé rouge par deux sabotages (branche « passe en vol »
+      morte → les passes s'entremêlent ; créneau jamais rendu → la complétion
+      du second appel ne part jamais). ⚠️ Appris au passage : un appel
+      chevauchant ne récupère pas le verdict de la passe en vol — il en
+      déclenche une **seconde**, sérialisée, après elle (mesuré : 2 + 2
+      requêtes, retraits X47 compris). Comportement livré, laissé tel quel ;
+      un court-circuit vers le verdict existant serait une décision propre.
+      *(Trois autres trouvailles du même relevé, sans risque d'exécution,
+      restent ouvertes : `NexusArchiveStore.swift:117` un `??` à membre gauche
+      non optionnel donc une branche morte, `StarHubTHViewModel.swift:2909` un
+      `seedFolder` calculé jamais utilisé, `StarHubTHApp.swift:105` un
+      `bootstrapDefaults` inféré `Void`.)*
 ---
 
 

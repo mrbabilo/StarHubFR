@@ -762,7 +762,11 @@ compilateur ne voit simplement pas un verrou manuel. Compter n'est pas lire.
 l'incrémental fait que personne ne les voit. Quatre ne sont pas des formalités :
 `SmapiUpdateClient.swift:110/112` prend et rend un `NSLock` **dans un contexte
 asynchrone** (`unavailable from asynchronous contexts`) — un verrou tenu à
-travers une suspension ; `NexusArchiveStore.swift:117` porte un `??` dont le
+travers une suspension *(corrigé depuis — X106, le 2026-09-13 : la mesure
+demandée par la case a montré qu'aucune section ne contenait d'`await`, le
+diagnostic visait le contexte `Task`, pas la portée du verrou ; les sections
+sont désormais bornées dans des helpers synchrones et le relevé retombe à
+**11**)* ; `NexusArchiveStore.swift:117` porte un `??` dont le
 membre gauche est **non optionnel**, donc une branche morte ;
 `StarHubTHViewModel.swift:2909` calcule un `seedFolder` **jamais utilisé** ; et
 `StarHubTHApp.swift:105` infère `Void` pour `bootstrapDefaults`. Aucun n'est
