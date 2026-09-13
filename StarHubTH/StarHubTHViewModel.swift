@@ -2912,22 +2912,6 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// L'`UniqueID` déclaré par le manifeste d'un dossier de mod, ou `nil`.
-    ///
-    /// Sert à savoir **à qui appartient** un dossier avant de le déplacer. Passe
-    /// par `ManifestJSON`, comme le scan : un manifeste avec commentaires, BOM
-    /// ou virgule traînante se lit ici exactement comme là-bas, sinon un mod
-    /// bien réel passerait pour un résidu anonyme.
-    private static func uniqueId(ofModAt folderPath: String) -> String? {
-        let manifestPath = (folderPath as NSString).appendingPathComponent("manifest.json")
-        guard let data = FileManager.default.contents(atPath: manifestPath),
-              let raw = String(data: data, encoding: .utf8),
-              let manifest = ManifestJSON.decode(raw),
-              let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String
-        else { return nil }
-        return uniqueId
-    }
-
     @MainActor
     private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Le QUOI — quels dossiers, quel état visé — vit dans `TogglePlan`
@@ -2999,6 +2983,13 @@ final class StarHubTHViewModel {
                     self.modActivationTimestamps[folderName] = Date()
                 }
             } catch {
+                // P5-T9 : l'échec d'un rollback raté remonte dans l'erreur au
+                // lieu d'être journalisé sur place — c'est ici qu'on sait
+                // écrire au journal, et la ligne CRITICAL ne vit qu'à un
+                // endroit (`rollbackCriticalLog`).
+                if let critical = (error as? ModFolderRenameFailure)?.rollbackCriticalLog {
+                    log(critical, level: .error)
+                }
                 log("Failed to toggle \(m.name): \(error.localizedDescription)", level: .error)
             }
         }
@@ -8912,6 +8903,13 @@ final class StarHubTHViewModel {
             // sous `@Observable`, plus aucun diagnostic n'est émis — le
             // garde-fou est parti avec le chantier A.
             for failure in failures {
+                // P5-T9 : un rollback raté remonte dans l'erreur — la ligne
+                // CRITICAL (une seule définition, dans
+                // `ModFolderRenameFailure.rollbackCriticalLog`) est dite ici,
+                // avant le bilan qui ne montre que la cause d'origine.
+                if let critical = (failure.error as? ModFolderRenameFailure)?.rollbackCriticalLog {
+                    self.log(critical, level: .error)
+                }
                 self.log(
                     String(format: self.localization.L(L10n.VM.applyProfileMoveFail),
                            failure.modName, failure.direction, failure.error.localizedDescription),
@@ -9048,29 +9046,6 @@ final class StarHubTHViewModel {
         return headline + "\n" + shown + extra
     }
 
-    /// Pourquoi une bascule peut refuser un mod — les trois chemins
-    /// (unitaire, en masse, application d'un profil) disent la même chose.
-    ///
-    /// `LocalizedError` parce que le bilan de fin ne lit que
-    /// `error.localizedDescription` : un `NSError` nu y aurait affiché un code.
-    /// Le nom du mod et le sens de la bascule sont déjà préfixés par la ligne
-    /// de journal, la phrase ne les répète pas.
-    private enum FolderToggleRefusal: LocalizedError {
-        /// Le dossier de destination appartient à un **autre** mod. Le
-        /// déplacer, puis le supprimer, effacerait un mod que l'utilisateur
-        /// n'a pas désigné — voir `ModFolderCollision`.
-        case folderClaimedByAnotherMod(destination: String, otherUniqueId: String)
-
-        var errorDescription: String? {
-            switch self {
-            case .folderClaimedByAnotherMod(let destination, let otherUniqueId):
-                return "« \(destination) » est déjà le dossier d'un autre mod "
-                    + "(\(otherUniqueId)). Renommer l'un des deux dossiers pour "
-                    + "les distinguer."
-            }
-        }
-    }
-
     /// Renomme un dossier de mod dans `Mods/`, en traitant le cas où la
     /// destination est déjà occupée.
     ///
@@ -9080,49 +9055,27 @@ final class StarHubTHViewModel {
     /// exemplaires divergeaient déjà : l'un préfixait d'un point le dossier
     /// écarté, l'autre non — cf. `ModFolderCollision.asideName`.
     ///
+    /// Le travail disque vit dans `ModFolderRename.moveReplacingStaleDestination`
+    /// (Core, testé) — P5-T9 l'y a porté avec les deux types d'erreur
+    /// (`FolderToggleRefusal`, `ModFolderRenameFailure`) : une fonction
+    /// fichier ne journalise plus sur place, l'échec d'un rollback raté
+    /// **remonte** dans l'erreur (`ModFolderRenameFailure.rollbackFailed`,
+    /// avec `strandedAt`) et ce sont les trois appelants, qui savent écrire
+    /// au journal, qui le disent. Cette façade reste pour les trois chemins
+    /// de bascule ; elle ne touche à rien d'autre, et ne deviendra que plus
+    /// légère à l'heure du `@MainActor`.
+    ///
     /// - Throws: `FolderToggleRefusal.folderClaimedByAnotherMod` quand la
     ///   destination appartient à un **autre** mod (le déplacer lui ferait
     ///   perdre favori, note, config de profil et identifiant Nexus, sans un
-    ///   mot) ; l'erreur du système de fichiers sinon.
+    ///   mot) ; `ModFolderRenameFailure` pour un déplacement ou un rollback
+    ///   en échec.
     private func renameModFolder(from srcPath: String, to dstPath: String,
                                  destinationName: String, uniqueId: String,
                                  fm: FileManager) throws {
-        // Le résidu est **écarté**, pas supprimé : un renommage en échec juste
-        // après ne doit pas laisser le mod perdu des deux côtés.
-        var aside: String? = nil
-        if fm.fileExists(atPath: dstPath) {
-            let destinationId = Self.uniqueId(ofModAt: dstPath)
-            guard ModFolderCollision.isStaleDuplicate(destinationUniqueId: destinationId,
-                                                      toggling: uniqueId) else {
-                throw FolderToggleRefusal.folderClaimedByAnotherMod(
-                    destination: destinationName,
-                    otherUniqueId: destinationId ?? "?")
-            }
-            let parent = (dstPath as NSString).deletingLastPathComponent
-            let leaf = (dstPath as NSString).lastPathComponent
-            let asidePath = (parent as NSString)
-                .appendingPathComponent(ModFolderCollision.asideName(for: leaf))
-            try fm.moveItem(atPath: dstPath, toPath: asidePath)
-            aside = asidePath
-        }
-
-        do {
-            try fm.moveItem(atPath: srcPath, toPath: dstPath)
-        } catch {
-            // Remettre le résidu en place : sans ça, le mod n'est plus nulle
-            // part sous un nom que l'app sache retrouver.
-            if let aside {
-                do {
-                    try fm.moveItem(atPath: aside, toPath: dstPath)
-                } catch {
-                    self.log("CRITICAL: toggle rollback failed — mod still in \(aside) "
-                             + "(could not move back to \(dstPath): \(error))", level: .error)
-                }
-            }
-            throw error
-        }
-
-        if let aside { try? fm.removeItem(atPath: aside) }
+        try ModFolderRename.moveReplacingStaleDestination(from: srcPath, to: dstPath,
+                                                          destinationName: destinationName,
+                                                          uniqueId: uniqueId, fm: fm)
     }
 
     // MARK: - Règle de cadrage de la liste des mods
@@ -9382,7 +9335,15 @@ final class StarHubTHViewModel {
             }
 
             for failure in failures {
+                // P5-T9 : un rollback raté remonte dans l'erreur — la ligne
+                // CRITICAL (une seule définition, dans
+                // `ModFolderRenameFailure.rollbackCriticalLog`) est dite ici,
+                // avant le bilan qui ne montre que la cause d'origine. La
+                // valeur est extraite hors du saut sur le fil principal :
+                // seul un `String` (ou rien) le traverse.
+                let critical = (failure.error as? ModFolderRenameFailure)?.rollbackCriticalLog
                 DispatchQueue.main.async {
+                    if let critical { context.log(critical, level: .error) }
                     context.log(
                         String(format: "%@ %@: %@",
                                failure.modName, failure.direction, failure.error.localizedDescription),
