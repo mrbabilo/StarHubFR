@@ -36,23 +36,24 @@ public enum BisectionRestoreOutcome: Equatable {
 }
 
 public enum BisectionSnapshotStore {
-    /// Dossier où vit l'instantané. Par défaut, le même Application Support que
-    /// le reste de l'état de diagnostic, pour qu'un seul endroit concentre la
-    /// récupération après coup. `internal` et mutable uniquement pour les tests,
-    /// qui le redirigent vers un dossier temporaire afin de ne jamais risquer
-    /// l'instantané réel d'une recherche laissée en plan.
-    static var storageDirectory: URL? = defaultDirectory()
-
-    private static func defaultDirectory() -> URL? {
-        AppSupport.directory
+    /// Le dossier de stockage est un **paramètre**, plus un état de type.
+    ///
+    /// Deux choses en découlent. Deux tests concurrents ne peuvent plus se
+    /// voler leur redirection : chacun donne le sien à l'appel. Et surtout,
+    /// **aucun point d'entrée n'a de valeur par défaut** — il n'y a donc rien
+    /// à oublier de rediriger, et aucune écriture ne peut retomber sur le vrai
+    /// Application Support d'un joueur par inadvertance. La production, elle,
+    /// passe explicitement `AppSupport.directory`.
+    ///
+    /// `nil` reste toléré en silence : le système ne rend aucun dossier de
+    /// support, l'app ne peut de toute façon rien persister.
+    private static func fileURL(in directory: URL) -> URL {
+        directory.appendingPathComponent("bisection_snapshot.json")
     }
 
-    private static var fileURL: URL? {
-        storageDirectory?.appendingPathComponent("bisection_snapshot.json")
-    }
-
-    public static func save(_ snapshot: BisectionSnapshot) {
-        guard let url = fileURL, let data = try? JSONEncoder().encode(snapshot) else { return }
+    public static func save(_ snapshot: BisectionSnapshot, in directory: URL?) {
+        guard let directory, let data = try? JSONEncoder().encode(snapshot) else { return }
+        let url = fileURL(in: directory)
         do {
             try data.write(to: url, options: .atomic)
         } catch {
@@ -63,14 +64,15 @@ public enum BisectionSnapshotStore {
         }
     }
 
-    public static func load() -> BisectionSnapshot? {
-        guard let url = fileURL, let data = try? Data(contentsOf: url) else { return nil }
+    public static func load(from directory: URL?) -> BisectionSnapshot? {
+        guard let directory,
+              let data = try? Data(contentsOf: fileURL(in: directory)) else { return nil }
         return try? JSONDecoder().decode(BisectionSnapshot.self, from: data)
     }
 
-    public static func clear() {
-        guard let url = fileURL else { return }
-        try? FileManager.default.removeItem(at: url)
+    public static func clear(in directory: URL?) {
+        guard let directory else { return }
+        try? FileManager.default.removeItem(at: fileURL(in: directory))
     }
 
     /// Referme une recherche après une remise en état.
@@ -85,9 +87,9 @@ public enum BisectionSnapshotStore {
     ///   conditionner la remise à zéro de son état mémoire à cette valeur, pour
     ///   que disque et mémoire ne puissent jamais diverger.
     @discardableResult
-    public static func finish(_ outcome: BisectionRestoreOutcome) -> Bool {
+    public static func finish(_ outcome: BisectionRestoreOutcome, in directory: URL?) -> Bool {
         guard outcome == .complete else { return false }
-        clear()
+        clear(in: directory)
         return true
     }
 }

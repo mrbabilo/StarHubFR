@@ -2068,7 +2068,7 @@ final class StarHubTHViewModel {
         // R2 : une application de profil morte en route ? Le journal est lu
         // ici, mais il ne sera **présenté** qu'une fois la fenêtre révélée
         // (voir `surfaceApplyRecoveryIfNeeded`, appelée par StarHubFRApp).
-        unresolvedApplyJournal = ProfileApplyJournalStore.load()
+        unresolvedApplyJournal = ProfileApplyJournalStore.load(from: applyJournalDirectory)
         // IMPORTANT: everything below `performInitialLoad()` runs on a
         // background thread; this `init()` returns as fast as possible so the
         // app window can render the launch overlay without waiting for any
@@ -7612,6 +7612,13 @@ final class StarHubTHViewModel {
     /// révélation de la fenêtre.
     private(set) var unresolvedApplyJournal: ProfileApplyJournal?
 
+    /// R2 — où vit ce journal sur disque. Relevé **une fois** : les quatre
+    /// points d'appel du ViewModel doivent désigner le même fichier, sans quoi
+    /// un `clear` n'effacerait rien et le garde d'adoption resterait armé sur
+    /// un journal fantôme. Le store, lui, n'a plus de valeur par défaut — c'est
+    /// ce qui garantit qu'aucun test ne peut écrire ici par inadvertance.
+    private let applyJournalDirectory: URL? = AppSupport.directory
+
     /// R2 — le dialogue de reprise, présenté une fois la fenêtre révélée —
     /// jamais pendant le splash : un dialogue attaché à une fenêtre hors
     /// écran ne se présente pas, et le cycle de lancement est un terrain
@@ -8561,7 +8568,7 @@ final class StarHubTHViewModel {
     /// « Garder l'état actuel ») — le disque reste tel quel, le journal part,
     /// le choix est journalisé.
     func clearUnresolvedJournal(implicitKeepNamed name: String) {
-        ProfileApplyJournalStore.clear()
+        ProfileApplyJournalStore.clear(in: applyJournalDirectory)
         unresolvedApplyJournal = nil
         pendingApplyRecovery = nil
         log(String(format: self.localization.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
@@ -8802,7 +8809,7 @@ final class StarHubTHViewModel {
             // proposerait pas de récupérer. On logue et on continue — la
             // session courante reste correcte, c'est la **prochaine** qui
             // perdra la mémoire.
-            if let err = ProfileApplyJournalStore.save(journal) {
+            if let err = ProfileApplyJournalStore.save(journal, in: applyJournalDirectory) {
                 log(String(format: localization.L(L10n.VM.profileApplyJournalWriteFailed),
                            profileName, err.localizedDescription), level: .error)
             }
@@ -8945,7 +8952,7 @@ final class StarHubTHViewModel {
                 // sync ci-dessous, sinon le garde d'adoption bloquerait un
                 // succès.
                 if journaling {
-                    ProfileApplyJournalStore.clear()
+                    ProfileApplyJournalStore.clear(in: self.applyJournalDirectory)
                     self.unresolvedApplyJournal = nil
                 }
                 self.profileApplyProgress = nil

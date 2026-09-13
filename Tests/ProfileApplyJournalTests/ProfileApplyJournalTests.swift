@@ -2,22 +2,20 @@ import Testing
 import Foundation
 @testable import StarHubTHCore
 
-/// R2 — le store du journal d'application de profil. `storageDirectory` est
-/// global et mutable : la suite est sérialisée et chaque test remet le
-/// store à zéro, pour ne jamais risquer le vrai journal d'un parc en cours.
-@Suite(.serialized)
+/// R2 — le store du journal d'application de profil. Son dossier est un
+/// **paramètre** : chaque test lui donne le sien, aucun appel ne peut retomber
+/// sur le vrai Application Support (il n'y a pas de valeur par défaut, et cette
+/// suite ne nomme jamais `AppSupport`), et rien n'est partagé entre tests —
+/// d'où la disparition du `.serialized`.
 struct ProfileApplyJournalTests {
 
-    /// Redirige le store vers un dossier temporaire et le remet ensuite.
-    private func withTemporaryStorage(_ body: () throws -> Void) rethrows {
+    /// Un dossier temporaire, nettoyé à la sortie. Volontairement **pas créé**
+    /// ici : `saveCreatesAMissingDirectory` compte dessus.
+    private func withTemporaryStorage(_ body: (URL) throws -> Void) rethrows {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("ProfileApplyJournalTests-\(UUID().uuidString)", isDirectory: true)
-        ProfileApplyJournalStore.storageDirectory = dir
-        defer {
-            ProfileApplyJournalStore.storageDirectory = nil
-            try? FileManager.default.removeItem(at: dir)
-        }
-        try body()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try body(dir)
     }
 
     private func sampleJournal() -> ProfileApplyJournal {
@@ -41,47 +39,69 @@ struct ProfileApplyJournalTests {
     }
 
     @Test func storeRoundTripPreservesTheJournal() throws {
-        try withTemporaryStorage {
+        try withTemporaryStorage { dir in
             let journal = sampleJournal()
-            ProfileApplyJournalStore.save(journal)
-            #expect(ProfileApplyJournalStore.load() == journal)
+            ProfileApplyJournalStore.save(journal, in: dir)
+            #expect(ProfileApplyJournalStore.load(from: dir) == journal)
+        }
+    }
+
+    /// **Le test qui épingle la redirection.** Les autres n'observent que
+    /// l'aller-retour du store, et resteraient verts si les trois points
+    /// d'entrée ignoraient le dossier reçu pour se donner rendez-vous ailleurs
+    /// — y compris dans le vrai Application Support. Celui-ci regarde le
+    /// disque à l'endroit exact qui a été demandé.
+    @Test func theJournalIsWrittenInTheDirectoryItWasGiven() throws {
+        try withTemporaryStorage { dir in
+            #expect(ProfileApplyJournalStore.save(sampleJournal(), in: dir) == nil)
+            let file = dir.appendingPathComponent("profile_apply_journal.json")
+            #expect(FileManager.default.fileExists(atPath: file.path))
         }
     }
 
     @Test func clearMakesLoadReturnNil() throws {
-        try withTemporaryStorage {
-            ProfileApplyJournalStore.save(sampleJournal())
-            ProfileApplyJournalStore.clear()
-            #expect(ProfileApplyJournalStore.load() == nil)
+        try withTemporaryStorage { dir in
+            ProfileApplyJournalStore.save(sampleJournal(), in: dir)
+            ProfileApplyJournalStore.clear(in: dir)
+            #expect(ProfileApplyJournalStore.load(from: dir) == nil)
         }
     }
 
     @Test func clearWithoutFileIsNotAnError() throws {
-        try withTemporaryStorage {
-            ProfileApplyJournalStore.clear()
-            #expect(ProfileApplyJournalStore.load() == nil)
+        try withTemporaryStorage { dir in
+            ProfileApplyJournalStore.clear(in: dir)
+            #expect(ProfileApplyJournalStore.load(from: dir) == nil)
         }
     }
 
+    /// Sans dossier de support, l'app ne peut rien persister : le store se tait
+    /// (pas d'erreur d'écriture à remonter) et une lecture rend « rien ». C'est
+    /// ce que faisait `storageDirectory == nil` — le passage en paramètre le
+    /// conserve.
+    @Test func noDirectoryMeansNoStorageAndNoCrash() {
+        #expect(ProfileApplyJournalStore.save(sampleJournal(), in: nil) == nil)
+        #expect(ProfileApplyJournalStore.load(from: nil) == nil)
+        ProfileApplyJournalStore.clear(in: nil)
+    }
+
     @Test func corruptFileLoadsAsNil() throws {
-        try withTemporaryStorage {
+        try withTemporaryStorage { dir in
             // Un journal illisible ne doit jamais paralyser le lancement :
             // il se lit « absent », pas « en échec ».
-            let dir = ProfileApplyJournalStore.storageDirectory!
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             try Data("{\"profileId\": \"pas un UUID".utf8)
                 .write(to: dir.appendingPathComponent("profile_apply_journal.json"))
-            #expect(ProfileApplyJournalStore.load() == nil)
+            #expect(ProfileApplyJournalStore.load(from: dir) == nil)
         }
     }
 
     @Test func saveCreatesAMissingDirectory() throws {
-        try withTemporaryStorage {
+        try withTemporaryStorage { dir in
             // Le dossier temporaire n'existe pas encore : `save` doit le
-            // créer (le `defaultDirectory()` du patron ne s'exécute qu'une
-            // fois — c'est à `save` de garantir le chemin).
-            ProfileApplyJournalStore.save(sampleJournal())
-            #expect(ProfileApplyJournalStore.load() != nil)
+            // créer — il est le seul à pouvoir garantir le chemin au moment
+            // d'écrire, et à pouvoir signaler son échec.
+            #expect(ProfileApplyJournalStore.save(sampleJournal(), in: dir) == nil)
+            #expect(ProfileApplyJournalStore.load(from: dir) != nil)
         }
     }
 }

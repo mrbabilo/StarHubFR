@@ -32,19 +32,17 @@ struct ProfileApplyJournal: Codable, Equatable {
 
 enum ProfileApplyJournalStore {
     /// Même dossier que le reste de l'état de récupération (voir
-    /// `BisectionSnapshotStore`). `internal` et mutable uniquement pour les
-    /// tests, qui le redirigent vers un dossier temporaire.
-    static var storageDirectory: URL? = defaultDirectory()
-
-    private static func defaultDirectory() -> URL? {
-        // Pas de création ici : `save` garantit le chemin au moment d'écrire
-        // (et signale un échec) — créer à la déclaration ne servirait qu'un
-        // journal qu'on n'écrira peut-être jamais.
-        AppSupport.directory
-    }
-
-    private static var fileURL: URL? {
-        storageDirectory?.appendingPathComponent("profile_apply_journal.json")
+    /// `BisectionSnapshotStore`), mais il arrive en **paramètre** : aucun
+    /// point d'entrée n'a de valeur par défaut, donc rien ne peut retomber sur
+    /// le vrai Application Support d'un joueur par oubli, et deux tests
+    /// concurrents ne peuvent plus se voler leur redirection. La production
+    /// passe explicitement `AppSupport.directory`.
+    ///
+    /// Pas de création de dossier ici : `save` garantit le chemin au moment
+    /// d'écrire (et signale son échec). `nil` reste toléré en silence — sans
+    /// dossier de support, l'app ne peut rien persister de toute façon.
+    private static func fileURL(in directory: URL) -> URL {
+        directory.appendingPathComponent("profile_apply_journal.json")
     }
 
     /// Écriture atomique (`.atomic` = tmp + rename) : un fichier déchiré se
@@ -57,8 +55,9 @@ enum ProfileApplyJournalStore {
     /// filet de récupération après crash, la prochaine reprise ne pourra pas
     /// se déclencher et l'app continuera comme si de rien n'était.
     @discardableResult
-    static func save(_ journal: ProfileApplyJournal) -> Error? {
-        guard let url = fileURL else { return nil }
+    static func save(_ journal: ProfileApplyJournal, in directory: URL?) -> Error? {
+        guard let directory else { return nil }
+        let url = fileURL(in: directory)
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
                                                     withIntermediateDirectories: true)
@@ -73,15 +72,16 @@ enum ProfileApplyJournalStore {
     /// Corrompu ⇒ nil : un journal illisible ne doit jamais paralyser le
     /// lancement. La forme `do/catch` plutôt que `try?` rend le contrat
     /// lisible : chaque échec **est** « absent », pas un accident avalé.
-    static func load() -> ProfileApplyJournal? {
-        guard let url = fileURL else { return nil }
+    static func load(from directory: URL?) -> ProfileApplyJournal? {
+        guard let directory else { return nil }
+        let url = fileURL(in: directory)
         let data: Data
         do { data = try Data(contentsOf: url) } catch { return nil }
         do { return try JSONDecoder().decode(ProfileApplyJournal.self, from: data) } catch { return nil }
     }
 
-    static func clear() {
-        guard let url = fileURL else { return }
-        try? FileManager.default.removeItem(at: url)
+    static func clear(in directory: URL?) {
+        guard let directory else { return }
+        try? FileManager.default.removeItem(at: fileURL(in: directory))
     }
 }

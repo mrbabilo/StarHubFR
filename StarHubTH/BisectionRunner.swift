@@ -84,6 +84,13 @@ final class BisectionRunner: ObservableObject {
     /// qu'une classe mutable comme le ViewModel n'est pas.
     private nonisolated(unsafe) unowned let vm: StarHubTHViewModel
 
+    /// Où vit l'instantané sur disque. Relevé **une fois**, et pas à chaque
+    /// appel : les cinq points d'appel du runner doivent désigner le même
+    /// fichier. S'ils divergeaient, `clear` n'effacerait rien pendant que
+    /// `finish` rendrait `true`, et le `guard … else` de `restoreAndStop`
+    /// prendrait la mauvaise branche sans que rien ne le signale.
+    private let snapshotDirectory: URL? = AppSupport.directory
+
     /// `nonisolated` : l'init ne fait que stocker la référence au ViewModel, il
     /// n'accède à aucun état MainActor. Permet l'instanciation paresseuse depuis
     /// le ViewModel (`lazy var bisection`), lui-même non isolé.
@@ -91,7 +98,7 @@ final class BisectionRunner: ObservableObject {
 
     /// Au démarrage de l'app : une recherche laissée en plan ?
     func checkForInterruptedSession() {
-        interruptedSnapshot = BisectionSnapshotStore.load()
+        interruptedSnapshot = BisectionSnapshotStore.load(from: snapshotDirectory)
     }
 
     func start() {
@@ -137,7 +144,7 @@ final class BisectionRunner: ObservableObject {
         let enabledFolders = mods.filter(\.isEnabled).map(\.folderName)
         // L'instantané part sur le disque AVANT le premier déplacement.
         let snap = BisectionSnapshot(enabledFolders: enabledFolders, startedAt: Date())
-        BisectionSnapshotStore.save(snap)
+        BisectionSnapshotStore.save(snap, in: snapshotDirectory)
         snapshot = snap
 
         candidateFolders = Set(list.map(\.folderName))
@@ -222,10 +229,15 @@ final class BisectionRunner: ObservableObject {
             // restaurer y compris le coupable. `restoreAndStop` le vide ensuite.
             // Et seulement si tout a bougé : un dossier resté en pause rend
             // l'instantané indispensable, on le garde pour le prochain démarrage.
+            // Capturé **hors** de la closure : `self?.snapshotDirectory` rendrait
+            // `nil` si le runner avait disparu, et l'instantané sur disque
+            // survivrait à une remise en état complète — un `finish` qui rend
+            // `true` sans rien effacer. Le dossier, lui, ne dépend de personne.
+            let directory = snapshotDirectory
             apply(restore) { [weak self] outcome in
                 // L'instantané ne part que si tout a bougé — un dossier resté en
                 // pause le rend indispensable au prochain démarrage.
-                let complete = BisectionSnapshotStore.finish(outcome)
+                let complete = BisectionSnapshotStore.finish(outcome, in: directory)
                 self?.restoreIncomplete = !complete
             }
         default:
@@ -310,7 +322,7 @@ final class BisectionRunner: ObservableObject {
             guard let self else { return }
             // Disque et mémoire sont conditionnés à la **même** réponse : ils ne
             // peuvent pas diverger.
-            guard BisectionSnapshotStore.finish(outcome) else {
+            guard BisectionSnapshotStore.finish(outcome, in: self.snapshotDirectory) else {
                 // Un dossier n'a pas pu être remis en place : l'instantané reste,
                 // sur disque *et* en mémoire, pour que la remise en état soit
                 // réessayable une fois l'obstacle levé (Finder refermé, jumeau
@@ -336,7 +348,7 @@ final class BisectionRunner: ObservableObject {
 
     private func reset() {
         stopWatchingLog()
-        BisectionSnapshotStore.clear()
+        BisectionSnapshotStore.clear(in: snapshotDirectory)
         snapshot = nil
         interruptedSnapshot = nil
         session = nil
