@@ -229,7 +229,10 @@ public class SaveManager {
     /// `NSRegularExpression` compilation is expensive; `fetchSaves()` parses ~14
     /// tags per save file, so caching avoids recompiling the same pattern hundreds
     /// of times across reloads.
-    private static var regexCache: [String: NSRegularExpression] = [:]
+    /// `nonisolated(unsafe)` : chaque lecture et chaque écriture de ce cache
+    /// passe par `regexCacheLock` (ligne suivante). Le compilateur ne voit pas
+    /// un `NSLock` — c'est la seule façon de le lui dire sans déplacer l'état.
+    nonisolated(unsafe) private static var regexCache: [String: NSRegularExpression] = [:]
     private static let regexCacheLock = NSLock()
 
     private static func cachedRegex(for tag: String) -> NSRegularExpression? {

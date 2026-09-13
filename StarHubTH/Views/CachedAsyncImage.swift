@@ -6,7 +6,10 @@ private final class AsyncImageCache {
     /// rend la mémoire que sous pression du système. Le coût est le poids réel
     /// des pixels, pas le nombre d'images — une capture de fiche pèse cent
     /// fois une vignette.
-    private static let cache: NSCache<NSURL, NSImage> = {
+    /// `nonisolated(unsafe)` : `NSCache` est sûr en accès concurrent par
+    /// contrat Apple (documenté thread-safe), ce que le compilateur ne déduit
+    /// pas d'un type Objective-C.
+    nonisolated(unsafe) private static let cache: NSCache<NSURL, NSImage> = {
         let cache = NSCache<NSURL, NSImage>()
         cache.countLimit = 400
         cache.totalCostLimit = 128 * 1024 * 1024
