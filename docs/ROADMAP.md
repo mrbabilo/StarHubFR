@@ -135,7 +135,8 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       borné au store pour le relais de progression Nexus ; boîte `weak`
       `@unchecked Sendable` pour la bascule en masse — 🚩 une capture-liste
       `[weak x]` **défait** la liaison `nonisolated(unsafe)`, prouvé au gate.
-      Passe sans drapeau : **7 → 0** ; gate + 3 152 tests verts. **La phase P5
+      Passe sans drapeau : **7 → 0** ; gate + 3 152 tests verts. ✅ Vérifié à
+      l'écran par l'auteur le 2026-09-13. **La phase P5
       reste fermée** : 466 diagnostics stricts (467 au 2026-09-11) — la fin de
       jeu structurée (exécuteurs Core, `@MainActor`) s'y décidera. Détail et
       mécanismes : `REFACTORING.md` §9.

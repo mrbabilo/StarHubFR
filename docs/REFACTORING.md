@@ -803,7 +803,8 @@ conformance en Core depuis le 2026-09-11. Les sept, chacun à son verdict :
   que le compilateur ne lit pas.
 
 **Preuve** : passe sans drapeau fraîche (whole-module, zéro cache) **7 → 0** ;
-gate + cliquet verts, 3 152 tests verts. Cliquet **+7 VM / +2 NexusModSearch,
+gate + cliquet verts, 3 152 tests verts. ✅ **Vérifié à l'écran par l'auteur
+le 2026-09-13.** Cliquet **+7 VM / +2 NexusModSearch,
 assumés** — les consignations tiennent en 7 lignes de code, le raisonnement
 vit ici. **La phase P5 reste fermée** : la passe stricte rend 466 diagnostics
 de tête (467 au 2026-09-11) — la phase « vider le VM de son état publié » n'a
