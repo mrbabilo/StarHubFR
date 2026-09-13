@@ -719,7 +719,7 @@ coordonnées et leur outillage ne se transposent pas (§3).
 Relevé en compilant **hors du gate** (binaire et cache de module dans un dossier
 temporaire, `.build` intact). Premier relevé du 2026-09-11 (294 fichiers en
 whole-module, deux fois) ; puis le **jalon du chantier P5**, mesuré deux fois
-sur `1b4f9888` par `scripts/p5-strict.sh`, et son état à la clôture de L1 :
+sur `1b4f9888` par `scripts/p5-strict.sh`, et ses états aux clôtures de L1 et L2 :
 
 | Relevé | Avertissements | Bloquants Swift 6 | Durée |
 | --- | ---: | ---: | ---: |
@@ -727,12 +727,15 @@ sur `1b4f9888` par `scripts/p5-strict.sh`, et son état à la clôture de L1 :
 | 2026-09-11, `-strict-concurrency=complete` | 467 | — | 212 s |
 | **Jalon de départ** (2026-09-13, `1b4f9888`, 318 fichiers) | **453** | **202** | 505 s |
 | **Après L1** (15 globales éteintes, `SaveNotesStore.shared` reportée) | **427** | **184** | 518 s |
+| **Après L2** (`@MainActor` sur le ViewModel) | **237** | **85** | 594 s / 4379 s |
 
 *Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
 Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
 montrent que le mur suivant (mode 6). La baisse L1 dépasse la prévision
 (−18 bloquants pour 15 globales) : plusieurs globales portaient un diagnostic
-de déclaration **et** des diagnostics d'usage.*
+de déclaration **et** des diagnostics d'usage. Les comptes L2 ont été mesurés
+deux fois à l'identique (237/85) ; la seconde passe a duré 4379 s contre
+594 s à charge normale — machine chargée, les comptes n'en dépendent pas.*
 
 ⚠️ Ces 13 ne sont **pas** « ce que le build rend » : le gate compile en
 **incrémental** depuis F2-T2, et seul un fichier recompilé réémet ses
@@ -833,6 +836,14 @@ réglé, puisque 53 % de la dette vit dans le fichier qu'elle vide.
 **Repris à la clôture de L1 (2026-09-13)** : 427 avertissements, 184 bloquants
 Swift 6 — la baisse vient des quinze globales éteintes, pas de la phase VM ;
 le reste du compte attend L2 (`@MainActor` sur le ViewModel) et L3.
+**Repris à la clôture de L2 (le même jour)** : 237 avertissements, 85
+bloquants — 102 de tombés, mieux que la prévision (~95). Le ViewModel (13)
+sort du top 2 de la dette au profit de `SmapiInstaller` (25) et
+`SmapiUpdateClient` (22) : c'est ce qui cadre L4. La règle tenue : le travail
+lourd reste hors main (`ModsFolderSizer` sur utility, lectures de sauvegardes
+en closure globale, cascade `readMaintenanceReport` entièrement
+`nonisolated`) ; ~34 avertissements stricts restent consignés comme dette
+L3/LS (workers des closures lourdes, captures `SaveGameInfo`/`BackupsRead`).
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
