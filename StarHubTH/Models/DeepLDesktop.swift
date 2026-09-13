@@ -25,13 +25,13 @@ public enum DeepLDesktop {
     /// vivre hors de `/Applications` —, et c'est pourquoi l'appelant se tait
     /// dans ce cas plutôt que d'annoncer une absence qu'il ne sait pas.
     public static func isInstalled(
-        resolve: (String) -> URL? = defaultResolve
+        resolve: @Sendable (String) -> URL? = defaultResolve
     ) -> Bool {
         resolve(bundleIdentifier) != nil
     }
 
     /// La résolution réelle, par LaunchServices.
-    public static let defaultResolve: (String) -> URL? = { identifier in
+    public static let defaultResolve: @Sendable (String) -> URL? = { identifier in
         #if canImport(AppKit)
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
         #else
