@@ -9,7 +9,23 @@ import Foundation
 ///
 /// Ni clé d'API ni quota : c'est la source publique que SMAPI consulte
 /// lui-même au démarrage.
-final class SmapiUpdateClient {
+///
+/// `@unchecked` : `inFlight` est pris/rendu sous `inFlightLock` en un seul
+/// tenant (`engage`/`clearInFlight`, X106/X87) — non touchés par cette
+/// tâche. `rateLimitUntil`, lui, n'a pas son propre verrou : il n'est
+/// **jamais accédé que depuis l'unique tâche `runFetch` en vol**, jamais
+/// concurremment. Ce confinement n'est pas une supposition : le
+/// verrouillage lui-même le prouve. `clearInFlight()` (sous `inFlightLock`)
+/// n'efface `inFlight` qu'après `await task.value` — c'est-à-dire après que
+/// la tâche précédente a fini, dernière écriture de `rateLimitUntil`
+/// comprise. Le prochain `engage()` à voir `inFlight == nil` doit acquérir
+/// ce même verrou ; l'acquittement (unlock) de `clearInFlight` et
+/// l'acquisition (lock) de cet `engage()` forment la barrière mémoire qui
+/// rend cette dernière écriture visible avant que la tâche suivante ne
+/// touche à son tour `rateLimitUntil`. Le compilateur ne voit ni le verrou
+/// ni cet enchaînement — cette annotation affirme ce qu'il ne peut pas
+/// vérifier.
+final class SmapiUpdateClient: @unchecked Sendable {
     static let shared = SmapiUpdateClient()
 
     /// 150 : la taille mesurée comme sûre sur un parc de 960 mods (7 lots,

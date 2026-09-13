@@ -18,7 +18,16 @@ import Foundation
 /// Chaque utilisateur fournit sa propre clé API personnelle, gratuite via
 /// `https://www.nexusmods.com/users/myaccount?tab=api`. Les clés sont
 /// stockées dans le Trousseau macOS (jamais dans UserDefaults), une par app.
-final class NexusUpdateChecker {
+///
+/// `@unchecked` : tout l'état mutable **d'instance** de ce type —
+/// `metadataGeneration` (sous `metadataCacheLock`) et `rateLimitGate` (sous
+/// `rateLimitLock`) — est pris sous le verrou qui le nomme, en lecture comme
+/// en écriture. Le compilateur ne voit pas un `NSLock` — cette annotation
+/// affirme ce qu'il ne peut pas vérifier. (Hors périmètre : le
+/// `DateFormatter` `static let legacyNexusFormatter` est un état **statique**
+/// partagé, pas une propriété d'instance ; il n'entre pas dans cette
+/// annotation et reste son propre diagnostic.)
+final class NexusUpdateChecker: @unchecked Sendable {
     static let shared = NexusUpdateChecker()
 
     // `gameDomain`/`apiBase`/`userAgent`/`appVersion` are centralized in

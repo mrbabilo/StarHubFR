@@ -18,7 +18,16 @@ public struct BackupsRead: Equatable {
 /// Mirrors `ModConfigBackupManager`'s singleton pattern with synchronous,
 /// throwing methods. Callers dispatch to background queues and hop back to
 /// main for UI updates, consistent with the rest of the codebase.
-public class ModInstallBackupManager {
+///
+/// `@unchecked` : comme `ModConfigBackupManager`, aucun état mutable
+/// stocké — tous les champs d'instance sont des `let`. `indexLock` protège
+/// le cycle lecture-modification-écriture d'`install_metadata.json` sur
+/// disque : sans lui, des appels create/restore/delete/cleanup concurrents
+/// dispatchés depuis des files différentes peuvent charger le même index et
+/// le dernier `saveIndex` écrase silencieusement les autres. `final` :
+/// aucune sous-classe ne doit pouvoir ajouter un champ non couvert par ce
+/// raisonnement.
+public final class ModInstallBackupManager: @unchecked Sendable {
     public static let shared = ModInstallBackupManager()
 
     public enum InstallBackupError: LocalizedError {
