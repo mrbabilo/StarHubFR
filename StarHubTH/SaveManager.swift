@@ -220,7 +220,18 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
     }
 }
 
-public class SaveManager {
+/// `@unchecked` : la classe porte un état mutable d'instance — `parseCache`
+/// (ligne ~280), la mémoïsation de `fetchSaves()` — pris sous `parseCacheLock`
+/// à chacun de ses quatre accès (`invalidateParseCache`, `cached`, `remember`),
+/// en lecture comme en écriture. Un `var` stocké interdit à lui seul une
+/// conformité `Sendable` ordinaire (SE-0302) : le compilateur ne voit pas un
+/// `NSLock`, quel que soit le verrou posé dessus. L'état de type, `regexCache`,
+/// est pris sous `regexCacheLock` (déjà `nonisolated(unsafe)`, tâche 4).
+/// `savesDir` est le seul autre stocké d'instance, et il est immuable.
+/// `SaveManager` lit le disque depuis des files de fond (`fetchSaves()` peut
+/// être appelé hors du fil principal, cf. commentaire ligne ~269) — il ne peut
+/// donc pas être `@MainActor`.
+public final class SaveManager: @unchecked Sendable {
     public static let shared = SaveManager()
 
     private let savesDir: URL
