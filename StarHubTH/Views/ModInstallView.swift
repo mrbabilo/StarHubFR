@@ -781,15 +781,23 @@ struct ModInstallView: View {
                                          host: host, files: files, hostIsPaused: paused))
     }
 
+    /// Ce qu'un lot de glisser-déposer a produit : le compte de fichiers
+    /// posés, ou l'erreur qui a tout arrêté. Une seule valeur traverse la
+    /// frontière de fil — les deux fils (travail disque ici, affichage sur
+    /// main) ne partagent plus de variable boîtée.
+    private enum DroppedInstallOutcome {
+        case done(installed: Int)
+        case failed(error: Error, installed: Int)
+    }
+
     /// Copie le fichier reconnu chez son hôte, après avoir sauvegardé ce dernier
     /// si le fichier existait déjà.
     private func installDroppedContent(_ proposal: DroppedProposal) {
         isInstalling = true
         let gameDir = vm.gameDir
         DispatchQueue.global(qos: .userInitiated).async {
-            var failure: String?
-            var failureCommand: String?
             var installed = 0
+            let outcome: DroppedInstallOutcome
             do {
                 // Un sac peut avoir été retouché à la main (prix, capacités) :
                 // sauvegarder l'hôte avant d'écraser. Rien à préserver si le
@@ -815,26 +823,12 @@ struct ModInstallView: View {
                                                          hostRoot: hostRoot)
                     installed += 1
                 }
+                outcome = .done(installed: installed)
             } catch {
                 // Un lot interrompu en cours de route a déjà posé des fichiers :
                 // dire « échec » sans le compte laisserait croire que rien n'a
                 // bougé, et l'utilisateur chercherait au mauvais endroit.
-                //
-                // Le message s'assemble **sur main** depuis L2 :
-                // `installErrorMessage` écrit au journal et lit les libellés,
-                // tous deux isolés sur l'acteur principal. Saut posé avant
-                // celui de la publication : la file main est FIFO, `failure`
-                // est donc posé quand le bloc d'affichage s'exécute.
-                let installError = error
-                let installedCount = installed
-                DispatchQueue.main.async {
-                    failure = self.vm.installErrorMessage(installError)
-                    failureCommand = (installError as? InstallError)?.copyableCommand
-                    if installedCount > 0 {
-                        failure! += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
-                                                     installedCount, proposal.hostDisplayName)
-                    }
-                }
+                outcome = .failed(error: error, installed: installed)
             }
             DispatchQueue.main.async {
                 self.isInstalling = false
@@ -842,11 +836,8 @@ struct ModInstallView: View {
                     self.installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
                 }
-                if let failure = failure {
-                    self.showFailure(failure, copyableCommand: failureCommand)
-                    self.errorRecoveryHint = nil
-                    self.showError = true
-                } else {
+                switch outcome {
+                case .done:
                     // Pas de `scanMods()` ici : le fichier a atterri *dans* un
                     // mod existant, aucun dossier de mod n'a bougé. Rescanner
                     // ne changerait rien à l'écran et laisserait croire le
@@ -856,6 +847,19 @@ struct ModInstallView: View {
                                  proposal.hostDisplayName)
                         : String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
                                  proposal.files.count, proposal.hostDisplayName)
+                case .failed(let installError, let installed):
+                    // Le message s'assemble **sur main** depuis L2 :
+                    // `installErrorMessage` écrit au journal et lit les
+                    // libellés, tous deux isolés sur l'acteur principal.
+                    var failure = self.vm.installErrorMessage(installError)
+                    if installed > 0 {
+                        failure += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
+                                                   installed, proposal.hostDisplayName)
+                    }
+                    self.showFailure(failure,
+                                     copyableCommand: (installError as? InstallError)?.copyableCommand)
+                    self.errorRecoveryHint = nil
+                    self.showError = true
                 }
             }
         }
