@@ -819,11 +819,21 @@ struct ModInstallView: View {
                 // Un lot interrompu en cours de route a déjà posé des fichiers :
                 // dire « échec » sans le compte laisserait croire que rien n'a
                 // bougé, et l'utilisateur chercherait au mauvais endroit.
-                failure = self.vm.installErrorMessage(error)
-                failureCommand = (error as? InstallError)?.copyableCommand
-                if installed > 0 {
-                    failure! += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
-                                                 installed, proposal.hostDisplayName)
+                //
+                // Le message s'assemble **sur main** depuis L2 :
+                // `installErrorMessage` écrit au journal et lit les libellés,
+                // tous deux isolés sur l'acteur principal. Saut posé avant
+                // celui de la publication : la file main est FIFO, `failure`
+                // est donc posé quand le bloc d'affichage s'exécute.
+                let installError = error
+                let installedCount = installed
+                DispatchQueue.main.async {
+                    failure = self.vm.installErrorMessage(installError)
+                    failureCommand = (installError as? InstallError)?.copyableCommand
+                    if installedCount > 0 {
+                        failure! += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
+                                                     installedCount, proposal.hostDisplayName)
+                    }
                 }
             }
             DispatchQueue.main.async {
@@ -1067,8 +1077,16 @@ struct ModInstallView: View {
                 // La complétion de `fetchMetadata` est garantie sur le main par
                 // `fetchSingleMod`, sur tous ses chemins de sortie : la place
                 // est donc toujours rendue, même sur 429 ou clé absente.
-                self.vm.fetchMetadata(forNexusModId: mod.nexusModId) { _ in
-                    limiter.signal()
+                //
+                // L'amorce passe par main depuis L2 : `fetchMetadata` écrit
+                // `nexusCategories`/`nexusModExtras` dans sa complétion, état
+                // du VM isolé sur l'acteur principal. Le travail réseau reste
+                // sur les fils d'`URLSession` ; seul le départ traverse.
+                let modId = mod.nexusModId
+                DispatchQueue.main.async {
+                    self.vm.fetchMetadata(forNexusModId: modId) { _ in
+                        limiter.signal()
+                    }
                 }
             }
         }

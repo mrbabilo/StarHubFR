@@ -4,6 +4,7 @@ import Combine
 import Cocoa
 import SwiftUI
 
+@MainActor
 @Observable
 final class StarHubTHViewModel {
     // MARK: Sauvegardes — le store du domaine (cadrage §4, domaine 1). Les
@@ -224,7 +225,12 @@ final class StarHubTHViewModel {
     // du débit. Le jugement « suis-je occupé ? » reste ici :
     // `NexusDownloadFlow` tranche aussi sur `pendingDownloadedZip`, qui est
     // de l'installation.
-    private let downloadStore = NexusDownloadStore()
+    //
+    // `nonisolated(unsafe)` porté par la propriété : le rappel de progression
+    // (`noteNexusDownloadProgress`) part du fil de délégué d'`URLSession` et
+    // ne traverse que la référence ; les écritures restent toutes sur main.
+    // La vraie isolation du store est la voie P5 (tranche LS).
+    private nonisolated(unsafe) let downloadStore = NexusDownloadStore()
 
     // MARK: Navigation — le store du domaine (chantier B, cadrage P8). Les
     // vues de détail que MainView remet à nil au changement d'onglet, et les
@@ -713,7 +719,9 @@ final class StarHubTHViewModel {
                                                  outdatedCount: outdated, in: store)
             return marked
         }.value
-        await reloadOutdatedKeyIndex()
+        // Plus de `await` depuis L2 : la classe est `@MainActor`, l'appel est
+        // même acteur — le hop d'entrée que l'`await` portait n'existe plus.
+        reloadOutdatedKeyIndex()
         return rows
     }
 
@@ -804,7 +812,7 @@ final class StarHubTHViewModel {
 
     /// Le dossier racine du glossaire en Application Support — même règle de
     /// placement que `TranslationBaseline`, jamais Caches.
-    private static func glossaryAppSupport() -> URL? {
+    nonisolated private static func glossaryAppSupport() -> URL? {
         AppSupport.directory
     }
 
@@ -1404,7 +1412,7 @@ final class StarHubTHViewModel {
                     // le défaut que ce chemin ferme — carte de couverture vide
                     // jusqu'à la fin de la session — mais sans rien laisser
                     // pour le diagnostiquer.
-                    self?.log("Couverture non recalculée pour \(folderName) : "
+                    await self?.log("Couverture non recalculée pour \(folderName) : "
                                     + "\(directory.path) illisible", level: .warning)
                     return
                 }
@@ -2584,8 +2592,11 @@ final class StarHubTHViewModel {
             guard let self else { return }
             let sizes = ModsFolderSizer.measure(
                 modsFolder: URL(fileURLWithPath: dir).appendingPathComponent("Mods"))
-            let again = self.scanStore.endSizeMeasure()
             DispatchQueue.main.async {
+                // `endSizeMeasure` ne bascule qu'un drapeau : rejoint la
+                // publication sur main, désormais que le VM est isolé sur
+                // l'acteur principal (L2). La mesure, elle, reste sur la file.
+                let again = self.scanStore.endSizeMeasure()
                 self.scanStore.setSizeMeasureResult(sizes, again: again)
                 if again { self.measureModsFolderSize() }
             }
@@ -4943,7 +4954,7 @@ final class StarHubTHViewModel {
     nonisolated private func noteNexusDownloadProgress(received: Int64, expected: Int64,
                                                        modId: Int) {
         // Seule la référence du store traverse (écritures toutes sur main) :
-        // `nonisolated(unsafe)` borné à lui ; store `@MainActor` = voie P5.
+        // le `nonisolated(unsafe)` vit désormais sur la propriété (L2).
         nonisolated(unsafe) let store = self.downloadStore
         DispatchQueue.main.async {
             store.noteProgress(received: received, expected: expected, modId: modId)
@@ -7701,7 +7712,7 @@ final class StarHubTHViewModel {
     /// Le nettoyage passe par `ManifestJSON.sanitize` : les `config.json` et
     /// les `i18n/*.json` du parc portent commentaires et virgules traînantes
     /// comme les manifestes, et un décapage naïf couperait les URL en deux.
-    private static func topLevelJSONKeys(atPath path: String) -> [String]? {
+    nonisolated private static func topLevelJSONKeys(atPath path: String) -> [String]? {
         guard let data = FileManager.default.contents(atPath: path),
               let raw = String(data: data, encoding: .utf8) else { return nil }
         guard let object = ManifestJSON.decode(raw) else { return nil }
@@ -7766,7 +7777,7 @@ final class StarHubTHViewModel {
     /// Lit un fichier de traduction comme le fait l'éditeur : décodage tolérant
     /// à l'encodage, puis analyse indulgente (commentaires, virgules
     /// traînantes, clés en double).
-    private static func parseTranslation(atPath path: String) -> [String: String]? {
+    nonisolated private static func parseTranslation(atPath path: String) -> [String: String]? {
         guard let data = FileManager.default.contents(atPath: path),
               let text = I18nFileDecoder.decode(data)?.text,
               let parsed = try? I18nLenientParser.parse(text) else { return nil }
@@ -9070,7 +9081,7 @@ final class StarHubTHViewModel {
     ///   perdre favori, note, config de profil et identifiant Nexus, sans un
     ///   mot) ; `ModFolderRenameFailure` pour un déplacement ou un rollback
     ///   en échec.
-    private func renameModFolder(from srcPath: String, to dstPath: String,
+    nonisolated private func renameModFolder(from srcPath: String, to dstPath: String,
                                  destinationName: String, uniqueId: String,
                                  fm: FileManager) throws {
         try ModFolderRename.moveReplacingStaleDestination(from: srcPath, to: dstPath,
@@ -9765,6 +9776,12 @@ final class StarHubTHViewModel {
             log(self.localization.L(L10n.Maintenance.indexUnreadable), level: .warning)
         }
         let translationPathsByHost = installedTranslationRelativePaths()
+        // `gameDir` et les clés de préférences se lisent **avant** la file :
+        // propriétés du VM isolées sur l'acteur principal depuis L2, seules
+        // leurs valeurs (Sendable) traversent la closure. La lecture des
+        // sauvegardes, lourde, reste dans la closure.
+        let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
+        let preferenceKeys = maintenancePreferenceKeys()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let report = Self.readMaintenanceReport(
@@ -9773,10 +9790,10 @@ final class StarHubTHViewModel {
                 installBackupsRoot: ModInstallBackupManager.shared.backupsDirectory,
                 configBackups: ModConfigBackupManager.shared.loadBackups(),
                 configBackupsRoot: ModConfigBackupManager.shared.backupsDirectory,
-                modsRoot: (self.gameDir as NSString).appendingPathComponent("Mods"),
+                modsRoot: modsRoot,
                 installedFolders: installedFolders,
                 userTranslationPathsByHost: translationPathsByHost,
-                preferenceKeys: self.maintenancePreferenceKeys())
+                preferenceKeys: preferenceKeys)
             DispatchQueue.main.async {
                 self.maintenanceStore.setReport(report)
                 self.maintenanceStore.endBuilding()
@@ -9823,8 +9840,9 @@ final class StarHubTHViewModel {
     }
 
     /// La lecture proprement dite. Statique : aucune capture de `self`, donc
-    /// aucune mutation `@Published` hors du fil principal.
-    private static func readMaintenanceReport(
+    /// aucune mutation `@Published` hors du fil principal. `nonisolated` (L2) :
+    /// elle ne touche que des fichiers et ses seules entrées sont des valeurs.
+    nonisolated private static func readMaintenanceReport(
         installBackups: [ModInstallBackup],
         installIndexWasReadable: Bool,
         installBackupsRoot: URL,
@@ -9887,8 +9905,9 @@ final class StarHubTHViewModel {
     /// Taille et fichiers utilisateur d'une sauvegarde, en **une** traversée.
     /// `nil` quand le dossier n'existe plus. La règle de classification vit
     /// dans `MaintenanceInventory.classifyUserFile` — appariement **borné à
-    /// l'hôte de la sauvegarde** (X75).
-    private static func walkBackup(root: URL, hostTranslationPaths: Set<String>)
+    /// l'hôte de la sauvegarde** (X75). `nonisolated` (L2) : marche de
+    /// fichiers pure, appelée depuis le rapport hors de l'acteur principal.
+    nonisolated private static func walkBackup(root: URL, hostTranslationPaths: Set<String>)
     -> (Int64, [MaintenanceInventory.UserFile])? {
         let fm = FileManager.default
         var isDir: ObjCBool = false
@@ -9920,8 +9939,9 @@ final class StarHubTHViewModel {
 
     /// Ce que le mod porte aujourd'hui, limité aux chemins qui nous intéressent.
     /// `presentFiles` vaut `nil` quand le dossier du mod n'existe plus — actif ou
-    /// en pause, les deux formes sont cherchées.
-    private static func installedState(of folderName: String, modsRoot: String,
+    /// en pause, les deux formes sont cherchées. `nonisolated` (L2) : lecture
+    /// disque pure, appelée depuis le rapport hors de l'acteur principal.
+    nonisolated private static func installedState(of folderName: String, modsRoot: String,
                                        userFiles: [MaintenanceInventory.UserFile])
     -> MaintenanceInventory.InstalledState {
         let fm = FileManager.default

@@ -78,11 +78,10 @@ final class BisectionRunner: ObservableObject {
     /// Le runner vit aussi longtemps que le ViewModel (`lazy var bisection`),
     /// donc le cycle de vie est garanti : `unowned` évite un cycle de rétention
     /// sans risquer un accès après libération.
-    /// `nonisolated(unsafe)` : référence immuable vers le ViewModel (lui-même non
-    /// isolé). Sûr car le runner est `@MainActor` : `vm` n'est lue que depuis le
-    /// MainActor. La forme `nonisolated` sûre exigerait un type `Sendable`, ce
-    /// qu'une classe mutable comme le ViewModel n'est pas.
-    private nonisolated(unsafe) unowned let vm: StarHubTHViewModel
+    /// Plus de `nonisolated(unsafe)` depuis L2 : le ViewModel est `@MainActor`,
+    /// donc implicitement `Sendable` — la référence immuable traverse seule, et
+    /// le runner `@MainActor` ne le lit que depuis l'acteur principal.
+    private unowned let vm: StarHubTHViewModel
 
     /// Où vit l'instantané sur disque. Relevé **une fois**, et pas à chaque
     /// appel : les cinq points d'appel du runner doivent désigner le même
@@ -92,8 +91,8 @@ final class BisectionRunner: ObservableObject {
     private let snapshotDirectory: URL? = AppSupport.directory
 
     /// `nonisolated` : l'init ne fait que stocker la référence au ViewModel, il
-    /// n'accède à aucun état MainActor. Permet l'instanciation paresseuse depuis
-    /// le ViewModel (`lazy var bisection`), lui-même non isolé.
+    /// n'accède à aucun état MainActor. Instanciation paresseuse depuis le
+    /// ViewModel (`lazy var bisection`), lui-même `@MainActor` depuis L2.
     nonisolated init(vm: StarHubTHViewModel) { self.vm = vm }
 
     /// Au démarrage de l'app : une recherche laissée en plan ?

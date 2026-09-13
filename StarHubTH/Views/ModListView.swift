@@ -2320,6 +2320,9 @@ private struct AnomalyBadge: View {
 /// Une fonction et non une propriété de la pastille : la rangée en a besoin
 /// pour son popover, et fabriquer une pastille jetable pour lire son texte
 /// aurait été un détour.
+/// `@MainActor` (L2) : la fonction lit l'état du VM — lui-même isolé sur
+/// l'acteur principal — et n'a que trois appelants, tous dans des vues.
+@MainActor
 private func anomalyReasons(_ anomaly: ModAnomaly, vm: StarHubTHViewModel) -> String {
     var lines: [String] = []
     if anomaly.isUnloadable { lines.append(vm.localization.L(L10n.Mods.anomalyUnloadable)) }
