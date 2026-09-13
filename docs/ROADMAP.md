@@ -114,11 +114,20 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       déclenche une **seconde**, sérialisée, après elle (mesuré : 2 + 2
       requêtes, retraits X47 compris). Comportement livré, laissé tel quel ;
       un court-circuit vers le verdict existant serait une décision propre.
-      *(Trois autres trouvailles du même relevé, sans risque d'exécution,
-      restent ouvertes : `NexusArchiveStore.swift:117` un `??` à membre gauche
-      non optionnel donc une branche morte, `StarHubTHViewModel.swift:2909` un
-      `seedFolder` calculé jamais utilisé, `StarHubTHApp.swift:105` un
-      `bootstrapDefaults` inféré `Void`.)*
+      *(Trois autres trouvailles du même relevé, sans risque d'exécution —
+      `NexusArchiveStore.swift:117` un `??` à membre gauche non optionnel donc
+      une branche morte, `StarHubTHViewModel.swift:2909` un `seedFolder` calculé
+      jamais utilisé, `StarHubTHApp.swift:105` un `bootstrapDefaults` inféré
+      `Void` — **corrigées le même jour**, avec trois avertissements de plus
+      repérés au même build : un `mutateIfChanged` dont le `Bool` était ignoré
+      sans le dire, deux `index` de garde jamais lus, exprimés en
+      `contains(where:)`. Le `Void` explicite de `bootstrapDefaults` est
+      **porteur d'ordre** : la propriété est déclarée avant le `@AppStorage` de
+      l'App, qui lit `UserDefaults` à son initialisation — déplacer
+      l'appel dans `init()` inverserait la reprise pour ce lecteur. Ne reste du
+      relevé que la classe concurrency : quatre captures `@Sendable` du VM,
+      deux captures de `FileManager` en *error in the Swift 6 language mode* —
+      une passe de design, pas des correctifs au vol.)*
 ---
 
 

@@ -765,12 +765,17 @@ asynchrone** (`unavailable from asynchronous contexts`) — un verrou tenu à
 travers une suspension *(corrigé depuis — X106, le 2026-09-13 : la mesure
 demandée par la case a montré qu'aucune section ne contenait d'`await`, le
 diagnostic visait le contexte `Task`, pas la portée du verrou ; les sections
-sont désormais bornées dans des helpers synchrones et le relevé retombe à
-**11**)* ; `NexusArchiveStore.swift:117` porte un `??` dont le
+sont désormais bornées dans des helpers synchrones)* ; `NexusArchiveStore.swift:117` porte un `??` dont le
 membre gauche est **non optionnel**, donc une branche morte ;
 `StarHubTHViewModel.swift:2909` calcule un `seedFolder` **jamais utilisé** ; et
-`StarHubTHApp.swift:105` infère `Void` pour `bootstrapDefaults`. Aucun n'est
-corrigé ici : la consigne de P5 est de mesurer.
+`StarHubTHApp.swift:105` infère `Void` pour `bootstrapDefaults`. **Toutes les
+quatre sont corrigées le 2026-09-13** — le verrou par X106, les trois autres
+avec trois trouvailles de plus repérées en passant au même build (un
+`mutateIfChanged` dont le `Bool` était ignoré sans le dire, deux `index` de
+garde jamais lus, exprimés en `contains(where:)`). Ne reste du relevé que la
+classe concurrency — quatre captures `@Sendable` du VM, deux captures de
+`FileManager` marquées *error in the Swift 6 language mode* : une passe de
+design à elle seule, pas des correctifs au vol.
 
 **Recommandation, pas décision** : ne pas câbler `-strict-concurrency=complete`
 dans `build_app.py` en l'état — 467 avertissements à chaque build est un mur de
