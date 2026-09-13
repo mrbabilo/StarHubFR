@@ -394,7 +394,10 @@ private final class StopFlag: @unchecked Sendable {
 }
 
 /// La course que la dernière réponse portée par le **type** rendait possible.
-@Suite(.serialized, .timeLimit(.minutes(1)))
+///
+/// Pas de `.serialized` : la suite ne porte qu'un test, l'annotation n'y
+/// sérialiserait rien et promettrait ce qu'elle ne fait pas.
+@Suite(.timeLimit(.minutes(1)))
 struct DeepLConcurrentRetryAfterTests {
 
     /// Chaque traduction doit lire le `Retry-After` de **sa** réponse.
@@ -420,12 +423,25 @@ struct DeepLConcurrentRetryAfterTests {
                 }
             }
         }
+        // Le bruit est **détaché** : il n'hérite ni de l'annulation ni de la
+        // durée de vie du test, et ne consulte `stop` qu'entre deux
+        // traductions. Sans ce `defer`, toute sortie autre que la normale —
+        // `.timeLimit` qui se déclenche, un `return` ajouté plus tard — le
+        // laisserait marteler `URLSession` pour tout le reste du processus,
+        // et dégrader les 314 autres suites précisément dans le cas (machine
+        // chargée) où leur diagnostic compte le plus. Le `stop.raise()`
+        // explicite de la fin reste : lui seul précède le drainage.
+        defer { stop.raise() }
+
         // Montée en régime du bruit, **bornée** : une attente sans butée
         // resterait pendue une minute entière sous `.timeLimit`, et la suite
         // ne dirait que « délai dépassé ». Au pire, les victimes partent dans
         // un bruit plus maigre — un vert qui a moins cherché, pas un blocage.
+        // `isCancelled` en plus de la butée : sous annulation, `Task.sleep`
+        // rend la main aussitôt et ce `try?` l'avale — la boucle tournerait
+        // alors à plein régime cinq secondes durant.
         let rampDeadline = ContinuousClock.now + .seconds(5)
-        while stop.ticks < 500, ContinuousClock.now < rampDeadline {
+        while stop.ticks < 500, ContinuousClock.now < rampDeadline, !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(5))
         }
 
@@ -435,7 +451,7 @@ struct DeepLConcurrentRetryAfterTests {
         // 2026-09-13 l'a vu à la quatrième, avec l'état partagé protégé par
         // un verrou (sans verrou, le compteur de références lui-même casse
         // et le processus tombe en SIGSEGV — c'est la même course).
-        while worst < .seconds(1), rounds < 10 {
+        while worst < .seconds(1), rounds < 10, !Task.isCancelled {
             rounds += 1
             await withTaskGroup(of: Duration.self) { group in
                 for _ in 0..<200 {
