@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le code ne porte plus aucun avertissement de concurrence.** Les deux plus gros travaux en tâche de fond — bascule en masse et changement de profil — capturent le gestionnaire de fichiers et le ViewModel sans traversée ambiguë de fil, et les types échangés déclarent leur sûreté explicitement.
+
 ## [1.43.2] - 2026-09-12
 
 ### Added
