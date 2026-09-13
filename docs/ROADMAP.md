@@ -144,12 +144,12 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       le même jour : 237 / 85 bloquants** — `@MainActor` sur le ViewModel,
       102 bloquants tombés (prévision ~95), le VM (13) sort du top 2 de la
       dette au profit de `SmapiInstaller` (25) et `SmapiUpdateClient` (22) :
-      c'est ce qui cadre L4. ⚠️ **Vérification à l'écran de L2 due** (aucun
-      agent ne lance l'app ; scénario minimal : liste des mods, bascule d'un
-      mod, application d'un profil, ouverture d'une sauvegarde, recalcul de
-      couverture de traduction, glisser-déposer en échec, recherche Nexus).
-      La fin de jeu structurée (exécuteurs Core + `AsyncStream`) reste pour
-      L3. Détail et mécanismes : `REFACTORING.md` §9.
+      c'est ce qui cadre L4. ✅ **Vérifié à l'écran par l'auteur le
+      2026-09-13** (liste des mods, bascule d'un mod, application d'un
+      profil, ouverture d'une sauvegarde, recalcul de couverture de
+      traduction, glisser-déposer en échec, recherche Nexus) — **L2 est
+      close**. La fin de jeu structurée (exécuteurs Core + `AsyncStream`)
+      reste pour L3. Détail et mécanismes : `REFACTORING.md` §9.
 ---
 
 
