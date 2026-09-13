@@ -40,7 +40,7 @@ public struct SmapiDiagnostics {
     /// player instead of alarming them. These never count as problems, and are
     /// excluded from `topErrorMods` so a healthy mod isn't blamed for them.
     public struct BenignNotice: Identifiable {
-        public enum Kind: String, CaseIterable {
+        public enum Kind: String, CaseIterable, Sendable {
             /// GOG Galaxy isn't signed in — affects the Galaxy overlay only.
             case galaxyAuth
             /// A mod's optional integration with another mod (typically its
