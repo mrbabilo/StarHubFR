@@ -20,12 +20,19 @@ public struct BackupsRead: Equatable {
 /// main for UI updates, consistent with the rest of the codebase.
 ///
 /// `@unchecked` : comme `ModConfigBackupManager`, aucun état mutable
-/// stocké — tous les champs d'instance sont des `let`. `indexLock` protège
-/// le cycle lecture-modification-écriture d'`install_metadata.json` sur
-/// disque : sans lui, des appels create/restore/delete/cleanup concurrents
-/// dispatchés depuis des files différentes peuvent charger le même index et
-/// le dernier `saveIndex` écrase silencieusement les autres. `final` :
-/// aucune sous-classe ne doit pouvoir ajouter un champ non couvert par ce
+/// stocké — tous les champs d'instance sont des `let`. Ce qui empêche un
+/// `Sendable` ordinaire, ce n'est donc pas de la mémoire non protégée mais un
+/// seul membre : `fm` (`FileManager.default`) est de type `FileManager`, qui
+/// n'est **pas** `Sendable` dans ce SDK (`NSFileManager` ne porte pas
+/// `NS_SWIFT_SENDABLE`) — un `Sendable` nu ne compilerait pas à cause de lui
+/// seul. Apple documente `FileManager.default` comme utilisable depuis
+/// plusieurs fils ; c'est ce contrat, pas l'absence de `var`, qui rend
+/// `@unchecked` correct ici. `indexLock` protège le cycle
+/// lecture-modification-écriture d'`install_metadata.json` sur disque : sans
+/// lui, des appels create/restore/delete/cleanup concurrents dispatchés
+/// depuis des files différentes peuvent charger le même index et le dernier
+/// `saveIndex` écrase silencieusement les autres. `final` : aucune
+/// sous-classe ne doit pouvoir ajouter un champ non couvert par ce
 /// raisonnement.
 public final class ModInstallBackupManager: @unchecked Sendable {
     public static let shared = ModInstallBackupManager()

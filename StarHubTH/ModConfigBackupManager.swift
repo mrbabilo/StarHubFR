@@ -8,15 +8,22 @@ import Foundation
 /// (see `ModConfigBackupsView`) dispatch to a background queue and hop back
 /// to main for UI updates, consistent with the rest of the codebase.
 ///
-/// `@unchecked` : ce type n'a **aucun état mutable stocké** — tous les
-/// champs d'instance sont des `let` (chemins, `FileManager.default`,
-/// `indexLock`). Ce que `indexLock` protège n'est pas de la mémoire mais le
-/// cycle lecture-modification-écriture de `metadata.json` sur disque : sans
-/// lui, deux appels dispatchés depuis des files différentes (une création
-/// manuelle croisant un nettoyage auto, par exemple) peuvent charger le même
-/// index, muter chacun leur copie, et le second `saveIndex` écrase
-/// silencieusement le premier. `final` : aucune sous-classe ne doit pouvoir
-/// ajouter un champ non couvert par ce raisonnement.
+/// `@unchecked` : ce type n'a aucun état mutable stocké — tous les champs
+/// d'instance sont des `let` (chemins, `fm`, `indexLock`). Ce qui empêche un
+/// `Sendable` ordinaire, ce n'est donc pas de la mémoire non protégée mais un
+/// seul membre : `fm` (`FileManager.default`) est de type `FileManager`, qui
+/// n'est **pas** `Sendable` dans ce SDK (`NSFileManager` ne porte pas
+/// `NS_SWIFT_SENDABLE`) — un `Sendable` nu ne compilerait pas à cause de lui
+/// seul. Apple documente `FileManager.default` comme utilisable depuis
+/// plusieurs fils ; c'est ce contrat, pas l'absence de `var`, qui rend
+/// `@unchecked` correct ici. Ce que `indexLock` protège n'est pas de la
+/// mémoire mais le cycle lecture-modification-écriture de `metadata.json`
+/// sur disque : sans lui, deux appels dispatchés depuis des files
+/// différentes (une création manuelle croisant un nettoyage auto, par
+/// exemple) peuvent charger le même index, muter chacun leur copie, et le
+/// second `saveIndex` écrase silencieusement le premier. `final` : aucune
+/// sous-classe ne doit pouvoir ajouter un champ non couvert par ce
+/// raisonnement.
 public final class ModConfigBackupManager: @unchecked Sendable {
     public static let shared = ModConfigBackupManager()
 
