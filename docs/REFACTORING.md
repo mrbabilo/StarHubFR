@@ -844,7 +844,8 @@ lourd reste hors main (`ModsFolderSizer` sur utility, lectures de sauvegardes
 en closure globale, cascade `readMaintenanceReport` entièrement
 `nonisolated`) ; ~34 avertissements stricts restent consignés comme dette
 L3/LS (workers des closures lourdes, captures `SaveGameInfo`/`BackupsRead`).
-✅ **Vérifié à l'écran par l'auteur le 2026-09-13 — L2 close.**
+✅ **Vérifié à l'écran par l'auteur le 2026-09-13 — L2 close.** Détail du
+chantier (rulings, revues, tri des mineurs) : `p5-swift6-ledger-archive.md`.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
