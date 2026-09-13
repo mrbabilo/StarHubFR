@@ -351,7 +351,7 @@ private extension NSColor {
 
 /// Largeur offerte à un bloc image, mesurée sans `GeometryReader` envahissant.
 private struct PaneWidthKey: PreferenceKey {
-    static var defaultValue: CGFloat = .infinity
+    static var defaultValue: CGFloat { .infinity }
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }

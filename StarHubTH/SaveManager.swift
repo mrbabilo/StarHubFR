@@ -73,7 +73,7 @@ struct SaveNode: Identifiable, Equatable {
 /// dans une palette : le créateur de personnage propose des préréglages,
 /// mais la save porte la couleur effective, modifiable par mod. Les
 /// composantes sont bornées à 0-255 à la construction.
-public struct SaveHairColor: Hashable {
+public struct SaveHairColor: Hashable, Sendable {
     public var r: Int
     public var g: Int
     public var b: Int

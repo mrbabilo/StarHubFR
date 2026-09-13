@@ -501,7 +501,7 @@ public struct SmapiDiagnostics {
     /// A known-harmless log signature. Adding a case is a table entry, not code:
     /// `any` matches if ANY substring is present, `all` requires every one.
     /// Matching is case-insensitive (patterns must be lowercase).
-    private struct BenignRule {
+    private struct BenignRule: Sendable {
         let kind: BenignNotice.Kind
         var any: [String] = []
         var all: [String] = []

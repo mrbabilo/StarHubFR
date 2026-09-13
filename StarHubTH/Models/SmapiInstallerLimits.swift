@@ -28,7 +28,7 @@ import Foundation
 /// d'un tube ne rend la main qu'à l'arrivée d'octets ou à sa fermeture. C'est
 /// l'état d'avant ce correctif, inchangé, et la seule panne mesurée est le
 /// bavardage.
-public struct SmapiInstallerLimits: Equatable {
+public struct SmapiInstallerLimits: Equatable, Sendable {
     /// Pourquoi on a coupé — ce que l'appelant doit dire à l'utilisateur.
     public enum Abort: String, Equatable {
         /// L'installateur a produit plus de texte qu'un déroulement normal.
