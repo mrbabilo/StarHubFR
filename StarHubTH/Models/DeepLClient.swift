@@ -171,8 +171,8 @@ public enum DeepLClient {
     /// `translate` a besoin pour lire le `Retry-After` d'un 429. Déposer
     /// cette réponse dans un état de type la faisait partager par toutes les
     /// traductions en vol — deux fragments d'un même lot se volaient leur
-    /// temporisation, et la variable non protégée écrasait son propre
-    /// compteur de références (SIGSEGV reproduit 3 fois sur 3).
+    /// temporisation, et les accès concurrents à la variable croisaient les
+    /// releases ARC de la même référence (SIGSEGV reproduit 3 fois sur 3).
     private static func send(_ request: URLRequest,
                              session: URLSession) async -> (Outcome, URLResponse?) {
         do {

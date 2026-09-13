@@ -221,8 +221,8 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable {
 }
 
 /// `@unchecked` : la classe porte un état mutable d'instance — `parseCache`
-/// (ligne ~280), la mémoïsation de `fetchSaves()` — pris sous `parseCacheLock`
-/// à chacun de ses quatre accès (`invalidateParseCache`, `cached`, `remember`),
+/// (ligne 291), la mémoïsation de `fetchSaves()` — pris sous `parseCacheLock`
+/// à chacun de ses trois accès (`invalidateParseCache`, `cached`, `remember`),
 /// en lecture comme en écriture. Un `var` stocké interdit à lui seul une
 /// conformité `Sendable` ordinaire (SE-0302) : le compilateur ne voit pas un
 /// `NSLock`, quel que soit le verrou posé dessus. L'état de type, `regexCache`,
