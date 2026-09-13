@@ -8760,14 +8760,6 @@ final class StarHubTHViewModel {
         profilesStore.setApplying(true)
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        // Records each mod that could not be moved, with the underlying
-        // error for the log. Drives both the user-facing alert and the
-        // per-mod log lines below.
-        struct MoveFailure {
-            let modName: String
-            let direction: String   // "→ activé" / "→ désactivé"
-            let error: Error
-        }
         // Detect profile entries that don't match any installed mod. These
         // are silently skipped by the move loops below, but the user must be
         // told the profile references mods that aren't there (e.g. uninstalled
@@ -8823,191 +8815,73 @@ final class StarHubTHViewModel {
         let total = moves.count
         profileApplyProgress = ProfileApplyProgress(done: 0, total: total, phase: .movingFolders)
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else { return }
-            // Créé dans la closure : capturé de l'extérieur, il traverserait l'isolement.
-            let fm = FileManager.default
-            var failures: [MoveFailure] = []
-            var attempted = 0
-            var anyEnabled = false
-            var done = 0
-
-            // Exécute un renommage du plan (`Mods/X` ↔ `Mods/.X`). Ne lève
-            // jamais : la boucle traite les dossiers suivants au lieu de
-            // s'arrêter au premier échec. Rend `true` quand le dossier a
-            // bougé.
-            func perform(_ move: ProfileApplyPlan.Move) -> Bool {
-                attempted += 1
-                let src = (modsPath as NSString).appendingPathComponent(move.source)
-                let dst = (modsPath as NSString).appendingPathComponent(move.destination)
-                do {
-                    // Même garde que les deux autres chemins de bascule : le
-                    // dossier trouvé à destination est un résidu de ce mod-là,
-                    // ou celui d'un **autre** mod de même nom logique — et
-                    // dans ce second cas le refus dit quoi faire, là où
-                    // `moveItem` ne rendait que « le fichier existe déjà ».
-                    try self.renameModFolder(from: src, to: dst,
-                                             destinationName: move.destination,
-                                             uniqueId: move.uniqueId, fm: fm)
-                    return true
-                } catch {
-                    failures.append(MoveFailure(modName: move.modName,
-                                                direction: move.direction == .enable
-                                                    ? "→ activé" : "→ désactivé",
-                                                error: error))
-                    return false
-                }
-            }
-
-            // Un pas sur 1 %, et le dernier dossier quoi qu'il arrive : publier
-            // à chaque dossier ferait redessiner toute la fenêtre près de mille
-            // fois pour une barre large de 280 points — le voile coûterait plus
-            // cher que les déplacements qu'il annonce.
-            let publishStep = max(1, total / 100)
-            func publishProgress() {
-                done += 1
-                let current = done
-                guard current == total || current % publishStep == 0 else { return }
-                DispatchQueue.main.async {
-                    self.profileApplyProgress = ProfileApplyProgress(done: current,
-                                                                     total: total,
+        let events = ModFolderBulkMove.execute(moves, in: modsPath,
+                                               skipMissingSource: false,
+                                               progressStep: max(1, total / 100))
+        Task { [weak self] in
+            var outcome: BulkMoveOutcome?
+            for await event in events {
+                guard let self else { continue }
+                switch event {
+                case .progress(let done, let totalMoves):
+                    self.profileApplyProgress = ProfileApplyProgress(done: done,
+                                                                     total: totalMoves,
                                                                      phase: .movingFolders)
+                case .activated(let folderName):
+                    self.modActivationTimestamps[folderName] = Date()
+                case .finished(let final):
+                    outcome = final
                 }
             }
-
-            // Le plan porte déjà l'ordre : les mises en pause d'abord, les
-            // activations ensuite. L'horodatage n'est posé que sur un dossier
-            // qui a **vraiment** bougé — le poser sur un renommage en échec
-            // enregistrerait une « dernière activation » fantôme pour un mod
-            // resté en pause.
-            for move in moves {
-                let moved = perform(move)
-                if moved, move.direction == .enable {
-                    // `modActivationTimestamps` appartient au thread principal,
-                    // comme dans `toggleAllMods` : les écritures y arrivent dans
-                    // l'ordre, et l'enregistrement plus bas les voit toutes.
-                    DispatchQueue.main.async {
-                        self.modActivationTimestamps[move.folderName] = Date()
-                    }
-                    anyEnabled = true
-                }
-                publishProgress()
+            guard let self, let outcome else { return }
+            let failedNames = outcome.failures.map(\.modName)
+            if outcome.movedCount > 0 {
+                Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
-            if anyEnabled {
-                DispatchQueue.main.async {
-                    Self.saveModActivationTimestamps(self.modActivationTimestamps)
-                }
+            for failure in outcome.failures {
+                if let critical = failure.criticalLog { self.log(critical, level: .error) }
+                let direction = failure.direction == .enable ? "→ activé" : "→ désactivé"
+                self.log(String(format: self.localization.L(L10n.VM.applyProfileMoveFail),
+                               failure.modName, direction, failure.message),
+                         level: .error)
             }
-
-            // Log each move failure individually with a localized, structured
-            // message so the Logs tab (source = StarHubFR) shows exactly which
-            // mod(s) failed, in which direction, and why.
-            //
-            // Les renommages ci-dessus tournent sur une file globale, donc
-            // ces appels aussi. C'est sans danger : `log(_:level:)` saute
-            // lui-même sur le fil principal (`Thread.isMainThread`) avant
-            // d'écrire — aucun état suivi n'est muté d'ici.
-            //
-            // ⚠️ Ce commentaire disait autrefois que « le runtime tolère »
-            // une écriture `@Published` hors fil principal. C'était déjà faux
-            // (le saut existe dans `log`), et ça ne veut plus rien dire :
-            // sous `@Observable`, plus aucun diagnostic n'est émis — le
-            // garde-fou est parti avec le chantier A.
-            for failure in failures {
-                // P5-T9 : un rollback raté remonte dans l'erreur — la ligne
-                // CRITICAL (une seule définition, dans
-                // `ModFolderRenameFailure.rollbackCriticalLog`) est dite ici,
-                // avant le bilan qui ne montre que la cause d'origine.
-                if let critical = (failure.error as? ModFolderRenameFailure)?.rollbackCriticalLog {
-                    self.log(critical, level: .error)
-                }
-                self.log(
-                    String(format: self.localization.L(L10n.VM.applyProfileMoveFail),
-                           failure.modName, failure.direction, failure.error.localizedDescription),
-                    level: .error
-                )
-            }
-
-            // Log the profile entries that don't match any installed mod — these
-            // were silently ignored by the move loops, so without a log line the
-            // user would believe the profile is fully applied when expected mods
-            // are missing from disk.
             if !missingIds.isEmpty {
                 let listing = missingIds.joined(separator: ", ")
-                self.log(
-                    String(format: self.localization.L(L10n.VM.applyProfileMissing),
-                           profileName, missingIds.count, listing),
-                    level: .warning
-                )
+                self.log(String(format: self.localization.L(L10n.VM.applyProfileMissing),
+                               profileName, missingIds.count, listing), level: .warning)
             }
-
-            let failedNames = failures.map { $0.modName }
             // Les dossiers sont en place ; ce qui suit est la relecture du
             // parc. Le voile le dit, sinon la barre reste pleine et figée
-            // pendant tout le rescane — c'est le moment où l'utilisateur croit
-            // que l'app a fini alors qu'elle travaille encore.
-            DispatchQueue.main.async {
-                self.profileApplyProgress = ProfileApplyProgress(done: total,
-                                                                 total: total,
-                                                                 phase: .rescanning)
-            }
-            // Always rescan so the list reflects the real on-disk state,
-            // whatever it is after partial failures.
+            // pendant tout le rescane.
+            self.profileApplyProgress = ProfileApplyProgress(done: total,
+                                                             total: total,
+                                                             phase: .rescanning)
             self.scanMods()
-            DispatchQueue.main.async {
-                // R2 : la boucle est allée au bout (échecs de déplacement
-                // compris — ceux-là vivent dans `incompletelyAppliedProfileIds`).
-                // Le journal ne couvre que le crash ; il part **avant** le
-                // sync ci-dessous, sinon le garde d'adoption bloquerait un
-                // succès.
-                if journaling {
-                    ProfileApplyJournalStore.clear(in: self.applyJournalDirectory)
-                    self.unresolvedApplyJournal = nil
-                }
-                self.profileApplyProgress = nil
-                // Le profil actif ne suit le disque que si l'application a
-                // abouti. Un déplacement en échec — dossier tenu ouvert,
-                // permissions — n'est pas une décision de l'utilisateur :
-                // adopter l'état du disque écrirait l'accident dans le profil.
-                // Le mod resté actif faute d'avoir pu bouger deviendrait un mod
-                // que le profil *demande*, et réessayer l'activation n'aurait
-                // plus rien à faire. On laisse le profil dire ce qui était
-                // voulu ; l'alerte ci-dessous dit, elle, ce qui s'est passé.
-                if failures.isEmpty && missingIds.isEmpty {
-                    self.incompletelyAppliedProfileIds.remove(profileId)
-                    self.syncActiveProfileIds()
-                } else {
-                    self.incompletelyAppliedProfileIds.insert(profileId)
-                }
-                self.profilesStore.endApplying()
-                // Surface the outcome to the user. A partial application
-                // is the dangerous case: the profile is "active" but the
-                // filesystem doesn't fully match it, so the next toggle
-                // cycle could compound the inconsistency. Build a message
-                // that names the affected mods (capped to avoid a giant
-                // alert) so the user knows exactly what to fix.
-                if !failures.isEmpty || !missingIds.isEmpty {
-                    let summary = self.profileApplyMessage(
-                        profileName: profileName,
-                        failedNames: failedNames,
-                        missingIds: missingIds,
-                        attempted: attempted,
-                        failureCount: failures.count
-                    )
-                    self.showModal(message: summary)
-                    self.log(
-                        String(format: "Profile \"%@\" applied: %lld move failure(s), %lld missing mod(s)",
-                               profileName, failures.count, missingIds.count),
-                        level: .warning
-                    )
-                }
-                // Signaler la fin de l'application une fois le rescane terminé :
-                // la bissection lance le jeu dans ce completion, et ne doit pas le
-                // faire tant qu'un rescane peut encore réécrire `mods`. Le nombre
-                // d'échecs remonte avec, pour que l'appelant sache si l'état sur
-                // disque correspond vraiment à ce qui était demandé.
-                completion?(failedNames.count)
+            if journaling {
+                ProfileApplyJournalStore.clear(in: self.applyJournalDirectory)
+                self.unresolvedApplyJournal = nil
             }
+            self.profileApplyProgress = nil
+            if outcome.failures.isEmpty && missingIds.isEmpty {
+                self.incompletelyAppliedProfileIds.remove(profileId)
+                self.syncActiveProfileIds()
+            } else {
+                self.incompletelyAppliedProfileIds.insert(profileId)
+            }
+            self.profilesStore.endApplying()
+            if !outcome.failures.isEmpty || !missingIds.isEmpty {
+                let summary = self.profileApplyMessage(
+                    profileName: profileName,
+                    failedNames: failedNames,
+                    missingIds: missingIds,
+                    attempted: outcome.attempted,
+                    failureCount: outcome.failures.count)
+                self.showModal(message: summary)
+                self.log(String(format: "Profile \"%@\" applied: %lld move failure(s), %lld missing mod(s)",
+                               profileName, outcome.failures.count, missingIds.count),
+                        level: .warning)
+            }
+            completion?(failedNames.count)
         }
     }
 
