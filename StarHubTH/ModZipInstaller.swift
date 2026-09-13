@@ -36,6 +36,52 @@ class ModZipInstaller {
     private func findExistingMod(_ uniqueId: String, in mods: [ModItem]) -> ModItem? {
         mods.mod(withUniqueId: uniqueId)
     }
+
+    /// La détection de conflit d'un mod détecté face aux mods installés —
+    /// **pure**, extraite de `buildInfo` pour être testée sans archive réelle
+    /// (`LogicalFolderNameCollisionTests`).
+    ///
+    /// Les deux types s'excluent par construction : l'occupant de
+    /// l'identifiant (`mod(withUniqueId:)`) EST le cas `.folderExists` — une
+    /// mise à jour garde son nom de dossier, le nom n'a rien à redétecter. Ce
+    /// n'est que sans occupant d'identifiant qu'un occupant du **nom
+    /// logique** est cherché (`mod(withLogicalFolderName:)`) ; il porte alors
+    /// forcément un autre UniqueID — cas réel du parc : deux `[CP] Sounds of
+    /// the Valley`, l'auteur ayant changé l'identifiant (`Juanpa98ar.SotV` →
+    /// `Juanpa98ar.Source.SotV`) entre la 3.1.0 et la 4.0.0. Sans ce signal,
+    /// le nouveau partait en pause en silence et les deux mods partageaient
+    /// l'identité `Identifiable` — un seul rendu à l'écran.
+    ///
+    /// - Returns: le mod déjà installé par identifiant (ce que porte
+    ///   `DetectedMod.existingVersion`), et les conflits détectés — zéro ou
+    ///   un.
+    static func detectConflicts(forFolderName folderName: String,
+                                manifest: ModManifest,
+                                in existingMods: [ModItem]) -> (existing: ModItem?, conflicts: [ModConflict]) {
+        if let existing = existingMods.mod(withUniqueId: manifest.uniqueId) {
+            let conflict = ModConflict(
+                conflictType: .folderExists,
+                folderName: folderName,
+                existingName: existing.name,
+                existingVersion: existing.version,
+                newVersion: manifest.version,
+                resolutionOptions: [.overwriteWithBackup, .rename, .skip]
+            )
+            return (existing, [conflict])
+        }
+        if let occupant = existingMods.mod(withLogicalFolderName: folderName) {
+            let conflict = ModConflict(
+                conflictType: .nameTakenByOtherMod,
+                folderName: folderName,
+                existingName: occupant.name,
+                existingVersion: occupant.version,
+                newVersion: manifest.version,
+                resolutionOptions: [.overwriteWithBackup, .rename, .skip]
+            )
+            return (nil, [conflict])
+        }
+        return (nil, [])
+    }
     // Caps the *uncompressed* payload a zip is allowed to expand to, checked
     // via `unzip -l` before any extraction happens. `maxZipSize` alone only
     // bounds the compressed archive on disk — a crafted zip well under that
@@ -451,18 +497,10 @@ class ModZipInstaller {
 
             guard let manifest = currentModManifest else { return }
 
-            let existingMod = findExistingMod(manifest.uniqueId, in: existingMods)
-
-            if let existing = existingMod {
-                let conflict = ModConflict(
-                    conflictType: .folderExists,
-                    folderName: folderName,
-                    existingVersion: existing.version,
-                    newVersion: manifest.version,
-                    resolutionOptions: [.overwriteWithBackup, .rename, .skip]
-                )
-                conflicts.append(conflict)
-            }
+            let detection = Self.detectConflicts(forFolderName: folderName,
+                                                 manifest: manifest,
+                                                 in: existingMods)
+            conflicts.append(contentsOf: detection.conflicts)
 
             let detectedMod = DetectedMod(
                 folderName: folderName,
@@ -471,7 +509,7 @@ class ModZipInstaller {
                 hasConfigFiles: hasConfigFiles,
                 dependencies: dependencies,
                 dependencyDetails: manifest.dependencies,
-                existingVersion: existingMod
+                existingVersion: detection.existing
             )
             detectedMods.append(detectedMod)
             totalSize += modSize

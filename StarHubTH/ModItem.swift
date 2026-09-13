@@ -281,4 +281,40 @@ extension Array where Element == ModItem {
         }
         return nil
     }
+
+    /// Le mod dont le nom **logique** de dossier (point de pause décapité)
+    /// vaut `logicalName`, sans casse (APFS n'en distingue pas). `nil` si
+    /// aucun.
+    ///
+    /// Frère de `mod(withUniqueId:)` et même forme en deux passes : un
+    /// composant de pack est trouvé quand c'est son propre nom logique qui est
+    /// demandé, et la préférence pour la ligne de premier niveau ne dépend pas
+    /// de l'ordre du tableau. Le point de tête est décapité **des deux
+    /// côtés** — côté requête parce que `DetectedMod.folderName` porte le nom
+    /// brut de l'archive, côté stock par défense : `folderName` est documenté
+    /// sans point, rien ne l'impose à la construction.
+    ///
+    /// Consommé par la détection d'installation
+    /// (`ModZipInstaller.detectConflicts`) : c'est lui qui trouve
+    /// l'**occupant** d'un nom déjà pris par un mod d'autre `UniqueID`.
+    func mod(withLogicalFolderName logicalName: String) -> ModItem? {
+        let wanted = logicalName.strippingPauseDot
+        func matches(_ mod: ModItem) -> Bool {
+            mod.folderName.strippingPauseDot.caseInsensitiveCompare(wanted) == .orderedSame
+        }
+        if let top = first(where: matches) { return top }
+        for mod in self {
+            if let child = mod.children?.first(where: matches) { return child }
+        }
+        return nil
+    }
+}
+
+extension String {
+    /// Le marqueur de pause décapité : `.[CP] X` → `[CP] X`. Un seul point —
+    /// le préfixe de pause n'en pose qu'un, et un dossier légitimement nommé
+    /// `..X` n'existe pas dans le parc.
+    var strippingPauseDot: String {
+        hasPrefix(".") ? String(dropFirst()) : self
+    }
 }

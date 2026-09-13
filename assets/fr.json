@@ -487,6 +487,7 @@
   "mod_install_existing_version": "Installée : v%@",
   "mod_install_failed": "Échec de l'installation",
   "mod_install_folder_taken": "« %1$@ » était déjà le dossier d'un autre mod — installé sous « %2$@ ».",
+  "mod_install_name_taken_by_other_mod": "Nom de dossier déjà utilisé par un autre mod : « %1$@ » (installée : v%2$@).",
   "mod_install_invalid_structure": "Cette archive ne contient pas une structure de mod valide (manifest.json manquant).",
   "mod_install_label_author": "Auteur",
   "mod_install_label_files_written": "Fichiers écrits",

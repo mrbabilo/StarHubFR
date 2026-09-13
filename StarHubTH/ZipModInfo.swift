@@ -171,6 +171,8 @@ extension ValidationStatus {
 /// Type of conflict detected during installation
 enum ConflictType: Equatable {
     case folderExists
+    /// Le nom logique est déjà pris par un mod d'**autre** UniqueID.
+    case nameTakenByOtherMod
 }
 
 /// Available resolutions for conflicts. `keepExisting`/`useNew` — les
@@ -181,6 +183,19 @@ enum ConflictResolution: Hashable {
     case overwriteWithBackup
     case rename
     case skip
+
+    /// Le défaut dépend du type : un conflit d'UniqueID est une mise à jour —
+    /// écraser est le geste demandé, comportement historique inchangé. Un nom
+    /// pris par un **autre** mod ne donne pas l'écrasement sans choix
+    /// explicite : on décale, comme l'installateur le faisait déjà en silence
+    /// (cas « [CP] Seaside Sounds » de deux auteurs : écraser détruirait un
+    /// vrai mod sans retour).
+    static func `default`(for type: ConflictType) -> ConflictResolution {
+        switch type {
+        case .folderExists: return .overwriteWithBackup
+        case .nameTakenByOtherMod: return .rename
+        }
+    }
 }
 
 /// Conflict detected during mod installation
@@ -188,6 +203,10 @@ struct ModConflict: Identifiable {
     let id = UUID()
     let conflictType: ConflictType
     let folderName: String
+    /// Le nom d'affichage du mod en place : l'**occupant** quand le type est
+    /// `.nameTakenByOtherMod` — c'est lui que le dialogue doit nommer,
+    /// l'existant étant sinon la mise à jour du même mod.
+    let existingName: String
     let existingVersion: String
     let newVersion: String
     let resolutionOptions: [ConflictResolution]

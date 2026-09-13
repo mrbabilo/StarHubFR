@@ -349,8 +349,13 @@ struct InstallPreview: View {
 
     private func initializeSelections() {
         for mod in zipModInfo.detectedMods {
-            let hasConflict = conflicts.contains { $0.folderName == mod.folderName }
-            let defaultResolution: ConflictResolution? = hasConflict ? .overwriteWithBackup : nil
+            // Le défaut dépend du **type** de conflit : une mise à jour
+            // d'UniqueID pré-arme l'écrasement (le geste demandé), un nom
+            // pris par un autre mod se décale — jamais d'écrasement d'un
+            // autre mod sans choix explicite.
+            let conflict = conflicts.first { $0.folderName == mod.folderName }
+            let defaultResolution: ConflictResolution? =
+                conflict.map { ConflictResolution.default(for: $0.conflictType) }
 
             selections[mod.id] = InstallSelection(
                 modId: mod.id,
@@ -391,9 +396,9 @@ struct InstallPreview: View {
             get: { [self] in
                 if let mod = zipModInfo.detectedMods.first(where: { $0.folderName == conflict.folderName }),
                    let sel = selections[mod.id] {
-                    return sel.conflictResolution ?? .overwriteWithBackup
+                    return sel.conflictResolution ?? ConflictResolution.default(for: conflict.conflictType)
                 }
-                return .overwriteWithBackup
+                return ConflictResolution.default(for: conflict.conflictType)
             },
             set: { [self] newValue in
                 guard let mod = zipModInfo.detectedMods.first(where: { $0.folderName == conflict.folderName }) else { return }
@@ -540,6 +545,16 @@ struct ConflictRow: View {
                     .foregroundColor(.red)
                 Text(conflict.folderName)
                     .font(.system(size: 12, weight: .medium))
+            }
+
+            // Un nom pris par un **autre** mod se dit : la ligne nomme
+            // l'occupant, c'est lui qu'un écrasement remplacerait.
+            if conflict.conflictType == .nameTakenByOtherMod {
+                Text(String(format: localization.L(L10n.ModInstall.nameTakenByOtherMod),
+                            conflict.existingName, conflict.existingVersion))
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 8) {

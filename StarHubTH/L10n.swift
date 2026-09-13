@@ -1444,6 +1444,9 @@ enum L10n {
         static let archiveContains      = "mod_install_archive_contains"
         static let notAModHint          = "mod_install_not_a_mod_hint"
         static let folderTaken          = "mod_install_folder_taken"
+        // Conflit de nom logique : un **autre** mod occupe déjà le nom —
+        // la ligne nomme l'occupant, c'est lui qu'un écrasement remplacerait.
+        static let nameTakenByOtherMod  = "mod_install_name_taken_by_other_mod"
         static let droppedTitle         = "mod_install_dropped_title"
         static let droppedQuestion      = "mod_install_dropped_question"
         static let droppedHostPaused    = "mod_install_dropped_host_paused"
