@@ -413,10 +413,13 @@ final class StarHubTHViewModel {
     /// de l'auteur (9,8 Mo) : la lecture du journal en est l'essentiel.
     /// La lecture du journal occupe l'essentiel des phases : elle avance en
     /// **continu** entre ces deux bornes, au rythme de ses propres lignes.
-    static let launchSmapiLogStart: Double = 0.60
-    static let launchSmapiLogEnd: Double = 0.66
-    static let launchRegistrySyncProgress: Double = 0.68
-    static let launchDuplicatesProgress: Double = 0.69
+    /// `nonisolated` : ce sont quatre `Double` immuables, lus par le balayage
+    /// qui tourne hors acteur. L'isolation héritée de la classe (L2) les
+    /// rendait inatteignables depuis lui sans rien protéger.
+    nonisolated static let launchSmapiLogStart: Double = 0.60
+    nonisolated static let launchSmapiLogEnd: Double = 0.66
+    nonisolated static let launchRegistrySyncProgress: Double = 0.68
+    nonisolated static let launchDuplicatesProgress: Double = 0.69
 
     /// Annonce une phase qui suit la boucle par mod de `scanMods`.
     ///
@@ -2202,9 +2205,13 @@ final class StarHubTHViewModel {
         // file de fond ne lit plus `currentLanguage` pendant que le main peut
         // l'écrire (P5-L5).
         let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
+        // Le dossier de jeu se résout **ici aussi**, et pour la même raison
+        // que le repli ci-dessus : la file de fond ne lit plus une propriété
+        // que l'acteur principal peut écrire.
+        let resolvedGameDir = gameDir
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
-            self.scanMods()          // also kicks off parseSMAPILog internally
+            self.scanMods(gameDir: resolvedGameDir)  // also kicks off parseSMAPILog internally
             self.reloadSaves()
             self.environment.fetchSteamUser(fallbackFarmerName: farmerFallback)
         }
@@ -2231,9 +2238,10 @@ final class StarHubTHViewModel {
     /// file.
     func refreshSmapiLog() {
         guard smapiHealth.beginRefresh() else { return }
+        let resolvedGameDir = gameDir
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
-            self.parseSMAPILog()
+            self.parseSMAPILog(gameDir: resolvedGameDir)
             DispatchQueue.main.async { self.smapiHealth.endRefresh() }
         }
     }
@@ -2253,7 +2261,7 @@ final class StarHubTHViewModel {
     ///
     /// No registry/timestamp/profile migration is needed: those maps key on
     /// the logical `folderName` (without the dot), which is unchanged.
-    private func migrateDisabledModsToDotPrefix(gameDir: String) {
+    nonisolated private func migrateDisabledModsToDotPrefix(gameDir: String) {
         // La règle vit en Core (`DisabledModsMigration`, §6 tranche 1) avec
         // ses tests ; ici ne reste que le journal de l'app, pré-lié.
         DisabledModsMigration.runIfNeeded(gameDir: gameDir) { [weak self] message, level in
@@ -2274,6 +2282,9 @@ final class StarHubTHViewModel {
         // Même règle qu'à `refresh()` : le repli « Farmer » se résout sur le
         // main, avant que la file de fond n'en ait besoin (P5-L5).
         let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
+        // Et le dossier de jeu avec lui : la file de fond ci-dessous le lirait
+        // sinon pendant que l'acteur principal peut l'écrire.
+        let resolvedGameDir = gameDir
         // Step 0 — "Initializing": caches already seeded synchronously in
         // init (game dir, Nexus caches). Just publish the first frame.
         DispatchQueue.main.async { [weak self] in
@@ -2342,8 +2353,8 @@ final class StarHubTHViewModel {
             // first scanMods() so the scanner sees every mod — enabled and
             // disabled — in a single location. Idempotent and safe to call on
             // every launch (it self-guards with a UserDefaults flag).
-            self.migrateDisabledModsToDotPrefix(gameDir: self.gameDir)
-            self.scanMods()
+            self.migrateDisabledModsToDotPrefix(gameDir: resolvedGameDir)
+            self.scanMods(gameDir: resolvedGameDir)
 
             // Step 3 — Saves: read & parse the user's save XML files. Can be
             // slow when many saves exist.
@@ -2422,7 +2433,14 @@ final class StarHubTHViewModel {
         self.environment.checkSmapiVersion()
     }
     
-    func scanMods(includeRepair: Bool = true) {
+    /// - Parameter gameDir: résolu **par l'appelant, sur l'acteur principal**
+    ///   (précédent `fetchSteamUser`, L5) — c'est ce qui rend ce balayage
+    ///   `nonisolated`. Il masque délibérément la propriété du même nom : tout
+    ///   le corps lit le paramètre. ⚠️ **Ne pas y substituer une lecture hors
+    ///   acteur des préférences** : `restoreGameDir` écrit un chemin détecté
+    ///   *avant* que son `didSet` ne le persiste, et une lecture qui croise
+    ///   cette fenêtre rend l'ancien chemin.
+    nonisolated func scanMods(gameDir: String, includeRepair: Bool = true) {
         guard !gameDir.isEmpty else {
             // scanMods est appelé depuis background (refresh, initialLoad…).
             // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
@@ -2457,9 +2475,15 @@ final class StarHubTHViewModel {
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         if let topCount = try? fm.contentsOfDirectory(atPath: modsPath).count, topCount > 0 {
-            let preparing = self.localization.L(L10n.Main.launchStepPreparing)
+            // Le libellé se résout **dans** le saut, donc sur l'acteur : le
+            // lire ici, au fond, était la dernière lecture inter-fils de ce
+            // corps. Rien n'arrive plus par paramètre pour si peu.
             DispatchQueue.main.async {
-                self.scanStore.scanProgress = ScanProgress(done: 0, total: topCount, currentName: preparing)
+                MainActor.assumeIsolated {
+                    let preparing = self.localization.L(L10n.Main.launchStepPreparing)
+                    self.scanStore.scanProgress = ScanProgress(done: 0, total: topCount,
+                                                               currentName: preparing)
+                }
             }
         }
 
@@ -2495,7 +2519,7 @@ final class StarHubTHViewModel {
         // s'annonce désormais, compte complet à l'appui.
         publishLaunchPhase(L10n.Main.launchStepSmapiLog,
                            progress: Self.launchSmapiLogStart, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
-        parseSMAPILog(onProgress: { [weak self] fraction in
+        parseSMAPILog(gameDir: gameDir, onProgress: { [weak self] fraction in
             self?.publishLaunchPhaseProgress(L10n.Main.launchStepSmapiLog,
                                              fraction: fraction,
                                              from: Self.launchSmapiLogStart,
@@ -2581,7 +2605,18 @@ final class StarHubTHViewModel {
         // Le poids du parc, après la publication de la liste : c'est une
         // seconde traversée de `Mods/` (~3 s sur 100 000 fichiers), et elle ne
         // doit retarder l'affichage d'aucun mod.
-        measureModsFolderSize()
+        //
+        // Le saut par main est ce qui reste de `@MainActor` ici : `scanStore`
+        // porte l'état qu'observent les vues, il n'a pas à s'ouvrir pour que ce
+        // balayage sorte de l'acteur. La mesure repart aussitôt sur utility ;
+        // seul le test-and-set du tour (`beginSizeMeasure`, sous `sizeLock`)
+        // change de fil. ⚠️ Son atomicité n'en dépend pas — le verrou la tient
+        // d'où qu'on appelle, et la file principale ne fait que **sérialiser**
+        // deux demandes rivales. Le saut suit dans le FIFO celui qui publie la
+        // liste ci-dessus, comme avant.
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { self.measureModsFolderSize() }
+        }
     }
 
     // MARK: - Poids du parc (B2-T2)
@@ -2649,7 +2684,7 @@ final class StarHubTHViewModel {
     ///   sur le journal réel de l'auteur (9,8 Mo) : le diagnostic pèse 5,4 s
     ///   des ~7,1 s, les trois autres passes se partagent le reste. Sans ce
     ///   compte rendu, l'écran de démarrage restait immobile toute la durée.
-    func parseSMAPILog(onProgress: ((Double) -> Void)? = nil) {
+    nonisolated func parseSMAPILog(gameDir: String, onProgress: ((Double) -> Void)? = nil) {
         // Bornes des quatre passes, proportionnelles à leur coût mesuré.
         let wDiagnostics = 0.76, wUpdates = 0.83, wConflicts = 0.93
         guard !gameDir.isEmpty else { onProgress?(1.0); return }
@@ -3241,7 +3276,14 @@ final class StarHubTHViewModel {
     }
     
     /// Shared formatter (DateFormatter allocation is expensive when logging frequently).
-    private static let logTimeFormatter: DateFormatter = {
+    ///
+    /// `nonisolated(unsafe)` nomme un partage **qui existe déjà** : `log` est
+    /// `nonisolated` et les cinq appelants du chemin de scan l'appellent
+    /// depuis une file de fond. Ce qui rend le partage sûr n'est pas une
+    /// convention du dépôt mais le contrat d'Apple — `DateFormatter` est
+    /// thread-safe **en formatage** ; ce qui ne l'est pas, c'est le
+    /// reconfigurer. Il est configuré une fois, ici, puis seulement lu.
+    nonisolated(unsafe) private static let logTimeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm:ss"
         return f
@@ -3472,7 +3514,7 @@ final class StarHubTHViewModel {
     /// `SmapiDiagnostics.parse` is pure and the mtime lookup is a single stat.
     /// Reused by both `parseSMAPILog` (scan/refresh) and `parseAndAppendSmapiLog`
     /// (reload button) so the health card refreshes on either path.
-    private func computeSmapiDiagnostics(logContent: String, atPath path: String,
+    nonisolated private func computeSmapiDiagnostics(logContent: String, atPath path: String,
                                         onProgress: ((Double) -> Void)? = nil)
     -> (SmapiDiagnostics, Date?, Bool) {
         let diag = SmapiDiagnostics.parse(logContent: logContent, onProgress: onProgress)
@@ -4181,7 +4223,10 @@ final class StarHubTHViewModel {
         migrateFolderKeyedStores(from: old, to: new, shared: stillClaimed)
 
         log(String(format: localization.L(L10n.Mods.renamedLog), old, new))
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in self?.scanMods() }
+        let resolvedGameDir = gameDir
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.scanMods(gameDir: resolvedGameDir)
+        }
         return .renamed(newFolderName: new)
     }
 
@@ -6978,7 +7023,7 @@ final class StarHubTHViewModel {
     /// La date d'installation enregistrée pour un dossier, ou `nil` si le mod
     /// n'a jamais été enregistré. Façade : les vues et le reste du ViewModel
     /// l'appellent, le store la calcule.
-    func installedModDate(for folderName: String) -> Date? {
+    nonisolated func installedModDate(for folderName: String) -> Date? {
         installedModRegistryStore.installedDate(for: folderName)
     }
 
@@ -6991,7 +7036,7 @@ final class StarHubTHViewModel {
     ///   ancres de version — sont alors suspendues : elles répondent à « ce
     ///   dossier a disparu », question à laquelle un lot qu'on n'a pas pu lire
     ///   ne répond pas. L'enregistrement, lui, continue.
-    private func syncInstalledModRegistry(scannedMods: [ModItem],
+    nonisolated private func syncInstalledModRegistry(scannedMods: [ModItem],
                                           modsFolderWasReadable: Bool = true) {
         // La version que smapi.io suggère, par `UniqueID`. Source : le cache
         // plat sous son lock, pas `nexusUpdates`. La propriété @Published ne
@@ -7042,7 +7087,7 @@ final class StarHubTHViewModel {
     /// fetchSaves() scans the Saves directory and parses every save's XML —
     /// run off the main thread so it doesn't stall the UI when there are
     /// many saves.
-    func reloadSaves() {
+    nonisolated func reloadSaves() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let saves = SaveManager.shared.fetchSaves()
             DispatchQueue.main.async {
@@ -7403,8 +7448,9 @@ final class StarHubTHViewModel {
         }
 
         if outcome.needsRescan {
+            let resolvedGameDir = gameDir
             DispatchQueue.global(qos: .userInitiated).async {
-                self.scanMods()
+                self.scanMods(gameDir: resolvedGameDir)
             }
         }
     }
@@ -8946,13 +8992,14 @@ final class StarHubTHViewModel {
             // HORS main, comme l'appelaient la file globale d'avant et
             // `refresh()` (T10). La suspension laisse le voile se rendre ;
             // la reprise revient sur main, et la suite garde l'ordre
-            // d'origine. `scanMods` reste annoté main-actor (sortir tout
-            // son call-graph de l'acteur est le travail de la tranche
-            // d'isolation) : le saut passe donc par la file globale, le
-            // même saut que le sien partout ailleurs dans le fichier.
+            // d'origine. `scanMods` est `nonisolated` depuis la tranche
+            // d'isolation : le saut par la file globale reste, c'est lui qui
+            // porte le travail lourd hors main — et le dossier de jeu se
+            // résout ici, sur l'acteur, pour ne pas se lire au fond.
+            let resolvedGameDir = gameDir
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                    self?.scanMods()
+                    self?.scanMods(gameDir: resolvedGameDir)
                     continuation.resume()
                 }
             }
@@ -9268,11 +9315,13 @@ final class StarHubTHViewModel {
             // Le scan est lourd : il vit hors main (T10) — la suspension
             // laisse la barre de bascule se rendre avant le blocage, la
             // reprise revient sur main et la suite garde l'ordre d'origine.
-            // `scanMods` reste annoté main-actor : le saut passe par la file
-            // globale, le même saut que partout ailleurs dans le fichier.
+            // `scanMods` est `nonisolated` depuis la tranche d'isolation :
+            // le saut par la file globale porte le travail lourd hors main, et
+            // le dossier de jeu se résout ici, sur l'acteur.
+            let resolvedGameDir = gameDir
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                    self?.scanMods()
+                    self?.scanMods(gameDir: resolvedGameDir)
                     continuation.resume()
                 }
             }
@@ -9423,8 +9472,9 @@ final class StarHubTHViewModel {
             // l'utilisateur vient de demander la suppression de ce mod
             // nommément. Le consentement fait toute la différence.
             forgetStores(of: mod)
+            let resolvedGameDir = gameDir
             DispatchQueue.global(qos: .userInitiated).async {
-                self.scanMods()
+                self.scanMods(gameDir: resolvedGameDir)
             }
             return
         }
@@ -9487,8 +9537,9 @@ final class StarHubTHViewModel {
             }
             forgetStores(of: mod)
             log(String(format: localization.L(L10n.Mods.deletedLog), mod.name))
+            let resolvedGameDir = gameDir
             DispatchQueue.global(qos: .userInitiated).async {
-                self.scanMods()
+                self.scanMods(gameDir: resolvedGameDir)
                 DispatchQueue.main.async {
                     self.syncActiveProfileIds()
                     self.pendingDeleteFolder = nil
@@ -9556,7 +9607,11 @@ final class StarHubTHViewModel {
                     self.log(String(format: self.localization.L(L10n.Maintenance.trashRestoredLog),
                                     entry))
                     self.refreshTrash()
-                    self.scanMods()
+                    // ⚠️ Seul site qui balaie **sur le fil principal** — il
+                    // l'a toujours fait, et ~960 mods y gèlent l'interface le
+                    // temps de la passe. À traiter pour lui-même, pas en
+                    // passant sous couvert d'isolation.
+                    self.scanMods(gameDir: self.gameDir)
                 }
             } catch {
                 DispatchQueue.main.async {

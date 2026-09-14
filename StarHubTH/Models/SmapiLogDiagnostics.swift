@@ -12,10 +12,13 @@ import Foundation
 /// Update alerts are intentionally NOT captured here — the existing
 /// `outOfDateMods` pipeline (Updates tab) already covers them, so this type
 /// stays focused on health/loadability diagnostics.
-public struct SmapiDiagnostics {
+/// Traversant : il naît sur le fil qui lit le journal et s'applique au
+/// magasin de santé sur l'acteur principal. Type public — jamais de
+/// conformité implicite — dont tous les membres sont des valeurs.
+public struct SmapiDiagnostics: Sendable {
     /// A named diagnostic item with a human-readable reason (skipped mod,
     /// failed load, …). `Identifiable` so it can drive a SwiftUI `ForEach`.
-    public struct Issue: Identifiable {
+    public struct Issue: Identifiable, Sendable {
         public let id = UUID()
         public let name: String
         public let reason: String
@@ -26,7 +29,7 @@ public struct SmapiDiagnostics {
     }
 
     /// A mod with an associated count (e.g. ERROR lines attributed to it).
-    public struct ModCount: Identifiable {
+    public struct ModCount: Identifiable, Sendable {
         public let id = UUID()
         public let name: String
         public let count: Int
@@ -39,7 +42,7 @@ public struct SmapiDiagnostics {
     /// A known-harmless ERROR line, classified so the UI can reassure the
     /// player instead of alarming them. These never count as problems, and are
     /// excluded from `topErrorMods` so a healthy mod isn't blamed for them.
-    public struct BenignNotice: Identifiable {
+    public struct BenignNotice: Identifiable, Sendable {
         public enum Kind: String, CaseIterable, Sendable {
             /// GOG Galaxy isn't signed in — affects the Galaxy overlay only.
             case galaxyAuth
@@ -89,7 +92,7 @@ public struct SmapiDiagnostics {
     }
 
     /// A mod that requires a dependency which is not installed.
-    public struct MissingDep: Identifiable {
+    public struct MissingDep: Identifiable, Sendable {
         public let id = UUID()
         public let mod: String
         public let missing: String

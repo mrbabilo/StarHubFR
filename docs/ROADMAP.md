@@ -235,6 +235,42 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       s'ouvrir. `GameEnvironmentStore`, isolé en L5, est le dernier cas à
       part : son `gameDir` est persisté à chaque écriture, donc lisible hors
       acteur par les préférences.
+
+      **Étape 2 livrée le 2026-09-14 — et le coût mesuré valait la moitié de
+      l'annonce.** Les quatre méthodes marquées `nonisolated`, le compilateur
+      nomme **7** erreurs, pas 16 : les conformités ci-dessus en avaient
+      éteint la moitié d'un coup, parce qu'**un `let` de type `Sendable` sur
+      un acteur est implicitement lisible hors de lui**. Mieux :
+      `reloadSaves`, `syncInstalledModRegistry` et
+      `migrateDisabledModsToDotPrefix` n'en produisaient **aucune** — elles
+      étaient déjà prêtes. Les sept vivaient toutes dans `scanMods`.
+
+      Elles se sont réglées en trois gestes :
+
+      - **`gameDir` arrive en paramètre** (4 des 7), résolu par l'appelant sur
+        l'acteur — dix sites d'appel, chacun le lisant avant son saut. C'est la
+        décision que L5 avait déjà prise pour `fallbackFarmerName`. ⚠️ La
+        variante « le lire hors acteur depuis les préférences », que le cadrage
+        proposait, a été **écartée sur preuve** : `restoreGameDir` écrit un
+        chemin détecté *avant* que son `didSet` ne le persiste, et une lecture
+        qui croise cette fenêtre rend l'ancien chemin.
+      - **`parseSMAPILog`, `computeSmapiDiagnostics`, `installedModDate`
+        passent `nonisolated`** — les deux premières promettaient déjà « safe
+        off-main » dans leur propre documentation ; la signature le dit enfin.
+      - **`measureModsFolderSize` reste `@MainActor`**, atteinte par un saut
+        `DispatchQueue.main.async { MainActor.assumeIsolated { … } }` — le
+        patron du dépôt, et celui que L5 a prouvé préférable à
+        `Task { @MainActor in }` (deux tests de magasin et un du client
+        smapi.io rougissent sur le second, qui n'entre pas dans le FIFO de la
+        file principale). ⚠️ Son invariant a été vérifié plutôt que supposé :
+        `beginSizeMeasure` est un test-and-set **sous `sizeLock`**, donc
+        atomique d'où qu'on l'appelle. Le saut ne l'affaiblit pas, il
+        sérialise deux demandes rivales.
+
+      Relevé en passant, **non corrigé** : la restauration depuis la corbeille
+      est le seul site qui balaie **sur le fil principal** — ~960 mods y gèlent
+      l'interface. Il l'a toujours fait ; c'est un défaut à traiter pour
+      lui-même, pas sous couvert d'isolation.
 ---
 
 
