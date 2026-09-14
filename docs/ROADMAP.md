@@ -695,11 +695,18 @@ backup se retrouve en moins de dix secondes.
       « Page du mod introuvable (retirée ou masquée) »). Le signal est une
       **erreur explicite dans une entrée présente**, jamais une absence —
       le piège 429/503 ci-dessous ne s'applique donc pas à ce verdict ;
-      • **reste à mesurer** : ce que l'API v1 rend par identifiant pour un mod
-      *caché* (une requête, clé requise). 200 → la distinction caché/supprimé
-      est possible au check existant, une requête par mod flaggé
-      `sourceNotFound` (quota négligeable, pas de passe dédiée) ; 404 → la
-      distinction est impossible et le libellé combiné est le plafond honnête.
+      • **mesure v1 obtenue le 2026-09-14 (bd8ef8ab, log réel)** : pour le
+      mod 32260 *caché*, l'API v1 répond **HTTP 200 — version 1.5.0** (jamais
+      publique ; la page web figée montrait 1.2.0). La distinction est donc
+      possible : smapi.io « found no » + v1 **200** = cachée, + v1 **404** =
+      supprimée — et la reprise a *réglé* le cas 32260 sans pastille : verdict
+      complet « à jour (1.5.0 = 1.5.0) », la copie du parc venant de cette
+      release retirée. Le journal nomme désormais les 404 (`http_<code>`)
+      ; le parc réel du jour en compte zéro — l'instrument est posé, les
+      cas viendront aux checks suivants. ⚠️ Angle neuf atteignable : page
+      cachée + l'auteur y pousse une version → la reprise suggérerait une
+      `[MAJ]` **intéléchargeable** (la page cachée n'offre pas de bouton) ;
+      à traiter si un cas se présente.
       Destination : la même pastille que les verdicts smapi.io (broken/abandoned
       déjà fusionnés — canal `modCompatibility`), pas un nouvel onglet. Le
       verdict `sourceNotFound` n'y entre pas aujourd'hui. ⚠️ Ne pas déduire
