@@ -277,11 +277,18 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       vert, le compilateur ne regardant pas les franchissements d'un corps
       qui se déclarait sur l'acteur en tournant au fond. Les 43 avertissements
       restants sont du bruit préexistant que le drapeau voit maintenant sur ce
-      chemin ; **zéro bloquant Swift 6**. ⚠️ Le mode 6 de l'app n'est pas pour
-      autant reposé : la cause documentée de la pile du 2026-09-14
-      (`syncInstalledModRegistry` → `Collection.map`) est traitée, mais la
-      preuve est un **lancement observé** — gate et tests étaient verts
-      pendant que l'app mourait. La sonde `lldb` revient à l'auteur.
+      chemin ; **zéro bloquant Swift 6**.
+
+      **La phase P5 est close le 2026-09-14** : le drapeau `-swift-version 6`
+      est reposé sur l'app (`8e2729cf`) et **tient** — lancement vérifié par
+      l'auteur à l'écran, CI verte (Xcode 16.4, plus stricte que la machine).
+      Bilan du chantier, jalon d'ouverture → clôture : **453 avertissements /
+      202 bloquants → 49 / 0**, Core et app en mode Swift 6, le cliquet tenu
+      par le compilateur sur la moitié testée et désormais par le runtime sur
+      l'autre. Ce que la fin de jeu a coûté et appris : le faux vert des 6/0
+      (un compilateur fait confiance à une étiquette, un runtime pas), le
+      grep nu qui surenchérit (20 `var` = des locales), et trois filets (gate,
+      tests, CI) muets sur un crash que seul un lancement observé voyait.
 ---
 
 
