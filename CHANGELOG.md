@@ -12,18 +12,23 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-09-14
+
+### Added
+
+- **Un mod dont le nom est déjà pris se signale dès l'aperçu d'installation.** Installer un second mod sous un nom déjà occupé écrasait l'autre en silence. L'aperçu propose désormais : ignorer, écraser l'occupant avec sauvegarde, ou installer sous un autre nom.
+- **La sortie complète de l'installateur SMAPI est conservée** dans `smapi-installer-last.log`, et son chemin est annoncé dans les Journaux quand une passe échoue : l'app n'en montrait qu'une ligne.
+
 ### Fixed
 
 - **L'installation de SMAPI depuis l'app échouait, à moitié faite.** Le processus de l'installateur était lancé sans `PATH` : il ne trouvait plus `chmod`, s'arrêtait après avoir remplacé le lanceur du jeu, et laissait le jeu non démarrable. Cassé depuis le 2026-09-07.
 - **Une désinstallation annonçait une installation.** L'écran disait « Téléchargement de SMAPI… », « Préparation de l'installation… », et un échec s'y disait « Erreur d'installation ». Ses quatre étapes parlent maintenant de désinstallation, le mot « téléchargement » compris.
-
-### Added
-
-- **La sortie complète de l'installateur SMAPI est conservée** dans `smapi-installer-last.log`, et son chemin est annoncé dans les Journaux quand une passe échoue : l'app n'en montrait qu'une ligne.
+- **L'application d'un profil ne gèle plus l'interface.** Le rescan complet du parc qui suit l'application repartait sur le fil principal — plusieurs secondes de blocage sur un grand parc ; il tourne désormais en tâche de fond.
+- **Deux traductions lancées en même temps ne se partagent plus la réponse.** La dernière réponse de DeepL était une variable partagée : deux traductions simultanées pouvaient déposer le texte de l'une dans l'autre.
 
 ### Changed
 
-- **Le code ne porte plus aucun avertissement de concurrence.** Les deux plus gros travaux en tâche de fond — bascule en masse et changement de profil — capturent le gestionnaire de fichiers et le ViewModel sans traversée ambiguë de fil, et les types échangés déclarent leur sûreté explicitement.
+- **L'app tourne en mode Swift 6.** Le mode le plus strict du langage : toute donnée échangée entre fils déclare sa sûreté, vérifiée à la compilation et à l'exécution. Les deux gros travaux de fond — bascule en masse, application de profil — sont réécrits autour d'un canal d'événements testé.
 
 ## [1.43.2] - 2026-09-12
 
