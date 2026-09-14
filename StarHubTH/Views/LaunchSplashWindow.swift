@@ -49,9 +49,12 @@ final class LaunchSplashController {
             // affirme via `assumeIsolated` (vérifié au runtime) plutôt que de
             // différer : un `orderOut` retardé d'un cycle laisserait la fenêtre
             // flasher avant d'être masquée. Aucun changement de comportement.
+            // `queue: .main` garantit le fil ; le mode 6 refuse pourtant de
+            // faire franchir une `Notification`. Exception bornée au transport.
+            nonisolated(unsafe) let delivered = note
             MainActor.assumeIsolated {
                 guard let self, !self.finished,
-                      let window = note.object as? NSWindow,
+                      let window = delivered.object as? NSWindow,
                       window !== self.panel,
                       !(window is NSPanel),
                       window.styleMask.contains(.titled) else { return }

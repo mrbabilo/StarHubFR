@@ -21,7 +21,9 @@ public struct BisectionCandidate: Equatable {
 }
 
 /// Ce que l'utilisateur constate après une étape.
-public enum BisectionOutcome: Equatable {
+/// `Sendable` explicite (P5-L6) : le verdict d'un essai traverse la
+/// complétion de relecture du journal. Enum **public** = pas d'inférence.
+public enum BisectionOutcome: Equatable, Sendable {
     case stillBroken
     case fixed
 }

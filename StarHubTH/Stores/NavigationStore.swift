@@ -13,6 +13,11 @@ import Observation
 /// les deux canaux s'écrivent par verbe seulement, parce que leur cycle de
 /// vie est posé-par-une-fonction, consommé-par-une-autre.
 @Observable
+/// `@MainActor` (P5-L6) : c'est l'état de navigation que les vues lisent et
+/// que le ViewModel écrit — même raison que `SaveNotesStore` et
+/// `GameEnvironmentStore`. L'isolation est ce qui rend légale la complétion
+/// `@Sendable` de `loadInventory`, dont le chargement, lui, tourne au fond.
+@MainActor
 final class NavigationStore {
 
     /// La sauvegarde dont la timeline est ouverte. Remis à `nil` par
@@ -134,11 +139,11 @@ final class NavigationStore {
     @ObservationIgnored private(set) var onModDetailOpen: ((ModItem) -> Void)?
     @ObservationIgnored private(set) var onConfigEditorClosed: (() -> Void)?
     @ObservationIgnored private(set) var loadInventory:
-        ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)?
+        (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)?
 
     init(onModDetailOpen: ((ModItem) -> Void)? = nil,
          onConfigEditorClosed: (() -> Void)? = nil,
-         loadInventory: ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)? = nil) {
+         loadInventory: (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)? = nil) {
         self.onModDetailOpen = onModDetailOpen
         self.onConfigEditorClosed = onConfigEditorClosed
         self.loadInventory = loadInventory
@@ -150,7 +155,7 @@ final class NavigationStore {
     /// tests passent plutôt les espions à l'`init`.)
     func wireEffects(onModDetailOpen: ((ModItem) -> Void)?,
                      onConfigEditorClosed: (() -> Void)?,
-                     loadInventory: ((SaveGameInfo, @escaping ([InventoryItem]) -> Void) -> Void)?) {
+                     loadInventory: (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)?) {
         self.onModDetailOpen = onModDetailOpen
         self.onConfigEditorClosed = onConfigEditorClosed
         self.loadInventory = loadInventory
@@ -207,6 +212,12 @@ final class NavigationStore {
         inventoryToEdit = []
         guard let save, let load = loadInventory else { return }
         let requestedId = save.id
+        // La complétion est `@MainActor @Sendable` (P5-L6) : le chargement
+        // part au fond, mais sa remise reste **synchrone sur l'acteur**.
+        // Un hop `Task` la différerait d'un tour — or le garde sur
+        // `requestedId`, qui refuse un inventaire arrivé après un changement
+        // de sauvegarde, doit lire l'état au moment exact de l'écriture.
+        // Deux tests du store épinglent cette synchronicité.
         load(save) { [weak self] items in
             guard let self, self.editingSave?.id == requestedId else { return }
             self.inventoryToEdit = items

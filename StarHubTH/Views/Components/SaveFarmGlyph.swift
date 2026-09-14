@@ -73,7 +73,11 @@ struct SaveFarmGlyph: View, Equatable {
         .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.sm))
     }
 
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    // `nonisolated` : `View` est isolée sur l'acteur principal en mode
+    // Swift 6, et `Equatable` ne l'est pas — la conformité traverse. Tous
+    // les membres comparés sont des valeurs (`Int`, `Bool`, `CGSize`,
+    // `RGBColor`) : la comparaison n'a aucune raison d'être sur l'acteur.
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.whichFarm == rhs.whichFarm && lhs.size == rhs.size
     }
 }

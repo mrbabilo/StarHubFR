@@ -8,7 +8,7 @@ import Foundation
 /// standalone mod nested in a subfolder — never just the trailing path
 /// component, so restoring reconstructs the real on-disk location rather
 /// than a flattened one.
-public struct ModConfigBackupItem: Identifiable, Codable, Equatable {
+public struct ModConfigBackupItem: Identifiable, Codable, Equatable, Sendable {
     public var id: UUID = UUID()
     public let modFolderName: String
     public let parentFolderName: String?
@@ -28,7 +28,9 @@ public struct ModConfigBackupItem: Identifiable, Codable, Equatable {
 /// One backup pass: every enabled mod's `config.json`/`fr.json` files
 /// captured at `timestamp`, stored under `folderName` in
 /// `ModConfigBackupManager`'s backups directory.
-public struct ModConfigBackup: Identifiable, Codable, Equatable {
+/// `Sendable` explicite (P5-L6) : la valeur traverse les hops de la vue des
+/// sauvegardes de config. Struct **public** = jamais d'inférence (§9).
+public struct ModConfigBackup: Identifiable, Codable, Equatable, Sendable {
     public var id: UUID = UUID()
     public let timestamp: Date
     public let items: [ModConfigBackupItem]
