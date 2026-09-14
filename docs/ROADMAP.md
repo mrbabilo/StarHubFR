@@ -170,9 +170,13 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       silence** (12 fichiers couverts sur 17 ; le compte intermédiaire de T2
       était faux de 3), et un type **public** (`NexusInstallFacts`) casse
       l'inférence `Sendable` d'un type interne à un maillon de distance.
-      ⏳ **Vérification à l'écran due par l'auteur** : installation SMAPI
-      réelle → désinstallation → réinstallation (le seul chemin qu'aucun
-      test ne couvre). Reste la sortie d'acteur de `scanMods` (tranche
+      ✅ **Vérifié à l'écran par l'auteur le 2026-09-14** (installation SMAPI
+      réelle → désinstallation → réinstallation) — **L4 est close**. La
+      vérification a échoué du premier coup et a livré un défaut **antérieur
+      à la tranche** : l'installateur lancé sans `PATH` ne trouvait plus
+      `chmod` et s'arrêtait le jeu à moitié installé (cassé depuis le
+      2026-09-07). Corrigé, plus les libellés de désinstallation et la
+      persistance de la sortie de l'installateur. Reste la sortie d'acteur de `scanMods` (tranche
       d'isolation). Détail et mécanismes : `REFACTORING.md` §9.
 ---
 

@@ -906,6 +906,23 @@ Trois choses que la tranche a apprises, et qu'on ne veut pas réapprendre :
    laisse les deux vues appelantes **inchangées et synchrones**. ⚠️ Idiome
    neuf : c'est le premier paramètre closure `@MainActor` du dépôt.
 
+✅ **Vérifié à l'écran par l'auteur le 2026-09-14 — L4 est close.** Et la
+vérification a fait ce pour quoi elle existe : elle a **échoué du premier
+coup**, sur un défaut qu'aucun des 3 183 tests ne pouvait voir et que la
+tranche n'avait pas introduit. L'installateur SMAPI mourait sur
+`Win32Exception (2) ... 'chmod' ... No such file or directory`, **après**
+avoir remplacé le lanceur du jeu — jeu non démarrable, cassé depuis le
+2026-09-07 (`530459b9`). Cause : `posixLocaleEnvironment()` **remplaçait**
+l'environnement du processus au lieu d'en hériter, et .NET, contrairement à
+`execvp(3)`, ne retombe sur aucun chemin par défaut sans `PATH`. La règle
+correcte existait déjà dans `ModZipInstaller` — deux copies, une seule la
+tenait. Les deux délèguent désormais à `ChildProcessEnvironment` (Core, 5
+tests). Ce qui a tranché en un essai après une demi-journée d'hypothèses :
+**persister la sortie entière de l'installateur** (`smapi-installer-last.log`)
+— l'app n'en montrait qu'une ligne et jetait la pile .NET qui nommait la
+frame. Le rejeu a aussi montré qu'une désinstallation s'annonçait en mots
+d'installation, sur ses quatre étapes.
+
 Ce qui reste après L4 : le ViewModel (11) et
 `PathoschildCompatibilityList` (6) prennent la tête, devant
 `ModInstallView`, `GameEnvironmentStore` et `NexusSearchClient` (2
