@@ -127,6 +127,14 @@ public enum ConfigEditorModel {
         /// l'autorise, et la valeur courante en tête quand elle n'est pas
         /// dans la liste.
         case choice(selected: String, among: [String])
+        /// Un raccourci reconnu par la grammaire du scanner (**C4-T10**).
+        /// `raw` porte l'orthographe d'origine du fichier — `'D0'`, `'None'`,
+        /// `'LeftShift'` — et se réécrit telle quelle tant que l'utilisateur
+        /// n'a pas touché : normaliser écrirait autre chose que ce que
+        /// l'auteur a posé (même mémoire que `toggle(asString:)`). À
+        /// l'édition, la capture écrit la forme canonique de `combo`, celle
+        /// que le `TryParse` de SMAPI lit.
+        case keybind(raw: String, combo: KeybindCombo)
     }
 
     public static func control(for value: ConfigJSONTree.Value) -> Control? {
@@ -165,6 +173,8 @@ public enum ConfigEditorModel {
             // Les 3900 clés décrites du parc sont des chaînes JSON : c'est
             // Content Patcher qui engendre le fichier, et il n'écrit que ça.
             return .string(selected)
+        case .keybind(let raw, _):
+            return .string(raw)
         }
     }
 
@@ -281,9 +291,18 @@ public enum ConfigEditorModel {
         var bySection: [String: [Row]] = [:]
         var unsectioned: [Row] = []
 
-        for leaf in leaves(of: tree) {
+        // C4-T10 — la règle du catalogue (R4) voit le fichier entier : une
+        // forme de chemin qui porte plus de `catalogThreshold` combinaisons
+        // distinctes documente les raccourcis des autres, elle n'en lie
+        // aucune. Calculé une fois par construction des groupes, pas par
+        // feuille.
+        let allLeaves = leaves(of: tree)
+        let catalog = KeybindScanner.catalogShapes(of: allLeaves)
+
+        for leaf in allLeaves {
             let option = leaf.keyPath.last.flatMap { index[$0.lowercased()] }
-            guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels) else { continue }
+            guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels,
+                                inCatalog: catalog) else { continue }
             guard let section = option?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
             bySection[section, default: []].append(row)
@@ -297,12 +316,27 @@ public enum ConfigEditorModel {
     }
 
     private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?,
-                            orLabeledBy labels: [String: ConfigLabelResolver.Labels]) -> Row? {
+                            orLabeledBy labels: [String: ConfigLabelResolver.Labels],
+                            inCatalog catalog: Set<String>) -> Row? {
         guard var control = control(for: leaf.value) else { return nil }
         var isOutside = false
         if let option, let choice = choiceControl(for: leaf.value, option: option) {
             control = choice.control
             isOutside = choice.isOutside
+        }
+
+        // C4-T10 — une feuille que la grammaire du scanner classe raccourci
+        // reçoit le contrôle de capture, en lieu et place du champ texte
+        // libre. Le schéma garde la priorité (une clé à valeurs admises rend
+        // son menu, au-dessus) ; les catalogues documentés (R4, ci-dessus)
+        // et les listes à plusieurs combinaisons restent en champ texte —
+        // une capture unique les effacerait en silence. Mesuré sur le parc :
+        // les 466 feuilles visées sont toutes des chaînes, donc toutes en
+        // `.text` ici ; une valeur numérique reste son champ chiffré.
+        if case .text = control,
+           !catalog.contains(KeybindScanner.pathShape(leaf.keyPath)),
+           let keybind = keybindControl(of: leaf) {
+            control = keybind
         }
 
         // C4-T1 — deux populations, deux sources : le schéma d'un content
@@ -328,6 +362,22 @@ public enum ConfigEditorModel {
                    control: control,
                    defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
                    isOutsideAllowedValues: isOutside)
+    }
+
+    /// Le contrôle de capture pour une feuille que la grammaire classe
+    /// raccourci, `nil` pour garder le champ texte. Au-delà d'une
+    /// combinaison, pas de capture : réécrire la liste depuis une seule
+    /// touche effacerait ses autres entrées en silence.
+    ///
+    /// ⚠️ Cycle de types assumé : `ConfigEditorModel` appelle
+    /// `KeybindScanner`, qui dépend de `Leaf`. Tranché dans C4-T10 — un
+    /// module unique rend le cycle sans effet à la compilation, et déplacer
+    /// la grammaire (voire `Decision`) n'aurait acheté qu'un churn d'API.
+    private static func keybindControl(of leaf: Leaf) -> Control? {
+        guard case .keybind(let combos) = KeybindScanner.classify(leaf: leaf),
+              combos.count == 1, let combo = combos.first,
+              let raw = literalText(of: leaf.value) else { return nil }
+        return .keybind(raw: raw, combo: combo)
     }
 
     /// La liste déroulante que le schéma justifie, ou `nil` pour garder le

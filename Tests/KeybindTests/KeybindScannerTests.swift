@@ -571,4 +571,17 @@ struct KeybindScannerTests {
         #expect(sel.collisions[0].combo.buttons == ["LeftStick"])
         #expect(sel.collisions[0].uses.map(\.modID) == ["b.Valley2"])
     }
+
+    // — C4-T10 : l'éditeur réutilise la règle du catalogue (R4)
+
+    /// L'entrée que l'éditeur de config emprunte : mêmes formes, même seuil
+    /// strict que `report`.
+    @Test func catalogShapesFlagsOnlyShapesAboveTheThreshold() {
+        let big = ConfigJSONTree.parse(
+            #"{ "Shortcuts": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"] }"#)!
+        #expect(KeybindScanner.catalogShapes(of: ConfigEditorModel.leaves(of: big)) == ["Shortcuts.[]"])
+
+        let small = ConfigJSONTree.parse(#"{ "Shortcuts": ["F1", "F2"] }"#)!
+        #expect(KeybindScanner.catalogShapes(of: ConfigEditorModel.leaves(of: small)).isEmpty)
+    }
 }

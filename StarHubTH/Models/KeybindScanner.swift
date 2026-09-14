@@ -298,6 +298,39 @@ public enum KeybindScanner {
         }.joined(separator: ".")
     }
 
+    /// Les formes de chemin d'un fichier qui sont des catalogues (R4) :
+    /// plus de `catalogThreshold` combinaisons distinctes sous la même
+    /// forme. **C4-T10** — l'éditeur de config l'emploie pour ne pas poser
+    /// de contrôle de capture sur un mod qui *documente* les raccourcis des
+    /// autres sans en lier aucun (`ModShortcutReferenceHub`) ; `report`
+    /// l'emploie pour le même écart, côté rapport.
+    public static func catalogShapes(of leaves: [ConfigEditorModel.Leaf]) -> Set<String> {
+        var keybindLeaves: [(keyPath: [String], combos: [KeybindCombo])] = []
+        for leaf in leaves {
+            if case .keybind(let combos) = classify(leaf: leaf) {
+                keybindLeaves.append((leaf.keyPath, combos))
+            }
+        }
+        return catalogShapes(fromClassified: keybindLeaves)
+    }
+
+    /// Passe 2 de la règle R4, partagée : par forme de chemin, compter les
+    /// combos distincts — au-delà du seuil, la forme est un catalogue, elle
+    /// ne produit aucune liaison. Compté par mod, jamais cumulé entre mods :
+    /// deux mods qui déclarent chacun peu de touches sous une forme de même
+    /// nom ne s'additionnent pas.
+    static func catalogShapes(
+        fromClassified keybindLeaves: [(keyPath: [String], combos: [KeybindCombo])]) -> Set<String> {
+        var combosByShape: [String: Set<KeybindCombo>] = [:]
+        for (keyPath, combos) in keybindLeaves {
+            let shape = pathShape(keyPath)
+            for combo in combos where !combo.isEmpty {
+                combosByShape[shape, default: []].insert(combo)
+            }
+        }
+        return Set(combosByShape.filter { $0.value.count > catalogThreshold }.map(\.key))
+    }
+
     public static func report(mods: [ModScan]) -> KeybindReport {
         var index: [KeybindCombo: [ModUse]] = [:]          // mods actifs
         var pausedIndex: [KeybindCombo: [ModUse]] = [:]    // mods en pause (C4-T7)
@@ -344,26 +377,15 @@ public enum KeybindScanner {
                 }
             }
 
-            // Passe 2 : par forme de chemin, compter les combos distincts —
-            // au-delà du seuil, la forme est un catalogue (R4), elle ne
-            // produit aucune liaison. Compté par mod, jamais cumulé entre
-            // mods : deux mods qui déclarent chacun peu de touches sous une
-            // forme de même nom ne s'additionnent pas.
-            var combosByShape: [String: Set<KeybindCombo>] = [:]
-            for (keyPath, combos) in keybindLeaves {
-                let shape = pathShape(keyPath)
-                for combo in combos where !combo.isEmpty {
-                    combosByShape[shape, default: []].insert(combo)
-                }
-            }
-            let catalogShapes = Set(
-                combosByShape.filter { $0.value.count > catalogThreshold }.map(\.key))
-            if !catalogShapes.isEmpty {
+            // Passe 2 : la règle du catalogue (R4), partagée avec l'éditeur
+            // de config (C4-T10) — voir `catalogShapes(fromClassified:)`.
+            let catalog = catalogShapes(fromClassified: keybindLeaves)
+            if !catalog.isEmpty {
                 catalogMods.append((mod.id, mod.name))
             }
 
             for (keyPath, combos) in keybindLeaves {
-                guard !catalogShapes.contains(pathShape(keyPath)) else { continue }
+                guard !catalog.contains(pathShape(keyPath)) else { continue }
                 // Compté **si ça lie** : voir le doc de `keybindCount`. La
                 // boucle qui suit saute déjà les combinaisons vides, ce
                 // compteur était la seule ligne à les prendre pour des
@@ -389,7 +411,7 @@ public enum KeybindScanner {
             }
 
             for (keyPath, raw) in unrecognizedLeaves {
-                guard !catalogShapes.contains(pathShape(keyPath)) else { continue }
+                guard !catalog.contains(pathShape(keyPath)) else { continue }
                 // Les illisibles d'un mod en pause restent hors du rapport :
                 // l'écran parle de l'état qui tire au jeu.
                 guard mod.isActive else { continue }

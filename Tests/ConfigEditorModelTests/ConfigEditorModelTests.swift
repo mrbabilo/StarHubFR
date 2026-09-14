@@ -343,4 +343,134 @@ struct ConfigEditorModelTests {
         #expect(groups[0].rows[0].control == .choice(selected: "spring", among: ["spring", "Summer"]))
         #expect(groups[0].rows[0].isOutsideAllowedValues == false)
     }
+
+    // MARK: - C4-T10 — le contrôle de raccourci
+
+    /// Une feuille que la grammaire du scanner classe raccourci reçoit le
+    /// contrôle de capture, pas un champ texte libre. Mesuré sur le parc :
+    /// 466 feuilles sur 146 mods, toutes des chaînes rendues `.text`.
+    @Test func aHintedSingleKeybindBecomesACaptureControl() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Menu": { "Hotkey": "F8" } }"#),
+                                              describedBy: [])
+        guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind, reçu \(groups[0].rows[0].control)")
+            return
+        }
+        #expect(raw == "F8")
+        #expect(combo.buttons == ["F8"])
+    }
+
+    /// L'aller-retour d'écriture est le piège de la roadmap : le contrôle
+    /// doit réécrire l'orthographe que le mod attend, pas une forme
+    /// canonique. Le parc porte `'D0'`, `'None'`, `'LeftShift'` — normaliser
+    /// `D0` en `0` écrirait autre chose que ce que l'auteur a posé. La
+    /// variante ici est une variante de casse : sa forme canonique diffère
+    /// (`LeftShift`), donc toute normalisation au montage ou à l'écriture
+    /// se voit.
+    @Test func anUntouchedKeybindRewritesItsOriginalSpelling() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Keybind": "leftshift" }"#), describedBy: [])
+        guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind")
+            return
+        }
+        #expect(raw == "leftshift")
+        #expect(combo.buttons == ["LeftShift"])
+        #expect(ConfigEditorModel.value(of: .keybind(raw: raw, combo: combo)) == .string("leftshift"))
+    }
+
+    /// Le cas `'D0'` du parc : l'orthographe canonique et la combinaison
+    /// coïncident, rien à normaliser — la capture ne doit rien changer tant
+    /// qu'on n'a pas touché.
+    @Test func aCanonicalSpellingStaysUntouchedToo() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Keybind": "D0" }"#), describedBy: [])
+        guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind")
+            return
+        }
+        #expect(raw == "D0")
+        #expect(combo.buttons == ["D0"])
+    }
+
+    /// 118 feuilles du parc : reconnaissables par leur combinaison, sans
+    /// aucun indice de nom (`Automate: Controls.ToggleOverlay`).
+    @Test func anUnhintedDistinctiveComboAlsoGetsTheControl() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Controls": { "ToggleOverlay": "LeftControl + B" } }"#), describedBy: [])
+        guard case .keybind(_, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind")
+            return
+        }
+        #expect(combo.buttons == ["B", "LeftControl"])
+    }
+
+    @Test func plainTextStaysATextField() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "DisplayName": "Bob" }"#), describedBy: [])
+        #expect(groups[0].rows[0].control == .text("Bob"))
+    }
+
+    /// Réécrire une liste depuis une capture unique effacerait ses autres
+    /// combinaisons en silence : au-delà d'une combinaison, pas de capture.
+    @Test func aMultiComboLeafKeepsTheTextField() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Hotkey": "F8, F9" }"#), describedBy: [])
+        #expect(groups[0].rows[0].control == .text("F8, F9"))
+    }
+
+    /// R4 : `ModShortcutReferenceHub` documente les raccourcis des autres —
+    /// chaque feuille de son catalogue passe la grammaire, aucune n'est
+    /// liée. Un sélecteur de touche posé dessus serait un faux positif
+    /// visible ; la même règle de forme que le scanner protège l'éditeur.
+    @Test func aCatalogShapeKeepsTheTextFieldEvenThoughEveryLeafParses() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Shortcuts": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"] }"#),
+            describedBy: [])
+        #expect(groups[0].rows.count == 9)
+        #expect(groups[0].rows.allSatisfy {
+            if case .text = $0.control { return true } else { return false }
+        })
+    }
+
+    /// Le seuil du scanner est strict (`> 8`) : huit combinaisons distinctes
+    /// sous une même forme restent des raccourcis éditables.
+    @Test func eightDistinctCombosUnderOneShapeIsStillEditable() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Shortcuts": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"] }"#),
+            describedBy: [])
+        #expect(groups[0].rows.allSatisfy {
+            if case .keybind = $0.control { return true } else { return false }
+        })
+    }
+
+    /// Le schéma d'un content pack reste maître : une clé à valeurs admises
+    /// rend son menu, même quand la valeur parse comme un raccourci.
+    @Test func aSchemaChoiceStillWinsOverTheKeybindControl() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Hotkey": "F8" }"#),
+            describedBy: [option("Hotkey", allowValues: ["F8", "F9"])])
+        #expect(groups[0].rows[0].control == .choice(selected: "F8", among: ["F8", "F9"]))
+    }
+
+    /// La réinitialisation réécrit le littéral de l'auteur tel quel — le
+    /// défaut ne passe pas par la forme canonique de la capture.
+    @Test func theSchemaDefaultOfAKeybindRowKeepsTheAuthorSpelling() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Hotkey": "F9" }"#),
+            describedBy: [option("Hotkey", defaultLiteral: "F8")])
+        #expect(groups[0].rows[0].defaultControl == .text("F8"))
+    }
+
+    /// Ce que la capture écrit : la forme canonique que le `TryParse` de
+    /// SMAPI lit. L'orthographe d'origine ne survit qu'aussi longtemps que
+    /// la valeur n'est pas touchée.
+    @Test func aReboundComboWritesItsCanonicalDisplay() throws {
+        let combo = try #require(KeybindParser.parse(.string("A + LeftShift"))?.first)
+        #expect(ConfigEditorModel.value(of: .keybind(raw: "A + LeftShift", combo: combo))
+                == .string("A + LeftShift"))
+    }
+
+    @Test func clearingAKeybindWritesNone() throws {
+        // `None` parse en combinaison vide — celle que « effacer » pose.
+        let combo = try #require(KeybindParser.parse(.string("None"))?.first)
+        #expect(combo.isEmpty)
+        #expect(ConfigEditorModel.value(of: .keybind(raw: "None", combo: combo)) == .string("None"))
+    }
 }
