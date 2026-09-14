@@ -21,7 +21,16 @@ public enum RegistryMigrationOutcome: Equatable {
 /// préférences réelles de l'utilisateur. Même motif que le reste du dépôt —
 /// la dépendance à l'environnement entre par l'initialiseur, pas par un
 /// singleton.
-public final class ModVersionAnchorStore {
+///
+/// Traversant, et ce que l'`@unchecked` affirme tient en une phrase :
+/// **aucune propriété stockée n'est mutable**. Tous les membres sont `let` —
+/// deux clés statiques, le `UserDefaults` injecté, le verrou qui sérialise
+/// les lectures-modifications-écritures. ⚠️ La conformité vérifiée a été
+/// tentée d'abord et **refusée** : `UserDefaults` n'est pas `Sendable`
+/// (mesuré le 2026-09-14, Swift 6.3.3 local, mode 6 du Core). C'est sa seule
+/// raison d'être ici — la classe elle-même n'a rien à promettre, et
+/// `UserDefaults` est thread-safe par contrat Apple.
+public final class ModVersionAnchorStore: @unchecked Sendable {
     private static let key = "modVersionAnchors"
     private static let registryKey = "installedModRegistry"
 

@@ -36,7 +36,17 @@ import Foundation
 /// que la liste de grâce ne soit posée puis consommée, sous peine de ré-estampiller
 /// des dates d'installation qu'aucune autre source ne reconstitue. C'est ce que
 /// l'ordre des trois appels au lancement garantit déjà.
-final class InstalledModRegistryStore {
+///
+/// Traversant, et ce que l'`@unchecked` affirme a été audité ligne à ligne le
+/// 2026-09-14 : **une seule propriété stockée est mutable** — `cache` — et ses
+/// trois accès (`all`, `mutate`, `mutateIfChanged`) sont tous encadrés par
+/// `lock.lock()` / `defer { lock.unlock() }`, sans exception. Les deux autres
+/// membres sont `let`. ⚠️ La conformité vérifiée est hors d'atteinte de toute
+/// façon : `UserDefaults` n'est pas `Sendable` (mesuré le même jour).
+/// La règle de non-récursivité du verrou, documentée sur `mutate`, est ce qui
+/// rend cet audit tenable — aucun corps sous verrou ne rentre par une autre
+/// porte.
+final class InstalledModRegistryStore: @unchecked Sendable {
 
     /// Ce que la synchronisation a constaté, rendu à l'appelant plutôt que
     /// journalisé ici : le store ne connaît ni le journal de l'app ni sa

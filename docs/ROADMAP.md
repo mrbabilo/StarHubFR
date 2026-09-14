@@ -206,16 +206,35 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       structurel** : une méthode `nonisolated` ne peut lire *aucune*
       propriété stockée du ViewModel — ni `gameDir`, ni `environment`, ni les
       magasins. Il faut donc trancher magasin par magasin ce qui est lisible
-      hors acteur. Relevé : `ModScanner` (20 `var`, 1 verrou — le seul à
-      examiner vraiment), `ScanStore` (1 `var`, 1 verrou),
-      `InstalledModRegistryStore` (3 `var`, 2 verrous),
-      `ModVersionAnchorStore` (2 `var`, 1 verrou) — **tous déjà touchés
-      depuis le fil de scan aujourd'hui**, tous déjà verrouillés, aucun
-      déclaré `Sendable`. Le geste est donc de nommer le verrou dans une
-      conformité explicite, puis de rendre les magasins `nonisolated let` sur
-      le ViewModel. `GameEnvironmentStore`, isolé en L5, est le cas à part :
-      son `gameDir` est persisté à chaque écriture, donc lisible hors acteur
-      par les préférences.
+      hors acteur.
+
+      ⚠️ **Le relevé des magasins était faux, et son ordre avec lui.** Il
+      annonçait « `ModScanner` (20 `var`) — le seul à examiner vraiment » :
+      c'était un `grep` nu, qui comptait les variables **locales** de
+      `scan()`. Recompté le 2026-09-14 en ancrant sur l'indentation des
+      propriétés stockées, l'ordre s'inverse — les trois premiers sont le
+      **même cas trivial**, une seule mutable sous un seul verrou, et le
+      quatrième n'appartient pas à la famille :
+
+      | Magasin | Propriétés stockées **mutables** | Verdict |
+      | --- | ---: | --- |
+      | `ModVersionAnchorStore` | **0** | `let` partout |
+      | `InstalledModRegistryStore` | 1 (`cache`) | 3 accès, tous sous `lock` |
+      | `ModScanner` | 1 (`manifestCache`) | 2 accès, tous sous son verrou |
+      | `ScanStore` | 5 `@Observable` + 2 sous `sizeLock` | **état publié, lu par les vues** |
+
+      Les **trois premiers sont traversants depuis le 2026-09-14**, l'audit
+      écrit à chaque déclaration. ⚠️ La conformité *vérifiée* a été tentée
+      d'abord et **refusée par le compilateur** : `UserDefaults` n'est pas
+      `Sendable` — c'est la seule raison de l'`@unchecked` sur les deux
+      magasins qui en portent un, pas une promesse sur leur état.
+      **`ScanStore` reste `@MainActor` et n'est pas à rendre traversant** :
+      ce n'est pas un cas plus dur du même geste, c'est de l'état d'interface
+      observé par les vues. L'ouvrir serait la mauvaise réponse — c'est
+      `scanMods` qui doit cesser de le toucher hors acteur, pas lui qui doit
+      s'ouvrir. `GameEnvironmentStore`, isolé en L5, est le dernier cas à
+      part : son `gameDir` est persisté à chaque écriture, donc lisible hors
+      acteur par les préférences.
 ---
 
 

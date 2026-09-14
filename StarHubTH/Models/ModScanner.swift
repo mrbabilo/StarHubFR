@@ -45,7 +45,10 @@ struct ScanProgress: Equatable {
 /// subscript d'un dictionnaire sans verrou. La classe (et non une struct)
 /// est ce qui rend le partage d'instance sûr : une copie vaudrait deux
 /// caches, et le verrou ne les unirait pas.
-final class ModScanner {
+/// C'est aussi tout ce que l'`@unchecked` affirme : **une** seule propriété
+/// stockée est mutable — `manifestCache` — et ses deux accès tiennent chacun
+/// entre `manifestCacheLock.lock()` et son `unlock()`.
+final class ModScanner: @unchecked Sendable {
 
     struct Outcome {
         /// Les mods balayés, **dans l'ordre de balayage** — le tri alphabétique
