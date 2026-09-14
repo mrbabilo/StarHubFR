@@ -151,14 +151,20 @@ def build_swiftc_command(swift_files: list[str], app_executable: str, module_cac
     arch = platform.machine()  # arm64 (Apple Silicon) or x86_64 (Intel)
     return ["swiftc"] + swift_files + [
         "-target", f"{arch}-apple-macosx14.0",
-        # P5-L6 : l'app compile sous le modèle de concurrence Swift 6. Ce
-        # drapeau est le gate — ce qui passait en avertissement devient une
-        # erreur de build. ⚠️ La CI ne compile pas l'app (elle ne lance que
-        # `swift test` et `check_standards.py`) : ce drapeau-ci n'est donc
-        # tenu que par le gate local, sur la chaîne active. Un contributeur
-        # sur une chaîne plus ancienne peut voir des erreurs de plus —
-        # c'est arrivé à L5, avec Xcode 16.4 contre 6.3.3.
-        "-swift-version", "6",
+        # ⚠️ **Pas de `-swift-version 6` ici, et c'est mesuré.** L'app compile
+        # sans erreur en mode 6 — mais elle **meurt au lancement** : le mode 6
+        # insère un contrôle d'isolation *à l'exécution* quand une closure
+        # isolée est passée à une fonction générique non isolée
+        # (`Collection.map`), et le dépôt en est plein. Pile du 2026-09-14 :
+        #   _dispatch_assert_queue_fail ← swift_task_checkIsolated
+        #   ← closure #1 in syncInstalledModRegistry ← Collection.map
+        #   ← scanMods ← closure #2 in performInitialLoad
+        # La cause n'est pas le drapeau : `scanMods` et sa descendance sont
+        # **déclarées `@MainActor` et exécutées sur une file de fond**. En
+        # mode 5 le compilateur laisse passer, personne ne vérifie ; en mode 6
+        # le runtime vérifie et arrête le programme. Le drapeau reviendra
+        # quand ces méthodes seront `nonisolated` (tranche d'isolation) —
+        # pas avant.
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,
@@ -230,7 +236,6 @@ def build_incremental(swift_files: list[str], app_executable: str,
                    "-output-file-map", OUTPUT_FILE_MAP,
                    "-module-name", MODULE_NAME,
                    "-target", target,
-                   "-swift-version", "6",   # P5-L6, voir build_swiftc_command
                    "-parse-as-library",
                    "-module-cache-path", module_cache_dir,
                    "-j", str(os.cpu_count() or 4)] + [os.path.abspath(f) for f in swift_files]
