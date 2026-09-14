@@ -147,6 +147,7 @@ let package = Package(
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
                 "Models/PreservedModData.swift",
+                "Models/SmapiBlacklist.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",
@@ -262,6 +263,11 @@ let package = Package(
                 "Models/DisabledModsMigration.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "SmapiBlacklistTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiBlacklistTests"
         ),
         .testTarget(
             name: "PreservedModDataTests",
