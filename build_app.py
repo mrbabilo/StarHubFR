@@ -162,9 +162,17 @@ def build_swiftc_command(swift_files: list[str], app_executable: str, module_cac
         # La cause n'est pas le drapeau : `scanMods` et sa descendance sont
         # **déclarées `@MainActor` et exécutées sur une file de fond**. En
         # mode 5 le compilateur laisse passer, personne ne vérifie ; en mode 6
-        # le runtime vérifie et arrête le programme. Le drapeau reviendra
-        # quand ces méthodes seront `nonisolated` (tranche d'isolation) —
-        # pas avant.
+        # le runtime vérifie et arrête le programme.
+        #
+        # ⚠️ **Cette cause est traitée depuis le 2026-09-14** : `scanMods`,
+        # `syncInstalledModRegistry` et leurs voisines du chemin de scan sont
+        # `nonisolated`, et la closure nommée dans la pile ci-dessus — le
+        # `.map` qui construit `suggested` — n'hérite donc plus de l'acteur.
+        # Le drapeau **n'est pas reposé pour autant** : ce qui le décidera
+        # n'est ni ce gate ni les tests (les deux étaient verts pendant que
+        # l'app mourait), mais un lancement observé —
+        #   xcrun lldb -b -k "bt 40" -o run StarHubFR.app/Contents/MacOS/StarHubFR
+        # La sonde revient à l'auteur : un agent ne lance pas l'app.
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,

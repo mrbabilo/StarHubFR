@@ -271,6 +271,17 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       est le seul site qui balaie **sur le fil principal** — ~960 mods y gèlent
       l'interface. Il l'a toujours fait ; c'est un défaut à traiter pour
       lui-même, pas sous couvert d'isolation.
+
+      **Passe stricte de clôture** : 57 / 8 après le basculement, **49 / 0**
+      après extinction des huit — la passe de départ (6 / 0) était un faux
+      vert, le compilateur ne regardant pas les franchissements d'un corps
+      qui se déclarait sur l'acteur en tournant au fond. Les 43 avertissements
+      restants sont du bruit préexistant que le drapeau voit maintenant sur ce
+      chemin ; **zéro bloquant Swift 6**. ⚠️ Le mode 6 de l'app n'est pas pour
+      autant reposé : la cause documentée de la pile du 2026-09-14
+      (`syncInstalledModRegistry` → `Collection.map`) est traitée, mais la
+      preuve est un **lancement observé** — gate et tests étaient verts
+      pendant que l'app mourait. La sonde `lldb` revient à l'auteur.
 ---
 
 
