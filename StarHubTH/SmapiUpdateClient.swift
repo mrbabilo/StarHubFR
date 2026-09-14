@@ -34,7 +34,7 @@ final class SmapiUpdateClient: @unchecked Sendable {
     private let endpoint = URL(string: "https://smapi.io/api/v3.0/mods")!
     private let session: URLSession
 
-    enum Failure: Error, Equatable {
+    enum Failure: Error, Equatable, Sendable {
         case transport(String)
         case http(Int)
         case decoding(String)
@@ -58,7 +58,7 @@ final class SmapiUpdateClient: @unchecked Sendable {
     /// suivant et on retente le fautif une fois en fin de passe. Une passe
     /// reste donc amputée seulement si un lot a échoué **deux fois** — ou si
     /// le budget de re-découpage s'est épuisé (X64).
-    struct Outcome {
+    struct Outcome: Sendable {
         let mods: [SmapiUpdateResponse.Mod]
         /// Lots effectivement envoyés **et** revenus.
         let batchesCompleted: Int
@@ -134,8 +134,8 @@ final class SmapiUpdateClient: @unchecked Sendable {
     ///   - completion: sur le fil principal.
     func fetch(entries: [SmapiUpdateRequest.Entry],
                gameVersion: String,
-               progress: ((Int, Int) -> Void)? = nil,
-               completion: @escaping (Result<Outcome, Failure>) -> Void) {
+               progress: (@Sendable (Int, Int) -> Void)? = nil,
+               completion: @escaping @Sendable (Result<Outcome, Failure>) -> Void) {
         // X87 : sérialiser les appels concurrents. Sans ce verrou, un
         // déclenchement automatique (UpdateCheckPolicy) qui tomberait
         // pendant qu'une vérification manuelle est en cours doublerait la
@@ -171,8 +171,8 @@ final class SmapiUpdateClient: @unchecked Sendable {
     /// au lieu de la laisser respirer.
     private func runFetch(entries: [SmapiUpdateRequest.Entry],
                           gameVersion: String,
-                          progress: ((Int, Int) -> Void)? = nil,
-                          completion: @escaping (Result<Outcome, Failure>) -> Void) async {
+                          progress: (@Sendable (Int, Int) -> Void)? = nil,
+                          completion: @escaping @Sendable (Result<Outcome, Failure>) -> Void) async {
         let batches = SmapiUpdateRequest.batches(entries, size: batchSize)
         guard !batches.isEmpty else {
             await MainActor.run {

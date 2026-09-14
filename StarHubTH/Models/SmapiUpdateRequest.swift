@@ -136,7 +136,7 @@ public enum SmapiUpdateRequest {
         }
     }
 
-    public struct Entry: Encodable, Equatable {
+    public struct Entry: Encodable, Equatable, Sendable {
         public let id: String
         public let updateKeys: [String]
         public let installedVersion: String

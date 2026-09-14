@@ -9,12 +9,12 @@ import Foundation
 /// échouer le décodage d'un lot de 150 à cause d'un seul mod obscur.
 public enum SmapiUpdateResponse {
 
-    public struct Version: Decodable, Equatable {
+    public struct Version: Decodable, Equatable, Sendable {
         public let version: String
         public let url: String?
     }
 
-    public struct Metadata: Decodable, Equatable {
+    public struct Metadata: Decodable, Equatable, Sendable {
         public let name: String?
         public let nexusID: Int?
         public let main: Version?
@@ -28,7 +28,7 @@ public enum SmapiUpdateResponse {
         public let brokeIn: String?
     }
 
-    public struct Mod: Decodable, Equatable {
+    public struct Mod: Decodable, Equatable, Sendable {
         public let id: String
         public let suggestedUpdate: Version?
         public let metadata: Metadata?
@@ -63,7 +63,7 @@ public enum SmapiUpdateResponse {
     /// Ce qui empêche un mod d'être vérifié. 115 mods du parc réel en portent
     /// un — et c'est le silence sur ces 115 qui a rendu le défaut d'origine si
     /// coûteux : rien ne les distinguait à l'écran d'un mod vérifié et à jour.
-    public enum Blocker: String, Equatable {
+    public enum Blocker: String, Equatable, Sendable {
         /// `UpdateKeys` qui n'est pas un entier : `Nexus:auteur.mod`. 35 cas.
         case malformedNexusId
         /// La page n'existe pas (retirée, cachée, identifiant faux). 31 cas.

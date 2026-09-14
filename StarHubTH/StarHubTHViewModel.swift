@@ -3573,8 +3573,10 @@ final class StarHubTHViewModel {
                         // à la fin de la composition : on attend alors encore
                         // le dump Pathoschild, et l'UI ne se relâche pas entre
                         // les deux requêtes.
-                        self.updateStore.setProgress(nil)
-                        completion(result)
+                        Task { @MainActor in
+                            self.updateStore.setProgress(nil)
+                            completion(result)
+                        }
                     })
             },
             pathoschildFetch: { [weak self] done in
@@ -3593,7 +3595,9 @@ final class StarHubTHViewModel {
                 }
             },
             progress: { [weak self] done, total in
-                self?.updateStore.setProgress(.init(done: done, total: total))
+                Task { @MainActor in
+                    self?.updateStore.setProgress(.init(done: done, total: total))
+                }
             },
             completion: { [weak self] composition in
                 guard let self else { return }

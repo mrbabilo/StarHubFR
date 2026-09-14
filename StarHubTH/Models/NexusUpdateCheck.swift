@@ -64,6 +64,21 @@ enum NexusUpdateCheck {
         let journal: [JournalLine]
     }
 
+    /// Le portage de la réponse smapi.io pendant que le filet Pathoschild
+    /// travaille — écrite par la complétion, lue par le `notify` de la
+    /// composition. La complétion est `@Sendable` (le client l'exige) : le
+    /// compilateur refuse la mutation d'un `var` local capturé, la boîte
+    /// porte donc le partage. `@unchecked` : le séquencement réel reste
+    /// celui du `DispatchGroup` — une écriture, puis `group.leave()`, la
+    /// lecture après le `notify` ; le compilateur ne voit ni l'un ni
+    /// l'autre. `pathoschildFetchFailed`, deux lignes plus bas, porte le
+    /// même argument de sûreté et reste un `var` nu : sa complétion à lui
+    /// ne traverse aucune frontière `@Sendable` — c'est la frontière qui
+    /// impose la boîte, pas le partage.
+    private final class SmapiResultBox: @unchecked Sendable {
+        var value: Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>?
+    }
+
     /// - Parameters:
     ///   - gameVersion: brute, telle que le journal SMAPI l'a portée — c'est
     ///     ici qu'elle passe par `sanitizedGameVersion`, car une valeur qui
@@ -84,14 +99,14 @@ enum NexusUpdateCheck {
                     queue: DispatchQueue = .main,
                     smapiFetch: @escaping (_ entries: [SmapiUpdateRequest.Entry],
                                            _ gameVersion: String,
-                                           _ progress: @escaping (Int, Int) -> Void,
-                                           _ completion: @escaping (Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>) -> Void) -> Void,
+                                           _ progress: @escaping @Sendable (Int, Int) -> Void,
+                                           _ completion: @escaping @Sendable (Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>) -> Void) -> Void,
                     pathoschildFetch: @escaping (_ completion: @escaping (Bool) -> Void) -> Void,
-                    progress: @escaping (Int, Int) -> Void,
+                    progress: @escaping @Sendable (Int, Int) -> Void,
                     completion: @escaping (Composition) -> Void) {
         let group = DispatchGroup()
         var pathoschildFetchFailed = false
-        var smapiResult: Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>?
+        let smapiResult = SmapiResultBox()
         // Le `notify` est posé **avant** le départ des requêtes : avec des
         // fetchers synchrones en test, le compte atteindrait zéro avant
         // l'enregistrement et la composition ne rendrait jamais. En
@@ -108,7 +123,7 @@ enum NexusUpdateCheck {
             }
             var resolution = Resolution.noResult
             var checkError: String? = nil
-            switch smapiResult {
+            switch smapiResult.value {
             case .success(let outcome)?:
                 resolution = .applied(isComplete: outcome.isComplete)
                 if !outcome.isComplete {
@@ -135,7 +150,7 @@ enum NexusUpdateCheck {
                     level: .warning))
             }
             completion(Composition(
-                smapiResult: smapiResult,
+                smapiResult: smapiResult.value,
                 entries: entries,
                 folders: folders,
                 resolution: resolution,
@@ -149,7 +164,7 @@ enum NexusUpdateCheck {
         }
         smapiFetch(entries, SmapiUpdateRequest.sanitizedGameVersion(gameVersion),
                    progress) { result in
-            smapiResult = result
+            smapiResult.value = result
             group.leave()
         }
     }
