@@ -433,7 +433,7 @@ final class SmapiInstaller: ObservableObject {
                                                   completion(success, message, detail)
                                               }
                                           },
-                                          onVersionMarkerWriteFailure: { message in
+                                          onWarning: { message in
                                               Task { @MainActor in self.onWarning?(message) }
                                           })
             } catch {
@@ -487,7 +487,7 @@ final class SmapiInstaller: ObservableObject {
         at installerPath: String, version: String, gameDir: String,
         action: SmapiInstallerAction,
         completion: @escaping @Sendable (Bool, String, String?) -> Void,
-        onVersionMarkerWriteFailure: @escaping @Sendable (String) -> Void
+        onWarning: @escaping @Sendable (String) -> Void
     ) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
@@ -556,6 +556,28 @@ final class SmapiInstaller: ObservableObject {
         }
         process.waitUntilExit()
         let output = String(data: outputData, encoding: .utf8) ?? ""
+        // La sortie complète est persistée, pas seulement résumée.
+        // `lastMeaningfulLine` n'en rend **qu'une ligne** à l'utilisateur, et
+        // c'est tout ce que l'app savait d'un échec : le 2026-09-14, un
+        // « The installer failed with an unexpected exception. » a laissé une
+        // installation à moitié posée sans qu'aucune trace ne dise où
+        // l'installateur s'était arrêté — la pile .NET, elle, était dans ces
+        // octets-là (l'installateur imprime `{ex}` entier). Un seul fichier,
+        // écrasé à chaque passe : c'est un tampon de diagnostic, pas un
+        // journal à faire croître.
+        if let logURL = Self.installerLogURL {
+            let header = """
+                === StarHubFR — sortie de l'installateur SMAPI ===
+                date      : \(ISO8601DateFormatter().string(from: Date()))
+                action    : \(action.rawValue)
+                version   : \(version)
+                game path : \(gameDir)
+                exit code : \(process.terminationStatus)
+                ===
+
+                """
+            try? (header + output).write(to: logURL, atomically: true, encoding: .utf8)
+        }
 
         if let aborted {
             // Message à part : « erreur d'installation » n'aiderait personne
@@ -579,10 +601,11 @@ final class SmapiInstaller: ObservableObject {
                     // Le marqueur est un cache de version pour l'UI ; SMAPI est bien
                     // installé. Consigner l'échec — sinon l'app croit au prochain
                     // lancement que SMAPI est absent (jusqu'à la re-détection).
-                    onVersionMarkerWriteFailure("SMAPI install succeeded but version marker write failed at \(markerPath): \(error.localizedDescription)")
+                    onWarning("SMAPI install succeeded but version marker write failed at \(markerPath): \(error.localizedDescription)")
                 }
                 completion(true, L10n.Smapi.installSuccess, nil)
             } else {
+                Self.reportLogLocation(onWarning)
                 completion(false, L10n.Smapi.installError, Self.lastMeaningfulLine(of: output))
             }
         case .uninstall:
@@ -590,6 +613,7 @@ final class SmapiInstaller: ObservableObject {
             if succeeded {
                 completion(true, L10n.Smapi.uninstallSuccess, nil)
             } else {
+                Self.reportLogLocation(onWarning)
                 completion(false, L10n.Smapi.uninstallFailed, Self.lastMeaningfulLine(of: output))
             }
         }
@@ -604,5 +628,20 @@ final class SmapiInstaller: ObservableObject {
     // `nonisolated` : appelée par `runOfficialInstaller`, hors acteur.
     private nonisolated static func lastMeaningfulLine(of output: String) -> String {
         SmapiInstallerOutput.lastMeaningfulLine(of: output)
+    }
+
+    /// Où la sortie complète de l'installateur atterrit. `nil` seulement si le
+    /// système ne rend aucun dossier de support — l'app ne persiste alors rien.
+    private nonisolated static var installerLogURL: URL? {
+        AppSupport.directory?.appendingPathComponent("smapi-installer-last.log")
+    }
+
+    /// Dit **où** lire la suite. Une ligne d'erreur sans son contexte est ce
+    /// qui a coûté une demi-journée d'enquête ; le chemin part par le canal
+    /// des avertissements, donc dans l'onglet Journaux.
+    private nonisolated static func reportLogLocation(_ onWarning: @escaping @Sendable (String) -> Void) {
+        guard let logURL = installerLogURL,
+              FileManager.default.fileExists(atPath: logURL.path) else { return }
+        onWarning("SMAPI installer output saved to \(logURL.path) — it carries the full .NET exception and stack trace.")
     }
 }
