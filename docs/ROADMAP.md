@@ -675,14 +675,34 @@ backup se retrouve en moins de dix secondes.
 
 - [ ] **A2-T6** — Indiquer les mods dont la **page Nexus a été supprimée** ou est
       **momentanément indisponible** (mise à jour en cours, modération). Cas réel :
-      mod [32260](https://www.nexusmods.com/stardewvalley/mods/32260) — page vivante
-      mais fichiers retirés par l'auteur. Deux signaux distincts à ne pas confondre :
-      **supprimé** = la fiche répond 404 (interrogeable par identifiant via l'API v1,
-      mais coûteux en quota → au check existant, pas en passe dédiée) ;
-      **indisponible** = la page répond et le signal exact reste à relever (lecture du
-      2026-09-14 : la description de 32260 rend encore — ce n'est pas un 404).
-      Destination : la même pastille que les verdicts smapi.io (broken/abandoned déjà
-      fusionnés — `SmapiVerdicts`), pas un nouvel onglet. ⚠️ Ne pas déduire
+      mod [32260](https://www.nexusmods.com/stardewvalley/mods/32260) — **caché le
+      23 juin 2026** par son auteur (« temporarily unavailable while the mod author
+      updates the mod page »), installé sur le parc en deux packs partageant l'id
+      (`Azathii.ForgottenWoods`, `Azathii.ForgottenWoods.FTM`), en 1.5.0 — plus
+      récent que la dernière version publique (1.2.0).
+      **Relevé mesuré le 2026-09-14** :
+      • **page cachée** = HTTP 200, `og:title = "Mod unavailable"`, bandeau
+      « Hidden mod — set to hidden le {date} par {auteur} — raison : {texte
+      libre} ». Pas un 404. **page supprimée** = 404 (à confirmer sur un cas
+      réel). ⚠️ **Le cache des rendus ment** : sans `no-cache`, 32260 montrait
+      encore la page d'avant le 23 juin — la note « la description rend encore »
+      écrite plus ce jour-là venait de là ;
+      • **smapi.io ne distingue rien** : caché, supprimé et identifiant jamais
+      existé rendent la **même** erreur « Found no Nexus mod with this ID. »
+      (sondes réelles). Cette erreur est **déjà** parsée en `.sourceNotFound`
+      (`SmapiUpdateResponse.blocker`, fragment « found no ») et **déjà** affichée
+      au volet « invérifiables » de la page Mises à jour (libellé combiné
+      « Page du mod introuvable (retirée ou masquée) »). Le signal est une
+      **erreur explicite dans une entrée présente**, jamais une absence —
+      le piège 429/503 ci-dessous ne s'applique donc pas à ce verdict ;
+      • **reste à mesurer** : ce que l'API v1 rend par identifiant pour un mod
+      *caché* (une requête, clé requise). 200 → la distinction caché/supprimé
+      est possible au check existant, une requête par mod flaggé
+      `sourceNotFound` (quota négligeable, pas de passe dédiée) ; 404 → la
+      distinction est impossible et le libellé combiné est le plafond honnête.
+      Destination : la même pastille que les verdicts smapi.io (broken/abandoned
+      déjà fusionnés — canal `modCompatibility`), pas un nouvel onglet. Le
+      verdict `sourceNotFound` n'y entre pas aujourd'hui. ⚠️ Ne pas déduire
       « supprimé » d'une absence dans une réponse smapi.io : une passe partielle
       (429/503) fusionne avec le cache, elle ne le remplace pas — le piège a déjà
       coûté les mises à jour de trois mods. · **M**
