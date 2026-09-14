@@ -682,7 +682,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 25**
+### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 25** *(A1-T7 livré le 2026-09-15)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs, **A1-T4** et **A2-T7**, viennent de la veille du jour ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -781,8 +781,9 @@ backup se retrouve en moins de dix secondes.
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
 
-- [ ] **A1-T7** — **Mettre à jour un mod détruit ses données — et la liste des
-      rescapés tient en 18 noms.** *(trouvé le 2026-09-14 en décompilant
+- [x] **A1-T7** — ✅ **Livré le 2026-09-15** *(option A ; l'option C s'est trouvée
+      déjà en place)*. **Mettre à jour un mod perdait ses données — et la liste des
+      rescapés tenait en 18 noms.** *(trouvé le 2026-09-14 en décompilant
       `ModernConfigMenu` 2.1.2 ; mesures dans
       [`roadmap-archive.md`](roadmap-archive.md) §3 quater.)*
       `ModConfigFiles.preservable` est une **liste blanche de noms de fichiers** :
@@ -824,6 +825,19 @@ backup se retrouve en moins de dix secondes.
       le contre-exemple utile, puisqu'il est livré **et** modifiable.
       ⚠️ Et quoi qu'il arrive, **le dire** : un fichier écarté de la préservation doit
       apparaître au bilan d'installation, jamais disparaître en silence.
+      ✅ **Ce qui a été fait** : `PreservedModData` (Core) porte la règle et ses deux
+      moitiés (mise à l'abri, remise en place) ; `ModZipInstaller` compare les deux
+      arbres juste avant l'effacement, là où l'ancien dossier et l'archive neuve
+      existent tous les deux. La restauration d'un extra **ne lance pas** — rater un
+      fichier de données périmé ne doit pas faire avorter une mise à jour réussie,
+      le dossier entier étant déjà en sauvegarde ; celle des 18 noms lance toujours.
+      Les préservations sont journalisées, les échecs en `warning` et **nommés**.
+      19 tests, huit mécanismes prouvés par sabotage.
+      ⏳ **Ce qui reste** : la ligne au **bilan d'installation** lui-même.
+      `InstalledModPath` porte déjà `extrasRestored` / `extrasFailed`, mais
+      `InstallReportSummary.of` n'agrège que des `ModUpdateKeyDelta` — y faire entrer
+      cette dimension demande de toucher le modèle du bilan et `InstallReportWindow`.
+      Aujourd'hui l'information passe par le journal, pas par la fenêtre. · **S**
       📐 **Cadrage écrit le 2026-09-14 : §8.4** — la règle proposée (*absent de
       l'archive neuve ⇒ donnée locale*), pourquoi elle ne rejoue pas le défaut
       d'`isAuthorLanguageFile`, le point dur prouvé (`FarmTypeManager/data/` mêle
@@ -2774,7 +2788,7 @@ absent.
 
 ### 8.4 Cadrage A1-T7 — que préserver d'un mod qu'on met à jour ? *(instruit le 2026-09-14)*
 
-> ⏳ **Présenté, en attente d'arbitrage.** Aucun code écrit.
+> ✅ **Tranché A+C par l'auteur, A livré le 2026-09-15** (C était déjà en place).
 
 #### Ce que la mise à jour fait aujourd'hui, exactement
 
