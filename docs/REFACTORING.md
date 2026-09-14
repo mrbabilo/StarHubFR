@@ -729,6 +729,7 @@ sur `1b4f9888` par `scripts/p5-strict.sh`, et ses états aux clôtures de L1 et 
 | **Après L1** (15 globales éteintes, `SaveNotesStore.shared` reportée) | **427** | **184** | 518 s |
 | **Après L2** (`@MainActor` sur le ViewModel) | **237** | **85** | 594 s / 4379 s |
 | **Après L3** (les deux boucles disque exécutent en Core) | **216** | **83** | 527 s |
+| **Après L4** (les trois clients réseau/process) | **121** | **28** | 590 s |
 
 *Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
 Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
@@ -860,6 +861,55 @@ plusieurs secondes par application de profil, rendu au fond avant fusion.
 Le VM (11 bloquants) reste 3ᵉ ; `SmapiInstaller` (25) et
 `SmapiUpdateClient` (22) confirment le cadrage L4. La sortie d'acteur
 complète de `scanMods` reste à la tranche d'isolation.
+
+**Repris à la clôture de L4 (2026-09-14)** : 121 avertissements, **28
+bloquants** — **55 de tombés**, soit exactement les 55 que la mesure
+d'ouverture attribuait aux trois fichiers cibles. *(La spec en annonçait
+60 : son chiffre datait d'avant L3.)* Trois familles, une par fichier,
+toutes déjà éprouvées dans le dépôt :
+`SmapiInstaller` devient une **façade `@MainActor`** (25 → 0) — l'état
+publié est sûr par construction, le travail lourd (unzip, xattr,
+installateur officiel) reste hors acteur, et `runOfficialInstaller` /
+`resolveLatestSmapiInstallerURL` sortent en `nonisolated static` ;
+`SmapiUpdateClient` rend **`Sendable` ses types traversants** (22 → 0)
+sans toucher une ligne de `engage`/`clearInFlight` — l'invariant X87 est
+prouvé intact par le diff lui-même, aucun hunk ne traverse
+`SmapiUpdateClient.swift:112-130` ; `NexusUpdateChecker` passe ses deux
+complétions en **`@Sendable`** (8 → 0), ses huit hops
+`DispatchQueue.main.async` inchangés.
+
+Trois choses que la tranche a apprises, et qu'on ne veut pas réapprendre :
+
+1. **Une passe stricte tuée sous-compte en silence.** La mesure
+   intermédiaire de T2 (`/tmp/p5-l4-t2`) avait perdu son processus à
+   l'édition de liens : **12 fichiers couverts sur 17**, `ModInstallView`
+   absent du journal *entier*. Elle rendait « 33 bloquants, −25 » ; le vrai
+   compte était 36, −22. Le pied de page des URL de diagnostic était bien
+   présent — **il ne prouve pas la complétude**. Deux signaux le font : le
+   binaire `probe` existe, et la couverture par fichier ne perd que les
+   fichiers qu'on vient de guérir. Le message du commit `aac4dd40` porte
+   l'erreur, sans `--amend` : la correction est ici.
+2. **Un type public casse une chaîne d'inférence loin de lui.** Le hop posé
+   sur `fetchNexusFallback` a fait naître 4 bloquants neufs au ViewModel :
+   `NexusFallbackCheck.Target` (interne) n'était pas inféré `Sendable`
+   parce que `NexusInstallFacts` (`Models/ModVersionAnchor.swift`) est
+   **public** — la règle §9 mord à un maillon de distance. Conformité
+   explicite posée, les 4 tombent.
+3. **Un relais de complétion se type `@MainActor @Sendable`.**
+   `fetchMetadata` rend sa complétion à `ModDetailView`, qui y écrit un
+   `@State`. Le `@Sendable` nu aurait déplacé la dette dans les vues — la
+   « fausse victoire » que la tranche s'interdisait. Typer la garantie que
+   le commentaire portait déjà (« invoquée sur la queue principale »)
+   laisse les deux vues appelantes **inchangées et synchrones**. ⚠️ Idiome
+   neuf : c'est le premier paramètre closure `@MainActor` du dépôt.
+
+Ce qui reste après L4 : le ViewModel (11) et
+`PathoschildCompatibilityList` (6) prennent la tête, devant
+`ModInstallView`, `GameEnvironmentStore` et `NexusSearchClient` (2
+chacun). La **tranche d'isolation** (sortie d'acteur de `scanMods`,
+`downloadStore` `nonisolated(unsafe)` propriétaire, `SaveNotesStore.shared`
+reportée de L1) est ce qui cadre la suite. Détail du chantier :
+`p5-swift6-l4-ledger-archive.md`.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 

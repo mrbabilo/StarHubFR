@@ -158,9 +158,22 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       bissection profil) — ce rejeu a révélé le doublon SotV et déclenché
       le chantier « collision de nom logique à l'installation » (signal +
       choix dans l'aperçu, vérifié le 2026-09-14). **L3 est close.** La fin
-      de jeu structurée (exécuteurs Core + `AsyncStream`) est faite ; reste
-      la sortie d'acteur de `scanMods` (tranche d'isolation). Détail et
-      mécanismes : `REFACTORING.md` §9.
+      de jeu structurée (exécuteurs Core + `AsyncStream`) est faite.
+      **L4 close le 2026-09-14 : 121 / 28 bloquants** — les trois clients
+      réseau/process traités en trois familles (`SmapiInstaller` façade
+      `@MainActor` 25 → 0 ; types traversants de `SmapiUpdateClient`
+      `Sendable` 22 → 0, X87 prouvé intact par le diff ; les deux
+      complétions de `NexusUpdateChecker` `@Sendable` 8 → 0, ses huit hops
+      inchangés). **55 bloquants tombés, exactement les 55 ciblés** — ⚠️ le
+      critère « 60 » de la spec était périmé, il datait d'avant L3. Deux
+      découvertes consignées : une passe stricte **tuée sous-compte en
+      silence** (12 fichiers couverts sur 17 ; le compte intermédiaire de T2
+      était faux de 3), et un type **public** (`NexusInstallFacts`) casse
+      l'inférence `Sendable` d'un type interne à un maillon de distance.
+      ⏳ **Vérification à l'écran due par l'auteur** : installation SMAPI
+      réelle → désinstallation → réinstallation (le seul chemin qu'aucun
+      test ne couvre). Reste la sortie d'acteur de `scanMods` (tranche
+      d'isolation). Détail et mécanismes : `REFACTORING.md` §9.
 ---
 
 
