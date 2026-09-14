@@ -195,6 +195,27 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       d'isolation** devient donc le prérequis du mode 6 côté app, et non un
       raffinement : c'est ce qui reste de P5. Détail, pile et sondes :
       `REFACTORING.md` §9.
+      **Cadrage mesuré le 2026-09-14** (première étape livrée : `log`,
+      `publishLaunchPhase` et `publishLaunchPhaseProgress` sont `nonisolated`,
+      leur corps l'était déjà). Marquer `scanMods`,
+      `syncInstalledModRegistry`, `reloadSaves` et
+      `migrateDisabledModsToDotPrefix` `nonisolated` rend **16 erreurs** que
+      le compilateur nomme : 5 `log` (faites), 4 lectures de `gameDir`, 7
+      appels isolés (`installedModDate`, `publishLaunchPhase` ×3,
+      `parseSMAPILog`, `measureModsFolderSize`). ⚠️ **Le verrou est
+      structurel** : une méthode `nonisolated` ne peut lire *aucune*
+      propriété stockée du ViewModel — ni `gameDir`, ni `environment`, ni les
+      magasins. Il faut donc trancher magasin par magasin ce qui est lisible
+      hors acteur. Relevé : `ModScanner` (20 `var`, 1 verrou — le seul à
+      examiner vraiment), `ScanStore` (1 `var`, 1 verrou),
+      `InstalledModRegistryStore` (3 `var`, 2 verrous),
+      `ModVersionAnchorStore` (2 `var`, 1 verrou) — **tous déjà touchés
+      depuis le fil de scan aujourd'hui**, tous déjà verrouillés, aucun
+      déclaré `Sendable`. Le geste est donc de nommer le verrou dans une
+      conformité explicite, puis de rendre les magasins `nonisolated let` sur
+      le ViewModel. `GameEnvironmentStore`, isolé en L5, est le cas à part :
+      son `gameDir` est persisté à chaque écriture, donc lisible hors acteur
+      par les préférences.
 ---
 
 
