@@ -54,7 +54,7 @@ public struct ModVersionAnchor: Codable, Equatable {
 /// C) : un auteur qui republie un correctif sous le même numéro est invisible
 /// à toute comparaison de chaînes. C'est la règle qui a trouvé la seule mise à
 /// jour réelle du cache actuel.
-public struct NexusInstallFacts: Codable, Equatable {
+public struct NexusInstallFacts: Codable, Equatable, Sendable {
     public let modId: String
     public let fileId: Int
     public let fileUploadedAt: Date

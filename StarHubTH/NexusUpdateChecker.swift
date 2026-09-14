@@ -194,7 +194,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
     /// réservé aux comptes premium — `/download_link.json` répond sinon
     /// `403 « this is for premium users only »`. Sans ce renseignement, l'app
     /// propose une action qui échouera à coup sûr.
-    func fetchAccount(completion: @escaping (NexusAccount?) -> Void) {
+    func fetchAccount(completion: @escaping @Sendable (NexusAccount?) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty,
               let request = NexusRequestBuilder.makeRequest(path: "/users/validate.json",
                                                             apiKey: apiKey)
@@ -377,7 +377,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
     /// category and extra immediately so the mods list badge and popover
     /// preview pick them up without a full check. The completion is always
     /// invoked on the main queue.
-    func fetchSingleMod(modId: String, completion: @escaping (SingleFetchResult) -> Void) {
+    func fetchSingleMod(modId: String, completion: @escaping @Sendable (SingleFetchResult) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             DispatchQueue.main.async { completion(.noApiKey) }
             return

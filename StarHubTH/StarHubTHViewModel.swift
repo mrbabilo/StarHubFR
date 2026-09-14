@@ -3491,9 +3491,11 @@ final class StarHubTHViewModel {
     /// Redemande à Nexus si ce compte est premium.
     func refreshNexusAccount() {
         guard hasNexusApiKey || NexusUpdateChecker.shared.apiKey()?.isEmpty == false else { return }
+        // Complétion `@Sendable` (P5-L4) : la touche au magasin passe par un
+        // hop `Task { @MainActor in }`, comme `installSmapi`.
         NexusUpdateChecker.shared.fetchAccount { [weak self] account in
             guard let account else { return }
-            self?.accountStore.setAccount(account)
+            Task { @MainActor in self?.accountStore.setAccount(account) }
         }
     }
 
@@ -3947,24 +3949,30 @@ final class StarHubTHViewModel {
             return
         }
         let target = targets[index]
+        // Complétion `@Sendable` (P5-L4) : le corps entier passe par un hop
+        // `Task { @MainActor in }`. L'ordre journal → progression → page
+        // suivante y reste intact, et la récursion garde un tour du main par
+        // page — ce que le `DispatchQueue.main.async` du checker faisait déjà.
         NexusUpdateChecker.shared.fetchSingleMod(modId: target.nexusId) { [weak self] result in
             guard let self else { return }
-            let outcome = NexusResume.applyPage(result, target: target,
-                                                pageIndex: index,
-                                                found: found, settled: settled,
-                                                failures: failures)
-            for line in outcome.journal {
-                self.log(line.text, level: line.level)
+            Task { @MainActor in
+                let outcome = NexusResume.applyPage(result, target: target,
+                                                    pageIndex: index,
+                                                    found: found, settled: settled,
+                                                    failures: failures)
+                for line in outcome.journal {
+                    self.log(line.text, level: line.level)
+                }
+                if outcome.rateLimitedRetryAfter != nil {
+                    self.finishNexusFallback(found: outcome.found, settled: outcome.settled,
+                                             failures: outcome.failures, attempted: index)
+                    return
+                }
+                self.updateStore.setProgress(.init(done: index + 1, total: targets.count))
+                self.fetchNexusFallback(targets, index: index + 1,
+                                        found: outcome.found, settled: outcome.settled,
+                                        failures: outcome.failures)
             }
-            if outcome.rateLimitedRetryAfter != nil {
-                self.finishNexusFallback(found: outcome.found, settled: outcome.settled,
-                                         failures: outcome.failures, attempted: index)
-                return
-            }
-            self.updateStore.setProgress(.init(done: index + 1, total: targets.count))
-            self.fetchNexusFallback(targets, index: index + 1,
-                                    found: outcome.found, settled: outcome.settled,
-                                    failures: outcome.failures)
         }
     }
 
@@ -4805,18 +4813,26 @@ final class StarHubTHViewModel {
     /// update instantly. Intended for on-demand
     /// lookups after the user enters a mod id in the per-mod editor popover.
     /// `completion` is invoked on the main queue.
+    /// `completion` est `@MainActor @Sendable` (P5-L4) : la garantie « sur la
+    /// queue principale » que ce commentaire portait déjà devient une
+    /// garantie de type. Ses appelants — dont la fiche de mod, qui écrit un
+    /// `@State` dans son corps — gardent donc une complétion **synchrone**
+    /// sur l'acteur principal, sans hop supplémentaire ni changement de
+    /// comportement. Le `@Sendable` seul les aurait tous fait migrer.
     func fetchMetadata(forNexusModId modId: String,
-                       completion: @escaping (NexusUpdateChecker.SingleFetchResult) -> Void) {
+                       completion: @escaping @MainActor @Sendable (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
             guard let self = self else { return }
-            if case .success(_, let catId, let extra, _) = result {
-                if let cid = catId, cid > 0 {
-                    self.nexusCategories[modId] = cid
+            Task { @MainActor in
+                if case .success(_, let catId, let extra, _) = result {
+                    if let cid = catId, cid > 0 {
+                        self.nexusCategories[modId] = cid
+                    }
+                    // `extra` already carries the latest version + upload date.
+                    self.nexusModExtras[modId] = extra
                 }
-                // `extra` already carries the latest version + upload date.
-                self.nexusModExtras[modId] = extra
+                completion(result)
             }
-            completion(result)
         }
     }
 
