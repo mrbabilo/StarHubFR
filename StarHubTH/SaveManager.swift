@@ -27,7 +27,18 @@ struct SaveNote: Codable {
 
 // MARK: - Save Notes Store (UserDefaults-backed)
 
+/// `@MainActor` (P5-L5, reporté de L1) : un `static let shared` d'un type
+/// non-`Sendable` est une erreur en mode Swift 6 — c'était le seul, de tout le
+/// Core, à ne pas encore avoir sa réponse.
+///
+/// L'isolation plutôt qu'un verrou ou un acteur, parce que c'est ce que le type
+/// **est** : un magasin `@Observable` lu par les vues et écrit par le
+/// ViewModel. Ses huit appelants (six au ViewModel, deux à `SavesView`) sont
+/// déjà sur l'acteur principal, aucun chemin de fond n'y touche — l'isolation
+/// ne coûte donc pas un seul `await`, et elle interdit désormais qu'un
+/// futur worker en gagne un en douce.
 @Observable
+@MainActor
 final class SaveNotesStore {
     static let shared = SaveNotesStore()
     private let key = "SaveNotes_v2" // Upgraded version key to prevent conflicts
