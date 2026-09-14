@@ -471,6 +471,27 @@ SOURCES = [
              "écrit dans ~/Documents/Radiance-Dumps/",
      "used_by": "docs/SOURCES.md §6, docs/audit-perf-analyzers.md"},
 
+    {"key": "mod/save-launcher", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 52041, "uniqueId": "Codex.StardewSaveLauncher.Companion",
+     "role": "le cas limite de l'installateur : une archive de 113 Mo dont le "
+             "SEUL manifeste vit quatre niveaux sous un .app (Contents/Resources/"
+             "CompanionMod). `detectZipStructure` y répond `.singleMod` et pose "
+             "le companion seul — l'application, qui est le produit, est écartée "
+             "sans un mot. Le mod est inerte sans elle : il lit la variable "
+             "STARDEW_SAVE_LAUNCHER_REQUEST qu'elle seule pose. Audité le "
+             "2026-09-14 : serveur ASP.NET sur 127.0.0.1:5177, onze routes /api "
+             "sans authentification, signature ad-hoc sans TeamIdentifier",
+     "used_by": "docs/roadmap-archive.md §3 ter (audit), A1-T4"},
+
+    {"key": "mod/event-studio", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 51824, "uniqueId": "xzqute.StardewEventStudio",
+     "role": "éditeur d'évènements en jeu, suivi pour son i18n/default.json de "
+             "41 992 octets — le plus gros corpus de clés d'un seul mod du parc "
+             "de test, et donc le cas de charge de l'éditeur de traduction. "
+             "Audité le 2026-09-14 : aucune référence réseau, process ou "
+             "réflexion dans ses deux DLL",
+     "used_by": "docs/roadmap-archive.md §3 ter (audit)"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",

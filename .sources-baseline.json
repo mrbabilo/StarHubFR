@@ -81,6 +81,11 @@
     "last_commit_at": "2026-03-17T01:20:36Z",
     "pushed_at": "2026-03-17T01:20:57Z"
   },
+  "mod/event-studio": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": "1.0.0-beta.1"
+  },
   "mod/faster-menu-load": {
     "gitHubRepo": "ZeroXPatch/Projects-for-Nexus-Mod",
     "name": "Faster Menu Load",
@@ -110,6 +115,11 @@
     "gitHubRepo": null,
     "name": null,
     "version": "2.0.0"
+  },
+  "mod/save-launcher": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": null
   },
   "mod/ultrasmooth": {
     "gitHubRepo": null,

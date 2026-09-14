@@ -614,7 +614,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **7 items ouverts sur 22**
+### Fiabilité du registre & compatibilité — **Axe A** · **8 items ouverts sur 23**
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs, **A1-T4** et **A2-T7**, viennent de la veille du jour ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -645,6 +645,28 @@ backup se retrouve en moins de dix secondes.
       le journal, jamais en lisant un schéma (voir la recette d'oracle du CLAUDE.md).
       Selon la réponse : filtrer, ou marquer ces entrées sans les retirer. · **S**
 
+
+- [ ] **A1-T5** — **Une archive dont le mod n'est qu'une pièce.** *(trouvé le
+      2026-09-14 en auditant `Stardew Save Launcher` (Nexus 52041) — récit complet
+      dans [`roadmap-archive.md`](roadmap-archive.md) §3 ter.)* L'archive fait
+      **113 Mo** et contient une **application macOS**, plus un mod compagnon de 17 Ko
+      dont le `manifest.json` est le **seul** de l'archive, quatre niveaux plus bas
+      (`…app/Contents/Resources/CompanionMod/`). `detectZipStructure` ne voit qu'un
+      dossier à manifeste, rien au-dessus n'en porte — la règle « un manifeste sous un
+      autre est une dépendance embarquée » ne s'applique pas — et classe donc
+      `.singleMod` sur ce dossier. **StarHubFR poserait le compagnon seul et jetterait
+      l'application en silence.** Le compagnon est **inerte** sans elle : il lit la
+      variable `STARDEW_SAVE_LAUNCHER_REQUEST` que seule l'application pose. Résultat
+      pour l'utilisateur : il croit avoir installé l'outil, et rien ne fonctionne, sans
+      un message.
+      ⚠️ **Le remède n'est pas d'installer le `.app`** — `Mods/` n'est pas un dossier
+      d'applications, et SMAPI ne saurait qu'en faire. C'est de **le dire** : quand
+      l'archive porte, à côté du mod retenu, un `.app` ou un exécutable qu'on écarte,
+      l'écran d'installation doit le nommer et renvoyer à la page Nexus pour la partie
+      qu'on ne sait pas poser. Le cas n'est pas isolé par nature : tout mod livré avec
+      un compagnon de bureau le rejouera.
+      ⚠️ **Ne pas confondre avec A1-T4** : là c'est un `examples/` en trop dans le
+      parc, ici c'est une pièce **manquante** sur le disque. · **M**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 

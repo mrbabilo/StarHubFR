@@ -54,6 +54,60 @@ relevées via smapi.io**, pas des mises à jour du parc local ; aucun parseur n'
 encore côté StarHubFR pour les formats de `radiance`, donc sa majeure ne casse rien
 aujourd'hui — elle sera à relire quand D2 reprendra.
 
+## 3 ter. Audit de deux archives du parc de test — 2026-09-14
+
+> Demandé sur deux fichiers de `mods tests/`. Statique uniquement : **rien n'a été
+> lancé** — ni l'application, ni son serveur — conformément à la règle du dépôt et
+> parce qu'un binaire non notarisé ne s'exécute pas pour voir. Les deux sont
+> désormais suivis par `check_sources.py` (`mod/save-launcher`, `mod/event-studio`).
+
+### Stardew Valley Event Studio — Nexus 51824, `xzqute.StardewEventStudio`
+
+**Rien à signaler.** Archive conventionnelle de 6 fichiers : `manifest.json`
+(`EntryDll`, `MinimumApiVersion 4.5.0`, `UpdateKeys: ["Nexus:51824"]`), deux DLL,
+`assets/`, `i18n/default.json`. Les deux DLL ne portent **aucune** référence à
+`System.Net`, `Process`, `Assembly.Load` ni `Reflection.Emit` — relevé sur les
+chaînes ASCII **et** UTF-16 (les chaînes .NET vivent dans le tas `#US` en UTF-16LE ;
+un `strings` nu ne les voit pas, et `strings` de macOS n'a pas de `-e`). Les seules
+correspondances du filtre sont `ItemRegistry` et `CommandRegistry`, deux API du jeu.
+Absent de la liste noire SMAPI.
+
+⚠️ **Une version plus récente existe** : l'archive est en `1.0.0-beta`, smapi.io
+annonce `1.0.0-beta.1`.
+
+### Stardew Save Launcher — Nexus 52041
+
+**Ce n'est pas un mod.** C'est une **application macOS** de 113 Mo (707 fichiers,
+archive non compressée) qui embarque un runtime .NET et un serveur ASP.NET Core,
+accompagnée d'un **mod compagnon** de 17 Ko — `Codex.StardewSaveLauncher.Companion`,
+seul `manifest.json` de toute l'archive, enfoui dans
+`Stardew Save Launcher.app/Contents/Resources/CompanionMod/`.
+
+Ce qui a été mesuré, et ce que ça vaut :
+
+| Relevé | Lecture |
+| --- | --- |
+| Signature **ad-hoc**, `TeamIdentifier` non défini, bundle `local.stardew-save-launcher` | Ni signée par un développeur identifié, ni notarisée : Gatekeeper la refusera, et l'ouvrir demande un contournement explicite. C'est le fait à connaître **avant** de la lancer |
+| Le serveur écoute sur **`http://127.0.0.1:5177`** | **Loopback seul**, pas `0.0.0.0` : rien n'est exposé au réseau local. C'est le bon choix, et c'est le point rassurant du lot |
+| **Onze routes** `/api/…` — dont `/api/play/{profileId}`, `/api/profiles/{profileId}/rename`, `/api/plan/…` — servies en `MapGet`, `MapPost` et `MapDelete` | Aucune trace de jeton, d'en-tête d'autorisation ni de CORS dans les deux DLL applicatives. Tant que l'application tourne, **tout processus local** peut piloter ces routes. Ce n'est pas une porte dérobée — c'est l'absence de défense en profondeur habituelle des outils locaux — mais ça se sait avant de la laisser tourner en fond |
+| `StardewSaveLauncher.Core.dll` invoque `/usr/bin/open` et `/bin/chmod`, et connaît `/Applications/Stardew Valley.app` | Cohérent avec sa fonction : lancer le jeu et rendre exécutable ce qui doit l'être. Aucun téléchargement, aucune URL distante |
+| Le mod compagnon ne porte **aucune** URL, aucun client HTTP, aucun socket | Le dialogue entre l'app et le mod ne passe **pas** par le serveur : il passe par deux variables d'environnement (`STARDEW_SAVE_LAUNCHER_REQUEST`, `STARDEW_SAVE_LAUNCHER_LANGUAGE`) et un `launch-request.json` que le mod lit au démarrage **puis supprime**. Mécanisme sobre et lisible |
+| Absent de la liste noire SMAPI | Comme l'autre |
+
+**Conclusion** : aucun comportement malveillant. Deux réserves à porter à
+l'utilisateur — le binaire n'est pas notarisé, et son serveur local n'authentifie
+personne.
+
+### Ce que l'audit a trouvé sur **notre** application — devenu A1-T5
+
+`detectZipStructure` ne relève qu'un seul dossier à manifeste dans cette archive,
+et rien au-dessus n'en porte : la règle « un manifeste sous un autre manifeste est
+une dépendance embarquée » ne mord donc pas, et la structure est classée
+`.singleMod("Stardew Save Launcher.app/Contents/Resources/CompanionMod")`.
+StarHubFR installerait le compagnon **seul** et écarterait l'application de 113 Mo
+**sans un mot** — or le compagnon est inerte sans elle, puisqu'il attend une
+variable d'environnement qu'elle seule pose. Voir la ROADMAP.
+
 ## 4. Correctifs identifiés — à traiter en premier
 
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
