@@ -12,6 +12,15 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **L'installation de SMAPI depuis l'app échouait, à moitié faite.** Le processus de l'installateur était lancé sans `PATH` : il ne trouvait plus `chmod`, s'arrêtait après avoir remplacé le lanceur du jeu, et laissait le jeu non démarrable. Cassé depuis le 2026-09-07.
+- **Une désinstallation annonçait une installation.** L'écran disait « Téléchargement de SMAPI… », « Préparation de l'installation… », et un échec s'y disait « Erreur d'installation ».
+
+### Added
+
+- **La sortie complète de l'installateur SMAPI est conservée** dans `smapi-installer-last.log`, et son chemin est annoncé dans les Journaux quand une passe échoue : l'app n'en montrait qu'une ligne.
+
 ### Changed
 
 - **Le code ne porte plus aucun avertissement de concurrence.** Les deux plus gros travaux en tâche de fond — bascule en masse et changement de profil — capturent le gestionnaire de fichiers et le ViewModel sans traversée ambiguë de fil, et les types échangés déclarent leur sûreté explicitement.

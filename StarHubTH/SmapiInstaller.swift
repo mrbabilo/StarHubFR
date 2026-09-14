@@ -32,8 +32,15 @@ final class SmapiInstaller: ObservableObject {
     /// permise » deviendrait intraitable côté `lastMeaningfulLine`.
     // `nonisolated` : l'annotation `@MainActor` de la classe isole aussi ses
     // statiques, or celui-ci est appelé depuis les callbacks de fond (P5-L4).
+    //
+    // ⚠️ **Hériter, jamais remplacer.** Cette fonction rendait les deux
+    // variables de locale **seules**, et l'installateur SMAPI — qui démarre
+    // `chmod` par son nom nu — mourait alors sur un `Win32Exception (2) ...
+    // No such file or directory`, à moitié installé. Mesuré le 2026-09-14 sur
+    // la pile .NET ; cassé depuis le 2026-09-07. La règle vit désormais dans
+    // `ChildProcessEnvironment` (Core, testé), partagée avec `ModZipInstaller`.
     private nonisolated static func posixLocaleEnvironment() -> [String: String] {
-        ["LC_ALL": "en_US_POSIX", "LANG": "en_US_POSIX"]
+        ChildProcessEnvironment.localeLocked(to: "en_US_POSIX")
     }
 
     /// La session éphémère pour le download GitHub de SMAPI (X83).

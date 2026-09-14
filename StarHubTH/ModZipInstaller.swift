@@ -911,12 +911,11 @@ class ModZipInstaller {
     /// disabling the zip-bomb size guard. We deliberately inherit the rest of
     /// the parent environment (PATH especially) so Homebrew tools like
     /// `unrar` / `unar` / `7z` are still found at their default locations.
-    private static let cLocaleEnvironment: [String: String] = {
-        var env = ProcessInfo.processInfo.environment
-        env["LANG"] = "C"
-        env["LC_ALL"] = "C"
-        return env
-    }()
+    /// L'héritage est la moitié qui compte : `SmapiInstaller` en avait une
+    /// copie qui ne la tenait pas, et son installateur mourait faute de
+    /// `PATH`. Une seule source désormais (`ChildProcessEnvironment`, Core).
+    private static let cLocaleEnvironment: [String: String] =
+        ChildProcessEnvironment.localeLocked(to: "C")
 
     /// Searches the standard PATH locations (plus Homebrew paths) for a RAR
     /// extraction tool, in order of preference: `unrar` (official, fastest),
