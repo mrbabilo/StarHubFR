@@ -2832,7 +2832,7 @@ final class StarHubTHViewModel {
 
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Uses the precomputed index built in scanMods() — O(deps) per call,
-        // safe to invoke from every ModListRow render.
+        // safe to invoke from every ModListRow render (Views/ModListRow.swift).
         dependencyIndex.missing(for: mod)
     }
 

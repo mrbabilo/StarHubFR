@@ -120,7 +120,7 @@ enum AppDesign {
 
         /// Le vert « installé / actif », celui de la barre d'accent de la
         /// rangée de mod et du toggle d'activation. Historiquement littéral
-        /// `Color(red: 0.20, green: 0.65, blue: 0.35)` dans `ModListRow` —
+        /// `Color(red: 0.20, green: 0.65, blue: 0.35)` dans `Views/ModListRow.swift` —
         /// entré aux tokens (lot Mods, H-T4) pour que la grille et les lots
         /// suivants parlent la même teinte. Éprouvé sur les deux thèmes
         /// (spec §7). Distinct de `success` (`.green` système), jamais

@@ -1429,7 +1429,7 @@ struct ModsWeightFooter: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
-    /// Reprises telles quelles de `ModListRow` : la barre d'accent verte d'un
+    /// Reprises telles quelles de `ModListRow` (`Views/ModListRow.swift`) : la barre d'accent verte d'un
     /// mod actif, le gris d'un mod en pause.
     private static let activeColor = Color(red: 0.20, green: 0.65, blue: 0.35)
     private static let pausedColor = Color.secondary.opacity(AppDesign.Opacity.strong)
