@@ -9568,11 +9568,11 @@ final class StarHubTHViewModel {
                     self.log(String(format: self.localization.L(L10n.Maintenance.trashRestoredLog),
                                     entry))
                     self.refreshTrash()
-                    // ⚠️ Seul site qui balaie **sur le fil principal** — il
-                    // l'a toujours fait, et ~960 mods y gèlent l'interface le
-                    // temps de la passe. À traiter pour lui-même, pas en
-                    // passant sous couvert d'isolation.
-                    self.scanMods(gameDir: self.gameDir)
+                    // Hors main comme partout (gel ~960 mods, 2026-09-14).
+                    let resolvedGameDir = self.gameDir
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        self.scanMods(gameDir: resolvedGameDir)
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {

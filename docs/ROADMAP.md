@@ -267,10 +267,12 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
         atomique d'où qu'on l'appelle. Le saut ne l'affaiblit pas, il
         sérialise deux demandes rivales.
 
-      Relevé en passant, **non corrigé** : la restauration depuis la corbeille
-      est le seul site qui balaie **sur le fil principal** — ~960 mods y gèlent
-      l'interface. Il l'a toujours fait ; c'est un défaut à traiter pour
-      lui-même, pas sous couvert d'isolation.
+      Relevé en passant, **corrigé le même jour** : la restauration depuis la
+      corbeille était le seul site qui balaie **sur le fil principal** — ~960
+      mods y gelaient l'interface le temps de la passe. Le saut par la file
+      globale, inatteignable tant que le site appelait une méthode faussement
+      `@MainActor`, est devenu mécanique après la tranche : `gameDir` résolu
+      sur le main, balayage sur la file `userInitiated`, comme les autres.
 
       **Passe stricte de clôture** : 57 / 8 après le basculement, **49 / 0**
       après extinction des huit — la passe de départ (6 / 0) était un faux
