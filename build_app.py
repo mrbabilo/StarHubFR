@@ -151,28 +151,26 @@ def build_swiftc_command(swift_files: list[str], app_executable: str, module_cac
     arch = platform.machine()  # arm64 (Apple Silicon) or x86_64 (Intel)
     return ["swiftc"] + swift_files + [
         "-target", f"{arch}-apple-macosx14.0",
-        # ⚠️ **Pas de `-swift-version 6` ici, et c'est mesuré.** L'app compile
-        # sans erreur en mode 6 — mais elle **meurt au lancement** : le mode 6
-        # insère un contrôle d'isolation *à l'exécution* quand une closure
-        # isolée est passée à une fonction générique non isolée
-        # (`Collection.map`), et le dépôt en est plein. Pile du 2026-09-14 :
+        # **L'app est en mode Swift 6** — reposé le 2026-09-14 après la tranche
+        # d'isolation. Historique, à ne pas réapprendre : le premier essai
+        # (même jour) a compilé sans erreur et **tué l'app au lancement** — le
+        # mode 6 insère un contrôle d'isolation *à l'exécution* quand une
+        # closure isolée traverse une fonction générique non isolée. Pile :
         #   _dispatch_assert_queue_fail ← swift_task_checkIsolated
         #   ← closure #1 in syncInstalledModRegistry ← Collection.map
         #   ← scanMods ← closure #2 in performInitialLoad
-        # La cause n'est pas le drapeau : `scanMods` et sa descendance sont
-        # **déclarées `@MainActor` et exécutées sur une file de fond**. En
-        # mode 5 le compilateur laisse passer, personne ne vérifie ; en mode 6
-        # le runtime vérifie et arrête le programme.
-        #
-        # ⚠️ **Cette cause est traitée depuis le 2026-09-14** : `scanMods`,
-        # `syncInstalledModRegistry` et leurs voisines du chemin de scan sont
-        # `nonisolated`, et la closure nommée dans la pile ci-dessus — le
-        # `.map` qui construit `suggested` — n'hérite donc plus de l'acteur.
-        # Le drapeau **n'est pas reposé pour autant** : ce qui le décidera
-        # n'est ni ce gate ni les tests (les deux étaient verts pendant que
-        # l'app mourait), mais un lancement observé —
+        # La cause était le mensonge de déclaration : `scanMods` et sa
+        # descendance étaient `@MainActor` **et exécutées sur une file de
+        # fond**. En mode 5 personne ne vérifie ; en mode 6 le runtime arrête.
+        # La tranche d'isolation a rendu les étiquettes vraies (`nonisolated`,
+        # `gameDir` en paramètre, magasins traversants), la passe stricte dit
+        # 49 / 0 bloquant, et le lancement en mode 6 est **vérifié par
+        # l'auteur** le même jour (2026-09-14) : l'app démarre et balaie sous
+        # contrôle d'isolation à l'exécution. ⚠️ Si un lancement meurt, la
+        # sonde est :
         #   xcrun lldb -b -k "bt 40" -o run StarHubFR.app/Contents/MacOS/StarHubFR
-        # La sonde revient à l'auteur : un agent ne lance pas l'app.
+        # (revient à l'auteur — un agent ne lance pas l'app.)
+        "-swift-version", "6",
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,
