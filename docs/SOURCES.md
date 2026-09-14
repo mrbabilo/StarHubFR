@@ -42,13 +42,23 @@ changelog qui porte la conséquence pour notre code — le cas fondateur est MCM
 2.1.0, dont le journal annonçait un `data/mod_history.json` écrit dans le dossier
 du mod, que notre mise à jour supprime (devenu **A1-T7**).
 
-**Aucun script ne peut lire un changelog Nexus**, et les trois voies ont été
-mesurées le 2026-09-14 : `urllib` et `curl` — même avec un `User-Agent` de
-navigateur — prennent un **403 Cloudflare** ; la page `?tab=logs` ouverte dans un
-**vrai navigateur** ne rend qu'un squelette, son contenu arrivant en AJAX, et
-l'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a disparu avec le
-passage de Nexus à Next.js ; l'API v1 `/mods/{id}/changelogs.json` existe mais
-exige la clé du Trousseau, qu'un script de relevé n'a pas à lire.
+**Aucun script ne peut lire un changelog Nexus** : `urllib` et `curl` — même avec
+un `User-Agent` de navigateur — prennent un **403 Cloudflare**, et l'API v1
+`/mods/{id}/changelogs.json` exige la clé du Trousseau, qu'un script de relevé n'a
+pas à lire. L'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a par
+ailleurs disparu avec le passage de Nexus à Next.js.
+
+> ⚠️ **Correction du 2026-09-14, le soir même** : une première version de ce
+> paragraphe affirmait que la page `?tab=logs` « ne rend qu'un squelette » dans un
+> vrai navigateur. **C'est faux**, et l'auteur l'a relevé. Elle est parfaitement
+> lisible **sans compte** — les **33 changelogs** de MCM en ont été extraits. Deux
+> erreurs de méthode se cumulaient : le DOM avait été lu **avant la fin du
+> chargement** (le contenu arrive en AJAX ; un `wait_for` sur le numéro de version
+> suffit), puis via `body.innerText`, **qui ne rend rien d'un conteneur masqué** —
+> alors que les `<h3>Version …</h3>` étaient bien présents dans le document. Lire
+> le DOM (`querySelectorAll('h3')`), jamais `innerText`, et attendre. Le suivi
+> ci-dessous garde tout son sens — un agent lit la page, aucun script ne le peut —
+> mais pour la bonne raison.
 
 **GitHub ne sauve pas la mise non plus.** Sur les trois seules sources
 `smapi-mod` qui déclarent un dépôt, `spacechase0/StardewValleyMods`,

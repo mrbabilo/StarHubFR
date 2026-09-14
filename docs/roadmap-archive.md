@@ -143,15 +143,18 @@ variable d'environnement qu'elle seule pose. Voir la ROADMAP.
 Demandée sur l'archive `ModernConfigMenu 2.1.2 49437 …`. Désassemblage IL par
 `ikdasm` (77 411 lignes ; `monodis` échoue sur une assertion `get.c:913`).
 
-**Le changelog officiel n'a PAS pu être lu, et c'est un fait à consigner** :
-`curl` avec un `User-Agent` de navigateur et `WebFetch` prennent tous deux un
-**403**, la page `?tab=logs` ouverte dans un vrai navigateur (Playwright) ne rend
-qu'un **squelette** — le contenu arrive en AJAX, et l'ancien endpoint
-`Core/Libs/Common/Widgets/ModChangeLogs` a disparu avec le passage de Nexus à
-Next.js — et l'API v1 `/mods/{id}/changelogs.json` exige la clé du Trousseau. La
-mémoire qui disait « le reader web lit les pages Nexus » vaut pour un MCP
-`web_reader` absent de cette session. C'est ce constat qui a fait naître le suivi
-`changelog_reviewed` de `check_sources.py`.
+**Le changelog a d'abord été déclaré illisible — à tort.** `curl` avec un
+`User-Agent` de navigateur et `WebFetch` prennent bien un **403**, et l'API v1
+exige la clé du Trousseau ; mais la page `?tab=logs` ouverte dans un vrai
+navigateur **est parfaitement lisible, sans compte**. L'auteur l'a relevé, et les
+**33 changelogs** en ont été extraits dans la foulée. Deux erreurs de méthode se
+cumulaient : le DOM lu **avant la fin du chargement** (contenu en AJAX — un
+`wait_for` sur le numéro de version suffit), puis lu via `body.innerText`, **qui
+ne rend rien d'un conteneur masqué** alors que les `<h3>Version …</h3>` étaient
+présents. ⚠️ **La leçon** : « la page est vide » se prouve sur le DOM, jamais sur
+`innerText`, et jamais avant d'avoir attendu. Le suivi `changelog_reviewed` de
+`check_sources.py`, né de ce constat, reste justifié — un **script** ne peut
+toujours pas lire ces pages — mais pour la bonne raison.
 
 **Ce que l'IL a donné à la place :**
 

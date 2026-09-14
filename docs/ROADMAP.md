@@ -376,7 +376,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **5 items ouverts** *(compteur relevé le 2026-09-09 : C3-T2, C3-T5, C5-T1, C5-T2, C6-T1 — **C4 est clos en entier**)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-14 : C3-T2, C3-T5, **C4-T9**, C5-T1, C5-T2, C6-T1 — C4 était clos, la veille du 2026-09-14 l'a rouvert d'un item)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -554,6 +554,28 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > — voir **C4-T5**.
 
 #### C5 — Hub de traduction agnostique de la langue
+
+- [ ] **C4-T9** — **Un mod dont le métier est de remapper les touches n'est pas en
+      conflit avec le jeu.** *(relevé le 2026-09-14 dans le changelog de
+      ModernConfigMenu 2.1.1, qui a ajouté `IsVanillaControlRemapMod()` pour la même
+      raison — et qui nomme en exemple un mod **actif sur notre parc**.)*
+      `KeybindScanner` classe en `gameConflicts` tout raccourci de mod qui retombe sur
+      un contrôle du jeu. Pour un mod de remap, c'est **sa fonction** : le signaler est
+      un faux positif, et il gonfle le seul chiffre que l'écran donne (`problemCount`).
+      **Mesuré** : `Global Config Settings Rewrite` est **installé et actif** — c'est
+      exactement le mod que leur changelog cite.
+      ⚠️ **Ce que nous faisons déjà mieux, vérifié, et qu'il ne faut pas « corriger »** :
+      leurs deux autres correctifs de la même version ne nous concernent pas.
+      `KeybindCombo` est `Hashable` sur `Array(Set(buttons)).sorted()` — la
+      **combinaison entière normalisée**, là où ils regroupaient sur `Buttons[0]` et
+      voyaient `Shift+F` entrer en conflit avec `Shift+J`. Et `SButtonTable` distingue
+      déjà `LeftShift`/`RightShift`/`LeftControl`/`RightControl`/`LeftAlt` (codes
+      160-165), la différenciation qu'ils ont dû ajouter.
+      ⚠️ **La reconnaissance d'un mod de remap est le vrai sujet, et elle se mesure** :
+      leur `IsVanillaControlRemapMod()` repose sur une liste de mods connus. Une
+      heuristique sur le nom écarterait des mods légitimes (trois candidats trouvés au
+      mot « remap » sur le parc, **deux sont des cartes**). Trancher sur données avant
+      de coder. · **S**
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
