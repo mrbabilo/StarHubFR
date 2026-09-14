@@ -1,6 +1,15 @@
 import Foundation
 
-class SmapiInstaller: ObservableObject {
+/// Toute la surface publique de cette classe est consommée depuis le main
+/// (le ViewModel qui la porte est `@MainActor`, un seul site d'instanciation
+/// : StarHubTHViewModel.swift:1959). L'état publié devient sûr par
+/// construction. Le travail lourd — téléchargement, `unzip`, `xattr`,
+/// installateur officiel, boucle de lecture bornée — reste HORS acteur : il
+/// vit dans les callbacks de fond d'URLSession et dans les fonctions
+/// `nonisolated static`, qui ne touchent `self` qu'au travers des hops
+/// `Task { @MainActor in }` ci-dessous (patron du VM depuis L2).
+@MainActor
+final class SmapiInstaller: ObservableObject {
     /// Chemin vers l'onglet Journaux pour ce que la complétion ne peut pas dire.
     ///
     /// L'installation peut réussir **et** laisser un défaut derrière elle : le
@@ -21,7 +30,9 @@ class SmapiInstaller: ObservableObject {
     /// avec les `DateFormatter.locale` du dépôt : sans cette pose, la locale
     /// du parent est héritée, et un message comme « l'opération n'est pas
     /// permise » deviendrait intraitable côté `lastMeaningfulLine`.
-    private static func posixLocaleEnvironment() -> [String: String] {
+    // `nonisolated` : l'annotation `@MainActor` de la classe isole aussi ses
+    // statiques, or celui-ci est appelé depuis les callbacks de fond (P5-L4).
+    private nonisolated static func posixLocaleEnvironment() -> [String: String] {
         ["LC_ALL": "en_US_POSIX", "LANG": "en_US_POSIX"]
     }
 
@@ -36,7 +47,9 @@ class SmapiInstaller: ObservableObject {
     /// disque (l'archive de SMAPI ne se re-télécharge jamais deux fois
     /// dans la même session). `.ephemeral` empêche aussi les cookies de
     /// session d'un compte GitHub antérieur de fuiter vers l'API.
-    private static func downloadSession() -> URLSession {
+    // `nonisolated` : appelée hors acteur par la lookup et le download (même
+    // raison que `posixLocaleEnvironment` ci-dessus).
+    private nonisolated static func downloadSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
@@ -61,7 +74,9 @@ class SmapiInstaller: ObservableObject {
         case unexpected(Int)    // ni 2xx ni 4xx/5xx
     }
 
-    private static func classify(_ http: HTTPURLResponse) -> DownloadStatus {
+    // `nonisolated` : appelée depuis les callbacks `@Sendable` d'URLSession,
+    // sur la queue de fond de la session.
+    private nonisolated static func classify(_ http: HTTPURLResponse) -> DownloadStatus {
         switch http.statusCode {
         case 200...299: return .ok
         case 400...499: return .clientError(http.statusCode)
@@ -83,7 +98,12 @@ class SmapiInstaller: ObservableObject {
     // bundle of its own; only the caller (which has `LocalizationStore.L`) can translate,
     // and concatenating the raw key with detail text before translation
     // would corrupt the lookup key itself.
-    func install(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
+    // `completion` est `@Sendable` : il traverse les callbacks de fond
+    // d'URLSession et revient à l'appelant par les hops `Task { @MainActor in
+    // }` ci-dessous — toujours invoqué sur le main. Même contrat partout où
+    // il est transmis (`uninstall`, `downloadAndRunInstaller`,
+    // `runOfficialInstaller`, `resolveLatestSmapiInstallerURL`).
+    func install(gameDir: String, completion: @escaping @Sendable (Bool, String, String?) -> Void) {
         self.isInstalling = true
         self.statusMessage = L10n.Smapi.downloading
         self.progress = 0.1
@@ -94,15 +114,17 @@ class SmapiInstaller: ObservableObject {
         // channel today is its GitHub Releases page, so resolve the current
         // release through the GitHub API first, then hand the resolved URL
         // to the download/extract/run flow below.
-        resolveLatestSmapiInstallerURL { result in
+        Self.resolveLatestSmapiInstallerURL { result in
             switch result {
             case .failure(let message, let detail):
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.isInstalling = false
                     completion(false, message, detail)
                 }
             case .success(let smapiZipUrl, let version):
-                self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .install, completion: completion)
+                Task { @MainActor in
+                    self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .install, completion: completion)
+                }
             }
         }
     }
@@ -118,7 +140,7 @@ class SmapiInstaller: ObservableObject {
     // and only the official installer itself reliably knows the full set of
     // files it added. Re-downloading it for an uninstall is wasteful but
     // simple and correct; uninstalling isn't a hot path.
-    func uninstall(gameDir: String, completion: @escaping (Bool, String, String?) -> Void) {
+    func uninstall(gameDir: String, completion: @escaping @Sendable (Bool, String, String?) -> Void) {
         let fm = FileManager.default
 
         // Même marqueur que `SmapiVersionEvidence.installedVersion` (X77) : une installation
@@ -133,15 +155,17 @@ class SmapiInstaller: ObservableObject {
         self.statusMessage = L10n.Smapi.downloading
         self.progress = 0.1
 
-        resolveLatestSmapiInstallerURL { result in
+        Self.resolveLatestSmapiInstallerURL { result in
             switch result {
             case .failure(let message, let detail):
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.isInstalling = false
                     completion(false, message, detail)
                 }
             case .success(let smapiZipUrl, let version):
-                self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .uninstall, completion: completion)
+                Task { @MainActor in
+                    self.downloadAndRunInstaller(from: smapiZipUrl, version: version, gameDir: gameDir, action: .uninstall, completion: completion)
+                }
             }
         }
     }
@@ -162,7 +186,11 @@ class SmapiInstaller: ObservableObject {
     /// pick the plain installer specifically — matching on the filename
     /// pattern rather than assuming a fixed name, since the version number
     /// is embedded in it (e.g. `SMAPI-4.5.2-installer.zip`).
-    private func resolveLatestSmapiInstallerURL(completion: @escaping (ReleaseResolution) -> Void) {
+    // `nonisolated static` : la fonction ne lit aucun état d'instance (ses
+    // seules dépendances sont les statiques de la classe) ; sa complétion
+    // part depuis le callback de fond de la session, d'où le `@Sendable` —
+    // les appelants, sur le main, y ré-entrent par leurs hops.
+    private nonisolated static func resolveLatestSmapiInstallerURL(completion: @escaping @Sendable (ReleaseResolution) -> Void) {
         let releaseApiUrl = URL(string: "https://api.github.com/repos/Pathoschild/SMAPI/releases/latest")!
         var request = URLRequest(url: releaseApiUrl)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -217,7 +245,7 @@ class SmapiInstaller: ObservableObject {
     /// directly: it renames some of its own files when copying them into
     /// the game directory, a mapping that isn't recoverable from the zip's
     /// structure alone).
-    private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    private func downloadAndRunInstaller(from smapiZipUrl: URL, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping @Sendable (Bool, String, String?) -> Void) {
         // X81 : un UUID sur le nom de dossier rend deux `install()` concurrents
         // indépendants. Sans lui, `smapi_latest.zip` et `smapi_extracted/`
         // sont des cibles nommées : un second appel qui appelle `removeItem`
@@ -246,7 +274,7 @@ class SmapiInstaller: ObservableObject {
         // laisse la completion sans réponse pendant 5 minutes.
         let downloadTask = Self.downloadSession().downloadTask(with: smapiZipUrl) { localURL, response, error in
             if let error = error {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.isInstalling = false
                     completion(false, L10n.Smapi.downloadFailed, error.localizedDescription)
                 }
@@ -268,19 +296,19 @@ class SmapiInstaller: ObservableObject {
                 // posé pour qu'un futur bouton « réessayer » puisse
                 // discriminer sans relecture.
                 case .clientError(let code):
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.isInstalling = false
                         completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code) — fichier indisponible")
                     }
                     return
                 case .serverError(let code):
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.isInstalling = false
                         completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code) — réessayez dans quelques minutes")
                     }
                     return
                 case .unexpected(let code):
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.isInstalling = false
                         completion(false, L10n.Smapi.downloadHttpError, "HTTP \(code)")
                     }
@@ -289,7 +317,7 @@ class SmapiInstaller: ObservableObject {
             }
 
             guard let localURL = localURL else {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.isInstalling = false
                     completion(false, L10n.Smapi.downloadedFileNotFound, nil)
                 }
@@ -305,7 +333,7 @@ class SmapiInstaller: ObservableObject {
                 if fm.fileExists(atPath: zipDest.path) { try fm.removeItem(at: zipDest) }
                 try fm.copyItem(at: localURL, to: zipDest)
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.statusMessage = L10n.Smapi.extracting
                     self.progress = 0.4
                 }
@@ -329,14 +357,14 @@ class SmapiInstaller: ObservableObject {
                 unzipProcess.waitUntilExit()
 
                 guard unzipProcess.terminationStatus == 0 else {
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.isInstalling = false
                         completion(false, L10n.Smapi.extractFailed, "unzip exit code \(unzipProcess.terminationStatus)")
                     }
                     return
                 }
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.statusMessage = L10n.Smapi.preparing
                     self.progress = 0.6
                 }
@@ -354,7 +382,7 @@ class SmapiInstaller: ObservableObject {
                 }
 
                 guard let smapiInstallerBin = installerPath, fm.fileExists(atPath: smapiInstallerBin) else {
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.isInstalling = false
                         completion(false, L10n.Smapi.payloadNotFound, nil)
                     }
@@ -384,24 +412,32 @@ class SmapiInstaller: ObservableObject {
                 attributes[.posixPermissions] = 0o755
                 try fm.setAttributes(attributes, ofItemAtPath: smapiInstallerBin)
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.statusMessage = L10n.Smapi.preparing
                     self.progress = 0.8
                 }
 
-                self.runOfficialInstaller(at: smapiInstallerBin, version: version, gameDir: gameDir, action: action) { success, message, detail in
-                    // Le temp est nettoyé par le `defer` posé en tête de
-                    // `downloadAndRunInstaller` — ne pas le faire ici, ce
-                    // serait un cleanup local à un scope plus étroit que
-                    // celui qui survivra à une exception de `runOfficialInstaller`.
-                    DispatchQueue.main.async {
-                        self.progress = success ? 1.0 : self.progress
-                        self.isInstalling = false
-                        completion(success, message, detail)
-                    }
-                }
+                // Le warning « marqueur non écrit » traverse en valeur : la
+                // fonction est `nonisolated static` et ne peut pas lire
+                // `onWarning` sur `self` — le hop rend la main au main actor
+                // pour l'appeler, comme les autres.
+                Self.runOfficialInstaller(at: smapiInstallerBin, version: version, gameDir: gameDir, action: action,
+                                          completion: { success, message, detail in
+                                              // Le temp est nettoyé par le `defer` posé en tête de
+                                              // `downloadAndRunInstaller` — ne pas le faire ici, ce
+                                              // serait un cleanup local à un scope plus étroit que
+                                              // celui qui survivra à une exception de `runOfficialInstaller`.
+                                              Task { @MainActor in
+                                                  self.progress = success ? 1.0 : self.progress
+                                                  self.isInstalling = false
+                                                  completion(success, message, detail)
+                                              }
+                                          },
+                                          onVersionMarkerWriteFailure: { message in
+                                              Task { @MainActor in self.onWarning?(message) }
+                                          })
             } catch {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.isInstalling = false
                     completion(false, L10n.Smapi.installError, error.localizedDescription)
                 }
@@ -442,7 +478,17 @@ class SmapiInstaller: ObservableObject {
     /// version afterward (see `SmapiVersionEvidence.installedVersion`'s doc
     /// comment), so this app records what it just installed instead of
     /// guessing later.
-    private func runOfficialInstaller(at installerPath: String, version: String, gameDir: String, action: SmapiInstallerAction, completion: @escaping (Bool, String, String?) -> Void) {
+    // `nonisolated static` : la fonction ne touche aucun état d'instance —
+    // son seul accès (`onWarning` à l'échec d'écriture du marqueur) traverse
+    // désormais en valeur par `onVersionMarkerWriteFailure`. Appelée depuis
+    // le callback de fond du download, elle y reste hors acteur : la boucle
+    // de lecture bornée, les `Process` et les timeouts sont inchangés.
+    private nonisolated static func runOfficialInstaller(
+        at installerPath: String, version: String, gameDir: String,
+        action: SmapiInstallerAction,
+        completion: @escaping @Sendable (Bool, String, String?) -> Void,
+        onVersionMarkerWriteFailure: @escaping @Sendable (String) -> Void
+    ) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: installerPath)
         process.arguments = SmapiInstallerInvocation.arguments(action: action, gamePath: gameDir)
@@ -533,7 +579,7 @@ class SmapiInstaller: ObservableObject {
                     // Le marqueur est un cache de version pour l'UI ; SMAPI est bien
                     // installé. Consigner l'échec — sinon l'app croit au prochain
                     // lancement que SMAPI est absent (jusqu'à la re-détection).
-                    onWarning?("SMAPI install succeeded but version marker write failed at \(markerPath): \(error.localizedDescription)")
+                    onVersionMarkerWriteFailure("SMAPI install succeeded but version marker write failed at \(markerPath): \(error.localizedDescription)")
                 }
                 completion(true, L10n.Smapi.installSuccess, nil)
             } else {
@@ -555,7 +601,8 @@ class SmapiInstaller: ObservableObject {
     /// La règle vit dans `SmapiInstallerOutput` (Core) : ce fichier n'est pas
     /// dans le paquet testable, et c'est pourtant tout ce que l'utilisateur
     /// apprend d'un échec.
-    private static func lastMeaningfulLine(of output: String) -> String {
+    // `nonisolated` : appelée par `runOfficialInstaller`, hors acteur.
+    private nonisolated static func lastMeaningfulLine(of output: String) -> String {
         SmapiInstallerOutput.lastMeaningfulLine(of: output)
     }
 }

@@ -1962,11 +1962,12 @@ final class StarHubTHViewModel {
     // if/else if de `MainView`, pas dans un `Group` à identité stable, donc
     // un `@StateObject` posé sur la section serait détruit et recréé à
     // chaque retour sur l'onglet (constat de revue C4-T2, ronde 1).
-    // `KeybindScanService` porte désormais un `init()` explicite
-    // `nonisolated` (même patron que `BisectionRunner.init(vm:)` juste en
-    // dessous) : sans lui, l'init implicite d'une classe `@MainActor` est
-    // elle-même isolée, et l'appeler ici — `StarHubTHViewModel` n'est pas
-    // `@MainActor` au niveau de la classe — échoue à la compilation.
+    // `KeybindScanService` porte un `init()` explicite `nonisolated` (même
+    // patron que `BisectionRunner.init(vm:)` juste en dessous), posé du temps
+    // où `StarHubTHViewModel` n'était pas `@MainActor` au niveau de la
+    // classe — la classe du VM l'est depuis la tranche L2 (2026-09-13),
+    // l'appel ci-dessous passe donc aujourd'hui par son isolation, et
+    // l'`init` nonisolé n'est plus ce dont il dépend.
     let keybindScanService = KeybindScanService()
 
     /// Miroir du rapport du scanner de raccourcis. `KeybindScanService` reste
@@ -3048,22 +3049,30 @@ final class StarHubTHViewModel {
     }
 
     // Install SMAPI via Installer Helper
+    //
+    // La complétion est `@Sendable` (P5-L4) : son corps n'a pas d'isolation,
+    // les touches au VM passent par un hop `Task { @MainActor in }` — en
+    // pratique `SmapiInstaller` l'invoque déjà depuis le main.
     func installSmapi() {
         smapiInstaller.install(gameDir: gameDir) { success, key, detail in
-            self.environment.checkSmapiVersion()
-            let message = self.resolveSmapiMessage(key, detail)
-            self.showModal(message: message)
-            self.log(message)
+            Task { @MainActor in
+                self.environment.checkSmapiVersion()
+                let message = self.resolveSmapiMessage(key, detail)
+                self.showModal(message: message)
+                self.log(message)
+            }
         }
     }
 
-    // Uninstall SMAPI
+    // Uninstall SMAPI — même hop `@MainActor` que `installSmapi`.
     func uninstallSmapi() {
         smapiInstaller.uninstall(gameDir: gameDir) { success, key, detail in
-            self.environment.checkSmapiVersion()
-            let message = self.resolveSmapiMessage(key, detail)
-            self.showModal(message: message)
-            self.log(message)
+            Task { @MainActor in
+                self.environment.checkSmapiVersion()
+                let message = self.resolveSmapiMessage(key, detail)
+                self.showModal(message: message)
+                self.log(message)
+            }
         }
     }
     

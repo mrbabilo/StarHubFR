@@ -1,7 +1,11 @@
 import Foundation
 
 /// L'action demandée à l'installateur SMAPI — portée par son drapeau.
-public enum SmapiInstallerAction: String {
+///
+/// `Sendable` explicite : un type `public` n'a pas d'inférence, et la valeur
+/// traverse les closures `@Sendable` du flux d'installation (P5-L4) — sans
+/// la conformité, sa capture diagnostique.
+public enum SmapiInstallerAction: String, Sendable {
     case install = "--install"
     case uninstall = "--uninstall"
 }
