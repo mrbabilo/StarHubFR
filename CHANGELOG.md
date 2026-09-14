@@ -12,6 +12,16 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-09-14
+
+### Added
+
+- **Les mods dont la page Nexus a été masquée ou supprimée se voient désormais.** Badge à côté du nom dans la liste et la grille, bandeau sur la fiche, détail au clic : l'auteur a masqué la page (elle peut revenir) ou celle-ci n'existe plus. Ces mods apparaissent aussi au filtre « Problèmes », et la vérification note dans son journal les pages qui ne répondent plus.
+
+### Changed
+
+- **Les grandes vues restent dans leur cadre.** `MainView` et `SavesView` sont recoupées à leur tour (la page, ses composants, l'éditeur de partie dans des fichiers dédiés), et le vérificateur de conventions refuse désormais qu'une vue dépasse 1 500 lignes — `ModListView` et `ModDetailView` l'ont déjà prouvé.
+
 ## [1.44.0] - 2026-09-14
 
 ### Added
