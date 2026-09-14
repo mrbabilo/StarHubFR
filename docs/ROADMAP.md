@@ -177,7 +177,15 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       `chmod` et s'arrêtait le jeu à moitié installé (cassé depuis le
       2026-09-07). Corrigé, plus les libellés de désinstallation et la
       persistance de la sortie de l'installateur. Reste la sortie d'acteur de `scanMods` (tranche
-      d'isolation). Détail et mécanismes : `REFACTORING.md` §9.
+      d'isolation). **L5 close le 2026-09-14 : le Core compile en
+      `swiftLanguageMode(.v6)`** — 101 / 20 bloquants, et surtout un cliquet
+      tenu par le compilateur sur la moitié testée du dépôt. ⚠️ La bascule a
+      rougi la CI au premier essai : elle compile en **Xcode 16.4 (Swift
+      6.0)**, la machine de développement en 6.3.3, et la première est plus
+      stricte. Défaite sur `main`, reprise en PR, validée par la CI avant
+      fusion (#6). Reste **L6** : l'app en mode Swift 6 (VM 12,
+      `NexusSearchClient` 2, `ModInstallView` 2, quatre vues à 1). Détail et
+      mécanismes : `REFACTORING.md` §9.
 ---
 
 

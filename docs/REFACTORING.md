@@ -730,6 +730,7 @@ sur `1b4f9888` par `scripts/p5-strict.sh`, et ses états aux clôtures de L1 et 
 | **Après L2** (`@MainActor` sur le ViewModel) | **237** | **85** | 594 s / 4379 s |
 | **Après L3** (les deux boucles disque exécutent en Core) | **216** | **83** | 527 s |
 | **Après L4** (les trois clients réseau/process) | **121** | **28** | 590 s |
+| **Après L5** (le Core en mode Swift 6) | **101** | **20** | 519 s |
 
 *Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
 Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
@@ -922,6 +923,50 @@ tests). Ce qui a tranché en un essai après une demi-journée d'hypothèses :
 — l'app n'en montrait qu'une ligne et jetait la pile .NET qui nommait la
 frame. Le rejeu a aussi montré qu'une désinstallation s'annonçait en mots
 d'installation, sur ses quatre étapes.
+
+**Repris à la clôture de L5 (2026-09-14)** : 101 avertissements, **20
+bloquants** — mais le chiffre n'est plus la mesure qui compte. `StarHubTHCore`
+compile en **`swiftLanguageMode(.v6)`** : la moitié du dépôt qui a des tests
+est passée d'un relevé d'avertissements à un **cliquet que le compilateur
+tient**. Neuf sites l'ont permis : les deux callbacks de
+`PathoschildCompatibilityList` en `@Sendable` (6), `SaveNotesStore` isolé
+(1, reporté depuis L1) et `GameEnvironmentStore` isolé (2).
+
+Quatre pièges, tous constatés et non déduits :
+
+1. **Le mode de langage se juge sur le compilateur qui garde le dépôt.** La
+   bascule est partie verte sur cette machine (Swift 6.3.3) et a **rougi la
+   CI** (Xcode 16.4, Swift 6.0) : celle-ci refuse une capture de `completion`
+   dans la closure isolée de `fetchModInfo` que la chaîne récente accepte. La
+   bascule a été défaite sur `main`, reprise sur une branche, et c'est la CI
+   de la PR qui l'a validée avant fusion. ⚠️ **Écart silencieux** : rien, en
+   local, ne le signale.
+2. **Le bump de tools-version bascule tout le paquet.** `swiftLanguageModes:
+   [.v5]` au niveau du paquet est le plancher qui garde les ~30 cibles de
+   test ; sans lui elles passent en mode 6 d'un coup et ne compilent plus.
+   La spec le disait — l'insertion a quand même raté sa cible parce que le
+   paquet s'appelle `StarHubTHCore`, pas `StarHubTH`.
+3. **`Task { @MainActor in }` n'entre pas dans le FIFO de la file
+   principale.** `GameEnvironmentStore` documente précisément cet invariant
+   (audit 2026-08-05) ; l'y substituer a fait rougir deux tests du store et
+   un du client smapi.io. La publication reste un `DispatchQueue.main.async`,
+   légalisé par `MainActor.assumeIsolated` — une classe `@MainActor` est
+   implicitement `Sendable` (SE-0316). D'où un `+1` **assumé** au cliquet
+   `dispatch_queue`, à contre-courant de la tendance et pour une raison
+   écrite.
+4. **Une suite `@MainActor` ne peut pas attendre en pompant la `RunLoop`** :
+   elle retient l'acteur, et le hop attendu ne s'exécute jamais. Les attentes
+   du store sont devenues asynchrones.
+
+Une correction de fond, pas une annotation : le repli « Farmer » arrive
+désormais **résolu** à `fetchSteamUser` au lieu d'une closure qui lisait
+`currentLanguage` depuis une file de fond pendant que l'acteur principal peut
+l'écrire. L'isolation a rendu visible une lecture inter-fils qu'on a
+supprimée plutôt que bénie.
+
+Ce qui reste après L5 : le ViewModel (12), `NexusSearchClient` (2),
+`ModInstallView` (2) et quatre vues à 1 — c'est le périmètre de **L6**
+(l'app en mode Swift 6).
 
 Ce qui reste après L4 : le ViewModel (11) et
 `PathoschildCompatibilityList` (6) prennent la tête, devant
