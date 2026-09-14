@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mettre à jour un mod ne lui fait plus perdre ses données de partie.** Seuls `config.json` et les fichiers de langue revenaient ; les `*_SaveData.save` de FarmTypeManager et les autres restaient dans la sauvegarde. Ce que la nouvelle version ne livre pas revient désormais, et le bilan le dit.
+
 ## [1.45.0] - 2026-09-14
 
 ### Added
