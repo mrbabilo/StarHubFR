@@ -49,6 +49,68 @@ import Foundation
         #expect(s.hits.isEmpty)
     }
 
+    // MARK: - L'identité et les suppléments d'une fiche
+
+    @Test func aNilIdentitySearchRemovesTheKeyRatherThanHidingAnEmptyValue() {
+        let s = TranslationHubStore()
+        s.setIdentitySearch(IdentitySearch(candidates: [], received: 3, serverTotal: 9),
+                            for: "Mod")
+        s.setIdentitySearch(nil, for: "Mod")
+        #expect(s.identitySearches["Mod"] == nil)
+        #expect(s.identitySearches.isEmpty)
+    }
+
+    /// Le même repli que la fiche : une panne n'est pas une absence, mais
+    /// l'affichage ne garde rien d'une recherche qui a échoué — et ne doit pas
+    /// effacer l'autre domaine (identité ≠ suppléments).
+    @Test func aFailedSupplementSearchClearsOnlyItsOwnDomain() {
+        let s = TranslationHubStore()
+        s.setSupplementSearch(SupplementSearch(hits: [hit(1)], alreadyInstalled: [],
+                                               received: 1, serverTotal: 4), for: "Mod")
+        s.setIdentitySearch(IdentitySearch(candidates: [], received: 2, serverTotal: 5),
+                            for: "Mod")
+        s.setSupplementSearch(nil, for: "Mod")
+        #expect(s.supplementSearches["Mod"] == nil)
+        #expect(s.identitySearches["Mod"] != nil)   // l'autre domaine survit
+    }
+
+    /// Le rattachement d'une greffe (`linkToNexus`) repart de la recherche
+    /// précédente pour la recomposer : la pose remplace, elle n'accumule pas.
+    @Test func aSupplementSearchUpdateReplacesRatherThanAppends() {
+        let s = TranslationHubStore()
+        s.setSupplementSearch(SupplementSearch(hits: [hit(1)], alreadyInstalled: [],
+                                               received: 2, serverTotal: 4), for: "Mod")
+        s.setSupplementSearch(SupplementSearch(hits: [hit(3)], alreadyInstalled: [hit(1)],
+                                               received: 2, serverTotal: 4), for: "Mod")
+        let search = s.supplementSearches["Mod"]
+        #expect(search?.hits.map(\.modId) == [3])
+        #expect(search?.alreadyInstalled.map(\.modId) == [1])
+    }
+
+    /// Taire le total ferait passer une poignée pour une réponse complète :
+    /// c'est le contrat de `isCapped`, porté par les deux types.
+    @Test func cappedMeansServerTotalExceedsWhatThePageBrought() {
+        #expect(SupplementSearch(hits: [], alreadyInstalled: [], received: 50,
+                                 serverTotal: 428).isCapped)
+        #expect(!SupplementSearch(hits: [], alreadyInstalled: [], received: 50,
+                                  serverTotal: 50).isCapped)
+        #expect(IdentitySearch(candidates: [], received: 10, serverTotal: 11).isCapped)
+        #expect(!IdentitySearch(candidates: [], received: 11, serverTotal: 11).isCapped)
+    }
+
+    /// Les vols sont des ensembles mod par mod : une fiche ne retient pas une
+    /// autre en otage, et retirer l'une ne retire pas les voisines.
+    @Test func inFlightIdentityAndSupplementSetsArePerFolder() {
+        let s = TranslationHubStore()
+        s.setIdentitySearching(true, for: "A")
+        s.setIdentitySearching(true, for: "B")
+        s.setSupplementsSearching(true, for: "A")
+        s.setIdentitySearching(false, for: "A")
+        #expect(!s.isIdentitySearching("A"))
+        #expect(s.isIdentitySearching("B"))          // la voisine survit
+        #expect(s.isSupplementsSearching("A"))       // l'autre domaine aussi
+    }
+
     @Test func installedHitsHoldTheirOwnHalf() {
         let s = TranslationHubStore()
         s.setInstalledHits([hit(2)], for: "Mod")

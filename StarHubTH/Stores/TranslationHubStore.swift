@@ -39,6 +39,16 @@ final class TranslationHubStore {
     /// Les mods dont une traduction s'installe ou se retire.
     private(set) var busy: Set<String> = []
 
+    /// Les fiches Nexus candidates pour un mod sans identifiant, par mod hôte.
+    private(set) var identitySearches: [String: IdentitySearch] = [:]
+    /// Les mods dont une recherche d'identité tourne.
+    private(set) var identitySearching: Set<String> = []
+
+    /// Les suppléments trouvés pour un mod, par mod hôte.
+    private(set) var supplementSearches: [String: SupplementSearch] = [:]
+    /// Les mods dont une recherche de suppléments tourne.
+    private(set) var supplementsSearching: Set<String> = []
+
     // MARK: - Le registre
 
     /// Le chargement initial, depuis les préférences.
@@ -85,4 +95,64 @@ final class TranslationHubStore {
     }
 
     func isBusy(_ folder: String) -> Bool { busy.contains(folder) }
+
+    // MARK: - L'identité d'un mod sans fiche
+
+    /// `nil` retire la clé — même convention que `setHits` : une valeur vide
+    /// cachée ferait croire à un résultat de recherche qui n'existe pas.
+    func setIdentitySearch(_ newSearch: IdentitySearch?, for folder: String) {
+        identitySearches[folder] = newSearch
+    }
+
+    func setIdentitySearching(_ searching: Bool, for folder: String) {
+        if searching { identitySearching.insert(folder) } else { identitySearching.remove(folder) }
+    }
+
+    func isIdentitySearching(_ folder: String) -> Bool { identitySearching.contains(folder) }
+
+    // MARK: - Les suppléments
+
+    /// `nil` retire la clé — même convention que `setHits`.
+    func setSupplementSearch(_ newSearch: SupplementSearch?, for folder: String) {
+        supplementSearches[folder] = newSearch
+    }
+
+    func setSupplementsSearching(_ searching: Bool, for folder: String) {
+        if searching { supplementsSearching.insert(folder) } else { supplementsSearching.remove(folder) }
+    }
+
+    func isSupplementsSearching(_ folder: String) -> Bool { supplementsSearching.contains(folder) }
+}
+
+/// Ce qu'une recherche d'identité a rendu — voir
+/// `NexusModSearch.identityCandidates`.
+///
+/// `received` et `serverTotal` sont là pour la même raison que dans
+/// `SupplementSearch` : la liste est plafonnée par la requête, et taire le
+/// total ferait passer une poignée pour une réponse complète.
+struct IdentitySearch {
+    let candidates: [NexusModSearch.IdentityCandidate]
+    let received: Int
+    let serverTotal: Int
+
+    var isCapped: Bool { serverTotal > received }
+}
+
+/// Ce qu'une recherche de suppléments a rendu.
+///
+/// - `serverTotal` est ce que Nexus annonce pour ce nom, traductions
+///   comprises — 428 pour « Content Patcher ».
+///
+/// Annoncer `hits.count` seul ferait passer une poignée pour une
+/// exhaustivité ; annoncer `serverTotal` seul promettrait des suppléments
+/// là où il n'y a que des traductions. Il faut les deux.
+struct SupplementSearch {
+    let hits: [NexusModSearch.Hit]
+    /// Ceux que le parc porte déjà — montrés à part plutôt que proposés.
+    let alreadyInstalled: [NexusModSearch.Hit]
+    let received: Int
+    let serverTotal: Int
+
+    /// `true` quand Nexus en avait plus que la page n'en a rapporté.
+    var isCapped: Bool { serverTotal > received }
 }

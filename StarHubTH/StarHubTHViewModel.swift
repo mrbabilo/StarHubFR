@@ -5241,7 +5241,7 @@ final class StarHubTHViewModel {
     // domaine 6, tranche 1). Le registre et ses règles sont en Core
     // (`InstalledTranslationRegistry`) ; le store les publie, avec les deux
     // moitiés de la recherche et les vols mod par mod.
-    private let translationHub = TranslationHubStore()
+    let translationHub = TranslationHubStore()
 
     /// Ce qui est posé sur quel mod. Relu au lancement, réécrit à chaque dépôt
     /// ou retrait — c'est la seule trace : la perdre rendrait toute
@@ -5362,50 +5362,6 @@ final class StarHubTHViewModel {
             andInstalled: translationInstalledHits[mod.folderName] ?? [])
     }
 
-    /// Ce qu'une recherche de suppléments a rendu — **et ce qu'elle n'a pas vu**.
-    ///
-    /// Trois nombres, parce qu'aucun ne suffit seul à dire la vérité :
-    /// - `hits` sont les candidats retenus après avoir écarté les traductions ;
-    /// - `received` est ce que la page portait, plafonné par la requête ;
-    /// - `serverTotal` est ce que Nexus annonce pour ce nom, traductions
-    ///   comprises — 428 pour « Content Patcher ».
-    ///
-    /// Annoncer `hits.count` seul ferait passer une poignée pour une
-    /// exhaustivité ; annoncer `serverTotal` seul promettrait des suppléments
-    /// là où il n'y a que des traductions. Il faut les deux.
-    struct SupplementSearch {
-        let hits: [NexusModSearch.Hit]
-        /// Ceux que le parc porte déjà — montrés à part plutôt que proposés.
-        let alreadyInstalled: [NexusModSearch.Hit]
-        let received: Int
-        let serverTotal: Int
-
-        /// `true` quand Nexus en avait plus que la page n'en a rapporté.
-        var isCapped: Bool { serverTotal > received }
-    }
-    /// Les suppléments trouvés pour un mod, par `folderName`.
-    private(set) var supplementSearches: [String: SupplementSearch] = [:]
-    /// Les mods dont une recherche de suppléments est en cours.
-    private(set) var searchingSupplements: Set<String> = []
-
-    /// Ce qu'une recherche d'identité a rendu — voir
-    /// `NexusModSearch.identityCandidates`.
-    ///
-    /// `received` et `serverTotal` sont là pour la même raison que dans
-    /// `SupplementSearch` : la liste est plafonnée par la requête, et taire le
-    /// total ferait passer une poignée pour une réponse complète.
-    struct IdentitySearch {
-        let candidates: [NexusModSearch.IdentityCandidate]
-        let received: Int
-        let serverTotal: Int
-
-        var isCapped: Bool { serverTotal > received }
-    }
-    /// Les fiches Nexus candidates pour un mod sans identifiant, par `folderName`.
-    private(set) var identitySearches: [String: IdentitySearch] = [:]
-    /// Les mods dont une recherche d'identité est en cours.
-    private(set) var searchingIdentity: Set<String> = []
-
     /// Cherche sur Nexus la fiche d'un mod qui n'en déclare aucune.
     ///
     /// Sans tag : c'est le mod lui-même qu'on cherche, pas ce qui gravite
@@ -5417,24 +5373,26 @@ final class StarHubTHViewModel {
     /// sont introuvables par leur nom. La vue doit le dire, sans quoi le bouton
     /// passera pour cassé.
     func searchNexusIdentity(for mod: ModItem) {
-        guard !searchingIdentity.contains(mod.folderName) else { return }
-        searchingIdentity.insert(mod.folderName)
+        guard !translationHub.isIdentitySearching(mod.folderName) else { return }
+        translationHub.setIdentitySearching(true, for: mod.folderName)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
             Task { @MainActor in
                 guard let self else { return }
-                self.searchingIdentity.remove(mod.folderName)
+                self.translationHub.setIdentitySearching(false, for: mod.folderName)
                 switch result {
                 case .success(let page):
-                    self.identitySearches[mod.folderName] = IdentitySearch(
-                        candidates: NexusModSearch.identityCandidates(among: page.hits,
-                                                                      modName: mod.name,
-                                                                      modAuthor: mod.author),
-                        received: page.hits.count,
-                        serverTotal: page.totalCount)
+                    self.translationHub.setIdentitySearch(
+                        IdentitySearch(
+                            candidates: NexusModSearch.identityCandidates(among: page.hits,
+                                                                          modName: mod.name,
+                                                                          modAuthor: mod.author),
+                            received: page.hits.count,
+                            serverTotal: page.totalCount),
+                        for: mod.folderName)
                 case .failure(let error):
                     // Une panne n'est pas une absence : ne rien afficher vaut mieux
                     // qu'afficher « aucun résultat » pour une requête qui a échoué.
-                    self.identitySearches[mod.folderName] = nil
+                    self.translationHub.setIdentitySearch(nil, for: mod.folderName)
                     self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
                     self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
                 }
@@ -5444,7 +5402,7 @@ final class StarHubTHViewModel {
 
     /// Referme les propositions de fiche Nexus d'un mod.
     func dismissIdentityResults(for mod: ModItem) {
-        identitySearches[mod.folderName] = nil
+        translationHub.setIdentitySearch(nil, for: mod.folderName)
     }
 
     /// Retient la fiche que l'utilisateur a désignée, et va chercher ce qu'elle
@@ -5482,7 +5440,7 @@ final class StarHubTHViewModel {
     /// Les greffes du registre continuent de s'afficher : elles ne viennent pas
     /// de la recherche, elles viennent de ce qui est posé sur le disque.
     func dismissSupplementResults(for mod: ModItem) {
-        supplementSearches[mod.folderName] = nil
+        translationHub.setSupplementSearch(nil, for: mod.folderName)
     }
 
     /// Les identifiants Nexus que le parc déclare, pour reconnaître un
@@ -5573,7 +5531,7 @@ final class StarHubTHViewModel {
     /// main n'en a pas — c'est ce que `linkToNexus` répare.
     func addonUpdateAvailable(_ addon: InstalledTranslation,
                               for mod: ModItem) -> NexusModSearch.Hit? {
-        let search = supplementSearches[mod.folderName]
+        let search = translationHub.supplementSearches[mod.folderName]
         return TranslationPresence.update(for: addon,
                                           amongAvailable: search?.hits ?? [],
                                           andInstalled: search?.alreadyInstalled ?? [])
@@ -5623,12 +5581,14 @@ final class StarHubTHViewModel {
             translationHub.setInstalledHits(
                 (translationInstalledHits[mod.folderName] ?? []) + [hit],
                 for: mod.folderName)
-        } else if let previous = supplementSearches[mod.folderName] {
-            supplementSearches[mod.folderName] = SupplementSearch(
-                hits: previous.hits.filter { $0.modId != hit.modId },
-                alreadyInstalled: previous.alreadyInstalled + [hit],
-                received: previous.received,
-                serverTotal: previous.serverTotal)
+        } else if let previous = translationHub.supplementSearches[mod.folderName] {
+            translationHub.setSupplementSearch(
+                SupplementSearch(
+                    hits: previous.hits.filter { $0.modId != hit.modId },
+                    alreadyInstalled: previous.alreadyInstalled + [hit],
+                    received: previous.received,
+                    serverTotal: previous.serverTotal),
+                for: mod.folderName)
         }
     }
 
@@ -5667,13 +5627,13 @@ final class StarHubTHViewModel {
     /// `WILDCARD` cherchant une sous-chaîne du titre. Tout le travail est au
     /// retour — voir `NexusModSearch.supplements(among:excluding:)`.
     func searchSupplements(for mod: ModItem) {
-        guard !searchingSupplements.contains(mod.folderName) else { return }
-        searchingSupplements.insert(mod.folderName)
+        guard !translationHub.isSupplementsSearching(mod.folderName) else { return }
+        translationHub.setSupplementsSearching(true, for: mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
             Task { @MainActor in
                 guard let self else { return }
-                self.searchingSupplements.remove(mod.folderName)
+                self.translationHub.setSupplementsSearching(false, for: mod.folderName)
                 switch result {
                 case .success(let page):
                     let found = NexusModSearch.supplements(among: page.hits, excluding: host,
@@ -5690,14 +5650,15 @@ final class StarHubTHViewModel {
                         self.adoptConfirmedNexusId(for: addon, among: split.installed,
                                                    isTranslation: false, host: mod)
                     }
-                    self.supplementSearches[mod.folderName] = SupplementSearch(
-                        hits: split.available,
-                        alreadyInstalled: split.installed,
-                        received: page.hits.count,
-                        serverTotal: page.totalCount)
+                    self.translationHub.setSupplementSearch(
+                        SupplementSearch(hits: split.available,
+                                         alreadyInstalled: split.installed,
+                                         received: page.hits.count,
+                                         serverTotal: page.totalCount),
+                        for: mod.folderName)
                 case .failure(let error):
                     // Une panne n'est pas une absence, comme pour les traductions.
-                    self.supplementSearches[mod.folderName] = nil
+                    self.translationHub.setSupplementSearch(nil, for: mod.folderName)
                     self.log("Recherche de suppléments : \(error)", level: .warning)
                     self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
                 }

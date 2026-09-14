@@ -1442,10 +1442,10 @@ private struct SupplementSection: View {
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
-    private var search: StarHubTHViewModel.SupplementSearch? {
-        vm.supplementSearches[mod.folderName]
+    private var search: SupplementSearch? {
+        vm.translationHub.supplementSearches[mod.folderName]
     }
-    private var isSearching: Bool { vm.searchingSupplements.contains(mod.folderName) }
+    private var isSearching: Bool { vm.translationHub.isSupplementsSearching(mod.folderName) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -2003,10 +2003,10 @@ private struct NexusIdentitySection: View {
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
 
-    private var search: StarHubTHViewModel.IdentitySearch? {
-        vm.identitySearches[mod.folderName]
+    private var search: IdentitySearch? {
+        vm.translationHub.identitySearches[mod.folderName]
     }
-    private var isSearching: Bool { vm.searchingIdentity.contains(mod.folderName) }
+    private var isSearching: Bool { vm.translationHub.isIdentitySearching(mod.folderName) }
     /// Le pack qui contient ce mod, quand il en est un composant.
     private var packName: String {
         String(mod.folderName.split(separator: "/").first ?? "")
