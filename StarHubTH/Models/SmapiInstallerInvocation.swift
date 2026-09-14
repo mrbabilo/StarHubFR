@@ -30,10 +30,13 @@ public enum SmapiInstallerAction: String, Sendable {
 ///   « Failed finding your game path. » — et **sortie**. L'ancien mode
 ///   interactif rebouclait sur la question à l'infini sur stdin fermé
 ///   (l'amorce de X30) ; le mode drapeaux ne fait plus jamais ça.
-/// - le code de sortie vaut **0 même en échec** (le `ReadKey` final sur un
-///   stdin non-terminal lève une exception .NET non gérée uniquement sur
-///   certains chemins) : la réussite se juge sur le message et les preuves
-///   disque, jamais sur l'exit code.
+/// - **le code de sortie ne juge rien** : mesuré **0** sur certains échecs le
+///   2026-09-06, et **6** le 2026-09-14 (le `ReadKey` final de
+///   `PrintErrorAndExit` sur un stdin non-terminal lève une
+///   `InvalidOperationException` non gérée, qui emporte le processus *après*
+///   le message d'erreur). Les deux valeurs sortent du même binaire :
+///   la réussite se juge sur le message et les preuves disque, jamais sur
+///   l'exit code.
 ///
 /// L'ancien pilotage écrivait quatre réponses d'un coup (`1`, `2`, le
 /// chemin, l'action) dans un ordre supposé stable : une seule question
