@@ -1,0 +1,108 @@
+import Foundation
+
+/// A1-T7 — ce qu'une mise à jour doit remettre dans le mod, au-delà des 18 noms
+/// de `ModConfigFiles.preservable`.
+///
+/// **La règle : un fichier absent de l'archive neuve est une donnée locale.**
+/// Le mod l'a écrit en jouant (`<sauvegarde>_SaveData.save` de FarmTypeManager,
+/// `savedata/seenrecipes/` de BetterCrafting, `data/farmers/` d'AnimalHusbandry),
+/// ou l'utilisateur l'a posé là. Mesuré sur le parc : **100 fichiers sur 52 mods**
+/// portent dans leur nom l'identifiant d'une sauvegarde réelle — ils n'ont donc pu
+/// être écrits que sur cette machine. Cadrage complet en `ROADMAP.md` §8.4.
+///
+/// **Pourquoi cette règle ne rejoue pas le défaut d'`isAuthorLanguageFile`.**
+/// Ce défaut-là (B4-T4 puis C2-T4) préservait un fichier *que la version neuve
+/// livrait aussi*, et figeait ainsi l'anglais de l'auteur à chaque mise à jour.
+/// Ici l'asymétrie l'interdit par construction : **si le fichier est dans
+/// l'archive neuve, il n'est jamais préservé**. C'est la justification de la
+/// règle, plus solide qu'un comptage d'échantillons.
+///
+/// **Ce qu'elle ne sait pas faire** : distinguer une donnée d'utilisateur d'un
+/// fichier que l'auteur a retiré entre deux versions. Aucune règle de nom, de
+/// dossier ou d'extension ne le peut — c'est prouvé sur le parc :
+/// `FarmTypeManager/data/` contient `default.json` (livré par le mod) **à côté**
+/// de `essai_448486987_SaveData.save` (écrit en jouant). Seule l'archive les
+/// sépare. Le risque résiduel est donc *borné*, pas supprimé : un tel fichier
+/// survit à la mise à jour, et le bilan d'installation le dit.
+enum PreservedModData {
+
+    /// Les chemins relatifs du mod installé que l'archive neuve ne livre pas.
+    ///
+    /// - Parameters:
+    ///   - installed: chemins relatifs au dossier du mod installé.
+    ///   - shippedByArchive: chemins relatifs à la racine du mod **dans
+    ///     l'archive neuve déjà extraite**.
+    ///   - alreadyHandled: ce que `snapshotUserConfigs` gouverne déjà (la liste
+    ///     blanche des 18 noms, **avant** son filtre `isAuthorLanguageFile`).
+    ///     Ces chemins sortent d'ici quoi qu'il arrive : leur sort est décidé
+    ///     là-bas, y compris l'exclusion délibérée d'`i18n/en.json`. Les
+    ///     reprendre ici la contredirait en silence.
+    ///
+    /// L'ordre d'entrée est conservé — le bilan lit cette liste telle quelle.
+    static func extraPaths(installed: [String],
+                           shippedByArchive: [String],
+                           alreadyHandled: [String]) -> [String] {
+        let shipped = Set(shippedByArchive.map(normalized))
+        let handled = Set(alreadyHandled.map(normalized))
+        var seen = Set<String>()
+        return installed.filter { path in
+            let key = normalized(path)
+            guard !key.isEmpty, !shipped.contains(key), !handled.contains(key) else { return false }
+            // Les résidus du système ne sont pas des données : les recopier
+            // ferait revivre un `.DS_Store` que l'utilisateur vient d'effacer.
+            //
+            // ⚠️ Le test se fait sur le chemin **d'origine**, pas sur `key` :
+            // `OSJunk` compare des noms exacts (`.DS_Store`, `__MACOSX`), et
+            // les chercher dans la forme minuscule ne trouvait que le préfixe
+            // `._`. Le premier jet le faisait — trois résidus sur quatre
+            // passaient, et seul un test les a montrés.
+            let components = path.replacingOccurrences(of: "\\", with: "/").split(separator: "/")
+            guard !components.contains(where: { OSJunk.isJunk(String($0)) }) else { return false }
+            return seen.insert(key).inserted
+        }
+    }
+
+    /// Forme de comparaison d'un chemin relatif.
+    ///
+    /// Minuscules **à dessein** : le système de fichiers de macOS est
+    /// insensible à la casse par défaut, donc `Assets/Foo.png` dans l'archive
+    /// et `assets/foo.png` sur le disque sont **le même fichier**. Les tenir
+    /// pour distincts préserverait un fichier que la copie neuve va écraser de
+    /// toute façon — et l'archive gagnerait quand même, en laissant croire au
+    /// bilan qu'on a sauvé quelque chose.
+    private static func normalized(_ path: String) -> String {
+        path.replacingOccurrences(of: "\\", with: "/")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
+    }
+
+    /// Les chemins relatifs de tous les fichiers ordinaires sous `root`.
+    ///
+    /// ⚠️ **`.skipsHiddenFiles` est volontairement absent.** Un mod écrit
+    /// parfois ses données dans un dossier caché, et surtout : le dossier d'un
+    /// mod en pause porte lui-même un point. Le tri des résidus système se fait
+    /// dans `extraPaths`, par nom, pas par « caché ».
+    ///
+    /// Le chemin est résolu des deux côtés avant le découpage — sur macOS
+    /// `/var/folders` est un lien vers `/private/var/folders`, et l'énumérateur
+    /// rend des URL **résolues** même si la racine ne l'était pas (piège maison,
+    /// `CLAUDE.md` §Système de fichiers).
+    static func relativeFiles(under root: URL, using fm: FileManager) -> [String] {
+        let base = root.resolvingSymlinksInPath().standardizedFileURL.path
+        guard let walker = fm.enumerator(at: root.resolvingSymlinksInPath(),
+                                         includingPropertiesForKeys: [.isRegularFileKey],
+                                         options: []) else { return [] }
+        var out: [String] = []
+        for case let url as URL in walker {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
+            else { continue }
+            let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+            // Bornage strict : `hasPrefix` nu confondrait « Mod » et « ModX »
+            // (même garde que `ModConfigFiles.preservableFiles`).
+            if path == base { continue }
+            guard path.hasPrefix(base + "/") else { continue }
+            out.append(String(path.dropFirst(base.count + 1)))
+        }
+        return out
+    }
+}

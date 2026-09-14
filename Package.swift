@@ -146,6 +146,7 @@ let package = Package(
                 "Models/ManifestVersionReader.swift",
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
+                "Models/PreservedModData.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",
@@ -261,6 +262,11 @@ let package = Package(
                 "Models/DisabledModsMigration.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "PreservedModDataTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/PreservedModDataTests"
         ),
         .testTarget(
             name: "LocalizationStoreTests",
