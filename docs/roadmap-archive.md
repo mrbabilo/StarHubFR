@@ -171,21 +171,38 @@ toujours pas lire ces pages — mais pour la bonne raison.
 17 fichiers de langue) ; `snapshotUserConfigs` ne préserve qu'eux, et la mise à
 jour écrase tout le reste.
 
-| Mesure sur le parc (1 112 dossiers à manifeste) | Valeur |
-| --- | ---: |
-| Fichiers écrits **après** l'installation (mtime > manifeste + 1 h) | 4 077 |
-| Déjà préservés (`config.json` 538, `fr.json` 348…) ou étrangers (`__folder_managed_by_vortex` 495) | 1 525 |
-| **Net — détruits par une mise à jour** | **2 552, sur 256 mods** |
+🔴 **Table invalidée le 2026-09-14 — ne pas citer** (démenti plus bas, et §8.4 de
+la ROADMAP). Conservée telle quelle pour mémoire du piège de mesure :
 
-Les plus nombreux sont des `<sauvegarde>_SaveData.save` (46 + 41 + 39 + 37 + 30 +
-29 + 25 + 25 + 24 + 23…) : des données **par partie**. Puis `companion.json` (67),
-`companion.png` (44), et les configs horodatées d'`AccordSettings`.
+| ~~Mesure sur le parc (1 112 dossiers à manifeste)~~ | ~~Valeur~~ |
+| --- | ---: |
+| ~~Fichiers écrits **après** l'installation (mtime > manifeste + 1 h)~~ | ~~4 077~~ |
+| ~~Déjà préservés (`config.json` 538, `fr.json` 348…) ou étrangers (`__folder_managed_by_vortex` 495)~~ | ~~1 525~~ |
+| ~~**Net — détruits par une mise à jour**~~ | ~~**2 552, sur 256 mods**~~ |
+
+Le classement des noms qui en sortait (`<sauvegarde>_SaveData.save`,
+`companion.json` 67, `companion.png` 44, les configs horodatées d'`AccordSettings`)
+désigne de vrais fichiers écrits par les mods — c'est le **total** qui était faux,
+pas l'existence du problème.
 
 ⚠️ **Une mesure naïve donnait 275 « mods à données »** en comptant tout `data/*.json` :
 faux — les `Mail.json`, `Dialogue.json`, `Objects.json` des Content Packs sont
-**livrés**, pas écrits. C'est le critère de mtime relative au manifeste qui sépare
-les deux, et c'est la troisième fois que le parc se laisse mal mesurer de cette
-façon.
+**livrés**, pas écrits.
+
+🔴 **Et le correctif d'alors — la mtime relative au manifeste — est faux aussi
+(constaté le 2026-09-14, cadrage §8.4 de la ROADMAP).** Un zip restitue les dates
+de travail de l'auteur : `.[CP] DSHi Food Retexture` porte un manifeste du
+2025-06-15 et des assets étalés du 2025-01 au 2025-10, tous livrés. Les trois
+premiers « détruits » du classement sont `content.json` (111), `assets/` (1 159)
+et `Portraits/` (96) — du contenu livré. **Les chiffres 4 077 et 2 552 / 256 mods
+ci-dessus ne valent rien** ; ils sont conservés pour mémoire du piège, pas comme
+mesure. Quatrième instance du même travers.
+
+✅ **Ce qui tient à la place** : un fichier dont le nom porte l'identifiant d'une
+**sauvegarde réelle** n'a pu être écrit que sur cette machine, par le mod —
+**100 fichiers sur 52 mods**, tous de la progression de jeu (`FarmTypeManager`,
+40 packs `[FTM] *`, `BetterCrafting/savedata/seenrecipes/`,
+`AnimalHusbandryMod/data/farmers/`). C'est un **plancher** certain, pas un total.
 
 ## 3 quinquies. Le design de l'éditeur de config de MCM — audit, 2026-09-14
 

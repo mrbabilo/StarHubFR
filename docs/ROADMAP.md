@@ -788,13 +788,25 @@ backup se retrouve en moins de dix secondes.
       `ModConfigFiles.preservable` est une **liste blanche de noms de fichiers** :
       `config.json` et les 17 fichiers de langue. `snapshotUserConfigs` ne préserve
       qu'eux. **Tout le reste est écrasé** par la copie neuve.
-      **Mesuré sur le parc** : 4 077 fichiers ont été écrits **après** l'installation de
-      leur mod (mtime postérieure à celle de son `manifest.json`). En retirant ceux que
-      l'on préserve déjà et les marqueurs de Vortex qui ne nous appartiennent pas, il
-      reste **2 552 fichiers, sur 256 mods**, qu'une mise à jour détruit. Les plus
-      nombreux sont des **`<sauvegarde>_SaveData.save`** — des données **par partie**,
-      écrites par le mod dans son propre dossier : les perdre, c'est perdre la
-      progression liée à ce mod pour cette sauvegarde. Viennent ensuite
+      ✅ **Le filet existe, et il est entier** : avant l'effacement,
+      `ModInstallBackupManager.createBackup(for:gameDir:reason: .beforeUpdate)` copie
+      le **dossier complet** (`copyItem`, `:235`), et doit réussir sous peine
+      d'abandon de l'installation. Rétention : tout ≤ 30 jours, puis une par mois.
+      Le défaut n'est donc **pas** une destruction — c'est que ces fichiers ne sont
+      **jamais remis** dans le mod mis à jour, et que **rien ne le dit** : le joueur
+      retrouve un mod amnésique et devrait deviner d'aller fouiller une sauvegarde.
+      **Mesuré sur le parc** : **100 fichiers, sur 52 mods**, portent dans leur nom
+      l'identifiant d'une **sauvegarde réelle** — ils n'ont donc pu être écrits que
+      sur cette machine, par le mod. Ce sont des `<sauvegarde>_SaveData.save` et
+      apparentés (`FarmTypeManager` et ses 40 packs `[FTM] *`,
+      `BetterCrafting/savedata/seenrecipes/`, `AnimalHusbandryMod/data/farmers/`) :
+      de la **progression par partie**. Les perdre, c'est perdre le jeu lié à ce mod
+      pour cette sauvegarde. C'est un **plancher** — il ne voit pas ce qui ne se nomme
+      pas d'après une partie.
+      ⚠️ **Une version antérieure de cet item annonçait « 2 552 fichiers sur 256
+      mods »** : ce chiffre venait d'un critère de mtime relative au manifeste, et il
+      est **faux** — un zip restitue les dates de travail de l'auteur. Détail du
+      démenti en **§8.4**. Viennent ensuite
       `companion.json` (67) et `companion.png` (44), et le cas fondateur
       `data/mod_history.json` — que MCM écrit **toujours** en 2.1.2 (vérifié dans l'IL :
       `ModDateTracker.HistoryFilePath`), et qui porte la date d'installation de chaque
@@ -811,7 +823,12 @@ backup se retrouve en moins de dix secondes.
       est par construction une donnée locale ; et `content.json` (111 occurrences) est
       le contre-exemple utile, puisqu'il est livré **et** modifiable.
       ⚠️ Et quoi qu'il arrive, **le dire** : un fichier écarté de la préservation doit
-      apparaître au bilan d'installation, jamais disparaître en silence. · **M**
+      apparaître au bilan d'installation, jamais disparaître en silence.
+      📐 **Cadrage écrit le 2026-09-14 : §8.4** — la règle proposée (*absent de
+      l'archive neuve ⇒ donnée locale*), pourquoi elle ne rejoue pas le défaut
+      d'`isAuthorLanguageFile`, le point dur prouvé (`FarmTypeManager/data/` mêle
+      `default.json` livré et `*_SaveData.save` écrits) et trois options chiffrées.
+      **En attente d'arbitrage.** · **M**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 
@@ -2753,6 +2770,104 @@ implémentation lit à l'exécution, et échoue proprement si le dossier est
 absent.
 
 ---
+
+
+### 8.4 Cadrage A1-T7 — que préserver d'un mod qu'on met à jour ? *(instruit le 2026-09-14)*
+
+> ⏳ **Présenté, en attente d'arbitrage.** Aucun code écrit.
+
+#### Ce que la mise à jour fait aujourd'hui, exactement
+
+`ModZipInstaller` (≈`:1257`) prend un instantané par `snapshotUserConfigs`, puis
+`removeItemGrantingWriteAccess` **efface le dossier entier**, pose la copie neuve,
+et `restoreUserConfigs` remet l'instantané. L'instantané est la liste blanche
+`ModConfigFiles.preservable` — **18 noms**. Tout le reste disparaît.
+
+✅ **Correction du 2026-09-14 — le filet existe.** Une première lecture de ce
+cadrage annonçait qu'aucune sauvegarde ne rattrapait la perte : **c'était faux**,
+et l'erreur venait de confondre deux magasins. Le `:1226` appelle
+**`ModInstallBackupManager`**, pas `ModConfigBackupManager` : il fait un
+`copyItem` du **dossier entier** (`ModInstallBackupManager.swift:235`), et son
+commentaire est explicite — « The backup MUST succeed before the original is ever
+touched ». Seul `.modNotFound` est toléré (le dossier avait déjà disparu : rien à
+sauver). Rétention : **toutes** les sauvegardes ≤ 30 jours, puis la plus récente
+par mois civil.
+
+**Le défaut réel, donc** : les données ne sont pas détruites, elles ne sont
+**jamais remises** dans le mod mis à jour — et **rien ne le signale**. Le joueur
+relance une partie avec un mod amnésique, sans qu'aucun écran ne lui dise que ses
+fichiers dorment dans une sauvegarde d'installation. C'est une perte *silencieuse*
+et *réversible à la main*, pas une perte définitive.
+
+#### ⚠️ Correction : le chiffre de 2 552 est faux
+
+Le §3 quater de l'archive annonce « 2 552 fichiers sur 256 mods » détruits, comptés
+par « mtime postérieure à celle du `manifest.json` ». **Le critère ne tient pas.**
+Vérifié sur `.[CP] DSHi Food Retexture` : son manifeste date du 2025-06-15 et ses
+assets s'étalent du 2025-01 au 2025-10 — ce sont les **dates de travail de
+l'auteur**, empaquetées telles quelles par le zip. Les trois premiers « détruits »
+du classement sont `content.json` (111) et les dossiers `assets/` (1 159) et
+`Portraits/` (96) : du contenu **livré**. C'est la quatrième fois que le parc se
+laisse mal mesurer par un critère de surface.
+
+**Vérité terrain, elle solide** : un fichier dont le **nom porte l'identifiant
+d'une sauvegarde réelle** (`Zofia_443716371`, `TestOK_444827372`…) n'a pu être
+écrit que sur cette machine, par le mod. Il y en a **100, sur 52 mods** —
+`FarmTypeManager`, les 40 packs `[FTM] *`, `BetterCrafting/savedata/seenrecipes/`,
+`AnimalHusbandryMod/data/farmers/`, `.DeluxeGrabberFix/configs/`. C'est un
+**plancher** (il rate `mod_history.json`, `companion.json`, tout ce qui ne se nomme
+pas d'après une partie), mais chacun est certain, et chacun est de la progression
+de jeu.
+
+#### La règle proposée : *absent de l'archive neuve ⇒ donnée locale*
+
+À l'instant du `snapshotUserConfigs`, l'installateur tient `sourcePath` — l'archive
+neuve déjà extraite. Comparer les deux arbres est gratuit.
+
+**Pourquoi cette règle ne rejoue pas le défaut d'`isAuthorLanguageFile`** : ce
+défaut-là préservait un fichier **que la version neuve livrait aussi**, et figeait
+donc l'anglais de l'auteur. Ici l'asymétrie l'interdit par construction — si le
+fichier est dans l'archive neuve, il n'est jamais préservé. C'est la justification
+de la règle, plus solide qu'un comptage.
+
+**Ce qu'elle ne sait pas faire** : distinguer une donnée d'utilisateur d'un asset
+que l'auteur a retiré en v2. Six paires réelles installé↔archive (GMCM, MCM,
+Profiler, Radiance, SLO, UltraSmooth) n'ont montré **aucun** retrait d'auteur — mais
+ces six mods n'écrivent que `config.json` et `i18n/fr.json`, donc l'échantillon ne
+teste pas le cas intéressant. Le risque n'est pas mesuré, il est **borné** :
+
+⚠️ **Le dossier `data/` est le point dur, et il est prouvé.** `FarmTypeManager/data/`
+contient `default.json` (livré) **à côté** de `essai_448486987_SaveData.save` et
+`test_443014860.json` (écrits). Aucune règle de nom, d'extension ou de dossier ne
+les sépare — seule l'archive le fait.
+
+#### Le garde-fou, qui est aussi l'exigence de l'item : **le dire**
+
+Un fichier préservé à tort et **visible** se rattrape ; une suppression silencieuse
+est précisément ce qu'A1-T7 reproche. Le canal existe déjà :
+`InstalledModPath.keyDelta` remonte au ViewModel (`:6681`) puis à
+`InstallReportSummary` (`Models/InstallReport.swift`, Core). Un compte
+« N fichiers conservés » y roule sur les mêmes rails, sans nouvelle plomberie.
+Et la restauration écrit dans **notre copie fraîche**, pas dans un dossier de mod
+à 0555 : `restoreUserConfigs` n'a pas besoin d'ouvrir les droits (il fonctionne
+déjà ainsi pour `config.json`).
+
+#### Les trois options
+
+| | Ce qu'on fait | Coût | Ce qu'on gagne / risque |
+| --- | --- | ---: | --- |
+| **A — la règle complète** | préserver tout fichier absent de l'archive neuve, et l'annoncer au bilan | **M** | Les 100 fichiers certains survivent, et tout ce que le plancher ne voit pas. Risque : un asset retiré par l'auteur survit — visible au bilan, donc rattrapable |
+| **B — élargir la liste blanche** | ajouter `*_SaveData.save`, `mod_history.json`, `companion.*`… | S | Couvre le cas mesuré, **rien d'autre** ; c'est la liste blanche qui a déjà échoué, allongée d'un cran. Chaque nouveau mod écrivant ses données repart à zéro |
+| **C — sauvegarder avant, tout le dossier** | ~~copier le dossier entier avant l'écrasement~~ | — | ✅ **Déjà livré** : `ModInstallBackupManager` le fait, en bloquant l'installation s'il échoue. Rien à construire |
+
+**Arbitrage de l'auteur (2026-09-14) : A et C.** C se trouve **déjà en place** — la
+vérification ci-dessus l'établit, donc seul **A** reste à écrire. B est écarté :
+c'est le mécanisme en cause qu'on prolongerait.
+
+**Ce que A doit faire, et que C ne fait pas** : C garde les octets hors de portée
+du joueur ; A les remet là où le mod les cherche, et l'annonce. Les deux sont
+complémentaires, et C étant acquis, une erreur de A reste réversible — ce qui
+autorise A à préserver large plutôt que juste.
 
 ## 9. Suivi
 
