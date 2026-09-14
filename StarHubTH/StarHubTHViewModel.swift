@@ -9140,7 +9140,9 @@ final class StarHubTHViewModel {
     /// mod portant une pastille pouvait manquer à l'onglet censé les réunir.
     /// Mesuré avant de les réunir : sur les versions installées du parc,
     /// cela n'ajoute qu'une erreur et cinq avertissements.
-    func hasIssues(_ mod: ModItem) -> Bool { anomaly(for: mod) != nil }
+    func hasIssues(_ mod: ModItem) -> Bool {
+        anomaly(for: mod) != nil || nexusPageState(for: mod) != nil
+    }
 
     func matchesSearch(_ mod: ModItem, filters: ModListFilters) -> Bool {
         ModListScoping.matchesSearch(mod, filters: filters)

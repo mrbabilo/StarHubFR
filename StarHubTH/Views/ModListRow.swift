@@ -102,6 +102,7 @@ struct ModListRow: View {
     /// dans un popover qui les montre en entier.
     @State private var showingNote = false
     @State private var showingAnomaly = false
+    @State private var showingNexusPage = false
     /// Le mod dont l'activation attend une confirmation : smapi.io le signale
     /// cassé. Voir `CompatibilityWarning`.
     @State private var pendingActivation: ModItem?
@@ -234,7 +235,6 @@ struct ModListRow: View {
                 weightSlot(size)
                 languagesLabel(langs)
                 frenchSlot(langs: langs)
-                nexusPageSlot
                 anomalySlot
                 noteSlot
                 profileConfigSlot
@@ -269,16 +269,19 @@ struct ModListRow: View {
         .frame(width: Self.attributeSlot, alignment: .leading)
     }
 
-    /// L'état de la page Nexus (A2-T6) : un badge muet porté par sa seule
-    /// infobulle — le détail se lit sur la fiche, que le bandeau y attend.
-    @ViewBuilder
-    private var nexusPageSlot: some View {
-        Group {
-            if let page = vm.nexusPageState(for: mod) {
-                NexusPageBadge(state: page.state, L: localization.L)
-            }
+    /// Le texte du popover d'état de page : le composant porteur d'abord
+    /// quand le badge d'un pack vient d'un de ses enfants, puis la phrase
+    /// d'état.
+    private var nexusPagePopoverText: String {
+        guard let page = vm.nexusPageState(for: mod) else { return "" }
+        var lines: [String] = []
+        if mod.isGroup, page.component.uniqueId != mod.uniqueId {
+            lines.append(String(format: localization.L(L10n.Mods.compatInPack),
+                                page.component.name))
         }
-        .frame(width: Self.attributeSlot, alignment: .leading)
+        lines.append(localization.L(page.state == .removed
+            ? L10n.Mods.nexusPageRemovedHint : L10n.Mods.nexusPageUnavailableHint))
+        return lines.joined(separator: "\n")
     }
 
     /// La note du mod, même traitement — et le clic la donne en entier : une
@@ -510,6 +513,26 @@ struct ModListRow: View {
             // Info
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
+                    // L'état de la page Nexus ouvre la rangée du nom (A2-T6,
+                    // au choix de l'auteur) : en tête, son abscisse reste
+                    // stable d'une ligne à l'autre — la leçon du déplacement
+                    // de l'anomalie vers la bande de métadonnées, appliquée
+                    // au seul badge qui a vocation à alerter avant la fiche.
+                    if let page = vm.nexusPageState(for: mod) {
+                        Button { showingNexusPage = true } label: {
+                            NexusPageBadge(state: page.state, L: localization.L)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .pointingHandCursor()
+                        .popover(isPresented: $showingNexusPage, arrowEdge: .bottom) {
+                            attributePopover(
+                                title: localization.L(page.state == .removed
+                                    ? L10n.Mods.nexusPageRemoved : L10n.Mods.nexusPageUnavailable),
+                                systemImage: page.state == .removed
+                                    ? "xmark.circle.fill" : "eye.slash.fill",
+                                text: nexusPagePopoverText)
+                        }
+                    }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)

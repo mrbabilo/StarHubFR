@@ -65,10 +65,20 @@ struct ModCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 thumbnail
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                    Text(title)
-                        .font(AppDesign.Font.body(.semibold))
-                        .lineLimit(2, reservesSpace: true)
-                        .multilineTextAlignment(.leading)
+                    // L'état de la page Nexus (A2-T6) ouvre la rangée du
+                    // titre, au choix de l'auteur — même position que dans la
+                    // liste. Pas de clic ici : la carte entière est déjà un
+                    // bouton, l'infobulle porte le texte et la fiche le
+                    // bandeau.
+                    HStack(alignment: .top, spacing: 6) {
+                        if let pageState {
+                            NexusPageBadge(state: pageState, L: L)
+                        }
+                        Text(title)
+                            .font(AppDesign.Font.body(.semibold))
+                            .lineLimit(2, reservesSpace: true)
+                            .multilineTextAlignment(.leading)
+                    }
                     Text(subtitle)
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
@@ -158,9 +168,6 @@ struct ModCard: View {
             }
             if let neutralBadge {
                 NeutralBadge(label: neutralBadge)
-            }
-            if let pageState {
-                NexusPageBadge(state: pageState, L: L)
             }
             ForEach(attributes) { attribute in
                 Image(systemName: attribute.systemImage)
