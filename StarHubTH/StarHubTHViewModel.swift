@@ -426,7 +426,10 @@ final class StarHubTHViewModel {
     /// manifeste — et n'a jamais convergé vers le compte de la liste (écart
     /// signalé le 2026-09-10). `phase` fait suivre la barre à `launchProgress`
     /// plutôt qu'au ratio, qui serait immobile à 1.
-    private func publishLaunchPhase(_ stepKey: String, progress: Double,
+    /// `nonisolated` (P5, tranche d'isolation) : le corps dispatche déjà vers
+    /// le main, comme `log`. La déclaration s'aligne sur l'usage — ces
+    /// publications viennent toutes du fil de scan.
+    nonisolated private func publishLaunchPhase(_ stepKey: String, progress: Double,
                                     entries: (done: Int, total: Int),
                                     modsFound: Int) {
         DispatchQueue.main.async { [weak self] in
@@ -447,7 +450,7 @@ final class StarHubTHViewModel {
     /// rapporte son avancée plutôt que de laisser la barre immobile jusqu'à sa
     /// fin. Délègue à `publishLaunchPhase` — donc aucun saut de file
     /// supplémentaire.
-    private func publishLaunchPhaseProgress(_ stepKey: String, fraction: Double,
+    nonisolated private func publishLaunchPhaseProgress(_ stepKey: String, fraction: Double,
                                             from: Double, to: Double,
                                             entries: (done: Int, total: Int),
                                             modsFound: Int) {
@@ -3248,15 +3251,25 @@ final class StarHubTHViewModel {
         logStore.append(entry)
     }
 
-    func log(_ message: String, level: LogLevel = .info) {
+    /// `nonisolated` (P5, tranche d'isolation) : ce corps **était déjà écrit
+    /// pour le hors-main** — la branche `Thread.isMainThread` le dit depuis
+    /// toujours. C'est l'étiquette `@MainActor`, héritée de l'isolation de la
+    /// classe entière en L2, qui mentait : les cinq appelants du chemin de
+    /// scan journalisent depuis une file de fond. La rendre `nonisolated`
+    /// aligne la déclaration sur ce que la fonction fait, et permet aux
+    /// méthodes de fond de rester `nonisolated` à leur tour.
+    nonisolated func log(_ message: String, level: LogLevel = .info) {
         let timestamp = Self.logTimeFormatter.string(from: Date())
         let entry = LogEntry(timestamp: timestamp, message: message, level: level, source: .app)
 
         if Thread.isMainThread {
-            appendLogEntry(entry)
+            // Sur le main sans en avoir la preuve statique : l'affirmer borne
+            // l'exception à cette ligne, et garde l'écriture **synchrone** —
+            // l'ordre du journal est ce que l'utilisateur lit.
+            MainActor.assumeIsolated { appendLogEntry(entry) }
         } else {
             DispatchQueue.main.async {
-                self.appendLogEntry(entry)
+                MainActor.assumeIsolated { self.appendLogEntry(entry) }
             }
         }
     }
