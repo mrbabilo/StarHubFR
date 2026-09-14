@@ -105,7 +105,7 @@ final class SmapiInstaller: ObservableObject {
     // `runOfficialInstaller`, `resolveLatestSmapiInstallerURL`).
     func install(gameDir: String, completion: @escaping @Sendable (Bool, String, String?) -> Void) {
         self.isInstalling = true
-        self.statusMessage = L10n.Smapi.downloading
+        self.statusMessage = SmapiInstallerAction.install.downloadingMessageKey
         self.progress = 0.1
 
         // smapi.io used to serve a `/get/latest` redirect to the current
@@ -152,7 +152,7 @@ final class SmapiInstaller: ObservableObject {
         }
 
         self.isInstalling = true
-        self.statusMessage = L10n.Smapi.downloading
+        self.statusMessage = SmapiInstallerAction.uninstall.downloadingMessageKey
         self.progress = 0.1
 
         Self.resolveLatestSmapiInstallerURL { result in
@@ -365,7 +365,7 @@ final class SmapiInstaller: ObservableObject {
                 }
 
                 Task { @MainActor in
-                    self.statusMessage = L10n.Smapi.preparing
+                    self.statusMessage = action.preparingMessageKey
                     self.progress = 0.6
                 }
 
@@ -413,7 +413,7 @@ final class SmapiInstaller: ObservableObject {
                 try fm.setAttributes(attributes, ofItemAtPath: smapiInstallerBin)
 
                 Task { @MainActor in
-                    self.statusMessage = L10n.Smapi.preparing
+                    self.statusMessage = action.preparingMessageKey
                     self.progress = 0.8
                 }
 
@@ -439,7 +439,7 @@ final class SmapiInstaller: ObservableObject {
             } catch {
                 Task { @MainActor in
                     self.isInstalling = false
-                    completion(false, L10n.Smapi.installError, error.localizedDescription)
+                    completion(false, action.genericFailureMessageKey, error.localizedDescription)
                 }
             }
         }
@@ -512,7 +512,7 @@ final class SmapiInstaller: ObservableObject {
         do {
             try process.run()
         } catch {
-            completion(false, L10n.Smapi.installError, error.localizedDescription)
+            completion(false, action.genericFailureMessageKey, error.localizedDescription)
             return
         }
 

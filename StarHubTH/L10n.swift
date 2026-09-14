@@ -1003,12 +1003,14 @@ enum L10n {
     // MARK: - Smapi
     enum Smapi {
         static let downloading          = "smapi_downloading"
+        static let downloadingUninstall = "smapi_downloading_uninstall"
         static let downloadFailed       = "smapi_download_failed"
         static let downloadHttpError    = "smapi_download_http_error"
         static let downloadedFileNotFound = "smapi_downloaded_file_not_found"
         static let extractFailed        = "smapi_extract_failed"
         static let extracting           = "smapi_extracting"
         static let preparing            = "smapi_preparing"
+        static let preparingUninstall   = "smapi_preparing_uninstall"
         static let payloadNotFound      = "smapi_payload_not_found"
         static let installSuccess       = "smapi_install_success"
         static let installError         = "smapi_install_error"

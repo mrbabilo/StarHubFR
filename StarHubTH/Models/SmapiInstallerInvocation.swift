@@ -40,6 +40,48 @@ public enum SmapiInstallerAction: String, Sendable {
 /// réordonnée ou retirée par une future version décalait toute la file — le
 /// chemin devenait la réponse à une autre question. Les drapeaux verrouillent
 /// le contrat ; la seule entrée restante est le jeu de couleurs.
+public extension SmapiInstallerAction {
+
+    /// Les libellés du chemin **partagé** entre installation et
+    /// désinstallation — téléchargement, préparation, échec générique.
+    ///
+    /// Les deux actions passent par le même code : on télécharge la dernière
+    /// archive de l'installateur, on l'extrait, on la rend exécutable, puis on
+    /// la lance avec son drapeau. Le code étant partagé, les messages l'étaient
+    /// aussi — et une désinstallation annonçait « Téléchargement de SMAPI… »,
+    /// « Préparation de l'installation de SMAPI… », puis « Erreur
+    /// d'installation » quand elle échouait. Trois mensonges dans le seul
+    /// écran que l'utilisateur regarde pendant l'opération (relevé le
+    /// 2026-09-14 après une désinstallation réelle).
+    ///
+    /// Ce qui reste commun est commun **pour de bon** : l'échec de
+    /// téléchargement, l'extraction, la charge utile absente et l'interruption
+    /// de l'installateur nomment ce qui a échoué, pas l'action demandée.
+    var downloadingMessageKey: String {
+        switch self {
+        case .install: L10n.Smapi.downloading
+        case .uninstall: L10n.Smapi.downloadingUninstall
+        }
+    }
+
+    var preparingMessageKey: String {
+        switch self {
+        case .install: L10n.Smapi.preparing
+        case .uninstall: L10n.Smapi.preparingUninstall
+        }
+    }
+
+    /// L'échec qui ne sait rien dire de plus précis — une exception de copie,
+    /// un `Process` qui refuse de démarrer. L'installateur, lui, rend déjà ses
+    /// propres verdicts par action (`installError` / `uninstallFailed`).
+    var genericFailureMessageKey: String {
+        switch self {
+        case .install: L10n.Smapi.installError
+        case .uninstall: L10n.Smapi.uninstallFailed
+        }
+    }
+}
+
 public enum SmapiInstallerInvocation {
 
     /// La seule question que l'installateur pose encore sous drapeaux : le

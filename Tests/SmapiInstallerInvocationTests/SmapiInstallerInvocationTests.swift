@@ -47,3 +47,41 @@ import Testing
         #expect(SmapiInstallerInvocation.stdinAnswers == "1\n")
     }
 }
+
+/// **Les libellés du chemin partagé suivent l'action.**
+///
+/// Relevé le 2026-09-14 sur une désinstallation réelle : l'écran annonçait
+/// « Téléchargement de SMAPI… », puis « Préparation de l'installation de
+/// SMAPI… », et un échec s'y serait dit « Erreur d'installation ». Le code
+/// est partagé entre les deux actions ; les mots ne doivent pas l'être.
+@Suite struct SmapiInstallerActionMessagesTests {
+
+    @Test func installKeepsTheInstallWording() {
+        #expect(SmapiInstallerAction.install.downloadingMessageKey == "smapi_downloading")
+        #expect(SmapiInstallerAction.install.preparingMessageKey == "smapi_preparing")
+        #expect(SmapiInstallerAction.install.genericFailureMessageKey == "smapi_install_error")
+    }
+
+    @Test func uninstallNeverSaysInstall() {
+        #expect(SmapiInstallerAction.uninstall.downloadingMessageKey == "smapi_downloading_uninstall")
+        #expect(SmapiInstallerAction.uninstall.preparingMessageKey == "smapi_preparing_uninstall")
+        #expect(SmapiInstallerAction.uninstall.genericFailureMessageKey == "smapi_uninstall_failed")
+    }
+
+    /// Le vrai invariant, celui qui tient même si les clés sont renommées :
+    /// aucune des trois clés d'une désinstallation ne doit valoir celle de
+    /// l'installation. C'est exactement le défaut d'origine — trois clés
+    /// partagées par les deux actions.
+    @Test func theTwoActionsShareNoSharedPathKey() {
+        for pair in [
+            (SmapiInstallerAction.install.downloadingMessageKey,
+             SmapiInstallerAction.uninstall.downloadingMessageKey),
+            (SmapiInstallerAction.install.preparingMessageKey,
+             SmapiInstallerAction.uninstall.preparingMessageKey),
+            (SmapiInstallerAction.install.genericFailureMessageKey,
+             SmapiInstallerAction.uninstall.genericFailureMessageKey)
+        ] {
+            #expect(pair.0 != pair.1)
+        }
+    }
+}
