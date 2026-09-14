@@ -267,6 +267,36 @@ public enum HealthIssueResolver {
         }
     }
 
+    /// A2-T7 — les mods installés que SMAPI refuse de charger parce qu'ils
+    /// sont malveillants.
+    ///
+    /// Toujours `critical` : aucune autre source de cet écran ne parle de code
+    /// hostile, et la ranger plus bas la ferait passer sous une collision de
+    /// raccourcis. Le `message` de SMAPI est repris **tel quel** — il dit quoi
+    /// faire (supprimer le mod et lancer une analyse antivirus), et le
+    /// reformuler risquerait d'en perdre la consigne.
+    ///
+    /// Deux actions, dans cet ordre : la fiche pour juger, le Finder pour
+    /// agir. **Aucune suppression automatique** — l'`UniqueID` est déclaratif,
+    /// un mod peut usurper celui d'un autre, et effacer sur cette base
+    /// détruirait un mod sain.
+    public static func maliciousModIssues(
+        _ mods: [(uniqueId: String, name: String, folderPath: String, message: String)],
+        title: (_ name: String) -> String,
+        detail: (_ message: String) -> String) -> [HealthIssue] {
+        mods.map { mod in
+            HealthIssue(
+                id: "malicious-\(mod.uniqueId)",
+                severity: .critical,
+                source: .malicious,
+                title: title(mod.name),
+                detail: detail(mod.message),
+                actions: mod.folderPath.isEmpty
+                    ? [.openMod(query: mod.name)]
+                    : [.openMod(query: mod.name), .revealInFinder(paths: [mod.folderPath])])
+        }
+    }
+
     /// Tri **stable** par gravité décroissante : à gravité égale, l'ordre de
     /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`)
     /// est conservé, sinon les lignes sauteraient d'un rafraîchissement à

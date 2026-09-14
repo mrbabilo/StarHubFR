@@ -153,6 +153,14 @@ final class StarHubTHViewModel {
     /// deux mods concernés portent l'un « Broken on Android », l'autre
     /// « use Nexus, ModDrop is NOT updated », tous deux écartés à raison.
     private(set) var modWarnings: [String: [String]] = [:]
+    /// A2-T7 — les mods installés qui figurent sur la **liste noire SMAPI**
+    /// (mods malveillants), par `UniqueID` tel que le manifeste le déclare.
+    ///
+    /// ⚠️ **Rien à voir avec `blacklistedMods`**, qui est la liste des mods que
+    /// l'utilisateur a lui-même marqués « à écarter ». Celle-ci est subie,
+    /// l'autre est choisie — les confondre ferait passer un choix de l'auteur
+    /// pour une alerte de sécurité, ou l'inverse.
+    private(set) var maliciousMods: [String: SmapiBlacklist.Entry] = [:]
 
     /// Les mêmes verdicts réduits à leur statut, **tenus à jour plutôt que
     /// recalculés** : `anomaly(for:)` tourne sur chaque ligne du parc, deux
@@ -514,10 +522,24 @@ final class StarHubTHViewModel {
             title: { name, _ in String(format: self.localization.L(L10n.Health.modWarningTitle), name) },
             detail: { joined in joined + " " + self.localization.L(L10n.Health.modWarningSource) })
 
+        // A2-T7 — les mods malveillants. Le montage vit en Core (F1-T2).
+        let maliciousIssues = HealthIssueResolver.maliciousModIssues(
+            SmapiBlacklist.issueInputs(
+                matches: maliciousMods,
+                nameByUniqueId: nameByUniqueId,
+                physicalFolderByUniqueId: Dictionary(
+                    installedMods.map { ($0.uniqueId, $0.physicalFolderName) },
+                    uniquingKeysWith: { first, _ in first }),
+                modsRoot: (gameDir as NSString).appendingPathComponent("Mods")),
+            title: { String(format: self.localization.L(L10n.Health.maliciousTitle), $0) },
+            detail: { String(format: self.localization.L(L10n.Health.maliciousDetail), $0)
+                      + " " + self.localization.L(L10n.Health.maliciousSource) })
+
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindReport,
                                            conflicts: live,
-                                           folderCollisions: collisionIssues + warningIssues,
+                                           folderCollisions: collisionIssues + warningIssues
+                                               + maliciousIssues,
                                            displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })
@@ -2185,7 +2207,41 @@ final class StarHubTHViewModel {
                     self?.refreshModWarnings()
                 }
             )
+            // A2-T7 — la liste des mods malveillants, dans la même fenêtre de
+            // splash. Séparée du dump Pathoschild : ce sont deux ressources,
+            // deux TTL (1 h ici contre 6 h là), et l'une qui tombe ne doit pas
+            // emporter l'autre.
+            self.refreshMaliciousMods()
         }
+    }
+
+    /// A2-T7 — récupère la liste noire SMAPI et la croise au parc installé.
+    ///
+    /// Un échec **n'efface pas** ce qu'on savait : ne pas avoir pu lire la
+    /// liste n'est pas la preuve qu'un mod en est sorti.
+    func refreshMaliciousMods() {
+        SmapiBlacklist.fetch(
+            onEvent: { [weak self] message in self?.log(message, level: .info) },
+            completion: { [weak self] result in
+                Task { @MainActor in
+                    guard let self, let dump = try? result.get() else { return }
+                    let uniqueIds = SmapiBlacklist.uniqueIds(
+                        ofTopLevel: self.mods.map(\.uniqueId),
+                        children: self.mods.map { ($0.children ?? []).map(\.uniqueId) })
+                    let hits = SmapiBlacklist.matches(uniqueIds: uniqueIds, in: dump)
+                    self.maliciousMods = hits
+                    if hits.isEmpty {
+                        self.log("Liste noire SMAPI : aucun mod malveillant sur "
+                                 + "\(uniqueIds.count) identifiants installés", level: .info)
+                    } else {
+                        // En `error` : c'est la seule chose de ce journal qui
+                        // parle de code hostile.
+                        self.log("Liste noire SMAPI : \(hits.count) mod(s) malveillant(s) "
+                                 + "installé(s) — " + hits.keys.sorted().joined(separator: ", "),
+                                 level: .error)
+                    }
+                }
+            })
     }
     
     /// Façade provisoire (REFACTORING §6, cond. 1) — HomeView et

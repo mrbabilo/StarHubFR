@@ -612,3 +612,64 @@ struct HealthIssueResolverAggregateTests {
     #expect(HealthIssueResolver.modWarningIssues([("a.mod", "A", [])],
                                                  title: { n, _ in n }).isEmpty)
 }
+
+// MARK: - A2-T7, les mods malveillants de la liste noire SMAPI
+
+/// Aucune autre source de cet écran ne parle de code hostile. La ranger plus
+/// bas la ferait passer sous une collision de raccourcis.
+@Test func aMaliciousModIsAlwaysCritical() {
+    let issues = HealthIssueResolver.maliciousModIssues(
+        [("BritishW.ChaosWhispers", "Chaos Whispers", "/Mods/ChaosWhispers",
+          "It downloads malicious code.")],
+        title: { "Mod malveillant : \($0)" },
+        detail: { $0 })
+
+    #expect(issues.count == 1)
+    #expect(issues[0].severity == .critical)
+    #expect(issues[0].source == .malicious)
+}
+
+/// Le message de SMAPI dit quoi faire — supprimer le mod **et** lancer une
+/// analyse antivirus. Le reformuler en perdrait la consigne.
+@Test func aMaliciousModKeepsSmapiOwnMessage() {
+    let message = "It downloads malicious code from a remote server and runs it on your computer."
+    let issues = HealthIssueResolver.maliciousModIssues(
+        [("X.Y", "X", "/Mods/X", message)],
+        title: { $0 }, detail: { $0 })
+
+    #expect(issues[0].detail == message)
+}
+
+/// Deux chemins : la fiche pour juger, le Finder pour agir. Jamais de
+/// suppression automatique — l'UniqueID est déclaratif.
+@Test func aMaliciousModOffersTheFicheThenTheFinder() {
+    let issues = HealthIssueResolver.maliciousModIssues(
+        [("X.Y", "Mon Mod", "/Mods/MonMod", "m")],
+        title: { $0 }, detail: { $0 })
+
+    #expect(issues[0].actions == [.openMod(query: "Mon Mod"),
+                                  .revealInFinder(paths: ["/Mods/MonMod"])])
+}
+
+/// Un mod dont on ne connaît pas le dossier garde au moins sa fiche : mieux
+/// vaut une action que zéro sur une ligne critique.
+@Test func aMaliciousModWithoutAPathStillOffersTheFiche() {
+    let issues = HealthIssueResolver.maliciousModIssues(
+        [("X.Y", "Mon Mod", "", "m")], title: { $0 }, detail: { $0 })
+
+    #expect(issues[0].actions == [.openMod(query: "Mon Mod")])
+}
+
+/// Une ligne critique doit passer devant tout le reste dans l'écran d'alertes.
+@Test func aMaliciousModSortsAboveEverythingElse() {
+    let malicious = HealthIssueResolver.maliciousModIssues(
+        [("X.Y", "Piégé", "/Mods/P", "m")], title: { $0 }, detail: { $0 })
+    let warnings = HealthIssueResolver.modWarningIssues(
+        [("A.B", "Bénin", ["Télémétrie."])], title: { name, _ in name })
+
+    let sorted = HealthIssueResolver.resolve(
+        diagnostics: nil, keybindReport: nil, conflicts: [],
+        folderCollisions: warnings + malicious)
+
+    #expect(sorted.first?.source == .malicious)
+}

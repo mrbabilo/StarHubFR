@@ -37,6 +37,15 @@ public struct HealthIssue: Identifiable, Equatable {
         /// tournent, et smapi.io les déclare `Ok`. Les mettre plus haut
         /// contredirait la source primaire à l'écran.
         case modWarning
+        /// A2-T7 — un mod installé figure sur la **liste noire SMAPI**, celle
+        /// des mods malveillants bloqués par défaut. Toujours en `critical` :
+        /// c'est la seule source qui parle de code hostile, et elle demande un
+        /// geste immédiat.
+        ///
+        /// ⚠️ **À ne pas confondre avec `blacklistedMods` du ViewModel**, qui
+        /// est la liste des mods que l'**utilisateur** a marqués « à écarter ».
+        /// Deux notions, deux mots : celle-ci est subie, l'autre est choisie.
+        case malicious
     }
 
     /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien

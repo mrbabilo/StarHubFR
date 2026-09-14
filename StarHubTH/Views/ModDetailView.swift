@@ -1283,6 +1283,9 @@ struct ModDetailView: View {
             // pas ce que l'auteur en raconte. Les sections déménagent
             // telles quelles — leurs gates et conditions internes suivent.
             VStack(alignment: .leading, spacing: 16) {
+                // A2-T7 — au-dessus de tout : rien d'autre sur cette fiche ne
+                // parle de code hostile.
+                MaliciousModBanner(vm: vm, localization: localization, mod: live)
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
                 // Le hub de traduction — chercher, poser, mettre à jour,

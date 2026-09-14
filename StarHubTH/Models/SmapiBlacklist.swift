@@ -195,4 +195,137 @@ public enum SmapiBlacklist {
         guard let url = cacheURL() else { return nil }
         return try? Data(contentsOf: url)
     }
+
+    /// Ce qu'il faut pour composer une ligne d'alerte, à partir du parc.
+    ///
+    /// Vit ici plutôt que dans le ViewModel (REFACTORING F1-T2) : c'est de la
+    /// logique pure, et la construire à l'écran la rendait invérifiable.
+    ///
+    /// `physicalFolderName` et non `folderName` : un mod en pause vit dans un
+    /// dossier préfixé d'un point, et « Montrer dans le Finder » doit désigner
+    /// le dossier **réel**, pas sa forme logique.
+    public static func issueInputs(
+        matches: [String: Entry],
+        nameByUniqueId: [String: String],
+        physicalFolderByUniqueId: [String: String],
+        modsRoot: String)
+        -> [(uniqueId: String, name: String, folderPath: String, message: String)] {
+        matches.keys.sorted().compactMap { uniqueId in
+            guard let name = nameByUniqueId[uniqueId],
+                  let entry = matches[uniqueId] else { return nil }
+            let physical = physicalFolderByUniqueId[uniqueId] ?? ""
+            let path = physical.isEmpty
+                ? ""
+                : (modsRoot as NSString).appendingPathComponent(physical)
+            return (uniqueId: uniqueId, name: name, folderPath: path, message: entry.message)
+        }
+    }
+
+    /// Tous les identifiants d'un parc, composants de pack compris.
+    ///
+    /// Un pack ne déclare pas d'`UniqueID` : ce sont ses enfants qui en
+    /// portent. Ne regarder que le premier niveau laisserait un mod
+    /// malveillant passer dès qu'il est livré à l'intérieur d'un pack.
+    public static func uniqueIds(ofTopLevel ids: [String],
+                                 children: [[String]]) -> [String] {
+        var out: [String] = []
+        for (index, id) in ids.enumerated() {
+            if !id.isEmpty { out.append(id) }
+            for child in children.indices.contains(index) ? children[index] : []
+            where !child.isEmpty { out.append(child) }
+        }
+        return out
+    }
+
+    // MARK: - Réception
+
+    public enum Failure: Error, Equatable {
+        case http(Int)
+        case transport(String)
+        case decoding(String)
+    }
+
+    /// Ce que devient un corps de réponse HTTP 200.
+    public enum PayloadOutcome: Equatable {
+        /// Lisible : à servir **et** à mettre en cache.
+        case fresh(Dump)
+        /// Illisible, mais le cache se lit : on sert le cache et on **n'écrit
+        /// rien**.
+        case fallback(Dump)
+        /// Ni l'un ni l'autre.
+        case unreadable
+    }
+
+    /// La règle « on n'écrase le cache que par un corps qu'on sait lire ».
+    ///
+    /// **Reprise telle quelle de `PathoschildCompatibilityList.outcome`, et
+    /// pour une raison mesurée là-bas** : le code y écrivait le cache dès le
+    /// 200, avant tout décodage. Une page d'erreur, un portail captif ou un
+    /// transfert tronqué rendent tous un 200 qui ne parse pas — le filet
+    /// annonçait « 0 mod » **et** détruisait son cache.
+    ///
+    /// Ici l'enjeu est pire qu'un verdict manquant : « 0 entrée » sur une
+    /// liste de mods malveillants se lit « votre parc est sain ». Un corps
+    /// illisible ne doit jamais produire cette phrase.
+    static func outcome(forPayload data: Data, cachedPayload: () -> Data?) -> PayloadOutcome {
+        if let dump = decode(data) { return .fresh(dump) }
+        if let cached = cachedPayload(), let dump = decode(cached) { return .fallback(dump) }
+        return .unreadable
+    }
+
+    /// Récupère la liste (réseau, repli cache). `completion` part du fil
+    /// principal ; `onEvent` non — d'où les deux `@Sendable` (P5-L5).
+    public static func fetch(session: URLSession = .shared,
+                             onEvent: (@Sendable (String) -> Void)? = nil,
+                             completion: @escaping @Sendable (Result<Dump, Failure>) -> Void) {
+        var request = URLRequest(url: dumpURL)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(NexusRequestBuilder.userAgent, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 30
+
+        onEvent?("Liste noire SMAPI : récupération en cours…")
+        session.dataTask(with: request) { data, response, error in
+            let result: Result<Dump, Failure>
+            defer { DispatchQueue.main.async { completion(result) } }
+
+            if let error {
+                // Hors ligne : le cache, même périmé, reste vrai.
+                if let cached = cachedAnyAge(), let dump = decode(cached) {
+                    onEvent?("Liste noire SMAPI : réseau indisponible, \(dump.entries.count) "
+                             + "entrée(s) servies depuis le cache")
+                    result = .success(dump)
+                } else {
+                    onEvent?("Liste noire SMAPI : réseau indisponible et aucun cache lisible")
+                    result = .failure(.transport(error.localizedDescription))
+                }
+                return
+            }
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard code == 200, let data else {
+                if let cached = cachedAnyAge(), let dump = decode(cached) {
+                    onEvent?("Liste noire SMAPI : HTTP \(code), \(dump.entries.count) "
+                             + "entrée(s) servies depuis le cache")
+                    result = .success(dump)
+                } else {
+                    onEvent?("Liste noire SMAPI : HTTP \(code), et aucun cache lisible")
+                    result = .failure(.http(code))
+                }
+                return
+            }
+            switch outcome(forPayload: data, cachedPayload: cachedAnyAge) {
+            case .fresh(let dump):
+                writeCache(data)
+                onEvent?("Liste noire SMAPI : \(dump.entries.count) entrée(s) et "
+                         + "\(dump.looseFiles.count) fichier(s) surveillés, cache mis à jour")
+                result = .success(dump)
+            case .fallback(let dump):
+                onEvent?("Liste noire SMAPI : corps illisible — cache conservé, "
+                         + "\(dump.entries.count) entrée(s) servies depuis lui")
+                result = .success(dump)
+            case .unreadable:
+                onEvent?("Liste noire SMAPI : corps illisible, et aucun cache lisible")
+                result = .failure(.decoding("unreadable_payload"))
+            }
+        }.resume()
+    }
 }

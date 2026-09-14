@@ -876,7 +876,7 @@ backup se retrouve en moins de dix secondes.
       motif y est assorti d'une clause de version, et l'apparier sans la lire signalerait
       **14 mods à tort** sur le parc de référence — pour **1 seul** réellement concerné.
       C'est ce rapport, pas la difficulté, qui fixe la priorité. · **S**
-- [ ] **A2-T7** — **Avertir quand un mod installé est sur la liste noire SMAPI.**
+- [x] **A2-T7** — ✅ **Livré le 2026-09-15.** **Avertir quand un mod installé est sur la liste noire SMAPI.**
       *(source relevée le 2026-09-14 : SMAPI a bougé pour la première fois depuis le
       2026-07-01, et les huit commits ne portent ni le format du journal, ni le schéma de
       manifeste, ni l'installateur — ils alimentent `SMAPI.blacklist.json`.)*
@@ -901,7 +901,21 @@ backup se retrouve en moins de dix secondes.
       tête, ou un état propre sur la fiche), et le texte doit dire quoi faire — le message
       de SMAPI demande de supprimer le mod **et** de lancer une analyse antivirus.
       ⚠️ **Ne jamais supprimer d'office** : le verdict vient d'une source externe, et
-      `UniqueID` est déclaratif — un mod peut usurper celui d'un autre. On avertit. · **M**
+      `UniqueID` est déclaratif — un mod peut usurper celui d'un autre. On avertit.
+      ✅ **Ce qui a été fait** : `SmapiBlacklist` (Core) lit le JSONC, croise le parc et
+      monte les lignes ; `HealthIssue.Source.malicious` en `critical` (donc en tête de
+      l'écran d'alertes, prouvé par test contre une ligne `info`) ; deux actions, la
+      fiche puis « Montrer dans le Finder », **aucune suppression** ; bandeau rouge
+      `MaliciousModBanner` au-dessus de tout sur la fiche. Source déclarée
+      (`smapi/blacklist`) et documentée en `SOURCES.md` §2.2 bis.
+      **Trois décisions** qui le séparent de la liste de compatibilité : le croisement
+      **ignore la casse** (SMAPI aussi — sinon un reupload changeant une majuscule
+      passerait pour sain) ; un document illisible rend `nil`, **jamais** une liste
+      vide ; le `LooseFileBlacklist` est traité, le **nom** servant de grille de tri et
+      seule l'**empreinte** condamnant.
+      ⚠️ **Invisible sur un parc sain** — 0 correspondance sur 1 112 manifestes au
+      2026-09-15. Pour le voir agir : renommer l'`UniqueID` d'un mod de test en
+      `BritishW.ChaosWhispers` et relancer l'app. · **livré**
 
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au

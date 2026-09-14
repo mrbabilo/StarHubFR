@@ -369,6 +369,9 @@ enum L10n {
         // MARK: État de la page Nexus (A2-T6)
         static let nexusPageRemoved           = "mods_nexus_page_removed"
         static let nexusPageRemovedHint       = "mods_nexus_page_removed_hint"
+        // A2-T7 — bandeau de la fiche pour un mod de la liste noire SMAPI.
+        static let maliciousTitle             = "mods_malicious_title"
+        static let maliciousAction            = "mods_malicious_action"
         static let nexusPageUnavailable       = "mods_nexus_page_unavailable"
         static let nexusPageUnavailableHint   = "mods_nexus_page_unavailable_hint"
         static let anomalyDuplicateActive   = "mods_anomaly_duplicate_active"
@@ -824,6 +827,11 @@ enum L10n {
         static let folderCollisionDetail = "health_folder_collision_detail"
         static let modWarningTitle       = "health_mod_warning_title"
         static let modWarningSource      = "health_mod_warning_source"
+        // A2-T7 — la liste noire SMAPI (mods malveillants). À ne pas
+        // confondre avec les mods « à écarter » choisis par l'utilisateur.
+        static let maliciousTitle        = "health_malicious_title"
+        static let maliciousDetail       = "health_malicious_detail"
+        static let maliciousSource       = "health_malicious_source"
         /// Titre d'une ligne d'alerte pour une notice bénigne qui ne nomme
         /// aucun mod (H-T6c) : un groupe nominal court. À ne pas confondre
         /// avec les `Logs.healthBenign*`, qui sont les phrases de réassurance

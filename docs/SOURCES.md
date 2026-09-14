@@ -191,6 +191,49 @@ avec le parc réel (1 090 identifiants, 292 connus du dump) :
 Les cinq `unofficialUpdate` du parc sont des correctifs communautaires
 installables (Bus Locations, Informant, SAAT ×2, Mod Update Menu) — voir X56.
 
+### 2.2 bis SMAPI — la liste noire des mods **malveillants**
+
+| | |
+|---|---|
+| **URL** | `https://smapi.io/SMAPI.blacklist.json` |
+| **Rôle** | les mods que SMAPI refuse de charger parce qu'ils sont piégés |
+| **Code** | `StarHubTH/Models/SmapiBlacklist.swift` |
+| **Relevé** | `smapi/blacklist` dans `check_sources.py` |
+
+⚠️ **Ne pas confondre avec `mods.jsonc` (§2.2).** Celui-là porte les
+*incompatibilités* ; celui-ci parle de **code hostile** — ses messages disent
+« downloads malicious code from a remote server and runs it on your computer »,
+et plusieurs entrées sont des **reuploads piégés de mods légitimes**, le cas
+qu'un joueur ne distingue pas à l'œil sur Nexus.
+
+Deux sections, relevées le 2026-09-15 (HTTP 200, 5 029 octets) :
+
+| Section | Clé | Compte | Croisé au parc (1 112 manifestes) |
+|---|---|---:|---|
+| `Blacklist` | `Id` = `UniqueID` du manifeste | 9 | **0 correspondance** |
+| `LooseFileBlacklist` | `Name` + `Hash` (MD5) | 1 | **0** — et aucun `.bat` du tout |
+
+Trois décisions que ce document doit porter, parce qu'elles ne se déduisent pas
+du code :
+
+1. **Le croisement ignore la casse**, à l'inverse de §2.2 où la comparaison
+   stricte a été mesurée sans effet. SMAPI compare les identifiants **sans** la
+   casse : un reupload déclarant `opularenous.portablecommunitycenter` serait
+   refusé par le jeu tout en passant pour sain chez nous. Une liste de sécurité
+   doit être au moins aussi large que celle qu'elle relaie.
+2. **Un document illisible rend `nil`, jamais une liste vide.** « Aucun mod
+   malveillant » et « je n'ai pas su lire » ne sont pas la même chose, et les
+   confondre afficherait un parc sain sur une ignorance. Même règle de cache
+   qu'en §2.2 : on n'écrase le cache que par un corps qu'on sait décoder.
+3. **Le `LooseFileBlacklist` est traité**, ce que sa forme rend abordable : le
+   **nom** sert de grille de tri (un seul surveillé aujourd'hui), et seule
+   l'**empreinte** condamne. Hacher le parc entier serait hors de question ;
+   hacher les fichiers d'un nom donné ne coûte rien. Un fichier innocent qui
+   porte le nom reste innocent.
+
+⚠️ **Jamais de suppression automatique.** L'`UniqueID` est déclaratif — un mod
+peut usurper celui d'un autre. On avertit, l'utilisateur agit.
+
 ### 2.3 Nexus Mods — API v1 (REST)
 
 | | |

@@ -174,6 +174,95 @@ import Testing
             name: "readme.txt", contents: Data(), in: dump) == nil)
     }
 
+    // MARK: - Montage de la ligne d'alerte
+
+    /// Un mod en pause vit dans un dossier préfixé d'un point. « Montrer dans
+    /// le Finder » doit désigner le dossier **réel**, pas sa forme logique —
+    /// sinon le Finder ouvre un chemin qui n'existe pas.
+    @Test("Le chemin d'un mod en pause porte son point")
+    func pausedModPathKeepsTheDot() {
+        let inputs = SmapiBlacklist.issueInputs(
+            matches: ["X.Y": SmapiBlacklist.Entry(id: "X.Y", message: "m")],
+            nameByUniqueId: ["X.Y": "Mon Mod"],
+            physicalFolderByUniqueId: ["X.Y": ".MonMod"],
+            modsRoot: "/jeu/Mods")
+        #expect(inputs.count == 1)
+        #expect(inputs[0].folderPath == "/jeu/Mods/.MonMod")
+    }
+
+    @Test("Un mod dont on ignore le dossier rend un chemin vide, pas une racine")
+    func unknownFolderYieldsEmptyPath() {
+        let inputs = SmapiBlacklist.issueInputs(
+            matches: ["X.Y": SmapiBlacklist.Entry(id: "X.Y", message: "m")],
+            nameByUniqueId: ["X.Y": "Mon Mod"],
+            physicalFolderByUniqueId: [:],
+            modsRoot: "/jeu/Mods")
+        #expect(inputs[0].folderPath == "")
+    }
+
+    @Test("Un mod signalé mais absent du parc ne fabrique pas de ligne")
+    func unknownModProducesNoInput() {
+        #expect(SmapiBlacklist.issueInputs(
+            matches: ["X.Y": SmapiBlacklist.Entry(id: "X.Y", message: "m")],
+            nameByUniqueId: [:], physicalFolderByUniqueId: [:],
+            modsRoot: "/jeu/Mods").isEmpty)
+    }
+
+    /// Un pack ne déclare pas d'UniqueID : ce sont ses enfants. Ne regarder que
+    /// le premier niveau laisserait passer un mod malveillant livré dans un
+    /// pack — le cas des reuploads piégés.
+    @Test("Les composants d'un pack sont examinés aussi")
+    func packChildrenAreScanned() {
+        let ids = SmapiBlacklist.uniqueIds(
+            ofTopLevel: ["", "Solo.Mod"],
+            children: [["Enfant.Un", "Enfant.Deux"], []])
+        #expect(ids == ["Enfant.Un", "Enfant.Deux", "Solo.Mod"])
+    }
+
+    @Test("Un identifiant vide n'entre jamais dans la liste à croiser")
+    func emptyIdsAreDropped() {
+        #expect(SmapiBlacklist.uniqueIds(ofTopLevel: ["", ""], children: [[""], [""]]).isEmpty)
+    }
+
+    // MARK: - La règle du cache
+
+    /// Le défaut mesuré sur la liste de compatibilité : écrire le cache avant
+    /// de savoir décoder. Ici il serait pire — « 0 entrée » sur une liste de
+    /// mods malveillants se lit « votre parc est sain ».
+    @Test("Un corps illisible sert le cache et ne l'écrase pas")
+    func unreadableBodyFallsBackToCache() {
+        let outcome = SmapiBlacklist.outcome(forPayload: Data("<html>502</html>".utf8),
+                                             cachedPayload: { self.realShaped })
+        guard case .fallback(let dump) = outcome else {
+            Issue.record("attendu .fallback, obtenu \(outcome)"); return
+        }
+        #expect(dump.entries.count == 2)
+    }
+
+    @Test("Un corps lisible est servi et mis en cache")
+    func readableBodyIsFresh() {
+        let outcome = SmapiBlacklist.outcome(forPayload: realShaped, cachedPayload: { nil })
+        guard case .fresh(let dump) = outcome else {
+            Issue.record("attendu .fresh, obtenu \(outcome)"); return
+        }
+        #expect(dump.entries.count == 2)
+    }
+
+    /// Ni corps ni cache : il faut le dire, pas rendre une liste vide.
+    @Test("Sans corps ni cache lisibles, l'échec est explicite")
+    func noBodyNoCacheIsUnreadable() {
+        #expect(SmapiBlacklist.outcome(forPayload: Data("nope".utf8),
+                                       cachedPayload: { nil }) == .unreadable)
+    }
+
+    /// Un cache lui-même corrompu ne sauve rien — et ne doit pas faire passer
+    /// un parc pour sain.
+    @Test("Un cache corrompu ne tient pas lieu de filet")
+    func corruptCacheIsNotAFallback() {
+        #expect(SmapiBlacklist.outcome(forPayload: Data("nope".utf8),
+                                       cachedPayload: { Data("aussi nope".utf8) }) == .unreadable)
+    }
+
     private func md5(_ data: Data) -> String {
         // Même calcul que la production, pour que la fixture soit cohérente.
         var out = ""

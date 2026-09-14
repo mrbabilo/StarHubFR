@@ -285,6 +285,26 @@ def probe_pathoschild_fields(spec):
     return {"http": status, "mods": len(mods), "champs": counts}
 
 
+def probe_smapi_blacklist(spec):
+    """La liste des mods **malveillants** bloqués par SMAPI (A2-T7).
+
+    On relève le compte des deux sections et les clés de chaque entrée : une
+    entrée neuve est un mod piégé de plus, et un changement de clés casserait
+    silencieusement le croisement. Distincte de `mods.jsonc`, qui porte les
+    incompatibilités — celle-ci parle de code hostile.
+    """
+    status, body = _get(spec["url"])
+    doc = json.loads(_strip_jsonc(body.decode("utf-8", "replace")))
+    entries = doc.get("Blacklist", [])
+    loose = doc.get("LooseFileBlacklist", [])
+    keys = sorted({k for e in entries for k in e})
+    return {"http": status,
+            "mods_bloques": len(entries),
+            "fichiers_pieges": len(loose),
+            "champs_entree": keys,
+            "noms_surveilles": sorted(e.get("Name", "") for e in loose)}
+
+
 def _strip_jsonc(raw):
     """Retire commentaires et virgules traînantes, **sans toucher aux chaînes**.
 
@@ -370,6 +390,16 @@ SOURCES = [
             "/develop/data/mods.jsonc",
      "role": "filet hors-ligne des verdicts de compatibilité",
      "used_by": "StarHubTH/Models/PathoschildCompatibilityList.swift"},
+
+    {"key": "smapi/blacklist", "kind": "contract", "probe": probe_smapi_blacklist,
+     "url": "https://smapi.io/SMAPI.blacklist.json",
+     "role": "la liste des mods MALVEILLANTS que SMAPI refuse de charger — "
+             "distincte de mods.jsonc (incompatibilités) : ici les messages "
+             "parlent de code hostile, et plusieurs entrées sont des reuploads "
+             "piégés de mods légitimes",
+     "used_by": "StarHubTH/Models/SmapiBlacklist.swift",
+     "note": "un écart ici n'est pas une régression mais une nouvelle menace : "
+             "une entrée de plus veut dire un mod piégé de plus, à croiser au parc"},
 
     {"key": "nexus/api-v1", "kind": "http",
      "url": "https://api.nexusmods.com/v1/games/stardewvalley.json",

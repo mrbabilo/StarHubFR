@@ -52,9 +52,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "61c607c",
-    "last_commit_at": "2026-09-14T21:03:12Z",
-    "pushed_at": "2026-09-14T21:04:15Z",
+    "last_commit": "c8d2395",
+    "last_commit_at": "2026-09-14T22:28:22Z",
+    "pushed_at": "2026-09-14T22:28:35Z",
     "release": "v1.45.0",
     "released_at": "2026-09-14T18:49:55Z"
   },
@@ -181,6 +181,18 @@
     "mods_rendus": 2,
     "platform_macOS_rend": 0,
     "suggestions": 2
+  },
+  "smapi/blacklist": {
+    "champs_entree": [
+      "Id",
+      "Message"
+    ],
+    "fichiers_pieges": 1,
+    "http": 200,
+    "mods_bloques": 9,
+    "noms_surveilles": [
+      "Auto_Alchemistry.bat"
+    ]
   },
   "thai-translations": {
     "archived": false,

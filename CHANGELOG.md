@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Un mod signalé comme malveillant par SMAPI se voit maintenant avant de lancer le jeu.** L'app lit la liste noire officielle, la croise à vos mods, et l'annonce en tête des alertes système avec un bandeau rouge sur la fiche. Elle ne supprime rien : elle dit quoi faire.
+
 ### Fixed
 
 - **Mettre à jour un mod ne lui fait plus perdre ses données de partie.** Seuls `config.json` et les fichiers de langue revenaient ; les `*_SaveData.save` de FarmTypeManager et les autres restaient dans la sauvegarde. Ce que la nouvelle version ne livre pas revient désormais, et le bilan le dit.

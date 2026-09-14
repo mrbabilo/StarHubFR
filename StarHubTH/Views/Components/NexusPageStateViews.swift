@@ -73,3 +73,63 @@ struct NexusPageBanner: View {
         }
     }
 }
+
+/// A2-T7 — le bandeau d'un mod que SMAPI refuse de charger parce qu'il est
+/// **malveillant**.
+///
+/// En rouge et au-dessus du reste : c'est la seule chose de cette fiche qui
+/// parle de code hostile. Le message de SMAPI est repris tel quel — il dit quoi
+/// faire, et le résumer en perdrait la consigne.
+///
+/// ⚠️ **Aucun bouton de suppression.** L'`UniqueID` est déclaratif : un mod peut
+/// usurper celui d'un autre. On avertit, l'utilisateur agit.
+struct MaliciousModBanner: View {
+    var vm: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+    let mod: ModItem
+
+    /// Le composant porteur : sur un pack, c'est l'enfant qui est signalé, pas
+    /// le dossier — même règle que le bandeau de compatibilité.
+    private var hit: (name: String, entry: SmapiBlacklist.Entry)? {
+        if let entry = vm.maliciousMods[mod.uniqueId] { return (mod.name, entry) }
+        for child in mod.children ?? [] {
+            if let entry = vm.maliciousMods[child.uniqueId] { return (child.name, entry) }
+        }
+        return nil
+    }
+
+    var body: some View {
+        if let hit {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.octagon.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.red)
+                    Text(localization.L(L10n.Mods.maliciousTitle))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.red)
+                }
+                if mod.isGroup, hit.name != mod.name {
+                    Text(String(format: localization.L(L10n.Mods.compatInPack), hit.name))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                Text(localization.L(L10n.Mods.maliciousAction))
+                    .font(.system(size: 11, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                // Le message de SMAPI, en anglais dans la source : il est repris
+                // mot pour mot plutôt que traduit approximativement.
+                if !hit.entry.message.isEmpty {
+                    Text(hit.entry.message)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color.red.opacity(0.12)))
+            .padding(.top, 4)
+        }
+    }
+}
