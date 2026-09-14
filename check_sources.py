@@ -40,6 +40,7 @@ panne de réseau ne doit pas se lire comme « SMAPI a sorti une version ».
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -587,6 +588,79 @@ def changelog_reminders(baseline, observed):
     return out
 
 
+def nexus_api_key(use_keychain):
+    """La clé Nexus, et **d'où elle vient** — jamais en silence.
+
+    L'environnement d'abord : `NEXUS_API_KEY` est explicite et ne coûte aucun
+    accès au Trousseau. Le Trousseau ensuite, et **seulement sur `--use-keychain`**
+    : un script de relevé qui ouvre un secret doit le dire sur sa ligne de
+    commande. Le service du fork est essayé avant celui de l'application
+    d'origine, dans l'ordre que `KeychainSecret.read()` applique côté Swift.
+    """
+    # ⚠️ La valeur rendue ne doit **jamais** être affichée, journalisée, ni
+    # écrite dans `.sources-baseline.json` — qui est versionné. Seule son
+    # *origine* (le second membre) est destinée à l'écran.
+    env = os.environ.get("NEXUS_API_KEY", "").strip()
+    if env:
+        return env, "variable d'environnement NEXUS_API_KEY"
+    if not use_keychain:
+        return None, None
+    for service in ("com.mrbabilo.StarHubFR", "com.appleboiy.StarHubTH"):
+        try:
+            out = subprocess.run(
+                ["security", "find-generic-password", "-s", service,
+                 "-a", "nexusApiKey", "-w"],
+                capture_output=True, text=True, timeout=TIMEOUT,
+                stdin=subprocess.DEVNULL)
+        except Exception:
+            continue
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip(), f"Trousseau ({service})"
+    return None, None
+
+
+def fetch_changelog(mod_id, api_key):
+    """Les changelogs d'un mod Nexus, par l'API v1.
+
+    **Pourquoi l'API et pas la page.** La page `?tab=logs` est publique et
+    parfaitement lisible **dans un navigateur** — vérifié le 2026-09-14, 33
+    versions extraites de MCM. Mais aucun client de script ne l'atteint :
+    `urllib` et `curl` prennent un **403**, y compris en HTTP/2 avec la panoplie
+    complète d'en-têtes d'un navigateur (`Sec-Fetch-*`, `Accept-Language`,
+    `Upgrade-Insecure-Requests`) — Cloudflare filtre sur l'empreinte TLS, que des
+    en-têtes ne déguisent pas. Piloter un navigateur sans tête resterait possible
+    (Playwright est installé), mais il ne vit ici que dans un cache `npx`
+    volatil, et il faudrait ~10 s par mod.
+
+    L'API v1 rend le même contenu en JSON, en une requête : `{version: [lignes]}`.
+    """
+    url = (f"https://api.nexusmods.com/v1/games/stardewvalley/mods/"
+           f"{mod_id}/changelogs.json")
+    # La clé voyage dans un **en-tête**, jamais dans l'URL : une URL se retrouve
+    # dans un message d'erreur, un journal de proxy ou un historique de shell.
+    req = urllib.request.Request(url, headers={"apikey": api_key, "User-Agent": UA,
+                                               "Accept": "application/json"})
+
+    def safe(message):
+        """Rien qui sorte d'ici ne peut porter la clé.
+
+        Le raisonnement dit qu'aucun de ces chemins ne la contient — elle n'est
+        ni dans l'URL ni dans le corps. Ce garde existe pour que ce ne soit pas
+        qu'un raisonnement : une bibliothèque qui recopierait ses en-têtes dans
+        un message, un jour, ne ferait pas fuiter le secret.
+        """
+        return str(message).replace(api_key, "«clé masquée»") if api_key else str(message)
+
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            return json.load(r), None
+    except urllib.error.HTTPError as e:
+        detail = {401: "clé refusée", 403: "clé sans droit", 404: "mod inconnu"}
+        return None, safe(f"HTTP {e.code} ({detail.get(e.code, 'erreur')})")
+    except Exception as e:
+        return None, safe(f"{type(e).__name__}: {e}")
+
+
 def load_baseline():
     if not os.path.exists(BASELINE):
         return {}
@@ -618,6 +692,14 @@ def main():
                     help="ne sonde que les sources dont la clé contient MOTIF")
     ap.add_argument("--offline", action="store_true",
                     help="n'exécute que les contrôles qui ne sortent pas de la machine")
+    ap.add_argument("--fetch-changelogs", action="store_true",
+                    help="récupère et affiche les changelogs des sources dont la "
+                         "version a dépassé le dernier journal instruit (API Nexus v1). "
+                         "N'inscrit RIEN : c'est à la lecture de décider, puis "
+                         "--changelog-reviewed")
+    ap.add_argument("--use-keychain", action="store_true",
+                    help="autorise la lecture de la clé Nexus dans le Trousseau quand "
+                         "NEXUS_API_KEY est absente. macOS demandera son accord")
     ap.add_argument("--changelog-reviewed", metavar="CLÉ=VERSION", action="append",
                     help="note qu'on a LU le journal des modifications d'une source "
                          "jusqu'à cette version (ex. mod/modern-config-menu=2.1.2). "
@@ -733,6 +815,57 @@ def main():
         return 0
 
     pending = changelog_reminders(baseline, observed)
+
+    if args.fetch_changelogs:
+        if not pending:
+            say(f"{C.GRN}[OK]{C.END} Aucun changelog en retard.")
+            return 0
+        key, origin = nexus_api_key(args.use_keychain)
+        if not key:
+            say(f"{C.YEL}[CLÉ ABSENTE]{C.END} Aucune clé Nexus.")
+            say("        Poser NEXUS_API_KEY dans l'environnement, ou relancer avec")
+            say("        --use-keychain pour la lire dans le Trousseau de l'app.")
+            return 2
+        say(f"{C.DIM}Clé lue depuis : {origin}{C.END}")
+        say("")
+        by_key = {spec["key"]: spec for spec in SOURCES}
+        missing = 0
+        for skey, version, seen in pending:
+            mod_id = (by_key.get(skey) or {}).get("nexusId")
+            if not mod_id:
+                continue
+            logs, err = fetch_changelog(mod_id, key)
+            say(f"{C.BOLD}{skey}{C.END} — Nexus {mod_id}, version {version}")
+            if err:
+                say(f"    {C.YEL}injoignable — {err}{C.END}")
+                missing += 1
+                say("")
+                continue
+            # Les versions postérieures au dernier journal instruit, celles
+            # qu'on n'a pas lues. Sans repère, tout le journal est neuf.
+            fresh = [v for v in logs if not seen or v != seen]
+            if seen and seen in logs:
+                order = list(logs)
+                fresh = order[order.index(seen) + 1:] if seen in order else fresh
+            if not logs:
+                # État légitime : l'auteur n'a jamais publié de journal. Le
+                # dire, plutôt que de laisser une ligne muette qu'on lirait
+                # comme une panne.
+                say(f"    {C.DIM}aucun changelog publié pour ce mod{C.END}")
+                say("")
+                continue
+            for v in (fresh or list(logs))[-6:]:
+                say(f"  {C.BOLD}{v}{C.END}")
+                for line in logs.get(v, []):
+                    # L'API rend le texte tel qu'il est saisi sur Nexus, donc
+                    # avec ses entités HTML : sans ça, `Span<int>` s'affiche
+                    # `Span&lt;int&gt;` et `A & B` devient `A &amp; B`.
+                    say(f"    · {html.unescape(line)}")
+            say("")
+        say(f"{C.DIM}Rien n'a été inscrit. Après lecture : "
+            f"--changelog-reviewed clé=version{C.END}")
+        return 2 if missing else 0
+
     if pending:
         say(f"{C.DIM}[CHANGELOG]{C.END} {len(pending)} source(s) dont le journal des "
             f"modifications n'a pas été lu pour la version courante :")

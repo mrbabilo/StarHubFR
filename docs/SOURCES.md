@@ -22,7 +22,8 @@ python3 check_sources.py            # relève et compare (sortie 1 s'il y a un �
 python3 check_sources.py --report   # relève et affiche tout, sans juger
 python3 check_sources.py --offline  # seulement les contrôles locaux
 python3 check_sources.py --update   # assume l'état courant comme référence
-python3 check_sources.py --changelog-reviewed mod/x=1.2.3   # note qu'on a LU son journal
+python3 check_sources.py --fetch-changelogs --use-keychain   # va LIRE les journaux en retard
+python3 check_sources.py --changelog-reviewed mod/x=1.2.3   # note qu'on a lu son journal
 ```
 
 Même patron que `check_standards.py` / `.standards-baseline.json` : un relevé,
@@ -66,9 +67,39 @@ ailleurs disparu avec le passage de Nexus à Next.js.
 release**, et sur les **100 tags** du premier, **aucun** ne nomme GMCM. Un étage
 « notes de release » ne rendrait rien pour aucune d'elles.
 
-Ce qui reste est le seul geste honnête : **se souvenir de ce qu'on a lu**. Chaque
-source peut porter un `changelog_reviewed` dans la référence ; le script compare
-la version relevée à cette valeur et **rappelle** l'écart.
+**La voie qui marche : l'API v1.** `--fetch-changelogs` va chercher les journaux
+des sources en retard sur `https://api.nexusmods.com/v1/games/stardewvalley/mods/{id}/changelogs.json`,
+qui rend le même contenu en JSON (`{version: [lignes]}`) en une requête. La clé
+vient de `NEXUS_API_KEY` si elle est dans l'environnement, et du **Trousseau de
+l'application** (`com.mrbabilo.StarHubFR` / `nexusApiKey`, repli sur le service
+d'origine) **seulement si `--use-keychain` est passé** — un script de relevé qui
+ouvre un secret doit le dire sur sa ligne de commande. Sans clé : un message qui
+explique, sortie 2, et rien de cassé.
+
+🔒 **La clé ne peut pas atteindre le dépôt, et ce n'est pas qu'un raisonnement.**
+Elle ne vit que dans une variable locale et dans un **en-tête** HTTP — jamais dans
+l'URL, qui se retrouverait dans un message d'erreur ou un historique de shell — et
+`.sources-baseline.json`, qui est versionné, n'en porte aucune trace. Seule son
+**origine** (« Trousseau », « variable d'environnement ») est affichée. Un garde
+actif masque en outre la clé dans tout message d'erreur rendu par la sonde, au cas
+où une bibliothèque recopierait un jour ses en-têtes dans une exception — **prouvé
+par sabotage le 2026-09-14** : le même message porte la clé sans le garde, et
+`«clé masquée»` avec. Contrôlé enfin sur le dépôt entier — `HEAD`, **tout
+l'historique** (`git log -S`) et l'arbre de travail : absente partout.
+
+⚠️ **La commande n'inscrit rien.** Elle affiche ; c'est à la lecture de décider,
+puis `--changelog-reviewed`. Poser le marqueur automatiquement rejouerait
+exactement le piège de `--update` — dire « lu » d'un journal que personne n'a
+ouvert.
+
+Deux détails qui se voient à l'usage : le texte de l'API porte ses **entités
+HTML** (sans `html.unescape`, `Span<int>` s'affiche `Span&lt;int&gt;`), et un mod
+sans journal publié rend un objet vide — dit explicitement, plutôt qu'une ligne
+muette qu'on lirait comme une panne.
+
+Et l'on garde la mémoire de ce qu'on a lu : chaque source porte un
+`changelog_reviewed` dans la référence ; le script compare la version relevée à
+cette valeur et **rappelle** l'écart.
 
 Trois propriétés, toutes vérifiées par sabotage le 2026-09-14 :
 
