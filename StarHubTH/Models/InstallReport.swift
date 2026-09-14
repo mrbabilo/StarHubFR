@@ -3,18 +3,46 @@ import Foundation
 /// Ce qu'une installation a posé — **figé** au moment du succès. La fenêtre
 /// de bilan ne lit que ces données : un rafraîchissement du parc pendant la
 /// lecture ne peut pas la faire diverger à l'écran.
+/// A1-T7 — ce qu'une mise à jour a remis en place pour **un** mod : les
+/// fichiers que le mod avait écrits en jouant et que l'archive neuve ne livre
+/// pas (`<sauvegarde>_SaveData.save` et apparentés).
+///
+/// `failed` porte les **noms**, pas un compte : c'est le seul cas où
+/// l'utilisateur a quelque chose à faire — le fichier dort dans la sauvegarde
+/// d'installation, et sans son nom il ne sait pas quoi y rechercher.
+public struct PreservedDataOutcome: Equatable, Sendable {
+    public let modFolder: String
+    public let restored: Int
+    public let failed: [String]
+
+    public init(modFolder: String, restored: Int, failed: [String]) {
+        self.modFolder = modFolder
+        self.restored = restored
+        self.failed = failed
+    }
+
+    /// Rien à dire quand rien n'a été touché — le bilan ne doit pas bavarder
+    /// sur une installation ordinaire.
+    public var isSilent: Bool { restored == 0 && failed.isEmpty }
+}
+
 public struct InstallReport: Equatable, Sendable {
     public let installedNames: [String]
     public let deltas: [ModUpdateKeyDelta]
+    /// A1-T7 — les données de mod remises en place, mod par mod. Vide quand
+    /// l'installation n'a rien préservé.
+    public let preserved: [PreservedDataOutcome]
     /// Les archives restant en file après celle qui vient de finir —
     /// « Archive suivante (n) » lit ce compte.
     public let remainingInQueue: Int
 
     public init(installedNames: [String], deltas: [ModUpdateKeyDelta],
-                remainingInQueue: Int) {
+                remainingInQueue: Int,
+                preserved: [PreservedDataOutcome] = []) {
         self.installedNames = installedNames
         self.deltas = deltas
         self.remainingInQueue = remainingInQueue
+        self.preserved = preserved.filter { !$0.isSilent }
     }
 }
 
@@ -28,16 +56,25 @@ public struct InstallReportSummary: Equatable, Sendable {
     public let translationTodo: Int
     public let configChanges: Int
     public let renamesSuggested: Int
+    /// A1-T7 — fichiers de données du mod remis en place, et ceux qui ont
+    /// résisté. Deux compteurs distincts : le second n'est pas un sous-cas du
+    /// premier, et c'est lui qui appelle une action.
+    public let dataRestored: Int
+    public let dataFailed: Int
 
     public init(modsUpdated: Int, translationTodo: Int,
-                configChanges: Int, renamesSuggested: Int) {
+                configChanges: Int, renamesSuggested: Int,
+                dataRestored: Int = 0, dataFailed: Int = 0) {
         self.modsUpdated = modsUpdated
         self.translationTodo = translationTodo
         self.configChanges = configChanges
         self.renamesSuggested = renamesSuggested
+        self.dataRestored = dataRestored
+        self.dataFailed = dataFailed
     }
 
-    public static func of(_ deltas: [ModUpdateKeyDelta]) -> InstallReportSummary {
+    public static func of(_ deltas: [ModUpdateKeyDelta],
+                          preserved: [PreservedDataOutcome] = []) -> InstallReportSummary {
         var mods = 0, todo = 0, config = 0, renames = 0
         for d in deltas {
             mods += 1
@@ -48,8 +85,11 @@ public struct InstallReportSummary: Equatable, Sendable {
             renames += renamed.count
             todo += d.translation.addedUntranslated.count - renamed.count
         }
-        return InstallReportSummary(modsUpdated: mods, translationTodo: todo,
-                                    configChanges: config, renamesSuggested: renames)
+        return InstallReportSummary(
+            modsUpdated: mods, translationTodo: todo,
+            configChanges: config, renamesSuggested: renames,
+            dataRestored: preserved.reduce(0) { $0 + $1.restored },
+            dataFailed: preserved.reduce(0) { $0 + $1.failed.count })
     }
 }
 

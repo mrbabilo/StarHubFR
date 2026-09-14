@@ -79,6 +79,17 @@ private struct ReportContent: View {
                             Spacer()
                         }
                     }
+                    // A1-T7 — avant les deltas : ce qui touche aux parties
+                    // sauvegardées passe avant ce qui touche aux réglages.
+                    if !report.preserved.isEmpty {
+                        Divider()
+                        Text(localization.L(L10n.InstallReport.dataSection))
+                            .font(.system(size: 13, weight: .semibold))
+                        ForEach(Array(report.preserved.enumerated()),
+                                id: \.offset) { _, outcome in
+                            PreservedRow(localization: localization, outcome: outcome)
+                        }
+                    }
                     if !report.deltas.isEmpty {
                         Divider()
                         ForEach(report.deltas, id: \.folderName) { delta in
@@ -94,7 +105,9 @@ private struct ReportContent: View {
         }
     }
 
-    private var summary: InstallReportSummary { InstallReportSummary.of(report.deltas) }
+    private var summary: InstallReportSummary {
+        InstallReportSummary.of(report.deltas, preserved: report.preserved)
+    }
 
     private var summaryParts: [String] {
         var parts: [String] = []
@@ -109,6 +122,16 @@ private struct ReportContent: View {
         }
         if summary.renamesSuggested > 0 {
             parts.append(String(format: localization.L(L10n.InstallReport.summaryRenames), summary.renamesSuggested))
+        }
+        // A1-T7 — les données du mod que la mise à jour a rendues. Les échecs
+        // ont leur propre part : ce sont les seuls qui appellent un geste.
+        if summary.dataRestored > 0 {
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryDataRestored),
+                                summary.dataRestored))
+        }
+        if summary.dataFailed > 0 {
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryDataFailed),
+                                summary.dataFailed))
         }
         return parts
     }
@@ -128,6 +151,11 @@ private struct ReportContent: View {
                 Text(summaryParts.joined(separator: " · "))
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
+                    // Le pire cas FR fait ~1 100 px pour une fenêtre large de
+                    // 520 : sans ceci la ligne se tronque, et ce sont les
+                    // fragments de fin — les données du mod, A1-T7 — qui
+                    // disparaissent en premier. Elle s'enroule désormais.
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, 20)
@@ -161,6 +189,59 @@ private struct ReportContent: View {
 /// La ligne de delta C2-T4 — même logique que l'ancien `updateDeltaRow` de
 /// la feuille (compteurs non nuls joints par « · »), sans refermer quoi que
 /// ce soit : la fenêtre de bilan reste ouverte.
+/// A1-T7 — ce qu'une mise à jour a rendu à **un** mod.
+///
+/// Deux lignes possibles et indépendantes : ce qui est revenu (une bonne
+/// nouvelle, discrète) et ce qui n'a pas pu revenir (une consigne, appuyée).
+/// La seconde **nomme les fichiers** — sans eux l'utilisateur ne sait pas quoi
+/// aller chercher dans la sauvegarde d'installation.
+private struct PreservedRow: View {
+    @ObservedObject var localization: LocalizationStore
+    let outcome: PreservedDataOutcome
+
+    /// Au-delà de six noms la liste cesse d'informer et pousse le reste du
+    /// bilan hors de l'écran ; le compte, lui, reste exact sur la ligne.
+    private var shownFailures: ArraySlice<String> { outcome.failed.prefix(6) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if outcome.restored > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.uturn.backward.circle")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Text(String(format: localization.L(L10n.InstallReport.dataRestoredRow),
+                                outcome.modFolder, outcome.restored))
+                        .font(.system(size: 12))
+                        .lineLimit(2)
+                    Spacer()
+                }
+            }
+            if !outcome.failed.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(format: localization.L(L10n.InstallReport.dataFailedRow),
+                                    outcome.modFolder, outcome.failed.count))
+                            .font(.system(size: 12))
+                            .fixedSize(horizontal: false, vertical: true)
+                        ForEach(Array(shownFailures.enumerated()), id: \.offset) { _, name in
+                            Text(name)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+}
+
 private struct DeltaRow: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore

@@ -833,11 +833,15 @@ backup se retrouve en moins de dix secondes.
       le dossier entier étant déjà en sauvegarde ; celle des 18 noms lance toujours.
       Les préservations sont journalisées, les échecs en `warning` et **nommés**.
       19 tests, huit mécanismes prouvés par sabotage.
-      ⏳ **Ce qui reste** : la ligne au **bilan d'installation** lui-même.
-      `InstalledModPath` porte déjà `extrasRestored` / `extrasFailed`, mais
-      `InstallReportSummary.of` n'agrège que des `ModUpdateKeyDelta` — y faire entrer
-      cette dimension demande de toucher le modèle du bilan et `InstallReportWindow`.
-      Aujourd'hui l'information passe par le journal, pas par la fenêtre. · **S**
+      ✅ **Le bilan le dit aussi** (2026-09-15) : `PreservedDataOutcome` entre dans
+      `InstallReport`, `InstallReportSummary` gagne `dataRestored`/`dataFailed` (deux
+      compteurs distincts — l'échec n'est pas un sous-cas de la réussite), et
+      `InstallReportWindow` rend une section « Données de mod conservées » **avant**
+      les deltas : ce qui touche aux parties sauvegardées passe avant les réglages.
+      Un résultat muet ne prend pas de ligne. Les échecs **nomment les fichiers**
+      (six au plus, le compte restant exact). L'en-tête s'enroule désormais au lieu
+      de se tronquer — le pire cas FR fait ~1 100 px pour 520 de large, et les
+      fragments de fin étaient précisément les nouveaux. · **livré**
       📐 **Cadrage écrit le 2026-09-14 : §8.4** — la règle proposée (*absent de
       l'archive neuve ⇒ donnée locale*), pourquoi elle ne rejoue pas le défaut
       d'`isAuthorLanguageFile`, le point dur prouvé (`FarmTypeManager/data/` mêle

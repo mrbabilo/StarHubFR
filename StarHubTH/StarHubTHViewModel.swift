@@ -6576,7 +6576,8 @@ final class StarHubTHViewModel {
         pendingInstallReport = InstallReport(
             installedNames: installedNames,
             deltas: lastInstallKeyDeltas,
-            remainingInQueue: pendingDropQueue.count)
+            remainingInQueue: pendingDropQueue.count,
+            preserved: lastInstallPreserved)
     }
 
     /// Referme le bilan — bouton « Terminé » de la fenêtre.
@@ -6672,6 +6673,8 @@ final class StarHubTHViewModel {
 
     /// Les deltas de la dernière installation, pour l'écran de succès.
     private(set) var lastInstallKeyDeltas: [ModUpdateKeyDelta] = []
+    /// A1-T7 — ce que la dernière installation a remis en place, pour le bilan.
+    private(set) var lastInstallPreserved: [PreservedDataOutcome] = []
 
     /// Écrit le store pour chaque chemin installé portant un delta. Appelé
     /// dans le completion de `performInstall` AVANT l'écran de succès : un
@@ -6679,11 +6682,17 @@ final class StarHubTHViewModel {
     /// même chose. Échec journalisé, jamais bloquant.
     func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
         lastInstallKeyDeltas = paths.compactMap(\.keyDelta)
-        // A1-T7 — une préservation muette serait le défaut qu'on corrige.
-        for path in paths {
-            for m in PreservedModData.messages(restored: path.extrasRestored,
-                                               failed: path.extrasFailed,
-                                               modFolder: (path.path as NSString).lastPathComponent) {
+        // A1-T7 — une préservation muette serait le défaut qu'on corrige : elle
+        // part au journal **et** au bilan. Le journal garde la trace quand la
+        // fenêtre a été fermée ; le bilan la met sous les yeux.
+        lastInstallPreserved = paths.map {
+            PreservedDataOutcome(modFolder: ($0.path as NSString).lastPathComponent,
+                                 restored: $0.extrasRestored, failed: $0.extrasFailed)
+        }.filter { !$0.isSilent }
+        for outcome in lastInstallPreserved {
+            for m in PreservedModData.messages(restored: outcome.restored,
+                                               failed: outcome.failed,
+                                               modFolder: outcome.modFolder) {
                 log(m.text, level: m.isFailure ? .warning : .info)
             }
         }

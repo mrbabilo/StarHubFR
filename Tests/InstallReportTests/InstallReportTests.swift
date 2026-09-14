@@ -84,4 +84,33 @@ struct InstallReportTests {
         #expect(report.deltas == deltas)
         #expect(report.remainingInQueue == 2)
     }
+
+    // MARK: - A1-T7, les données de mod remises en place
+
+    @Test("Les fichiers remis et les échecs se comptent séparément")
+    func aggregatesPreservedData() {
+        let s = InstallReportSummary.of([], preserved: [
+            PreservedDataOutcome(modFolder: "FarmTypeManager", restored: 3, failed: []),
+            PreservedDataOutcome(modFolder: "[FTM] Ridgeside", restored: 2, failed: ["data/a.save"])
+        ])
+        #expect(s.dataRestored == 5)
+        #expect(s.dataFailed == 1)
+    }
+
+    @Test("Sans préservation, les deux compteurs restent nuls")
+    func noPreservedDataMeansZero() {
+        let s = InstallReportSummary.of([])
+        #expect(s.dataRestored == 0)
+        #expect(s.dataFailed == 0)
+    }
+
+    /// Le bilan ne doit pas bavarder : un mod dont rien n'a été préservé ne
+    /// prend pas de ligne à l'écran.
+    @Test("Un résultat muet n'entre pas dans le rapport")
+    func silentOutcomesAreDropped() {
+        let r = InstallReport(installedNames: ["X"], deltas: [], remainingInQueue: 0,
+                              preserved: [PreservedDataOutcome(modFolder: "X", restored: 0, failed: []),
+                                          PreservedDataOutcome(modFolder: "Y", restored: 1, failed: [])])
+        #expect(r.preserved.map(\.modFolder) == ["Y"])
+    }
 }

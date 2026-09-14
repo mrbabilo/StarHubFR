@@ -1373,6 +1373,12 @@ enum L10n {
         static let summaryTranslation = "install_report_summary_translation"
         static let summaryConfig  = "install_report_summary_config"
         static let summaryRenames = "install_report_summary_renames"
+        // A1-T7 — les données de mod remises en place après une mise à jour.
+        static let summaryDataRestored = "install_report_summary_data_restored"
+        static let summaryDataFailed   = "install_report_summary_data_failed"
+        static let dataSection         = "install_report_data_section"
+        static let dataRestoredRow     = "install_report_data_restored_row"
+        static let dataFailedRow       = "install_report_data_failed_row"
         static let done           = "install_report_done"
         static let nextArchive    = "install_report_next_archive"
     }
