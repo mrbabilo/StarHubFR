@@ -614,7 +614,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **5 items ouverts sur 19**
+### Fiabilité du registre & compatibilité — **Axe A** · **6 items ouverts sur 20**
 
 #### A1 — Registre robuste
 
@@ -672,6 +672,20 @@ backup se retrouve en moins de dix secondes.
 > | 3 | Dépendance installée sous sa `MinimumVersion` | NexusMods.App | Préventif — **0 mod**, même règle |
 > | 4 | Garde-fous d'écriture (`policy.ts`) | Vortex | À reprendre **comme revue**, pas comme code → à joindre à **F2** |
 > | 5 | Constantes de durée relisibles + audit des TTL | Vortex | C'était le TTL manquant de **A2-T4** — livré le 2026-08-31 |
+
+- [ ] **A2-T6** — Indiquer les mods dont la **page Nexus a été supprimée** ou est
+      **momentanément indisponible** (mise à jour en cours, modération). Cas réel :
+      mod [32260](https://www.nexusmods.com/stardewvalley/mods/32260) — page vivante
+      mais fichiers retirés par l'auteur. Deux signaux distincts à ne pas confondre :
+      **supprimé** = la fiche répond 404 (interrogeable par identifiant via l'API v1,
+      mais coûteux en quota → au check existant, pas en passe dédiée) ;
+      **indisponible** = la page répond et le signal exact reste à relever (lecture du
+      2026-09-14 : la description de 32260 rend encore — ce n'est pas un 404).
+      Destination : la même pastille que les verdicts smapi.io (broken/abandoned déjà
+      fusionnés — `SmapiVerdicts`), pas un nouvel onglet. ⚠️ Ne pas déduire
+      « supprimé » d'une absence dans une réponse smapi.io : une passe partielle
+      (429/503) fusionne avec le cache, elle ne le remplace pas — le piège a déjà
+      coûté les mises à jour de trois mods. · **M**
 
 #### A3 — Métadonnées Nexus
 
