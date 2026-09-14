@@ -731,6 +731,7 @@ sur `1b4f9888` par `scripts/p5-strict.sh`, et ses états aux clôtures de L1 et 
 | **Après L3** (les deux boucles disque exécutent en Core) | **216** | **83** | 527 s |
 | **Après L4** (les trois clients réseau/process) | **121** | **28** | 590 s |
 | **Après L5** (le Core en mode Swift 6) | **101** | **20** | 519 s |
+| **Après L6** (les vingt sites de l'app) | **6** | **0** | 540 s |
 
 *Les « bloquants Swift 6 » comptent les diagnostics de la forme « error in the
 Swift 6 language mode » — le seul volume prévisionnel valable, les autres ne
@@ -963,6 +964,57 @@ désormais **résolu** à `fetchSteamUser` au lieu d'une closure qui lisait
 `currentLanguage` depuis une file de fond pendant que l'acteur principal peut
 l'écrire. L'isolation a rendu visible une lecture inter-fils qu'on a
 supprimée plutôt que bénie.
+
+**Repris à la clôture de L6 (2026-09-14)** : **6 avertissements, 0 bloquant**
+— le compte du chantier tombe à zéro, 453/202 au jalon d'ouverture. Vingt
+sites, cinq familles : les callbacks de `NexusSearchClient` (et les neuf
+closures appelantes du VM, par un hop), `SaveGameInfo`/`SaveBackup` rendus
+`Sendable` (une conformité au lieu de sept hops), les conformités `Equatable`
+des vues sorties de l'acteur (`View` est isolée en mode 6, `Equatable` ne l'est
+pas), le `Publisher` de `@Published` et l'`AnyCancellable` qui ne sortent plus
+de leur bloc `assumeIsolated`, et trois transports d'exception bornés
+(`Notification` du splash, `NSItemProvider` du dépôt). Les six avertissements
+restants sont d'une autre classe (« *may introduce data races* » sur des
+fonctions locales de `NexusSearchClient`, `NexusUpdateChecker`,
+`NexusDownloader`) : le mode 6 ne les rejette pas.
+
+### ⚠️ Mais l'app n'est **pas** en mode Swift 6, et c'est le vrai résultat
+
+`-swift-version 6` a été posé sur `build_app.py`, puis **retiré** : l'app
+compile **sans une erreur** en mode 6 et **meurt au lancement**. Pile relevée
+sous `lldb` (le seul outil qui l'ait vue — ni le gate, ni les 3 193 tests, ni
+la CI, qui ne compile pas l'app) :
+
+```
+_dispatch_assert_queue_fail ← swift_task_checkIsolated
+← closure #1 in syncInstalledModRegistry ← Collection.map
+← scanMods ← closure #2 in performInitialLoad
+(thread #2, queue com.apple.root.user-initiated-qos)
+```
+
+Mécanisme isolé par quatre sondes — trois hypothèses fausses écartées avant
+(le motif « méthode `@MainActor` appelée depuis `DispatchQueue.global` » ne
+trappe pas ; un `static let` d'un type isolé initialisé au fond non plus ; une
+mutation `@Observable` hors main non plus) :
+
+| dans une méthode `@MainActor` exécutée au fond | mode 5 | mode 6 |
+| --- | --- | --- |
+| `map { … }` | passe | **trap** |
+| `map { @Sendable in … }` | passe | passe |
+
+Le mode 6 insère un contrôle d'isolation **à l'exécution** quand une closure
+héritant de l'isolation est passée à une fonction générique non isolée. **La
+cause n'est pas le drapeau** : `scanMods`, `syncInstalledModRegistry` et
+`reloadSaves` sont déclarées `@MainActor` **et exécutées sur une file de
+fond** — c'est l'étiquette posée par L2 sur la classe entière, que les
+appelants n'ont jamais cessé de dispatcher. Le mode 5 ne vérifie jamais cette
+promesse ; le mode 6 la vérifie. Coller `@Sendable` sur chaque closure serait
+un jeu de taupes : le défaut est l'étiquette de la méthode.
+
+**Conséquence sur la suite** : la **tranche d'isolation** (`scanMods` et sa
+descendance en `nonisolated`, `downloadStore` `nonisolated(unsafe)` propriétaire
+VM:233) n'est pas un raffinement facultatif — c'est le prérequis du mode 6 côté
+app. Et le seul filet qui la voit est un **lancement réel**.
 
 Ce qui reste après L5 : le ViewModel (12), `NexusSearchClient` (2),
 `ModInstallView` (2) et quatre vues à 1 — c'est le périmètre de **L6**

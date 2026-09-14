@@ -184,8 +184,17 @@ Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées
       6.0)**, la machine de développement en 6.3.3, et la première est plus
       stricte. Défaite sur `main`, reprise en PR, validée par la CI avant
       fusion (#6). Reste **L6** : l'app en mode Swift 6 (VM 12,
-      `NexusSearchClient` 2, `ModInstallView` 2, quatre vues à 1). Détail et
-      mécanismes : `REFACTORING.md` §9.
+      `NexusSearchClient` 2, `ModInstallView` 2, quatre vues à 1).
+      **L6 close le 2026-09-14 : 6 / 0 bloquants** — le compte du chantier
+      tombe à zéro (453 / 202 à l'ouverture). ⚠️ **L'app n'est pas pour
+      autant en mode Swift 6** : le drapeau a été posé puis retiré, car
+      l'app compile sans erreur et **meurt au lancement** — le mode 6
+      contrôle l'isolation *à l'exécution*, et `scanMods` /
+      `syncInstalledModRegistry` / `reloadSaves` sont déclarées `@MainActor`
+      mais exécutées sur une file de fond depuis L2. La **tranche
+      d'isolation** devient donc le prérequis du mode 6 côté app, et non un
+      raffinement : c'est ce qui reste de P5. Détail, pile et sondes :
+      `REFACTORING.md` §9.
 ---
 
 
