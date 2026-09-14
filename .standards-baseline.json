@@ -45,6 +45,7 @@
   "file:StarHubTH/Views/TranslationDiffView.swift": 1029,
   "file:StarHubTH/Views/TranslationEditorView.swift": 495,
   "get_prefixed_funcs": 4,
+  "models_importing_swiftui": 0,
   "non_final_classes": 4,
   "observable_stored_without_private_set": 48,
   "our_shared_singletons": 90,

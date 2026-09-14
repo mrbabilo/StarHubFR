@@ -250,6 +250,15 @@ def _rule_vm_facades_to_combine(_: str) -> int:
                for _ln, body in _computed_bodies(path))
 
 
+def _rule_models_importing_swiftui(_: str) -> int:
+    # §9 du REFACTORING — la couche modèle ne voit pas l'interface. Prescrite
+    # le 2026-09-11, jamais écrite (constaté le 2026-09-14 pendant P8) ;
+    # posée avec la tranche T1 du cadrage des vues.
+    return sum(1 for path in swift_sources()
+               if f"{os.sep}Models{os.sep}" in path
+               and "import SwiftUI" in read_source(path))
+
+
 def _rule_observable_without_private_set(_: str) -> int:
     return sum(1 for path in LOT_FILES
                for _n, stored, pset, _l in class_members_with_lines(path)
@@ -285,6 +294,9 @@ RULES: dict[str, Callable[[str], int]] = {
     # `@Published` que le lot `@Observable` a fait disparaître : le compteur
     # d'origine mesurerait désormais 0 par construction.
     "observable_stored_without_private_set": _rule_observable_without_private_set,
+    # §9 — la règle des couches : `Models/` n'importe pas SwiftUI. Un import
+    # neuf y est une inversion de dépendance, pas un raccourci.
+    "models_importing_swiftui": _rule_models_importing_swiftui,
     # La phase « vider le ViewModel » (docs/refactoring-vider-le-viewmodel.md)
     # se mesure ici : l'état stocké du VM ne peut que baisser. Une façade de
     # lecture — autorisée depuis que le suivi la traverse — ne le fait pas
