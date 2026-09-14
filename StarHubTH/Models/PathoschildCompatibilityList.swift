@@ -175,10 +175,19 @@ public enum PathoschildCompatibilityList {
     /// accès au journal de l'app, et inliner un `print()` perdrait le
     /// `LogEntry` typé. La callback est **fire-and-forget** : une exception
     /// ou un retour lent ne doit pas casser le fetch.
+    ///
+    /// ⚠️ **`onEvent` ne part pas du fil principal**, contrairement à
+    /// `completion` : le premier message est émis sur le fil de l'appelant,
+    /// les suivants depuis la queue de fond d'`URLSession`. Les deux
+    /// callbacks sont donc `@Sendable` (P5-L5) — sans quoi une closure écrite
+    /// dans un contexte `@MainActor` **hérite de son isolation** et le
+    /// compilateur la croit sur le main alors que le runtime l'appelle
+    /// ailleurs. C'est ce que faisait le site d'amorce du ViewModel : il
+    /// journalisait depuis un fil de fond avec la bénédiction du typage.
     public static func fetch(session: URLSession = .shared,
                              now: Date = Date(),
-                             onEvent: ((String) -> Void)? = nil,
-                             completion: @escaping (Result<[Entry], Failure>) -> Void) {
+                             onEvent: (@Sendable (String) -> Void)? = nil,
+                             completion: @escaping @Sendable (Result<[Entry], Failure>) -> Void) {
         // Le cache, même périmé, vaut un fallback : un lancement hors-ligne
         // doit montrer ce qu'on a plutôt que rien. La fraîcheur est portée
         // par `dumpFetchedAt`, pas par le contenu.

@@ -3592,8 +3592,9 @@ final class StarHubTHViewModel {
                     // Le dump vient d'être posé : c'est le seul moment où les
                     // lignes « à savoir » peuvent changer sans que le parc
                     // bouge. Sans ça, elles n'apparaîtraient qu'au scan
-                    // suivant.
-                    self?.refreshModWarnings()
+                    // suivant. L'ordre compte : `done` **avant** le hop, sans
+                    // quoi la composition attendrait un tour de main de plus.
+                    Task { @MainActor in self?.refreshModWarnings() }
                 }
             },
             progress: { [weak self] done, total in
@@ -3831,65 +3832,71 @@ final class StarHubTHViewModel {
         guard !uniqueIds.isEmpty else { return }
         PathoschildCompatibilityList.fetch { [weak self] result in
             guard let self else { return }
-            let entries = (try? result.get()) ?? []
-            guard !entries.isEmpty else {
-                // Dire **pourquoi** : un corps de réponse illisible n'est pas
-                // une panne de réseau, et le cache n'est plus écrasé dans ce
-                // cas — les deux méritent des phrases différentes dans le
-                // journal, sans quoi on cherche une coupure qui n'existe pas.
-                switch result {
-                case .failure(.decoding(let detail)):
-                    self.log("Filet Pathoschild : dump reçu mais illisible (\(detail)) — "
-                             + "cache conservé", level: .warning)
-                case .failure(.http(let code)):
-                    self.log("Filet Pathoschild : HTTP \(code), et aucun cache lisible",
-                             level: .info)
-                case .failure(.transport(let detail)):
-                    self.log("Filet Pathoschild : réseau indisponible (\(detail)) et aucun "
-                             + "cache lisible", level: .info)
-                case .success:
-                    self.log("Filet Pathoschild : dump vide", level: .info)
+            // Complétion `@Sendable` (P5-L5) : tout le corps touche l'état
+            // du ViewModel, il passe donc par un hop `Task { @MainActor in }`.
+            // `fetch` rend déjà sa complétion sur le main ; ce hop ne monte
+            // rien, il le **prouve** au compilateur.
+            Task { @MainActor in
+                let entries = (try? result.get()) ?? []
+                guard !entries.isEmpty else {
+                    // Dire **pourquoi** : un corps de réponse illisible n'est pas
+                    // une panne de réseau, et le cache n'est plus écrasé dans ce
+                    // cas — les deux méritent des phrases différentes dans le
+                    // journal, sans quoi on cherche une coupure qui n'existe pas.
+                    switch result {
+                    case .failure(.decoding(let detail)):
+                        self.log("Filet Pathoschild : dump reçu mais illisible (\(detail)) — "
+                                 + "cache conservé", level: .warning)
+                    case .failure(.http(let code)):
+                        self.log("Filet Pathoschild : HTTP \(code), et aucun cache lisible",
+                                 level: .info)
+                    case .failure(.transport(let detail)):
+                        self.log("Filet Pathoschild : réseau indisponible (\(detail)) et aucun "
+                                 + "cache lisible", level: .info)
+                    case .success:
+                        self.log("Filet Pathoschild : dump vide", level: .info)
+                    }
+                    return
                 }
-                return
-            }
-            let verdicts = PathoschildCompatibilityList.verdicts(for: uniqueIds, from: entries)
-            guard !verdicts.isEmpty else {
-                self.log("Filet Pathoschild : 0 verdict applicable sur \(uniqueIds.count) mods", level: .info)
-                self.compatibilitySource = .diskCache
+                let verdicts = PathoschildCompatibilityList.verdicts(for: uniqueIds, from: entries)
+                guard !verdicts.isEmpty else {
+                    self.log("Filet Pathoschild : 0 verdict applicable sur \(uniqueIds.count) mods", level: .info)
+                    self.compatibilitySource = .diskCache
+                    self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
+                    return
+                }
+                // Le verdict Pathoschild est **secondaire** : on ne remplace un
+                // verdict smapi.io existant que s'il n'y en a pas. La fusion
+                // passe par `modCompatibility` pour respecter la règle de
+                // priorité temporelle déjà appliquée par `applySmapiResults`.
+                var merged = self.modCompatibility
+                var added = 0
+                for (uniqueId, verdict) in verdicts where merged[uniqueId] == nil {
+                    merged[uniqueId] = verdict
+                    added += 1
+                }
+                if added == 0 {
+                    self.log("Filet Pathoschild : aucun verdict à ajouter (les \(verdicts.count) "
+                             + "troués sont déjà couverts)", level: .info)
+                    return
+                }
+                // Purge des mods désinstallés (règle partagée avec `applySmapiResults`).
+                // `stillInstalled` = les `UniqueID` envoyés à smapi.io, c'est-à-dire
+                // le parc figé au moment de l'envoi. Un verdict hors de ce parc est
+                // un mod qui n'est plus là.
+                let stillInstalled = Set(uniqueIds)
+                merged = merged.filter { stillInstalled.contains($0.key) }
+                self.modCompatibility = merged
+                if ModCompatibilityStore.save(merged) {
+                    self.log("Filet Pathoschild : \(added) verdicts ajoutés sur "
+                             + "\(uniqueIds.count) mods interrogés", level: .info)
+                } else {
+                    self.log("Filet Pathoschild : verdicts non enregistrés (\(added) ajoutés en mémoire)",
+                             level: .warning)
+                }
+                self.compatibilitySource = .pathoschildDump
                 self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
-                return
             }
-            // Le verdict Pathoschild est **secondaire** : on ne remplace un
-            // verdict smapi.io existant que s'il n'y en a pas. La fusion
-            // passe par `modCompatibility` pour respecter la règle de
-            // priorité temporelle déjà appliquée par `applySmapiResults`.
-            var merged = self.modCompatibility
-            var added = 0
-            for (uniqueId, verdict) in verdicts where merged[uniqueId] == nil {
-                merged[uniqueId] = verdict
-                added += 1
-            }
-            if added == 0 {
-                self.log("Filet Pathoschild : aucun verdict à ajouter (les \(verdicts.count) "
-                         + "troués sont déjà couverts)", level: .info)
-                return
-            }
-            // Purge des mods désinstallés (règle partagée avec `applySmapiResults`).
-            // `stillInstalled` = les `UniqueID` envoyés à smapi.io, c'est-à-dire
-            // le parc figé au moment de l'envoi. Un verdict hors de ce parc est
-            // un mod qui n'est plus là.
-            let stillInstalled = Set(uniqueIds)
-            merged = merged.filter { stillInstalled.contains($0.key) }
-            self.modCompatibility = merged
-            if ModCompatibilityStore.save(merged) {
-                self.log("Filet Pathoschild : \(added) verdicts ajoutés sur "
-                         + "\(uniqueIds.count) mods interrogés", level: .info)
-            } else {
-                self.log("Filet Pathoschild : verdicts non enregistrés (\(added) ajoutés en mémoire)",
-                         level: .warning)
-            }
-            self.compatibilitySource = .pathoschildDump
-            self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
         }
     }
 
