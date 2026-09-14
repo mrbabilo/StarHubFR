@@ -98,6 +98,36 @@ Ce qui a été mesuré, et ce que ça vaut :
 l'utilisateur — le binaire n'est pas notarisé, et son serveur local n'authentifie
 personne.
 
+### Ce que la sauvegarde sait des mods — mesures du 2026-09-14, devenues A1-T6
+
+Cherché parce que le `Core.dll` du launcher manipule `SaveModIds` et `CommonModIds`.
+Relevé sur `Zofia_443716371` (37 Mo) et ses deux générations antérieures, sans
+lancer le jeu — les trois fichiers suffisaient à trancher la question qui compte.
+
+| Mesure | Valeur |
+| --- | ---: |
+| Clés `<key><string>` dans la sauvegarde | 8 984 |
+| Préfixes distincts en forme `Auteur.Mod` | 748 |
+| Préfixes résolvant vers un mod **installé** | **32** (4 509 entrées) |
+| Dont des mods **en pause** | 3 — `larvuk.AdvancedFruitTreeFramework` (1 648), `NCarigon.BushBloomMod` (154), `Spiderbuttons.Agromancy` (115) |
+
+**La question qui décidait de la sévérité — et sa réponse.** « Perd-on ces données
+quand le mod n'est plus là ? » **Non.** `Kedi.VPP.WasRainingHere` porte **817 entrées
+sans aucun mod installé qui corresponde**, et le compte est **stable sur trois
+générations** de la même sauvegarde : 805 (26/07) → 817 (27/07) → 817 (14/09). Les
+**56** préfixes présents dans la plus ancienne et absents de la plus récente sont
+**tous** des clés à expiration — `_memory_oneweek`, `_memory_twoweeks`,
+`_memory_eightweeks` — et **62** du même genre sont apparues en sens inverse. Ce
+n'est pas une purge, c'est la durée de vie que les mods donnent eux-mêmes à leurs
+clés. ⚠️ Cela vaut pour le **`modData`** ; le sort des **objets** définis par un mod
+absent n'a pas été mesuré.
+
+**Ce que le relevé ne dit PAS.** Les 695 préfixes non résolus ne sont pas 695 mods
+manquants : la résolution s'arrête à deux segments, si bien que
+`Kedi.VPP.WasRainingHere` (clé de `Kedi.VPP`) et `Cropgenics.GroveForestNode.Health`
+/ `.Variant` / `.Master` (sous-clés d'un même propriétaire) comptent chacun pour un
+« mod absent ». La règle de normalisation est **à mesurer avant d'être codée**.
+
 ### Ce que l'audit a trouvé sur **notre** application — devenu A1-T5
 
 `detectZipStructure` ne relève qu'un seul dossier à manifeste dans cette archive,
