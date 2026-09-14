@@ -187,6 +187,59 @@ faux — les `Mail.json`, `Dialogue.json`, `Objects.json` des Content Packs sont
 les deux, et c'est la troisième fois que le parc se laisse mal mesurer de cette
 façon.
 
+## 3 quinquies. Le design de l'éditeur de config de MCM — audit, 2026-09-14
+
+Demandé après la décompilation (§3 quater) : « intégrer le design de l'éditeur de
+config à notre appli ». L'IL de 2.1.2 porte leurs contrôles — `ColorPicker` (265
+occurrences), `Slider` (309), `KeybindOverviewModal` (462), `ControlPoolManager`
+(57) — plus `Core.Visibility` (réglages conditionnels),
+`Binding.PropertyBinding` (application immédiate), `GroupedSectionCard`,
+`CardSettingRow`, `MinimalSectionHeaderRow`.
+
+**Une seule idée survit à la mesure du parc : le contrôle de raccourci** →
+**C4-T10**. Les trois autres sont refusées ci-dessous, chiffres à l'appui, pour
+qu'on ne les réinstruise pas.
+
+### ⛔️ Ne pas porter : l'infobulle à la place de la description permanente
+
+C'est le refus le plus important du lot, parce que leur propre historique dit
+pourquoi. MCM a fait l'aller **et** le retour :
+
+| Version | Ce que le changelog dit (verbatim) |
+| --- | --- |
+| **1.7.8** | « **Tooltip De-Cluttering**: Removed permanent description labels from inside cards to eliminate visual clutter; descriptions are now shown cleanly on hover tooltip popups as per game standards. » |
+| **2.1.1** | « Textbox & Child Control Tooltip **Dead Zone** Elimination (`FindHoveredTooltip`) » et « **Hierarchical Parent-Chain Tooltip Inheritance** […] walk up from the deepest hovered leaf control » |
+
+Retirer les descriptions a créé des zones mortes au survol, qu'il a fallu réparer
+une version plus tard par une résolution d'infobulle parent par parent. L'IL de
+2.1.2 porte encore cette machinerie : `FindHoveredTooltip`,
+`SearchTreeForTooltip`, `DrawThemedTooltip`, 40 `TooltipGetter`.
+
+Nous affichons la description **en permanence**
+(`StarHubTH/Views/ModConfigEditorView.swift:713`), et ce choix est déjà adossé à
+une mesure du parc inscrite dans le code : **1 926 rangées** en portent une,
+**66 caractères de médiane**, 172 au 90ᵉ centile, 554 au pire ; **158 dépassent
+deux lignes, une seule dépasse cinq**. Le désordre qu'ils ont voulu fuir n'existe
+pas chez nous. ⚠️ Et sur macOS, `.help()` exige ~2 s de survol immobile : la piste
+infobulle nous coûterait leurs zones mortes **plus** ce délai.
+
+### ⛔️ Ne pas porter : le sélecteur de couleur
+
+Compté sur les `config.json` du parc : **4 valeurs de couleur réelles** —
+`.AccordSettings: CustomAccentColor = #DA8930`, et trois dans `.ChoreTrail`.
+⚠️ Un premier comptage en annonçait 13 : le motif à six chiffres hexadécimaux
+attrapait `100000` et `500000`. Exiger le `#` ramène à 4. Un contrôle pour quatre
+valeurs sur tout le parc ne se justifie pas.
+
+### ⛔️ Ne pas porter : le curseur (slider)
+
+Un curseur a besoin d'une échelle, et nous n'en avons pas :
+`ContentPackConfigSchema` porte `AllowValues`, `Default`, `AllowBlank`,
+`AllowMultiple` — **aucune borne** `min`/`max`. Le curseur n'aurait rien à
+graduer. Le champ numérique actuel garde son pas de 0,5 et son
+`decimalFormatter` (sans lequel 0,5 s'affichait 0 — 758 options du parc
+touchées).
+
 ## 4. Correctifs identifiés — à traiter en premier
 
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour

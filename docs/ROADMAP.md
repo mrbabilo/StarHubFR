@@ -376,7 +376,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-14 : C3-T2, C3-T5, **C4-T9**, C5-T1, C5-T2, C6-T1 — C4 était clos, la veille du 2026-09-14 l'a rouvert d'un item)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **7 items ouverts** *(recompté le 2026-09-14 : C3-T2, C3-T5, **C4-T9**, **C4-T10**, C5-T1, C5-T2, C6-T1 — C4 était clos, la veille du 2026-09-14 l'a rouvert de deux items : un faux positif du scanner, un contrôle absent de l'éditeur)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -576,6 +576,52 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       heuristique sur le nom écarterait des mods légitimes (trois candidats trouvés au
       mot « remap » sur le parc, **deux sont des cartes**). Trancher sur données avant
       de coder. · **S**
+
+- [ ] **C4-T10** — **L'éditeur de config rend les raccourcis en champ texte libre,
+      alors que le scanner sait déjà les reconnaître.** *(relevé le 2026-09-14 en
+      auditant le design de ModernConfigMenu — §3 quinquies de l'archive ; leur
+      `KeybindOverviewModal` est la seule de leurs idées que le parc justifie.)*
+      **Le fait d'architecture** : `KeybindScanner.report`
+      (`StarHubTH/Models/KeybindScanner.swift:336`) et `ConfigEditorModel.groups`
+      (`StarHubTH/Models/ConfigEditorModel.swift:284`) parcourent **le même**
+      `ConfigEditorModel.leaves(of: tree)`. Le scanner classe chaque feuille par
+      `classify(leaf:)` ; l'éditeur, sur la feuille identique, en fait un `.text`.
+      Il n'y a pas de plomberie à construire : la classification existe déjà, et
+      elle prend exactement le type que l'éditeur tient en main.
+      **Le point d'insertion est nommé** : `ConfigEditorModel.row(for:describedBy:
+      orLabeledBy:)` (`:300`) tient la `Leaf` entière et **surcharge déjà le
+      contrôle une fois** — pour `choiceControl(for:option:)`. Une branche keybind
+      s'y pose de la même forme. ⚠️ Ce qui n'est pas gratuit, en revanche :
+      `KeybindScanner` dépend de `ConfigEditorModel.Leaf`, donc appeler `classify`
+      depuis `ConfigEditorModel` referme un cycle au niveau des types. Sans
+      conséquence dans un module unique, mais à trancher volontairement — la
+      grammaire aurait peut-être sa place dans `KeybindGrammar.swift`.
+      **Mesuré sur le parc** (port fidèle de `KeybindParser` + `classify` ; 614
+      `config.json`, 16 552 feuilles, 15 fichiers illisibles) : **466 feuilles sont
+      des raccourcis, réparties sur 146 mods** — 348 par indice de nom
+      (`key|bind|shortcut`) et **118 par combinaison distinctive sans indice**
+      (`.Automate: Controls.ToggleOverlay`, `Stillbloom: MultiSelectModifier`).
+      **Les 466 sont des chaînes, donc toutes rendues en `.text`** ; seules 3 vivent
+      dans un pack à `content.json` où un schéma pourrait déjà en faire une liste.
+      Zéro `unrecognized` sur tout le parc.
+      ⚠️ **Un comptage antérieur disait 315** : il approximait en Python la seule
+      branche à indice de nom et manquait les 118 autres. Mesurer avec la grammaire
+      réelle, jamais avec une regex de substitution.
+      ⚠️ **L'aller-retour d'écriture est le piège** : le contrôle doit réécrire
+      l'orthographe que le mod attend, pas une forme canonique. Le parc porte
+      `'D0'`, `'None'`, `'LeftShift'`, `'Up'` — normaliser `D0` en `0` écrirait
+      autre chose que ce que l'auteur a posé. Le précédent est déjà dans le modèle :
+      `Control.toggle(Bool, asString:)` mémorise si `true` était un booléen ou la
+      chaîne `"true"`, et `ConfigEditorModel.value(of:)` le restitue. Un `.keybind`
+      doit porter la même mémoire.
+      ⚠️ **Ne pas suivre `classify` seule pour décider d'afficher le contrôle** : la
+      règle R4 du scanner (`KeybindScanner.swift:277`) existe parce que
+      `ModShortcutReferenceHub` **documente** les raccourcis des autres — chaque
+      feuille de son catalogue passe `classify`, et aucune n'est liée à quoi que ce
+      soit. Un sélecteur de touche posé dessus serait un faux positif visible.
+      **Sans casser l'existant** : le contrôle naît dans `ConfigEditorModel.Control`
+      (type Core, donc testable), et l'écriture continue de passer par
+      `ModConfigWriteGuard`. · **M**
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
