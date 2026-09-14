@@ -22,6 +22,38 @@ tels quels dans le code et dans les messages de commit : `grep -n "X18"` ici
 répond. L'ordre et les titres de section sont ceux de la roadmap.
 
 ---
+## 3 bis. Veille — ce qui a été instruit puis écarté, avec la mesure
+
+> Les sources externes qui bougent sont relevées par `check_sources.py`. Quand un
+> mouvement est instruit et qu'il **ne donne rien**, la conclusion vit ici : sans ça,
+> la session suivante relit le même journal des modifications et refait le même travail.
+> Un écart écarté sans mesure ne compte pas — c'est le constat de
+> `audit-fix-commits-by-message-not-title` (16 correctifs amont sur 20 avaient été
+> jugés sur leur titre, deux valaient instruction).
+
+### 2026-09-14 — Stardrop v1.10.0 → v1.10.2, et SMAPI `79f9bbb` → `f090df0`
+
+**Retenu** : la liste noire SMAPI devient **A2-T7**, les manifestes imbriqués **A1-T4**,
+et le message d'échec du gate L10n **F8**. Le reste est instruit et clos ci-dessous.
+
+| Ce que le concurrent a corrigé | Chez nous | La mesure |
+| --- | --- | --- |
+| **Perte des notes et des configs au renommage d'un profil** (`b3d0f8df`) — leur renommage reconstruisait le profil depuis ses seuls mods activés | **Sans objet, par conception** | `renameProfile(id:newName:)` fait `mutateProfile(with: id) { $0.name = newName }` : une mutation **en place** sur un `UUID`. `ModProfile` porte `id: UUID` **distinct du nom** ; notes (`modNotes`) et métadonnées (`modMetadata`) ne sont jamais reconstruites. Leur modèle identifiait un profil par son fichier `<nom>.json` |
+| **Caractères spéciaux dans un nom de profil** (`f20ebda0`) — nom de fichier non assaini, **et** collision de deux noms qui ne diffèrent que par des caractères remplacés | **Sans objet, par conception** | `ProfileConfigStore.fileURL(profileId: UUID)` écrit dans `<UUID>.json`. Le nom de profil n'entre dans **aucun** chemin : il n'y a ni caractère à remplacer, ni collision de fichiers à départager |
+| **Second parcours du disque pour trouver les `config.json`** (`0ea2dbdf`) | **Nous ne l'avons pas** | `ModScanner.swift:168` fait un `fm.fileExists(atPath: …/config.json)` — un contrôle direct sur un chemin connu, pas une ré-énumération du dossier. *(La **seconde** moitié de leur diff, elle, a donné A1-T4 : voir la ROADMAP.)* |
+| **Une traduction entière perdue en silence** (`8205d0ea`) — une virgule manquante dans `pl.json`, et le polonais disparaissait sans un mot | **Le gate attrape** | Prouvé **par sabotage** le 2026-09-14 : virgule retirée dans `assets/fr.json` → `build_app.py` **exit 1**, avant toute compilation. Reste un défaut d'ergonomie, sorti en **F8** : le message ne nomme pas le fichier |
+| **Les langues découvertes depuis les fichiers i18n** (`15332a39`), au lieu d'une énumération figée de 15 langues | **Sans objet** | L'UI est **bilingue par conception** (`en`, `fr`), et `build_app.py` impose la **parité des clés** entre les deux — il n'y a pas d'énumération à tenir en accord avec des fichiers |
+| **Bouton « retirer l'association `nxm://` »** (`dde6bbbd`) | **Ne se transpose pas** | Leur correctif est du **registre Windows** (`Software\Classes`, `UserChoice`). Sur macOS l'association est **déclarative** — `CFBundleURLSchemes` dans `Info.plist` — il n'y a aucune entrée à nettoyer, et pas d'API propre pour « rendre la main » à un autre gestionnaire. Le besoin reste réel ; la solution de l'amont n'y répond pas |
+
+**Non instruit, et pourquoi** : `i18n-translator` v2.0.3 → v2.1.0 ne porte que deux
+commits, tous deux des tests d'acceptation de sa propre release — rien sur les jetons
+protégés ni sur les garanties d'écriture, les deux seules choses pour lesquelles nous
+suivons ce dépôt. Les versions de mods qui ont bougé (`radiance` 1.7.7 → **2.0.0**,
+`ultrasmooth` 2.1.7 → 2.2.5, `modern-config-menu` 2.1.0 → 2.1.2) sont des **publications
+relevées via smapi.io**, pas des mises à jour du parc local ; aucun parseur n'existe
+encore côté StarHubFR pour les formats de `radiance`, donc sa majeure ne casse rien
+aujourd'hui — elle sera à relire quand D2 reprendra.
+
 ## 4. Correctifs identifiés — à traiter en premier
 
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour

@@ -614,7 +614,8 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **6 items ouverts sur 20**
+### Fiabilité du registre & compatibilité — **Axe A** · **7 items ouverts sur 22**
+*(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs, **A1-T4** et **A2-T7**, viennent de la veille du jour ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
 
@@ -626,6 +627,23 @@ backup se retrouve en moins de dix secondes.
       ce que SMAPI accepte (JSON5 : commentaires, virgules traînantes) — `smapi.io/json`
       sert de référence de comportement, et les messages d'erreur doivent être aussi
       explicites que les siens. · **M**
+- [ ] **A1-T4** — **Un `examples/` n'est pas un composant de mod.** *(relevé le 2026-09-14,
+      veille Stardrop — leur `0ea2dbdf` prend « un dossier qui porte un `manifest.json` »
+      pour un mod et **ne descend pas dessous** ; notre scan, lui, descend exprès, pour
+      trouver les composants d'un pack.)* **Mesuré sur le parc** : sur 1 112 dossiers à
+      manifeste, **14 sont imbriqués sous un autre manifeste**, et une part est de la
+      **documentation livrée par le mod**, pas du contenu actif —
+      `.BushBloomMod/examples/` (3 exemples), `.MakeLove/ContentPackTemplate/`,
+      `.ValleyBonds.IsekaiBonds/character_packs/_ContentPackTemplate`. Ils sont
+      **invisibles aujourd'hui** : leurs quatorze parents sont tous en pause (préfixe
+      point) sur ce parc. Réactiver `BushBloomMod` ferait entrer trois « composants » qui
+      sont des gabarits à copier.
+      ⚠️ **À instruire avant de coder, et l'oracle est SMAPI, pas le bon sens** : si SMAPI
+      charge lui aussi ces manifestes, les montrer est **juste** et les cacher mentirait
+      sur ce qui tourne. La question n'est donc pas « faut-il filtrer » mais « que fait
+      SMAPI d'un manifeste sous `examples/` » — à mesurer en lançant le jeu et en lisant
+      le journal, jamais en lisant un schéma (voir la recette d'oracle du CLAUDE.md).
+      Selon la réponse : filtrer, ou marquer ces entrées sans les retirer. · **S**
 
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
@@ -656,6 +674,32 @@ backup se retrouve en moins de dix secondes.
       motif y est assorti d'une clause de version, et l'apparier sans la lire signalerait
       **14 mods à tort** sur le parc de référence — pour **1 seul** réellement concerné.
       C'est ce rapport, pas la difficulté, qui fixe la priorité. · **S**
+- [ ] **A2-T7** — **Avertir quand un mod installé est sur la liste noire SMAPI.**
+      *(source relevée le 2026-09-14 : SMAPI a bougé pour la première fois depuis le
+      2026-07-01, et les huit commits ne portent ni le format du journal, ni le schéma de
+      manifeste, ni l'installateur — ils alimentent `SMAPI.blacklist.json`.)*
+      C'est la liste des mods **malveillants** bloqués par défaut, **distincte** de
+      `metadata.json`/`mods.jsonc` qui portent les incompatibilités : ses messages disent
+      « downloads malicious code from a remote server and runs it on your computer », et
+      plusieurs entrées sont des **reuploads piégés de mods légitimes** — le cas que
+      l'utilisateur ne peut pas distinguer à l'œil sur Nexus.
+      **Mesures faites** : la ressource est servie publiquement
+      (`https://smapi.io/SMAPI.blacklist.json`, HTTP 200, 5 029 octets), elle est du
+      **JSONC** comme `mods.jsonc` — commentaires bloc **et** ligne, `ManifestJSON.decode`
+      sait déjà les retirer — et elle est clée sur l'**`UniqueID`** du manifeste, la clé
+      d'identité du parc. **9 entrées croisées contre les 1 112 manifestes du parc de
+      référence : aucune correspondance**, le parc est sain.
+      **Ce que ça ajoute vraiment** : SMAPI bloque déjà ces mods, mais **au lancement du
+      jeu**, et il l'écrit dans un journal qui n'existe qu'après. StarHubFR peut le dire
+      **avant**, au scan, sans lancer le jeu — c'est exactement ce que fait déjà
+      `PathoschildCompatibilityList` pour la compatibilité, donc le patron est en place
+      (dump public, cache hors-ligne, croisement par `UniqueID`).
+      ⚠️ **Ce n'est pas un badge de plus.** Un mod malveillant ne se range pas à côté de
+      « mise à jour disponible » : la destination doit être décidée (alerte système en
+      tête, ou un état propre sur la fiche), et le texte doit dire quoi faire — le message
+      de SMAPI demande de supprimer le mod **et** de lancer une analyse antivirus.
+      ⚠️ **Ne jamais supprimer d'office** : le verdict vient d'une source externe, et
+      `UniqueID` est déclaratif — un mod peut usurper celui d'un autre. On avertit. · **M**
 
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
@@ -1993,6 +2037,18 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       Chiffres du plan de 2026-08-26 (1 468 sauvegardes, 1 309 chemins, 617 Ko)
       périmés d'un facteur 6 ; compter ces chemins sans échapper les slashes
       rend 0 (défaut corrigé en `01ef900`).
+- [ ] **F8** — **`build_app.py` ne dit pas *quel* fichier de localisation est
+      invalide.** *(relevé le 2026-09-14, par sabotage.)* Une virgule retirée dans
+      `assets/fr.json` **fait bien échouer le gate** — exit 1, et la dernière ligne donne
+      « Expecting ',' delimiter: line 7 column 3 » — mais c'est une **pile Python nue**,
+      et elle ne nomme pas le fichier : sur `en.json` et `fr.json`, il faut deviner lequel.
+      Envelopper les deux `json.load` pour que l'échec nomme le fichier.
+      ⚠️ **À ne pas confondre avec le défaut qui l'a fait chercher** : chez Stardrop
+      (`8205d0ea`), un `pl.json` malformé faisait **disparaître toute la traduction
+      polonaise en silence**, faute de validation. Ici le gate attrape correctement — le
+      défaut est dans la façon de le dire, pas dans la détection. Sévérités sans rapport.
+      · **XS**
+
 - [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
       fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
