@@ -17,8 +17,11 @@ struct NexusPageBadge: View {
 
     var body: some View {
         Image(systemName: glyph)
-            .font(AppDesign.Font.iconXXS)
+            .font(AppDesign.Font.iconXS)
             .foregroundColor(tint)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(Capsule().fill(tint.opacity(AppDesign.Opacity.medium)))
             // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
             .frame(width: 18, height: 18)
             .contentShape(.rect)

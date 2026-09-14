@@ -235,7 +235,6 @@ struct ModListRow: View {
                 weightSlot(size)
                 languagesLabel(langs)
                 frenchSlot(langs: langs)
-                anomalySlot
                 noteSlot
                 profileConfigSlot
             }
@@ -245,29 +244,6 @@ struct ModListRow: View {
     /// La largeur d'un créneau d'attribut : la cible de 18 pt qu'exige une
     /// infobulle vivante sur macOS, plus l'air qui la sépare de sa voisine.
     private static let attributeSlot: CGFloat = 22
-
-    /// L'anomalie du mod, dans un créneau tenu. Elle vivait à côté du nom, où
-    /// son abscisse suivait la longueur de celui-ci : d'une ligne à l'autre,
-    /// rien ne tombait au même endroit. Elle ferme désormais la bande de
-    /// métadonnées, comme le reste, en colonnes.
-    @ViewBuilder
-    private var anomalySlot: some View {
-        Group {
-            if let anomaly = vm.anomaly(for: mod) {
-                Button { showingAnomaly = true } label: {
-                    AnomalyBadge(anomaly: anomaly, vm: vm)
-                }
-                .buttonStyle(PlainButtonStyle())
-                .pointingHandCursor()
-                .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
-                    attributePopover(title: localization.L(L10n.Mods.filterIssues),
-                                     systemImage: "exclamationmark.triangle.fill",
-                                     text: anomalyReasons(anomaly, vm: vm))
-                }
-            }
-        }
-        .frame(width: Self.attributeSlot, alignment: .leading)
-    }
 
     /// Le texte du popover d'état de page : le composant porteur d'abord
     /// quand le badge d'un pack vient d'un de ses enfants, puis la phrase
@@ -513,11 +489,13 @@ struct ModListRow: View {
             // Info
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    // L'état de la page Nexus ouvre la rangée du nom (A2-T6,
-                    // au choix de l'auteur) : en tête, son abscisse reste
-                    // stable d'une ligne à l'autre — la leçon du déplacement
-                    // de l'anomalie vers la bande de métadonnées, appliquée
-                    // au seul badge qui a vocation à alerter avant la fiche.
+                    // Les deux badges d'alerte ouvrent la rangée du nom (au
+                    // choix de l'auteur) : l'état de la page Nexus (A2-T6)
+                    // puis l'anomalie. En tête du HStack, leur abscisse reste
+                    // stable d'une ligne à l'autre — c'est la leçon du
+                    // déplacement de l'anomalie vers la bande de
+                    // métadonnées, retournée : ces badges ont vocation à
+                    // alerter avant la fiche, et c'est ici qu'on les cherche.
                     if let page = vm.nexusPageState(for: mod) {
                         Button { showingNexusPage = true } label: {
                             NexusPageBadge(state: page.state, L: localization.L)
@@ -533,6 +511,18 @@ struct ModListRow: View {
                                 text: nexusPagePopoverText)
                         }
                     }
+                    if let anomaly = vm.anomaly(for: mod) {
+                        Button { showingAnomaly = true } label: {
+                            AnomalyBadge(anomaly: anomaly, vm: vm)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .pointingHandCursor()
+                        .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
+                            attributePopover(title: localization.L(L10n.Mods.filterIssues),
+                                             systemImage: "exclamationmark.triangle.fill",
+                                             text: anomalyReasons(anomaly, vm: vm))
+                        }
+                    }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
@@ -542,13 +532,8 @@ struct ModListRow: View {
                     // dans la zone grisée : à 0.55 d'opacité, le grisé
                     // mange la redondance que ces glyphes sont censés porter
                     // (P6 : couleur + barre d'accent + glyph, jamais la
-                    // couleur seule). Sur la même rangée que `favoriteStar`,
-                    // les trois indicateurs se lisent d'un coup d'œil.
-                    // L'anomalie, la note et la config de profil sont parties
-                    // dans la bande de métadonnées : à côté du nom, leur
-                    // abscisse suivait la longueur de celui-ci et rien ne
-                    // tombait au même endroit d'une ligne à l'autre. Reste
-                    // ici ce qui parle du **nom** : son état.
+                    // couleur seule). Reste ici ce qui parle du **nom** :
+                    // son état, et ses alertes.
                 }
                 
                 if mod.name != mod.folderName {
@@ -1116,7 +1101,7 @@ private struct AnomalyBadge: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppDesign.Font.iconXXS)
+                .font(AppDesign.Font.iconXS)
             if anomaly.badgeCount > 0 {
                 Text("\(anomaly.badgeCount)")
                     .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
