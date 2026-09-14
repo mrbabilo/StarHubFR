@@ -232,7 +232,9 @@ let package = Package(
                 "Models/TranslationPresence.swift",
                 "Models/ModListScoping.swift",
                 "Stores/InstalledModRegistryStore.swift",
+                "Models/CustomAvatarStaging.swift",
                 "Stores/FilePicking.swift",
+                "Stores/ImagePicking.swift",
                 "Stores/GameEnvironmentStore.swift",
                 "Stores/LocalizationStore.swift",
                 "Stores/NexusMetadataStore.swift",
@@ -935,6 +937,11 @@ let package = Package(
             name: "NexusIdLearningTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/NexusIdLearningTests"
+        ),
+        .testTarget(
+            name: "CustomAvatarStagingTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/CustomAvatarStagingTests"
         ),
         .testTarget(
             name: "NexusResumeTests",

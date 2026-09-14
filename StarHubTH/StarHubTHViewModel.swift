@@ -41,6 +41,7 @@ final class StarHubTHViewModel {
     // l'auto-refresh historique lançait deux scans concurrents qui
     // écrivaient `gameDir` et `mods` sans synchronisation.
     private let environment = GameEnvironmentStore(picker: LiveFilePicker())
+    private let imagePicker: ImagePicking = LiveImagePicker()
 
     var gameDir: String { environment.gameDir }
     var steamUsername: String { environment.steamUsername }
@@ -7210,29 +7211,28 @@ final class StarHubTHViewModel {
         SaveNotesStore.shared.setNote(for: folderName, tag: note.tag, note: note.note, customIconPath: iconPath)
     }
     
+    /// Copie le portrait choisi dans le dossier de données — le chemin d'origine
+    /// disparaîtrait au premier rangement. Nommage : `CustomAvatarStaging` ; panneau : `ImagePicking`.
     func selectCustomAvatar(forSave folderName: String, completion: ((String) -> Void)? = nil) {
-        #if canImport(AppKit)
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.png, .jpeg, .gif]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.title = localization.L(L10n.Saves.avatarPanelTitle)
-        if panel.runModal() == .OK, let url = panel.url,
-           let appSupport = AppSupport.avatarsDirectory {
-            // Copy to app support dir to prevent broken paths
-            let supportDir = appSupport
-            try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
-            let destURL = supportDir.appendingPathComponent("\(folderName)_\(url.lastPathComponent)")
-            do {
-                try FileManager.default.copyItem(at: url, to: destURL)
-            } catch {
-                log("selectCustomAvatar: copy failed — avatar path not set: \(error)", level: .error)
-                return
-            }
-            setAvatar(forSave: folderName, iconPath: destURL.path)
-            completion?(destURL.path)
+        guard let chosen = imagePicker.pickImage(title: localization.L(L10n.Saves.avatarPanelTitle)),
+              let avatars = AppSupport.avatarsDirectory else { return }
+        let fm = FileManager.default, source = URL(fileURLWithPath: chosen)
+        try? fm.createDirectory(at: avatars, withIntermediateDirectories: true)
+        let plan = CustomAvatarStaging.plan(forSave: folderName, source: source, in: avatars,
+                                            fileExists: { fm.fileExists(atPath: $0.path) })
+        do {
+            // Sans ce retrait, deux images de même nom de fichier faisaient
+            // échouer `copyItem` (`NSFileWriteFileExists`, 516, mesuré) et le
+            // choix du joueur restait sans effet. Le préfixe de destination
+            // porte l'identité de la sauvegarde : le fichier retiré est le sien.
+            if plan.replacesExisting { try fm.removeItem(at: plan.destination) }
+            try fm.copyItem(at: source, to: plan.destination)
+        } catch {
+            log("selectCustomAvatar: copy failed — avatar path not set: \(error)", level: .error)
+            return
         }
-        #endif
+        setAvatar(forSave: folderName, iconPath: plan.destination.path)
+        completion?(plan.destination.path)
     }
     
     /// Copie le dossier de sauvegarde puis réécrit les noms dans son XML.
