@@ -234,6 +234,7 @@ struct ModListRow: View {
                 weightSlot(size)
                 languagesLabel(langs)
                 frenchSlot(langs: langs)
+                nexusPageSlot
                 anomalySlot
                 noteSlot
                 profileConfigSlot
@@ -263,6 +264,18 @@ struct ModListRow: View {
                                      systemImage: "exclamationmark.triangle.fill",
                                      text: anomalyReasons(anomaly, vm: vm))
                 }
+            }
+        }
+        .frame(width: Self.attributeSlot, alignment: .leading)
+    }
+
+    /// L'état de la page Nexus (A2-T6) : un badge muet porté par sa seule
+    /// infobulle — le détail se lit sur la fiche, que le bandeau y attend.
+    @ViewBuilder
+    private var nexusPageSlot: some View {
+        Group {
+            if let page = vm.nexusPageState(for: mod) {
+                NexusPageBadge(state: page.state, L: localization.L)
             }
         }
         .frame(width: Self.attributeSlot, alignment: .leading)

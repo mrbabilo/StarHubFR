@@ -365,6 +365,12 @@ enum L10n {
         static let compatSourceLive         = "mods_compat_source_live"
         static let compatSourcePathoschild  = "mods_compat_source_pathoschild"
         static let compatSourceCache        = "mods_compat_source_cache"
+
+        // MARK: État de la page Nexus (A2-T6)
+        static let nexusPageRemoved           = "mods_nexus_page_removed"
+        static let nexusPageRemovedHint       = "mods_nexus_page_removed_hint"
+        static let nexusPageUnavailable       = "mods_nexus_page_unavailable"
+        static let nexusPageUnavailableHint   = "mods_nexus_page_unavailable_hint"
         static let anomalyDuplicateActive   = "mods_anomaly_duplicate_active"
         static let anomalyDuplicateDormant  = "mods_anomaly_duplicate_dormant"
         static let anomalyCompat            = "mods_anomaly_compat"

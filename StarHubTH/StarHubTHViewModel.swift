@@ -3743,6 +3743,19 @@ final class StarHubTHViewModel {
             .max { $0.verdict.status.severity < $1.verdict.status.severity }
     }
 
+    /// L'état de page Nexus le plus grave porté par un mod ou l'un de ses
+    /// composants (A2-T6) — le badge de ligne/carte et le bandeau de fiche
+    /// lisent tous les deux ici.
+    func nexusPageState(for mod: ModItem) -> (component: ModItem,
+                                              state: NexusPageState)? {
+        mod.components
+            .compactMap { component -> (component: ModItem, NexusPageState)? in
+                guard let state = updateStore.nexusPageStates[component.uniqueId] else { return nil }
+                return (component, state)
+            }
+            .max { $0.state.severity < $1.state.severity }
+    }
+
     /// Les mods installés que smapi.io signale, par nom, du plus grave au moins.
     var compatibilityFlaggedMods: [(name: String, verdict: ModCompatibility)] {
         allInstalledMods()
@@ -4006,7 +4019,8 @@ final class StarHubTHViewModel {
         log("Reprise Nexus : \(modCount) mods sans verdict, \(targets.count) pages à interroger",
             level: .info)
         updateStore.beginFallback(pages: targets.count)
-        fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0, notFound: 0)
+        fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0, notFound: 0,
+                           pageStates: [:])
     }
 
     /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
@@ -4021,11 +4035,12 @@ final class StarHubTHViewModel {
                                     found: [NexusUpdateChecker.ModUpdate],
                                     settled: Set<String>,
                                     failures: Int,
-                                    notFound: Int) {
+                                    notFound: Int,
+                                    pageStates: [String: NexusPageState]) {
         guard index < targets.count else {
             finishNexusFallback(found: found, settled: settled,
                                 failures: failures, attempted: targets.count,
-                                notFound: notFound)
+                                notFound: notFound, pageStates: pageStates)
             return
         }
         let target = targets[index]
@@ -4046,14 +4061,16 @@ final class StarHubTHViewModel {
                 if outcome.rateLimitedRetryAfter != nil {
                     self.finishNexusFallback(found: outcome.found, settled: outcome.settled,
                                              failures: outcome.failures, attempted: index,
-                                             notFound: notFound + outcome.notFoundPages)
+                                             notFound: notFound + outcome.notFoundPages,
+                                             pageStates: pageStates.merging(outcome.pageStates) { _, new in new })
                     return
                 }
                 self.updateStore.setProgress(.init(done: index + 1, total: targets.count))
                 self.fetchNexusFallback(targets, index: index + 1,
                                         found: outcome.found, settled: outcome.settled,
                                         failures: outcome.failures,
-                                        notFound: notFound + outcome.notFoundPages)
+                                        notFound: notFound + outcome.notFoundPages,
+                                        pageStates: pageStates.merging(outcome.pageStates) { _, new in new })
             }
         }
     }
@@ -4068,7 +4085,8 @@ final class StarHubTHViewModel {
                                      settled: Set<String>,
                                      failures: Int,
                                      attempted: Int,
-                                     notFound: Int) {
+                                     notFound: Int,
+                                     pageStates: [String: NexusPageState]) {
         // Baissé **en premier**, avant tout retour possible : les deux sorties
         // de `fetchNexusFallback` (dernière page atteinte, et l'abandon sur
         // limitation de débit) passent par ici, et un drapeau resté levé
@@ -4079,7 +4097,20 @@ final class StarHubTHViewModel {
             found: found, settled: settled, failures: failures,
             attempted: attempted,
             cachedRows: NexusUpdateChecker.shared.cachedUpdates(),
-            notFoundPages: notFound)
+            notFoundPages: notFound, pageStates: pageStates)
+
+        // La projection des états de page **remplace** l'ancienne (A2-T6) :
+        // une page redevenue visible doit voir son état mourir, pas fusionner
+        // avec ce que la dernière reprise avait vu. Purge des mods
+        // désinstallés avant publication et écriture.
+        let installedIds = Set(allInstalledMods().filter { !$0.uniqueId.isEmpty }
+            .map(\.uniqueId))
+        let states = NexusPageState.prune(settlement.pageStates, keeping: installedIds)
+        updateStore.setNexusPageStates(states)
+        if !NexusPageStateStore.save(states) {
+            log("États de page Nexus non enregistrés : les badges de fiche "
+                + "repartiront du cache précédent", level: .warning)
+        }
         if !found.isEmpty {
             NexusUpdateChecker.shared.replaceCachedUpdates(settlement.merged)
             republishUpdatesFromCache()

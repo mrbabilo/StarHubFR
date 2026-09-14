@@ -60,6 +60,15 @@ final class ModUpdateStore {
     /// de verdict d'aucune source.
     private(set) var unverifiable: [SmapiVerdicts.Unverifiable] = []
 
+    /// L'état de la page Nexus observé par la dernière reprise (A2-T6), par
+    /// `UniqueID` — cachée ou supprimée. **Projection du dernier check** :
+    /// chaque reprise remplace l'ensemble (une page redevenue visible doit
+    /// voir son état mourir, pas fusionner avec l'ancien), l'élagage retire
+    /// les mods désinstallés. Vit ici plutôt que dans le ViewModel — F1-T2 :
+    /// l'état neuf naît dans son store.
+    private(set) var nexusPageStates: [String: NexusPageState] =
+        NexusPageStateStore.load()
+
     // MARK: - L'état des passes
 
     /// Vrai tant qu'une vérification tourne — l'une **ou** l'autre passe.
@@ -90,6 +99,10 @@ final class ModUpdateStore {
 
     func setUnverifiable(_ rows: [SmapiVerdicts.Unverifiable]) {
         unverifiable = rows
+    }
+
+    func setNexusPageStates(_ states: [String: NexusPageState]) {
+        nexusPageStates = states
     }
 
     /// Nexus a fini par trancher pour ces identifiants : ils quittent les

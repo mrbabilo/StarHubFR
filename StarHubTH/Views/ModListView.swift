@@ -516,6 +516,7 @@ struct ModListView: View {
                                                 endorsements: values.endorsements,
                                                 usesDefaultArtwork: true,
                                                 attributes: gridAttributes(for: mod),
+                                                pageState: vm.nexusPageState(for: mod)?.state,
                                                 L: localization.L,
                                                 action: { vm.navigationStore.setViewingModDetail(mod) })
                                     }

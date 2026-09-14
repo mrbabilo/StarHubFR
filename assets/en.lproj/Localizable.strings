@@ -594,6 +594,10 @@
 "mods_compat_status_unofficial" = "Needs an unofficial fix";
 "mods_compat_status_workaround" = "A replacement exists";
 "mods_compatibility_note" = "What the author says about compatibility";
+"mods_nexus_page_removed" = "Nexus page removed";
+"mods_nexus_page_removed_hint" = "This mod no longer has a page on Nexus: no more updates, no more downloads.";
+"mods_nexus_page_unavailable" = "Nexus page unavailable";
+"mods_nexus_page_unavailable_hint" = "The author has hidden the page (update in progress or moderation). It may come back.";
 "mods_config_filter_label" = "With Config";
 "mods_delete_confirm_message" = "This mod will be permanently deleted from your disk. This action cannot be undone.";
 "mods_delete_confirm_pack" = "This mod pack will be permanently deleted from your disk, including all of its contents. This action cannot be undone.";

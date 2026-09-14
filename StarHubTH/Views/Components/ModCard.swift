@@ -53,6 +53,9 @@ struct ModCard: View {
     /// et un bouton dans un bouton ne se clique pas sur macOS. Le détail se
     /// lit dans la fiche, qu'ouvre le clic.
     var attributes: [CardAttribute] = []
+    /// L'état de la page Nexus (A2-T6), ou `nil` quand la dernière reprise
+    /// n'a rien observé — Discover n'en a jamais.
+    var pageState: NexusPageState? = nil
     /// Passé tel quel à `CategoryBadge`, qui résout le nom localisé.
     let L: (String) -> String
     let action: () -> Void
@@ -155,6 +158,9 @@ struct ModCard: View {
             }
             if let neutralBadge {
                 NeutralBadge(label: neutralBadge)
+            }
+            if let pageState {
+                NexusPageBadge(state: pageState, L: L)
             }
             ForEach(attributes) { attribute in
                 Image(systemName: attribute.systemImage)

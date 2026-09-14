@@ -33,6 +33,12 @@ enum NexusResume {
         /// cachée » de la case A2-T6, que le bilan final nomme. Zéro pour
         /// tout autre sort.
         let notFoundPages: Int
+        /// L'état de page observé, par `UniqueID` — le marquage qui alimente
+        /// la fiche (A2-T6). La règle tient en deux lignes : 404 → tous les
+        /// mods de la page sont `.removed` ; 200 → les mods que smapi.io
+        /// disait introuvables sont en fait sur une page cachée
+        /// (`.unavailable`).
+        let pageStates: [String: NexusPageState]
         /// L'abandon sur limitation de débit : le `retryAfter` reçu. `nil`
         /// quand la reprise continue.
         let rateLimitedRetryAfter: TimeInterval?
@@ -53,10 +59,24 @@ enum NexusResume {
         var settled = settled
         var failures = failures
         var notFoundPages = 0
+        var pageStates: [String: NexusPageState] = [:]
         var journal: [JournalLine] = []
         var rateLimited: TimeInterval? = nil
+        // Le marquage de la fiche (A2-T6) : **page vivante** — seuls les mods
+        // que smapi.io disait introuvables sont en fait cachés (même règle du
+        // premier-erreur que la classification des invérifiables,
+        // `SmapiVerdicts`). Une page sans version publiable reste une page
+        // vivante : l'état suit la page, pas le verdict. La page **morte**
+        // (404 seulement — un 503 ne dit rien) l'est pour tous ses mods.
+        func markPageLiving(on target: NexusFallbackCheck.Target) {
+            for mod in target.mods
+            where mod.errors.first.map(SmapiUpdateResponse.blocker(for:)) == .sourceNotFound {
+                pageStates[mod.uniqueId] = .unavailable
+            }
+        }
         switch result {
         case .success(let version, _, let extra, let pageFile):
+            markPageLiving(on: target)
             // Une page **sans version** n'est pas un verdict. L'API Nexus
             // exige seulement que le champ existe, et une chaîne vide s'y
             // décode sans broncher : la tenir pour « à jour » retirerait le
@@ -103,7 +123,10 @@ enum NexusResume {
             // reprise. Les autres erreurs (décodage, transport) se taisent :
             // garde anti-bruit inchangée.
             guard let code = Self.httpStatusCode(from: message) else { break }
-            if code == 404 { notFoundPages += 1 }
+            if code == 404 {
+                notFoundPages += 1
+                for mod in target.mods { pageStates[mod.uniqueId] = .removed }
+            }
             let gloss = code == 404 ? " — supprimée ou cachée" : ""
             journal.append(JournalLine(
                 text: "Reprise Nexus : la page \(target.nexusId) répond HTTP \(code)\(gloss) "
@@ -111,7 +134,7 @@ enum NexusResume {
                 level: .info))
         }
         return PageOutcome(found: found, settled: settled, failures: failures,
-                           notFoundPages: notFoundPages,
+                           notFoundPages: notFoundPages, pageStates: pageStates,
                            rateLimitedRetryAfter: rateLimited, journal: journal)
     }
 
@@ -169,6 +192,9 @@ enum NexusResume {
         /// Le cache tel qu'il doit être réécrit — vide quand rien n'a été
         /// trouvé (l'appelant n'écrit alors pas).
         let merged: [NexusUpdateChecker.ModUpdate]
+        /// L'état de page observé par la reprise (A2-T6) : la projection à
+        /// publier et persister, à la place de l'ancienne.
+        let pageStates: [String: NexusPageState]
         /// Le décompte : tenté, trouvé, confirmé à jour, échoué. Une reprise
         /// silencieuse laisserait croire qu'elle n'a rien trouvé alors
         /// qu'elle n'a pas abouti. Le niveau monte en `.warning` dès qu'elle
@@ -179,12 +205,16 @@ enum NexusResume {
     /// - Parameters:
     ///   - cachedRows: les lignes du **cache** — plat, jamais la liste
     ///     consolidée affichée.
+    ///   - pageStates: l'état observé page par page, tel quel — la
+    ///     projection **remplace** l'ancienne (une page redevenue visible
+    ///     doit voir son état mourir, pas fusionner).
     static func settle(found: [NexusUpdateChecker.ModUpdate],
                        settled: Set<String>,
                        failures: Int,
                        attempted: Int,
                        cachedRows: [NexusUpdateChecker.ModUpdate],
-                       notFoundPages: Int = 0) -> Settlement {
+                       notFoundPages: Int = 0,
+                       pageStates: [String: NexusPageState] = [:]) -> Settlement {
         var merged: [NexusUpdateChecker.ModUpdate] = []
         if !found.isEmpty {
             // Les lignes Nexus se **substituent** aux lignes précédentes des
@@ -215,6 +245,6 @@ enum NexusResume {
                 + "\(settled.count - found.count) mod(s) confirmé(s) à jour, "
                 + failedLine,
             level: found.isEmpty ? .info : .warning)
-        return Settlement(merged: merged, journal: [line])
+        return Settlement(merged: merged, pageStates: pageStates, journal: [line])
     }
 }

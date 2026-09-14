@@ -14,11 +14,16 @@ struct NexusResumeTests {
     // MARK: - Fabriques
 
     private func blocked(_ uid: String, name: String,
-                         installed: String) -> NexusFallbackCheck.Blocked {
+                         installed: String,
+                         errors: [String] = ["err"]) -> NexusFallbackCheck.Blocked {
         NexusFallbackCheck.Blocked(uniqueId: uid, name: name,
                                    installedVersion: installed, declaredKeys: [],
-                                   metadataNexusId: 191, errors: ["err"], heldFacts: nil)
+                                   metadataNexusId: 191, errors: errors, heldFacts: nil)
     }
+
+    /// Le message réel de smapi.io pour une page Nexus qu'il ne voit plus —
+    /// cachée, supprimée ou jamais existée (sondes du 2026-09-14, A2-T6).
+    private static let foundNoNexus = "Found no Nexus mod with this ID."
 
     /// Une page dont tous les mods sont dépassés par `pageVersion`.
     private func target(_ nexusId: String, mods: [NexusFallbackCheck.Blocked]) -> NexusFallbackCheck.Target {
@@ -247,6 +252,77 @@ struct NexusResumeTests {
         let without = NexusResume.settle(found: [], settled: [], failures: 0,
                                          attempted: 1, cachedRows: [])
         #expect(!without.journal[0].text.contains("404"))
+    }
+
+    // MARK: - L'état de page Nexus sur la fiche (A2-T6)
+
+    /// **404** : la page est morte pour tous ses mods — même ceux dont
+    /// l'erreur smapi.io n'était pas « found no » : ce que la page réponde
+    /// n'existe plus pour quiconque la réclame.
+    @Test func http404MarksEveryModOfTheTargetRemoved() {
+        let t = target("32260", mods: [
+            blocked("a.mod", name: "Forgotten Woods", installed: "1.5.0",
+                    errors: [Self.foundNoNexus]),
+            blocked("b.mod", name: "Autre blocage", installed: "1.0.0",
+                    errors: ["has no valid versions"]),
+        ])
+        let outcome = NexusResume.applyPage(.error("http_404"), target: t,
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.pageStates == ["a.mod": .removed, "b.mod": .removed])
+    }
+
+    /// **200 après « found no »** : la page vit mais est cachée — seuls les
+    /// mods porteurs de cette erreur-là sont marqués indisponibles (mesuré
+    /// réel : le mod 32260 caché répond 200, version 1.5.0).
+    @Test func livingPageMarksSourceNotFoundModsUnavailable() {
+        let t = target("32260", mods: [
+            blocked("a.mod", name: "Caché", installed: "1.5.0",
+                    errors: [Self.foundNoNexus]),
+            blocked("b.mod", name: "Autre blocage", installed: "1.0.0",
+                    errors: ["has no valid versions"]),
+        ])
+        let outcome = NexusResume.applyPage(success("1.5.0"), target: t,
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.pageStates == ["a.mod": .unavailable])
+    }
+
+    /// Page vivante mais **sans version publiable** : un échec au sens
+    /// verdict — et pourtant la page existe, cachée. L'état suit la page,
+    /// pas le verdict.
+    @Test func versionlessLivingPageStillMarksUnavailable() {
+        let t = target("32260", mods: [
+            blocked("a.mod", name: "Caché", installed: "1.5.0",
+                    errors: [Self.foundNoNexus]),
+        ])
+        let outcome = NexusResume.applyPage(success("   "), target: t,
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.failures == 1)
+        #expect(outcome.pageStates == ["a.mod": .unavailable])
+    }
+
+    /// Une erreur hors 404 (503, transport…) ne dit rien de l'état de la
+    /// page — ne rien marquer vaut mieux qu'affirmer à tort.
+    @Test func otherHTTPCodesMarkNothing() {
+        let t = target("32260", mods: [
+            blocked("a.mod", name: "Caché", installed: "1.5.0",
+                    errors: [Self.foundNoNexus]),
+        ])
+        let outcome = NexusResume.applyPage(.error("http_503"), target: t,
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.pageStates.isEmpty)
+    }
+
+    /// L'élagage : un état ne vaut que pour un mod **installé** — la fiche
+    /// d'un mod parti n'existe plus, et un badge orphelin ne doit pas
+    /// ressusciter avec lui.
+    @Test func pruneKeepsOnlyInstalledMods() {
+        let states: [String: NexusPageState] = ["a.mod": .removed, "gone.mod": .unavailable]
+        #expect(NexusPageState.prune(states, keeping: ["a.mod"]) == ["a.mod": .removed])
+        #expect(NexusPageState.prune(states, keeping: []).isEmpty)
     }
 
     // MARK: - Fabrique commune

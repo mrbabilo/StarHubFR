@@ -124,6 +124,8 @@ let package = Package(
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
                 "Models/NexusFallbackCheck.swift",
+                "Models/NexusPageState.swift",
+                "Models/NexusPageStateStore.swift",
                 "Models/NexusResume.swift",
                 "Models/NexusUpdateCheck.swift",
                 "Models/NexusCategoryResolver.swift",

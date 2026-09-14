@@ -1284,6 +1284,7 @@ struct ModDetailView: View {
             // telles quelles — leurs gates et conditions internes suivent.
             VStack(alignment: .leading, spacing: 16) {
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
+                NexusPageBanner(vm: vm, localization: localization, mod: live)
                 // Le hub de traduction — chercher, poser, mettre à jour,
                 // retirer — reste réservé au premier niveau : c'est ici,
                 // sur la fiche du mod concerné, qu'il a sens.

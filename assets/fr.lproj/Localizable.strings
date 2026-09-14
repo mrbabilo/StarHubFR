@@ -594,6 +594,10 @@
 "mods_compat_status_unofficial" = "Demande un correctif non officiel";
 "mods_compat_status_workaround" = "Un remplaçant existe";
 "mods_compatibility_note" = "Ce que l'auteur dit de la compatibilité";
+"mods_nexus_page_removed" = "Page Nexus supprimée";
+"mods_nexus_page_removed_hint" = "Ce mod n'a plus de page sur Nexus : plus de mise à jour, plus de téléchargement.";
+"mods_nexus_page_unavailable" = "Page Nexus indisponible";
+"mods_nexus_page_unavailable_hint" = "L'auteur a masqué la page (mise à jour en cours ou modération). Elle peut revenir.";
 "mods_config_filter_label" = "Avec configuration";
 "mods_delete_confirm_message" = "Ce mod sera définitivement supprimé de votre disque. Cette action est irréversible.";
 "mods_delete_confirm_pack" = "Ce pack de mods sera définitivement supprimé de votre disque, y compris tout son contenu. Cette action est irréversible.";
