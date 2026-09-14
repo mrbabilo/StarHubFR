@@ -1549,13 +1549,20 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 > Ce document-ci ne garde que les tâches ; le comment vit là-bas.
 
 - [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait
-      **11 902 lignes** (mesuré le 2026-09-10 ; **4 296** au relevé initial du
-      2026-07-30, soit **+177 % en 41 jours** — le module grossit plus vite qu'on ne
-      l'allège, ~285 lignes/jour sur la dernière semaine) et concentre profils, scan,
-      Nexus, logs, configs et sauvegardes. Il porte **135 `@Published`** sur l'unique
-      `ObservableObject` qu'observe toute la fenêtre — dont **70 sans
+      **10 084 lignes** (mesuré le 2026-09-14 ; **11 902** le 2026-09-10 et **4 296**
+      au relevé initial du 2026-07-30 — la pente s'est inversée le 2026-09-10, quand
+      le cliquet de taille par fichier a fermé les ~16 000 lignes de marge muette :
+      **−1 818 lignes en quatre jours**, contre ~285 lignes/jour de croissance la
+      semaine d'avant) et concentre profils, scan,
+      Nexus, logs, configs et sauvegardes. ⚠️ **Le reste de ce paragraphe date du
+      2026-09-10 et son mécanisme n'existe plus** : il portait **135 `@Published`**
+      sur l'unique `ObservableObject` qu'observe toute la fenêtre — dont **70 sans
       `private(set)`**, soit les 75 du cliquet moins 5 ailleurs dans le dépôt —
-      et **52 accès directs à `UserDefaults`**. (Compté hors commentaires,
+      et **52 accès directs à `UserDefaults`**. Le chantier A les a **tous** convertis
+      à `@Observable` le 2026-09-11 : **0 `@Published`** dans le fichier au
+      2026-09-14 (les 26 que rend un `grep` nu sont **toutes** en commentaire — piège
+      connu du dépôt). La grandeur qui a pris leur suite est l'état stocké du cliquet,
+      `viewmodel_stored_state` : **128 → 82 (2026-09-12) → 76**. (Compté hors commentaires,
       comme `check_standards.py` : un `grep` nu gonfle ces deux nombres à 166
       et 73.) C'est un sixième des 71 956 lignes Swift du dépôt.
       ✅ **Point 1 du §5 livré le 2026-09-10 — le registre des mods installés.**
