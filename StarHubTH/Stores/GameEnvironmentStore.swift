@@ -19,7 +19,12 @@ import Observation
 /// appelé depuis les files de fond de `refresh()`/`performInitialLoad` et
 /// repasse par main pour publier ; `checkSmapiVersion` publie sur le fil de
 /// l'appelant, comme avant.
+/// `@MainActor` (P5-L5) : l'état publié est lu par les vues et écrit d'ici.
+/// `fetchSteamUser` reste **hors acteur** (`nonisolated`) — c'est lui qui lit
+/// `loginusers.vdf` sur une file de fond, et il n'a jamais touché l'état
+/// autrement que par sa publication finale.
 @Observable
+@MainActor
 final class GameEnvironmentStore {
 
     /// Le dossier `Contents/MacOS` du jeu. **Ne déclenche jamais de scan** :
@@ -84,15 +89,17 @@ final class GameEnvironmentStore {
     /// illisible : le nom déjà affiché reste (comportement historique — pas
     /// de repli « Farmer » sur un fichier absent).
     ///
-    /// `fallbackFarmerName` est une **closure**, évaluée aux deux seuls
-    /// endroits qui en ont besoin — le repli hors file principale, et la
-    /// publication sur main. Une valeur évaluée à l'appel aurait fait lire
-    /// `currentLanguage` par chaque passage sur file de fond, là où le code
-    /// d'origine ne la lisait que dans ses branches rares (revue du
-    /// 2026-09-10).
-    func fetchSteamUser(home: String = NSHomeDirectory(),
-                        systemUserName: String = NSFullUserName(),
-                        fallbackFarmerName: @escaping () -> String) {
+    /// `fallbackFarmerName` arrive **résolu**, plus en closure (P5-L5). La
+    /// closure existait pour ne lire `currentLanguage` que dans les branches
+    /// rares (revue du 2026-09-10) — mais elle le lisait alors **depuis la
+    /// file de fond**, pendant que l'acteur principal peut l'écrire. Le
+    /// mode Swift 6 refuse cette capture, et il a raison : la résoudre chez
+    /// l'appelant, sur le main, supprime la lecture inter-fils. Le coût est
+    /// une résolution de clé par passe (deux par lancement), pas une par
+    /// branche rare.
+    nonisolated func fetchSteamUser(home: String = NSHomeDirectory(),
+                                    systemUserName: String = NSFullUserName(),
+                                    fallbackFarmerName: String) {
         let vdfPath = "\(home)/Library/Application Support/Steam/config/loginusers.vdf"
         guard let content = try? String(contentsOfFile: vdfPath, encoding: .utf8) else { return }
         let parsed = SteamLoginUsers.parse(content: content)
@@ -102,7 +109,7 @@ final class GameEnvironmentStore {
             resolvedUsername = parsed.personaName
         } else {
             let defaultName = systemUserName.components(separatedBy: " ").first ?? ""
-            resolvedUsername = defaultName.isEmpty ? fallbackFarmerName() : defaultName
+            resolvedUsername = defaultName.isEmpty ? fallbackFarmerName : defaultName
         }
 
         let resolvedAvatarPath = GameDirLocator.avatarPath(steamID: parsed.steamID, home: home)
@@ -110,10 +117,19 @@ final class GameEnvironmentStore {
         // Publication sur main. L'ordre FIFO de main garantit qu'un check
         // `isEmpty` appelant s'exécutant avant cette écriture ne peut pas
         // voir l'ancienne valeur écraser le vrai nom (audit 2026-08-05).
+        // ⚠️ `DispatchQueue.main.async`, **pas** `Task { @MainActor in }` : la
+        // garantie ci-dessus est celle de la file, et un `Task` non structuré
+        // n'entre pas dans son FIFO. Le premier essai de P5-L5 l'a remplacé —
+        // deux tests du store et un du client smapi.io ont rougi. La classe
+        // étant `@MainActor`, elle est implicitement `Sendable` (SE-0316) et
+        // se capture donc légalement ici ; `assumeIsolated` rend l'écriture
+        // synchrone une fois sur place, au lieu d'en différer une de plus.
         DispatchQueue.main.async {
-            self.steamUsername = resolvedUsername.isEmpty ? fallbackFarmerName() : resolvedUsername
-            if let resolvedAvatarPath {
-                self.steamAvatarPath = resolvedAvatarPath
+            MainActor.assumeIsolated {
+                self.steamUsername = resolvedUsername.isEmpty ? fallbackFarmerName : resolvedUsername
+                if let resolvedAvatarPath {
+                    self.steamAvatarPath = resolvedAvatarPath
+                }
             }
         }
     }

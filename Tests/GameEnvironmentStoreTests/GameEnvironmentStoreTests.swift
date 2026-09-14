@@ -27,7 +27,11 @@ private final class StubFilePicker: FilePicking {
 ///
 /// Les préférences passent par une suite jetable (CLAUDE.md : aucun test
 /// n'écrit dans le vrai domaine), le disque par des dossiers temporaires.
-@Suite struct GameEnvironmentStoreTests {
+/// `@MainActor` : le store s'isole sur l'acteur principal depuis P5-L5 — son
+/// état publié est celui que les vues lisent. Seul `fetchSteamUser` en sort
+/// (`nonisolated`), et il publie par un hop : d'où les `waitUntil` déjà
+/// présents sur ces trois tests.
+@Suite @MainActor struct GameEnvironmentStoreTests {
 
     private let fm = FileManager.default
 
@@ -52,14 +56,26 @@ private final class StubFilePicker: FilePicking {
     /// Attend que la file principale ait vidé ce qui y est déjà en file —
     /// un hop postérieur à l'appel garantit (FIFO) que celui du store est
     /// passé.
-    private func drainMainQueue() {
-        var landed = false
-        DispatchQueue.main.async { landed = true }
+    ///
+    /// ⚠️ **Attendre sans bloquer l'acteur.** La suite est `@MainActor` depuis
+    /// que le store l'est : une boucle qui pompe la `RunLoop` retient
+    /// l'acteur principal, et le hop qu'on attend ne peut alors jamais
+    /// s'exécuter — les quatre attentes expiraient. `await` rend la main.
+    private func drainMainQueue() async {
+        let landed = LandedFlag()
+        DispatchQueue.main.async { landed.value = true }
         let deadline = Date().addingTimeInterval(5)
-        while !landed && Date() < deadline {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        while !landed.value && Date() < deadline {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 2_000_000)
         }
-        #expect(landed)
+        #expect(landed.value)
+    }
+
+    /// Le drapeau traverse la frontière du hop : une capture de `var` local
+    /// dans une closure concurrente ne passe pas en concurrence stricte.
+    private final class LandedFlag: @unchecked Sendable {
+        var value = false
     }
 
     // MARK: - restoreGameDir
@@ -157,7 +173,7 @@ private final class StubFilePicker: FilePicking {
 
     /// Un `loginusers.vdf` réel + un avatar png : le nom du compte et le
     /// chemin de l'avatar sont publiés sur main.
-    @Test func theVDFDrivesTheSteamIdentity() throws {
+    @Test func theVDFDrivesTheSteamIdentity() async throws {
         let home = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let vdf = home.appendingPathComponent("Library/Application Support/Steam/config/loginusers.vdf")
         try fm.createDirectory(at: vdf.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -177,19 +193,19 @@ private final class StubFilePicker: FilePicking {
 
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: home.path, systemUserName: "David Baudoin",
-                             fallbackFarmerName: { "Fermier" })
-        drainMainQueue()
+                             fallbackFarmerName: "Fermier")
+        await drainMainQueue()
         #expect(store.steamUsername == "David")
         #expect(store.steamAvatarPath == avatar.path)
     }
 
     /// VDF absent : **silence** — comportement historique. Pas de repli
     /// « Farmer », pas d'effacement : le nom déjà affiché reste.
-    @Test func withoutAVDFNothingIsPublished() {
+    @Test func withoutAVDFNothingIsPublished() async {
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: "/nulle-part", systemUserName: "David Baudoin",
-                             fallbackFarmerName: { "Fermier" })
-        drainMainQueue()
+                             fallbackFarmerName: "Fermier")
+        await drainMainQueue()
         #expect(store.steamUsername == "")
         #expect(store.steamAvatarPath == nil)
     }
@@ -197,7 +213,7 @@ private final class StubFilePicker: FilePicking {
     /// VDF lisible mais sans `PersonaName` : repli sur le prénom du compte
     /// macOS. Un nom système vide tombe sur la valeur localisée reçue — le
     /// store n'invente rien, il reçoit.
-    @Test func aVDFWithoutPersonaNameFallsBackThenToTheLocalizedValue() throws {
+    @Test func aVDFWithoutPersonaNameFallsBackThenToTheLocalizedValue() async throws {
         let home = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let vdf = home.appendingPathComponent("Library/Application Support/Steam/config/loginusers.vdf")
         try fm.createDirectory(at: vdf.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -213,14 +229,14 @@ private final class StubFilePicker: FilePicking {
 
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store.fetchSteamUser(home: home.path, systemUserName: "David Baudoin",
-                             fallbackFarmerName: { "Fermier" })
-        drainMainQueue()
+                             fallbackFarmerName: "Fermier")
+        await drainMainQueue()
         #expect(store.steamUsername == "David")
 
         let store2 = GameEnvironmentStore(defaults: makeDefaults(), picker: StubFilePicker(path: nil))
         store2.fetchSteamUser(home: home.path, systemUserName: "",
-                              fallbackFarmerName: { "Fermier" })
-        drainMainQueue()
+                              fallbackFarmerName: "Fermier")
+        await drainMainQueue()
         #expect(store2.steamUsername == "Fermier")
     }
 }

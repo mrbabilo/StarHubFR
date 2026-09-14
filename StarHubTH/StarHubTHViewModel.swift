@@ -2186,11 +2186,15 @@ final class StarHubTHViewModel {
         // `[weak self]` even though the VM is app-lifetime today, so a future
         // non-singleton refactoring (e.g. SwiftUI previews, scoped VMs) can't
         // turn into a retain cycle.
+        // Le repli « Farmer » se résout **ici**, sur l'acteur principal : la
+        // file de fond ne lit plus `currentLanguage` pendant que le main peut
+        // l'écrire (P5-L5).
+        let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             self.scanMods()          // also kicks off parseSMAPILog internally
             self.reloadSaves()
-            self.environment.fetchSteamUser(fallbackFarmerName: { self.localization.L(L10n.VM.defaultFarmerName) })
+            self.environment.fetchSteamUser(fallbackFarmerName: farmerFallback)
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
@@ -2255,6 +2259,9 @@ final class StarHubTHViewModel {
     /// Step weights are rough heuristics — the goal is visible progress, not
     /// precise timing. Heavy filesystem ops (scanMods) get the biggest slice.
     private func performInitialLoad() {
+        // Même règle qu'à `refresh()` : le repli « Farmer » se résout sur le
+        // main, avant que la file de fond n'en ait besoin (P5-L5).
+        let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
         // Step 0 — "Initializing": caches already seeded synchronously in
         // init (game dir, Nexus caches). Just publish the first frame.
         DispatchQueue.main.async { [weak self] in
@@ -2345,7 +2352,7 @@ final class StarHubTHViewModel {
                 // call it here, on main, rather than on the background queue below.
                 self?.loadProfiles()
             }
-            self.environment.fetchSteamUser(fallbackFarmerName: { self.localization.L(L10n.VM.defaultFarmerName) })
+            self.environment.fetchSteamUser(fallbackFarmerName: farmerFallback)
 
             // Step 4b — Seed the Nexus caches + user overrides (was blocking
             // the window's first paint when it ran in init).
