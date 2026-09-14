@@ -53,6 +53,7 @@
   "oversized_files": 42,
   "print_calls": 30,
   "try_optional": 334,
+  "view_files_past_1500": 1,
   "viewmodel_facades_to_combine": 0,
   "viewmodel_stored_state": 76,
   "vm_dot_L_calls": 0

@@ -31,6 +31,10 @@ encore. Voir le commentaire de `FILE_RULES`.
 S'y ajoute un compteur **par fichier** (clés `file:<chemin>`) pour chaque
 fichier au-dessus du seuil. Voir le commentaire de `FILE_PREFIX` : les deux
 agrégats se compensent entre fichiers, celui-ci ne se compense pas.
+
+Depuis le cadrage des vues (P8, 2026-09-14), une règle de taille de plus :
+`view_files_past_1500` — un fichier de `Views/` qui traverse 1 500 lignes doit
+se couper à son tour. Voir le commentaire de `VIEW_CUT_LIMIT`.
 """
 from __future__ import annotations
 
@@ -385,7 +389,33 @@ FILE_RULES: dict[str, Callable[[dict[str, int]], int]] = {
     "oversized_excess_lines": lambda c: sum(
         n - LINE_LIMIT for n in c.values() if n > LINE_LIMIT
     ),
+    # La règle T4 — le corps du propos est dans le bloc `VIEW_CUT_LIMIT` lu,
+    # constantes définies juste après.
+    "view_files_past_1500": lambda c: sum(
+        1 for p, n in c.items()
+        if n > VIEW_CUT_LIMIT and p.startswith(VIEW_DIR)
+    ),
 }
+
+# § la règle de **recoupe** — T4 du cadrage des vues (2026-09-14) : un fichier
+# de vue qui traverse 1 500 lignes se coupe à son tour. Une **règle**, pas une
+# tranche : elle reste quand P8 sera fini. Trois choix à connaître avant d'y
+# toucher :
+#
+#   - Le périmètre est `Views/`, le domaine de P8. D'autres fichiers importent
+#     SwiftUI hors de ce dossier (le ViewModel, l'app, `Design/`), mais ils ont
+#     leur propre verrou et leur propre axe de travail — la règle ne leur parle
+#     pas.
+#   - Un compteur alors que tout fichier > 400 a déjà son verrou `file:` : les
+#     verrous sont indexés par **chemin**, et P8 renomme et déplace des fichiers
+#     par construction — la coupe T1 a créé `ModListRow.swift` (1 141 lignes) et
+#     fait naître des clés neuves. Un verrou ne survit pas à un renommage ; la
+#     règle, elle, regarde la forme du chemin, pas son nom.
+#   - « Traverser » = dépasser strictement : 1 500 lignes passent, 1 501 non.
+#     MainView (1 554) est comptée dès la pose — la base naît à 1, et la coupe
+#     T3 doit la faire tomber à 0, où `--update` la resserre à jamais.
+VIEW_DIR = f"StarHubTH{os.sep}Views{os.sep}"
+VIEW_CUT_LIMIT = 1500
 
 # § le même défaut, un cran plus loin : **les deux agrégats se compensent entre
 # fichiers**. Mesuré le 2026-09-11 sur ce dépôt — 120 lignes ajoutées au
@@ -564,7 +594,9 @@ def main() -> int:
             for count, path in oversized[:10]:
                 was = baseline.get(FILE_PREFIX + path)
                 drift = "" if was is None or was == count else f"  [{count - was:+d} / base]"
-                print(f"    {count:>6}  (+{count - LINE_LIMIT})  {path}{drift}")
+                cut = "  ⚠ règle T4 : à couper" if (
+                    count > VIEW_CUT_LIMIT and path.startswith(VIEW_DIR)) else ""
+                print(f"    {count:>6}  (+{count - LINE_LIMIT})  {path}{drift}{cut}")
             if len(oversized) > 10:
                 print(f"    … et {len(oversized) - 10} autres")
         return 0
