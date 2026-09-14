@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-09-15
+
 ### Added
 
 - **Un mod signalé comme malveillant par SMAPI se voit maintenant avant de lancer le jeu.** L'app lit la liste noire officielle, la croise à vos mods, et l'annonce en tête des alertes système avec un bandeau rouge sur la fiche. Elle ne supprime rien : elle dit quoi faire.
@@ -1479,7 +1481,7 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.36.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.46.0...HEAD
 [1.26.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.25.0...v1.26.0
 [1.25.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...v1.25.0
 [1.24.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.23.0...v1.24.0
