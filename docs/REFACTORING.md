@@ -884,7 +884,10 @@ Trois choses que la tranche a apprises, et qu'on ne veut pas réapprendre :
    intermédiaire de T2 (`/tmp/p5-l4-t2`) avait perdu son processus à
    l'édition de liens : **12 fichiers couverts sur 17**, `ModInstallView`
    absent du journal *entier*. Elle rendait « 33 bloquants, −25 » ; le vrai
-   compte était 36, −22. Le pied de page des URL de diagnostic était bien
+   compte était 36, −22 — **déduit, jamais mesuré** : la passe T2 a été
+   perdue et aucune autre n'a été relancée avant T3 ; l'arithmétique ferme
+   (83 −25 −22 −8 = 28) et la mesure T3 est complète, mais le 36 reste un
+   calcul. Le pied de page des URL de diagnostic était bien
    présent — **il ne prouve pas la complétude**. Deux signaux le font : le
    binaire `probe` existe, et la couverture par fichier ne perd que les
    fichiers qu'on vient de guérir. Le message du commit `aac4dd40` porte
