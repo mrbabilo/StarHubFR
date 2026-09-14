@@ -2851,6 +2851,43 @@ répond. L'ordre et les titres de section sont ceux de la roadmap.
       « Vérifier » de la page Mises à jour passe toujours outre. 3 tests : jamais
       vérifié / frais / périmé, frontière exacte posée sur le TTL.*
 
+- [x] **A2-T6** — **Pages Nexus supprimées ou momentanément indisponibles, dites
+      à l'écran.** ✅ *(livré le 2026-09-14 — `bd8ef8ab`, `4878b34f`, `1f26df02`,
+      `500c86aa`)*. Cas fondateur : mod
+      [32260](https://www.nexusmods.com/stardewvalley/mods/32260) — caché le
+      23 juin 2026 par son auteur, installé sur le parc en deux packs partageant
+      l'id (`Azathii.ForgottenWoods`, `Azathii.ForgottenWoods.FTM`), en 1.5.0.
+      **Mesures à ne pas refaire** :
+      • smapi.io rend la **même** erreur « Found no Nexus mod with this ID. »
+      pour une page cachée, une page supprimée et un identifiant jamais existé
+      (trois sondes réelles). L'erreur était déjà parsée en `.sourceNotFound`
+      (`SmapiUpdateResponse.blocker`, fragment « found no ») et déjà affichée au
+      volet « invérifiables » ; c'est une **erreur dans une entrée présente**,
+      jamais une absence — le piège 429/503 des passes partielles ne s'applique
+      pas à ce verdict ;
+      • page cachée côté web = HTTP 200, `og:title = "Mod unavailable"`, bandeau
+      « Hidden mod » avec date, auteur et raison libre. ⚠️ **Le cache des
+      lecteurs web ment sur l'état** : sans `no-cache`, 32260 a montré trois mois
+      sa page d'avant le masquage — toute sonde d'état passe en `no_cache` ;
+      • **l'API v1 départage** : pour 32260 *caché*, v1 répond **200 — version
+      1.5.0** (jamais publique). La reprise a donc *réglé* le cas fondateur en
+      « à jour (1.5.0 = 1.5.0) », la copie du parc venant de cette release
+      retirée.
+      **Livré** : la reprise nomme désormais les statuts au journal
+      (`http_<code>`) et marque l'état par mod — `NexusPageState` (`.removed`
+      pour un 404, tous les mods de la page ; `.unavailable` pour un 200 après
+      « found no », seuls les porteurs, même règle du premier-erreur que les
+      invérifiables), projection **remplacée** à chaque reprise — une page
+      redevenue visible doit voir son état mourir, pas fusionner — et élaguée
+      au parc installé, persistée côté `ModUpdateStore` (**F1-T2 respecté en
+      cours de route : le cliquet a refusé l'état neuf dans le ViewModel**).
+      Écran : badge capsule à côté du nom en ligne (popover au clic), badge sur
+      la carte de grille, bandeau rouge/orange sur la fiche, et `hasIssues`
+      intègre l'état — le filtre « Problèmes » les ramène. Reste ouvert, **au
+      contact** : une `[MAJ]` suggérée sur une page cachée serait
+      intéléchargeable ; un vrai 404 n'a pas encore été observé sur le parc —
+      le journal le nommera quand il viendra.
+
 #### A3 — Métadonnées Nexus
 
 - [x] **A3-T5** — **Ce qui est posé se voit, se suit et ne se propose plus.** *Livré le

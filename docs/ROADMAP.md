@@ -673,46 +673,12 @@ backup se retrouve en moins de dix secondes.
 > | 4 | Garde-fous d'écriture (`policy.ts`) | Vortex | À reprendre **comme revue**, pas comme code → à joindre à **F2** |
 > | 5 | Constantes de durée relisibles + audit des TTL | Vortex | C'était le TTL manquant de **A2-T4** — livré le 2026-08-31 |
 
-- [ ] **A2-T6** — Indiquer les mods dont la **page Nexus a été supprimée** ou est
-      **momentanément indisponible** (mise à jour en cours, modération). Cas réel :
-      mod [32260](https://www.nexusmods.com/stardewvalley/mods/32260) — **caché le
-      23 juin 2026** par son auteur (« temporarily unavailable while the mod author
-      updates the mod page »), installé sur le parc en deux packs partageant l'id
-      (`Azathii.ForgottenWoods`, `Azathii.ForgottenWoods.FTM`), en 1.5.0 — plus
-      récent que la dernière version publique (1.2.0).
-      **Relevé mesuré le 2026-09-14** :
-      • **page cachée** = HTTP 200, `og:title = "Mod unavailable"`, bandeau
-      « Hidden mod — set to hidden le {date} par {auteur} — raison : {texte
-      libre} ». Pas un 404. **page supprimée** = 404 (à confirmer sur un cas
-      réel). ⚠️ **Le cache des rendus ment** : sans `no-cache`, 32260 montrait
-      encore la page d'avant le 23 juin — la note « la description rend encore »
-      écrite plus ce jour-là venait de là ;
-      • **smapi.io ne distingue rien** : caché, supprimé et identifiant jamais
-      existé rendent la **même** erreur « Found no Nexus mod with this ID. »
-      (sondes réelles). Cette erreur est **déjà** parsée en `.sourceNotFound`
-      (`SmapiUpdateResponse.blocker`, fragment « found no ») et **déjà** affichée
-      au volet « invérifiables » de la page Mises à jour (libellé combiné
-      « Page du mod introuvable (retirée ou masquée) »). Le signal est une
-      **erreur explicite dans une entrée présente**, jamais une absence —
-      le piège 429/503 ci-dessous ne s'applique donc pas à ce verdict ;
-      • **mesure v1 obtenue le 2026-09-14 (bd8ef8ab, log réel)** : pour le
-      mod 32260 *caché*, l'API v1 répond **HTTP 200 — version 1.5.0** (jamais
-      publique ; la page web figée montrait 1.2.0). La distinction est donc
-      possible : smapi.io « found no » + v1 **200** = cachée, + v1 **404** =
-      supprimée — et la reprise a *réglé* le cas 32260 sans pastille : verdict
-      complet « à jour (1.5.0 = 1.5.0) », la copie du parc venant de cette
-      release retirée. Le journal nomme désormais les 404 (`http_<code>`)
-      ; le parc réel du jour en compte zéro — l'instrument est posé, les
-      cas viendront aux checks suivants. ⚠️ Angle neuf atteignable : page
-      cachée + l'auteur y pousse une version → la reprise suggérerait une
-      `[MAJ]` **intéléchargeable** (la page cachée n'offre pas de bouton) ;
-      à traiter si un cas se présente.
-      Destination : la même pastille que les verdicts smapi.io (broken/abandoned
-      déjà fusionnés — canal `modCompatibility`), pas un nouvel onglet. Le
-      verdict `sourceNotFound` n'y entre pas aujourd'hui. ⚠️ Ne pas déduire
-      « supprimé » d'une absence dans une réponse smapi.io : une passe partielle
-      (429/503) fusionne avec le cache, elle ne le remplace pas — le piège a déjà
-      coûté les mises à jour de trois mods. · **M**
+> ✅ **A2-T6 livré le 2026-09-14** — l'état de la page Nexus (cachée ou
+> supprimée) est marqué par la reprise, journalisé, et montré : badge à côté du
+> nom en ligne, badge sur la carte de grille, bandeau sur la fiche, popover au
+> clic, filtre « Problèmes ». Récit, mesures et l'angle resté ouvert (une `[MAJ]`
+> suggérée sur une page cachée serait intéléchargeable) dans
+> [`roadmap-archive.md`](roadmap-archive.md).
 
 #### A3 — Métadonnées Nexus
 
