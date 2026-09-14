@@ -102,6 +102,7 @@
     "version": "1.0.0"
   },
   "mod/modern-config-menu": {
+    "changelog_reviewed": "2.1.0",
     "gitHubRepo": null,
     "name": null,
     "version": "2.1.2"

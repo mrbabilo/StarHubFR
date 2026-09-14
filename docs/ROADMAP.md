@@ -614,7 +614,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 24**
+### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 25**
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs, **A1-T4** et **A2-T7**, viennent de la veille du jour ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -712,6 +712,38 @@ backup se retrouve en moins de dix secondes.
   - *(`SMAPI_MODS_PATH` / `--mods-path`, qu'ils utilisent pour lancer, reste **écarté** —
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
+
+- [ ] **A1-T7** — **Mettre à jour un mod détruit ses données — et la liste des
+      rescapés tient en 18 noms.** *(trouvé le 2026-09-14 en décompilant
+      `ModernConfigMenu` 2.1.2 ; mesures dans
+      [`roadmap-archive.md`](roadmap-archive.md) §3 quater.)*
+      `ModConfigFiles.preservable` est une **liste blanche de noms de fichiers** :
+      `config.json` et les 17 fichiers de langue. `snapshotUserConfigs` ne préserve
+      qu'eux. **Tout le reste est écrasé** par la copie neuve.
+      **Mesuré sur le parc** : 4 077 fichiers ont été écrits **après** l'installation de
+      leur mod (mtime postérieure à celle de son `manifest.json`). En retirant ceux que
+      l'on préserve déjà et les marqueurs de Vortex qui ne nous appartiennent pas, il
+      reste **2 552 fichiers, sur 256 mods**, qu'une mise à jour détruit. Les plus
+      nombreux sont des **`<sauvegarde>_SaveData.save`** — des données **par partie**,
+      écrites par le mod dans son propre dossier : les perdre, c'est perdre la
+      progression liée à ce mod pour cette sauvegarde. Viennent ensuite
+      `companion.json` (67) et `companion.png` (44), et le cas fondateur
+      `data/mod_history.json` — que MCM écrit **toujours** en 2.1.2 (vérifié dans l'IL :
+      `ModDateTracker.HistoryFilePath`), et qui porte la date d'installation de chaque
+      mod pour signaler les récents.
+      ⚠️ **Le CLAUDE.md ne nomme que `config.json` et `fr.json`** : le piège est donc
+      plus large que ce que le dépôt en dit.
+      ⚠️ **Le remède n'est PAS « préserver tout fichier écrit après l'installation ».**
+      Ce garde trop large garderait à vie les fichiers qu'un mod renomme ou abandonne
+      d'une version à l'autre — et c'est exactement le défaut qu'`isAuthorLanguageFile`
+      a dû corriger après coup, quand la préservation figeait l'anglais de l'auteur à
+      chaque mise à jour. La règle se **mesure** avant de se coder : ce qui distingue
+      une donnée d'utilisateur d'un fichier livré n'est ni le nom, ni l'extension, ni
+      la seule mtime. Deux pistes à éprouver — un fichier **absent de l'archive neuve**
+      est par construction une donnée locale ; et `content.json` (111 occurrences) est
+      le contre-exemple utile, puisqu'il est livré **et** modifiable.
+      ⚠️ Et quoi qu'il arrive, **le dire** : un fichier écarté de la préservation doit
+      apparaître au bilan d'installation, jamais disparaître en silence. · **M**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 

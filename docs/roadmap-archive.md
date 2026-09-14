@@ -138,6 +138,52 @@ StarHubFR installerait le compagnon **seul** et écarterait l'application de 113
 **sans un mot** — or le compagnon est inerte sans elle, puisqu'il attend une
 variable d'environnement qu'elle seule pose. Voir la ROADMAP.
 
+## 3 quater. Décompilation de ModernConfigMenu 2.1.2 — 2026-09-14
+
+Demandée sur l'archive `ModernConfigMenu 2.1.2 49437 …`. Désassemblage IL par
+`ikdasm` (77 411 lignes ; `monodis` échoue sur une assertion `get.c:913`).
+
+**Le changelog officiel n'a PAS pu être lu, et c'est un fait à consigner** :
+`curl` avec un `User-Agent` de navigateur et `WebFetch` prennent tous deux un
+**403**, la page `?tab=logs` ouverte dans un vrai navigateur (Playwright) ne rend
+qu'un **squelette** — le contenu arrive en AJAX, et l'ancien endpoint
+`Core/Libs/Common/Widgets/ModChangeLogs` a disparu avec le passage de Nexus à
+Next.js — et l'API v1 `/mods/{id}/changelogs.json` exige la clé du Trousseau. La
+mémoire qui disait « le reader web lit les pages Nexus » vaut pour un MCP
+`web_reader` absent de cette session. C'est ce constat qui a fait naître le suivi
+`changelog_reviewed` de `check_sources.py`.
+
+**Ce que l'IL a donné à la place :**
+
+| Relevé | Portée |
+| --- | --- |
+| `ModDateTracker.HistoryFilePath = "data/mod_history.json"` — **toujours présent en 2.1.2** | Le risque documenté en 2.1.0 n'a pas disparu |
+| `DateCache` (UniqueID → DateTime), `HistoryCache` (UniqueID → `ModHistoryEntry`), `RecentWindow`, `PopulateModDates(helper, monitor, mods)` lisant `RegisteredMod.InstallDate` | MCM mémorise la **date d'installation de chaque mod** pour signaler les récents — un état qui ne se reconstruit pas |
+| `GenericModConfigMenuCompat`, `IGenericModConfigMenuApi`, `GmcmRedirectPatch` | La compatibilité GMCM est explicite : la convention `config.<clé>.name` que lit notre éditeur **survit** au changement de front. C'est la raison pour laquelle ce mod est suivi |
+| Aucune référence réseau hors de son propre dossier | Rien à signaler |
+
+### Ce que la décompilation a trouvé sur **notre** application — devenu A1-T7
+
+`ModConfigFiles.preservable` est une liste blanche de **18 noms** (`config.json` +
+17 fichiers de langue) ; `snapshotUserConfigs` ne préserve qu'eux, et la mise à
+jour écrase tout le reste.
+
+| Mesure sur le parc (1 112 dossiers à manifeste) | Valeur |
+| --- | ---: |
+| Fichiers écrits **après** l'installation (mtime > manifeste + 1 h) | 4 077 |
+| Déjà préservés (`config.json` 538, `fr.json` 348…) ou étrangers (`__folder_managed_by_vortex` 495) | 1 525 |
+| **Net — détruits par une mise à jour** | **2 552, sur 256 mods** |
+
+Les plus nombreux sont des `<sauvegarde>_SaveData.save` (46 + 41 + 39 + 37 + 30 +
+29 + 25 + 25 + 24 + 23…) : des données **par partie**. Puis `companion.json` (67),
+`companion.png` (44), et les configs horodatées d'`AccordSettings`.
+
+⚠️ **Une mesure naïve donnait 275 « mods à données »** en comptant tout `data/*.json` :
+faux — les `Mail.json`, `Dialogue.json`, `Objects.json` des Content Packs sont
+**livrés**, pas écrits. C'est le critère de mtime relative au manifeste qui sépare
+les deux, et c'est la troisième fois que le parc se laisse mal mesurer de cette
+façon.
+
 ## 4. Correctifs identifiés — à traiter en premier
 
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour

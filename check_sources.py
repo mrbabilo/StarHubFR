@@ -545,6 +545,48 @@ def diff(old, new):
     return changes
 
 
+# ── Suivi des changelogs ──────────────────────────────────────────────────────
+
+# La clé que porte une source dans la référence pour dire jusqu'où son journal
+# des modifications a été **lu par un humain ou un agent**, pas par le script.
+CHANGELOG_FIELD = "changelog_reviewed"
+
+
+def changelog_reminders(baseline, observed):
+    """Les sources dont la version a dépassé le dernier changelog instruit.
+
+    **Pourquoi ce n'est pas une sonde.** Les changelogs Nexus ne sont lisibles
+    par aucun script : `urllib` et `curl` prennent un 403 Cloudflare (mesuré le
+    2026-09-04, re-mesuré le 2026-09-14), la page `?tab=logs` ouverte dans un
+    vrai navigateur ne rend qu'un squelette — son contenu arrive en AJAX et
+    l'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a disparu avec le
+    passage à Next.js — et l'API v1 `/mods/{id}/changelogs.json` exige la clé du
+    Trousseau, qu'un script de relevé n'a pas à lire.
+
+    **Pourquoi pas GitHub non plus.** Mesuré le 2026-09-14 sur les trois seules
+    sources `smapi-mod` qui déclarent un dépôt : `spacechase0/StardewValleyMods`,
+    `SinZ163/StardewMods` et `ZeroXPatch/Projects-for-Nexus-Mod` n'ont **aucune
+    release**, et sur les 100 tags du premier, **aucun** ne nomme GMCM. Un étage
+    « notes de release » ne rendrait donc rien pour aucune d'elles — seulement
+    du bruit.
+
+    Ce qui reste est le seul geste honnête : **se souvenir de ce qui a été lu**.
+    Le script compare la version relevée au dernier changelog instruit et le
+    **rappelle** — il ne l'échoue pas. Un changelog non lu n'est ni un écart de
+    source (sortie 1) ni une panne du script (sortie 2) : c'est une dette de
+    lecture.
+    """
+    out = []
+    for key, state in sorted(observed.items()):
+        version = (state or {}).get("version")
+        if not version:
+            continue
+        seen = (baseline.get(key) or {}).get(CHANGELOG_FIELD)
+        if seen != version:
+            out.append((key, version, seen))
+    return out
+
+
 def load_baseline():
     if not os.path.exists(BASELINE):
         return {}
@@ -576,7 +618,28 @@ def main():
                     help="ne sonde que les sources dont la clé contient MOTIF")
     ap.add_argument("--offline", action="store_true",
                     help="n'exécute que les contrôles qui ne sortent pas de la machine")
+    ap.add_argument("--changelog-reviewed", metavar="CLÉ=VERSION", action="append",
+                    help="note qu'on a LU le journal des modifications d'une source "
+                         "jusqu'à cette version (ex. mod/modern-config-menu=2.1.2). "
+                         "Volontairement séparé de --update : celui-ci assume un "
+                         "changement de version, il ne peut pas prétendre qu'on a lu "
+                         "un changelog")
     args = ap.parse_args()
+
+    if args.changelog_reviewed:
+        base = load_baseline()
+        for pair in args.changelog_reviewed:
+            if "=" not in pair:
+                say(f"{C.RED}[ERREUR]{C.END} attendu CLÉ=VERSION, reçu « {pair} »")
+                return 2
+            key, version = pair.split("=", 1)
+            if key not in base:
+                say(f"{C.RED}[ERREUR]{C.END} source inconnue : « {key} »")
+                return 2
+            base[key][CHANGELOG_FIELD] = version
+            say(f"{C.GRN}[OK]{C.END} {key} — changelog instruit jusqu'à {C.BOLD}{version}{C.END}")
+        save_baseline(base)
+        return 0
 
     baseline = load_baseline()
     observed, unreachable = {}, []
@@ -613,6 +676,16 @@ def main():
         # pour un changement.
         merged = dict(baseline)
         merged.update(observed)
+        # ⚠️ Le suivi de changelog **survit** à `--update`, il n'est jamais posé
+        # par lui. Sans ça, le réflexe « la version a bougé → --update »
+        # estampillerait « changelog lu » sur un changelog que personne n'a
+        # ouvert, et le rappel ne repartirait plus jamais. Seul
+        # `--changelog-reviewed` écrit ce champ.
+        for key, previous in baseline.items():
+            if isinstance(previous, dict) and CHANGELOG_FIELD in previous:
+                merged.setdefault(key, {})
+                if isinstance(merged[key], dict):
+                    merged[key][CHANGELOG_FIELD] = previous[CHANGELOG_FIELD]
         save_baseline(merged)
         say(f"{C.GRN}[OK]{C.END} Référence mise à jour "
             f"({len(observed)} source(s) relevée(s), "
@@ -621,7 +694,14 @@ def main():
 
     drift = 0
     for key in sorted(observed):
-        changes = diff(baseline.get(key), observed[key])
+        # Le suivi de changelog n'est pas un état de la source : c'est une note
+        # que nous prenons sur elle. Le laisser dans la comparaison ferait
+        # compter « quelqu'un a lu le changelog » comme un écart — mesuré, et
+        # c'est ce qui rendait le script rouge après un `--changelog-reviewed`.
+        previous = baseline.get(key)
+        if isinstance(previous, dict):
+            previous = {k: v for k, v in previous.items() if k != CHANGELOG_FIELD}
+        changes = diff(previous, observed[key])
         if not changes:
             continue
         drift += 1
@@ -651,6 +731,18 @@ def main():
             say(f"  · {name} — {why}")
             say(f"    {C.DIM}{used}{C.END}")
         return 0
+
+    pending = changelog_reminders(baseline, observed)
+    if pending:
+        say(f"{C.DIM}[CHANGELOG]{C.END} {len(pending)} source(s) dont le journal des "
+            f"modifications n'a pas été lu pour la version courante :")
+        for key, version, seen in pending:
+            depuis = f"lu jusqu'à {seen}" if seen else "jamais lu"
+            say(f"    {key} — version {C.BOLD}{version}{C.END} ({depuis})")
+        say(f"{C.DIM}    Rappel, pas un écart : aucun script ne lit les changelogs "
+            f"Nexus (403, page vide, API sous clé). Les lire, puis "
+            f"`--changelog-reviewed clé=version`.{C.END}")
+        say("")
 
     if drift:
         say(f"{C.YEL}[ÉCART]{C.END} {drift} source(s) ont bougé depuis la référence.")

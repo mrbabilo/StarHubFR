@@ -22,6 +22,7 @@ python3 check_sources.py            # relève et compare (sortie 1 s'il y a un �
 python3 check_sources.py --report   # relève et affiche tout, sans juger
 python3 check_sources.py --offline  # seulement les contrôles locaux
 python3 check_sources.py --update   # assume l'état courant comme référence
+python3 check_sources.py --changelog-reviewed mod/x=1.2.3   # note qu'on a LU son journal
 ```
 
 Même patron que `check_standards.py` / `.standards-baseline.json` : un relevé,
@@ -33,6 +34,43 @@ Les sources injoignables sont reportées séparément et **ne comptent pas comme
 un écart** : une panne de réseau ne doit pas se lire comme « SMAPI a sorti une
 version ». Et `--update` conserve la référence d'une source injoignable au lieu
 de l'écraser par du vide.
+
+### Les changelogs — pourquoi c'est une note, pas une sonde *(2026-09-14)*
+
+Une version qui monte ne dit pas **ce qui a changé**, et c'est souvent le
+changelog qui porte la conséquence pour notre code — le cas fondateur est MCM
+2.1.0, dont le journal annonçait un `data/mod_history.json` écrit dans le dossier
+du mod, que notre mise à jour supprime (devenu **A1-T7**).
+
+**Aucun script ne peut lire un changelog Nexus**, et les trois voies ont été
+mesurées le 2026-09-14 : `urllib` et `curl` — même avec un `User-Agent` de
+navigateur — prennent un **403 Cloudflare** ; la page `?tab=logs` ouverte dans un
+**vrai navigateur** ne rend qu'un squelette, son contenu arrivant en AJAX, et
+l'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a disparu avec le
+passage de Nexus à Next.js ; l'API v1 `/mods/{id}/changelogs.json` existe mais
+exige la clé du Trousseau, qu'un script de relevé n'a pas à lire.
+
+**GitHub ne sauve pas la mise non plus.** Sur les trois seules sources
+`smapi-mod` qui déclarent un dépôt, `spacechase0/StardewValleyMods`,
+`SinZ163/StardewMods` et `ZeroXPatch/Projects-for-Nexus-Mod` n'ont **aucune
+release**, et sur les **100 tags** du premier, **aucun** ne nomme GMCM. Un étage
+« notes de release » ne rendrait rien pour aucune d'elles.
+
+Ce qui reste est le seul geste honnête : **se souvenir de ce qu'on a lu**. Chaque
+source peut porter un `changelog_reviewed` dans la référence ; le script compare
+la version relevée à cette valeur et **rappelle** l'écart.
+
+Trois propriétés, toutes vérifiées par sabotage le 2026-09-14 :
+
+- le rappel **ne rend pas le script rouge** (sortie 0) — un changelog non lu
+  n'est ni un écart de source ni une panne de script, et rougir en permanence
+  tuerait le signal ;
+- `--update` **ne peut pas** poser ce champ : il le recopie tel quel. C'était le
+  vrai danger — le réflexe « la version a bougé → `--update` » aurait estampillé
+  « changelog lu » sur un journal que personne n'a ouvert, et le rappel ne serait
+  jamais reparti. Seul `--changelog-reviewed` l'écrit ;
+- le champ est **exclu de la comparaison** : sans ça, prendre une note comptait
+  comme un écart de la source (défaut trouvé par le test, pas par la relecture).
 
 **Le script a été éprouvé par mutation** (2026-09-04) : nouvelle version de
 SMAPI, retournement du piège `platform`, disparition d'un champ du dump,

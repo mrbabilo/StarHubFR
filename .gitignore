@@ -78,3 +78,6 @@ design/starhubfr-design-system.html
 # un outil tiers — apparues le 2026-09-09. Ce ne sont pas nos assets : le bundle
 # utilise AppIcon.icns, et rien dans le code ni dans build_app.py ne les lit.
 StardewValley.Icon.*
+
+# Artefacts du MCP Playwright (snapshots, journaux de console) — jamais versionnés
+.playwright-mcp/
