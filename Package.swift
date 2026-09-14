@@ -217,6 +217,7 @@ let package = Package(
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
                 "Models/KeybindScanner.swift",
+                "Models/MacKeyCodeMap.swift",
                 "Models/SavePlayerFields.swift",
                 "Models/SaveHeroPortrait.swift",
                 "Models/SaveGameFields.swift",
