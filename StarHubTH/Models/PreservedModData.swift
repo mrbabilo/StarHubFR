@@ -76,6 +76,99 @@ enum PreservedModData {
             .lowercased()
     }
 
+    /// Met les extras à l'abri avant que le dossier du mod ne soit effacé.
+    ///
+    /// Rend un dictionnaire chemin relatif → fichier temporaire, de la même
+    /// forme que `snapshotUserConfigs`. Un fichier qu'on n'arrive pas à copier
+    /// est simplement absent du résultat : la sauvegarde d'installation
+    /// (`ModInstallBackupManager`, dossier entier) en garde une copie, donc
+    /// échouer ici ne perd rien de définitif.
+    static func snapshot(_ relativePaths: [String],
+                         from modFolder: URL,
+                         using fm: FileManager) -> [String: URL] {
+        var out: [String: URL] = [:]
+        for relative in relativePaths {
+            let source = modFolder.appendingPathComponent(relative)
+            // Nom à plat : le chemin relatif est la clé, le fichier temporaire
+            // n'est qu'un entrepôt.
+            let flat = relative.replacingOccurrences(of: "/", with: "__")
+            let tmp = fm.temporaryDirectory
+                .appendingPathComponent("starhubfr_extra_\(UUID().uuidString)_\(flat)")
+            do {
+                try fm.copyItem(at: source, to: tmp)
+                out[relative] = tmp
+            } catch {
+                try? fm.removeItem(at: tmp)
+            }
+        }
+        return out
+    }
+
+    /// Remet les extras dans la copie fraîchement installée.
+    ///
+    /// ⚠️ **Ne lance jamais**, à la différence de `restoreUserConfigs`. La
+    /// distinction est délibérée : les 18 noms de la liste blanche sont des
+    /// réglages que l'utilisateur a écrits à la main, et rater leur
+    /// restauration doit arrêter l'installation. Un extra, lui, peut être un
+    /// fichier périmé qu'une nouvelle arborescence rend impossible à reposer
+    /// (un chemin devenu dossier, par exemple) — faire avorter pour cela une
+    /// mise à jour par ailleurs réussie coûterait plus que ça ne protège,
+    /// **d'autant que le dossier entier est déjà en sauvegarde**. Les échecs
+    /// se comptent et remontent au bilan ; ils ne disparaissent pas.
+    ///
+    /// Les entrées restaurées sortent du dictionnaire, pour que le ménage de
+    /// l'appelant ne balaie que les restes réels.
+    static func restore(_ snapshots: inout [String: URL],
+                        into destFolder: URL,
+                        using fm: FileManager) -> (restored: Int, failed: [String]) {
+        var restored = 0
+        var failed: [String] = []
+        for relative in snapshots.keys.sorted() {
+            guard let tmp = snapshots[relative] else { continue }
+            let target = destFolder.appendingPathComponent(relative)
+            do {
+                try fm.createDirectory(at: target.deletingLastPathComponent(),
+                                       withIntermediateDirectories: true)
+                // La copie neuve ne livre pas ce fichier (c'est la définition
+                // d'un extra), mais un dossier homonyme peut occuper la place.
+                if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
+                try fm.copyItem(at: tmp, to: target)
+                restored += 1
+                snapshots.removeValue(forKey: relative)
+            } catch {
+                failed.append(relative)
+            }
+        }
+        return (restored, failed)
+    }
+
+    /// Ce qu'il faut dire à l'utilisateur d'une préservation, mod par mod.
+    ///
+    /// Rend des couples (message, estUnÉchec). Une préservation réussie se
+    /// mentionne — le joueur doit savoir que ses parties ont suivi la mise à
+    /// jour ; un échec se signale plus fort, parce que c'est précisément le cas
+    /// où un fichier dort désormais dans la seule sauvegarde d'installation.
+    /// Rien n'est rendu quand il n'y a rien à dire : une mise à jour ordinaire
+    /// ne doit pas bavarder.
+    static func messages(restored: Int, failed: [String], modFolder: String)
+        -> [(text: String, isFailure: Bool)] {
+        var out: [(String, Bool)] = []
+        if restored > 0 {
+            out.append(("\(modFolder) : \(restored) fichier(s) de données du mod "
+                        + "remis en place après la mise à jour", false))
+        }
+        if !failed.isEmpty {
+            // Les noms, pas seulement le compte : sans eux l'utilisateur ne
+            // sait pas quoi aller rechercher dans la sauvegarde.
+            let names = failed.prefix(5).joined(separator: ", ")
+            let extra = failed.count > 5 ? " (+\(failed.count - 5) autres)" : ""
+            out.append(("\(modFolder) : \(failed.count) fichier(s) de données n'ont pas pu "
+                        + "être remis — ils restent dans la sauvegarde d'installation : "
+                        + names + extra, true))
+        }
+        return out
+    }
+
     /// Les chemins relatifs de tous les fichiers ordinaires sous `root`.
     ///
     /// ⚠️ **`.skipsHiddenFiles` est volontairement absent.** Un mod écrit

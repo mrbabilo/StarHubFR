@@ -126,6 +126,116 @@ import Testing
         #expect(PreservedModData.relativeFiles(under: root, using: fm).isEmpty)
     }
 
+    // MARK: - Mise à l'abri et remise en place
+
+    /// Un dossier de mod jetable, avec les fichiers demandés.
+    private func makeFolder(_ files: [String]) throws -> URL {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("pmd_\(UUID().uuidString)")
+        for f in files {
+            let url = root.appendingPathComponent(f)
+            try fm.createDirectory(at: url.deletingLastPathComponent(),
+                                   withIntermediateDirectories: true)
+            try Data(f.utf8).write(to: url)
+        }
+        return root
+    }
+
+    @Test("Un extra survit à l'effacement du dossier et revient à sa place")
+    func survivesTheFolderBeingReplaced() throws {
+        let fm = FileManager.default
+        let old = try makeFolder(["data/Zofia_1_SaveData.save"])
+        var snaps = PreservedModData.snapshot(["data/Zofia_1_SaveData.save"],
+                                              from: old, using: fm)
+        #expect(snaps.count == 1)
+
+        // Le vrai geste de l'installateur : l'ancien dossier disparaît.
+        try fm.removeItem(at: old)
+        let fresh = try makeFolder(["manifest.json"])
+        defer { try? fm.removeItem(at: fresh) }
+
+        let result = PreservedModData.restore(&snaps, into: fresh, using: fm)
+        #expect(result.restored == 1)
+        #expect(result.failed.isEmpty)
+        #expect(snaps.isEmpty)   // le ménage de l'appelant n'a plus rien à balayer
+        let back = fresh.appendingPathComponent("data/Zofia_1_SaveData.save")
+        #expect(fm.fileExists(atPath: back.path))
+        #expect(try String(contentsOf: back, encoding: .utf8) == "data/Zofia_1_SaveData.save")
+    }
+
+    /// Le choix de conception d'A1-T7 : un extra qu'on ne peut pas reposer ne
+    /// fait **pas** avorter une mise à jour par ailleurs réussie — le dossier
+    /// entier est déjà en sauvegarde. L'échec se compte, il ne se tait pas.
+    @Test("Un extra irrécupérable est compté, pas fatal")
+    func aFailedExtraIsCountedNotFatal() throws {
+        let fm = FileManager.default
+        let fresh = try makeFolder(["manifest.json"])
+        defer { try? fm.removeItem(at: fresh) }
+
+        // Un instantané qui pointe sur un fichier temporaire disparu.
+        var snaps = ["data/perdu.save": fm.temporaryDirectory
+            .appendingPathComponent("absent_\(UUID().uuidString)")]
+        let result = PreservedModData.restore(&snaps, into: fresh, using: fm)
+
+        #expect(result.restored == 0)
+        #expect(result.failed == ["data/perdu.save"])
+        #expect(snaps.count == 1)   // conservé : rien n'a été restauré
+    }
+
+    @Test("Mettre à l'abri un fichier absent n'invente pas d'entrée")
+    func snapshotSkipsMissingFiles() throws {
+        let fm = FileManager.default
+        let folder = try makeFolder(["present.json"])
+        defer { try? fm.removeItem(at: folder) }
+
+        let snaps = PreservedModData.snapshot(["present.json", "absent.json"],
+                                              from: folder, using: fm)
+        #expect(Array(snaps.keys) == ["present.json"])
+    }
+
+    // MARK: - Ce qui est dit à l'utilisateur
+
+    @Test("Une mise à jour ordinaire ne dit rien")
+    func silentWhenNothingHappened() {
+        #expect(PreservedModData.messages(restored: 0, failed: [], modFolder: "X").isEmpty)
+    }
+
+    @Test("Une préservation réussie se mentionne, sans alerte")
+    func mentionsSuccess() {
+        let m = PreservedModData.messages(restored: 3, failed: [], modFolder: "FarmTypeManager")
+        #expect(m.count == 1)
+        #expect(m[0].isFailure == false)
+        #expect(m[0].text.contains("FarmTypeManager"))
+        #expect(m[0].text.contains("3"))
+    }
+
+    /// Le cas critique : sans les noms, l'utilisateur ne sait pas quoi aller
+    /// rechercher dans la sauvegarde d'installation.
+    @Test("Un échec est une alerte, et il nomme les fichiers")
+    func namesTheFailures() {
+        let m = PreservedModData.messages(restored: 0, failed: ["data/a.save", "data/b.save"],
+                                          modFolder: "FTM")
+        #expect(m.count == 1)
+        #expect(m[0].isFailure == true)
+        #expect(m[0].text.contains("data/a.save"))
+        #expect(m[0].text.contains("data/b.save"))
+    }
+
+    @Test("Au-delà de cinq échecs, le reste est compté")
+    func abbreviatesLongFailureLists() {
+        let files = (1...8).map { "data/f\($0).save" }
+        let m = PreservedModData.messages(restored: 0, failed: files, modFolder: "FTM")
+        #expect(m[0].text.contains("+3 autres"))
+        #expect(!m[0].text.contains("data/f6.save"))
+    }
+
+    @Test("Succès et échec cohabitent en deux messages")
+    func reportsBothOutcomes() {
+        let m = PreservedModData.messages(restored: 2, failed: ["x.save"], modFolder: "M")
+        #expect(m.count == 2)
+        #expect(m.filter(\.isFailure).count == 1)
+    }
+
     // MARK: - Le cas réel, bout à bout
 
     /// Le couple mesuré sur le parc : `FarmTypeManager/data/` porte les deux

@@ -317,13 +317,22 @@ struct InstalledModPath: Equatable {
     /// mise à jour (`.overwriteWithBackup`). nil pour `.rename`/`.skip` et
     /// les installs neuves : pas de « avant » pertinent.
     var keyDelta: ModUpdateKeyDelta?
+    /// A1-T7 — combien de fichiers écrits par le mod ont été remis en place
+    /// après la mise à jour (`<sauvegarde>_SaveData.save` et apparentés), et
+    /// lesquels ont résisté. Une préservation muette serait le défaut qu'on
+    /// corrige : elle doit se voir au bilan, y compris quand elle échoue.
+    var extrasRestored: Int
+    var extrasFailed: [String]
 
     init(modId: UUID, path: String, displacedFrom: String? = nil,
-         keyDelta: ModUpdateKeyDelta? = nil) {
+         keyDelta: ModUpdateKeyDelta? = nil,
+         extrasRestored: Int = 0, extrasFailed: [String] = []) {
         self.modId = modId
         self.path = path
         self.displacedFrom = displacedFrom
         self.keyDelta = keyDelta
+        self.extrasRestored = extrasRestored
+        self.extrasFailed = extrasFailed
     }
 }
 

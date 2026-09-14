@@ -1186,6 +1186,11 @@ class ModZipInstaller {
             // top of the freshly installed copy. Drag-drop install must never
             // silently overwrite a user's live config.
             var preservedConfigs: [String: URL] = [:]
+            // A1-T7 — les données que le mod a écrites en jouant, que la liste
+            // blanche des 18 noms ne voit pas. Mêmes garanties de ménage.
+            var preservedExtras: [String: URL] = [:]
+            var extrasRestored = 0
+            var extrasFailed: [String] = []
             // C2-T4 — le delta de clés de la mise à jour, capturé dans la
             // branche overwrite seulement.
             var pendingKeyDelta: ModUpdateKeyDelta? = nil
@@ -1196,6 +1201,9 @@ class ModZipInstaller {
             // no-op; on the failure path any leftover snapshots are swept.
             defer {
                 for (_, tmp) in preservedConfigs {
+                    try? fm.removeItem(at: tmp)
+                }
+                for (_, tmp) in preservedExtras {
                     try? fm.removeItem(at: tmp)
                 }
             }
@@ -1255,6 +1263,19 @@ class ModZipInstaller {
                             old: oldSnapshot, new: newSnapshot,
                             uniqueId: detectedMod.uniqueId, folderName: existing.folderName)
                         preservedConfigs = snapshotUserConfigs(from: existingFolder)
+                        // A1-T7 — ce que l'archive neuve ne livre pas, le mod
+                        // l'a écrit. Les deux arbres se lisent **ici ou nulle
+                        // part** : l'ancien dossier existe encore, et le neuf
+                        // vit au tempDir. Ce que la liste blanche gouverne
+                        // déjà en sort — son sort, `i18n/en.json` compris, se
+                        // décide dans `snapshotUserConfigs` (C2-T4).
+                        let existingURL = URL(fileURLWithPath: existingFolder)
+                        let extras = PreservedModData.extraPaths(
+                            installed: PreservedModData.relativeFiles(under: existingURL, using: fm),
+                            shippedByArchive: PreservedModData.relativeFiles(under: sourcePath, using: fm),
+                            alreadyHandled: ModConfigFiles.preservableFiles(under: existingFolder)
+                                .map(\.relativePath))
+                        preservedExtras = PreservedModData.snapshot(extras, from: existingURL, using: fm)
                         try Self.removeItemGrantingWriteAccess(atPath: existingFolder)
                     }
                 case .rename:
@@ -1357,11 +1378,21 @@ class ModZipInstaller {
             // doesn't ship them (common case). Failures must surface, not be
             // swallowed — a silent failure here means data loss.
             try restoreUserConfigs(&preservedConfigs, into: destPath)
+            // A1-T7 — les extras ensuite, et **sans lancer** : un fichier
+            // périmé qu'on ne peut plus reposer ne doit pas faire échouer une
+            // mise à jour réussie, le dossier entier étant déjà en sauvegarde.
+            // Les échecs remontent au bilan (`InstalledModPath`).
+            let extrasOutcome = PreservedModData.restore(
+                &preservedExtras, into: URL(fileURLWithPath: destPath), using: fm)
+            extrasRestored = extrasOutcome.restored
+            extrasFailed = extrasOutcome.failed
 
             // Le mod est entièrement posé : son chemin peut être annoncé.
             installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath,
                                                    displacedFrom: displacedFrom,
-                                                   keyDelta: pendingKeyDelta))
+                                                   keyDelta: pendingKeyDelta,
+                                                   extrasRestored: extrasRestored,
+                                                   extrasFailed: extrasFailed))
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle

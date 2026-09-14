@@ -6679,6 +6679,14 @@ final class StarHubTHViewModel {
     /// même chose. Échec journalisé, jamais bloquant.
     func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
         lastInstallKeyDeltas = paths.compactMap(\.keyDelta)
+        // A1-T7 — une préservation muette serait le défaut qu'on corrige.
+        for path in paths {
+            for m in PreservedModData.messages(restored: path.extrasRestored,
+                                               failed: path.extrasFailed,
+                                               modFolder: (path.path as NSString).lastPathComponent) {
+                log(m.text, level: m.isFailure ? .warning : .info)
+            }
+        }
         // Le store vient de changer sous les caches de lecture : une mise à
         // jour du MÊME mod dans la session ne doit pas resservir l'ancien
         // delta mémorisé.
