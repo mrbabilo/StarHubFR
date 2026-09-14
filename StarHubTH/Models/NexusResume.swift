@@ -29,6 +29,10 @@ enum NexusResume {
         /// n'est plus « non vérifiable ».
         let settled: Set<String>
         let failures: Int
+        /// Les pages ayant répondu HTTP 404 — le signal « supprimée ou
+        /// cachée » de la case A2-T6, que le bilan final nomme. Zéro pour
+        /// tout autre sort.
+        let notFoundPages: Int
         /// L'abandon sur limitation de débit : le `retryAfter` reçu. `nil`
         /// quand la reprise continue.
         let rateLimitedRetryAfter: TimeInterval?
@@ -48,6 +52,7 @@ enum NexusResume {
         var found = found
         var settled = settled
         var failures = failures
+        var notFoundPages = 0
         var journal: [JournalLine] = []
         var rateLimited: TimeInterval? = nil
         switch result {
@@ -83,14 +88,44 @@ enum NexusResume {
                     + "(\(Int(retryAfter)) s) après \(pageIndex) page(s)",
                 level: .warning))
             rateLimited = retryAfter
-        case .noApiKey, .error:
+        case .noApiKey:
             // Ni arrêt ni journal : une rafale d'erreurs ne doit pas noyer
             // les verdicts déjà gagnés. Mais un échec se compte — le bilan
             // final dira combien.
             failures += 1
+        case .error(let message):
+            failures += 1
+            // La mesure A2-T6 : `fetchModInfo` construit `http_<code>` pour
+            // tout statut hors 200/429, et c'est le seul signal qui distingue
+            // une page supprimée ou cachée (404 — cas réel : le mod 32260,
+            // caché par son auteur) d'une panne locale. La nommer — au plus
+            // une ligne par page, bornée par le décompte de tête de la
+            // reprise. Les autres erreurs (décodage, transport) se taisent :
+            // garde anti-bruit inchangée.
+            guard let code = Self.httpStatusCode(from: message) else { break }
+            if code == 404 { notFoundPages += 1 }
+            let gloss = code == 404 ? " — supprimée ou cachée" : ""
+            journal.append(JournalLine(
+                text: "Reprise Nexus : la page \(target.nexusId) répond HTTP \(code)\(gloss) "
+                    + "(\(target.mods.count) mod(s) sans verdict)",
+                level: .info))
         }
         return PageOutcome(found: found, settled: settled, failures: failures,
+                           notFoundPages: notFoundPages,
                            rateLimitedRetryAfter: rateLimited, journal: journal)
+    }
+
+    /// Le code extrait du message `http_<code>` que construit
+    /// `NexusUpdateChecker.fetchModInfo` (trois chiffres ASCII, rien
+    /// d'autre — `Int` seul accepterait `+40` et `-40`) — tout autre
+    /// message d'erreur ne correspond pas.
+    private static func httpStatusCode(from message: String) -> Int? {
+        guard message.hasPrefix("http_") else { return nil }
+        let digits = message.dropFirst("http_".count)
+        guard digits.count == 3,
+              digits.allSatisfy({ $0.isASCII && $0.isNumber }),
+              let code = Int(digits) else { return nil }
+        return code
     }
 
     /// Nomme, mod par mod, ce que la page vient de trancher.
@@ -148,7 +183,8 @@ enum NexusResume {
                        settled: Set<String>,
                        failures: Int,
                        attempted: Int,
-                       cachedRows: [NexusUpdateChecker.ModUpdate]) -> Settlement {
+                       cachedRows: [NexusUpdateChecker.ModUpdate],
+                       notFoundPages: Int = 0) -> Settlement {
         var merged: [NexusUpdateChecker.ModUpdate] = []
         if !found.isEmpty {
             // Les lignes Nexus se **substituent** aux lignes précédentes des
@@ -167,11 +203,17 @@ enum NexusResume {
                 return $0.uniqueId < $1.uniqueId
             }
         }
+        // Le bilan nomme les 404 quand il y en a (A2-T6) : « supprimée ou
+        // cachée » se lit au coup d'œil, sans recompter les échecs.
+        var failedLine = "\(failures) échec(s)"
+        if notFoundPages > 0 {
+            failedLine += ", dont \(notFoundPages) page(s) 404 (supprimée(s) ou cachée(s))"
+        }
         let line = JournalLine(
             text: "[MAJ] Reprise Nexus : \(attempted) page(s) interrogée(s), "
                 + "\(found.count) mise(s) à jour trouvée(s), "
                 + "\(settled.count - found.count) mod(s) confirmé(s) à jour, "
-                + "\(failures) échec(s)",
+                + failedLine,
             level: found.isEmpty ? .info : .warning)
         return Settlement(merged: merged, journal: [line])
     }

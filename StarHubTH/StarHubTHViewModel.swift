@@ -4006,7 +4006,7 @@ final class StarHubTHViewModel {
         log("Reprise Nexus : \(modCount) mods sans verdict, \(targets.count) pages à interroger",
             level: .info)
         updateStore.beginFallback(pages: targets.count)
-        fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0)
+        fetchNexusFallback(targets, index: 0, found: [], settled: [], failures: 0, notFound: 0)
     }
 
     /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
@@ -4020,10 +4020,12 @@ final class StarHubTHViewModel {
                                     index: Int,
                                     found: [NexusUpdateChecker.ModUpdate],
                                     settled: Set<String>,
-                                    failures: Int) {
+                                    failures: Int,
+                                    notFound: Int) {
         guard index < targets.count else {
             finishNexusFallback(found: found, settled: settled,
-                                failures: failures, attempted: targets.count)
+                                failures: failures, attempted: targets.count,
+                                notFound: notFound)
             return
         }
         let target = targets[index]
@@ -4043,13 +4045,15 @@ final class StarHubTHViewModel {
                 }
                 if outcome.rateLimitedRetryAfter != nil {
                     self.finishNexusFallback(found: outcome.found, settled: outcome.settled,
-                                             failures: outcome.failures, attempted: index)
+                                             failures: outcome.failures, attempted: index,
+                                             notFound: notFound + outcome.notFoundPages)
                     return
                 }
                 self.updateStore.setProgress(.init(done: index + 1, total: targets.count))
                 self.fetchNexusFallback(targets, index: index + 1,
                                         found: outcome.found, settled: outcome.settled,
-                                        failures: outcome.failures)
+                                        failures: outcome.failures,
+                                        notFound: notFound + outcome.notFoundPages)
             }
         }
     }
@@ -4063,7 +4067,8 @@ final class StarHubTHViewModel {
     private func finishNexusFallback(found: [NexusUpdateChecker.ModUpdate],
                                      settled: Set<String>,
                                      failures: Int,
-                                     attempted: Int) {
+                                     attempted: Int,
+                                     notFound: Int) {
         // Baissé **en premier**, avant tout retour possible : les deux sorties
         // de `fetchNexusFallback` (dernière page atteinte, et l'abandon sur
         // limitation de débit) passent par ici, et un drapeau resté levé
@@ -4073,7 +4078,8 @@ final class StarHubTHViewModel {
         let settlement = NexusResume.settle(
             found: found, settled: settled, failures: failures,
             attempted: attempted,
-            cachedRows: NexusUpdateChecker.shared.cachedUpdates())
+            cachedRows: NexusUpdateChecker.shared.cachedUpdates(),
+            notFoundPages: notFound)
         if !found.isEmpty {
             NexusUpdateChecker.shared.replaceCachedUpdates(settlement.merged)
             republishUpdatesFromCache()

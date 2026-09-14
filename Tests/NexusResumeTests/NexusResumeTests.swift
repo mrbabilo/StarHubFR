@@ -112,10 +112,13 @@ struct NexusResumeTests {
         #expect(outcome.journal[0].text.contains("limitation de débit (42 s) après 3 page(s)"))
     }
 
-    /// Ni `.noApiKey` ni `.error` n'arrêtent rien : ils comptent un échec et
-    /// se taisent — une rafale d'erreurs ne doit pas noyer le journal.
+    /// Ni `.noApiKey` ni une erreur **hors statut HTTP** ne disent rien :
+    /// ils comptent un échec et se taisent — une rafale d'erreurs ne doit
+    /// pas noyer le journal. (`parse_error` est le format réel d'une panne
+    /// de décodage côté `fetchModInfo` ; les statuts `http_<code>`, eux,
+    /// parlent — voir la mesure A2-T6 plus bas.)
     @Test func errorAndNoApiKeyCountAsSilentFailures() {
-        let error = NexusResume.applyPage(.error("HTTP 500"), target: mixedTarget(),
+        let error = NexusResume.applyPage(.error("parse_error"), target: mixedTarget(),
                                           pageIndex: 0, found: [], settled: [], failures: 0)
         let noKey = NexusResume.applyPage(.noApiKey, target: mixedTarget(),
                                           pageIndex: 0, found: [], settled: [], failures: 2)
@@ -194,6 +197,56 @@ struct NexusResumeTests {
                                             failures: 0, attempted: 3, cachedRows: cached)
 
         #expect(settlement.merged.map(\.uniqueId) == ["a1.mod", "j1.mod", "j2.mod", "z9.mod"])
+    }
+
+    // MARK: - La mesure A2-T6 — un statut HTTP se nomme
+
+    /// La mesure manquante de la case A2-T6 : `fetchModInfo` construit
+    /// `http_<code>` pour tout statut hors 200/429, et un **404** sur une
+    /// page réclamée par la reprise est le seul signal qui distingue
+    /// « supprimée ou cachée » d'une panne locale. Le journal le nomme
+    /// (mesuré sur le cas réel 32260, caché par son auteur) au lieu de
+    /// compter un échec muet.
+    @Test func http404JournalsTheMeasurement() {
+        let outcome = NexusResume.applyPage(.error("http_404"), target: mixedTarget(),
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.failures == 1)
+        #expect(outcome.rateLimitedRetryAfter == nil)
+        #expect(outcome.notFoundPages == 1)
+        #expect(outcome.journal.count == 1)
+        #expect(outcome.journal[0].level == .info)
+        #expect(outcome.journal[0].text.contains("page 191"))
+        #expect(outcome.journal[0].text.contains("HTTP 404"))
+        #expect(outcome.journal[0].text.contains("supprimée ou cachée"))
+        #expect(outcome.journal[0].text.contains("2 mod(s) sans verdict"))
+    }
+
+    /// Un autre statut se mesure aussi, sans le gloss du 404 : le texte de
+    /// la raison (modération, mise à jour en cours) n'est pas déduit d'un
+    /// code qui ne le porte pas.
+    @Test func otherHTTPCodesJournalWithoutThe404Gloss() {
+        let outcome = NexusResume.applyPage(.error("http_503"), target: mixedTarget(),
+                                            pageIndex: 0, found: [], settled: [], failures: 0)
+
+        #expect(outcome.notFoundPages == 0)
+        #expect(outcome.journal.count == 1)
+        #expect(outcome.journal[0].level == .info)
+        #expect(outcome.journal[0].text.contains("HTTP 503"))
+        #expect(!outcome.journal[0].text.contains("supprimée"))
+    }
+
+    /// Le bilan nomme les 404 quand il y en a : la mesure se lit au coup
+    /// d'œil, sans recompter les échecs. Zéro 404 — le bilan ne dit rien de
+    /// plus que ce qu'il disait.
+    @Test func summaryNames404PagesWhenAny() {
+        let with404 = NexusResume.settle(found: [], settled: [], failures: 2,
+                                         attempted: 2, cachedRows: [], notFoundPages: 1)
+        #expect(with404.journal[0].text.contains("2 échec(s), dont 1 page(s) 404"))
+
+        let without = NexusResume.settle(found: [], settled: [], failures: 0,
+                                         attempted: 1, cachedRows: [])
+        #expect(!without.journal[0].text.contains("404"))
     }
 
     // MARK: - Fabrique commune
