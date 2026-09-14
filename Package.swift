@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:5.9
 import PackageDescription
 
 let package = Package(
@@ -255,8 +255,7 @@ let package = Package(
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",
-            ],
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            ]
         ),
         .testTarget(
             name: "LocalizationStoreTests",
@@ -1323,10 +1322,5 @@ let package = Package(
             dependencies: ["StarHubTHCore"],
             path: "Tests/GameEnvironmentStoreTests"
         ),
-    ],
-    // ⚠️ Le bump en tools-version 6.0 bascule **toutes** les cibles en mode
-    // Swift 6 par défaut : les ~30 cibles de test comprises. Ce plancher
-    // explicite les garde en v5 ; seule `StarHubTHCore` monte, par son
-    // `swiftSettings` (P5-L5).
-    swiftLanguageModes: [.v5]
+    ]
 )
