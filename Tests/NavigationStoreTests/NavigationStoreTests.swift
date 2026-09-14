@@ -13,7 +13,7 @@ import Foundation
 /// ferait survivre une demande d'ouverture jusqu'à la prochaine fiche
 /// ouverte à la main — le défaut exact que les pendings existent pour
 /// éviter.
-@Suite struct NavigationStoreTests {
+@Suite @MainActor struct NavigationStoreTests {
 
     // MARK: - Poses inertes : ce qui est posé se relit.
 

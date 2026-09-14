@@ -28,7 +28,7 @@ enum NexusSearchClient {
     ///   anglais — le filtre de la vitrine s'applique aussi aux résultats.
     static func search(name: String, tag: String? = nil, category: String? = nil,
                        offset: Int = 0,
-                       completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
+                       completion: @escaping @Sendable (Result<NexusModSearch.Page, SearchError>) -> Void) {
         send(body: NexusModSearch.queryBody(name: name,
                                             gameId: NexusRequestBuilder.gameId,
                                             tag: tag, category: category, offset: offset),
@@ -44,7 +44,7 @@ enum NexusSearchClient {
     ///   `categoryName` attend, et le seul que l'API connaisse.
     static func listing(sort: NexusModSearch.ListingSort, tag: String? = nil,
                         category: String? = nil, offset: Int = 0,
-                        completion: @escaping (Result<NexusModSearch.Page, SearchError>) -> Void) {
+                        completion: @escaping @Sendable (Result<NexusModSearch.Page, SearchError>) -> Void) {
         send(body: NexusModSearch.listingBody(sort: sort, tag: tag, category: category,
                                               gameId: NexusRequestBuilder.gameId,
                                               offset: offset),
@@ -54,7 +54,7 @@ enum NexusSearchClient {
 
     /// La fiche d'un mod (spec §5.2).
     static func detail(modId: Int,
-                       completion: @escaping (Result<NexusModSearch.Detail, SearchError>) -> Void) {
+                       completion: @escaping @Sendable (Result<NexusModSearch.Detail, SearchError>) -> Void) {
         send(body: NexusModSearch.detailBody(modId: modId,
                                              gameId: NexusRequestBuilder.gameId),
              decode: NexusModSearch.decodeDetail,
@@ -64,9 +64,9 @@ enum NexusSearchClient {
     /// L'entonnoir commun : clé, requête, quota, 429, 200-avec-`errors`.
     /// Une seule copie pour la recherche, le listing et la fiche — pas de
     /// variantes qui divergent.
-    private static func send<T>(body: Data?,
-                                decode: @escaping (Data) -> Result<T, NexusModSearch.Failure>,
-                                completion: @escaping (Result<T, SearchError>) -> Void) {
+    private static func send<T: Sendable>(body: Data?,
+                                decode: @escaping @Sendable (Data) -> Result<T, NexusModSearch.Failure>,
+                                completion: @escaping @Sendable (Result<T, SearchError>) -> Void) {
         func finish(_ result: Result<T, SearchError>) {
             DispatchQueue.main.async { completion(result) }
         }

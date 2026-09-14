@@ -71,12 +71,19 @@ enum NexusUpdateCheck {
     /// porte donc le partage. `@unchecked` : le séquencement réel reste
     /// celui du `DispatchGroup` — une écriture, puis `group.leave()`, la
     /// lecture après le `notify` ; le compilateur ne voit ni l'un ni
-    /// l'autre. `pathoschildFetchFailed`, deux lignes plus bas, porte le
-    /// même argument de sûreté et reste un `var` nu : sa complétion à lui
-    /// ne traverse aucune frontière `@Sendable` — c'est la frontière qui
-    /// impose la boîte, pas le partage.
+    /// l'autre. ⚠️ `pathoschildFetchFailed` est resté un `var` nu jusqu'à
+    /// P5-L6, sa complétion ne traversant alors aucune frontière ; le dump
+    /// Pathoschild rendu `@Sendable` l'a fait franchir la même — d'où sa
+    /// boîte à lui, juste en dessous. C'est bien la frontière qui impose la
+    /// boîte, pas le partage : le partage, lui, était là depuis le début.
     private final class SmapiResultBox: @unchecked Sendable {
         var value: Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>?
+    }
+
+    /// Le pendant booléen, pour le filet Pathoschild — même séquencement,
+    /// même `DispatchGroup`, même raison.
+    private final class FlagBox: @unchecked Sendable {
+        var value = false
     }
 
     /// - Parameters:
@@ -101,11 +108,11 @@ enum NexusUpdateCheck {
                                            _ gameVersion: String,
                                            _ progress: @escaping @Sendable (Int, Int) -> Void,
                                            _ completion: @escaping @Sendable (Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>) -> Void) -> Void,
-                    pathoschildFetch: @escaping (_ completion: @escaping (Bool) -> Void) -> Void,
+                    pathoschildFetch: @escaping (_ completion: @escaping @Sendable (Bool) -> Void) -> Void,
                     progress: @escaping @Sendable (Int, Int) -> Void,
                     completion: @escaping (Composition) -> Void) {
         let group = DispatchGroup()
-        var pathoschildFetchFailed = false
+        let pathoschildFetchFailed = FlagBox()
         let smapiResult = SmapiResultBox()
         // Le `notify` est posé **avant** le départ des requêtes : avec des
         // fetchers synchrones en test, le compte atteindrait zéro avant
@@ -115,7 +122,7 @@ enum NexusUpdateCheck {
         group.enter()
         group.notify(queue: queue) {
             var journal: [JournalLine] = []
-            if pathoschildFetchFailed {
+            if pathoschildFetchFailed.value {
                 journal.append(JournalLine(
                     text: "Dump Pathoschild indisponible (réseau + cache vide) : "
                         + "filet limité à smapi.io",
@@ -159,7 +166,7 @@ enum NexusUpdateCheck {
         }
 
         pathoschildFetch { failed in
-            pathoschildFetchFailed = failed
+            pathoschildFetchFailed.value = failed
             group.leave()
         }
         smapiFetch(entries, SmapiUpdateRequest.sanitizedGameVersion(gameVersion),

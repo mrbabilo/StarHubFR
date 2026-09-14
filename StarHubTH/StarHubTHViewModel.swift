@@ -2013,7 +2013,10 @@ final class StarHubTHViewModel {
             loadInventory: { save, done in
                 DispatchQueue.global(qos: .userInitiated).async {
                     let items = SaveManager.shared.fetchInventory(for: save) ?? []
-                    DispatchQueue.main.async { done(items) }
+                    // `done` est `@MainActor` : le hop de retour est déjà là,
+                    // `assumeIsolated` le dit au compilateur sans en ajouter
+                    // un second.
+                    DispatchQueue.main.async { MainActor.assumeIsolated { done(items) } }
                 }
             })
         // Scan (domaine 8) : poser le parc enchaîne les trois cascades que
@@ -2043,10 +2046,16 @@ final class StarHubTHViewModel {
         // @MainActor), l'init du VM ne l'est pas — mais son unique site de
         // construction est le main (`StarHubTHApp.init`). `assumeIsolated`
         // borne cet accès à la seule expression qui en a besoin.
-        let reports = MainActor.assumeIsolated { keybindScanService.$report }
-        keybindCancellable = reports
-            .removeDuplicates()
-            .sink { [weak self] in self?.keybindReport = $0 }
+        // ⚠️ Le `Publisher` de `@Published` n'est pas `Sendable` : le sortir
+        // du bloc le ferait traverser une frontière d'isolation (erreur en
+        // mode Swift 6). Tout le câblage vit donc **dans** l'assertion.
+        MainActor.assumeIsolated {
+            // L'abonnement lui-même ne sort pas non plus du bloc :
+            // `AnyCancellable` n'est pas `Sendable`. On assigne dedans.
+            self.keybindCancellable = keybindScanService.$report
+                .removeDuplicates()
+                .sink { [weak self] in self?.keybindReport = $0 }
+        }
         // Les réglages IA/DeepL sont écrits par SettingsView en @AppStorage,
         // hors du VM : la notification système est l'unique point où
         // l'écriture est visible (prouvée postée en-process, cadrage plan
@@ -3264,7 +3273,7 @@ final class StarHubTHViewModel {
     /// Recharge le journal SMAPI. `completion` s'exécute sur le thread principal
     /// **après** publication des diagnostics : sans elle, un appelant qui lit
     /// `smapiDiagnostics` juste après jugerait encore sur la session précédente.
-    func loadSmapiLog(completion: (() -> Void)? = nil) {
+    func loadSmapiLog(completion: (@Sendable () -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.parseAndAppendSmapiLog(completion: completion)
         }
@@ -5353,22 +5362,24 @@ final class StarHubTHViewModel {
         guard !searchingIdentity.contains(mod.folderName) else { return }
         searchingIdentity.insert(mod.folderName)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
-            guard let self else { return }
-            self.searchingIdentity.remove(mod.folderName)
-            switch result {
-            case .success(let page):
-                self.identitySearches[mod.folderName] = IdentitySearch(
-                    candidates: NexusModSearch.identityCandidates(among: page.hits,
-                                                                  modName: mod.name,
-                                                                  modAuthor: mod.author),
-                    received: page.hits.count,
-                    serverTotal: page.totalCount)
-            case .failure(let error):
-                // Une panne n'est pas une absence : ne rien afficher vaut mieux
-                // qu'afficher « aucun résultat » pour une requête qui a échoué.
-                self.identitySearches[mod.folderName] = nil
-                self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
-                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
+            Task { @MainActor in
+                guard let self else { return }
+                self.searchingIdentity.remove(mod.folderName)
+                switch result {
+                case .success(let page):
+                    self.identitySearches[mod.folderName] = IdentitySearch(
+                        candidates: NexusModSearch.identityCandidates(among: page.hits,
+                                                                      modName: mod.name,
+                                                                      modAuthor: mod.author),
+                        received: page.hits.count,
+                        serverTotal: page.totalCount)
+                case .failure(let error):
+                    // Une panne n'est pas une absence : ne rien afficher vaut mieux
+                    // qu'afficher « aucun résultat » pour une requête qui a échoué.
+                    self.identitySearches[mod.folderName] = nil
+                    self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
+                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
+                }
             }
         }
     }
@@ -5602,34 +5613,36 @@ final class StarHubTHViewModel {
         searchingSupplements.insert(mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
-            guard let self else { return }
-            self.searchingSupplements.remove(mod.folderName)
-            switch result {
-            case .success(let page):
-                let found = NexusModSearch.supplements(among: page.hits, excluding: host,
-                                                       hostName: mod.name)
-                // Ce qui est déjà là ne se propose pas : il se **montre**, à
-                // part, avec ce qu'on peut en faire.
-                let split = NexusModSearch.partition(
-                    found,
-                    installedNexusIds: self.installedNexusIds(),
-                    installedTitles: Set(self.installedTranslations
-                        .addons(forHost: mod.folderName).map(\.nexusName)))
-                // Rattacher les greffes reconnues, sans rien demander.
-                for addon in self.installedTranslations.addons(forHost: mod.folderName) {
-                    self.adoptConfirmedNexusId(for: addon, among: split.installed,
-                                               isTranslation: false, host: mod)
+            Task { @MainActor in
+                guard let self else { return }
+                self.searchingSupplements.remove(mod.folderName)
+                switch result {
+                case .success(let page):
+                    let found = NexusModSearch.supplements(among: page.hits, excluding: host,
+                                                           hostName: mod.name)
+                    // Ce qui est déjà là ne se propose pas : il se **montre**, à
+                    // part, avec ce qu'on peut en faire.
+                    let split = NexusModSearch.partition(
+                        found,
+                        installedNexusIds: self.installedNexusIds(),
+                        installedTitles: Set(self.installedTranslations
+                            .addons(forHost: mod.folderName).map(\.nexusName)))
+                    // Rattacher les greffes reconnues, sans rien demander.
+                    for addon in self.installedTranslations.addons(forHost: mod.folderName) {
+                        self.adoptConfirmedNexusId(for: addon, among: split.installed,
+                                                   isTranslation: false, host: mod)
+                    }
+                    self.supplementSearches[mod.folderName] = SupplementSearch(
+                        hits: split.available,
+                        alreadyInstalled: split.installed,
+                        received: page.hits.count,
+                        serverTotal: page.totalCount)
+                case .failure(let error):
+                    // Une panne n'est pas une absence, comme pour les traductions.
+                    self.supplementSearches[mod.folderName] = nil
+                    self.log("Recherche de suppléments : \(error)", level: .warning)
+                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
                 }
-                self.supplementSearches[mod.folderName] = SupplementSearch(
-                    hits: split.available,
-                    alreadyInstalled: split.installed,
-                    received: page.hits.count,
-                    serverTotal: page.totalCount)
-            case .failure(let error):
-                // Une panne n'est pas une absence, comme pour les traductions.
-                self.supplementSearches[mod.folderName] = nil
-                self.log("Recherche de suppléments : \(error)", level: .warning)
-                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -5644,32 +5657,34 @@ final class StarHubTHViewModel {
         translationHub.setSearching(true, for: mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name, tag: NexusModSearch.frenchTag) { [weak self] result in
-            guard let self else { return }
-            self.translationHub.setSearching(false, for: mod.folderName)
-            switch result {
-            case .success(let page):
-                // Le filet : si le tag n'a rien rendu, on retente large et on
-                // lit les titres. Trois traductions sur quatre-vingts ne
-                // portent pas le tag.
-                if page.hits.isEmpty {
-                    self.searchTranslationsByTitle(for: mod)
-                } else {
-                    // **Le titre classe, il ne filtre pas.** Le serveur a déjà
-                    // trié sur le tag ; rejeter ici les titres muets perdrait
-                    // les traductions bien taguées que le tag venait de rendre.
-                    // La traduction déjà posée n'a rien à faire dans la liste
-                    // des propositions : elle a sa propre ligne, qui porte son
-                    // retrait et sa mise à jour.
-                    self.translationHub.setHits(self.withoutInstalledTranslation(
-                        NexusModSearch.ranked(page.hits, excluding: host), for: mod),
-                        for: mod.folderName)
+            Task { @MainActor in
+                guard let self else { return }
+                self.translationHub.setSearching(false, for: mod.folderName)
+                switch result {
+                case .success(let page):
+                    // Le filet : si le tag n'a rien rendu, on retente large et on
+                    // lit les titres. Trois traductions sur quatre-vingts ne
+                    // portent pas le tag.
+                    if page.hits.isEmpty {
+                        self.searchTranslationsByTitle(for: mod)
+                    } else {
+                        // **Le titre classe, il ne filtre pas.** Le serveur a déjà
+                        // trié sur le tag ; rejeter ici les titres muets perdrait
+                        // les traductions bien taguées que le tag venait de rendre.
+                        // La traduction déjà posée n'a rien à faire dans la liste
+                        // des propositions : elle a sa propre ligne, qui porte son
+                        // retrait et sa mise à jour.
+                        self.translationHub.setHits(self.withoutInstalledTranslation(
+                            NexusModSearch.ranked(page.hits, excluding: host), for: mod),
+                            for: mod.folderName)
+                    }
+                case .failure(let error):
+                    // Une panne n'est pas une absence : `[]` ferait afficher
+                    // « aucune traduction trouvée » pour une recherche cassée.
+                    self.translationHub.setHits(nil, for: mod.folderName)
+                    self.log("Recherche de traduction : \(error)", level: .warning)
+                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
                 }
-            case .failure(let error):
-                // Une panne n'est pas une absence : `[]` ferait afficher
-                // « aucune traduction trouvée » pour une recherche cassée.
-                self.translationHub.setHits(nil, for: mod.folderName)
-                self.log("Recherche de traduction : \(error)", level: .warning)
-                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -5678,23 +5693,25 @@ final class StarHubTHViewModel {
         translationHub.setSearching(true, for: mod.folderName)
         let host = Int(mod.nexusModId)
         NexusSearchClient.search(name: mod.name) { [weak self] result in
-            guard let self else { return }
-            self.translationHub.setSearching(false, for: mod.folderName)
-            switch result {
-            case .success(let page):
-                // Recherche large : ici rien d'autre que le titre ne distingue
-                // une traduction, le filtre est à sa place.
-                self.translationHub.setHits(self.withoutInstalledTranslation(
-                    NexusModSearch.frenchTranslations(among: page.hits, excluding: host),
-                    for: mod), for: mod.folderName)
-            case .failure(let error):
-                // Une panne n'est pas une absence : afficher « aucune traduction
-                // trouvée » ici ferait passer une recherche cassée pour un
-                // résultat, exactement ce que le décodeur refuse de faire sur
-                // les erreurs GraphQL.
-                self.translationHub.setHits(nil, for: mod.folderName)
-                self.log("Recherche de traduction (titre) : \(error)", level: .warning)
-                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
+            Task { @MainActor in
+                guard let self else { return }
+                self.translationHub.setSearching(false, for: mod.folderName)
+                switch result {
+                case .success(let page):
+                    // Recherche large : ici rien d'autre que le titre ne distingue
+                    // une traduction, le filtre est à sa place.
+                    self.translationHub.setHits(self.withoutInstalledTranslation(
+                        NexusModSearch.frenchTranslations(among: page.hits, excluding: host),
+                        for: mod), for: mod.folderName)
+                case .failure(let error):
+                    // Une panne n'est pas une absence : afficher « aucune traduction
+                    // trouvée » ici ferait passer une recherche cassée pour un
+                    // résultat, exactement ce que le décodeur refuse de faire sur
+                    // les erreurs GraphQL.
+                    self.translationHub.setHits(nil, for: mod.folderName)
+                    self.log("Recherche de traduction (titre) : \(error)", level: .warning)
+                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
+                }
             }
         }
     }
@@ -6097,29 +6114,31 @@ final class StarHubTHViewModel {
         let category = discoveryCategory
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName) { [weak self] result in
-            guard let self else { return }
-            self.discoveryStore.finishFetch()
-            let stillWanted = self.discoveryStore.isStillWanted(category: category)
-            switch result {
-            case .success(let page):
-                self.discoveryCatalog.record(kind, category: category?.id, page: page)
-                // Relu depuis le cache : c'est la page dédoublonnée qui
-                // s'affiche.
-                guard stillWanted else { return }
-                self.discoveryStore.setSection(kind,
-                                               to: self.discoveryCatalog.state(kind,
-                                                                               category: category?.id))
-            case .failure(let error):
-                guard stillWanted else { return }
-                // La panne est dite dans tous les cas (spec §8) : garder des
-                // lignes de la veille sans prévenir qu'elles n'ont pas pu
-                // être rafraîchies, c'est mentir en silence.
-                self.discoveryStore.recordFailure(error)
-                // Le stale reste affiché pendant la panne (spec §6) — le
-                // bandeau suffit, on ne blanchit pas la section.
-                if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
-                self.discoveryStore.setSection(kind, to: .empty(.failed))
-            }
+                                      Task { @MainActor in
+                guard let self else { return }
+                self.discoveryStore.finishFetch()
+                let stillWanted = self.discoveryStore.isStillWanted(category: category)
+                switch result {
+                case .success(let page):
+                    self.discoveryCatalog.record(kind, category: category?.id, page: page)
+                    // Relu depuis le cache : c'est la page dédoublonnée qui
+                    // s'affiche.
+                    guard stillWanted else { return }
+                    self.discoveryStore.setSection(kind,
+                                                   to: self.discoveryCatalog.state(kind,
+                                                                                   category: category?.id))
+                case .failure(let error):
+                    guard stillWanted else { return }
+                    // La panne est dite dans tous les cas (spec §8) : garder des
+                    // lignes de la veille sans prévenir qu'elles n'ont pas pu
+                    // être rafraîchies, c'est mentir en silence.
+                    self.discoveryStore.recordFailure(error)
+                    // Le stale reste affiché pendant la panne (spec §6) — le
+                    // bandeau suffit, on ne blanchit pas la section.
+                    if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
+                    self.discoveryStore.setSection(kind, to: .empty(.failed))
+                }
+                                      }
         }
     }
 
@@ -6174,20 +6193,22 @@ final class StarHubTHViewModel {
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName,
                                   offset: DiscoveryScoping.nextOffset(received: page.hits.count)) { [weak self] result in
-            guard let self else { return }
-            self.discoveryStore.finishFetch()
-            guard self.discoveryStore.isStillWanted(category: category) else { return }
-            switch result {
-            case .success(let next):
-                self.discoveryCatalog.append(kind, category: category?.id, page: next)
-                self.discoveryStore.setSection(kind,
-                                               to: self.discoveryCatalog.state(kind,
-                                                                               category: category?.id))
-            case .failure(let error):
-                // La bande déjà là ne bouge pas : seule la suite manque, et
-                // le bandeau dit pourquoi.
-                self.discoveryStore.recordFailure(error)
-            }
+                                      Task { @MainActor in
+                guard let self else { return }
+                self.discoveryStore.finishFetch()
+                guard self.discoveryStore.isStillWanted(category: category) else { return }
+                switch result {
+                case .success(let next):
+                    self.discoveryCatalog.append(kind, category: category?.id, page: next)
+                    self.discoveryStore.setSection(kind,
+                                                   to: self.discoveryCatalog.state(kind,
+                                                                                   category: category?.id))
+                case .failure(let error):
+                    // La bande déjà là ne bouge pas : seule la suite manque, et
+                    // le bandeau dit pourquoi.
+                    self.discoveryStore.recordFailure(error)
+                }
+                                      }
         }
     }
 
@@ -6207,20 +6228,22 @@ final class StarHubTHViewModel {
         let token = discoveryEpoch.open()
         NexusSearchClient.search(name: name,
                                  category: discoveryCategory?.englishName) { [weak self] result in
-            guard let self, self.discoveryEpoch.isCurrent(token) else { return }
-            switch result {
-            case .success(let page):
-                self.discoveryStore.clearFailure()
-                self.discoveryStore.setSearch(DiscoverySearchResult(
-                    rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
-                                             francophoneOnly: false),
-                    totalCount: page.totalCount,
-                    term: name,
-                    loaded: page.hits.count))
-            case .failure(let error):
-                self.discoveryStore.recordFailure(error)
-                self.discoveryStore.setSearch(nil)
-            }
+                                     Task { @MainActor in
+                guard let self, self.discoveryEpoch.isCurrent(token) else { return }
+                switch result {
+                case .success(let page):
+                    self.discoveryStore.clearFailure()
+                    self.discoveryStore.setSearch(DiscoverySearchResult(
+                        rows: self.discoveryRows(in: page.hits, hidingInstalled: false,
+                                                 francophoneOnly: false),
+                        totalCount: page.totalCount,
+                        term: name,
+                        loaded: page.hits.count))
+                case .failure(let error):
+                    self.discoveryStore.recordFailure(error)
+                    self.discoveryStore.setSearch(nil)
+                }
+                                     }
         }
     }
 
@@ -6237,25 +6260,27 @@ final class StarHubTHViewModel {
         NexusSearchClient.search(name: current.term,
                                  category: discoveryCategory?.englishName,
                                  offset: current.loaded) { [weak self] result in
-            guard let self, self.discoveryEpoch.isCurrent(token) else { return }
-            // La liste a pu grandir par ailleurs pendant la requête.
-            guard let now = self.discoverySearch, now.term == current.term,
-                  now.loaded == current.loaded else { return }
-            switch result {
-            case .success(let page):
-                var seen = Set(now.rows.map(\.hit.modId))
-                let fresh = page.hits.filter { seen.insert($0.modId).inserted }
-                self.discoveryStore.clearFailure()
-                self.discoveryStore.setSearch(DiscoverySearchResult(
-                    rows: now.rows + self.discoveryRows(in: fresh, hidingInstalled: false,
-                                                        francophoneOnly: false),
-                    totalCount: page.totalCount,
-                    term: current.term,
-                    loaded: now.loaded + page.hits.count))
-            case .failure(let error):
-                // Les résultats déjà là restent : seule la suite manque.
-                self.discoveryStore.recordFailure(error)
-            }
+                                     Task { @MainActor in
+                guard let self, self.discoveryEpoch.isCurrent(token) else { return }
+                // La liste a pu grandir par ailleurs pendant la requête.
+                guard let now = self.discoverySearch, now.term == current.term,
+                      now.loaded == current.loaded else { return }
+                switch result {
+                case .success(let page):
+                    var seen = Set(now.rows.map(\.hit.modId))
+                    let fresh = page.hits.filter { seen.insert($0.modId).inserted }
+                    self.discoveryStore.clearFailure()
+                    self.discoveryStore.setSearch(DiscoverySearchResult(
+                        rows: now.rows + self.discoveryRows(in: fresh, hidingInstalled: false,
+                                                            francophoneOnly: false),
+                        totalCount: page.totalCount,
+                        term: current.term,
+                        loaded: now.loaded + page.hits.count))
+                case .failure(let error):
+                    // Les résultats déjà là restent : seule la suite manque.
+                    self.discoveryStore.recordFailure(error)
+                }
+                                     }
         }
     }
 
@@ -6277,15 +6302,17 @@ final class StarHubTHViewModel {
         }
         let token = discoveryDetailEpoch.open()
         NexusSearchClient.detail(modId: modId) { [weak self] result in
-            // Sans ce jeton, la réponse d'une fiche fermée entre-temps
-            // s'affichait sous le titre de celle qu'on venait d'ouvrir.
-            guard let self, self.discoveryDetailEpoch.isCurrent(token) else { return }
-            switch result {
-            case .success(let detail):
-                self.discoveryCatalog.recordDetail(detail)
-                self.discoveryStore.setDetail(detail, state: .loaded)
-            case .failure:
-                self.discoveryStore.setDetail(nil, state: .failed)
+            Task { @MainActor in
+                // Sans ce jeton, la réponse d'une fiche fermée entre-temps
+                // s'affichait sous le titre de celle qu'on venait d'ouvrir.
+                guard let self, self.discoveryDetailEpoch.isCurrent(token) else { return }
+                switch result {
+                case .success(let detail):
+                    self.discoveryCatalog.recordDetail(detail)
+                    self.discoveryStore.setDetail(detail, state: .loaded)
+                case .failure:
+                    self.discoveryStore.setDetail(nil, state: .failed)
+                }
             }
         }
     }
@@ -7183,7 +7210,7 @@ final class StarHubTHViewModel {
     /// listBackups scans the backups folder on disk — run off the main
     /// thread so opening the timeline doesn't stall the UI when there are
     /// many backups.
-    func listBackups(for info: SaveGameInfo, completion: @escaping ([SaveBackup]) -> Void) {
+    func listBackups(for info: SaveGameInfo, completion: @escaping @Sendable ([SaveBackup]) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             let backups = SaveManager.shared.listBackups(for: info)
             DispatchQueue.main.async {

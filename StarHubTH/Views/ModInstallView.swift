@@ -444,17 +444,25 @@ struct ModInstallView: View {
     /// élément : chaque archive déposée a droit à sa fiche.
     private func loadDroppedFileURLs(from providers: [NSItemProvider],
                                      accumulated: [URL] = [],
-                                     completion: @escaping ([URL]) -> Void) {
+                                     completion: @escaping @MainActor @Sendable ([URL]) -> Void) {
         guard let provider = providers.first else { completion(accumulated); return }
+        // `NSItemProvider` n'est pas `Sendable` et la complétion de `loadItem`
+        // l'est : le reste de la file se transporte donc explicitement
+        // (P5-L6). AppKit livre ces objets au dépôt et personne d'autre ne
+        // les touche — la récursion les consomme un par un, sur l'acteur.
+        nonisolated(unsafe) let rest = Array(providers.dropFirst())
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
             var urls = accumulated
             if let data = item as? Data,
                let url = URL(dataRepresentation: data, relativeTo: nil) {
                 urls.append(url)
             }
-            self.loadDroppedFileURLs(from: Array(providers.dropFirst()),
-                                     accumulated: urls,
-                                     completion: completion)
+            let carried = urls
+            Task { @MainActor in
+                self.loadDroppedFileURLs(from: rest,
+                                         accumulated: carried,
+                                         completion: completion)
+            }
         }
     }
 

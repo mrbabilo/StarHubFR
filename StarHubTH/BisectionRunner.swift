@@ -209,8 +209,13 @@ final class BisectionRunner: ObservableObject {
         // jour de façon synchrone, avant que cette completion async ne tire —
         // l'evidence serait sinon collée à l'essai d'après.
         let played = Set(appliedFolders)
+        // Complétion `@Sendable` (P5-L6) : la touche au runner passe par un
+        // hop. Le gel de `played` juste au-dessus est ce qui rend ce tour de
+        // main sans conséquence — l'evidence reste collée à cet essai-ci.
         vm.loadSmapiLog { [weak self] in
-            self?.recordLogEvidence(stillBroken: outcome == .stillBroken, enabled: played)
+            Task { @MainActor in
+                self?.recordLogEvidence(stillBroken: outcome == .stillBroken, enabled: played)
+            }
         }
         s.record(outcome)
         session = s

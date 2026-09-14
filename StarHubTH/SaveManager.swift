@@ -6,7 +6,10 @@ import AppKit
 
 // MARK: - Save Backup Model
 
-public struct SaveBackup: Identifiable, Equatable {
+/// `Sendable` explicite (P5-L6) : la valeur traverse les `Task.detached` et
+/// les hops de la liste des sauvegardes. Un `struct` **public** n'a jamais
+/// d'inférence — règle §9.
+public struct SaveBackup: Identifiable, Equatable, Sendable {
     public var id: String { folderPath.path }
     public let folderPath: URL
     public let timestamp: Date
@@ -105,7 +108,9 @@ public struct SaveHairColor: Hashable, Sendable {
 /// `SaveManager.shared.fetchSaves()` / `reloadSaves()`. L'ajout de 4 champs
 /// n'aggrave pas la situation. Parsing `<whichModFarm>` ne traverse pas de
 /// frontière de thread supplémentaire.
-public struct SaveGameInfo: Identifiable, Equatable, Hashable {
+/// `Sendable` explicite (P5-L6) : même raison que `SaveBackup` — c'est la
+/// valeur que les opérations lourdes emportent hors de l'acteur principal.
+public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
     public var id: String { folderName }
     public let folderName: String
     public let fileURL: URL

@@ -151,6 +151,14 @@ def build_swiftc_command(swift_files: list[str], app_executable: str, module_cac
     arch = platform.machine()  # arm64 (Apple Silicon) or x86_64 (Intel)
     return ["swiftc"] + swift_files + [
         "-target", f"{arch}-apple-macosx14.0",
+        # P5-L6 : l'app compile sous le modèle de concurrence Swift 6. Ce
+        # drapeau est le gate — ce qui passait en avertissement devient une
+        # erreur de build. ⚠️ La CI ne compile pas l'app (elle ne lance que
+        # `swift test` et `check_standards.py`) : ce drapeau-ci n'est donc
+        # tenu que par le gate local, sur la chaîne active. Un contributeur
+        # sur une chaîne plus ancienne peut voir des erreurs de plus —
+        # c'est arrivé à L5, avec Xcode 16.4 contre 6.3.3.
+        "-swift-version", "6",
         "-o", app_executable,
         "-parse-as-library",
         "-module-cache-path", module_cache_dir,
@@ -222,6 +230,7 @@ def build_incremental(swift_files: list[str], app_executable: str,
                    "-output-file-map", OUTPUT_FILE_MAP,
                    "-module-name", MODULE_NAME,
                    "-target", target,
+                   "-swift-version", "6",   # P5-L6, voir build_swiftc_command
                    "-parse-as-library",
                    "-module-cache-path", module_cache_dir,
                    "-j", str(os.cpu_count() or 4)] + [os.path.abspath(f) for f in swift_files]

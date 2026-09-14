@@ -93,7 +93,11 @@ struct SaveFarmerAvatar: View, Equatable {
         .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
     }
 
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    // `nonisolated` : `View` est isolée sur l'acteur principal en mode
+    // Swift 6, et `Equatable` ne l'est pas — la conformité traverse. Tous
+    // les membres comparés sont des valeurs (`Int`, `Bool`, `CGSize`,
+    // `RGBColor`) : la comparaison n'a aucune raison d'être sur l'acteur.
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.isFemale == rhs.isFemale
             && lhs.hairStyle == rhs.hairStyle
             && lhs.hairColor == rhs.hairColor
