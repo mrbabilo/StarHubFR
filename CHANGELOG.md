@@ -15,7 +15,7 @@ where the exact log format was verified.
 ### Fixed
 
 - **L'installation de SMAPI depuis l'app échouait, à moitié faite.** Le processus de l'installateur était lancé sans `PATH` : il ne trouvait plus `chmod`, s'arrêtait après avoir remplacé le lanceur du jeu, et laissait le jeu non démarrable. Cassé depuis le 2026-09-07.
-- **Une désinstallation annonçait une installation.** L'écran disait « Téléchargement de SMAPI… », « Préparation de l'installation… », et un échec s'y disait « Erreur d'installation ».
+- **Une désinstallation annonçait une installation.** L'écran disait « Téléchargement de SMAPI… », « Préparation de l'installation… », et un échec s'y disait « Erreur d'installation ». Ses quatre étapes parlent maintenant de désinstallation, le mot « téléchargement » compris.
 
 ### Added
 

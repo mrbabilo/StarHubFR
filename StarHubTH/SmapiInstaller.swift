@@ -341,7 +341,7 @@ final class SmapiInstaller: ObservableObject {
                 try fm.copyItem(at: localURL, to: zipDest)
 
                 Task { @MainActor in
-                    self.statusMessage = L10n.Smapi.extracting
+                    self.statusMessage = action.extractingMessageKey
                     self.progress = 0.4
                 }
 

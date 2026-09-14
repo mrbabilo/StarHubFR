@@ -1009,6 +1009,7 @@ enum L10n {
         static let downloadedFileNotFound = "smapi_downloaded_file_not_found"
         static let extractFailed        = "smapi_extract_failed"
         static let extracting           = "smapi_extracting"
+        static let extractingUninstall  = "smapi_extracting_uninstall"
         static let preparing            = "smapi_preparing"
         static let preparingUninstall   = "smapi_preparing_uninstall"
         static let payloadNotFound      = "smapi_payload_not_found"

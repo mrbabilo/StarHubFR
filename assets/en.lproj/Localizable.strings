@@ -1271,9 +1271,10 @@
 "smapi_download_http_error" = "Download failed: %@";
 "smapi_downloaded_file_not_found" = "Downloaded file not found";
 "smapi_downloading" = "Downloading SMAPI…";
-"smapi_downloading_uninstall" = "Downloading SMAPI's uninstaller…";
+"smapi_downloading_uninstall" = "Fetching SMAPI's uninstaller…";
 "smapi_extract_failed" = "Extraction failed: %@";
 "smapi_extracting" = "Download complete, extracting…";
+"smapi_extracting_uninstall" = "Uninstaller fetched, extracting…";
 "smapi_install_error" = "Installation error: %@";
 "smapi_install_success" = "SMAPI installed successfully!";
 "smapi_installer_aborted" = "SMAPI's installer stopped responding sensibly and was interrupted — it was most likely refusing the game folder. Check the game path in Settings, then try again. (%@)";

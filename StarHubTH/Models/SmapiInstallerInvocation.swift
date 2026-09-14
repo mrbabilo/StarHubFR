@@ -46,7 +46,8 @@ public enum SmapiInstallerAction: String, Sendable {
 public extension SmapiInstallerAction {
 
     /// Les libellés du chemin **partagé** entre installation et
-    /// désinstallation — téléchargement, préparation, échec générique.
+    /// désinstallation — récupération de l'outil, extraction, préparation,
+    /// échec générique.
     ///
     /// Les deux actions passent par le même code : on télécharge la dernière
     /// archive de l'installateur, on l'extrait, on la rend exécutable, puis on
@@ -57,13 +58,27 @@ public extension SmapiInstallerAction {
     /// écran que l'utilisateur regarde pendant l'opération (relevé le
     /// 2026-09-14 après une désinstallation réelle).
     ///
+    /// Le mot « téléchargement » lui-même est parti des deux premières
+    /// étapes d'une désinstallation (relevé à l'écran le 2026-09-14) : il est
+    /// exact — l'archive de l'installateur *est* téléchargée, c'est elle qui
+    /// sait désinstaller — mais il annonce le contraire de ce que
+    /// l'utilisateur vient de demander.
+    ///
     /// Ce qui reste commun est commun **pour de bon** : l'échec de
-    /// téléchargement, l'extraction, la charge utile absente et l'interruption
-    /// de l'installateur nomment ce qui a échoué, pas l'action demandée.
+    /// téléchargement, l'échec d'extraction, la charge utile absente et
+    /// l'interruption de l'installateur nomment ce qui a échoué, pas l'action
+    /// demandée.
     var downloadingMessageKey: String {
         switch self {
         case .install: L10n.Smapi.downloading
         case .uninstall: L10n.Smapi.downloadingUninstall
+        }
+    }
+
+    var extractingMessageKey: String {
+        switch self {
+        case .install: L10n.Smapi.extracting
+        case .uninstall: L10n.Smapi.extractingUninstall
         }
     }
 
