@@ -508,14 +508,18 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Networking
 
-    private enum FetchResult {
+    /// `Sendable` explicite : la valeur traverse les callbacks `@Sendable`
+    /// d'`URLSession` (P5-L5). ⚠️ Le compilateur de la CI (Xcode 16.4, Swift
+    /// 6.0) l'exige là où une chaîne 6.3 laisse passer — c'est **lui** qui
+    /// juge, pas la machine de développement.
+    private enum FetchResult: Sendable {
         case success(version: String, categoryId: Int?, extra: NexusModExtra, uploadedTime: Date?, pageFile: NexusModFile?)
         case rateLimited(retryAfter: TimeInterval)
         case failure(String)
     }
 
     private func fetchModInfo(modId: String, apiKey: String,
-                              completion: @escaping (FetchResult) -> Void) {
+                              completion: @escaping @Sendable (FetchResult) -> Void) {
         // Ne pas repartir tant que le back-off d'un 429 précédent court : la
         // boucle de `check()` s'arrête alors dès le premier mod, et un appel à
         // la demande échoue localement au lieu d'ajouter une requête bannie.
