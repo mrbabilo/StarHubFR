@@ -22,10 +22,17 @@ struct ModKeybindField: View {
 
     @State private var capturing = false
     @State private var monitor: Any?
+    /// C4-T10, suite — la touche réellement pressée quand elle diffère du
+    /// nom physique enregistré (`Q (a)` sur AZERTY). Les `SButton` nomment
+    /// des positions physiques US : écrire le keycap lierait la mauvaise
+    /// touche, le montrer évite la surprise.
+    @State private var keycapHint: String?
 
     private var title: String {
         if capturing { return localization.L(L10n.Settings.configKeybindCapture) }
-        return combo.isEmpty ? "None" : combo.display
+        let base = combo.isEmpty ? "None" : combo.display
+        guard let keycapHint, !combo.isEmpty else { return base }
+        return "\(base) (\(keycapHint))"
     }
 
     var body: some View {
@@ -49,6 +56,7 @@ struct ModKeybindField: View {
                     // combinaison vide est valide par construction, le
                     // garde n'est là que pour l'initialiseur failable.
                     guard let empty = KeybindCombo(buttons: []) else { return }
+                    keycapHint = nil
                     combo = empty
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -67,6 +75,7 @@ struct ModKeybindField: View {
 
     private func arm() {
         capturing = true
+        keycapHint = nil
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             handleKeyDown(event)
         }
@@ -98,6 +107,7 @@ struct ModKeybindField: View {
             return nil
         }
         disarm()
+        keycapHint = MacKeyCodeMap.keycapHint(physicalName: name, typedCharacter: event.characters)
         combo = next
         return nil
     }

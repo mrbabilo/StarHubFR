@@ -70,4 +70,22 @@ public enum MacKeyCodeMap {
     public static func name(for keyCode: UInt16) -> String? {
         table[keyCode]
     }
+
+    /// Le caractère pressé à montrer à côté du nom physique, `nil` quand il
+    /// n'apprend rien. Les `SButton` nomment des **positions physiques US**
+    /// — convention du jeu, partagée par SMAPI (wiki Stardew ; FNA#121 pour
+    /// la mécanique) : sur AZERTY, presser la touche A enregistre `Q`, et
+    /// c'est bien cette touche que le mod écoutera. Écrire le caractère du
+    /// keycap lierait la mauvaise touche ; le montrer à côté du nom évite
+    /// la surprise. Silencieux quand l'indice n'enseigne rien : caractère
+    /// identique (QWERTY), chiffre évident (`D1` contre `1`), pas de
+    /// caractère (F8), ou hors lettres et chiffres (espace, flèches).
+    public static func keycapHint(physicalName: String, typedCharacter: String?) -> String? {
+        guard var text = typedCharacter, let first = text.first else { return nil }
+        guard first.isLetter || first.isNumber else { return nil }
+        let keycap = first.lowercased()
+        guard physicalName.lowercased() != keycap,
+              physicalName != "D" + keycap.uppercased() else { return nil }
+        return String(keycap)
+    }
 }

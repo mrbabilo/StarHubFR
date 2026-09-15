@@ -641,6 +641,12 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       capturées et la re-classification les respecte ; l'intention explicite
       bat aussi l'heuristique du catalogue. À la réouverture, la grammaire
       re-tranche (une valeur `A` non hintée y reste un champ texte).
+      **AZERTY, affiché le jour même** : les `SButton` nomment des
+      **positions physiques US** (wiki Stardew, FNA#121) — presser la touche
+      A d'un AZERTY enregistre `Q`, et c'est bien cette touche que le mod
+      écoutera ; écrire le keycap lierait la mauvaise touche. Le contrôle
+      montre donc `Q (a)` — nom physique, puis la touche pressée — et
+      l'info-bulle dit la convention.
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou

@@ -39,6 +39,25 @@ struct MacKeyCodeMapTests {
         #expect(functionKeys.isSubset(of: names), "une touche F manque : \(functionKeys.subtracting(names))")
     }
 
+    /// C4-T10, suite — l'indice de touche pressée. Les `SButton` nomment des
+    /// **positions physiques US** (convention du jeu, confirmée par le wiki
+    /// Stardew et FNA#121) : sur AZERTY, presser la touche A enregistre `Q`.
+    /// L'indice montre ce que l'utilisateur a réellement tapé — sauf quand
+    /// il n'apprend rien.
+    @Test func keycapHintShowsThePressedCharacterWhenItDiffers() {
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: "a") == "a")
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "D2", typedCharacter: "é") == "é")
+    }
+
+    @Test func keycapHintStaysSilentWhenItTeachesNothing() {
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: "Q") == nil) // QWERTY
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "D1", typedCharacter: "1") == nil) // D1↔1, évident
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "F8", typedCharacter: "") == nil) // pas de caractère
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "Space", typedCharacter: " ") == nil)
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "Up", typedCharacter: "\u{F702}") == nil) // usage privé
+        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: nil) == nil)
+    }
+
     /// Les modificateurs que la capture écrit : valeurs exactes, validées
     /// contre la même table. La vue les emploie par ce nom — un renommage
     /// ici casse son test.
