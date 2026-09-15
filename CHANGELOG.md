@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-09-15
+
 ### Added
 
 - **Les raccourcis se règlent à la touche dans l'éditeur de config :** on clique, on presse la combinaison, Échap annule — fini le champ texte libre pour les 466 réglages que le scanner reconnaissait. Sur AZERTY, l'app montre ta touche (« a · Q ») ; la valeur inchangée garde l'orthographe exacte du fichier.
@@ -1485,7 +1487,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.46.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.47.0...HEAD
+[1.47.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.46.0...v1.47.0
 [1.26.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.25.0...v1.26.0
 [1.25.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...v1.25.0
 [1.24.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.23.0...v1.24.0
