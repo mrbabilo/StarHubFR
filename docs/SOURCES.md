@@ -450,13 +450,27 @@ Deux constats de lecture, mesurés :
 
 ### 6 bis — Les choix que les DLL déclarent par leurs types *(2026-09-15)*
 
-Le dataset **`assets/gmcm-options.json`** (122 mods, 588 champs au relevé)
-porte, par `UniqueID`, les clés de `config.json` dont la propriété est un
-enum **de l'assembly lui-même** — les valeurs de choix qu'un content pack
-mettrait dans son schéma. L'extracteur est **`tools/gmcm_options.py`**
-(venv conseillé : `dnfile`/`dncil`, pip — le runtime .NET de `ilspycmd`
-n'était pas installé ; `ikdasm` reste l'outil IL du dépôt). Rejouer après
-installation/retrait de mods, sortie re-commitée.
+Le lecteur vit désormais **dans l'app** : `DotNetMetadata` +
+`DotNetAssemblyOptions` (Swift pur, Foundation seul) relisent les tables
+de métadonnées des DLL du mod à l'ouverture de son éditeur — un mod
+nouvellement installé ou mis à jour est couvert sans release, avec cache
+par empreinte de DLL (`GmcmLiveOptionsStore`, `DllOptions/` dans le
+dossier de données). **`tools/gmcm_options.py`** (venv : `dnfile`) devient
+l'**oracle** : c'est lui qui a validé le lecteur Swift sur le parc
+(122 mods comparés, 0 écart, sonde jetable supprimée) et reste le moyen
+de rejouer la mesure. Son dataset `assets/gmcm-options.json` reste
+embarqué comme filet quand aucune DLL ne se lit.
+
+Variance du format **mesurée avant écriture** (455 DLL du parc) : 0 stream
+non compressé `#-`, 26 DLL en index de heap 4 octets (les deux largeurs
+sont réellement exercées), aucune table d'indirection non vide (détectée
+et refusée). La fixture des tests est produite par **le vrai producteur**
+(`dotnet build`) et porte les pièges du format : dernier TypeDef et
+dernière entrée de PropertyMap (plages qui finissent au bout de la
+table), enum d'un assembly référencé, struct à constantes sans `value__`,
+backing fields non littéraux. Chaque garde a été prouvé par sabotage —
+deux d'entre eux n'étaient observables que par des tests directs sur la
+grammaire (le sabotage restait vert sur la fixture).
 
 Pourquoi cette source : **MCM (in-game) connaît les valeurs autorisées et
 les bornes min/max parce que les mods les déclarent à son API au
@@ -464,12 +478,18 @@ lancement** — hors jeu, la déclaration se lit dans les métadonnées, sans
 décoder l'IL : la **`PropertySig`** de `Config.Placement` porte le type
 (`Stillbloom.PlacementRule`, TypeDef **interne**), et les valeurs sont les
 champs **littéraux** de l'enum. Les enums externes (`SButton`, TypeRef)
-sont des touches, exclus naturellement — C4-T10 les traite déjà. Deux
-pièges relevés au premier passage : les classes à *backing fields*
-(`FontSettings.GridLength` → `<Auto>k__BackingField`) se filtrent par le
-flag `fdLiteral` + la présence de `value__` ; l'i18n des mods est JSON5
-(la convention tooltip « Valeur = description » mesurée ce jour : 2 champs
-sur 226 mods C#, tous deux Stillbloom — précise mais sans couverture).
+sont des touches, exclus naturellement — C4-T10 les traite déjà.
+
+**Le filtre de pertinence** (relevé corrigé le jour même) : une propriété
+n'entre dans les propositions que si **sa clé existe dans le config.json
+du mod**. Sans lui, les enums internes des libs embarquées gonflaient le
+dataset de types qui ne sont pas des réglages (AccordSettings : deux DLL,
+`Status`/`Kind` absents de son config ; 122 mods/588 champs avant filtre,
+**33 mods/63 champs après** — et 33/33 mods dont chaque valeur courante
+tombe dans sa liste, vérifié sur le parc). Sans config.json — mod jamais
+lancé — l'éditeur n'affiche de toute façon aucun réglage : le filtre suit
+exactement ce que l'éditeur peut éditer.
+
 **Reste à prendre** : les listes passées en littéraux à l'API GMCM
 (`SetAllowedValues`) et les **bornes min/max** des `AddNumberOption` —
 là, il faut décoder l'IL des méthodes d'enregistrement.

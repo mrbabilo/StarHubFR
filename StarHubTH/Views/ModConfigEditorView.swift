@@ -278,7 +278,11 @@ struct ModConfigEditorView: View {
     private func loadConfig() {
         loadSchema()
         loadLabelIndex()
-        gmcmChoices = GmcmOptions.bundled?.options(forMod: mod.uniqueId) ?? [:]
+        // Live d'abord (nouveaux mods et mises à jour couverts sans
+        // release), le dataset figé en filet quand aucune DLL ne se lit.
+        let modFolder = URL(fileURLWithPath: configPath).deletingLastPathComponent()
+        gmcmChoices = GmcmLiveOptionsStore.choices(modFolder: modFolder, uniqueId: mod.uniqueId)
+            ?? GmcmOptions.bundled?.options(forMod: mod.uniqueId) ?? [:]
         if FileManager.default.fileExists(atPath: configPath) {
             do {
                 let content = try String(contentsOfFile: configPath, encoding: .utf8)

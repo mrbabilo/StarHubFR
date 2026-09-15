@@ -22,7 +22,7 @@ where the exact log format was verified.
 
 - **Les raccourcis se règlent à la touche dans l'éditeur de config :** on clique, on presse la combinaison, Échap annule — fini le champ texte libre pour les 466 réglages que le scanner reconnaissait. Sur AZERTY, l'app montre ta touche (« a · Q ») ; la valeur inchangée garde l'orthographe exacte du fichier.
 - **Les conflits de raccourcis se voient dans l'éditeur :** sous un réglage de touche, « Conflit avec X (réglage) » quand un autre mod partage la combinaison, « un contrôle du jeu » sinon — l'écran de conflits de Modern Config Menu, relu à notre façon.
-- **Les choix connus deviennent des listes déroulantes, même sans schéma.** 122 mods du parc déclarent leurs valeurs par leurs types dans leur DLL (« Placement rule » : Strict, Loose ou Anarchy) — l'éditeur les propose au lieu d'un champ texte libre. La valeur inchangée garde l'orthographe du fichier.
+- **Les choix connus deviennent des listes déroulantes, même sans schéma.** L'app lit les enums dans la DLL de chaque mod (« Placement rule » : Strict, Loose ou Anarchy) — nouveaux mods et mises à jour couverts à l'ouverture, sans mise à jour de l'app. La valeur inchangée garde l'orthographe du fichier.
 
 ## [1.46.0] - 2026-09-15
 

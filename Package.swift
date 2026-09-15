@@ -214,6 +214,8 @@ let package = Package(
                 "Models/ContentPackI18n.swift",
                 "Models/ConfigEditorModel.swift",
                 "Models/GmcmOptions.swift",
+                "Models/DotNetMetadata.swift",
+                "Models/DotNetAssemblyOptions.swift",
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
@@ -1041,6 +1043,11 @@ let package = Package(
             name: "ConfigEditorModelTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ConfigEditorModelTests"
+        ),
+        .testTarget(
+            name: "DotNetMetadataTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/DotNetMetadataTests"
         ),
         .testTarget(
             name: "ContentPackConfigSchemaTests",

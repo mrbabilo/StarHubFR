@@ -138,12 +138,40 @@ def main():
             continue
         if not uid:
             continue
-        merged = {}
+        # Le filtre de pertinence : une propriété n'est un choix de config
+        # que si SA CLÉ existe dans le config.json du mod. Sans lui, les
+        # types internes des libs embarquées entrent dans le dataset
+        # (mesuré : AccordSettings y mettait « Status »/« Kind » absents de
+        # son config). Le dernier segment des feuilles — les configs C# du
+        # parc sont plates, et l'éditeur lookup sur le dernier segment.
+        def leaf_keys(tree, prefix=""):
+            for k, v in tree.items():
+                if isinstance(v, dict):
+                    yield from leaf_keys(v, k)
+                else:
+                    yield (prefix or k).lower()
+        try:
+            config_keys = set(leaf_keys(lenient_json(
+                os.path.join(mod, "config.json"))))
+        except Exception:
+            config_keys = set()
+        extracts = []
         for dll in dlls:
             try:
-                merged.update(extract(os.path.join(mod, dll)))
+                found = extract(os.path.join(mod, dll))
             except Exception as e:
                 print(f"[WARN] {entry}/{dll} : {e}", file=sys.stderr)
+                continue
+            overlap = len({k.lower() for k in found} & config_keys)
+            extracts.append((overlap, dll, found))
+        extracts.sort(key=lambda item: -item[0])
+        merged = {}
+        for _, _, found in extracts:
+            # La mieux placée gagne les clés disputées ; les clés uniques
+            # des autres se conservent. Puis le filtre de pertinence.
+            for key, values in found.items():
+                if key.lower() in config_keys:
+                    merged.setdefault(key, values)
         if merged:
             dataset[uid] = merged
             scanned += 1

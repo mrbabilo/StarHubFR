@@ -557,18 +557,26 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       leurs types.** *(relevé le 2026-09-15 par l'auteur : Stillbloom
       « Placement rule » — Strict/Loose/Anarchy — rendu en champ texte
       alors que MCM, en jeu, connaît les valeurs et les bornes.)*
-      **Livré** le 2026-09-15 : la déclaration GMCM se lit statiquement
-      dans la DLL sans décoder l'IL — la `PropertySig` de la propriété
-      porte l'enum **interne**, ses champs littéraux sont les valeurs
-      (`tools/gmcm_options.py` → `assets/gmcm-options.json`, 122 mods et
-      588 champs au relevé du jour, filtre `fdLiteral` + `value__` contre
-      les classes à backing fields). L'éditeur passe ces clés en
-      `.choice` (`ConfigEditorModel.groups(gmcmChoices:)`), après le
-      schéma du pack, l'orthographe du fichier et la valeur hors liste
-      gardées et signalées. Restes notés en SOURCES.md §6 bis : les
-      listes en littéraux d'API (`SetAllowedValues`), les **min/max** des
-      nombres, la convention tooltip « Valeur = description » (2 champs
-      sur 226 mods — précise, sans couverture).
+      **Livré** le 2026-09-15, en deux temps. Le relevé d'abord
+      (`tools/gmcm_options.py` → `assets/gmcm-options.json`), corrigé le
+      jour même : le filtre de pertinence — une propriété n'est un choix
+      que si sa clé existe dans le config.json du mod — est passé de 122
+      mods/588 champs (dont les enums internes des libs embarquées, cas
+      AccordSettings) à **33 mods/63 champs**, 33/33 cohérents avec les
+      valeurs réelles des configs. Puis **la lecture live dans l'app**
+      (question de l'auteur : « que se passe-t-il pour un nouveau mod ou
+      si une mise à jour ajoute des options ? ») : `DotNetMetadata` +
+      `DotNetAssemblyOptions` relisent les tables à l'ouverture de
+      l'éditeur, cache par empreinte de DLL, nouveaux mods et mises à
+      jour couverts sans release ; le tool devient l'oracle (122 comparés
+      sur le parc, 0 écart) et le dataset figé le filet. Variance du
+      format mesurée avant écriture (455 DLL), fixture produite par le
+      vrai producteur (`dotnet build`) avec les pièges du format, chaque
+      garde prouvé par sabotage — deux ne s'observaient que par tests
+      directs. Restes notés en SOURCES.md §6 bis : les listes en
+      littéraux d'API (`SetAllowedValues`), les **min/max** des nombres,
+      la convention tooltip « Valeur = description » (2 champs sur 226
+      mods — précise, sans couverture).
 
 #### C5 — Hub de traduction agnostique de la langue
 
