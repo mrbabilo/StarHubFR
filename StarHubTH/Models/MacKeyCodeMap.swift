@@ -71,6 +71,17 @@ public enum MacKeyCodeMap {
         table[keyCode]
     }
 
+    private static let keyCodeByName = Dictionary(
+        table.map { ($0.value, $0.key) },
+        uniquingKeysWith: { first, _ in first })
+
+    /// Le keyCode d'un nom physique, `nil` hors table (`MouseLeft`, la
+    /// manette) — l'entrée qu'emploie la traduction vers le clavier courant
+    /// pour montrer « ta touche · nom enregistré ».
+    public static func keyCode(for name: String) -> UInt16? {
+        keyCodeByName[name]
+    }
+
     /// Le caractère pressé à montrer à côté du nom physique, `nil` quand il
     /// n'apprend rien. Les `SButton` nomment des **positions physiques US**
     /// — convention du jeu, partagée par SMAPI (wiki Stardew ; FNA#121 pour

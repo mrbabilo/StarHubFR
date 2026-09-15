@@ -39,6 +39,16 @@ struct MacKeyCodeMapTests {
         #expect(functionKeys.isSubset(of: names), "une touche F manque : \(functionKeys.subtracting(names))")
     }
 
+    /// La marche arrière de la table : le keyCode d'un nom physique. C'est
+    /// l'entrée que la traduction vers le clavier courant emploie pour
+    /// montrer « ta touche · nom enregistré ». Les noms hors table
+    /// (`MouseLeft`, la manette) n'ont pas de touche à traduire.
+    @Test func keyCodeReverseLookupServesTheLayoutTranslation() {
+        #expect(MacKeyCodeMap.keyCode(for: "A") == 0x00)
+        #expect(MacKeyCodeMap.keyCode(for: "F8") == 0x64)
+        #expect(MacKeyCodeMap.keyCode(for: "MouseLeft") == nil)
+    }
+
     /// C4-T10, suite — l'indice de touche pressée. Les `SButton` nomment des
     /// **positions physiques US** (convention du jeu, confirmée par le wiki
     /// Stardew et FNA#121) : sur AZERTY, presser la touche A enregistre `Q`.

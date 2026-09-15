@@ -1,5 +1,60 @@
 import SwiftUI
 import AppKit
+import Carbon.HIToolbox
+
+/// La gravure d'une touche sur le clavier **courant** (`UCKeyTranslate`,
+/// mode display, sans modificateur). Les `SButton` nomment des positions
+/// physiques US — convention du jeu, partagée par SMAPI : le nom `Q`
+/// désigne la touche gravée `a` sur un AZERTY, et c'est bien cette touche
+/// que le mod écoutera. L'éditeur montre donc **les deux** : ta touche
+/// d'abord, le nom enregistré ensuite. Cache par source de saisie — la
+/// disposition ne change pas à chaque rendu.
+private enum MacKeyLayout {
+    private static let lock = NSLock()
+    private static var sourceID = ""
+    private static var cache: [UInt16: String?] = [:]
+
+    /// Le caractère gravé de la touche, `nil` quand la table ne la connaît
+    /// pas (`MouseLeft`, la manette) ou que la disposition n'en produit pas.
+    static func keycap(for name: String) -> String? {
+        guard let keyCode = MacKeyCodeMap.keyCode(for: name) else { return nil }
+        lock.lock(); defer { lock.unlock() }
+        let current = currentSourceID()
+        if current != sourceID { sourceID = current; cache = [:] }
+        if let cached = cache[keyCode] { return cached }
+        let keycap = translate(keyCode: keyCode)
+        cache[keyCode] = keycap
+        return keycap
+    }
+
+    private static func currentSourceID() -> String {
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let raw = TISGetInputSourceProperty(source, kTISPropertyInputSourceID as CFString)
+        else { return "" }
+        return Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
+    }
+
+    private static func translate(keyCode: UInt16) -> String? {
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let raw = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData as CFString)
+        else { return nil }
+        let layout = Unmanaged<CFData>.fromOpaque(raw).takeUnretainedValue() as Data
+        var deadKeyState: UInt32 = 0
+        var length = 0
+        var units = [UniChar](repeating: 0, count: 16)
+        let status = layout.withUnsafeBytes { raw in
+            units.withUnsafeMutableBufferPointer { buffer in
+                UCKeyTranslate(raw.baseAddress!.assumingMemoryBound(to: UCKeyboardLayout.self),
+                               keyCode, UInt16(kUCKeyActionDisplay), 0,
+                               UInt32(LMGetKbdType()),
+                               OptionBits(kUCKeyTranslateNoDeadKeysBit),
+                               &deadKeyState, buffer.count, &length, buffer.baseAddress!)
+            }
+        }
+        guard status == noErr, length > 0 else { return nil }
+        return String(utf16CodeUnits: units, count: length)
+    }
+}
 
 /// Le contrôle de capture d'un raccourci reconnu (**C4-T10**), en lieu et
 /// place du champ texte libre que rendait l'éditeur pour les 466 feuilles
@@ -16,23 +71,30 @@ import AppKit
 /// toujours celui de la touche modifiée (`Maj` puis `K`), et commettre au
 /// premier presserait à moitié chaque combinaison. Ils entrent dans la
 /// combinaison de la touche qui suit.
+///
+/// L'affichage d'une combinaison à **une** touche grave est bilingue quand
+/// la gravure diffère du nom : « a · Q » — la minuscule est ta touche, la
+/// majuscule le nom enregistré dans le fichier. Traduit depuis la
+/// disposition courante (`MacKeyLayout`), donc vrai aussi à la réouverture,
+/// pas seulement juste après une capture. Les noms sans gravure (`F8`,
+/// `Space`, la manette) et les listes s'affichent tels qu'enregistrés.
 struct ModKeybindField: View {
     @ObservedObject var localization: LocalizationStore
     @Binding var combo: KeybindCombo
 
     @State private var capturing = false
     @State private var monitor: Any?
-    /// C4-T10, suite — la touche réellement pressée quand elle diffère du
-    /// nom physique enregistré (`Q (a)` sur AZERTY). Les `SButton` nomment
-    /// des positions physiques US : écrire le keycap lierait la mauvaise
-    /// touche, le montrer évite la surprise.
-    @State private var keycapHint: String?
 
-    private var title: String {
-        if capturing { return localization.L(L10n.Settings.configKeybindCapture) }
-        let base = combo.isEmpty ? "None" : combo.display
-        guard let keycapHint, !combo.isEmpty else { return base }
-        return "\(base) (\(keycapHint))"
+    /// `(ta touche, le nom enregistré)` quand la gravure courante diffère
+    /// du nom — `nil` quand l'un des deux suffit. Le filtre de
+    /// `keycapHint` écarte ce qui n'apprend rien (QWERTY, `D1` contre `1`).
+    private var layoutHint: (keycap: String, stored: String)? {
+        guard !capturing, !combo.isEmpty, combo.buttons.count == 1,
+              let stored = combo.buttons.first,
+              let engraved = MacKeyLayout.keycap(for: stored),
+              let keycap = MacKeyCodeMap.keycapHint(physicalName: stored, typedCharacter: engraved)
+        else { return nil }
+        return (keycap, stored)
     }
 
     var body: some View {
@@ -40,11 +102,21 @@ struct ModKeybindField: View {
             Button {
                 if capturing { disarm() } else { arm() }
             } label: {
-                Text(title)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(.rect)
+                HStack(spacing: 4) {
+                    if capturing {
+                        Text(localization.L(L10n.Settings.configKeybindCapture))
+                    } else if let hint = layoutHint {
+                        Text(hint.keycap)
+                        Text("· " + hint.stored)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(combo.isEmpty ? "None" : combo.display)
+                    }
+                }
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -56,7 +128,6 @@ struct ModKeybindField: View {
                     // combinaison vide est valide par construction, le
                     // garde n'est là que pour l'initialiseur failable.
                     guard let empty = KeybindCombo(buttons: []) else { return }
-                    keycapHint = nil
                     combo = empty
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -75,7 +146,6 @@ struct ModKeybindField: View {
 
     private func arm() {
         capturing = true
-        keycapHint = nil
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             handleKeyDown(event)
         }
@@ -107,7 +177,6 @@ struct ModKeybindField: View {
             return nil
         }
         disarm()
-        keycapHint = MacKeyCodeMap.keycapHint(physicalName: name, typedCharacter: event.characters)
         combo = next
         return nil
     }

@@ -107,7 +107,7 @@
   "config_value_outside_list": "not in the mod's list",
   "config_keybind_capture": "Press a key… (Esc to cancel)",
   "config_keybind_clear": "Clear",
-  "config_keybind_change": "Click, then press the new shortcut. Names follow physical US positions (game convention): on AZERTY, the A key is saved as Q.",
+  "config_keybind_change": "Click, then press the new shortcut. In “a · Q”, the lowercase letter is your key, the capital the saved name (US physical positions — game convention).",
   "config_visual_editor": "Visual Editor",
   "conflicts_activation_warning": "\"%@\" is reported incompatible with \"%@\", which is active. Turn it on anyway?",
   "conflicts_affected_patches": "Affected patches: %@",

@@ -107,7 +107,7 @@
 "config_value_outside_list" = "hors de la liste du mod";
 "config_keybind_capture" = "Appuyez sur une touche… (Échap pour annuler)";
 "config_keybind_clear" = "Effacer";
-"config_keybind_change" = "Cliquez, puis appuyez sur le nouveau raccourci. Noms physiques (convention du jeu) : sur AZERTY, la touche A s’enregistre Q.";
+"config_keybind_change" = "Cliquez, puis appuyez sur le nouveau raccourci. Dans « a · Q », la minuscule est ta touche, la majuscule le nom enregistré (positions physiques US — convention du jeu).";
 "config_visual_editor" = "Éditeur visuel";
 "conflicts_activation_warning" = "« %@ » est signalé incompatible avec « %@ », qui est actif. L'activer quand même ?";
 "conflicts_affected_patches" = "Patches en cause : %@";
