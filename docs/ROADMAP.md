@@ -555,7 +555,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C5 — Hub de traduction agnostique de la langue
 
-- [ ] **C4-T9** — **Un mod dont le métier est de remapper les touches n'est pas en
+- [x] **C4-T9** — **Un mod dont le métier est de remapper les touches n'est pas en
       conflit avec le jeu.** *(relevé le 2026-09-14 dans le changelog de
       ModernConfigMenu 2.1.1, qui a ajouté `IsVanillaControlRemapMod()` pour la même
       raison — et qui nomme en exemple un mod **actif sur notre parc**.)*
@@ -576,6 +576,17 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       heuristique sur le nom écarterait des mods légitimes (trois candidats trouvés au
       mot « remap » sur le parc, **deux sont des cartes**). Trancher sur données avant
       de coder. · **S**
+      **Livré** le 2026-09-15, tranché sur données (sonde sur le parc réel,
+      grammaire réelle, puis sonde supprimée) : 16 lignes de conflit jeu sur
+      12 mods, dont **un seul faux positif** — GCSR (`ShiftToolbar` sur
+      toolbarSwap). Reconnaissance retenue : liste d'UniqueID
+      (`vanillaRemapModIds`, comparaison sans la casse, comme SMAPI), le
+      même choix que MCM — leur source n'étant pas à portée, la liste
+      démarre de notre mesure. L'exclusion ne touche que les **conflits
+      jeu** : les collisions mod-mod du remap restent (Tab partagé GCSR +
+      Chests Anywhere est un vrai double consommateur), le compte de
+      liaisons aussi, et la note du rapport nomme le mod écarté
+      (`remapModsIgnored`, miroir de la note catalogue).
 
 - [x] **C4-T10** — **L'éditeur de config rend les raccourcis en champ texte libre,
       alors que le scanner sait déjà les reconnaître.** *(relevé le 2026-09-14 en

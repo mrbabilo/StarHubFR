@@ -199,6 +199,15 @@ struct KeybindReportSection: View {
                 .font(.system(size: 11)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
         }
+        if !report.remapModsIgnored.isEmpty {
+            // C4-T9 — même principe que la note catalogue : une exclusion
+            // muette est un mensonge par omission. Le nom porte la fonction
+            // (« mod de remap »), jamais un UniqueID.
+            Text(String(format: localization.L(L10n.Keybinds.remapNote),
+                        report.remapModsIgnored.joined(separator: ", ")))
+                .font(.system(size: 11)).foregroundColor(.secondary)
+                .lineLimit(1).truncationMode(.middle)
+        }
     }
 
     /// Défaut 2 (tâche 6) : un mod qui lie la même touche dans deux

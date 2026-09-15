@@ -224,6 +224,7 @@
 "install_report_title_update" = "Update complete";
 "install_report_window_title" = "Install report";
 "keybinds_catalog_note" = "Shortcut documentation ignored (%1$lld): %2$@";
+"keybinds_remap_note" = "A remap mod (%s) is left out of game conflicts: setting those controls is its job.";
 "keybinds_collisions_header" = "Conflicts between mods (%lld)";
 "keybinds_counters" = "%1$lld mods scanned · %2$lld shortcuts";
 "keybinds_empty" = "No keybind conflicts detected.";

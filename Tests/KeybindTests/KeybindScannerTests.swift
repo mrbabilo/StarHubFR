@@ -572,6 +572,55 @@ struct KeybindScannerTests {
         #expect(sel.collisions[0].uses.map(\.modID) == ["b.Valley2"])
     }
 
+    // — C4-T9 : un mod de remap ne « conflitte » pas avec le jeu
+
+    /// Mesuré sur le parc (sonde du 2026-09-15) : GCSR pose toolbarSwap sur
+    /// Tab — c'est sa fonction de réécrire les réglages du jeu, pas un
+    /// conflit. Ses collisions mod-mod restent, et l'exclusion se sait.
+    @Test func aKnownRemapModLeavesTheGameConflictsButKeepsItsCollisions() {
+        let remap = KeybindScanner.ModScan(id: "FawazT.GlobalConfigSettingsRewrite", name: "GCSR",
+                                           isActive: true,
+                                           tree: tree(["ShiftToolbar": .string("Tab"),
+                                                       "OpenAll": .string("F8")]))
+        let gamer = KeybindScanner.ModScan(id: "b.Gamer", name: "Gamer", isActive: true,
+                                           tree: tree(["Hotkey": .string("Tab")]))
+        let third = KeybindScanner.ModScan(id: "c.Third", name: "Third", isActive: true,
+                                           tree: tree(["OpenMenu": .string("F8")]))
+        let r = KeybindScanner.report(mods: [remap, gamer, third])
+        #expect(r.gameConflicts.count == 1)
+        #expect(r.gameConflicts[0].uses.map(\.modID) == ["b.Gamer"])
+        #expect(r.remapModsIgnored == ["GCSR"])
+        // Les collisions mod-mod restent toutes : Tab (remap + Gamer) et
+        // F8 (remap + Third) sont de vrais doubles consommateurs.
+        #expect(r.collisions.count == 2)
+        let f8 = r.collisions.first { $0.combo.buttons == ["F8"] }
+        #expect(Set(f8?.uses.map(\.modID) ?? [])
+                == ["FawazT.GlobalConfigSettingsRewrite", "c.Third"])
+        let tab = r.collisions.first { $0.combo.buttons == ["Tab"] }
+        #expect(Set(tab?.uses.map(\.modID) ?? [])
+                == ["FawazT.GlobalConfigSettingsRewrite", "b.Gamer"])
+        #expect(r.keybindCount == 4)
+    }
+
+    @Test func theRemapListMatchesUniqueIdsWithoutRegardToCase() {
+        // SMAPI normalise les UniqueID sans la casse ; le fichier, lui,
+        // porte ce que l'auteur a écrit.
+        let remap = KeybindScanner.ModScan(id: "fawazt.globalconfigsettingsrewrite", name: "GCSR",
+                                           isActive: true,
+                                           tree: tree(["ShiftToolbar": .string("Tab")]))
+        let r = KeybindScanner.report(mods: [remap])
+        #expect(r.gameConflicts.isEmpty)
+        #expect(r.remapModsIgnored == ["GCSR"])
+    }
+
+    @Test func anOrdinaryModStillCollidesWithTheGame() {
+        let plain = KeybindScanner.ModScan(id: "d.Plain", name: "Plain", isActive: true,
+                                           tree: tree(["MoveKey": .string("LeftShift")]))
+        let r = KeybindScanner.report(mods: [plain])
+        #expect(r.gameConflicts.count == 1)
+        #expect(r.remapModsIgnored.isEmpty)
+    }
+
     // — C4-T10 : l'éditeur réutilise la règle du catalogue (R4)
 
     /// L'entrée que l'éditeur de config emprunte : mêmes formes, même seuil

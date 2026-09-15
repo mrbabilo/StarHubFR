@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Le vérificateur de raccourcis ne soupçonne plus les mods de remap.** Global Config Settings Rewrite pose Tab sur l'échange de barre : c'est sa fonction, pas un conflit avec le jeu. Les vrais chevauchements restent signalés, et le rapport nomme le mod écarté.
+
 ## [1.47.0] - 2026-09-15
 
 ### Added

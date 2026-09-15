@@ -224,6 +224,7 @@
 "install_report_title_update" = "Mise à jour terminée";
 "install_report_window_title" = "Bilan d'installation";
 "keybinds_catalog_note" = "Documentation de raccourcis écartée du scan (%1$lld) : %2$@";
+"keybinds_remap_note" = "Un mod de remap (%s) est écarté des conflits avec le jeu : poser ces contrôles est sa fonction.";
 "keybinds_collisions_header" = "Conflits entre mods (%lld)";
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
 "keybinds_empty" = "Aucun conflit de raccourcis détecté.";

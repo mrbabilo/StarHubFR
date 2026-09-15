@@ -188,6 +188,12 @@ public enum KeybindScanner {
         /// muette est un mensonge par omission — la vue doit pouvoir le
         /// dire.
         public var catalogModsIgnored: [String]
+        /// C4-T9 — noms des mods de remap écartés des **conflits jeu** :
+        /// poser un contrôle du jeu est leur fonction, pas un accident
+        /// (mesuré : GCSR pose toolbarSwap sur Tab). Leurs collisions
+        /// mod-mod restent, et une exclusion muette reste un mensonge par
+        /// omission.
+        public var remapModsIgnored: [String]
 
         /// Problèmes avérés : collisions clavier et manette entre mods actifs
         /// plus conflits avec un contrôle du jeu. Les « non reconnus » n'y
@@ -290,6 +296,19 @@ public enum KeybindScanner {
     /// maximum légitime, 5× sous le catalogue. Aucun `UniqueID` en dur.
     static let catalogThreshold = 8
 
+    /// C4-T9 — les UniqueID des mods dont le **métier** est de réécrire les
+    /// réglages du jeu, contrôles compris (le même choix que
+    /// `IsVanillaControlRemapMod()` de ModernConfigMenu 2.1.1, qui a relevé
+    /// le cas). Leur signal « conflit jeu » est un faux positif qui gonfle
+    /// `problemCount` ; leurs collisions avec d'autres mods restent réelles.
+    /// Figé sur la mesure du parc (sonde du 2026-09-15 : un seul mod, une
+    /// seule ligne) — SMAPI compare les UniqueID sans la casse, ici pareil.
+    /// Une heuristique de nom écartait des mods légitimes : sur trois
+    /// candidats au mot « remap », deux sont des cartes.
+    static let vanillaRemapModIds: Set<String> = [
+        "fawazt.globalconfigsettingsrewrite",
+    ]
+
     /// La forme d'un `keyPath` : chaque indice de tableau réduit à `[]`
     /// (`["Shortcuts", "[7]", "KeyCombo"]` → `"Shortcuts.[].KeyCombo"`).
     static func pathShape(_ keyPath: [String]) -> String {
@@ -343,6 +362,7 @@ public enum KeybindScanner {
         // installé deux fois) ; dédupliquer sur le nom effacerait un des
         // deux mods du constat alors qu'ils sont deux dossiers distincts.
         var catalogMods: [(id: String, name: String)] = []
+        var remapMods: [String] = []
         // Un même littéral peut rendre deux fois la même combinaison
         // (« F8, F8 ») : le même usage n'entre qu'une fois dans son seau,
         // sinon la vue reçoit deux lignes de même identité.
@@ -383,6 +403,12 @@ public enum KeybindScanner {
             if !catalog.isEmpty {
                 catalogMods.append((mod.id, mod.name))
             }
+            // C4-T9 — nommé une fois par mod ; écarté des conflits jeu
+            // seulement (le drapeau agit plus bas, par feuille).
+            let isVanillaRemap = vanillaRemapModIds.contains(mod.id.lowercased())
+            if isVanillaRemap, mod.isActive {
+                remapMods.append(mod.name)
+            }
 
             for (keyPath, combos) in keybindLeaves {
                 guard !catalog.contains(pathShape(keyPath)) else { continue }
@@ -392,13 +418,15 @@ public enum KeybindScanner {
                 // raccourcis. Les mods en pause ne gonflent pas ce chiffre —
                 // ils ne lient pas au jeu.
                 if mod.isActive, combos.contains(where: { !$0.isEmpty }) { keybindCount += 1 }
+                // C4-T9 — le remap est écarté des conflits jeu, pas du reste :
+                // ses collisions mod-mod et son compte de liaisons restent.
                 for combo in combos where !combo.isEmpty {
                     let use = ModUse(modID: mod.id, modName: mod.name, keyPath: keyPath,
                                      isActive: mod.isActive)
                     if mod.isActive {
                         add(use, to: &index[combo, default: []])
                         // Conflit jeu : combinaison à bouton unique uniquement.
-                        if combo.buttons.count == 1, let button = combo.buttons.first {
+                        if !isVanillaRemap, combo.buttons.count == 1, let button = combo.buttons.first {
                             for control in GameControlDefaults.controls
                             where control.buttons.contains(button) {
                                 add(use, to: &gameIndex[control.name, default: []])
@@ -483,6 +511,7 @@ public enum KeybindScanner {
         let catalogModsIgnored = catalogMods
             .sorted { ($0.name, $0.id) < ($1.name, $1.id) }
             .map(\.name)
+        let remapModsIgnored = remapMods.sorted()
 
         return KeybindReport(collisions: collisions,
                              gamepadCollisions: gamepadCollisions,
@@ -494,6 +523,7 @@ public enum KeybindScanner {
                              unrecognized: unrecognized,
                              scannedMods: mods.filter(\.isActive).count,
                              keybindCount: keybindCount, pausedIgnored: pausedIgnored,
-                             catalogModsIgnored: catalogModsIgnored)
+                             catalogModsIgnored: catalogModsIgnored,
+                             remapModsIgnored: remapModsIgnored)
     }
 }
