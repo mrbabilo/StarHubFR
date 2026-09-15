@@ -213,6 +213,7 @@ let package = Package(
                 "Models/ContentPackConfigSchema.swift",
                 "Models/ContentPackI18n.swift",
                 "Models/ConfigEditorModel.swift",
+                "Models/GmcmOptions.swift",
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",

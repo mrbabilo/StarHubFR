@@ -1,0 +1,4842 @@
+{
+ "Achtuur.BetterPlanting": {
+  "DefaultFillMode": [
+   "Disabled",
+   "ThreeInARow",
+   "FiveInARow",
+   "ThreeSquare",
+   "FiveSquare",
+   "SevenSquare",
+   "All"
+  ],
+  "FillMode": [
+   "Disabled",
+   "ThreeInARow",
+   "FiveInARow",
+   "ThreeSquare",
+   "FiveSquare",
+   "SevenSquare",
+   "All"
+  ],
+  "State": [
+   "Plantable",
+   "NotEnoughSeeds",
+   "AlreadyPlanted",
+   "NonPlantable"
+  ]
+ },
+ "AlanBF.MasteryExtended": {
+  "BooksQuantity": [
+   "Full",
+   "Lite",
+   "None"
+  ],
+  "MasonDrops": [
+   "Everything",
+   "StoneAndClay"
+  ],
+  "PillarsVsProfessions": [
+   "Professions",
+   "Pillars",
+   "None"
+  ],
+  "SkillsVsMasteryPoints": [
+   "SkillOrMastery",
+   "Skill",
+   "Mastery",
+   "SkillAndMastery"
+  ]
+ },
+ "Alex3108.ValleyBonds.PokeMorphFramework": {
+  "Context": [
+   "Wild",
+   "Trainer",
+   "Gym",
+   "League",
+   "Tower"
+  ],
+  "Kind": [
+   "Balanced",
+   "FocusLane",
+   "GuardLane",
+   "RotateLeft",
+   "RotateRight"
+  ]
+ },
+ "BambooKat.Stillbloom": {
+  "Placement": [
+   "Strict",
+   "Loose",
+   "Anarchy"
+  ],
+  "Scope": [
+   "SafeOnly",
+   "Everywhere"
+  ]
+ },
+ "Barlov.Portraiture": {
+  "DisplayMode": [
+   "InFrame",
+   "Expanded",
+   "CleanInPlace",
+   "CleanLeft",
+   "Clean",
+   "CleanRight"
+  ]
+ },
+ "Becks723.FontSettings": {
+  "ActualHorizontalScrollBarVisibility": [
+   "Disabled",
+   "Hidden",
+   "Visible"
+  ],
+  "ActualVerticalScrollBarVisibility": [
+   "Disabled",
+   "Hidden",
+   "Visible"
+  ],
+  "Algorithm": [
+   "X32",
+   "X64"
+  ],
+  "Capability": [
+   "None",
+   "NotifyPropertyChanged",
+   "NotifyCollectionChanged",
+   "HasSetter",
+   "HasPublicSetter",
+   "IsIEnumerable",
+   "IsIList",
+   "ValueType"
+  ],
+  "CharacterPatchMode": [
+   "BasedOnOriginal",
+   "Override"
+  ],
+  "ColumnUnit": [
+   "Absolute",
+   "Percent",
+   "Auto"
+  ],
+  "CurrentFontType": [
+   "SmallFont",
+   "DialogueFont",
+   "SpriteText"
+  ],
+  "DataFormat": [
+   "Text",
+   "Xml",
+   "Binary"
+  ],
+  "Direction": [
+   "Forward",
+   "Reverse"
+  ],
+  "EventsToRaise": [
+   "None",
+   "Hover",
+   "Pressed",
+   "Released",
+   "Enter",
+   "Leave",
+   "Wheel"
+  ],
+  "FailureReason": [
+   "TargetIsReadOnly",
+   "UnknownExprssion"
+  ],
+  "Font": [
+   "SmallFont",
+   "DialogueFont",
+   "SpriteText"
+  ],
+  "FontType": [
+   "SmallFont",
+   "DialogueFont",
+   "SpriteText"
+  ],
+  "Format": [
+   "SpriteFont",
+   "BmFont"
+  ],
+  "GameFramework": [
+   "Xna",
+   "Monogame"
+  ],
+  "Group": [
+   "Group1",
+   "Group2",
+   "Group3",
+   "Group4"
+  ],
+  "HorizontalAlignment": [
+   "Left",
+   "Center",
+   "Right",
+   "Stretch"
+  ],
+  "HorizontalScrollBarVisibility": [
+   "Disabled",
+   "Hidden",
+   "Auto",
+   "Visible"
+  ],
+  "InGameType": [
+   "SmallFont",
+   "DialogueFont",
+   "SpriteText"
+  ],
+  "Mode": [
+   "Normal",
+   "Compare",
+   "PreciseCompare"
+  ],
+  "NameID": [
+   "Copyright",
+   "FontFamily",
+   "FontSubfamily",
+   "UniqueIdentifier",
+   "FullName",
+   "VersionString",
+   "PostScript",
+   "Trademark",
+   "Manufacturer",
+   "Designer",
+   "Description",
+   "UrlVendor",
+   "UrlDesigner",
+   "LicenseDescription",
+   "LicenseUrl",
+   "Reserved",
+   "TypographicFamily",
+   "TypographicSubfamily",
+   "CompatibleFull",
+   "SampleText",
+   "PostScript_CID_findfont_name",
+   "WWS_family_name",
+   "WWS_subfamily_name",
+   "LightBackgroundPalette",
+   "DarkBackgroundPalette",
+   "VariationsPostScriptNamePrefix"
+  ],
+  "Orientation": [
+   "Horizontal",
+   "Vertical"
+  ],
+  "OutputFormat": [
+   "SpriteFont",
+   "BmFont"
+  ],
+  "PanningMode": [
+   "None",
+   "Horizontal",
+   "Vertical",
+   "Both"
+  ],
+  "PathCapability": [
+   "None",
+   "NotifyPropertyChanged",
+   "NotifyCollectionChanged",
+   "HasSetter",
+   "HasPublicSetter",
+   "IsIEnumerable",
+   "IsIList",
+   "ValueType"
+  ],
+  "PathType": [
+   "String",
+   "Expression",
+   "RootedExpression"
+  ],
+  "PlatformID": [
+   "Unicode",
+   "Macintosh",
+   "Windows"
+  ],
+  "PositionMode": [
+   "Coordinate",
+   "Auto"
+  ],
+  "PreviewMode": [
+   "Normal",
+   "Compare",
+   "PreciseCompare"
+  ],
+  "RaiseEventOccasion": [
+   "WhenValueChanged",
+   "WhenMouseReleased"
+  ],
+  "RawType": [
+   "Value",
+   "Collection"
+  ],
+  "Reason": [
+   "PropertyChanged",
+   "CollectionChanged",
+   "Failed"
+  ],
+  "RotationOrigin": [
+   "LeftTop",
+   "RightTop",
+   "LeftBottom",
+   "RightBottom",
+   "Center"
+  ],
+  "RowUnit": [
+   "Absolute",
+   "Percent",
+   "Auto"
+  ],
+  "Scheme": [
+   "SMAPIMonitor",
+   "Console"
+  ],
+  "SyncStrategy": [
+   "Tick",
+   "PropertyNotification",
+   "CollectionNotification",
+   "PropertyCollectionNotification"
+  ],
+  "TextWrapping": [
+   "Disable",
+   "Enable"
+  ],
+  "Unit": [
+   "Absolute",
+   "Percent",
+   "Auto"
+  ],
+  "VerticalAlignment": [
+   "Top",
+   "Center",
+   "Bottom",
+   "Stretch"
+  ],
+  "VerticalScrollBarVisibility": [
+   "Disabled",
+   "Hidden",
+   "Auto",
+   "Visible"
+  ],
+  "Visibility": [
+   "Disabled",
+   "Hidden",
+   "Visible"
+  ],
+  "Wrapping": [
+   "Disable",
+   "Enable"
+  ],
+  "XnbPlatform": [
+   "Windows",
+   "DesktopGL",
+   "Android"
+  ]
+ },
+ "BinaryLip.ScheduleViewer": {
+  "NPCSortOrder": [
+   "AlphabeticalAscending",
+   "AlphabeticalDescending",
+   "HeartsAscending",
+   "HeartsDescending"
+  ]
+ },
+ "Bindicle.Dayswork": {
+  "Action": [
+   "WaterTile",
+   "HarvestCrop",
+   "HarvestFruit",
+   "FeedAnimal",
+   "PetAnimal",
+   "CollectAnimalProduct",
+   "AxeSwing",
+   "PickaxeSwing",
+   "ScytheSwing",
+   "HoeSwing",
+   "PlantSeed",
+   "ApplyFertilizer",
+   "CollectMachine",
+   "LoadMachine",
+   "CollectFishPond"
+  ],
+  "AxeLevel": [
+   "Basic",
+   "Copper",
+   "Steel",
+   "Gold",
+   "Iridium"
+  ],
+  "Code": [
+   "NoChargeableScopeTaskPair",
+   "NoOutdoorScopeForSelectedOutdoorService",
+   "NoAnimalBuildingForSelectedAnimalService",
+   "NoGreenhouseScopeForSelectedGreenhouseService",
+   "MachineGroupNeedsInputChest"
+  ],
+  "Family": [
+   "Unknown",
+   "Outdoor",
+   "AnimalBuilding",
+   "Greenhouse",
+   "ManagedCrop",
+   "Machine",
+   "Cave",
+   "FishPond"
+  ],
+  "IdleTask": [
+   "None",
+   "ManageMachines"
+  ],
+  "Kind": [
+   "Harvest",
+   "ClearDebris",
+   "Till",
+   "Fertilize",
+   "PlantSeed",
+   "Water"
+  ],
+  "Mode": [
+   "Seasonal",
+   "SeasonAgnostic"
+  ],
+  "NoticeKind": [
+   "None",
+   "FestivalSkip",
+   "CannotAfford",
+   "NeedsAttention"
+  ],
+  "OnFailure": [
+   "ReportFailure",
+   "WarpToDestination"
+  ],
+  "PaymentTimingKind": [
+   "OneTimeChargeNow",
+   "RecurringStartsNextEligibleDay",
+   "RecurringEditAppliesNextEligibleDay"
+  ],
+  "Phase": [
+   "WaitingForSpawn",
+   "Working",
+   "Stuck",
+   "Recovering",
+   "Depositing",
+   "Exiting",
+   "Done"
+  ],
+  "PickaxeLevel": [
+   "Basic",
+   "Copper",
+   "Steel",
+   "Gold",
+   "Iridium"
+  ],
+  "Purpose": [
+   "WorkEntry",
+   "DepositEntry",
+   "ReturnToFarm"
+  ],
+  "Reason": [
+   "UnsupportedFarmSignature",
+   "RouteNotDefined",
+   "SourceLocationMissing",
+   "TargetLocationMissing",
+   "ApproachTileInvalid",
+   "ArrivalTileInvalid",
+   "ApproachTileBlocked",
+   "ArrivalTileBlocked",
+   "NavigationFailed"
+  ],
+  "Role": [
+   "GreenhouseWork",
+   "DepositOnly"
+  ],
+  "RowState": [
+   "Charged",
+   "NeedsOutdoorScope",
+   "NeedsAnimalBuildingScope",
+   "NeedsGreenhouseScope"
+  ],
+  "Schedule": [
+   "OneTime",
+   "Recurring"
+  ],
+  "ScopeFamily": [
+   "Unknown",
+   "Outdoor",
+   "AnimalBuilding",
+   "Greenhouse",
+   "ManagedCrop",
+   "Machine",
+   "Cave",
+   "FishPond"
+  ],
+  "Season": [
+   "Spring",
+   "Summer",
+   "Fall",
+   "Winter"
+  ],
+  "SourceKind": [
+   "TileAction",
+   "MapProperty"
+  ],
+  "SourceTask": [
+   "WaterCrops",
+   "HarvestCrops",
+   "CollectFruit",
+   "HarvestCave",
+   "FeedAnimals",
+   "PetAnimals",
+   "CollectAnimalProducts",
+   "CutTrees",
+   "ClearRocks",
+   "ClearWeeds",
+   "ClearGrass"
+  ],
+  "Status": [
+   "Valid",
+   "InvalidNeedsAttention",
+   "Unsupported"
+  ],
+  "StopReason": [
+   "None",
+   "Completed",
+   "Exhausted",
+   "HardCap",
+   "Sleep",
+   "StuckAbort",
+   "Cancelled"
+  ],
+  "Store": [
+   "Pierre",
+   "Joja"
+  ],
+  "StorePreference": [
+   "InputChestOnly",
+   "Pierre",
+   "Joja",
+   "Either"
+  ],
+  "Supply": [
+   "AutoBuyable",
+   "ChestSupplyOnly"
+  ],
+  "Task": [
+   "WaterCrops",
+   "HarvestCrops",
+   "CollectFruit",
+   "HarvestCave",
+   "FeedAnimals",
+   "PetAnimals",
+   "CollectAnimalProducts",
+   "CutTrees",
+   "ClearRocks",
+   "ClearWeeds",
+   "ClearGrass"
+  ],
+  "Tier": [
+   "HalfDay",
+   "FullDay",
+   "Overtime"
+  ],
+  "WateringCanLevel": [
+   "Basic",
+   "Copper",
+   "Steel",
+   "Gold",
+   "Iridium"
+  ]
+ },
+ "Borealis.MatrixFishingUI": {
+  "CaughtStatus": [
+   "Uncaught",
+   "Caught"
+  ],
+  "FishType": [
+   "Trap",
+   "Catch"
+  ],
+  "SelectedTab": [
+   "General",
+   "CatchInfo",
+   "PondInfo"
+  ],
+  "Value": [
+   "General",
+   "CatchInfo",
+   "PondInfo"
+  ]
+ },
+ "Bouhm.LocationCompass": {
+  "Type": [
+   "Outdoors",
+   "Building",
+   "Room"
+  ]
+ },
+ "Bouhm.NPCMapLocations": {
+  "Type": [
+   "Villager",
+   "Raccoon",
+   "Child",
+   "Horse"
+  ]
+ },
+ "CJBok.CheatsMenu": {
+  "CurrentTab": [
+   "PlayerAndTools",
+   "FarmAndFishing",
+   "Skills",
+   "Weather",
+   "Relationships",
+   "WarpLocations",
+   "Time",
+   "Advanced",
+   "Controls"
+  ],
+  "DefaultTab": [
+   "PlayerAndTools",
+   "FarmAndFishing",
+   "Skills",
+   "Weather",
+   "Relationships",
+   "WarpLocations",
+   "Time",
+   "Advanced",
+   "Controls"
+  ],
+  "SpecialBehavior": [
+   "Default",
+   "Casino",
+   "CommunityCenter",
+   "Farm",
+   "JojaMart",
+   "MovieTheaterCommunity",
+   "MovieTheaterJoja"
+  ]
+ },
+ "Cabbose.Sage.TimeMaster.ItsStardewTime": {
+  "AutoFreeze": [
+   "None",
+   "FrozenForLocation",
+   "FrozenAtTime"
+  ],
+  "AutoFreezeReason": [
+   "None",
+   "FrozenForLocation",
+   "FrozenAtTime"
+  ]
+ },
+ "Changbaibai.SpouseHelper": {
+  "Type": [
+   "Water",
+   "Seed",
+   "Fertilize",
+   "Harvest",
+   "PetAnimals",
+   "CollectProducts",
+   "CollectMachines",
+   "Forage"
+  ]
+ },
+ "ChaseVill.AutomaticTodoList": {
+  "Ordinal": [
+   "First",
+   "Second"
+  ],
+  "Priority": [
+   "Birthday",
+   "ToolPickup",
+   "ReadyMachines",
+   "HarvestableCrops",
+   "WaterableCrops",
+   "Gifting",
+   "TravelingMerchant",
+   "QueenOfSauce",
+   "SpecialOrders",
+   "BulletinBoard",
+   "Test",
+   "Default"
+  ],
+  "SpecialOrderType": [
+   "Standard",
+   "Qi"
+  ]
+ },
+ "CodysOasis.FAUNA": {
+  "AbilityState": [
+   "None",
+   "WalkingToTarget",
+   "WalkingToPosition",
+   "HittingTarget",
+   "ReturningToPlayer"
+  ],
+  "CurrentForm": [
+   "Animal",
+   "Humanoid"
+  ],
+  "CurrentState": [
+   "Passive",
+   "Following"
+  ],
+  "Diet": [
+   "Carnivore",
+   "Herbivore",
+   "Omnivore"
+  ]
+ },
+ "CozyPsychologist.DungeonArcade": {
+  "Behavior": [
+   "Charger",
+   "Strafer",
+   "Ranged",
+   "Tank",
+   "Ambusher"
+  ],
+  "Class": [
+   "Warrior",
+   "Berserker",
+   "Wizard"
+  ],
+  "Relic": [
+   "BloodAmulet",
+   "IronSkin",
+   "SwiftnessRing",
+   "BerserkersMark",
+   "ScavengerPouch",
+   "SoulLens",
+   "WarriorsWill",
+   "BloodlustSigil"
+  ],
+  "State": [
+   "Chasing",
+   "Strafing",
+   "WindingUp",
+   "Attacking",
+   "Hurt",
+   "Dying",
+   "Dead"
+  ],
+  "Type": [
+   "Potion",
+   "Coin",
+   "Power",
+   "WeaponUpgrade",
+   "Relic"
+  ]
+ },
+ "CpdnCristiano.MailServicesBetterMenu": {
+  "DefaultFilter": [
+   "Recommended",
+   "All",
+   "Love",
+   "Like",
+   "Neutral",
+   "Dislike",
+   "Hate"
+  ],
+  "DefaultFriendshipFilter": [
+   "NotMaximum",
+   "MaximumOnly",
+   "All"
+  ],
+  "DefaultSort": [
+   "Reaction",
+   "Alphabetical",
+   "Original"
+  ],
+  "Reaction": [
+   "Unknown",
+   "Love",
+   "Like",
+   "Neutral",
+   "Dislike",
+   "Hate"
+  ]
+ },
+ "CpdnCristiano.SocialScrapbook": {
+  "Taste": [
+   "Loved",
+   "Liked",
+   "Neutral",
+   "Disliked",
+   "Hated",
+   "Special",
+   "Unknown"
+  ]
+ },
+ "Cropgenics": {
+  "Category": [
+   "Growth",
+   "Harvest",
+   "Appearance",
+   "Color",
+   "Unique",
+   "Bush",
+   "TeaVariety",
+   "FlowerVariety",
+   "CoffeeVariety"
+  ],
+  "Container": [
+   "Inventory",
+   "SampleBox"
+  ],
+  "Id": [
+   "GrowthHormone",
+   "ClimateChamber",
+   "NutrientDish",
+   "ExtraIncubator"
+  ],
+  "Kind": [
+   "Spore",
+   "Petal",
+   "Leaf",
+   "Bubble",
+   "Spangle",
+   "Snow",
+   "Droplet",
+   "Fragrance",
+   "Star"
+  ],
+  "Mode": [
+   "VanillaHome",
+   "HomeActivity",
+   "Outing",
+   "Away"
+  ],
+  "Region": [
+   "Mines",
+   "SkullCavern",
+   "Volcano",
+   "Grove"
+  ],
+  "Trait": [
+   "FastGrowth",
+   "FastRegrow",
+   "Moisture",
+   "HighYield",
+   "Quality",
+   "Giant",
+   "Meticulous",
+   "Vigorous",
+   "Bioluminescence",
+   "ButterflyLure",
+   "FireflyLure",
+   "Starveined",
+   "Petalfall",
+   "Moonlit",
+   "FragrantBloom",
+   "Snowcap",
+   "Droplet",
+   "FallenLeaves",
+   "NorthStar",
+   "WillOWisp",
+   "Parrot",
+   "Aquatic",
+   "Crimson",
+   "Azure",
+   "Aureate",
+   "Violet",
+   "EmeraldTint",
+   "PrismaticTint",
+   "Perennial",
+   "Stardust",
+   "Sweetness",
+   "Garlicodor",
+   "Aromatic",
+   "Symbiosis",
+   "Koi",
+   "LuminousAlgae",
+   "FlowerCrown",
+   "Garden",
+   "Lotus",
+   "Bubbles",
+   "Adaptive",
+   "PotatoBattery",
+   "AncientCompanion",
+   "MountainWind",
+   "Glistening",
+   "CornGunpowder",
+   "Overripe",
+   "Stubble",
+   "Graft",
+   "Duskbloom",
+   "WildYeast",
+   "Sporeborne",
+   "FineWine",
+   "SucculentSprout",
+   "HealthFood",
+   "MysteryFluid",
+   "Oviform",
+   "BerryPreserve",
+   "Spangle",
+   "TreeGraft",
+   "SporeGlow",
+   "Overgrowth",
+   "ChromaticBloom",
+   "ClusterSowing",
+   "Pleasant",
+   "FirstFlush",
+   "Aged",
+   "Hedgerow",
+   "Shade",
+   "Evergreen",
+   "Fragrance",
+   "TeaAdaptation",
+   "Drying",
+   "MistVerdantSpring",
+   "WhiteFrostSilverTips",
+   "HoneyKiss",
+   "EmberCrimsonJade",
+   "DarkPuer",
+   "VioletGlowBroadleaf",
+   "JadeLakeLongjing",
+   "HighlandBlackTea",
+   "Starleaf",
+   "QueenOfNight",
+   "IceCream",
+   "LilyFlowered",
+   "Dawnblush",
+   "NightVelvet",
+   "Moonmist",
+   "Edenvine",
+   "Thorn",
+   "Crisp",
+   "TeddySunflower",
+   "ChiantiSunflower",
+   "DjSunflower",
+   "RadiantSummerCoffee",
+   "ElephantPalmCoffee",
+   "OrangeBourbonCoffee",
+   "Fairytale",
+   "Ghostly",
+   "Candied",
+   "Chunk"
+  ],
+  "Type": [
+   "Trait",
+   "ExtractionRecipe",
+   "RareSpecies",
+   "AlbumPhoto",
+   "Variety"
+  ],
+  "Upgrade": [
+   "GrowthHormone",
+   "ClimateChamber",
+   "NutrientDish",
+   "ExtraIncubator"
+  ]
+ },
+ "Cseron.RewardBursts": {
+  "Accent": [
+   "None",
+   "Fishing",
+   "Forest",
+   "Archaeology"
+  ],
+  "Kind": [
+   "Oak",
+   "Maple",
+   "Pine",
+   "Mahogany",
+   "LargeStump"
+  ],
+  "State": [
+   "Available",
+   "Completed",
+   "Disabled"
+  ]
+ },
+ "DLX.Bundles": {
+  "BundleIcon": [
+   "Spring_Foraging",
+   "Summer_Foraging",
+   "Fall_Foraging",
+   "Winter_Foraging",
+   "Exotic_Foraging",
+   "Construction",
+   "Spring_Crops",
+   "Summer_Crops",
+   "Fall_Crops",
+   "Quality_Crops",
+   "Animal",
+   "Artisan",
+   "River_Fish",
+   "Lake_Fish",
+   "Ocean_Fish",
+   "Night_Fishing",
+   "Crab_Pot",
+   "Specialty_Fish",
+   "Blacksmith",
+   "Geologist",
+   "Adventurer",
+   "Chef",
+   "Dye",
+   "Field_Research",
+   "Fodder",
+   "Enchanter",
+   "Small_Money",
+   "Medium_Money",
+   "Large_Money",
+   "Extra_Large_Money",
+   "Junimo",
+   "Sticky",
+   "Wild_Medicine",
+   "Rare_Crops",
+   "Fish_Farmer",
+   "Garden",
+   "Brewer",
+   "Quality_Fish",
+   "Master_Fisher",
+   "Treasure_Hunter",
+   "Children",
+   "Forager",
+   "Home_Cook",
+   "Volcano",
+   "Fruit_Tree",
+   "Spring_Fishing",
+   "Summer_Fishing",
+   "Fall_Fishing",
+   "Winter_Fishing",
+   "Leafes",
+   "Thumbs_Up",
+   "Junk",
+   "Jelly_Beans",
+   "Mushrooms",
+   "Fizzy_Drinks",
+   "Raccoon",
+   "Carved_Pumpkin",
+   "Christmas_Wreath"
+  ],
+  "EditMapEngine": [
+   "UB",
+   "SMAPI"
+  ],
+  "InteractionType": [
+   "Touch",
+   "Click"
+  ],
+  "ShopType": [
+   "Dialogue",
+   "SpeechBubble",
+   "ParrotPerch",
+   "CCBundle"
+  ]
+ },
+ "Darkmushu1.BreakGeodesInBulk": {
+  "GeodesToBreak": [
+   "AllIfInventoryFits",
+   "AllExtraFallsOnGround"
+  ]
+ },
+ "DazUki.UIInfoSuite2Alt": {
+  "MatchType": [
+   "Any",
+   "All"
+  ]
+ },
+ "Eimakore.FlexibleStorageFramework": {
+  "Mode": [
+   "OccupiedSlots",
+   "ItemCount",
+   "CapacityPercent"
+  ],
+  "Phase": [
+   "Closed",
+   "Opening",
+   "Open",
+   "Closing"
+  ]
+ },
+ "Esca.FarmTypeManager": {
+  "Type": [
+   "Object",
+   "Forage",
+   "ResourceClump",
+   "LargeObject",
+   "Ore",
+   "Monster",
+   "Item",
+   "Container",
+   "DGA"
+  ]
+ },
+ "FarmersNotebook.PlannerMod": {
+  "Recurrence": [
+   "OneTime",
+   "Daily",
+   "Weekly"
+  ],
+  "SourceType": [
+   "Manual",
+   "Birthday",
+   "Festival",
+   "Reminder",
+   "Recommendation"
+  ],
+  "Taste": [
+   "Loved",
+   "Liked",
+   "Disliked"
+  ],
+  "Type": [
+   "Planting",
+   "Fishing",
+   "Calendar",
+   "Alert",
+   "Gift"
+  ]
+ },
+ "Florian.TacticalEchoMines": {
+  "Action": [
+   "None",
+   "CursorUp",
+   "CursorDown",
+   "CursorLeft",
+   "CursorRight",
+   "Confirm",
+   "Cancel",
+   "OpenCommandMenu",
+   "UnitInfo",
+   "TileInfo",
+   "NextUnit",
+   "PreviousUnit",
+   "NextEnemy",
+   "PreviousEnemy",
+   "ToggleThreatRange",
+   "EndTurn",
+   "ObjectiveInfo",
+   "PauseMenu",
+   "ToggleAutoMode"
+  ],
+  "Anim": [
+   "None",
+   "Strike",
+   "Power",
+   "Jump",
+   "Teleport",
+   "Bolt",
+   "Cast",
+   "Snipe",
+   "Barrage",
+   "Heal",
+   "Dual"
+  ],
+  "AttackType": [
+   "Strike",
+   "Slash",
+   "Ranged",
+   "Magic"
+  ],
+  "CurrentTheme": [
+   "Copper",
+   "Frozen",
+   "Lava",
+   "Iridium"
+  ],
+  "Element": [
+   "None",
+   "Fire",
+   "Ice",
+   "Lightning",
+   "Holy",
+   "Dark",
+   "Arcane"
+  ],
+  "Matchup": [
+   "Neutral",
+   "Weak",
+   "Resist"
+  ],
+  "PageFlags": [
+   "None",
+   "ContinuesPacket",
+   "BeginningOfStream",
+   "EndOfStream"
+  ],
+  "Phase": [
+   "NotStarted",
+   "MarlonNotified",
+   "AtGuild",
+   "SquadChosen",
+   "Complete"
+  ],
+  "Scheme": [
+   "KeyboardMouse",
+   "Controller"
+  ],
+  "State": [
+   "Inactive",
+   "SquadSelection",
+   "Battle",
+   "Victory",
+   "RunDecision"
+  ],
+  "Type": [
+   "KeyboardMouse",
+   "Controller"
+  ]
+ },
+ "FullXTime.TempestSettlement": {
+  "Collection": [
+   "All",
+   "Owned",
+   "Dossier",
+   "Undiscovered"
+  ],
+  "Rarity": [
+   "All",
+   "Common",
+   "Rare",
+   "Epic",
+   "Legendary",
+   "Unique"
+  ],
+  "Role": [
+   "All",
+   "Combat",
+   "Worker",
+   "Support"
+  ],
+  "Sort": [
+   "Context",
+   "Name",
+   "Level",
+   "Strength",
+   "Work",
+   "Influence",
+   "Speed",
+   "Health"
+  ],
+  "Status": [
+   "All",
+   "Available",
+   "Unassigned",
+   "Captured",
+   "Injured"
+  ]
+ },
+ "FullXtime.MultiverseArchive": {
+  "Type": [
+   "BuyFromPlayer",
+   "SellToPlayer",
+   "Barter",
+   "MysteryBox"
+  ]
+ },
+ "Hayden.HarvestLedger": {
+  "Category": [
+   "Seed",
+   "Vegetable",
+   "Fruit",
+   "Flower",
+   "Forage",
+   "Fish",
+   "AnimalProduct",
+   "ArtisanGoods",
+   "Cooking",
+   "Mining",
+   "MonsterLoot",
+   "Other"
+  ],
+  "CropCategory": [
+   "RootCrop",
+   "VineCrop",
+   "Grain",
+   "Flower",
+   "FruitingVegetable",
+   "LeafyVegetable",
+   "OtherCrop"
+  ]
+ },
+ "JoXW.GiftTasteHelper": {
+  "GiftHelperType": [
+   "Calendar",
+   "SocialPage"
+  ]
+ },
+ "Julian.CommunityCenterPlanner": {
+  "Category": [
+   "Plant",
+   "Forage",
+   "Fish",
+   "Produce",
+   "Prepare",
+   "Merchant"
+  ],
+  "Completion": [
+   "None",
+   "ItemOwned"
+  ],
+  "Priority": [
+   "Normal",
+   "Important",
+   "Critical"
+  ],
+  "Status": [
+   "Completed",
+   "ReadyToDonate",
+   "Missing"
+  ],
+  "Type": [
+   "Immediate",
+   "Deadline",
+   "Goal",
+   "Availability",
+   "Preparation",
+   "Merchant"
+  ]
+ },
+ "Kidoku.PelicanNeighbors": {
+  "Kind": [
+   "GiftMail",
+   "MoneyMail",
+   "WaterCrops",
+   "FeedAnimals",
+   "CleanFarm",
+   "ShopDiscount"
+  ],
+  "Type": [
+   "BorrowItem",
+   "BorrowMoney",
+   "DeliverGift"
+  ]
+ },
+ "MolsonCAD.DeluxeJournal": {
+  "Constraints": [
+   "None",
+   "NotNull",
+   "NotEmptyString",
+   "NotEmpty",
+   "GE0",
+   "GE1",
+   "ItemId",
+   "ItemCategory",
+   "SObject",
+   "Craftable",
+   "Upgradable"
+  ],
+  "Edges": [
+   "None",
+   "Top",
+   "Bottom",
+   "Left",
+   "Right"
+  ],
+  "EnabledSmartIcons": [
+   "None",
+   "Item",
+   "Building",
+   "Animal",
+   "Npc",
+   "All"
+  ],
+  "InputType": [
+   "TextBox",
+   "DropDown",
+   "ColorButtons"
+  ],
+  "RenewPeriod": [
+   "Never",
+   "Daily",
+   "Weekly",
+   "Monthly",
+   "Annually",
+   "Custom"
+  ],
+  "Tag": [
+   "ColorIndex",
+   "ItemList",
+   "FarmAnimalList",
+   "NpcName",
+   "Building",
+   "Count",
+   "Quality"
+  ],
+  "Wrap": [
+   "None",
+   "Horizontal",
+   "Vertical"
+  ]
+ },
+ "NamelessTo.StackBuffs": {
+  "Mode": [
+   "Additive",
+   "Independent",
+   "RefreshAndStack",
+   "TimerOnly"
+  ]
+ },
+ "Niko.Teleshopping": {
+  "Category": [
+   "All",
+   "Food",
+   "Seeds",
+   "Resources",
+   "Minerals",
+   "Fish",
+   "ArtisanGoods",
+   "Machines",
+   "Fertilizer",
+   "Bait",
+   "Weapons",
+   "Tools",
+   "Rings",
+   "Clothing",
+   "Hats",
+   "Furniture",
+   "Miscellaneous"
+  ],
+  "FailureReason": [
+   "None",
+   "NoDueOrders",
+   "AlreadyProcessing",
+   "InvalidPlayer",
+   "ItemUnavailable",
+   "InvalidQuantity",
+   "InventoryFull",
+   "SaveFailed",
+   "Unknown"
+  ],
+  "PackageKind": [
+   "Small",
+   "Large",
+   "Fragile"
+  ],
+  "Reason": [
+   "None",
+   "InvalidId",
+   "CannotCreate",
+   "QuestItem",
+   "DebugItem",
+   "ProgressionItem",
+   "LegendaryFish",
+   "UnsupportedType",
+   "InvalidTexture",
+   "InvalidPrice",
+   "DisabledByConfig"
+  ],
+  "Status": [
+   "Ready",
+   "PackageSpawned",
+   "Collected",
+   "Failed"
+  ]
+ },
+ "NormanPCN.QualitySmash": {
+  "smashType": [
+   "Color",
+   "Quality",
+   "AutoSmash",
+   "None"
+  ]
+ },
+ "Nullnnow.MS-Books": {
+  "IslandSpawnInterval": [
+   "_10Minutes",
+   "_30Minutes",
+   "_60Minutes"
+  ]
+ },
+ "OpenAI.PetCompanion": {
+  "ActualPetDirection": [
+   "NonDefined",
+   "North",
+   "South",
+   "East",
+   "West"
+  ],
+  "ActualPetState": [
+   "Sit",
+   "Walking",
+   "Sprint",
+   "Sleeping",
+   "Still",
+   "NonDefined",
+   "Resting",
+   "PreparingToJump",
+   "Jumping",
+   "Swimming"
+  ],
+  "CurrentGamepadLayout": [
+   "PS4",
+   "Xbox360",
+   "SteamDeck",
+   "Switch",
+   "Generic"
+  ],
+  "Mood": [
+   "Sad",
+   "Neutral",
+   "Happy"
+  ],
+  "Personality": [
+   "Unassigned",
+   "Loyal",
+   "Playful",
+   "Calm",
+   "Independent",
+   "Affectionate",
+   "Explorer",
+   "Balanced"
+  ]
+ },
+ "Owenynk.InteractionBubbles": {
+  "Actor": [
+   "Speaker",
+   "Listener",
+   "Third"
+  ],
+  "Band": [
+   "None",
+   "Far",
+   "Near"
+  ],
+  "BirthdayOf": [
+   "None",
+   "Speaker",
+   "Listener",
+   "Third",
+   "AnyParticipant"
+  ],
+  "BubbleFrame": [
+   "Scroll",
+   "Dialogue",
+   "None"
+  ],
+  "Depth": [
+   "Casual",
+   "Substantive"
+  ],
+  "Kind": [
+   "Conversation",
+   "Greeting",
+   "PlayerAction"
+  ],
+  "PlayerRelation": [
+   "Any",
+   "Dating",
+   "Engaged",
+   "Spouse",
+   "Roommate",
+   "Romantic"
+  ],
+  "Role": [
+   "Work",
+   "Visit",
+   "Appointment",
+   "Leisure",
+   "Home"
+  ],
+  "Type": [
+   "NpcHead",
+   "NpcPortrait",
+   "Item",
+   "Emote",
+   "Texture",
+   "Text",
+   "Alias",
+   "Composite"
+  ],
+  "Valence": [
+   "Negative",
+   "Neutral",
+   "Positive"
+  ]
+ },
+ "PanKoziolek.AccordSettings": {
+  "Category": [
+   "All",
+   "General",
+   "Interface",
+   "Gameplay",
+   "Graphics",
+   "Npc",
+   "Events",
+   "Other"
+  ],
+  "Kind": [
+   "New",
+   "Updated"
+  ],
+  "LaunchStage": [
+   "None",
+   "WaitingToCloseOptions",
+   "WaitingToOpenFramework"
+  ],
+  "LeftPanelBackgroundFit": [
+   "Cover",
+   "Contain",
+   "Stretch"
+  ],
+  "OptionsBackgroundFit": [
+   "Cover",
+   "Contain",
+   "Stretch"
+  ],
+  "Origin": [
+   "Native",
+   "GenericModConfigMenu",
+   "ContentPatcher"
+  ],
+  "Scope": [
+   "LocalMachine",
+   "LocalPlayer",
+   "HostSave"
+  ],
+  "Severity": [
+   "Info",
+   "Warning",
+   "Error"
+  ],
+  "Status": [
+   "UpToDate",
+   "Migrated",
+   "Normalized",
+   "FutureVersion",
+   "Failed"
+  ],
+  "StorageScope": [
+   "LocalMachine",
+   "LocalPlayer",
+   "HostSave"
+  ],
+  "TextureMode": [
+   "Cover",
+   "Contain",
+   "Stretch",
+   "Tile",
+   "NineSlice"
+  ],
+  "TransactionScope": [
+   "Owner",
+   "AllMods"
+  ]
+ },
+ "PanKoziolek.RestAndRecover": {
+  "SeatType": [
+   "Chair",
+   "Bench",
+   "Armchair",
+   "Couch",
+   "Stool",
+   "Other"
+  ],
+  "StatusPosition": [
+   "TopLeft",
+   "TopRight",
+   "BottomLeft",
+   "BottomRight"
+  ],
+  "Type": [
+   "Campfire",
+   "Bonfire",
+   "Brazier",
+   "Torch",
+   "Fireplace",
+   "Custom"
+  ],
+  "VisualQuality": [
+   "Low",
+   "Medium",
+   "High"
+  ]
+ },
+ "PanKoziolek.RestAndRecoverSittingActions": {
+  "AnimationKind": [
+   "None",
+   "Interaction",
+   "Food",
+   "Drink",
+   "Reading",
+   "HeldReading",
+   "Conversation",
+   "Watching",
+   "Listening"
+  ],
+  "InputMode": [
+   "MouseExact",
+   "GrabTile"
+  ],
+  "MapActionCategory": [
+   "ExistingSafe",
+   "Shop",
+   "BoardAndService",
+   "VanillaOnly",
+   "Unknown"
+  ]
+ },
+ "Pathoschild.Automate": {
+  "Role": [
+   "Both",
+   "ChestInputOnly",
+   "ChestOutputOnly"
+  ],
+  "StoragePreference": [
+   "Allow",
+   "Prefer",
+   "Disable"
+  ],
+  "TakeItemsPreference": [
+   "Allow",
+   "Prefer",
+   "Disable"
+  ]
+ },
+ "Pathoschild.ChestsAnywhere": {
+  "ActiveElement": [
+   "Menu",
+   "ChestList",
+   "CategoryList",
+   "EditForm"
+  ],
+  "AutomateStoreItems": [
+   "Allow",
+   "Prefer",
+   "Disable"
+  ],
+  "AutomateTakeItems": [
+   "Allow",
+   "Prefer",
+   "Disable"
+  ],
+  "Mode": [
+   "Normal",
+   "MobileStore",
+   "MobileTake"
+  ],
+  "Range": [
+   "Unlimited",
+   "CurrentWorldArea",
+   "CurrentLocation",
+   "None"
+  ]
+ },
+ "Pathoschild.ContentPatcher": {
+  "Operation": [
+   "Append",
+   "Prepend",
+   "RemoveDelimited",
+   "ReplaceDelimited"
+  ],
+  "ReplaceMode": [
+   "First",
+   "Last",
+   "All"
+  ],
+  "ToPosition": [
+   "None",
+   "Top",
+   "Bottom"
+  ],
+  "Type": [
+   "Literal",
+   "Token",
+   "TokenInput"
+  ],
+  "UpdateRate": [
+   "OnDayStart",
+   "OnLocationChange",
+   "OnTimeChange"
+  ]
+ },
+ "Pathoschild.LookupAnything": {
+  "BackgroundType": [
+   "FixedSprite",
+   "MenuBox",
+   "PlainColor"
+  ],
+  "Context": [
+   "World",
+   "Inventory",
+   "Any"
+  ],
+  "Quality": [
+   "Normal",
+   "Silver",
+   "Gold",
+   "Iridium"
+  ],
+  "RecipeType": [
+   "Cooking",
+   "Crafting",
+   "MachineInput",
+   "BuildingInput",
+   "BuildingBlueprint",
+   "TailorInput"
+  ],
+  "Taste": [
+   "Hate",
+   "Dislike",
+   "Neutral",
+   "Like",
+   "Love"
+  ],
+  "Type": [
+   "Cooking",
+   "Crafting",
+   "MachineInput",
+   "BuildingInput",
+   "BuildingBlueprint",
+   "TailorInput"
+  ],
+  "Weather": [
+   "Unknown",
+   "Sunny",
+   "Rainy",
+   "Both"
+  ]
+ },
+ "Pathoschild.SkipIntro": {
+  "SkipTo": [
+   "Title",
+   "Load",
+   "JoinCoop",
+   "HostCoop"
+  ]
+ },
+ "Pathoschild.TractorMod": {
+  "SoundEffects": [
+   "None",
+   "Horse",
+   "Tractor"
+  ],
+  "ToolUseSoundLimit": [
+   "Default",
+   "OncePerTick",
+   "Unlimited"
+  ]
+ },
+ "PeacefulEnd.AlternativeTextures": {
+  "Type": [
+   "Default",
+   "MachineIdle",
+   "MachineActive"
+  ]
+ },
+ "PeacefulEnd.DynamicReflections": {
+  "ReflectionDirection": [
+   "North",
+   "East",
+   "South",
+   "West"
+  ]
+ },
+ "PeacefulEnd.FashionSense": {
+  "AnimationType": [
+   "Unknown",
+   "Idle",
+   "Moving",
+   "Uniform"
+  ],
+  "AppearanceType": [
+   "Unknown",
+   "Hair",
+   "Accessory",
+   "AccessorySecondary",
+   "AccessoryTertiary",
+   "Hat",
+   "Shirt",
+   "Pants",
+   "Sleeves",
+   "Shoes",
+   "Player"
+  ],
+  "Handling": [
+   "Unknown",
+   "Normal",
+   "SlingshotFrontArm",
+   "SlingshotBackArm"
+  ],
+  "Name": [
+   "Unknown",
+   "MovementSpeed",
+   "MovementDuration",
+   "MovementSpeedLogical",
+   "MovementDurationLogical",
+   "IsElapsedTimeMultipleOf",
+   "DidPreviousFrameDisplay",
+   "RidingHorse",
+   "InventoryItemCount",
+   "IsInventoryFull",
+   "IsDarkOut",
+   "IsRaining",
+   "IsSnowing",
+   "IsWalking",
+   "IsRunning",
+   "IsMoving",
+   "IsEating",
+   "IsDrinking",
+   "IsCasting",
+   "IsFishing",
+   "IsNibbling",
+   "IsReeling",
+   "IsPullingFishOutOfWater",
+   "ToolChargeLevel",
+   "IsUsingHeavyTool",
+   "IsUsingMilkPail",
+   "IsUsingShears",
+   "IsUsingPan",
+   "IsUsingScythe",
+   "IsWatering",
+   "IsUsingMeleeWeapon",
+   "IsUsingSlingshot",
+   "IsUsingDagger",
+   "IsHarvesting",
+   "IsInMines",
+   "IsOutdoors",
+   "HealthLevel",
+   "StaminaLevel",
+   "IsSitting",
+   "IsCarrying",
+   "IsSwimming",
+   "IsInBathingSuit",
+   "IsSick",
+   "IsPassingOut",
+   "CurrentFarmerFrame",
+   "RandomChance",
+   "GameStateQuery"
+  ],
+  "Operator": [
+   "EqualTo",
+   "GreaterThan",
+   "LessThan",
+   "NotEqualTo"
+  ],
+  "PackType": [
+   "Unknown",
+   "Hair",
+   "Accessory",
+   "AccessorySecondary",
+   "AccessoryTertiary",
+   "Hat",
+   "Shirt",
+   "Pants",
+   "Sleeves",
+   "Shoes",
+   "Player"
+  ],
+  "Preposition": [
+   "Unknown",
+   "Before",
+   "After"
+  ],
+  "Priority": [
+   "Unknown",
+   "Primary",
+   "Secondary",
+   "Tertiary"
+  ],
+  "TargetAppearanceType": [
+   "Unknown",
+   "Hair",
+   "Accessory",
+   "AccessorySecondary",
+   "AccessoryTertiary",
+   "Hat",
+   "Shirt",
+   "Pants",
+   "Sleeves",
+   "Shoes",
+   "Player"
+  ],
+  "Type": [
+   "Unknown",
+   "Idle",
+   "Moving",
+   "Uniform"
+  ]
+ },
+ "PeacefulEnd.Parchment.Core": {
+  "Alignment": [
+   "Left",
+   "Center",
+   "Right"
+  ],
+  "CurrentState": [
+   "Sliding",
+   "Opening",
+   "Ready",
+   "Turning",
+   "Covering",
+   "Cover",
+   "Closing"
+  ],
+  "FontType": [
+   "Unknown",
+   "Dialogue",
+   "Small",
+   "Tiny",
+   "SpriteText"
+  ],
+  "Kind": [
+   "Text",
+   "Number"
+  ],
+  "Scope": [
+   "Save",
+   "Global"
+  ],
+  "Sizing": [
+   "Unknown",
+   "Fill",
+   "ShrinkToFit",
+   "Fixed"
+  ],
+  "TextAlignment": [
+   "Left",
+   "Center",
+   "Right"
+  ],
+  "Type": [
+   "Unknown",
+   "Title",
+   "Heading",
+   "Paragraph",
+   "Image",
+   "Divider",
+   "Panel",
+   "Banner",
+   "Button",
+   "PageNumber",
+   "Input",
+   "Grid"
+  ],
+  "VerticalAlignment": [
+   "Top",
+   "Center",
+   "Bottom"
+  ]
+ },
+ "PeterCarpenter.QiPerfectionCommandCenter": {
+  "IconKind": [
+   "Item",
+   "Character",
+   "Building",
+   "PlayerPortrait",
+   "ShippingBin",
+   "Monster",
+   "Bundle"
+  ],
+  "Kind": [
+   "Collected",
+   "LimitedDrop",
+   "GoldenCoconut",
+   "Birdie"
+  ]
+ },
+ "Rafia.DeluxeGrabberFix": {
+  "BelongsToType": [
+   "All",
+   "Animal",
+   "Crop",
+   "Forage",
+   "Tree",
+   "Scavenger",
+   "Machine"
+  ]
+ },
+ "RafiaBee.MoreQuestsFramework": {
+  "EffectiveSource": [
+   "DailyBoard",
+   "Mail",
+   "Periodic",
+   "DateLocked",
+   "DateRange",
+   "OneShot",
+   "BuildingBuilt",
+   "MailReceived",
+   "WeatherForecast",
+   "NpcDialogue",
+   "SpecialOrder",
+   "CustomBoard",
+   "Custom"
+  ],
+  "Festival": [
+   "Luau",
+   "Fair"
+  ],
+  "Kind": [
+   "Quest",
+   "Notice"
+  ],
+  "QuestType": [
+   "ItemDelivery",
+   "ResourceCollection",
+   "Fishing",
+   "SlayMonster",
+   "Socialize",
+   "Ship",
+   "EarnMoney",
+   "Sell",
+   "Adventure",
+   "Custom"
+  ],
+  "Reason": [
+   "ConditionsNotMet",
+   "TriggerNotReady"
+  ],
+  "Source": [
+   "DailyBoard",
+   "Mail",
+   "Periodic",
+   "DateLocked",
+   "DateRange",
+   "OneShot",
+   "BuildingBuilt",
+   "MailReceived",
+   "WeatherForecast",
+   "NpcDialogue",
+   "SpecialOrder",
+   "CustomBoard",
+   "Custom"
+  ],
+  "Tier": [
+   "Tier0",
+   "Tier1",
+   "Tier2",
+   "Tier3",
+   "Special"
+  ],
+  "When": [
+   "Today",
+   "Tomorrow"
+  ]
+ },
+ "RafiaBee.QuestJournal": {
+  "Kind": [
+   "DailyBoard",
+   "SpecialOrder",
+   "Mail",
+   "NpcDialogue"
+  ]
+ },
+ "Sarah.ProfessionAuras": {
+  "AccentElement": [
+   "PinkPetal",
+   "GreenLeaf",
+   "FallLeaf",
+   "StoneChunk",
+   "WoodChunk",
+   "CopperChunk",
+   "IronChunk",
+   "CoalChunk",
+   "GoldChunk",
+   "IridiumChunk",
+   "QuartzChunk",
+   "StoneOre",
+   "CopperOre",
+   "IronOre",
+   "CoalOre",
+   "GoldOre",
+   "IridiumOre",
+   "QuartzGem",
+   "Dust",
+   "Ember",
+   "Spark",
+   "Bubble",
+   "Droplet",
+   "WhiteFlower",
+   "YellowFlower",
+   "Seed",
+   "Sprout",
+   "Berry",
+   "Mushroom",
+   "Acorn",
+   "Feather",
+   "Wool",
+   "Shell",
+   "Fish",
+   "Seaweed",
+   "Foam",
+   "GrassBlade",
+   "Geode",
+   "MetalShard",
+   "Coin",
+   "PrismaticGem",
+   "DarkFeather"
+  ],
+  "MainElement": [
+   "PinkPetal",
+   "GreenLeaf",
+   "FallLeaf",
+   "StoneChunk",
+   "WoodChunk",
+   "CopperChunk",
+   "IronChunk",
+   "CoalChunk",
+   "GoldChunk",
+   "IridiumChunk",
+   "QuartzChunk",
+   "StoneOre",
+   "CopperOre",
+   "IronOre",
+   "CoalOre",
+   "GoldOre",
+   "IridiumOre",
+   "QuartzGem",
+   "Dust",
+   "Ember",
+   "Spark",
+   "Bubble",
+   "Droplet",
+   "WhiteFlower",
+   "YellowFlower",
+   "Seed",
+   "Sprout",
+   "Berry",
+   "Mushroom",
+   "Acorn",
+   "Feather",
+   "Wool",
+   "Shell",
+   "Fish",
+   "Seaweed",
+   "Foam",
+   "GrassBlade",
+   "Geode",
+   "MetalShard",
+   "Coin",
+   "PrismaticGem",
+   "DarkFeather"
+  ],
+  "Shape": [
+   "Dot",
+   "Diamond",
+   "Cross",
+   "Streak",
+   "Spark",
+   "Bubble"
+  ],
+  "Skill": [
+   "Farming",
+   "Fishing",
+   "Foraging",
+   "Mining",
+   "Combat"
+  ]
+ },
+ "Seiz.FarmComputerTodo": {
+  "Type": [
+   "Water",
+   "Harvest",
+   "Pet",
+   "Feed",
+   "Collect",
+   "Milk",
+   "Shear",
+   "PetCompanion",
+   "WaterBowl",
+   "Machine",
+   "Honey",
+   "Tapper",
+   "Battery",
+   "CrabPot",
+   "CrabPotBait",
+   "FishPond",
+   "FishPondRequest",
+   "CaveForage"
+  ]
+ },
+ "Shnmg.OreSpawnControl": {
+  "AllowedAreas": [
+   "None",
+   "RegularMine",
+   "SkullCavern",
+   "Quarry",
+   "Volcano"
+  ],
+  "ForceResourceType": [
+   "Copper",
+   "Iron",
+   "Gold",
+   "Iridium",
+   "Coal",
+   "Radioactive",
+   "Amethyst",
+   "Aquamarine",
+   "Jade",
+   "Emerald",
+   "Ruby",
+   "Topaz",
+   "Diamond",
+   "GemNode",
+   "Geode",
+   "FrozenGeode",
+   "MagmaGeode",
+   "OmniGeode",
+   "MysticStone",
+   "CinderShard",
+   "VolcanoGemNode",
+   "Mussel",
+   "Quartz",
+   "FireQuartz",
+   "EarthCrystal",
+   "FrozenTear",
+   "RedMushroom",
+   "PurpleMushroom",
+   "DragonTooth"
+  ],
+  "Mode": [
+   "GlobalMultiplier",
+   "PerResource",
+   "Force"
+  ]
+ },
+ "Shockah.Kokoro": {
+  "ConfigMigrationMode": [
+   "BeforeOnEntry",
+   "AfterOnEntry",
+   "OnGameLaunched"
+  ]
+ },
+ "Shockah.MachineStatus": {
+  "BubbleSway": [
+   "Static",
+   "Together",
+   "Wave"
+  ],
+  "Grouping": [
+   "None",
+   "ByMachine",
+   "ByMachineAndItem"
+  ],
+  "State": [
+   "Ready",
+   "Waiting",
+   "Busy"
+  ],
+  "Visibility": [
+   "Hidden",
+   "Normal",
+   "Focused"
+  ]
+ },
+ "SinZ.Profiler": {
+  "Type": [
+   "Property",
+   "Field",
+   "Argument"
+  ]
+ },
+ "Sinbad.JunimoStorageManager": {
+  "FlooringConnectorMode": [
+   "Disabled",
+   "Any",
+   "SelectedOnly"
+  ],
+  "MachineCollectorMode": [
+   "SafeVanillaOnly",
+   "GenericReadyOutput"
+  ],
+  "TreeCollectorMode": [
+   "Disabled",
+   "TappedTreesOnly",
+   "AllConnectedTrees"
+  ]
+ },
+ "SlayerDharok.Item_Bags": {
+  "AutofillPriority": [
+   "Low",
+   "High"
+  ],
+  "IconSourceTexture": [
+   "SpringObjects",
+   "Craftables",
+   "Debris",
+   "Tools",
+   "Cursors"
+  ],
+  "IconTexture": [
+   "SpringObjects",
+   "Craftables",
+   "Debris",
+   "Tools",
+   "Cursors"
+  ],
+  "MinQuality": [
+   "Regular",
+   "Silver",
+   "Gold",
+   "Iridium"
+  ],
+  "Property": [
+   "InternalName",
+   "DisplayName",
+   "LocalId",
+   "QualifiedId"
+  ],
+  "RewardType": [
+   "Object",
+   "BigCraftable",
+   "Ring",
+   "Weapon",
+   "Hat",
+   "Clothing",
+   "Furniture"
+  ],
+  "Size": [
+   "Small",
+   "Medium",
+   "Large",
+   "Giant",
+   "Massive"
+  ],
+  "SortOrder": [
+   "Ascending",
+   "Descending"
+  ],
+  "SortProperty": [
+   "Time",
+   "Name",
+   "Id",
+   "Category",
+   "Quantity",
+   "SingleValue",
+   "StackValue",
+   "Similarity"
+  ],
+  "Type": [
+   "BagSize",
+   "IsVanillaItem",
+   "FromMod",
+   "HasMod",
+   "CategoryId",
+   "IsBigCraftable",
+   "Quality",
+   "HasContextTag",
+   "HasBuffs",
+   "IsDonatable",
+   "IsPendingDonation",
+   "QualifiedId",
+   "QualifiedIdPrefix",
+   "QualifiedIdSuffix",
+   "QualifiedIdContains",
+   "LocalId",
+   "LocalIdPrefix",
+   "LocalIdSuffix",
+   "LocalIdContains",
+   "Name",
+   "NamePrefix",
+   "NameSuffix",
+   "NameContains",
+   "DisplayName",
+   "DisplayNamePrefix",
+   "DisplayNameSuffix",
+   "DisplayNameContains",
+   "Regex"
+  ]
+ },
+ "Slothsoft.Informant": {
+  "HideMachineTooltips": [
+   "ForNonMachines",
+   "ForChests",
+   "Never"
+  ],
+  "ShippingBinTracking": [
+   "All",
+   "Collection"
+  ],
+  "TooltipTrigger": [
+   "Hover",
+   "ButtonHeld"
+  ]
+ },
+ "Snake.BetterCollectionSorting": {
+  "CurrentSort": [
+   "Logical",
+   "Alpha",
+   "Price",
+   "Count",
+   "Color"
+  ]
+ },
+ "SpaceBaby.PartOfTheCommunity": {
+  "Relationship": [
+   "Brother",
+   "Sister",
+   "HalfBrother",
+   "HalfSister",
+   "Son",
+   "Daughter",
+   "StepSon",
+   "StepDaughter",
+   "Grandson",
+   "Granddaughter",
+   "GreatGrandson",
+   "GreatGranddaughter",
+   "Father",
+   "Mother",
+   "StepFather",
+   "StepMother",
+   "Grandfather",
+   "Grandmother",
+   "GreatGrandfather",
+   "GreatGrandmother",
+   "Husband",
+   "Wife",
+   "FatherInLaw",
+   "MotherInLaw",
+   "BrotherInLaw",
+   "SisterInLaw",
+   "SonInLaw",
+   "DaughterInLaw",
+   "Aunt",
+   "Uncle",
+   "Niece",
+   "Nephew",
+   "Godfather",
+   "Godmother",
+   "Godson",
+   "Goddaughter",
+   "Cousin",
+   "Friend",
+   "WarTorn"
+  ],
+  "RelationshipA": [
+   "Brother",
+   "Sister",
+   "HalfBrother",
+   "HalfSister",
+   "Son",
+   "Daughter",
+   "StepSon",
+   "StepDaughter",
+   "Grandson",
+   "Granddaughter",
+   "GreatGrandson",
+   "GreatGranddaughter",
+   "Father",
+   "Mother",
+   "StepFather",
+   "StepMother",
+   "Grandfather",
+   "Grandmother",
+   "GreatGrandfather",
+   "GreatGrandmother",
+   "Husband",
+   "Wife",
+   "FatherInLaw",
+   "MotherInLaw",
+   "BrotherInLaw",
+   "SisterInLaw",
+   "SonInLaw",
+   "DaughterInLaw",
+   "Aunt",
+   "Uncle",
+   "Niece",
+   "Nephew",
+   "Godfather",
+   "Godmother",
+   "Godson",
+   "Goddaughter",
+   "Cousin",
+   "Friend",
+   "WarTorn"
+  ],
+  "RelationshipB": [
+   "Brother",
+   "Sister",
+   "HalfBrother",
+   "HalfSister",
+   "Son",
+   "Daughter",
+   "StepSon",
+   "StepDaughter",
+   "Grandson",
+   "Granddaughter",
+   "GreatGrandson",
+   "GreatGranddaughter",
+   "Father",
+   "Mother",
+   "StepFather",
+   "StepMother",
+   "Grandfather",
+   "Grandmother",
+   "GreatGrandfather",
+   "GreatGrandmother",
+   "Husband",
+   "Wife",
+   "FatherInLaw",
+   "MotherInLaw",
+   "BrotherInLaw",
+   "SisterInLaw",
+   "SonInLaw",
+   "DaughterInLaw",
+   "Aunt",
+   "Uncle",
+   "Niece",
+   "Nephew",
+   "Godfather",
+   "Godmother",
+   "Godson",
+   "Goddaughter",
+   "Cousin",
+   "Friend",
+   "WarTorn"
+  ],
+  "Type": [
+   "Villager",
+   "Player",
+   "Child"
+  ]
+ },
+ "Spiderbuttons.CMF": {
+  "InteractionType": [
+   "Default",
+   "Sign",
+   "Message",
+   "Letter",
+   "Custom",
+   "None"
+  ],
+  "MatchType": [
+   "Any",
+   "All"
+  ]
+ },
+ "SummerFleur.ConvenientChests": {
+  "LocationType": [
+   "Normal",
+   "Building",
+   "Refrigerator"
+  ]
+ },
+ "ThaleTheGreat.GMCMAdvancedSearch": {
+  "Kind": [
+   "Author",
+   "Mod",
+   "Option"
+  ]
+ },
+ "ThaleTheGreat.WalletTools": {
+  "Kind": [
+   "Axe",
+   "Pickaxe",
+   "Hoe",
+   "WateringCan",
+   "Pan",
+   "MilkPail",
+   "Shears"
+  ],
+  "System.Collections.Generic.IEnumerator<ThaleTheGreat.WalletTools.WalletToolKind>.Current": [
+   "Axe",
+   "Pickaxe",
+   "Hoe",
+   "WateringCan",
+   "Pan",
+   "MilkPail",
+   "Shears"
+  ]
+ },
+ "TimBukTwo.SkillMasteryPrestige": {
+  "DialogStyle": [
+   "Regular",
+   "Mastery"
+  ]
+ },
+ "TimBukTwo.TheHauntedWardrobe": {
+  "DonatableIcon": [
+   "CornerBox",
+   "TooltipIcon",
+   "TooltipBottom",
+   "Off"
+  ],
+  "Method": [
+   "Trash",
+   "Enemy",
+   "SkullCavern",
+   "ChopTrees",
+   "HarvestCrop",
+   "MineRocks",
+   "FishCatch",
+   "GiftNPC",
+   "CollectOre",
+   "CollectMineral",
+   "CollectForage"
+  ],
+  "MiniWardrobeInteraction": [
+   "WardrobeWarper",
+   "WardrobeMenu"
+  ],
+  "Table": [
+   "Easy",
+   "Medium",
+   "Hard"
+  ]
+ },
+ "Uriel.ConversacionADistancia": {
+  "Focus": [
+   "Slot",
+   "Confirm",
+   "Cancel"
+  ]
+ },
+ "ValleyBonds.HiddenPelicanVillage": {
+  "Action": [
+   "Gather",
+   "Scout",
+   "Patrol",
+   "Battle",
+   "Negotiate",
+   "Aid",
+   "SecretOps",
+   "Rescue",
+   "Trade"
+  ],
+  "ActiveEdict": [
+   "None",
+   "ValleyDefense",
+   "FarmSupport",
+   "ReserveTraining",
+   "Diplomacy",
+   "ResourceSearch",
+   "CovertFocus"
+  ],
+  "AppliedCondition": [
+   "Healthy",
+   "Exhausted",
+   "Wounded",
+   "Traumatized",
+   "Poisoned",
+   "Critical",
+   "Captured",
+   "Recovering"
+  ],
+  "Assignment": [
+   "None",
+   "WaterCrops",
+   "AnimalCare",
+   "ForageSweep",
+   "MineSupplies",
+   "FishingSupport",
+   "CommunityOutreach",
+   "ScoutRoute",
+   "Lumber",
+   "Quarry",
+   "Forage",
+   "GiftDelivery",
+   "CommunityTalk",
+   "PatrolRoute"
+  ],
+  "AssignmentPhase": [
+   "Idle",
+   "TravelingOut",
+   "Working",
+   "Returning",
+   "Paused"
+  ],
+  "Condition": [
+   "Healthy",
+   "Exhausted",
+   "Wounded",
+   "Traumatized",
+   "Poisoned",
+   "Critical",
+   "Captured",
+   "Recovering"
+  ],
+  "Doctrine": [
+   "None",
+   "Protection",
+   "Cooperation",
+   "Shadows"
+  ],
+  "Forage": [
+   "None",
+   "Sparse",
+   "Moderate",
+   "Rich",
+   "Abundant"
+  ],
+  "HokagePolicy": [
+   "Safe",
+   "Balanced",
+   "Profitable",
+   "Diplomatic",
+   "Aggressive"
+  ],
+  "Id": [
+   "Sand",
+   "Mist",
+   "Stone"
+  ],
+  "Kind": [
+   "Supplies",
+   "Gifts"
+  ],
+  "LegacyRole": [
+   "None",
+   "Instructor",
+   "Medic",
+   "Quartermaster",
+   "Envoy",
+   "FarmSteward",
+   "Adviser"
+  ],
+  "Outcome": [
+   "GreatSuccess",
+   "Success",
+   "PartialSuccess",
+   "Failure",
+   "CriticalFailure"
+  ],
+  "Rank": [
+   "Genin",
+   "Chunin",
+   "Jonin",
+   "Hokage"
+  ],
+  "RecruitClass": [
+   "Trainee",
+   "CoreOperative"
+  ],
+  "RequiredRank": [
+   "Genin",
+   "Chunin",
+   "Jonin",
+   "Hokage"
+  ],
+  "Role": [
+   "Warrior",
+   "Scout",
+   "Gatherer",
+   "Medic",
+   "Diplomat"
+  ],
+  "State": [
+   "Open",
+   "Active",
+   "Complete",
+   "Cancelled"
+  ],
+  "Station": [
+   "Overview",
+   "Registration",
+   "Board",
+   "Reports",
+   "Hospital",
+   "Exam",
+   "Relations",
+   "Hokage"
+  ],
+  "Stones": [
+   "None",
+   "Sparse",
+   "Moderate",
+   "Rich",
+   "Abundant"
+  ],
+  "Treatment": [
+   "None",
+   "Rest",
+   "BasicCare",
+   "SpecialistCare"
+  ],
+  "Trees": [
+   "None",
+   "Sparse",
+   "Moderate",
+   "Rich",
+   "Abundant"
+  ],
+  "Type": [
+   "Gather",
+   "Scout",
+   "Patrol",
+   "Battle",
+   "Negotiate",
+   "Aid",
+   "SecretOps",
+   "Rescue",
+   "Trade"
+  ]
+ },
+ "XiHanQWQ.AutomaticTodoListAlt": {
+  "Ordinal": [
+   "First",
+   "Second"
+  ],
+  "Priority": [
+   "Birthday",
+   "ToolPickup",
+   "ReadyMachines",
+   "HarvestableCrops",
+   "WaterableCrops",
+   "Gifting",
+   "TravelingMerchant",
+   "QueenOfSauce",
+   "SpecialOrders",
+   "BulletinBoard",
+   "Test",
+   "Default"
+  ],
+  "SpecialOrderType": [
+   "Standard",
+   "Qi"
+  ]
+ },
+ "Zebru.Core": {
+  "CurrentMode": [
+   "Auto",
+   "KeyboardMouse",
+   "Controller",
+   "Mobile"
+  ]
+ },
+ "Zebru.WhereIsMyNPC": {
+  "DefaultGenderFilter": [
+   "None",
+   "Male",
+   "Female",
+   "Undefined"
+  ],
+  "DefaultMarriageableFilter": [
+   "None",
+   "Yes",
+   "No"
+  ]
+ },
+ "Zerebralis.AutomateSmartInput": {
+  "AcquisitionEvidence": [
+   "NoMissingSeedDemand",
+   "IndependentGoldEvidence",
+   "StrongAlternativeResourceEvidence",
+   "MixedStrongResourceEvidence",
+   "PotentialRouteEvidencePresent",
+   "TemporalUnknownPresent",
+   "AmbiguousResourceBasisPresent"
+  ],
+  "Approach": [
+   "Any",
+   "Down",
+   "Up",
+   "Left",
+   "Right"
+  ],
+  "Authority": [
+   "LegacyFp1",
+   "V1"
+  ],
+  "AuthoritySource": [
+   "LegacyFp1",
+   "JointOptimal",
+   "JointBounded",
+   "JointInfeasible"
+  ],
+  "BaseRules": [
+   "Allowed",
+   "Denied",
+   "Unknown"
+  ],
+  "Basis": [
+   "IndependentNeedCatalogQuote",
+   "FiniteCatalogPotential",
+   "AlternativeCatalogQuote"
+  ],
+  "CurrentState": [
+   "Unknown",
+   "Disabled",
+   "Empty",
+   "Processing",
+   "Done"
+  ],
+  "DisplayMode": [
+   "Off",
+   "Individual",
+   "All"
+  ],
+  "Domain": [
+   "MainFarmOutdoorSeasonal",
+   "SeasonAgnosticIndoor",
+   "LocationSeasonOverride",
+   "UnknownCustomPlantable"
+  ],
+  "EligibleJointSource": [
+   "LegacyFp1",
+   "JointOptimal",
+   "JointBounded",
+   "JointInfeasible"
+  ],
+  "Evidence": [
+   "NotCultivationCandidate",
+   "ExactMainFarmIdentity",
+   "GreenhouseCapabilityFlag",
+   "FixedSeasonOverride",
+   "ObservedOrDeclaredPlantingCapability"
+  ],
+  "GlobalPlannerMode": [
+   "Off",
+   "Shadow",
+   "Active"
+  ],
+  "GoalMode": [
+   "Auto",
+   "Manual",
+   "Off"
+  ],
+  "IdentityState": [
+   "ResolvedGameOwned",
+   "RecognizedCustomItemType",
+   "RecognizedUnresolvedType",
+   "AmbiguousQualifiedIdentity",
+   "InvalidRawId"
+  ],
+  "IntendedDestination": [
+   "OriginalStorage",
+   "FinalGoodsPool"
+  ],
+  "Kind": [
+   "None",
+   "DirectItemId",
+   "SingleChoiceRandomList",
+   "AllItemsQuery",
+   "StochasticItemSelection",
+   "OpaqueItemQuery"
+  ],
+  "Lifecycle": [
+   "PersistentProtection",
+   "CurrentConsumption",
+   "FutureObligation"
+  ],
+  "LookaheadMode": [
+   "UnlockedOnly",
+   "AllSelectedBundles"
+  ],
+  "MatchKind": [
+   "None",
+   "DirectItemId",
+   "SingleChoiceRandomList",
+   "AllItemsQuery",
+   "StochasticItemSelection",
+   "OpaqueItemQuery"
+  ],
+  "Mode": [
+   "Auto",
+   "Manual",
+   "Off"
+  ],
+  "Objective": [
+   "ProfitOnly",
+   "ProfitAndCommunityCenter"
+  ],
+  "Physical": [
+   "Available",
+   "Unavailable",
+   "Unknown"
+  ],
+  "PreviousState": [
+   "Processable",
+   "WaitingForProcessing",
+   "FinalForNetwork",
+   "Unclassified"
+  ],
+  "PrimaryRules": [
+   "Allowed",
+   "Denied",
+   "Unknown"
+  ],
+  "Proof": [
+   "None",
+   "Optimal",
+   "Bounded"
+  ],
+  "Purpose": [
+   "ProtectionFloor",
+   "CurrentConsumption"
+  ],
+  "Purposes": [
+   "None",
+   "CommunityCenterStaging"
+  ],
+  "Reason": [
+   "None",
+   "WorldNotReady",
+   "SnapshotUnavailable",
+   "VersionMismatch",
+   "KeepReserveChanged",
+   "CropIntentChanged",
+   "SeasonSafetyChanged",
+   "StrategicDemandChanged",
+   "CaptureStateIdentityChanged",
+   "TimeOfDayChanged",
+   "GoldChanged",
+   "StarTokensChanged",
+   "QiCoinsChanged",
+   "QiGemsChanged",
+   "GoldenWalnutsChanged",
+   "CarriedTradeItemsChanged",
+   "FarmingLevelChanged",
+   "ManagedStorageDiagnostics",
+   "ManagedStorageChanged"
+  ],
+  "RequirementKind": [
+   "Item",
+   "Currency",
+   "Unsupported"
+  ],
+  "RestrictionPolicy": [
+   "Enforced",
+   "Bypassed",
+   "Unknown"
+  ],
+  "Role": [
+   "Normal",
+   "FinalGoods",
+   "Unmanaged"
+  ],
+  "RouteState": [
+   "ActiveCommunityCenter",
+   "CommunityCenterCompleted",
+   "JojaLocked",
+   "ConflictingIrreversibleFlags",
+   "Unavailable"
+  ],
+  "SeasonSource": [
+   "WorldCalendar",
+   "FixedSeason"
+  ],
+  "SectionIcon": [
+   "NewPlan",
+   "CurrentPlan",
+   "PlanSeeds",
+   "CommunityChest",
+   "PlanningBoard",
+   "FieldTarget",
+   "Usable",
+   "Sprinklers",
+   "Planted",
+   "SeedStrategy",
+   "FieldBaseline",
+   "Aloe",
+   "LiveRunning",
+   "LiveReady",
+   "LiveValue",
+   "LiveNext",
+   "Unwatered",
+   "HarvestReady",
+   "ChestOptions",
+   "StorageValue",
+   "Managed",
+   "FinalGoods",
+   "Unmanaged",
+   "Items",
+   "ItemTypes",
+   "HarvestValue",
+   "OutputValue",
+   "AddedValue",
+   "TableVine",
+   "Fertilized",
+   "ReadyHarvestValue",
+   "NextHarvest",
+   "RunningGears",
+   "PlanningWater",
+   "PlanningCalendar",
+   "PlanningAloe"
+  ],
+  "SeedSource": [
+   "Owned",
+   "CurrentAcquired"
+  ],
+  "SelectedObjective": [
+   "ProfitOnly",
+   "ProfitAndCommunityCenter"
+  ],
+  "SortColumn": [
+   "Item",
+   "Owned",
+   "Floor",
+   "Free",
+   "Missing"
+  ],
+  "Source": [
+   "LegacyFp1",
+   "JointOptimal",
+   "JointBounded",
+   "JointInfeasible"
+  ],
+  "State": [
+   "None",
+   "Ready",
+   "Infeasible",
+   "Unsupported"
+  ],
+  "Status": [
+   "NoMatch",
+   "Supported",
+   "Unknown"
+  ],
+  "StockCertainty": [
+   "Unknown",
+   "Unlimited",
+   "FiniteCatalogRemainingUnproven"
+  ],
+  "Strength": [
+   "Advisory",
+   "Hard"
+  ],
+  "Truth": [
+   "Allowed",
+   "Denied",
+   "Unknown"
+  ],
+  "Value": [
+   "False",
+   "True",
+   "Unknown"
+  ]
+ },
+ "ZeroXPatch.StardewStabilizer": {
+  "Action": [
+   "None",
+   "Soft",
+   "Hard"
+  ]
+ },
+ "a-Bouchez.panslot": {
+  "SlotPosition": [
+   "BelowBoots",
+   "RightOfHat",
+   "BelowTrashCan"
+  ]
+ },
+ "aedenthorn.AllChestsMenu": {
+  "CurrentSort": [
+   "LA",
+   "LD",
+   "NA",
+   "ND",
+   "CA",
+   "CD",
+   "IA",
+   "ID",
+   "CS"
+  ]
+ },
+ "aedenthorn.AreaOfEffect": {
+  "AreaType": [
+   "Circle",
+   "Square",
+   "Line"
+  ],
+  "ChangeType": [
+   "Set",
+   "Toggle",
+   "Subtract",
+   "Add",
+   "Prefix",
+   "Multiply",
+   "Divide",
+   "Replace"
+  ],
+  "EffectType": [
+   "Buff",
+   "Burn",
+   "Custom",
+   "Damage",
+   "Destroy",
+   "Explode",
+   "Fertilize",
+   "Freeze",
+   "Grow",
+   "Heal",
+   "Harvest",
+   "Invincible",
+   "Index",
+   "Light",
+   "ModData",
+   "Pet",
+   "Plant",
+   "Property",
+   "TileSheet",
+   "Tool",
+   "Transform",
+   "Water"
+  ],
+  "Type": [
+   "Animation",
+   "Balloon",
+   "Butterfly",
+   "EvilRabbit",
+   "Explosion",
+   "Fire",
+   "Fountain",
+   "Heart",
+   "Ice",
+   "Lightning",
+   "Object",
+   "Poof",
+   "Texture",
+   "Sparkle",
+   "Smoking"
+  ]
+ },
+ "aedenthorn.DynamicMapTilesExtended": {
+  "type": [
+   "Health",
+   "Stamina"
+  ]
+ },
+ "bubuge.CommercializationOfStardewValley": {
+  "Atlas": [
+   "Primary",
+   "Secondary"
+  ],
+  "Band": [
+   "VeryLow",
+   "Low",
+   "Market",
+   "Premium",
+   "VeryPremium"
+  ],
+  "Category": [
+   "Vegetable",
+   "Fruit",
+   "Food",
+   "Flower",
+   "Fish",
+   "Artisan",
+   "AnimalProduct",
+   "Mineral",
+   "Artifact",
+   "Weapon",
+   "Clothing",
+   "Book",
+   "Forage",
+   "Dangerous",
+   "Entertainment",
+   "General"
+  ],
+  "DeliveryMode": [
+   "Npc",
+   "Dropoff"
+  ],
+  "Dimension": [
+   "Value",
+   "Quality",
+   "Service",
+   "Integrity",
+   "Environment"
+  ],
+  "Domain": [
+   "Indoor",
+   "Outdoor"
+  ],
+  "EventType": [
+   "DayPreparing",
+   "DayStarted",
+   "DayEnded",
+   "CustomerCreated",
+   "CustomerEntered",
+   "IntentGenerated",
+   "BeforeIntentSelected",
+   "AfterIntentSelected",
+   "BeforeShelfCandidatesBuilt",
+   "AfterShelfCandidatesBuilt",
+   "BeforeShelfScoring",
+   "AfterShelfSelected",
+   "CustomerReachedShelf",
+   "BeforeItemScoring",
+   "AfterItemSelected",
+   "BeforePurchase",
+   "AfterPurchase",
+   "PurchaseFailed",
+   "BeforeEntertainmentUse",
+   "AfterEntertainmentUse",
+   "BeforeCheckout",
+   "AfterCheckout",
+   "BeforeCustomerLeave",
+   "AfterCustomerLeave",
+   "ShelfPlaced",
+   "ShelfMoved",
+   "ShelfRemoved",
+   "ShelfContentsChanged",
+   "PosterActivated",
+   "PosterExpired"
+  ],
+  "FailurePolicy": [
+   "Skip",
+   "Retry",
+   "Checkout",
+   "Leave"
+  ],
+  "IconAtlas": [
+   "Primary",
+   "Secondary"
+  ],
+  "InStoreSentiment": [
+   "Negative",
+   "Neutral",
+   "Positive"
+  ],
+  "Kind": [
+   "Normal",
+   "Eel",
+   "Cephalopod",
+   "Float",
+   "Ground",
+   "Crawl",
+   "Static"
+  ],
+  "Mode": [
+   "None",
+   "PositiveOnTrigger",
+   "ExperienceOnTrigger",
+   "ClaimCheck"
+  ],
+  "MotionKind": [
+   "Normal",
+   "Eel",
+   "Cephalopod",
+   "Float",
+   "Ground",
+   "Crawl",
+   "Static"
+  ],
+  "Operation": [
+   "Add",
+   "Multiply",
+   "SetMinimum",
+   "SetMaximum",
+   "Override"
+  ],
+  "Outcome": [
+   "BuyFromPlayer",
+   "ExternalFeedback",
+   "GiveUp",
+   "NoDemand",
+   "FamilyDemandFallbackRejected"
+  ],
+  "Phase": [
+   "Off",
+   "Opening",
+   "Running",
+   "Closing"
+  ],
+  "Polarity": [
+   "Negative",
+   "Neutral",
+   "Positive"
+  ],
+  "Position": [
+   "Front",
+   "Back"
+  ],
+  "Rarity": [
+   "Common",
+   "Rare",
+   "Legendary"
+  ],
+  "Scope": [
+   "Global",
+   "Day",
+   "Store",
+   "Customer",
+   "Shelf"
+  ],
+  "Sentiment": [
+   "Negative",
+   "Neutral",
+   "Positive"
+  ],
+  "SourceType": [
+   "BaseSystem",
+   "Market",
+   "Poster",
+   "License",
+   "Shelf",
+   "Customer",
+   "Npc",
+   "Event",
+   "Weather",
+   "Season",
+   "Festival",
+   "ItemTag",
+   "Debug",
+   "Migration"
+  ],
+  "StackingPolicy": [
+   "Stack",
+   "HighestOnly",
+   "LowestOnly",
+   "ReplaceSameSource",
+   "Unique"
+  ],
+  "Status": [
+   "Found",
+   "Deferred",
+   "TransientlyBlocked",
+   "Unreachable"
+  ],
+  "TargetCategory": [
+   "Vegetable",
+   "Fruit",
+   "Food",
+   "Flower",
+   "Fish",
+   "Artisan",
+   "AnimalProduct",
+   "Mineral",
+   "Artifact",
+   "Weapon",
+   "Clothing",
+   "Book",
+   "Forage",
+   "Dangerous",
+   "Entertainment",
+   "General"
+  ],
+  "Type": [
+   "PurchaseCategory",
+   "PurchaseTag",
+   "PurchaseItem",
+   "BrowsePopularShelf",
+   "UseEntertainment",
+   "VisitShelf",
+   "Checkout",
+   "Leave",
+   "Scripted"
+  ]
+ },
+ "cantorsdust.RecatchLegendaryFish": {
+  "CatchLimit": [
+   "Unlimited",
+   "OnePerDay",
+   "OnePerWeek",
+   "OnePerSeason",
+   "OnePerYear"
+  ]
+ },
+ "cat.modupdatemenu": {
+  "ButtonStatus": [
+   "NoUpdates",
+   "Updates",
+   "Error",
+   "Unknown"
+  ],
+  "Code": [
+   "TagNotClosed",
+   "TagNotOpened",
+   "CharsetMismatch",
+   "EndTagNotRequired",
+   "EndTagInvalidHere"
+  ],
+  "FragmentType": [
+   "Code",
+   "Text"
+  ],
+  "NodeReturnType": [
+   "InnerText",
+   "InnerHtml",
+   "OuterHtml"
+  ],
+  "NodeType": [
+   "Document",
+   "Element",
+   "Comment",
+   "Text"
+  ],
+  "QuoteType": [
+   "SingleQuote",
+   "DoubleQuote",
+   "None",
+   "WithoutValue",
+   "Initial"
+  ],
+  "SMAPIButtonStatus": [
+   "NoUpdates",
+   "Updates",
+   "Error",
+   "Unknown"
+  ],
+  "UpdateStatus": [
+   "Skipped",
+   "UpToDate",
+   "OutOfDate"
+  ]
+ },
+ "cross.GunthersGuide": {
+  "Category": [
+   "Mineral",
+   "Artifact"
+  ],
+  "CurrentFilter": [
+   "All",
+   "Missing",
+   "Ready",
+   "Artifacts",
+   "Minerals"
+  ],
+  "Status": [
+   "Donated",
+   "ReadyToDonate",
+   "FoundNotDonated",
+   "Missing"
+  ]
+ },
+ "gaussfire.ConvenientInventory": {
+  "ChestType": [
+   "Normal",
+   "Stone",
+   "BigNormal",
+   "BigStone",
+   "MiniFridge",
+   "Fridge",
+   "IslandFridge",
+   "Mill",
+   "JunimoHut",
+   "Special",
+   "Package",
+   "Dresser",
+   "Dungeon",
+   "Hopper",
+   "MiniShippingBin",
+   "Enricher",
+   "JunimoChest",
+   "NonPlayer",
+   "Error"
+  ],
+  "NonStackableTypesToOverflow": [
+   "None",
+   "Tools",
+   "Weapons",
+   "Equips",
+   "Other",
+   "All",
+   "ExceptTools",
+   "ExceptToolsWeapons",
+   "ExceptToolsWeaponsEquips"
+  ],
+  "QuickStackNonStackableTypesToOverflow": [
+   "None",
+   "Tools",
+   "Weapons",
+   "Equips",
+   "Other",
+   "All",
+   "ExceptTools",
+   "ExceptToolsWeapons",
+   "ExceptToolsWeaponsEquips"
+  ]
+ },
+ "ichortower.BirthdayRolodex": {
+  "Value": [
+   "Prefix",
+   "Postfix",
+   "Transpiler",
+   "Finalizer"
+  ]
+ },
+ "jyxdong.QuickPickFloor": {
+  "Action": [
+   "Pickup",
+   "Place"
+  ]
+ },
+ "kacper.BetterAutoGrabber": {
+  "DefaultFrequency": [
+   "Default",
+   "TenMinutes",
+   "Hourly",
+   "FourHours",
+   "Daily"
+  ],
+  "Frequency": [
+   "Default",
+   "TenMinutes",
+   "Hourly",
+   "FourHours",
+   "Daily"
+  ],
+  "Group": [
+   "Forage",
+   "Crops",
+   "FruitTrees",
+   "Bushes",
+   "Clumps",
+   "Litter",
+   "Digging",
+   "Trees",
+   "TrashCans",
+   "Animals",
+   "Machines"
+  ],
+  "Replant": [
+   "Never",
+   "MatchingSeed",
+   "AnySeed"
+  ],
+  "Scope": [
+   "Local",
+   "Global",
+   "Selected"
+  ]
+ },
+ "larvuk.AdvancedFruitTreeFramework": {
+  "Type": [
+   "SeasonIsIn",
+   "SeasonIsNotIn",
+   "PlantingSeasonIsIn",
+   "PlantingSeasonIsNotIn",
+   "QualityIsIn",
+   "QualityIsNotIn",
+   "SaplingQualityIsIn",
+   "SaplingQualityIsNotIn",
+   "AgeIsReached",
+   "AgeIsNotReached",
+   "GrowthStageIsReached",
+   "GrowthStageIsNotReached",
+   "NumberOfFruitsIsReached",
+   "NumberOfFruitsIsNotReached",
+   "LocationIsIn",
+   "LocationIsNotIn",
+   "WeatherIsIn",
+   "WeatherIsNotIn",
+   "IsRaining",
+   "Random",
+   "Property",
+   "HasMod",
+   "HasNotMod",
+   "ConfigIs",
+   "ConfigIsNot",
+   "LevelIsReached",
+   "LevelIsNotReached",
+   "CPConditionIsTrue",
+   "CPConditionIsFalse",
+   "Or"
+  ]
+ },
+ "mahsouto.MHEventsList": {
+  "ContentPatcherEventMode": [
+   "LoadedOnly",
+   "All",
+   "AllWithMarker"
+  ],
+  "EventListFormat": [
+   "OneLine",
+   "TwoLines",
+   "ThreeLines"
+  ],
+  "OptionsPanelControlLayout": [
+   "Original",
+   "Alternative"
+  ],
+  "Type": [
+   "Friendship",
+   "Dating",
+   "Married"
+  ]
+ },
+ "mahsouto.SortChests": {
+  "Type": [
+   "Name",
+   "Quality",
+   "Id",
+   "Stack",
+   "Category",
+   "Bundle",
+   "Price",
+   "StackValue",
+   "SeedPlanted",
+   "Season",
+   "Health",
+   "Energy"
+  ]
+ },
+ "maxmakesmods.deepwoodsmod": {
+  "EnterDir": [
+   "FROM_LEFT",
+   "FROM_TOP",
+   "FROM_RIGHT",
+   "FROM_BOTTOM"
+  ],
+  "ExitDir": [
+   "RIGHT",
+   "BOTTOM",
+   "LEFT",
+   "TOP"
+  ]
+ },
+ "mistyspring.ItemExtensions": {
+  "Car": [
+   "Plain",
+   "Resource",
+   "Passenger",
+   "Engine"
+  ],
+  "CountTowards": [
+   "None",
+   "Copper",
+   "Diamonds",
+   "GeodesBroken",
+   "Gold",
+   "Iridium",
+   "Iron",
+   "MysticStones",
+   "OtherGems",
+   "PrismaticShards",
+   "Stone",
+   "Stumps",
+   "Seeds",
+   "Weeds",
+   "Any"
+  ],
+  "PriceModifier": [
+   "Set",
+   "Sum",
+   "Substract",
+   "Divide",
+   "Multiply",
+   "Percentage"
+  ],
+  "QualityModifier": [
+   "Set",
+   "Sum",
+   "Substract",
+   "Divide",
+   "Multiply",
+   "Percentage"
+  ],
+  "Type": [
+   "None",
+   "Normal",
+   "Frenzy",
+   "Mountain",
+   "Volcano",
+   "Qi",
+   "General",
+   "All"
+  ]
+ },
+ "mistyspring.mistycore": {
+  "Critter": [
+   "Butterfly",
+   "CalderaMonkey",
+   "CrabCritter",
+   "Crow",
+   "Firefly",
+   "Frog",
+   "Opossum",
+   "OverheadParrot",
+   "Owl",
+   "Rabbit",
+   "Seagull",
+   "Squirrel"
+  ],
+  "SeagullBehavior": [
+   "Walking",
+   "FlyingAway",
+   "Swimming",
+   "Stopped",
+   "FlyingToLand"
+  ]
+ },
+ "neoiw.FishingExpanded": {
+  "PhraseMode": [
+   "Free",
+   "WaitingMiddle",
+   "Recording",
+   "Playing"
+  ]
+ },
+ "neoiw.StardewLoadingOptimizer": {
+  "Kind": [
+   "None",
+   "MainSave",
+   "SecondaryLocalScreen"
+  ],
+  "PreviousKind": [
+   "None",
+   "MainSave",
+   "SecondaryLocalScreen"
+  ]
+ },
+ "neoiw.vanillatips": {
+  "Category": [
+   "Early",
+   "Mid",
+   "Late",
+   "Endgame",
+   "General"
+  ]
+ },
+ "palmhacker13.ModernConfigMenu": {
+  "AutoEllipsisMethod": [
+   "None",
+   "Character",
+   "Word"
+  ],
+  "ColorComponents": [
+   "Default",
+   "Grey",
+   "GreyAlpha",
+   "RedGreenBlue",
+   "RedGreenBlueAlpha"
+  ],
+  "Comp": [
+   "Default",
+   "Grey",
+   "GreyAlpha",
+   "RedGreenBlue",
+   "RedGreenBlueAlpha"
+  ],
+  "CurrentPreset": [
+   "Vanilla",
+   "White",
+   "Black",
+   "Earthy",
+   "MidnightOceanic",
+   "Cyberpunk",
+   "Sakura",
+   "ForestMoss",
+   "NordicFrost",
+   "RetroGameboy",
+   "DraculaDark",
+   "PurpleGalaxy",
+   "Custom"
+  ],
+  "Effect": [
+   "None",
+   "Blurry",
+   "Stroked"
+  ],
+  "GameMenuButtonPosition": [
+   "BottomOptions",
+   "Auto",
+   "TopTab",
+   "LeftSide",
+   "RightSide"
+  ],
+  "ModSortOrder": [
+   "Alphabetical",
+   "RecentlyAdded",
+   "FavoritesFirst"
+  ],
+  "RequiresRestart": [
+   "None",
+   "ReturnToTitle",
+   "Game"
+  ],
+  "Source": [
+   "Native",
+   "ImportedFromGmcm"
+  ],
+  "SourceComp": [
+   "Default",
+   "Grey",
+   "GreyAlpha",
+   "RedGreenBlue",
+   "RedGreenBlueAlpha"
+  ],
+  "Style": [
+   "None",
+   "Underline",
+   "Strikethrough"
+  ],
+  "Theme": [
+   "Vanilla",
+   "White",
+   "Black",
+   "Earthy",
+   "MidnightOceanic",
+   "Cyberpunk",
+   "Sakura",
+   "ForestMoss",
+   "NordicFrost",
+   "RetroGameboy",
+   "DraculaDark",
+   "PurpleGalaxy",
+   "Custom"
+  ],
+  "Visibility": [
+   "Visible",
+   "Hidden",
+   "Collapsed"
+  ]
+ },
+ "phuicmt.SDVRadiance": {
+  "ActivePreset": [
+   "Custom",
+   "Off",
+   "Subtle",
+   "Cinematic",
+   "Vibrant"
+  ],
+  "CameraMode": [
+   "Off",
+   "Smooth"
+  ],
+  "DirectionalShadowModel": [
+   "Modern",
+   "Classic"
+  ],
+  "FloodGiModel": [
+   "Flood",
+   "Cascades"
+  ],
+  "SheetUpscaleStyle": [
+   "Scale2x",
+   "Soft4x"
+  ],
+  "TiltShiftMode": [
+   "Bands",
+   "Radial"
+  ],
+  "WaterReflectModel": [
+   "Modern",
+   "Classic"
+  ],
+  "WaterReflectStyle": [
+   "StillWater",
+   "Natural",
+   "Choppy",
+   "Realistic"
+  ]
+ },
+ "recht.UsefulPets": {
+  "Command": [
+   "ToggleFollow",
+   "SendExploring",
+   "ReturnToFarm",
+   "ToggleRestDay",
+   "CollectPendingItem",
+   "ClaimOwnership"
+  ],
+  "Personality": [
+   "Neutral",
+   "Lazy",
+   "Energetic",
+   "Grumpy",
+   "Playful",
+   "Affectionate",
+   "Curious",
+   "Sleepy"
+  ]
+ },
+ "schulz.SexyCombatIdols": {
+  "ActiveArchetype": [
+   "Brawler",
+   "Striker",
+   "Monk",
+   "Priestess",
+   "Stormbringer",
+   "Summoner",
+   "Yandere",
+   "Dancer",
+   "Gunslinger",
+   "FrostMage",
+   "Samurai",
+   "Reaper",
+   "Rogue"
+  ],
+  "Archetype": [
+   "Brawler",
+   "Striker",
+   "Monk",
+   "Priestess",
+   "Stormbringer",
+   "Summoner",
+   "Yandere",
+   "Dancer",
+   "Gunslinger",
+   "FrostMage",
+   "Samurai",
+   "Reaper",
+   "Rogue"
+  ],
+  "LeaderRequirement": [
+   "Brawler",
+   "Striker",
+   "Monk",
+   "Priestess",
+   "Stormbringer",
+   "Summoner",
+   "Yandere",
+   "Dancer",
+   "Gunslinger",
+   "FrostMage",
+   "Samurai",
+   "Reaper",
+   "Rogue"
+  ],
+  "PreRolledOutcome": [
+   "Critical",
+   "Success",
+   "Partial",
+   "Failure",
+   "CriticalFailure"
+  ],
+  "Preset": [
+   "Relaxed",
+   "Normal",
+   "Challenging",
+   "Nightmare",
+   "Apocalypse",
+   "Custom"
+  ],
+  "Range": [
+   "Melee",
+   "Ranged"
+  ],
+  "Rank": [
+   "None",
+   "D",
+   "C",
+   "B",
+   "A",
+   "S",
+   "SS",
+   "SSS"
+  ],
+  "RunHighestRank": [
+   "None",
+   "D",
+   "C",
+   "B",
+   "A",
+   "S",
+   "SS",
+   "SSS"
+  ],
+  "State": [
+   "Idle",
+   "Following",
+   "Attacking",
+   "Teleporting",
+   "Charging"
+  ],
+  "Status": [
+   "InProgress",
+   "Returned",
+   "Claimed"
+  ],
+  "Tag": [
+   "Berserker",
+   "Guardian",
+   "Vampiric",
+   "Lucky",
+   "Relentless",
+   "Explosive",
+   "Thorns",
+   "Bloodthirsty",
+   "Devoted",
+   "Overcharged",
+   "Fragile",
+   "Ironclad",
+   "Windrunner",
+   "Cursed",
+   "Blessed"
+  ],
+  "Type": [
+   "Scouting",
+   "DateNight",
+   "StoryVignette",
+   "Hunt",
+   "LootRun",
+   "Escort",
+   "TreasureMap",
+   "SynergyDuo",
+   "GrandExpedition",
+   "BossRaid"
+  ]
+ },
+ "schulz.SexyMarketIdols": {
+  "CurrentAnimation": [
+   "Idle",
+   "Walking",
+   "Sitting"
+  ],
+  "Season": [
+   "Spring",
+   "Summer",
+   "Fall",
+   "Winter",
+   "Any"
+  ],
+  "State": [
+   "Idle",
+   "Walking",
+   "Pitching",
+   "Celebrating",
+   "Sitting",
+   "Returning"
+  ]
+ },
+ "selph.ExtraAnimalConfig": {
+  "produceMethod": [
+   "DropOvernight",
+   "Tool",
+   "DigUp",
+   "Debris"
+  ]
+ },
+ "semitart.DepthsDisplay": {
+  "HudAnchor": [
+   "TopLeft",
+   "TopRight",
+   "BottomLeft",
+   "BottomRight"
+  ]
+ },
+ "shashwath.PelicanTradeExchange": {
+  "CurrentTier": [
+   "LocalOrders",
+   "RegionalOrders",
+   "CommercialContracts",
+   "ExportContracts",
+   "InternationalTrade"
+  ],
+  "GlobalTier": [
+   "LocalOrders",
+   "RegionalOrders",
+   "CommercialContracts",
+   "ExportContracts",
+   "InternationalTrade"
+  ],
+  "Tier": [
+   "TrustedSupplier",
+   "PreferredSupplier",
+   "StrategicPartner",
+   "ExclusiveContracts"
+  ],
+  "Type": [
+   "Standard",
+   "Express",
+   "Bulk",
+   "Emergency",
+   "LongTerm"
+  ]
+ },
+ "sjt38.StardewGallery": {
+  "Action": [
+   "Details",
+   "Replay"
+  ],
+  "AutomaticDecisions": [
+   "NotCaptured",
+   "Complete",
+   "Incomplete"
+  ],
+  "Cache": [
+   "Default",
+   "Private",
+   "Shared"
+  ],
+  "Capability": [
+   "DirectReplay",
+   "PreviewSupported",
+   "PreviewPartiallySupported",
+   "AnalysisOnly",
+   "Unsupported"
+  ],
+  "Causality": [
+   "Autonomous",
+   "PlayerChoiceDerived",
+   "RandomDerived",
+   "Unknown"
+  ],
+  "Completion": [
+   "Any",
+   "Complete",
+   "Incomplete"
+  ],
+  "Conditions": [
+   "Any",
+   "Met",
+   "Unmet",
+   "Unknown"
+  ],
+  "ContextStatus": [
+   "Missing",
+   "Stored",
+   "Rejected",
+   "Failed"
+  ],
+  "EndReason": [
+   "NaturalComplete",
+   "Skipped",
+   "Interrupted",
+   "QuitToTitle",
+   "ExternalTermination",
+   "CaptureFailure",
+   "TraceLimitExceeded",
+   "Unknown"
+  ],
+  "KeyKind": [
+   "AuthoredKey",
+   "GeneratedOrdinal",
+   "IndexOnly"
+  ],
+  "Kind": [
+   "Friendship",
+   "EventSeen",
+   "Mail",
+   "Season",
+   "DayOfMonth",
+   "Year",
+   "Time",
+   "Weather",
+   "Dating",
+   "Spouse",
+   "Roommate",
+   "WorldState"
+  ],
+  "Knowledge": [
+   "Known",
+   "MissingData",
+   "Unsupported",
+   "Invalid",
+   "Error"
+  ],
+  "Mode": [
+   "ReadWriteCreate",
+   "ReadWrite",
+   "ReadOnly",
+   "Memory"
+  ],
+  "OpaqueDecisions": [
+   "NoneObserved",
+   "UnsupportedObserved",
+   "DetectionUnavailable"
+  ],
+  "Outcome": [
+   "ContinueCurrentSegment",
+   "ReplaceCommands",
+   "SelectAlternative"
+  ],
+  "Page": [
+   "Home",
+   "Album",
+   "Query",
+   "Detail",
+   "Photos",
+   "Prerequisite",
+   "Rename",
+   "Filters"
+  ],
+  "PlayerChoices": [
+   "NotCaptured",
+   "Complete",
+   "Incomplete"
+  ],
+  "Scope": [
+   "World",
+   "LocalPlayer",
+   "HostPlayer",
+   "HostOrLocal"
+  ],
+  "SelectionSource": [
+   "NativeMatch",
+   "IndeterminateFallback",
+   "NoMatchFallback"
+  ],
+  "Source": [
+   "SaveEventsSeen",
+   "LegacyCapturedVariant"
+  ],
+  "SqliteType": [
+   "Integer",
+   "Real",
+   "Text",
+   "Blob"
+  ],
+  "State": [
+   "Missing",
+   "EmptyComplete",
+   "Complete",
+   "Partial",
+   "Invalid"
+  ],
+  "Status": [
+   "Matched",
+   "NotMatched",
+   "NotSafelyEvaluated",
+   "Error"
+  ],
+  "Truth": [
+   "True",
+   "False",
+   "Unknown"
+  ]
+ },
+ "swaglix.AnimationCancelKeybinding": {
+  "Suppression": [
+   "OnCancel",
+   "Always"
+  ]
+ },
+ "tomokisan.understudy": {
+  "ActivityType": [
+   "Shop",
+   "Geode",
+   "Museum",
+   "Bar"
+  ],
+  "Phase": [
+   "PreOpen",
+   "Open",
+   "Closed"
+  ]
+ },
+ "venturions.TargetFishSync": {
+  "DefaultQuality": [
+   "Vanilla",
+   "Normal",
+   "Silver",
+   "Gold",
+   "Iridium"
+  ],
+  "Quality": [
+   "Vanilla",
+   "Normal",
+   "Silver",
+   "Gold",
+   "Iridium"
+  ]
+ },
+ "venturions.WhyCantICatchThisFish": {
+  "State": [
+   "Known",
+   "Unrestricted",
+   "Unknown"
+  ]
+ },
+ "xzqute.ChoreTrail": {
+  "Capability": [
+   "Waterable",
+   "Tillable",
+   "Plantable",
+   "Fertilizable",
+   "Harvestable",
+   "ScytheHarvestable",
+   "Mineable",
+   "Choppable",
+   "Cuttable",
+   "Collectible",
+   "MachineOutputReady",
+   "MachineAcceptsInput",
+   "CrabPotCollectible",
+   "CrabPotBaitable",
+   "GateToggleable",
+   "AnimalPettable",
+   "AnimalHarvestable",
+   "PetBowlWaterable",
+   "FeedTroughFillable",
+   "PlaceableSurface",
+   "ContextInteractable",
+   "ArtifactDiggable",
+   "Pannable",
+   "ContainerBreakable",
+   "WaterSource",
+   "GarbageSearchable"
+  ],
+  "Category": [
+   "Soil",
+   "Crop",
+   "PlacedObject",
+   "Machine",
+   "TerrainFeature",
+   "ResourceClump",
+   "Forage",
+   "Animal",
+   "FarmSupply",
+   "Gate",
+   "MapInteraction",
+   "Unknown",
+   "ArtifactSpot",
+   "PanningSpot",
+   "BreakableContainer",
+   "PlacementSite",
+   "WaterSource",
+   "CrabPot",
+   "FruitTree",
+   "GarbageCan"
+  ],
+  "InputAction": [
+   "Tool",
+   "Action"
+  ],
+  "Kind": [
+   "UseTool",
+   "Water",
+   "Till",
+   "Plant",
+   "Fertilize",
+   "Harvest",
+   "Cut",
+   "Mine",
+   "Chop",
+   "Collect",
+   "MachineCollect",
+   "MachineLoad",
+   "PetAnimal",
+   "HarvestAnimal",
+   "FillPetBowl",
+   "PlaceHay",
+   "ToggleGate",
+   "PlaceItem",
+   "ContextInteract",
+   "DigArtifact",
+   "Pan",
+   "BreakContainer",
+   "RefillWateringCan",
+   "CrabPotCollect",
+   "CrabPotBait",
+   "SearchGarbage"
+  ],
+  "Profile": [
+   "UseHeldTool",
+   "Smart",
+   "Harvest",
+   "Collect",
+   "ClearDebris",
+   "PrepareSoil",
+   "PrepareAndPlant",
+   "Plant",
+   "Water",
+   "MachineCollect",
+   "MachineLoad",
+   "MachineCycle",
+   "Animals",
+   "PlaceItems",
+   "ContextInteract"
+  ],
+  "Safety": [
+   "Safe",
+   "Consumptive",
+   "Destructive",
+   "Dangerous",
+   "Unsupported"
+  ],
+  "SelectionDirection": [
+   "Forward",
+   "Reverse"
+  ],
+  "Stage": [
+   "Idle",
+   "PlanningPath",
+   "Moving",
+   "Facing",
+   "SelectingItem",
+   "Acting",
+   "Verifying",
+   "Paused",
+   "Completed",
+   "Failed"
+  ],
+  "Status": [
+   "Pending",
+   "Running",
+   "Completed",
+   "CompletedExternally",
+   "Skipped",
+   "Failed"
+  ],
+  "TargetCategory": [
+   "Soil",
+   "Crop",
+   "PlacedObject",
+   "Machine",
+   "TerrainFeature",
+   "ResourceClump",
+   "Forage",
+   "Animal",
+   "FarmSupply",
+   "Gate",
+   "MapInteraction",
+   "Unknown",
+   "ArtifactSpot",
+   "PanningSpot",
+   "BreakableContainer",
+   "PlacementSite",
+   "WaterSource",
+   "CrabPot",
+   "FruitTree",
+   "GarbageCan"
+  ],
+  "Tool": [
+   "Axe",
+   "Pickaxe",
+   "Hoe",
+   "WateringCan",
+   "Scythe",
+   "Shears",
+   "MilkPail",
+   "Pan",
+   "FishingRod",
+   "MeleeWeapon"
+  ],
+  "ToolSelectionMode": [
+   "HeldTool",
+   "InventoryTools"
+  ]
+ },
+ "xzqute.LoadItUp": {
+  "Kind": [
+   "Queued",
+   "Full",
+   "ProductLimit",
+   "Collected",
+   "CollectionLocked",
+   "Failed"
+  ],
+  "Status": [
+   "Failed",
+   "Queued",
+   "Full",
+   "ProductLimit"
+  ]
+ },
+ "xzqute.NativeFXAA": {
+  "EdgeSearchQuality": [
+   "Low",
+   "Normal",
+   "High"
+  ],
+  "Preset": [
+   "PixelPreserve",
+   "Balanced",
+   "Smooth",
+   "Custom",
+   "Performance"
+  ],
+  "PreviewDisplayMode": [
+   "SideBySide",
+   "Split",
+   "EdgeMap"
+  ],
+  "PreviewScene": [
+   "Overview",
+   "Roof",
+   "FenceAndFoliage"
+  ],
+  "ProcessingTarget": [
+   "WorldOnly",
+   "FullFrame"
+  ]
+ },
+ "xzqute.NoLoadingScreens": {
+  "EffectiveMode": [
+   "TrueSeamless",
+   "Enhanced",
+   "Vanilla"
+  ],
+  "InvalidationReason": [
+   "None",
+   "SaveLoaded",
+   "DayStarted",
+   "AssetInvalidated",
+   "LocationListChanged",
+   "ReturnedToTitle",
+   "Manual"
+  ],
+  "Kind": [
+   "OutdoorEdge",
+   "Door",
+   "Interior",
+   "Cave",
+   "Teleport",
+   "Scripted",
+   "Special",
+   "Unknown"
+  ],
+  "MinimumMode": [
+   "TrueSeamless",
+   "Enhanced",
+   "Vanilla"
+  ],
+  "Mode": [
+   "Automatic",
+   "TrueSeamless",
+   "Enhanced",
+   "Vanilla"
+  ],
+  "PerformanceMode": [
+   "Automatic",
+   "Quality",
+   "Balanced",
+   "Performance"
+  ],
+  "Phase": [
+   "Inactive",
+   "Armed",
+   "InstantWarp"
+  ],
+  "Reason": [
+   "None",
+   "Disabled",
+   "ClassifiedVanilla",
+   "WorldNotReady",
+   "SourceChanged",
+   "EventActive",
+   "MinigameActive",
+   "WarpOrFadeActive",
+   "SpecialLocation",
+   "MountUnverified",
+   "MultiplayerUnverified",
+   "UserRequestedEnhanced",
+   "TargetUnavailable",
+   "PreparationFailed"
+  ],
+  "RenderCapability": [
+   "None",
+   "MapOnly",
+   "MapAndTerrain",
+   "MapAndObjects",
+   "FullLocation"
+  ],
+  "SafetyFlags": [
+   "None",
+   "SourceOutdoor",
+   "TargetOutdoor",
+   "SourceAtBoundary",
+   "TargetAtBoundary",
+   "OpposingBoundaries",
+   "StandardMapWarp",
+   "CustomLocationType",
+   "TemporaryLocation",
+   "ActiveEvent",
+   "Festival",
+   "GeneratedLocation",
+   "MissingTarget",
+   "UnknownMechanism"
+  ],
+  "SourceBoundary": [
+   "None",
+   "Top",
+   "Right",
+   "Bottom",
+   "Left"
+  ],
+  "SourceDirection": [
+   "None",
+   "Up",
+   "Right",
+   "Down",
+   "Left"
+  ],
+  "State": [
+   "Empty",
+   "Invalidated",
+   "Ready"
+  ],
+  "Status": [
+   "WorldNotReady",
+   "GraphUnavailable",
+   "NoCandidate",
+   "WaitingForBudget",
+   "Rejected",
+   "Prepared"
+  ],
+  "TargetBoundary": [
+   "None",
+   "Top",
+   "Right",
+   "Bottom",
+   "Left"
+  ],
+  "TargetDirection": [
+   "None",
+   "Up",
+   "Right",
+   "Down",
+   "Left"
+  ],
+  "TransitionPreference": [
+   "Automatic",
+   "EnhancedOnly",
+   "VanillaOnly"
+  ]
+ },
+ "xzqute.StardewEventStudio": {
+  "Facing": [
+   "Up",
+   "Right",
+   "Down",
+   "Left"
+  ],
+  "GridStyle": [
+   "Lines",
+   "Dots"
+  ],
+  "Kind": [
+   "Number",
+   "Toggle",
+   "Direction",
+   "Actor",
+   "Item",
+   "Quest",
+   "Mail",
+   "Location",
+   "Audio",
+   "Text",
+   "Frame",
+   "Emote",
+   "Quality",
+   "SpecificSprite",
+   "Choice",
+   "EventBranch"
+  ],
+  "Preview": [
+   "Actor",
+   "Animation",
+   "Emote",
+   "Spatial",
+   "Effect",
+   "NamedEffect",
+   "Item",
+   "Audio",
+   "Reward",
+   "Text",
+   "Control"
+  ],
+  "PreviewSafety": [
+   "Restorable",
+   "Simulated",
+   "Blocked"
+  ],
+  "Season": [
+   "Current",
+   "Spring",
+   "Summer",
+   "Fall",
+   "Winter"
+  ],
+  "Severity": [
+   "Info",
+   "Warning",
+   "Error"
+  ],
+  "Support": [
+   "FullVisual",
+   "PartialVisual",
+   "Raw",
+   "Unsupported"
+  ],
+  "Theme": [
+   "Dark",
+   "Light",
+   "Midnight",
+   "Parchment"
+  ],
+  "Weather": [
+   "Clear",
+   "Rain",
+   "Storm",
+   "Snow",
+   "Wind",
+   "GreenRain"
+  ]
+ },
+ "xzqute.TrueZoom": {
+  "ZoomEasing": [
+   "Linear",
+   "EaseOut",
+   "SmoothStep"
+  ],
+  "ZoomMode": [
+   "Integer",
+   "Free"
+  ]
+ }
+}

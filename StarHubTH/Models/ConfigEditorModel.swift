@@ -292,10 +292,15 @@ public enum ConfigEditorModel {
     /// R2 du scanner, qui la re-classerait en texte banal et ferait
     /// disparaître le contrôle sous les yeux de l'utilisateur. Défaut vide :
     /// l'ouverture reste réglée par la grammaire seule.
+    /// `gmcmChoices` — C4-T11 : les clés que le dataset des DLL déclare à
+    /// valeurs d'enum (`tools/gmcm_options.py` → `assets/gmcm-options.json`).
+    /// Priorité après le schéma du pack, avant le champ texte ; la valeur
+    /// hors liste est gardée et signalée, comme pour un schéma.
     public static func groups(of tree: ConfigJSONTree.Value,
                               describedBy options: [ConfigSchemaOption],
                               labeledBy labels: [String: ConfigLabelResolver.Labels] = [:],
-                              stickyKeybinds: Set<String> = []) -> [Group] {
+                              stickyKeybinds: Set<String> = [],
+                              gmcmChoices: [String: [String]] = [:]) -> [Group] {
         var index: [String: ConfigSchemaOption] = [:]
         for option in options where index[option.token.lowercased()] == nil {
             index[option.token.lowercased()] = option
@@ -317,7 +322,8 @@ public enum ConfigEditorModel {
             let option = leaf.keyPath.last.flatMap { index[$0.lowercased()] }
             guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels,
                                 inCatalog: catalog,
-                                sticky: stickyKeybinds.contains(rowId(of: leaf.keyPath)))
+                                sticky: stickyKeybinds.contains(rowId(of: leaf.keyPath)),
+                                gmcmChoices: gmcmChoices)
             else { continue }
             guard let section = option?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
@@ -334,12 +340,20 @@ public enum ConfigEditorModel {
     private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?,
                             orLabeledBy labels: [String: ConfigLabelResolver.Labels],
                             inCatalog catalog: Set<String>,
-                            sticky: Bool) -> Row? {
+                            sticky: Bool,
+                            gmcmChoices: [String: [String]]) -> Row? {
         guard var control = control(for: leaf.value) else { return nil }
         var isOutside = false
         if let option, let choice = choiceControl(for: leaf.value, option: option) {
             control = choice.control
             isOutside = choice.isOutside
+        } else if option == nil, let values = gmcmChoiceValues(for: leaf.keyPath.last, in: gmcmChoices),
+                  let current = literalText(of: leaf.value) {
+            // C4-T11 — le menu que la DLL justifie. Le schéma garde la
+            // priorité (ci-dessus) ; sans schéma, l'enum de l'assembly est
+            // la seule déclaration d'auteur disponible.
+            control = choiceControlSelecting(current, among: values)
+            isOutside = !values.contains { $0.lowercased() == current.lowercased() }
         }
 
         // C4-T10 — une feuille que la grammaire du scanner classe raccourci
@@ -437,6 +451,28 @@ public enum ConfigEditorModel {
         // l'appelant la signale.
         among.insert(current, at: 0)
         return (.choice(selected: current, among: among), true)
+    }
+
+    /// Le contrôle de menu pour une valeur courante : l'orthographe du
+    /// fichier gagne quand la casse diffère (même règle que le schéma), et
+    /// une valeur hors liste prend la tête au lieu d'être remplacée.
+    private static func choiceControlSelecting(_ current: String, among values: [String]) -> Control {
+        var among = values
+        if let position = among.firstIndex(where: { $0.lowercased() == current.lowercased() }) {
+            among[position] = current
+        } else {
+            among.insert(current, at: 0)
+        }
+        return .choice(selected: current, among: among)
+    }
+
+    /// Les valeurs du dataset pour la dernière clé du chemin (les configs
+    /// C# du parc sont plates — 0 clé imbriquée sur les 3 900 décrites).
+    private static func gmcmChoiceValues(for key: String?, in gmcmChoices: [String: [String]]) -> [String]? {
+        guard let key else { return nil }
+        if let exact = gmcmChoices[key] { return exact }
+        let lowered = key.lowercased()
+        return gmcmChoices.first { $0.key.lowercased() == lowered }?.value
     }
 
     private static func defaultControl(of value: ConfigJSONTree.Value,

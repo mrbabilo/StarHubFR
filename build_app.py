@@ -358,6 +358,12 @@ def create_app_bundle():
     if os.path.exists(changelog_path):
         shutil.copy2(changelog_path, os.path.join(RESOURCES_DIR, "CHANGELOG.md"))
         print("[INFO] Copied CHANGELOG.md to App Resources")
+    # C4-T11 — les choix d'enum que les DLL C# déclarent par leurs types,
+    # figé du parc par tools/gmcm_options.py (voir docs/SOURCES.md).
+    gmcm_path = "assets/gmcm-options.json"
+    if os.path.exists(gmcm_path):
+        shutil.copy2(gmcm_path, os.path.join(RESOURCES_DIR, "gmcm-options.json"))
+        print("[INFO] Copied gmcm-options.json to App Resources")
 
     for lang in ["en.lproj", "fr.lproj"]:
         lproj_src = os.path.join("assets", lang)

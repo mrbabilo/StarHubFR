@@ -553,6 +553,23 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > mérite d'être préservé, c'est l'**ordre des clés**, et `ConfigJSONTree` le fait déjà
 > — voir **C4-T5**.
 
+- [x] **C4-T11** — **Les listes déroulantes que les DLL C# déclarent par
+      leurs types.** *(relevé le 2026-09-15 par l'auteur : Stillbloom
+      « Placement rule » — Strict/Loose/Anarchy — rendu en champ texte
+      alors que MCM, en jeu, connaît les valeurs et les bornes.)*
+      **Livré** le 2026-09-15 : la déclaration GMCM se lit statiquement
+      dans la DLL sans décoder l'IL — la `PropertySig` de la propriété
+      porte l'enum **interne**, ses champs littéraux sont les valeurs
+      (`tools/gmcm_options.py` → `assets/gmcm-options.json`, 122 mods et
+      588 champs au relevé du jour, filtre `fdLiteral` + `value__` contre
+      les classes à backing fields). L'éditeur passe ces clés en
+      `.choice` (`ConfigEditorModel.groups(gmcmChoices:)`), après le
+      schéma du pack, l'orthographe du fichier et la valeur hors liste
+      gardées et signalées. Restes notés en SOURCES.md §6 bis : les
+      listes en littéraux d'API (`SetAllowedValues`), les **min/max** des
+      nombres, la convention tooltip « Valeur = description » (2 champs
+      sur 226 mods — précise, sans couverture).
+
 #### C5 — Hub de traduction agnostique de la langue
 
 - [x] **C4-T9** — **Un mod dont le métier est de remapper les touches n'est pas en

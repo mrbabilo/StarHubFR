@@ -344,6 +344,60 @@ struct ConfigEditorModelTests {
         #expect(groups[0].rows[0].isOutsideAllowedValues == false)
     }
 
+    // MARK: - Les choix que les DLL C# déclarent par leurs types
+
+    /// Le dataset de `tools/gmcm_options.py` : par UniqueID, les clés de
+    /// config dont la propriété est un enum de l'assembly, avec ses valeurs
+    /// figées. Lookup sans la casse des deux côtés (SMAPI normalise
+    /// l'UniqueID ; les clés de config, l'auteur les écrit rarement
+    /// différemment de la propriété).
+    @Test func gmcmOptionsLookupIsCaseInsensitiveOnBothSides() throws {
+        let data = Data(#"{"BambooKat.Stillbloom": {"Placement": ["Strict", "Loose", "Anarchy"]}}"#.utf8)
+        let options = try #require(GmcmOptions(data: data))
+        #expect(options.values(forKey: "Placement", ofMod: "BambooKat.Stillbloom")
+                == ["Strict", "Loose", "Anarchy"])
+        #expect(options.values(forKey: "placement", ofMod: "bambookat.stillbloom")
+                == ["Strict", "Loose", "Anarchy"])
+        #expect(options.values(forKey: "Absent", ofMod: "BambooKat.Stillbloom") == nil)
+        #expect(options.values(forKey: "Placement", ofMod: "Other.Mod") == nil)
+    }
+
+    /// Une clé connue du dataset rend son menu, l'orthographe du fichier
+    /// gardée, la valeur hors liste signalée — même contrat que le schéma.
+    @Test func anEnumTypedKeyBecomesADropdown() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Placement": "Loose" }"#),
+            describedBy: [],
+            gmcmChoices: ["Placement": ["Strict", "Loose", "Anarchy"]])
+        #expect(groups[0].rows[0].control
+                == .choice(selected: "Loose", among: ["Strict", "Loose", "Anarchy"]))
+        let outside = ConfigEditorModel.groups(
+            of: tree(#"{ "Placement": "Chaos" }"#),
+            describedBy: [],
+            gmcmChoices: ["Placement": ["Strict", "Loose", "Anarchy"]])
+        #expect(outside[0].rows[0].control
+                == .choice(selected: "Chaos", among: ["Chaos", "Strict", "Loose", "Anarchy"]))
+        #expect(outside[0].rows[0].isOutsideAllowedValues)
+    }
+
+    /// Sans dataset ni schéma pour la clé : le champ texte reste.
+    @Test func anUnknownKeyKeepsTheTextField() {
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Name": "Bob" }"#),
+                                              describedBy: [],
+                                              gmcmChoices: ["Placement": ["Strict"]])
+        #expect(groups[0].rows[0].control == .text("Bob"))
+    }
+
+    /// Le schéma du pack garde la priorité sur le dataset.
+    @Test func theSchemaStillWinsOverGmcmChoices() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Theme": "Vanilla" }"#),
+            describedBy: [option("Theme", allowValues: ["Cold", "Vanilla"])],
+            gmcmChoices: ["Theme": ["Cold", "Vanilla", "Warm"]])
+        #expect(groups[0].rows[0].control
+                == .choice(selected: "Vanilla", among: ["Cold", "Vanilla"]))
+    }
+
     // MARK: - C4-T10 — le contrôle de raccourci
 
     /// Une feuille que la grammaire du scanner classe raccourci reçoit le

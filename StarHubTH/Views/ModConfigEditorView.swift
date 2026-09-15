@@ -27,6 +27,9 @@ struct ModConfigEditorView: View {
     @State private var isInvalidJson: Bool = false
     @State private var selectedTab: Int
     @State private var configGroups: [ConfigEditorModel.Group] = []
+    /// C4-T11 — les clés que la DLL du mod déclare à valeurs d'enum
+    /// (`assets/gmcm-options.json`), résolues pour CE mod au chargement.
+    @State private var gmcmChoices: [String: [String]] = [:]
     /// C4-T10 — les rangées que l'utilisateur a capturées dans cette
     /// session : leur `rowId`. Une capture à caractère unique (`A`, `O`) ou
     /// vide (`None`) ne repasse pas la règle R2 du scanner au re-rendu, qui
@@ -275,6 +278,7 @@ struct ModConfigEditorView: View {
     private func loadConfig() {
         loadSchema()
         loadLabelIndex()
+        gmcmChoices = GmcmOptions.bundled?.options(forMod: mod.uniqueId) ?? [:]
         if FileManager.default.fileExists(atPath: configPath) {
             do {
                 let content = try String(contentsOfFile: configPath, encoding: .utf8)
@@ -321,7 +325,8 @@ struct ModConfigEditorView: View {
         configGroups = ConfigEditorModel.groups(of: tree,
                                                 describedBy: schemaReading?.options ?? [],
                                                 labeledBy: labelIndex,
-                                                stickyKeybinds: capturedKeybinds)
+                                                stickyKeybinds: capturedKeybinds,
+                                                gmcmChoices: gmcmChoices)
     }
 
     /// Lit le `ConfigSchema` du `content.json` voisin, s'il y en a un.

@@ -448,6 +448,32 @@ Deux constats de lecture, mesurés :
   GMCM (spacechase0), FasterMenuLoad (ZeroXPatch, entrée `log-doctor`) et
   Profiler (SinZ163, entrée `profiler-source`).
 
+### 6 bis — Les choix que les DLL déclarent par leurs types *(2026-09-15)*
+
+Le dataset **`assets/gmcm-options.json`** (122 mods, 588 champs au relevé)
+porte, par `UniqueID`, les clés de `config.json` dont la propriété est un
+enum **de l'assembly lui-même** — les valeurs de choix qu'un content pack
+mettrait dans son schéma. L'extracteur est **`tools/gmcm_options.py`**
+(venv conseillé : `dnfile`/`dncil`, pip — le runtime .NET de `ilspycmd`
+n'était pas installé ; `ikdasm` reste l'outil IL du dépôt). Rejouer après
+installation/retrait de mods, sortie re-commitée.
+
+Pourquoi cette source : **MCM (in-game) connaît les valeurs autorisées et
+les bornes min/max parce que les mods les déclarent à son API au
+lancement** — hors jeu, la déclaration se lit dans les métadonnées, sans
+décoder l'IL : la **`PropertySig`** de `Config.Placement` porte le type
+(`Stillbloom.PlacementRule`, TypeDef **interne**), et les valeurs sont les
+champs **littéraux** de l'enum. Les enums externes (`SButton`, TypeRef)
+sont des touches, exclus naturellement — C4-T10 les traite déjà. Deux
+pièges relevés au premier passage : les classes à *backing fields*
+(`FontSettings.GridLength` → `<Auto>k__BackingField`) se filtrent par le
+flag `fdLiteral` + la présence de `value__` ; l'i18n des mods est JSON5
+(la convention tooltip « Valeur = description » mesurée ce jour : 2 champs
+sur 226 mods C#, tous deux Stillbloom — précise mais sans couverture).
+**Reste à prendre** : les listes passées en littéraux à l'API GMCM
+(`SetAllowedValues`) et les **bornes min/max** des `AddNumberOption` —
+là, il faut décoder l'IL des méthodes d'enregistrement.
+
 ---
 
 ## 7. Pistes d'intégration ouvertes
