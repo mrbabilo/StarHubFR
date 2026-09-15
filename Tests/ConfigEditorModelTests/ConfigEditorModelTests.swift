@@ -429,6 +429,65 @@ struct ConfigEditorModelTests {
         })
     }
 
+    /// Le défaut trouvé à l'écran (C4-T10, suite) : une capture posant un
+    /// caractère unique (`A`, `O`…) re-classifiait la feuille hors R2 — le
+    /// contrôle redevenait un champ texte sous les yeux de l'utilisateur.
+    /// Une rangée capturée dans la session reste un contrôle de capture.
+    @Test func aJustCapturedSingleLetterStaysACaptureControl() {
+        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["Controls", "ToggleOverlay"])]
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Controls": { "ToggleOverlay": "A" } }"#),
+            describedBy: [], stickyKeybinds: sticky)
+        guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind, reçu \(groups[0].rows[0].control)")
+            return
+        }
+        #expect(raw == "A")
+        #expect(combo.buttons == ["A"])
+    }
+
+    /// La même valeur sans capture explicite reste du texte : R2 protège
+    /// l'ouverture, seule la session lève la règle.
+    @Test func theSameSingleLetterWithoutStickyStaysText() {
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "ToggleOverlay": "A" }"#), describedBy: [])
+        #expect(groups[0].rows[0].control == .text("A"))
+    }
+
+    /// « None » posé par le bouton effacer tombe sous la même règle : la
+    /// combinaison vide n'est pas distinctive non plus. La clé est **sans
+    /// indice de nom** — une clé hintée passe la branche hintée de la
+    /// grammaire et n'a jamais eu ce défaut (le sabotage l'a montré).
+    @Test func aClearedStickyRowStaysACaptureControl() {
+        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["ToggleOverlay"])]
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "ToggleOverlay": "None" }"#),
+                                              describedBy: [], stickyKeybinds: sticky)
+        guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
+            Issue.record("attendu .keybind")
+            return
+        }
+        #expect(raw == "None")
+        #expect(combo.isEmpty)
+    }
+
+    /// L'intention explicite bat l'heuristique du catalogue : relier une
+    /// feuille d'une forme catalogue (possible quand la re-capture pousse
+    /// la forme au-delà du seuil) ne doit pas faire disparaître le contrôle
+    /// qu'on vient d'utiliser.
+    @Test func aStickyRowSurvivesTheCatalogRule() {
+        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["Shortcuts", "[0]"])]
+        let groups = ConfigEditorModel.groups(
+            of: tree(#"{ "Shortcuts": ["A", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"] }"#),
+            describedBy: [], stickyKeybinds: sticky)
+        guard case .keybind = groups[0].rows[0].control else {
+            Issue.record("la rangée sticky doit rester un contrôle de capture")
+            return
+        }
+        #expect(groups[0].rows.dropFirst().allSatisfy {
+            if case .text = $0.control { return true } else { return false }
+        })
+    }
+
     /// Le seuil du scanner est strict (`> 8`) : huit combinaisons distinctes
     /// sous une même forme restent des raccourcis éditables.
     @Test func eightDistinctCombosUnderOneShapeIsStillEditable() {

@@ -234,7 +234,7 @@ public enum ConfigEditorModel {
         /// schéma dit `Cold | Vanilla | Warm`).
         public let isOutsideAllowedValues: Bool
 
-        public var id: String { keyPath.joined(separator: "\u{1}") }
+        public var id: String { ConfigEditorModel.rowId(of: keyPath) }
 
         public init(keyPath: [String], label: String, description: String?,
                     control: Control, defaultControl: Control?,
@@ -246,6 +246,13 @@ public enum ConfigEditorModel {
             self.defaultControl = defaultControl
             self.isOutsideAllowedValues = isOutsideAllowedValues
         }
+    }
+
+    /// L'identité d'une rangée : le chemin joint. Les deux bouts (le modèle
+    /// et l'écran qui mémorise les rangées capturées) passent par ici — un
+    /// seul séparateur, jamais deux copies divergentes.
+    public static func rowId(of keyPath: [String]) -> String {
+        keyPath.joined(separator: "\u{1}")
     }
 
     /// Les rangées d'une section. `section` nulle = celles que le schéma n'a
@@ -279,9 +286,16 @@ public enum ConfigEditorModel {
     /// `CaveWeather` avec trois `Enabled`) n'ont, tous, aucun schéma. Si un
     /// pack venait à décrire une clé imbriquée, c'est ici qu'il faudrait
     /// apparier sur le chemin.
+    /// `stickyKeybinds` — C4-T10, suite : les rangées que l'utilisateur a
+    /// capturées dans cette session (leurs `rowId`). Une capture posant un
+    /// caractère unique (`A`, `O`) ou vide (`None`) ne repasse pas la règle
+    /// R2 du scanner, qui la re-classerait en texte banal et ferait
+    /// disparaître le contrôle sous les yeux de l'utilisateur. Défaut vide :
+    /// l'ouverture reste réglée par la grammaire seule.
     public static func groups(of tree: ConfigJSONTree.Value,
                               describedBy options: [ConfigSchemaOption],
-                              labeledBy labels: [String: ConfigLabelResolver.Labels] = [:]) -> [Group] {
+                              labeledBy labels: [String: ConfigLabelResolver.Labels] = [:],
+                              stickyKeybinds: Set<String> = []) -> [Group] {
         var index: [String: ConfigSchemaOption] = [:]
         for option in options where index[option.token.lowercased()] == nil {
             index[option.token.lowercased()] = option
@@ -302,7 +316,9 @@ public enum ConfigEditorModel {
         for leaf in allLeaves {
             let option = leaf.keyPath.last.flatMap { index[$0.lowercased()] }
             guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels,
-                                inCatalog: catalog) else { continue }
+                                inCatalog: catalog,
+                                sticky: stickyKeybinds.contains(rowId(of: leaf.keyPath)))
+            else { continue }
             guard let section = option?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
             bySection[section, default: []].append(row)
@@ -317,7 +333,8 @@ public enum ConfigEditorModel {
 
     private static func row(for leaf: Leaf, describedBy option: ConfigSchemaOption?,
                             orLabeledBy labels: [String: ConfigLabelResolver.Labels],
-                            inCatalog catalog: Set<String>) -> Row? {
+                            inCatalog catalog: Set<String>,
+                            sticky: Bool) -> Row? {
         guard var control = control(for: leaf.value) else { return nil }
         var isOutside = false
         if let option, let choice = choiceControl(for: leaf.value, option: option) {
@@ -334,8 +351,8 @@ public enum ConfigEditorModel {
         // les 466 feuilles visées sont toutes des chaînes, donc toutes en
         // `.text` ici ; une valeur numérique reste son champ chiffré.
         if case .text = control,
-           !catalog.contains(KeybindScanner.pathShape(leaf.keyPath)),
-           let keybind = keybindControl(of: leaf) {
+           sticky || !catalog.contains(KeybindScanner.pathShape(leaf.keyPath)),
+           let keybind = keybindControl(of: leaf, sticky: sticky) {
             control = keybind
         }
 
@@ -373,7 +390,17 @@ public enum ConfigEditorModel {
     /// `KeybindScanner`, qui dépend de `Leaf`. Tranché dans C4-T10 — un
     /// module unique rend le cycle sans effet à la compilation, et déplacer
     /// la grammaire (voire `Decision`) n'aurait acheté qu'un churn d'API.
-    private static func keybindControl(of leaf: Leaf) -> Control? {
+    private static func keybindControl(of leaf: Leaf, sticky: Bool = false) -> Control? {
+        if sticky {
+            // La session a déjà dit « ceci est un raccourci » : la grammaire
+            // seule décide, sans les heuristiques R1/R2 qui écartent un
+            // caractère unique — c'est exactement ce que la capture vient
+            // de poser.
+            guard let combos = KeybindParser.parse(leaf.value),
+                  combos.count == 1, let combo = combos.first,
+                  let raw = literalText(of: leaf.value) else { return nil }
+            return .keybind(raw: raw, combo: combo)
+        }
         guard case .keybind(let combos) = KeybindScanner.classify(leaf: leaf),
               combos.count == 1, let combo = combos.first,
               let raw = literalText(of: leaf.value) else { return nil }

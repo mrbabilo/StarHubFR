@@ -633,6 +633,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       annule, un modificateur seul n'engage rien (son `keyDown` précède celui
       de la touche modifiée), et les touches hors table `MacKeyCodeMap` sont
       avalées sans rien casser.
+      **Corrigé à l'écran le jour même** : une capture posant un caractère
+      unique (`A`, `O`) ou vide (`None`) repassait la règle R2 du scanner au
+      re-rendu — le contrôle redevenait un champ texte sous les yeux de
+      l'utilisateur (un chiffre, distinctif, passait ; pas une lettre).
+      `groups(of:…, stickyKeybinds:)` : la session mémorise les rangées
+      capturées et la re-classification les respecte ; l'intention explicite
+      bat aussi l'heuristique du catalogue. À la réouverture, la grammaire
+      re-tranche (une valeur `A` non hintée y reste un champ texte).
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou

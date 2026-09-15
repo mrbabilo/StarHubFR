@@ -27,6 +27,13 @@ struct ModConfigEditorView: View {
     @State private var isInvalidJson: Bool = false
     @State private var selectedTab: Int
     @State private var configGroups: [ConfigEditorModel.Group] = []
+    /// C4-T10 — les rangées que l'utilisateur a capturées dans cette
+    /// session : leur `rowId`. Une capture à caractère unique (`A`, `O`) ou
+    /// vide (`None`) ne repasse pas la règle R2 du scanner au re-rendu, qui
+    /// referait du contrôle un champ texte. Vit le temps de l'éditeur : à
+    /// la réouverture, la grammaire re-tranche — une valeur comme `A` y
+    /// reste un champ texte, lisible et éditable comme tel.
+    @State private var capturedKeybinds: Set<String> = []
     /// Ce que le `content.json` voisin a donné. `nil` quand le mod n'en a pas
     /// — 246 des 462 mods à `config.json` du parc sont des mods C#.
     @State private var schemaReading: ContentPackConfigSchema.Reading?
@@ -313,7 +320,8 @@ struct ModConfigEditorView: View {
         guard let tree = ConfigJSONTree.parse(configText) else { return }
         configGroups = ConfigEditorModel.groups(of: tree,
                                                 describedBy: schemaReading?.options ?? [],
-                                                labeledBy: labelIndex)
+                                                labeledBy: labelIndex,
+                                                stickyKeybinds: capturedKeybinds)
     }
 
     /// Lit le `ConfigSchema` du `content.json` voisin, s'il y en a un.
@@ -834,6 +842,7 @@ struct ModConfigEditorView: View {
                     return live
                 },
                 set: { newCombo in
+                    capturedKeybinds.insert(row.id)
                     let spelling = newCombo.isEmpty ? "None" : newCombo.display
                     update(row, to: .keybind(raw: spelling, combo: newCombo))
                 }
