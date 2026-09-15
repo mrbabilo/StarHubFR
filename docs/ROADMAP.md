@@ -671,6 +671,17 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       la gravure coïncide (QWERTY) ou n'apprend rien (`D1` contre `1`,
       touches sans gravure). L'info-bulle dit la convention : minuscule = ta
       touche, majuscule = le nom du fichier.
+      **L'annotation « lié à » livrée le jour même** (reproduction de
+      l'affichage de conflits de leur `KeybindOverviewModal` — décompilé) :
+      sous une rangée raccourci, « Conflit avec {mod} ({réglage}) » ou
+      « un contrôle du jeu ({contrôle}) ». Leur logique — signatures
+      canoniques, première collision trouvée, conflit jeu prioritaire —
+      existe déjà chez nous en plus riche : l'annotation lit le rapport
+      (`KeybindScanner.annotation`), hérite des exclusions catalogue (R4)
+      et remap (C4-T9), et distingue manette. Leurs filtres
+      tous/liés/conflits, recherche, saut-au-réglage et export restent à
+      prendre si l'usage le justifie — notre `KeybindReportSection` couvre
+      déjà la vue globale.
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou

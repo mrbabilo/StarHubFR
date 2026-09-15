@@ -108,6 +108,9 @@
 "config_keybind_capture" = "Appuyez sur une touche… (Échap pour annuler)";
 "config_keybind_clear" = "Effacer";
 "config_keybind_change" = "Cliquez, puis appuyez sur le nouveau raccourci. Dans « a · Q », la minuscule est ta touche, la majuscule le nom enregistré (positions physiques US — convention du jeu).";
+"config_keybind_conflict" = "Conflit avec %@";
+"config_keybind_conflict_game" = "un contrôle du jeu (%@)";
+"config_keybind_conflict_mod" = "%1$@ (%2$@)";
 "config_visual_editor" = "Éditeur visuel";
 "conflicts_activation_warning" = "« %@ » est signalé incompatible avec « %@ », qui est actif. L'activer quand même ?";
 "conflicts_affected_patches" = "Patches en cause : %@";

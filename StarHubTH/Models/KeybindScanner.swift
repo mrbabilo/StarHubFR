@@ -296,6 +296,58 @@ public enum KeybindScanner {
     /// maximum légitime, 5× sous le catalogue. Aucun `UniqueID` en dur.
     static let catalogThreshold = 8
 
+    /// L'annotation « lié à » d'une rangée raccourci de l'éditeur de
+    /// config (C4-T10 suite — reproduction de l'écran de MCM 2.1.2, qui
+    /// note chaque réglage « Conflicts with {mod} ({réglage}) » ou
+    /// « Conflicts with default game controls »). La nôtre lit le rapport
+    /// déjà calculé : mêmes exclusions (catalogues, remap), même
+    /// normalisation (`KeybindCombo`).
+    public struct KeybindRowAnnotation: Equatable, Sendable {
+        public struct OtherUse: Equatable, Sendable {
+            public let modName: String
+            /// Le chemin du réglage en face, tel que le rapport le porte
+            /// (`["Controls", "SearchMenuPreviewChest"]`) — la clé brute du
+            /// fichier, pas le libellé.
+            public let settingKey: [String]
+            public init(modName: String, settingKey: [String]) {
+                self.modName = modName
+                self.settingKey = settingKey
+            }
+        }
+        /// Le contrôle du jeu visé (`"toolbarSwap"`), quand la combinaison
+        /// est à bouton unique et retombe sur un contrôle par défaut. Un
+        /// mod de remap n'en reçoit pas : poser le contrôle est sa
+        /// fonction (C4-T9).
+        public let gameControl: String?
+        /// Les autres mods dont une liaison porte **exactement** cette
+        /// combinaison (collisions clavier et manette).
+        public let conflicts: [OtherUse]
+        public var isEmpty: Bool { gameControl == nil && conflicts.isEmpty }
+        public init(gameControl: String? = nil, conflicts: [OtherUse] = []) {
+            self.gameControl = gameControl
+            self.conflicts = conflicts
+        }
+    }
+
+    /// L'annotation pour une rangée du mod `modID` portant `combo`.
+    public static func annotation(for combo: KeybindCombo,
+                                  ofMod modID: String,
+                                  in report: KeybindReport) -> KeybindRowAnnotation {
+        var gameControl: String? = nil
+        if combo.buttons.count == 1, let button = combo.buttons.first,
+           !vanillaRemapModIds.contains(modID.lowercased()) {
+            gameControl = GameControlDefaults.controls
+                .first { $0.buttons.contains(button) }?.name
+        }
+        var conflicts: [KeybindRowAnnotation.OtherUse] = []
+        for collision in report.collisions + report.gamepadCollisions where collision.combo == combo {
+            for use in collision.uses where use.modID != modID {
+                conflicts.append(.init(modName: use.modName, settingKey: use.keyPath))
+            }
+        }
+        return KeybindRowAnnotation(gameControl: gameControl, conflicts: conflicts)
+    }
+
     /// C4-T9 — les UniqueID des mods dont le **métier** est de réécrire les
     /// réglages du jeu, contrôles compris (le même choix que
     /// `IsVanillaControlRemapMod()` de ModernConfigMenu 2.1.1, qui a relevé

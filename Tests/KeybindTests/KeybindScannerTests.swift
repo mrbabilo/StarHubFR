@@ -621,6 +621,55 @@ struct KeybindScannerTests {
         #expect(r.remapModsIgnored.isEmpty)
     }
 
+    // — C4-T10 suite : l'annotation « lié à » de l'éditeur (reproduction MCM)
+
+    /// MCM affiche sous chaque réglage « Conflicts with {mod} ({réglage}) ».
+    /// La nôtre lit le rapport déjà calculé — collisions exactes, autres
+    /// mods seulement.
+    @Test func theEditorRowAnnotationNamesTheOtherModsSharingTheCombo() throws {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("LeftControl + F8")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("F8 + LeftControl")]))
+        let r = KeybindScanner.report(mods: [a, b])
+        let combo = try #require(KeybindParser.parse(.string("LeftControl + F8"))?.first)
+        let note = KeybindScanner.annotation(for: combo, ofMod: "a.Mod1", in: r)
+        #expect(note.gameControl == nil)
+        #expect(note.conflicts.map(\.modName) == ["Mod 2"])
+        #expect(note.conflicts.map(\.settingKey) == [["Shortcut"]])
+        // L'inverse aussi : Mod 2 voit Mod 1.
+        let note2 = KeybindScanner.annotation(for: combo, ofMod: "b.Mod2", in: r)
+        #expect(note2.conflicts.map(\.modName) == ["Mod 1"])
+    }
+
+    /// Une touche à bouton unique qui retombe sur un contrôle du jeu porte
+    /// la note jeu — et un mod de remap, écarté du rapport (C4-T9), n'en
+    /// reçoit pas : poser le contrôle est sa fonction.
+    @Test func aGameControlHitGetsTheGameNoteAndARemapModGetsNone() throws {
+        let plain = KeybindScanner.ModScan(id: "w.Plain", name: "Plain", isActive: true,
+                                           tree: tree(["Hotkey": .string("Tab")]))
+        let remap = KeybindScanner.ModScan(id: "fawazt.globalconfigsettingsrewrite", name: "GCSR",
+                                           isActive: true,
+                                           tree: tree(["ShiftToolbar": .string("Tab")]))
+        let r = KeybindScanner.report(mods: [plain, remap])
+        let tab = try #require(KeybindParser.parse(.string("Tab"))?.first)
+        let note = KeybindScanner.annotation(for: tab, ofMod: "w.Plain", in: r)
+        #expect(note.gameControl == "toolbarSwap")
+        // Le remap n'a pas de note jeu, mais garde sa collision mod-mod
+        // avec Plain : deux consommateurs de Tab, c'est réel (C4-T9).
+        let noteRemap = KeybindScanner.annotation(for: tab, ofMod: "fawazt.globalconfigsettingsrewrite", in: r)
+        #expect(noteRemap.gameControl == nil)
+        #expect(noteRemap.conflicts.map(\.modName) == ["Plain"])
+    }
+
+    @Test func anUnsharedComboStaysSilent() throws {
+        let alone = KeybindScanner.ModScan(id: "a.Alone", name: "Alone", isActive: true,
+                                           tree: tree(["Hotkey": .string("F9")]))
+        let r = KeybindScanner.report(mods: [alone])
+        let f9 = try #require(KeybindParser.parse(.string("F9"))?.first)
+        #expect(KeybindScanner.annotation(for: f9, ofMod: "a.Alone", in: r).isEmpty)
+    }
+
     // — C4-T10 : l'éditeur réutilise la règle du catalogue (R4)
 
     /// L'entrée que l'éditeur de config emprunte : mêmes formes, même seuil

@@ -1006,6 +1006,11 @@ enum L10n {
         static let configKeybindCapture    = "config_keybind_capture"
         static let configKeybindClear      = "config_keybind_clear"
         static let configKeybindChange     = "config_keybind_change"
+        /// C4-T10 suite — l'annotation « lié à » d'une rangée raccourci
+        /// (reproduction de l'écran de conflits de MCM 2.1.2).
+        static let configKeybindConflict      = "config_keybind_conflict"
+        static let configKeybindConflictGame  = "config_keybind_conflict_game"
+        static let configKeybindConflictMod   = "config_keybind_conflict_mod"
         static let configSchemaUnreadable  = "config_schema_unreadable"
         /// C4-T6 — le fichier est volatile tant que le jeu tourne : un mod
         /// réécrit sa propre config depuis son code (UltraSmooth : 4 sites,

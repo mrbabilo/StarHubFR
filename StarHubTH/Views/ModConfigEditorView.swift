@@ -724,6 +724,17 @@ struct ModConfigEditorView: View {
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                // C4-T10 suite — l'annotation « lié à » (reproduction MCM) :
+                // ce que la combinaison partage avec un autre mod ou un
+                // contrôle du jeu. Mue sans rapport scanné, muette sur une
+                // combinaison solitaire, et muette pour un mod de remap côté
+                // jeu (C4-T9, l'exclusion vit dans le rapport).
+                if let conflictNote = keybindConflictNote(row) {
+                    Text(conflictNote)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 12)
 
@@ -848,6 +859,26 @@ struct ModConfigEditorView: View {
                 }
             ))
         }
+    }
+
+    /// L'annotation « lié à » d'une rangée raccourci, `nil` quand elle est
+    /// muette (rapport absent, combinaison solitaire). Le format suit MCM :
+    /// « {mod} ({réglage}) », le réglage étant ici la clé brute du fichier.
+    private func keybindConflictNote(_ row: ConfigEditorModel.Row) -> String? {
+        guard case .keybind(_, let combo) = row.control,
+              let report = vm.keybindReport else { return nil }
+        let note = KeybindScanner.annotation(for: combo, ofMod: mod.uniqueId, in: report)
+        var parts: [String] = []
+        if let gameControl = note.gameControl {
+            parts.append(String(format: localization.L(L10n.Settings.configKeybindConflictGame), gameControl))
+        }
+        for other in note.conflicts {
+            parts.append(String(format: localization.L(L10n.Settings.configKeybindConflictMod),
+                                other.modName, other.settingKey.joined(separator: ".")))
+        }
+        guard !parts.isEmpty else { return nil }
+        return String(format: localization.L(L10n.Settings.configKeybindConflict),
+                      parts.joined(separator: ", "))
     }
 
     /// Le libellé d'une entrée de menu. Deux cas que le schéma impose : le
