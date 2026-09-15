@@ -728,12 +728,20 @@ struct ModConfigEditorView: View {
                 // ce que la combinaison partage avec un autre mod ou un
                 // contrôle du jeu. Mue sans rapport scanné, muette sur une
                 // combinaison solitaire, et muette pour un mod de remap côté
-                // jeu (C4-T9, l'exclusion vit dans le rapport).
+                // jeu (C4-T9, l'exclusion vit dans le rapport). En orange,
+                // la sémantique « avertissement » du rapport (triangle
+                // jaune) et du badge « modifié » — le rouge reste aux mods
+                // malveillants.
                 if let conflictNote = keybindConflictNote(row) {
-                    Text(conflictNote)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .top, spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text(conflictNote)
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             Spacer(minLength: 12)
