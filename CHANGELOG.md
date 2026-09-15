@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les raccourcis se règlent à la touche dans l'éditeur de config :** on clique, on presse la combinaison, Échap annule. Fini le champ texte libre pour les 466 réglages que le scanner savait déjà reconnaître ; la valeur inchangée garde l'orthographe exacte du fichier.
+
 ## [1.46.0] - 2026-09-15
 
 ### Added

@@ -577,7 +577,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       mot « remap » sur le parc, **deux sont des cartes**). Trancher sur données avant
       de coder. · **S**
 
-- [ ] **C4-T10** — **L'éditeur de config rend les raccourcis en champ texte libre,
+- [x] **C4-T10** — **L'éditeur de config rend les raccourcis en champ texte libre,
       alors que le scanner sait déjà les reconnaître.** *(relevé le 2026-09-14 en
       auditant le design de ModernConfigMenu — §3 quinquies de l'archive ; leur
       `KeybindOverviewModal` est la seule de leurs idées que le parc justifie.)*
@@ -622,6 +622,17 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       **Sans casser l'existant** : le contrôle naît dans `ConfigEditorModel.Control`
       (type Core, donc testable), et l'écriture continue de passer par
       `ModConfigWriteGuard`. · **M**
+      **Livré** le 2026-09-15 : `Control.keybind(raw:combo:)` porte l'orthographe
+      d'origine (`'D0'`, `'leftshift'`) et la restitue telle quelle tant qu'on
+      n'a pas touché — prouvé par sabotage, la forme canonique d'un `D0` étant
+      justement `D0` (le premier test ne voyait rien). La règle R4 devient
+      partagée (`KeybindScanner.catalogShapes`), le schéma garde la priorité,
+      les listes à plusieurs combinaisons restent en champ texte, et une valeur
+      numérique garde son champ chiffré. Le cycle de types éditeur↔scanner est
+      assumé et documenté (module unique). Capture : `ModKeybindField` — Échap
+      annule, un modificateur seul n'engage rien (son `keyDown` précède celui
+      de la touche modifiée), et les touches hors table `MacKeyCodeMap` sont
+      avalées sans rien casser.
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
