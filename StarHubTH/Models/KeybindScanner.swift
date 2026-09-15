@@ -305,6 +305,14 @@ public enum KeybindScanner {
     /// seule ligne) — SMAPI compare les UniqueID sans la casse, ici pareil.
     /// Une heuristique de nom écartait des mods légitimes : sur trois
     /// candidats au mot « remap », deux sont des cartes.
+    ///
+    /// Source MCM relue (décompilation `ikdasm` de la DLL 2.1.2 installée) :
+    /// leur détection n'est pas une liste mais trois sous-chaînes sans la
+    /// casse — `GlobalConfigSettings` dans l'UniqueID, `Global Config
+    /// Settings` dans le nom, `GameControls` dans l'UniqueID. Passées sur le
+    /// parc, elles n'attrapent que GCSR : nos deux approches sont
+    /// équivalentes ici, et la liste exacte ne peut pas écarter un mod
+    /// légitime par accident.
     static let vanillaRemapModIds: Set<String> = [
         "fawazt.globalconfigsettingsrewrite",
     ]

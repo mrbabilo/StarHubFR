@@ -581,8 +581,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       12 mods, dont **un seul faux positif** — GCSR (`ShiftToolbar` sur
       toolbarSwap). Reconnaissance retenue : liste d'UniqueID
       (`vanillaRemapModIds`, comparaison sans la casse, comme SMAPI), le
-      même choix que MCM — leur source n'étant pas à portée, la liste
-      démarre de notre mesure. L'exclusion ne touche que les **conflits
+      même choix que MCM — la liste démarre de notre mesure.
+      **Source MCM relue le jour même** (décompilation `ikdasm` de la DLL
+      2.1.2 installée) : leur « liste de mods connus » n'en est pas une —
+      `IsVanillaControlRemapMod` teste trois **sous-chaînes** sans la casse
+      (`GlobalConfigSettings` dans l'UniqueID, `Global Config Settings` dans
+      le nom, `GameControls` dans l'UniqueID). Passées sur le parc, ces
+      motifs n'attrapent que GCSR : équivalent à notre liste, et notre liste
+      ne peut pas écarter un mod légitime par accident — l'exact opposé de
+      l'heuristique que la roadmap refusait. L'exclusion ne touche que les **conflits
       jeu** : les collisions mod-mod du remap restent (Tab partagé GCSR +
       Chests Anywhere est un vrai double consommateur), le compte de
       liaisons aussi, et la note du rapport nomme le mod écarté
