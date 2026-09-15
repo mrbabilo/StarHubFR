@@ -1001,6 +1001,10 @@ enum L10n {
         static let configModified          = "config_modified"
         static let configResetToDefault    = "config_reset_to_default"
         static let configValueOutsideList  = "config_value_outside_list"
+        /// C4-T10 — le contrôle de capture d'un raccourci reconnu.
+        static let configKeybindCapture    = "config_keybind_capture"
+        static let configKeybindClear      = "config_keybind_clear"
+        static let configKeybindChange     = "config_keybind_change"
         static let configSchemaUnreadable  = "config_schema_unreadable"
         /// C4-T6 — le fichier est volatile tant que le jeu tourne : un mod
         /// réécrit sa propre config depuis son code (UltraSmooth : 4 sites,

@@ -821,6 +821,23 @@ struct ModConfigEditorView: View {
             }
             .labelsHidden()
             .frame(maxWidth: .infinity)
+
+        case .keybind(_, let combo):
+            // C4-T10 — la capture écrit la forme canonique de la nouvelle
+            // combinaison (celle que le `TryParse` de SMAPI lit) ; la
+            // combinaison vide s'écrit « None ». La valeur intouchée, elle,
+            // garde l'orthographe du fichier via `raw` — c'est
+            // `ConfigEditorModel.value(of:)` qui la restitue.
+            ModKeybindField(localization: localization, combo: Binding(
+                get: {
+                    guard case .keybind(_, let live) = current(row) else { return combo }
+                    return live
+                },
+                set: { newCombo in
+                    let spelling = newCombo.isEmpty ? "None" : newCombo.display
+                    update(row, to: .keybind(raw: spelling, combo: newCombo))
+                }
+            ))
         }
     }
 
@@ -843,6 +860,9 @@ struct ModConfigEditorView: View {
         case .decimal(let value):  return String(value)
         case .text(let value):     return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
         case .choice(let value, _): return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
+        // Le défaut d'une rangée raccourci porte le littéral de l'auteur en
+        // `.text` — ce cas ne sert qu'à l'exhaustivité du switch.
+        case .keybind(_, let combo): return combo.display
         }
     }
 
