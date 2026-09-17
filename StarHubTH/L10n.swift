@@ -1273,6 +1273,8 @@ enum L10n {
         static let launchDirectSuccess  = "vm_launch_direct_success"
         static let cannotStartDirect    = "vm_cannot_start_direct"
         static let cannotStartGame      = "vm_cannot_start_game"
+        static let gameDirNotRecognised = "vm_game_dir_not_recognised"
+        static let modsFolderUnavailable = "vm_mods_folder_unavailable"
         static let saveSuccess          = "vm_save_success"
         static let saveError            = "vm_save_error"
         static let deleteSaveSuccess    = "vm_delete_save_success"

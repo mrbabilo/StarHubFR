@@ -70,17 +70,40 @@ final class GameEnvironmentStore {
     }
 
     /// Panneau de choix du dossier de jeu. `onPicked` porte ce qui
-    /// n'appartient pas au store — le VM y relance son `refresh()`.
+    /// n'appartient pas au store — le VM y relance son `refresh()` — et
+    /// reçoit l'échec de création de `Mods/`, `nil` quand tout s'est bien
+    /// passé.
+    ///
+    /// Le chemin choisi passe par `GameDirLocator.normalize` : l'utilisateur
+    /// désigne l'application du jeu (ou son dossier Steam, ou `Mods/`
+    /// directement), pas le `Contents/MacOS` enfoui dedans. `Mods/` n'est
+    /// créé que si le dossier porte bien les marqueurs du jeu — sinon on
+    /// sèmerait un dossier vide chez le premier venu.
+    ///
+    /// **Le dossier reste choisi dans les deux cas.** Un refus laisserait
+    /// l'utilisateur devant un bouton sans effet ; le problème remonte et
+    /// l'appelant l'affiche.
     ///
     /// ⚠️ Un écart d'un poil d'avec l'original, consigné au §6 : celui-ci
     /// affectait `panel.url?.path ?? ""` et relançait le scan même sur une
-    /// URL `nil` après un OK. Un OK sans URL n'existe pas en pratique sur un
-    /// panneau dossiers-seuls ; il vaut ici annulation — plutôt qu'un
-    /// `gameDir` vidé en silence.
-    func selectGameDir(onPicked: @escaping () -> Void) {
+    /// URL `nil` après un OK. Un OK sans URL n'existe pas en pratique sur ce
+    /// panneau ; il vaut ici annulation — plutôt qu'un `gameDir` vidé en
+    /// silence.
+    func selectGameDir(onPicked: @escaping (GameDirLocator.SelectionProblem?) -> Void) {
         guard let path = picker.pickDirectory() else { return }
-        self.gameDir = path
-        onPicked()
+        let resolved = GameDirLocator.normalize(pickedPath: path)
+        self.gameDir = resolved
+        guard GameDirLocator.isGameFolder(resolved) else {
+            onPicked(.notAGameFolder)
+            return
+        }
+        var problem: GameDirLocator.SelectionProblem?
+        do {
+            try GameDirLocator.ensureModsFolder(gameDir: resolved)
+        } catch {
+            problem = .modsFolderUnavailable
+        }
+        onPicked(problem)
     }
 
     // MARK: - Steam

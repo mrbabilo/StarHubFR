@@ -17,4 +17,25 @@ public enum UpdateCheckPolicy {
         guard let lastSuccess else { return true }
         return now.timeIntervalSince(lastSuccess) >= ttl
     }
+
+    /// `true` quand une vérification doit partir **après que l'utilisateur a
+    /// choisi le dossier du jeu** (2026-09-17).
+    ///
+    /// Un dossier **différent**, c'est un autre parc : le cache des mises à
+    /// jour décrit celui d'avant, et le TTL de 12 h n'a rien à dire dessus —
+    /// on interroge. Re-choisir le **même** dossier retombe sous la règle du
+    /// lancement : c'est un geste fréquent (on revient des Réglages), et il
+    /// n'a aucune raison de coûter une passe complète sur 974 mods.
+    ///
+    /// Le réglage de l'utilisateur prime dans les deux cas : auto-check coupé,
+    /// rien ne part. Choisir un dossier n'est pas consentir à du réseau.
+    public static func shouldCheckAfterSelection(gameFolderChanged: Bool,
+                                                 autoCheckEnabled: Bool,
+                                                 lastSuccess: Date?,
+                                                 now: Date,
+                                                 ttl: TimeInterval) -> Bool {
+        guard autoCheckEnabled else { return false }
+        guard !gameFolderChanged else { return true }
+        return shouldAutoCheck(lastSuccess: lastSuccess, now: now, ttl: ttl)
+    }
 }

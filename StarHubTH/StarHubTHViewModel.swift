@@ -2247,12 +2247,56 @@ final class StarHubTHViewModel {
     /// Façade provisoire (REFACTORING §6, cond. 1) — HomeView et
     /// SettingsView l'appellent encore. La décision vit dans le store
     /// (`GameEnvironmentStore.selectGameDir`, panneau injecté via
-    /// `FilePicking`) ; le `refresh()` est ce qui n'appartient pas au store.
+    /// `FilePicking`, chemin normalisé, `Mods/` créé au besoin) ; le
+    /// `refresh()` et le message traduit n'appartiennent pas au store.
     func selectGameDir() {
-        environment.selectGameDir { [weak self] in self?.refresh() }
+        let previousGameDir = gameDir
+        environment.selectGameDir { [weak self] problem in
+            guard let self else { return }
+            switch problem {
+            case .notAGameFolder:
+                self.showModal(message: self.localization.L(L10n.VM.gameDirNotRecognised))
+            case .modsFolderUnavailable:
+                self.showModal(message: self.localization.L(L10n.VM.modsFolderUnavailable))
+            case nil:
+                break
+            }
+            // Le panneau est modal : `gameDir` porte déjà le nouveau choix ici.
+            let changed = self.gameDir != previousGameDir
+            self.refresh(onScanned: { [weak self] in
+                guard let self, problem == nil else { return }
+                self.autoCheckUpdatesIfDue(gameFolderChanged: changed)
+            })
+        }
+    }
+
+    /// La vérification automatique des mises à jour — **un seul endroit** pour
+    /// les deux moments où elle se pose : la fin du lancement
+    /// (`gameFolderChanged: false`) et le choix d'un dossier de jeu.
+    ///
+    /// La décision vit dans `UpdateCheckPolicy` (Core, testée) ; ici ne
+    /// restent que la lecture des réglages et la trace — une passe sautée en
+    /// silence serait indiscernable d'une panne.
+    private func autoCheckUpdatesIfDue(gameFolderChanged: Bool) {
+        guard UpdateCheckPolicy.shouldCheckAfterSelection(
+                gameFolderChanged: gameFolderChanged,
+                autoCheckEnabled: autoCheckNexusUpdates,
+                lastSuccess: NexusUpdateChecker.shared.lastSuccessfulCheck,
+                now: Date(), ttl: 12 * 3600) else {
+            log("Vérification des mises à jour sautée : "
+                + (autoCheckNexusUpdates ? "dernière réussie il y a moins de 12 h" : "désactivée dans les Réglages"),
+                level: .info)
+            return
+        }
+        checkNexusUpdates()
     }
     
-    func refresh() {
+    /// `onScanned` part sur le main **après** que `scanMods` a publié les
+    /// siennes (l'ordre FIFO de la file principale le garantit, comme à
+    /// l'étape 5 du lancement). C'est le seul moment où `mods` décrit le
+    /// dossier qu'on vient de choisir : un appelant qui enchaîne sans
+    /// l'attendre interroge un parc encore vide.
+    func refresh(onScanned: (@MainActor () -> Void)? = nil) {
         // Run heavy file I/O off the main thread to keep the UI responsive.
         // Each sub-method dispatches its @Published mutations back to main.
         // `[weak self]` even though the VM is app-lifetime today, so a future
@@ -2271,6 +2315,8 @@ final class StarHubTHViewModel {
             self.scanMods(gameDir: resolvedGameDir)  // also kicks off parseSMAPILog internally
             self.reloadSaves()
             self.environment.fetchSteamUser(fallbackFarmerName: farmerFallback)
+            guard let onScanned else { return }
+            DispatchQueue.main.async { MainActor.assumeIsolated { onScanned() } }
         }
         // Lightweight synchronous check: reads the install marker, or the
         // first 256 bytes of SMAPI-latest.txt — no process is ever launched
@@ -2460,27 +2506,17 @@ final class StarHubTHViewModel {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
                 guard let self else { return }
                 self.isLaunching = false
-                if !self.autoCheckNexusUpdates {
-                    self.log("Auto-check for Nexus updates skipped (disabled in Settings)", level: .info)
-                    return
-                }
                 // Aucune garde sur la clé API : la vérification passe par
                 // smapi.io, qui n'en demande pas. La clé ne sert qu'au
                 // téléchargement intégré et aux métadonnées de la fiche. La
                 // garde qui était ici privait de toute détection de mise à
                 // jour quiconque n'avait pas de compte Nexus.
                 //
-                // A2-T4 — TTL 12 h : un passage encore frais sert le cache
-                // tel quel, le lancement ne réinterroge pas smapi.io. Le
-                // bouton « Vérifier » de la page Mises à jour, lui, passe
-                // toujours outre — demander outrage la fraîcheur.
-                if UpdateCheckPolicy.shouldAutoCheck(
-                    lastSuccess: NexusUpdateChecker.shared.lastSuccessfulCheck,
-                    now: Date(), ttl: 12 * 3600) {
-                    self.checkNexusUpdates()
-                } else {
-                    self.log("Vérification des mises à jour sautée : dernière réussie il y a moins de 12 h", level: .info)
-                }
+                // Le lancement et le choix de dossier posent la **même**
+                // question ; elle se décide en un seul endroit depuis le
+                // 2026-09-17. Ici le dossier n'a pas bougé : A2-T4 s'applique
+                // tel quel (TTL 12 h, le bouton « Vérifier » passant outre).
+                self.autoCheckUpdatesIfDue(gameFolderChanged: false)
             }
         }
         // SMAPI version probe — synchronous here, on the caller's thread,

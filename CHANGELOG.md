@@ -12,8 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Choisir le dossier du jeu lance la vérification des mises à jour.** Un dossier différent, c'est un autre parc : le contrôle part sans attendre, une fois les mods relus. Le même dossier garde la règle des 12 h, et l'option des Réglages continue de primer.
+
 ### Fixed
 
+- **On choisit enfin l'application du jeu dans le sélecteur de dossier.** `Stardew Valley.app` apparaissait grisé : l'app descend maintenant seule jusqu'à `Contents/MacOS`, que tu désignes le bundle, le dossier Steam ou `Mods/` lui-même. Le dossier `Mods` est créé s'il manque.
+- **Un dossier qui n'est pas le jeu est signalé, plus accepté en silence.** Désigner le dossier qui *contient* tes jeux laissait l'app chercher des mods dans le vide ; elle le dit maintenant, et n'y crée rien.
 - **Le vérificateur de raccourcis ne soupçonne plus les mods de remap.** Global Config Settings Rewrite pose Tab sur l'échange de barre : c'est sa fonction, pas un conflit avec le jeu. Les vrais chevauchements restent signalés, et le rapport nomme le mod écarté.
 
 ## [1.47.0] - 2026-09-15

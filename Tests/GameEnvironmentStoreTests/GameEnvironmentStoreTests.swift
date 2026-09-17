@@ -40,7 +40,10 @@ private final class StubFilePicker: FilePicking {
         UserDefaults(suiteName: "GameEnvironmentStoreTests-\(UUID().uuidString))")!
     }
 
-    /// Un « jeu » avec `smapi-internal/` et son marqueur de version.
+    /// Un « jeu » avec `smapi-internal/` et son marqueur de version. Le
+    /// chemin rendu est **résolu** (`/var/folders` → `/private/var`) : c'est
+    /// la forme que `GameDirLocator.normalize` pose désormais dans `gameDir`,
+    /// et comparer à la forme brute rougirait sur le symlink, pas sur un bug.
     private func makeGameDir(markerVersion: String? = nil) throws -> String {
         let game = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at: game.appendingPathComponent("smapi-internal"),
@@ -50,7 +53,7 @@ private final class StubFilePicker: FilePicking {
                 to: game.appendingPathComponent("smapi-internal/.starhubth-installed-version"),
                 atomically: true, encoding: .utf8)
         }
-        return game.path
+        return (game.path as NSString).resolvingSymlinksInPath
     }
 
     /// Attend que la file principale ait vidé ce qui y est déjà en file —
@@ -132,10 +135,75 @@ private final class StubFilePicker: FilePicking {
         let picker = StubFilePicker(path: game)
         let store = GameEnvironmentStore(defaults: makeDefaults(), picker: picker)
         var picked = 0
-        store.selectGameDir { picked += 1 }
+        var problem: GameDirLocator.SelectionProblem?
+        store.selectGameDir { picked += 1; problem = $0 }
         #expect(store.gameDir == game)
         #expect(picked == 1)
         #expect(picker.callCount == 1)
+        #expect(problem == nil)
+    }
+
+    /// Le cas qui a motivé le correctif : l'utilisateur désigne l'application
+    /// du jeu, pas le `Contents/MacOS` enfoui dedans. Le store enregistre le
+    /// second — tout le dépôt dérive `Mods` de `gameDir`.
+    @Test func pickingTheAppBundleStoresContentsMacOS() throws {
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let macOS = root.appendingPathComponent("Stardew Valley.app/Contents/MacOS")
+        try fm.createDirectory(at: macOS, withIntermediateDirectories: true)
+        fm.createFile(atPath: macOS.appendingPathComponent("StardewValley").path, contents: Data())
+        let bundle = root.appendingPathComponent("Stardew Valley.app").path
+        let store = GameEnvironmentStore(defaults: makeDefaults(),
+                                         picker: StubFilePicker(path: bundle))
+        store.selectGameDir { _ in }
+        #expect(store.gameDir == (macOS.path as NSString).resolvingSymlinksInPath)
+    }
+
+    /// Un jeu sans `Mods/` — celui qu'on vient d'installer — repart avec le
+    /// dossier créé, sinon le scan rend zéro mod sans rien dire.
+    @Test func theModsFolderIsCreatedOnSelection() throws {
+        let game = try makeGameDir()
+        #expect(!fm.fileExists(atPath: "\(game)/Mods"))
+        let store = GameEnvironmentStore(defaults: makeDefaults(),
+                                         picker: StubFilePicker(path: game))
+        var problem: GameDirLocator.SelectionProblem?
+        store.selectGameDir { problem = $0 }
+        #expect(fm.fileExists(atPath: "\(game)/Mods"))
+        #expect(problem == nil)
+    }
+
+    /// `Mods/` impossible à créer : le dossier reste choisi — le chemin n'est
+    /// pas en cause — mais l'échec remonte à l'appelant, qui le journalise.
+    @Test func aBlockedModsFolderIsReportedWithoutLosingTheChoice() throws {
+        let game = try makeGameDir()
+        fm.createFile(atPath: "\(game)/Mods", contents: Data())
+        let store = GameEnvironmentStore(defaults: makeDefaults(),
+                                         picker: StubFilePicker(path: game))
+        var called = false
+        var problem: GameDirLocator.SelectionProblem?
+        store.selectGameDir { called = true; problem = $0 }
+        #expect(store.gameDir == game)
+        #expect(called)
+        #expect(problem == .modsFolderUnavailable)
+    }
+
+    /// Le défaut trouvé sur le parc réel le 2026-09-17 : `gameDir` valait le
+    /// dossier qui **contient** les jeux, faute de pouvoir cliquer le bundle.
+    /// Y semer un `Mods/` vide serait un dégât — le dossier est enregistré, le
+    /// problème remonte, et rien n'est écrit.
+    @Test func aFolderOfGamesIsFlaggedAndNothingIsWrittenInIt() throws {
+        let shelf = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        for game in ["RimWorld.app", "Disco Elysium.app", "Stardew Valley.app"] {
+            try fm.createDirectory(at: shelf.appendingPathComponent("\(game)/Contents/MacOS"),
+                                   withIntermediateDirectories: true)
+        }
+        let picked = (shelf.path as NSString).resolvingSymlinksInPath
+        let store = GameEnvironmentStore(defaults: makeDefaults(),
+                                         picker: StubFilePicker(path: shelf.path))
+        var problem: GameDirLocator.SelectionProblem?
+        store.selectGameDir { problem = $0 }
+        #expect(problem == .notAGameFolder)
+        #expect(!fm.fileExists(atPath: "\(picked)/Mods"))
+        #expect(store.gameDir == picked) // choisi quand même : pas de bouton sans effet
     }
 
     /// Annuler le panneau : rien ne bouge, et le scan n'est pas relancé.
@@ -146,7 +214,7 @@ private final class StubFilePicker: FilePicking {
         let store = GameEnvironmentStore(defaults: defaults, picker: StubFilePicker(path: nil))
         store.restoreGameDir(home: "/nulle-part")
         var picked = 0
-        store.selectGameDir { picked += 1 }
+        store.selectGameDir { _ in picked += 1 }
         #expect(store.gameDir == game)
         #expect(picked == 0)
     }

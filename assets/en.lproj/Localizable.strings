@@ -1408,6 +1408,8 @@
 "vm_cannot_run_zip" = "Failed to run zip command";
 "vm_cannot_start_direct" = "Could not start game, please verify your game folder";
 "vm_cannot_start_game" = "Failed to start game directly";
+"vm_game_dir_not_recognised" = "This folder does not look like a Stardew Valley installation. Select the game application itself — the Mods folder is found from there.";
+"vm_mods_folder_unavailable" = "The game folder was set, but its Mods folder could not be created. Check the folder's permissions.";
 "vm_cannot_start_vanilla" = "Failed to start Vanilla game";
 "vm_clean_mods_error" = "Failed to remove one or more disabled mods: %@";
 "vm_clean_mods_not_found" = "No disabled mods found";

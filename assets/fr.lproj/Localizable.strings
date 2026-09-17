@@ -1408,6 +1408,8 @@
 "vm_cannot_run_zip" = "Échec de l'exécution de la commande zip";
 "vm_cannot_start_direct" = "Impossible de démarrer le jeu, veuillez vérifier votre dossier de jeu";
 "vm_cannot_start_game" = "Échec du démarrage direct du jeu";
+"vm_game_dir_not_recognised" = "Ce dossier ne ressemble pas à une installation de Stardew Valley. Désigne l'application du jeu elle-même — le dossier Mods est trouvé à partir de là.";
+"vm_mods_folder_unavailable" = "Le dossier du jeu est enregistré, mais son dossier Mods n'a pas pu être créé. Vérifie les droits du dossier.";
 "vm_cannot_start_vanilla" = "Échec du démarrage du jeu vanilla";
 "vm_clean_mods_error" = "Échec de la suppression d'un ou plusieurs mods désactivés : %@";
 "vm_clean_mods_not_found" = "Aucun mod désactivé trouvé";
