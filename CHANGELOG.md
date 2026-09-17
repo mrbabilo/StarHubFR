@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.48.0] - 2026-09-18
+
 ### Added
 
 - **Choisir le dossier du jeu lance la vérification des mises à jour.** Un dossier différent, c'est un autre parc : le contrôle part sans attendre, une fois les mods relus. Le même dossier garde la règle des 12 h, et l'option des Réglages continue de primer.
