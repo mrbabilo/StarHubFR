@@ -215,6 +215,8 @@ backups dans le dossier du mod, la réécriture fourre-tout en `Object` vide.
 - Carte des sources : `docs/SOURCES.md` §5.
 - Les restes C4 (filtres, recherche, saut, export) gardent leur case ROADMAP ;
   le signal de demande est renforcé par Keybind Radar.
-- Les candidats d'intégration ci-dessus ne sont **pas** inscrits en ROADMAP :
-  décision à prendre à la lecture de cet audit, mesures de parc disponibles
-  dans le §2 pour calibrer.
+- Les trois candidats d'intégration du §2 sont **inscrits en ROADMAP le jour
+  même** (2026-09-23) : **A1-T8** (avertissement à la bascule — il complète
+  A1-T6, dont il répond la question laissée ouverte sur les *objets*),
+  **A1-T9** (audit de sauvegarde en lecture) et **A1-T10** (nettoyage guidé).
+  Les mesures de parc qui les calibrent sont dans le §2 ci-dessus.

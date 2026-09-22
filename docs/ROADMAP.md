@@ -767,8 +767,8 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 25** *(A1-T7 livré le 2026-09-15)*
-*(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs, **A1-T4** et **A2-T7**, viennent de la veille du jour ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
+### Fiabilité du registre & compatibilité — **Axe A** · **11 items ouverts sur 28** *(recompté le 2026-09-23 à l'occasion de l'ajout d'**A1-T8/T9/T10**, issus de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md) — l'ancien « 9 sur 25 » annonçait un ouvert de trop, encore. A1-T7 livré le 2026-09-15)*
+*(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
 
@@ -932,6 +932,66 @@ backup se retrouve en moins de dix secondes.
       d'`isAuthorLanguageFile`, le point dur prouvé (`FarmTypeManager/data/` mêle
       `default.json` livré et `*_SaveData.save` écrits) et trois options chiffrées.
       **En attente d'arbitrage.** · **M**
+
+- [ ] **A1-T8 — Avertir à la bascule : mettre en pause un mod ne met pas en
+      pause ses empreintes dans les sauvegardes.** *(né le 2026-09-23 de l'audit
+      Keybind Radar & SaveSaver — [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md).
+      Complète **A1-T6** et répond à sa question laissée ouverte — « ce qu'il advient
+      des **objets** définis par un mod absent, pas de leur `modData` » — par la
+      mesure.)* Le scénario SaveSaver (un mod parti dont la sauvegarde porte encore
+      les types, d'où crash au chargement) **existe déjà sur ce parc, produit par
+      notre propre bascule**. Mesuré sur `Zofia_443716371` : **757 objets**
+      `Morghoula.AlchemistryCP_*` et un bâtiment `Bindicle.Dayswork_Office` pour des
+      mods **en pause**, ~133 nœuds `Lumisteria.MtVapius_*` pour un mod **absent** ;
+      457 identifiants namespacés distincts au total. La bascule et la
+      désinstallation sont aujourd'hui muettes sur cette conséquence. **Ce que
+      l'écran dirait**, au moment de l'action, chiffré depuis les saves réelles :
+      « 757 objets dans Zofia référencent ce mod » — lecture seule, la décision
+      reste celle de l'utilisateur. Les empreintes à croiser : les identifiants
+      namespacés du save (objets, bâtiments, locations, `xsi:type`) contre les
+      manifestes du parc ; `DotNetMetadata` (C4-T11) quand l'identifiant ne suffit
+      pas — la mesure ci-dessus a tenu au seul `grep` des `<name>`.
+      ⚠️ **Sévérité à instruire avant d'écrire le texte** : aucun crash observé
+      sur Zofia — les empreintes mesurées sont des objets/ressources référencés
+      par id, pas des types C#. Le cas crashant de SaveSaver (types C# orphelins)
+      est réel dans la nature mais **non observé ici** (0 `xsi:type` de mod sur les
+      deux saves actives). L'avertissement suit la sévérité mesurée, pas le pire
+      cas — même discipline que A1-T6 (« du contenu dort », jamais « tu vas
+      perdre »). · **M**
+
+- [ ] **A1-T9 — L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
+      son bistouri.** *(même audit, 2026-09-23.)* SaveSaver (Nexus 52709,
+      décompilé) montre ce qu'une sauvegarde peut porter de cassé : items
+      `ErrorItem`, locations de mods disparus, bâtiments inconnus, arbres
+      sauvages/fruitiers de mods, types C# non résolus. Tout se détecte **hors
+      jeu, en lecture seule** — `SaveManager` parse déjà le XML, et l'app connaît
+      l'état du parc (actif / en pause / absent), ce que SaveSaver ignore : lui ne
+      peut dire « type inconnu », nous pouvons dire « type du mod X, en pause ».
+      **Un écran de diagnostic doit conduire** : chaque ligne porte le mod
+      responsable et sa fiche, ou l'option de nettoyage (**A1-T10**).
+      ⚠️ **Ne pas porter les listes vanilla codées en dur du mod** (77 locations,
+      21 bâtiments, ids d'arbres — divergeront des mises à jour du jeu) : la
+      vérité est dans le contenu du jeu et du parc, lue comme lui la lit
+      (`DataLoader` côté jeu, manifestes et DLL côté app).
+      ⚠️ Son seuil `IsErrorItem` (`DisplayName.Contains("Error")`) est un faux
+      positif ambulant — un item légitime au nom traduit contenant « Error »
+      serait converti en pierre chez lui ; ne pas l'imiter. · **M**
+
+- [ ] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
+      automatique.** *(même audit, 2026-09-23 ; à n'engager qu'après A1-T9, et
+      s'il trouve réellement des cas sur les saves de l'utilisateur.)* Ce que
+      SaveSaver fait au chargement (reconstruire un `ErrorItem` en objet vanilla,
+      élaguer une location disparue, convertir un arbre cassé) deviendrait ici un
+      geste explicite : **opt-in par catégorie, diff affiché avant écriture,
+      backup vérifié non vide avant, écriture atomique `.tmp` → move** — la
+      discipline du mod est correcte et rejoint les nôtres
+      (`ModConfigWriteGuard`, snapshot `beforeUpdate`).
+      ⚠️ **Jamais** l'auto-conversion au chargement (son défaut : vraie par
+      défaut, et son seuil `Error` est large), ni le cas fourre-tout « type
+      inconnu → `Object` vide » (destructif sur un faux positif).
+      ⚠️ **Chaque catégorie de nettoyage s'instruit séparément** : la grammaire
+      d'écriture d'un save n'est pas mesurée chez nous, et
+      `stardew-save-editor` (SOURCES §3) reste la référence du domaine. · **L**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 
