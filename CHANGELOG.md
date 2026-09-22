@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Audit de Keybind Radar et SaveSaver**, deux mods tout neufs qui recouvrent les raccourcis et les sauvegardes : décompilés dès leur parution, mesurés contre le parc et vos sauvegardes. Cinq items neufs en ROADMAP en sortent — avertir à la bascule d'un mod dont les données dorment dans une partie, audit de sauvegarde en lecture, nettoyage guidé, signal de conflit pendant la capture d'un raccourci, filtres du rapport.
+
 ## [1.48.0] - 2026-09-18
 
 ### Added

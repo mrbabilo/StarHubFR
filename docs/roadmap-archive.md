@@ -3627,3 +3627,1033 @@ queue de C (C2-T4, C3-T2, C4, C5). L'axe diagnostic de log est derrière nous.
 
 ---
 
+---
+
+## Archivage du 2026-09-23 — remise à niveau
+
+Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 17 items jamais archivés, et 3 déjà archivés dont la copie traînait encore (C4-T1/T7/T8) et un dont le récit vivait déjà ici en §4 (R2). Corps déplacés verbatim ; les identifiants sont indexés au §11 de la roadmap.
+
+
+### 4. Correctifs identifiés (suite)
+
+
+- [x] **X106** ✅ *(livré le 2026-09-13)* — **Un `NSLock` est pris et rendu dans un contexte asynchrone.**
+      `SmapiUpdateClient.swift:110` et `:112` — le compilateur le dit déjà
+      (`instance method 'lock' is unavailable from asynchronous contexts`), et
+      c'est l'un des **13 avertissements que le code porte aujourd'hui**, qu'un
+      build incrémental ne réémet pas (relevé P5 du 2026-09-11,
+      `docs/REFACTORING.md` §9). Un verrou tenu à travers une suspension
+      immobilise un thread du pool coopératif, qui en compte autant que de
+      cœurs : c'est la seule des quatre trouvailles du relevé qui soit un risque
+      **d'exécution** et non une branche morte. Remplacer par un verrouillage
+      porté par un acteur, ou borner la section critique en dehors de tout
+      `await`. ⚠️ Mesurer d'abord s'il y a réellement un `await` **dans** la
+      section : le diagnostic vise le contexte, pas la portée du verrou.
+      **Le verdict de la mesure** : la crainte ne s'est **pas** réalisée —
+      aucune des deux sections critiques ne contenait d'`await`. La première
+      vivait dans `fetch`, fonction synchrone ; la seconde (`lock / inFlight =
+      nil / unlock`) est une ligne droite **après** le `await task.value` qui
+      précède la prise du verrou. Aucun thread du pool coopératif n'a jamais
+      été immobilisé. Le danger réel était ailleurs : le SDK précise *this is
+      an error in the Swift 6 language mode* — la migration Swift 6 aurait
+      cassé le build. **Livré** : les deux sections bornées dans des helpers
+      **synchrones** (`engage(makeTask:)` d'un tenant, l'atomicité du
+      check-and-set X87 préservée au même verrou ; `clearInFlight()`),
+      2 diagnostics → 0. Le mécanisme X87, jusque-là sans **aucun** test (le
+      filet existant ne couvrait ni la sérialisation ni le nettoyage), est
+      épinglé par `anOverlappingCallWaitsItsTurnAndTheSlotIsReturned` — épingle
+      à sémaphore, prouvé rouge par deux sabotages (branche « passe en vol »
+      morte → les passes s'entremêlent ; créneau jamais rendu → la complétion
+      du second appel ne part jamais). ⚠️ Appris au passage : un appel
+      chevauchant ne récupère pas le verdict de la passe en vol — il en
+      déclenche une **seconde**, sérialisée, après elle (mesuré : 2 + 2
+      requêtes, retraits X47 compris). Comportement livré, laissé tel quel ;
+      un court-circuit vers le verdict existant serait une décision propre.
+      *(Trois autres trouvailles du même relevé, sans risque d'exécution —
+      `NexusArchiveStore.swift:117` un `??` à membre gauche non optionnel donc
+      une branche morte, `StarHubTHViewModel.swift:2909` un `seedFolder` calculé
+      jamais utilisé, `StarHubTHApp.swift:105` un `bootstrapDefaults` inféré
+      `Void` — **corrigées le même jour**, avec trois avertissements de plus
+      repérés au même build : un `mutateIfChanged` dont le `Bool` était ignoré
+      sans le dire, deux `index` de garde jamais lus, exprimés en
+      `contains(where:)`. Le `Void` explicite de `bootstrapDefaults` est
+      **porteur d'ordre** : la propriété est déclarée avant le `@AppStorage` de
+      l'App, qui lit `UserDefaults` à son initialisation — déplacer
+      l'appel dans `init()` inverserait la reprise pour ce lecteur.)*
+      **La classe concurrency — traitée le même jour (2026-09-13).** ⚠️ Le
+      relevé annonçait 6 diagnostics ; la re-mesure sans drapeau en rendait
+      **7** — le refactor avait lui-même introduit 4 brèches de conformance
+      `Sendable` en Core (types publics : jamais d'implicite). Les sept
+      éteints, chacun à son verdict : conformités explicites
+      (`ModInstallBackup` + 2, `NexusModSearch.Page`) ; `FileManager` créé
+      **dans** la closure (patron de la boucle sœur) ; `nonisolated(unsafe)`
+      borné au store pour le relais de progression Nexus ; boîte `weak`
+      `@unchecked Sendable` pour la bascule en masse — 🚩 une capture-liste
+      `[weak x]` **défait** la liaison `nonisolated(unsafe)`, prouvé au gate.
+      Passe sans drapeau : **7 → 0** ; gate + 3 152 tests verts. ✅ Vérifié à
+      l'écran par l'auteur le 2026-09-13. **La phase P5
+      reste fermée** : 453 diagnostics stricts — 202 bloquants Swift 6 — au
+      jalon du chantier (467 au 2026-09-11) ; **L1 close le 2026-09-13 :
+      427 / 184 bloquants** (quinze globales éteintes sur seize,
+      `SaveNotesStore.shared` reportée à la tranche des stores) ; **L2 close
+      le même jour : 237 / 85 bloquants** — `@MainActor` sur le ViewModel,
+      102 bloquants tombés (prévision ~95), le VM (13) sort du top 2 de la
+      dette au profit de `SmapiInstaller` (25) et `SmapiUpdateClient` (22) :
+      c'est ce qui cadre L4. ✅ **Vérifié à l'écran par l'auteur le
+      2026-09-13** (liste des mods, bascule d'un mod, application d'un
+      profil, ouverture d'une sauvegarde, recalcul de couverture de
+      traduction, glisser-déposer en échec, recherche Nexus) — **L2 est
+      close**. **L3 close le même jour : 216 / 83 bloquants** — les deux
+      boucles disque (bascule en masse, application de profil) exécutent
+      en Core via `ModFolderBulkMove` (canal `AsyncStream`, exécution
+      testée pour la première fois) ; baisse de compteur modeste (−2
+      bloquants), le gain est la testabilité et le rescan rendu au fond.
+      ✅ **Vérifié à l'écran par l'auteur le 2026-09-13/14** (bascule en
+      masse filtrée, application de profil, profil avec mod manquant,
+      bissection profil) — ce rejeu a révélé le doublon SotV et déclenché
+      le chantier « collision de nom logique à l'installation » (signal +
+      choix dans l'aperçu, vérifié le 2026-09-14). **L3 est close.** La fin
+      de jeu structurée (exécuteurs Core + `AsyncStream`) est faite.
+      **L4 close le 2026-09-14 : 121 / 28 bloquants** — les trois clients
+      réseau/process traités en trois familles (`SmapiInstaller` façade
+      `@MainActor` 25 → 0 ; types traversants de `SmapiUpdateClient`
+      `Sendable` 22 → 0, X87 prouvé intact par le diff ; les deux
+      complétions de `NexusUpdateChecker` `@Sendable` 8 → 0, ses huit hops
+      inchangés). **55 bloquants tombés, exactement les 55 ciblés** — ⚠️ le
+      critère « 60 » de la spec était périmé, il datait d'avant L3. Deux
+      découvertes consignées : une passe stricte **tuée sous-compte en
+      silence** (12 fichiers couverts sur 17 ; le compte intermédiaire de T2
+      était faux de 3), et un type **public** (`NexusInstallFacts`) casse
+      l'inférence `Sendable` d'un type interne à un maillon de distance.
+      ✅ **Vérifié à l'écran par l'auteur le 2026-09-14** (installation SMAPI
+      réelle → désinstallation → réinstallation) — **L4 est close**. La
+      vérification a échoué du premier coup et a livré un défaut **antérieur
+      à la tranche** : l'installateur lancé sans `PATH` ne trouvait plus
+      `chmod` et s'arrêtait le jeu à moitié installé (cassé depuis le
+      2026-09-07). Corrigé, plus les libellés de désinstallation et la
+      persistance de la sortie de l'installateur. Reste la sortie d'acteur de `scanMods` (tranche
+      d'isolation). **L5 close le 2026-09-14 : le Core compile en
+      `swiftLanguageMode(.v6)`** — 101 / 20 bloquants, et surtout un cliquet
+      tenu par le compilateur sur la moitié testée du dépôt. ⚠️ La bascule a
+      rougi la CI au premier essai : elle compile en **Xcode 16.4 (Swift
+      6.0)**, la machine de développement en 6.3.3, et la première est plus
+      stricte. Défaite sur `main`, reprise en PR, validée par la CI avant
+      fusion (#6). Reste **L6** : l'app en mode Swift 6 (VM 12,
+      `NexusSearchClient` 2, `ModInstallView` 2, quatre vues à 1).
+      **L6 close le 2026-09-14 : 6 / 0 bloquants** — le compte du chantier
+      tombe à zéro (453 / 202 à l'ouverture). ⚠️ **L'app n'est pas pour
+      autant en mode Swift 6** : le drapeau a été posé puis retiré, car
+      l'app compile sans erreur et **meurt au lancement** — le mode 6
+      contrôle l'isolation *à l'exécution*, et `scanMods` /
+      `syncInstalledModRegistry` / `reloadSaves` sont déclarées `@MainActor`
+      mais exécutées sur une file de fond depuis L2. La **tranche
+      d'isolation** devient donc le prérequis du mode 6 côté app, et non un
+      raffinement : c'est ce qui reste de P5. Détail, pile et sondes :
+      `REFACTORING.md` §9.
+      **Cadrage mesuré le 2026-09-14** (première étape livrée : `log`,
+      `publishLaunchPhase` et `publishLaunchPhaseProgress` sont `nonisolated`,
+      leur corps l'était déjà). Marquer `scanMods`,
+      `syncInstalledModRegistry`, `reloadSaves` et
+      `migrateDisabledModsToDotPrefix` `nonisolated` rend **16 erreurs** que
+      le compilateur nomme : 5 `log` (faites), 4 lectures de `gameDir`, 7
+      appels isolés (`installedModDate`, `publishLaunchPhase` ×3,
+      `parseSMAPILog`, `measureModsFolderSize`). ⚠️ **Le verrou est
+      structurel** : une méthode `nonisolated` ne peut lire *aucune*
+      propriété stockée du ViewModel — ni `gameDir`, ni `environment`, ni les
+      magasins. Il faut donc trancher magasin par magasin ce qui est lisible
+      hors acteur.
+
+      ⚠️ **Le relevé des magasins était faux, et son ordre avec lui.** Il
+      annonçait « `ModScanner` (20 `var`) — le seul à examiner vraiment » :
+      c'était un `grep` nu, qui comptait les variables **locales** de
+      `scan()`. Recompté le 2026-09-14 en ancrant sur l'indentation des
+      propriétés stockées, l'ordre s'inverse — les trois premiers sont le
+      **même cas trivial**, une seule mutable sous un seul verrou, et le
+      quatrième n'appartient pas à la famille :
+
+      | Magasin | Propriétés stockées **mutables** | Verdict |
+      | --- | ---: | --- |
+      | `ModVersionAnchorStore` | **0** | `let` partout |
+      | `InstalledModRegistryStore` | 1 (`cache`) | 3 accès, tous sous `lock` |
+      | `ModScanner` | 1 (`manifestCache`) | 2 accès, tous sous son verrou |
+      | `ScanStore` | 5 `@Observable` + 2 sous `sizeLock` | **état publié, lu par les vues** |
+
+      Les **trois premiers sont traversants depuis le 2026-09-14**, l'audit
+      écrit à chaque déclaration. ⚠️ La conformité *vérifiée* a été tentée
+      d'abord et **refusée par le compilateur** : `UserDefaults` n'est pas
+      `Sendable` — c'est la seule raison de l'`@unchecked` sur les deux
+      magasins qui en portent un, pas une promesse sur leur état.
+      **`ScanStore` reste `@MainActor` et n'est pas à rendre traversant** :
+      ce n'est pas un cas plus dur du même geste, c'est de l'état d'interface
+      observé par les vues. L'ouvrir serait la mauvaise réponse — c'est
+      `scanMods` qui doit cesser de le toucher hors acteur, pas lui qui doit
+      s'ouvrir. `GameEnvironmentStore`, isolé en L5, est le dernier cas à
+      part : son `gameDir` est persisté à chaque écriture, donc lisible hors
+      acteur par les préférences.
+
+      **Étape 2 livrée le 2026-09-14 — et le coût mesuré valait la moitié de
+      l'annonce.** Les quatre méthodes marquées `nonisolated`, le compilateur
+      nomme **7** erreurs, pas 16 : les conformités ci-dessus en avaient
+      éteint la moitié d'un coup, parce qu'**un `let` de type `Sendable` sur
+      un acteur est implicitement lisible hors de lui**. Mieux :
+      `reloadSaves`, `syncInstalledModRegistry` et
+      `migrateDisabledModsToDotPrefix` n'en produisaient **aucune** — elles
+      étaient déjà prêtes. Les sept vivaient toutes dans `scanMods`.
+
+      Elles se sont réglées en trois gestes :
+
+      - **`gameDir` arrive en paramètre** (4 des 7), résolu par l'appelant sur
+        l'acteur — dix sites d'appel, chacun le lisant avant son saut. C'est la
+        décision que L5 avait déjà prise pour `fallbackFarmerName`. ⚠️ La
+        variante « le lire hors acteur depuis les préférences », que le cadrage
+        proposait, a été **écartée sur preuve** : `restoreGameDir` écrit un
+        chemin détecté *avant* que son `didSet` ne le persiste, et une lecture
+        qui croise cette fenêtre rend l'ancien chemin.
+      - **`parseSMAPILog`, `computeSmapiDiagnostics`, `installedModDate`
+        passent `nonisolated`** — les deux premières promettaient déjà « safe
+        off-main » dans leur propre documentation ; la signature le dit enfin.
+      - **`measureModsFolderSize` reste `@MainActor`**, atteinte par un saut
+        `DispatchQueue.main.async { MainActor.assumeIsolated { … } }` — le
+        patron du dépôt, et celui que L5 a prouvé préférable à
+        `Task { @MainActor in }` (deux tests de magasin et un du client
+        smapi.io rougissent sur le second, qui n'entre pas dans le FIFO de la
+        file principale). ⚠️ Son invariant a été vérifié plutôt que supposé :
+        `beginSizeMeasure` est un test-and-set **sous `sizeLock`**, donc
+        atomique d'où qu'on l'appelle. Le saut ne l'affaiblit pas, il
+        sérialise deux demandes rivales.
+
+      Relevé en passant, **corrigé le même jour** : la restauration depuis la
+      corbeille était le seul site qui balaie **sur le fil principal** — ~960
+      mods y gelaient l'interface le temps de la passe. Le saut par la file
+      globale, inatteignable tant que le site appelait une méthode faussement
+      `@MainActor`, est devenu mécanique après la tranche : `gameDir` résolu
+      sur le main, balayage sur la file `userInitiated`, comme les autres.
+
+      **Passe stricte de clôture** : 57 / 8 après le basculement, **49 / 0**
+      après extinction des huit — la passe de départ (6 / 0) était un faux
+      vert, le compilateur ne regardant pas les franchissements d'un corps
+      qui se déclarait sur l'acteur en tournant au fond. Les 43 avertissements
+      restants sont du bruit préexistant que le drapeau voit maintenant sur ce
+      chemin ; **zéro bloquant Swift 6**.
+
+      **La phase P5 est close le 2026-09-14** : le drapeau `-swift-version 6`
+      est reposé sur l'app (`8e2729cf`) et **tient** — lancement vérifié par
+      l'auteur à l'écran, CI verte (Xcode 16.4, plus stricte que la machine).
+      Bilan du chantier, jalon d'ouverture → clôture : **453 avertissements /
+      202 bloquants → 49 / 0**, Core et app en mode Swift 6, le cliquet tenu
+      par le compilateur sur la moitié testée et désormais par le runtime sur
+      l'autre. Ce que la fin de jeu a coûté et appris : le faux vert des 6/0
+      (un compilateur fait confiance à une étiquette, un runtime pas), le
+      grep nu qui surenchérit (20 `var` = des locales), et trois filets (gate,
+      tests, CI) muets sur un crash que seul un lancement observé voyait.
+
+
+- [x] **X105** — ✅ **livré le 2026-09-10.** `Backups/` vit sous `StarHubFR/`,
+      et l'ancien dossier disparaît entièrement à la migration. Ses **220
+      chemins absolus** (champ `backupPath`, seul champ absolu des deux index —
+      énumération faite champ par champ, pas devinée) sont repointés **avant**
+      le déplacement, qui est un rename sur le même volume et non une copie des
+      1,2 Go. Le gain n'est pas la cohabitation — l'amont n'a jamais écrit là :
+      c'est que les données de l'app tiennent désormais en **un seul endroit**.
+      Chiffres du plan de 2026-08-26 (1 468 sauvegardes, 1 309 chemins, 617 Ko)
+      périmés d'un facteur 6 ; compter ces chemins sans échapper les slashes
+      rend 0 (défaut corrigé en `01ef900`).
+
+
+#### Fiabilité du registre & compatibilité — Axe A (suite)
+
+
+- [x] **A1-T7** — ✅ **Livré le 2026-09-15** *(option A ; l'option C s'est trouvée
+      déjà en place)*. **Mettre à jour un mod perdait ses données — et la liste des
+      rescapés tenait en 18 noms.** *(trouvé le 2026-09-14 en décompilant
+      `ModernConfigMenu` 2.1.2 ; mesures dans
+      [`roadmap-archive.md`](roadmap-archive.md) §3 quater.)*
+      `ModConfigFiles.preservable` est une **liste blanche de noms de fichiers** :
+      `config.json` et les 17 fichiers de langue. `snapshotUserConfigs` ne préserve
+      qu'eux. **Tout le reste est écrasé** par la copie neuve.
+      ✅ **Le filet existe, et il est entier** : avant l'effacement,
+      `ModInstallBackupManager.createBackup(for:gameDir:reason: .beforeUpdate)` copie
+      le **dossier complet** (`copyItem`, `:235`), et doit réussir sous peine
+      d'abandon de l'installation. Rétention : tout ≤ 30 jours, puis une par mois.
+      Le défaut n'est donc **pas** une destruction — c'est que ces fichiers ne sont
+      **jamais remis** dans le mod mis à jour, et que **rien ne le dit** : le joueur
+      retrouve un mod amnésique et devrait deviner d'aller fouiller une sauvegarde.
+      **Mesuré sur le parc** : **100 fichiers, sur 52 mods**, portent dans leur nom
+      l'identifiant d'une **sauvegarde réelle** — ils n'ont donc pu être écrits que
+      sur cette machine, par le mod. Ce sont des `<sauvegarde>_SaveData.save` et
+      apparentés (`FarmTypeManager` et ses 40 packs `[FTM] *`,
+      `BetterCrafting/savedata/seenrecipes/`, `AnimalHusbandryMod/data/farmers/`) :
+      de la **progression par partie**. Les perdre, c'est perdre le jeu lié à ce mod
+      pour cette sauvegarde. C'est un **plancher** — il ne voit pas ce qui ne se nomme
+      pas d'après une partie.
+      ⚠️ **Une version antérieure de cet item annonçait « 2 552 fichiers sur 256
+      mods »** : ce chiffre venait d'un critère de mtime relative au manifeste, et il
+      est **faux** — un zip restitue les dates de travail de l'auteur. Détail du
+      démenti en **§8.4**. Viennent ensuite
+      `companion.json` (67) et `companion.png` (44), et le cas fondateur
+      `data/mod_history.json` — que MCM écrit **toujours** en 2.1.2 (vérifié dans l'IL :
+      `ModDateTracker.HistoryFilePath`), et qui porte la date d'installation de chaque
+      mod pour signaler les récents.
+      ⚠️ **Le CLAUDE.md ne nomme que `config.json` et `fr.json`** : le piège est donc
+      plus large que ce que le dépôt en dit.
+      ⚠️ **Le remède n'est PAS « préserver tout fichier écrit après l'installation ».**
+      Ce garde trop large garderait à vie les fichiers qu'un mod renomme ou abandonne
+      d'une version à l'autre — et c'est exactement le défaut qu'`isAuthorLanguageFile`
+      a dû corriger après coup, quand la préservation figeait l'anglais de l'auteur à
+      chaque mise à jour. La règle se **mesure** avant de se coder : ce qui distingue
+      une donnée d'utilisateur d'un fichier livré n'est ni le nom, ni l'extension, ni
+      la seule mtime. Deux pistes à éprouver — un fichier **absent de l'archive neuve**
+      est par construction une donnée locale ; et `content.json` (111 occurrences) est
+      le contre-exemple utile, puisqu'il est livré **et** modifiable.
+      ⚠️ Et quoi qu'il arrive, **le dire** : un fichier écarté de la préservation doit
+      apparaître au bilan d'installation, jamais disparaître en silence.
+      ✅ **Ce qui a été fait** : `PreservedModData` (Core) porte la règle et ses deux
+      moitiés (mise à l'abri, remise en place) ; `ModZipInstaller` compare les deux
+      arbres juste avant l'effacement, là où l'ancien dossier et l'archive neuve
+      existent tous les deux. La restauration d'un extra **ne lance pas** — rater un
+      fichier de données périmé ne doit pas faire avorter une mise à jour réussie,
+      le dossier entier étant déjà en sauvegarde ; celle des 18 noms lance toujours.
+      Les préservations sont journalisées, les échecs en `warning` et **nommés**.
+      19 tests, huit mécanismes prouvés par sabotage.
+      ✅ **Le bilan le dit aussi** (2026-09-15) : `PreservedDataOutcome` entre dans
+      `InstallReport`, `InstallReportSummary` gagne `dataRestored`/`dataFailed` (deux
+      compteurs distincts — l'échec n'est pas un sous-cas de la réussite), et
+      `InstallReportWindow` rend une section « Données de mod conservées » **avant**
+      les deltas : ce qui touche aux parties sauvegardées passe avant les réglages.
+      Un résultat muet ne prend pas de ligne. Les échecs **nomment les fichiers**
+      (six au plus, le compte restant exact). L'en-tête s'enroule désormais au lieu
+      de se tronquer — le pire cas FR fait ~1 100 px pour 520 de large, et les
+      fragments de fin étaient précisément les nouveaux. · **livré**
+      📐 **Cadrage écrit le 2026-09-14 : §8.4** — la règle proposée (*absent de
+      l'archive neuve ⇒ donnée locale*), pourquoi elle ne rejoue pas le défaut
+      d'`isAuthorLanguageFile`, le point dur prouvé (`FarmTypeManager/data/` mêle
+      `default.json` livré et `*_SaveData.save` écrits) et trois options chiffrées.
+      **En attente d'arbitrage.** · **M**
+
+
+
+- [x] **A2-T7** — ✅ **Livré le 2026-09-15.** **Avertir quand un mod installé est sur la liste noire SMAPI.**
+      *(source relevée le 2026-09-14 : SMAPI a bougé pour la première fois depuis le
+      2026-07-01, et les huit commits ne portent ni le format du journal, ni le schéma de
+      manifeste, ni l'installateur — ils alimentent `SMAPI.blacklist.json`.)*
+      C'est la liste des mods **malveillants** bloqués par défaut, **distincte** de
+      `metadata.json`/`mods.jsonc` qui portent les incompatibilités : ses messages disent
+      « downloads malicious code from a remote server and runs it on your computer », et
+      plusieurs entrées sont des **reuploads piégés de mods légitimes** — le cas que
+      l'utilisateur ne peut pas distinguer à l'œil sur Nexus.
+      **Mesures faites** : la ressource est servie publiquement
+      (`https://smapi.io/SMAPI.blacklist.json`, HTTP 200, 5 029 octets), elle est du
+      **JSONC** comme `mods.jsonc` — commentaires bloc **et** ligne, `ManifestJSON.decode`
+      sait déjà les retirer — et elle est clée sur l'**`UniqueID`** du manifeste, la clé
+      d'identité du parc. **9 entrées croisées contre les 1 112 manifestes du parc de
+      référence : aucune correspondance**, le parc est sain.
+      **Ce que ça ajoute vraiment** : SMAPI bloque déjà ces mods, mais **au lancement du
+      jeu**, et il l'écrit dans un journal qui n'existe qu'après. StarHubFR peut le dire
+      **avant**, au scan, sans lancer le jeu — c'est exactement ce que fait déjà
+      `PathoschildCompatibilityList` pour la compatibilité, donc le patron est en place
+      (dump public, cache hors-ligne, croisement par `UniqueID`).
+      ⚠️ **Ce n'est pas un badge de plus.** Un mod malveillant ne se range pas à côté de
+      « mise à jour disponible » : la destination doit être décidée (alerte système en
+      tête, ou un état propre sur la fiche), et le texte doit dire quoi faire — le message
+      de SMAPI demande de supprimer le mod **et** de lancer une analyse antivirus.
+      ⚠️ **Ne jamais supprimer d'office** : le verdict vient d'une source externe, et
+      `UniqueID` est déclaratif — un mod peut usurper celui d'un autre. On avertit.
+      ✅ **Ce qui a été fait** : `SmapiBlacklist` (Core) lit le JSONC, croise le parc et
+      monte les lignes ; `HealthIssue.Source.malicious` en `critical` (donc en tête de
+      l'écran d'alertes, prouvé par test contre une ligne `info`) ; deux actions, la
+      fiche puis « Montrer dans le Finder », **aucune suppression** ; bandeau rouge
+      `MaliciousModBanner` au-dessus de tout sur la fiche. Source déclarée
+      (`smapi/blacklist`) et documentée en `SOURCES.md` §2.2 bis.
+      **Trois décisions** qui le séparent de la liste de compatibilité : le croisement
+      **ignore la casse** (SMAPI aussi — sinon un reupload changeant une majuscule
+      passerait pour sain) ; un document illisible rend `nil`, **jamais** une liste
+      vide ; le `LooseFileBlacklist` est traité, le **nom** servant de grille de tri et
+      seule l'**empreinte** condamnant.
+      ⚠️ **Invisible sur un parc sain** — 0 correspondance sur 1 112 manifestes au
+      2026-09-15. Pour le voir agir : renommer l'`UniqueID` d'un mod de test en
+      `BritishW.ChaosWhispers` et relancer l'app. · **livré**
+
+
+
+#### Hub de traduction FR — Axe C (suite)
+
+
+- [x] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
+      traduction ajoutées ou disparues (s'appuie sur les références par clé adoptées
+      en C2-T2 — l'empreinte prévue n'a pas été retenue, cf. C2-T2). · **M**
+      *(Livrée le 2026-09-08 : capture du delta dans la branche `.overwriteWithBackup`
+      de l'installeur (`UpdateKeySnapshot`/`ModUpdateKeyDelta.compare`, seul instant où
+      ancien et neuf coexistent), persistance par `UniqueID`, ligne à l'écran de succès,
+      section « Dernière mise à jour » sur la fiche avec réconciliation des renommages
+      (`KeyRenameMatcher` par valeur ou similarité, report via `RenameReport` — jamais
+      d'écrasement d'un existant). Correctif embarqué : l'anglais du mod
+      (`i18n/default.json`/`en.json`) ne se fige plus à la mise à jour. Commits
+      `ac7e8e8`→`0200b38`.)*
+
+
+
+- [x] **C4-T9** — **Un mod dont le métier est de remapper les touches n'est pas en
+      conflit avec le jeu.** *(relevé le 2026-09-14 dans le changelog de
+      ModernConfigMenu 2.1.1, qui a ajouté `IsVanillaControlRemapMod()` pour la même
+      raison — et qui nomme en exemple un mod **actif sur notre parc**.)*
+      `KeybindScanner` classe en `gameConflicts` tout raccourci de mod qui retombe sur
+      un contrôle du jeu. Pour un mod de remap, c'est **sa fonction** : le signaler est
+      un faux positif, et il gonfle le seul chiffre que l'écran donne (`problemCount`).
+      **Mesuré** : `Global Config Settings Rewrite` est **installé et actif** — c'est
+      exactement le mod que leur changelog cite.
+      ⚠️ **Ce que nous faisons déjà mieux, vérifié, et qu'il ne faut pas « corriger »** :
+      leurs deux autres correctifs de la même version ne nous concernent pas.
+      `KeybindCombo` est `Hashable` sur `Array(Set(buttons)).sorted()` — la
+      **combinaison entière normalisée**, là où ils regroupaient sur `Buttons[0]` et
+      voyaient `Shift+F` entrer en conflit avec `Shift+J`. Et `SButtonTable` distingue
+      déjà `LeftShift`/`RightShift`/`LeftControl`/`RightControl`/`LeftAlt` (codes
+      160-165), la différenciation qu'ils ont dû ajouter.
+      ⚠️ **La reconnaissance d'un mod de remap est le vrai sujet, et elle se mesure** :
+      leur `IsVanillaControlRemapMod()` repose sur une liste de mods connus. Une
+      heuristique sur le nom écarterait des mods légitimes (trois candidats trouvés au
+      mot « remap » sur le parc, **deux sont des cartes**). Trancher sur données avant
+      de coder. · **S**
+      **Livré** le 2026-09-15, tranché sur données (sonde sur le parc réel,
+      grammaire réelle, puis sonde supprimée) : 16 lignes de conflit jeu sur
+      12 mods, dont **un seul faux positif** — GCSR (`ShiftToolbar` sur
+      toolbarSwap). Reconnaissance retenue : liste d'UniqueID
+      (`vanillaRemapModIds`, comparaison sans la casse, comme SMAPI), le
+      même choix que MCM — la liste démarre de notre mesure.
+      **Source MCM relue le jour même** (décompilation `ikdasm` de la DLL
+      2.1.2 installée) : leur « liste de mods connus » n'en est pas une —
+      `IsVanillaControlRemapMod` teste trois **sous-chaînes** sans la casse
+      (`GlobalConfigSettings` dans l'UniqueID, `Global Config Settings` dans
+      le nom, `GameControls` dans l'UniqueID). Passées sur le parc, ces
+      motifs n'attrapent que GCSR : équivalent à notre liste, et notre liste
+      ne peut pas écarter un mod légitime par accident — l'exact opposé de
+      l'heuristique que la roadmap refusait. L'exclusion ne touche que les **conflits
+      jeu** : les collisions mod-mod du remap restent (Tab partagé GCSR +
+      Chests Anywhere est un vrai double consommateur), le compte de
+      liaisons aussi, et la note du rapport nomme le mod écarté
+      (`remapModsIgnored`, miroir de la note catalogue).
+
+
+
+- [x] **C4-T10** — **L'éditeur de config rend les raccourcis en champ texte libre,
+      alors que le scanner sait déjà les reconnaître.** *(relevé le 2026-09-14 en
+      auditant le design de ModernConfigMenu — §3 quinquies de l'archive ; leur
+      `KeybindOverviewModal` est la seule de leurs idées que le parc justifie.)*
+      **Le fait d'architecture** : `KeybindScanner.report`
+      (`StarHubTH/Models/KeybindScanner.swift:336`) et `ConfigEditorModel.groups`
+      (`StarHubTH/Models/ConfigEditorModel.swift:284`) parcourent **le même**
+      `ConfigEditorModel.leaves(of: tree)`. Le scanner classe chaque feuille par
+      `classify(leaf:)` ; l'éditeur, sur la feuille identique, en fait un `.text`.
+      Il n'y a pas de plomberie à construire : la classification existe déjà, et
+      elle prend exactement le type que l'éditeur tient en main.
+      **Le point d'insertion est nommé** : `ConfigEditorModel.row(for:describedBy:
+      orLabeledBy:)` (`:300`) tient la `Leaf` entière et **surcharge déjà le
+      contrôle une fois** — pour `choiceControl(for:option:)`. Une branche keybind
+      s'y pose de la même forme. ⚠️ Ce qui n'est pas gratuit, en revanche :
+      `KeybindScanner` dépend de `ConfigEditorModel.Leaf`, donc appeler `classify`
+      depuis `ConfigEditorModel` referme un cycle au niveau des types. Sans
+      conséquence dans un module unique, mais à trancher volontairement — la
+      grammaire aurait peut-être sa place dans `KeybindGrammar.swift`.
+      **Mesuré sur le parc** (port fidèle de `KeybindParser` + `classify` ; 614
+      `config.json`, 16 552 feuilles, 15 fichiers illisibles) : **466 feuilles sont
+      des raccourcis, réparties sur 146 mods** — 348 par indice de nom
+      (`key|bind|shortcut`) et **118 par combinaison distinctive sans indice**
+      (`.Automate: Controls.ToggleOverlay`, `Stillbloom: MultiSelectModifier`).
+      **Les 466 sont des chaînes, donc toutes rendues en `.text`** ; seules 3 vivent
+      dans un pack à `content.json` où un schéma pourrait déjà en faire une liste.
+      Zéro `unrecognized` sur tout le parc.
+      ⚠️ **Un comptage antérieur disait 315** : il approximait en Python la seule
+      branche à indice de nom et manquait les 118 autres. Mesurer avec la grammaire
+      réelle, jamais avec une regex de substitution.
+      ⚠️ **L'aller-retour d'écriture est le piège** : le contrôle doit réécrire
+      l'orthographe que le mod attend, pas une forme canonique. Le parc porte
+      `'D0'`, `'None'`, `'LeftShift'`, `'Up'` — normaliser `D0` en `0` écrirait
+      autre chose que ce que l'auteur a posé. Le précédent est déjà dans le modèle :
+      `Control.toggle(Bool, asString:)` mémorise si `true` était un booléen ou la
+      chaîne `"true"`, et `ConfigEditorModel.value(of:)` le restitue. Un `.keybind`
+      doit porter la même mémoire.
+      ⚠️ **Ne pas suivre `classify` seule pour décider d'afficher le contrôle** : la
+      règle R4 du scanner (`KeybindScanner.swift:277`) existe parce que
+      `ModShortcutReferenceHub` **documente** les raccourcis des autres — chaque
+      feuille de son catalogue passe `classify`, et aucune n'est liée à quoi que ce
+      soit. Un sélecteur de touche posé dessus serait un faux positif visible.
+      **Sans casser l'existant** : le contrôle naît dans `ConfigEditorModel.Control`
+      (type Core, donc testable), et l'écriture continue de passer par
+      `ModConfigWriteGuard`. · **M**
+      **Livré** le 2026-09-15 : `Control.keybind(raw:combo:)` porte l'orthographe
+      d'origine (`'D0'`, `'leftshift'`) et la restitue telle quelle tant qu'on
+      n'a pas touché — prouvé par sabotage, la forme canonique d'un `D0` étant
+      justement `D0` (le premier test ne voyait rien). La règle R4 devient
+      partagée (`KeybindScanner.catalogShapes`), le schéma garde la priorité,
+      les listes à plusieurs combinaisons restent en champ texte, et une valeur
+      numérique garde son champ chiffré. Le cycle de types éditeur↔scanner est
+      assumé et documenté (module unique). Capture : `ModKeybindField` — Échap
+      annule, un modificateur seul n'engage rien (son `keyDown` précède celui
+      de la touche modifiée), et les touches hors table `MacKeyCodeMap` sont
+      avalées sans rien casser.
+      **Corrigé à l'écran le jour même** : une capture posant un caractère
+      unique (`A`, `O`) ou vide (`None`) repassait la règle R2 du scanner au
+      re-rendu — le contrôle redevenait un champ texte sous les yeux de
+      l'utilisateur (un chiffre, distinctif, passait ; pas une lettre).
+      `groups(of:…, stickyKeybinds:)` : la session mémorise les rangées
+      capturées et la re-classification les respecte ; l'intention explicite
+      bat aussi l'heuristique du catalogue. À la réouverture, la grammaire
+      re-tranche (une valeur `A` non hintée y reste un champ texte).
+      **AZERTY, affiché le jour même** : les `SButton` nomment des
+      **positions physiques US** (wiki Stardew, FNA#121) — presser la touche
+      A d'un AZERTY enregistre `Q`, et c'est bien cette touche que le mod
+      écoutera ; écrire le keycap lierait la mauvaise touche. Affichage
+      retenu après retour de l'auteur (« l'utilisateur ne doit pas être
+      désorienté ») : **ta touche d'abord, le nom enregistré ensuite, en
+      discret** — « a · Q » — traduit depuis la disposition clavier
+      **courante** par `UCKeyTranslate` (`MacKeyLayout`), donc vrai aussi à
+      la réouverture, pas seulement juste après la capture. Silencieux quand
+      la gravure coïncide (QWERTY) ou n'apprend rien (`D1` contre `1`,
+      touches sans gravure). L'info-bulle dit la convention : minuscule = ta
+      touche, majuscule = le nom du fichier.
+      **L'annotation « lié à » livrée le jour même** (reproduction de
+      l'affichage de conflits de leur `KeybindOverviewModal` — décompilé) :
+      sous une rangée raccourci, « Conflit avec {mod} ({réglage}) » ou
+      « un contrôle du jeu ({contrôle}) ». Leur logique — signatures
+      canoniques, première collision trouvée, conflit jeu prioritaire —
+      existe déjà chez nous en plus riche : l'annotation lit le rapport
+      (`KeybindScanner.annotation`), hérite des exclusions catalogue (R4)
+      et remap (C4-T9), et distingue manette.
+
+
+
+- [x] **C4-T11** — **Les listes déroulantes que les DLL C# déclarent par
+      leurs types.** *(relevé le 2026-09-15 par l'auteur : Stillbloom
+      « Placement rule » — Strict/Loose/Anarchy — rendu en champ texte
+      alors que MCM, en jeu, connaît les valeurs et les bornes.)*
+      **Livré** le 2026-09-15, en deux temps. Le relevé d'abord
+      (`tools/gmcm_options.py` → `assets/gmcm-options.json`), corrigé le
+      jour même : le filtre de pertinence — une propriété n'est un choix
+      que si sa clé existe dans le config.json du mod — est passé de 122
+      mods/588 champs (dont les enums internes des libs embarquées, cas
+      AccordSettings) à **33 mods/63 champs**, 33/33 cohérents avec les
+      valeurs réelles des configs. Puis **la lecture live dans l'app**
+      (question de l'auteur : « que se passe-t-il pour un nouveau mod ou
+      si une mise à jour ajoute des options ? ») : `DotNetMetadata` +
+      `DotNetAssemblyOptions` relisent les tables à l'ouverture de
+      l'éditeur, cache par empreinte de DLL, nouveaux mods et mises à
+      jour couverts sans release ; le tool devient l'oracle (122 comparés
+      sur le parc, 0 écart) et le dataset figé le filet. Variance du
+      format mesurée avant écriture (455 DLL), fixture produite par le
+      vrai producteur (`dotnet build`) avec les pièges du format, chaque
+      garde prouvé par sabotage — deux ne s'observaient que par tests
+      directs. Restes notés en SOURCES.md §6 bis : les listes en
+      littéraux d'API (`SetAllowedValues`), les **min/max** des nombres,
+      la convention tooltip « Valeur = description » (2 champs sur 226
+      mods — précise, sans couverture).
+
+
+
+#### Expérience utilisateur : navigation & accessibilité — Axe I (suite)
+
+
+- [x] **I-T1** ✅ *(partie raccourcis livrée le 2026-09-09)* — **⌘1…⌘9** mènent
+      aux neuf premières destinations visibles, et un **menu « Aller »** les
+      affiche : les raccourcis deviennent découvrables et macOS les gère
+      nativement. `SidebarOrder` (Core, 15 destinations, 11 tests) est la
+      source unique que lisent la barre latérale, le menu et la palette —
+      la barre a cessé d'écrire ses 14 entrées à la main.
+      ⚠️ **Le second membre de I-T1 reste ouvert** : la navigation au focus
+      des 14 écrans (entrer/sortir des fiches, des feuilles, de la liste).
+      Elle traverse toute l'app, vaut **L**, et demande une **mesure d'abord** :
+      quels écrans piègent réellement le clavier aujourd'hui. La deviner écran
+      par écran ferait un lot qui ne se termine pas. → repris en **I-T6**.
+
+
+- [x] **I-T2** ✅ *(livré le 2026-09-09)* — **Palette ⌘K** : mods, profils,
+      sauvegardes et pages, recherche tolérante (sous-séquence, accents
+      ignorés) et classée de façon déterministe (`CommandPaletteSearch`, Core,
+      18 tests). Mesurée à **4,5 ms** par frappe sur 1 000 entrées et 0,7 ms à
+      l'ouverture, sous le seuil des 16 ms — aucune indexation nécessaire.
+      **Écart assumé avec l'intitulé d'origine** : la palette **navigue
+      seulement**. Les actions qui écrivent (installer, mettre à jour,
+      restaurer) en sont exclues — tranché avec l'auteur : une frappe rapide
+      ne doit pas pouvoir écrire dans `Mods/`. Et elle conduit à l'**onglet**
+      des profils et des sauvegardes, pas à l'élément précis : aucun canal
+      n'existe pour ça, et en ajouter deux pour un besoin non mesuré est ce
+      que ce dépôt regrette ailleurs.
+
+
+#### Axe F — Dette technique (suite)
+
+
+- [x] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
+      l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
+      réelle (822 dossiers de premier niveau, 918 manifests).
+      ▸ **Livrée le 2026-09-12** (`fd6f0d08`, vérifiée à l'écran par l'auteur le jour
+      même) — le délai ne venait ni du filtrage ni de la conversion `@Observable` :
+      l'A/B des trois témoins a tranché « défaut préexistant » (gênant sur les trois),
+      puis la capture Instruments a nommé `ModItem.inferTag` **relancé par frappe**
+      (deux passes pleines de la base + les badges de lignes, ~150 regexes par mod,
+      sans mémoïsation — ~0,7 s de fil principal bloqué par lettre). Le tag se calcule
+      maintenant **une fois à l'init** de `ModItem` et `inferredTagKey` lit la valeur
+      stockée ; la règle du pack (tag du composant de tête) est préservée et prouvée
+      par test. Arbitrage révisé par l'auteur le jour même : correctif immédiat pour
+      la mémoïsation seule. **Les constats accumulés ci-dessous (`healthIssues`, le
+      lot de traduction à 3,2 s) restent ouverts dans le seau de la passe groupée** —
+      la case fermée ne les emporte pas.
+      **Déjà mesuré, et écarté — ne pas y revenir** :
+  - le filtrage (`filteredMods`) coûte **~2 à 5 ms par frappe** à cette échelle ;
+  - le tri **0,04 ms**, y compris le cas `.name` dont la closure renvoie toujours `false` ;
+  - un index de recherche pré-minusculé (au lieu de `localizedCaseInsensitiveContains`)
+        ferait gagner ~2 ms : sans rapport avec l'ordre de grandeur perçu.
+      **Piste restante** : le **rendu**, pas le calcul — chaque frappe reconstruit les 15
+      lignes de la page avec leurs images, badges, interrupteurs et boutons. Noter qu'un
+      debounce de 200 ms a été retiré en 1.7.0 *parce qu'il aggravait* le lag perçu ; le
+      remettre suppose un réglage différent, pas un retour en arrière.
+      **⚠️ Le terrain a changé le 2026-09-11** — à lire avant de rouvrir cette
+      tâche. La « piste restante » ci-dessus (le **rendu**) est exactement ce que
+      le chantier A du refactor a touché : le VM et trois stores sont passés
+      `@Observable`, donc une vue ne se réinvalide plus que sur les propriétés
+      qu'elle **lit**, là où chaque `@Published` publiait à toute la fenêtre.
+      Deux conséquences pour la passe : le gain attendu n'a **pas** été mesuré
+      (c'est ce qui reste dû), et l'A/B a désormais **deux** témoins — le bundle
+      v1.11.1 pour la question régression/préexistant, et le tag
+      `pre-refactor-observable` (`e1bb12f`) pour l'effet de la conversion seule.
+      Les mesurer ensemble évite de confondre les deux réponses.
+      → `docs/refactoring-vider-le-viewmodel.md` §5 bis et §9.
+      **Non tranché : régression ou défaut préexistant.** `bundles/StarHubFR_v1.11.1.zip`
+      est la version d'avant B1-T2 et sert de témoin pour un A/B — première étape de la
+      passe, avant d'écrire quoi que ce soit : les deux réponses mènent à des travaux
+      opposés.
+      ▸ **Témoins produits (2026-09-12)** — les trois zips de l'A/B sont dans
+      `bundles/`, chacun bâti par le gate de son commit (exit 0) :
+      `StarHubFR_v1.11.1.zip` (tag `v1.11.1`, `8a48b518` — identité pré-F5
+      `com.appleboiy.StarHubTH`), `StarHubFR_pre-refactor-observable.zip`
+      (`e1bb12f`) et `StarHubFR_post-refactor-46fe7bf6.zip` (tête actuelle).
+      Les deux derniers partagent identité (`com.mrbabilo.StarHubFR`) et numéro
+      (1.43.1) : ne pas les départager à l'À propos, mais au dossier d'où chacun
+      est lancé. Recette : extraire chaque zip dans son propre dossier, quitter
+      complètement (Cmd+Q) entre deux builds, taper la même requête lettre à
+      lettre sur le parc réel, noter la sensation par build, consigner le verdict
+      ici puis fermer ou instruire la case. ⚠️ v1.11.1 relit le domaine d'avant
+      F5 : premier lancement = re-scan et recréation de l'ancien dossier
+      AppSupport (supprimé par X105) — test en lecture seule, aucune écriture
+      (installation, bascule, backup) depuis ce build.
+      ▸ **Verdict de l'A/B (2026-09-12, auteur)** — **gênant sur les trois** :
+      les builds essayés furent v1.41.1 (le zip déjà présent, identité pré-F5 —
+      le v1.11.1 rebâti n'a pas servi), `pre-refactor-observable` et la tête
+      actuelle ; trois binaires distincts vérifiés au md5, tous laguent pareil. La
+      question est tranchée : **défaut préexistant**, aucune régression à ouvrir —
+      et le gain de la conversion `@Observable` sur la frappe est nul (le risque
+      « gain de réactivité nul » du cadrage §7 s'est réalisé). La piste restante
+      est le **rendu**, et elle vaut pour deux UI — v1.11.1 est d'avant la refonte
+      d'août — : chercher ce que les deux reconstructions de page partagent par
+      frappe. Instruction avant d'écrire quoi que ce soit : une capture
+      Instruments pendant la frappe (`xctrace`, template `SwiftUI`), pour nommer
+      où va le temps au lieu de le déduire du code. La case reste dans le seau de
+      la passe groupée (arbitrage du 2026-08-01).
+      ▸ **Capture Instruments analysée (2026-09-12)** — trace `SwiftUI` 45 s sur
+      le témoin v1.41.1 pendant la frappe : 23 gels du fil principal — un Severe
+      Hang de 2,3 s, quinze de 0,5 à 1,0 s — soit **~0,7 s de fil principal
+      bloqué par lettre** (17,6 s de fil occupé sur la fenêtre, contre 1,5 s pour
+      tout le démarrage). Attribution : **27 % du temps occupé (4,7 s) dans
+      `ModItem.inferTag`/`inferredTagKey`** — la chaîne
+      `Regex.firstMatch → Processor.atSimpleBoundary → matchesWord` du moteur
+      Unicode. Mécanisme : chaque frappe relance `inferredTagBuckets` et
+      `uncategorizedCount` (`ModListView`) sur toute la base, chacun appelle
+      `inferredTagKey` **par mod**, et `inferTag` enchaîne ~150 regexes
+      `\bmot\b` sur `name + uniqueId + description` **sans mémoïsation** — les
+      badges `InferredTagBadge` repassent une troisième fois sur les lignes
+      visibles. La mesure « filtrage 2–5 ms » de cette case ne voyait pas ce
+      chemin : il vit dans la couche vue, pas dans `filteredMods`. Le même code
+      est vérifié présent à la tête (mêmes fonctions, mêmes appels). Remède
+      candidat : le tag d'un mod ne dépend pas du texte cherché — le mémoïser
+      (calcul à l'init de `ModItem`, pure logique Core, testable) fait tomber la
+      répétition par frappe ; il restera le rendu proprement dit des 15 lignes.
+      **Constat accumulé (audit du 2026-09-02), à joindre à la passe groupée** — autre
+      sujet, même seau : `healthIssues` (`StarHubTHViewModel.swift:379`, `@MainActor`
+      computed) est recalculé à chaque accès — aplatissement des ~966 mods, `Set`,
+      résolution complète — et lu plusieurs fois par rendu (`systemAlertCount`,
+      `activeConflictCount`, écran d'alertes, accueil). Chaque tick de `scanProgress`
+      (publié **par mod** pendant un scan — ⚠️ **périmé** : throttlé à ~12/s et
+      publié sur main depuis `87de592`, voir tranche perf & concurrence de F2) fait réévaluer les corps observateurs : ~un
+      recalcul complet par mod scanné, soit ~966 par passe. Coût unitaire faible
+      (microsecondes), mais c'est le patron exact qui a beach-ballé les journaux (voir
+      Traps, `List` → `LazyVStack`). **Mesurer avant d'agir** ; une mémoïsation sur
+      signature d'entrées (`mods`, verdicts de conflits, conflits Content Patcher,
+      diagnostics SMAPI) garderait la source unique intacte.
+      **Second constat accumulé (audit `Models/` du 2026-09-03), même seau** :
+      `exportTranslationLot` et `importTranslationLot` restent `@MainActor` sans tâche
+      détachée ni progression. L'appariement du glossaire, qui coûtait 149 s, est corrigé
+      (`dc052a6`) ; il reste **3,2 s de fil principal nu** sur le plus gros mod à traduire
+      du parc (16 482 clés sans français), l'import autant puisqu'il reconstruit le même
+      lot. Une barre de progression suppose de sortir le calcul du fil principal : même
+      geste que le reste du seau, à faire d'un bloc.
+      **Constat accumulé (audit du 2026-09-03), à joindre à la passe groupée** —
+      `exportTranslationLot` et `importTranslationLot`
+      (`StarHubTHViewModel.swift`) sont `@MainActor` et appellent
+      `TranslationLot.build` **sans tâche détachée ni progression**. L'appariement
+      du glossaire, lui, est corrigé (index par premier mot, 9,04 ms → 0,195 ms par
+      valeur, `dc052a6`) : le gel du pire mod du parc — 16 482 clés sans français —
+      tombe de **149 s à 3,2 s**. Ces 3,2 s restants sont du fil principal nu, sans
+      un mot à l'écran. Le correctif tient en une `Task.detached` plus un état de
+      progression ; il n'a pas été fait au fil de l'eau, conformément à l'arbitrage
+      ci-dessous.
+      **Arbitrage de l'auteur (2026-08-01) : traiter dans une passe de performance
+      groupée, en fin de projet** — pas au fil de l'eau. Ne pas rouvrir isolément ; y
+      joindre les autres constats de perf accumulés d'ici là. · **M**
+
+
+- [x] **F5-T1** — ✅ **livré le 2026-09-10** (commits `8724fb9`..`4deb794`).
+      Les données de fichiers vivent sous `~/Library/Application Support/StarHubFR/`
+      derrière l'accesseur unique `AppSupport` — quatorze sites branchés, sept
+      stores de plus que les six prévus par le plan. Migration **reprenable**
+      (entrée par entrée, ce qui est déjà arrivé n'est jamais écrasé),
+      déclenchée par un `static let` : aucun point de lancement n'est assez
+      tôt, le ViewModel lit deux stores dans ses initialisateurs de
+      propriétés. `Backups/` reste derrière, délibérément. Validée sur
+      machine : dossier déplacé au premier accès, `StarHubTH/` ne garde que
+      `Backups/`, le registre ne porte plus aucun chemin absolu.
+
+
+- [x] **F5-T2** — ✅ **livré le 2026-09-10** (`8c54ba6`, `07ca257`, `5c5ea4e`).
+      Identifiant `com.mrbabilo.StarHubFR` — et le `CFBundleURLName` du schéma
+      `nxm`, qui ne change pas lui-même. Les 45 clés possédées (re-mesurées sur
+      le domaine réel du 2026-09-10 : le plan en comptait 31, neuf sont nées
+      depuis) sont recopiées au premier lancement, **jamais écrasées** ; le
+      Trousseau passe au nouveau service avec lecture de secours unique sur
+      l'ancien, qui reste en place pour l'application d'origine. Vérification
+      machine restante : `defaults read com.mrbabilo.StarHubFR gameDir`, la clé
+      Nexus reconnue, et un « Mod Manager Download » Nexus qui ouvre StarHubFR.
+
+
+- [x] **F7** ✅ *(livré le 2026-09-09)* — **L'onglet courant était une chaîne, et
+      rien ne garantissait qu'elle désigne une page.** `currentTab` était un
+      `String`, et la répartition du contenu de `MainView` une **chaîne de
+      `if / else if` sur des littéraux** — pas un `switch`. Une faute de frappe
+      ne cassait pas la compilation : elle rendait une **page blanche, en
+      silence**. Le dépôt avait pourtant déjà tranché l'inverse ailleurs, avec
+      le `switch` exhaustif de `sectionView` (`SettingsSectionOrder`, H-T7).
+      **Livré** : `SidebarDestination` (Core, 15 cas, `rawValue` reprenant les
+      anciennes chaînes) ; `MainView` switche exhaustivement pour la
+      répartition **et** pour le titre de fenêtre, sans `default:` ;
+      `HomeAttention.Kind.tab` — deuxième endroit qui écrivait ces
+      identifiants à la main, en Core — est typé lui aussi.
+      **Le garde-fou est vérifié, pas supposé** : une 16ᵉ destination ajoutée
+      sans page fait échouer le build (`error: switch must be exhaustive`).
+      10 fichiers, 2 500 tests verts, un compteur du cliquet en baisse.
+      **Relevé pendant la relecture critique de I-T1/I-T2, puis fait *avant*
+      le lot** : la spec y crée `SidebarOrder`, une table Core de ces mêmes
+      identifiants alimentant trois nouveaux écrivains (⌘1…⌘9, palette,
+      menus) — la garder en `String` aurait écrit les identifiants une
+      deuxième fois et *augmenté* la surface de page blanche.
+
+
+#### 10.3 Veille RimManager (suite)
+
+
+#### Cohérence UI : un seul langage — Axe H (les cinq derniers corps)
+
+
+- [x] **H-T5e** — ✅ **Livré et vérifié à l'écran le 2026-09-09.** **Vignette illustrée pour une ferme de mod.**
+      Depuis que `SaveFarmType` reconnaît une ferme de mod (`whichFarm = -1`,
+      cas `FrontierFarm`), sa vignette sort de la plage 0-7 des illustrations
+      et affiche un glyphe `house.fill` sur fond neutre. C'est honnête — on
+      n'a pas l'illustration — mais à côté des sept tuiles illustrées, la case
+      se lit comme « celle qui manque ».
+      Une neuvième image générique « ferme personnalisée », découpée au même
+      format que les autres (190×200, `assets/custom_ui/farm_glyph_mod.png`),
+      la ferait rentrer dans le rang. `SaveFarmGlyph` la chargerait avant de
+      retomber sur le SF Symbol, qui reste le filet.
+      Vérifié à l'écran le 2026-09-02 : le repli actuel est acceptable, ce
+      n'est pas un défaut à corriger en urgence. · **XS**
+      ✅ **L'auteur a fourni l'illustration le 2026-09-09** (« Ferme
+      frontière »), et elle est en place. **Traitement mesuré, pas estimé** :
+      la source faisait 1254×1254 avec un cartouche titré ; un profil de
+      luminance ligne par ligne a situé la bordure crème à 20 px et le début du
+      cartouche à y≈1108 — les sept vignettes du dépôt n'ont ni cadre ni titre.
+      Recadrée sur l'illustration seule au ratio 190:200, décalée de 40 px vers
+      la gauche pour garder la ferme entière (elle occupe x≈80…570 ; un
+      centrage strict l'aurait collée au bord), puis rendue en 190×200 —
+      **le format exact des sept autres, vérifié par `sips`**.
+      `SaveFarmGlyph.resourceName(_:)` route tout `whichFarm` hors 0-7 vers
+      `farm_glyph_mod`. Le SF Symbol **reste** le filet si la resource manque
+      du bundle : le repli n'est pas supprimé, il recule d'un cran.
+      > **À vérifier à l'écran (H-T5e)** — 1. Écran Sauvegardes, une partie sur
+      > ferme de mod (le parc en a une : `FrontierFarm`) : la vignette illustrée
+      > remplace le glyphe, et se lit comme les sept autres à 80×56.
+      > 2. Les huit fermes vanilla n'ont **pas** changé d'image — la bascule ne
+      > vaut que hors 0-7. 3. Le cadrage tient à la taille d'affichage réelle :
+      > la ferme reste lisible, elle n'est pas coupée par le remplissage
+      > couvrant (`aspectRatio(.fill)` rogne les bords longs).
+      >
+      > ✅ **Les trois points sont passés** (vérification de l'auteur,
+      > 2026-09-09) : le cadrage tient à 80×56 malgré le remplissage couvrant,
+      > et les huit fermes vanilla sont inchangées.
+
+
+
+- [x] **H-T5c** — ⛔️ **Abandonné le 2026-09-09** *(décision de l'auteur, §8.3 — la case est cochée parce que l'item est clos, pas parce qu'il est fait ; même convention que `X59` et `C4-T8`)*. **Portrait du fermier fidèle à la sauvegarde.** L'avatar du hero
+      est aujourd'hui une illustration fixe par sexe ; `<hair>`, `<hairstyleColor>`
+      et `<skin>` sont lues et correctes mais ne pilotent aucun pixel. Recomposer
+      la tête (base + calques coiffure/peau) plutôt que teinter un crop.
+      ~~Prérequis : des calques séparés, que l'affiche du jeu ne fournit pas.~~ · ~~**M**~~
+      ⚠️ **Le prérequis est faux — réfuté le 2026-09-09.** Il est vrai de
+      l'*affiche* et faux du **jeu installé** :
+      `Stardew Valley.app/Contents/Resources/Content/Characters/Farmer/` porte
+      les calques séparés, lus octet par octet et non déduits du nom —
+      `farmer_base.xnb` et `farmer_girl_base.xnb` (18 Ko, drapeau `0x81` :
+      **compressés LZX**), `hairstyles.xnb` (11 Ko) et `hairstyles2.xnb`
+      (6,7 Ko, LZX aussi), `skinColors.xnb` (**non compressé** — son
+      `Microsoft.Xna.Framework.Content.Texture2DReader` se lit en clair dans
+      l'en-tête), plus `accessories`, `hats`, `shirts`, `pants`. Et la
+      décompression LZX **existe déjà** dans le dépôt (`LzxdDecoder`,
+      `LzxdBitstream`, `LzxdWindow`, `LzxdTree`, plus
+      `XnbStringDictionaryReader.decompressLZX`).
+      **Ce qui manque vraiment**, et que le prérequis aurait dû nommer : un
+      lecteur de **`Texture2D`** — le travail XNB du dépôt lit des
+      *dictionnaires de chaînes*, jamais des pixels (format de surface,
+      dimensions, niveaux de mip, données RGBA) ; la correspondance entre
+      l'index `<hair>` d'une sauvegarde et sa région dans
+      `hairstyles`/`hairstyles2` ; et les règles de composition (ordre des
+      calques, teinte de `<hairstyleColor>`, palette de `skinColors`).
+      **Jamais tenté** : `git log -S` ne rend rien sur `farmer_base`,
+      `Texture2D` ni `hairstyles`.
+      ⛔️ **Abandonné le 2026-09-09, par décision de l'auteur** *(§8.3 —
+      l'item est fermé, pas déplacé)*. Ce qui suit dit pourquoi, et ce que la
+      réfutation ci-dessus vaut si la question revient un jour.
+      **Ce n'est pas un lot de l'axe H.**
+      La spec §9 pose « **aucune fonctionnalité nouvelle** : la refonte
+      déplace, renomme et restyle ». Un lecteur de textures, un index de
+      sprites et un compositeur de calques sont une **capacité neuve** — le
+      plus gros morceau de code neuf jamais proposé dans cet axe, et la taille
+      **M** était estimée en supposant les calques absents. L'auteur a tranché
+      l'abandon : l'avatar garde son illustration fixe par sexe. **Ne pas
+      rouvrir sans décision explicite** — et si la question revient, partir de
+      la mesure ci-dessus plutôt que du prérequis, qui était faux.
+
+
+- [x] **H-T7** — ✅ **Livré le 2026-09-09, en deux lots.** **Lots Journaux & Réglages** : reskin léger des journaux
+      (la perf est déjà faite), Réglages absorbe les déménagés de l'accueil
+      en sections unifiées. Deux releases — phases 5 et 6 de la spec. · **S**
+      ▸ **Cadré et mesuré le 2026-09-09** — plan
+      `docs/superpowers/plans/2026-09-09-lots-journaux-reglages-h-t7.md` (local,
+      gitignoré) ; les faits qui engagent sont ici :
+      **Ligne de base** — `LogsView` (706 l.) : **26** tailles de police
+      littérales, zéro token, zéro composant partagé. `SettingsView` (977 l.) :
+      **53** littérales, zéro token, `StandardSection` ×13. Cible du critère
+      §10 n°1 : **0** des deux côtés.
+      **Le système n'a aucun token monospace** — et le dépôt en porte déjà deux
+      formes divergentes (`design: .monospaced` dans `BisectionCard`,
+      `.monospaced()` dans `ModUpdateDeltaSection`). Le châssis H-T1 les avait
+      extraits de `DiscoverView`, qui n'affiche aucun texte monospacé ; les
+      journaux le sont par nature.
+      ⚠️ **Ce qui est testable et ce qui ne l'est pas** : `Package.swift` ne
+      compile de tout le système de design que `AppDesignCore.swift` (l.129).
+      **`AppDesign.Font`/`Color` vit hors SPM** — une *taille* (`CGFloat`) se
+      teste, une *police* SwiftUI ne se teste pas dans ce dépôt. Un test qui
+      importerait `StarHubTHCore` pour lire `AppDesign.Font.…` ne compilerait
+      pas. Choix ancien et délibéré (cf. `.kilo/plans/…ux-ui-spec…`, décision
+      D1) — ne pas le « corriger » en chemin.
+      **Défaut d'accessibilité trouvé au cadrage** : `LogsView` porte 6
+      `.help()` et **aucune** cible élargie. Les quatre boutons-glyphes de sa
+      barre d'outils (défilement auto, copier, grouper, recharger) sont des
+      `Image` nues d'environ 13 pt, sous le seuil où macOS peut tenir un survol
+      de 2 s immobile : **ces infobulles ne s'affichent jamais**, alors qu'elles
+      sont la seule explication de quatre boutons sans libellé. Corrigé dans le
+      lot (cible 18×18 + `contentShape`), règle d'accessibilité §7 point 1.
+      ✅ **Lot Journaux (phase 5) livré et vérifié à l'écran le 2026-09-09.**
+      `LogsView` tombe de
+      **26 tailles de police littérales à ZÉRO** — le critère §10 n°1 est
+      atteint pour cette vue. Deux tokens monospace neufs
+      (`AppDesign.Font.monoFootnote`/`.monoCaption`, dérivés des tokens
+      proportionnels), espacements et rayons rangés sur les paliers du système,
+      couleurs de gravité passées en sémantique. L'état vide passe à
+      `StateCard` et **distingue deux vides** qui ne se lèvent pas pareil :
+      filtré (glyphe de filtre + bouton qui remet source, niveau et recherche à
+      zéro) ou réellement vide (message seul, sans bouton inerte) — critère §10
+      n°4. Les quatre infobulles de la barre d'outils sont **réparées** (cible
+      13 pt → 18×18 + `contentShape`). Cliquet relevé de +1 sur
+      `vm_dot_L_calls` et `abbreviation_vm` — le `vm.L` du libellé neuf.
+      *Écarts assumés, à ne pas « corriger » :* la largeur 58 de la colonne
+      d'horodatage (c'est un alignement, pas un espacement) et le diamètre 6 pt
+      des points de gravité (plus petit il disparaît, plus gros il déborde).
+      > **À vérifier à l'écran (lot Journaux)** — 1. Onglet Journaux sur un
+      > vrai journal SMAPI (~120 000 lignes) : le défilement reste fluide, les
+      > cartes de santé et de bissection gardent leur place. 2. Taper une
+      > recherche qui ne rend rien : le glyphe change, la phrase parle de
+      > filtres, le bouton « Effacer les filtres » ramène la liste. 3. Source
+      > StarHubFR sans aucun filtre et sans journaux : « Aucun journal pour
+      > cette session » revient, **sans** bouton. 4. **Fenêtre à sa largeur
+      > minimale, en français** : les pastilles de niveau (Tout/INFO/WARN/
+      > ERROR/TRACE avec leur compte) ne se chevauchent pas — c'est la seule
+      > zone où la tokenisation a resserré des espacements (10 → 8, 5 → 4).
+      > 5. Grouper par mod : les points rouge/orange restent visibles à côté du
+      > nom. 6. **Survoler deux secondes chacun des quatre boutons-glyphes de
+      > la barre d'outils** : l'infobulle sort — avant ce lot, aucune ne
+      > sortait.
+      >
+      > ✅ **Les six points sont passés** (vérification de l'auteur, 2026-09-09).
+      > Le point 4 en particulier — les pastilles de niveau en français à la
+      > largeur minimale — était le seul risque de mise en page du lot : la
+      > tokenisation y resserrait deux espacements. Il tient. La même
+      > tokenisation peut donc être répétée sur les 53 sites de `SettingsView`
+      > sans reposer la question.
+
+      ✅ **Lot Réglages (phase 6) livré et vérifié à l'écran le 2026-09-09.**
+      `SettingsView` tombe de
+      **53 tailles littérales à ZÉRO** : les deux vues du lot sont à zéro, le
+      critère §10 n°1 est atteint sur tout le périmètre de H-T7. Onze sections
+      de premier niveau — et non treize : **le glossaire et le secours en ligne
+      sont imbriqués dans « Traduction assistée »** (`LocalAISettingsSection`),
+      les hisser aurait demandé d'éclater cette vue, refonte que §9 exclut.
+      Elles se lisent en quatre groupes titrés (Jeu, Mods & contenu, Données &
+      stockage, À propos), dont l'ordre vient d'un type Core sous test
+      (`SettingsSectionOrder`, 7 tests) : le groupe Jeu suit **l'ordre des
+      gestes** — dossier, puis SMAPI, puis lancement — et les réglages de
+      développeur quittent le milieu de l'écran pour le groupe Données.
+      *Garde-fous du déplacement :* le `switch` de `sectionView` est exhaustif
+      (jamais de `default:`, qui rendrait une perte silencieuse), le compte de
+      `StandardSection` reste à 13, et le mapping cas → propriété a été relu un
+      à un — c'est le seul contrôle qui attrape un **branchement croisé**, que
+      ni le `switch` ni le compte ne voient. Cliquet relevé de +1 (le `vm.L`
+      des titres de groupe). Bénéfice de côté : un `body` de 380 lignes découpé
+      en onze propriétés nommées, exactement le genre qui sature le
+      type-checker.
+      > **À vérifier à l'écran (lot Réglages)** — 1. Les onze sections sont
+      > toutes là, aucune perdue au déplacement : **4** sous Jeu, **3** sous
+      > Mods & contenu, **3** sous Données & stockage, **1** sous À propos.
+      > 2. **En français, fenêtre à sa largeur minimale** : les quatre titres
+      > de groupe ne se tronquent pas — « Données & stockage » est le plus
+      > long. 3. Sans clé Nexus enregistrée : le champ sécurisé et le bouton
+      > « Enregistrer » sont là, le flash vert sort à l'enregistrement.
+      > 4. Avec une clé : les points masqués sont monospacés et alignés.
+      > 5. « Traduction assistée » contient toujours le glossaire **et** le
+      > secours en ligne — ils n'ont pas été hissés au premier niveau, et
+      > n'apparaissent nulle part en double.
+      >
+      > ✅ **Les cinq points sont passés** (vérification de l'auteur,
+      > 2026-09-09). Aucune section perdue au déplacement des onze blocs, et
+      > les quatre titres tiennent en français à la largeur minimale.
+
+      **H-T7 est clos.** Les deux vues du lot sont à zéro taille littérale, les
+      deux lots sont vérifiés à l'écran. L'axe H garde **quatre** items ouverts
+      — H-T5c, H-T5e, H-T8, H-T9.
+
+      **Ce qui n'est PAS dans ce lot, et attend H-T9** : le dépôt porte **538**
+      tailles littérales au total — `ModDetailView` 106, `MainView` 57,
+      `BisectionCard` 36, `SmapiHealthCard` 35, `QuarantineView` 19. Les lots
+      qui ont touché ces fichiers (H-T2/T3, H-T4b, H-T6) n'en avaient scopé
+      qu'une partie : ce n'est pas un manquement de leur part, c'est
+      l'inventaire que le closage doit reprendre. **Ne pas rouvrir ces lots
+      depuis H-T7.** S'y ajoutent, depuis H-T8, les **17** littérales de
+      `ThaiTranslationHubView`, écarté parce que `C5-T1` doit le refondre.
+
+
+- [x] **H-T8** — ✅ **Livré et vérifié à l'écran le 2026-09-09.** **Hub de traduction** : reskin de continuité seulement —
+      monde à part, déjà structuré. · **M**
+      ▸ **Cadré et mesuré le 2026-09-09.**
+      **Périmètre : cinq vues, 74 tailles littérales, 1 970 lignes** —
+      `TranslationDiffView` (1 021 l., 37), `TranslationEditorView` (494 l., 13),
+      `TranslationRecoveryDiffView` (190 l., 12), `TranslationBatchView`
+      (164 l., 8), `TranslationSectionIndexView` (101 l., 4). Ce sont bien les
+      « Éditeur, diffs, lots » que la spec §6 nomme pour ce lot ; les deux
+      dernières sont ouvertes **depuis** `TranslationDiffView` (l.213 et l.313),
+      aucune n'est orpheline.
+      ⚠️ **`ThaiTranslationHubView` (283 l., 17 littérales) est EXCLU, et c'est
+      délibéré.** Ce n'est pas l'éditeur FR mais le catalogue de traductions
+      thaï de l'amont — et surtout **`C5-T1` est encore ouvert** (vérifié : la
+      case l.346, et aucun commit ne touche `showThaiTranslationHub`), qui doit
+      rendre cette vue générique et exposer une vue FR par défaut. La
+      reskinner maintenant serait du travail que C5-T1 jetterait. **Ses 17
+      littérales rejoignent donc l'inventaire H-T9**, pour que cet écran ne
+      sorte pas de l'axe H sans que personne s'en aperçoive.
+      **Deux tokens manquent encore**, et le lot les ajoute : le monospace
+      n'existe qu'en 11 et 12 (posés par H-T7) alors que le hub en emploie 7 à
+      **10 pt** et 1 à **9 pt** — des clés techniques, plus petites qu'une ligne
+      de journal. `size: 8` (un glyphe décoratif annotant une clé) monte à 9,
+      le plus petit palier : **changement visible d'1 pt**, à vérifier à
+      l'écran.
+      **Accessibilité §7 point 1** : le relevé automatique donnait
+      `TranslationEditorView` à 6 `.help()` pour zéro cible élargie — le motif
+      de `LogsView` avant H-T7. **La lecture du code l'a réfuté, et c'est le
+      constat le plus utile du lot.** Les trois glyphes de l'éditeur
+      (baguette, chevrons) sont des boutons **système bordés**, pas `.plain` :
+      macOS leur donne déjà une zone de contrôle bien plus large que le glyphe.
+      Les trois de `TranslationDiffView` portent **glyphe *et* libellé** dans un
+      `HStack` — la cible fait la largeur du texte. Le défaut de `LogsView`
+      venait des boutons `.plain` à `Image` nue, forme **absente** du hub.
+      Un compteur `help()` sans `contentShape` en face n'est donc pas un
+      défaut : c'est un signal à instruire, six faux positifs sur six ici.
+      **États vides §10 n°4 : déjà tenus, rien à corriger.** Le vide filtré de
+      `TranslationDiffView` porte son échappatoire depuis toujours
+      (`diffClearFilters`, l.586 — « sans elle, un filtre trop étroit est une
+      impasse dont on ne voit pas la sortie »). Les autres sont des états
+      **sans issue** — ce mod n'a aucune clé, rien à comparer — auxquels il n'y
+      a rien à proposer ; ou bien leur champ de recherche est à vingt points
+      au-dessus (`TranslationSectionIndexView`).
+      ✅ **Bilan : le lot se réduit à la tokenisation, et c'est le résultat
+      juste.** La spec annonçait « reskin de continuité seulement » : le hub,
+      écrit plus tard que les journaux, tenait déjà les deux critères de fond.
+      Aucun correctif inventé pour justifier le lot.
+      > **À vérifier à l'écran (H-T8)** — 1. Fiche d'un mod traduit → onglet
+      > diff : les clés i18n restent monospacées et alignées en colonne, les
+      > compteurs des filtres gardent leurs chiffres alignés d'une ligne à
+      > l'autre (`.monospacedDigit()` préservé sur trois d'entre eux).
+      > 2. **Le seul écart visible du lot** : dans la liste du diff, le petit
+      > glyphe de loupe qui annote une clé passe de 8 à 9 pt — vérifier qu'il
+      > reste aligné sur la ligne de base de la clé qu'il annote (son
+      > commentaire d'origine dit que c'est son enjeu). 3. Éditeur d'une clé :
+      > baguette de pré-traduction et chevrons précédent/suivant restent
+      > cliquables et leurs infobulles sortent. 4. Lot de traduction et index
+      > des sections ouverts depuis le diff : rien n'a changé de taille au
+      > point de tronquer. 5. Un mod sans aucune clé à traduire, puis un filtre
+      > qui ne rend rien : le premier affiche son constat, le second garde son
+      > lien « effacer les filtres ».
+      >
+      > ✅ **Les cinq points sont passés** (vérification de l'auteur,
+      > 2026-09-09), le glyphe monté de 8 à 9 pt compris : il reste aligné sur
+      > la ligne de base de la clé qu'il annote.
+
+
+- [x] **H-T9** — ✅ **Livré le 2026-09-09 — l'axe H est clos.** **Closage** :
+      audit de fidélité (Découvrir visuellement identique à la v1.25.0 malgré
+      les évolutions du système), bibliothèque `/design` complétée (Screens),
+      nettoyage des vestiges. · **S**
+      **1. Audit de fidélité : ZÉRO écart** — critère §10 n°6 atteint. Méthode,
+      faute de pouvoir comparer à l'œil : résoudre chaque token en sa valeur
+      numérique et comparer les multisets de valeurs de style (polices,
+      espacements, rayons, marges, hauteurs) entre `v1.25.0` et aujourd'hui.
+      Résultat : **29 valeurs distinctes des deux côtés, aucune disparue,
+      aucune apparue**. Et **aucune valeur de token n'a bougé** depuis
+      v1.25.0 : le diff de `AppDesignCore.swift` et `AppDesignUI.swift` ne
+      porte que des ajouts, pas une seule ligne supprimée.
+      ⚠️ **Le chemin vaut d'être retenu : 21 écarts → 8 → 5 → 0, et les 21
+      étaient tous faux.** Chaque réduction est venue d'un **élargissement du
+      périmètre**, jamais d'un correctif. La vitrine de v1.25.0 tenait dans un
+      seul fichier ; aujourd'hui son style vit aussi dans `ModCard`,
+      `HeroHeader`, `SectionHeader`, `StatStrip`, `StateCard`, `NeutralBadge`,
+      `ErrorBanner` et `CategoryBadge`. Comparer fichier à fichier montrait des
+      disparitions fantômes. Deux pièges en particulier : `NeutralBadge` est
+      l'ancien `badge(_:)` privé de `DiscoverView` (son en-tête dit lui-même
+      pourquoi ses marges 6 et 2 **restent littérales** — les tokens voisins
+      valent 4 et 8, les substituer aurait changé l'apparence), et
+      `CategoryBadge` existait **déjà** en v1.25.0, dans `ModListView` : ses
+      valeurs paraissaient « nouvelles » parce qu'elles n'étaient pas dans le
+      fichier comparé. **Un compte n'est pas une lecture** — trois fois de
+      suite ici.
+      **2. Bibliothèque `/design` complétée** : quatrième artboard
+      `Screens.dc.html` (`canvas.json` n'en déclarait que trois — Foundations,
+      Components, Cards). Il montre ce que les autres ne montrent pas : le
+      **patron de page de liste** (en-tête fixe / défilement / pied fixe), les
+      journaux avec leur repli de familles et leurs comptes par source, les
+      deux états vides qui ne se lèvent pas pareil, et les quatre groupes des
+      Réglages. Il dit aussi ce qu'il ne montre pas, et pourquoi.
+      **3. Vestiges retirés** : `green_button.png`, `wood_button.png`,
+      `wood_panel.png` — hérités du commit initial (`8b068b2`, 2026-07-03),
+      **jamais chargés par une ligne de ce fork** (`git log -S` muet sur les
+      trois), et pourtant copiés dans le bundle à chaque build. Leur seule
+      autre trace est une déclaration de ressource dans le `.pbxproj` de
+      l'amont, pas un usage.
+      ▸ **Ce que H-T9 ne fait PAS, et c'est délibéré** : les **555** tailles de
+      police littérales du reste du dépôt (538 relevées en H-T7 + 17 de
+      `ThaiTranslationHubView` en H-T8) restent en place. Le critère §10 n°1 ne
+      porte que sur « les vues migrées », et les remettre à zéro sur quarante
+      fichiers serait un chantier plus gros que tout l'axe H réuni. **C'est un
+      relevé daté pour un futur axe, pas une dette à éteindre ici.**
+
