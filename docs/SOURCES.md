@@ -368,6 +368,8 @@ deux qui valaient instruction. Ne pas trier ces 204 commits sur leur libellé.
 | [**Stardrop**](https://github.com/Floogen/Stardrop) — Floogen | C# / Avalonia, 269 ★, **très actif** | `docs/audit-stardrop.md` (2026-07-31) : smapi.io en direct plutôt que le dump, configs par profil, notes, `UpdateCautionMessage`. **Ne pas porter** SimpleObscure ni les jonctions de dossiers |
 | [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) | officiel, Rust/C# | documentation du protocole `nxm://` et des collections |
 | [node-nexus-api](https://github.com/Nexus-Mods/node-nexus-api) | client officiel Node | forme des réponses de l'API v1 |
+| [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) — Wooa | mod SMAPI en jeu (`wooa.KeybindRadar`), 2026-09-22 | radar de raccourcis & conflits — recouvre l'axe C4. Décompilé : [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md) — notre `KeybindScanner` est plus riche (118 raccourcis sans indice de nom que son heuristique rate) |
+| [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) — Sky | mod SMAPI en jeu (`Sky.SaveSaver`), 2026-09-22 | sanitation de sauvegardes au chargement (types orphelins, ErrorItems). Décompilé : même audit — ses backups vivent **dans son dossier de mod** (classe §6, et non régénérables) |
 | Divers (RWELabs, thimadera, Zamiell, awesomestardew…) | — | inventaire de l'écosystème, cités dans `docs/audit-gestionnaires.md` |
 
 ### Ce que Stardrop a livré depuis notre audit
@@ -391,6 +393,27 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
    revenir en arrière : rien à reprendre, mais bon à savoir aligné.
 5. **« Collection Installed Mods Path »** (2026-08-31) — les collections Nexus,
    que nous ne gérons pas du tout.
+
+### Deux mods qui recouvrent nos axes — Keybind Radar et SaveSaver *(2026-09-23)*
+
+Tous deux parus le 2026-09-22, tous deux **en pause sur le parc**, décompilés
+et audités dans [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md).
+Ce qu'il faut en retenir ici, au-delà du verdict de l'audit :
+
+- **SaveSaver ne déclare aucun `UpdateKeys`** : ni SMAPI, ni smapi.io, ni notre
+  vérificateur ne sauront qu'une mise à jour existe. La sonde
+  `mod/savesaver` restera muette — état relevé, pas alerte.
+- **Ses backups de sauvegardes vivent dans son dossier de mod** — la classe
+  « données runtime dans le dossier » du §6 (cas MCM), aggravée : une
+  sauvegarde n'est pas régénérable. Notre `.overwriteWithBackup` détruirait le
+  dossier à une mise à jour ; le snapshot `beforeUpdate` le conserve, à
+  surveiller pareil.
+- **L'empreinte des mods dans les saves ne passe pas seulement par des types
+  C#** (ce que SaveSaver voit) : mesuré sur la sauvegarde maison Zofia,
+  457 identifiants namespacés — ~133 nœuds `Lumisteria.MtVapius` dont le mod
+  est **absent du parc**, 757 objets `Morghoula.Alchemistry` dont le mod est
+  **en pause**. Notre bascule pause crée donc le scénario SaveSaver sans le
+  dire ; l'idée d'intégration n° 1 de l'audit en découle.
 
 ---
 

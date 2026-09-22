@@ -523,6 +523,23 @@ SOURCES = [
              "réflexion dans ses deux DLL",
      "used_by": "docs/roadmap-archive.md §3 ter (audit)"},
 
+    {"key": "mod/keybind-radar", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 52710, "uniqueId": "wooa.KeybindRadar",
+     "role": "radar de raccourcis en jeu (conflits, non-assignés, saut GMCM) — "
+             "recouvre l'axe C4 ; décompilé le 2026-09-23, notre KeybindScanner "
+             "est plus riche (118 raccourcis sans indice de nom que son "
+             "heuristique rate)",
+     "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
+
+    {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 52709, "uniqueId": "Sky.SaveSaver",
+     "role": "sanitation de sauvegardes au chargement (types orphelins, "
+             "ErrorItems) ; décompilé le 2026-09-23. SANS UpdateKeys dans son "
+             "manifeste — smapi.io peut rester muet en permanence, état relevé, "
+             "pas alerte ; ses Backups vivent dans son dossier de mod "
+             "(classe « données runtime » du §6, non régénérables)",
+     "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",

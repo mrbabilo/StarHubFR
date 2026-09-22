@@ -96,6 +96,12 @@
     "name": "Generic Mod Config Menu",
     "version": "1.16.0"
   },
+  "mod/keybind-radar": {
+    "changelog_reviewed": "1.0.0",
+    "gitHubRepo": null,
+    "name": null,
+    "version": "1.0.0"
+  },
   "mod/loading-optimizer": {
     "gitHubRepo": null,
     "name": null,
@@ -118,6 +124,11 @@
     "version": "2.0.0"
   },
   "mod/save-launcher": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": null
+  },
+  "mod/savesaver": {
     "gitHubRepo": null,
     "name": null,
     "version": null
