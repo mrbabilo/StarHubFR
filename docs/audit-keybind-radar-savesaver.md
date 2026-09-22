@@ -213,8 +213,12 @@ backups dans le dossier du mod, la réécriture fourre-tout en `Object` vide.
   `mod/savesaver` — cette dernière restera muette chez smapi.io tant que le
   mod ne déclare pas d'`UpdateKeys`, état relevé, pas alerte).
 - Carte des sources : `docs/SOURCES.md` §5.
-- Les restes C4 (filtres, recherche, saut, export) gardent leur case ROADMAP ;
-  le signal de demande est renforcé par Keybind Radar.
+- Les restes C4 deviennent des items le jour même aussi : **C4-T12** (le
+  signal de conflit pendant la capture — l'idée « priorité basse » du §1,
+  avec l'affordance d'effacement de MCM 2.1.6) et **C4-T13** (filtres tous /
+  liés / conflits / non-assignés, recherche, saut-au-réglage, export).
+  Le signal de demande est renforcé par Keybind Radar. Le harnais
+  `savesaver_infect` est noté dans A1-T9 comme moyen de test.
 - Les trois candidats d'intégration du §2 sont **inscrits en ROADMAP le jour
   même** (2026-09-23) : **A1-T8** (avertissement à la bascule — il complète
   A1-T6, dont il répond la question laissée ouverte sur les *objets*),

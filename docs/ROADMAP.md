@@ -376,7 +376,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **7 items ouverts** *(recompté le 2026-09-14 : C3-T2, C3-T5, **C4-T9**, **C4-T10**, C5-T1, C5-T2, C6-T1 — C4 était clos, la veille du 2026-09-14 l'a rouvert de deux items : un faux positif du scanner, un contrôle absent de l'éditeur)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **7 items ouverts** *(recompté le 2026-09-23 — le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Restent : C3-T2, C3-T5, C4-T12, C4-T13, C5-T1, C5-T2, C6-T1)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -703,10 +703,43 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       canoniques, première collision trouvée, conflit jeu prioritaire —
       existe déjà chez nous en plus riche : l'annotation lit le rapport
       (`KeybindScanner.annotation`), hérite des exclusions catalogue (R4)
-      et remap (C4-T9), et distingue manette. Leurs filtres
-      tous/liés/conflits, recherche, saut-au-réglage et export restent à
-      prendre si l'usage le justifie — notre `KeybindReportSection` couvre
-      déjà la vue globale.
+      et remap (C4-T9), et distingue manette.
+
+- [ ] **C4-T12 — Le signal de conflit pendant la capture, pas seulement
+      après.** *(idée gardée de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md)
+      §1, 2026-09-23 : l'overlay « This key is already in use » de Keybind Radar
+      s'affiche pendant la saisie, pas après coup — l'annotation « lié à »
+      livrée ci-dessus ne parle qu'à la relecture.)* Sous `ModKeybindField`,
+      pendant une capture, si le combo pressé correspond à une autre liaison,
+      signal immédiat sous le champ ; le rapport `KeybindScanner` et ses
+      signatures canoniques existent déjà, l'annotation reste le bilan après
+      coup.
+      ⚠️ **Comparer sur les signatures canoniques, pas sur les touches
+      pressées** : la capture est clavier (`MacKeyCodeMap`), mais le parc va
+      porter des `MouseX1`/`MouseX2` (MCM 2.1.3, SOURCES §6) et des boutons
+      manette — dire s'il y a conflit est une question de sémantique de
+      signature, pas de ressemblance de jeton.
+      ⚠️ **L'affordance d'effacement peut voyager avec** (MCM 2.1.6, journal
+      lu le 2026-09-23) : leur bouton `[×]` et « clic droit / ⌫ pour vider »
+      pendant l'écoute — notre capture a Échap (annule) mais aucun chemin
+      explicite vers « None ». · **S**
+
+- [ ] **C4-T13 — Filtres, recherche, saut-au-réglage et export du rapport
+      de raccourcis.** *(les restes C4 notés le 2026-09-15 deviennent un item ;
+      le signal de demande est double depuis le 2026-09-23 — Keybind Radar
+      n'existe QUE pour ça, et MCM a son `KeybindOverviewModal`.)* Sur
+      `KeybindReportSection`, qui couvre déjà le constat global : filtre
+      **tous / liés / conflits**, plus le filtre **non-assignés** propre à
+      Keybind Radar que MCM n'a pas ; recherche ; **saut-au-réglage** — la
+      destination exacte de chaque ligne, le piège étant l'ouverture de
+      l'éditeur d'un autre mod : changer d'onglet efface les vues de détail
+      (`MainView` remet ses états à `nil`), l'intention doit voyager dans un
+      `@Published` `pending…Focus` reconsommé dans le `onChange(of: currentTab)`
+      lui-même (patron B3-T4) ; export.
+      ⚠️ **À instruire par l'usage avant d'engager** : le rapport est
+      consultatif — si l'utilisateur n'agit jamais depuis ces lignes, les
+      filtres sont du vernis. Livrer le premier filtre seul (conflits) et
+      mesurer avant le reste. · **M**
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
@@ -975,7 +1008,11 @@ backup se retrouve en moins de dix secondes.
       (`DataLoader` côté jeu, manifestes et DLL côté app).
       ⚠️ Son seuil `IsErrorItem` (`DisplayName.Contains("Error")`) est un faux
       positif ambulant — un item légitime au nom traduit contenant « Error »
-      serait converti en pierre chez lui ; ne pas l'imiter. · **M**
+      serait converti en pierre chez lui ; ne pas l'imiter. **Le harnais de
+      test existe pourtant chez lui** : `savesaver_infect` injecte huit faux
+      items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
+      — le moyen de tester cet item sans attendre un vrai accident, la fixture
+      étant produite par un vrai producteur, jamais à la main. · **M**
 
 - [ ] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
       automatique.** *(même audit, 2026-09-23 ; à n'engager qu'après A1-T9, et
