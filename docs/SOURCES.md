@@ -206,12 +206,19 @@ installables (Bus Locations, Informant, SAAT ×2, Mod Update Menu) — voir X56.
 et plusieurs entrées sont des **reuploads piégés de mods légitimes**, le cas
 qu'un joueur ne distingue pas à l'œil sur Nexus.
 
-Deux sections, relevées le 2026-09-15 (HTTP 200, 5 029 octets) :
+Deux sections, relevées le 2026-09-15 (HTTP 200, 5 029 octets), re-relevées le
+2026-09-23 :
 
 | Section | Clé | Compte | Croisé au parc (1 112 manifestes) |
 |---|---|---:|---|
-| `Blacklist` | `Id` = `UniqueID` du manifeste | 9 | **0 correspondance** |
+| `Blacklist` | `Id` = `UniqueID` du manifeste | **16** *(9 le 2026-09-15)* | **0 correspondance** |
 | `LooseFileBlacklist` | `Name` + `Hash` (MD5) | 1 | **0** — et aucun `.bat` du tout |
+
+La hausse de septembre porte la liste à 16 : **10 entrées datées 2026-09**, dont
+**4 d'un même auteur** (`StardewLabs.*`) — plus une campagne qu'un mod isolé,
+toutes sur le même motif (« downloads malicious code from a remote server and
+runs it on your computer »). Croisé au parc le 2026-09-23 : toujours
+**0 correspondance**.
 
 Trois décisions que ce document doit porter, parce qu'elles ne se déduisent pas
 du code :
@@ -393,6 +400,10 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
    revenir en arrière : rien à reprendre, mais bon à savoir aligné.
 5. **« Collection Installed Mods Path »** (2026-08-31) — les collections Nexus,
    que nous ne gérons pas du tout.
+6. **v1.10.3** (2026-09-15, notes lues le 2026-09-23) : groupement de mods
+   localisé, réparation de téléchargements de **collections** (caractères
+   invalides) et de la colonne Enabled — UI de grille et collections ; rien à
+   porter chez nous.
 
 ### Deux mods qui recouvrent nos axes — Keybind Radar et SaveSaver *(2026-09-23)*
 
@@ -446,12 +457,12 @@ statique peut exister, et pourquoi elle survit aux remplacements de front.
 | Mod | Identité | Ce qu'on en tire |
 |---|---|---|
 | [**Generic Mod Config Menu**](https://www.nexusmods.com/stardewvalley/mods/5098) — spacechase0, 1.16.0 | `spacechase0.GenericModConfigMenu` · Nexus 5098 · [source](https://github.com/spacechase0/StardewValleyMods) (monorepo, **surveillé**) | **l'origine de la convention `config.*`** que notre éditeur lit pour ses libellés |
-| [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 2.1.0 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI. Sa 2.1.0 (changelog lu le 2026-09-10) écrit `data/mod_history.json` **dans son propre dossier** ; or notre mise à jour (`.overwriteWithBackup`) supprime le dossier avant réextraction, snapshot limité à `config.json` + `i18n/*.json` — ce fichier meurt. Regénérable (le mod redécouvre au lancement suivant), et l'ancien dossier entier reste dans la sauvegarde `beforeUpdate` : aucun changement de code, mais la **classe** « mod qui garde des données runtime dans son dossier » est à surveiller — un mod dont la donnée ne serait pas regénérable perdrait sur toute mise à jour StarHubFR |
+| [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 2.1.0 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI. Sa 2.1.0 (changelog lu le 2026-09-10) écrit `data/mod_history.json` **dans son propre dossier** ; or notre mise à jour (`.overwriteWithBackup`) supprime le dossier avant réextraction, snapshot limité à `config.json` + `i18n/*.json` — ce fichier meurt. Regénérable (le mod redécouvre au lancement suivant), et l'ancien dossier entier reste dans la sauvegarde `beforeUpdate` : aucun changement de code, mais la **classe** « mod qui garde des données runtime dans son dossier » est à surveiller — un mod dont la donnée ne serait pas regénérable perdrait sur toute mise à jour StarHubFR. Journaux lus jusqu'à **2.1.6** (2026-09-23) : sa **2.1.3 rend les boutons souris M4/M5/M3 bindables** dans tous les champs raccourcis — les configs du parc vont porter des `MouseX1`/`MouseX2`/`MouseMiddle`, jetons que notre `SButtonTable` porte déjà (KeybindGrammar.swift) ; la 2.1.4 importe en plus les enregistrements GMCM **retardés** (Automate), que notre lecture statique des DLL voit de toute façon sans besoin de règle |
 | [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) — palmhacker13, 2.1.3 | `palmhacker13.UltraSmooth` · Nexus 50971 · dépend de MCM · **installé sur le parc** | **le corpus de test de l'éditeur** : 115 clés `config.*` (41 `.name`, 41 `.tooltip`, 11 `.button`, 16 de section, 4 `.choice`) plus une clé maison `.gmcmGuide` ; porte aussi un `i18n/th.json` (hub thaï). Perf : `us_analyze` est un **profil de soi** (top 5 de ses propres moteurs) ; l'outil profond est la boîte noire **`us_trace`** (60 s, rapport au journal SMAPI **et** fichier dans le dossier du mod) — aucun patch Harmony chez les autres mods. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md) |
 | [**Faster Menu Load**](https://www.nexusmods.com/stardewvalley/mods/41564) — ZeroXPatch, 1.5.0 | `ZeroXPatch.FasterMenuLoad` · Nexus 41564 | même auteur que le SMAPILogDoctor crédité §3 ; une des 13 dépendances du SLO ; **seul des cinq non installé** sur le parc |
 | [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`) |
 | [**Profiler**](https://www.nexusmods.com/stardewvalley/mods/12135) — SinZ, 2.0.0 | `SinZ.Profiler` · Nexus 12135 · [source](https://github.com/SinZ163/StardewMods/tree/main/Profiler) (monorepo SinZ163, **surveillé**) | **la télémétrie que le chantier D1 parse** : `[BigLoop] In total, it took {0:N}ms handling …` (chaîne mesurée dans la DLL). Ses packs de contenu étendent le profilage **par déclaration** (`{Type: "Duration", TargetType, TargetMethod}`). **Installé sur le parc mais en pause** (`.Profiler/`) — sa détection doit regarder les mods en pause, pas seulement les actifs. Le zip 2.0.0 de `mods tests/` embarque le `Profiler.pdb` : les symboles de débogage sont là si le format de log doit être vérifié plus finement |
-| [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) — phuicmt, 1.7.6 | `phuicmt.SDVRadiance` · Nexus 49397 · `GitHub:PHUICMT/SDV-Radiance` · dépendance GMCM optionnelle · **installé sur le parc** | suite graphique lourde (bloom, color grading, sun shafts, ombres directionnelles, reflets) ; son diagnostic perf est **`FrameCost`** : 14 parties de rendu mesurées CPU **et** GPU (requêtes timer OpenGL), 6 frames les plus longues découpées `ours / not ours` avec deltas GC et `arrival+N` ; **`radiance_report`** écrit `~/Documents/Radiance-Dumps/radiance-report.txt`. Aucune attribution aux autres mods — « not ours » reste un lot. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md) |
+| [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) — phuicmt, 1.7.6 | `phuicmt.SDVRadiance` · Nexus 49397 · `GitHub:PHUICMT/SDV-Radiance` · dépendance GMCM optionnelle · **installé sur le parc** | suite graphique lourde (bloom, color grading, sun shafts, ombres directionnelles, reflets) ; son diagnostic perf est **`FrameCost`** : 14 parties de rendu mesurées CPU **et** GPU (requêtes timer OpenGL), 6 frames les plus longues découpées `ours / not ours` avec deltas GC et `arrival+N` ; **`radiance_report`** écrit `~/Documents/Radiance-Dumps/radiance-report.txt`. Aucune attribution aux autres mods — « not ours » reste un lot. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md). Nexus **2.3.x** (journal lu le 2026-09-23, le parc reste en 2.2.5) : vague de stabilité dont la **2.3.4** — son pré-warm des sérialiseurs SpaceCore **figeait l'initialisation avant l'enregistrement des types custom des mods**, crash de sauvegarde « type not expected » au coucher : exactement la classe de types C# orphelins des **A1-T8/T9**, provoquée par un mod du parc ; la 2.3.5 retire le LOD herbe expérimental et désactive sa télémétrie de rendu par défaut |
 
 Deux constats de lecture, mesurés :
 
