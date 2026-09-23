@@ -1497,6 +1497,7 @@
   "vm_zip_saves_error": "Une erreur s'est produite lors de la compression des sauvegardes",
   "mods_fingerprint_pause_title": "Empreintes dans les sauvegardes",
   "mods_fingerprint_pause_message": "Mettre en pause n'efface pas ce que %@ a laissé dans vos sauvegardes :",
+  "mods_fingerprint_profile_message": "Activer le profil %@ met en pause des mods qui ont laissé des traces dans vos sauvegardes :",
   "mods_fingerprint_objects": "%d objets",
   "mods_fingerprint_buildings": "%d bâtiments",
   "mods_fingerprint_data_keys": "%d entrées de données",

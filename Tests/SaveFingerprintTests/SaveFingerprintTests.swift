@@ -424,3 +424,47 @@ import Testing
         #expect(entries.map(\.name) == ["H.B", "L.A"])
     }
 }
+
+/// A1-T8 — la suspension de bascule : annuler clôture sans renommer,
+/// confirmer reprend, et une seconde sortie (Esc après le clic) ne fait rien.
+@MainActor
+@Suite struct SaveFingerprintPauseStoreTests {
+    private let mod = ModItem(
+        uniqueId: "A.B", name: "A.B", folderName: "A.B", version: "1",
+        author: "", description: "", nexusUrl: "", nexusModId: "",
+        isEnabled: true, dependencies: [])
+    private let report = SaveFingerprintReport(
+        perSave: ["Zofia": FingerprintCounts(objects: 1)])
+
+    @Test("Annuler clôture sans reprendre la bascule")
+    func cancelAbortsWithoutResuming() {
+        let store = SaveFingerprintPauseStore()
+        var resumed = 0, aborted = 0
+        store.suspend(subject: .mod(mod), report: report,
+                      resume: { resumed += 1 }, abort: { aborted += 1 })
+        store.cancel()
+        #expect(resumed == 0)
+        #expect(aborted == 1)
+        #expect(store.pending == nil)
+    }
+
+    @Test("Confirmer reprend une fois ; la fermeture qui suit ne fait rien")
+    func confirmResumesOnce() {
+        let store = SaveFingerprintPauseStore()
+        var resumed = 0, aborted = 0
+        store.suspend(subject: .mod(mod), report: report,
+                      resume: { resumed += 1 }, abort: { aborted += 1 })
+        store.confirm()
+        store.cancel()
+        #expect(resumed == 1)
+        #expect(aborted == 0)
+    }
+
+    @Test("Une suspension de profil porte le nom du profil")
+    func profileSubjectCarriesProfileName() {
+        let store = SaveFingerprintPauseStore()
+        store.suspend(subject: .profile(name: "Hiver"), report: report,
+                      resume: {}, abort: {})
+        #expect(store.pending?.subject == .profile(name: "Hiver"))
+    }
+}

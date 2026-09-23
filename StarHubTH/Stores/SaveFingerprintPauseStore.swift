@@ -21,29 +21,34 @@ final class SaveFingerprintPauseStore {
     /// reste celle de l'utilisateur.
     private(set) var pending: PendingPause?
 
-    /// Le contenu de la suspension : le mod visé (capturé par valeur à
-    /// l'empilement, comme dans `pendingToggles`) et le rapport chiffré
-    /// depuis les saves réelles.
+    /// Le contenu de la suspension : ce qui met en pause — un mod (capturé
+    /// par valeur à l'empilement, comme dans `pendingToggles`) ou un profil
+    /// à l'activation — et le rapport chiffré depuis les saves réelles.
     struct PendingPause {
-        let mod: ModItem
+        let subject: Subject
         let report: SaveFingerprintReport
+    }
+
+    enum Subject: Equatable {
+        case mod(ModItem)
+        case profile(name: String)
     }
 
     /// La reprise de la bascule suspendue (le renommage, au VM) et sa
     /// clôture (la complétion de la file). Tenues hors de `pending` : ce
     /// sont des fils de conduite, pas de l'état affiché.
-    private var onResume: (() -> Void)?
-    private var onAbort: (() -> Void)?
+    private var onResume: (@MainActor () -> Void)?
+    private var onAbort: (@MainActor () -> Void)?
 
     /// Lance le scan des saves pour les ids du plan, hors du fil principal.
     /// Rapport vide → `resume` immédiatement (pas de confirmation pour
     /// rien) ; rapport non vide → suspendre et exposer `pending`. `abort`
     /// est la clôture à honorer si la session disparaît en route.
     func checkBeforePause(
-        mod: ModItem,
+        subject: Subject,
         modIDs: Set<String>,
-        resume: @escaping () -> Void,
-        abort: @escaping () -> Void
+        resume: @escaping @MainActor () -> Void,
+        abort: @escaping @MainActor () -> Void
     ) {
         DispatchQueue.global().async { [weak self] in
             // fetchSaves() est conçu pour les files de fond (SaveManager).
@@ -59,38 +64,49 @@ final class SaveFingerprintPauseStore {
                     resume()
                     return
                 }
-                self.pending = PendingPause(mod: mod, report: report)
-                self.onResume = resume
-                self.onAbort = abort
+                self.suspend(subject: subject, report: report, resume: resume, abort: abort)
             }
         }
+    }
+
+    /// Suspendre la bascule derrière l'avertissement — le point d'entrée
+    /// des tests, qui n'ont pas à scanner de vraies saves.
+    func suspend(
+        subject: Subject,
+        report: SaveFingerprintReport,
+        resume: @escaping @MainActor () -> Void,
+        abort: @escaping @MainActor () -> Void
+    ) {
+        pending = PendingPause(subject: subject, report: report)
+        onResume = resume
+        onAbort = abort
     }
 
     /// « Mettre en pause quand même » : rendre la main à la bascule
     /// suspendue, sans rescanner. Idempotent au repos.
     func confirm() {
-        guard let resume = takeOwnership() else { return }
-        resume()
+        takeOwnership()?.resume()
     }
 
     /// L'annulation : clôturer sans rien renommer. La complétion est
     /// honorée — la rangée doit rendre son état au repos et la file de
     /// bascule repartir. Idempotent au repos.
     func cancel() {
-        guard let abort = takeOwnership() else { return }
-        abort()
+        takeOwnership()?.abort()
     }
 
     /// Sortir de la suspension en une lecture : `pending` vidé et les deux
     /// fils récupérés d'un coup — fermer l'alerte après un confirm (Esc
     /// arrive après le clic) ne déclenche jamais une seconde reprise.
-    private func takeOwnership() -> (() -> Void)? {
-        guard pending != nil else { return nil }
+    /// Chaque sortie appelle **son** fil : rendre un seul fil (`resume ??
+    /// abort`) faisait reprendre la bascule sur une annulation.
+    private func takeOwnership()
+        -> (resume: @MainActor () -> Void, abort: @MainActor () -> Void)? {
+        guard pending != nil, let resume = onResume, let abort = onAbort
+        else { return nil }
         pending = nil
-        let resume = onResume
-        let abort = onAbort
         onResume = nil
         onAbort = nil
-        return resume ?? abort
+        return (resume, abort)
     }
 }

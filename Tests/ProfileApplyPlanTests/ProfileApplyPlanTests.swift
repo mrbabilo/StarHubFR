@@ -302,3 +302,17 @@ private func makeLibrary(using rng: inout SeededGenerator) -> ([ModItem], ModPro
 
     return (mods, ModProfile(name: "Engendré", enabledModIds: enabledIds))
 }
+
+/// A1-T9 — l'avertissement d'empreintes à l'activation d'un profil chiffre
+/// ce que le profil **met en pause**, composants de packs compris.
+@Suite struct ProfilePausedModIDsTests {
+    @Test func pausedIdentifiersAreThoseTheProfileDisables() {
+        let pack = makeMod("RSV", uniqueId: "", enabled: true, children: [
+            makeMod("Core", uniqueId: "rsv.core", enabled: true)])
+        let garde = makeMod("Garde", enabled: true)
+        let dort = makeMod("Dort", enabled: false)
+        let profil = ModProfile(name: "P", enabledModIds: ["garde"])
+        #expect(ProfileApplyPlan.pausedModIDs(applying: profil, to: [pack, garde, dort])
+            == ["rsv.core"])
+    }
+}

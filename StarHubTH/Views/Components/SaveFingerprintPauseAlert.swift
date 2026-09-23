@@ -35,7 +35,7 @@ extension View {
         } message: {
             if let pending = store.pending {
                 Text(FingerprintSummary.text(
-                    modName: pending.mod.name,
+                    subject: pending.subject,
                     report: pending.report,
                     localization: localization))
             }
@@ -50,7 +50,7 @@ extension View {
 /// illisible (et son message tronqué par l'OS).
 enum FingerprintSummary {
     static func text(
-        modName: String,
+        subject: SaveFingerprintPauseStore.Subject,
         report: SaveFingerprintReport,
         localization: LocalizationStore
     ) -> String {
@@ -65,9 +65,13 @@ enum FingerprintSummary {
             lignes.append(String(
                 format: localization.L(L10n.Mods.fingerprintMoreSaves), cachées))
         }
-        return String(
-            format: localization.L(L10n.Mods.fingerprintPauseMessage), modName)
-            + "\n" + lignes.joined(separator: "\n")
+        let tête = switch subject {
+        case .mod(let mod):
+            String(format: localization.L(L10n.Mods.fingerprintPauseMessage), mod.name)
+        case .profile(let name):
+            String(format: localization.L(L10n.Mods.fingerprintProfileMessage), name)
+        }
+        return tête + "\n" + lignes.joined(separator: "\n")
     }
 
     /// « 757 objets · 1 bâtiment » — les familles nulles tuées. Partagé avec

@@ -74,6 +74,15 @@ enum ProfileApplyPlan {
         }
     }
 
+    /// Les identifiants que ce profil **mettrait en pause**, composants de
+    /// packs compris — ce que l'avertissement d'empreintes chiffre avant
+    /// l'activation (A1-T9).
+    static func pausedModIDs(applying profile: ModProfile, to installedMods: [ModItem]) -> Set<String> {
+        let dossiers = Set(moves(applying: profile, to: installedMods)
+            .filter { $0.direction == .disable }.map(\.folderName))
+        return installedMods.uniqueIds(inTopFolders: dossiers)
+    }
+
     /// Le profil réclame ce mod — ou, pour un pack, **au moins un** de ses
     /// composants. Un pack ne se renomme qu'en entier.
     static func isCovered(_ mod: ModItem, by profile: ModProfile) -> Bool {

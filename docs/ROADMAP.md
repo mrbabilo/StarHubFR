@@ -422,8 +422,10 @@ backup se retrouve en moins de dix secondes.
       — le moyen de tester cet item sans attendre un vrai accident, la fixture
       étant produite par un vrai producteur, jamais à la main.
       ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc ;
-      (2) le même avertissement **à l'activation d'un profil**, qui met des
-      mods en pause en masse sans passer par `performToggle`.
+      (2) ✅ le même avertissement **à l'activation d'un profil** — livré
+      (tranche 1, 2026-09-23 ; avec deux correctifs d'A1-T8 : « Annuler »
+      reprenait la bascule, et un pack n'était jamais chiffré). Reste
+      ouverte la **bascule en masse** (`ModFolderBulkMove`), non interceptée.
       ▸ **Mesuré le 2026-09-23 (Zofia + TestOK, 1 127 ids) — le cadrage change :**
       - *La taxonomie SaveSaver ne trouve rien* : 0 type `xsi` de mod (109
         types, tous vanilla) ; les 2 « Error Item » sont le placeholder

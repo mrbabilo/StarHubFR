@@ -247,6 +247,13 @@ extension Array where Element == ModItem {
         Set(flattenedMods.map(\.uniqueId).filter { !$0.isEmpty })
     }
 
+    /// Les identifiants portés par ces dossiers **de tête** — pour un pack,
+    /// ceux de ses composants, l'en-tête n'en ayant pas. Un plan de bascule
+    /// parle en dossiers ; une empreinte de sauvegarde, en identifiants.
+    func uniqueIds(inTopFolders folders: Set<String>) -> Set<String> {
+        filter { folders.contains($0.folderName) }.allUniqueIds
+    }
+
     /// Le mod installé qui porte cet `UniqueID`, **composants de packs
     /// compris** — un mod de premier niveau d'abord, puis les composants.
     ///

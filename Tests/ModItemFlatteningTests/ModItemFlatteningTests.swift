@@ -152,4 +152,15 @@ struct ModItemFlatteningTests {
         let pack = mod("RSV", id: "", children: [mod("Core", id: "")])
         #expect([pack].mod(withUniqueId: "") == nil)
     }
+
+    /// A1-T8 — l'alerte de bascule lisait l'uid de l'en-tête (vide) : un pack
+    /// n'était jamais chiffré. Les ids d'un dossier de tête sont ceux de ses
+    /// composants.
+    @Test func topFolderIdentifiersOfAPackAreItsComponents() {
+        let pack = mod("RSV", id: "", children: [mod("Core"), mod("Extras")])
+        let solo = mod("Automate")
+        let autre = mod("Autre")
+        #expect([pack, solo, autre].uniqueIds(inTopFolders: ["RSV", "Automate"])
+            == ["id.Core", "id.Extras", "id.Automate"])
+    }
 }

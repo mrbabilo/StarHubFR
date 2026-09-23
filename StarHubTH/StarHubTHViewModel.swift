@@ -3099,13 +3099,11 @@ final class StarHubTHViewModel {
         // La reprise (confirmer, ou reprise sans empreinte) repasse par ici
         // avec `fingerprintChecked: true` — jamais deux scans pour un geste.
         if !targetState && !fingerprintChecked {
-            let planIDs = Set(
-                foldersToToggle.compactMap { folder in
-                    mods.first { $0.folderName == folder }?.uniqueId
-                }.filter { !$0.isEmpty })
+            // Composants compris : l'en-tête d'un pack n'a pas d'uid.
+            let planIDs = mods.uniqueIds(inTopFolders: Set(foldersToToggle))
             if !planIDs.isEmpty {
                 saveFingerprintPauseStore.checkBeforePause(
-                    mod: mod,
+                    subject: .mod(mod),
                     modIDs: planIDs,
                     resume: { [weak self] in
                         self?.performToggle(mod, completion: completion, fingerprintChecked: true)
@@ -8937,7 +8935,7 @@ final class StarHubTHViewModel {
         return true
     }
 
-    func applyProfile(id: UUID?) {
+    func applyProfile(id: UUID?, fingerprintChecked: Bool = false) {
         // L'aiguillage — six branches, dont trois qui ne se rencontrent
         // qu'après un crash ou une application partielle — vit dans
         // `ProfileActivation` (Core, 16 tests). Ici ne restent que les effets.
@@ -8983,6 +8981,17 @@ final class StarHubTHViewModel {
 
         case .activate(let profileId, let capturing, let clearingJournalNamed):
             guard let profile = profilesStore.profile(with: profileId) else { return }
+            // A1-T9 — chiffrer ce que le profil met en pause avant tout effet
+            // (verrou posé pendant le scan) ; la reprise redécide.
+            let pausedIDs = ProfileApplyPlan.pausedModIDs(applying: profile, to: mods)
+            if !fingerprintChecked, !pausedIDs.isEmpty {
+                profilesStore.setApplying(true)
+                return saveFingerprintPauseStore.checkBeforePause(
+                    subject: .profile(name: profile.name), modIDs: pausedIDs,
+                    resume: { [weak self] in self?.profilesStore.setApplying(false)
+                        self?.applyProfile(id: id, fingerprintChecked: true) },
+                    abort: { [weak self] in self?.profilesStore.setApplying(false) })
+            }
             // Capture AVANT tout : le disque porte encore les réglages du
             // profil sortant. C'est la seule fenêtre où ils existent.
             if let capturing { captureProfileConfigs(for: capturing) }
