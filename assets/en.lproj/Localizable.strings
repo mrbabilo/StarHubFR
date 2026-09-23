@@ -222,6 +222,7 @@
 "install_report_data_section" = "Mod data kept";
 "install_report_data_restored_row" = "%1$@ — %2$d file(s) put back";
 "install_report_data_failed_row" = "%1$@ — %2$d file(s) not put back; recover them from the install backup:";
+"install_report_data_skipped_row" = "%1$@ — %2$d data file(s) not put back (setting): they stay in the install backup.";
 "install_report_summary_translation" = "%d keys to translate";
 "install_report_title_install" = "Installation complete";
 "install_report_title_update" = "Update complete";
@@ -1245,6 +1246,8 @@
 "settings_hint_save_resources" = "Save system resources";
 "settings_keep_nexus_archives" = "Keep downloaded archives";
 "settings_keep_nexus_archives_hint" = "After a successful install, keep the file Nexus served so the mod can be reinstalled without downloading it again — offline, and at that exact version. Archives are listed and removed in Maintenance. Nothing is kept retroactively: only installs made after you turn this on.";
+"settings_restore_mod_data" = "Put mod data back after updates";
+"settings_restore_mod_data_hint" = "After an update, files the mod wrote while playing (a ‹save›_SaveData.save and its like) are put back into the updated mod. Off: they stay in the install backup, listed in the report, recoverable from Maintenance.";
 "settings_language_english" = "English";
 "settings_language_french" = "French";
 "settings_launch_options" = "Launch Options";
