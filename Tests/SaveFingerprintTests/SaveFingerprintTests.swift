@@ -155,14 +155,69 @@ import Testing
         #expect(r["Bindicle.Dayswork"]?.modDataKeys == 1)
     }
 
-    /// Mesuré : 43 clés SMAPI `smapi/mod-data/<uid>/…` sur Zofia.
-    @Test("La forme SMAPI smapi/mod-data/uid/… résout vers l'uid")
+    /// Mesuré sur Zofia (2026-09-23) : 35 clés `smapi/mod-data/<uid>/…`,
+    /// 26 mods. SMAPI écrit l'uid **en minuscules**, et un uid peut n'avoir
+    /// aucun point (`Cropgenics`). La clé passe par le vrai `scan()` : un
+    /// scan construit à la main cachait que le scanneur refusait le `/`.
+    @Test("La forme SMAPI smapi/mod-data/uid/…, lue par scan(), résout vers l'uid")
     func smapiModDataKeysResolve() {
-        let s = SaveFingerprintScan(modDataKeys: [
-            "smapi/mod-data/Kedi.VPP/essai": 3,
-        ])
-        let r = SaveFingerprintResolution.resolve(s, modIDs: ["Kedi.VPP"])
-        #expect(r["Kedi.VPP"]?.modDataKeys == 3)
+        let xml = fixture(
+            "<SaveGame><modData><item>"
+                + "<key><string>smapi/mod-data/spacechase0.spacecore/skills</string></key>"
+                + "<value><string>x</string></value></item>"
+                + "<item><key><string>smapi/mod-data/cropgenics/state</string></key>"
+                + "<value><string>x</string></value></item>"
+                + "<item><key><string>smapi/mod-data/thalethegreat.wallettools/"
+                + "legacy-migrated-thalethegreat.walletautopetter-walletautopetter.state"
+                + "</string></key><value><string>x</string></value></item>"
+                + "</modData></SaveGame>")
+        let r = SaveFingerprintResolution.resolve(
+            scan(xml),
+            modIDs: ["spacechase0.SpaceCore", "Cropgenics",
+                     "ThaleTheGreat.WalletTools", "thalethegreat.walletautopetter"])
+        #expect(r["spacechase0.SpaceCore"]?.modDataKeys == 1)
+        #expect(r["Cropgenics"]?.modDataKeys == 1)
+        // L'uid est le segment entre les deux `/`, pas ce que cite la suite.
+        #expect(r["ThaleTheGreat.WalletTools"]?.modDataKeys == 1)
+        #expect(r["thalethegreat.walletautopetter"] == nil)
+    }
+
+    /// Mesuré sur Zofia (2026-09-23) : la convention `<uid>/<clé>` porte la
+    /// masse des clés modData (`mistyspring.ItemExtensions/IsFTM` ×1 703,
+    /// `larvuk.AdvancedFruitTreeFramework/…` ×1 648), avec des uids sans
+    /// point (`Cropgenics`) ; les salles du Centre (`Pantry/…`) ont la même
+    /// forme et ne sont à aucun mod.
+    @Test("La forme uid/clé, lue par scan(), résout vers l'uid du segment de tête")
+    func uidSlashKeysResolve() {
+        let xml = fixture(
+            "<SaveGame><modData><item>"
+                + "<key><string>mistyspring.ItemExtensions/IsFTM</string></key>"
+                + "<value><string>true</string></value></item>"
+                + "<item><key><string>Cropgenics/Fertility</string></key>"
+                + "<value><string>1</string></value></item>"
+                + "<item><key><string>DIGUS.ANIMALHUSBANDRYMOD/age</string></key>"
+                + "<value><string>1</string></value></item>"
+                + "<item><key><string>Pantry/0</string></key>"
+                + "<value><string>x</string></value></item>"
+                + "</modData></SaveGame>")
+        let r = SaveFingerprintResolution.resolve(
+            scan(xml),
+            modIDs: ["mistyspring.ItemExtensions", "Cropgenics",
+                     "Digus.AnimalHusbandryMod"])
+        #expect(r["mistyspring.ItemExtensions"]?.modDataKeys == 1)
+        #expect(r["Cropgenics"]?.modDataKeys == 1)
+        #expect(r["Digus.AnimalHusbandryMod"]?.modDataKeys == 1)
+        #expect(r.count == 3)
+    }
+
+    @Test("Un uid cité hors de la tête d'une clé à / n'attribue rien")
+    func uidOutsideSlashHeadAttributesNothing() {
+        let xml = fixture(
+            "<SaveGame><modData><item>"
+                + "<key><string>autre/mod-data/Cropgenics/x</string></key>"
+                + "<value><string>x</string></value></item></modData></SaveGame>")
+        let r = SaveFingerprintResolution.resolve(scan(xml), modIDs: ["Cropgenics"])
+        #expect(r.isEmpty)
     }
 
     /// Mesuré : `Lumisteria.MtVapius_*` (mod absent) ne doit attribuer ses

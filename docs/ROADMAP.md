@@ -421,12 +421,31 @@ backup se retrouve en moins de dix secondes.
       items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
       — le moyen de tester cet item sans attendre un vrai accident, la fixture
       étant produite par un vrai producteur, jamais à la main.
-      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc —
-      la fiche de sauvegarde ne nomme que les mods en pause, parce que la règle
-      de normalisation des préfixes orphelins (695 sur 748 sur Zofia, dont des
-      sous-clés comme `Kedi.VPP.WasRainingHere`) reste à mesurer, dans les deux
-      sens ; (2) le même avertissement **à l'activation d'un profil**, qui met
-      des mods en pause en masse sans passer par `performToggle`. · **M**
+      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc ;
+      (2) le même avertissement **à l'activation d'un profil**, qui met des
+      mods en pause en masse sans passer par `performToggle`.
+      ▸ **Mesuré le 2026-09-23 (Zofia + TestOK, 1 127 ids) — le cadrage change :**
+      - *La taxonomie SaveSaver ne trouve rien* : 0 type `xsi` de mod (109
+        types, tous vanilla) ; les 2 « Error Item » sont le placeholder
+        `RANDOM_CLUMPS` d'ItemExtensions, **actif**. Un écran bâti sur elle
+        resterait vide.
+      - *La règle de préfixes est réfutée* : les ~200 orphelins sont presque
+        tous des mods **installés** dont l'espace de noms n'est pas l'UniqueID
+        (`Kedi.VPP.*` = KediDili.VanillaPlusProfessions, `moonslime.Wizardry.*`
+        = WizardrySkill, `FashionSense.*`, `Casa.*`/`Evento.*` = Defense
+        Division en pause, 34 locations). `Lumisteria.MtVapius`, le cas
+        « absent » de l'audit, est **installé**.
+      - *L'attribution par contenu* (json/dll/tmx, UTF-8 + UTF-16) coûte 66 s
+        sur 531 Mo et laisse 48 chaînes ambiguës et 75 introuvables sur 206.
+      - *Les absents sûrs viennent des clés à uid exact* : `smapi/mod-data/<uid>`
+        et `<uid>/<clé>` (A1-T9 tranche 0, corrigé : le scanner refusait le `/`,
+        64 mods en pause au lieu de 43 sur Zofia) — `aloofllama.giftdiscovery`,
+        `thalethegreat.walletautopetter`, `foxisadev.bqr`, `BiggerAutoGrabber`…
+      - *Deux familles non lues* : arbres (`treeType`, 518 sapins SVE) et
+        locations (298 `Custom_*` jamais vues ; les namespacées tombent dans
+        « objets » par le repli `<name>`).
+      **Option retenue (a)** : familles arbres + locations, absents nommés par
+      les clés à uid exact, **aucune attribution heuristique**. · **M**
 
 - [ ] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
       automatique.** *(même audit, 2026-09-23 ; à n'engager qu'après A1-T9, et

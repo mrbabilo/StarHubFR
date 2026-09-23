@@ -64,6 +64,19 @@ public enum SaveFingerprintScanner {
         return false
     }
 
+    /// Une clé modData à `/` dont la tête a la forme d'un UniqueID — lettres,
+    /// chiffres, `_`, `.`, `-`, première lettre ASCII, **point facultatif**
+    /// (`Cropgenics/…`, et `smapi/…`). Les salles vanilla (`Fish Tank/…`)
+    /// sont écartées par l'espace ; `Pantry/…` entre et ne résout vers
+    /// personne.
+    static func isSlashKey(_ value: String) -> Bool {
+        guard let slash = value.firstIndex(of: "/") else { return false }
+        let head = value[..<slash].unicodeScalars
+        guard let first = head.first, isASCIIAlpha(first) else { return false }
+        return head.allSatisfy { isASCIIAlpha($0) || $0.properties.numericType != nil
+            || $0 == "_" || $0 == "." || $0 == "-" }
+    }
+
     /// Parséur événementiel : chaque élément ouvert tient les empreintes que
     /// ses enfants feuilles lui ont posées ; le comptage se fait **à la
     /// fermeture de l'élément porteur**, une seule fois (name + itemId du
@@ -106,6 +119,13 @@ public enum SaveFingerprintScanner {
             let text = accumulator.trimmingCharacters(in: .whitespacesAndNewlines)
             accumulator = ""
             let closedIndex = stack.count - 1
+            // Les clés `<uid>/…` et `smapi/mod-data/<uid>/…` portent un `/`
+            // que `isNamespaced` refuse : elles entrent par leur tête.
+            if closedIndex > 0, elementName == "string",
+                stack[closedIndex - 1].tag == "key",
+                isSlashKey(text) {
+                stack[closedIndex - 1].modDataKey = text
+            }
             // Poser sur le parent par INDEX — stack.last rend une copie.
             if isNamespaced(text), closedIndex > 0 {
                 switch elementName {
@@ -128,7 +148,8 @@ public enum SaveFingerprintScanner {
             if let empreinte = closed.buildingType, isNamespaced(empreinte) {
                 scan.buildings[empreinte, default: 0] += 1
             }
-            if let cle = closed.modDataKey, isNamespaced(cle) {
+            if let cle = closed.modDataKey,
+                isNamespaced(cle) || isSlashKey(cle) {
                 scan.modDataKeys[cle, default: 0] += 1
             }
             stack.removeLast()
@@ -161,22 +182,41 @@ public struct FingerprintCounts: Equatable, Sendable {
 public enum SaveFingerprintResolution {
     /// Croise un scan avec les UniqueIDs du parc.
     ///
-    /// Formes mesurées sur Zofia (7 076 clés modData, 2 142 objets — sonde
-    /// du 2026-09-23), sans ambiguïté (1 125 UniqueIDs, deux saves) :
-    /// identique ; préfixe `UniqueID_…` / `UniqueID.…` (objets, la masse
-    /// des clés) ; clé de jeu `<fonction>_<uid>…` — 138 clés mesurées
+    /// Formes mesurées sur Zofia (7 293 clés modData, 2 185 objets — scan
+    /// réel du 2026-09-23), sans ambiguïté (1 125 UniqueIDs, deux saves) :
+    /// identique ; préfixe `UniqueID_…` / `UniqueID.…` (objets) ;
+    /// convention `<uid>/<clé>` (la masse des clés : ~4 600, dont
+    /// `mistyspring.ItemExtensions/…` ×2 064 ; tête entière, insensible à
+    /// la casse, uid parfois sans point) ; clé de jeu `<fonction>_<uid>…` — 138 clés mesurées
     /// (`firstVisit_`, `eventSeen_`, `cropMatured_`, `questComplete_`,
     /// `structureBuilt_`) résolues par une règle **générique** — la
     /// fonction est un mot de lettres avant le premier underscore, jamais
     /// une liste codée en dur qui divergerait des mises à jour du jeu ;
-    /// et `smapi/mod-data/<uid>/…` (43 clés, préfixe fixe SMAPI).
+    /// et `smapi/mod-data/<uid>/…` (35 clés, 26 mods ; uid en minuscules,
+    /// segment entier).
     /// Quand deux ids se préfixent (`A.B`, `A.B_C`), **le plus long gagne**.
     public static func resolve(
         _ scan: SaveFingerprintScan,
         modIDs: Set<String>
     ) -> [String: FingerprintCounts] {
         let triParLongueur = modIDs.sorted { $0.count > $1.count }
+        // SMAPI écrit l'uid en minuscules ; les UniqueIDs sont insensibles
+        // à la casse.
+        let parMinuscules = Dictionary(
+            modIDs.map { ($0.lowercased(), $0) }, uniquingKeysWith: { a, _ in a })
         func proprietaire(_ empreinte: String) -> String? {
+            // Forme SMAPI : smapi/mod-data/<uid>/… — l'uid est le segment
+            // entier, jamais un préfixe : la suite peut citer un autre mod.
+            if empreinte.hasPrefix(smapiModDataPrefix) {
+                let suite = empreinte.dropFirst(smapiModDataPrefix.count)
+                let segment = suite.prefix { $0 != "/" }
+                return parMinuscules[segment.lowercased()]
+            }
+            // Convention `<uid>/<clé>` : la tête entière est l'uid.
+            if let slash = empreinte.firstIndex(of: "/"),
+                let uid = parMinuscules[empreinte[..<slash].lowercased()] {
+                return uid
+            }
             if modIDs.contains(empreinte) { return empreinte }
             let parPrefixe = triParLongueur.first { uid in
                 empreinte.hasPrefix(uid + "_") || empreinte.hasPrefix(uid + ".")
@@ -193,14 +233,6 @@ public enum SaveFingerprintResolution {
                         || suffixe.hasPrefix($0 + ".") }
                     if let uid { return uid }
                 }
-            }
-            // Forme SMAPI : smapi/mod-data/<uid>/…
-            let smapiPrefixe = "smapi/mod-data/"
-            if empreinte.hasPrefix(smapiPrefixe) {
-                let suite = empreinte.dropFirst(smapiPrefixe.count)
-                let uid = triParLongueur.first { suite == $0
-                    || suite.hasPrefix($0 + "/") }
-                if let uid { return uid }
             }
             return nil
         }
@@ -220,6 +252,9 @@ public enum SaveFingerprintResolution {
         return result
     }
 }
+
+/// Préfixe fixe des clés `modData` écrites par l'API de données de SMAPI.
+private let smapiModDataPrefix = "smapi/mod-data/"
 
 /// Lettre ASCII — les UniqueIDs du parc et les fonctions de clés du jeu
 /// n'en portent pas d'autres (mesure du 2026-09-23).

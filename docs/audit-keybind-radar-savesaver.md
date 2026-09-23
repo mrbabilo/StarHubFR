@@ -174,6 +174,8 @@ dans Zofia, dont :
 - **`Lumisteria.MtVapius` : ~133 nœuds dans le save, et le mod est ABSENT du
   parc** — le scénario exact de SaveSaver, déjà réalisé chez nous (sans crash :
   ce sont des ressources référencées par id, pas des types C#) ;
+  *(rectifié le 2026-09-23 : le mod est **installé** — le relevé l'avait
+  manqué ; les vrais absents sortent des clés à uid exact, voir A1-T9)*
 - **`Morghoula.Alchemistry` : 757 objets**, `Dayswork` : 1 bâtiment,
   `FruitTreesReforged` : des fruits — les trois mods sont **en pause**. Notre
   bascule par préfixe point produit donc des saves qui référencent des mods
