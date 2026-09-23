@@ -400,8 +400,12 @@ backup se retrouve en moins de dix secondes.
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
 
-- [ ] **A1-T9 — L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
-      son bistouri.** *(même audit, 2026-09-23.)* SaveSaver (Nexus 52709,
+- [x] **A1-T9 — L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
+      son bistouri.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-23 :
+      familles arbres + locations dans les empreintes (ed78b150), absents
+      nommés par clés à uid exact sur la fiche (753cf0a2, cache de scan
+      partagé entre sections — lecture+scan de 37 Mo mesurés à ~10 s).)*
+      SaveSaver (Nexus 52709,
       décompilé) montre ce qu'une sauvegarde peut porter de cassé : items
       `ErrorItem`, locations de mods disparus, bâtiments inconnus, arbres
       sauvages/fruitiers de mods, types C# non résolus. Tout se détecte **hors
@@ -421,7 +425,9 @@ backup se retrouve en moins de dix secondes.
       items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
       — le moyen de tester cet item sans attendre un vrai accident, la fixture
       étant produite par un vrai producteur, jamais à la main.
-      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc ;
+      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) ✅ les mods **absents** du
+      parc — section « Mods disparus de la médiathèque » sur la fiche
+      (753cf0a2, 2026-09-23) ;
       (2) ✅ le même avertissement **à l'activation d'un profil** — livré
       (tranche 1, 2026-09-23 ; avec deux correctifs d'A1-T8 : « Annuler »
       reprenait la bascule, et un pack n'était jamais chiffré) ; ✅ la
