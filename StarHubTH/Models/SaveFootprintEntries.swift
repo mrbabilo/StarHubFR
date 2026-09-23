@@ -84,12 +84,27 @@ public enum SaveAbsentMods {
         scan: SaveFingerprintScan,
         mods: [ModItem]
     ) -> [AbsentModFootprint] {
+        let entries = absentKeyCounts(scan.modDataKeys, mods: mods).map { (uid, keys) in
+            AbsentModFootprint(uid: uid, keys: keys)
+        }
+        return entries.sorted { (a, b) in
+            a.keys != b.keys ? a.keys > b.keys : a.uid < b.uid
+        }
+    }
+
+    /// La règle elle-même — uid disparu → occurrences —, partagée avec le
+    /// nettoyage (A1-T10) : une seule définition de « disparu », pour que
+    /// le bouton ne retire jamais autre chose que ce que la section affiche.
+    static func absentKeyCounts(
+        _ modDataKeys: [String: Int],
+        mods: [ModItem]
+    ) -> [String: Int] {
         let prefixe = "smapi/mod-data/"
         let marqueur = "legacy-migrated-"
         let parc = Set(mods.allUniqueIds.map { $0.lowercased() })
         var absents: [String: Int] = [:]
         var migrations: [String] = []
-        for (cle, occurrences) in scan.modDataKeys where cle.hasPrefix(prefixe) {
+        for (cle, occurrences) in modDataKeys where cle.hasPrefix(prefixe) {
             let suite = cle.dropFirst(prefixe.count)
             let proprietaire = suite.prefix { $0 != "/" }.lowercased()
             guard !proprietaire.isEmpty else { continue }
@@ -100,14 +115,8 @@ public enum SaveAbsentMods {
                 absents[proprietaire, default: 0] += occurrences
             }
         }
-        let filtré = absents.filter { (uid, _) in
+        return absents.filter { (uid, _) in
             !migrations.contains { $0.hasPrefix(marqueur + uid + "-") }
-        }
-        let entries = filtré.map { (uid, keys) in
-            AbsentModFootprint(uid: uid, keys: keys)
-        }
-        return entries.sorted { (a, b) in
-            a.keys != b.keys ? a.keys > b.keys : a.uid < b.uid
         }
     }
 }

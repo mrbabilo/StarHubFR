@@ -267,6 +267,7 @@ let package = Package(
                 "Models/DisabledModsMigration.swift",
                 "Models/SaveFingerprint.swift",
                 "Models/SaveFootprintEntries.swift",
+                "Models/SaveAbsentModsRemoval.swift",
                 "Stores/SaveFingerprintPauseStore.swift",
                 "Stores/SaveFingerprintScanCache.swift",
                 "Stores/SaveAbsentModsStore.swift",
