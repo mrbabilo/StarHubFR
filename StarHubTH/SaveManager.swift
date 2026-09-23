@@ -637,7 +637,11 @@ public final class SaveManager: @unchecked Sendable {
         return utf8BOM + payload
     }
 
-    public func backupSave(info: SaveGameInfo) -> Bool {
+    public func backupSave(info: SaveGameInfo) -> Bool { backupSaveURL(info: info) != nil }
+
+    /// Le dossier de backup créé — pour qui doit le vérifier avant d'écrire
+    /// (A1-T10 : « backup non vide », sans deviner lequel par sa date).
+    public func backupSaveURL(info: SaveGameInfo) -> URL? {
         let fm = FileManager.default
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
@@ -649,10 +653,10 @@ public final class SaveManager: @unchecked Sendable {
         do {
             try fm.copyItem(at: folderPath, to: backupPath)
             print("Backup created at: \(backupPath.path)")
-            return true
+            return backupPath
         } catch {
             print("Failed to backup save: \(error)")
-            return false
+            return nil
         }
     }
     
