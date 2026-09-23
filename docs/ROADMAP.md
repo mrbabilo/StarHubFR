@@ -649,10 +649,9 @@ le journal réel le 2026-09-04.
       16,6 ms), rapprochées du mod et de la session. ⚠️ Les dossiers de mods sont
       en 0555 par endroits (piège X7) : l'écriture du rapport peut y échouer —
       l'absence de rapport n'est pas une absence de problème.
-      ⚠️ **UltraSmooth 2.3.6 (lu le 2026-09-24) retire ses crochets de profilage
-      par défaut sur `Game1.DrawWorld`** (`ProfilerEngine`) : vérifier sur une
-      vraie session que `us_trace` produit encore ses sections avant d'écrire
-      le parseur. · **M**
+      *UltraSmooth 2.3.6 (décompilé le 2026-09-24) retire son patch
+      `Game1.DrawWorld` ; les cinq sections de `us_trace` sont identiques — le
+      format visé ici ne bouge pas (SOURCES §5).* · **M**
 - [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
       état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher

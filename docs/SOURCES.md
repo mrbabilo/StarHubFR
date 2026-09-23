@@ -426,6 +426,42 @@ Ce qu'il faut en retenir ici, au-delà du verdict de l'audit :
   **en pause**. Notre bascule pause crée donc le scénario SaveSaver sans le
   dire ; l'idée d'intégration n° 1 de l'audit en découle.
 
+### Trois deltas décompilés — Keybind Radar 1.0.1, UltraSmooth 2.3.6, Radiance 2.2.0 *(2026-09-24)*
+
+Nouvelle DLL prise dans le dossier du jeu, ancienne dans le backup
+d'installation de l'app (`Backups/ModInstalls/backups/<date>_install_backup/`),
+les deux passées à `ilspycmd` et comparées. **Contrôle de sécurité** (réseau,
+process, chargement de code, `DllImport`) : aucun motif nouveau dans les trois
+deltas. Les motifs préexistants sont bénins : UltraSmooth règle le tampon des
+sockets du multijoueur (`CoopSocketBufferSizeKb`) et interroge l'affichage
+(`SDL2`, `user32` sous Windows).
+
+- **Keybind Radar 1.0.1** — le signal en direct accepte désormais les boutons
+  **manette** en plus du clavier (`IsLiveConflictButton` : `TryGetKeyboard` ou
+  `TryGetController`) ; un modificateur seul n'alerte pas. La comparaison
+  porte sur **toutes** les entrées du radar, pas les seules collisions,
+  l'entrée en cours d'édition exclue, égalité exacte d'ensembles par
+  alternative (`EntryUsesButtons`) — la même sémantique que C4-T12, à ceci
+  près que les autres réglages du même mod comptent chez eux (écarté chez
+  nous, 2026-09-24). Toujours accroché à GMCM par son namespace
+  (`GenericModConfigMenu`) et seulement quand GMCM a été ouvert **depuis le
+  radar** (`RadarToRestore`) : mort avec Modern Config Menu, comme en 1.0.0.
+  Ajouts : bouton Refresh, `RefreshMod` après retour de GMCM, coupe-circuit
+  sur erreurs répétées.
+- **UltraSmooth 2.3.6** — le patch Harmony `Game1.DrawWorld` (« 5-Axis
+  telemetry boundary » : dos, bâtiments, entités, devant, flush) n'est plus
+  posé ; la ligne de journal correspondante disparaît. **Les cinq sections du
+  rapport `us_trace` sont identiques** à la 2.3.5 : D2-T2 n'est pas touché.
+  Clés `config.*` (194) et feuilles de `config.json` (66) inchangées.
+- **Radiance 2.2.0** — +19 libellés `config.*`, dont des libellés **par
+  valeur** de liste (`config.sheetupscalekernel.epx|mmpx|mmpxedgeguarded|xbr`)
+  que notre `ConfigLabelResolver` ne lit pas (il ne connaît que
+  `name|description|tooltip|…`) : la liste s'afficherait en jetons bruts. Le
+  `config.json` du parc (282 feuilles) n'a pas encore été réécrit par la
+  2.2.0 — les options neuves n'apparaîtront qu'après un lancement du jeu. Le
+  rapport `radiance_report` gagne une ligne (« memory asked of the collector
+  per frame, KB »), format autrement stable.
+
 ---
 
 ## 6. Mods du jeu observés — la convention `config.*`
