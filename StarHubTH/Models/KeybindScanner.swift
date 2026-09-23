@@ -194,6 +194,11 @@ public enum KeybindScanner {
         /// mod-mod restent, et une exclusion muette reste un mensonge par
         /// omission.
         public var remapModsIgnored: [String]
+        /// C4-T12 — toutes les liaisons des mods actifs, par combinaison
+        /// (mêmes exclusions que les collisions : catalogues écartés, mods
+        /// en pause absents). Une touche qu'on vient de capturer n'est encore
+        /// dans aucune collision ; c'est ici qu'on voit qui d'autre la porte.
+        public var activeUses: [KeybindCombo: [ModUse]] = [:]
 
         /// Problèmes avérés : collisions clavier et manette entre mods actifs
         /// plus conflits avec un contrôle du jeu. Les « non reconnus » n'y
@@ -339,12 +344,15 @@ public enum KeybindScanner {
             gameControl = GameControlDefaults.controls
                 .first { $0.buttons.contains(button) }?.name
         }
-        var conflicts: [KeybindRowAnnotation.OtherUse] = []
-        for collision in report.collisions + report.gamepadCollisions where collision.combo == combo {
-            for use in collision.uses where use.modID != modID {
-                conflicts.append(.init(modName: use.modName, settingKey: use.keyPath))
-            }
-        }
+        // Toutes les liaisons actives, pas les seules collisions : pour une
+        // valeur du fichier, le résultat est le même (partagée avec un autre
+        // mod = collision) ; pour une touche qu'on vient de capturer (C4-T12),
+        // c'est la seule façon de voir l'unique autre mod qui la porte.
+        // Même tri que les collisions (nom, puis id : homonymes réels).
+        let conflicts = (report.activeUses[combo] ?? [])
+            .filter { $0.modID != modID }
+            .sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) }
+            .map { KeybindRowAnnotation.OtherUse(modName: $0.modName, settingKey: $0.keyPath) }
         return KeybindRowAnnotation(gameControl: gameControl, conflicts: conflicts)
     }
 
@@ -584,6 +592,7 @@ public enum KeybindScanner {
                              scannedMods: mods.filter(\.isActive).count,
                              keybindCount: keybindCount, pausedIgnored: pausedIgnored,
                              catalogModsIgnored: catalogModsIgnored,
-                             remapModsIgnored: remapModsIgnored)
+                             remapModsIgnored: remapModsIgnored,
+                             activeUses: index)
     }
 }

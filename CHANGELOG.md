@@ -18,6 +18,7 @@ where the exact log format was verified.
 - **Le bilan de mise à jour nomme les données de mods remises en place.** Chaque fichier replacé dans le mod (`‹sauvegarde›_SaveData.save` et semblables) est listé sous son nom. Un réglage nouveau — « Remettre les données des mods après une mise à jour », actif par défaut — permet de ne pas les remettre : elles restent alors dans la sauvegarde d'installation, et le bilan le dit.
 - **Mettre un mod en pause chiffre ce qu'il a laissé dans vos sauvegardes.** Si des empreintes du mod (pack compris) y dorment, la bascule est suspendue derrière un avertissement chiffré par partie — objets, bâtiments, clés de données. Confirmer poursuit ; annuler ne touche à rien. Activer un profil ou « Tout désactiver » affiche le même avertissement.
 - **La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu** — objets, bâtiments, données — et chaque ligne ouvre la fiche du mod.
+- **Un raccourci capturé dit tout de suite s'il est déjà pris.** Dans l'éditeur de config, la touche pressée est comparée à toutes les liaisons des autres mods actifs : « lié à {mod} ({réglage}) » s'affiche sous le champ dès la capture, même quand un seul autre mod la porte.
 - **Nettoyer une sauvegarde des données de mods disparus.** Un bouton « Nettoyer… » sur la fiche montre clé par clé ce que des mods désinstallés y ont laissé, crée une sauvegarde de sécurité, puis retire ces clés. Rien ne s'écrit si une étape échoue.
 
 ### Changed

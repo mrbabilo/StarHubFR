@@ -642,6 +642,40 @@ struct KeybindScannerTests {
         #expect(note2.conflicts.map(\.modName) == ["Mod 1"])
     }
 
+    // — C4-T12 : le signal pendant la capture
+
+    /// La touche qu'on vient de capturer n'est encore dans aucune collision :
+    /// elle ne recoupe qu'**une** liaison d'un autre mod. Le signal doit
+    /// venir de toutes les liaisons actives, pas des seules collisions.
+    @Test func aFreshlyCapturedComboSharedWithOneOtherModIsNamed() throws {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("F8")]))
+        let b = KeybindScanner.ModScan(id: "b.Mod2", name: "Mod 2", isActive: true,
+                                       tree: tree(["Shortcut": .string("LeftControl + K")]))
+        let r = KeybindScanner.report(mods: [a, b])
+        #expect(r.collisions.isEmpty)
+        let captured = try #require(KeybindParser.parse(.string("K + LeftControl"))?.first)
+        let note = KeybindScanner.annotation(for: captured, ofMod: "a.Mod1", in: r)
+        #expect(note.conflicts.map(\.modName) == ["Mod 2"])
+        #expect(note.conflicts.map(\.settingKey) == [["Shortcut"]])
+    }
+
+    /// Ce qui reste muet pendant la capture : une touche que personne
+    /// d'autre ne porte, la liaison d'un mod en pause (elle ne tire pas au
+    /// jeu), un autre réglage du même mod (réutilisation par contexte).
+    @Test func aCapturedComboStaysSilentForPausedSameModOrUnused() throws {
+        let a = KeybindScanner.ModScan(id: "a.Mod1", name: "Mod 1", isActive: true,
+                                       tree: tree(["Hotkey": .string("F8"), "Other": .string("F9")]))
+        let paused = KeybindScanner.ModScan(id: "p.Mod", name: "Pause", isActive: false,
+                                            tree: tree(["Hotkey": .string("F10")]))
+        let r = KeybindScanner.report(mods: [a, paused])
+        for raw in ["F9", "F10", "F11"] {
+            let combo = try #require(KeybindParser.parse(.string(raw))?.first)
+            let note = KeybindScanner.annotation(for: combo, ofMod: "a.Mod1", in: r)
+            #expect(note.conflicts.isEmpty, "\(raw)")
+        }
+    }
+
     /// Une touche à bouton unique qui retombe sur un contrôle du jeu porte
     /// la note jeu — et un mod de remap, écarté du rapport (C4-T9), n'en
     /// reçoit pas : poser le contrôle est sa fonction.

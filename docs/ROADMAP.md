@@ -237,8 +237,13 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C5 — Hub de traduction agnostique de la langue
 
-- [ ] **C4-T12 — Le signal de conflit pendant la capture, pas seulement
-      après.** *(idée gardée de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md)
+- [x] **C4-T12 — Le signal de conflit pendant la capture, pas seulement
+      après.** *(**livrée** le 2026-09-24 : l'annotation « lié à » cherche dans
+      toutes les liaisons actives (`KeybindReport.activeUses`), plus seulement
+      dans les collisions — une touche fraîchement capturée qui ne recoupe
+      qu'une liaison d'un autre mod est nommée dès la pression ; l'éditeur
+      relisait déjà la valeur capturée. Même mod exclu, comme le rapport ;
+      l'effacement existait déjà (`[×]`). Idée gardée de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md)
       §1, 2026-09-23 : l'overlay « This key is already in use » de Keybind Radar
       s'affiche pendant la saisie, pas après coup — l'annotation « lié à »
       livrée ci-dessus ne parle qu'à la relecture.)* Sous `ModKeybindField`,
