@@ -381,6 +381,8 @@ enum L10n {
         static let fingerprintObjects       = "mods_fingerprint_objects"
         static let fingerprintBuildings     = "mods_fingerprint_buildings"
         static let fingerprintDataKeys      = "mods_fingerprint_data_keys"
+        static let fingerprintLocations = "mods_fingerprint_locations"
+        static let fingerprintTrees = "mods_fingerprint_trees"
         static let fingerprintSaveLine      = "mods_fingerprint_save_line"
         static let fingerprintMoreSaves     = "mods_fingerprint_more_saves"
         static let fingerprintPauseConfirm  = "mods_fingerprint_pause_confirm"

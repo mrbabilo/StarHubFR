@@ -1502,6 +1502,8 @@
   "mods_fingerprint_objects": "%d objects",
   "mods_fingerprint_buildings": "%d buildings",
   "mods_fingerprint_data_keys": "%d data entries",
+  "mods_fingerprint_locations": "%d locations",
+  "mods_fingerprint_trees": "%d trees",
   "mods_fingerprint_more_saves": "and %d more saves",
   "mods_fingerprint_pause_confirm": "Pause anyway",
   "mods_fingerprint_save_line": "%@: %@"

@@ -95,6 +95,14 @@ enum FingerprintSummary {
             familles.append(String(
                 format: localization.L(L10n.Mods.fingerprintDataKeys), counts.modDataKeys))
         }
+        if counts.locations > 0 {
+            familles.append(String(
+                format: localization.L(L10n.Mods.fingerprintLocations), counts.locations))
+        }
+        if counts.trees > 0 {
+            familles.append(String(
+                format: localization.L(L10n.Mods.fingerprintTrees), counts.trees))
+        }
         return familles.joined(separator: " · ")
     }
 }

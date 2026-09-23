@@ -313,6 +313,55 @@ import Testing
 
     // MARK: - Aide
 
+    /// Structure réelle de Zofia : le `<name>` d'une GameLocation est un
+    /// enfant direct, après ses `terrainFeatures` et ses personnages.
+    @Test("Une GameLocation namespacée compte un lieu, pas un objet")
+    func namespacedLocationCountsAsLocation() {
+        let xml = fixture(
+            "<SaveGame><locations><GameLocation><characters><NPC>"
+                + "<name>Wildflour.NooksCrannies_Hermit</name></NPC></characters>"
+                + "<name>Wildflour.NooksCrannies_BerryGrove</name>"
+                + "</GameLocation></locations></SaveGame>")
+        let s = scan(xml)
+        #expect(s.locations == ["Wildflour.NooksCrannies_BerryGrove": 1])
+        #expect(s.objects.isEmpty)
+    }
+
+    @Test("Un arbre de mod compte un arbre ; un arbre vanilla, rien")
+    func namespacedTreesCount() {
+        let xml = fixture(
+            "<SaveGame><terrainFeatures>"
+                + "<TerrainFeature><growthStage>8</growthStage>"
+                + "<treeType>Wildflour.SASS_Candy_Button_Tree</treeType></TerrainFeature>"
+                + "<TerrainFeature><growthStage>4</growthStage>"
+                + "<treeId>Lumisteria.MtVapius_GrapeSapling</treeId></TerrainFeature>"
+                + "<TerrainFeature><treeType>3</treeType></TerrainFeature>"
+                + "</terrainFeatures></SaveGame>")
+        let s = scan(xml)
+        #expect(s.trees == ["Wildflour.SASS_Candy_Button_Tree": 1,
+                            "Lumisteria.MtVapius_GrapeSapling": 1])
+        #expect(s.objects.isEmpty)
+    }
+
+    @Test("Un NPC namespacé n'est pas un objet")
+    func namespacedNPCIsNotAnObject() {
+        let xml = fixture(
+            "<SaveGame><characters><NPC><name>PeacefulEnd.Campgrounds.Characters.Caretaker</name>"
+                + "</NPC></characters></SaveGame>")
+        #expect(scan(xml).objects.isEmpty)
+    }
+
+    @Test("Lieux et arbres se résolvent vers leur mod")
+    func locationsAndTreesResolve() {
+        let s = SaveFingerprintScan(
+            locations: ["Wildflour.NooksCrannies_BerryGrove": 1],
+            trees: ["Wildflour.SASS_Candy_Button_Tree": 2])
+        let r = SaveFingerprintResolution.resolve(
+            s, modIDs: ["Wildflour.NooksCrannies", "Wildflour.SASS"])
+        #expect(r["Wildflour.NooksCrannies"] == FingerprintCounts(locations: 1))
+        #expect(r["Wildflour.SASS"] == FingerprintCounts(trees: 2))
+    }
+
     /// Les fragments proviennent du vrai producteur (le jeu) — copiés du
     /// save réel, réduits aux champs porteurs.
     private func fixture(_ raw: String) -> Data {

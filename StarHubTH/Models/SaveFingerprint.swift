@@ -8,6 +8,8 @@ import Foundation
 /// fois), `<buildingType>` (bâtiments) et `<key><string>` (`modData`).
 /// Une valeur namespacée hors de ces porteurs — les listes de butin
 /// `<string>` — est une *référence*, pas une instance : elle ne compte pas.
+/// A1-T9 : le `<name>` d'une `<GameLocation>` compte en lieux, celui d'un
+/// `<NPC>` nulle part ; `<treeType>` / `<treeId>` comptent en arbres.
 public struct SaveFingerprintScan: Equatable, Sendable {
     /// Empreinte brute namespacée → instances d'objets.
     public var objects: [String: Int]
@@ -15,20 +17,29 @@ public struct SaveFingerprintScan: Equatable, Sendable {
     public var buildings: [String: Int]
     /// Clé brute namespacée → occurrences `modData`.
     public var modDataKeys: [String: Int]
+    /// Nom namespacé → GameLocations de mods (A1-T9).
+    public var locations: [String: Int]
+    /// Id d'arbre namespacé (`treeType` / `treeId`) → arbres de mods.
+    public var trees: [String: Int]
 
     public init(
         objects: [String: Int] = [:],
         buildings: [String: Int] = [:],
-        modDataKeys: [String: Int] = [:]
+        modDataKeys: [String: Int] = [:],
+        locations: [String: Int] = [:],
+        trees: [String: Int] = [:]
     ) {
         self.objects = objects
         self.buildings = buildings
         self.modDataKeys = modDataKeys
+        self.locations = locations
+        self.trees = trees
     }
 
     /// Vrai si un mod du parc possède au moins une empreinte ici.
     public var isEmpty: Bool {
         objects.isEmpty && buildings.isEmpty && modDataKeys.isEmpty
+            && locations.isEmpty && trees.isEmpty
     }
 }
 
@@ -88,6 +99,7 @@ public enum SaveFingerprintScanner {
             var name: String?
             var buildingType: String?
             var modDataKey: String?
+            var treeId: String?
         }
 
         var scan = SaveFingerprintScan()
@@ -133,6 +145,7 @@ public enum SaveFingerprintScanner {
                 case "name" where stack[closedIndex - 1].name == nil:
                     stack[closedIndex - 1].name = text
                 case "buildingType": stack[closedIndex - 1].buildingType = text
+                case "treeType", "treeId": stack[closedIndex - 1].treeId = text
                 case "string" where stack[closedIndex - 1].tag == "key":
                     stack[closedIndex - 1].modDataKey = text
                 default: break
@@ -141,9 +154,18 @@ public enum SaveFingerprintScanner {
             // Compter l'élément fermé, une seule fois.
             guard closedIndex >= 0 else { return }
             let closed = stack[closedIndex]
+            // Le repli `<name>` porte aussi des lieux et des personnages :
+            // chacun dans sa famille, un NPC dans aucune (A1-T9).
             if let empreinte = closed.itemId ?? closed.name,
                 isNamespaced(empreinte) {
-                scan.objects[empreinte, default: 0] += 1
+                switch closed.tag {
+                case "GameLocation": scan.locations[empreinte, default: 0] += 1
+                case "NPC": break
+                default: scan.objects[empreinte, default: 0] += 1
+                }
+            }
+            if let arbre = closed.treeId, isNamespaced(arbre) {
+                scan.trees[arbre, default: 0] += 1
             }
             if let empreinte = closed.buildingType, isNamespaced(empreinte) {
                 scan.buildings[empreinte, default: 0] += 1
@@ -166,16 +188,21 @@ public struct FingerprintCounts: Equatable, Sendable {
     public var objects: Int = 0
     public var buildings: Int = 0
     public var modDataKeys: Int = 0
+    public var locations: Int = 0
+    public var trees: Int = 0
 
-    public init(objects: Int = 0, buildings: Int = 0, modDataKeys: Int = 0) {
+    public init(objects: Int = 0, buildings: Int = 0, modDataKeys: Int = 0,
+                locations: Int = 0, trees: Int = 0) {
         self.objects = objects
         self.buildings = buildings
         self.modDataKeys = modDataKeys
+        self.locations = locations
+        self.trees = trees
     }
 
     /// Vrai si le mod possède au moins une empreinte de quelque famille.
     public var isEmpty: Bool {
-        objects == 0 && buildings == 0 && modDataKeys == 0
+        objects == 0 && buildings == 0 && modDataKeys == 0 && locations == 0 && trees == 0
     }
 }
 
@@ -248,6 +275,14 @@ public enum SaveFingerprintResolution {
         for (cle, occurrences) in scan.modDataKeys {
             guard let uid = proprietaire(cle) else { continue }
             result[uid, default: FingerprintCounts()].modDataKeys += occurrences
+        }
+        for (lieu, occurrences) in scan.locations {
+            guard let uid = proprietaire(lieu) else { continue }
+            result[uid, default: FingerprintCounts()].locations += occurrences
+        }
+        for (arbre, occurrences) in scan.trees {
+            guard let uid = proprietaire(arbre) else { continue }
+            result[uid, default: FingerprintCounts()].trees += occurrences
         }
         return result
     }
@@ -324,10 +359,12 @@ extension FingerprintCounts {
         objects += other.objects
         buildings += other.buildings
         modDataKeys += other.modDataKeys
+        locations += other.locations
+        trees += other.trees
     }
 
     /// Toutes familles confondues — l'ordre d'affichage du rapport.
-    public var total: Int { objects + buildings + modDataKeys }
+    public var total: Int { objects + buildings + modDataKeys + locations + trees }
 }
 
 /// A1-T6 — ce qu'une sauvegarde porte d'un mod **en pause**, pour la fiche
