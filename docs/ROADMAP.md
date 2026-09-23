@@ -455,9 +455,15 @@ backup se retrouve en moins de dix secondes.
       **Option retenue (a)** : familles arbres + locations, absents nommés par
       les clés à uid exact, **aucune attribution heuristique**. · **M**
 
-- [ ] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
-      automatique.** *(même audit, 2026-09-23 ; à n'engager qu'après A1-T9, et
-      s'il trouve réellement des cas sur les saves de l'utilisateur.)* Ce que
+- [x] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
+      automatique.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-24 :
+      une seule catégorie — les clés `smapi/mod-data` des mods disparus, la
+      liste exacte de la section de la fiche (règle partagée
+      `SaveAbsentMods.absentKeyCounts`, `legacy-migrated` compris) ; bouton
+      « Nettoyer… », feuille clé par clé, backup vérifié non vide, écriture
+      atomique BOM préservé, item atypique laissé et compté (8bb01778..ab0539ec).
+      Locations et arbres hors périmètre : attribution heuristique — spec
+      `docs/superpowers/specs/2026-09-23-save-cleanup-design.md`.)* Ce que
       SaveSaver fait au chargement (reconstruire un `ErrorItem` en objet vanilla,
       élaguer une location disparue, convertir un arbre cassé) deviendrait ici un
       geste explicite : **opt-in par catégorie, diff affiché avant écriture,
