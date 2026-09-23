@@ -1148,6 +1148,12 @@
 "saves_paused_footprints_unreadable" = "Cette sauvegarde n'a pas pu être lue.";
 "saves_paused_footprints_footer" = "Mettre un mod en pause ne touche pas au fichier de sauvegarde : ce qu'il y a laissé y est toujours.";
 "saves_paused_footprints_open_hint" = "Ouvrir la fiche de ce mod";
+"saves_absent_mods_title" = "Mods disparus de la médiathèque";
+"saves_absent_mods_scanning" = "Lecture de la sauvegarde…";
+"saves_absent_mods_none" = "Tous les mods que cette sauvegarde connaît sont encore installés.";
+"saves_absent_mods_unreadable" = "Cette sauvegarde n'a pas pu être lue.";
+"saves_absent_mods_footer" = "Ces mods ont écrit dans cette sauvegarde mais ne sont plus installés. Leur contenu y dort — réinstallez un mod pour le récupérer.";
+"saves_absent_mods_keys" = "%lld clés";
 "saves_open_folder" = "Ouvrir le dossier";
 "saves_overwrite_anyway" = "Écraser quand même";
 "saves_qi_gems" = "Gemmes de Qi";
@@ -1502,6 +1508,8 @@
 "mods_fingerprint_objects" = "%d objets";
 "mods_fingerprint_buildings" = "%d bâtiments";
 "mods_fingerprint_data_keys" = "%d entrées de données";
+"mods_fingerprint_locations" = "%d lieux";
+"mods_fingerprint_trees" = "%d arbres";
 "mods_fingerprint_more_saves" = "et %d autres sauvegardes";
 "mods_fingerprint_pause_confirm" = "Mettre en pause quand même";
 "mods_fingerprint_save_line" = "%@ : %@";

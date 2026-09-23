@@ -1148,6 +1148,12 @@
 "saves_paused_footprints_unreadable" = "This save could not be read.";
 "saves_paused_footprints_footer" = "Pausing a mod does not touch the save file: what it left there is still in it.";
 "saves_paused_footprints_open_hint" = "Open this mod's page";
+"saves_absent_mods_title" = "Mods missing from your library";
+"saves_absent_mods_scanning" = "Reading the save…";
+"saves_absent_mods_none" = "Every mod this save knows is still installed.";
+"saves_absent_mods_unreadable" = "This save could not be read.";
+"saves_absent_mods_footer" = "These mods wrote into this save but are no longer installed. Their content sleeps in it — reinstall a mod to pick it back up.";
+"saves_absent_mods_keys" = "%lld keys";
 "saves_open_folder" = "Open Folder";
 "saves_overwrite_anyway" = "Overwrite Anyway";
 "saves_qi_gems" = "Qi Gems";
@@ -1502,6 +1508,8 @@
 "mods_fingerprint_objects" = "%d objects";
 "mods_fingerprint_buildings" = "%d buildings";
 "mods_fingerprint_data_keys" = "%d data entries";
+"mods_fingerprint_locations" = "%d locations";
+"mods_fingerprint_trees" = "%d trees";
 "mods_fingerprint_more_saves" = "and %d more saves";
 "mods_fingerprint_pause_confirm" = "Pause anyway";
 "mods_fingerprint_save_line" = "%@: %@";
