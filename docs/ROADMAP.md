@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **7 items ouverts** *(recompté le 2026-09-23 — le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T12, C4-T13, C5-T1, C5-T2, C6-T1)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T12, C4-T13, C5-T1, C6-T1)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -276,8 +276,6 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
       le transformer en sélecteur de langue. · **M**
-- [ ] **C5-T2** — Aligner README/CHANGELOG (la mention du hub thaï quitte le discours
-      produit). · **S**
 
 #### C6 — Signaux de demande de traduction (`needs:fr`)
 
@@ -2241,6 +2239,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T9** | 2026-09-15 | Un mod de remap n'est pas en conflit avec le jeu : liste d'UniqueID sans la casse (`vanillaRemapModIds`), seul faux positif GCSR écarté — 16 lignes de conflit jeu sur 12 mods ; collisions mod-mod conservées, note `remapModsIgnored` |
 | **C4-T10** | 2026-09-15 | Les 466 raccourcis du parc passent du champ texte au contrôle de capture : `Control.keybind` porte l'orthographe d'origine, R4 partagée, session sticky, AZERTY « a · Q » (`UCKeyTranslate`), annotation « lié à » (signatures canoniques, conflit jeu prioritaire, manette distinguée) |
 | **C4-T11** | 2026-09-15 | Les listes déroulantes des enums de DLL : lecture live des métadonnées à l'ouverture de l'éditeur (`DotNetMetadata`), cache par empreinte, oracle `tools/gmcm_options.py` (122 mods, 0 écart), dataset figé en filet |
+| **C5-T2** | 2026-09-23 | README : bannières rapatriées de `stardew-thai-translations` dans `assets/banners/`, changelog intégré « deux dernières versions », A1-T6/T8 décrits ; le hub thaï n'y figurait déjà plus |
 
 **Profils, favoris & backups exploitables — Axe B · B4 livré en v1.18.0, B3 aux trois quarts**
 

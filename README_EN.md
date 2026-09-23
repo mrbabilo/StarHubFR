@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Key Features" width="300">
+  <img src="assets/banners/features_banner.png" alt="Key Features" width="300">
 </p>
 
 *   **Easy Game Launch**: Launch Stardew Valley in either Vanilla mode or through SMAPI for modded play.
@@ -35,9 +35,10 @@
     *   View details of all save files (money, in-game time, season, farm layout)
     *   Duplicate or delete save files
     *   Edit money and basic character stats
+    *   See what your mods left behind: pausing a mod does not remove its objects, buildings and data from a save. Before pausing, the app counts what stays, save by save; and a save's page names the paused mods that left content in it, each one leading to its mod page.
 *   **Developer Logs**: Monitor SMAPI output in real time directly within the app. Filter by source (StarHubFR/SMAPI) and by level with counts, search, and copy lines that keep their origin and the mod they came from.
 *   **SMAPI Diagnostics**: A health card at the top of the logs turns `SMAPI-latest.txt` into a readable diagnosis — SMAPI and game versions, loaded mods and content packs, skipped or failed mods **with the reason**, missing dependencies, mods that change game code or your saves, and the mods logging the most errors. It leads with **"What you can do"**: actionable advice in plain language instead of jargon. An **"Errors you can ignore"** section recognizes common false alarms (GOG Galaxy sign-in, an unavailable optional integration, a missing companion mod, a mod failing to read its own data), names the mod involved, quotes the original message, and offers a button that jumps straight to its lines in the log — and they no longer count against the mod. A badge flags a stale log, and a button reveals it in Finder. Repetitive lines fold into one expandable row, entries can be grouped per mod (most problematic first), and each mod keeps a per-version history of the errors it logged, shown on its detail page — so you can tell whether a new version behaves worse than the one before.
-*   **In-App Changelog Viewer**: Browse the version history (`CHANGELOG.md`) directly from the app's sidebar.
+*   **In-App Changelog Viewer**: The two latest versions, right from the app's sidebar; the full history stays in [`CHANGELOG.md`](CHANGELOG.md).
 *   **Bilingual Support**: Switch the app language instantly between French and English.
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
 *   **VoiceOver Accessibility**: Full screen-reader navigation across the mod list, action buttons, sidebar, and the empty-state install zone.
@@ -47,7 +48,7 @@
 *   **Improved Mod Search**: Missing-dependency links now open Nexus with a human-readable search term (e.g. "Content Patcher" instead of "Pathoschild.ContentPatcher").
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Screenshots" width="300">
+  <img src="assets/banners/screenshots_banner.png" alt="Screenshots" width="300">
 </p>
 
 |   |   |
@@ -61,7 +62,7 @@
 | <img src="screenshots/13.jpg" width="400"> | <img src="screenshots/14.jpg" width="400"> |
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="Installation" width="300">
+  <img src="assets/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
 ### Minimum Requirements
@@ -76,7 +77,7 @@
 4. **You're ready!**: Manage your mods or saves, then hit **"Launch Game"** on the Home page.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="For Developers" width="300">
+  <img src="assets/banners/developers_banner.png" alt="For Developers" width="300">
 </p>
 
 This app is built with **Swift** and **SwiftUI** as a native macOS application.
@@ -100,7 +101,7 @@ python3 release.py
 Release files will be saved in the `bundles/` folder.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="Credits & License" width="300">
+  <img src="assets/banners/credits_banner.png" alt="Credits & License" width="300">
 </p>
 
 This project is released under the [MIT License](LICENSE). Feel free to fork, modify, and build upon it.

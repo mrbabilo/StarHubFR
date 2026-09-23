@@ -4071,6 +4071,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Hub de traduction FR — Axe C (suite)
 
+- [x] **C5-T2** — ✅ **Livré le 2026-09-23.** Aligner README/CHANGELOG (la mention
+      du hub thaï quitte le discours produit). Constat : les deux README ne le
+      présentaient déjà plus ; restait l'attribution à l'amont (gardée : crédit
+      légitime) et le CHANGELOG, dont les entrées historiques ne se réécrivent
+      pas. Fait : les 5 bannières, chargées depuis le dépôt
+      `stardew-thai-translations` d'AppleBoiy (MIT), vivent dans
+      `assets/banners/` — plus de dépendance au dépôt thaï, et `build_app.py`
+      ne les embarque pas ; la ligne du changelog intégré dit « deux dernières
+      versions » ; A1-T6/T8 entrent dans les deux README.
+
 
 - [x] **C2-T4** — Après mise à jour d'un mod, signaler les clés de config **et** de
       traduction ajoutées ou disparues (s'appuie sur les références par clé adoptées

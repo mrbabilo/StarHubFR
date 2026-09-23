@@ -29,7 +29,7 @@ Installez, organisez et dépannez votre collection de mods sans jamais toucher a
 *   🧭 **Trouver de nouveaux mods sans quitter l'app** — tendances, mises à jour récentes et sélection française, croisées en permanence avec ce que vous avez déjà.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
+  <img src="assets/banners/features_banner.png" alt="Fonctionnalités principales" width="300">
 </p>
 
 ### 🩺 Diagnostic SMAPI — le point fort
@@ -106,18 +106,19 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 *   **Sauvegarde d'installation** — copie automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récentes + celles de moins de 30 jours + 1 par mois au-delà).
 *   **Sauvegarde de configuration** — sauvegardez et restaurez les `config.json` / `fr.json` de vos mods activés.
 *   **Gestionnaire de sauvegardes de partie** — consultez le détail de vos parties (argent, date en jeu, saison, type de ferme), dupliquez-les, supprimez-les, ou ajustez l'argent et les statistiques du personnage.
+*   **Ce que vos mods laissent dans vos parties** — mettre un mod en pause n'efface pas ses objets, bâtiments et données d'une sauvegarde. Avant la pause, l'app chiffre ce qui reste, partie par partie ; et la fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu, chacun menant à sa fiche.
 
 ### 🎮 Au quotidien
 
 *   **Lancement du jeu** — démarrez Stardew Valley en mode Vanilla ou via SMAPI, directement depuis l'accueil.
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR dans l'application, avec filtrage par source et par niveau (compteurs à l'appui), recherche, et copie de lignes conservant l'origine et le mod concerné.
 *   **État toujours lisible** — la carte de compte en tête de barre latérale porte le profil actif, les mods actifs et l'état de SMAPI ; les mises à jour et les alertes comptent leurs badges sur leurs propres entrées ; le pied donne le poids du dossier `Mods/` et l'espace disque restant. Réduite, la fenêtre fait défiler les groupes de navigation — le compte et les réglages restent en place.
-*   **Journal des modifications intégré** — l'historique des versions se consulte depuis la barre latérale.
+*   **Journal des modifications intégré** — les deux dernières versions se consultent depuis la barre latérale ; l'historique complet reste dans [`CHANGELOG.md`](CHANGELOG.md).
 *   **Accessibilité VoiceOver** — navigation complète au lecteur d'écran sur la liste des mods, les boutons d'action et la barre latérale.
 *   **Détails qui comptent** — zone de glisser-déposer dédiée quand aucun mod n'est installé, recherche Nexus avec des termes lisibles (« Content Patcher » plutôt que `Pathoschild.ContentPatcher`), infobulles sur tous les boutons d'icône.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/screenshots_banner.png" alt="Captures d'écran" width="300">
+  <img src="assets/banners/screenshots_banner.png" alt="Captures d'écran" width="300">
 </p>
 
 |   |   |
@@ -131,7 +132,7 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 | <img src="screenshots/13.jpg" width="400"> | <img src="screenshots/14.jpg" width="400"> |
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/install_banner.png" alt="Installation" width="300">
+  <img src="assets/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
 ### Configuration minimale
@@ -146,7 +147,7 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 4. **C'est prêt !** : Gérez vos mods ou vos sauvegardes, puis cliquez sur **« Lancer le jeu »** sur la page d'accueil.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/developers_banner.png" alt="Pour les développeurs" width="300">
+  <img src="assets/banners/developers_banner.png" alt="Pour les développeurs" width="300">
 </p>
 
 Cette application est développée nativement pour macOS en **Swift** et **SwiftUI**.
@@ -170,7 +171,7 @@ python3 release.py
 Les archives de release sont déposées dans le dossier `bundles/`.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/banners/credits_banner.png" alt="Crédits et Licence" width="300">
+  <img src="assets/banners/credits_banner.png" alt="Crédits et Licence" width="300">
 </p>
 
 Ce projet est publié sous la [Licence MIT](LICENSE). N'hésitez pas à le forker, le modifier et l'améliorer.
