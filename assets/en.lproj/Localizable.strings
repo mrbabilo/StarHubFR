@@ -1489,3 +1489,11 @@
 "vm_url_error" = "An error occurred while creating download URL";
 "vm_zip_mods_error" = "An error occurred while zipping mods";
 "vm_zip_saves_error" = "An error occurred while zipping saves";
+"mods_fingerprint_pause_title" = "Fingerprints in saves";
+"mods_fingerprint_pause_message" = "Pausing doesn't erase what %@ left in your saves:";
+"mods_fingerprint_objects" = "%d objects";
+"mods_fingerprint_buildings" = "%d buildings";
+"mods_fingerprint_data_keys" = "%d data entries";
+"mods_fingerprint_more_saves" = "and %d more saves";
+"mods_fingerprint_pause_confirm" = "Pause anyway";
+"mods_fingerprint_save_line" = "%@: %@";
