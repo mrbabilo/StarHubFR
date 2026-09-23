@@ -6,351 +6,105 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
 ## Projet
 
 - **StarHubFR** — gestionnaire de mods Stardew Valley pour macOS (SwiftUI, macOS 14+).
-- Fork de **StarHubTH** (AppleBoiy). Le dossier source s'appelle encore `StarHubTH/`,
-  mais le bundle produit est désormais `StarHubFR.app` (exécutable `StarHubFR`).
-  L'identifiant de bundle est `com.mrbabilo.StarHubFR` depuis le 2026-09-10 (F5) :
-  l'application d'origine peut être installée à côté, et partager le domaine de
-  préférences lui aurait fait écrire dans les profils et le registre de celle-ci.
-  `com.appleboiy.StarHubTH` reste lu **en secours** (Trousseau via
-  `KeychainSecret.legacyService`, préférences via `DefaultsMigration`).
-  Depuis X105 (2026-09-10), **toutes** les données vivent sous
-  `~/Library/Application Support/StarHubFR/`, `Backups/` compris — l'ancien
-  dossier disparaît entièrement à la migration.
-- UI **bilingue** : anglais (`en`), français (`fr`). *(Le thaï comme langue d'UI a
-  été retiré ; la fonctionnalité « Thai Translation Hub » — mods de traduction —
-  reste, elle.)*
+  Fork de **StarHubTH** (AppleBoiy) : le dossier source s'appelle encore `StarHubTH/`,
+  le bundle produit est `StarHubFR.app`, identifiant `com.mrbabilo.StarHubFR`
+  (l'app d'origine peut être installée à côté — domaines de préférences et Trousseau
+  séparés ; l'ancien `com.appleboiy.StarHubTH` reste lu **en secours**, via
+  `KeychainSecret.legacyService` et `DefaultsMigration`).
+- Depuis X105, **toutes** les données vivent sous
+  `~/Library/Application Support/StarHubFR/` (`Backups/` compris) — l'ancien dossier
+  disparaît entièrement à la migration.
+- UI **bilingue** : anglais (`en`), français (`fr`). Le thaï comme langue d'UI est
+  retiré ; la fonctionnalité « Thai Translation Hub » (mods de traduction) reste.
 
 **Avant de toucher aux mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux
-fichiers de traduction : lire `docs/DOMAINE.md`.** Il porte ce que le code ne dit
-pas — notamment que « pack », « profil » et « sauvegarde » désignent ici autre
-chose que chez l'upstream, et qu'un mod en pause est un dossier **préfixé par un
-point** dans `Mods/`, pas un dossier déplacé.
+fichiers de traduction : lire `docs/DOMAINE.md`.** Un mod en pause y est un dossier
+**préfixé par un point** dans `Mods/`, pas un dossier déplacé.
 
 ## Sources à consulter — au-delà de ce fichier
 
-Ce dépôt est travaillé par plusieurs IA, et le contexte n'est pas tout dans
-`CLAUDE.md`. Dans l'ordre où ça sert :
+Dans l'ordre où ça sert (chaque doc porte ce que le code ne dit pas) :
 
-- **`AGENTS.md`** — conventions et pièges consolidés (§4 surtout). Complémentaire
-  de ce fichier, pas redondant.
-- **`docs/DOMAINE.md`** — le vocabulaire métier. Obligatoire avant de toucher aux
-  mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux traductions.
-- **`docs/ROADMAP.md`** — ce qu'il **reste** à faire. ⚠️ Ses cases traînent
-  derrière le code livré : vérifier `git log` avant de traiter une tâche « à
-  faire ». Les items terminés ont été sortis le 2026-09-04 dans
-  **`docs/roadmap-archive.md`** — c'est là que vivent les mesures qu'on ne veut
-  pas refaire (combien de manifestes déclarent un `ContentPackFor`, ce que
-  smapi.io rend sans `apiVersion`…). Un identifiant de tâche absent de la
-  roadmap est livré : le chercher dans l'archive.
-- **`docs/SOURCES.md`** — la carte de tout ce qui vit **hors** du dépôt : API
-  interrogées, dumps téléchargés, code repris. Obligatoire avant de toucher un
-  client réseau (Nexus, smapi.io, DeepL, IA locale) ou un parseur de format
-  externe. Le document porte les *rôles* et le *raisonnement*, jamais les
-  valeurs : celles-là se relèvent par `check_sources.py` (voir plus bas).
-- **`docs/REFACTORING.md`** — le plan de refactorisation du ViewModel (axe F de
-  la roadmap) : ce qui est extrait, ce qui reste, la méthode (logique pure
-  d'abord, tests prouvés rouges par sabotage, un commit par étape) et la règle
-  F1-T2 — **une fonctionnalité neuve ne rentre plus dans
-  `StarHubTHViewModel`**, elle naît dans son propre type. À lire avant toute
-  extraction ou tout ajout au ViewModel ; les stores extraits vivent dans
-  `StarHubTH/Stores/`, les types purs dans `StarHubTH/Models/`. ⚠️ Son état
-  traîne lui aussi derrière le code livré : vérifier `git log` avant d'y
-  croire.
-- **`.kilo/plans/`** — les plans écrits du temps de Kilo (installation par
-  glisser-déposer, sauvegarde de config, bascule par préfixe point, comparaison
-  StarHubFR/StarHubTH…). Ils portent le **raisonnement** derrière des choix
-  encore en place, ce que le code ne dit pas. ⚠️ Ce sont des **archives**, pas
-  des spécifications courantes : leurs cases ne valent rien et une partie a été
-  livrée autrement. À lire pour le « pourquoi », jamais comme une consigne.
-  Le reste de `.kilo/` (outillage, `node_modules`) reste ignoré.
-- **`docs/superpowers/`** — specs et plans de travail récents. Locaux, gitignorés :
-  absents d'un clone frais.
+- **`AGENTS.md`** — conventions et pièges consolidés (§4 surtout). Complémentaire de
+  ce fichier, pas redondant.
+- **`docs/DOMAINE.md`** — le vocabulaire métier (« pack », « profil », « sauvegarde »
+  ne désignent pas ici ce que l'upstream désigne).
+- **`docs/ROADMAP.md`** — ce qu'il **reste** à faire. ⚠️ Ses cases traînent derrière
+  le code livré : vérifier `git log` avant de traiter une tâche « à faire ». Un
+  identifiant absent de la roadmap est livré : le chercher dans
+  `docs/roadmap-archive.md` (mesures à ne pas refaire).
+- **`docs/SOURCES.md`** — la carte du hors-dépôt : API interrogées, dumps, code
+  repris. Obligatoire avant un client réseau (Nexus, smapi.io, DeepL, IA locale) ou
+  un parseur de format externe. Les valeurs se relèvent par `check_sources.py`.
+- **`docs/REFACTORING.md`** — plan de refactorisation du ViewModel. Règle F1-T2 :
+  **une fonctionnalité neuve ne rentre plus dans `StarHubTHViewModel`** — elle naît
+  dans son propre type (stores dans `StarHubTH/Stores/`, types purs dans
+  `StarHubTH/Models/`). Son état traîne : vérifier `git log`.
+- **`.kilo/plans/`** — archives du temps de Kilo : le **raisonnement** derrière des
+  choix en place. À lire pour le « pourquoi », jamais comme consigne (cases sans
+  valeur, partie livrée autrement). Le reste de `.kilo/` reste ignoré.
+- **`docs/superpowers/`** — specs et plans récents, gitignorés (absents d'un clone
+  frais).
 
 ## Build & test — LIRE avant de valider un changement
 
 Le build est **scindé en deux systèmes** ; vérifier lequel couvre le fichier touché.
 
-- **Build réel de l'app** : `python3 build_app.py` — `swiftc` sur *tous* les
-  `.swift` sous `StarHubTH/` (un seul module). C'est le **vrai gate** pour tout ce
-  qui touche l'UI, le ViewModel, `SmapiInstaller`, `NexusUpdateChecker`, etc.
-  `python` n'est **pas** dans le PATH → toujours `python3`.
-  Depuis F2-T2, la compilation est **incrémentale** : ~2,4 s pour une
-  modification isolée, ~30 s si la signature change dans le ViewModel, contre
-  141,7 s auparavant. Le premier build après un `rm -rf .build` reprend 59 s.
+- **Build réel de l'app : `python3 build_app.py`** — `swiftc` sur *tous* les `.swift`
+  sous `StarHubTH/` (un seul module). Le **vrai gate** pour l'UI, le ViewModel,
+  `SmapiInstaller`, `NexusUpdateChecker`, etc. Compilation incrémentale depuis F2-T2 ;
   `--whole-module` rend l'ancien chemin, filet en cas de binaire douteux.
-- **`swift build`** ne valide que le sous-ensemble Core du `Package.swift`
-  (`ModItem`, les managers de backup, `SaveManager`, `L10n`, …) + ses tests.
-- **Tests** : `./run_tests.sh` (lance `swift test` avec `DEVELOPER_DIR` sur Xcode).
-  Peut échouer avec `no such module 'Testing'` si seuls les Command Line Tools sont
-  actifs — c'est une **limite d'environnement, pas une régression**. Voir le skill
-  `build-app` pour la vérification de logique quand `swift test` est inaccessible.
-- **`compile_commands.json`** (racine, généré, gitignoré) alimente SourceKit-LSP
-  pour l'autocomplétion sur *tous* les fichiers. Régénéré à chaque build ;
-  rafraîchir seul avec `python3 build_app.py --gen-compile-commands`.
-- **`check_standards.py`** — cliquet sur les conventions Swift, lancé par
-  `build_app.py` après une compilation réussie. Il n'échoue que si un compteur
-  **augmente** par rapport à `.standards-baseline.json` : le code viole
-  massivement ces règles aujourd'hui, une barrière serait rouge dès le premier
-  jour. Faire baisser un compteur puis `--update` pour resserrer ; `--report`
-  pour voir l'état. Un ajout délibéré demande un `--update` explicite, visible
-  dans le diff. `--skip-standards` débloque un build ponctuel.
-
-- **`check_sources.py`** — le pendant du cliquet pour ce qui vit **hors** du
-  dépôt : les API qu'on appelle, les dumps qu'on télécharge, les projets dont on
-  a repris du code. Relevé comparé à `.sources-baseline.json`, `--update` pour
-  assumer, `--report` pour tout voir, `--offline` pour les seuls contrôles
-  locaux. Un écart n'est **pas** une faute : c'est une chose à aller regarder.
-  → carte complète et raisonnement dans `docs/SOURCES.md`.
+  `python` n'est **pas** dans le PATH → toujours `python3`.
+- **`swift build`** ne valide que le sous-ensemble Core du `Package.swift` (`ModItem`,
+  managers de backup, `SaveManager`, `L10n`, …) + ses tests.
+- **Tests : `./run_tests.sh`** (lance `swift test` avec `DEVELOPER_DIR` sur Xcode).
+  `no such module 'Testing'` = Command Line Tools actifs, **limite
+  d'environnement, pas une régression** — skill `build-app` pour la vérification de
+  logique quand `swift test` est inaccessible.
+- **`compile_commands.json`** (racine, généré, gitignoré) alimente SourceKit-LSP sur
+  *tous* les fichiers ; régénéré à chaque build, seul :
+  `python3 build_app.py --gen-compile-commands`.
+- **`check_standards.py`** — cliquet lancé par `build_app.py` après compilation : ne
+  peut échouer que si un compteur **augmente** vs `.standards-baseline.json`
+  (tailles de fichiers **verrouillées par fichier**). Baisser un compteur puis
+  `--update` pour resserrer ; `--report` pour l'état ; `--skip-standards` débloque
+  un build ponctuel.
+- **`check_sources.py`** — le pendant du cliquet pour le hors-dépôt (API appelées,
+  dumps téléchargés, code repris), comparé à `.sources-baseline.json`. Un écart
+  n'est **pas** une faute : une chose à aller regarder. → carte dans
+  `docs/SOURCES.md`.
 
 **Ne jamais lancer l'app ni prendre de capture depuis un agent/sous-agent.** La
 vérification GUI est déléguée à l'humain ; les agents valident par succès de build.
 
 ## Localisation
 
-`assets/{en,fr}.json` sont la **source de vérité**. `build_app.py` valide la
-**parité des clés** entre les deux (build en erreur sinon) et génère les
-`assets/*.lproj/Localizable.strings`. Les clés sont référencées via `L10n.swift`.
+`assets/{en,fr}.json` sont la **source de vérité**. `build_app.py` valide la **parité
+des clés** entre les deux (build en erreur sinon) et génère les
+`assets/*.lproj/Localizable.strings`. Clés référencées via `L10n.swift`.
 → Procédure complète : skill `localization`.
 
 ## Changelog & release
 
-`CHANGELOG.md` suit le format **Keep a Changelog** ; incrémenté à chaque release
-via `release.py`. → skill `release`.
+`CHANGELOG.md` suit **Keep a Changelog** ; incrémenté à chaque release via
+`release.py`. → skill `release`.
 
-## Traps — pièges techniques du projet
+## Traps — rappel par sujet (cavemem)
 
-Synthèse des pièges qui **coûtent cher à retrouver** si on ne les a pas déjà
-rencontrés. Pour les conventions plus larges, voir `AGENTS.md` §4 ; pour le
-raisonnement derrière les choix anciens, `.kilo/plans/`.
+Les pièges techniques détaillés, ceux qui **coûtent cher à retrouver**, vivent dans
+cavemem (conventions plus larges : `AGENTS.md` §4 ; raisonnement ancien :
+`.kilo/plans/`). **Rappeler le bloc AVANT de toucher au domaine**, pas après
+l'accident :
 
-### SwiftUI / AppKit
+- SwiftUI / AppKit → `caveman mem recall "starhubfr traps swiftui"`
+- Process, Pipe, système de fichiers → `caveman mem recall "starhubfr traps process"`
+- Concurrence, caches, threads → `caveman mem recall "starhubfr traps concurrence"`
+- Manifestes, i18n, Nexus, smapi.io, parsing → `caveman mem recall "starhubfr traps parsing"`
+- Build, release, tests, cliquets → `caveman mem recall "starhubfr traps build"`
+- UI, listes, sidebar, toggles de mods → `caveman mem recall "starhubfr traps ui"`
 
-- **`CodeEditorView` : pas de force-unwrap.** `scrollView.documentView as! NSTextView`
-  (makeNSView L.20, updateNSView L.35) remplacé par `guard let … as? NSTextView`.
-  Un crash silencieux sur du contenu mal typé est inacceptable dans un éditeur
-  de config.
-- **Curseur main sur Markdown avec `textSelection(.enabled)`.** NSTextView
-  réassertit le curseur I-beam en continu via ses `cursorRects`. Utiliser
-  `onContinuousHover` (pas `onHover`) pour réassertir
-  `NSCursor.pointingHand.set()` sur les liens.
-- **macOS ne remplace pas une app ouverte lors de `open …`.** Une release locale
-  ne prend effet qu'après fermeture complète (Cmd+Q) puis réouverture. Tester
-  sur le bundle fraîchement compilé exige un kill préalable, sinon l'ancienne
-  version reste en mémoire.
-- **Éviter `textSelection(.enabled)` sur des zones non éditables** quand un
-  contrôle interactif cohabite (lien, bouton dans le texte) : la sélection
-  parasite le geste.
-- **`ForEach` avec `id: \.self` ou un index fait fuiter l'`@State`** d'une
-  ligne vers une autre quand les données changent — identifier par une donnée
-  stable (`Identifiable`), jamais par position.
-- **Un `body` trop dense sature le type-checker** (compile en minutes,
-  diagnostics absurdes) — découper en sous-vues / propriétés calculées.
-- **~2 000 lignes de log : `List` a beach-ballé 8–10 s**, `LazyVStack` fixe ;
-  une seule passe construit `logViews` — plusieurs propriétés calculées
-  re-parcourent tout à chaque rendu.
-- **Pas de surcharge `help(_:)` optionnelle dans ce SDK macOS** : passer par
-  `helpIfPresent` (`StatStrip.swift`) — vérifier qu'une surcharge existe
-  avant de l'invoquer.
-- **Cycle de vie des fenêtres au lancement (splash `NSPanel`)** — deux pièges
-  qui ont cassé l'app : `orderOut` sur la fenêtre principale vaut « dernière
-  fenêtre fermée » (exiger `applicationShouldTerminateAfterLastWindowClosed`
-  → `false`), et la masquer depuis `.onAppear` est trop tard (l'intercepter
-  dans `applicationWillFinishLaunching`, observateur retiré dans `finish()`).
-- **Un commit au blur (`onChange(of: focusState)`) meurt si la vue est
-  remplacée par `.id(...)`** : le démontage arrive avant le blur — doubler
-  d'un `onDisappear` committant le même draft, idempotent.
-- **Changer d'onglet remet à `nil` les états de détail** (`MainView.swift:232`
-  : `editingSave`, `viewingThaiMod`, `viewingSaveTimeline`,
-  `editingModConfig`, `viewingModDetail`) — poser l'un d'eux puis changer
-  `currentTab` est effacé avant le rendu. Faire porter l'intention par un
-  `@Published` (`pending…Focus`), reconsommé **dans** le
-  `.onChange(of: currentTab)` lui-même (patron B3-T4).
-
-### Système de fichiers & Process
-
-- **Symlink `/var/folders` → `/private/var/folders` sur macOS.**
-  `FileManager.enumerator` retourne des URLs **résolues** (`/private/var/...`)
-  même si la racine était `/var/...`. Toujours passer par
-  `resolvingSymlinksInPath()` avant tout `replacingOccurrences(of: resolvedRoot)`
-  sur un chemin calculé.
-- **Deux `Date` ayant fait un aller-retour par `setAttributes` ne sont pas
-  `==`.** Elles s'impriment identiques et leur écart mesure 0,0 — l'égalité
-  stricte est pourtant fausse. En production on compare deux lectures de la même
-  source, où `==` est correct ; dans un test qui écrit puis relit, comparer à la
-  seconde près.
-- **`Process()` doit forcer la locale `en_US_POSIX`.** Tout `Process` qui
-  invoque `/usr/bin/unzip`, `unrar`, `unar`, `7z` et parse la sortie texte
-  (notamment `uncompressedSize` dans `ModZipInstaller`) doit définir
-  `process.environment = Self.cLocaleEnvironment`. Sinon, dates et tailles
-  sont localisées et la regex casse sur les utilisateurs non-EN.
-- **Pas de timeout sur `process.waitUntilExit()`** pour `unrar/unar/7z` —
-  voir TODO `process_timeout_pending_todo` (reporte le fix, à ne pas dupliquer
-  ailleurs).
-- **Un `Pipe` se lit avant `waitUntilExit()`** : un tube est borné (64 Ko sur
-  macOS) — au-delà, l'enfant bloque sur son écriture et le parent sur son
-  attente, sans crash ni journal (`hasTraversalEntry` figeait l'installation
-  passé ~1 500 fichiers). Et tout `unzip` vers un dossier neuf passe `-o` :
-  sans lui, une archive à chemins dupliqués pose une question sur un stdin
-  qui n'existe pas dans une app GUI.
-- **Un script lancé en tâche de fond ne doit jamais lire l'entrée standard** :
-  son stdin est un tube qui ne se ferme jamais — une substitution de liste de
-  boucle qui tourne en `cat` nu y bloque à l'infini (0 % CPU, zéro itération,
-  pile bloquée dans `loop`, sonde Nexus 2026-08-31). Invoquer avec
-  `< /dev/null` et lire les données d'un fichier explicite
-  (`while IFS= read -r … < fichier`).
-
-### Concurrence
-
-- **`scanMods()` peut tourner concurrentiellement avec lui-même** (refresh
-  manuel + initial load, activation de profil en parallèle). Toute structure
-  mutable partagée (cache `manifestCache`, registre installé) doit être
-  protégée par un `NSLock` dédié. Le subscript setter d'un `Dictionary` Swift
-  sans verrou cause un `EXC_BAD_ACCESS` (crash confirmé juillet 2026 sur
-  `manifestCache`).
-- **Un cache global impose des tests `.serialized`.** Quand le cache et son
-  invalidation vivent au niveau du type (mémoïsation de `SaveManager`, par
-  exemple), une suite parallèle voit un test effacer l'entrée qu'un autre vient
-  de poser.
-- **`weak self` obligatoire** dans toute closure passée à
-  `DispatchQueue.global().async`. Toute mutation `@Published` doit rester sur
-  le main thread.
-
-### Modèles & parsing
-
-- **Manifest JSON : pas de `.allowFragments` sans strip des commentaires
-  bloc `/* … */` d'abord.** Un manifest DOIT être un objet ; accepter un
-  scalaire masquerait un fichier corrompu. Stripper
-  `/\*[\s\S]*?\*/` en `.regularExpression` avant parsing.
-- **Encodage du manifest** : UTF-8 suffit, et **le BOM en tête (`EF BB BF`) ne
-  pose aucun problème** — mesuré le 2026-09-04. Ce piège disait l'inverse ; il
-  était faux. Sur macOS, `String(data:encoding:.utf8)` *retire* le BOM (premier
-  scalaire rendu = `{`) et `JSONSerialization` l'accepte avec comme sans
-  `.json5Allowed` — vérifié en compilant le cas, pas déduit. **142 des 1 096
-  manifestes du parc en portent un**, tous lus correctement. Ce qui casserait
-  vraiment, c'est un manifeste **hors** UTF-8 : `parseModFolder` abandonne alors
-  en silence, sans même journaliser, et le mod paraît sans nom ni identifiant.
-  Le parc n'en compte **aucun** — d'où l'absence de correctif.
-- **Les i18n du parc ne sont pas toutes en UTF-8** : UTF-16 et UTF-32, LE et
-  BE, existent réellement — passer par `I18nFileDecoder`, jamais
-  `String(data:encoding:.utf8)` direct.
-- **CRLF compte pour un seul `Character`** (`"a\r\nb"` = 3 caractères, pas 4) :
-  découper par `Unicode.Scalar` ou tester `isNewline`, et garder une fixture
-  CRLF dans les tests.
-- **Clé écrite deux fois dans un i18n : le jeu retient la dernière** — le
-  parseur déduplique en gardant la dernière (`I18nLenientParser`) ; garder la
-  première diverge silencieusement du jeu.
-- **Identifier un format binaire par ses octets, jamais par le nom ou
-  l'extension** : 372 `.xnb` traités comme LZ4 étaient du LZX (marqueur
-  `0x81`) — un nom d'archive ne dit rien de son contenu.
-- **Nexus mod id depuis `UpdateKeys`** : `Nexus:191`, `Nexus: 191 ` (espaces),
-  `Nexus:23169@SwimItems` (suffixe `@variant`) → tous parsables. Helper
-  unique : `ModManifest.parseNexusId(fromUpdateKeys:)` (static, public, dans
-  `StarHubTH/ZipModInfo.swift`). **Ne pas dupliquer** la logique dans le
-  ViewModel ou ailleurs.
-- **Nexus requests : un seul constructeur** via
-  `NexusRequestBuilder.makeRequest(path:apiKey:)`. Source unique pour
-  `apiBase`, `gameDomain`, headers `User-Agent`/`Application-Name`/
-  `Application-Version`. Deux jeux d'en-têtes feraient voir deux clients
-  distincts à Nexus.
-- **`ModItem.id` est `folderName`, et c'est la clé de tous les magasins
-  persistés.** (favoris, notes, catégories, horodatages, configs de profil).
-  Deux mods peuvent porter le même nom logique — `X` actif et `.X` en pause sont
-  deux dossiers distincts, cas réel sur le parc — et se partagent alors identité
-  `Identifiable`, identifiant Nexus, favori et poids ; un `ForEach` n'en rend
-  qu'un. ⚠️ **Ne pas « corriger » en changeant `ModItem.id`** : ce serait une
-  migration de tous les magasins. Le défaut est signalé à l'écran (Alertes
-  système), pas résolu par un changement de clé.
-- **Ne jamais décapiter un suffixe de nom de dossier sans confirmation.**
-  `MakeGuntherRealFR` désigne *la traduction*, pas un dossier `MakeGuntherReal`
-  à deviner : ce genre d'heuristique écrase le mauvais dossier.
-- **Le Nexus mod id n'est pas une clé d'identité** : des mods distincts le
-  partagent (58 id partagés sur le parc ; l'id 8828 couvre 3 mods — indexer
-  dessus a effacé les mises à jour de 3 mods). Toute clé par mod passe par
-  l'`UniqueID`.
-- **Une passe Nexus partielle (429, 503) fusionne avec le cache, elle ne le
-  remplace pas** : un mod absent de la réponse n'est pas « à jour » — on
-  conserve sa ligne précédente, seulement s'il est encore installé. Et le
-  cache reste **à plat** : la liste affichée, consolidée par pack, ne doit
-  jamais y être réécrite.
-- **Requête smapi.io : `apiVersion` (et `gameVersion`) obligatoires.** Sans
-  `apiVersion`, zéro suggestion revient ; une version mal formée vide le lot
-  entier en silence.
-- **Serialisation du registre** (`installedModRegistry` en UserDefaults) :
-  clé de secours doublant **chaque** écriture, restauration auto si corruption
-  détectée, plus la reconstruction depuis le disque. Les trois sont
-  indépendants, tous requis. ⚠️ Ce piège a longtemps dit « backup auto **avant**
-  écriture » : c'est faux, et la formulation avait déjà été recopiée dans le
-  code. `persist` écrit les **mêmes octets neufs** sur les deux clés dans la
-  foulée (mesuré : 90 902 octets des deux côtés sur une installation réelle) —
-  le secours ne permet aucun retour en arrière, il ne couvre qu'une clé devenue
-  illisible pendant que l'autre reste lisible.
-- **Mise à jour d'un mod déjà activé** : préserver l'état activé après
-  l'écrasement. Ne **jamais** écraser `config.json` ou `fr.json` d'un mod
-  existant (drag-drop inclus).
-
-### Build & release
-
-- **`python3` uniquement**, jamais `python` (absent du PATH sur la machine
-  de référence).
-- **`DEVELOPER_DIR` obligatoire** pour `./run_tests.sh` : le framework
-  Swift Testing (`import Testing`) requiert Xcode.app complet, pas les
-  Command Line Tools. Sans `DEVELOPER_DIR` : `no such module 'Testing'` — c'est
-  une **limite d'environnement**, pas une régression.
-- **`build_app.py` a la même exigence, avec un symptôme trompeur.** Il invoque
-  `swiftc` via `xcrun`, qui résout la chaîne **active** (`xcode-select -p`).
-  Si elle pointe sur `/Library/Developer/CommandLineTools` — une mise à jour
-  macOS suffit à la faire basculer — le build échoue sur
-  `external macro implementation type 'SwiftUIMacros.StateMacro' could not be
-  found`, répété sur chaque `@State` du dépôt : des centaines de lignes qui
-  **ressemblent à une erreur de code** et n'en sont pas. Vérifier
-  `xcode-select -p` avant de chercher dans les sources ; remède durable
-  `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`, dépannage
-  immédiat `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3
-  build_app.py` (2026-09-12).
-- **Parité des clés L10n obligatoire** : `en.json` et `fr.json` doivent
-  contenir exactement les mêmes clés. `build_app.py` valide ça — un ajout
-  dans un seul fichier fait échouer le build.
-- **`check_standards.py` n'échoue qu'à l'**augmentation** d'un compteur**
-  par rapport à `.standards-baseline.json`. Un `--update` explicite est
-  requis pour assumer une nouvelle violation, visible dans le diff.
-  **La taille des fichiers est verrouillée par fichier** (clés `file:<chemin>`
-  pour chacun des 37 au-dessus de 400 lignes, ViewModel compris) : allonger un
-  gros fichier échoue même en raccourcissant un autre. Les deux sommes
-  (`oversized_files`, `oversized_excess_lines`) se compensaient entre fichiers
-  — ~16 000 lignes de marge muette, mesurées le 2026-09-11.
-- **Lire l'exit code du gate directement** : `python3 build_app.py | tail`
-  rend le code de `tail` (vert même bloqué) ; et les diagnostics SourceKit
-  juste après un build sont de la ré-indexation, pas des erreurs du code.
-- **Ne pas éditer les sources pendant un gate** (8–12 min) : le build
-  embarque des fichiers à moitié édités et le gate est perdu — attendre sa
-  fin.
-- **Les tests n'écrivent jamais dans le vrai Application Support** : 582
-  exécutions ont pollué de vrais backups avant que les managers ne soient
-  injectés — tout nouveau test d'un manager reçoit un dossier temporaire.
-
-### UI
-
-- **Sidebar : pas de barre de recherche**, et l'entrée "Mod Updates" doit
-  rester visible en permanence (badge caché si 0 updates).
-- **Pages de liste (`ModListView`, `LogsView`)** : patron `VStack(spacing: 0)`
-  avec header fixe + `Divider` + `ScrollView` + footer/pagination fixe. Pas
-  de `ScrollView` unique qui ferait tout défiler ensemble.
-- **Toggle de mod = rename atomique préfixe point** : `Mods/X` ↔ `Mods/.X`.
-  `ModItem.folderName` est **logique** (jamais de point). `physicalFolderName`
-  est la version disque. Toute construction de chemin disque doit utiliser
-  `physicalFolderName`. Le renommement invalide tout cache indexé par nom de
-  dossier : déplacer la clé au toggle (`ModsFolderSizer` — le poids sinon
-  disparaît à la bascule).
-- **`.help()` sur un petit glyph ne s'affiche jamais** : macOS exige un survol
-  d'environ 2 s entièrement dans la zone, et un glyph de 10 pt est plus petit
-  que ce que le curseur peut tenir immobile — porter la cible à ~18×18
-  (`frame` + `contentShape(.rect)`) avant le `.help`.
-
-### Docs & roadmap
-
-- **Les cases ROADMAP traînent derrière le code livré** : vérifier `git log`
-  et le code avant de traiter une tâche « à faire » — des tâches livrées sont
-  restées ouvertes plusieurs jours, deux fois en une semaine.
+Sur un hit, la sortie porte la forme compacte ; `caveman mem recover <handle>` rend
+l'original octet pour octet.
 
 ## Git
 
