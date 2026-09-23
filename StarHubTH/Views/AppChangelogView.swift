@@ -34,7 +34,9 @@ struct AppChangelogView: View {
     private func loadChangelog() {
         if let url = Bundle.main.url(forResource: "CHANGELOG", withExtension: "md") {
             do {
-                changelogText = try String(contentsOf: url, encoding: .utf8)
+                // Les deux dernières versions seulement : le fichier entier est un
+                // historique, pas des notes de version.
+                changelogText = ChangelogExcerpt.latest(try String(contentsOf: url, encoding: .utf8))
             } catch {
                 changelogText = String(format: localization.L(L10n.Main.changelogReadError), error.localizedDescription)
             }

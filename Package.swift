@@ -266,6 +266,7 @@ let package = Package(
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",
                 "Models/SaveFingerprint.swift",
+                "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
@@ -273,6 +274,11 @@ let package = Package(
             name: "SmapiBlacklistTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiBlacklistTests"
+        ),
+        .testTarget(
+            name: "ChangelogExcerptTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ChangelogExcerptTests"
         ),
         .testTarget(
             name: "SaveFingerprintTests",

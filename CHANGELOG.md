@@ -18,6 +18,10 @@ where the exact log format was verified.
 - **Mettre un mod en pause chiffre ce qu'il a laissé dans vos sauvegardes.** Si des empreintes du mod (pack compris) y dorment, la bascule est suspendue derrière un avertissement chiffré par partie — objets, bâtiments, clés de données. Confirmer poursuit ; annuler ne touche à rien.
 - **La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu** — objets, bâtiments, données — et chaque ligne ouvre la fiche du mod.
 
+### Changed
+
+- **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.
+
 ## [1.48.0] - 2026-09-18
 
 ### Added
