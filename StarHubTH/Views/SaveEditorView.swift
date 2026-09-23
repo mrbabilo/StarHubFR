@@ -370,6 +370,8 @@ struct SaveEditorView: View {
                 }
                 
                 SavePausedFootprintSection(vm: vm, localization: localization, save: save, currentTab: $currentTab)
+
+                SaveAbsentModsSection(vm: vm, localization: localization, save: save)
                 
                 Section(localization.L(L10n.Saves.characterInfo)) {
                     TextField(localization.L(L10n.Saves.characterName), text: $name)

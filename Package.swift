@@ -266,7 +266,10 @@ let package = Package(
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",
                 "Models/SaveFingerprint.swift",
+                "Models/SaveFootprintEntries.swift",
                 "Stores/SaveFingerprintPauseStore.swift",
+                "Stores/SaveFingerprintScanCache.swift",
+                "Stores/SaveAbsentModsStore.swift",
                 "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
