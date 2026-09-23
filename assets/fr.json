@@ -1166,6 +1166,7 @@
   "saves_cleanup_err_read": "La sauvegarde n'a pas pu être lue ; rien n'a été modifié.",
   "saves_cleanup_err_write": "L'écriture a échoué ; rien n'a été modifié.",
   "saves_cleanup_err_none": "Il n'y a rien à supprimer.",
+  "saves_cleanup_close": "Fermer",
   "saves_open_folder": "Ouvrir le dossier",
   "saves_overwrite_anyway": "Écraser quand même",
   "saves_qi_gems": "Gemmes de Qi",

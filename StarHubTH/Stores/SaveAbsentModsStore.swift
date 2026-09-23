@@ -25,14 +25,17 @@ final class SaveAbsentModsStore {
     /// mods de la précédente.
     private var generation = 0
 
-    func refresh(save: SaveGameInfo, mods: [ModItem]) {
+    /// `modified` : la date qui sert de clé au cache — celle de la save par
+    /// défaut, une plus récente quand l'app vient de réécrire le fichier
+    /// (A1-T10 : la fiche garde l'instantané d'avant le nettoyage).
+    func refresh(save: SaveGameInfo, mods: [ModItem], modified: Date? = nil) {
         generation += 1
         let demande = generation
         if case .idle = state { state = .scanning }
         let url = save.fileURL
         Task {
             let scan = await SaveFingerprintScanCache.shared.scan(
-                folderName: save.folderName, modified: save.lastModified, url: url)
+                folderName: save.folderName, modified: modified ?? save.lastModified, url: url)
             let entries = scan.map { SaveAbsentMods.entries(scan: $0, mods: mods) }
             guard demande == generation else { return }
             state = entries.map(State.loaded) ?? .unreadable

@@ -171,6 +171,7 @@ enum L10n {
         static let cleanupErrRead                   = "saves_cleanup_err_read"
         static let cleanupErrWrite                  = "saves_cleanup_err_write"
         static let cleanupErrNone                   = "saves_cleanup_err_none"
+        static let cleanupClose                     = "saves_cleanup_close"
         static let tag                  = "saves_tag"
         static let saveNote             = "saves_save_note"
         static let confirmRestore       = "saves_confirm_restore"

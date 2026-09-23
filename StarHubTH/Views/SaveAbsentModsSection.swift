@@ -11,6 +11,11 @@ struct SaveAbsentModsSection: View {
     let save: SaveGameInfo
 
     @State private var store = SaveAbsentModsStore()
+    @State private var feuilleOuverte = false
+    @State private var feuilleUids: Set<String> = []
+    /// La fiche garde l'instantané de la save d'avant un nettoyage : sa date
+    /// ne bouge pas. Une réécriture par l'app date le scan à refaire.
+    @State private var réécritures: [String: Date] = [:]
 
     /// Ce qui périme le résultat : une autre save, une save réécrite, ou le
     /// parc lui-même — un mod réinstallé ou retiré change la liste.
@@ -25,7 +30,7 @@ struct SaveAbsentModsSection: View {
         let parc = vm.scanStore
         return RefreshKey(
             folderName: save.folderName,
-            modified: save.lastModified,
+            modified: réécritures[save.folderName] ?? save.lastModified,
             ids: parc.mods.allUniqueIds,
             parcLoading: parc.mods.isEmpty && parc.scanProgress != nil)
     }
@@ -49,6 +54,13 @@ struct SaveAbsentModsSection: View {
                 ForEach(entries, id: \.uid) { entry in
                     row(entry)
                 }
+                Button {
+                    feuilleUids = Set(entries.map(\.uid))
+                    feuilleOuverte = true
+                } label: {
+                    Label(localization.L(L10n.Saves.cleanupButton), systemImage: "trash")
+                }
+                .buttonStyle(.borderless)
             }
         } header: {
             Text(localization.L(L10n.Saves.absentModsTitle))
@@ -64,7 +76,22 @@ struct SaveAbsentModsSection: View {
             // serait un faux « tout va bien » — rester en lecture, la clé
             // change quand le parc arrive.
             guard !refreshKey.parcLoading else { return }
-            store.refresh(save: save, mods: vm.scanStore.mods)
+            store.refresh(save: save, mods: vm.scanStore.mods, modified: refreshKey.modified)
+        }
+        // Sur la section, pas sur le bouton : la liste se vide après le
+        // nettoyage, et la feuille doit survivre au bouton pour montrer le
+        // résultat.
+        .sheet(isPresented: $feuilleOuverte) {
+            SaveCleanupSheet(
+                localization: localization,
+                save: save,
+                modified: refreshKey.modified,
+                mods: vm.scanStore.mods,
+                uids: feuilleUids,
+                onCleaned: {
+                    réécritures[save.folderName] = Date()
+                    vm.reloadSaves()
+                })
         }
     }
 

@@ -1166,6 +1166,7 @@
   "saves_cleanup_err_read": "The save could not be read; nothing was changed.",
   "saves_cleanup_err_write": "Writing failed; nothing was changed.",
   "saves_cleanup_err_none": "There is nothing to remove.",
+  "saves_cleanup_close": "Close",
   "saves_open_folder": "Open Folder",
   "saves_overwrite_anyway": "Overwrite Anyway",
   "saves_qi_gems": "Qi Gems",
