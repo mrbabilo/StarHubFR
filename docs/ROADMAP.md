@@ -332,7 +332,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **11 items ouverts sur 26** *(recompté le 2026-09-23 à l'occasion de l'ajout d'**A1-T8/T9/T10**, issus de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md) — l'ancien « 9 sur 25 » annonçait un ouvert de trop, encore. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 25** *(recompté le 2026-09-23 au soir : **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -430,32 +430,6 @@ backup se retrouve en moins de dix secondes.
   - *(`SMAPI_MODS_PATH` / `--mods-path`, qu'ils utilisent pour lancer, reste **écarté** —
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
-
-- [ ] **A1-T8 — Avertir à la bascule : mettre en pause un mod ne met pas en
-      pause ses empreintes dans les sauvegardes.** *(né le 2026-09-23 de l'audit
-      Keybind Radar & SaveSaver — [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md).
-      Complète **A1-T6** et répond à sa question laissée ouverte — « ce qu'il advient
-      des **objets** définis par un mod absent, pas de leur `modData` » — par la
-      mesure.)* Le scénario SaveSaver (un mod parti dont la sauvegarde porte encore
-      les types, d'où crash au chargement) **existe déjà sur ce parc, produit par
-      notre propre bascule**. Mesuré sur `Zofia_443716371` : **757 objets**
-      `Morghoula.AlchemistryCP_*` et un bâtiment `Bindicle.Dayswork_Office` pour des
-      mods **en pause**, ~133 nœuds `Lumisteria.MtVapius_*` pour un mod **absent** ;
-      457 identifiants namespacés distincts au total. La bascule et la
-      désinstallation sont aujourd'hui muettes sur cette conséquence. **Ce que
-      l'écran dirait**, au moment de l'action, chiffré depuis les saves réelles :
-      « 757 objets dans Zofia référencent ce mod » — lecture seule, la décision
-      reste celle de l'utilisateur. Les empreintes à croiser : les identifiants
-      namespacés du save (objets, bâtiments, locations, `xsi:type`) contre les
-      manifestes du parc ; `DotNetMetadata` (C4-T11) quand l'identifiant ne suffit
-      pas — la mesure ci-dessus a tenu au seul `grep` des `<name>`.
-      ⚠️ **Sévérité à instruire avant d'écrire le texte** : aucun crash observé
-      sur Zofia — les empreintes mesurées sont des objets/ressources référencés
-      par id, pas des types C#. Le cas crashant de SaveSaver (types C# orphelins)
-      est réel dans la nature mais **non observé ici** (0 `xsi:type` de mod sur les
-      deux saves actives). L'avertissement suit la sévérité mesurée, pas le pire
-      cas — même discipline que A1-T6 (« du contenu dort », jamais « tu vas
-      perdre »). · **M**
 
 - [ ] **A1-T9 — L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
       son bistouri.** *(même audit, 2026-09-23.)* SaveSaver (Nexus 52709,
@@ -2339,6 +2313,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A5-T3** | 2026-08-29 | Le paragraphe de compatibilité de l'auteur, sur la fiche |
 | **A1-T7** | 2026-09-15 | La mise à jour d'un mod ne perd plus ses données de partie : `PreservedModData` compare ancien dossier et archive neuve avant l'effacement, remet les extras, échecs nommés au bilan (règle §8.4 : absent de l'archive neuve ⇒ donnée locale) |
 | **A2-T7** | 2026-09-15 | Un mod de la liste noire SMAPI (malveillants) signalé avant le lancement : `SmapiBlacklist` lit le JSONC, croisement sans la casse, illisible ⇒ `nil` jamais liste vide, alerte critique + bandeau rouge, jamais de suppression |
+| **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**
 

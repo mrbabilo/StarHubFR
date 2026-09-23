@@ -3862,6 +3862,51 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T8** — ✅ **Livré le 2026-09-23.** **Avertir à la bascule : mettre en
+      pause un mod ne met pas en pause ses empreintes dans les sauvegardes.**
+      *(né de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md) ;
+      complète **A1-T6** et répond à sa question laissée ouverte — ce qu'il advient
+      des **objets** définis par un mod absent, pas de leur `modData` — par la
+      mesure.)* Mesuré sur `Zofia_443716371` : **757 objets**
+      `Morghoula.AlchemistryCP_*` et un bâtiment `Bindicle.Dayswork_Office` pour
+      des mods **en pause**, ~133 nœuds `Lumisteria.MtVapius_*` pour un mod
+      **absent** ; 457 identifiants namespacés distincts au total. Les empreintes
+      ont tenu au seul croisement des identifiants namespacés contre les
+      manifestes du parc — `DotNetMetadata` (C4-T11) n'a pas été nécessaire.
+      ⚠️ **Sévérité instruite avant d'écrire le texte** : aucun crash observé —
+      les empreintes sont des objets/ressources référencés par id, pas des types
+      C# (0 `xsi:type` de mod sur les deux saves actives). Le cas crashant de
+      SaveSaver (types C# orphelins) est réel dans la nature mais non observé ici.
+      L'avertissement suit la sévérité mesurée, pas le pire cas — « voilà ce qui
+      restera », jamais « tu vas perdre » (même discipline que **A1-T6**).
+      ✅ **Ce qui a été fait.** `SaveFingerprintScanner` (Core, XMLParser
+      événementiel) compte les empreintes par porteur — objets (`name`/`itemId`
+      dédupliqués à la fermeture de l'élément : un objet porté par les deux champs
+      compte une fois ; 1 922 `itemId` namespacés pour 1 648 `name` sur Zofia),
+      bâtiments (`buildingType`), clés `modData` (`key`>`string`) ; les références
+      des listes de butin (`<string>` isolés, 667 sur Zofia) ne comptent pas.
+      `SaveFingerprintResolution` croise avec les UniqueIDs du parc — identique,
+      préfixe `_`/`.`, clé de jeu `<fonction>_<uid>` (règle **générique** : la
+      fonction est un mot de lettres avant le premier underscore — 138 clés
+      mesurées, `firstVisit_` 63, `eventSeen_` 39… — jamais une liste codée en
+      dur qui divergerait des mises à jour du jeu), forme SMAPI
+      `smapi/mod-data/<uid>/` (43 clés). Le préfixe le plus long gagne (`A.B_C`
+      avant `A.B`) ; une empreinte orpheline n'attribue rien — zéro ambiguïté
+      mesurée sur 1 125 UniqueIDs et deux saves.
+      ✅ **Le geste** : `performToggle` intercepte toute bascule vers pause
+      (pack compris — les UniqueIDs de tout le plan), scanne les saves hors fil
+      principal via `SaveFingerprintPauseStore` (extrait, règle F1-T2) et suspend
+      le geste derrière une alerte racine chiffrée par save quand le rapport
+      n'est pas vide — « Mettre en pause n'efface pas ce que X a laissé dans vos
+      sauvegardes : Zofia : 757 objets ». Rapport vide → bascule immédiate, sans
+      confirmation pour rien. `isToggling` reste posé pendant scan et suspension :
+      la file de bascule n'enchaîne pas, le spinner de la rangée reste visible.
+      19 tests Core, mécanismes prouvés par sabotage.
+      ▸ **Ce que A1-T8 ne fait PAS, et c'est délibéré** : la **bascule en masse**
+      (`toggleAllMods`) traverse `ModFolderBulkMove`, pas `performToggle` — elle
+      reste muette, comme la **désinstallation** ; l'audit **A1-T9** rendra le
+      chiffre visible hors du geste.
+
 
 - [x] **A1-T7** — ✅ **Livré le 2026-09-15** *(option A ; l'option C s'est trouvée
       déjà en place)*. **Mettre à jour un mod perdait ses données — et la liste des
