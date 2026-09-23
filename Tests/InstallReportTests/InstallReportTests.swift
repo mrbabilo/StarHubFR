@@ -113,4 +113,31 @@ struct InstallReportTests {
                                           PreservedDataOutcome(modFolder: "Y", restored: 1, failed: [])])
         #expect(r.preserved.map(\.modFolder) == ["Y"])
     }
+
+    // MARK: - A1-T7 (suite) — nommer les remises, l'option de non-remise
+
+    /// « Préciser lesquelles » : le résultat porte les chemins remis, et le
+    /// résumé les compte avec le reste.
+    @Test("Un résultat nomme les chemins remis")
+    func outcomeCarriesRestoredPaths() {
+        let outcome = PreservedDataOutcome(modFolder: "FTM", restored: 2, failed: [],
+                                           paths: ["data/a.save", "data/b.save"])
+        #expect(outcome.paths == ["data/a.save", "data/b.save"])
+        let s = InstallReportSummary.of([], preserved: [outcome])
+        #expect(s.dataRestored == 2)
+    }
+
+    /// L'option « ne pas remettre » (réglage global) : des données laissées
+    /// dans la sauvegarde d'installation ne sont PAS muettes — l'utilisateur
+    /// doit voir où elles sont, sinon le bilan dirait « tout va bien ».
+    @Test("Un résultat avec seulement des données non remises n'est pas muet")
+    func skippedOutcomeIsNotSilent() {
+        let outcome = PreservedDataOutcome(modFolder: "FTM", restored: 0, failed: [],
+                                           skipped: 3)
+        #expect(outcome.isSilent == false)
+        let r = InstallReport(installedNames: ["X"], deltas: [], remainingInQueue: 0,
+                              preserved: [outcome])
+        #expect(r.preserved.count == 1)
+        #expect(r.preserved[0].skipped == 3)
+    }
 }

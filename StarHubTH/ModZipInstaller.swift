@@ -1190,7 +1190,9 @@ class ModZipInstaller {
             // blanche des 18 noms ne voit pas. Mêmes garanties de ménage.
             var preservedExtras: [String: URL] = [:]
             var extrasRestored = 0
+            var extrasRestoredPaths: [String] = []
             var extrasFailed: [String] = []
+            var extrasSkipped = 0
             // C2-T4 — le delta de clés de la mise à jour, capturé dans la
             // branche overwrite seulement.
             var pendingKeyDelta: ModUpdateKeyDelta? = nil
@@ -1382,17 +1384,28 @@ class ModZipInstaller {
             // périmé qu'on ne peut plus reposer ne doit pas faire échouer une
             // mise à jour réussie, le dossier entier étant déjà en sauvegarde.
             // Les échecs remontent au bilan (`InstalledModPath`).
-            let extrasOutcome = PreservedModData.restore(
-                &preservedExtras, into: URL(fileURLWithPath: destPath), using: fm)
-            extrasRestored = extrasOutcome.restored
-            extrasFailed = extrasOutcome.failed
+            // A1-T7 (suite) — sauf si le réglage dit « ne pas remettre » :
+            // les snapshots partent au ménage, leur contenu ne dort que dans
+            // la sauvegarde d'installation, et le bilan le dit (skipped).
+            if PreservedModData.shouldRestore(defaults: .standard) {
+                let extrasOutcome = PreservedModData.restore(
+                    &preservedExtras, into: URL(fileURLWithPath: destPath), using: fm)
+                extrasRestored = extrasOutcome.restored
+                extrasRestoredPaths = extrasOutcome.restoredPaths
+                extrasFailed = extrasOutcome.failed
+            } else {
+                extrasSkipped = preservedExtras.count
+                preservedExtras.removeAll()
+            }
 
             // Le mod est entièrement posé : son chemin peut être annoncé.
             installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath,
                                                    displacedFrom: displacedFrom,
                                                    keyDelta: pendingKeyDelta,
                                                    extrasRestored: extrasRestored,
-                                                   extrasFailed: extrasFailed))
+                                                   extrasRestoredPaths: extrasRestoredPaths,
+                                                   extrasFailed: extrasFailed,
+                                                   extrasSkipped: extrasSkipped))
         }
 
         // La rétention par âge, **une fois** pour toute l'installation : elle

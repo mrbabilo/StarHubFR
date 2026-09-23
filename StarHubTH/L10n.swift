@@ -991,6 +991,8 @@ enum L10n {
         static let nexusAutoCheck        = "settings_nexus_auto_check"
         static let keepNexusArchives     = "settings_keep_nexus_archives"
         static let keepNexusArchivesHint = "settings_keep_nexus_archives_hint"
+        static let restoreModData        = "settings_restore_mod_data"
+        static let restoreModDataHint    = "settings_restore_mod_data_hint"
         static let nexusAutoCheckHint    = "settings_nexus_auto_check_hint"
         static let nexusQuota            = "settings_nexus_quota"
         static let nexusQuotaDaily       = "settings_nexus_quota_daily"
@@ -1425,6 +1427,7 @@ enum L10n {
         static let dataSection         = "install_report_data_section"
         static let dataRestoredRow     = "install_report_data_restored_row"
         static let dataFailedRow       = "install_report_data_failed_row"
+        static let dataSkippedRow      = "install_report_data_skipped_row"
         static let done           = "install_report_done"
         static let nextArchive    = "install_report_next_archive"
     }

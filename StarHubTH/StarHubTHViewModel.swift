@@ -6812,11 +6812,14 @@ final class StarHubTHViewModel {
         // fenêtre a été fermée ; le bilan la met sous les yeux.
         lastInstallPreserved = paths.map {
             PreservedDataOutcome(modFolder: ($0.path as NSString).lastPathComponent,
-                                 restored: $0.extrasRestored, failed: $0.extrasFailed)
+                                 restored: $0.extrasRestored, failed: $0.extrasFailed,
+                                 paths: $0.extrasRestoredPaths, skipped: $0.extrasSkipped)
         }.filter { !$0.isSilent }
         for outcome in lastInstallPreserved {
             for m in PreservedModData.messages(restored: outcome.restored,
                                                failed: outcome.failed,
+                                               restoredPaths: outcome.paths,
+                                               skipped: outcome.skipped,
                                                modFolder: outcome.modFolder) {
                 log(m.text, level: m.isFailure ? .warning : .info)
             }

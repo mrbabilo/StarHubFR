@@ -14,16 +14,26 @@ public struct PreservedDataOutcome: Equatable, Sendable {
     public let modFolder: String
     public let restored: Int
     public let failed: [String]
+    /// A1-T7 (suite) — les chemins remis, pour que le bilan **nomme** ce
+    /// qu'il a replacé, et pas seulement compté.
+    public let paths: [String]
+    /// L'option de non-remise (réglage global) : fichiers préservés puis
+    /// laissés dans la sauvegarde d'installation, par choix de l'utilisateur.
+    public let skipped: Int
 
-    public init(modFolder: String, restored: Int, failed: [String]) {
+    public init(modFolder: String, restored: Int, failed: [String],
+                paths: [String] = [], skipped: Int = 0) {
         self.modFolder = modFolder
         self.restored = restored
         self.failed = failed
+        self.paths = paths
+        self.skipped = skipped
     }
 
     /// Rien à dire quand rien n'a été touché — le bilan ne doit pas bavarder
-    /// sur une installation ordinaire.
-    public var isSilent: Bool { restored == 0 && failed.isEmpty }
+    /// sur une installation ordinaire. Des données **non remises par choix**
+    /// ne sont pas muettes : l'utilisateur doit savoir où elles dorment.
+    public var isSilent: Bool { restored == 0 && failed.isEmpty && skipped == 0 }
 }
 
 public struct InstallReport: Equatable, Sendable {

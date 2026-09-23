@@ -163,6 +163,22 @@ import Testing
         #expect(try String(contentsOf: back, encoding: .utf8) == "data/Zofia_1_SaveData.save")
     }
 
+    /// A1-T7 (suite) — le bilan doit **nommer** ce qui a été remis, pas
+    /// seulement le compter : « lesquelles » est la demande du joueur.
+    @Test("La restauration rapporte les chemins remis, triés")
+    func restoreReportsThePathsItPutBack() throws {
+        let fm = FileManager.default
+        let old = try makeFolder(["data/b.save", "data/a.save"])
+        var snaps = PreservedModData.snapshot(["data/b.save", "data/a.save"],
+                                              from: old, using: fm)
+        try fm.removeItem(at: old)
+        let fresh = try makeFolder(["manifest.json"])
+        defer { try? fm.removeItem(at: fresh) }
+
+        let result = PreservedModData.restore(&snaps, into: fresh, using: fm)
+        #expect(result.restoredPaths == ["data/a.save", "data/b.save"])
+    }
+
     /// Le choix de conception d'A1-T7 : un extra qu'on ne peut pas reposer ne
     /// fait **pas** avorter une mise à jour par ailleurs réussie — le dossier
     /// entier est déjà en sauvegarde. L'échec se compte, il ne se tait pas.
@@ -219,6 +235,57 @@ import Testing
         #expect(m[0].isFailure == true)
         #expect(m[0].text.contains("data/a.save"))
         #expect(m[0].text.contains("data/b.save"))
+    }
+
+    /// A1-T7 (suite) — le succès nomme aussi : « lesquelles » vaut pour les
+    /// remises comme pour les échecs.
+    @Test("Le succès nomme les fichiers remis, cinq au plus puis un compte")
+    func namesTheRestoredPaths() {
+        let m = PreservedModData.messages(
+            restored: 2, failed: [],
+            restoredPaths: ["data/a.save", "data/b.save"], modFolder: "FTM")
+        #expect(m.count == 1)
+        #expect(m[0].isFailure == false)
+        #expect(m[0].text.contains("data/a.save"))
+        #expect(m[0].text.contains("data/b.save"))
+
+        let longs = (1...7).map { "data/f\($0).save" }
+        let m2 = PreservedModData.messages(restored: 7, failed: [],
+                                           restoredPaths: longs, modFolder: "FTM")
+        #expect(m2[0].text.contains("data/f5.save"))
+        #expect(m2[0].text.contains("2 autres"))
+        #expect(!m2[0].text.contains("data/f6.save"))
+    }
+
+    /// L'option de non-remise (réglage global) : les données laissées dans
+    /// la sauvegarde d'installation se disent, en alerte — l'utilisateur
+    /// doit savoir où elles sont.
+    @Test("Des données non remises par choix sont signalées avec leur chemin")
+    func skippedDataIsAnnounced() {
+        let m = PreservedModData.messages(restored: 0, failed: [], skipped: 2,
+                                          modFolder: "FTM")
+        #expect(m.count == 1)
+        #expect(m[0].isFailure == true)
+        #expect(m[0].text.contains("2"))
+        #expect(m[0].text.contains("sauvegarde"))
+    }
+
+    // MARK: - A1-T7 (suite) — le réglage « remettre les données »
+
+    /// Le piège du `bool(forKey:)` nu : absent = false, alors que la remise
+    /// des données est le comportement **par défaut** de l'app.
+    @Test("La clé absente vaut « remettre »")
+    func missingKeyMeansRestore() {
+        let d = UserDefaults(suiteName: "pmd_missing_\(UUID().uuidString)")!
+        d.removeObject(forKey: UDKey.restoreModDataOnUpdate)
+        #expect(PreservedModData.shouldRestore(defaults: d) == true)
+    }
+
+    @Test("La clé positionnée tranche", arguments: [false, true])
+    func explicitKeyDecides(value: Bool) {
+        let d = UserDefaults(suiteName: "pmd_set_\(UUID().uuidString)")!
+        d.set(value, forKey: UDKey.restoreModDataOnUpdate)
+        #expect(PreservedModData.shouldRestore(defaults: d) == value)
     }
 
     @Test("Au-delà de cinq échecs, le reste est compté")

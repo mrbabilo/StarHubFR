@@ -12,6 +12,9 @@ struct SettingsView: View {
     /// X103-C — inactif par défaut : une fonction qui écrit sur le disque sans
     /// qu'on l'ait demandée fait croître l'empreinte en silence.
     @AppStorage(UDKey.keepNexusArchives) private var keepNexusArchives: Bool = false
+    /// A1-T7 (suite) — remettre les données de mod après une mise à jour ;
+    /// le vrai défaut (clé absente = true) vit dans `shouldRestore`.
+    @AppStorage(UDKey.restoreModDataOnUpdate) private var restoreModData: Bool = true
 
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""
@@ -186,6 +189,22 @@ struct SettingsView: View {
                         .controlSize(.small)
                         .labelsHidden()
                     InfoPopoverButton(text: localization.L(L10n.Settings.keepNexusArchivesHint))
+                }
+
+                // A1-T7 (suite). Section installation, pas « Données » :
+                // c'est au moment d'une mise à jour qu'on se demande ce que
+                // deviennent les fichiers écrits en jouant. Le défaut est
+                // actif (comportement livré) ; l'installer lit la clé via
+                // `PreservedModData.shouldRestore`, jamais `bool` nu.
+                HStack {
+                    Text(localization.L(L10n.Settings.restoreModData))
+                        .font(AppDesign.Font.body)
+                    Spacer()
+                    Toggle("", isOn: $restoreModData)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                    InfoPopoverButton(text: localization.L(L10n.Settings.restoreModDataHint))
                 }
 
                 if vm.hasNexusApiKey {

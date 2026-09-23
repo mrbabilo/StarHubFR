@@ -323,16 +323,24 @@ struct InstalledModPath: Equatable {
     /// corrige : elle doit se voir au bilan, y compris quand elle échoue.
     var extrasRestored: Int
     var extrasFailed: [String]
+    /// A1-T7 (suite) — les chemins remis (le bilan les nomme) et ceux
+    /// laissés dans la sauvegarde d'installation par le réglage « ne pas
+    /// remettre » (le bilan dit où ils sont).
+    var extrasRestoredPaths: [String]
+    var extrasSkipped: Int
 
     init(modId: UUID, path: String, displacedFrom: String? = nil,
          keyDelta: ModUpdateKeyDelta? = nil,
-         extrasRestored: Int = 0, extrasFailed: [String] = []) {
+         extrasRestored: Int = 0, extrasRestoredPaths: [String] = [],
+         extrasFailed: [String] = [], extrasSkipped: Int = 0) {
         self.modId = modId
         self.path = path
         self.displacedFrom = displacedFrom
         self.keyDelta = keyDelta
         self.extrasRestored = extrasRestored
+        self.extrasRestoredPaths = extrasRestoredPaths
         self.extrasFailed = extrasFailed
+        self.extrasSkipped = extrasSkipped
     }
 }
 

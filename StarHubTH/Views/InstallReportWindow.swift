@@ -202,18 +202,42 @@ private struct PreservedRow: View {
     /// Au-delà de six noms la liste cesse d'informer et pousse le reste du
     /// bilan hors de l'écran ; le compte, lui, reste exact sur la ligne.
     private var shownFailures: ArraySlice<String> { outcome.failed.prefix(6) }
+    private var shownPaths: ArraySlice<String> { outcome.paths.prefix(6) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if outcome.restored > 0 {
-                HStack(spacing: 6) {
+                HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "arrow.uturn.backward.circle")
                         .font(.system(size: 11))
                         .foregroundColor(.green)
-                    Text(String(format: localization.L(L10n.InstallReport.dataRestoredRow),
-                                outcome.modFolder, outcome.restored))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(format: localization.L(L10n.InstallReport.dataRestoredRow),
+                                    outcome.modFolder, outcome.restored))
+                            .font(.system(size: 12))
+                            .fixedSize(horizontal: false, vertical: true)
+                        // A1-T7 (suite) — nommer ce qui a été remis, pas
+                        // seulement le compter.
+                        ForEach(Array(shownPaths.enumerated()), id: \.offset) { _, name in
+                            Text(name)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+            if outcome.skipped > 0 {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "archivebox")
+                        .font(.system(size: 11))
+                        .foregroundColor(.orange)
+                    Text(String(format: localization.L(L10n.InstallReport.dataSkippedRow),
+                                outcome.modFolder, outcome.skipped))
                         .font(.system(size: 12))
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                 }
             }

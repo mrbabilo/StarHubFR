@@ -26,6 +26,16 @@ import Foundation
 /// survit à la mise à jour, et le bilan d'installation le dit.
 enum PreservedModData {
 
+    /// Le réglage « remettre les données après une mise à jour » tranche le
+    /// sort des extras : remis dans le mod (défaut) ou laissés dans la
+    /// sauvegarde d'installation. La clé absente vaut **true** — le
+    /// comportement livré d'A1-T7 — et jamais le `false` du `bool(forKey:)` nu.
+    static func shouldRestore(defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: UDKey.restoreModDataOnUpdate) == nil
+            ? true
+            : defaults.bool(forKey: UDKey.restoreModDataOnUpdate)
+    }
+
     /// Les chemins relatifs du mod installé que l'archive neuve ne livre pas.
     ///
     /// - Parameters:
@@ -120,8 +130,9 @@ enum PreservedModData {
     /// l'appelant ne balaie que les restes réels.
     static func restore(_ snapshots: inout [String: URL],
                         into destFolder: URL,
-                        using fm: FileManager) -> (restored: Int, failed: [String]) {
+                        using fm: FileManager) -> (restored: Int, restoredPaths: [String], failed: [String]) {
         var restored = 0
+        var restoredPaths: [String] = []
         var failed: [String] = []
         for relative in snapshots.keys.sorted() {
             guard let tmp = snapshots[relative] else { continue }
@@ -134,12 +145,13 @@ enum PreservedModData {
                 if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
                 try fm.copyItem(at: tmp, to: target)
                 restored += 1
+                restoredPaths.append(relative)
                 snapshots.removeValue(forKey: relative)
             } catch {
                 failed.append(relative)
             }
         }
-        return (restored, failed)
+        return (restored, restoredPaths, failed)
     }
 
     /// Ce qu'il faut dire à l'utilisateur d'une préservation, mod par mod.
@@ -150,12 +162,25 @@ enum PreservedModData {
     /// où un fichier dort désormais dans la seule sauvegarde d'installation.
     /// Rien n'est rendu quand il n'y a rien à dire : une mise à jour ordinaire
     /// ne doit pas bavarder.
-    static func messages(restored: Int, failed: [String], modFolder: String)
+    static func messages(restored: Int, failed: [String],
+                         restoredPaths: [String] = [], skipped: Int = 0,
+                         modFolder: String)
         -> [(text: String, isFailure: Bool)] {
         var out: [(String, Bool)] = []
         if restored > 0 {
+            let names = restoredPaths.prefix(5).joined(separator: ", ")
+            let extra = restoredPaths.count > 5
+                ? " (+\(restoredPaths.count - 5) autres)" : ""
+            let liste = names.isEmpty ? "" : " : " + names + extra
             out.append(("\(modFolder) : \(restored) fichier(s) de données du mod "
-                        + "remis en place après la mise à jour", false))
+                        + "remis en place après la mise à jour\(liste)", false))
+        }
+        if skipped > 0 {
+            // Réglage « ne pas remettre » : les données dorment dans la
+            // sauvegarde d'installation — l'utilisateur doit savoir où.
+            out.append(("\(modFolder) : \(skipped) fichier(s) de données non remis "
+                        + "par choix du réglage — ils restent dans la sauvegarde "
+                        + "d'installation du mod", true))
         }
         if !failed.isEmpty {
             // Les noms, pas seulement le compte : sans eux l'utilisateur ne

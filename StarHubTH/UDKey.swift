@@ -78,6 +78,14 @@ public enum UDKey {
     /// l'empreinte en silence.
     public static let keepNexusArchives = "keepNexusArchives"
 
+    /// A1-T7 (suite) — remettre dans le mod les données qu'il a écrites en
+    /// jouant après une mise à jour. **Actif par défaut** : c'est le
+    /// comportement livré depuis A1-T7 ; désactiver laisse les fichiers dans
+    /// la sauvegarde d'installation. La lecture passe par
+    /// `PreservedModData.shouldRestore(defaults:)` — jamais `bool(forKey:)`
+    /// nu, qui vaudrait false quand la clé n'a jamais été écrite.
+    public static let restoreModDataOnUpdate = "restoreModDataOnUpdate"
+
     // MARK: - Mise à jour de l'app
 
     /// ⚠️ Ces clés portent le préfixe `starhubFR.` **à dessein** : le fork et
