@@ -1166,6 +1166,7 @@
 "saves_cleanup_err_read" = "La sauvegarde n'a pas pu être lue ; rien n'a été modifié.";
 "saves_cleanup_err_write" = "L'écriture a échoué ; rien n'a été modifié.";
 "saves_cleanup_err_none" = "Il n'y a rien à supprimer.";
+"saves_cleanup_err_busy" = "Une autre opération sur les sauvegardes est en cours ; réessayez dans un instant. Rien n'a été modifié.";
 "saves_cleanup_close" = "Fermer";
 "saves_cleanup_game_running" = "Stardew Valley est en cours d'exécution. Sa sauvegarde automatique peut réécrire la partie et annuler ce nettoyage — fermez le jeu d'abord.";
 "saves_open_folder" = "Ouvrir le dossier";

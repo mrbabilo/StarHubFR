@@ -34,6 +34,13 @@ import Testing
         return (racine, fichier)
     }
 
+    private let verrou = SavesStore(tagForSave: { _ in "" })
+
+    private func backups(in racine: URL) throws -> [String] {
+        try FileManager.default.contentsOfDirectory(atPath: racine.path)
+            .filter { $0.hasPrefix("Zofia_1.backup_") }
+    }
+
     private static let avecClé = "<modData><item><key><string>smapi/mod-data/gone.g/x</string></key>"
         + "<value><string>1</string></value></item></modData>"
 
@@ -42,7 +49,7 @@ import Testing
         let (racine, fichier) = try dossierDeSave(Data(Self.avecClé.utf8))
         defer { try? FileManager.default.removeItem(at: racine) }
         let store = SaveCleanupStore()
-        await store.nettoyer(save: save(fichier), mods: [])
+        await store.nettoyer(save: save(fichier), mods: [], verrou: verrou)
         #expect(store.phase == .terminé(supprimées: 1, laissées: 0))
         #expect(try String(contentsOf: fichier, encoding: .utf8) == "<modData></modData>")
         let backups = try FileManager.default.contentsOfDirectory(atPath: racine.path)
@@ -58,9 +65,11 @@ import Testing
         let (racine, fichier) = try dossierDeSave(contenu)
         defer { try? FileManager.default.removeItem(at: racine) }
         let store = SaveCleanupStore()
-        await store.nettoyer(save: save(fichier), mods: [mod("Absent.A")])
+        await store.nettoyer(save: save(fichier), mods: [mod("Absent.A")], verrou: verrou)
         #expect(store.phase == .échec(.aucuneClé))
         #expect(try Data(contentsOf: fichier) == contenu)
+        // Rien à retirer : pas de backup laissé pour rien dans Saves/.
+        #expect(try backups(in: racine).isEmpty)
     }
 
     @Test("Le BOM de tête est préservé, SaveGameInfo jamais touché")
@@ -69,7 +78,7 @@ import Testing
         let (racine, fichier) = try dossierDeSave(bom + Data(Self.avecClé.utf8))
         defer { try? FileManager.default.removeItem(at: racine) }
         let store = SaveCleanupStore()
-        await store.nettoyer(save: save(fichier), mods: [])
+        await store.nettoyer(save: save(fichier), mods: [], verrou: verrou)
         #expect(store.phase == .terminé(supprimées: 1, laissées: 0))
         #expect(try Data(contentsOf: fichier) == bom + Data("<modData></modData>".utf8))
         let sgi = try Data(contentsOf: fichier.deletingLastPathComponent()
@@ -88,8 +97,42 @@ import Testing
             try? FileManager.default.removeItem(at: racine)
         }
         let store = SaveCleanupStore()
-        await store.nettoyer(save: save(fichier), mods: [])
+        await store.nettoyer(save: save(fichier), mods: [], verrou: verrou)
         #expect(store.phase == .échec(.backup))
         #expect(try Data(contentsOf: fichier) == contenu)
     }
+
+    @Test("Une autre opération tient le verrou des saves : rien n'est écrit")
+    func busyLockWritesNothing() async throws {
+        let contenu = Data(Self.avecClé.utf8)
+        let (racine, fichier) = try dossierDeSave(contenu)
+        defer { try? FileManager.default.removeItem(at: racine) }
+        #expect(verrou.beginOperation())
+        let store = SaveCleanupStore()
+        await store.nettoyer(save: save(fichier), mods: [], verrou: verrou)
+        #expect(store.phase == .échec(.occupé))
+        #expect(try Data(contentsOf: fichier) == contenu)
+        #expect(try backups(in: racine).isEmpty)
+        #expect(verrou.isOperationRunning)   // le verrou d'autrui reste pris
+    }
+
+    @Test("Le verrou est relâché après un nettoyage, réussi ou non")
+    func lockIsReleased() async throws {
+        let (racine, fichier) = try dossierDeSave(Data("<modData></modData>".utf8))
+        defer { try? FileManager.default.removeItem(at: racine) }
+        let store = SaveCleanupStore()
+        await store.nettoyer(save: save(fichier), mods: [], verrou: verrou)
+        #expect(!verrou.isOperationRunning)
+    }
+
+    @Test("Deux backups dans la même seconde ne se marchent pas dessus")
+    func sameSecondBackupsDoNotCollide() throws {
+        let (racine, fichier) = try dossierDeSave(Data(Self.avecClé.utf8))
+        defer { try? FileManager.default.removeItem(at: racine) }
+        let premier = SaveManager.shared.backupSaveURL(info: save(fichier))
+        let second = SaveManager.shared.backupSaveURL(info: save(fichier))
+        #expect(premier != nil && second != nil && premier != second)
+        #expect(try backups(in: racine).count == 2)
+    }
 }
+

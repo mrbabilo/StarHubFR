@@ -1166,6 +1166,7 @@
   "saves_cleanup_err_read": "The save could not be read; nothing was changed.",
   "saves_cleanup_err_write": "Writing failed; nothing was changed.",
   "saves_cleanup_err_none": "There is nothing to remove.",
+  "saves_cleanup_err_busy": "Another save operation is in progress; try again in a moment. Nothing was changed.",
   "saves_cleanup_close": "Close",
   "saves_cleanup_game_running": "Stardew Valley is running. Its autosave can rewrite this save and undo the cleanup — close the game first.",
   "saves_open_folder": "Open Folder",

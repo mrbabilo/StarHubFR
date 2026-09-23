@@ -648,8 +648,15 @@ public final class SaveManager: @unchecked Sendable {
         let timestamp = formatter.string(from: Date())
         
         let folderPath = info.fileURL.deletingLastPathComponent()
-        let backupPath = folderPath.appendingPathExtension("backup_\(timestamp)")
-        
+        // Deux backups dans la même seconde (horodatage à la seconde) : le
+        // second prend un suffixe au lieu d'échouer sur un dossier existant.
+        var backupPath = folderPath.appendingPathExtension("backup_\(timestamp)")
+        var n = 2
+        while fm.fileExists(atPath: backupPath.path) {
+            backupPath = folderPath.appendingPathExtension("backup_\(timestamp)-\(n)")
+            n += 1
+        }
+
         do {
             try fm.copyItem(at: folderPath, to: backupPath)
             print("Backup created at: \(backupPath.path)")

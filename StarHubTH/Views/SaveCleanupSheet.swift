@@ -13,6 +13,8 @@ struct SaveCleanupSheet: View {
     /// La date qui a servi au scan de la section — même clé de cache.
     let modified: Date
     let mods: [ModItem]
+    /// Porte le verrou d'écriture des saves, partagé avec l'éditeur.
+    let verrou: SavesStore
     let uids: Set<String>
     /// Relevé à l'ouverture — même garde que l'éditeur de la fiche.
     let gameRunning: Bool
@@ -78,7 +80,7 @@ struct SaveCleanupSheet: View {
                     .keyboardShortcut(.defaultAction)
                 Button(localization.L(L10n.Saves.cleanupConfirm), role: .destructive) {
                     Task {
-                        await store.nettoyer(save: save, mods: mods)
+                        await store.nettoyer(save: save, mods: mods, verrou: verrou)
                         guard case .terminé(_, let laissées) = store.phase else { return }
                         onCleaned()
                         // Tout est parti : la section dit le résultat. Des
@@ -126,6 +128,7 @@ struct SaveCleanupSheet: View {
         case .lecture: return localization.L(L10n.Saves.cleanupErrRead)
         case .écriture: return localization.L(L10n.Saves.cleanupErrWrite)
         case .aucuneClé: return localization.L(L10n.Saves.cleanupErrNone)
+        case .occupé: return localization.L(L10n.Saves.cleanupErrBusy)
         }
     }
 

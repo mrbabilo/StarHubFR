@@ -89,6 +89,7 @@ struct SaveAbsentModsSection: View {
                 save: save,
                 modified: refreshKey.modified,
                 mods: vm.scanStore.mods,
+                verrou: vm.savesStore,
                 uids: feuilleUids,
                 gameRunning: feuilleJeuLancé,
                 onCleaned: {

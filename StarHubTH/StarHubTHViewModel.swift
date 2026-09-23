@@ -9,9 +9,9 @@ import SwiftUI
 final class StarHubTHViewModel {
     // MARK: Sauvegardes — le store du domaine (cadrage §4, domaine 1). Les
     // étiquettes arrivent en closure : le store ne connaît pas
-    // `SaveNotesStore`, et la lecture se faisant à l'appel, le suivi
-    // d'observation traverse jusqu'au magasin de notes.
-    private let savesStore = SavesStore(
+    // `SaveNotesStore` ; lue à l'appel, l'observation traverse jusqu'aux
+    // notes. Exposé pour son verrou d'écriture (nettoyage A1-T10).
+    let savesStore = SavesStore(
         tagForSave: { SaveNotesStore.shared.note(for: $0).tag }
     )
 
