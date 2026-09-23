@@ -70,6 +70,8 @@ enum FingerprintSummary {
             String(format: localization.L(L10n.Mods.fingerprintPauseMessage), mod.name)
         case .profile(let name):
             String(format: localization.L(L10n.Mods.fingerprintProfileMessage), name)
+        case .mods(let count):
+            String(format: localization.L(L10n.Mods.fingerprintBulkMessage), count)
         }
         return tête + "\n" + lignes.joined(separator: "\n")
     }

@@ -467,4 +467,16 @@ import Testing
                       resume: {}, abort: {})
         #expect(store.pending?.subject == .profile(name: "Hiver"))
     }
+
+    @Test("Occupé tant qu'une suspension attend ; libre après la sortie")
+    func busyWhileSuspended() {
+        let store = SaveFingerprintPauseStore()
+        #expect(!store.isBusy)
+        store.suspend(subject: .mods(count: 12), report: report,
+                      resume: {}, abort: {})
+        #expect(store.isBusy)
+        #expect(store.pending?.subject == .mods(count: 12))
+        store.cancel()
+        #expect(!store.isBusy)
+    }
 }

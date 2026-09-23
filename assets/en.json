@@ -1498,6 +1498,7 @@
   "mods_fingerprint_pause_title": "Fingerprints in saves",
   "mods_fingerprint_pause_message": "Pausing doesn't erase what %@ left in your saves:",
   "mods_fingerprint_profile_message": "Activating the %@ profile pauses mods that left traces in your saves:",
+  "mods_fingerprint_bulk_message": "Pausing %d mods doesn't erase what they left in your saves:",
   "mods_fingerprint_objects": "%d objects",
   "mods_fingerprint_buildings": "%d buildings",
   "mods_fingerprint_data_keys": "%d data entries",

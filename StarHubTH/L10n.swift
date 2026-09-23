@@ -377,6 +377,7 @@ enum L10n {
         static let fingerprintPauseTitle    = "mods_fingerprint_pause_title"
         static let fingerprintPauseMessage  = "mods_fingerprint_pause_message"
         static let fingerprintProfileMessage = "mods_fingerprint_profile_message"
+        static let fingerprintBulkMessage = "mods_fingerprint_bulk_message"
         static let fingerprintObjects       = "mods_fingerprint_objects"
         static let fingerprintBuildings     = "mods_fingerprint_buildings"
         static let fingerprintDataKeys      = "mods_fingerprint_data_keys"

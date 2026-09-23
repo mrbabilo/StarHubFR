@@ -424,8 +424,8 @@ backup se retrouve en moins de dix secondes.
       ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc ;
       (2) ✅ le même avertissement **à l'activation d'un profil** — livré
       (tranche 1, 2026-09-23 ; avec deux correctifs d'A1-T8 : « Annuler »
-      reprenait la bascule, et un pack n'était jamais chiffré). Reste
-      ouverte la **bascule en masse** (`ModFolderBulkMove`), non interceptée.
+      reprenait la bascule, et un pack n'était jamais chiffré) ; ✅ la
+      **bascule en masse** (« Tout désactiver ») aussi, tranche 2a.
       ▸ **Mesuré le 2026-09-23 (Zofia + TestOK, 1 127 ids) — le cadrage change :**
       - *La taxonomie SaveSaver ne trouve rien* : 0 type `xsi` de mod (109
         types, tous vanilla) ; les 2 « Error Item » sont le placeholder

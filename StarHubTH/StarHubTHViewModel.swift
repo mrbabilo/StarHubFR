@@ -3054,7 +3054,10 @@ final class StarHubTHViewModel {
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Refuse individual toggles while a bulk enable/disable-all is in
         // flight — concurrent moves on the same folders could lose a mod.
-        guard bulkToggleProgress == nil else {
+        // Ni pendant le chiffrage d'un « Tout désactiver » (store pris hors
+        // de la file unitaire) : il écraserait la suspension en attente.
+        guard bulkToggleProgress == nil,
+              isToggling || !saveFingerprintPauseStore.isBusy else {
             completion?()
             return
         }
@@ -8985,6 +8988,7 @@ final class StarHubTHViewModel {
             // (verrou posé pendant le scan) ; la reprise redécide.
             let pausedIDs = ProfileApplyPlan.pausedModIDs(applying: profile, to: mods)
             if !fingerprintChecked, !pausedIDs.isEmpty {
+                guard !saveFingerprintPauseStore.isBusy else { return }
                 profilesStore.setApplying(true)
                 return saveFingerprintPauseStore.checkBeforePause(
                     subject: .profile(name: profile.name), modIDs: pausedIDs,
@@ -9386,14 +9390,15 @@ final class StarHubTHViewModel {
     /// `modList.filters`. Filtrer puis « Tout désactiver » ne touche que
     /// l'ensemble cadré, pas les 949 dossiers du parc.
     @MainActor
-    func toggleAllMods(enable: Bool) {
+    func toggleAllMods(enable: Bool, fingerprintChecked: Bool = false) {
         // Guard against re-entry: a second tap while the first run is still
         // moving folders would race on the same source/destination paths.
         // Et contre la file des toggles unitaires : un performToggle en vol
         // croiserait les moves bulk sur les mêmes dossiers (l'unitaire renomme
         // sur main, la masse en background) — les gardes disque contiennent
         // la collision, ce garde l'empêche d'exister.
-        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty else { return }
+        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
+              !saveFingerprintPauseStore.isBusy else { return }
 
         // X57 : l'ensemble vient du cadrage courant de la liste — la même
         // règle qui la rend (filtres, catégorie, traduction, scope), pas le
@@ -9408,6 +9413,13 @@ final class StarHubTHViewModel {
             return
         }
 
+        // A1-T9 — chiffrer ce que l'ensemble mis en pause laisse dans les saves.
+        if !enable, !fingerprintChecked, !modsToMove.allUniqueIds.isEmpty {
+            return saveFingerprintPauseStore.checkBeforePause(
+                subject: .mods(count: modsToMove.count), modIDs: modsToMove.allUniqueIds,
+                resume: { [weak self] in self?.toggleAllMods(enable: false, fingerprintChecked: true) },
+                abort: {})
+        }
         let total = modsToMove.count
         bulkToggleEnabling = enable
         bulkToggleProgress = (done: 0, total: total)

@@ -32,7 +32,17 @@ final class SaveFingerprintPauseStore {
     enum Subject: Equatable {
         case mod(ModItem)
         case profile(name: String)
+        /// « Tout désactiver » : le nombre de mods de l'ensemble cadré.
+        case mods(count: Int)
     }
+
+    /// Un scan est en vol : entre le lancement et la suspension ou la
+    /// reprise, `pending` est encore nil.
+    private(set) var isChecking = false
+
+    /// Le store est pris — scan en vol ou suspension en attente. Une autre
+    /// bascule ne doit pas y entrer : elle écraserait `pending`.
+    var isBusy: Bool { isChecking || pending != nil }
 
     /// La reprise de la bascule suspendue (le renommage, au VM) et sa
     /// clôture (la complétion de la file). Tenues hors de `pending` : ce
@@ -50,6 +60,7 @@ final class SaveFingerprintPauseStore {
         resume: @escaping @MainActor () -> Void,
         abort: @escaping @MainActor () -> Void
     ) {
+        isChecking = true
         DispatchQueue.global().async { [weak self] in
             // fetchSaves() est conçu pour les files de fond (SaveManager).
             let saves = SaveManager.shared.fetchSaves()
@@ -60,6 +71,7 @@ final class SaveFingerprintPauseStore {
                     abort()
                     return
                 }
+                self.isChecking = false
                 guard !report.isEmpty else {
                     resume()
                     return
