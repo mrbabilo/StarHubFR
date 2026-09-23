@@ -254,7 +254,10 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       ⚠️ **L'affordance d'effacement peut voyager avec** (MCM 2.1.6, journal
       lu le 2026-09-23) : leur bouton `[×]` et « clic droit / ⌫ pour vider »
       pendant l'écoute — notre capture a Échap (annule) mais aucun chemin
-      explicite vers « None ». · **S**
+      explicite vers « None ».
+      ⚠️ **Keybind Radar 1.0.1 (lu le 2026-09-24) étend son signal en direct
+      aux liaisons manette** : le besoin couvre donc aussi les boutons de
+      manette, ce qui confirme la comparaison par signature canonique. · **S**
 
 - [ ] **C4-T13 — Filtres, recherche, saut-au-réglage et export du rapport
       de raccourcis.** *(les restes C4 notés le 2026-09-15 deviennent un item ;
@@ -645,7 +648,11 @@ le journal réel le 2026-09-04.
       balisées (surcharge boucle CPU, délai de présentation GPU, budget de trame
       16,6 ms), rapprochées du mod et de la session. ⚠️ Les dossiers de mods sont
       en 0555 par endroits (piège X7) : l'écriture du rapport peut y échouer —
-      l'absence de rapport n'est pas une absence de problème. · **M**
+      l'absence de rapport n'est pas une absence de problème.
+      ⚠️ **UltraSmooth 2.3.6 (lu le 2026-09-24) retire ses crochets de profilage
+      par défaut sur `Game1.DrawWorld`** (`ProfilerEngine`) : vérifier sur une
+      vraie session que `us_trace` produit encore ses sections avant d'écrire
+      le parseur. · **M**
 - [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
       état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
