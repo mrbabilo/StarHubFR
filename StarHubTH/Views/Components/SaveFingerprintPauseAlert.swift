@@ -48,33 +48,17 @@ extension View {
 /// nulles tuées, et une retenue au-delà de trois saves. Le nombre de saves
 /// est arbitraire : une alerte qui déroulerait vingt lignes serait
 /// illisible (et son message tronqué par l'OS).
-private enum FingerprintSummary {
+enum FingerprintSummary {
     static func text(
         modName: String,
         report: SaveFingerprintReport,
         localization: LocalizationStore
     ) -> String {
         let limite = 3
-        var lignes = report.sortedEntries.prefix(limite).map { entry -> String in
-            var familles: [String] = []
-            if entry.counts.objects > 0 {
-                familles.append(String(
-                    format: localization.L(L10n.Mods.fingerprintObjects),
-                    entry.counts.objects))
-            }
-            if entry.counts.buildings > 0 {
-                familles.append(String(
-                    format: localization.L(L10n.Mods.fingerprintBuildings),
-                    entry.counts.buildings))
-            }
-            if entry.counts.modDataKeys > 0 {
-                familles.append(String(
-                    format: localization.L(L10n.Mods.fingerprintDataKeys),
-                    entry.counts.modDataKeys))
-            }
-            return String(
+        var lignes = report.sortedEntries.prefix(limite).map { entry in
+            String(
                 format: localization.L(L10n.Mods.fingerprintSaveLine),
-                entry.name, familles.joined(separator: " · "))
+                entry.name, families(entry.counts, localization: localization))
         }
         let cachées = report.hiddenCount(beyond: limite)
         if cachées > 0 {
@@ -84,5 +68,27 @@ private enum FingerprintSummary {
         return String(
             format: localization.L(L10n.Mods.fingerprintPauseMessage), modName)
             + "\n" + lignes.joined(separator: "\n")
+    }
+
+    /// « 757 objets · 1 bâtiment » — les familles nulles tuées. Partagé avec
+    /// la fiche de sauvegarde (A1-T6) : un seul libellé des mêmes chiffres.
+    static func families(
+        _ counts: FingerprintCounts,
+        localization: LocalizationStore
+    ) -> String {
+        var familles: [String] = []
+        if counts.objects > 0 {
+            familles.append(String(
+                format: localization.L(L10n.Mods.fingerprintObjects), counts.objects))
+        }
+        if counts.buildings > 0 {
+            familles.append(String(
+                format: localization.L(L10n.Mods.fingerprintBuildings), counts.buildings))
+        }
+        if counts.modDataKeys > 0 {
+            familles.append(String(
+                format: localization.L(L10n.Mods.fingerprintDataKeys), counts.modDataKeys))
+        }
+        return familles.joined(separator: " · ")
     }
 }

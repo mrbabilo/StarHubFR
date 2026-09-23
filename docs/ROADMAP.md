@@ -332,7 +332,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 25** *(recompté le 2026-09-23 au soir : **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 25** *(recompté le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -385,36 +385,6 @@ backup se retrouve en moins de dix secondes.
       un compagnon de bureau le rejouera.
       ⚠️ **Ne pas confondre avec A1-T4** : là c'est un `examples/` en trop dans le
       parc, ici c'est une pièce **manquante** sur le disque. · **M**
-
-- [ ] **A1-T6** — **Une sauvegarde sait quels mods l'ont écrite — on ne le lui demande
-      jamais.** *(trouvé le 2026-09-14 en cherchant ce que `Stardew Save Launcher` a
-      d'exploitable : son `Core.dll` manipule `SaveModIds` et `CommonModIds`. Mesures
-      dans [`roadmap-archive.md`](roadmap-archive.md) §3 ter.)*
-      Le fichier de sauvegarde porte les `modData` que chaque mod y a écrits, et leurs
-      clés sont préfixées de l'`UniqueID` du propriétaire — la clé d'identité du parc.
-      **Mesuré sur `Zofia_443716371` (37 Mo)** : 8 984 clés, **748 préfixes distincts**,
-      dont **32 résolvent vers un mod installé**. Trois d'entre eux sont **en pause** :
-      `larvuk.AdvancedFruitTreeFramework` (**1 648 entrées**), `NCarigon.BushBloomMod`
-      (154) et `Spiderbuttons.Agromancy` (115).
-      **Ce que l'écran dirait** : « cette sauvegarde porte du contenu de 3 mods que tu as
-      mis en pause » — au moment d'activer un profil, ou sur la fiche de la sauvegarde.
-      Aucun autre gestionnaire ne le fait, et StarHubFR a déjà les deux moitiés : le
-      lecteur de sauvegardes et le registre des mods.
-      ⚠️ **Sévérité mesurée, pas supposée : ce n'est PAS une perte de données.** Les
-      `modData` d'un mod absent **survivent** — `Kedi.VPP.WasRainingHere` porte 817
-      entrées sans aucun mod installé qui corresponde, et le compte est **stable sur
-      trois générations** de la même sauvegarde (805 → 817 → 817). Les 56 préfixes
-      disparus entre la plus ancienne et la plus récente sont des clés **à expiration**
-      (`_memory_oneweek`, `_memory_eightweeks`), pas une purge. Le texte doit donc dire
-      « du contenu dort », jamais « tu vas perdre ». *(Ce qu'il advient des **objets**
-      définis par un mod absent — pas de leur `modData` — n'est pas mesuré ici.)*
-      ⚠️ **La règle de normalisation reste à mesurer, et c'est le vrai travail.** Les
-      695 préfixes non résolus ne sont **pas** 695 mods manquants : `Kedi.VPP.WasRainingHere`
-      est une clé de `Kedi.VPP`, et `Cropgenics.GroveForestNode.Health` / `.Variant` /
-      `.Master` sont des sous-clés d'un même propriétaire. Le relevé ci-dessus s'arrête à
-      deux segments ; la vraie règle se mesure sur le parc avant d'être codée — c'est le
-      constat de `spec-rules-need-measuring`, où la règle écrite était fausse **dans les
-      deux sens**. · **M**
 
   **Trois autres idées relevées dans le même audit, et ce qu'elles valent :**
   - **Un verdict « prêt à lancer » avant de lancer** (leur `Ready`/`CanLaunch`/`Errors`).
@@ -2314,6 +2284,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T7** | 2026-09-15 | La mise à jour d'un mod ne perd plus ses données de partie : `PreservedModData` compare ancien dossier et archive neuve avant l'effacement, remet les extras, échecs nommés au bilan (règle §8.4 : absent de l'archive neuve ⇒ donnée locale) |
 | **A2-T7** | 2026-09-15 | Un mod de la liste noire SMAPI (malveillants) signalé avant le lancement : `SmapiBlacklist` lit le JSONC, croisement sans la casse, illisible ⇒ `nil` jamais liste vide, alerte critique + bandeau rouge, jamais de suppression |
 | **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
+| **A1-T6** | 2026-09-23 | La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu (objets, bâtiments, données), chaque rangée ouvre la fiche du mod — résolution contre le parc entier, doublon actif ⇒ muet ; absents hors périmètre |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**
 

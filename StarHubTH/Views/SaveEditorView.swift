@@ -168,6 +168,7 @@ struct SaveEditorView: View {
      @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
+    @Binding var currentTab: SidebarDestination
     
     @State private var name: String
     @State private var farm: String
@@ -220,7 +221,9 @@ struct SaveEditorView: View {
         ("preset:ant",    "ant.fill",                L10n.Saves.avatarPresetAnt),
     ]
     
-    init(vm: StarHubTHViewModel, localization: LocalizationStore, save: SaveGameInfo) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, save: SaveGameInfo,
+         currentTab: Binding<SidebarDestination>) {
+        _currentTab = currentTab
         self.localization = localization
         self.vm = vm
         self.save = save
@@ -365,6 +368,8 @@ struct SaveEditorView: View {
                     
                     TextField(localization.L(L10n.Saves.saveNote), text: $noteText)
                 }
+                
+                SavePausedFootprintSection(vm: vm, localization: localization, save: save, currentTab: $currentTab)
                 
                 Section(localization.L(L10n.Saves.characterInfo)) {
                     TextField(localization.L(L10n.Saves.characterName), text: $name)

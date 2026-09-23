@@ -3862,6 +3862,51 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T6** — ✅ **Livré le 2026-09-23.** **Une sauvegarde sait quels mods l'ont écrite — on ne le lui demande
+      jamais.** *(trouvé le 2026-09-14 en cherchant ce que `Stardew Save Launcher` a
+      d'exploitable : son `Core.dll` manipule `SaveModIds` et `CommonModIds`. Mesures
+      dans [`roadmap-archive.md`](roadmap-archive.md) §3 ter.)*
+      Le fichier de sauvegarde porte les `modData` que chaque mod y a écrits, et leurs
+      clés sont préfixées de l'`UniqueID` du propriétaire — la clé d'identité du parc.
+      **Mesuré sur `Zofia_443716371` (37 Mo)** : 8 984 clés, **748 préfixes distincts**,
+      dont **32 résolvent vers un mod installé**. Trois d'entre eux sont **en pause** :
+      `larvuk.AdvancedFruitTreeFramework` (**1 648 entrées**), `NCarigon.BushBloomMod`
+      (154) et `Spiderbuttons.Agromancy` (115).
+      **Ce que l'écran dirait** : « cette sauvegarde porte du contenu de 3 mods que tu as
+      mis en pause » — au moment d'activer un profil, ou sur la fiche de la sauvegarde.
+      Aucun autre gestionnaire ne le fait, et StarHubFR a déjà les deux moitiés : le
+      lecteur de sauvegardes et le registre des mods.
+      ⚠️ **Sévérité mesurée, pas supposée : ce n'est PAS une perte de données.** Les
+      `modData` d'un mod absent **survivent** — `Kedi.VPP.WasRainingHere` porte 817
+      entrées sans aucun mod installé qui corresponde, et le compte est **stable sur
+      trois générations** de la même sauvegarde (805 → 817 → 817). Les 56 préfixes
+      disparus entre la plus ancienne et la plus récente sont des clés **à expiration**
+      (`_memory_oneweek`, `_memory_eightweeks`), pas une purge. Le texte doit donc dire
+      « du contenu dort », jamais « tu vas perdre ». *(Ce qu'il advient des **objets**
+      définis par un mod absent — pas de leur `modData` — n'est pas mesuré ici.)*
+      ⚠️ **La règle de normalisation reste à mesurer, et c'est le vrai travail.** Les
+      695 préfixes non résolus ne sont **pas** 695 mods manquants : `Kedi.VPP.WasRainingHere`
+      est une clé de `Kedi.VPP`, et `Cropgenics.GroveForestNode.Health` / `.Variant` /
+      `.Master` sont des sous-clés d'un même propriétaire. Le relevé ci-dessus s'arrête à
+      deux segments ; la vraie règle se mesure sur le parc avant d'être codée — c'est le
+      constat de `spec-rules-need-measuring`, où la règle écrite était fausse **dans les
+      deux sens**. · **M**
+      ✅ **Ce qui a été fait.** `SavePausedFootprints` (Core, 7 tests, un
+      sabotage par mécanisme) croise le scan d'**A1-T8** avec l'état du parc :
+      la résolution reçoit **tous** les UniqueIDs puis filtre les mods en pause
+      (sinon l'empreinte d'un mod actif `A.B_C` retomberait sur un `A.B` en
+      pause) ; un id aussi porté par une copie active ne dort pas ; deux copies
+      en pause font une rangée ; un id vide n'attribue rien ; un composant de
+      pack en pause est rapporté sous son dossier. `SavePausedFootprintStore`
+      scanne hors fil principal, garde le scan en cache par dossier et date,
+      refait la résolution à chaque bascule, et n'affiche que la réponse à la
+      dernière demande. La section « Mods en pause dans cette sauvegarde » de
+      la fiche conduit chaque rangée à la fiche du mod (onglet État).
+      ▸ **Hors périmètre, délibérément** : les mods **absents** du parc (la
+      règle de normalisation des 695 préfixes reste à mesurer — c'est
+      **A1-T9**), et l'avertissement à l'activation d'un profil.
+
+
 - [x] **A1-T8** — ✅ **Livré le 2026-09-23.** **Avertir à la bascule : mettre en
       pause un mod ne met pas en pause ses empreintes dans les sauvegardes.**
       *(né de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md) ;

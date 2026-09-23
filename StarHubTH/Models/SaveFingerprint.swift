@@ -294,3 +294,52 @@ extension FingerprintCounts {
     /// Toutes familles confondues — l'ordre d'affichage du rapport.
     public var total: Int { objects + buildings + modDataKeys }
 }
+
+/// A1-T6 — ce qu'une sauvegarde porte d'un mod **en pause**, pour la fiche
+/// de la sauvegarde : une rangée par mod, qui conduit à sa fiche.
+public struct PausedModFootprint: Equatable, Sendable {
+    public let folderName: String
+    public let name: String
+    public let counts: FingerprintCounts
+
+    public init(folderName: String, name: String, counts: FingerprintCounts) {
+        self.folderName = folderName
+        self.name = name
+        self.counts = counts
+    }
+}
+
+public enum SavePausedFootprints {
+    /// Les mods en pause dont la sauvegarde porte des empreintes, les plus
+    /// chargés d'abord.
+    ///
+    /// La résolution reçoit **tous** les UniqueIDs du parc, puis on filtre :
+    /// `resolve` attribue au préfixe le plus long *parmi les ids reçus*, et
+    /// ne lui donner que les ids en pause ferait retomber l'empreinte d'un
+    /// mod actif `A.B_C` sur un `A.B` en pause.
+    /// Un id porté par une copie **active** (doublon d'installation, mesuré
+    /// sur le parc) ne dort pas : il n'est pas rapporté.
+    public static func entries(
+        scan: SaveFingerprintScan,
+        mods: [ModItem]
+    ) -> [PausedModFootprint] {
+        let parc = mods.flattenedMods.filter { !$0.uniqueId.isEmpty }
+        let resolved = SaveFingerprintResolution.resolve(
+            scan, modIDs: Set(parc.map(\.uniqueId)))
+        let actifs = Set(parc.filter(\.isEnabled).map(\.uniqueId))
+        var vus: Set<String> = []
+        var result: [PausedModFootprint] = []
+        for mod in parc where !mod.isEnabled && !actifs.contains(mod.uniqueId) {
+            guard vus.insert(mod.uniqueId).inserted,
+                  let counts = resolved[mod.uniqueId], !counts.isEmpty
+            else { continue }
+            result.append(PausedModFootprint(
+                folderName: mod.folderName, name: mod.name, counts: counts))
+        }
+        return result.sorted {
+            $0.counts.total != $1.counts.total
+                ? $0.counts.total > $1.counts.total
+                : $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+}

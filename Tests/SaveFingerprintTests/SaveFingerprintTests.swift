@@ -283,3 +283,89 @@ import Testing
         return scan
     }
 }
+
+/// A1-T6 — la fiche de sauvegarde : quels mods **en pause** y ont laissé du
+/// contenu. Les scans sont construits à la main : le scanneur a ses propres
+/// tests ci-dessus, ici on éprouve le croisement avec l'état du parc.
+@Suite struct SavePausedFootprintsTests {
+
+    private func mod(_ id: String, enabled: Bool, folder: String? = nil) -> ModItem {
+        ModItem(uniqueId: id, name: id, folderName: folder ?? id, version: "1",
+                author: "", description: "", nexusUrl: "", nexusModId: "",
+                isEnabled: enabled, dependencies: [])
+    }
+
+    @Test("Un mod en pause porteur d'empreintes est rapporté, un actif non")
+    func reportsPausedOnly() {
+        let scan = SaveFingerprintScan(objects: ["P.X_Thing": 3, "A.Y_Thing": 5])
+        let entries = SavePausedFootprints.entries(
+            scan: scan, mods: [mod("P.X", enabled: false), mod("A.Y", enabled: true)])
+        #expect(entries == [PausedModFootprint(
+            folderName: "P.X", name: "P.X", counts: FingerprintCounts(objects: 3))])
+    }
+
+    /// Résoudre contre les seuls ids en pause ferait retomber `A.B_C_Thing`
+    /// (propriété du mod actif `A.B_C`) sur `A.B`, en pause.
+    @Test("Le préfixe long d'un mod actif n'est pas attribué au court en pause")
+    func activeLongerPrefixWins() {
+        let scan = SaveFingerprintScan(objects: ["A.B_C_Thing": 4])
+        let entries = SavePausedFootprints.entries(
+            scan: scan, mods: [mod("A.B", enabled: false), mod("A.B_C", enabled: true)])
+        #expect(entries.isEmpty)
+    }
+
+    /// Le parc réel porte des doublons d'installation (Swim, deux fois) :
+    /// une copie active suffit à ce que le contenu ne dorme pas.
+    @Test("Un id porté aussi par une copie active n'est pas rapporté")
+    func duplicateWithActiveCopyIsSilent() {
+        let scan = SaveFingerprintScan(objects: ["S.W_Suit": 2])
+        let entries = SavePausedFootprints.entries(
+            scan: scan,
+            mods: [mod("S.W", enabled: false, folder: "Swim old"),
+                   mod("S.W", enabled: true, folder: "Swim")])
+        #expect(entries.isEmpty)
+    }
+
+    @Test("Deux copies en pause du même id ne font qu'une rangée")
+    func duplicatePausedCopiesReportOnce() {
+        let scan = SaveFingerprintScan(objects: ["S.W_Suit": 2])
+        let entries = SavePausedFootprints.entries(
+            scan: scan,
+            mods: [mod("S.W", enabled: false, folder: "Swim old"),
+                   mod("S.W", enabled: false, folder: "Swim")])
+        #expect(entries.count == 1)
+    }
+
+    /// 111 mods du parc réel n'ont pas d'identifiant : un id vide ne doit
+    /// rien s'attribuer (le préfixe "_" couvrirait n'importe quelle clé).
+    @Test("Un mod sans identifiant n'est jamais rapporté")
+    func emptyIdIsExcluded() {
+        let scan = SaveFingerprintScan(modDataKeys: ["_hidden": 1, "": 1])
+        let entries = SavePausedFootprints.entries(
+            scan: scan, mods: [mod("", enabled: false, folder: "Sans id")])
+        #expect(entries.isEmpty)
+    }
+
+    /// Les composants héritent du `isEnabled` du pack au scan : un pack en
+    /// pause rend ses composants, chacun avec ses empreintes.
+    @Test("Un composant de pack en pause est rapporté sous son dossier")
+    func pausedPackComponentIsReported() {
+        let pack = ModItem(uniqueId: "", name: "Pack", folderName: "Pack", version: "1",
+                       author: "", description: "", nexusUrl: "", nexusModId: "",
+                       isEnabled: false, dependencies: [],
+                       children: [mod("K.CP", enabled: false, folder: "Pack/[CP] K")],
+                       isGroup: true)
+        let scan = SaveFingerprintScan(buildings: ["K.CP_Barn": 1])
+        let entries = SavePausedFootprints.entries(scan: scan, mods: [pack])
+        #expect(entries.map(\.folderName) == ["Pack/[CP] K"])
+        #expect(entries.first?.counts == FingerprintCounts(buildings: 1))
+    }
+
+    @Test("Les plus chargés d'abord")
+    func sortedByTotalDescending() {
+        let scan = SaveFingerprintScan(objects: ["L.A_x": 1, "H.B_x": 9])
+        let entries = SavePausedFootprints.entries(
+            scan: scan, mods: [mod("L.A", enabled: false), mod("H.B", enabled: false)])
+        #expect(entries.map(\.name) == ["H.B", "L.A"])
+    }
+}

@@ -157,7 +157,7 @@ struct MainView: View {
                         if let save = vm.navigationStore.viewingSaveTimeline {
                             SaveTimelineView(vm: vm, localization: localization, save: save)
                         } else if let save = vm.navigationStore.editingSave {
-                            SaveEditorView(vm: vm, localization: localization, save: save)
+                            SaveEditorView(vm: vm, localization: localization, save: save, currentTab: $currentTab)
                         } else {
                             SavesView(vm: vm, localization: localization)
                         }
