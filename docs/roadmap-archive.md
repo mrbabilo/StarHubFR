@@ -3862,6 +3862,83 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T10** — ✅ **Livré le 2026-09-24.** **Le nettoyage guidé d'une sauvegarde : écrit, jamais
+      automatique.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-24 :
+      une seule catégorie — les clés `smapi/mod-data` des mods disparus, la
+      liste exacte de la section de la fiche (règle partagée
+      `SaveAbsentMods.absentKeyCounts`, `legacy-migrated` compris) ; bouton
+      « Nettoyer… », feuille clé par clé, backup vérifié non vide, écriture
+      atomique BOM préservé, item atypique laissé et compté (8bb01778..ab0539ec).
+      Locations et arbres hors périmètre : attribution heuristique — spec
+      `docs/superpowers/specs/2026-09-23-save-cleanup-design.md`.)* Ce que
+      SaveSaver fait au chargement (reconstruire un `ErrorItem` en objet vanilla,
+      élaguer une location disparue, convertir un arbre cassé) deviendrait ici un
+      geste explicite : **opt-in par catégorie, diff affiché avant écriture,
+      backup vérifié non vide avant, écriture atomique `.tmp` → move** — la
+      discipline du mod est correcte et rejoint les nôtres
+      (`ModConfigWriteGuard`, snapshot `beforeUpdate`).
+      ⚠️ **Jamais** l'auto-conversion au chargement (son défaut : vraie par
+      défaut, et son seuil `Error` est large), ni le cas fourre-tout « type
+      inconnu → `Object` vide » (destructif sur un faux positif).
+      ⚠️ **Chaque catégorie de nettoyage s'instruit séparément** : la grammaire
+      d'écriture d'un save n'est pas mesurée chez nous, et
+      `stardew-save-editor` (SOURCES §3) reste la référence du domaine. · **L**
+
+- [x] **A1-T9** — ✅ **Livré le 2026-09-23.** **L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
+      son bistouri.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-23 :
+      familles arbres + locations dans les empreintes (ed78b150), absents
+      nommés par clés à uid exact sur la fiche (753cf0a2, cache de scan
+      partagé entre sections — lecture+scan de 37 Mo mesurés à ~10 s).)*
+      SaveSaver (Nexus 52709,
+      décompilé) montre ce qu'une sauvegarde peut porter de cassé : items
+      `ErrorItem`, locations de mods disparus, bâtiments inconnus, arbres
+      sauvages/fruitiers de mods, types C# non résolus. Tout se détecte **hors
+      jeu, en lecture seule** — `SaveManager` parse déjà le XML, et l'app connaît
+      l'état du parc (actif / en pause / absent), ce que SaveSaver ignore : lui ne
+      peut dire « type inconnu », nous pouvons dire « type du mod X, en pause ».
+      **Un écran de diagnostic doit conduire** : chaque ligne porte le mod
+      responsable et sa fiche, ou l'option de nettoyage (**A1-T10**).
+      ⚠️ **Ne pas porter les listes vanilla codées en dur du mod** (77 locations,
+      21 bâtiments, ids d'arbres — divergeront des mises à jour du jeu) : la
+      vérité est dans le contenu du jeu et du parc, lue comme lui la lit
+      (`DataLoader` côté jeu, manifestes et DLL côté app).
+      ⚠️ Son seuil `IsErrorItem` (`DisplayName.Contains("Error")`) est un faux
+      positif ambulant — un item légitime au nom traduit contenant « Error »
+      serait converti en pierre chez lui ; ne pas l'imiter. **Le harnais de
+      test existe pourtant chez lui** : `savesaver_infect` injecte huit faux
+      items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
+      — le moyen de tester cet item sans attendre un vrai accident, la fixture
+      étant produite par un vrai producteur, jamais à la main.
+      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) ✅ les mods **absents** du
+      parc — section « Mods disparus de la médiathèque » sur la fiche
+      (753cf0a2, 2026-09-23) ;
+      (2) ✅ le même avertissement **à l'activation d'un profil** — livré
+      (tranche 1, 2026-09-23 ; avec deux correctifs d'A1-T8 : « Annuler »
+      reprenait la bascule, et un pack n'était jamais chiffré) ; ✅ la
+      **bascule en masse** (« Tout désactiver ») aussi, tranche 2a.
+      ▸ **Mesuré le 2026-09-23 (Zofia + TestOK, 1 127 ids) — le cadrage change :**
+      - *La taxonomie SaveSaver ne trouve rien* : 0 type `xsi` de mod (109
+        types, tous vanilla) ; les 2 « Error Item » sont le placeholder
+        `RANDOM_CLUMPS` d'ItemExtensions, **actif**. Un écran bâti sur elle
+        resterait vide.
+      - *La règle de préfixes est réfutée* : les ~200 orphelins sont presque
+        tous des mods **installés** dont l'espace de noms n'est pas l'UniqueID
+        (`Kedi.VPP.*` = KediDili.VanillaPlusProfessions, `moonslime.Wizardry.*`
+        = WizardrySkill, `FashionSense.*`, `Casa.*`/`Evento.*` = Defense
+        Division en pause, 34 locations). `Lumisteria.MtVapius`, le cas
+        « absent » de l'audit, est **installé**.
+      - *L'attribution par contenu* (json/dll/tmx, UTF-8 + UTF-16) coûte 66 s
+        sur 531 Mo et laisse 48 chaînes ambiguës et 75 introuvables sur 206.
+      - *Les absents sûrs viennent des clés à uid exact* : `smapi/mod-data/<uid>`
+        et `<uid>/<clé>` (A1-T9 tranche 0, corrigé : le scanner refusait le `/`,
+        64 mods en pause au lieu de 43 sur Zofia) — `aloofllama.giftdiscovery`,
+        `thalethegreat.walletautopetter`, `foxisadev.bqr`, `BiggerAutoGrabber`…
+      - *Deux familles non lues* : arbres (`treeType`, 518 sapins SVE) et
+        locations (298 `Custom_*` jamais vues ; les namespacées tombent dans
+        « objets » par le repli `<name>`).
+      **Option retenue (a)** : familles arbres + locations, absents nommés par
+      les clés à uid exact, **aucune attribution heuristique**. · **M**
+
 - [x] **A1-T6** — ✅ **Livré le 2026-09-23.** **Une sauvegarde sait quels mods l'ont écrite — on ne le lui demande
       jamais.** *(trouvé le 2026-09-14 en cherchant ce que `Stardew Save Launcher` a
       d'exploitable : son `Core.dll` manipule `SaveModIds` et `CommonModIds`. Mesures
@@ -4249,6 +4326,33 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       littéraux d'API (`SetAllowedValues`), les **min/max** des nombres,
       la convention tooltip « Valeur = description » (2 champs sur 226
       mods — précise, sans couverture).
+
+- [x] **C4-T12** — ✅ **Livré le 2026-09-24.** **Le signal de conflit pendant la capture, pas seulement
+      après.** *(**livrée** le 2026-09-24 : l'annotation « lié à » cherche dans
+      toutes les liaisons actives (`KeybindReport.activeUses`), plus seulement
+      dans les collisions — une touche fraîchement capturée qui ne recoupe
+      qu'une liaison d'un autre mod est nommée dès la pression ; l'éditeur
+      relisait déjà la valeur capturée. Même mod exclu, comme le rapport ;
+      l'effacement existait déjà (`[×]`). Idée gardée de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md)
+      §1, 2026-09-23 : l'overlay « This key is already in use » de Keybind Radar
+      s'affiche pendant la saisie, pas après coup — l'annotation « lié à »
+      livrée ci-dessus ne parle qu'à la relecture.)* Sous `ModKeybindField`,
+      pendant une capture, si le combo pressé correspond à une autre liaison,
+      signal immédiat sous le champ ; le rapport `KeybindScanner` et ses
+      signatures canoniques existent déjà, l'annotation reste le bilan après
+      coup.
+      ⚠️ **Comparer sur les signatures canoniques, pas sur les touches
+      pressées** : la capture est clavier (`MacKeyCodeMap`), mais le parc va
+      porter des `MouseX1`/`MouseX2` (MCM 2.1.3, SOURCES §6) et des boutons
+      manette — dire s'il y a conflit est une question de sémantique de
+      signature, pas de ressemblance de jeton.
+      ⚠️ **L'affordance d'effacement peut voyager avec** (MCM 2.1.6, journal
+      lu le 2026-09-23) : leur bouton `[×]` et « clic droit / ⌫ pour vider »
+      pendant l'écoute — notre capture a Échap (annule) mais aucun chemin
+      explicite vers « None ».
+      ⚠️ **Keybind Radar 1.0.1 (lu le 2026-09-24) étend son signal en direct
+      aux liaisons manette** : le besoin couvre donc aussi les boutons de
+      manette, ce qui confirme la comparaison par signature canonique. · **S**
 
 
 

@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T12, C4-T13, C5-T1, C6-T1)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-24 : **C4-T12** livré, à l'archive ; **C4-T14** ajouté depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C4-T14, C5-T1, C6-T1)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -235,35 +235,6 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > mérite d'être préservé, c'est l'**ordre des clés**, et `ConfigJSONTree` le fait déjà
 > — voir **C4-T5**.
 
-#### C5 — Hub de traduction agnostique de la langue
-
-- [x] **C4-T12 — Le signal de conflit pendant la capture, pas seulement
-      après.** *(**livrée** le 2026-09-24 : l'annotation « lié à » cherche dans
-      toutes les liaisons actives (`KeybindReport.activeUses`), plus seulement
-      dans les collisions — une touche fraîchement capturée qui ne recoupe
-      qu'une liaison d'un autre mod est nommée dès la pression ; l'éditeur
-      relisait déjà la valeur capturée. Même mod exclu, comme le rapport ;
-      l'effacement existait déjà (`[×]`). Idée gardée de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md)
-      §1, 2026-09-23 : l'overlay « This key is already in use » de Keybind Radar
-      s'affiche pendant la saisie, pas après coup — l'annotation « lié à »
-      livrée ci-dessus ne parle qu'à la relecture.)* Sous `ModKeybindField`,
-      pendant une capture, si le combo pressé correspond à une autre liaison,
-      signal immédiat sous le champ ; le rapport `KeybindScanner` et ses
-      signatures canoniques existent déjà, l'annotation reste le bilan après
-      coup.
-      ⚠️ **Comparer sur les signatures canoniques, pas sur les touches
-      pressées** : la capture est clavier (`MacKeyCodeMap`), mais le parc va
-      porter des `MouseX1`/`MouseX2` (MCM 2.1.3, SOURCES §6) et des boutons
-      manette — dire s'il y a conflit est une question de sémantique de
-      signature, pas de ressemblance de jeton.
-      ⚠️ **L'affordance d'effacement peut voyager avec** (MCM 2.1.6, journal
-      lu le 2026-09-23) : leur bouton `[×]` et « clic droit / ⌫ pour vider »
-      pendant l'écoute — notre capture a Échap (annule) mais aucun chemin
-      explicite vers « None ».
-      ⚠️ **Keybind Radar 1.0.1 (lu le 2026-09-24) étend son signal en direct
-      aux liaisons manette** : le besoin couvre donc aussi les boutons de
-      manette, ce qui confirme la comparaison par signature canonique. · **S**
-
 - [ ] **C4-T13 — Filtres, recherche, saut-au-réglage et export du rapport
       de raccourcis.** *(les restes C4 notés le 2026-09-15 deviennent un item ;
       le signal de demande est double depuis le 2026-09-23 — Keybind Radar
@@ -280,6 +251,22 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       consultatif — si l'utilisateur n'agit jamais depuis ces lignes, les
       filtres sont du vernis. Livrer le premier filtre seul (conflits) et
       mesurer avant le reste. · **M**
+
+- [ ] **C4-T14 — Les libellés par valeur d'une liste déroulante.** *(trouvé le
+      2026-09-24 en décompilant Radiance 2.2.0 — SOURCES §5.)* Des mods publient
+      un libellé **par valeur** d'un choix : `config.sheetupscalekernel.epx`,
+      `.mmpx`, `.xbr`… à côté du `.name`. `ConfigLabelResolver` ne connaît que
+      `name|description|tooltip|desc|label|title` : ces listes s'affichent en
+      jetons bruts. 📏 Mesure grossière sur le parc : **20 mods, 37 champs**
+      portent au moins deux suffixes inconnus à côté d'un `.name` (Radiance 10,
+      MH Event List 5, SLO 3, RestAndRecover 3…) — **majorant** : des suffixes
+      comme `.button` ou des sous-clés de section y entrent. ⚠️ **Mesurer la
+      règle avant de la coder** : ne compter un suffixe comme libellé de valeur
+      que s'il correspond à une valeur permise du champ (enum de DLL, C4-T11,
+      ou valeurs vues dans `config.json`), sinon un faux libellé remplace un
+      vrai jeton. · **S**
+
+#### C5 — Hub de traduction agnostique de la langue
 
 - [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
@@ -338,7 +325,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 25** *(recompté le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **7 items ouverts sur 25** *(recompté le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -407,83 +394,6 @@ backup se retrouve en moins de dix secondes.
   - *(`SMAPI_MODS_PATH` / `--mods-path`, qu'ils utilisent pour lancer, reste **écarté** —
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
-
-- [x] **A1-T9 — L'audit de sauvegarde en lecture : la taxonomie SaveSaver sans
-      son bistouri.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-23 :
-      familles arbres + locations dans les empreintes (ed78b150), absents
-      nommés par clés à uid exact sur la fiche (753cf0a2, cache de scan
-      partagé entre sections — lecture+scan de 37 Mo mesurés à ~10 s).)*
-      SaveSaver (Nexus 52709,
-      décompilé) montre ce qu'une sauvegarde peut porter de cassé : items
-      `ErrorItem`, locations de mods disparus, bâtiments inconnus, arbres
-      sauvages/fruitiers de mods, types C# non résolus. Tout se détecte **hors
-      jeu, en lecture seule** — `SaveManager` parse déjà le XML, et l'app connaît
-      l'état du parc (actif / en pause / absent), ce que SaveSaver ignore : lui ne
-      peut dire « type inconnu », nous pouvons dire « type du mod X, en pause ».
-      **Un écran de diagnostic doit conduire** : chaque ligne porte le mod
-      responsable et sa fiche, ou l'option de nettoyage (**A1-T10**).
-      ⚠️ **Ne pas porter les listes vanilla codées en dur du mod** (77 locations,
-      21 bâtiments, ids d'arbres — divergeront des mises à jour du jeu) : la
-      vérité est dans le contenu du jeu et du parc, lue comme lui la lit
-      (`DataLoader` côté jeu, manifestes et DLL côté app).
-      ⚠️ Son seuil `IsErrorItem` (`DisplayName.Contains("Error")`) est un faux
-      positif ambulant — un item légitime au nom traduit contenant « Error »
-      serait converti en pierre chez lui ; ne pas l'imiter. **Le harnais de
-      test existe pourtant chez lui** : `savesaver_infect` injecte huit faux
-      items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
-      — le moyen de tester cet item sans attendre un vrai accident, la fixture
-      étant produite par un vrai producteur, jamais à la main.
-      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) ✅ les mods **absents** du
-      parc — section « Mods disparus de la médiathèque » sur la fiche
-      (753cf0a2, 2026-09-23) ;
-      (2) ✅ le même avertissement **à l'activation d'un profil** — livré
-      (tranche 1, 2026-09-23 ; avec deux correctifs d'A1-T8 : « Annuler »
-      reprenait la bascule, et un pack n'était jamais chiffré) ; ✅ la
-      **bascule en masse** (« Tout désactiver ») aussi, tranche 2a.
-      ▸ **Mesuré le 2026-09-23 (Zofia + TestOK, 1 127 ids) — le cadrage change :**
-      - *La taxonomie SaveSaver ne trouve rien* : 0 type `xsi` de mod (109
-        types, tous vanilla) ; les 2 « Error Item » sont le placeholder
-        `RANDOM_CLUMPS` d'ItemExtensions, **actif**. Un écran bâti sur elle
-        resterait vide.
-      - *La règle de préfixes est réfutée* : les ~200 orphelins sont presque
-        tous des mods **installés** dont l'espace de noms n'est pas l'UniqueID
-        (`Kedi.VPP.*` = KediDili.VanillaPlusProfessions, `moonslime.Wizardry.*`
-        = WizardrySkill, `FashionSense.*`, `Casa.*`/`Evento.*` = Defense
-        Division en pause, 34 locations). `Lumisteria.MtVapius`, le cas
-        « absent » de l'audit, est **installé**.
-      - *L'attribution par contenu* (json/dll/tmx, UTF-8 + UTF-16) coûte 66 s
-        sur 531 Mo et laisse 48 chaînes ambiguës et 75 introuvables sur 206.
-      - *Les absents sûrs viennent des clés à uid exact* : `smapi/mod-data/<uid>`
-        et `<uid>/<clé>` (A1-T9 tranche 0, corrigé : le scanner refusait le `/`,
-        64 mods en pause au lieu de 43 sur Zofia) — `aloofllama.giftdiscovery`,
-        `thalethegreat.walletautopetter`, `foxisadev.bqr`, `BiggerAutoGrabber`…
-      - *Deux familles non lues* : arbres (`treeType`, 518 sapins SVE) et
-        locations (298 `Custom_*` jamais vues ; les namespacées tombent dans
-        « objets » par le repli `<name>`).
-      **Option retenue (a)** : familles arbres + locations, absents nommés par
-      les clés à uid exact, **aucune attribution heuristique**. · **M**
-
-- [x] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
-      automatique.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-24 :
-      une seule catégorie — les clés `smapi/mod-data` des mods disparus, la
-      liste exacte de la section de la fiche (règle partagée
-      `SaveAbsentMods.absentKeyCounts`, `legacy-migrated` compris) ; bouton
-      « Nettoyer… », feuille clé par clé, backup vérifié non vide, écriture
-      atomique BOM préservé, item atypique laissé et compté (8bb01778..ab0539ec).
-      Locations et arbres hors périmètre : attribution heuristique — spec
-      `docs/superpowers/specs/2026-09-23-save-cleanup-design.md`.)* Ce que
-      SaveSaver fait au chargement (reconstruire un `ErrorItem` en objet vanilla,
-      élaguer une location disparue, convertir un arbre cassé) deviendrait ici un
-      geste explicite : **opt-in par catégorie, diff affiché avant écriture,
-      backup vérifié non vide avant, écriture atomique `.tmp` → move** — la
-      discipline du mod est correcte et rejoint les nôtres
-      (`ModConfigWriteGuard`, snapshot `beforeUpdate`).
-      ⚠️ **Jamais** l'auto-conversion au chargement (son défaut : vraie par
-      défaut, et son seuil `Error` est large), ni le cas fourre-tout « type
-      inconnu → `Object` vide » (destructif sur un faux positif).
-      ⚠️ **Chaque catégorie de nettoyage s'instruit séparément** : la grammaire
-      d'écriture d'un save n'est pas mesurée chez nous, et
-      `stardew-save-editor` (SOURCES §3) reste la référence du domaine. · **L**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 
@@ -2283,6 +2193,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T9** | 2026-09-15 | Un mod de remap n'est pas en conflit avec le jeu : liste d'UniqueID sans la casse (`vanillaRemapModIds`), seul faux positif GCSR écarté — 16 lignes de conflit jeu sur 12 mods ; collisions mod-mod conservées, note `remapModsIgnored` |
 | **C4-T10** | 2026-09-15 | Les 466 raccourcis du parc passent du champ texte au contrôle de capture : `Control.keybind` porte l'orthographe d'origine, R4 partagée, session sticky, AZERTY « a · Q » (`UCKeyTranslate`), annotation « lié à » (signatures canoniques, conflit jeu prioritaire, manette distinguée) |
 | **C4-T11** | 2026-09-15 | Les listes déroulantes des enums de DLL : lecture live des métadonnées à l'ouverture de l'éditeur (`DotNetMetadata`), cache par empreinte, oracle `tools/gmcm_options.py` (122 mods, 0 écart), dataset figé en filet |
+| **C4-T12** | 2026-09-24 | Le conflit se voit dès la capture : l'annotation « lié à » lit toutes les liaisons actives (`KeybindReport.activeUses`), plus les seules collisions — une touche portée par un seul autre mod est nommée tout de suite ; même mod exclu |
 | **C5-T2** | 2026-09-23 | README : bannières rapatriées de `stardew-thai-translations` dans `assets/banners/`, changelog intégré « deux dernières versions », A1-T6/T8 décrits ; le hub thaï n'y figurait déjà plus |
 
 **Profils, favoris & backups exploitables — Axe B · B4 livré en v1.18.0, B3 aux trois quarts**
@@ -2335,6 +2246,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A2-T7** | 2026-09-15 | Un mod de la liste noire SMAPI (malveillants) signalé avant le lancement : `SmapiBlacklist` lit le JSONC, croisement sans la casse, illisible ⇒ `nil` jamais liste vide, alerte critique + bandeau rouge, jamais de suppression |
 | **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
 | **A1-T6** | 2026-09-23 | La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu (objets, bâtiments, données), chaque rangée ouvre la fiche du mod — résolution contre le parc entier, doublon actif ⇒ muet ; absents hors périmètre |
+| **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
+| **A1-T10** | 2026-09-24 | « Nettoyer… » retire d'une sauvegarde les clés des mods disparus : feuille clé par clé, sous le verrou des saves, backup vérifié seulement s'il y a à retirer, écriture atomique BOM préservé ; item atypique laissé et compté (Zofia : 35 clés, 1,2 s) |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**
 
