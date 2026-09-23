@@ -14,6 +14,8 @@ struct SaveCleanupSheet: View {
     let modified: Date
     let mods: [ModItem]
     let uids: Set<String>
+    /// Relevé à l'ouverture — même garde que l'éditeur de la fiche.
+    let gameRunning: Bool
     let onCleaned: () -> Void
 
     @State private var store = SaveCleanupStore()
@@ -28,6 +30,13 @@ struct SaveCleanupSheet: View {
                 .font(AppDesign.Font.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if gameRunning {
+                Label(localization.L(L10n.Saves.cleanupGameRunning),
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(AppDesign.Font.caption)
+                    .foregroundStyle(AppDesign.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -70,7 +79,11 @@ struct SaveCleanupSheet: View {
                 Button(localization.L(L10n.Saves.cleanupConfirm), role: .destructive) {
                     Task {
                         await store.nettoyer(save: save, mods: mods)
-                        if case .terminé = store.phase { onCleaned() }
+                        guard case .terminé(_, let laissées) = store.phase else { return }
+                        onCleaned()
+                        // Tout est parti : la section dit le résultat. Des
+                        // clés laissées restent affichées, jamais tues.
+                        if laissées == 0 { dismiss() }
                     }
                 }
             }

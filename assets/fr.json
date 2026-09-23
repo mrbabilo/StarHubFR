@@ -1167,6 +1167,7 @@
   "saves_cleanup_err_write": "L'écriture a échoué ; rien n'a été modifié.",
   "saves_cleanup_err_none": "Il n'y a rien à supprimer.",
   "saves_cleanup_close": "Fermer",
+  "saves_cleanup_game_running": "Stardew Valley est en cours d'exécution. Sa sauvegarde automatique peut réécrire la partie et annuler ce nettoyage — fermez le jeu d'abord.",
   "saves_open_folder": "Ouvrir le dossier",
   "saves_overwrite_anyway": "Écraser quand même",
   "saves_qi_gems": "Gemmes de Qi",

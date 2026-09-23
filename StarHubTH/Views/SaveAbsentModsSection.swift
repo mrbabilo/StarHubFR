@@ -13,6 +13,7 @@ struct SaveAbsentModsSection: View {
     @State private var store = SaveAbsentModsStore()
     @State private var feuilleOuverte = false
     @State private var feuilleUids: Set<String> = []
+    @State private var feuilleJeuLancé = false
     /// La fiche garde l'instantané de la save d'avant un nettoyage : sa date
     /// ne bouge pas. Une réécriture par l'app date le scan à refaire.
     @State private var réécritures: [String: Date] = [:]
@@ -56,6 +57,7 @@ struct SaveAbsentModsSection: View {
                 }
                 Button {
                     feuilleUids = Set(entries.map(\.uid))
+                    feuilleJeuLancé = vm.isGameRunning()
                     feuilleOuverte = true
                 } label: {
                     Label(localization.L(L10n.Saves.cleanupButton), systemImage: "trash")
@@ -88,6 +90,7 @@ struct SaveAbsentModsSection: View {
                 modified: refreshKey.modified,
                 mods: vm.scanStore.mods,
                 uids: feuilleUids,
+                gameRunning: feuilleJeuLancé,
                 onCleaned: {
                     réécritures[save.folderName] = Date()
                     vm.reloadSaves()
