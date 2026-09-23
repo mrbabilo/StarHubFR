@@ -226,3 +226,71 @@ public enum SaveFingerprintResolution {
 private func isASCIIAlpha(_ c: Unicode.Scalar) -> Bool {
     (c >= "a" && c <= "z") || (c >= "A" && c <= "Z")
 }
+
+/// A1-T8 — le rapport affiché à la bascule : ce que **ces** mods laissent
+/// dans **chaque** sauvegarde. La résolution reçoit exactement les
+/// UniqueIDs du plan de bascule, donc le rapport ne porte que leurs
+/// empreintes — celles du reste du parc restent hors du compte.
+public struct SaveFingerprintReport: Equatable, Sendable {
+    /// Nom de dossier de save → totaux des mods du plan dans cette save.
+    public var perSave: [String: FingerprintCounts]
+
+    public init(perSave: [String: FingerprintCounts] = [:]) {
+        self.perSave = perSave
+    }
+
+    public var isEmpty: Bool { perSave.isEmpty }
+
+    /// Scan les fichiers de save donnés et totalise les empreintes des ids
+    /// du plan. Une save illisible n'entre pas dans le rapport — l'alerte
+    /// chiffre ce qu'elle peut lire, elle ne promet pas un audit complet
+    /// (l'audit, c'est **A1-T9**) ; si tout est illisible, le rapport est
+    /// vide et la bascule procède sans avertissement.
+    public static func scanSaves(
+        at saveFiles: [(name: String, url: URL)],
+        modIDs: Set<String>
+    ) -> SaveFingerprintReport {
+        guard !modIDs.isEmpty else { return SaveFingerprintReport() }
+        var perSave: [String: FingerprintCounts] = [:]
+        for save in saveFiles {
+            let data: Data
+            do {
+                data = try Data(contentsOf: save.url)
+            } catch {
+                continue // illisible → hors rapport (contrat du docstring)
+            }
+            guard let scan = SaveFingerprintScanner.scan(data) else { continue }
+            let resolved = SaveFingerprintResolution.resolve(scan, modIDs: modIDs)
+            var total = FingerprintCounts()
+            for (_, counts) in resolved { total.add(counts) }
+            if !total.isEmpty { perSave[save.name] = total }
+        }
+        return SaveFingerprintReport(perSave: perSave)
+    }
+
+    /// Les saves touchées, les plus chargées d'abord — l'ordre d'affichage.
+    public var sortedEntries: [(name: String, counts: FingerprintCounts)] {
+        perSave
+            .map { (name: $0.key, counts: $0.value) }
+            .sorted { $0.counts.total > $1.counts.total }
+    }
+
+    /// Combien de saves au-delà de `limit` le résumé tait — pour la ligne
+    /// « et N autres sauvegardes » du pire cas (nombre de saves arbitraire).
+    public func hiddenCount(beyond limit: Int) -> Int {
+        max(0, sortedEntries.count - limit)
+    }
+}
+
+extension FingerprintCounts {
+    /// Somme famille par famille — le total d'un plan de bascule est
+    /// l'addition des totaux de ses mods.
+    public mutating func add(_ other: FingerprintCounts) {
+        objects += other.objects
+        buildings += other.buildings
+        modDataKeys += other.modDataKeys
+    }
+
+    /// Toutes familles confondues — l'ordre d'affichage du rapport.
+    public var total: Int { objects + buildings + modDataKeys }
+}

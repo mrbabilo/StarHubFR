@@ -2995,6 +2995,11 @@ final class StarHubTHViewModel {
     private var isToggling = false
     private var pendingToggles: [(ModItem, (() -> Void)?)] = []
 
+    /// A1-T8 — l'état de l'avertissement d'empreintes de sauvegarde vit
+    /// dans son store (règle F1-T2) ; le VM ne garde que le fil : intercepter
+    /// la bascule vers pause dans `performToggle` et relancer au confirm.
+    let saveFingerprintPauseStore = SaveFingerprintPauseStore()
+
     /// Progress of an in-flight bulk enable/disable-all operation:
     /// `(done, total)`. `nil` when idle. Drives the progress overlay in
     /// `ModListView`. Published on the main thread after each individual move.
@@ -3072,7 +3077,11 @@ final class StarHubTHViewModel {
     }
 
     @MainActor
-    private func performToggle(_ mod: ModItem, completion: (() -> Void)? = nil) {
+    private func performToggle(
+        _ mod: ModItem,
+        completion: (() -> Void)? = nil,
+        fingerprintChecked: Bool = false
+    ) {
         // Le QUOI — quels dossiers, quel état visé — vit dans `TogglePlan`
         // (Core, testé) : rapprochement enfant de pack → dossier de premier
         // niveau, re-dérivation de l'état depuis l'instantané `mods` (le mod
@@ -3082,6 +3091,29 @@ final class StarHubTHViewModel {
         let plan = TogglePlan.make(mod: mod, mods: mods, chain: chainToggleDependencies)
         let targetState = plan.targetState
         let foldersToToggle = plan.folders
+
+        // A1-T8 — mettre en pause n'efface pas ce que le mod a laissé dans
+        // les sauvegardes. Avant le premier renommage d'une bascule vers
+        // pause, chiffrer les empreintes réelles du plan ; le store suspend
+        // la bascule derrière la confirmation si le rapport n'est pas vide.
+        // La reprise (confirmer, ou reprise sans empreinte) repasse par ici
+        // avec `fingerprintChecked: true` — jamais deux scans pour un geste.
+        if !targetState && !fingerprintChecked {
+            let planIDs = Set(
+                foldersToToggle.compactMap { folder in
+                    mods.first { $0.folderName == folder }?.uniqueId
+                }.filter { !$0.isEmpty })
+            if !planIDs.isEmpty {
+                saveFingerprintPauseStore.checkBeforePause(
+                    mod: mod,
+                    modIDs: planIDs,
+                    resume: { [weak self] in
+                        self?.performToggle(mod, completion: completion, fingerprintChecked: true)
+                    },
+                    abort: { completion?() })
+                return
+            }
+        }
 
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -3185,7 +3217,7 @@ final class StarHubTHViewModel {
             completion?()
         }
     }
-    
+
     /// Resolves a message key with an optional format detail — the
     /// counterpart to `SmapiInstaller`'s `(Bool, String, String?)`
     /// completion, since only this class (not `SmapiInstaller`) can

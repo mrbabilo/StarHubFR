@@ -364,6 +364,8 @@ struct MainView: View {
                 dismissButton: .default(Text(localization.L(L10n.Main.ok)))
             )
         }
+        // A1-T8 — au niveau racine : l'état suspendu dans le VM doit survivre au changement d'onglet.
+        .saveFingerprintPauseGate(vm: vm)
         // R2 — une application de profil morte en route : reprendre ou
         // garder l'état actuel. Patron confirmationDialog de ModProfilesView
         // (suppression de profil) ; présenté une seule fois la fenêtre

@@ -186,12 +186,93 @@ import Testing
             objects: 3, buildings: 1, modDataKeys: 1))
     }
 
+    // MARK: - Le rapport de bascule
+
+    /// A1-T8 — le rapport ne porte que les ids du plan : une save qui
+    /// n'abrite que les empreintes d'un autre mod reste hors du compte.
+    @Test("Le rapport totalise par save les mods du plan seulement")
+    func reportTotalsOnlyPlanModsPerSave() throws {
+        let dir = try TemporaryDirectory()
+        try fixture("<SaveGame><Item><name>Zofia</name>"
+            + "<itemId>Morghoula.AlchemistryCP_MeteorCap</itemId></Item>"
+            + "<Item><itemId>Lumisteria.MtVapius_BlackChanterelle</itemId></Item></SaveGame>")
+            .write(to: dir.url.appendingPathComponent("Save1_1"))
+        try fixture("<SaveGame><Item><name>Autre</name>"
+            + "<itemId>Lumisteria.MtVapius_BlackChanterelle</itemId></Item></SaveGame>")
+            .write(to: dir.url.appendingPathComponent("Save2_2"))
+        let report = SaveFingerprintReport.scanSaves(
+            at: [("Save1_1", dir.url.appendingPathComponent("Save1_1")),
+                 ("Save2_2", dir.url.appendingPathComponent("Save2_2"))],
+            modIDs: ["Morghoula.AlchemistryCP"])
+        #expect(report.perSave.count == 1)
+        #expect(report.perSave["Save1_1"] == FingerprintCounts(objects: 1))
+    }
+
+    /// Le plan d'un pack porte plusieurs mods : leurs empreintes s'additionnent.
+    @Test("Le rapport additionne les empreintes de tous les mods du plan")
+    func reportSumsAllPlanMods() throws {
+        let dir = try TemporaryDirectory()
+        try fixture("<SaveGame><Item><name>Zofia</name>"
+            + "<itemId>A.B_Thing</itemId></Item>"
+            + "<Building><buildingType>C.D_House</buildingType></Building>"
+            + "<modDataDictionary><item><key><string>K.VP.Count</string></key>"
+            + "<value><int>1</int></value></item></modDataDictionary></SaveGame>")
+            .write(to: dir.url.appendingPathComponent("Save1_1"))
+        let report = SaveFingerprintReport.scanSaves(
+            at: [("Save1_1", dir.url.appendingPathComponent("Save1_1"))],
+            modIDs: ["A.B", "C.D", "K.VP"])
+        #expect(report.perSave["Save1_1"] == FingerprintCounts(
+            objects: 1, buildings: 1, modDataKeys: 1))
+    }
+
+    /// Une save illisible n'entre pas dans le rapport — l'alerte chiffre ce
+    /// qu'elle lit, elle ne prétend pas à un audit (c'est A1-T9).
+    @Test("Une save illisible est absente du rapport")
+    func unreadableSaveIsAbsentFromReport() throws {
+        let dir = try TemporaryDirectory()
+        try fixture("<SaveGame><Item><name>Zofia</name>"
+            + "<itemId>A.B_Thing</itemId></Item></SaveGame>")
+            .write(to: dir.url.appendingPathComponent("Good_1"))
+        try Data("pas du xml".utf8).write(to: dir.url.appendingPathComponent("Bad_2"))
+        let report = SaveFingerprintReport.scanSaves(
+            at: [("Good_1", dir.url.appendingPathComponent("Good_1")),
+                 ("Bad_2", dir.url.appendingPathComponent("Bad_2"))],
+            modIDs: ["A.B"])
+        #expect(report.perSave["Good_1"]?.objects == 1)
+        #expect(report.perSave["Bad_2"] == nil)
+    }
+
+    @Test("Le tri met les saves les plus chargées d'abord ; hiddenCount compte la retenue")
+    func sortingAndHiddenCount() {
+        let report = SaveFingerprintReport(perSave: [
+            "Petite": FingerprintCounts(objects: 2),
+            "Grosse": FingerprintCounts(objects: 757),
+            "Moyenne": FingerprintCounts(objects: 100, modDataKeys: 1),
+        ])
+        let order = report.sortedEntries.map(\.name)
+        #expect(order == ["Grosse", "Moyenne", "Petite"])
+        #expect(report.hiddenCount(beyond: 3) == 0)
+        #expect(report.hiddenCount(beyond: 2) == 1)
+        #expect(report.sortedEntries[0].counts.total == 757)
+    }
+
     // MARK: - Aide
 
     /// Les fragments proviennent du vrai producteur (le jeu) — copiés du
     /// save réel, réduits aux champs porteurs.
     private func fixture(_ raw: String) -> Data {
         Data(raw.utf8)
+    }
+
+    /// Dossier temporaire jetable par test — jamais le vrai Application
+    /// Support (582 exécutions polluées avant l'injection des managers).
+    private struct TemporaryDirectory {
+        let url: URL
+        init() throws {
+            url = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("SaveFingerprintTests-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
     }
 
     private func scan(_ data: Data) -> SaveFingerprintScan {

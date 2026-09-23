@@ -1488,5 +1488,13 @@
   "vm_unzip_failed": "Échec de l'exécution de la commande de décompression : %@",
   "vm_url_error": "Une erreur s'est produite lors de la création de l'URL de téléchargement",
   "vm_zip_mods_error": "Une erreur s'est produite lors de la compression des mods",
-  "vm_zip_saves_error": "Une erreur s'est produite lors de la compression des sauvegardes"
+  "vm_zip_saves_error": "Une erreur s'est produite lors de la compression des sauvegardes",
+  "mods_fingerprint_pause_title": "Empreintes dans les sauvegardes",
+  "mods_fingerprint_pause_message": "Mettre en pause n'efface pas ce que %@ a laissé dans vos sauvegardes :",
+  "mods_fingerprint_objects": "%d objets",
+  "mods_fingerprint_buildings": "%d bâtiments",
+  "mods_fingerprint_data_keys": "%d entrées de données",
+  "mods_fingerprint_more_saves": "et %d autres sauvegardes",
+  "mods_fingerprint_pause_confirm": "Mettre en pause quand même",
+  "mods_fingerprint_save_line": "%@ : %@"
 }

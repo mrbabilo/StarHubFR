@@ -367,6 +367,16 @@ enum L10n {
         static let compatSourcePathoschild  = "mods_compat_source_pathoschild"
         static let compatSourceCache        = "mods_compat_source_cache"
 
+        // MARK: Empreintes de sauvegarde (A1-T8)
+        static let fingerprintPauseTitle    = "mods_fingerprint_pause_title"
+        static let fingerprintPauseMessage  = "mods_fingerprint_pause_message"
+        static let fingerprintObjects       = "mods_fingerprint_objects"
+        static let fingerprintBuildings     = "mods_fingerprint_buildings"
+        static let fingerprintDataKeys      = "mods_fingerprint_data_keys"
+        static let fingerprintSaveLine      = "mods_fingerprint_save_line"
+        static let fingerprintMoreSaves     = "mods_fingerprint_more_saves"
+        static let fingerprintPauseConfirm  = "mods_fingerprint_pause_confirm"
+
         // MARK: État de la page Nexus (A2-T6)
         static let nexusPageRemoved           = "mods_nexus_page_removed"
         static let nexusPageRemovedHint       = "mods_nexus_page_removed_hint"
