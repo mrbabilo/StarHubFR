@@ -18,13 +18,16 @@ struct SavePausedFootprintSection: View {
         let folderName: String
         let modified: Date
         let paused: [String]
+        let parcLoading: Bool
     }
 
     private var refreshKey: RefreshKey {
-        RefreshKey(
+        let parc = vm.scanStore
+        return RefreshKey(
             folderName: save.folderName,
             modified: save.lastModified,
-            paused: vm.scanStore.mods.flattenedMods.filter { !$0.isEnabled }.map(\.folderName))
+            paused: parc.mods.flattenedMods.filter { !$0.isEnabled }.map(\.folderName),
+            parcLoading: parc.mods.isEmpty && parc.scanProgress != nil)
     }
 
     var body: some View {
@@ -57,6 +60,10 @@ struct SavePausedFootprintSection: View {
             }
         }
         .task(id: refreshKey) {
+            // Parc vide pendant son premier scan : « aucun mod en pause »
+            // serait un faux « tout va bien » — rester en lecture, la clé
+            // change quand le parc arrive.
+            guard !refreshKey.parcLoading else { return }
             store.refresh(save: save, mods: vm.scanStore.mods)
         }
     }

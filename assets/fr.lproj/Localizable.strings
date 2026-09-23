@@ -1146,7 +1146,7 @@
 "saves_paused_footprints_scanning" = "Lecture de la sauvegarde…";
 "saves_paused_footprints_none" = "Aucun mod en pause n'a laissé de contenu dans cette sauvegarde.";
 "saves_paused_footprints_unreadable" = "Cette sauvegarde n'a pas pu être lue.";
-"saves_paused_footprints_footer" = "Mettre un mod en pause n'efface pas ce qu'il a laissé dans la sauvegarde : ce contenu y reste, en sommeil.";
+"saves_paused_footprints_footer" = "Mettre un mod en pause ne touche pas au fichier de sauvegarde : ce qu'il y a laissé y est toujours.";
 "saves_paused_footprints_open_hint" = "Ouvrir la fiche de ce mod";
 "saves_open_folder" = "Ouvrir le dossier";
 "saves_overwrite_anyway" = "Écraser quand même";

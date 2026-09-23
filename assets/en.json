@@ -1146,7 +1146,7 @@
   "saves_paused_footprints_scanning": "Reading the save…",
   "saves_paused_footprints_none": "No paused mod has left content in this save.",
   "saves_paused_footprints_unreadable": "This save could not be read.",
-  "saves_paused_footprints_footer": "Pausing a mod does not erase what it left in the save: this content stays there, dormant.",
+  "saves_paused_footprints_footer": "Pausing a mod does not touch the save file: what it left there is still in it.",
   "saves_paused_footprints_open_hint": "Open this mod's page",
   "saves_open_folder": "Open Folder",
   "saves_overwrite_anyway": "Overwrite Anyway",

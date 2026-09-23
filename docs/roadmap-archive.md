@@ -3902,9 +3902,13 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       refait la résolution à chaque bascule, et n'affiche que la réponse à la
       dernière demande. La section « Mods en pause dans cette sauvegarde » de
       la fiche conduit chaque rangée à la fiche du mod (onglet État).
-      ▸ **Hors périmètre, délibérément** : les mods **absents** du parc (la
-      règle de normalisation des 695 préfixes reste à mesurer — c'est
-      **A1-T9**), et l'avertissement à l'activation d'un profil.
+      📏 **Mesuré sur Zofia avec le vrai parc** (1 146 mods, 855 en pause,
+      1 141 ids) : **43 mods en pause** rapportés, Alchemistry en tête
+      (815 objets, 42 clés), Dayswork 1 bâtiment ; scan 1,7 s + résolution
+      0,36 s contre le parc entier (build release), hors fil principal.
+      ▸ **Hors périmètre, délibérément** : les mods **absents** du parc et
+      l'avertissement à l'activation d'un profil — reportés, vivants, dans
+      **A1-T9** (ROADMAP).
 
 
 - [x] **A1-T8** — ✅ **Livré le 2026-09-23.** **Avertir à la bascule : mettre en

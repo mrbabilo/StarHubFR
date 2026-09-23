@@ -386,7 +386,8 @@ backup se retrouve en moins de dix secondes.
       ⚠️ **Ne pas confondre avec A1-T4** : là c'est un `examples/` en trop dans le
       parc, ici c'est une pièce **manquante** sur le disque. · **M**
 
-  **Trois autres idées relevées dans le même audit, et ce qu'elles valent :**
+  **Trois autres idées relevées dans l'audit de `Stardew Save Launcher` (2026-09-14,
+  celui d'**A1-T6**, livré — récit à l'archive), et ce qu'elles valent :**
   - **Un verdict « prêt à lancer » avant de lancer** (leur `Ready`/`CanLaunch`/`Errors`).
     Vérifié : `launchGate` n'est qu'un garde **anti double-lancement**, et le bouton de
     `HomeView.swift:160` appelle `launchGame()` sans consulter la moindre alerte. La
@@ -421,7 +422,13 @@ backup se retrouve en moins de dix secondes.
       test existe pourtant chez lui** : `savesaver_infect` injecte huit faux
       items C# cassés dans une sauvegarde pour provoquer et rejouer le scénario
       — le moyen de tester cet item sans attendre un vrai accident, la fixture
-      étant produite par un vrai producteur, jamais à la main. · **M**
+      étant produite par un vrai producteur, jamais à la main.
+      ▸ **Hérité d'A1-T6 (livré sans eux)** : (1) les mods **absents** du parc —
+      la fiche de sauvegarde ne nomme que les mods en pause, parce que la règle
+      de normalisation des préfixes orphelins (695 sur 748 sur Zofia, dont des
+      sous-clés comme `Kedi.VPP.WasRainingHere`) reste à mesurer, dans les deux
+      sens ; (2) le même avertissement **à l'activation d'un profil**, qui met
+      des mods en pause en masse sans passer par `performToggle`. · **M**
 
 - [ ] **A1-T10 — Le nettoyage guidé d'une sauvegarde : écrit, jamais
       automatique.** *(même audit, 2026-09-23 ; à n'engager qu'après A1-T9, et
