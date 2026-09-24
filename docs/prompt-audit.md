@@ -4,6 +4,12 @@
 > le 2026-09-04 : la version qui circulait était tronquée (phases 0/1 amputées,
 > deux règles fusionnées) et fausse sur quatre points mesurables — dont le
 > système de build, qu'elle annonçait comme SPM.
+>
+> Remesurée le 2026-09-24 : ViewModel passé à `@Observable` (plus
+> d'`ObservableObject` ni de `@Published` chez lui), build en mode Swift 6, nouveau
+> dossier `StarHubTH/Stores/`, ROADMAP §4 vide (X1–X106 tous archivés), parc
+> déplacé sur `/Volumes/BABILOGAMES`. Une copie circule encore avec des lignes
+> amputées en plein milieu : **ce fichier est la seule version de référence**.
 
 ---
 
@@ -12,7 +18,7 @@ Swift Concurrency (async/await, actors) et intégrations réseau (URLSession).
 Tu vas auditer le projet StarHubFR fichier par fichier.
 
 REPO : https://github.com/mrbabilo/StarHubFR
-STACK : Swift 5.9 · SwiftUI + AppKit (UI macOS native, macOS 14+) · URLSession
+STACK : Swift 6 (mode de langage 6 dans `build_app.py`) · SwiftUI + AppKit (UI macOS native, macOS 14+) · URLSession
 (Nexus Mods API, smapi.io, DeepL, Ollama/LLM local) · persistance
 fichier + UserDefaults + Trousseau (pas de SQL) · scripts Python
 (build, release, cliquet de conventions)
@@ -29,20 +35,29 @@ couvre le fichier audité :
 - `./run_tests.sh` — `swift test` avec `DEVELOPER_DIR` sur Xcode.app.
   Sans lui : `no such module 'Testing'` — limite d'environnement, pas régression.
 
-CONTEXTE STRUCTUREL (mesuré le 2026-09-04, pas estimé) :
-- Point d'entrée : `StarHubTH/StarHubTHApp.swift` (7 937 o, 160 l)
+CONTEXTE STRUCTUREL (mesuré le 2026-09-24, pas estimé) :
+- Point d'entrée : `StarHubTH/StarHubTHApp.swift` (13 028 o, 239 l)
 - ViewModel monolithique, priorité de surveillance :
-  `StarHubTH/StarHubTHViewModel.swift` (501 621 o, **9 469 lignes**, une seule
-  classe `StarHubTHViewModel: ObservableObject`, ~28 sections `// MARK:`)
-- Design : `StarHubTH/AppDesignCore.swift` (4 545 o) + `StarHubTH/Design/` (2 f.)
-- Sources : 223 `.swift` sous `StarHubTH/` — `Models/` 135, `Views/` 40,
-  `Extensions/` 3, `Design/` 2, racine 27
+  `StarHubTH/StarHubTHViewModel.swift` (543 031 o, **10 027 lignes**, une seule
+  classe `@MainActor @Observable final class StarHubTHViewModel`, 52 sections
+  `// MARK:`). Il se vide vers `StarHubTH/Stores/` (plan `docs/REFACTORING.md`)
+- Stores : `StarHubTH/Stores/` — 30 fichiers (25 `*Store.swift`), l'état
+  extrait du ViewModel (`ScanStore`, `ModUpdateStore`, `NexusDownloadStore`…)
+- Design : `StarHubTH/AppDesignCore.swift` (5 186 o) + `StarHubTH/Design/` (1 f.)
+- Sources : 362 `.swift` sous `StarHubTH/` — `Models/` 220, `Views/` 82
+  (dont `Views/Components/` 25), `Stores/` 30, `Extensions/` 2, `Design/` 1,
+  racine 27
+- Observation : 26 fichiers en `@Observable` ; **5 restent `ObservableObject`**
+  (`SmapiInstaller`, `BisectionRunner`, `KeybindScanService`,
+  `Stores/LocalizationStore`, `Models/ModListFilters`) — 16 lignes `@Published`
+  hors commentaires subsistent. Dans le ViewModel et les stores `@Observable`, `@Published` ne
+  compile plus : une `var` stockée est déjà suivie
 - Tests : `Tests/` — **Swift Testing, pas XCTest** (0 `import XCTest`).
-  131 cibles de test dans `Package.swift`, 151 fichiers, 61 `@Suite` explicites
-  (215 suites au rapport de `swift test`, implicites comprises), **2 120 `@Test`**.
+  219 cibles de test dans `Package.swift`, 262 fichiers, 134 `@Suite`
+  explicites, **3 424 `@Test`**.
   Les tests ne couvrent que ce que `Package.swift` embarque :
   du code UI/ViewModel n'est pas testable ici, il faut d'abord le déplacer en Core.
-- Build/packaging : `Package.swift` (29 634 o), `Info.plist`, `build_app.py`,
+- Build/packaging : `Package.swift` (50 491 o), `Info.plist`, `build_app.py`,
   `release.py`
 - Qualité : `check_standards.py` + `.standards-baseline.json` — cliquet qui
   n'échoue qu'à l'**augmentation** d'un compteur ; un ajout délibéré demande un
@@ -55,21 +70,26 @@ CONTEXTE STRUCTUREL (mesuré le 2026-09-04, pas estimé) :
   le réseau) et **ne jamais réécrire `.sources-baseline.json`** : le signaler
   comme constat, c'est tout
 - Docs : `docs/` (dont `docs/DOMAINE.md` et `docs/ROADMAP.md`), `README.md`
-  (22 911 o), `README_EN.md`, `CONTRIBUTING.md`, `SECURITY.md`
-- Contexte projet : `AGENTS.md` (10 230 o) ET `CLAUDE.md` (17 142 o)
-- Historique : `CHANGELOG.md` — fichier unique (231 728 o), Keep a Changelog
+  (24 097 o), `README_EN.md`, `CONTRIBUTING.md`, `SECURITY.md`
+- Contexte projet : `AGENTS.md` (12 924 o) ET `CLAUDE.md` (7 196 o) — `CLAUDE.md` renvoie
+  aux skills (`.claude/skills/`) et à `docs/SOURCES.md`, `docs/REFACTORING.md`
+- Historique : `CHANGELOG.md` — fichier unique (284 634 o), Keep a Changelog
 
 RÈGLE ABSOLUE : lire `AGENTS.md`, `CLAUDE.md` ET `docs/DOMAINE.md` EN PREMIER.
 `DOMAINE.md` porte le vocabulaire métier — « pack », « profil » et « sauvegarde »
 ne désignent pas ici ce qu'ils désignent chez l'amont, et un mod **en pause** est
 un dossier **préfixé par un point** dans `Mods/`, pas un dossier déplacé.
-Lire aussi `docs/ROADMAP.md` §4 : les constats d'audit **encore ouverts** y
-portent un numéro `X<n>`. ⚠️ Ses cases traînent derrière le code livré — vérifier
-`git log` avant de traiter une tâche « à faire ».
-⚠️ **Les constats déjà corrigés ne sont plus là** : depuis le 2026-09-04 ils
-vivent dans `docs/roadmap-archive.md`, avec la mesure qui les a établis. Chercher
-un `X<n>` dans **les deux** fichiers — sans quoi on re-signale un bug corrigé, et
-on refait une mesure du parc déjà faite.
+Lire aussi `docs/ROADMAP.md` §4 : c'est là qu'un constat d'audit **ouvert**
+porterait un numéro `X<n>`. Au 2026-09-24 il est **vide** : X1–X106 sont tous
+corrigés et vivent dans `docs/roadmap-archive.md`, avec la mesure qui les a
+établis, indexés au §11 de la ROADMAP. Chercher un `X<n>` dans **les deux**
+fichiers — sans quoi on re-signale un bug corrigé, et on refait une mesure du
+parc déjà faite. Un nouveau constat prend le numéro suivant (X107).
+⚠️ Les cases de la ROADMAP traînent derrière le code livré — vérifier `git log`
+avant de traiter une tâche « à faire ».
+⚠️ `AGENTS.md` §5 date : il annonce un ViewModel de « ~3900 lignes » et un
+`manifestCache` « sur le VM » — le cache vit désormais dans
+`Models/ModScanner.swift`. Le code prime ; signaler l'écart, ne pas s'y fier.
 
 ────────────────────────────────────────────
 ORDRE D'AUDIT (respecter impérativement) :
@@ -78,19 +98,23 @@ PHASE 0 — Contexte global
   1. `AGENTS.md`
   2. `CLAUDE.md`
   3. `docs/DOMAINE.md`
-  4. `docs/ROADMAP.md` (§4 : les constats X<n> **ouverts**) **et**
-     `docs/roadmap-archive.md` (ceux déjà corrigés, avec leur mesure)
-  5. `README.md`
+  4. `docs/ROADMAP.md` (§4 : les constats X<n> ouverts — aucun au
+     2026-09-24 ; §11 : l'index des livrés) **et** `docs/roadmap-archive.md`
+     (les X<n> corrigés, avec leur mesure)
+  5. `docs/REFACTORING.md` (ce qui a quitté le ViewModel, et vers quel store)
+  6. `README.md`
 
 PHASE 1 — Cœur applicatif
-  6. `StarHubTH/StarHubTHApp.swift`
-  7. `StarHubTH/StarHubTHViewModel.swift` (par sections logiques si nécessaire,
+  7. `StarHubTH/StarHubTHApp.swift`
+  8. `StarHubTH/StarHubTHViewModel.swift` (par sections logiques si nécessaire,
      en gardant la mémoire globale du fichier)
-  8. `StarHubTH/AppDesignCore.swift`
-  9. `StarHubTH/Models/` (auditer dans l'ordre : stores de persistance →
+  9. `StarHubTH/AppDesignCore.swift`
+ 10. `StarHubTH/Models/` (auditer dans l'ordre : stores de persistance →
      clients réseau → parseurs/décodeurs binaires → logique métier
      mods/traduction)
- 10. `StarHubTH/Extensions/`, `StarHubTH/Views/`
+ 11. `StarHubTH/Stores/` — l'état sorti du ViewModel ; vérifier que chaque store
+     possède son invariant et que le ViewModel n'en garde pas de copie
+ 12. `StarHubTH/Extensions/`, `StarHubTH/Views/` (dont `Views/Components/`)
 
 PHASE 2 — Intégrations réseau (cœur métier)
   ⚠️ PRÉREQUIS : lire `docs/SOURCES.md` avant cette phase. Il donne, pour chaque
@@ -99,31 +123,31 @@ PHASE 2 — Intégrations réseau (cœur métier)
   le **seul** constructeur de requête Nexus admis, et que `apiVersion` est
   obligatoire dans la requête smapi.io (sans elle : zéro suggestion, en silence).
   Le document porte les rôles et le raisonnement, jamais les valeurs courantes.
- 11. `NexusSearchClient`, `NexusModSearch`, `NexusDownloader`,
+ 13. `NexusSearchClient`, `NexusModSearch`, `NexusDownloader`,
      `NexusUpdateChecker`, `NexusRequestBuilder`, `NexusRateLimitGate`,
      `NexusQuota`
- 12. `DeepLClient`, `DeepLDesktop`
- 13. `SmapiUpdateClient`, `SmapiUpdateRequest`, `SmapiUpdateResponse`
- 14. `LocalLLMClient`, `LocalLLMEndpoint`, `OllamaCapabilities`
+ 14. `DeepLClient`, `DeepLDesktop`
+ 15. `SmapiUpdateClient`, `SmapiUpdateRequest`, `SmapiUpdateResponse`
+ 16. `LocalLLMClient`, `LocalLLMEndpoint`, `OllamaCapabilities`
 
 PHASE 3 — Persistance & données locales
- 15. `UDKey.swift`, `KeychainSecret.swift`, `TokenShield.swift`
- 16. Les `*Store.swift` : `ProfileConfigStore`, `GlossaryStore`,
+ 17. `UDKey.swift`, `KeychainSecret.swift`, `TokenShield.swift`
+ 18. Les `*Store.swift` de persistance, sous `Models/` : `ProfileConfigStore`, `GlossaryStore`,
      `TranslationFileStore`, `ModConflictVerdictsStore`,
      **`ModErrorHistoryStore`** et **`ModVersionAnchorStore`** *(le prompt
      d'origine citait un « ModErrorHonAnchorStore » qui n'existe pas — c'est la
      contraction accidentelle de ces deux-là)*, `InstalledTranslationStore`,
      `ModCompatibilityStore`, `ModDetailCache`
- 17. `ModConfigBackupManager`, `ModInstallBackupManager`, `ModFolderRepairer`,
+ 19. `ModConfigBackupManager`, `ModInstallBackupManager`, `ModFolderRepairer`,
      `FileRecovery`
 
 PHASE 4 — Tests
- 18. `Tests/` (131 cibles Swift Testing, en miroir des modules audités)
- 19. `run_tests.sh`
+ 20. `Tests/` (219 cibles Swift Testing, en miroir des modules audités)
+ 21. `run_tests.sh`
 
 PHASE 5 — Configuration, build & déploiement
- 20. `Package.swift` (targets/dépendances), `Info.plist`
- 21. `build_app.py`, `release.py`, `check_standards.py`,
+ 22. `Package.swift` (targets/dépendances), `Info.plist`
+ 23. `build_app.py`, `release.py`, `check_standards.py`,
      `.standards-baseline.json`, `check_sources.py`, `.sources-baseline.json`,
      `.mcp.json` — pour les deux cliquets, auditer *en lecture* : que le script
      rende bien un code de sortie non nul quand il doit échouer (ce dépôt a payé
@@ -150,9 +174,11 @@ Pour chaque fichier, produire EXACTEMENT cette structure :
 - Référence dans le code → implémentation proposée
 
 ### ⚠️ ANTI-PATTERNS SPÉCIFIQUES AU STACK
-SwiftUI : mutation de `@Published` hors du fil principal ; `@StateObject` vs
-  `@ObservedObject` mal employé ; cycle de rétention via closure dans un
-  `ObservableObject` ; effet de bord dans `body` ; `.task {}` sans gestion
+SwiftUI : mutation d'état observé (`@Observable` ou `@Published`) hors du fil
+  principal ; `@State` / `@Bindable` / `@Environment` mal employés avec un type
+  `@Observable` (et `@StateObject` / `@ObservedObject` pour les 5
+  `ObservableObject` restants) ; cycle de rétention via closure dans un type
+  observé ; effet de bord dans `body` ; `.task {}` sans gestion
   d'annulation ; `@MainActor` manquant sur une méthode qui touche l'UI ;
   `ForEach` identifié par index ou `\.self` (fuite d'`@State` d'une ligne à
   l'autre) ; `body` trop dense pour le type-checker
@@ -161,7 +187,10 @@ Swift Concurrency : `Task {}` non structuré qui fuit ; `[weak self]` absent
   DispatchQueue/async-await ; I/O synchrone sur le fil principal ; structure
   mutable partagée sans `NSLock` — `scanMods()` peut s'exécuter
   **concurremment avec lui-même** (crash `EXC_BAD_ACCESS` confirmé sur
-  `manifestCache` en juillet 2026)
+  `manifestCache` en juillet 2026 ; le cache vit aujourd'hui dans
+  `Models/ModScanner.swift`, sous `manifestCacheLock`) ; méthode `@MainActor`
+  appelée depuis un fil de fond — le mode Swift 6 le vérifie **à l'exécution**
+  et tue l'app, ni le gate ni les tests ne le voient
 Réseau : `try?` qui avale une erreur ; absence de backoff sur rate-limit ;
   décodage `Codable` qui échoue en silence ; clé d'API en `UserDefaults` au
   lieu du Trousseau ; requête Nexus construite ailleurs que par
@@ -177,7 +206,7 @@ Persistance : écriture non atomique ; lecture/écriture concurrentes d'un même
 ⚠️ L'app est **un seul module** : « ce fichier est importé par » n'a pas de
 sens ici. Donner à la place :
 - Ce fichier appelle : [types/fonctions]
-- Ce que les vues consomment de lui : [quels `@Published`, lus par quelles vues]
+- Ce que les vues consomment de lui : [quelles propriétés observées, lues par quelles vues]
 - Impact d'un bug ici : [portée]
 
 ### ✅ CE QUI FONCTIONNE
@@ -199,7 +228,9 @@ RÈGLES COMPLÉMENTAIRES :
 3. **Aucune refonte globale.** Uniquement des correctifs localisés : fichier,
    lignes, diff minimal. Pour `StarHubTHViewModel.swift` c'est impératif —
    `AGENTS.md` §5.1 assume le god-object et interdit de l'aggraver, pas de le
-   réécrire.
+   réécrire. Règle F1-T2 (`docs/REFACTORING.md`) : un correctif qui demande un
+   état ou une logique **neuve** la pose dans un store (`Stores/`) ou un type
+   pur (`Models/`), jamais dans `StarHubTHViewModel`.
 4. Pour tout bug async, préciser si le correctif exige `@MainActor`,
    `Task { @MainActor in … }`, ou une isolation d'acteur dédiée.
 5. Chaque correction proposée doit être du Swift valide, syntaxiquement
@@ -212,7 +243,10 @@ RÈGLES COMPLÉMENTAIRES :
    b. A-t-il déjà été mesuré et écarté ? Ne pas refaire une mesure du parc
       déjà faite.
    c. **Peux-tu le démontrer ?** Un scénario d'échec sur le parc réel
-      (~1 096 manifestes, `/Applications/Stardew Valley.app/Contents/MacOS/Mods`)
+      (996 entrées, 1 146 `manifest.json` au 2026-09-24, sous
+      `/Volumes/BABILOGAMES/JEUX EN COURS/Stardew Valley.app/Contents/MacOS/Mods`
+      — **plus** sous `/Applications`, où le dossier est vide : une mesure
+      sur l'ancien chemin rend zéro sans le dire ; exclure `_Trash_*`)
       ou un test rouge. Sinon il va en « pistes écartées », jamais en bug.
       Sur ce dépôt, 3 constats de faible gravité sur 8 se sont révélés faux,
       dont un dont le correctif aurait nui.
