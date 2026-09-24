@@ -82,8 +82,41 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-**Tout est traité** : les X1–X112 vivent à l'archive, indexés au §11 (X112, le
-dernier, y est parti le 2026-09-24).
+Les X1–X112 vivent à l'archive, indexés au §11 (X112, le dernier, y est parti
+le 2026-09-24). **Ouverts** — relevés par l'audit UX du 2026-09-24
+(`docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, local) :
+
+- [ ] **X113** — **Le badge « Mises à jour » compte une mise à jour déjà
+      faite.** La barre latérale (`SidebarComponents:20`) et l'accueil
+      (`HomeView:71`) additionnent `outOfDateMods` — le relevé SMAPI du
+      **dernier lancement du jeu** — et `nexusUpdates`, sans confronter le
+      relevé au disque. Mesuré : journal du 17/09, « Wildroot Chronicles 1.3.5
+      (you have 1.3.4) », alors que `Mods/Cropgenics` porte la 1.4.1 — le
+      badge dit 4 pour 3. Correctif : un type pur `UpdateCount` (Core) appelé
+      aux deux endroits. ⚠️ Une ligne « You can update » n'a **pas**
+      d'UniqueID (nom, version, URL Nexus) : apparier par
+      `resolveModFolder(forLoggedName:)` ou par l'id Nexus de l'URL, et
+      **mesurer la règle sur le parc d'abord** (111 mods sans identifiant,
+      58 id Nexus partagés). · **S**
+- [ ] **X114** — *(hypothèse, à mesurer)* **Le badge « Quarantaine » compte
+      le dernier rapport, pas le dossier.** `lastRepairReport.quarantined.count` ;
+      un lancement qui ne quarantaine rien remet le rapport à `nil`
+      (`StarHubTHViewModel:2562`) alors que les `_Trash_*` des passes
+      précédentes restent dans le dossier du jeu. Scénario : un dossier sans
+      manifeste dans `Mods/`, relancer (badge 1), relancer encore → le badge
+      doit rester tant que la quarantaine existe. Le parc n'en a aucune
+      aujourd'hui. · **S**
+- [ ] **X115** — *(question de conception)* **Chaque événement de corbeille
+      est un « mod ignoré » pour SMAPI.** Décompilé (`SMAPI.Toolkit.dll`,
+      `ModScanner`) : SMAPI n'ignore que les dossiers préfixés d'un point ;
+      `Mods/_Trash_*` contient le marqueur `.starhubfr-user-trash`, fichier
+      qu'il juge pertinent, donc il lit l'événement comme **un** mod sans
+      manifeste et **ne descend pas** dedans (les mods en corbeille ne sont
+      pas chargés — c'est le marqueur qui l'évite). Effet : une ligne `ERROR`
+      « Skipped mods » par événement à chaque lancement, reprise par la carte
+      santé et les alertes. Existe depuis X103-B. À trancher : corbeille hors
+      de `Mods/` (comme la quarantaine, dans le dossier du jeu), ou filtrer ces
+      lignes côté diagnostic. · **M**
 
 ---
 
@@ -158,7 +191,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **3 items ouverts** *(recompté le 2026-09-24 : **C5-T1** livré ; **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **2 items ouverts** *(recompté le 2026-09-24 au soir : **C3-T5** livré (`e417b916`), à l'archive. Plus tôt le même jour : **C5-T1** livré ; **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C4-T13)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -187,31 +220,6 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       (192 dans un seul), noyées dans 4 092 chaînes en dur **déjà françaises** — le
       verdict doit juger la langue, pas seulement l'absence de `{{i18n}}`. Valeur faible
       sur ce parc : à peser avant d'engager.
-- [ ] **C3-T5** — **Partiel ✅** — Export/import d'un lot de travail (`.json`) pour
-      traduire à plusieurs, puis fusion contrôlée. · **M**
-      ⚠️ **Corrigé en séance le 2026-09-03** : préparer un lot figeait le fil principal
-      **149 s** sur le plus gros mod à traduire du parc, l'import autant (il reconstruit
-      le même lot). Cause : l'appariement du glossaire, corrigé sous **C3-T4**. Il reste
-      3,2 s de fil principal nu, sans progression — porté en **F3**, pas ici.
-      **Reste à livrer** : la fusion entre humains (deux traducteurs sur le même mod,
-      arbitrage des divergences) et l'export ZIP. La case reste décochée pour cela ;
-      l'usage « faire traduire le lot par son propre chat » est, lui, livré (ci-dessous).
-      **Plan écrit** le 2026-08-20 (`docs/superpowers/plans/2026-08-20-lot-json-traduction.md`),
-      pour l'**autre** usage du même mécanisme : faire traduire le lot par le chat
-      que l'utilisateur a déjà — la troisième voie de la référence. C'est la seule
-      voie qui ne dépende ni d'un serveur local, ni d'une clé, ni d'un quota, et
-      elle a gagné en priorité le jour où l'IA locale s'est révélée impraticable
-      sur une machine de milieu de gamme. La fusion entre humains reste hors du
-      plan ; l'export ZIP aussi (livrable distinct).
-      **Livré** le 2026-08-21 (`c66ef31`…`a162ffe`), validé à la main sur un mod
-      réel : deux boutons dans l'onglet Traduction, consignes de traduction
-      embarquées dans le fichier, jamais d'écrasement d'un français existant.
-      Écart à la ligne `LotExchange` de la spec : l'empreinte SHA-256, livrée
-      puis devenue morte au passage au jugement entrée par entrée (un chat
-      rend un gros lot en plusieurs messages, et l'import du premier fait
-      sortir ses clés de l'état courant), a été retirée du format avant toute
-      livraison — le refus en bloc ne survit qu'au cas où aucune clé du
-      fichier ne concerne l'état courant.
 
 
 #### C4 — Éditeur de config lisible
@@ -935,6 +943,45 @@ travail, pas des engagements.
 - [ ] **I-T5** — Audit de navigation : chemins cliqués mesurés avant/après sur
       des tâches représentatives (mettre à jour un mod, restaurer un backup,
       changer de profil). · **S**
+
+**Audit UX du 2026-09-24** (skill `audit-ux`, rapport local
+`docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
+conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
+
+- [ ] **I-T7** — **Badges : `switch` exhaustif.** `SidebarComponents.badge(_:)`
+      porte un `default: return nil` sur `SidebarDestination` : une
+      destination nouvelle ou fusionnée n'aurait aucun badge, en silence.
+      Préalable à I-T8. Aucun changement visible. · **S**
+- [ ] **I-T8** — **Une destination « Sauvegardes »** réunissant sauvegardes
+      d'installation, de configuration et fichiers récupérables (sortis de la
+      feuille `RecoverableFilesView`) en trois segments ; l'Entretien garde le
+      nettoyage et **renvoie** au segment Fichiers au lieu de dupliquer
+      « Remettre le fichier » (même source, `maintenanceRecoverableFile`).
+      Aucun saut `pending…` ni badge ni raccourci ne vise ces écrans : risque
+      faible. État du segment dans `NavigationStore` (F1-T2). · **M**
+- [ ] **I-T9** — **Accueil allégé** : « Infos sur l'appli » et « Extensions
+      principales » y doublent les Réglages (mêmes clés) ; les retirer de
+      l'accueil, qui garde lancer le jeu, les étapes manquantes et les
+      compteurs d'attention (à zéro, ils se taisent). · **S**
+- [ ] **I-T10** — **Destructif sémantique** : Entretien et corbeille colorent
+      en rouge des boutons sans `role: .destructive` — VoiceOver ne l'annonce
+      pas. · **S**
+- [ ] **I-T11** — **Charte de présentation, écran par écran** (charte au
+      rapport : littéral → jeton de même valeur pour la typographie, un jeton
+      par sens pour la couleur, une orthographe par style de bouton, un jeton
+      `quarantine` à créer). Un lot = un écran, compilé seul, scénario clair
+      et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
+      Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
+      Entretien. · **L**
+- [ ] **I-T12** — **Finitions relevées** : supprimer
+      `Components/SystemStatusFooter.swift` (201 lignes, plus d'appelant
+      depuis `AccountHeaderCard`) et ses clés orphelines ;
+      `SidebarComponents.activeColor` → jeton `installed` ; vert « FR 100 % »
+      `Color(red: 0.20, 0.62, 0.34)` en trois endroits → `success`. · **S**
+
+Écartées par l'audit, avec leur raison au rapport : centre de santé unique,
+traduction unifiée, Mises à jour dans Découvrir (§6 d'`AGENTS.md`), vues de
+parties, profils.
 
 **Risques** : démarrer I avant H imposerait de refaire l'accessibilité sur
 des écrans voués au remplacement ; la palette de commandes touche au routage
@@ -2219,6 +2266,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C3-T1** | — | Édition en place depuis la vue diff (écriture atomique, backup systématique via ModConfigBackupManager). · M · risque… |
 | **C3-T3** | 2026-08-19 | Pré-traduction assistée. Deux voies, l'une n'exclut pas l'autre : API distante (DeepL/Claude/Google, clé au trousseau… |
 | **C3-T4** | 2026-08-19 | Glossaire de termes du jeu pour la cohérence (noms de PNJ, objets, saisons), amorcé depuis les traductions officielle… |
+| **C3-T5** | 2026-09-24 | Lot de traduction : export/import `.json` (2026-08-21), puis fusion entre traducteurs avec arbitrage et lot ZIP (`e417b916`) |
 | **C3-T6** | 2026-08-18 | I18nLenientParser garde la première occurrence d'une clé JSON dupliquée ; le jeu (Newtonsoft) garde la dernière. Trou… |
 | **C3-T7** | 2026-08-20 | Secours de traduction en ligne (DeepL) |
 | **C3-T8** | 2026-08-21 | Traduire une sélection de la source |

@@ -2106,6 +2106,40 @@ touchées).
       **Son appariement, lui, était lent** : `matchEntries` cherchait les 1 126 termes
       dans chaque valeur (9,04 ms), désormais indexés par premier mot (`dc052a6`) —
       voir le constat joint à **F3** pour ce qui reste.
+- [x] **C3-T5** ✅ *(livré le 2026-09-24, `e417b916`)* — Export/import d'un lot de travail (`.json`) pour
+      traduire à plusieurs, puis fusion contrôlée. · **M**
+      ⚠️ **Corrigé en séance le 2026-09-03** : préparer un lot figeait le fil principal
+      **149 s** sur le plus gros mod à traduire du parc, l'import autant (il reconstruit
+      le même lot). Cause : l'appariement du glossaire, corrigé sous **C3-T4**. Il reste
+      3,2 s de fil principal nu, sans progression — porté en **F3**, pas ici.
+      **Reste à livrer** : la fusion entre humains (deux traducteurs sur le même mod,
+      arbitrage des divergences) et l'export ZIP. La case reste décochée pour cela ;
+      l'usage « faire traduire le lot par son propre chat » est, lui, livré (ci-dessous).
+      **Plan écrit** le 2026-08-20 (`docs/superpowers/plans/2026-08-20-lot-json-traduction.md`),
+      pour l'**autre** usage du même mécanisme : faire traduire le lot par le chat
+      que l'utilisateur a déjà — la troisième voie de la référence. C'est la seule
+      voie qui ne dépende ni d'un serveur local, ni d'une clé, ni d'un quota, et
+      elle a gagné en priorité le jour où l'IA locale s'est révélée impraticable
+      sur une machine de milieu de gamme. La fusion entre humains reste hors du
+      plan ; l'export ZIP aussi (livrable distinct).
+      **Livré** le 2026-08-21 (`c66ef31`…`a162ffe`), validé à la main sur un mod
+      réel : deux boutons dans l'onglet Traduction, consignes de traduction
+      embarquées dans le fichier, jamais d'écrasement d'un français existant.
+      Écart à la ligne `LotExchange` de la spec : l'empreinte SHA-256, livrée
+      puis devenue morte au passage au jugement entrée par entrée (un chat
+      rend un gros lot en plusieurs messages, et l'import du premier fait
+      sortir ses clés de l'état courant), a été retirée du format avant toute
+      livraison — le refus en bloc ne survit qu'au cas où aucune clé du
+      fichier ne concerne l'état courant.
+      **Livré le 2026-09-24** (`e417b916`) — le reste : fusion entre humains
+      (`TranslationLotMerge`, Core, 16 tests : nouvelles, divergentes,
+      identiques, non remplies ; marques du jeu vérifiées), lot ZIP
+      (`TranslationLotArchive`, 4 tests), store hors ViewModel
+      (`Stores/TranslationLotMergeStore`), feuille d'arbitrage partagée
+      (« garder le mien / prendre le sien », ligne par ligne) et encart « Lot
+      pour traducteur » sur la page Traductions FR. L'anglais est revérifié à
+      l'écriture : une ligne dont la source a bougé est abandonnée et nommée.
+
 - [x] **C3-T6** — `I18nLenientParser` garde la **première** occurrence d'une clé JSON
       dupliquée ; le jeu (Newtonsoft) garde la **dernière**. Trouvé pendant C2-T5, mesuré
       sur le parc : 7 mods sur 512 concernés (ex. `[CP] Tea`, `spring_23` défini deux fois
