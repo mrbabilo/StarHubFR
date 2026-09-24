@@ -3644,9 +3644,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       corbeille »), mais il restait le seul chemin de suppression hors
       corbeille depuis X103-B — pour le plus gros lot possible : 721 dossiers
       au relevé du 2026-09-11, ~760 entrées pointées dans `Mods/` le
-      2026-09-24. Les préférences de ces mods (favoris, notes, historique…)
-      restaient en outre derrière eux : la purge `forgetStores` n'était pas
-      appelée.
+      2026-09-24.
       ▸ **Trouvé** par l'audit UX, phase 1 (table de conservation) : trois
       gestes pour « faire de la place », deux sémantiques.
       ▸ **Tranché par l'auteur** : corbeille. L'espace revient au vidage de la
@@ -3654,8 +3652,11 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       ▸ **Livré** : `ModTrash.trash(modsPath:stamp:items:)` (Core) met un lot
       en **un** événement — marqueur avant le premier déplacement, un échec
       n'arrête pas les suivants, événement vide retiré. `deleteMod` et
-      `cleanDisabledMods` passent tous deux par lui ; le vidage purge les
-      préférences des mods déplacés. Trois tests ; libellés fr/en corrigés.
+      `cleanDisabledMods` passent tous deux par lui. Le vidage, lui, **garde**
+      les données des mods (configs par profil, traductions et leurs
+      originaux, identifiants saisis) — choix de l'auteur : « Tout remettre »
+      doit rendre le lot entier ; `deleteMod` continue d'effacer (X55).
+      Trois tests ; libellés fr/en corrigés.
       ▸ **Suite, le même jour** — la revue de l'audit UX a vu que la corbeille
       ne savait remettre qu'**une entrée à la fois** : un vidage de ~720 mods
       ne se serait pas défait. `ModTrash.restoreEvent` remet tout un

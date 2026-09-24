@@ -7425,12 +7425,9 @@ final class StarHubTHViewModel {
         let result = ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(), items: targets.map {
             ModTrash.Item(physical: $0, logicalLeaf: String($0.drop { $0 == "." }))
         })
-        // Comme `deleteMod` : les préférences d'un mod mis en corbeille
-        // partent avec lui (X55, X107).
-        let moved = Set(result.moved)
-        for mod in scanStore.mods where moved.contains(mod.physicalFolderName) {
-            forgetStores(of: mod)
-        }
+        // Pas de `forgetStores` ici, à la différence de `deleteMod` : « Tout
+        // remettre » doit rendre le lot avec ses données (configs par profil,
+        // traductions, identifiants saisis) — choix de l'auteur, 2026-09-24.
         let firstError = result.failed.first?.error
 
         let outcome = DisabledModsCleanup.outcome(removed: result.moved.count,
