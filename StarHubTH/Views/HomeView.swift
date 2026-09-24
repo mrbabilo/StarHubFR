@@ -68,7 +68,11 @@ struct HomeView: View {
         // pas de ce qui compose « alertes » — c'est déjà le rôle de cet
         // appelant, par `vm.systemAlertCount`.
         let counters = HomeAttention.counters(
-            updates: vm.outOfDateMods.count + vm.nexusUpdates.count,
+            updates: UpdateCount.pending(
+                outOfDate: vm.outOfDateMods,
+                nexusCount: vm.nexusUpdates.count) {
+                    vm.resolveModFolder(forLoggedName: $0)?.version
+                },
             alerts: vm.systemAlertCount,
             quarantined: vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0,
             mods: vm.scanStore.mods.count)

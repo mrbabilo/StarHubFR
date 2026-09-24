@@ -3671,6 +3671,20 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X113** ✅ *(livré le 2026-09-24)* — **Le badge « Mises à jour » comptait une mise à jour déjà faite.**
+      La barre latérale et l'accueil additionnaient `outOfDateMods` (relevé
+      SMAPI du **dernier lancement du jeu**) et `nexusUpdates` sans confronter
+      le relevé au disque. Mesuré avant codage sur le journal du jour :
+      2 entrées « You can update », dont `Wildroot Chronicles 1.3.5` alors
+      que `Cropgenics` porte 1.4.1 — les deux résolues par égalité de nom
+      exacte, le repli id Nexus restant non déclenché sur données réelles.
+      Fix : type pur `UpdateCount` (Core, règle + 8 tests), le VM ne fournit
+      que `resolveModFolder(forLoggedName:)?.version` via closure — même
+      correspondance que le reste de l'app. Entrée non résolue ou version
+      injugeable = comptée (gonfler vaut mieux qu'écarter en silence) ;
+      préfixes numériques comparés, segment manquant valant zéro, préfixe
+      égal = couvert (« 3.2.3 » répond à « 3 »).
+
 - [x] **X112** ✅ *(livré le 2026-09-24)* — **« Vider les mods désactivés » effaçait sans retour, hors corbeille.**
       `cleanDisabledMods` supprimait chaque dossier en pause par `removeItem`
       définitif. Le choix était assumé (`e2d9cf13`, 2026-09-11 : la

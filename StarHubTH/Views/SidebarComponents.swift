@@ -17,7 +17,10 @@ struct SidebarNavGroups: View {
     private func badge(_ d: SidebarDestination) -> (count: Int, color: Color)? {
         switch d {
         case .updates:
-            return (vm.outOfDateMods.count + vm.nexusUpdates.count, .blue)
+            return (UpdateCount.pending(outOfDate: vm.outOfDateMods,
+                                        nexusCount: vm.nexusUpdates.count) {
+                vm.resolveModFolder(forLoggedName: $0)?.version
+            }, .blue)
         case .systemAlerts:
             return (vm.systemAlertCount, .orange)
         case .quarantine:

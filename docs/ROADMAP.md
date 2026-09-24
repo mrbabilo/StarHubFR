@@ -86,18 +86,6 @@ Les X1–X112 vivent à l'archive, indexés au §11 (X112, le dernier, y est par
 le 2026-09-24). **Ouverts** — relevés par l'audit UX du 2026-09-24
 (`docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, local) :
 
-- [ ] **X113** — **Le badge « Mises à jour » compte une mise à jour déjà
-      faite.** La barre latérale (`SidebarComponents:20`) et l'accueil
-      (`HomeView:71`) additionnent `outOfDateMods` — le relevé SMAPI du
-      **dernier lancement du jeu** — et `nexusUpdates`, sans confronter le
-      relevé au disque. Mesuré : journal du 17/09, « Wildroot Chronicles 1.3.5
-      (you have 1.3.4) », alors que `Mods/Cropgenics` porte la 1.4.1 — le
-      badge dit 4 pour 3. Correctif : un type pur `UpdateCount` (Core) appelé
-      aux deux endroits. ⚠️ Une ligne « You can update » n'a **pas**
-      d'UniqueID (nom, version, URL Nexus) : apparier par
-      `resolveModFolder(forLoggedName:)` ou par l'id Nexus de l'URL, et
-      **mesurer la règle sur le parc d'abord** (111 mods sans identifiant,
-      58 id Nexus partagés). · **S**
 - [ ] **X114** — *(hypothèse, à mesurer)* **Le badge « Quarantaine » compte
       le dernier rapport, pas le dossier.** `lastRepairReport.quarantined.count` ;
       un lancement qui ne quarantaine rien remet le rapport à `nil`

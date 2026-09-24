@@ -112,6 +112,7 @@ let package = Package(
                 "Models/I18nFileDecoder.swift",
                 "Models/I18nOutline.swift",
                 "Models/UpdateKeyDelta.swift",
+                "Models/UpdateCount.swift",
                 "Models/KeyRenameMatcher.swift",
                 "Models/ModUpdateKeyDeltaStore.swift",
                 "Models/RenameReport.swift",
@@ -796,6 +797,11 @@ let package = Package(
             name: "SmapiHealthFoldTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiHealthFoldTests"
+        ),
+        .testTarget(
+            name: "UpdateCountTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/UpdateCountTests"
         ),
         .testTarget(
             name: "LogBudgetTests",
