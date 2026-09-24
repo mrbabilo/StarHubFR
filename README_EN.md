@@ -113,24 +113,42 @@ Release files will be saved in the `bundles/` folder.
 This project is released under the [MIT License](LICENSE). Feel free to fork, modify, and build upon it.
 Original project: [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy** — which offers a **Thai** version.
 
-### Acknowledgements
+### Acknowledgements and Sources
 
-StarHubFR's **SMAPI diagnostics** owe a lot to the following work:
+StarHubFR builds on other people's work. The full map — APIs queried, files read, code reused, and the state of each — is kept in [`docs/SOURCES.md`](docs/SOURCES.md).
 
+**SMAPI diagnostics**
+
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** (MIT) — the exact log format (warning-group sections, levels, headers), the manifest schema and JSON leniency were verified directly against the sources, notably `LogManager.cs`. The built-in SMAPI installer downloads the latest release published there.
 *   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) by **ZeroXPatch** — the idea of a player-facing SMAPI log doctor (skipped mods with their reason, missing dependencies, risk categories, suggested fixes) was the starting point for our parser.
 *   [**smapi.io/log**](https://smapi.io/log/) — SMAPI's official log parser, our reference for what's worth extracting from a log.
-*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** — the exact log format (warning-group sections, levels, headers) was verified directly against the sources, notably `LogManager.cs`.
+*   [**SmapiCompatibilityList**](https://github.com/Pathoschild/SmapiCompatibilityList) by **Pathoschild** — the mod compatibility list (broken, abandoned, the version that broke them), our offline fallback when smapi.io is silent.
+*   [**SMAPI's blacklist**](https://smapi.io/SMAPI.blacklist.json) — the booby-trapped mods SMAPI refuses to load; the app flags them before the game even starts.
 
-StarHubFR's **mod discovery and update checks** rest on two public services:
+**Discovery, updates and downloads**
 
-*   [**Nexus Mods**](https://www.nexusmods.com/stardewvalley) — the *Discover* tab and mod search query its v2 GraphQL API. It is **not publicly documented**: its shape was mapped by schema introspection, and the app's client is written to survive an unannounced change — tolerant parsing, clean failure, never an outage dressed up as "no results". Thanks to Nexus for leaving it open.
+*   [**Nexus Mods**](https://www.nexusmods.com/stardewvalley) — the *Discover* tab, mod search and the French Translations page query its v2 GraphQL API; mod pages, files and downloads go through the v1 API. v2 is **not publicly documented**: its shape was mapped by schema introspection, and the app's client is written to survive an unannounced change — tolerant parsing, clean failure, never an outage dressed up as "no results". Thanks to Nexus for leaving it open.
 *   [**smapi.io**](https://smapi.io/) — SMAPI's update API, which answers for Nexus, CurseForge, ModDrop and GitHub from the manifest alone, **with no key and no account**. It is what lets StarHubFR check your mods without asking you for anything.
+*   [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) and [**node-nexus-api**](https://github.com/Nexus-Mods/node-nexus-api) — documentation of the `nxm://` protocol and of the v1 API's response shapes.
 
-StarHubFR's **assisted translation** (game-term glossary, AI pre-translation) owes a lot to the following work:
+**Assisted translation**
 
-*   [**lzxd**](https://github.com/Lonami/lzxd) by **Lonami** (MIT / Apache-2.0) — our LZX decoder, which reads the game's official localization files straight from your install, is a Swift transliteration of this implementation.
-*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) by **Nana1873** (GPL-3.0) — a Windows mod-translation app whose workflow served as the design reference for ours. No code is taken from it: the licenses rule that out.
+*   [**lzxd**](https://codeberg.org/Lonami/lzxd) by **Lonami** (MIT / Apache-2.0) — our LZX decoder, which reads the game's official localization files straight from your install, is a Swift transliteration of this implementation (the project moved from GitHub to Codeberg).
+*   [**libmspack**](https://github.com/kyz/libmspack) by **Stuart Caie** (LGPL-2.1) — reference for reading the LZX format; no code is taken from it.
 *   [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) by **Pathoschild** (MIT) — used as the oracle that validates our game-file reader, byte for byte.
+*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) by **Nana1873** (GPL-3.0) — a Windows mod-translation app whose workflow served as the design reference for ours, down to the marker-protection rules (three compound forms) and the write guarantees. No code is taken from it: the licenses rule that out.
 *   [**Ollama**](https://ollama.com) (MIT) — the local AI server the app detects, points you to, and sends to — the only recipient of anything it sends. StarHubFR neither installs nor bundles it: it runs on your machine, under your control.
 *   [**LM Studio**](https://lmstudio.ai) — detected alongside Ollama when it exposes its OpenAI-compatible API (free, proprietary).
 *   [**Qwen2.5**](https://ollama.com/library/qwen2.5) by the **Qwen team** (Apache-2.0) — the family the app suggests by default: multilingual, regular sizes, and above all **no reasoning** — a model that deliberates before answering burns its token budget and returns a truncated translation. The choice stays yours: the Model field takes anything your server serves.
+*   [**DeepL**](https://www.deepl.com/pro-api) — an optional fallback, with your own key and only after your explicit consent.
+
+**Configuration and saves**
+
+*   [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher) by **Pathoschild** — its `ConfigSchema` describes a pack's config options, and its i18n files provide the labels the editor shows.
+*   **Newtonsoft.Json** (MIT), as shipped with the game — run as an oracle to measure what SMAPI really accepts in a `config.json` or a translation file.
+*   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) by **colecrouter** — reference for reading and editing saves.
+
+**Inspirations**
+
+*   [**Stardrop**](https://github.com/Floogen/Stardrop) by **Floogen** — a cross-platform mod manager, studied in depth: live update checks, notes, per-profile configs, bulk actions limited to the visible mods.
+*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) by **Wooa** and [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) by **Sky** — two in-game mods overlapping our keybind and save reports; studying them shaped the conflict signal at key capture and the guided save cleanup.
