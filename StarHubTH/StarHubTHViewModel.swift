@@ -7700,6 +7700,9 @@ final class StarHubTHViewModel {
             // trancher sur le nom du fichier serait une règle de plus à tenir
             // en accord avec celle du scanner (X66).
             rescanKeybindsAfterConfigWrite()
+            // Un fichier remis lève peut-être une protection de l'Entretien,
+            // que le segment « Fichiers récupérables » lit aussi (I-T8).
+            if maintenanceStore.report != nil { buildMaintenanceReport() }
             return true
         } catch {
             showModal(message: installErrorMessage(error))
@@ -9835,22 +9838,6 @@ final class StarHubTHViewModel {
         return removed
     }
 
-    /// Le mod vit encore, mais la mise à jour a emporté le fichier : on le
-    /// remet en place. `recoverFile` passe par `RecoveredFileWriter.withWriteAccess`,
-    /// qui ouvre les droits du dossier cible — les mods sont souvent en 0555.
-    ///
-    /// **Le cas réel du parc n'est pas récupérable dans le mod.** La seule
-    /// sauvegarde protégée du parc est celle d'un mod **désinstallé** : il n'y a
-    /// pas de dossier où écrire, et en créer un reviendrait à réinstaller le
-    /// mod. D'où l'action jumelle, `revealProtectedBackup`.
-    ///
-    /// `@discardableResult` : l'échec est déjà porté à l'écran par le modal
-    /// que `recoverFile` lève en interne, l'appelant n'a rien à en faire.
-    @discardableResult
-    func recoverProtectedFile(_ file: RecoverableFile) -> Bool {
-        recoverFile(file)
-    }
-
     /// Le mod n'est plus installé : il n'y a **pas** de dossier où écrire, et en
     /// fabriquer un reviendrait à le réinstaller. On montre le fichier dans le
     /// Finder — l'utilisateur en fait ce qu'il veut, et la sauvegarde reste
@@ -9881,39 +9868,44 @@ final class StarHubTHViewModel {
         return true
     }
 
-    /// La sauvegarde d'origine d'une session de l'inventaire — le `Report`
+    /// Les sauvegardes d'origine par session de l'inventaire — le `Report`
     /// n'en porte que l'essentiel, la récupération a besoin du reste.
-    private func maintenanceBackup(forSession session: String) -> ModInstallBackup? {
+    private func maintenanceBackupsBySession() -> [String: ModInstallBackup] {
         let manager = ModInstallBackupManager.shared
-        return manager.loadBackups().first {
-            manager.backupDirectory(of: $0).lastPathComponent == session
-        }
+        return Dictionary(manager.loadBackups().map {
+            (manager.backupDirectory(of: $0).lastPathComponent, $0)
+        }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// Le fichier à remettre en place pour une protection dont le mod vit
-    /// encore. `nil` si la sauvegarde ou le dossier du mod a disparu depuis
-    /// l'inventaire — l'écran ne propose alors que le Finder.
-    func maintenanceRecoverableFile(session: String, relativePath: String)
-    -> RecoverableFile? {
-        guard let backup = maintenanceBackup(forSession: session) else { return nil }
+    /// Les seules copies à remettre en place, par `SoleCopyFile.id` — celles
+    /// dont le mod vit encore. Sauvegardes lues **une** fois pour la liste.
+    /// Absente du résultat quand la sauvegarde ou le dossier du mod a disparu
+    /// depuis l'inventaire : l'écran ne propose alors que le Finder.
+    func maintenanceRecoverableFiles(_ files: [MaintenanceInventory.SoleCopyFile])
+    -> [String: RecoverableFile] {
+        let bySession = maintenanceBackupsBySession()
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
-        guard let installedRoot = ModRootResolver.physicalRoot(of: backup.originalFolderName,
-                                                               modsRoot: modsRoot)
-        else { return nil }
-        return RecoverableFile(
-            folderName: backup.originalFolderName,
-            modName: backup.modMetadata.name,
-            relativePath: relativePath,
-            backupPath: (backup.backupPath as NSString).appendingPathComponent(relativePath),
-            installedPath: (installedRoot as NSString).appendingPathComponent(relativePath),
-            installedRoot: installedRoot,
-            reason: .absentFromInstall)
+        var found: [String: RecoverableFile] = [:]
+        for file in files where !file.isGone {
+            guard let backup = bySession[file.session],
+                  let installedRoot = ModRootResolver.physicalRoot(
+                      of: backup.originalFolderName, modsRoot: modsRoot) else { continue }
+            found[file.id] = RecoverableFile(
+                folderName: backup.originalFolderName,
+                modName: backup.modMetadata.name,
+                relativePath: file.relativePath,
+                backupPath: (backup.backupPath as NSString).appendingPathComponent(file.relativePath),
+                installedPath: (installedRoot as NSString).appendingPathComponent(file.relativePath),
+                installedRoot: installedRoot,
+                reason: .absentFromInstall)
+        }
+        return found
     }
 
     /// Le chemin du fichier dans la sauvegarde, pour le montrer dans le Finder
     /// quand le mod n'est plus là pour le recevoir.
     func maintenanceProtectedFilePath(session: String, relativePath: String) -> String? {
-        guard let backup = maintenanceBackup(forSession: session) else { return nil }
+        guard let backup = maintenanceBackupsBySession()[session] else { return nil }
         return (backup.backupPath as NSString).appendingPathComponent(relativePath)
     }
 }

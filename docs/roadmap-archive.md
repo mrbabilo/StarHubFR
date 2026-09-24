@@ -4629,13 +4629,12 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       (`BackupsView`, segment dans `NavigationStore.backupsSegment`, survit au
       changement d'onglet). Placée après la quarantaine : ⌘8/⌘9 inchangés.
       Clé `mod_config_backups_tab_title` retirée, trois clés de segment
-      ajoutées. **Écart assumé avec l'audit** : l'Entretien garde son
-      « Remettre le fichier » — le rapport disait « même source », faux :
-      `RecoverableFileScanner` ne lit que la dernière sauvegarde des mods
-      installés et trois chemins fixes (`config.json`, `i18n/fr.json`,
-      `i18n/fr-FR.json`) ; la section protégée lit toutes les sessions
-      `soleCopy`, les mods désinstallés et les traductions de l'hôte. Un
-      renvoi aurait retiré des lignes en silence ; à trancher par l'auteur.
+      ajoutées. L'audit disait l'Entretien et la feuille « même source » :
+      faux — `RecoverableFileScanner` ne lit que la dernière sauvegarde des
+      mods installés et trois chemins fixes. **Élargi le même jour** (choix
+      de l'auteur) : le segment lit aussi les seules copies du rapport
+      d'Entretien (`MaintenanceInventory.soleCopyFiles`, toutes sessions,
+      mods désinstallés en Finder), et l'Entretien y renvoie.
 
 
 #### Axe F — Dette technique (suite)

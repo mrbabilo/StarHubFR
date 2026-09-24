@@ -8,10 +8,9 @@ import SwiftUI
 /// sauf la feuille devenue segment. Le segment choisi vit dans
 /// `NavigationStore` pour survivre au changement d'onglet.
 ///
-/// La section « sauvegardes protégées » de l'Entretien garde son propre
-/// « Remettre le fichier » : elle lit toutes les sessions et les mods
-/// désinstallés, le segment Fichiers seulement la dernière sauvegarde des
-/// mods installés — les deux listes ne se recouvrent pas.
+/// Le segment Fichiers lit aussi les seules copies du rapport d'Entretien
+/// (toutes les sessions, mods désinstallés compris) ; l'Entretien y renvoie
+/// au lieu de dupliquer « Remettre le fichier ».
 struct BackupsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore

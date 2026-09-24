@@ -372,11 +372,11 @@ struct MaintenanceView: View {
                         }
                         .controlSize(.small)
                     } else {
-                        Button(localization.L(L10n.Maintenance.actionRecover)) {
-                            if let recoverable = vm.maintenanceRecoverableFile(
-                                session: row.session, relativePath: file.relativePath) {
-                                vm.recoverProtectedFile(recoverable)
-                            }
+                        // I-T8 — la remise vit dans « Sauvegardes des mods »,
+                        // segment Fichiers récupérables : aperçu compris.
+                        Button(localization.L(L10n.Maintenance.actionOpenRecovery)) {
+                            vm.navigationStore.backupsSegment = .files
+                            vm.requestTab(.backups)
                         }
                         .controlSize(.small)
                     }

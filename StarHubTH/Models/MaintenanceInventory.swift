@@ -268,4 +268,42 @@ public enum MaintenanceInventory {
                                       protections: protections).freedBytes
         }
     }
+
+    /// Un fichier dont une sauvegarde est la seule copie, tel que le segment
+    /// « Fichiers récupérables » le liste (I-T8).
+    public struct SoleCopyFile: Equatable, Sendable, Identifiable {
+        public let session: String
+        public let modFolder: String
+        public let timestamp: Date
+        public let relativePath: String
+        /// Le mod n'est plus installé : rien où remettre le fichier.
+        public let isGone: Bool
+        /// Même forme que `RecoverableFile.id` — c'est la clé du dédoublonnage.
+        public var id: String { "\(modFolder)/\(relativePath)" }
+    }
+
+    /// Les seules copies du rapport, **une par fichier** : quand plusieurs
+    /// sessions protègent le même chemin d'un mod, la plus récente l'emporte —
+    /// c'est elle qu'on remettrait. `listed` porte les identifiants déjà
+    /// montrés par le scanner de récupération (dernière sauvegarde, chemins
+    /// fixes) : un fichier n'apparaît jamais deux fois à l'écran.
+    public static func soleCopyFiles(in report: Report,
+                                     excluding listed: Set<String>) -> [SoleCopyFile] {
+        var latest: [String: SoleCopyFile] = [:]
+        for entry in report.backups {
+            guard case .soleCopy(let files)? = report.protections[entry.id] else { continue }
+            for file in files {
+                let candidate = SoleCopyFile(session: entry.id, modFolder: entry.modFolder,
+                                             timestamp: entry.timestamp,
+                                             relativePath: file.relativePath,
+                                             isGone: report.missingMods.contains(entry.id))
+                guard !listed.contains(candidate.id) else { continue }
+                if let known = latest[candidate.id], known.timestamp >= candidate.timestamp { continue }
+                latest[candidate.id] = candidate
+            }
+        }
+        return latest.values.sorted {
+            $0.id.localizedStandardCompare($1.id) == .orderedAscending
+        }
+    }
 }

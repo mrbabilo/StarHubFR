@@ -28,7 +28,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Une seule page « Sauvegardes des mods »** remplace les deux entrées de la barre latérale : segments Installations, Configuration et Fichiers récupérables (auparavant une feuille). Le segment choisi est gardé d'un onglet à l'autre.
+- **Une seule page « Sauvegardes des mods »** remplace les deux entrées de la barre latérale : segments Installations, Configuration et Fichiers récupérables (auparavant une feuille). Le segment choisi est gardé d'un onglet à l'autre. Les fichiers récupérables incluent désormais toutes les seules copies, mods désinstallés compris, et l'Entretien y renvoie.
 - **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.
 
 ### Fixed

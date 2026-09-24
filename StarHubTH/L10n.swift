@@ -1769,7 +1769,7 @@ enum L10n {
         static let cleanMessage    = "maintenance_confirm_clean_message"
         static let protectedRemoveTitle   = "maintenance_confirm_protected_title"
         static let protectedRemoveMessage = "maintenance_confirm_protected_message"
-        static let actionRecover   = "maintenance_action_recover"
+        static let actionOpenRecovery = "maintenance_action_open_recovery"
         static let actionReveal    = "maintenance_action_reveal"
         static let actionRemoveAnyway = "maintenance_action_remove_anyway"
         // X103-B — la corbeille des mods supprimés.
