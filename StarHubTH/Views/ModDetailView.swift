@@ -1287,16 +1287,16 @@ struct ModDetailView: View {
                 if let anomaly = vm.anomaly(for: live) {
                     ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization, currentFolder: live.folderName) { selectedTab = .dependencies }
                 }
+                // I-T16 — par gravité : bloquant, gênant, puis traduction.
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
+                errorHistorySection
+                declaredConflictsSection
+                keybindConflictsSection
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
-                // Le hub de traduction (chercher, poser, mettre à jour,
-                // retirer) : premier niveau seulement, là où il a sens.
+                // Le hub de traduction : premier niveau seulement, là où il a sens.
                 if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
                 translationSection
                 if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
-                errorHistorySection
-                keybindConflictsSection
-                declaredConflictsSection
             }
         case .description:
             // Description tab: pack contents (for a pack) + the settings

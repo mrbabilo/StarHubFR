@@ -4671,6 +4671,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       Chaque dossier d'un doublon y porte « Afficher dans le Finder » et
       « Voir la fiche » (sauf la fiche ouverte).
 
+- [x] **I-T16** ✅ *(livré le 2026-09-25)* — **Ordonner par gravité.**
+      Onglet État : anomalie, compatibilité, erreurs, incompatibilités
+      déclarées, conflits de raccourcis, page Nexus, puis traduction et
+      suppléments. Page Mises à jour : la liste smapi.io/Nexus (qui porte les
+      gestes) avant le relevé SMAPI. **Non fait** : la *fusion* des deux
+      listes que la ROADMAP envisageait après X113 — le relevé SMAPI n'a ni
+      id Nexus fiable ni geste de mise à jour ; ordre seulement.
+
 
 #### Axe F — Dette technique (suite)
 

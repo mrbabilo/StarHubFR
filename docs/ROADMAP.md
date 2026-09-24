@@ -957,10 +957,6 @@ décide de l'ordre) :
       mod », Favori / À écarter en icônes à bascule (cible 18×18, libellé
       d'accessibilité), Signaler et Finder dans un menu « … », « Mettre à
       jour » en action principale seulement quand I-T13 la justifie. · **S**
-- [ ] **I-T16** — **Ordonner par gravité.** Onglet État : erreurs et
-      incompatibilités avant conflits de raccourcis, puis traduction et
-      suppléments. Page Mises à jour : la liste smapi.io/Nexus (qui porte les
-      gestes) avant le relevé SMAPI, fusionné une fois X113 livré. · **S**
 
 Écartées par l'audit, avec leur raison au rapport : centre de santé unique,
 traduction unifiée, Mises à jour dans Découvrir (§6 d'`AGENTS.md`), vues de

@@ -15,118 +15,6 @@ struct UpdatesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
-                // Out of date mods (Software Update style)
-                if !pendingSmapi.isEmpty {
-                    // Ces cartes n'avaient aucun en-tête, quand celles de Nexus
-                    // en ont un : rien ne disait d'où venait l'information, ni
-                    // pourquoi ces mods-là étaient là et pas d'autres.
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .foregroundColor(.orange)
-                                .font(.system(size: 16))
-                            Text(localization.L(L10n.Updates.smapiSection))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
-                        Text(localization.L(L10n.Updates.smapiNote))
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    ForEach(pendingSmapi) { mod in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .top, spacing: 16) {
-                                // App Icon Fake
-                                InitialsAvatar(
-                                    text: mod.name,
-                                    initialsCount: 2,
-                                    size: 56,
-                                    fillColor: Color.blue.opacity(0.1),
-                                    textColor: .blue.opacity(0.8),
-                                    fontSize: 20
-                                )
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(mod.name)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.primary)
-                                    // `ModUpdateInfo.version` est la version
-                                    // **disponible** — celle que SMAPI annonce
-                                    // dans « You can update N mods ». Nue sous
-                                    // le nom du mod, elle se lisait comme la
-                                    // version installée, c'est-à-dire l'inverse.
-                                    Text(String(format: localization.L(L10n.Updates.availableVersion),
-                                                mod.version))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                    
-                                    // Pas « disponible sur Nexus Mods » :
-                                    // ces lignes viennent du journal SMAPI, et
-                                    // leur lien pointe vers smapi.io. Le mod
-                                    // peut n'avoir aucune page Nexus. Le
-                                    // pourquoi est dit une fois, plus bas.
-                                    Text(localization.L(L10n.Updates.updateAvailable))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.orange)
-                                        .padding(.top, 2)
-                                }
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 8) {
-                                    Button(action: {
-                                        if let url = URL(string: mod.url) { NSWorkspace.shared.open(url) }
-                                    }) {
-                                        // Il ouvre `smapi.io/mods#…`, où rien
-                                        // ne se télécharge : promettre un
-                                        // téléchargement était un faux départ.
-                                        Text(localization.L(L10n.Updates.openSmapiPage))
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.primary)
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 6)
-                                            .background(Color.primary.opacity(0.1))
-                                            .cornerRadius(6)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .pointingHandCursor()
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 16) {
-                                // Le texte d'avant — « apporte de nouvelles
-                                // fonctionnalités et des corrections de bugs »
-                                // — était inventé : l'app ne sait rien du
-                                // contenu de la mise à jour. La phrase le dit
-                                // maintenant, au lieu de le supposer.
-                                Text(localization.L(L10n.Updates.smapiDescription))
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                HStack(spacing: 4) {
-                                    Text(localization.L(L10n.Updates.visitWebsite))
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.secondary)
-                                    // Vrai lien cliquable plutôt qu'un Markdown
-                                    // `[url](url)` interpolé que Text rendait en brut.
-                                    if let url = URL(string: mod.url) {
-                                        Link(url.absoluteString, destination: url)
-                                            .font(.system(size: 13))
-                                    }
-                                }
-                                .tint(.blue)
-                            }
-                            .padding(.top, 8)
-                        }
-                        .padding(20)
-                        .background(Color.primary.opacity(0.04))
-                        .cornerRadius(12)
-                    }
-                }
-                
                 // ── Nexus Mods updates ─────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -591,6 +479,118 @@ struct UpdatesView: View {
                 .padding(20)
                 .background(Color.primary.opacity(0.03))
                 .cornerRadius(12)
+
+                // I-T16 — après la liste qui porte les gestes : ce relevé constate.
+                if !pendingSmapi.isEmpty {
+                    // Ces cartes n'avaient aucun en-tête, quand celles de Nexus
+                    // en ont un : rien ne disait d'où venait l'information, ni
+                    // pourquoi ces mods-là étaient là et pas d'autres.
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 16))
+                            Text(localization.L(L10n.Updates.smapiSection))
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
+                        Text(localization.L(L10n.Updates.smapiNote))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    ForEach(pendingSmapi) { mod in
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 16) {
+                                // App Icon Fake
+                                InitialsAvatar(
+                                    text: mod.name,
+                                    initialsCount: 2,
+                                    size: 56,
+                                    fillColor: Color.blue.opacity(0.1),
+                                    textColor: .blue.opacity(0.8),
+                                    fontSize: 20
+                                )
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(mod.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    // `ModUpdateInfo.version` est la version
+                                    // **disponible** — celle que SMAPI annonce
+                                    // dans « You can update N mods ». Nue sous
+                                    // le nom du mod, elle se lisait comme la
+                                    // version installée, c'est-à-dire l'inverse.
+                                    Text(String(format: localization.L(L10n.Updates.availableVersion),
+                                                mod.version))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                    
+                                    // Pas « disponible sur Nexus Mods » :
+                                    // ces lignes viennent du journal SMAPI, et
+                                    // leur lien pointe vers smapi.io. Le mod
+                                    // peut n'avoir aucune page Nexus. Le
+                                    // pourquoi est dit une fois, plus bas.
+                                    Text(localization.L(L10n.Updates.updateAvailable))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.orange)
+                                        .padding(.top, 2)
+                                }
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        if let url = URL(string: mod.url) { NSWorkspace.shared.open(url) }
+                                    }) {
+                                        // Il ouvre `smapi.io/mods#…`, où rien
+                                        // ne se télécharge : promettre un
+                                        // téléchargement était un faux départ.
+                                        Text(localization.L(L10n.Updates.openSmapiPage))
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 6)
+                                            .background(Color.primary.opacity(0.1))
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .pointingHandCursor()
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 16) {
+                                // Le texte d'avant — « apporte de nouvelles
+                                // fonctionnalités et des corrections de bugs »
+                                // — était inventé : l'app ne sait rien du
+                                // contenu de la mise à jour. La phrase le dit
+                                // maintenant, au lieu de le supposer.
+                                Text(localization.L(L10n.Updates.smapiDescription))
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                HStack(spacing: 4) {
+                                    Text(localization.L(L10n.Updates.visitWebsite))
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                    // Vrai lien cliquable plutôt qu'un Markdown
+                                    // `[url](url)` interpolé que Text rendait en brut.
+                                    if let url = URL(string: mod.url) {
+                                        Link(url.absoluteString, destination: url)
+                                            .font(.system(size: 13))
+                                    }
+                                }
+                                .tint(.blue)
+                            }
+                            .padding(.top, 8)
+                        }
+                        .padding(20)
+                        .background(Color.primary.opacity(0.04))
+                        .cornerRadius(12)
+                    }
+                }
 
             }
             .padding(30)
