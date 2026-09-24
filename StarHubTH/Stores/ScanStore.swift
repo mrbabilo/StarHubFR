@@ -26,6 +26,9 @@ final class ScanStore {
     /// Le parc installé, prêt à afficher (ordre alphabétique de liste posé
     /// par le scanner). Écrit par `setMods` — pose + notification.
     private(set) var mods: [ModItem] = []
+    /// X109 — le scan qui a posé `mods` a-t-il pu lire `Mods/` ? Faux, une
+    /// liste vide ne dit rien du disque : rien ne doit l'adopter.
+    private(set) var modsFolderWasReadable = true
 
     /// Le progrès du scan en vol — la boucle par mod publie
     /// « Analyse de <mod>… (X/N) » ; `nil` hors scan. Inerte.
@@ -57,8 +60,9 @@ final class ScanStore {
 
     /// Pose le parc et **prévient**, sans garde d'égalité — fidèle au
     /// `didSet` d'origine, qui se déclenchait sur toute affectation.
-    func setMods(_ newMods: [ModItem]) {
+    func setMods(_ newMods: [ModItem], modsFolderWasReadable: Bool = true) {
         mods = newMods
+        self.modsFolderWasReadable = modsFolderWasReadable
         onModsChanged?(mods)
     }
 

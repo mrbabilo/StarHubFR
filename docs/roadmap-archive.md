@@ -3637,6 +3637,26 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X109** ✅ *(livré le 2026-09-24)* — **« Tout activer / Tout désactiver » pouvait vider le profil actif quand `Mods/` était devenu illisible.**
+      `toggleAllMods` adopte l'état du disque (`syncActiveProfileIds`) après son
+      rescan, sans condition. Or `scanMods` publie sa liste même quand il n'a
+      pas pu lire `Mods/` : une liste vide. L'adoption écrivait alors
+      `enabledModIds = []` et effaçait `modMetadata` du profil actif. Seul le
+      journal R2 la bloquait. Même famille que X70 et X71 : une donnée vide qui
+      voulait dire « rien lu » prise pour « rien activé ». Le registre était
+      protégé (X71), l'adoption du profil non.
+      ▸ **Pourquoi c'est réel ici** : le parc vit sur un disque externe
+      (`/Volumes/BABILOGAMES`). Disque éjecté ou endormi app ouverte, liste
+      encore affichée, clic sur « Tout désactiver » : tous les déplacements
+      échouent, le rescan lit vide, le profil perd sa liste — et la fenêtre
+      d'échec s'affiche après. Scénario tracé dans le code, pas joué : il
+      aurait effacé le profil actif.
+      ▸ **Livré** : `ScanStore` retient si le scan qui a posé `mods` a pu lire
+      `Mods/` (faux aussi quand le dossier de jeu n'est pas renseigné) ; la
+      décision d'adopter sort en Core, `ProfileRecovery.adoptDiskState`, qui
+      refuse une lecture illisible après le journal R2. Cinq tests, le refus
+      prouvé par sabotage.
+
 - [x] **X108** ✅ *(livré le 2026-09-24)* — **Une mise en veille « jusqu'à la prochaine version de Stardew » se réveillait à la première lecture du journal SMAPI.**
       Le menu propose ce mode même quand la version du jeu est inconnue (aucun
       journal lu : installation neuve, journal illisible). Le snooze gardait

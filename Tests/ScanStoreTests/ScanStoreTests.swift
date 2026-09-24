@@ -26,6 +26,15 @@ import Foundation
 
     /// Une pose identique reste une demande de recalcul — le `didSet`
     /// d'origine se déclenchait sur toute affectation, pas sur changement.
+    @Test func laLisibiliteDuDossierSuitLeParcPose() {
+        let s = ScanStore()
+        #expect(s.modsFolderWasReadable)
+        s.setMods([], modsFolderWasReadable: false)
+        #expect(!s.modsFolderWasReadable)
+        s.setMods([makeMod("Automate")])
+        #expect(s.modsFolderWasReadable)
+    }
+
     @Test func poserLeMemeParcPrevientAussi() {
         var notified = 0
         let s = ScanStore()

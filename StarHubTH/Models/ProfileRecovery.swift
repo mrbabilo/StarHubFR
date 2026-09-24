@@ -60,4 +60,28 @@ enum ProfileRecovery {
         return .settle(profileName: journal.profileName,
                        adoptingToggles: active == journal.profileId)
     }
+
+    enum Adoption: Equatable, Sendable {
+        case nothing
+        case adopt(profileId: UUID)
+        /// Une application est morte en route : l'adopter écrirait l'accident
+        /// dans le profil.
+        case blockedByJournal(profileName: String)
+        /// X109 — le dernier scan n'a pas pu lire `Mods/` (disque externe
+        /// éjecté) : sa liste vide veut dire « rien lu », pas « rien
+        /// d'activé ». L'adopter vidait le profil actif.
+        case blockedUnreadable
+    }
+
+    /// Faut-il recopier les mods activés du disque dans le profil actif ?
+    static func adoptDiskState(active: UUID?, profiles: [ModProfile],
+                               journal: ProfileApplyJournal?,
+                               modsFolderWasReadable: Bool) -> Adoption {
+        guard let active, profiles.contains(where: { $0.id == active }) else { return .nothing }
+        if let journal, journal.profileId == active {
+            return .blockedByJournal(profileName: journal.profileName)
+        }
+        guard modsFolderWasReadable else { return .blockedUnreadable }
+        return .adopt(profileId: active)
+    }
 }

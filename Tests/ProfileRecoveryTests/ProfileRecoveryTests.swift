@@ -93,4 +93,42 @@ struct ProfileRecoveryTests {
     @Test func thereIsNothingToKeepWithoutAJournal() {
         #expect(ProfileRecovery.keepDiskState(journal: nil, active: alpha) == .nothing)
     }
+
+    // MARK: - X109 — adopter l'état du disque
+
+    /// Le cas du parc réel : `Mods/` vit sur un disque externe. Éjecté, le
+    /// rescan lit une liste vide, et « Tout désactiver » l'adoptait — le
+    /// profil actif perdait tous ses mods. Une liste vide lue sur un dossier
+    /// illisible veut dire « rien lu », pas « rien d'activé ».
+    @Test func anUnreadableModsFolderIsNeverAdopted() {
+        #expect(ProfileRecovery.adoptDiskState(active: alpha, profiles: profiles(),
+                                               journal: nil,
+                                               modsFolderWasReadable: false)
+                == .blockedUnreadable)
+    }
+
+    @Test func aReadableFolderIsAdoptedIntoTheActiveProfile() {
+        #expect(ProfileRecovery.adoptDiskState(active: alpha, profiles: profiles(),
+                                               journal: nil,
+                                               modsFolderWasReadable: true)
+                == .adopt(profileId: alpha))
+    }
+
+    @Test func theJournalStillBlocksAdoptionFirst() {
+        let journal = ProfileApplyJournal(profileId: alpha, profileName: "Alpha",
+                                          startedAt: Date(), moves: [])
+        #expect(ProfileRecovery.adoptDiskState(active: alpha, profiles: profiles(),
+                                               journal: journal,
+                                               modsFolderWasReadable: true)
+                == .blockedByJournal(profileName: "Alpha"))
+    }
+
+    @Test func noActiveProfileOrAGoneOneAdoptsNothing() {
+        #expect(ProfileRecovery.adoptDiskState(active: nil, profiles: profiles(),
+                                               journal: nil, modsFolderWasReadable: true)
+                == .nothing)
+        #expect(ProfileRecovery.adoptDiskState(active: beta, profiles: profiles(),
+                                               journal: nil, modsFolderWasReadable: true)
+                == .nothing)
+    }
 }

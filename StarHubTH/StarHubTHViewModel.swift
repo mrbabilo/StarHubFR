@@ -2425,7 +2425,7 @@ final class StarHubTHViewModel {
             // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
             // dispatcher sur main, comme l'affectation principale plus bas.
             DispatchQueue.main.async { [weak self] in
-                self?.scanStore.setMods([])
+                self?.scanStore.setMods([], modsFolderWasReadable: false)
                 // Reset selection so the detail pane doesn't reference a mod
                 // that just disappeared from the list.
                 self?.selectedMod = nil
@@ -2536,6 +2536,7 @@ final class StarHubTHViewModel {
             )
         }
 
+        let modsFolderWasReadable = scanned.modsFolderWasReadable
         DispatchQueue.main.async {
             // Scan finished — advance the coarse progress to the scan-end
             // weight BEFORE clearing the per-mod scanProgress, so the overlay
@@ -2571,7 +2572,7 @@ final class StarHubTHViewModel {
             // tri d'origine plaçait les packs en tête (retour du 2026-08-26).
             // C'est aussi l'ordre que le tri « Nom » de la liste suppose
             // déjà établi (voir le cas `.name` de ModListView).
-            self.scanStore.setMods(scannedMods.alphabeticalListOrder)
+            self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
             self.rebuildDependencyIndexes()
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
@@ -9502,15 +9503,14 @@ final class StarHubTHViewModel {
 
     /// Call this after any toggleMod so the profile stays up to date.
     func syncActiveProfileIds() {
-        guard let id = activeProfileId,
-              modProfiles.contains(where: { $0.id == id }) else { return }
-
-        // R2 : adopter l'état du disque tant qu'une application est morte en
-        // route, c'est écrire l'accident dans le profil — le mod resté actif
-        // faute d'avoir pu bouger deviendrait un mod que le profil *demande*.
-        if let journal = unresolvedApplyJournal, journal.profileId == id {
-            log(String(format: self.localization.L(L10n.VM.profileAdoptionBlockedJournal), journal.profileName),
-                level: .warning)
+        let decision = ProfileRecovery.adoptDiskState(active: activeProfileId, profiles: modProfiles, // R2, X109
+            journal: unresolvedApplyJournal, modsFolderWasReadable: scanStore.modsFolderWasReadable)
+        guard case .adopt(let id) = decision else {
+            if case .blockedByJournal(let name) = decision {
+                log(String(format: localization.L(L10n.VM.profileAdoptionBlockedJournal), name), level: .warning)
+            } else if decision == .blockedUnreadable {
+                log("Dossier Mods/ illisible : le profil actif n'adopte pas une liste vide", level: .warning)
+            }
             return
         }
 
