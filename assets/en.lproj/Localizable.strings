@@ -2,6 +2,9 @@
 "app_update_later" = "Later";
 "app_update_see_release" = "View release";
 "app_update_title" = "Version %@ available";
+"backups_segment_config" = "Configuration";
+"backups_segment_files" = "Recoverable files";
+"backups_segment_install" = "Installs";
 "bisect_answer_no" = "No, problem gone";
 "bisect_answer_yes" = "Yes, problem present";
 "bisect_appears_only_with" = "This error only shows up when these mods are on: %@";
@@ -451,7 +454,6 @@
 "mod_config_backups_restoring" = "Restoring…";
 "mod_config_backups_select_files" = "Select the mods to restore";
 "mod_config_backups_size" = "Size";
-"mod_config_backups_tab_title" = "Configuration Backups";
 "mod_config_backups_title" = "Configuration Backups";
 "mod_install_analyzing" = "Analyzing archive…";
 "mod_install_archive_contains" = "The archive contains: %@";

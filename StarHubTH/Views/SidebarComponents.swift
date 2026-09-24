@@ -26,7 +26,7 @@ struct SidebarNavGroups: View {
         case .quarantine:
             return (vm.maintenanceStore.quarantineItemCount, .purple)
         case .home, .mods, .discover, .frenchTranslations, .profiles, .saves,
-             .installBackups, .configBackups, .maintenance, .logs, .settings,
+             .backups, .maintenance, .logs, .settings,
              .appChangelog:
             return nil
         }

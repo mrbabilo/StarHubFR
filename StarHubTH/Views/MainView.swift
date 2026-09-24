@@ -68,8 +68,7 @@ struct MainView: View {
         // fenêtre qui s'intitule « Accueil » sans qu'on le remarque.
         switch currentTab {
         case .mods:           return localization.L(L10n.Mods.mods)
-        case .installBackups: return localization.L(L10n.ModInstall.manageBackups)
-        case .configBackups:  return localization.L(L10n.ModConfigBackups.title)
+        case .backups:        return localization.L(L10n.ModInstall.manageBackups)
         case .maintenance:    return localization.L(L10n.Maintenance.title)
         case .profiles:       return localization.L(L10n.Profiles.title)
         case .updates:        return localization.L(L10n.Main.modUpdates)
@@ -144,12 +143,10 @@ struct MainView: View {
                         } else {
                             ModListView(vm: vm, localization: localization, currentTab: $currentTab)
                         }
-                    case .configBackups:
-                        ModConfigBackupsView(vm: vm, localization: localization)
+                    case .backups:
+                        BackupsView(vm: vm, localization: localization)
                     case .maintenance:
                         MaintenanceView(vm: vm, localization: localization)
-                    case .installBackups:
-                        ModInstallBackupsView(vm: vm, localization: localization)
                     case .saves:
                         if let save = vm.navigationStore.viewingSaveTimeline {
                             SaveTimelineView(vm: vm, localization: localization, save: save)

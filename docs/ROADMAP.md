@@ -928,13 +928,6 @@ travail, pas des engagements.
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
 conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 
-- [ ] **I-T8** — **Une destination « Sauvegardes »** réunissant sauvegardes
-      d'installation, de configuration et fichiers récupérables (sortis de la
-      feuille `RecoverableFilesView`) en trois segments ; l'Entretien garde le
-      nettoyage et **renvoie** au segment Fichiers au lieu de dupliquer
-      « Remettre le fichier » (même source, `maintenanceRecoverableFile`).
-      Aucun saut `pending…` ni badge ni raccourci ne vise ces écrans : risque
-      faible. État du segment dans `NavigationStore` (F1-T2). · **M**
 - [ ] **I-T9** — **Accueil allégé** : « Infos sur l'appli » et « Extensions
       principales » y doublent les Réglages (mêmes clés) ; les retirer de
       l'accueil, qui garde lancer le jeu, les étapes manquantes et les

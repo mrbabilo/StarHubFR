@@ -4623,6 +4623,20 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       son silence. Préalable à **I-T8** (sa destination « Sauvegardes »
       devra se prononcer). Aucun changement visible.
 
+- [x] **I-T8** ✅ *(livré le 2026-09-24)* — **Une destination « Sauvegardes
+      des mods »** remplace deux entrées de la barre latérale et une feuille :
+      segments Installations / Configuration / Fichiers récupérables
+      (`BackupsView`, segment dans `NavigationStore.backupsSegment`, survit au
+      changement d'onglet). Placée après la quarantaine : ⌘8/⌘9 inchangés.
+      Clé `mod_config_backups_tab_title` retirée, trois clés de segment
+      ajoutées. **Écart assumé avec l'audit** : l'Entretien garde son
+      « Remettre le fichier » — le rapport disait « même source », faux :
+      `RecoverableFileScanner` ne lit que la dernière sauvegarde des mods
+      installés et trois chemins fixes (`config.json`, `i18n/fr.json`,
+      `i18n/fr-FR.json`) ; la section protégée lit toutes les sessions
+      `soleCopy`, les mods désinstallés et les traductions de l'hôte. Un
+      renvoi aurait retiré des lignes en silence ; à trancher par l'auteur.
+
 
 #### Axe F — Dette technique (suite)
 

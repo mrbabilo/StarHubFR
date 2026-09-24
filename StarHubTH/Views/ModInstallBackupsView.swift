@@ -21,7 +21,6 @@ struct ModInstallBackupsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var backups: [ModInstallBackup] = []
-    @State private var showRecoverable = false
     @State private var confirmation: ModInstallBackupsConfirmation?
     /// Le compte rendu de la dernière restauration — ce qui a été écrit, où,
     /// et ce qu'il est advenu de la version remplacée. La vue ne fait que le
@@ -46,7 +45,9 @@ struct ModInstallBackupsView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(localization.L(L10n.ModInstall.manageBackups))
+                    // Le segment Installation de « Sauvegardes des mods »
+                    // (I-T8) : le titre de la page est déjà dans la fenêtre.
+                    Text(localization.L(L10n.Maintenance.installBackups))
                         .font(.system(size: 18, weight: .semibold))
                     // Clé dédiée : mettre en minuscules le titre « Gérer les
                     // sauvegardes » donnait « 12 gérer les sauvegardes ».
@@ -56,12 +57,6 @@ struct ModInstallBackupsView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                // Ce que les sauvegardes savent rendre **sans** restaurer un
-                // mod entier : une traduction, des réglages. C'est leur usage
-                // le plus fin, et il n'avait pas de porte d'entrée.
-                Button(localization.L(L10n.Recovery.title)) { showRecoverable = true }
-                    .buttonStyle(.bordered)
-                    .pointingHandCursor()
                 Button {
                     loadBackups()
                 } label: {
@@ -112,9 +107,6 @@ struct ModInstallBackupsView: View {
                     loadBackups()
                 }
             }
-        }
-        .sheet(isPresented: $showRecoverable) {
-            RecoverableFilesView(vm: vm, localization: localization, isPresented: $showRecoverable)
         }
         // Un seul présentateur pour les trois confirmations restantes — voir
         // `ModInstallBackupsConfirmation`. `presenting:` porte la valeur ;

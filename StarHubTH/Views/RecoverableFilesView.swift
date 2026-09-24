@@ -7,10 +7,12 @@ import SwiftUI
 /// redistribue pas, la traduction française installée à la main en premier.
 /// Mesuré sur le parc de référence le 2026-08-24 : **10 `i18n/fr.json`** ne
 /// vivent plus que dans une sauvegarde.
+///
+/// Segment « Fichiers récupérables » de `BackupsView` depuis I-T8 (feuille
+/// ouverte depuis les sauvegardes d'installation auparavant).
 struct RecoverableFilesView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
-    @Binding var isPresented: Bool
 
     /// Le fichier dont l'aperçu est déplié. Un seul à la fois : la lecture se
     /// fait à l'ouverture, et il n'y a pas de raison d'en tenir dix en mémoire.
@@ -58,12 +60,10 @@ struct RecoverableFilesView: View {
                 Button(localization.L(L10n.ModInstall.refreshBackups)) { vm.scanRecoverableFiles() }
                     .disabled(vm.isScanningRecoverableFiles)
                 Spacer()
-                Button(localization.L(L10n.Main.ok)) { isPresented = false }
-                    .keyboardShortcut(.defaultAction)
             }
             .padding(16)
         }
-        .frame(width: 620, height: 500)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { if vm.recoverableFiles.isEmpty { vm.scanRecoverableFiles() } }
         .sheet(item: $comparing) { file in
             TranslationRecoveryDiffView(

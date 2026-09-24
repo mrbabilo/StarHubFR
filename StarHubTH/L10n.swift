@@ -757,7 +757,6 @@ enum L10n {
     // MARK: - ModConfigBackups
     enum ModConfigBackups {
         static let title                     = "mod_config_backups_title"
-        static let tabTitle                  = "mod_config_backups_tab_title"
         static let createBackup              = "mod_config_backups_create"
         static let creatingBackup            = "mod_config_backups_creating"
         static let backupCreated             = "mod_config_backups_created"
@@ -1423,6 +1422,13 @@ enum L10n {
         static let manifestVersionSkipped   = "vm_manifest_version_skipped"
         static let nexusIdLearned           = "vm_nexus_id_learned"
         static let noDependenciesFound      = "vm_no_dependencies_found"
+    }
+
+    // MARK: - Backups (I-T8) — segments de « Sauvegardes des mods »
+    enum Backups {
+        static let segmentInstall = "backups_segment_install"
+        static let segmentConfig  = "backups_segment_config"
+        static let segmentFiles   = "backups_segment_files"
     }
 
     // MARK: - Recovery (B4-T4)

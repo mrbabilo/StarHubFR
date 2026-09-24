@@ -81,10 +81,10 @@ public enum SidebarOrder {
         // l'analyse et la voir ne rien trouver.
         SidebarEntry(.quarantine, icon: "tray.full.fill",
                      labelKey: L10n.Main.quarantine, group: .health),
-        SidebarEntry(.installBackups, icon: "arrow.uturn.backward.circle.fill",
+        // I-T8 — une entrée pour les trois segments ; placée après la
+        // quarantaine pour que ⌘8 et ⌘9 ne bougent pas.
+        SidebarEntry(.backups, icon: "arrow.uturn.backward.circle.fill",
                      labelKey: L10n.ModInstall.manageBackups, group: .health),
-        SidebarEntry(.configBackups, icon: "archivebox.fill",
-                     labelKey: L10n.ModConfigBackups.tabTitle, group: .health),
         SidebarEntry(.maintenance, icon: "internaldrive",
                      labelKey: L10n.Maintenance.title, group: .health),
 

@@ -4,13 +4,14 @@ import Testing
 @Suite("Ordre de la barre latérale")
 struct SidebarOrderTests {
 
-    /// Les 15 destinations, dans l'ordre de l'écran. Relevé le 2026-09-09 ;
+    /// Les 14 destinations, dans l'ordre de l'écran. Relevé le 2026-09-09 ;
     /// le 2026-09-24 (C5-T1), « Traductions FR » entre en Bibliothèque et le
-    /// hub thaï, conditionnel et dernier, sort.
+    /// hub thaï, conditionnel et dernier, sort ; puis (I-T8) les sauvegardes
+    /// d'installation et de configuration fusionnent en « Sauvegardes ».
     /// Écrit une fois ici, relu par les tests d'ordre et de couverture.
     private static let attendu: [SidebarDestination] = [
         .home, .mods, .discover, .updates, .frenchTranslations, .profiles, .saves,
-        .systemAlerts, .quarantine, .installBackups, .configBackups,
+        .systemAlerts, .quarantine, .backups,
         .maintenance, .logs, .settings, .appChangelog,
     ]
 
@@ -22,7 +23,7 @@ struct SidebarOrderTests {
 
     /// Le compilateur garantit qu'une destination a une page (F7), pas
     /// qu'elle est dans ce tableau : c'est ce test qui le tient.
-    @Test func lesQuinzeDestinationsSontToutesPresentes() {
+    @Test func lesQuatorzeDestinationsSontToutesPresentes() {
         for d in Self.attendu {
             #expect(SidebarOrder.all.contains { $0.destination == d },
                     "\(d) manque à SidebarOrder.all")
@@ -42,8 +43,8 @@ struct SidebarOrderTests {
     }
 
     /// C5-T1 décale d'un rang tout ce qui suit « Mises à jour » : la
-    /// quarantaine prend ⌘9, les sauvegardes d'installation n'ont plus de
-    /// numéro.
+    /// quarantaine prend ⌘9, les sauvegardes n'ont pas de numéro (I-T8 les
+    /// place après elle pour ne pas décaler ⌘8/⌘9).
     @Test func lesNeufPremieresPortentUnNumero() {
         #expect(SidebarOrder.shortcutIndex(of: .home) == 1)
         #expect(SidebarOrder.shortcutIndex(of: .mods) == 2)
@@ -52,7 +53,7 @@ struct SidebarOrderTests {
     }
 
     @Test func laDixiemeNAPasDeNumero() {
-        #expect(SidebarOrder.shortcutIndex(of: .installBackups) == nil)
+        #expect(SidebarOrder.shortcutIndex(of: .backups) == nil)
     }
 
     @Test func allerRetourEntreNumeroEtDestination() {
@@ -73,7 +74,7 @@ struct SidebarOrderTests {
                 == [.mods, .discover, .updates, .frenchTranslations])
         #expect(SidebarOrder.entries(in: .saves).map(\.destination) == [.profiles, .saves])
         #expect(SidebarOrder.entries(in: .health).map(\.destination)
-                == [.systemAlerts, .quarantine, .installBackups, .configBackups, .maintenance])
+                == [.systemAlerts, .quarantine, .backups, .maintenance])
         #expect(SidebarOrder.entries(in: .app).map(\.destination)
                 == [.logs, .settings, .appChangelog])
     }
@@ -87,6 +88,6 @@ struct SidebarOrderTests {
         #expect(cle(.home) == "main_home")
         #expect(cle(.mods) == "mods_mods")
         #expect(cle(.frenchTranslations) == "frtr_title")
-        #expect(cle(.configBackups) == "mod_config_backups_tab_title")
+        #expect(cle(.backups) == "mod_install_manage_backups")
     }
 }

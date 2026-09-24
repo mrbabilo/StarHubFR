@@ -203,6 +203,12 @@ final class NavigationStore {
     /// dans `setEditingSave`).
     var inventoryToEdit: [InventoryItem] = []
 
+    /// Le segment affiché par la page « Sauvegardes des mods » (I-T8). Vit
+    /// ici plutôt qu'en `@State` : `MainView` reconstruit la page à chaque
+    /// changement d'onglet, et le segment choisi doit survivre à l'aller-retour.
+    /// Hors de la règle de `TabChangePlan` : rien ne le remet à zéro.
+    var backupsSegment: BackupsSegment = .install
+
     func setEditingSave(_ save: SaveGameInfo?) {
         editingSave = save
         inventoryToEdit = []
@@ -219,4 +225,9 @@ final class NavigationStore {
             self.inventoryToEdit = items
         }
     }
+}
+
+/// Les trois segments de la page « Sauvegardes des mods » (I-T8).
+enum BackupsSegment: CaseIterable, Sendable {
+    case install, config, files
 }

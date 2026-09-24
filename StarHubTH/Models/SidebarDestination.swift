@@ -33,8 +33,9 @@ public enum SidebarDestination: String, Equatable, Sendable {
     // SANTÉ & SECOURS.
     case systemAlerts = "SystemAlerts"
     case quarantine = "Quarantine"
-    case installBackups = "InstallBackups"
-    case configBackups = "ConfigBackups"
+    /// I-T8 — sauvegardes d'installation, de configuration et fichiers
+    /// récupérables, en trois segments (autrefois deux entrées et une feuille).
+    case backups = "Backups"
     case maintenance = "Maintenance"
 
     // APPLICATION.
