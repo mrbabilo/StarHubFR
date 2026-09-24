@@ -44,9 +44,10 @@ struct TranslationDiffView: View {
     @State private var reviewNeededIDs: Set<String> = []
     /// La feuille du lot de pré-traduction.
     @State private var isShowingBatch = false
-    /// Le compte rendu d'un import de lot JSON, en attente d'être affiché.
-    /// `nil` tant qu'aucun import n'a eu lieu depuis l'ouverture de l'onglet.
-    @State private var lotOutcome: LotOutcomePresentation?
+    /// C3-T5 — la fusion d'un lot reçu : la session et sa feuille
+    /// d'arbitrage. Portés par la vue, comme les autres états de détail.
+    @State private var mergeStore = TranslationLotMergeStore()
+    @State private var showArbitration = false
     /// Les groupes tels que le fichier les donne, calculés **une fois** sur les
     /// rangées complètes. Leur identité ne dépend donc jamais du filtre en
     /// cours : c'est ce qui permet à un repli de désigner toujours la même
@@ -268,28 +269,24 @@ struct TranslationDiffView: View {
                 .pointingHandCursor()
                 .help(localization.L(L10n.Mods.translationLotImport))
                 .accessibilityLabel(localization.L(L10n.Mods.translationLotImport))
-                .sheet(item: $lotOutcome) { presentation in
-                    lotReportView(presentation.outcome, onClose: {
-                        let outcome = presentation.outcome
-                        lotOutcome = nil
-                        // Le même motif que l'`onClose` du lot IA juste
-                        // au-dessus : recharger ce que l'import vient
-                        // d'écrire. Cadrer sur « À relire » seulement si
-                        // quelque chose a effectivement été écrit — un refus
-                        // en bloc ou un lot entièrement écarté ne pose aucun
-                        // drapeau, et le chip « À relire » ne s'affiche que
-                        // si `reviewCount > 0` : sans cette garde, un refus
-                        // sur un mod encore vierge de tout lot laissait le
-                        // filtre pointer vers un chip absent, donc « aucune
-                        // clé ne correspond » sans explication.
-                        if outcome.written > 0 { filter = .reviewNeeded }
-                        Task {
-                            rows = await vm.translationDiff(for: mod)
-                            reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
-                            allGroups = TranslationCoverage.diffGroups(rows: rows)
-                            rebuildGroups()
-                        }
-                    })
+                .sheet(isPresented: $showArbitration) {
+                    TranslationArbitrationSheet(store: mergeStore, viewModel: vm,
+                                                localization: localization,
+                                                freshRows: { fresh in
+                                                    await vm.translationDiff(for: fresh)
+                                                },
+                                                onWrote: { written in
+                                                    // Le même motif que l'`onClose` du
+                                                    // lot IA : recharger ce que la fusion
+                                                    // vient d'écrire. Cadrer sur « À
+                                                    // relire » seulement si quelque
+                                                    // chose a effectivement été écrit —
+                                                    // sans cette garde, le filtre
+                                                    // pointerait vers un chip absent.
+                                                    if written > 0 { filter = .reviewNeeded }
+                                                    reloadRows()
+                                                },
+                                                onClose: { showArbitration = false })
                 }
                 TextField(localization.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
@@ -396,15 +393,6 @@ struct TranslationDiffView: View {
 
     // MARK: - Lot JSON
 
-    /// Enveloppe `Identifiable` du compte rendu d'import, pour `.sheet(item:)` :
-    /// `LotOutcome` lui-même n'a pas besoin d'identité, seule sa présentation
-    /// en a une. Une UUID technique, pas un contenu : deux imports produisant
-    /// le même compte doivent quand même rouvrir la feuille.
-    struct LotOutcomePresentation: Identifiable {
-        let id = UUID()
-        let outcome: StarHubTHViewModel.LotOutcome
-    }
-
     /// Écrit ce que rend `vm.exportTranslationLot` sur le disque choisi par
     /// l'utilisateur. `rows` est l'état courant du mod — le même que celui
     /// affiché à l'écran, rechargé par le `.task` initial et par chaque
@@ -435,8 +423,19 @@ struct TranslationDiffView: View {
         }
     }
 
-    /// Lit un fichier choisi par l'utilisateur et le passe à
-    /// `vm.importTranslationLot`.
+    /// Recharge ce qu'une écriture vient de changer — le motif partagé par
+    /// l'`onClose` du lot IA et l'après-fusion.
+    private func reloadRows() {
+        Task {
+            rows = await vm.translationDiff(for: mod)
+            reviewNeededIDs = await vm.reviewNeededRowIDs(for: mod)
+            allGroups = TranslationCoverage.diffGroups(rows: rows)
+            rebuildGroups()
+        }
+    }
+
+    /// Lit un fichier choisi par l'utilisateur et le passe à la fusion
+    /// (`TranslationLotMergeStore`).
     ///
     /// **Le point qui protège tout le reste** : on ne réutilise **pas** le
     /// `rows` affiché à l'écran, même s'il vient déjà d'un rechargement — le
@@ -461,123 +460,18 @@ struct TranslationDiffView: View {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            // Illisible avant même d'atteindre `importTranslationLot` (droits,
-            // fichier disparu depuis le panneau) : même refus que celui que le
-            // décodeur du lot aurait rendu — l'utilisateur voit une seule
-            // phrase pour « ce fichier ne va pas », peu importe où ça a
-            // achoppé.
-            lotOutcome = LotOutcomePresentation(outcome: .init(
-                written: 0, rejected: [], writeFailures: 0, refusal: .unreadable))
+            // Illisible avant même d'atteindre la fusion (droits, fichier
+            // disparu depuis le panneau) : le même message que pour un lot
+            // indéchiffrable — une seule phrase pour « ce fichier ne va pas ».
+            vm.showModal(message: localization.L(L10n.Mods.translationLotUnreadable))
             return
         }
         Task {
-            let freshRows = await vm.translationDiff(for: mod)
-            rows = freshRows
-            lotOutcome = LotOutcomePresentation(
-                outcome: vm.importTranslationLot(data, mod: mod, locale: "fr", rows: freshRows))
-        }
-    }
-
-    /// Le compte rendu d'un import : soit la phrase dédiée d'un refus en
-    /// bloc, soit les deux comptes et la liste de ce qui a été écarté — reprend
-    /// la mise en page du rapport du lot IA (`TranslationBatchView.reportView`).
-    @ViewBuilder
-    private func lotReportView(_ outcome: StarHubTHViewModel.LotOutcome,
-                                onClose: @escaping () -> Void) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let refusal = outcome.refusal {
-                Text(refusalMessage(refusal))
-                    .font(AppDesign.Font.caption)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if outcome.producedNothing {
-                // « 0 écrites, 0 écartées, 0 échecs » ne dit rien de la suite
-                // à donner : le cas ordinaire est un fichier rendu tel quel,
-                // passé par aucun chat — le dire, plutôt que compter des
-                // zéros.
-                Text(localization.L(L10n.Mods.translationLotNothingTranslated))
-                    .font(AppDesign.Font.caption)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                // Trois nombres distincts, comme le rapport du lot IA
-                // (`mods_translation_batch_report`) : fondre les rejets de
-                // relecture et les échecs d'écriture dans un seul « écarté »
-                // annonçait des entrées que la liste ci-dessous ne montrait
-                // jamais — `writeFailures` n'a pas de clé à lister (accepté
-                // par la relecture, refusé par l'écriture elle-même, qui
-                // échoue pour ses propres raisons : composant introuvable,
-                // disque). Séparer les deux comptes rend visible ce que la
-                // liste ne peut pas nommer, plutôt que de le noyer dans un
-                // total plus gros que ce qu'on montre.
-                Text(String(format: localization.L(L10n.Mods.translationLotDone),
-                            Int64(outcome.written),
-                            Int64(outcome.rejected.count),
-                            Int64(outcome.writeFailures)))
-                    .font(AppDesign.Font.caption)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !outcome.rejected.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(outcome.rejected.prefix(20).enumerated()),
-                                id: \.offset) { _, rejection in
-                            Text(rejectionLabel(rejection))
-                                .font(AppDesign.Font.monoIconXS)
-                                .foregroundColor(.secondary)
-                        }
-                        if outcome.rejected.count > 20 {
-                            Text("…").font(AppDesign.Font.iconXS).foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-            HStack {
-                Spacer()
-                Button(localization.L(L10n.Mods.translationBatchClose)) { onClose() }
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(20)
-        .frame(minWidth: 460, minHeight: 140)
-    }
-
-    /// La ligne d'une entrée écartée : sa clé — au format exact de
-    /// `DiffRow.id` (`component.map { "\($0)/\(key)" } ?? key`), pour que
-    /// deux composants définissant la même clé restent deux lignes
-    /// distinctes — puis pourquoi elle l'a été. Une clé nue ne dit pas si
-    /// c'est une marque perdue (à corriger dans le chat et réimporter) ou
-    /// une clé inventée (à ignorer) : deux suites différentes, le compte
-    /// rendu doit distinguer les deux.
-    private func rejectionLabel(_ rejection: TranslationLotImport.Rejection) -> String {
-        let key = rejection.component.map { "\($0)/\(rejection.key)" } ?? rejection.key
-        return "\(key) — \(rejectionReasonLabel(rejection.reason))"
-    }
-
-    private func rejectionReasonLabel(_ reason: TranslationLotImport.Rejection.Reason) -> String {
-        switch reason {
-        case .missingHardMarkers(let markers):
-            return String(format: localization.L(L10n.Mods.translationLotReasonMissingMarkers),
-                           markers.joined(separator: ", "))
-        case .extraHardMarkers(let markers):
-            return String(format: localization.L(L10n.Mods.translationLotReasonExtraMarkers),
-                           markers.joined(separator: ", "))
-        case .unknownKey:
-            return localization.L(L10n.Mods.translationLotReasonUnknownKey)
-        case .sourceAltered:
-            return localization.L(L10n.Mods.translationLotReasonSourceAltered)
-        }
-    }
-
-    /// Le refus en bloc dit toujours ce qu'il refuse, jamais « erreur ».
-    /// `.wrongLanguage` et `.unsupportedFormat` n'ont pas de phrase dédiée —
-    /// le premier n'est pas atteignable tant que l'app n'exporte que le
-    /// français, le second suppose un lot d'une version de format que cette
-    /// app n'a jamais écrite — mais un fichier qui les déclenche n'est de
-    /// toute façon pas un lot exploitable ici : la phrase générique
-    /// d'illisibilité reste honnête.
-    private func refusalMessage(_ refusal: TranslationLotImport.FileRefusal) -> String {
-        switch refusal {
-        case .staleLot: return localization.L(L10n.Mods.translationLotStale)
-        case .wrongMod: return localization.L(L10n.Mods.translationLotWrongMod)
-        case .unreadable, .wrongLanguage, .unsupportedFormat:
-            return localization.L(L10n.Mods.translationLotUnreadable)
+            let fresh = await vm.translationDiff(for: mod)
+            rows = fresh
+            let ready = await mergeStore.prepare(entries: [(mod, data, fresh)])
+            if ready { showArbitration = true }
+            else { vm.showModal(message: localization.L(L10n.Mods.translationLotMergeNothingNew)) }
         }
     }
 

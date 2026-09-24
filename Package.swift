@@ -182,6 +182,8 @@ let package = Package(
                 "Models/OllamaCapabilities.swift",
                 "Models/TranslationLot.swift",
                 "Models/TranslationLotImport.swift",
+                "Models/TranslationLotMerge.swift",
+                "Models/TranslationLotArchive.swift",
                 "Models/TokenShield.swift",
                 "Models/DeepLClient.swift",
                 "Models/TranslationEngine.swift",
@@ -1170,9 +1172,14 @@ let package = Package(
             path: "Tests/TranslationLotTests"
         ),
         .testTarget(
-            name: "TranslationLotImportTests",
+            name: "TranslationLotMergeTests",
             dependencies: ["StarHubTHCore"],
-            path: "Tests/TranslationLotImportTests"
+            path: "Tests/TranslationLotMergeTests"
+        ),
+        .testTarget(
+            name: "TranslationLotArchiveTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/TranslationLotArchiveTests"
         ),
         .testTarget(
             name: "BackupBrowserTests",

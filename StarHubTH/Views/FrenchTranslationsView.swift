@@ -20,6 +20,12 @@ struct FrenchTranslationsView: View {
 
     private var store: FrenchTranslationSweepStore { vm.translationSweep }
 
+    /// C3-T5 — la session de fusion des lots humains, portée par la vue :
+    /// elle ne survit pas au changement d'onglet, comme les autres états de
+    /// détail (`MainView` remet ses états à `nil`).
+    @State private var mergeStore = TranslationLotMergeStore()
+    @State private var showArbitration = false
+
     /// Une ligne : le mod, son statut, et le `ModItem` vivant pour agir.
     private struct Row: Identifiable {
         let candidate: FrenchTranslationSweep.Candidate
@@ -48,12 +54,32 @@ struct FrenchTranslationsView: View {
             header(all)
                 .padding(AppDesign.Spacing.lg)
             Divider()
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                TranslationLotShuttleView(viewModel: vm, localization: localization,
+                                          mergeStore: $mergeStore,
+                                          onMergeReady: { showArbitration = $0 })
+                    .padding(.horizontal, AppDesign.Spacing.lg)
+                    .padding(.top, AppDesign.Spacing.sm)
+            }
+            Divider()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                     sections(all)
                 }
                 .padding(AppDesign.Spacing.lg)
             }
+        }
+        .sheet(isPresented: $showArbitration) {
+            TranslationArbitrationSheet(store: mergeStore, viewModel: vm,
+                                        localization: localization,
+                                        freshRows: { mod in
+                                            await vm.translationDiff(for: mod)
+                                        },
+                                        onWrote: { _ in },
+                                        onClose: {
+                                            showArbitration = false
+                                            mergeStore.reset()
+                                        })
         }
     }
 
