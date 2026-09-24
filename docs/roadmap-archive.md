@@ -3690,9 +3690,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       2 entrées « You can update », dont `Wildroot Chronicles 1.3.5` alors
       que `Cropgenics` porte 1.4.1 — les deux résolues par égalité de nom
       exacte, le repli id Nexus restant non déclenché sur données réelles.
-      Fix : type pur `UpdateCount` (Core, règle + 8 tests), le VM ne fournit
+      Fix : type pur `UpdateCount` (Core, règle + 10 tests), le VM ne fournit
       que `resolveModFolder(forLoggedName:)?.version` via closure — même
-      correspondance que le reste de l'app. Entrée non résolue ou version
+      correspondance que le reste de l'app. Signalement du même jour :
+      la page Mises à jour listait encore l'entrée stale — la liste
+      (`pendingEntries`) dérive désormais de la même règle que le compte,
+      et le parseur de versions lit les chiffres de tête de chaque segment
+      (« 1.6.1-unofficial » tronqué à « 1.6 » déclarait 1.6.0 couvert).
+      Entrée non résolue ou version
       injugeable = comptée (gonfler vaut mieux qu'écarter en silence) ;
       préfixes numériques comparés, segment manquant valant zéro, préfixe
       égal = couvert (« 3.2.3 » répond à « 3 »).
