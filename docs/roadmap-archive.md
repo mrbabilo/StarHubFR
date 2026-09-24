@@ -4691,6 +4691,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       bandeau (UpdatesView −122 lignes). Mesuré le 2026-09-25 : 6 lignes Nexus
       en cache, toutes retrouvées par `UniqueID` dans le parc.
 
+- [x] **I-T15** ✅ *(livré le 2026-09-25)* — **Barre d'actions de la fiche
+      hiérarchisée.** Premier plan : l'interrupteur et « Réglages du mod ».
+      Favori et « À écarter » en icônes à bascule (18×18, `.help`, libellé et
+      trait `isSelected`). Signaler et Finder dans un menu « … ». La
+      suppression reste à l'écart. **Pas de bouton « Mettre à jour » dans la
+      barre** : le bandeau d'I-T13 porte déjà ces gestes, juste au-dessus —
+      un second exemplaire se disputerait la place.
+
 
 #### Axe F — Dette technique (suite)
 

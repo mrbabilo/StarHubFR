@@ -344,6 +344,7 @@ enum L10n {
         static let anomalySeeState      = "mods_anomaly_see_state"
         static let detailEnabled        = "mods_detail_enabled"
         static let revealInFinder       = "mods_reveal_in_finder"
+        static let moreActions          = "mods_more_actions"
         static let pagerPrevious        = "mods_pager_previous"
         static let pagerNext            = "mods_pager_next"
         static let pagerUnavailable     = "mods_pager_unavailable"

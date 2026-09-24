@@ -946,12 +946,6 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 se voit et porte son action ; la fréquence décide de la place ; la gravité
 décide de l'ordre) :
 
-- [ ] **I-T15** — **Barre d'actions de la fiche hiérarchisée.** Six gestes
-      `.bordered` au même poids : garder l'interrupteur et « Réglages du
-      mod », Favori / À écarter en icônes à bascule (cible 18×18, libellé
-      d'accessibilité), Signaler et Finder dans un menu « … », « Mettre à
-      jour » en action principale seulement quand I-T13 la justifie. · **S**
-
 Écartées par l'audit, avec leur raison au rapport : centre de santé unique,
 traduction unifiée, Mises à jour dans Découvrir (§6 d'`AGENTS.md`), vues de
 parties, profils.

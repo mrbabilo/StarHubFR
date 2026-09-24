@@ -30,6 +30,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **La barre d'actions de la fiche va à l'essentiel** : l'interrupteur et les réglages du mod en tête, favori et « à écarter » en icônes, signaler et Finder rangés dans « … ».
 - **Le plus grave d'abord.** L'onglet État d'un mod montre erreurs et incompatibilités avant les conflits de raccourcis et la traduction ; la page Mises à jour ouvre sur la liste qui permet d'agir, le relevé du journal SMAPI vient ensuite.
 - **VoiceOver annonce les boutons destructifs** : suppression, purge et retrait (Entretien, corbeille, fiche d'un mod, éditeur de sauvegarde) portent désormais le rôle destructif, pas seulement la couleur rouge. Supprimer une archive Nexus demande désormais confirmation.
 - **Écran de lancement plus compact** : environ deux tiers de sa taille d'avant, la fenêtre épouse la carte.

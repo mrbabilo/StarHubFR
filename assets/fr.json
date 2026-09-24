@@ -627,6 +627,7 @@
   "mods_compat_status_unofficial": "Demande un correctif non officiel",
   "mods_compat_status_workaround": "Un remplaçant existe",
   "mods_compatibility_note": "Ce que l'auteur dit de la compatibilité",
+  "mods_more_actions": "Plus d'actions",
   "mods_nexus_page_removed": "Page Nexus supprimée",
   "mods_nexus_page_removed_hint": "Ce mod n'a plus de page sur Nexus : plus de mise à jour, plus de téléchargement.",
   "mods_nexus_page_unavailable": "Page Nexus indisponible",

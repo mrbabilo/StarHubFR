@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Les actions de la fiche (H-T4b) : l'état en bouton bleu proéminant (P5),
-/// le reste en `.bordered`, la suppression à l'écart. Réservée au premier
+/// Les actions de la fiche (H-T4b, hiérarchisées par I-T15) : l'interrupteur
+/// et les réglages du mod au premier plan, favori et « à écarter » en icônes
+/// à bascule, signaler et Finder dans « … », la suppression à l'écart. Réservée au premier
 /// niveau — un composant de pack ne se pilote pas seul (règle de domaine).
 ///
 /// Les portes d'activation (compatibilité smapi.io, conflit A5) restent
@@ -34,32 +35,9 @@ struct ModDetailActionBar: View {
         HStack(spacing: 12) {
             stateToggle
 
-            // Le favori : même geste de tri du parc, et la fiche est l'écran
-            // où l'on décide du sort d'un mod. `live` pour rester d'accord
-            // avec la liste après un aller-retour.
-            Button {
-                vm.toggleFavorite(live)
-            } label: {
-                Label(localization.L(vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd),
-                      systemImage: vm.isFavorite(live) ? "star.fill" : "star")
-            }
-            .buttonStyle(.bordered)
-            .foregroundColor(vm.isFavorite(live) ? .yellow : .secondary)
-            .pointingHandCursor()
-
-            // « À écarter » — symétrique du favori. Marquer le mod comme
-            // sortant du jeu d'attention sans le désinstaller ni changer son
-            // activation. `live` pour la même raison que le favori.
-            Button {
-                vm.toggleBlacklist(live)
-            } label: {
-                Label(localization.L(vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd),
-                      systemImage: vm.isBlacklisted(live) ? "xmark.circle.fill" : "xmark.circle")
-            }
-            .buttonStyle(.bordered)
-            .foregroundColor(vm.isBlacklisted(live) ? .secondary : .secondary)
-            .pointingHandCursor()
-
+            // I-T15 — deux gestes au premier plan : l'interrupteur et les
+            // réglages du mod. Le reste descend d'un cran.
+            //
             // La config du mod — même prédicat que la liste
             // (`!isGroup && hasConfigFile`) : un en-tête de pack n'a pas de
             // config à lui. `live`, car l'éditeur construit ses chemins
@@ -71,31 +49,42 @@ struct ModDetailActionBar: View {
                     Label(localization.L(L10n.Settings.configModSettings), systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
-                .foregroundColor(.secondary)
                 .pointingHandCursor()
             }
 
-            // « Signaler une incompatibilité… » : ouvre le sélecteur parmi
-            // les mods installés (la feuille vit dans la fiche).
-            // `exclamationmark.triangle` sans `.fill` : déjà utilisé ainsi
-            // dans le dépôt — un nom de symbole erroné compile sans
-            // avertissement et se rend en rectangle vide.
-            Button(action: onReportConflict) {
-                Label(localization.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
+            // Favori et « À écarter » : des marques, pas des actions — icônes
+            // à bascule, l'état se lit au glyphe plein. `live` pour rester
+            // d'accord avec la liste après un aller-retour.
+            markToggle(isOn: vm.isFavorite(live), on: "star.fill", off: "star", tint: .yellow,
+                       label: vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd) {
+                vm.toggleFavorite(live)
             }
-            .buttonStyle(.bordered)
-            .foregroundColor(.secondary)
-            .pointingHandCursor()
+            markToggle(isOn: vm.isBlacklisted(live), on: "xmark.circle.fill", off: "xmark.circle",
+                       tint: .secondary,
+                       label: vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd) {
+                vm.toggleBlacklist(live)
+            }
 
-            // Les fichiers du mod, dans le Finder : à 900 mods, la question
-            // « qu'y a-t-il donc dans ce dossier » se pose plus souvent
-            // qu'on ne l'admet. Le dossier **physique** — le point de la
-            // pause compris.
-            Button(action: revealInFinder) {
-                Label(localization.L(L10n.Mods.revealInFinder), systemImage: "folder")
+            // Les gestes rares dans « … » : signaler une incompatibilité (la
+            // feuille vit dans la fiche) et le dossier **physique** dans le
+            // Finder, point de pause compris.
+            Menu {
+                Button(action: onReportConflict) {
+                    Label(localization.L(L10n.Conflicts.reportButton), systemImage: "exclamationmark.triangle")
+                }
+                Button(action: revealInFinder) {
+                    Label(localization.L(L10n.Mods.revealInFinder), systemImage: "folder")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
             }
-            .buttonStyle(.bordered)
-            .foregroundColor(.secondary)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .frame(minWidth: 18, minHeight: 18)
+            .contentShape(.rect)
+            .help(localization.L(L10n.Mods.moreActions))
+            .accessibilityLabel(localization.L(L10n.Mods.moreActions))
             .pointingHandCursor()
 
             Spacer()
@@ -157,6 +146,23 @@ struct ModDetailActionBar: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(format: localization.L(L10n.Mods.toggleA11yLabel), mod.name))
         .accessibilityHint(localization.L(L10n.Mods.toggleA11yHint))
+    }
+
+    /// Une marque à bascule en icône seule : cible 18×18 (sans quoi `.help`
+    /// reste muet), libellé d'accessibilité et trait « sélectionné ».
+    private func markToggle(isOn: Bool, on: String, off: String, tint: Color, label: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: isOn ? on : off)
+                .foregroundColor(isOn ? tint : .secondary)
+                .frame(width: 18, height: 18)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.borderless)
+        .help(localization.L(label))
+        .accessibilityLabel(localization.L(label))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+        .pointingHandCursor()
     }
 
     /// Ouvre le dossier du mod dans le Finder — le **physique**, point de
