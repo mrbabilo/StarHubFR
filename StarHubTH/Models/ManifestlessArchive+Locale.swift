@@ -4,6 +4,14 @@ import Foundation
 /// forme dans le mod hôte (2026-09-24).
 extension ManifestlessArchive {
 
+    /// Ce qu'une archive dépose : des fichiers de langue — chacun passe par un
+    /// `i18n`, à la racine ou dans un composant (Cape Stardew FR :
+    /// `[CP]Annetta/i18n/fr.json`, 2026-09-24) — ou autre chose.
+    static func kind(of entries: [Entry]) -> Kind {
+        entries.allSatisfy { let path = $0.destination.lowercased()
+            return path.hasPrefix("i18n/") || path.contains("/i18n/") } ? .translation : .addon
+    }
+
     /// Des fichiers de langue livrés **sans** leur dossier `i18n` vont dedans.
     ///
     /// Relevé le 2026-09-24 : l'archive de « Jakkk's Quinn - Patch FR »

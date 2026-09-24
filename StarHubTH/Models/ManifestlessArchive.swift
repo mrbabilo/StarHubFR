@@ -241,12 +241,6 @@ public enum ManifestlessArchive {
         return files.map { Entry(source: $0, destination: $0) }
     }
 
-    /// Ce qu'une archive dépose : des fichiers de langue, ou autre chose.
-    private static func kind(of entries: [Entry]) -> Kind {
-        entries.allSatisfy { $0.destination.lowercased().hasPrefix("i18n/") }
-            ? .translation : .addon
-    }
-
     /// Le chemin complet du premier dossier **emboîté** qui porte le nom d'un
     /// mod installé, `nil` si la chaîne n'en rencontre aucun.
     ///

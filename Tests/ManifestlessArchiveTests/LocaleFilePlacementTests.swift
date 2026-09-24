@@ -102,4 +102,26 @@ struct LocaleFilePlacementTests {
         #expect(FrenchTranslationSweep.hosts(ofTranslation: 41740, in: entries) == ["[CP] Jakk's Quinn"])
         #expect(FrenchTranslationSweep.hosts(ofTranslation: 1, in: entries).isEmpty)
     }
+
+    /// L'archive réelle de Cape Stardew FR (Nexus 23854) : deux composants du
+    /// pack, chacun son `i18n/fr.json`. C'est une traduction, pas un
+    /// supplément — rangée comme supplément, la page ne la voyait pas posée.
+    @Test func packArchiveWithComponentI18nIsATranslation() {
+        let outcome = ManifestlessArchive.classify(
+            paths: ["Cape Stardew 1.6/Cape Stardew/i18n/fr.json",
+                    "Cape Stardew 1.6/[CP]Annetta/i18n/fr.json"],
+            installedFolderNames: ["Cape Stardew 1.6", "Evelyn Expansion"])
+        guard case .plan(let plan) = outcome else { Issue.record("attendu : plan"); return }
+        #expect(plan.hostFolderName == "Cape Stardew 1.6")
+        #expect(plan.kind == .translation)
+        #expect(Set(plan.entries.map(\.destination))
+                == ["Cape Stardew/i18n/fr.json", "[CP]Annetta/i18n/fr.json"])
+        // Un fichier hors `i18n` à côté : supplément, comme avant.
+        let mixed = ManifestlessArchive.classify(
+            paths: ["Cape Stardew 1.6/Cape Stardew/i18n/fr.json",
+                    "Cape Stardew 1.6/[CP]Annetta/assets/portrait.png"],
+            installedFolderNames: ["Cape Stardew 1.6"])
+        guard case .plan(let other) = mixed else { Issue.record("attendu : plan"); return }
+        #expect(other.kind == .addon)
+    }
 }
