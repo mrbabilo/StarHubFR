@@ -32,7 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **« Vider les mods désactivés » passe par la corbeille des mods.** Le lot ne s'efface plus sans retour : il se restaure ou se vide depuis Entretien, et les préférences de ces mods partent avec eux.
+- **« Vider les mods désactivés » passe par la corbeille des mods.** Le lot ne s'efface plus sans retour : « Tout remettre » le rend d'un geste depuis Entretien, et les préférences de ces mods partent avec eux.
 - **Le journal garde les erreurs de démarrage de SMAPI après « Effacer ».** Les nouvelles lignes de l'app faisaient disparaître les premières lignes SMAPI, « Skipped mods » compris, jusqu'à la relecture suivante.
 - **La corbeille purge aussi les mods livrés en lecture seule.** Purger un tel mod ou vider la corbeille échouait sur une erreur de permission, et le vidage s'arrêtait au premier.
 - **Le profil actif ne se vide plus quand le disque du jeu disparaît.** Disque externe éjecté, « Tout activer / désactiver » échouait puis recopiait une liste vide dans le profil actif. Une lecture impossible de `Mods/` n'est plus jamais adoptée.

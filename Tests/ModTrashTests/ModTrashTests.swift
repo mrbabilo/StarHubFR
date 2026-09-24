@@ -259,7 +259,7 @@ struct ModTrashTests {
             try FileManager.default.createDirectory(atPath: path(mods, name, "i18n"),
                                                     withIntermediateDirectories: true)
         }
-        let result = try ModTrash.trash(
+        let result = ModTrash.trash(
             modsPath: mods, stamp: "20260924_194500",
             items: [.init(physical: ".Alpha", logicalLeaf: "Alpha"),
                     .init(physical: ".[CP] Beta", logicalLeaf: "[CP] Beta")])
@@ -277,7 +277,7 @@ struct ModTrashTests {
         let mods = makeTempModsDir()
         try FileManager.default.createDirectory(atPath: path(mods, ".Alpha"),
                                                 withIntermediateDirectories: true)
-        let result = try ModTrash.trash(
+        let result = ModTrash.trash(
             modsPath: mods, stamp: "20260924_194500",
             items: [.init(physical: ".Gone", logicalLeaf: "Gone"),
                     .init(physical: ".Alpha", logicalLeaf: "Alpha")])
@@ -289,12 +289,53 @@ struct ModTrashTests {
 
     @Test func aBatchThatMovesNothingLeavesNoEvent() throws {
         let mods = makeTempModsDir()
-        let result = try ModTrash.trash(
+        let result = ModTrash.trash(
             modsPath: mods, stamp: "20260924_194500",
             items: [.init(physical: ".Gone", logicalLeaf: "Gone")])
 
         #expect(result.moved.isEmpty)
         #expect(result.failed.count == 1)
         #expect(!FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_194500")))
+    }
+
+    @Test func aWholeEventIsRestoredPausedInOneGesture() throws {
+        let mods = makeTempModsDir()
+        let ev = try makeEvent(mods, "_Trash_20260924_194500")
+        for name in ["Alpha", "Beta"] {
+            try FileManager.default.createDirectory(atPath: path(ev, name, "i18n"),
+                                                    withIntermediateDirectories: true)
+        }
+        let result = ModTrash.restoreEvent(modsPath: mods, event: "_Trash_20260924_194500",
+                                           stamp: "20260924_200000")
+
+        #expect(result.moved == ["Alpha", "Beta"])
+        #expect(result.failed.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: path(mods, ".Alpha", "i18n")))
+        #expect(FileManager.default.fileExists(atPath: path(mods, ".Beta")))
+        #expect(!FileManager.default.fileExists(atPath: ev))
+    }
+
+    @Test func listingAnEventDoesNotDescendIntoMods() throws {
+        let mods = makeTempModsDir()
+        let ev = try makeEvent(mods, "_Trash_20260924_194500")
+        try FileManager.default.createDirectory(atPath: path(ev, "Alpha", "assets", "deep"),
+                                                withIntermediateDirectories: true)
+        #expect(ModTrash.events(modsPath: mods).first?.entries == ["Alpha"])
+    }
+
+    @Test func aBatchThatCannotOpenItsEventFailsWholeAndMovesNothing() throws {
+        let mods = makeTempModsDir()
+        try FileManager.default.createDirectory(atPath: path(mods, ".Alpha"),
+                                                withIntermediateDirectories: true)
+        // `Mods/` en lecture seule : ni l'événement ni son marqueur ne se posent.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: mods)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: mods) }
+
+        let result = ModTrash.trash(modsPath: mods, stamp: "20260924_194500",
+                                    items: [.init(physical: ".Alpha", logicalLeaf: "Alpha")])
+
+        #expect(result.moved.isEmpty)
+        #expect(result.failed.map(\.physical) == [".Alpha"])
+        #expect(FileManager.default.fileExists(atPath: path(mods, ".Alpha")))
     }
 }

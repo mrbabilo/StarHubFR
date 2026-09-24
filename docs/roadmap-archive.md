@@ -3656,6 +3656,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       n'arrête pas les suivants, événement vide retiré. `deleteMod` et
       `cleanDisabledMods` passent tous deux par lui ; le vidage purge les
       préférences des mods déplacés. Trois tests ; libellés fr/en corrigés.
+      ▸ **Suite, le même jour** — la revue de l'audit UX a vu que la corbeille
+      ne savait remettre qu'**une entrée à la fois** : un vidage de ~720 mods
+      ne se serait pas défait. `ModTrash.restoreEvent` remet tout un
+      événement (bouton « Tout remettre (N) », un seul rescan, une ligne de
+      journal) ; la liste d'un événement se replie au-delà de 8 entrées ;
+      `ModTrash.events` ne descend plus dans chaque mod pour lister le
+      premier niveau (`contentsOfDirectory` au lieu de
+      `subpathsOfDirectory`). La section sort de `MaintenanceView` dans
+      `MaintenanceTrashSection`. `ModTrash.trash` ne lève plus : un
+      marqueur impossible rend tout le lot en échec, rien n'a bougé.
 
 - [x] **X111** ✅ *(livré le 2026-09-24)* — **Après « Effacer », le journal de l'app rognait la tête du bloc SMAPI.**
       `LogBudget.appending` écrêtait par la tête du tableau, avec un commentaire

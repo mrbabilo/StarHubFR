@@ -182,61 +182,11 @@ struct MaintenanceView: View {
         .padding(.vertical, 24)
     }
 
-    /// X103-B — la corbeille des mods supprimés : remettre (désactivé) ou
-    /// purger pour de bon. Rien ne part sans confirmation ; rien ne part non
-    /// plus sans geste — aucune purge automatique (leçon X25).
     private var trashSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !vm.trashEvents.isEmpty {
-                HStack {
-                    Text(localization.L(L10n.Maintenance.trashSectionTitle))
-                        .font(.system(size: 13, weight: .semibold))
-                    Spacer()
-                    Button(localization.L(L10n.Maintenance.trashPurgeAll)) {
-                        confirmation = .purgeTrashAll(events: vm.trashEvents.count)
-                    }
-                    .controlSize(.small)
-                    .foregroundColor(.red)
-                }
-                ForEach(vm.trashEvents) { event in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Image(systemName: "trash")
-                                .foregroundColor(.secondary)
-                            Text(event.date.map {
-                                $0.formatted(date: .abbreviated, time: .shortened)
-                            } ?? event.folderName)
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                        ForEach(event.entries, id: \.self) { entry in
-                            HStack {
-                                Text(entry)
-                                    .font(.system(size: 12, design: .monospaced))
-                                Spacer()
-                                Button(localization.L(L10n.Maintenance.trashRestore)) {
-                                    vm.restoreTrashEntry(event: event.folderName, entry: entry)
-                                }
-                                .controlSize(.small)
-                                Button(localization.L(L10n.Maintenance.trashPurgeOne)) {
-                                    confirmation = .purgeTrashEntry(event: event.folderName,
-                                                                    entry: entry)
-                                }
-                                .controlSize(.small)
-                                .foregroundColor(.red)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(8)
-                }
-                Text(localization.L(L10n.Maintenance.trashHint2))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
+        MaintenanceTrashSection(
+            viewModel: vm, localization: localization,
+            onPurgeAll: { confirmation = .purgeTrashAll(events: $0) },
+            onPurgeEntry: { confirmation = .purgeTrashEntry(event: $0, entry: $1) })
     }
 
     /// X103-C — les archives Nexus conservées : ce qu'elles pèsent, et de quoi

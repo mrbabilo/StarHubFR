@@ -114,20 +114,22 @@ enum ModTrash {
     /// Met un lot en corbeille, en **un seul** événement — la suppression d'un
     /// mod (un élément) et le vidage des mods en pause (tout le lot) passent
     /// ici. Le marqueur est posé avant le premier déplacement : s'il échoue,
-    /// l'erreur remonte et rien n'a bougé. Un élément qui ne se déplace pas
-    /// n'arrête pas les suivants ; un événement resté vide est retiré.
+    /// rien n'a bougé et tout le lot est rendu en échec, avec cette erreur.
+    /// Un élément qui ne se déplace pas n'arrête pas les suivants ; un
+    /// événement resté vide est retiré.
     static func trash(modsPath: String, stamp: String, items: [Item],
-                      fm: FileManager = .default) throws -> TrashResult {
+                      fm: FileManager = .default) -> TrashResult {
         let event = trashFolderName(stamp: stamp)
         let eventDir = (modsPath as NSString).appendingPathComponent(event)
-        try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
+        var result = TrashResult()
         do {
+            try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
             try markEvent(eventDir: eventDir)
         } catch {
             discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
-            throw error
+            result.failed = items.map { ($0.physical, error) }
+            return result
         }
-        var result = TrashResult()
         for item in items {
             let source = (modsPath as NSString).appendingPathComponent(item.physical)
             do {
@@ -172,6 +174,51 @@ enum ModTrash {
         return path("\(disabledLeaf)_\(stamp)_\(UUID().uuidString)")
     }
 
+    /// Remet une entrée : retour en pause sous `Mods/` (voir
+    /// `restoreDestination`), puis l'événement vidé disparaît.
+    static func restoreEntry(modsPath: String, event: String, entry: String,
+                             stamp: String, fm: FileManager = .default) throws {
+        let source = (modsPath as NSString).appendingPathComponent(
+            (event as NSString).appendingPathComponent(entry))
+        let dest = restoreDestination(modsPath: modsPath, entryRelativePath: entry,
+                                      stamp: stamp, fm: fm)
+        try fm.createDirectory(atPath: (dest as NSString).deletingLastPathComponent,
+                               withIntermediateDirectories: true)
+        try fm.moveItem(atPath: source, toPath: dest)
+        discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+    }
+
+    /// Remet des entrées d'un événement — `entries: nil` le remet **tout**,
+    /// d'un geste : un vidage des mods en pause ne se remet pas entrée par
+    /// entrée. Une entrée qui résiste n'arrête pas les suivantes.
+    static func restoreEvent(modsPath: String, event: String, entries: [String]? = nil,
+                             stamp: String, fm: FileManager = .default) -> TrashResult {
+        var result = TrashResult()
+        var targets = entries ?? []
+        if entries == nil {
+            let dir = (modsPath as NSString).appendingPathComponent(event)
+            do {
+                targets = try fm.contentsOfDirectory(atPath: dir)
+                    .filter { $0 != eventMarker }.sorted()
+            } catch {
+                // Un événement illisible se dit : « rien remis » en silence
+                // ressemblerait à une corbeille vide.
+                result.failed.append((event, error))
+                return result
+            }
+        }
+        for entry in targets {
+            do {
+                try restoreEntry(modsPath: modsPath, event: event, entry: entry,
+                                 stamp: stamp, fm: fm)
+                result.moved.append(entry)
+            } catch {
+                result.failed.append((entry, error))
+            }
+        }
+        return result
+    }
+
     // MARK: - Lister
 
     /// Les événements de corbeille **utilisateur** (marqués), du plus récent
@@ -192,14 +239,13 @@ enum ModTrash {
             .map { name -> (Event, sortKey: String) in
                 let dir = (modsPath as NSString).appendingPathComponent(name)
                 let suffix = String(name.dropFirst(ModFolderRepairer.trashPrefix.count))
-                let entries = (try? fm.subpathsOfDirectory(atPath: dir))?
-                    .filter { sub in
-                        // Le marqueur n'est pas une entrée, et les
-                        // sous-chemins intermédiaires (`Pack/` d'un
-                        // composant) non plus : on liste les composantes
-                        // de tête — c'est ce que « remettre » remet.
-                        sub != eventMarker && !sub.contains("/")
-                    } ?? []
+                // Les composantes de tête seulement — c'est ce que
+                // « remettre » remet — sans descendre dans les mods : un
+                // vidage des mods en pause pose ~720 dossiers dans un seul
+                // événement, et un parcours récursif lirait chacun de leurs
+                // fichiers pour n'en garder que le premier niveau.
+                let entries = (try? fm.contentsOfDirectory(atPath: dir))?
+                    .filter { $0 != eventMarker } ?? []
                 return (Event(folderName: name,
                               date: parser.date(from: suffix),
                               entries: entries.sorted()),

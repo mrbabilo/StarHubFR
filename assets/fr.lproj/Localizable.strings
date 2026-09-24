@@ -405,6 +405,10 @@
 "maintenance_modtrash_purged_log" = "%@ supprimé de la corbeille.";
 "maintenance_modtrash_restore" = "Remettre";
 "maintenance_modtrash_restored_log" = "%@ remis dans Mods/ (désactivé).";
+"maintenance_modtrash_restore_event" = "Tout remettre (%lld)";
+"maintenance_modtrash_restored_event_log" = "%lld mod(s) remis dans Mods/ (désactivés).";
+"maintenance_modtrash_show_more" = "Afficher les %lld autres";
+"maintenance_modtrash_show_less" = "Réduire la liste";
 "maintenance_modtrash_section_title" = "Corbeille des mods";
 "maintenance_nothing_to_do" = "Rien à faire : aucune sauvegarde, aucune entrée morte.";
 "maintenance_orphan_sessions" = "Dossiers sans sauvegarde";

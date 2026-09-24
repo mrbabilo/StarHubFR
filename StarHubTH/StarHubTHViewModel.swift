@@ -7422,29 +7422,19 @@ final class StarHubTHViewModel {
     func cleanDisabledMods(targets: [String]) {
         guard !gameDir.isEmpty else { return }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let items = targets.map {
+        let result = ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(), items: targets.map {
             ModTrash.Item(physical: $0, logicalLeaf: String($0.drop { $0 == "." }))
+        })
+        // Comme `deleteMod` : les préférences d'un mod mis en corbeille
+        // partent avec lui (X55, X107).
+        let moved = Set(result.moved)
+        for mod in scanStore.mods where moved.contains(mod.physicalFolderName) {
+            forgetStores(of: mod)
         }
-        var removed = 0
-        var failed = targets.count
-        var firstError: Error?
-        do {
-            let result = try ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(),
-                                            items: items)
-            removed = result.moved.count
-            failed = result.failed.count
-            firstError = result.failed.first?.error
-            // Comme `deleteMod` : les préférences d'un mod mis en corbeille
-            // partent avec lui (X55, X107).
-            let moved = Set(result.moved)
-            for mod in scanStore.mods where moved.contains(mod.physicalFolderName) {
-                forgetStores(of: mod)
-            }
-        } catch {
-            firstError = error
-        }
+        let firstError = result.failed.first?.error
 
-        let outcome = DisabledModsCleanup.outcome(removed: removed, failed: failed)
+        let outcome = DisabledModsCleanup.outcome(removed: result.moved.count,
+                                                  failed: result.failed.count)
         switch outcome {
         case .nothingFound:
             showModal(message: localization.L(L10n.VM.cleanModsNotFound))
@@ -9358,10 +9348,11 @@ final class StarHubTHViewModel {
             // (jamais le point) — un composant de pack supprimé un à un
             // atterrit à plat, sous son propre nom.
             let leaf = (mod.folderName as NSString).lastPathComponent
-            let result = try ModTrash.trash(
+            if let failure = ModTrash.trash(
                 modsPath: modsPath, stamp: ModTrash.makeStamp(),
-                items: [.init(physical: mod.physicalFolderName, logicalLeaf: leaf)])
-            if let failure = result.failed.first { throw failure.error }
+                items: [.init(physical: mod.physicalFolderName, logicalLeaf: leaf)]).failed.first {
+                throw failure.error
+            }
             // The registry entry is pruned by the next scanMods() (below),
             // which removes entries for folders no longer on disk. Every
             // other folder-keyed store is forgotten by `forgetStores` — the
@@ -9409,6 +9400,25 @@ final class StarHubTHViewModel {
     /// règle que la restauration de sauvegarde (§5.6). L'utilisateur le
     /// réactive explicitement ; le rescan qui suit le fait réapparaître.
     func restoreTrashEntry(event: String, entry: String) {
+        restoreFromTrash(event: event) {
+            ModTrash.restoreEvent(modsPath: $0, event: event, entries: [entry],
+                                  stamp: ModTrash.makeStamp())
+        }
+    }
+
+    /// « Tout remettre » : l'événement entier revient en pause, un seul
+    /// rescan — le pendant d'un vidage des mods en pause (X112).
+    func restoreTrashEvent(_ event: String) {
+        restoreFromTrash(event: event) {
+            ModTrash.restoreEvent(modsPath: $0, event: event, stamp: ModTrash.makeStamp())
+        }
+    }
+
+    /// Le trajet commun des deux remises : garde, travail hors main, puis
+    /// journal, erreur, corbeille relue et rescan (hors main aussi — gel
+    /// ~960 mods, 2026-09-14).
+    private func restoreFromTrash(event: String,
+                                  _ work: @escaping @Sendable (String) -> ModTrash.TrashResult) {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         // Même garde que la purge : un event non marqué (quarantaine du
         // réparateur, nom forgé) n'est pas une corbeille à remettre.
@@ -9417,35 +9427,26 @@ final class StarHubTHViewModel {
             return
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let stamp = ModTrash.makeStamp()
-            let source = (modsPath as NSString).appendingPathComponent(
-                (event as NSString).appendingPathComponent(entry))
-            let dest = ModTrash.restoreDestination(modsPath: modsPath,
-                                                   entryRelativePath: entry,
-                                                   stamp: stamp)
-            do {
-                try FileManager.default.createDirectory(
-                    atPath: (dest as NSString).deletingLastPathComponent,
-                    withIntermediateDirectories: true)
-                try FileManager.default.moveItem(atPath: source, toPath: dest)
-                ModTrash.discardEventIfEmpty(modsPath: modsPath, event: event)
-                DispatchQueue.main.async {
-                    guard let self else { return }
-                    self.log(String(format: self.localization.L(L10n.Maintenance.trashRestoredLog),
-                                    entry))
-                    self.refreshTrash()
-                    // Hors main comme partout (gel ~960 mods, 2026-09-14).
-                    let resolvedGameDir = self.gameDir
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        self.scanMods(gameDir: resolvedGameDir)
-                    }
+            let result = work(modsPath)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let loc = self.localization
+                if result.moved.count > 1 {
+                    self.log(String(format: loc.L(L10n.Maintenance.trashRestoredEventLog),
+                                    Int64(result.moved.count)))
+                } else if let entry = result.moved.first {
+                    self.log(String(format: loc.L(L10n.Maintenance.trashRestoredLog), entry))
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    guard let self else { return }
+                if let failure = result.failed.first {
                     self.showModal(message: String(
                         format: self.localization.L(L10n.Maintenance.trashFailed),
-                        error.localizedDescription))
+                        failure.error.localizedDescription))
+                }
+                guard !result.moved.isEmpty else { return }
+                self.refreshTrash()
+                let resolvedGameDir = self.gameDir
+                DispatchQueue.global(qos: .userInitiated).async {
+                    self.scanMods(gameDir: resolvedGameDir)
                 }
             }
         }

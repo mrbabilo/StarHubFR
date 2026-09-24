@@ -1778,6 +1778,11 @@ enum L10n {
         static let trashEmptiedLog      = "maintenance_modtrash_emptied_log"
         static let trashFailed2         = "maintenance_modtrash_failed"
         static let trashHint2           = "maintenance_modtrash_hint"
+        // X112 — un vidage des mods en pause pose tout le lot dans un événement.
+        static let trashRestoreEvent    = "maintenance_modtrash_restore_event"
+        static let trashRestoredEventLog = "maintenance_modtrash_restored_event_log"
+        static let trashShowMore        = "maintenance_modtrash_show_more"
+        static let trashShowLess        = "maintenance_modtrash_show_less"
     }
 
     // MARK: - Palette de commandes (I-T2)
