@@ -689,10 +689,18 @@ struct ModInstallView: View {
             showManifestlessPlan = true
             return true
         case .needsHost(let candidates, let kind, let entries):
+            // L'archive venue d'un lien Nexus : les mods pour lesquels cette
+            // fiche a été trouvée passent devant ce que le nom suggère — le nom
+            // d'une archive de traduction ne dit souvent rien (C5-T1).
+            let downloaded = analyzedURL == preloadedZip ? vm.pendingNexusSource?.modId : nil
+            let linked = downloaded.map { FrenchTranslationSweep.hosts(
+                ofTranslation: $0, in: vm.translationSweep.entries,
+                detailHits: vm.translationHub.hits, installed: installed) } ?? []
+            let ranked = linked + candidates.filter { !linked.contains($0) }
             // Sans candidat, on n'a rien à proposer : le refus ordinaire dit au
             // moins ce que l'archive contenait.
-            guard !candidates.isEmpty else { return false }
-            manifestlessCandidates = Array(candidates.prefix(4))
+            guard !ranked.isEmpty else { return false }
+            manifestlessCandidates = Array(ranked.prefix(4))
             manifestlessEntries = entries
             manifestlessKind = kind
             showManifestlessChoice = true

@@ -5971,13 +5971,13 @@ final class StarHubTHViewModel {
     /// - Returns: ce qui a été écrit (`nil` si rien ne l'a été), et le message
     ///   à montrer le cas échéant — un dépôt peut réussir *et* avoir quelque
     ///   chose à dire.
-    func depositIntoMod(plan: ManifestlessArchive.Plan, extractedRoot: URL, host: ModItem,
+    func depositIntoMod(plan proposed: ManifestlessArchive.Plan, extractedRoot: URL, host: ModItem,
                         sourceName: String, nexus: NexusModSearch.Hit?,
                         downloadedModId: Int? = nil)
         -> (outcome: ManifestlessInstaller.Outcome?, message: String?) {
         // Le refus se dit dans les mots de ce qu'on déposait : « la traduction »
         // n'a pas de sens quand l'utilisateur a glissé un lot de sacs.
-        let failed = plan.kind == .translation
+        let failed = proposed.kind == .translation
             ? localization.L(L10n.Mods.translationInstallFailed) : localization.L(L10n.ModInstall.depositFailed)
         guard let backupRoot = InstalledTranslationStore.backupRoot else {
             return (nil, failed)
@@ -5987,6 +5987,8 @@ final class StarHubTHViewModel {
         let hostPath = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(host.physicalFolderName)
+        // Le rangement du mod hôte décide où va un `fr.json` à plat.
+        let plan = ManifestlessArchive.adaptingLocaleLayout(proposed, to: .read(modDirectory: hostPath))
 
         // Ce qu'on remplace, on le rend d'abord. Une greffe n'écarte pas la
         // traduction du même mod — elles ne déposent pas les mêmes fichiers —

@@ -161,6 +161,24 @@ public enum FrenchTranslationSweep {
         return entry.hits.isEmpty ? .nothingFound : .available(entry.hits)
     }
 
+    /// Les mods pour lesquels une recherche a trouvé la fiche `modId` : quand
+    /// l'archive d'une traduction arrive par un lien Nexus, son nom ne dit
+    /// souvent rien (« Patch FR/fr.json » pour Jakk's Quinn), mais la page
+    /// vient d'être proposée pour un mod précis. Trié, pour un ordre stable.
+    ///
+    /// `detailHits` : les résultats de la recherche lancée depuis la fiche d'un
+    /// mod (`TranslationHubStore.hits`), même question posée ailleurs.
+    public static func hosts(ofTranslation modId: Int, in entries: [String: Entry],
+                             detailHits: [String: [NexusModSearch.Hit]] = [:],
+                             installed: [String]? = nil) -> [String] {
+        let fromSweep = entries.filter { $0.value.hits.contains { $0.modId == modId } }.map(\.key).sorted()
+        let fromDetail = detailHits.filter { $0.value.contains { $0.modId == modId } }.map(\.key).sorted()
+        var seen = Set<String>()
+        return (fromSweep + fromDetail).filter {
+            (installed?.contains($0) ?? true) && seen.insert($0).inserted
+        }
+    }
+
     // MARK: - Disque
 
     /// Un cache re-calculable (un clic le refait), pas une trace unique comme le

@@ -53,6 +53,7 @@ let package = Package(
                 "Models/InstalledTranslation.swift",
                 "Models/InstalledTranslationStore.swift",
                 "Models/ManifestlessArchive.swift",
+                "Models/ManifestlessArchive+Locale.swift",
                 "Models/ArchivePaths.swift",
                 "Models/NexusArchiveName.swift",
                 "Models/ManifestlessInstaller.swift",

@@ -28,6 +28,10 @@ where the exact log format was verified.
 
 - **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.
 
+### Fixed
+
+- **Une traduction téléchargée depuis Nexus va dans le bon mod et le bon dossier.** Le mod pour lequel la page « Traductions FR » a trouvé la fiche est proposé en premier ; un `fr.json` livré seul va dans `i18n/`, ou dans le sous-dossier français quand le mod range ses traductions par dossier (sans quoi SMAPI ignorait toutes ses langues).
+
 ### Removed
 
 - **Le hub de traductions thaïes** : il n'était plus accessible depuis la création du fork ; sa place dans la barre latérale revient à « Traductions FR ».

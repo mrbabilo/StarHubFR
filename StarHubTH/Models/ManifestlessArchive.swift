@@ -125,7 +125,7 @@ public enum ManifestlessArchive {
             // C'est toujours le cas 1 — la destination est écrite dans
             // l'archive —, simplement plus profond.
             if let known = firstInstalledLevel(of: files, installed: installedFolderNames) {
-                let entries = strip(prefix: known, from: files)
+                let entries = relocatingBareLocaleFiles(strip(prefix: known, from: files))
                 if !entries.isEmpty {
                     let name = known.components(separatedBy: "/").last ?? known
                     return .plan(Plan(hostFolderName: name, kind: kind(of: entries),
@@ -133,7 +133,7 @@ public enum ManifestlessArchive {
                 }
             }
             var prefix = root
-            var entries = strip(prefix: prefix, from: files)
+            var entries = relocatingBareLocaleFiles(strip(prefix: prefix, from: files))
             guard !entries.isEmpty else { return .unrecognised }
 
             // **Un dossier de présentation qui en emballe un autre** — variante
@@ -155,7 +155,7 @@ public enum ManifestlessArchive {
                     || !candidates(for: inner, among: installedFolderNames).isEmpty
                 if innerMatches, !deeperEntries.isEmpty {
                     prefix = inner
-                    entries = deeperEntries
+                    entries = relocatingBareLocaleFiles(deeperEntries)
                 }
             }
 
@@ -166,6 +166,13 @@ public enum ManifestlessArchive {
             // Le nom ne désigne aucun mod installé : proposer, ne pas deviner.
             return .needsHost(candidates: candidates(for: prefix, among: installedFolderNames),
                               kind: kind(of: entries), entries: entries)
+        }
+
+        // ── Des fichiers de langue nus, sans aucun dossier : leur place est
+        // `i18n/`, l'hôte reste à désigner.
+        let bare = relocatingBareLocaleFiles(files.map { Entry(source: $0, destination: $0) })
+        if bare.allSatisfy({ $0.destination.hasPrefix("i18n/") }) {
+            return .needsHost(candidates: [], kind: .translation, entries: bare)
         }
 
         return .unrecognised
@@ -377,7 +384,11 @@ public enum ManifestlessArchive {
             $0.folding(options: [.diacriticInsensitive, .caseInsensitive],
                        locale: Locale(identifier: "en_US_POSIX"))
         }
-        return Set(folded.filter { !$0.isEmpty && !noiseWords.contains($0) })
+        // Une lettre seule ne distingue rien : le « s » d'un possessif
+        // (« Jakk's », « Mizu's ») faisait proposer, pour une traduction de
+        // Jakk's Quinn, les mods de Mizu, de Trent, de PC — 78 dossiers sur
+        // 993 en portent un (relevé le 2026-09-24).
+        return Set(folded.filter { $0.count >= 2 && !noiseWords.contains($0) })
     }
 
     /// Réduit un nom à ses lettres et chiffres, sans accents ni casse.
