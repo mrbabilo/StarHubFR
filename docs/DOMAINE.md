@@ -27,10 +27,13 @@ Deux conséquences structurantes :
   qu'à construire.
 - **UI bilingue en/fr seulement.** `assets/en.json` et `assets/fr.json` sont la
   source de vérité, à parité de clés obligatoire (le build échoue sinon).
-  *Le thaï comme langue d'interface a été retiré* — mais la fonctionnalité
-  « catalogue de traductions thaï » subsiste (`ThaiTranslationTable.swift`),
-  neutralisée derrière `showThaiTranslationHub`, faux par défaut
-  ([MainView.swift:13](../StarHubTH/Views/MainView.swift#L13)).
+  *Le thaï comme langue d'interface a été retiré*, et le « catalogue de
+  traductions thaï » de l'amont aussi (C5-T1, 2026-09-24, `4e45b6c2`) : sa
+  place dans la barre latérale revient à la page « Traductions FR »
+  (`FrenchTranslationsView`), qui cherche sur Nexus les traductions
+  françaises des mods installés. Seule trace : la clé de préférence
+  `showThaiTranslationHub`, gardée dans la liste de `DefaultsMigration` pour
+  recopier les anciennes installations telles quelles.
 - **Deux applications peuvent coexister — elles se marchaient dessus.**
   StarHubFR est un fork de StarHubTH (AppleBoiy), dont il a longtemps gardé
   l'identité : même `CFBundleIdentifier`, même dossier Application Support.

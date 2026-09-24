@@ -4,7 +4,9 @@
 > StarHubFR par une IA. Pendant de [`prompt-audit.md`](prompt-audit.md), qui
 > audite le code fichier par fichier pour y trouver des bugs : celui-ci regarde
 > ce que l'utilisateur voit, où il le trouve, et combien de chemins mènent au
-> même endroit. Mesuré le 2026-09-24.
+> même endroit. Mesuré le 2026-09-24, remesuré le soir même après la première
+> passe (rapport local : `docs/superpowers/specs/2026-09-24-audit-ux-*.md`,
+> tâches issues : ROADMAP §4 X113–X115, axe I I-T7 à I-T16).
 
 ---
 
@@ -68,7 +70,7 @@ Dans cet ordre :
      performance, apparence et thème, conformité plateforme, identité), notée
      0-4, retargetée pour macOS. **Noter chaque écran avec elle, ne pas en
      inventer une autre.** Son chiffre « 48 fichiers de `Views/` » date :
-     il y en a 82 aujourd'hui (dont 25 sous `Views/Components/`).
+     il y en a 84 au 2026-09-24 (dont 25 sous `Views/Components/`).
   4. Les décisions déjà prises, pour ne pas les refaire :
      - `docs/refonte-ui-phase1-h-t2-t3-ledger-archive.md` (d'où viennent les
        groupes de la barre latérale) ;
@@ -104,12 +106,16 @@ parcourir, toutes (exclure les lignes de commentaire des comptes) :
 - **Onglets du détail d'un mod** — `Models/DetailTab.swift` : `description`,
   `changelog`, `dependencies`, `state`, `translation`.
 - **Menus et raccourcis** — `.commands` dans `StarHubTH/StarHubTHApp.swift`
-  (`CommandMenu` / `CommandGroup`), les 23 `.keyboardShortcut(`, et la palette
+  (`CommandMenu` / `CommandGroup`), les 27 `.keyboardShortcut(` — dont ⌘1–⌘9 (menu « Aller »,
+  une seule ligne pour les neuf), ⌘K, ⌘F (`SearchFieldShortcut`) et 24
+  `.defaultAction` / `.cancelAction` de feuilles —, et la palette
   de commandes (`Views/CommandPaletteView.swift`,
   `Models/CommandPaletteSearch.swift`).
 - **Menus contextuels et barres d'outils** — les `.contextMenu` (5) et les
-  éléments de `.toolbar` (5).
-- **Surfaces modales** — les `.sheet(` (24), `.popover(` (6) et les fenêtres
+  `.toolbar` (3 : historique de navigation, fiche d'un mod, éditeur de
+  config).
+- **Surfaces modales** — les `.sheet(` (20), `.popover(` (6), les `.alert(` et
+  `.confirmationDialog(` (14 chacun) et les fenêtres
   déclarées dans `StarHubTHApp.swift` (dont `InstallReportWindow`).
 - **Sauts entre écrans** — les `pending…Focus` de `NavigationStore` :
   `pendingModFocus`, `pendingModDetailFocus`, `pendingConfigFocus`,
@@ -178,9 +184,11 @@ les mesurer contre la table de conservation, puis conclure — y compris
    (`DiscoverView`) parlent tous deux à Nexus. ⚠️ « Mod Updates toujours
    visible » (§6) interdit de faire disparaître `updates` de la barre
    latérale.
-5. **Parties** — `SavesView`, `SavesGridView`, `SaveTreeListView`,
-   `SaveTimelineView`, `SaveEditorView`, `SaveCardView` : combien de façons de
-   voir une même sauvegarde, et sont-elles toutes utiles ?
+5. **Parties** — `SavesView` (liste **ou** grille, un `Picker`),
+   `SavesComponents` (carte, menu contextuel), `SaveTimelineView`,
+   `SaveEditorView` : combien de façons de voir une même sauvegarde, et
+   sont-elles toutes utiles ? *(Les `SavesGridView`, `SaveTreeListView` et
+   `SaveCardView` d'une version précédente de ce prompt n'existent pas.)*
 6. **Profils** — `ModProfilesView`, `ProfileConfigCompareView`,
    `ProfileDiagnosticsView`.
 7. **Accueil** — `home` (`HomeView`) : résume-t-il ce que les autres écrans
@@ -203,24 +211,26 @@ puis mesure chaque écran contre elle.
   `AppDesign.Color` : `primary`, `secondary`, `accent`, trois fonds système,
   `success`, `warning`, `error`, `info`, `installed`, `paused`).
 - **Ils sont peu suivis** :
-  - typographie : **522** `.system(size:)` littéraux contre **374**
+  - typographie : **524** `.system(size:)` littéraux contre **386**
     `AppDesign.Font.` et 41 styles sémantiques (`.caption`, `.headline`…) ;
     les littéraux les plus fréquents sont 11 pt (162), 12 pt (128), 10 pt
     (90) — soit exactement les tailles que les jetons portent déjà ;
-  - couleur : **~170** couleurs système nues (`.orange` 68, `.red` 46,
-    `.green` 26, `.blue` 17…) dans 31 fichiers de `Views/`, plus 19
-    `Color.xxx`, contre **90** `AppDesign.Color.` ; et des `Color(red:…)`
-    littéraux hors jetons (`Views/ModListRow.swift`,
-    `Views/ModDetailSections.swift`) dont un vert `0.62` voisin du jeton
-    `installed` (`0.65`) — deux verts pour un même sens ;
-  - espacement : ~430 `padding(<nombre>)` littéraux dans `Views/` contre 48
-    `AppDesignCore.Spacing` ;
+  - couleur : **178** couleurs système nues (`.orange` 71, `.red` 47,
+    `.green` 27, `.blue` 20…) dans 33 fichiers de `Views/`, plus 32
+    `Color.xxx`, contre **93** `AppDesign.Color.` ; et 7 `Color(red:…)`
+    littéraux hors jetons. Le vert `0.62` (`ModListRow`, `ModDetailSections`,
+    `TranslationDiffView`) porte « traduction complète », sens de `success`
+    — pas celui d'`installed` (`0.65`), recopié en littéral dans
+    `SidebarComponents.activeColor` ;
+  - espacement : ~430 `padding(<nombre>)` littéraux dans `Views/` contre
+    241 `Spacing.` tous préfixes confondus (`AppDesign.Spacing.` compris ;
+    l'ancien « 48 » ne comptait que `AppDesignCore.Spacing`) ;
   - boutons : **5 styles en 7 écritures** (`.plain` 78, `PlainButtonStyle()` 31,
-    `.bordered` 47, `.borderedProminent` 25 + 1 écrit
+    `.bordered` 47, `.borderedProminent` 27 + 1 écrit
     `BorderedProminentButtonStyle()`, `.link` 17, `.borderless` 15) — `plain`
     et `borderedProminent` ont chacun deux orthographes ; **aucun
     `ButtonStyle` maison** ;
-    `.controlSize` : `.small` 102, `.large` 4, `.mini` 2.
+    `.controlSize` : `.small` 104, `.large` 4, `.mini` 2.
   Refaire ces comptes au début de la passe (le code bouge chaque jour), avec
   un motif qui exclut les commentaires — un `grep` nu les compte, un motif
   trop étroit ne trouve qu'eux.
@@ -323,6 +333,9 @@ CONTRAINTES TECHNIQUES D'UNE FUSION
   **tous** les `switch` sur ce type sont exhaustifs, **sans `default:`**, par
   construction : le build signale chaque endroit à mettre à jour. Ne jamais
   ajouter de `default:` pour faire taire le compilateur.
+  ⚠️ Une exception existe au 2026-09-24 : `SidebarComponents.badge(_:)`
+  (`default: return nil`) — une destination fusionnée n'y aurait aucun badge,
+  en silence. La rendre exhaustive d'abord (ROADMAP I-T7).
 - **Changer d'onglet efface les états de détail** : `MainView` remet à `nil`
   `editingSave`, `viewingSaveTimeline`, `editingModConfig`, `viewingModDetail`,
   … au changement de `currentTab`. Poser l'un d'eux puis changer d'onglet ne
