@@ -20,6 +20,7 @@ where the exact log format was verified.
 - **La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu** — objets, bâtiments, données — et chaque ligne ouvre la fiche du mod.
 - **Un raccourci capturé dit tout de suite s'il est déjà pris.** Dans l'éditeur de config, la touche pressée est comparée à toutes les liaisons des autres mods actifs : « lié à {mod} ({réglage}) » s'affiche sous le champ dès la capture, même quand un seul autre mod la porte.
 - **Nettoyer une sauvegarde des données de mods disparus.** Un bouton « Nettoyer… » sur la fiche montre clé par clé ce que des mods désinstallés y ont laissé, crée une sauvegarde de sécurité, puis retire ces clés. Rien ne s'écrit si une étape échoue.
+- **Les listes déroulantes de l'éditeur de config affichent les libellés du mod**, traduits quand le mod l'est : « Coffres dans l'emplacement actuel » plutôt que `CurrentLocation` (Chests Anywhere). Couvre 617 listes de packs Content Patcher et les mods C# qui publient ces libellés.
 
 ### Changed
 

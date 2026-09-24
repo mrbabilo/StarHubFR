@@ -56,9 +56,25 @@ public enum ContentPackI18n {
                 allowValues: option.allowValues,
                 defaultLiteral: option.defaultLiteral,
                 allowBlank: option.allowBlank,
-                allowMultiple: option.allowMultiple
+                allowMultiple: option.allowMultiple,
+                valueLabels: valueLabels(of: option, in: lowered)
             )
         }
+    }
+
+    /// Les libellés des valeurs admises, par la convention
+    /// `config.<token>.values.<valeur>` — la seule que Content Patcher lise ;
+    /// une valeur sans entrée reste affichée telle quelle.
+    private static func valueLabels(of option: ConfigSchemaOption,
+                                    in table: [String: String]) -> [String: String] {
+        var labels: [String: String] = [:]
+        for value in option.allowValues {
+            let key = value.lowercased()
+            if let label = table["config.\(option.token).values.\(value)".lowercased()] {
+                labels[key] = label
+            }
+        }
+        return labels
     }
 
     /// Le titre d'une section. ⚠️ Ici la **convention passe devant** le texte

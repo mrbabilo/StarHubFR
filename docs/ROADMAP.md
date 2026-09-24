@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **6 items ouverts** *(recompté le 2026-09-24 : **C4-T12** livré, à l'archive ; **C4-T14** ajouté depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C4-T14, C5-T1, C6-T1)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **5 items ouverts** *(recompté le 2026-09-24 : **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C5-T1, C6-T1)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -251,20 +251,6 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       consultatif — si l'utilisateur n'agit jamais depuis ces lignes, les
       filtres sont du vernis. Livrer le premier filtre seul (conflits) et
       mesurer avant le reste. · **M**
-
-- [ ] **C4-T14 — Les libellés par valeur d'une liste déroulante.** *(trouvé le
-      2026-09-24 en décompilant Radiance 2.2.0 — SOURCES §5.)* Des mods publient
-      un libellé **par valeur** d'un choix : `config.sheetupscalekernel.epx`,
-      `.mmpx`, `.xbr`… à côté du `.name`. `ConfigLabelResolver` ne connaît que
-      `name|description|tooltip|desc|label|title` : ces listes s'affichent en
-      jetons bruts. 📏 Mesure grossière sur le parc : **20 mods, 37 champs**
-      portent au moins deux suffixes inconnus à côté d'un `.name` (Radiance 10,
-      MH Event List 5, SLO 3, RestAndRecover 3…) — **majorant** : des suffixes
-      comme `.button` ou des sous-clés de section y entrent. ⚠️ **Mesurer la
-      règle avant de la coder** : ne compter un suffixe comme libellé de valeur
-      que s'il correspond à une valeur permise du champ (enum de DLL, C4-T11,
-      ou valeurs vues dans `config.json`), sinon un faux libellé remplace un
-      vrai jeton. · **S**
 
 #### C5 — Hub de traduction agnostique de la langue
 
@@ -2194,6 +2180,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T10** | 2026-09-15 | Les 466 raccourcis du parc passent du champ texte au contrôle de capture : `Control.keybind` porte l'orthographe d'origine, R4 partagée, session sticky, AZERTY « a · Q » (`UCKeyTranslate`), annotation « lié à » (signatures canoniques, conflit jeu prioritaire, manette distinguée) |
 | **C4-T11** | 2026-09-15 | Les listes déroulantes des enums de DLL : lecture live des métadonnées à l'ouverture de l'éditeur (`DotNetMetadata`), cache par empreinte, oracle `tools/gmcm_options.py` (122 mods, 0 écart), dataset figé en filet |
 | **C4-T12** | 2026-09-24 | Le conflit se voit dès la capture : l'annotation « lié à » lit toutes les liaisons actives (`KeybindReport.activeUses`), plus les seules collisions — une touche portée par un seul autre mod est nommée tout de suite ; même mod exclu |
+| **C4-T14** | 2026-09-24 | Les entrées des listes déroulantes prennent le libellé que le mod publie : `config.<clé>.values.<valeur>` des packs CP (617 listes sur 1227, 59 packs en français) et `config.<clé>.<valeur>` des mods C# ; seules les valeurs admises sont cherchées |
 | **C5-T2** | 2026-09-23 | README : bannières rapatriées de `stardew-thai-translations` dans `assets/banners/`, changelog intégré « deux dernières versions », A1-T6/T8 décrits ; le hub thaï n'y figurait déjà plus |
 
 **Profils, favoris & backups exploitables — Axe B · B4 livré en v1.18.0, B3 aux trois quarts**

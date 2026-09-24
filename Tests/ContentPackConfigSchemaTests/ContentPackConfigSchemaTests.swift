@@ -257,6 +257,19 @@ struct ContentPackI18nTests {
         #expect(localized[0].name == "Explicite")
     }
 
+    @Test func allowedValuesTakeTheirConventionLabels() {
+        // C4-T14 — `config.<token>.values.<valeur>`, la clé que Content
+        // Patcher cherche pour son menu ; insensible à la casse, et une clé
+        // qui ne nomme pas une valeur admise n'entre pas.
+        let shirt = ConfigSchemaOption(token: "Shirt", name: nil, description: nil, section: nil,
+                                       allowValues: ["Warm", "Cold"], defaultLiteral: nil,
+                                       allowBlank: nil, allowMultiple: nil)
+        let localized = ContentPackI18n.localized(
+            [shirt],
+            with: ["config.shirt.values.warm": "Chaud", "config.Shirt.values.Hot": "Brûlant"])
+        #expect(localized[0].valueLabels == ["warm": "Chaud"])
+    }
+
     @Test func theLocaleIsTriedThenDefaultThenEnglish() {
         #expect(ContentPackI18n.localeCandidates(for: "fr") == ["fr", "default", "en"])
         #expect(ContentPackI18n.localeCandidates(for: "en") == ["en", "default"])

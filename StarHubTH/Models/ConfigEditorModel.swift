@@ -233,18 +233,30 @@ public enum ConfigEditorModel {
         /// 6 cas relevés sur le parc (`ShirtSpring = WarmWeather` quand le
         /// schéma dit `Cold | Vanilla | Warm`).
         public let isOutsideAllowedValues: Bool
+        /// C4-T14 — le libellé que le mod publie pour chaque entrée d'un menu,
+        /// clé en minuscules, restreint aux entrées du menu. Vide hors `.choice`.
+        public let choiceLabels: [String: String]
 
         public var id: String { ConfigEditorModel.rowId(of: keyPath) }
 
         public init(keyPath: [String], label: String, description: String?,
                     control: Control, defaultControl: Control?,
-                    isOutsideAllowedValues: Bool) {
+                    isOutsideAllowedValues: Bool,
+                    choiceLabels: [String: String] = [:]) {
             self.keyPath = keyPath
             self.label = label
             self.description = description
             self.control = control
             self.defaultControl = defaultControl
             self.isOutsideAllowedValues = isOutsideAllowedValues
+            self.choiceLabels = choiceLabels
+        }
+
+        /// Le libellé d'une entrée du menu, `nil` quand le mod n'en publie
+        /// pas — l'écran montre alors la valeur brute. Seul l'affichage
+        /// change : la valeur écrite reste celle du fichier ou de la liste.
+        public func choiceLabel(for value: String) -> String? {
+            choiceLabels[value.lowercased()]
         }
     }
 
@@ -387,12 +399,27 @@ public enum ConfigEditorModel {
             label = rawKey
         }
 
+        // C4-T14 — mêmes deux sources pour les entrées d'un menu : le pack
+        // traduit ses `AllowValues`, un mod C# publie `config.<clé>.<valeur>`.
+        // Seules les entrées du menu sont cherchées, jamais un suffixe
+        // quelconque : un libellé ne peut pas se poser sur autre chose
+        // qu'une valeur admise.
+        var choiceLabels: [String: String] = [:]
+        if case .choice(_, let among) = control {
+            let published = option.map(\.valueLabels) ?? resolved?.values ?? [:]
+            for value in among {
+                let key = value.lowercased()
+                if let text = published[key] { choiceLabels[key] = text }
+            }
+        }
+
         return Row(keyPath: leaf.keyPath,
                    label: label,
                    description: option?.description ?? resolved?.detail,
                    control: control,
                    defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
-                   isOutsideAllowedValues: isOutside)
+                   isOutsideAllowedValues: isOutside,
+                   choiceLabels: choiceLabels)
     }
 
     /// Le contrôle de capture pour une feuille que la grammaire classe

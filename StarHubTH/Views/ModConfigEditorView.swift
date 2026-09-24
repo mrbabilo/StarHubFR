@@ -779,9 +779,9 @@ struct ModConfigEditorView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help(String(format: localization.L(L10n.Settings.configResetToDefault),
-                                 defaultLabel(of: defaultControl)))
+                                 defaultLabel(of: defaultControl, in: row)))
                     .accessibilityLabel(String(format: localization.L(L10n.Settings.configResetToDefault),
-                                               defaultLabel(of: defaultControl)))
+                                               defaultLabel(of: defaultControl, in: row)))
                 } else {
                     Color.clear
                 }
@@ -901,22 +901,27 @@ struct ModConfigEditorView: View {
     /// Le libellé d'une entrée de menu. Deux cas que le schéma impose : le
     /// vide autorisé (358 clés du parc), et la valeur que le fichier porte
     /// alors qu'elle n'est pas dans la liste du mod (6 cas) — signalée plutôt
-    /// que remplacée en silence.
+    /// que remplacée en silence. Le libellé publié par le mod (C4-T14)
+    /// remplace la valeur brute à l'écran ; le `tag` garde la valeur.
     private func choiceLabel(_ value: String, in row: ConfigEditorModel.Row) -> String {
         if value.isEmpty { return localization.L(L10n.Settings.configEmptyValue) }
+        let shown = row.choiceLabel(for: value) ?? value
         if row.isOutsideAllowedValues, case .choice(let selected, _) = row.control, value == selected {
-            return "\(value) — \(localization.L(L10n.Settings.configValueOutsideList))"
+            return "\(shown) — \(localization.L(L10n.Settings.configValueOutsideList))"
         }
-        return value
+        return shown
     }
 
-    private func defaultLabel(of control: ConfigEditorModel.Control) -> String {
+    private func defaultLabel(of control: ConfigEditorModel.Control,
+                              in row: ConfigEditorModel.Row) -> String {
         switch control {
         case .toggle(let flag, _): return flag ? "true" : "false"
         case .integer(let value):  return String(value)
         case .decimal(let value):  return String(value)
         case .text(let value):     return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
-        case .choice(let value, _): return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue) : value
+        case .choice(let value, _):
+            return value.isEmpty ? localization.L(L10n.Settings.configEmptyValue)
+                                 : row.choiceLabel(for: value) ?? value
         // Le défaut d'une rangée raccourci porte le littéral de l'auteur en
         // `.text` — ce cas ne sert qu'à l'exhaustivité du switch.
         case .keybind(_, let combo): return combo.display

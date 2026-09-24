@@ -59,11 +59,43 @@ struct ConfigLabelResolverTests {
         #expect(ConfigLabelResolver.labels(for: "fastWarp", in: index) == nil)
     }
 
-    @Test func unknownSuffixesAreIgnored() {
+    @Test func unknownSuffixesOnlyFeedValueLabels() {
         let index = ConfigLabelResolver.index(
             defaultFile: ["config.fastWarp.flavor": "nope"],
             localizedFile: [:])
-        #expect(ConfigLabelResolver.labels(for: "fastWarp", in: index) == nil)
+        // C4-T14 — gardé comme libellé de valeur candidat, jamais comme
+        // libellé ni aide du champ.
+        let labels = ConfigLabelResolver.labels(for: "fastWarp", in: index)
+        #expect(labels?.text == "")
+        #expect(labels?.detail == nil)
+        #expect(labels?.values == ["flavor": "nope"])
+    }
+
+    @Test func theValuesFormIsAlwaysAValueLabel() {
+        // `config.<clé>.values.<valeur>` (Content Patcher, repris par les mods
+        // Pathoschild) : même une valeur nommée `Name` n'y est pas le libellé
+        // du champ.
+        let index = ConfigLabelResolver.index(
+            defaultFile: [
+                "config.theme.values.Joja": "Joja",
+                "config.theme.values.Name": "By name",
+            ],
+            localizedFile: [:])
+        let labels = ConfigLabelResolver.labels(for: "Theme", in: index)
+        #expect(labels?.text == "")
+        #expect(labels?.values == ["joja": "Joja", "name": "By name"])
+        #expect(ConfigLabelResolver.labels(for: "theme.values", in: index) == nil)
+    }
+
+    @Test func frenchOverridesValueByValue() {
+        let index = ConfigLabelResolver.index(
+            defaultFile: [
+                "config.style.scale2x": "Scale2x (crisp)",
+                "config.style.soft4x": "Soft4x (smooth)",
+            ],
+            localizedFile: ["config.style.scale2x": "Scale2x (net)"])
+        let values = ConfigLabelResolver.labels(for: "style", in: index)?.values
+        #expect(values == ["scale2x": "Scale2x (net)", "soft4x": "Soft4x (smooth)"])
     }
 
     // MARK: - Suffixes
@@ -166,5 +198,55 @@ struct ConfigLabelResolverTests {
         // libellé de repli.
         let schemaNamed = try #require(rows.first { $0.keyPath == ["SchemaNamed"] })
         #expect(schemaNamed.label == "Named by schema")
+    }
+
+    @Test func menuEntriesTakeTheLabelsOfAllowedValuesOnly() throws {
+        guard let tree = ConfigJSONTree.parse("""
+        { "Placement": "Loose", "SkipTo": "Title" }
+        """) else { Issue.record("arbre non parsé"); return }
+        let labels = ConfigLabelResolver.index(
+            defaultFile: [
+                "config.placement.name": "Placement rule",
+                "config.placement.strict": "Strict (vanilla)",
+                "config.placement.loose": "Loose",
+                "config.placement.flavor": "Not a choice",
+                // Une valeur homonyme d'un suffixe connu : `title` est le
+                // libellé du champ, jamais celui de l'entrée `Title`.
+                "config.skipTo.title": "Skip to",
+            ],
+            localizedFile: ["config.placement.loose": "Souple"])
+        let rows = ConfigEditorModel.groups(
+            of: tree, describedBy: [], labeledBy: labels,
+            gmcmChoices: ["Placement": ["Strict", "Loose", "Anarchy"],
+                          "SkipTo": ["Title", "Load"]]).flatMap(\.rows)
+
+        let placement = try #require(rows.first { $0.keyPath == ["Placement"] })
+        #expect(placement.label == "Placement rule")
+        #expect(placement.choiceLabels == ["strict": "Strict (vanilla)", "loose": "Souple"])
+        #expect(placement.choiceLabel(for: "Anarchy") == nil)
+
+        let skipTo = try #require(rows.first { $0.keyPath == ["SkipTo"] })
+        #expect(skipTo.choiceLabel(for: "Title") == nil)
+    }
+
+    @Test func aSchemaMenuTakesThePackLabelsNotTheI18nIndex() throws {
+        guard let tree = ConfigJSONTree.parse("""
+        { "Shirt": "Warm", "Free": "Warm" }
+        """) else { Issue.record("arbre non parsé"); return }
+        var shirt = ConfigSchemaOption(token: "Shirt", name: nil, description: nil, section: nil,
+                                       allowValues: ["Warm", "Cold"], defaultLiteral: nil,
+                                       allowBlank: nil, allowMultiple: nil)
+        shirt.valueLabels = ["warm": "Chaud"]
+        let labels = ConfigLabelResolver.index(
+            defaultFile: ["config.shirt.cold": "From i18n", "config.free.warm": "Unused"],
+            localizedFile: [:])
+        let rows = ConfigEditorModel.groups(of: tree, describedBy: [shirt],
+                                            labeledBy: labels).flatMap(\.rows)
+
+        let row = try #require(rows.first { $0.keyPath == ["Shirt"] })
+        #expect(row.choiceLabels == ["warm": "Chaud"])
+        // Pas de menu, pas de libellé d'entrée : un champ texte reste brut.
+        let free = try #require(rows.first { $0.keyPath == ["Free"] })
+        #expect(free.choiceLabels.isEmpty)
     }
 }

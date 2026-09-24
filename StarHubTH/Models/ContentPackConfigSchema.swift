@@ -36,6 +36,12 @@ public struct ConfigSchemaOption: Equatable, Sendable {
 
     public let allowBlank: Bool?
     public let allowMultiple: Bool?
+
+    /// C4-T14 — le libellé de chaque valeur admise, clé en minuscules. Rempli
+    /// par `ContentPackI18n` depuis la convention `config.<token>.values.<valeur>`
+    /// que Content Patcher cherche pour son menu : 617 des 1227 listes du parc
+    /// en portent. Vide tant que le schéma n'est pas traduit.
+    public var valueLabels: [String: String] = [:]
 }
 
 /// Lit le `ConfigSchema` d'un `content.json` de Content Patcher.

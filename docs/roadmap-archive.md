@@ -4354,6 +4354,36 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       aux liaisons manette** : le besoin couvre donc aussi les boutons de
       manette, ce qui confirme la comparaison par signature canonique. · **S**
 
+- [x] **C4-T14** — ✅ **Livré le 2026-09-24.** **Les libellés par valeur
+      d'une liste déroulante.** *(trouvé le 2026-09-24 en décompilant
+      Radiance 2.2.0 — SOURCES §5.)* Chaque entrée d'un menu de l'éditeur de
+      config montre le libellé que le mod publie, la valeur écrite restant
+      celle du fichier. Deux conventions : `config.<clé>.values.<valeur>`
+      (Content Patcher, reprise par les mods Pathoschild) lue par
+      `ContentPackI18n` dans `ConfigSchemaOption.valueLabels`, et
+      `config.<clé>.<valeur>` (mods C#) gardée par `ConfigLabelResolver`
+      dans `Labels.values`. La rangée (`Row.choiceLabels`) ne cherche que
+      les entrées du menu : un suffixe qui n'est pas une valeur admise ne
+      s'affiche jamais, et une valeur homonyme d'un suffixe connu (`Title`)
+      reste brute.
+      📏 **La règle mesurée avant d'être codée.** La mesure grossière
+      (20 mods C#, 37 champs) visait le mauvais chemin : côté C#, seuls
+      **5 champs sur 3 mods** (Chests Anywhere `Range`, MH Event List ×3,
+      Radiance `SheetUpscaleStyle`) ont une tige égale à la clé **et** des
+      suffixes égaux aux valeurs de l'enum — 14 valeurs, 0 faux. Le gros du
+      gain est côté packs CP, que la mesure initiale excluait : **617 des
+      1227 listes** du parc portent la convention `.values.` (1861 valeurs
+      sur 1875), **59 packs** en français.
+      **Restes mesurés, non traités.** Rapprochement par ensemble de
+      valeurs (tige libre, p. ex. Radiance `camera.mode` ↔ `CameraMode`) :
+      6 champs de plus, 2 ambigus (`shadows.model`/`water.model` ↔ deux
+      enums `{Classic, Modern}`) — il toucherait au plafond structurel du
+      resolver. Les listes en littéraux d'API (`SetAllowedValues` :
+      StardewDashboard, TreeAndBush, AutomateToolSwap… ~12 valeurs) n'ont
+      pas de menu (SOURCES §6 bis). Les mods Pathoschild écrivent des
+      tiges et valeurs en kebab-case (`skip-to.values.title-menu` pour
+      `SkipTo = Title`) : hors d'atteinte sans règle propre. · **S**
+
 
 
 #### Expérience utilisateur : navigation & accessibilité — Axe I (suite)

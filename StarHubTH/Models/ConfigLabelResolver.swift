@@ -26,10 +26,19 @@ public enum ConfigLabelResolver {
         /// Le texte d'aide (`description`, puis `tooltip`, puis `desc`),
         /// `nil` quand le mod n'en publie pas.
         public var detail: String?
+        /// C4-T14 — le libellé de chaque valeur d'une liste déroulante, clé
+        /// en minuscules : `config.sheetUpscaleStyle.scale2x`, ou la forme
+        /// `config.theme.values.Joja` que les mods Pathoschild reprennent de
+        /// Content Patcher. Tout suffixe hors des six connus y entre ; seul
+        /// l'appelant sait lesquels sont des valeurs admises, et il ne
+        /// consulte cette table **que** pour elles — un suffixe qui n'est pas
+        /// un choix du champ ne s'affiche jamais.
+        public var values: [String: String]
 
-        public init(text: String, detail: String?) {
+        public init(text: String, detail: String?, values: [String: String] = [:]) {
             self.text = text
             self.detail = detail
+            self.values = values
         }
     }
 
@@ -52,6 +61,7 @@ public enum ConfigLabelResolver {
             var textRank = Int.max
             var detail: String?
             var detailRank = Int.max
+            var values: [String: String] = [:]
         }
         var buckets: [String: Bucket] = [:]
 
@@ -64,8 +74,13 @@ public enum ConfigLabelResolver {
                 // `config.heal.amount.name` a pour tige `heal.amount` : on
                 // coupe au dernier point, le suffixe étant le dernier maillon.
                 guard let lastDot = rest.lastIndex(of: ".") else { continue }
-                let stem = String(rest[..<lastDot])
+                var stem = String(rest[..<lastDot])
                 let suffix = String(rest[rest.index(after: lastDot)...])
+                // `config.theme.values.Joja` : la forme Content Patcher dit
+                // explicitement « libellé de valeur », même quand la valeur
+                // s'appelle `name` ou `title`.
+                let explicitValue = stem.hasSuffix(".values")
+                if explicitValue { stem.removeLast(".values".count) }
                 guard !stem.isEmpty else { continue }
 
                 var bucket = buckets[stem] ?? Bucket()
@@ -73,14 +88,18 @@ public enum ConfigLabelResolver {
                 // égal. Sans risque dans une même passe — une paire
                 // (tige, suffixe) y est unique, le dictionnaire ne peut pas
                 // porter deux fois la même clé.
-                if let rank = labelRank[suffix], rank <= bucket.textRank {
+                if !explicitValue, let rank = labelRank[suffix] {
+                    guard rank <= bucket.textRank else { continue }
                     bucket.text = value
                     bucket.textRank = rank
-                } else if let rank = detailRank[suffix], rank <= bucket.detailRank {
+                } else if !explicitValue, let rank = detailRank[suffix] {
+                    guard rank <= bucket.detailRank else { continue }
                     bucket.detail = value
                     bucket.detailRank = rank
                 } else {
-                    continue
+                    // Passe traduite en second : elle écrase l'anglais
+                    // valeur par valeur.
+                    bucket.values[suffix] = value
                 }
                 buckets[stem] = bucket
             }
@@ -88,7 +107,8 @@ public enum ConfigLabelResolver {
 
         var index: [String: Labels] = [:]
         for (stem, bucket) in buckets {
-            index[stem] = Labels(text: bucket.text ?? "", detail: bucket.detail)
+            index[stem] = Labels(text: bucket.text ?? "", detail: bucket.detail,
+                                  values: bucket.values)
         }
         return index
     }
