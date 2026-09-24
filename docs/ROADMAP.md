@@ -181,6 +181,8 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 - [ ] **C3-T2** — Scan élargi aux assets Content Patcher (`events.json`, `dialogues.json`,
       `content.json`) : repérer les chaînes affichées restées en anglais. · **L** ·
       risque : forte hétérogénéité des packs → livrer en « suggestions », jamais en verdict.
+      **Référence trouvée le 2026-09-24** : Transtar (`wanniwa/transtar`, GPL-3.0) tient
+      la table des champs de texte affichés par cible `EditData` — voir SOURCES §5.
 - [ ] **C3-T5** — **Partiel ✅** — Export/import d'un lot de travail (`.json`) pour
       traduire à plusieurs, puis fusion contrôlée. · **M**
       ⚠️ **Corrigé en séance le 2026-09-03** : préparer un lot figeait le fil principal
@@ -263,11 +265,28 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       **précis** (l'engrenage ouvre l'éditeur en haut, pas sur la clé),
       export du rapport.
 
-#### C5 — Hub de traduction agnostique de la langue
+#### C5 — Vue d'ensemble des traductions françaises
 
-- [ ] **C5-T1** — Rendre `ThaiTranslationHubView` générique (langue en paramètre) et
-      exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
-      le transformer en sélecteur de langue. · **M**
+- [ ] **C5-T1** — **Redéfini le 2026-09-24** (l'ancien énoncé — rendre
+      `ThaiTranslationHubView` générique — n'avait pas de source : le hub thaï lit le
+      catalogue d'AppleBoiy, et il n'existe aucun catalogue FR ; l'org GitHub
+      `FR-translation-for-Stardew-Valley-Mods` n'est que 27 forks morts depuis 2020).
+      **Une page « Traductions FR » qui remplace l'entrée du hub thaï** : toutes les
+      traductions françaises disponibles sur Nexus pour les mods installés (**en pause
+      compris**), et les mises à jour de celles déjà posées. Recherche lancée **par un
+      bouton**, résultats mémorisés sur disque. · **L**
+      - **Source primaire : le lien « requis par »** (`modsRequiringThisMod`, voir
+        SOURCES §2.4) — 10 traductions FR sur 87 ids, toutes justes, contre 11 dont
+        4 fausses pour la recherche par nom. **Repli** : la recherche d'A3-T3
+        (nom + tag `French`, puis titre) pour les 82 mods sans id Nexus — **un seul
+        chemin de recherche**, extrait du ViewModel, partagé avec le bouton de la fiche.
+      - Stocker l'observation brute (résultats, date, échec ≠ rien trouvé) ; le statut
+        (disponible, posée, mise à jour, désormais traduit) se **dérive** à l'affichage
+        de l'état vivant (registre, couverture, `TranslationPresence.update`).
+      - Candidats : cadrage `FrenchTranslationScope.missing` + hôtes du registre (8 +
+        7 suppléments le 2026-09-24).
+      - Ensuite, commit séparé : retrait du hub thaï (vue, code VM, réglage, clés L10n,
+        ligne de `CLAUDE.md`).
 
 #### C6 — Signaux de demande de traduction — ❌ **abandonné le 2026-09-24 (mesure)**
 

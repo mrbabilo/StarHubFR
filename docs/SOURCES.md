@@ -261,7 +261,9 @@ v1 **ne sait pas chercher** : la recherche passe par GraphQL (§2.4).
 | **Rôle** | la recherche de mods, la vitrine Découverte |
 | **Code** | `StarHubTH/NexusSearchClient.swift` |
 | **À savoir** | le filtre est un tag `French`, pas une catégorie. `ModsFilter` porte 27 champs, dont `categoryName` et `languageName` |
-| **Sonde** | aucune — exige un jeton |
+| **Sans jeton** | **faux, ce que disait cette ligne** (mesuré le 2026-09-24) : introspection, `mods(filter:…)` et `modRequirements` répondent sans clé, à condition d'envoyer un `User-Agent` — sans lui, Cloudflare rend 403. L'app garde la clé (quota, cohérence avec v1) |
+| **Traductions d'un mod** | `modRequirements { modsRequiringThisMod(count:, offset:) { totalCount nodes { modId modName notes } } }` : les fiches qui déclarent le mod comme prérequis — les traductions en font partie, **sans champ de langue** (la langue se lit dans `modName`). La section « Translations » de la page web (langue → fiche) **n'est pas exposée** par le schéma (38 champs de `Mod`, aucun). Mesuré sur le parc : 176 mods traduisibles sans `fr.json`, 94 avec un id Nexus (87 distincts) ; **10** ont une traduction FR requérante, **toutes justes** ; la recherche nom + tag `French` en rend 11 dont **4 fausses**, et ses 7 justes sont déjà dans les 10. SVE (3753) : 756 requérants, 3 des 5 traductions FR de la page y figurent |
+| **Sonde** | aucune |
 
 ### 2.5 DeepL — traduction de secours
 
@@ -463,6 +465,32 @@ sockets du multijoueur (`CoopSocketBufferSizeKb`) et interroge l'affichage
   per frame, KB »), format autrement stable.
 
 ---
+
+### Outils de traduction de mods *(2026-09-24)*
+
+Relevés à la demande de l'utilisateur, pour le hub FR :
+
+- **Transtar** (`wanniwa/transtar`, Python, **GPL-3.0**, poussé le 2026-06-22,
+  Windows seulement) — extrait tout le texte affiché d'un mod, `i18n` **et**
+  Content Patcher, dans un dossier `dict`, puis régénère un paquet de traduction.
+  Ce qui nous sert : `app/core/handlers/CpHandler.py` (34 Ko) tient la **table,
+  cible par cible, des champs de texte affichés** dans les `EditData` CP
+  (`Data/Objects`, `Shops`, `Characters`, `WorldMap`, `SpecialOrders`, films,
+  festivals passifs…) et la résolution des jetons de chemin (`{{Target}}`,
+  `{{TargetWithoutPath}}`). C'est exactement la connaissance qui manque à
+  **C3-T2** (repérer les chaînes CP restées en anglais). Licence GPL : relever les
+  règles, **ne pas recopier le code**. Son `TranslationChecker` vérifie les jetons
+  perdus (`%farm`, `$1`, `^`, `#`) — notre `TranslationTokenCheck` le fait déjà.
+- **Internationalization** (Nexus 21317, v0.6, 2026-05-10) — éditeur i18n servi
+  **dans le jeu** sur `localhost:8018`, mise à jour à chaud. Notre hub édite hors
+  jeu ; rien à reprendre, sinon l'idée du rechargement à chaud — que SMAPI offre
+  déjà par sa commande console `reload_i18n`.
+- **AutoTranslator** (Nexus 35031, v2.0.2, 2025-09-09) — traduction IA des i18n
+  depuis le jeu (OpenAI, DeepSeek, Anthropic, Gemini), mises à jour
+  incrémentales. Recouvre le hub (DeepL, IA locale) ; rien de neuf, la structure
+  `i18n/default/` est déjà lue par `I18nLocaleResolver`.
+- **Developer Tool — i18n Translator** (Nexus 21920) — déjà relevé : mémoire
+  `stardew-i18n-translator-reference`.
 
 ## 6. Mods du jeu observés — la convention `config.*`
 
