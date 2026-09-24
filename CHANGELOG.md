@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **La fusion entre traducteurs.** Un lot reçu se relit contre l'état complet du mod : traductions nouvelles écrites d'un coup, divergences arbitrées côte à côte (« garder le mien » / « prendre le sien »), identiques passées en silence. L'anglais est revérifié au moment d'écrire — une ligne bougée est abandonnée et nommée, jamais écrite dessus.
+- **Un lot ZIP pour un traducteur extérieur.** L'encart de « Traductions FR » exporte plusieurs mods dans un seul ZIP (un JSON par mod, le format déjà lu par un chat) et fusionne en retour un ZIP ou un JSON isolé, chaque lot routé vers son mod — un mod absent du parc est nommé, jamais bloquant.
 - **Nouvelle page « Traductions FR »** : les traductions françaises disponibles sur Nexus pour tous vos mods, en pause compris, et les mises à jour de celles déjà installées. La recherche part d'un bouton, suit le lien « requis par » de Nexus puis le nom, et signale ce qui ne vient que du nom.
 - **Le rapport de raccourcis liste tous les raccourcis de vos mods actifs**, pas seulement les conflits : filtre tous / liés / en conflit / non assignés, recherche par mod, réglage ou touche, et accès direct à la config de chaque mod.
 - **Audit de Keybind Radar et SaveSaver**, deux mods tout neufs qui recouvrent les raccourcis et les sauvegardes, mesurés contre le parc et vos sauvegardes. Cinq items neufs en ROADMAP en sortent — avertir à la bascule d'un mod dont les données dorment dans une partie, audit de sauvegarde en lecture, nettoyage guidé, signal de conflit pendant la capture d'un raccourci, filtres du rapport.
