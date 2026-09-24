@@ -948,10 +948,6 @@ travail, pas des engagements.
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
 conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 
-- [ ] **I-T7** — **Badges : `switch` exhaustif.** `SidebarComponents.badge(_:)`
-      porte un `default: return nil` sur `SidebarDestination` : une
-      destination nouvelle ou fusionnée n'aurait aucun badge, en silence.
-      Préalable à I-T8. Aucun changement visible. · **S**
 - [ ] **I-T8** — **Une destination « Sauvegardes »** réunissant sauvegardes
       d'installation, de configuration et fichiers récupérables (sortis de la
       feuille `RecoverableFilesView`) en trois segments ; l'Entretien garde le

@@ -22,7 +22,9 @@ struct SidebarNavGroups: View {
             return (vm.systemAlertCount, .orange)
         case .quarantine:
             return (vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0, .purple)
-        default:
+        case .home, .mods, .discover, .frenchTranslations, .profiles, .saves,
+             .installBackups, .configBackups, .maintenance, .logs, .settings,
+             .appChangelog:
             return nil
         }
     }

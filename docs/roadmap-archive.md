@@ -4584,6 +4584,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       n'existe pour ça, et en ajouter deux pour un besoin non mesuré est ce
       que ce dépôt regrette ailleurs.
 
+- [x] **I-T7** ✅ *(livré le 2026-09-24)* — **Badges : `switch` exhaustif.**
+      `SidebarComponents.badge(_:)` portait un `default: return nil` sur
+      `SidebarDestination` : une destination nouvelle ou fusionnée n'aurait
+      eu aucun badge, en silence. Toutes les branches sont nommées — ajouter
+      une destination casse le build jusqu'à ce qu'elle déclare son badge ou
+      son silence. Préalable à **I-T8** (sa destination « Sauvegardes »
+      devra se prononcer). Aucun changement visible.
+
 
 #### Axe F — Dette technique (suite)
 
