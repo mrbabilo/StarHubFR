@@ -3637,6 +3637,24 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X111** ✅ *(livré le 2026-09-24)* — **Après « Effacer », le journal de l'app rognait la tête du bloc SMAPI.**
+      `LogBudget.appending` écrêtait par la tête du tableau, avec un commentaire
+      affirmant que « toutes les entrées concernées sont de l'app ». Le bloc
+      SMAPI vit dans le même tableau et occupe toute la place que l'app laisse.
+      Tant que des entrées de l'app précèdent, la tête est l'une d'elles ; après
+      « Effacer » (`clearApp`), il n'y en a plus, et chaque ligne de l'app
+      jetait la première ligne SMAPI — le diagnostic de démarrage (« Skipped
+      mods ») d'abord, jusqu'à la relecture suivante. La carte de santé, qui lit
+      le fichier entier, n'était pas touchée.
+      ▸ **Trouvé** par la comparaison des corps déplacés vers `Stores/` (audit
+      du VM, fin de tranche 4) : le défaut précède l'extraction (`ef807448`),
+      qui l'a transporté fidèlement.
+      ▸ **Mesuré le 2026-09-24** : `SMAPI-latest.txt` du parc à 11 374 lignes
+      pour un plafond de 2 000 — le bloc SMAPI remplit toujours son budget.
+      ▸ **Livré** : l'entrée de l'app la plus ancienne part d'abord ; sans
+      elle, le bloc SMAPI rend une place par `trimPreservingSignal` (bruit
+      `TRACE` d'abord). Test rouge avant, épingle du cas nominal à côté.
+
 - [x] **X110** ✅ *(livré le 2026-09-24)* — **La corbeille ne pouvait pas purger un mod livré en lecture seule.**
       `ModTrash.purgeEntry` et `ModTrash.purgeAll` effaçaient par
       `fm.removeItem` nu. Un mod dont l'archive fixe ses dossiers en 0555

@@ -42,13 +42,23 @@ enum LogBudget {
         return out
     }
 
-    /// Ajoute une entrée de l'app, en jetant les plus anciennes au-delà du
-    /// plafond. Ici l'écrêtage par la tête est correct : toutes les entrées
-    /// concernées sont de l'app, et l'ancienneté est le seul critère.
+    /// Ajoute une entrée de l'app, sous le plafond.
+    ///
+    /// Le tableau porte aussi le bloc SMAPI, qui occupe toute la place que
+    /// l'app lui laisse (un vrai journal dépasse de loin le plafond). Au-delà,
+    /// on jette donc la plus ancienne entrée **de l'app** ; s'il n'en reste
+    /// aucune avant la nouvelle — journal de l'app qu'on vient d'effacer —, le
+    /// bloc SMAPI rend une place par `trimPreservingSignal`, bruit d'abord.
+    /// Un écrêtage par la tête jetait là son diagnostic de démarrage.
     static func appending(_ entry: LogEntry, to existing: [LogEntry], cap: Int) -> [LogEntry] {
         var out = existing
+        while out.count >= cap, let oldest = out.firstIndex(where: { $0.source == .app }) {
+            out.remove(at: oldest)
+        }
+        if out.count >= cap {
+            out = trimPreservingSignal(out, cap: max(0, cap - 1))
+        }
         out.append(entry)
-        if out.count > cap { out.removeFirst(out.count - cap) }
         return out
     }
 }

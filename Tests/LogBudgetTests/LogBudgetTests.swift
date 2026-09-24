@@ -86,4 +86,25 @@ import Foundation
         let out = LogBudget.appending(entry("a2"), to: [entry("a1")], cap: 10)
         #expect(out.map(\.message) == ["a1", "a2"])
     }
+
+    // Le tableau n'est pas fait que d'entrées de l'app : le bloc SMAPI y vit
+    // aussi, et sur un vrai parc (11 374 lignes) il occupe toute la place que
+    // l'app laisse. Après « Effacer », chaque ligne de l'app écrêtait la tête
+    // de ce bloc — ses `ERROR` de démarrage (« Skipped mods ») d'abord.
+
+    @Test func appendingDropsTheOldestAppEntryBeforeAnySmapiLine() {
+        let existing = [entry("a1"), entry("diagnostic", .error, .smapi),
+                        entry("bruit", .trace, .smapi)]
+        let out = LogBudget.appending(entry("a2"), to: existing, cap: 3)
+        #expect(out.map(\.message) == ["diagnostic", "bruit", "a2"])
+    }
+
+    @Test func appendingWithNoOlderAppEntryShedsSmapiNoiseNotItsDiagnostic() {
+        let existing = [entry("diagnostic", .error, .smapi),
+                        entry("bruit1", .trace, .smapi), entry("bruit2", .trace, .smapi)]
+        let out = LogBudget.appending(entry("a1"), to: existing, cap: 3)
+        #expect(out.count == 3)
+        #expect(out.first?.message == "diagnostic")
+        #expect(out.last?.message == "a1")
+    }
 }
