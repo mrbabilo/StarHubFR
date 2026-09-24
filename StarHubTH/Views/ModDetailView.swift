@@ -283,10 +283,9 @@ struct ModDetailView: View {
         return URL(string: extra.pictureUrl)
     }
 
-    /// Les trois exclus du strip : catégorie, liens Nexus, date
-    /// d'installation (celle du manifeste du composant pour un composant —
-    /// sa rangée de liste la montre, la fiche aussi). Un composant y mène
-    /// avec le retour au pack : sans lui, sa fiche est un cul-de-sac.
+    /// Hors du strip : catégorie, couverture FR (même pastille que la liste),
+    /// liens Nexus, date d'installation. Un composant y ramène à son pack :
+    /// sans ce retour, sa fiche est un cul-de-sac.
     @ViewBuilder
     private var fineBand: some View {
         HStack(spacing: 16) {
@@ -302,6 +301,7 @@ struct ModDetailView: View {
                 .pointingHandCursor()
             }
             categoryTag
+            if mod.languages.contains("fr") { FrenchCoverageBadge(percent: vm.frenchCoverage(for: mod), unmeasuredLabel: "FR", percentFormat: localization.L(L10n.Mods.frCoveragePercent)) }
             let link = vm.nexusLink(for: mod)
             if !link.isEmpty {
                 HStack(spacing: 16) {
