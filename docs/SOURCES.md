@@ -470,17 +470,58 @@ sockets du multijoueur (`CoopSocketBufferSizeKb`) et interroge l'affichage
 
 Relevés à la demande de l'utilisateur, pour le hub FR :
 
-- **Transtar** (`wanniwa/transtar`, Python, **GPL-3.0**, poussé le 2026-06-22,
-  Windows seulement) — extrait tout le texte affiché d'un mod, `i18n` **et**
-  Content Patcher, dans un dossier `dict`, puis régénère un paquet de traduction.
-  Ce qui nous sert : `app/core/handlers/CpHandler.py` (34 Ko) tient la **table,
-  cible par cible, des champs de texte affichés** dans les `EditData` CP
-  (`Data/Objects`, `Shops`, `Characters`, `WorldMap`, `SpecialOrders`, films,
-  festivals passifs…) et la résolution des jetons de chemin (`{{Target}}`,
-  `{{TargetWithoutPath}}`). C'est exactement la connaissance qui manque à
-  **C3-T2** (repérer les chaînes CP restées en anglais). Licence GPL : relever les
-  règles, **ne pas recopier le code**. Son `TranslationChecker` vérifie les jetons
-  perdus (`%farm`, `$1`, `^`, `#`) — notre `TranslationTokenCheck` le fait déjà.
+- **Transtar** (`wanniwa/transtar`, Python, **GPL-3.0**, Windows seulement ;
+  code lu au commit `a47562c` = 3.0.5, plus récent que la release 3.0.0 du
+  2025-12-26 — source ouverte, rien à décompiler) — extrait tout le texte
+  affiché d'un mod (`i18n`, Content Patcher, JA, MFM, STF, QF) dans un dossier
+  `dict`, le fait traduire (Google, DeepL, LLM), puis régénère un paquet. Étudié
+  le 2026-09-24 pour **C3-T2** ; relever les règles, **ne pas recopier le code**.
+  - **Détection des fichiers** (`file_util.get_target_type`) : par nom —
+    `content.json` = CP, dossiers préfixés `[JA]`/`[BL]`… Tout est ouvert en
+    `utf-8` strict : les i18n UTF-16/32 du parc le feraient échouer.
+  - **Parcours CP** (`CpHandler.handle`) : `Include` suivi récursivement,
+    `Load` d'un `.json` lu comme des entrées, `EditData` (sauf `TargetField`,
+    ignoré), jetons `{{Random:…}}` dépliés, `DynamicTokens` substitués dans les
+    chemins, `{{Language}}`/`{{Target}}`/`{{TargetWithoutPath}}` résolus. Un
+    changement sous `When: {Language: X}` avec X ≠ langue source est **sauté** —
+    c'est ce qui évite de compter un fichier déjà traduit.
+  - **La table cible → champs affichés** (`TargetAssetType` + `traverse_editdata_entries`),
+    le vrai savoir : chaînes entières pour `Characters/Dialogue/*`, `Strings/*`,
+    `Data/Mail`, `Data/ExtraDialogue`… ; `DisplayName`/`Description` pour
+    `Objects`, `BigCraftables`, `Weapons`, `Shirts`, `Pants` ; `DisplayName`
+    (+ `Name`) pour `Locations`, `FruitTrees`, `Buildings` ; `FarmAnimals` 5
+    champs (`ShopDisplayName`, `BirthText`…) ; `Characters.DisplayName` et
+    `FriendsAndFamily` ; `Shops` → `Owners[].ClosedMessage` et
+    `Dialogues[].Dialogue` ; `WorldMap` → `Tooltips[].Text`, `MapAreas[].ScrollText` ;
+    `SpecialOrders` → `Objectives[].Text` ; `PassiveFestivals` → `DisplayName`,
+    `StartMessage` ; `Minecarts` → `Destinations[].DisplayName` ; films →
+    `SpecialResponses.*.Text` ; CJB Cheats Menu, UnlockableBundles. Les anciens
+    formats à barres obliques 1.5 ont leurs index (`ObjectInformation` 4-5,
+    `Quests` 1-3 et 9, `Hats` 1 et 5, `Furniture` 7, `NPCDispositions` 11…).
+  - **Événements** : une regex (`speak`, `splitSpeak`, `textAboveHead`,
+    `message`, `question`, `quickQuestion`, `end dialogue`) n'extrait que le
+    texte entre guillemets ; une valeur qui porte déjà `i18n` est sautée.
+  - **Défauts relevés** : `action.lower == "EditMap".lower()` (méthode comparée
+    à une chaîne) — la branche `EditMap` (`SetProperties.Default/Failure`)
+    ne s'exécute **jamais** ; `CraftingRecipes` est classé mais `deal_str` n'a
+    pas de branche pour lui (`crafting_recipes()` jamais appelée) — ses noms ne
+    sont jamais extraits ; la signature de jetons `trait()` compte
+    `${…}` comme un jeton comparé à l'identique — le sélecteur de genre, que le
+    français réécrit légitimement (mémoire `gender-selector-is-not-a-token`),
+    y serait une erreur. Notre `TranslationTokens` reconnaît `%mot` + chiffres
+    de façon générique, là où `trait()` énumère 17 substitutions.
+  - **Contrôles de réponse d'IA** (`check/AdvancedChecks.py`) : nombre de lignes
+    conservé, jetons présents, réponse identique à l'original (similarité de
+    Jaccard), reste de texte source — idées pour le lot IA du hub.
+  - **Mesure sur le parc** (136 packs CP actifs, règles ci-dessus, `Include`
+    et `Load` suivis, changements `When: Language` sautés) : **4 800** chaînes
+    affichées écrites en dur hors `{{i18n}}`, dont **4 092 déjà en français**
+    (East Scarp, entre autres, a reçu une traduction qui écrit dans ses
+    assets), **233 en anglais** et 475 indécidables (noms courts). Les 233
+    anglaises tiennent dans **11 packs**, dont **192** dans un seul
+    (`[NPC] Lucy Artifact Store`). Leçon pour C3-T2 : « en dur » ne veut pas
+    dire « en anglais » — il faut juger la langue du texte, ce que Transtar ne
+    fait pas.
 - **Internationalization** (Nexus 21317, v0.6, 2026-05-10) — éditeur i18n servi
   **dans le jeu** sur `localhost:8018`, mise à jour à chaud. Notre hub édite hors
   jeu ; rien à reprendre, sinon l'idée du rechargement à chaud — que SMAPI offre

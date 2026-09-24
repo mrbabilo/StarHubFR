@@ -182,7 +182,11 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       `content.json`) : repérer les chaînes affichées restées en anglais. · **L** ·
       risque : forte hétérogénéité des packs → livrer en « suggestions », jamais en verdict.
       **Référence trouvée le 2026-09-24** : Transtar (`wanniwa/transtar`, GPL-3.0) tient
-      la table des champs de texte affichés par cible `EditData` — voir SOURCES §5.
+      la table des champs de texte affichés par cible `EditData` — étudiée, voir SOURCES §5.
+      **Mesuré le jour même** avec ses règles : 233 chaînes anglaises en dur sur 11 packs
+      (192 dans un seul), noyées dans 4 092 chaînes en dur **déjà françaises** — le
+      verdict doit juger la langue, pas seulement l'absence de `{{i18n}}`. Valeur faible
+      sur ce parc : à peser avant d'engager.
 - [ ] **C3-T5** — **Partiel ✅** — Export/import d'un lot de travail (`.json`) pour
       traduire à plusieurs, puis fusion contrôlée. · **M**
       ⚠️ **Corrigé en séance le 2026-09-03** : préparer un lot figeait le fil principal
