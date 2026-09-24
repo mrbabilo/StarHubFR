@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **5 items ouverts** *(recompté le 2026-09-24 : **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C5-T1, C6-T1)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **4 items ouverts** *(recompté le 2026-09-24 : **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C5-T1)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -269,27 +269,19 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       exposer une vue **FR** par défaut ; supprimer le drapeau `showThaiTranslationHub` ou
       le transformer en sélecteur de langue. · **M**
 
-#### C6 — Signaux de demande de traduction (`needs:fr`)
+#### C6 — Signaux de demande de traduction — ❌ **abandonné le 2026-09-24 (mesure)**
 
-Origine : panorama des canaux de traduction FR (2026-08-27). Sur les canaux listés, un
-seul était inconnu du dépôt — les autres sont couverts (Nexus + tag `French` = **A3-T3**,
-livré ; pages « What do you want VF » = mods Nexus ordinaires) ou sans API
-(stardewvalley.fr, Discord FR — rien à câbler). Le dépôt GitHub
-`Pathoschild/SMAPI-ModTranslationClassifier` tient des **issues taguées `needs:fr`** :
-les mods sans traduction française dont l'auteur en demande une, maintenues par
-l'auteur de SMAPI. C'est l'inverse exact du hub actuel, qui trouve ce qui **existe**.
-
-- [ ] **C6-T1** — Croiser le parc avec les issues `needs:fr` : sur la fiche d'un mod
-      sans traduction FR (C1 le sait déjà), dire si une traduction est **activement
-      demandée** — issue ouverte, âge, lien. API GitHub publique, sans clé : mesurable
-      sans passer par l'utilisateur. · **M** · *à mesurer avant d'engager :*
-      - **la clé de croisement** — les issues du classifier référencent-elles les mods
-        par `UniqueID` (alors le parc croise directement — contrairement à Nexus, qui
-        ne rend pas l'identifiant d'un mod non installé) ou par nom de mod ?
-      - **la couverture** — sur les mods du parc sans traduction FR, combien figurent
-        dans le classifier (Pathoschild scanne les mods SMAPI qu'il connaît, pas tout
-        Nexus). Repli si la couverture est dérisoire : ne pas livrer une pastille qui
-        ne s'allume jamais.
+Origine : panorama des canaux de traduction FR (2026-08-27), qui nommait un dépôt
+`Pathoschild/SMAPI-ModTranslationClassifier` et des issues `needs:fr`. **Ni l'un ni
+l'autre n'existe** : l'API GitHub rend 404 sur le dépôt et zéro issue `needs:fr` sur
+tout GitHub (le seul dépôt voisin, `ModTranslationClassBuilder`, est un générateur de
+code). La vraie source, trouvée par la page wiki `Modding:Translations`, est
+**`StardewModders/mod-translations`**, label `needs: French`, mods désignés **par nom et
+version seulement** (pas d'UniqueID). Mesure : **6** demandes françaises ouvertes au
+total, la plus récente créée le 2025-01-03, aucune en 2026 (70 issues depuis 2019,
+3 créées en 2025) ; **aucun** des 6 mods n'est dans le parc (recherche sur les `Name`
+des manifestes). Une pastille qui ne s'allumerait jamais : **C6-T1 n'est pas livré.**
+À rouvrir seulement si le dépôt reprend vie.
 
 **Risques** : c'est la version la plus exposée à la perte de données utilisateur (écriture
 dans les fichiers des mods). Aucune écriture sans backup préalable ni diff affiché.
