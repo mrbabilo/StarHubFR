@@ -62,9 +62,7 @@ enum L10n {
     enum Home {
         static let appInfo              = "home_app_info"
         static let developer            = "home_developer"
-        static let modManager           = "home_mod_manager"
         static let notInstalled         = "home_not_installed"
-        static let installedMods        = "home_installed_mods"
         static let gameFolder           = "home_game_folder"
         static let gamePath             = "home_game_path"
         static let notSet               = "home_not_set"
@@ -84,7 +82,6 @@ enum L10n {
         static let installedAndEnabled  = "home_installed_and_enabled"
         static let notInstalledOrDisabled = "home_not_installed_or_disabled"
         static let installedButDisabled = "home_installed_but_disabled"
-        static let itemCount            = "home_item_count"
         static let smapiNotInstalled    = "home_smapi_not_installed"
     }
 

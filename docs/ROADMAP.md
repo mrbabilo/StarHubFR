@@ -928,10 +928,6 @@ travail, pas des engagements.
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
 conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 
-- [ ] **I-T9** — **Accueil allégé** : « Infos sur l'appli » et « Extensions
-      principales » y doublent les Réglages (mêmes clés) ; les retirer de
-      l'accueil, qui garde lancer le jeu, les étapes manquantes et les
-      compteurs d'attention (à zéro, ils se taisent). · **S**
 - [ ] **I-T10** — **Destructif sémantique** : Entretien et corbeille colorent
       en rouge des boutons sans `role: .destructive` — VoiceOver ne l'annonce
       pas. · **S**

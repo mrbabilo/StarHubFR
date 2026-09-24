@@ -4636,6 +4636,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       d'Entretien (`MaintenanceInventory.soleCopyFiles`, toutes sessions,
       mods désinstallés en Finder), et l'Entretien y renvoie.
 
+- [x] **I-T9** ✅ *(livré le 2026-09-24)* — **Accueil allégé** : « Infos
+      sur l'appli » et « Extensions principales » retirées de l'accueil,
+      gardées aux Réglages. Rien de perdu : développeur (À propos), version
+      SMAPI (section SMAPI), nombre de mods (tuile de la bande d'attention).
+      Clés `home_mod_manager`, `home_installed_mods`, `home_item_count`
+      retirées. Compteurs à zéro : déjà neutres (`tint` nul hors
+      `.attention`), gardés visibles — un « 0 alerte » se lit.
+
 
 #### Axe F — Dette technique (suite)
 
