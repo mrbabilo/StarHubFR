@@ -1,4 +1,4 @@
-# Prompt d'audit UX/UI — consolider sans rien perdre
+# Prompt d'audit UX/UI — consolider, clarifier, harmoniser
 
 > Prompt réutilisable pour faire auditer l'**expérience** et l'**interface** de
 > StarHubFR par une IA. Pendant de [`prompt-audit.md`](prompt-audit.md), qui
@@ -21,6 +21,11 @@ fonctionnalités.** « Conserver » a un sens vérifiable ici : chaque
 fonctionnalité recensée à la phase 1 doit avoir, après fusion, un écran cible
 **et** au moins un point d'entrée. Une proposition qui laisse une seule ligne
 sans destination n'est pas recevable.
+
+Deuxième objectif, de même rang : **améliorer au maximum la lisibilité et la
+présentation** — hiérarchie de l'information (voir d'abord ce qui compte),
+écrans de synthèse qui mènent quelque part, couleur sémantique cohérente,
+boutons harmonisés, jetons de design réellement appliqués (phase 4).
 
 UTILISATEUR DE RÉFÉRENCE : un joueur avancé, en français, qui gère un parc
 d'environ **1 000 mods** (996 entrées dans `Mods/`, 1 146 `manifest.json` au
@@ -184,6 +189,115 @@ les mesurer contre la table de conservation, puis conclure — y compris
 Tu peux en trouver d'autres ; chacune suit le même traitement.
 
 ────────────────────────────────────────────
+PHASE 4 — Présentation : lisibilité, hiérarchie, couleur, boutons
+────────────────────────────────────────────
+Deuxième objectif, aussi important que les fusions : **qu'on lise vite, et
+qu'on voie d'abord ce qui compte.** Cette phase produit une **charte** courte,
+puis mesure chaque écran contre elle.
+
+**État des lieux, mesuré le 2026-09-24 (hors commentaires, hors `Design/`) :**
+- **Les jetons existent** : `StarHubTH/AppDesignCore.swift` (`Spacing` xs→xxl,
+  `Radius`, `Opacity`, `Grid`, `Metrics`, `Shadow`) et
+  `StarHubTH/Design/AppDesignUI.swift` (`AppDesign.Font` : 13 tailles de
+  `iconXXS` 9 pt à `heroTitle` 26 pt, plus les variantes `mono…` ;
+  `AppDesign.Color` : `primary`, `secondary`, `accent`, trois fonds système,
+  `success`, `warning`, `error`, `info`, `installed`, `paused`).
+- **Ils sont peu suivis** :
+  - typographie : **522** `.system(size:)` littéraux contre **374**
+    `AppDesign.Font.` et 41 styles sémantiques (`.caption`, `.headline`…) ;
+    les littéraux les plus fréquents sont 11 pt (162), 12 pt (128), 10 pt
+    (90) — soit exactement les tailles que les jetons portent déjà ;
+  - couleur : **~170** couleurs système nues (`.orange` 68, `.red` 46,
+    `.green` 26, `.blue` 17…) dans 31 fichiers de `Views/`, plus 19
+    `Color.xxx`, contre **90** `AppDesign.Color.` ; et des `Color(red:…)`
+    littéraux hors jetons (`Views/ModListRow.swift`,
+    `Views/ModDetailSections.swift`) dont un vert `0.62` voisin du jeton
+    `installed` (`0.65`) — deux verts pour un même sens ;
+  - espacement : ~430 `padding(<nombre>)` littéraux dans `Views/` contre 48
+    `AppDesignCore.Spacing` ;
+  - boutons : **5 styles en 7 écritures** (`.plain` 78, `PlainButtonStyle()` 31,
+    `.bordered` 47, `.borderedProminent` 25 + 1 écrit
+    `BorderedProminentButtonStyle()`, `.link` 17, `.borderless` 15) — `plain`
+    et `borderedProminent` ont chacun deux orthographes ; **aucun
+    `ButtonStyle` maison** ;
+    `.controlSize` : `.small` 102, `.large` 4, `.mini` 2.
+  Refaire ces comptes au début de la passe (le code bouge chaque jour), avec
+  un motif qui exclut les commentaires — un `grep` nu les compte, un motif
+  trop étroit ne trouve qu'eux.
+
+**Ce que la charte doit trancher :**
+1. **Échelle typographique** : quel jeton pour quel rôle (titre d'écran, titre
+   de section, titre de ligne, corps, métadonnée, valeur chiffrée,
+   identifiant technique en `mono…`). Une table de correspondance
+   littéral → jeton, pour que la migration soit mécanique. Dire si les
+   tailles fixes doivent céder la place aux styles sémantiques qui suivent le
+   réglage système (critère d'accessibilité de `AUDIT_UI.md` §1).
+2. **Couleur sémantique** : une table **sens → jeton**, un seul jeton par
+   sens. Au minimum : réussite d'action, **état installé/actif**
+   (`installed`, distinct de `success` — ne jamais les confondre, voir le
+   commentaire du jeton), en pause, avertissement, erreur, information,
+   neutre. La couleur ne porte jamais seule l'information : un glyphe ou un
+   mot l'accompagne (daltonisme, et `.help` invisible sur petit glyphe). Les
+   deux apparences, claire et sombre, de plein droit. Un littéral sans sens
+   (voile sur vignette, liseré) peut rester littéral : le piège est le
+   littéral **quand un jeton porte déjà ce sens** (`AUDIT_UI.md` §3).
+3. **Hiérarchie des boutons** : une règle par rôle —
+   - action principale de l'écran : `.borderedProminent`, **une seule** par
+     zone visible ;
+   - actions secondaires : `.bordered` ;
+   - actions de ligne et contrôles denses : `.borderless` ou `.plain`, taille
+     cohérente ;
+   - liens sortants (Nexus, page d'un mod) : `.link` ;
+   - action destructrice : `role: .destructive`, confirmation, jamais en
+     style principal par défaut.
+   Une orthographe par style. Dire si un `ButtonStyle` maison se justifie ou
+   si les styles système suffisent (conformité plateforme, `AUDIT_UI.md` §4).
+   Même question pour `.controlSize` : une taille par contexte (barre
+   d'outils, ligne de liste, feuille).
+4. **Espacement et rythme** : quand utiliser `AppDesignCore.Spacing` ; le
+   patron de carte (`StateCard`, `StatStrip`, `StatColumn`, `SectionHeader`,
+   `HeroHeader`, `SeverityBadge`, `NeutralBadge`, `CategoryBadge` sous
+   `Views/Components/`) — réutiliser ces composants, ne pas en créer un
+   troisième qui fait la même chose.
+
+**Mise en évidence de l'information importante — à juger écran par écran :**
+- **Ce que l'utilisateur doit voir en premier** : le nommer pour chaque
+  écran (mods cassés, mises à jour disponibles, SMAPI obsolète, quota Nexus,
+  sauvegarde à risque). Est-ce la chose la plus visible, ou noyée dans une
+  liste de même poids ?
+- **Gravité ordonnée** : erreur avant avertissement avant information, avec
+  un seul code couleur. Un compteur à zéro se tait (badge caché à zéro, comme
+  « Mod Updates ») ; une alerte vraie ne se tait jamais. ⚠️ Mesurer sur le
+  vrai journal SMAPI et le vrai parc : une pastille a déjà annoncé 7 alertes
+  sur un parc sain après dix revues vertes.
+- **Densité** : un parc de ~1 000 mods demande des lignes denses mais
+  scannables — titre fort, métadonnées discrètes, un seul état coloré par
+  ligne. Relever les lignes qui empilent plusieurs badges de même poids.
+- **États vides et états de chargement** : chaque écran dit pourquoi il est
+  vide et quoi faire. Un écran qui ne montre rien sur les données de
+  l'utilisateur doit le dire, pas rester blanc.
+
+**Écrans de synthèse** (`home`/`HomeView`, `systemAlerts`,
+`SmapiHealthCard`, `StatStrip`, diagnostics de profil, en-têtes de page) :
+- Chaque chiffre affiché **mène** à la liste qu'il résume, filtrée.
+- Pas deux écrans de synthèse qui répètent les mêmes chiffres sans raison
+  (à croiser avec la fusion candidate n° 7, Accueil).
+- Un chiffre sans comparaison ne dit rien : « 12 mises à jour » dit plus
+  avec « dont 3 depuis hier » ou la gravité.
+
+**Contraintes propres à cette phase :**
+- **Migration par lots, par écran ou par composant**, jamais « tout le dépôt
+  d'un coup » : un lot = un écran (ou un composant partagé) passé aux jetons,
+  compilé, avec son scénario GUI (clair **et** sombre, libellé FR le plus
+  long, fenêtre étroite).
+- Un remplacement littéral → jeton de **même valeur** ne change rien à
+  l'écran : le dire, et le ranger en 🔵 finition. Un changement de valeur
+  (taille, teinte) est une décision visuelle : la justifier.
+- Ajouter un jeton seulement s'il porte un **sens** qu'aucun autre ne porte.
+- Pas de nouvelle police, pas de palette de marque importée : l'app reste
+  native macOS (couleur d'accent système, matériaux système).
+
+────────────────────────────────────────────
 CONTRAINTES TECHNIQUES D'UNE FUSION
 ────────────────────────────────────────────
 - **Retirer un cas de `SidebarDestination`** : aucune migration de données.
@@ -234,13 +348,18 @@ FORMAT DE SORTIE
    - **Risque** : ce qui peut disparaître en silence ;
    - **Scénario GUI** à rejouer par l'humain ;
    - **Lot** : livrable seul, dans quel ordre par rapport aux autres.
-4. **Améliorations hors fusion** (corrections et optimisations), même format
-   de fiche, sans la partie « table touchée ».
-5. **Pistes écartées, avec la raison** : toute fusion ou amélioration
+4. **Charte de présentation** (phase 4) : échelle typographique, table
+   sens → couleur, hiérarchie des boutons, règles d'espacement — chacune avec
+   sa table de correspondance littéral → jeton, et les comptes remesurés.
+5. **Améliorations hors fusion** (lisibilité, mise en évidence, synthèse,
+   couleur, boutons, corrections), même format de fiche, sans la partie
+   « table touchée » ; pour chaque écran, **ce qui doit sauter aux yeux** et
+   ce qui le cache aujourd'hui.
+6. **Pistes écartées, avec la raison** : toute fusion ou amélioration
    examinée puis abandonnée, avec ce qui la ferme (contrainte §6, décision
    archivée, mesure). Cette section vaut autant que les propositions : elle
    empêche la prochaine passe de refaire le même chemin.
-6. **Ordre de livraison recommandé**, du gain le plus sûr au plus risqué.
+7. **Ordre de livraison recommandé**, du gain le plus sûr au plus risqué.
 
 ────────────────────────────────────────────
 DÉBUT DE SESSION
@@ -251,4 +370,4 @@ la barre latérale, les contraintes UI figées, et les pièges qui pèsent sur u
 fusion d'écrans.
 
 Puis livrer la phase 1 (table de conservation) et **s'arrêter** pour
-validation avant les phases 2 et 3.
+validation avant les phases 2 à 4.
