@@ -193,6 +193,28 @@ public enum MaintenanceInventory {
     /// constatée toute seule ». Le prix de la garde est qu'un parc réellement
     /// vide ne nettoie plus ses clés ; le prix de son absence est la perte de
     /// données de tous les autres.
+    /// Les clés de **tous** les magasins de préférences indexés par nom
+    /// logique de dossier — la liste que l'écran juge. Un magasin absent d'ici
+    /// garde ses orphelins pour toujours : c'était le cas des favoris et de la
+    /// marque « à écarter » (X107), purgés par `deleteMod` seulement, alors
+    /// qu'un dossier quitte aussi le disque hors de l'app.
+    public static func folderKeyedPreferenceKeys(
+        favorites: Set<String>,
+        blacklisted: Set<String>,
+        profileManagedConfigs: Set<String>,
+        activationTimestamps: some Sequence<String>,
+        nexusModIds: some Sequence<String>,
+        nexusCategories: some Sequence<String>
+    ) -> Set<String> {
+        var keys = favorites
+        keys.formUnion(blacklisted)
+        keys.formUnion(profileManagedConfigs)
+        keys.formUnion(activationTimestamps)
+        keys.formUnion(nexusModIds)
+        keys.formUnion(nexusCategories)
+        return keys
+    }
+
     public static func stalePreferenceKeys(_ keys: some Sequence<String>,
                                            installedFolders: Set<String>) -> Set<String> {
         guard !installedFolders.isEmpty else { return [] }

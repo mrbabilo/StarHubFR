@@ -112,4 +112,30 @@ struct StaleKeysNeedAKnownParcTests {
                                                          installedFolders: ["Automate"])
                 == ["Disparu"])
     }
+
+    /// X107 — le favori orphelin du parc réel : `[CP] Stardew Valley Expanded`,
+    /// devenu composant du pack `Stardew Valley Expanded/` le 2026-09-22 hors
+    /// de `deleteMod`. Les favoris et la marque « à écarter » manquaient à la
+    /// liste des magasins que l'écran Entretien juge : l'orphelin gonflait le
+    /// badge Favoris (46 pour 45 lignes) et rien ne pouvait le retirer.
+    @Test func favoritesAndBlacklistAreJudgedLikeTheOtherFolderKeyedStores() {
+        let keys = MaintenanceInventory.folderKeyedPreferenceKeys(
+            favorites: ["[CP] Stardew Valley Expanded", "Automate"],
+            blacklisted: ["Disparu"],
+            profileManagedConfigs: [],
+            activationTimestamps: [],
+            nexusModIds: [],
+            nexusCategories: [])
+        let installed: Set<String> = ["Automate", "Stardew Valley Expanded",
+                                      "Stardew Valley Expanded/[CP] Stardew Valley Expanded"]
+        #expect(MaintenanceInventory.stalePreferenceKeys(keys, installedFolders: installed)
+                == ["[CP] Stardew Valley Expanded", "Disparu"])
+    }
+
+    @Test func everyFolderKeyedStoreFeedsTheKeys() {
+        let keys = MaintenanceInventory.folderKeyedPreferenceKeys(
+            favorites: ["F"], blacklisted: ["B"], profileManagedConfigs: ["P"],
+            activationTimestamps: ["T"], nexusModIds: ["N"], nexusCategories: ["C"])
+        #expect(keys == ["F", "B", "P", "T", "N", "C"])
+    }
 }

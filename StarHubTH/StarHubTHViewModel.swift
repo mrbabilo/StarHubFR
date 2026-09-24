@@ -9202,6 +9202,24 @@ final class StarHubTHViewModel {
     /// préférences pour rien à chaque suppression n'apporte rien.
     private func forgetStores(of mod: ModItem) {
         let folder = mod.folderName
+        // X107 — le favori et la marque « à écarter » partent ici, pas dans la
+        // seule branche de succès de `deleteMod` : la branche « dossier déjà
+        // absent » (le mod a quitté le disque hors de l'app) les laissait
+        // orphelins, et le badge Favoris comptait un mod qu'aucune ligne ne
+        // montrait. `ModRemovalPurge` emporte aussi les composants d'un pack.
+        if ModRemovalPurge.purge(&favoriteMods, removing: folder) {
+            Self.saveFavoriteMods(favoriteMods)
+        }
+        if ModRemovalPurge.purge(&blacklistedMods, removing: folder) {
+            Self.saveBlacklistedMods(blacklistedMods)
+        }
+        // L'historique d'erreurs et la référence de traduction grossiraient
+        // sinon indéfiniment avec des mods qui ne sont plus installés.
+        errorHistory.forget(mod: folder)
+        if let store = TranslationBaseline.defaultDirectory() {
+            try? TranslationBaseline.remove(modFolderName: folder, in: store)
+        }
+        invalidateFrenchCoverage(for: folder)
         if ModRemovalPurge.purge(&profileManagedConfigMods, removing: folder) {
             Self.saveProfileManagedConfigMods(profileManagedConfigMods)
         }
@@ -9341,37 +9359,9 @@ final class StarHubTHViewModel {
             let trashDest = ModTrash.destination(eventDir: eventDir, logicalFolderName: leaf)
             try fm.moveItem(atPath: modPath, toPath: trashDest)
             // The registry entry is pruned by the next scanMods() (below),
-            // which removes entries for folders no longer on disk.
-            // Forget the mod's error history too, so the file doesn't keep
-            // growing with mods that are no longer installed.
-            errorHistory.forget(mod: mod.folderName)
-            // TranslationBaseline picked up every convention
-            // ModErrorHistoryStore follows except the one that bounds its
-            // growth — without this, a deleted mod's reference store (every
-            // English/French pair seen) stays on disk forever.
-            if let store = TranslationBaseline.defaultDirectory() {
-                try? TranslationBaseline.remove(modFolderName: mod.folderName, in: store)
-            }
-            // `invalidateFrenchCoverage` is `@MainActor` (three `@Published`
-            // mutations); `deleteMod` isn't itself isolated, but both call
-            // sites are button actions in a View, always on the main thread.
-            // `assumeIsolated` keeps this synchronous and right after the
-            // disk purge above — a `Task` hop here would reopen the very
-            // race `d5deef5`/`8467e4a` closed for the index.
-            MainActor.assumeIsolated {
-                invalidateFrenchCoverage(for: mod.folderName)
-            }
-            // Le favori part avec le mod : le garder gonflerait indéfiniment
-            // le compteur de la pastille de cadrage avec des dossiers qui
-            // n'existent plus.
-            if favoriteMods.remove(mod.folderName) != nil {
-                Self.saveFavoriteMods(favoriteMods)
-            }
-            // Idem pour la marque « à écarter » : un dossier supprimé ne se
-            // grise plus jamais, la marque resterait fantôme.
-            if blacklistedMods.remove(mod.folderName) != nil {
-                Self.saveBlacklistedMods(blacklistedMods)
-            }
+            // which removes entries for folders no longer on disk. Every
+            // other folder-keyed store is forgotten by `forgetStores` — the
+            // one purge both branches of this function share (X107).
             forgetStores(of: mod)
             log(String(format: localization.L(L10n.Mods.deletedLog), mod.name))
             let resolvedGameDir = gameDir
@@ -9600,15 +9590,18 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les clés des quatre magasins indexés par nom de dossier — ceux que X55
-    /// a câblés à la suppression d'un mod, et dont les entrées d'avant X55
-    /// subsistent (35 mesurées le 2026-09-04).
+    /// Les clés des six magasins indexés par nom de dossier — les quatre que
+    /// X55 a câblés à la suppression d'un mod (35 entrées d'avant X55
+    /// mesurées le 2026-09-04), plus les favoris et la marque « à écarter »
+    /// (X107 : un orphelin sur le parc le 2026-09-24).
     private func maintenancePreferenceKeys() -> Set<String> {
-        var keys = Set(profileManagedConfigMods)
-        keys.formUnion(modActivationTimestamps.keys)
-        keys.formUnion(nexusCustomModIds.keys)
-        keys.formUnion(nexusCustomCategories.keys)
-        return keys
+        MaintenanceInventory.folderKeyedPreferenceKeys(
+            favorites: favoriteMods,
+            blacklisted: blacklistedMods,
+            profileManagedConfigs: profileManagedConfigMods,
+            activationTimestamps: modActivationTimestamps.keys,
+            nexusModIds: nexusCustomModIds.keys,
+            nexusCategories: nexusCustomCategories.keys)
     }
 
     /// Les chemins des traductions et greffes que **l'app** a posées, par mod
@@ -9816,6 +9809,12 @@ final class StarHubTHViewModel {
             }
         }
         for key in report.stalePreferenceKeys {
+            if ModRemovalPurge.purge(&favoriteMods, removing: key) {
+                Self.saveFavoriteMods(favoriteMods)
+            }
+            if ModRemovalPurge.purge(&blacklistedMods, removing: key) {
+                Self.saveBlacklistedMods(blacklistedMods)
+            }
             if ModRemovalPurge.purge(&profileManagedConfigMods, removing: key) {
                 Self.saveProfileManagedConfigMods(profileManagedConfigMods)
             }

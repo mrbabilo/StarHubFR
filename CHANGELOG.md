@@ -32,6 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un favori ne reste plus orphelin.** Un mod disparu hors de l'app gardait son favori ou sa marque « à écarter » : le badge Favoris comptait une ligne de trop, et rien ne pouvait la retirer. L'écran Entretien les nettoie désormais, et supprimer un mod déjà absent les efface.
 - **Les requêtes GraphQL de la recherche « Traductions FR » abandonnent après 20 s** au lieu de 60 : la progression ne se fige plus une minute sur un mod lent.
 - **« Arrêter » clôt la recherche « Traductions FR » tout de suite**, même au milieu d'une requête Nexus ; la trace suit chaque mod.
 - **La page « Traductions FR » juge chaque résultat.** Le lien « requis par » de Nexus ramène aussi les traductions d'autres mods, et le tag French seul fait passer des mods écrits en français pour des traductions : « confirmée » si le titre nomme le mod, sinon « à vérifier ».

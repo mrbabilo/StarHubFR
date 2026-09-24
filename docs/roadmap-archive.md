@@ -3637,6 +3637,36 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X107** ✅ *(livré le 2026-09-24)* — **Un favori dont le dossier a quitté le disque hors de l'app restait pour toujours.**
+      `forgetStores` était la purge commune à la suppression, mais les favoris,
+      la marque « à écarter », l'historique d'erreurs, la référence de
+      traduction et la couverture FR ne partaient que dans la **branche de
+      succès** de `deleteMod`. La branche « dossier déjà absent » — le mod a
+      quitté le disque par le Finder ou une réorganisation — appelait
+      `forgetStores` seule. Et l'écran Entretien (X25) ne jugeait que quatre
+      magasins : les favoris et la marque « à écarter » (arrivée le 2026-09-07,
+      après X55) n'y figuraient pas, si bien que rien ne pouvait retirer
+      l'orphelin. Même famille que X69 : le chemin voisin qui n'applique pas la
+      règle.
+      ▸ **Mesuré sur les préférences réelles le 2026-09-24** : `favoriteMods`
+      porte 46 clés dont **une orpheline**, `[CP] Stardew Valley Expanded` —
+      SVE vit depuis le 2026-09-22 dans le pack `Stardew Valley Expanded/`. Le
+      badge Favoris affichait 46 pour 45 lignes, et SVE n'était plus en favori.
+      Les autres magasins sont propres (registre 1 148, horodatages 543,
+      `nexusCustomModIds` 204, `blacklistedMods` 11 : zéro orpheline, un
+      composant de pack en pause compté présent — le point vit sur l'en-tête).
+      ▸ **Livré** : les cinq purges entrent dans `forgetStores`, que les deux
+      branches partagent ; `ModRemovalPurge` y emporte aussi les composants d'un
+      pack supprimé (l'ancien `remove(folderName)` n'ôtait que l'en-tête). La
+      liste des clés jugées par l'Entretien passe en Core,
+      `MaintenanceInventory.folderKeyedPreferenceKeys`, six magasins, et
+      `cleanStaleMaintenanceEntries` purge les deux ensembles. Deux tests,
+      rougis par sabotage (retirer les favoris de la liste).
+      ▸ **Écarté** : la cause de la réorganisation de SVE. La branche
+      `.overwriteWithBackup` de l'installateur réinstalle au `folderName`
+      existant — elle ne peut pas avoir déplacé SVE dans un pack. Le correctif
+      couvre toute disparition hors de l'app, quelle qu'en soit la cause.
+
 - [x] **X106** ✅ *(livré le 2026-09-13)* — **Un `NSLock` est pris et rendu dans un contexte asynchrone.**
       `SmapiUpdateClient.swift:110` et `:112` — le compilateur le dit déjà
       (`instance method 'lock' is unavailable from asynchronous contexts`), et
