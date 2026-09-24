@@ -7414,25 +7414,34 @@ final class StarHubTHViewModel {
         return DisabledModsCleanup.targets(in: entries)
     }
 
-    /// ⚠️ Suppression **définitive**, pas la corbeille. Le tri qui a désigné
-    /// ces dossiers vit dans `DisabledModsCleanup` (Core, 11 tests) ; sur le
-    /// parc de référence, 721 dossiers sont en pause.
+    /// Met en corbeille (X103-B) les mods en pause désignés par
+    /// `DisabledModsCleanup` (Core) — en **un** événement, que l'Entretien
+    /// remet ou purge d'un bloc. Sur le parc de référence, 721 dossiers : ce
+    /// geste était le seul à les effacer sans retour. L'espace ne revient
+    /// qu'au vidage de la corbeille.
     func cleanDisabledMods(targets: [String]) {
         guard !gameDir.isEmpty else { return }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let fm = FileManager.default
-
+        let items = targets.map {
+            ModTrash.Item(physical: $0, logicalLeaf: String($0.drop { $0 == "." }))
+        }
         var removed = 0
-        var failed = 0
+        var failed = targets.count
         var firstError: Error?
-        for entry in targets {
-            do {
-                try fm.removeItem(atPath: (modsPath as NSString).appendingPathComponent(entry))
-                removed += 1
-            } catch {
-                failed += 1
-                if firstError == nil { firstError = error }
+        do {
+            let result = try ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(),
+                                            items: items)
+            removed = result.moved.count
+            failed = result.failed.count
+            firstError = result.failed.first?.error
+            // Comme `deleteMod` : les préférences d'un mod mis en corbeille
+            // partent avec lui (X55, X107).
+            let moved = Set(result.moved)
+            for mod in scanStore.mods where moved.contains(mod.physicalFolderName) {
+                forgetStores(of: mod)
             }
+        } catch {
+            firstError = error
         }
 
         let outcome = DisabledModsCleanup.outcome(removed: removed, failed: failed)
@@ -9340,7 +9349,6 @@ final class StarHubTHViewModel {
         // that follows the folder removal has republished `mods`.
         pendingDeleteFolder = mod.folderName
 
-        let stamp = ModTrash.makeStamp()
         do {
             // X103-B — « supprimer » met en corbeille : le dossier déménage
             // sous `Mods/_Trash_<horodatage>/<feuille logique>`, le préfixe
@@ -9349,17 +9357,11 @@ final class StarHubTHViewModel {
             // une heuristique (leçon X25). La feuille est le nom **logique**
             // (jamais le point) — un composant de pack supprimé un à un
             // atterrit à plat, sous son propre nom.
-            let eventDir = (modsPath as NSString)
-                .appendingPathComponent(ModTrash.trashFolderName(stamp: stamp))
-            try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
-            // Le marqueur AVANT le déplacement : si le disque refuse cette
-            // écriture, aucun mod n'a encore bougé — et un événement sans
-            // marqueur n'est pas une corbeille utilisateur (la quarantaine
-            // du réparateur partage le préfixe).
-            try ModTrash.markEvent(eventDir: eventDir)
             let leaf = (mod.folderName as NSString).lastPathComponent
-            let trashDest = ModTrash.destination(eventDir: eventDir, logicalFolderName: leaf)
-            try fm.moveItem(atPath: modPath, toPath: trashDest)
+            let result = try ModTrash.trash(
+                modsPath: modsPath, stamp: ModTrash.makeStamp(),
+                items: [.init(physical: mod.physicalFolderName, logicalLeaf: leaf)])
+            if let failure = result.failed.first { throw failure.error }
             // The registry entry is pruned by the next scanMods() (below),
             // which removes entries for folders no longer on disk. Every
             // other folder-keyed store is forgotten by `forgetStores` — the
@@ -9375,11 +9377,7 @@ final class StarHubTHViewModel {
                 }
             }
         } catch {
-            // Le marquage a pu réussir avant l'échec du déplacement : un
-            // événement resté vide n'est pas une corbeille — il part.
-            ModTrash.discardEventIfEmpty(
-                modsPath: modsPath,
-                event: ModTrash.trashFolderName(stamp: stamp))
+            // `ModTrash.trash` a déjà retiré l'événement resté vide.
             pendingDeleteFolder = nil
             log(String(format: "%@: %@",
                        localization.L(L10n.Mods.deleteFailed), error.localizedDescription),

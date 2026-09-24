@@ -65,9 +65,9 @@ struct SettingsView: View {
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .alert(isPresented: $showClearDisabledConfirm) {
-            // cleanDisabledMods fait un removeItem définitif (pas la corbeille) :
-            // sans cette confirmation, un clic supprimait tous les mods désactivés
-            // du profil sans retour possible.
+            // cleanDisabledMods met tout le lot dans la corbeille des mods
+            // (restaurable depuis Entretien) : la confirmation chiffre ce qui
+            // part avant le clic.
             Alert(
                 title: Text(localization.L(L10n.Settings.clearDisabledMods)),
                 message: Text(String(format: localization.L(L10n.Settings.clearDisabledConfirmCount),

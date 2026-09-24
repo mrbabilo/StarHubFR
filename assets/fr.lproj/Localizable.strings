@@ -1226,12 +1226,12 @@
 "settings_backup_saves_button" = "Sauvegarder";
 "settings_chain_toggle" = "Activer/désactiver automatiquement les mods liés";
 "settings_chain_toggle_hint" = "Lors de l'activation d'un mod, ses dépendances requises sont activées automatiquement. Lors de la désactivation, les mods qui en dépendent sont désactivés aussi.";
-"settings_clear_disabled_confirm" = "Cela supprime définitivement tous les mods désactivés du profil actuel. Continuer ?";
-"settings_clear_disabled_confirm_count" = "Cela supprime définitivement %lld dossier(s) de mods désactivés — ils ne passent pas par la corbeille. Continuer ?";
+"settings_clear_disabled_confirm" = "Cela met tous les mods désactivés du profil actuel dans la corbeille des mods (Entretien). Continuer ?";
+"settings_clear_disabled_confirm_count" = "Cela met %lld dossier(s) de mods désactivés dans la corbeille des mods. Ils restent restaurables depuis Entretien ; l'espace revient quand vous videz la corbeille. Continuer ?";
 "settings_clear_disabled_mods" = "Vider les mods désactivés";
 "settings_close_launcher" = "Fermer automatiquement le lanceur après le démarrage du jeu";
 "settings_default_launch_mode" = "Mode de lancement par défaut";
-"settings_delete_junk_mods" = "Supprimer les mods inutiles";
+"settings_delete_junk_mods" = "Mettre à la corbeille";
 "settings_developer" = "Développeur";
 "settings_fallback_clear" = "Retirer";
 "settings_fallback_desktop_app" = "L'application DeepL est installée sur ce Mac — mais elle n'offre aucun point d'entrée auquel une autre application puisse se brancher. La traduction depuis StarHubFR passe par une clé d'API, gratuite.";
@@ -1253,7 +1253,7 @@
 "settings_footer_appearance" = "La fenêtre des journaux développeur permet d'inspecter SMAPI. Si un mod plante, vous pouvez copier le texte pour le transmettre au développeur.";
 "settings_footer_backup" = "Crée un fichier Zip des données importantes sur votre Bureau. Les sauvegardes évitent la corruption des fichiers lors des mises à jour.";
 "settings_footer_launch" = "Si le jeu ne se lance pas, essayez de sélectionner Vanilla. Pour plus d'infos, consultez : [wiki.stardewvalley.net/Modding](https://stardewvalleywiki.com/Modding)";
-"settings_footer_management" = "Supprime tous les mods désactivés (dossiers Mods/.X) pour libérer de l'espace si vous n'en avez plus besoin.";
+"settings_footer_management" = "Met tous les mods désactivés (dossiers Mods/.X) dans la corbeille des mods ; videz-la dans Entretien pour libérer l'espace.";
 "settings_game_dir_not_set" = "Veuillez d'abord sélectionner le dossier du jeu";
 "settings_glossary_info" = "%1$lld termes, construit le %2$@";
 "settings_glossary_none" = "Aucun glossaire pour l'instant — « Reconstruire » lit les termes depuis le jeu installé";
@@ -1417,9 +1417,9 @@
 "vm_game_dir_not_recognised" = "Ce dossier ne ressemble pas à une installation de Stardew Valley. Désigne l'application du jeu elle-même — le dossier Mods est trouvé à partir de là.";
 "vm_mods_folder_unavailable" = "Le dossier du jeu est enregistré, mais son dossier Mods n'a pas pu être créé. Vérifie les droits du dossier.";
 "vm_cannot_start_vanilla" = "Échec du démarrage du jeu vanilla";
-"vm_clean_mods_error" = "Échec de la suppression d'un ou plusieurs mods désactivés : %@";
+"vm_clean_mods_error" = "Échec de la mise à la corbeille d'un ou plusieurs mods désactivés : %@";
 "vm_clean_mods_not_found" = "Aucun mod désactivé trouvé";
-"vm_clean_mods_success" = "Mods désactivés supprimés avec succès";
+"vm_clean_mods_success" = "Mods désactivés mis dans la corbeille (Entretien)";
 "vm_default_farmer_name" = "Fermier";
 "vm_delete_save_error" = "Échec de la suppression de la sauvegarde";
 "vm_delete_save_success" = "Sauvegarde déplacée vers la corbeille avec succès";

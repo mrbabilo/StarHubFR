@@ -96,6 +96,52 @@ enum ModTrash {
             .appendingPathComponent("\(leaf)_\(UUID().uuidString)")
     }
 
+    /// Un dossier à mettre en corbeille : son chemin **physique** sous
+    /// `Mods/` (point compris s'il est en pause) et sa feuille **logique**,
+    /// le nom que « remettre » relira.
+    struct Item: Equatable, Sendable {
+        let physical: String
+        let logicalLeaf: String
+    }
+
+    struct TrashResult {
+        /// Les chemins physiques déplacés, dans l'ordre reçu.
+        var moved: [String] = []
+        /// Les entrées restées en place, avec leur erreur.
+        var failed: [(physical: String, error: Error)] = []
+    }
+
+    /// Met un lot en corbeille, en **un seul** événement — la suppression d'un
+    /// mod (un élément) et le vidage des mods en pause (tout le lot) passent
+    /// ici. Le marqueur est posé avant le premier déplacement : s'il échoue,
+    /// l'erreur remonte et rien n'a bougé. Un élément qui ne se déplace pas
+    /// n'arrête pas les suivants ; un événement resté vide est retiré.
+    static func trash(modsPath: String, stamp: String, items: [Item],
+                      fm: FileManager = .default) throws -> TrashResult {
+        let event = trashFolderName(stamp: stamp)
+        let eventDir = (modsPath as NSString).appendingPathComponent(event)
+        try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
+        do {
+            try markEvent(eventDir: eventDir)
+        } catch {
+            discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+            throw error
+        }
+        var result = TrashResult()
+        for item in items {
+            let source = (modsPath as NSString).appendingPathComponent(item.physical)
+            do {
+                let dest = destination(eventDir: eventDir, logicalFolderName: item.logicalLeaf, fm: fm)
+                try fm.moveItem(atPath: source, toPath: dest)
+                result.moved.append(item.physical)
+            } catch {
+                result.failed.append((item.physical, error))
+            }
+        }
+        discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+        return result
+    }
+
     // MARK: - Remettre
 
     /// Le chemin de retour : `Mods/<chemin relatif>` avec le **point forcé

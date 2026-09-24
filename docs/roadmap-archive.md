@@ -3637,6 +3637,26 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X112** ✅ *(livré le 2026-09-24)* — **« Vider les mods désactivés » effaçait sans retour, hors corbeille.**
+      `cleanDisabledMods` supprimait chaque dossier en pause par `removeItem`
+      définitif. Le choix était assumé (`e2d9cf13`, 2026-09-11 : la
+      confirmation chiffrait le lot et disait « ils ne passent pas par la
+      corbeille »), mais il restait le seul chemin de suppression hors
+      corbeille depuis X103-B — pour le plus gros lot possible : 721 dossiers
+      au relevé du 2026-09-11, ~760 entrées pointées dans `Mods/` le
+      2026-09-24. Les préférences de ces mods (favoris, notes, historique…)
+      restaient en outre derrière eux : la purge `forgetStores` n'était pas
+      appelée.
+      ▸ **Trouvé** par l'audit UX, phase 1 (table de conservation) : trois
+      gestes pour « faire de la place », deux sémantiques.
+      ▸ **Tranché par l'auteur** : corbeille. L'espace revient au vidage de la
+      corbeille dans Entretien.
+      ▸ **Livré** : `ModTrash.trash(modsPath:stamp:items:)` (Core) met un lot
+      en **un** événement — marqueur avant le premier déplacement, un échec
+      n'arrête pas les suivants, événement vide retiré. `deleteMod` et
+      `cleanDisabledMods` passent tous deux par lui ; le vidage purge les
+      préférences des mods déplacés. Trois tests ; libellés fr/en corrigés.
+
 - [x] **X111** ✅ *(livré le 2026-09-24)* — **Après « Effacer », le journal de l'app rognait la tête du bloc SMAPI.**
       `LogBudget.appending` écrêtait par la tête du tableau, avec un commentaire
       affirmant que « toutes les entrées concernées sont de l'app ». Le bloc

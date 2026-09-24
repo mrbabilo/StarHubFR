@@ -247,4 +247,54 @@ struct ModTrashTests {
         #expect(removed == 2)
         #expect(ModTrash.events(modsPath: mods).isEmpty)
     }
+
+    // MARK: - Déposer un lot (« Vider les mods désactivés »)
+
+    /// Le vidage des mods en pause emportait 721 dossiers du parc par
+    /// `removeItem` définitif, seul chemin de suppression resté hors
+    /// corbeille. Un lot = un seul événement, restaurable d'un bloc.
+    @Test func aBatchLandsInOneEventUnderLogicalNames() throws {
+        let mods = makeTempModsDir()
+        for name in [".Alpha", ".[CP] Beta"] {
+            try FileManager.default.createDirectory(atPath: path(mods, name, "i18n"),
+                                                    withIntermediateDirectories: true)
+        }
+        let result = try ModTrash.trash(
+            modsPath: mods, stamp: "20260924_194500",
+            items: [.init(physical: ".Alpha", logicalLeaf: "Alpha"),
+                    .init(physical: ".[CP] Beta", logicalLeaf: "[CP] Beta")])
+
+        #expect(result.moved == [".Alpha", ".[CP] Beta"])
+        #expect(result.failed.isEmpty)
+        let event = "_Trash_20260924_194500"
+        #expect(ModTrash.isUserEvent(modsPath: mods, event: event))
+        #expect(FileManager.default.fileExists(atPath: path(mods, event, "Alpha", "i18n")))
+        #expect(FileManager.default.fileExists(atPath: path(mods, event, "[CP] Beta")))
+        #expect(!FileManager.default.fileExists(atPath: path(mods, ".Alpha")))
+    }
+
+    @Test func aFailedEntryDoesNotStopTheBatch() throws {
+        let mods = makeTempModsDir()
+        try FileManager.default.createDirectory(atPath: path(mods, ".Alpha"),
+                                                withIntermediateDirectories: true)
+        let result = try ModTrash.trash(
+            modsPath: mods, stamp: "20260924_194500",
+            items: [.init(physical: ".Gone", logicalLeaf: "Gone"),
+                    .init(physical: ".Alpha", logicalLeaf: "Alpha")])
+
+        #expect(result.moved == [".Alpha"])
+        #expect(result.failed.map(\.physical) == [".Gone"])
+        #expect(FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_194500", "Alpha")))
+    }
+
+    @Test func aBatchThatMovesNothingLeavesNoEvent() throws {
+        let mods = makeTempModsDir()
+        let result = try ModTrash.trash(
+            modsPath: mods, stamp: "20260924_194500",
+            items: [.init(physical: ".Gone", logicalLeaf: "Gone")])
+
+        #expect(result.moved.isEmpty)
+        #expect(result.failed.count == 1)
+        #expect(!FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_194500")))
+    }
 }
