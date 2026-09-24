@@ -946,12 +946,6 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 se voit et porte son action ; la fréquence décide de la place ; la gravité
 décide de l'ordre) :
 
-- [ ] **I-T13** — **Le mod dit qu'il a une mise à jour.** Aujourd'hui ni la
-      ligne, ni la carte, ni la fiche ne lisent `nexusUpdates` /
-      `outOfDateMods` : pastille « ↑ version » sur la ligne, filtre « Mises à
-      jour » dans la liste, bandeau en tête de fiche avec son geste (MàJ
-      Premium, page Nexus, « Je l'ai déjà »). Même appariement que **X113** —
-      à livrer après lui. · **M**
 - [ ] **I-T15** — **Barre d'actions de la fiche hiérarchisée.** Six gestes
       `.bordered` au même poids : garder l'interrupteur et « Réglages du
       mod », Favori / À écarter en icônes à bascule (cible 18×18, libellé

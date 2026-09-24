@@ -4679,6 +4679,18 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       listes que la ROADMAP envisageait après X113 — le relevé SMAPI n'a ni
       id Nexus fiable ni geste de mise à jour ; ordre seulement.
 
+- [x] **I-T13** ✅ *(livré le 2026-09-25)* — **Le mod dit qu'il a une mise
+      à jour.** Index Core `PendingModUpdates` (Nexus par `UniqueID` — jamais
+      l'id Nexus, 58 partagés —, relevé SMAPI par dossier résolu ; en-tête de
+      pack par ses composants ; Nexus prime ; 6 tests, 4 sabotages), construit
+      par `PendingModUpdates.current(vm)` depuis les sources du badge.
+      Pastille « ↑ version » sur la ligne et la carte, 5ᵉ cadrage « Mises à
+      jour » (index construit sous ce seul cadrage, testé), bandeau en tête de
+      fiche sous celui des anomalies. Les gestes Nexus sortis de
+      `UpdatesView` dans `NexusUpdateActions`, partagés par la page et le
+      bandeau (UpdatesView −122 lignes). Mesuré le 2026-09-25 : 6 lignes Nexus
+      en cache, toutes retrouvées par `UniqueID` dans le parc.
+
 
 #### Axe F — Dette technique (suite)
 

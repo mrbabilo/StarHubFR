@@ -97,11 +97,12 @@ struct ModDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Hero, état (I-T14) et onglets épinglés ; le contenu défile.
+            // Hero, état (I-T14), mise à jour (I-T13), onglets épinglés ; le contenu défile.
             heroBanner
             if selectedTab != .state, let anomaly = vm.anomaly(for: live) {
                 ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .state }
             }
+            if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             tabBar
             ScrollView {
                 content
@@ -134,8 +135,7 @@ struct ModDetailView: View {
             if !focused { vm.setModNote(noteDraft, for: mod) }
         }
         // …et à la sortie : un autre mod remplace la vue (`.id(mod.folderName)`)
-        // avant le blur — sans ce filet, une note vidée juste avant de partir
-        // n'était jamais committée. Idempotent avec le blur.
+        // avant le blur, la note vidée juste avant ne partait pas. Idempotent.
         .onDisappear {
             vm.setModNote(noteDraft, for: mod)
         }

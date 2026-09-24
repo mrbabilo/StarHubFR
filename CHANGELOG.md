@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Un mod dit qu'il a une mise à jour.** Pastille « ↑ version » sur sa ligne et sa carte, filtre « Mises à jour » dans la liste, et bandeau en tête de fiche avec les mêmes gestes que la page Mises à jour (MàJ Premium, page Nexus, « Je l'ai déjà », veille).
 - **La fiche d'un mod dit tout de suite ce qui ne va pas.** Un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, avec « Voir l'état » ; l'onglet État ouvre sur le même résumé ; pour un mod installé deux fois, chaque dossier s'ouvre dans le Finder ou sur sa fiche.
 - **La fusion entre traducteurs.** Un lot reçu se relit contre l'état complet du mod : traductions nouvelles écrites d'un coup, divergences arbitrées côte à côte (« garder le mien » / « prendre le sien »), identiques passées en silence. L'anglais est revérifié au moment d'écrire — une ligne bougée est abandonnée et nommée, jamais écrite dessus.
 - **Un lot ZIP pour un traducteur extérieur.** L'encart de « Traductions FR » exporte plusieurs mods dans un seul ZIP (un JSON par mod, le format déjà lu par un chat) et fusionne en retour un ZIP ou un JSON isolé, chaque lot routé vers son mod — un mod absent du parc est nommé, jamais bloquant.
