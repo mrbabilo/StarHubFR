@@ -85,7 +85,8 @@ final class LaunchSplashController {
         guard panel == nil, !finished else { return }
 
         let hosting = NSHostingView(rootView: LaunchSplashView(vm: vm, localization: vm.localization))
-        let size = NSSize(width: 720, height: 560)
+        // Le panneau épouse la carte (compacte depuis le 2026-09-24).
+        let size = hosting.fittingSize
         // Not `.nonactivatingPanel`: at launch the app has no active window
         // yet, and a non-activating panel then never comes forward.
         let panel = NSPanel(
@@ -196,51 +197,48 @@ struct LaunchSplashView: View {
     @ObservedObject var localization: LocalizationStore
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // Cover artwork, contained — preserving the source's 16:9 ratio.
             Group {
                 if let bg = Self.backgroundImage {
                     Image(nsImage: bg)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 640, height: 360)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .frame(width: Self.coverSize.width, height: Self.coverSize.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
                         )
                 } else {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color.white.opacity(0.08))
-                        .frame(width: 640, height: 360)
+                        .frame(width: Self.coverSize.width, height: Self.coverSize.height)
                 }
             }
 
-            VStack(spacing: 4) {
-                // Version alongside the wordmark rather than on its own line:
-                // the splash is compact, and a third line would push the
-                // progress bar down for a detail that belongs to the title.
-                // Baseline-aligned so it sits with the name, not the cap height.
+            VStack(spacing: 3) {
+                // Version beside the wordmark, baseline-aligned: a third line
+                // would push the bar down for a detail that belongs to the title.
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     Text("StarHubFR")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     Text("v\(Self.appVersion)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 Text(localization.L(L10n.Main.launching))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
             }
 
             LaunchProgressBar(vm: vm, localization: localization)
         }
-        .padding(.vertical, 32)
-        .padding(.horizontal, 28)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(20)
+        .fixedSize()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 // A gradient rather than a flat fill: the artwork has depth, and
                 // a single tone behind it reads as a printed panel.
                 .fill(
@@ -251,7 +249,7 @@ struct LaunchSplashView: View {
                     )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(Color.white.opacity(0.12), lineWidth: 1)
                 )
         )
@@ -259,7 +257,9 @@ struct LaunchSplashView: View {
         .accessibilityLabel(localization.L(L10n.Main.launching))
     }
 
-    /// Cover art bundled as a resource by `build_app.py`.
+    /// L'illustration en 16:9, deux tiers de l'ancienne (640×360).
+    private static let coverSize = CGSize(width: 432, height: 243)
+
     /// Version affichée, lue dans le bundle pour rester juste après chaque
     /// release (même source que l'écran d'accueil). Le repli ne sert qu'aux
     /// exécutions hors bundle.
@@ -267,7 +267,7 @@ struct LaunchSplashView: View {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 
-    private static let backgroundImage: NSImage? = {
+    private static let backgroundImage: NSImage? = { // copiée par build_app.py
         guard let url = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") else { return nil }
         return NSImage(contentsOf: url)
     }()
@@ -363,14 +363,14 @@ struct LaunchProgressBar: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             ProgressView(value: displayed, total: 1.0)
                 .progressViewStyle(.linear)
                 .tint(.white)
-                .frame(width: 420)
+                .frame(width: 320)
 
             Text(caption)
-                .font(.system(size: 11))
+                .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.75))
                 .lineLimit(1)
         }
