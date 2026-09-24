@@ -85,10 +85,11 @@ final class LaunchSplashController {
         guard panel == nil, !finished else { return }
 
         let hosting = NSHostingView(rootView: LaunchSplashView(vm: vm, localization: vm.localization))
-        // Le panneau épouse la carte (compacte depuis le 2026-09-24).
+        // Épouse la carte puis se fige : sinon une légende plus longue en fin
+        // de chargement agrandissait le panneau vers la droite, hors du centre.
+        hosting.sizingOptions = []
         let size = hosting.fittingSize
-        // Not `.nonactivatingPanel`: at launch the app has no active window
-        // yet, and a non-activating panel then never comes forward.
+        // Not `.nonactivatingPanel`: at launch it would never come forward.
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless],
@@ -372,8 +373,7 @@ struct LaunchProgressBar: View {
                 .foregroundColor(.white.opacity(0.75))
                 .lineLimit(1)
         }
-        // Bornées ensemble : une légende longue décentrait la carte.
-        .frame(width: 320)
+        .frame(width: 320) // bornées ensemble : la légende tronque, la carte reste
         .onReceive(Self.ticker) { _ in
             let goal = target
             guard displayed < goal else { return }
