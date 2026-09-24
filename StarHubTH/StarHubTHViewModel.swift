@@ -1891,14 +1891,6 @@ final class StarHubTHViewModel {
     /// (crash de juillet 2026), et deux copies vaudraient deux caches.
     private let scanner = ModScanner()
 
-    // Thai Translation Hub State
-    var thaiTranslations: [ThaiTranslationMod] = []
-    /// Set when fetchThaiTranslations() fails (network error, bad response,
-    /// unparseable content) — lets the hub show a retry state instead of
-    /// spinning forever, since thaiTranslations staying empty is otherwise
-    /// indistinguishable from "still loading".
-    var thaiTranslationsError: String? = nil
-
     /// **Toute écriture dans un `config.json` périme le rapport de
     /// raccourcis** — la règle, en un seul exemplaire (X66).
     ///
@@ -5405,6 +5397,8 @@ final class StarHubTHViewModel {
     // (`InstalledTranslationRegistry`) ; le store les publie, avec les deux
     // moitiés de la recherche et les vols mod par mod.
     let translationHub = TranslationHubStore()
+    /// C5-T1 — la recherche des traductions FR sur tout le parc (page « Traductions FR »).
+    let translationSweep = FrenchTranslationSweepStore()
 
     /// Ce qui est posé sur quel mod. Relu au lancement, réécrit à chaque dépôt
     /// ou retrait — c'est la seule trace : la perdre rendrait toute
@@ -5834,66 +5828,30 @@ final class StarHubTHViewModel {
     /// Le filtre est le **tag** `French` de Nexus, pas le titre : sur 80
     /// traductions relevées, 77 le portent, et le serveur fait alors le tri.
     /// Le titre ne sert que de filet pour les trois autres.
+    /// Cherche les traductions françaises d'un mod — le chemin partagé avec
+    /// la page « Traductions FR » (`FrenchTranslationLookup` : lien « requis
+    /// par » puis recherche par nom).
     func searchTranslations(for mod: ModItem) {
         guard !translationHub.isSearching(mod.folderName) else { return }
         translationHub.setSearching(true, for: mod.folderName)
-        let host = Int(mod.nexusModId)
-        NexusSearchClient.search(name: mod.name, tag: NexusModSearch.frenchTag) { [weak self] result in
-            Task { @MainActor in
-                guard let self else { return }
-                self.translationHub.setSearching(false, for: mod.folderName)
-                switch result {
-                case .success(let page):
-                    // Le filet : si le tag n'a rien rendu, on retente large et on
-                    // lit les titres. Trois traductions sur quatre-vingts ne
-                    // portent pas le tag.
-                    if page.hits.isEmpty {
-                        self.searchTranslationsByTitle(for: mod)
-                    } else {
-                        // **Le titre classe, il ne filtre pas.** Le serveur a déjà
-                        // trié sur le tag ; rejeter ici les titres muets perdrait
-                        // les traductions bien taguées que le tag venait de rendre.
-                        // La traduction déjà posée n'a rien à faire dans la liste
-                        // des propositions : elle a sa propre ligne, qui porte son
-                        // retrait et sa mise à jour.
-                        self.translationHub.setHits(self.withoutInstalledTranslation(
-                            NexusModSearch.ranked(page.hits, excluding: host), for: mod),
-                            for: mod.folderName)
-                    }
-                case .failure(let error):
-                    // Une panne n'est pas une absence : `[]` ferait afficher
-                    // « aucune traduction trouvée » pour une recherche cassée.
-                    self.translationHub.setHits(nil, for: mod.folderName)
-                    self.log("Recherche de traduction : \(error)", level: .warning)
-                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
-                }
-            }
-        }
-    }
-
-    private func searchTranslationsByTitle(for mod: ModItem) {
-        translationHub.setSearching(true, for: mod.folderName)
-        let host = Int(mod.nexusModId)
-        NexusSearchClient.search(name: mod.name) { [weak self] result in
-            Task { @MainActor in
-                guard let self else { return }
-                self.translationHub.setSearching(false, for: mod.folderName)
-                switch result {
-                case .success(let page):
-                    // Recherche large : ici rien d'autre que le titre ne distingue
-                    // une traduction, le filtre est à sa place.
-                    self.translationHub.setHits(self.withoutInstalledTranslation(
-                        NexusModSearch.frenchTranslations(among: page.hits, excluding: host),
-                        for: mod), for: mod.folderName)
-                case .failure(let error):
-                    // Une panne n'est pas une absence : afficher « aucune traduction
-                    // trouvée » ici ferait passer une recherche cassée pour un
-                    // résultat, exactement ce que le décodeur refuse de faire sur
-                    // les erreurs GraphQL.
-                    self.translationHub.setHits(nil, for: mod.folderName)
-                    self.log("Recherche de traduction (titre) : \(error)", level: .warning)
-                    self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
-                }
+        let host = Int(resolvedNexusModId(for: mod)).flatMap { $0 > 0 ? $0 : nil }
+        Task { @MainActor [weak self] in
+            let result = await FrenchTranslationLookup.find(name: mod.name, hostModId: host)
+            guard let self else { return }
+            self.translationHub.setSearching(false, for: mod.folderName)
+            switch result {
+            case .success(let entry):
+                // La traduction déjà posée n'a rien à faire dans la liste des
+                // propositions : elle a sa propre ligne, qui porte son retrait
+                // et sa mise à jour.
+                self.translationHub.setHits(self.withoutInstalledTranslation(entry.hits, for: mod),
+                                            for: mod.folderName)
+            case .failure(let error):
+                // Une panne n'est pas une absence : `[]` ferait afficher
+                // « aucune traduction trouvée » pour une recherche cassée.
+                self.translationHub.setHits(nil, for: mod.folderName)
+                self.log("Recherche de traduction : \(error)", level: .warning)
+                self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
             }
         }
     }
@@ -7598,188 +7556,6 @@ final class StarHubTHViewModel {
         }
     }
 
-    // MARK: - Thai Translation Hub Logic
-    
-    func fetchThaiTranslations() {
-        guard let url = URL(string: "https://raw.githubusercontent.com/AppleBoiy/stardew-thai-translations/main/README.md") else { return }
-
-        DispatchQueue.main.async {
-            self.thaiTranslationsError = nil
-        }
-
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            guard let self = self else { return }
-            guard error == nil,
-                  let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
-                  let data = data, let content = String(data: data, encoding: .utf8) else {
-                DispatchQueue.main.async {
-                    self.thaiTranslationsError = self.localization.L(L10n.ThaiHub.loadError)
-                }
-                return
-            }
-
-            let newTranslations = ThaiTranslationTable.parse(content)
-
-            DispatchQueue.main.async {
-                self.thaiTranslations = newTranslations
-                self.evaluateThaiTranslationStatus()
-            }
-        }.resume()
-    }
-    
-    func evaluateThaiTranslationStatus() {
-        guard !gameDir.isEmpty else { return }
-        let fm = FileManager.default
-        let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
-        
-        for i in 0..<thaiTranslations.count {
-            // Very simple check: does any mod folder contain an i18n/th.json?
-            // AND does the folder name sort of match the mod name?
-            let nameToCheck = Self.strippingCPPrefix(thaiTranslations[i].name)
-            var foundTranslation = false
-            var foundOriginal = false
-            for mod in mods {
-                if mod.name.localizedCaseInsensitiveContains(nameToCheck) || nameToCheck.localizedCaseInsensitiveContains(mod.name) {
-                    foundOriginal = true
-                    
-                    // `physicalFolderName`, pas `folderName` : un mod en pause
-                    // vit dans `Mods/.X`, et chercher sous `Mods/X` ne trouve
-                    // rien. Mesuré sur le parc : **22 des 30 `i18n/th.json`**
-                    // sont sous un dossier de tête en pause — la quasi-totalité
-                    // du hub s'annonçait « non installée ». Le point vit sur
-                    // l'entrée de tête, donc `.Pack/Composant` pour un
-                    // composant, ce que `physicalFolderName` compose déjà.
-                    //
-                    // Le second `[CP] …` d'un chemin niché, lui, est un
-                    // sous-dossier **dans** le dossier du mod : il garde le nom
-                    // logique, et sa feuille seule — `folderName` d'un composant
-                    // porte le chemin du pack, et « [CP] Pack/Composant » ne
-                    // désigne aucun dossier.
-                    let thJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.physicalFolderName)/i18n/th.json")
-                    let modLeaf = (mod.folderName as NSString).lastPathComponent
-                    let cpThJsonPath = (modsDir as NSString).appendingPathComponent("\(mod.physicalFolderName)/[CP] \(modLeaf)/i18n/th.json") // Handle nested [CP]
-
-                    if fm.fileExists(atPath: thJsonPath) || fm.fileExists(atPath: cpThJsonPath) {
-                        foundTranslation = true
-                    } else if mod.isGroup {
-                        for child in mod.children ?? [] {
-                            let childLeaf = (child.folderName as NSString).lastPathComponent
-                            let childThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.physicalFolderName)/i18n/th.json")
-                            let childCpThJsonPath = (modsDir as NSString).appendingPathComponent("\(child.physicalFolderName)/[CP] \(childLeaf)/i18n/th.json")
-                            if fm.fileExists(atPath: childThJsonPath) || fm.fileExists(atPath: childCpThJsonPath) {
-                                foundTranslation = true
-                                break
-                            }
-                        }
-                    }
-                }
-            }
-            thaiTranslations[i].isOriginalModInstalled = foundOriginal
-            thaiTranslations[i].isInstalled = foundTranslation
-        }
-        
-        // Sort installed mods first, then alphabetically
-        thaiTranslations.sort { mod1, mod2 in
-            if mod1.isInstalled != mod2.isInstalled {
-                return mod1.isInstalled
-            }
-            return mod1.name.localizedStandardCompare(mod2.name) == .orderedAscending
-        }
-    }
-    
-    /// Retire un préfixe de catégorie `[CP]` d'un nom (avec ou sans espace
-    /// suivant). La détection d'état et l'install du hub thaï normalisaient
-    /// différemment (`[CP]` vs `[CP] `), ce qui désaccordait le nom du zip et
-    /// le mod détecté pour un `[CP]Mod` sans espace — source unique désormais.
-    private static func strippingCPPrefix(_ name: String) -> String {
-        name.replacingOccurrences(of: "[CP]", with: "").trimmingCharacters(in: .whitespaces)
-    }
-
-    func installThaiTranslation(mod: ThaiTranslationMod) {
-        guard !gameDir.isEmpty else { return }
-        
-        let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
-        let zipName = "\(Self.strippingCPPrefix(mod.name)) - Thai Translation.zip"
-        
-        showModal(message: String(format: localization.L(L10n.VM.downloadingTranslation), mod.name))
-        
-        let apiUrl = URL(string: "https://api.github.com/repos/AppleBoiy/stardew-thai-translations/releases?per_page=100")!
-        var request = URLRequest(url: apiUrl)
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), error.localizedDescription)) }
-                return
-            }
-            
-            guard let data = data,
-                  let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "Invalid API response")) }
-                return
-            }
-            
-            var targetDownloadUrl: URL? = nil
-            
-            for release in releases {
-                if let assets = release["assets"] as? [[String: Any]] {
-                    for asset in assets {
-                        if let name = asset["name"] as? String {
-                            let normalizedAssetName = name.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: " ", with: "")
-                            let normalizedZipName = zipName.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: " ", with: "")
-                            
-                            if normalizedAssetName == normalizedZipName,
-                               let browserDownloadUrl = asset["browser_download_url"] as? String,
-                               let url = URL(string: browserDownloadUrl) {
-                                targetDownloadUrl = url
-                                break
-                            }
-                        }
-                    }
-                }
-                if targetDownloadUrl != nil { break }
-            }
-            
-            guard let downloadUrl = targetDownloadUrl else {
-                DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "Zip not found in releases")) }
-                return
-            }
-            
-            let task = URLSession.shared.downloadTask(with: downloadUrl) { localUrl, response, error in
-                if let error = error {
-                    DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), error.localizedDescription)) }
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    DispatchQueue.main.async { self.showModal(message: String(format: self.localization.L(L10n.VM.downloadFailed), "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")) }
-                    return
-                }
-                
-                guard let localUrl = localUrl else { return }
-                // Extraction via le `ModZipInstaller` partagé (détection du
-                // format par signature, outil adapté à rar/7z) plutôt qu'un
-                // `/usr/bin/unzip` aveugle — une traduction en .7z/.rar
-                // échouait silencieusement. Voir trust-bytes-not-filenames.
-                do {
-                    try ModZipInstaller.extractArchive(zipUrl: localUrl, to: URL(fileURLWithPath: modsDir))
-                    ModZipInstaller.grantOwnerWriteAccess(in: URL(fileURLWithPath: modsDir))
-                    DispatchQueue.main.async {
-                        self.showModal(message: String(format: self.localization.L(L10n.VM.installThaiSuccess), mod.name))
-                        self.evaluateThaiTranslationStatus()
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        self.showModal(message: String(format: self.localization.L(L10n.VM.unzipFailed), error.localizedDescription))
-                    }
-                }
-            }
-            task.resume()
-        }.resume()
-    }
-    
     func openSavesFolder() {
         let home = NSHomeDirectory()
         let savesDir = URL(fileURLWithPath: "\(home)/.config/StardewValley/Saves")

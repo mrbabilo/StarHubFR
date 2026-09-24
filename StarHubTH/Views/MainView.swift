@@ -22,7 +22,6 @@ struct MainView: View {
     @State private var isNavigatingBackOrForward = false
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
-    @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub: Bool = false
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     
     @State private var isProfileHovered = false
@@ -62,7 +61,6 @@ struct MainView: View {
     private var navigationTitleText: String {
         if currentTab == .saves && vm.navigationStore.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
         if currentTab == .saves && vm.navigationStore.editingSave != nil { return vm.navigationStore.editingSave!.playerName }
-        if currentTab == .thaiHub && vm.navigationStore.viewingThaiMod != nil { return vm.navigationStore.viewingThaiMod!.name }
         if currentTab == .mods && vm.navigationStore.editingModConfig != nil { return vm.navigationStore.editingModConfig!.name }
         if currentTab == .mods && vm.navigationStore.viewingModDetail != nil { return vm.navigationStore.viewingModDetail!.name }
         // Le titre de base — exhaustif, **jamais de `default:`** : une
@@ -78,7 +76,7 @@ struct MainView: View {
         case .systemAlerts:   return localization.L(L10n.Main.systemAlerts)
         case .discover:       return localization.L(L10n.Main.discover)
         case .quarantine:     return localization.L(L10n.Main.quarantine)
-        case .thaiHub:        return localization.L(L10n.ThaiHub.title)
+        case .frenchTranslations: return localization.L(L10n.FrTranslations.title)
         case .saves:          return localization.L(L10n.Saves.saves)
         case .settings:       return localization.L(L10n.Settings.settings)
         case .logs:           return localization.L(L10n.Logs.logs)
@@ -92,7 +90,6 @@ struct MainView: View {
     /// la même raison.
     private func handleTabChange() {
             vm.navigationStore.setEditingSave(nil)
-            vm.navigationStore.viewingThaiMod = nil
             vm.navigationStore.viewingSaveTimeline = nil
             vm.navigationStore.setEditingModConfig(nil)
             vm.navigationStore.setViewingModDetail(nil)
@@ -171,8 +168,8 @@ struct MainView: View {
                         QuarantineView(vm: vm, localization: localization)
                     case .discover:
                         DiscoverView(vm: vm, localization: localization, currentTab: $currentTab)
-                    case .thaiHub:
-                        ThaiTranslationHubView(vm: vm, localization: localization)
+                    case .frenchTranslations:
+                        FrenchTranslationsView(vm: vm, localization: localization, currentTab: $currentTab)
                     case .settings:
                         SettingsView(vm: vm, localization: localization)
                     case .logs:
@@ -192,8 +189,6 @@ struct MainView: View {
                     Button(action: {
                         if vm.navigationStore.editingSave != nil {
                             vm.navigationStore.setEditingSave(nil)
-                        } else if vm.navigationStore.viewingThaiMod != nil {
-                            vm.navigationStore.viewingThaiMod = nil
                         } else if vm.navigationStore.viewingSaveTimeline != nil {
                             vm.navigationStore.viewingSaveTimeline = nil
                         } else if vm.navigationStore.editingModConfig != nil {
@@ -211,7 +206,7 @@ struct MainView: View {
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navBack))
                     .help(localization.L(L10n.Main.navBack))
-                    .disabled(vm.navigationStore.editingSave == nil && vm.navigationStore.viewingThaiMod == nil && vm.navigationStore.viewingSaveTimeline == nil && vm.navigationStore.editingModConfig == nil && vm.navigationStore.viewingModDetail == nil && tabHistory.count <= 1)
+                    .disabled(vm.navigationStore.editingSave == nil && vm.navigationStore.viewingSaveTimeline == nil && vm.navigationStore.editingModConfig == nil && vm.navigationStore.viewingModDetail == nil && tabHistory.count <= 1)
                     
                     Button(action: {
                         if let next = forwardHistory.popLast() {

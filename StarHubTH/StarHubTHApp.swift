@@ -115,7 +115,6 @@ struct StarHubTHApp: App {
     // reçoit à l'init et ne la possède pas.
     @StateObject private var localization: LocalizationStore
     @State private var vm: StarHubTHViewModel
-    @AppStorage("showThaiTranslationHub") private var showThaiHub = false
 
     init() {
         // Une seule instance du store, habillée deux fois : les menus et le
@@ -216,8 +215,7 @@ struct StarHubTHApp: App {
                 // Construits depuis SidebarOrder — jamais réécrits ici, sinon
                 // le menu et la barre divergeraient au premier ajout.
                 ForEach(1...9, id: \.self) { n in
-                    if let e = SidebarOrder.entry(forShortcut: n,
-                                                  showThaiHub: showThaiHub) {
+                    if let e = SidebarOrder.entry(forShortcut: n) {
                         Button(localization.L(e.labelKey)) { vm.requestTab(e.destination) }
                             .keyboardShortcut(KeyEquivalent(Character("\(n)")),
                                               modifiers: .command)

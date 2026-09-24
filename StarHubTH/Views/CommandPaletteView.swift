@@ -12,7 +12,6 @@ struct CommandPaletteView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
-    @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
     @State private var query = ""
     @State private var selection = 0
@@ -28,8 +27,7 @@ struct CommandPaletteView: View {
     @State private var entries: [CommandPaletteEntry] = []
 
     private func buildEntries() -> [CommandPaletteEntry] {
-        var out: [CommandPaletteEntry] = SidebarOrder
-            .visible(showThaiHub: showThaiTranslationHub)
+        var out: [CommandPaletteEntry] = SidebarOrder.all
             .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
         out += vm.scanStore.mods.flattenedMods.map(CommandPaletteEntry.forMod)
         out += vm.modProfiles.map { CommandPaletteEntry.forProfile(name: $0.name) }

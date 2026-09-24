@@ -60,6 +60,10 @@ public enum SidebarOrder {
         // déclencher une vérification Nexus à la main.
         SidebarEntry(.updates, icon: "arrow.triangle.2.circlepath",
                      labelKey: L10n.Main.modUpdates, group: .library),
+        // C5-T1 — remplace l'entrée du hub thaï, toujours visible : la page
+        // dit elle-même quand rien n'a encore été cherché.
+        SidebarEntry(.frenchTranslations, icon: "character.bubble.fill",
+                     labelKey: L10n.FrTranslations.title, group: .library),
 
         // PARTIES.
         SidebarEntry(.profiles, icon: "person.2.fill",
@@ -91,41 +95,24 @@ public enum SidebarOrder {
                      labelKey: L10n.Settings.settings, group: .app),
         SidebarEntry(.appChangelog, icon: "doc.text.fill",
                      labelKey: L10n.Main.appChangelog, group: .app),
-        // Conditionnel, et **dernier** : l'activer ne décale aucun raccourci.
-        SidebarEntry(.thaiHub, icon: "globe.asia.australia.fill",
-                     labelKey: L10n.ThaiHub.title, group: .app),
     ]
 
-    /// Ce que l'utilisateur voit réellement.
-    public static func visible(showThaiHub: Bool) -> [SidebarEntry] {
-        showThaiHub ? all : all.filter { $0.destination != .thaiHub }
+    public static func entries(in group: SidebarGroup) -> [SidebarEntry] {
+        all.filter { $0.group == group }
     }
 
-    public static func entries(in group: SidebarGroup,
-                               showThaiHub: Bool) -> [SidebarEntry] {
-        visible(showThaiHub: showThaiHub).filter { $0.group == group }
-    }
-
-    /// Le numéro de raccourci d'une destination : 1…9 pour les neuf premières
-    /// **visibles**, `nil` au-delà. On compte à l'écran.
-    ///
-    /// La règle porte sur les *visibles* et pas sur `all` : elle doit tenir si
-    /// une destination conditionnelle apparaît un jour plus haut que le hub
-    /// thaï. Aujourd'hui il est dernier, donc l'activer ne décale rien.
-    public static func shortcutIndex(of destination: SidebarDestination,
-                                     showThaiHub: Bool) -> Int? {
-        guard let i = visible(showThaiHub: showThaiHub)
-            .firstIndex(where: { $0.destination == destination }),
+    /// Le numéro de raccourci d'une destination : 1…9 pour les neuf
+    /// premières, `nil` au-delà. On compte à l'écran — toutes les entrées sont
+    /// visibles depuis le retrait du hub thaï (C5-T1).
+    public static func shortcutIndex(of destination: SidebarDestination) -> Int? {
+        guard let i = all.firstIndex(where: { $0.destination == destination }),
               i < 9 else { return nil }
         return i + 1
     }
 
     /// L'inverse. Hors de 1…9 : `nil`, jamais un débordement.
-    public static func entry(forShortcut index: Int,
-                             showThaiHub: Bool) -> SidebarEntry? {
-        guard (1...9).contains(index) else { return nil }
-        let v = visible(showThaiHub: showThaiHub)
-        guard index <= v.count else { return nil }
-        return v[index - 1]
+    public static func entry(forShortcut index: Int) -> SidebarEntry? {
+        guard (1...9).contains(index), index <= all.count else { return nil }
+        return all[index - 1]
     }
 }

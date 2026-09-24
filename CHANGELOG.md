@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Nouvelle page « Traductions FR »** : les traductions françaises disponibles sur Nexus pour tous vos mods, en pause compris, et les mises à jour de celles déjà posées. La recherche part d'un bouton, suit le lien « requis par » de Nexus puis le nom, et signale ce qui ne vient que du nom.
 - **Le rapport de raccourcis liste tous les raccourcis de vos mods actifs**, pas seulement les conflits : filtre tous / liés / en conflit / non assignés, recherche par mod, réglage ou touche, et accès direct à la config de chaque mod.
 - **Audit de Keybind Radar et SaveSaver**, deux mods tout neufs qui recouvrent les raccourcis et les sauvegardes, mesurés contre le parc et vos sauvegardes. Cinq items neufs en ROADMAP en sortent — avertir à la bascule d'un mod dont les données dorment dans une partie, audit de sauvegarde en lecture, nettoyage guidé, signal de conflit pendant la capture d'un raccourci, filtres du rapport.
 - **Le bilan de mise à jour nomme les données de mods remises en place.** Chaque fichier replacé dans le mod (`‹sauvegarde›_SaveData.save` et semblables) est listé sous son nom. Un réglage nouveau — « Remettre les données des mods après une mise à jour », actif par défaut — permet de ne pas les remettre : elles restent alors dans la sauvegarde d'installation, et le bilan le dit.
@@ -26,6 +27,10 @@ where the exact log format was verified.
 ### Changed
 
 - **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.
+
+### Removed
+
+- **Le hub de traductions thaïes** : il n'était plus accessible depuis la création du fork ; sa place dans la barre latérale revient à « Traductions FR ».
 
 ## [1.48.0] - 2026-09-18
 

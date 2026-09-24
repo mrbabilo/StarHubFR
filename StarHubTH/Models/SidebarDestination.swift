@@ -23,6 +23,8 @@ public enum SidebarDestination: String, Equatable, Sendable {
     case mods = "Mods"
     case discover = "Discover"
     case updates = "Updates"
+    /// C5-T1 — les traductions françaises disponibles pour le parc.
+    case frenchTranslations = "FrenchTranslations"
 
     // PARTIES.
     case profiles = "Profiles"
@@ -39,5 +41,4 @@ public enum SidebarDestination: String, Equatable, Sendable {
     case logs = "Logs"
     case settings = "Settings"
     case appChangelog = "AppChangelog"
-    case thaiHub = "ThaiHub"
 }

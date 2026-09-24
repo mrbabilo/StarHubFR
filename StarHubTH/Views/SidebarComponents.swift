@@ -10,7 +10,6 @@ struct SidebarNavGroups: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
-    @AppStorage("showThaiTranslationHub") private var showThaiTranslationHub = false
 
     /// Le badge d'une destination — donnée **vivante** du ViewModel, pas de
     /// `SidebarOrder` : il change à chaque scan. `nil` quand l'entrée ne
@@ -32,8 +31,7 @@ struct SidebarNavGroups: View {
                        icon: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             SidebarSectionHeader(title: header, icon: icon)
-            ForEach(SidebarOrder.entries(in: g,
-                                         showThaiHub: showThaiTranslationHub)) { e in
+            ForEach(SidebarOrder.entries(in: g)) { e in
                 // `badge: Int?` est déjà optionnel côté SidebarItem — `nil`
                 // veut dire « cet item ne compte rien », `0` « il compte, et
                 // il n'y a rien ». Pas de branche à écrire.

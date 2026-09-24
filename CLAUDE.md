@@ -15,7 +15,8 @@ skills (`.claude/skills/`) ; ce fichier ne fait qu'y pointer.
   `~/Library/Application Support/StarHubFR/` (`Backups/` compris) — l'ancien dossier
   disparaît entièrement à la migration.
 - UI **bilingue** : anglais (`en`), français (`fr`). Le thaï comme langue d'UI est
-  retiré ; la fonctionnalité « Thai Translation Hub » (mods de traduction) reste.
+  retiré, et le « Thai Translation Hub » aussi (C5-T1, 2026-09-24) : sa place dans
+  la barre latérale revient à la page « Traductions FR ».
 
 **Avant de toucher aux mods, à SMAPI, à Nexus, aux profils, aux sauvegardes ou aux
 fichiers de traduction : lire `docs/DOMAINE.md`.** Un mod en pause y est un dossier

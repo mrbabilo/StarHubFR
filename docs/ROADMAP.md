@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **4 items ouverts** *(recompté le 2026-09-24 : **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13, C5-T1)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **3 items ouverts** *(recompté le 2026-09-24 : **C5-T1** livré ; **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C3-T5, C4-T13)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -271,7 +271,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C5 — Vue d'ensemble des traductions françaises
 
-- [ ] **C5-T1** — **Redéfini le 2026-09-24** (l'ancien énoncé — rendre
+- [x] **C5-T1** — ✅ **Livré le 2026-09-24** (page « Traductions FR », hub thaï retiré — il n'était exposé par aucun réglage). **Redéfini le même jour** (l'ancien énoncé — rendre
       `ThaiTranslationHubView` générique — n'avait pas de source : le hub thaï lit le
       catalogue d'AppleBoiy, et il n'existe aucun catalogue FR ; l'org GitHub
       `FR-translation-for-Stardew-Valley-Mods` n'est que 27 forks morts depuis 2020).
@@ -289,8 +289,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
         de l'état vivant (registre, couverture, `TranslationPresence.update`).
       - Candidats : cadrage `FrenchTranslationScope.missing` + hôtes du registre (8 +
         7 suppléments le 2026-09-24).
-      - Ensuite, commit séparé : retrait du hub thaï (vue, code VM, réglage, clés L10n,
-        ligne de `CLAUDE.md`).
+      - Livré avec : `FrenchTranslationLookup` (chemin unique, le bouton de la fiche
+        l'emprunte aussi — il gagne le lien), `FrenchTranslationSweepStore` (séquentiel,
+        arrêt net sur clé absente ou 429), union lien + nom avec marque « par nom, à
+        vérifier » (le lien seul rate 2 des 5 traductions FR de SVE). Candidats au
+        **premier niveau** : c'est là qu'une traduction se dépose. Le hub thaï, son
+        code VM (247 lignes), son parseur et ses 34 clés sont retirés ; ⌘5 mène à la
+        page, la quarantaine prend ⌘9, les sauvegardes d'installation perdent leur numéro.
+        À vérifier à l'écran : la recherche sur le parc réel (compte des « par nom »).
 
 #### C6 — Signaux de demande de traduction — ❌ **abandonné le 2026-09-24 (mesure)**
 

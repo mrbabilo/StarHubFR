@@ -24,10 +24,6 @@ final class NavigationStore {
     /// `MainView` au changement d'onglet (un des cinq états de détail).
     var viewingSaveTimeline: SaveGameInfo?
 
-    /// Le mod thaï affiché par le hub de traduction (état de détail,
-    /// remis à `nil` au changement d'onglet).
-    var viewingThaiMod: ThaiTranslationMod?
-
     /// A mod the user asked to jump to (from a log line or the health card).
     ///
     /// Lives on the store rather than being handled by `ModListView`: tabs

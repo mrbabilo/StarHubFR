@@ -61,6 +61,23 @@ enum NexusSearchClient {
              completion: completion)
     }
 
+    /// Les fiches qui déclarent `modId` comme prérequis, une tranche (C5-T1).
+    static func requiring(modId: Int, offset: Int = 0,
+                          completion: @escaping @Sendable (Result<NexusModSearch.RequiringPage, SearchError>) -> Void) {
+        send(body: NexusModSearch.requiringBody(modId: modId, gameId: NexusRequestBuilder.gameId,
+                                                offset: offset),
+             decode: NexusModSearch.decodeRequiring,
+             completion: completion)
+    }
+
+    /// Des fiches relues par identifiants, en un appel (C5-T1).
+    static func mods(ids: [Int],
+                     completion: @escaping @Sendable (Result<NexusModSearch.Page, SearchError>) -> Void) {
+        send(body: NexusModSearch.modsByIdsBody(ids, gameId: NexusRequestBuilder.gameId),
+             decode: NexusModSearch.decode,
+             completion: completion)
+    }
+
     /// L'entonnoir commun : clé, requête, quota, 429, 200-avec-`errors`.
     /// Une seule copie pour la recherche, le listing et la fiche — pas de
     /// variantes qui divergent.

@@ -259,7 +259,7 @@ v1 **ne sait pas chercher** : la recherche passe par GraphQL (§2.4).
 |---|---|
 | **Point d'entrée** | `https://api.nexusmods.com/v2/graphql` |
 | **Rôle** | la recherche de mods, la vitrine Découverte |
-| **Code** | `StarHubTH/NexusSearchClient.swift` |
+| **Code** | `StarHubTH/NexusSearchClient.swift` ; lien « requis par » et relecture par lots : `Models/NexusTranslationLinks.swift`, `FrenchTranslationLookup.swift` (C5-T1) |
 | **À savoir** | le filtre est un tag `French`, pas une catégorie. `ModsFilter` porte 27 champs, dont `categoryName` et `languageName` |
 | **Sans jeton** | **faux, ce que disait cette ligne** (mesuré le 2026-09-24) : introspection, `mods(filter:…)` et `modRequirements` répondent sans clé, à condition d'envoyer un `User-Agent` — sans lui, Cloudflare rend 403. L'app garde la clé (quota, cohérence avec v1) |
 | **Traductions d'un mod** | `modRequirements { modsRequiringThisMod(count:, offset:) { totalCount nodes { modId modName notes } } }` : les fiches qui déclarent le mod comme prérequis — les traductions en font partie, **sans champ de langue** (la langue se lit dans `modName`). La section « Translations » de la page web (langue → fiche) **n'est pas exposée** par le schéma (38 champs de `Mod`, aucun). Mesuré sur le parc : 176 mods traduisibles sans `fr.json`, 94 avec un id Nexus (87 distincts) ; **10** ont une traduction FR requérante, **toutes justes** ; la recherche nom + tag `French` en rend 11 dont **4 fausses**, et ses 7 justes sont déjà dans les 10. SVE (3753) : 756 requérants, 3 des 5 traductions FR de la page y figurent |

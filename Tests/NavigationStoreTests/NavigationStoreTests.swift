@@ -27,7 +27,6 @@ import Foundation
         s.pendingTranslationDiffFilter = .state(.missing)
         s.pendingLogFocus = "erreur"
         s.viewingSaveTimeline = makeSave("Farm_12345")
-        s.viewingThaiMod = nil
 
         #expect(s.pendingModFocus == "X")
         #expect(s.pendingTranslationFocus == "Y")

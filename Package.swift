@@ -45,6 +45,8 @@ let package = Package(
                 "Models/NexusQuota.swift",
                 "Models/NexusAccount.swift",
                 "Models/NexusModSearch.swift",
+                "Models/NexusTranslationLinks.swift",
+                "Models/FrenchTranslationSweep.swift",
                 "Models/NexusSearchError.swift",
                 "Models/DiscoveryState.swift",
                 "Models/ModCatalog.swift",
@@ -120,7 +122,6 @@ let package = Package(
                 "Models/TranslationBaseline.swift",
                 "Models/TranslationBatchPlanner.swift",
                 "Models/TranslationBaselineRules.swift",
-                "Models/ThaiTranslationTable.swift",
                 "NexusUpdateChecker.swift",
                 "Models/NexusUpdateConsolidation.swift",
                 "Models/NexusFallbackCheck.swift",
@@ -1072,11 +1073,6 @@ let package = Package(
             name: "ContentPackConfigSchemaTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ContentPackConfigSchemaTests"
-        ),
-        .testTarget(
-            name: "ThaiTranslationTableTests",
-            dependencies: ["StarHubTHCore"],
-            path: "Tests/ThaiTranslationTableTests"
         ),
         .testTarget(
             name: "I18nCoverageTests",

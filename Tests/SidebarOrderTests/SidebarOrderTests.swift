@@ -4,12 +4,14 @@ import Testing
 @Suite("Ordre de la barre latérale")
 struct SidebarOrderTests {
 
-    /// Les 15 destinations, dans l'ordre relevé à l'écran le 2026-09-09.
+    /// Les 15 destinations, dans l'ordre de l'écran. Relevé le 2026-09-09 ;
+    /// le 2026-09-24 (C5-T1), « Traductions FR » entre en Bibliothèque et le
+    /// hub thaï, conditionnel et dernier, sort.
     /// Écrit une fois ici, relu par les tests d'ordre et de couverture.
     private static let attendu: [SidebarDestination] = [
-        .home, .mods, .discover, .updates, .profiles, .saves,
+        .home, .mods, .discover, .updates, .frenchTranslations, .profiles, .saves,
         .systemAlerts, .quarantine, .installBackups, .configBackups,
-        .maintenance, .logs, .settings, .appChangelog, .thaiHub,
+        .maintenance, .logs, .settings, .appChangelog,
     ]
 
     /// Non-régression : sans ce test, un réordonnancement silencieux passerait
@@ -39,69 +41,52 @@ struct SidebarOrderTests {
         }
     }
 
-    @Test func leHubThaiEstConditionnelEtDernier() {
-        #expect(SidebarOrder.all.last?.destination == .thaiHub)
-        #expect(SidebarOrder.visible(showThaiHub: true).count == 15)
-        #expect(SidebarOrder.visible(showThaiHub: false).count == 14)
-        #expect(!SidebarOrder.visible(showThaiHub: false)
-            .contains { $0.destination == .thaiHub })
-    }
-
-    @Test func lesNeufPremieresVisiblesPortentUnNumero() {
-        #expect(SidebarOrder.shortcutIndex(of: .home, showThaiHub: false) == 1)
-        #expect(SidebarOrder.shortcutIndex(of: .mods, showThaiHub: false) == 2)
-        #expect(SidebarOrder.shortcutIndex(of: .installBackups, showThaiHub: false) == 9)
+    /// C5-T1 décale d'un rang tout ce qui suit « Mises à jour » : la
+    /// quarantaine prend ⌘9, les sauvegardes d'installation n'ont plus de
+    /// numéro.
+    @Test func lesNeufPremieresPortentUnNumero() {
+        #expect(SidebarOrder.shortcutIndex(of: .home) == 1)
+        #expect(SidebarOrder.shortcutIndex(of: .mods) == 2)
+        #expect(SidebarOrder.shortcutIndex(of: .frenchTranslations) == 5)
+        #expect(SidebarOrder.shortcutIndex(of: .quarantine) == 9)
     }
 
     @Test func laDixiemeNAPasDeNumero() {
-        #expect(SidebarOrder.shortcutIndex(of: .configBackups, showThaiHub: false) == nil)
-        #expect(SidebarOrder.shortcutIndex(of: .thaiHub, showThaiHub: true) == nil)
-    }
-
-    /// Le hub thaï est dernier : l'activer ne doit décaler aucun numéro.
-    @Test func activerLeHubThaiNeDecaleAucunRaccourci() {
-        for d in SidebarOrder.visible(showThaiHub: false).map(\.destination) {
-            #expect(SidebarOrder.shortcutIndex(of: d, showThaiHub: false)
-                    == SidebarOrder.shortcutIndex(of: d, showThaiHub: true))
-        }
+        #expect(SidebarOrder.shortcutIndex(of: .installBackups) == nil)
     }
 
     @Test func allerRetourEntreNumeroEtDestination() {
         for n in 1...9 {
-            let e = SidebarOrder.entry(forShortcut: n, showThaiHub: false)
+            let e = SidebarOrder.entry(forShortcut: n)
             #expect(e != nil, "⌘\(n) ne mène nulle part")
             if let e {
-                #expect(SidebarOrder.shortcutIndex(of: e.destination,
-                                                   showThaiHub: false) == n)
+                #expect(SidebarOrder.shortcutIndex(of: e.destination) == n)
             }
         }
-        #expect(SidebarOrder.entry(forShortcut: 10, showThaiHub: false) == nil)
-        #expect(SidebarOrder.entry(forShortcut: 0, showThaiHub: false) == nil)
+        #expect(SidebarOrder.entry(forShortcut: 10) == nil)
+        #expect(SidebarOrder.entry(forShortcut: 0) == nil)
     }
 
     @Test func lesGroupesSuiventLOrdreDeLEcran() {
-        #expect(SidebarOrder.entries(in: .top, showThaiHub: false)
-            .map(\.destination) == [.home])
-        #expect(SidebarOrder.entries(in: .library, showThaiHub: false)
-            .map(\.destination) == [.mods, .discover, .updates])
-        #expect(SidebarOrder.entries(in: .saves, showThaiHub: false)
-            .map(\.destination) == [.profiles, .saves])
-        #expect(SidebarOrder.entries(in: .health, showThaiHub: false)
-            .map(\.destination) == [.systemAlerts, .quarantine,
-                                    .installBackups, .configBackups, .maintenance])
-        #expect(SidebarOrder.entries(in: .app, showThaiHub: false)
-            .map(\.destination) == [.logs, .settings, .appChangelog])
+        #expect(SidebarOrder.entries(in: .top).map(\.destination) == [.home])
+        #expect(SidebarOrder.entries(in: .library).map(\.destination)
+                == [.mods, .discover, .updates, .frenchTranslations])
+        #expect(SidebarOrder.entries(in: .saves).map(\.destination) == [.profiles, .saves])
+        #expect(SidebarOrder.entries(in: .health).map(\.destination)
+                == [.systemAlerts, .quarantine, .installBackups, .configBackups, .maintenance])
+        #expect(SidebarOrder.entries(in: .app).map(\.destination)
+                == [.logs, .settings, .appChangelog])
     }
 
-    /// Les clés doivent être celles déjà en place — aucune clé de destination
-    /// n'est créée par ce lot (relevé le 2026-09-09).
-    @Test func lesClesSontCellesDejaEnPlace() {
+    /// Les clés des destinations d'origine restent celles relevées le
+    /// 2026-09-09 ; « Traductions FR » porte la sienne.
+    @Test func lesClesSontCellesAttendues() {
         func cle(_ d: SidebarDestination) -> String? {
             SidebarOrder.all.first { $0.destination == d }?.labelKey
         }
         #expect(cle(.home) == "main_home")
         #expect(cle(.mods) == "mods_mods")
-        #expect(cle(.thaiHub) == "thaihub_title")
+        #expect(cle(.frenchTranslations) == "frtr_title")
         #expect(cle(.configBackups) == "mod_config_backups_tab_title")
     }
 }
