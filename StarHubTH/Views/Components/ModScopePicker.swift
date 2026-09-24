@@ -15,28 +15,24 @@ struct ModScopePicker: View {
             segment(L10n.Mods.filterAll, counts.all, "square.stack").tag(ModFilter.all)
             segment(L10n.Mods.enabled, counts.enabled, "checkmark.circle").tag(ModFilter.enabled)
             segment(L10n.Mods.disabled, counts.disabled, "pause.circle").tag(ModFilter.disabled)
-            segment(L10n.Mods.filterIssues, counts.issues, "exclamationmark.triangle", icon: true)
-                .tag(ModFilter.issues)
-            segment(L10n.Mods.filterUpdates, counts.updates, "arrow.up.circle", icon: true)
-                .tag(ModFilter.updates)
+            segment(L10n.Mods.filterIssues, counts.issues, "exclamationmark.triangle").tag(ModFilter.issues)
+            segment(L10n.Mods.filterUpdates, counts.updates, "arrow.up.circle").tag(ModFilter.updates)
         }
         .pickerStyle(.segmented)
         .labelsHidden()
         .fixedSize()
     }
 
-    /// « Titre (n) » — avec son icône pour les deux cadrages d'attention —,
-    /// ou, compact, l'icône et le compte (le titre reste lu par VoiceOver).
-    @ViewBuilder
-    private func segment(_ key: String, _ count: Int, _ symbol: String,
-                         icon: Bool = false) -> some View {
+    /// « icône Titre (n) », ou, compact, « icône n » — le titre reste lu par
+    /// VoiceOver.
+    ///
+    /// ⚠️ L'icône vit **dans le texte** (`Text` interpolant une `Image`) : un
+    /// segment de sélecteur macOS ne rend que le titre d'un `Label`, son icône
+    /// disparaissait et le mode compact n'affichait que des chiffres.
+    private func segment(_ key: String, _ count: Int, _ symbol: String) -> some View {
         let title = "\(localization.L(key)) (\(count))"
-        if compact {
-            Label("\(count)", systemImage: symbol).accessibilityLabel(title)
-        } else if icon {
-            Label(title, systemImage: symbol)
-        } else {
-            Text(title)
-        }
+        return Text(compact ? "\(Image(systemName: symbol)) \(count)"
+                            : "\(Image(systemName: symbol)) \(title)")
+            .accessibilityLabel(title)
     }
 }
