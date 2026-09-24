@@ -14,8 +14,8 @@ private enum MaintenanceConfirmation {
     /// d'état de vue en plus).
     case purgeTrashAll(events: Int)
     case purgeTrashEntry(event: String, entry: String)
-    /// X103-C — vider les archives Nexus conservées.
-    case purgeArchives(count: Int)
+    /// X103-C — les archives Nexus conservées : toutes (`nil`), ou une seule.
+    case purgeArchives(only: NexusArchiveEntry?)
 }
 
 /// L'écran « Entretien » (X25) : ce que StarHubFR occupe, et de quoi le rendre
@@ -64,9 +64,8 @@ struct MaintenanceView: View {
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
-        // Une passe coûte 0,86 s mesurées : au `.onAppear` seulement, et le
-        // garde de `buildMaintenanceReport` refuse le chevauchement. Le rapport
-        // déjà posé reste affiché pendant la refonte.
+        // Passe de 0,86 s : au `.onAppear` seulement, sans chevauchement
+        // (garde de `buildMaintenanceReport`) ; l'ancien rapport reste affiché.
         .onAppear {
             vm.buildMaintenanceReport()
             vm.refreshTrash()
@@ -104,9 +103,9 @@ struct MaintenanceView: View {
                     vm.purgeTrashEntry(event: event, entry: entry)
                 }
                 Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
-            case .purgeArchives:
+            case .purgeArchives(let only):
                 Button(localization.L(L10n.Maintenance.confirmRemove), role: .destructive) {
-                    vm.purgeNexusArchives()
+                    if let only { vm.deleteNexusArchive(only) } else { vm.purgeNexusArchives() }
                 }
                 Button(localization.L(L10n.Maintenance.cancel), role: .cancel) { }
             }
@@ -125,8 +124,9 @@ struct MaintenanceView: View {
                 Text(String(format: localization.L(L10n.Maintenance.trashPurgeAllMessage), events))
             case .purgeTrashEntry(_, let entry):
                 Text(String(format: localization.L(L10n.Maintenance.trashPurgeOneMessage), entry))
-            case .purgeArchives:
-                Text(localization.L(L10n.Maintenance.archivesPurgeConfirm))
+            case .purgeArchives(let only):
+                Text(only.map { String(format: localization.L(L10n.Maintenance.archivesDeleteConfirm), $0.modName,
+                                       $0.version) } ?? localization.L(L10n.Maintenance.archivesPurgeConfirm))
             }
         }
     }
@@ -211,7 +211,7 @@ struct MaintenanceView: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                         Button(localization.L(L10n.Maintenance.archivesPurge), role: .destructive) {
-                            confirmation = .purgeArchives(count: vm.nexusArchives.count)
+                            confirmation = .purgeArchives(only: nil)
                         }
                         .controlSize(.small)
                         .foregroundColor(.red)
@@ -241,7 +241,7 @@ struct MaintenanceView: View {
                             }
                             .controlSize(.small)
                             Button(localization.L(L10n.Maintenance.archivesDelete), role: .destructive) {
-                                vm.deleteNexusArchive(entry)
+                                confirmation = .purgeArchives(only: entry)
                             }
                             .controlSize(.small)
                             .foregroundColor(.red)

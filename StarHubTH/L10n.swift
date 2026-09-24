@@ -1737,6 +1737,7 @@ enum L10n {
         static let archivesReinstall    = "maintenance_archives_reinstall"
         static let archivesDelete       = "maintenance_archives_delete"
         static let archivesPurge        = "maintenance_archives_purge"
+        static let archivesDeleteConfirm = "maintenance_archives_delete_confirm"
         static let archivesPurgeConfirm = "maintenance_archives_purge_confirm"
         static let title           = "maintenance_title"
         static let total           = "maintenance_total"

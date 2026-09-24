@@ -374,6 +374,7 @@
 "maintenance_action_reveal" = "Show in Finder";
 "maintenance_archives_count" = "%1$d archive(s) · %2$@";
 "maintenance_archives_delete" = "Delete";
+"maintenance_archives_delete_confirm" = "Permanently delete the archive of “%1$@” (%2$@)? The installed mod is not touched.";
 "maintenance_archives_empty_off" = "Turned off. Once enabled in Settings, every install from Nexus keeps its archive here — enough to reinstall a deleted mod with no network.";
 "maintenance_archives_empty_on" = "No archives yet. The next install from Nexus will leave its own here.";
 "maintenance_archives_purge" = "Empty archives";

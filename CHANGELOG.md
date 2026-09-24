@@ -28,7 +28,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **VoiceOver annonce les boutons destructifs** : suppression, purge et retrait (Entretien, corbeille, fiche d'un mod, éditeur de sauvegarde) portent désormais le rôle destructif, pas seulement la couleur rouge.
+- **VoiceOver annonce les boutons destructifs** : suppression, purge et retrait (Entretien, corbeille, fiche d'un mod, éditeur de sauvegarde) portent désormais le rôle destructif, pas seulement la couleur rouge. Supprimer une archive Nexus demande désormais confirmation.
 - **Écran de lancement plus compact** : environ deux tiers de sa taille d'avant, la fenêtre épouse la carte.
 - **« Stardew Valley Thai » disparaît des extensions principales** dans les Réglages.
 - **L'accueil va à l'essentiel** : lancer le jeu, ce qui l'empêche et les compteurs d'attention. « Infos sur l'appli » et « Extensions principales » ne restent qu'aux Réglages. Le bandeau Nexus revient en tête, avec votre avatar Steam, votre nom et la version.

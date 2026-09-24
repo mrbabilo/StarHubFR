@@ -4654,8 +4654,9 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       saisi ; éditeur de sauvegarde : supprimer la partie, vider un
       emplacement ×2). Aspect inchangé (rouge gardé). Relevé : bouton suivi
       à ≤ 8 lignes d'un `.foregroundColor(.red)` sans `role:`.
-      ⚠️ Noté, non traité : « Supprimer » d'une archive Nexus
-      (`vm.deleteNexusArchive`) agit sans confirmation.
+      Relevé en passant : « Supprimer » d'une archive Nexus agissait sans
+      confirmation — elle passe désormais par la même alerte que « Vider les
+      archives », qui nomme le mod et la version.
 
 
 #### Axe F — Dette technique (suite)
