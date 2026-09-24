@@ -49,4 +49,11 @@ struct NexusRequestBuilderTests {
         #expect(NexusRequestBuilder.isValidModId("191 ") == false)
         #expect(NexusRequestBuilder.isValidModId("1 91") == false)
     }
+
+    /// Une requête GraphQL qui n'aboutit pas figeait « Traductions FR » 60 s
+    /// par requête (défaut d'`URLRequest`) ; elles répondent en 0,1 à 1,3 s.
+    @Test func graphQLRequestsGiveUpAfterTwentySeconds() {
+        let request = NexusRequestBuilder.makeGraphQLRequest(body: Data("{}".utf8), apiKey: "k")
+        #expect(request?.timeoutInterval == 20)
+    }
 }

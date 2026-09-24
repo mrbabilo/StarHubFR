@@ -74,11 +74,19 @@ enum NexusRequestBuilder {
     /// Construit la requête POST de l'API GraphQL v2, avec les mêmes en-têtes
     /// d'identification que les appels v1 — c'est la raison d'être de ce
     /// fichier : un second jeu d'en-têtes ferait voir deux clients à Nexus.
+    static let graphQLTimeout: TimeInterval = 20
+
     static func makeGraphQLRequest(body: Data, apiKey: String) -> URLRequest? {
         guard let url = URL(string: graphQLURL) else { return nil }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.httpBody = body
+        // 20 s au lieu des 60 par défaut. Mesuré le 2026-09-24 : une requête
+        // GraphQL répond en 0,1 à 1,3 s, mais de temps en temps n'aboutit
+        // jamais — la recherche « Traductions FR », qui en enchaîne jusqu'à
+        // vingt pour un mod, restait alors figée plus d'une minute sur un seul
+        // mod (« La requête a expiré », 60,2 s).
+        req.timeoutInterval = graphQLTimeout
         req.setValue(apiKey, forHTTPHeaderField: "apikey")
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         req.setValue(appName, forHTTPHeaderField: "Application-Name")
