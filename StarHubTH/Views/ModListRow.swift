@@ -995,7 +995,7 @@ private struct FrenchCoverageBadge: View {
 
     private var tint: Color {
         guard let percent else { return .secondary }
-        return percent >= 100 ? Color(red: 0.20, green: 0.62, blue: 0.34) : .orange
+        return percent >= 100 ? AppDesign.Color.success : .orange
     }
 
     var body: some View {

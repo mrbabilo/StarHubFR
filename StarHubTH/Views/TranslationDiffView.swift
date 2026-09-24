@@ -757,7 +757,7 @@ enum DiffStateStyle {
     static func tint(_ state: TranslationCoverage.DiffRow.State) -> Color {
         switch state {
         case .translated:
-            return Color(red: 0.20, green: 0.62, blue: 0.34)
+            return AppDesign.Color.success
         case .empty:
             // Le seul état qui casse vraiment l'affichage : rien ne s'affiche
             // en jeu, sans même retomber sur l'anglais.

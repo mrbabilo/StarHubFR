@@ -367,7 +367,6 @@
 "main_search" = "Rechercher";
 "main_steam_account" = "Compte Steam";
 "main_system_alerts" = "Alertes système";
-"main_system_status_a11y" = "État du système : %lld mods actifs, %lld mises à jour, %lld erreurs";
 "maintenance_action_clean" = "Nettoyer les entrées mortes";
 "maintenance_action_open_recovery" = "Voir dans Sauvegardes des mods";
 "maintenance_action_remove_anyway" = "Retirer quand même";

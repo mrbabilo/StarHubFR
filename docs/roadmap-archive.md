@@ -4699,6 +4699,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       barre** : le bandeau d'I-T13 porte déjà ces gestes, juste au-dessus —
       un second exemplaire se disputerait la place.
 
+- [x] **I-T12** ✅ *(livré le 2026-09-25)* — **Finitions relevées.**
+      `SystemStatusFooter` supprimé (sans appelant) avec sa clé
+      `main_system_status_a11y` ; `AccountHeaderCard`, qui partageait son
+      fichier, le garde renommé (`Components/AccountHeaderCard.swift`).
+      `SidebarComponents.activeColor` → `AppDesign.Color.installed` (même
+      valeur). Vert « FR 100 % » `Color(red: 0.20, 0.62, 0.34)` ×3 →
+      `AppDesign.Color.success` (vert système : teinte légèrement plus vive).
+
 
 #### Axe F — Dette technique (suite)
 

@@ -45,7 +45,6 @@ enum L10n {
         static let systemAlerts         = "main_system_alerts"
         static let discover             = "main_discover"
         static let modUpdates           = "main_mod_updates"
-        static let systemStatusA11y     = "main_system_status_a11y"
         static let alertsNavA11y        = "main_alerts_nav_a11y"
         static let navBack              = "main_nav_back"
         static let navForward           = "main_nav_forward"

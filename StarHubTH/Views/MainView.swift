@@ -227,7 +227,7 @@ struct MainView: View {
     
                     // Account Header Card — compact identity + active profile +
                     // key metadata (mods active/total, SMAPI status). Replaces the
-                    // old bulky 48px avatar and the floating SystemStatusFooter:
+                    // old bulky 48px avatar and the floating status footer:
                     // everything the user needs at-a-glance is now in one card.
                     AccountHeaderCard(
                         vm: vm,

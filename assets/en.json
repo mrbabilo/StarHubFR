@@ -367,7 +367,6 @@
   "main_search": "Search",
   "main_steam_account": "Steam Account",
   "main_system_alerts": "System Alerts",
-  "main_system_status_a11y": "System status: %lld active mods, %lld updates, %lld errors",
   "maintenance_action_clean": "Clean stale entries",
   "maintenance_action_open_recovery": "Show in Mod Backups",
   "maintenance_action_remove_anyway": "Remove anyway",

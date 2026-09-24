@@ -935,12 +935,6 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
       Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
       Entretien. · **L**
-- [ ] **I-T12** — **Finitions relevées** : supprimer
-      `Components/SystemStatusFooter.swift` (201 lignes, plus d'appelant
-      depuis `AccountHeaderCard`) et ses clés orphelines ;
-      `SidebarComponents.activeColor` → jeton `installed` ; vert « FR 100 % »
-      `Color(red: 0.20, 0.62, 0.34)` en trois endroits → `success`. · **S**
-
 **Logique et hiérarchie des actions et des informations** (demandé le
 2026-09-24 au soir, règles au rapport §5 bis : un signal vit là où l'objet
 se voit et porte son action ; la fréquence décide de la place ; la gravité
