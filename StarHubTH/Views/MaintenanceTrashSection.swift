@@ -21,7 +21,7 @@ struct MaintenanceTrashSection: View {
                     Text(localization.L(L10n.Maintenance.trashSectionTitle))
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
-                    Button(localization.L(L10n.Maintenance.trashPurgeAll)) {
+                    Button(localization.L(L10n.Maintenance.trashPurgeAll), role: .destructive) {
                         onPurgeAll(viewModel.trashEvents.count)
                     }
                     .controlSize(.small)
@@ -61,7 +61,7 @@ struct MaintenanceTrashSection: View {
                                     viewModel.restoreTrashEntry(event: event.folderName, entry: entry)
                                 }
                                 .controlSize(.small)
-                                Button(localization.L(L10n.Maintenance.trashPurgeOne)) {
+                                Button(localization.L(L10n.Maintenance.trashPurgeOne), role: .destructive) {
                                     onPurgeEntry(event.folderName, entry)
                                 }
                                 .controlSize(.small)

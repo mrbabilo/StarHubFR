@@ -429,7 +429,7 @@ struct SaveEditorView: View {
                                     .frame(width: 60)
                                     .textFieldStyle(.roundedBorder)
                                 
-                                Button(action: {
+                                Button(role: .destructive, action: {
                                     navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
                                 }) {
                                     Image(systemName: "trash")
@@ -451,7 +451,7 @@ struct SaveEditorView: View {
                                 Text(localization.L(L10n.Saves.nonObject))
                                     .foregroundColor(.secondary)
                                     
-                                Button(action: {
+                                Button(role: .destructive, action: {
                                     navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
                                 }) {
                                     Image(systemName: "trash")
@@ -478,7 +478,7 @@ struct SaveEditorView: View {
                         Spacer()
                         // La fermeture de l'éditeur est faite par `deleteSave`
                         // lui-même, sur succès seulement (voir le ViewModel).
-                        Button(localization.L(L10n.Saves.deleteSave)) {
+                        Button(localization.L(L10n.Saves.deleteSave), role: .destructive) {
                             confirmation = .deleteSave
                         }
                             .foregroundColor(.red)

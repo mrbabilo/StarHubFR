@@ -4647,6 +4647,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       revient en tête (`HomeHeroBanner`, avatar Steam à cheval sur le bord bas,
       nom, version), au-dessus de la bande d'attention.
 
+- [x] **I-T10** ✅ *(livré le 2026-09-24)* — **Destructif sémantique** :
+      `role: .destructive` sur les 5 boutons rouges de l'Entretien et de la
+      corbeille, et sur 7 autres trouvés par le même relevé (fiche d'un mod :
+      retirer un supplément, une traduction, sa déclaration, l'id Nexus
+      saisi ; éditeur de sauvegarde : supprimer la partie, vider un
+      emplacement ×2). Aspect inchangé (rouge gardé). Relevé : bouton suivi
+      à ≤ 8 lignes d'un `.foregroundColor(.red)` sans `role:`.
+      ⚠️ Noté, non traité : « Supprimer » d'une archive Nexus
+      (`vm.deleteNexusArchive`) agit sans confirmation.
+
 
 #### Axe F — Dette technique (suite)
 

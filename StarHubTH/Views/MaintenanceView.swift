@@ -210,7 +210,7 @@ struct MaintenanceView: View {
                                     Self.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
-                        Button(localization.L(L10n.Maintenance.archivesPurge)) {
+                        Button(localization.L(L10n.Maintenance.archivesPurge), role: .destructive) {
                             confirmation = .purgeArchives(count: vm.nexusArchives.count)
                         }
                         .controlSize(.small)
@@ -240,7 +240,7 @@ struct MaintenanceView: View {
                                 vm.reinstallFromArchive(entry)
                             }
                             .controlSize(.small)
-                            Button(localization.L(L10n.Maintenance.archivesDelete)) {
+                            Button(localization.L(L10n.Maintenance.archivesDelete), role: .destructive) {
                                 vm.deleteNexusArchive(entry)
                             }
                             .controlSize(.small)
@@ -382,7 +382,7 @@ struct MaintenanceView: View {
                     }
                 }
             }
-            Button(localization.L(L10n.Maintenance.actionRemoveAnyway)) {
+            Button(localization.L(L10n.Maintenance.actionRemoveAnyway), role: .destructive) {
                 confirmation = .removeProtected(session: row.session,
                                                 modName: row.modFolder)
             }

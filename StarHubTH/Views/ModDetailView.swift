@@ -760,7 +760,7 @@ struct ModDetailView: View {
                     .controlSize(.small)
                     .disabled(!isValidDraft)
                 if vm.nexusCustomModIds[mod.folderName] != nil {
-                    Button(localization.L(L10n.Mods.nexusReset)) { resetDraft() }
+                    Button(localization.L(L10n.Mods.nexusReset), role: .destructive) { resetDraft() }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                         .foregroundColor(.red)

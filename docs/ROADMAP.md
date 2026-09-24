@@ -928,9 +928,6 @@ travail, pas des engagements.
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
 conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 
-- [ ] **I-T10** — **Destructif sémantique** : Entretien et corbeille colorent
-      en rouge des boutons sans `role: .destructive` — VoiceOver ne l'annonce
-      pas. · **S**
 - [ ] **I-T11** — **Charte de présentation, écran par écran** (charte au
       rapport : littéral → jeton de même valeur pour la typographie, un jeton
       par sens pour la couleur, une orthographe par style de bouton, un jeton

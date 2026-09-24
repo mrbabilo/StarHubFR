@@ -186,7 +186,7 @@ struct SupplementSection: View {
                 .font(.system(size: 10))
                 .help(localization.L(L10n.Mods.linkToNexusHint))
             }
-            Button(localization.L(L10n.Mods.addonRemove)) { vm.removeAddon(addon, from: mod) }
+            Button(localization.L(L10n.Mods.addonRemove), role: .destructive) { vm.removeAddon(addon, from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .font(.system(size: 11))
@@ -324,7 +324,7 @@ struct TranslationSection: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            Button(localization.L(L10n.Mods.translationUndeclare)) {
+            Button(localization.L(L10n.Mods.translationUndeclare), role: .destructive) {
                 vm.undeclareTranslation(for: mod)
             }
             .buttonStyle(.borderless)
@@ -450,7 +450,7 @@ struct TranslationSection: View {
                 .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
                 .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
             }
-            Button(localization.L(L10n.Mods.translationRemove)) { vm.removeTranslation(from: mod) }
+            Button(localization.L(L10n.Mods.translationRemove), role: .destructive) { vm.removeTranslation(from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .disabled(isBusy)
