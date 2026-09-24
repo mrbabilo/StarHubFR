@@ -257,8 +257,7 @@ struct LaunchSplashView: View {
         .accessibilityLabel(localization.L(L10n.Main.launching))
     }
 
-    /// L'illustration en 16:9, deux tiers de l'ancienne (640×360).
-    private static let coverSize = CGSize(width: 432, height: 243)
+    private static let coverSize = CGSize(width: 432, height: 243) // 16:9, ⅔ de 640×360
 
     /// Version affichée, lue dans le bundle pour rester juste après chaque
     /// release (même source que l'écran d'accueil). Le repli ne sert qu'aux
@@ -367,13 +366,14 @@ struct LaunchProgressBar: View {
             ProgressView(value: displayed, total: 1.0)
                 .progressViewStyle(.linear)
                 .tint(.white)
-                .frame(width: 320)
 
             Text(caption)
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.75))
                 .lineLimit(1)
         }
+        // Bornées ensemble : une légende longue décentrait la carte.
+        .frame(width: 320)
         .onReceive(Self.ticker) { _ in
             let goal = target
             guard displayed < goal else { return }
