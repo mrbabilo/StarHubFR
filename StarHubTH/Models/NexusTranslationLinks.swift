@@ -102,14 +102,17 @@ extension NexusModSearch {
             "query": query, "variables": ["filters": filters, "count": modIds.count]])
     }
 
-    /// Parmi les fiches liées à un mod, ses traductions françaises : le tag
-    /// `French` **ou** un titre qui l'annonce (3 traductions sur 80 n'ont pas
-    /// le tag). Le lien suffit à dire « ce mod-là » ; il reste à dire « en
-    /// français ». La plus récente en tête.
+    /// Parmi les fiches liées à un mod, ses traductions françaises : les tags
+    /// `French` **et** `Translation`, ou un titre qui l'annonce (3 traductions
+    /// sur 80 n'ont pas le tag `French`, les 80 portent `Translation`). Le tag
+    /// `French` seul ne suffit pas : mesuré sur l'API réelle, trois mods
+    /// **écrits** en français qui requièrent T's Core (Mini Obelisk, T's Dam…)
+    /// passaient pour ses traductions. La plus récente en tête.
     public static func linkedFrenchTranslations(_ hits: [Hit], hostModId: Int) -> [Hit] {
         hits.filter { hit in
             hit.modId != hostModId
-                && (hit.tags.contains { $0.caseInsensitiveCompare(frenchTag) == .orderedSame }
+                && ((hit.isTranslation
+                     && hit.tags.contains { $0.caseInsensitiveCompare(frenchTag) == .orderedSame })
                     || announcesFrenchTranslation(hit.name))
         }
         .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }

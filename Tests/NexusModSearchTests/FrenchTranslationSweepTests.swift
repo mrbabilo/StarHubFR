@@ -72,7 +72,8 @@ struct FrenchTranslationSweepTests {
     @Test func linkedFrenchKeepsTagOrTitleDropsHostAndOthers() {
         let hits = [
             hit(1, "SVE - Francais", updated: 10),                 // titre seul
-            hit(2, "Immersive Farm - Traduction", tags: ["French"], updated: 30),
+            hit(2, "Immersive Farm - Traduction", tags: ["French", "Translation"], updated: 30),
+            hit(5, "Mini Obelisk", tags: ["French"], updated: 40),  // écrit en français, pas une traduction
             hit(3, "SVE - Deutsch", tags: ["German"], updated: 50),
             hit(4, "Frontier Farm Addon", updated: 60),            // « Fr »ontier : pas un mot
             hit(9, "Host itself", tags: ["French"], updated: 99),  // l'hôte
@@ -132,10 +133,17 @@ struct FrenchTranslationSweepTests {
         #expect(FrenchTranslationSweep.status(
             entry: entry, installed: installed(nexusId: 5, name: "X - FR", updated: 200))
             == .installed)
-        // Une recherche en échec ne dit rien d'une traduction posée.
+        // Rien de vérifié n'est « à jour » : jamais cherché, recherche en
+        // échec, ou traduction posée sans fiche Nexus.
+        #expect(FrenchTranslationSweep.status(
+            entry: nil, installed: installed(nexusId: 5, name: "X - FR", updated: 100))
+            == .installedUnverified)
         #expect(FrenchTranslationSweep.status(
             entry: .init(hits: [], searchedAt: now, failed: true),
-            installed: installed(nexusId: 5, name: "X - FR", updated: 100)) == .installed)
+            installed: installed(nexusId: 5, name: "X - FR", updated: 100)) == .installedUnverified)
+        #expect(FrenchTranslationSweep.status(
+            entry: entry, installed: installed(nexusId: 0, name: "X - FR", updated: 100))
+            == .installedUnverified)
     }
 
     /// Le lien passe devant, le nom ne rajoute que ce que le lien n'a pas vu.
@@ -146,6 +154,25 @@ struct FrenchTranslationSweepTests {
         #expect(entry.hits.map(\.modId) == [1, 2, 3])
         #expect(entry.isLinked(hit(2, "B - FR")))
         #expect(!entry.isLinked(hit(3, "C - Francais")))
+    }
+
+    /// Relevé sur l'API réelle (SVE, 2026-09-24) : le lien rend aussi les
+    /// traductions des mods qui requièrent SVE. Le titre départage.
+    @Test func confidenceNeedsTheLinkAndATitleThatNamesTheMod() {
+        let sve = hit(29381, "Stardew Valley Expanded -  Francais")
+        let other = hit(7574, "Xtardew Valley - French")
+        let nameOnly = hit(1, "Stardew Valley Expanded FR")
+        let entry = FrenchTranslationSweep.merge(linked: [sve, other], byName: [nameOnly], at: Date())
+        #expect(entry.confidence(of: sve, hostName: "Stardew Valley Expanded") == .confirmed)
+        #expect(entry.confidence(of: other, hostName: "Stardew Valley Expanded") == .linkedOnly)
+        #expect(entry.confidence(of: nameOnly, hostName: "Stardew Valley Expanded") == .nameOnly)
+        // Ordre des mots libre, préfixe de cadre ignoré, nom collé retrouvé.
+        #expect(FrenchTranslationSweep.titleNames("Maggs Townsfolk Daily Dialogue Expansion - FR",
+                                                  host: "Maggs Daily Townsfolk Dialogue Expansion"))
+        #expect(FrenchTranslationSweep.titleNames("Pelican Town Expanded - FR", host: "[CP] Pelican Town Expanded"))
+        #expect(FrenchTranslationSweep.titleNames("Better Chests FR", host: "BetterChests"))
+        #expect(!FrenchTranslationSweep.titleNames("Spouses React to Player Death (Francais)",
+                                                   host: "Stardew Valley Expanded"))
     }
 
     @Test func storageRoundTripsAndToleratesGarbage() throws {

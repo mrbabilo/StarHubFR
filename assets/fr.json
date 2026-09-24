@@ -1513,7 +1513,7 @@
   "frtr_progress": "Recherche %1$lld / %2$lld — %3$@",
   "frtr_summary": "%1$lld mods couverts · %2$lld avec une traduction à poser · %3$lld sans résultat",
   "frtr_checked_at": "Résultat le plus ancien : %@",
-  "frtr_never": "La recherche couvre %lld mods, à raison de 2 à 4 requêtes Nexus chacun. Elle ne part que sur un clic.",
+  "frtr_never": "La recherche couvre %lld mods : 2 requêtes Nexus pour la plupart, une vingtaine pour les plus gros (SVE). Elle ne part que sur un clic.",
   "frtr_stop_nokey": "Ajoutez votre clé d'API Nexus dans les Réglages pour lancer la recherche.",
   "frtr_stop_ratelimit": "Limite de requêtes Nexus atteinte : recherche arrêtée. Les résultats déjà trouvés sont gardés ; réessayez plus tard.",
   "frtr_stop_cancelled": "Recherche arrêtée. Les résultats déjà trouvés sont gardés.",
@@ -1528,5 +1528,8 @@
   "frtr_paused": "en pause",
   "frtr_install": "Poser",
   "frtr_update": "Mettre à jour",
-  "frtr_open_mod": "Fiche du mod"
+  "frtr_open_mod": "Fiche du mod",
+  "frtr_section_unverified": "Posées, mise à jour non vérifiable (%lld)",
+  "frtr_linked_only": "liée, à vérifier",
+  "frtr_linked_only_help": "Cette traduction déclare le mod comme prérequis sur Nexus, mais son titre ne le nomme pas : elle traduit peut-être un autre mod qui dépend de celui-ci. Vérifiez avant de la poser."
 }

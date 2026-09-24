@@ -296,7 +296,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
         **premier niveau** : c'est là qu'une traduction se dépose. Le hub thaï, son
         code VM (247 lignes), son parseur et ses 34 clés sont retirés ; ⌘5 mène à la
         page, la quarantaine prend ⌘9, les sauvegardes d'installation perdent leur numéro.
-        À vérifier à l'écran : la recherche sur le parc réel (compte des « par nom »).
+        Mesuré ensuite sur l'API réelle : le lien rend aussi les traductions des mods
+        qui **requièrent** l'hôte (SVE : 4 sur 8) — chaque résultat porte donc un niveau
+        (confirmée = liée + titre qui nomme le mod ; liée seule ; par nom). Parc : 167
+        candidats de premier niveau, 92 avec id, 9 traductions liées dont 8 confirmées.
+        Les 17 packs n'ont pas d'id au manifeste de tête : recherche par nom seule — ne
+        pas emprunter l'id d'un composant sans mesure (un id Nexus n'est pas une
+        identité). Une « posée » sans fiche ni recherche aboutie est « non vérifiable »,
+        jamais « à jour ».
 
 #### C6 — Signaux de demande de traduction — ❌ **abandonné le 2026-09-24 (mesure)**
 

@@ -1513,7 +1513,7 @@
   "frtr_progress": "Searching %1$lld / %2$lld — %3$@",
   "frtr_summary": "%1$lld mods covered · %2$lld with a French translation to install · %3$lld without result",
   "frtr_checked_at": "Oldest result: %@",
-  "frtr_never": "The search covers %lld mods, at 2 to 4 Nexus requests each. It only runs when you click.",
+  "frtr_never": "The search covers %lld mods: 2 requests for most of them, around twenty for the biggest (SVE). It only runs when you click.",
   "frtr_stop_nokey": "Add your Nexus API key in Settings to search.",
   "frtr_stop_ratelimit": "Nexus request limit reached: search stopped. Results found so far are kept; try again later.",
   "frtr_stop_cancelled": "Search stopped. Results found so far are kept.",
@@ -1528,5 +1528,8 @@
   "frtr_paused": "paused",
   "frtr_install": "Install",
   "frtr_update": "Update",
-  "frtr_open_mod": "Mod page"
+  "frtr_open_mod": "Mod page",
+  "frtr_section_unverified": "Installed, update not verifiable (%lld)",
+  "frtr_linked_only": "linked, check it",
+  "frtr_linked_only_help": "This translation declares the mod as a requirement on Nexus, but its title does not name it: it may translate another mod that depends on this one. Check before installing."
 }

@@ -36,6 +36,42 @@ public enum FrenchTranslationSweep {
         public func isLinked(_ hit: NexusModSearch.Hit) -> Bool {
             linkedModIds.contains(hit.modId)
         }
+
+        /// Ce qu'on peut affirmer d'un résultat pour le mod `hostName`.
+        public func confidence(of hit: NexusModSearch.Hit, hostName: String) -> Confidence {
+            guard isLinked(hit) else { return .nameOnly }
+            return FrenchTranslationSweep.titleNames(hit.name, host: hostName) ? .confirmed : .linkedOnly
+        }
+    }
+
+    /// Mesuré sur l'API réelle le 2026-09-24 : pour SVE, le lien rend 8
+    /// traductions françaises, dont **4 traduisent un autre mod** qui requiert
+    /// lui aussi SVE (Spouses React, Xtardew, Aurora Vineyard, Rasmodius) —
+    /// une traduction déclare en prérequis tout ce que son mod requiert. Le
+    /// lien dit « de la famille », le titre dit « de ce mod-là » ; seuls les
+    /// deux ensemble se passent de vérification.
+    public enum Confidence: Equatable, Sendable {
+        /// Liée, et son titre nomme le mod.
+        case confirmed
+        /// Liée, mais son titre ne nomme pas le mod : peut-être la traduction
+        /// d'un mod qui en dépend.
+        case linkedOnly
+        /// Trouvée par ressemblance de nom seulement.
+        case nameOnly
+    }
+
+    /// Le titre nomme-t-il le mod ? Tous les mots significatifs du nom (trois
+    /// lettres et plus, préfixe de cadre retiré, accents repliés) se
+    /// retrouvent dans le titre, dans n'importe quel ordre — « Maggs Townsfolk
+    /// Daily Dialogue » pour « Maggs Daily Townsfolk Dialogue » ; ou le nom,
+    /// collé, figure dans le titre collé — un nom de manifeste sans espaces.
+    static func titleNames(_ title: String, host: String) -> Bool {
+        let hostWords = NexusModSearch.words(in: NexusModSearch.searchTerm(for: host))
+            .filter { $0.count >= 3 }
+        let titleWords = NexusModSearch.words(in: title)
+        if !hostWords.isEmpty, hostWords.isSubset(of: titleWords) { return true }
+        let hostGlued = NexusModSearch.comparableTitle(host)
+        return hostGlued.count >= 4 && NexusModSearch.comparableTitle(title).contains(hostGlued)
     }
 
     /// Réunit les deux sources : le lien d'abord (le plus sûr), puis ce que le
@@ -92,15 +128,23 @@ public enum FrenchTranslationSweep {
         case available([NexusModSearch.Hit])
         /// Une traduction est posée et Nexus en a une version plus récente.
         case updateAvailable(NexusModSearch.Hit)
-        /// Une traduction est posée, rien de plus récent n'est connu.
+        /// Une traduction est posée, la recherche a abouti, sa fiche est
+        /// connue, et rien de plus récent n'est sorti.
         case installed
+        /// Une traduction est posée, mais rien ne permet de dire si elle est à
+        /// jour : jamais cherché, recherche en échec, ou traduction sans fiche
+        /// Nexus (courant sur un compte gratuit, où tout s'installe à la main).
+        /// Ne pas le ranger sous « à jour » — ce serait un vert mensonger.
+        case installedUnverified
     }
 
     public static func status(entry: Entry?, installed: InstalledTranslation?) -> Status {
         if let installed {
             // La moitié « déjà posée » des résultats est celle qui porte la
             // mise à jour (règle de `TranslationPresence.update`).
-            guard let entry, !entry.failed else { return .installed }
+            guard let entry, !entry.failed, installed.nexusModId > 0 else {
+                return .installedUnverified
+            }
             let split = NexusModSearch.partition(
                 entry.hits,
                 installedNexusIds: installed.nexusModId > 0 ? [installed.nexusModId] : [],

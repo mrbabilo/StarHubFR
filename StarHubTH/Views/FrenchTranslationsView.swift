@@ -132,12 +132,14 @@ struct FrenchTranslationsView: View {
         let updates = all.filter { if case .updateAvailable = $0.status { return true }; return false }
         let available = all.filter { if case .available = $0.status { return true }; return false }
         let installed = all.filter { $0.status == .installed }
+        let unverified = all.filter { $0.status == .installedUnverified }
         let failed = all.filter { $0.status == .failed }
         let none = all.filter { $0.status == .nothingFound }
         let notSearched = all.filter { $0.status == .notSearched }
         section(L10n.FrTranslations.sectionUpdates, updates, open: true)
         section(L10n.FrTranslations.sectionAvailable, available, open: true)
         section(L10n.FrTranslations.sectionFailed, failed, open: true)
+        section(L10n.FrTranslations.sectionUnverified, unverified, open: false)
         section(L10n.FrTranslations.sectionInstalled, installed, open: false)
         section(L10n.FrTranslations.sectionNone, none, open: false)
         section(L10n.FrTranslations.sectionNotSearched, notSearched, open: false)
@@ -212,10 +214,11 @@ private struct FrenchTranslationRow: View {
             }
             switch status {
             case .available(let hits):
-                ForEach(hits) { hitLine($0, action: L10n.FrTranslations.install) }
+                // Le plus sûr d'abord : confirmée, liée, puis par nom.
+                ForEach(hits.sorted { rank($0) < rank($1) }) { hitLine($0, action: L10n.FrTranslations.install) }
             case .updateAvailable(let newer):
                 hitLine(newer, action: L10n.FrTranslations.update)
-            case .installed, .failed, .nothingFound, .notSearched:
+            case .installed, .installedUnverified, .failed, .nothingFound, .notSearched:
                 EmptyView()
             }
         }
@@ -224,18 +227,42 @@ private struct FrenchTranslationRow: View {
         .cornerRadius(8)
     }
 
+    private func confidence(_ hit: NexusModSearch.Hit) -> FrenchTranslationSweep.Confidence {
+        entry?.confidence(of: hit, hostName: candidate.name) ?? .nameOnly
+    }
+
+    private func rank(_ hit: NexusModSearch.Hit) -> Int {
+        switch confidence(hit) {
+        case .confirmed: return 0
+        case .linkedOnly: return 1
+        case .nameOnly: return 2
+        }
+    }
+
+    /// La marque d'un résultat qui demande à être vérifié ; rien quand le lien
+    /// et le titre concordent.
+    @ViewBuilder private func caution(_ hit: NexusModSearch.Hit) -> some View {
+        switch confidence(hit) {
+        case .confirmed:
+            EmptyView()
+        case .linkedOnly:
+            Text(localization.L(L10n.FrTranslations.linkedOnly))
+                .font(.system(size: 10)).foregroundColor(.orange)
+                .help(localization.L(L10n.FrTranslations.linkedOnlyHelp))
+        case .nameOnly:
+            Text(localization.L(L10n.FrTranslations.byName))
+                .font(.system(size: 10)).foregroundColor(.orange)
+                .help(localization.L(L10n.FrTranslations.byNameHelp))
+        }
+    }
+
     private func hitLine(_ hit: NexusModSearch.Hit, action: String) -> some View {
-        let byName = !(entry?.isLinked(hit) ?? false)
-        return HStack(spacing: AppDesign.Spacing.sm) {
+        HStack(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(hit.name).font(.system(size: 11, weight: .medium))
                         .lineLimit(1).truncationMode(.middle)
-                    if byName {
-                        Text(localization.L(L10n.FrTranslations.byName))
-                            .font(.system(size: 10)).foregroundColor(.orange)
-                            .help(localization.L(L10n.FrTranslations.byNameHelp))
-                    }
+                    caution(hit)
                 }
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
