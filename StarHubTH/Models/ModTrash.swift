@@ -192,7 +192,9 @@ enum ModTrash {
             throw CocoaError(.fileReadInvalidFileName,
                              userInfo: [NSFilePathErrorKey: entry])
         }
-        try fm.removeItem(atPath: entryPath)
+        // X110 — un mod livré en 0555 garde ses droits dans la corbeille :
+        // `removeItem` nu échoue en Code=513. Même remède que l'installateur.
+        try ModZipInstaller.removeItemGrantingWriteAccess(atPath: entryPath)
         discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
     }
 
@@ -217,7 +219,8 @@ enum ModTrash {
             .filter(isTrashFolder)
             .filter { isUserEvent(modsPath: modsPath, event: $0, fm: fm) } ?? []
         for name in names {
-            try fm.removeItem(atPath: (modsPath as NSString).appendingPathComponent(name))
+            try ModZipInstaller.removeItemGrantingWriteAccess(
+                atPath: (modsPath as NSString).appendingPathComponent(name))
         }
         return names.count
     }

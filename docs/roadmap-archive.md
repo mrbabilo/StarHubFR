@@ -3637,6 +3637,22 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X110** ✅ *(livré le 2026-09-24)* — **La corbeille ne pouvait pas purger un mod livré en lecture seule.**
+      `ModTrash.purgeEntry` et `ModTrash.purgeAll` effaçaient par
+      `fm.removeItem` nu. Un mod dont l'archive fixe ses dossiers en 0555
+      garde ces droits une fois en corbeille : le déplacement y réussit (seul
+      le parent doit être inscriptible), l'effacement échoue en `Code=513`.
+      « Vider la corbeille » s'arrêtait au premier événement touché. C'est le
+      piège que l'installateur a déjà réglé (X7,
+      `ModZipInstaller.removeItemGrantingWriteAccess`) : la corbeille était un
+      nouveau chemin d'écriture qui ne l'appliquait pas.
+      ▸ **Mesuré sur le parc le 2026-09-24** : un seul mod sur 994,
+      `.[CP] Toothless Pet` (dossier, `assets/` et `i18n/` en `r-xr-xr-x`). La
+      mémoire « 0555 partout » était périmée.
+      ▸ **Livré** : les deux purges passent par
+      `removeItemGrantingWriteAccess` (tenter, puis ouvrir les droits et
+      retenter). Deux tests, rouges en `Code=513` avant le correctif.
+
 - [x] **X109** ✅ *(livré le 2026-09-24)* — **« Tout activer / Tout désactiver » pouvait vider le profil actif quand `Mods/` était devenu illisible.**
       `toggleAllMods` adopte l'état du disque (`syncActiveProfileIds`) après son
       rescan, sans condition. Or `scanMods` publie sa liste même quand il n'a

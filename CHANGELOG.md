@@ -32,6 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La corbeille purge aussi les mods livrés en lecture seule.** Purger un tel mod ou vider la corbeille échouait sur une erreur de permission, et le vidage s'arrêtait au premier.
 - **Le profil actif ne se vide plus quand le disque du jeu disparaît.** Disque externe éjecté, « Tout activer / désactiver » échouait puis recopiait une liste vide dans le profil actif. Une lecture impossible de `Mods/` n'est plus jamais adoptée.
 - **« Jusqu'à la prochaine version de Stardew » tient sa promesse.** Mise en veille avant toute lecture du journal SMAPI, la mise à jour se réveillait dès la première lecture, jeu inchangé. Elle attend désormais une vraie nouvelle version.
 - **Un favori ne reste plus orphelin.** Un mod disparu hors de l'app gardait son favori ou sa marque « à écarter » : le badge Favoris comptait une ligne de trop, et rien ne pouvait la retirer. L'écran Entretien les nettoie désormais, et supprimer un mod déjà absent les efface.

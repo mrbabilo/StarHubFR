@@ -32,6 +32,38 @@ struct ModTrashTests {
         return dir
     }
 
+    // MARK: - X110 — un mod en lecture seule
+
+    /// `.[CP] Toothless Pet` sur le parc réel : dossier, `assets/` et `i18n/`
+    /// en 0555. Le déplacer en corbeille marche (seul le parent doit être
+    /// inscriptible) ; l'effacer ensuite échouait en `Code=513`, et « Vider la
+    /// corbeille » s'arrêtait au premier événement.
+    private func makeReadOnlyEntry(_ mods: String, event: String, entry: String) throws {
+        let ev = try makeEvent(mods, event)
+        let modDir = path(ev, entry)
+        let sub = path(modDir, "i18n")
+        try FileManager.default.createDirectory(atPath: sub, withIntermediateDirectories: true)
+        try "{}".write(toFile: path(sub, "default.json"), atomically: true, encoding: .utf8)
+        for dir in [sub, modDir] {
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir)
+        }
+    }
+
+    @Test func aReadOnlyEntryIsPurged() throws {
+        let mods = makeTempModsDir()
+        try makeReadOnlyEntry(mods, event: "_Trash_20260924_120000", entry: "Pet")
+        try ModTrash.purgeEntry(modsPath: mods, event: "_Trash_20260924_120000", entry: "Pet")
+        #expect(!FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_120000", "Pet")))
+    }
+
+    @Test func emptyingTheTrashGetsPastAReadOnlyEntry() throws {
+        let mods = makeTempModsDir()
+        try makeReadOnlyEntry(mods, event: "_Trash_20260924_120000", entry: "Pet")
+        try makeEvent(mods, "_Trash_20260924_130000")
+        #expect(try ModTrash.purgeAll(modsPath: mods) == 2)
+        #expect(ModTrash.events(modsPath: mods).isEmpty)
+    }
+
     // MARK: - Nommage
 
     @Test func stampIsChronologicalAndPosix() {
