@@ -30,6 +30,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Les boutons restent lisibles en fenêtre étroite** : barre d'actions et bandeau de mise à jour de la fiche, gestes de la page Mises à jour et filtres de la liste passent en icônes (titre en infobulle) plutôt que de se tronquer.
 - **La fiche d'un mod montre sa couverture française** en tête, avec la même pastille « FR x % » que la liste.
 - **La barre d'actions de la fiche va à l'essentiel** : l'interrupteur et les réglages du mod en tête, favori et « à écarter » en icônes, signaler et Finder rangés dans « … ».
 - **Le plus grave d'abord.** L'onglet État d'un mod montre erreurs et incompatibilités avant les conflits de raccourcis et la traduction ; la page Mises à jour ouvre sur la liste qui permet d'agir, le relevé du journal SMAPI vient ensuite.

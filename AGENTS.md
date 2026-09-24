@@ -177,6 +177,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 - **Sidebar** : pas de barre de recherche. « Mod Updates » **toujours visible** (badge caché si 0).
 - **Pages de liste** (`ModListView`, `LogsView`) : pattern `VStack(spacing: 0)` — header fixe + Divider + ScrollView + footer/pagination fixe.
 - **Pagination** : 12 mods/page (`ModListView.pageSize`), saut de page direct.
+- **Boutons à libellé, fenêtre minimale** (consigne de l'auteur, 2026-09-25) : un bouton textuel reste lisible au volet le plus étroit (560 pt) **ou** se réduit à son icône, titre en infobulle. Jamais de libellé tronqué ou replié. Outil : `AdaptiveLabels` (`Label(titre, systemImage:)` + `.help(titre)` sur chaque bouton) ; un sélecteur segmenté pose deux variantes dans un `ViewThatFits` (`ModScopePicker`).
 - **Splash de lancement** : fenêtre séparée (`NSPanel`, `Views/LaunchSplashWindow.swift`), cover art, progression par phases, menus natifs masqués pendant chargement. Deux pièges AppKit ont tué l'app au lancement : `applicationShouldTerminateAfterLastWindowClosed` doit rendre `false`, et fenêtre principale masquée dans `applicationWillFinishLaunching`, pas `.onAppear`.
 
 ---

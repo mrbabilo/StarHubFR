@@ -286,23 +286,14 @@ struct ModListView: View {
                 // Keeps the most-used navigation and the key CTA at the
                 // same visual priority, above the secondary filters.
                 HStack {
-                    Picker("", selection: $listState.filters.scope) {
-                        Text("\(localization.L(L10n.Mods.filterAll)) (\(counts.all))")
-                            .tag(ModFilter.all)
-                        Text("\(localization.L(L10n.Mods.enabled)) (\(counts.enabled))")
-                            .tag(ModFilter.enabled)
-                        Text("\(localization.L(L10n.Mods.disabled)) (\(counts.disabled))")
-                            .tag(ModFilter.disabled)
-                        Label("\(localization.L(L10n.Mods.filterIssues)) (\(counts.issues))",
-                              systemImage: "exclamationmark.triangle")
-                            .tag(ModFilter.issues)
-                        Label("\(localization.L(L10n.Mods.filterUpdates)) (\(counts.updates))",
-                              systemImage: "arrow.up.circle")
-                            .tag(ModFilter.updates)
+                    // Libellés complets, ou icône et compte si la barre est
+                    // trop étroite (fenêtre minimale) : jamais tronqués.
+                    ViewThatFits(in: .horizontal) {
+                        ModScopePicker(scope: $listState.filters.scope, counts: counts,
+                                       localization: localization, compact: false)
+                        ModScopePicker(scope: $listState.filters.scope, counts: counts,
+                                       localization: localization, compact: true)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 600)
 
                     // La recherche vit ici, au motif des journaux
                     // (`LogsView.swift:182`) — la barre système `.searchable`

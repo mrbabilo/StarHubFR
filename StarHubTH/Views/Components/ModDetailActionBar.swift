@@ -32,7 +32,8 @@ struct ModDetailActionBar: View {
     @State private var localIsOn: Bool? = nil
 
     var body: some View {
-        HStack(spacing: 12) {
+        // Icônes seules si la fiche est trop étroite pour les libellés.
+        AdaptiveLabels { HStack(spacing: 12) {
             stateToggle
 
             // I-T15 — deux gestes au premier plan : l'interrupteur et les
@@ -49,6 +50,7 @@ struct ModDetailActionBar: View {
                     Label(localization.L(L10n.Settings.configModSettings), systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
+                .help(localization.L(L10n.Settings.configModSettings))
                 .pointingHandCursor()
             }
 
@@ -101,7 +103,7 @@ struct ModDetailActionBar: View {
             .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
             .accessibilityHint(localization.L(L10n.Mods.deleteModA11yHint))
             .pointingHandCursor()
-        }
+        } }
         .padding(.horizontal, 24)
         .padding(.vertical, 10)
     }

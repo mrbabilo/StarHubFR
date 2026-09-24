@@ -13,7 +13,9 @@ struct NexusUpdateActions: View {
     var body: some View {
         // Espacement de la ligne d'origine : les gestes y étaient enfants
         // directs d'un HStack(spacing: 16).
-        HStack(spacing: 16) {
+        // Icônes seules quand la place manque (fiche à 560 pt) : chaque
+        // geste garde son titre en infobulle.
+        AdaptiveLabels { HStack(spacing: 16) {
             if let nexusId = Int(update.nexusModId),
                vm.downloadingNexusModId == nexusId {
                 // Le pourcentage à côté du témoin quand
@@ -55,8 +57,8 @@ struct NexusUpdateActions: View {
                     // un échec. Le doute, lui, ne retire
                     // rien.
                     .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
-                    .help(vm.nexusDirectDownloadUnavailable
-                          ? localization.L(L10n.Mods.premiumOnlyHint) : "")
+                    .help(localization.L(vm.nexusDirectDownloadUnavailable
+                          ? L10n.Mods.premiumOnlyHint : L10n.Mods.premiumUpdate))
                 }
 
                 Button {
@@ -67,7 +69,7 @@ struct NexusUpdateActions: View {
                         if let url = comps.url { NSWorkspace.shared.open(url) }
                     }
                 } label: {
-                    Text(localization.L(L10n.Mods.nexusUpdate))
+                    Label(localization.L(L10n.Mods.nexusUpdate), systemImage: "arrow.up.forward.square")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 14)
@@ -77,6 +79,7 @@ struct NexusUpdateActions: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .pointingHandCursor()
+                .help(localization.L(L10n.Mods.nexusUpdate))
                 .disabled(vm.isDownloadingFromNexus)
 
                 // La seule sortie quand l'auteur a oublié
@@ -87,7 +90,7 @@ struct NexusUpdateActions: View {
                     vm.affirmInstalled(uniqueId: update.uniqueId,
                                        version: update.latestVersion)
                 } label: {
-                    Text(localization.L(L10n.Updates.nexusAlreadyHave))
+                    Label(localization.L(L10n.Updates.nexusAlreadyHave), systemImage: "checkmark.circle")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -131,12 +134,13 @@ struct NexusUpdateActions: View {
                         .background(Color.primary.opacity(0.1))
                         .cornerRadius(6)
                 }
+                .help(localization.L(L10n.Updates.snoozeButton))
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .pointingHandCursor()
                 .disabled(vm.isDownloadingFromNexus)
             }
-        }
+        } }
     }
 }

@@ -26,12 +26,19 @@ struct ModUpdateBanner: View {
                 if let update = vm.nexusUpdates.first(where: { $0.uniqueId == uniqueId }) {
                     NexusUpdateActions(update: update, vm: vm, localization: localization)
                         .controlSize(.small)
+                        .layoutPriority(1) // les gestes d'abord, la version se replie
                 }
             case .smapi(let url):
-                Button(localization.L(L10n.Updates.openSmapiPage)) {
-                    if let link = URL(string: url) { NSWorkspace.shared.open(link) }
+                AdaptiveLabels {
+                    Button {
+                        if let link = URL(string: url) { NSWorkspace.shared.open(link) }
+                    } label: {
+                        Label(localization.L(L10n.Updates.openSmapiPage), systemImage: "arrow.up.forward.square")
+                    }
+                    .controlSize(.small)
+                    .help(localization.L(L10n.Updates.openSmapiPage))
                 }
-                .controlSize(.small)
+                .layoutPriority(1)
             }
         }
         .frame(maxWidth: 700)

@@ -934,7 +934,11 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       `quarantine` à créer). Un lot = un écran, compilé seul, scénario clair
       et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
       Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
-      Entretien. · **L**
+      Entretien. Critère ajouté le 2026-09-25 : à la fenêtre minimale, chaque
+      rangée de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
+      `AGENTS.md` §6) — déjà fait pour la barre d'actions et le bandeau de
+      mise à jour de la fiche, les gestes de Mises à jour et le cadrage de
+      la liste. · **L**
 **Logique et hiérarchie des actions et des informations** (demandé le
 2026-09-24 au soir, règles au rapport §5 bis : un signal vit là où l'objet
 se voit et porte son action ; la fréquence décide de la place ; la gravité
