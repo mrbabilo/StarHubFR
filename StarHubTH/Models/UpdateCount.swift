@@ -18,16 +18,23 @@ import Foundation
 /// dossier que le reste de l'app (égalité exacte d'abord, repli tolérant).
 public enum UpdateCount {
 
+    /// Les mises à jour du relevé SMAPI que le disque ne couvre pas déjà —
+    /// la liste affichée et le compte du badge en dérivent tous deux.
+    public static func pendingEntries(outOfDate: [ModUpdateInfo],
+                                      diskVersion: (String) -> String?)
+    -> [ModUpdateInfo] {
+        outOfDate.filter { update in
+            guard let disk = diskVersion(update.name) else { return true }
+            return !isAlreadyApplied(disk: disk, suggested: update.version)
+        }
+    }
+
     /// Les mises à jour à afficher : celles du relevé SMAPI que le disque ne
     /// couvre pas déjà, plus le compte Nexus passé tel quel.
     public static func pending(outOfDate: [ModUpdateInfo],
                                nexusCount: Int,
                                diskVersion: (String) -> String?) -> Int {
-        let stale = outOfDate.filter { update in
-            guard let disk = diskVersion(update.name) else { return false }
-            return isAlreadyApplied(disk: disk, suggested: update.version)
-        }.count
-        return outOfDate.count - stale + nexusCount
+        pendingEntries(outOfDate: outOfDate, diskVersion: diskVersion).count + nexusCount
     }
 
     /// Le disque couvre-t-il déjà la version suggérée ?
@@ -52,11 +59,19 @@ public enum UpdateCount {
     }
 
     /// Les segments numériques de tête : « 1.6.1-unofficial » → [1, 6, 1] ;
-    /// une version sans segment numérique rend `nil`.
+    /// chaque segment porte ses **chiffres de tête** (« 1-unofficial-2 »
+    /// vaut 1 — le tronquer faisait passer 1.6.1-unofficial pour 1.6, et
+    /// couvrir 1.6.0) ; un segment sans chiffre arrête le préfixe, une
+    /// version sans aucun segment numérique rend `nil`.
     private static func numericPrefix(_ version: String) -> [Int]? {
         var parts: [Int] = []
         for piece in version.split(separator: ".") {
-            guard let n = Int(piece) else { break }
+            var digits = ""
+            for ch in piece {
+                guard ch.isNumber, ch.isASCII else { break }
+                digits.append(ch)
+            }
+            guard let n = Int(digits) else { break }
             parts.append(n)
         }
         return parts.isEmpty ? nil : parts

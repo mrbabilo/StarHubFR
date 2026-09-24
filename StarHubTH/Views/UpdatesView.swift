@@ -7,11 +7,16 @@ struct UpdatesView: View {
     @Binding var currentTab: SidebarDestination
     
     var body: some View {
+        // Même confrontation au disque que le badge (X113) : une entrée du
+        // relevé SMAPI que le dossier installé couvre déjà ne se liste pas.
+        let pendingSmapi = UpdateCount.pendingEntries(outOfDate: vm.outOfDateMods) {
+            vm.resolveModFolder(forLoggedName: $0)?.version
+        }
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                
+
                 // Out of date mods (Software Update style)
-                if !vm.outOfDateMods.isEmpty {
+                if !pendingSmapi.isEmpty {
                     // Ces cartes n'avaient aucun en-tête, quand celles de Nexus
                     // en ont un : rien ne disait d'où venait l'information, ni
                     // pourquoi ces mods-là étaient là et pas d'autres.
@@ -30,7 +35,7 @@ struct UpdatesView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    ForEach(vm.outOfDateMods) { mod in
+                    ForEach(pendingSmapi) { mod in
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .top, spacing: 16) {
                                 // App Icon Fake

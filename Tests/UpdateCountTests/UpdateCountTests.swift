@@ -33,6 +33,25 @@ import Foundation
         #expect(pending == 1)
     }
 
+    /// La liste affichée (page Mises à jour) dérive de la même règle que le
+    /// badge : l'entrée couverte par le disque ne se liste pas, l'autre si.
+    @Test func laListeAfficheeFiltreCommeLeCompte() {
+        let entries = UpdateCount.pendingEntries(
+            outOfDate: [update("Wildroot Chronicles", "1.3.5"),
+                        update("Kids for the School Tokens", "3.2.9")]) { name in
+                name == "Wildroot Chronicles" ? "1.4.1" : "3.2.3"
+            }
+        #expect(entries.map(\.name) == ["Kids for the School Tokens"])
+    }
+
+    /// Compte et liste ne peuvent pas diverger : l'un dérive de l'autre.
+    @Test func leCompteDeriveDeLaListe() {
+        let updates = [update("Wildroot Chronicles", "1.3.5")]
+        let disk: (String) -> String? = { $0 == "Wildroot Chronicles" ? "1.4.1" : nil }
+        #expect(UpdateCount.pendingEntries(outOfDate: updates, diskVersion: disk).isEmpty)
+        #expect(UpdateCount.pending(outOfDate: updates, nexusCount: 0, diskVersion: disk) == 0)
+    }
+
     /// Parc vide ou nom non résolu : on ne juge rien, l'entrée reste comptée
     /// — gonfler le badge vaut mieux que l'écarter en silence.
     @Test func unNomNonResoluResteCompte() {
