@@ -4664,6 +4664,10 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       (`SeverityBadge`), toutes les raisons (`anomalyReasons`) et « Voir
       l'état ». Caché sur l'onglet État et pour un mod sans anomalie
       (6 sur 863 en portaient une au dernier relevé).
+      Même jour : l'onglet État ouvre sur le même résumé (`ModAnomalyCard`) —
+      doublon, manifeste sans identifiant et dépendance n'y avaient aucune
+      section (`[APF] Tactical Echo Mines NPCs`, copié aussi dans
+      `TacticalEchoMines/assets/` : bandeau allumé, onglet vide).
 
 
 #### Axe F — Dette technique (suite)

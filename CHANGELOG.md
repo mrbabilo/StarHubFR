@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **La fiche d'un mod dit tout de suite ce qui ne va pas.** Un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, avec « Voir l'état » — sans ouvrir l'onglet État.
+- **La fiche d'un mod dit tout de suite ce qui ne va pas.** Un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, avec « Voir l'état » ; l'onglet État ouvre sur le même résumé.
 - **La fusion entre traducteurs.** Un lot reçu se relit contre l'état complet du mod : traductions nouvelles écrites d'un coup, divergences arbitrées côte à côte (« garder le mien » / « prendre le sien »), identiques passées en silence. L'anglais est revérifié au moment d'écrire — une ligne bougée est abandonnée et nommée, jamais écrite dessus.
 - **Un lot ZIP pour un traducteur extérieur.** L'encart de « Traductions FR » exporte plusieurs mods dans un seul ZIP (un JSON par mod, le format déjà lu par un chat) et fusionne en retour un ZIP ou un JSON isolé, chaque lot routé vers son mod — un mod absent du parc est nommé, jamais bloquant.
 - **Nouvelle page « Traductions FR »** : les traductions françaises disponibles sur Nexus pour tous vos mods, en pause compris, et les mises à jour de celles déjà installées. La recherche part d'un bouton, suit le lien « requis par » de Nexus puis le nom, et signale ce qui ne vient que du nom.

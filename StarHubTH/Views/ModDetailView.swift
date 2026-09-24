@@ -1279,18 +1279,18 @@ struct ModDetailView: View {
         case .changelog:
             blocksView(isChangelog: true)
         case .state:
-            // L'état du mod se lit groupé : ce qui dit si le mod va bien,
-            // pas ce que l'auteur en raconte. Les sections déménagent
-            // telles quelles — leurs gates et conditions internes suivent.
+            // L'état du mod se lit groupé : ce qui dit s'il va bien, pas ce
+            // que l'auteur en raconte. Sections déplacées telles quelles.
             VStack(alignment: .leading, spacing: 16) {
-                // A2-T7 — au-dessus de tout : rien d'autre sur cette fiche ne
-                // parle de code hostile.
+                // A2-T7 — au-dessus de tout : seul à parler de code hostile.
                 MaliciousModBanner(vm: vm, localization: localization, mod: live)
+                if let anomaly = vm.anomaly(for: live) {
+                    ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .dependencies }
+                }
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
-                // Le hub de traduction — chercher, poser, mettre à jour,
-                // retirer — reste réservé au premier niveau : c'est ici,
-                // sur la fiche du mod concerné, qu'il a sens.
+                // Le hub de traduction (chercher, poser, mettre à jour,
+                // retirer) : premier niveau seulement, là où il a sens.
                 if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
                 translationSection
                 if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
