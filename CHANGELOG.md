@@ -30,6 +30,9 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Les requêtes GraphQL de la recherche « Traductions FR » abandonnent après 20 s** au lieu de 60 : la progression ne se fige plus une minute sur un mod lent.
+- **« Arrêter » clôt la recherche « Traductions FR » tout de suite**, même au milieu d'une requête Nexus ; la trace suit chaque mod.
+- **La page « Traductions FR » juge chaque résultat.** Le lien « requis par » de Nexus ramène aussi les traductions d'autres mods, et le tag French seul fait passer des mods écrits en français pour des traductions : « confirmée » si le titre nomme le mod, sinon « à vérifier ».
 - **Une traduction qui couvre plusieurs composants d'un pack** (Cape Stardew FR) est enregistrée comme traduction, et plus comme supplément : la page « Traductions FR » la voit installée et en suit les mises à jour.
 - **Une traduction téléchargée depuis Nexus va dans le bon mod et le bon dossier.** Le mod pour lequel la page « Traductions FR » a trouvé la fiche est proposé en premier ; un `fr.json` livré seul va dans `i18n/`, ou dans le sous-dossier français quand le mod range ses traductions par dossier (sans quoi SMAPI ignorait toutes ses langues).
 
