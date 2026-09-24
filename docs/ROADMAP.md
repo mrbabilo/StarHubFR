@@ -304,6 +304,15 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
         pas emprunter l'id d'un composant sans mesure (un id Nexus n'est pas une
         identité). Une « posée » sans fiche ni recherche aboutie est « non vérifiable »,
         jamais « à jour ».
+      - Ajusté le jour même, à l'usage : « Arrêter » clôt la recherche tout de suite
+        (la tâche attendait une requête dont le rappel ignorait l'annulation, et
+        `isRunning` ne retombait qu'à la fin) ; les requêtes GraphQL abandonnent
+        après 20 s, plus 60 (un mod en enchaîne jusqu'à vingt) ; la traduction
+        téléchargée se dépose dans le bon mod et le bon dossier — `fr.json` livré
+        seul va dans `i18n/`, ou dans le sous-dossier français quand le mod range
+        ses traductions par dossier ; une traduction couvrant plusieurs composants
+        d'un pack (Cape Stardew FR) est enregistrée comme traduction, pas comme
+        supplément.
 
 #### C6 — Signaux de demande de traduction — ❌ **abandonné le 2026-09-24 (mesure)**
 
