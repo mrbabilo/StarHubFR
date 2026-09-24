@@ -22,8 +22,8 @@ fonctionnalité recensée à la phase 1 doit avoir, après fusion, un écran cib
 **et** au moins un point d'entrée. Une proposition qui laisse une seule ligne
 sans destination n'est pas recevable.
 
-Deuxième objectif, de même rang : **améliorer au maximum la lisibilité et la
-présentation** — hiérarchie de l'information (voir d'abord ce qui compte),
+Deuxième objectif, de même rang : **améliorer au maximum la lisibilité, la
+présentation et la logique des actions** — hiérarchie de l'information (voir d'abord ce qui compte),
 écrans de synthèse qui mènent quelque part, couleur sémantique cohérente,
 boutons harmonisés, jetons de design réellement appliqués (phase 4).
 
@@ -259,6 +259,23 @@ puis mesure chaque écran contre elle.
    `HeroHeader`, `SeverityBadge`, `NeutralBadge`, `CategoryBadge` sous
    `Views/Components/`) — réutiliser ces composants, ne pas en créer un
    troisième qui fait la même chose.
+
+**Logique des actions et des informations — à juger objet par objet :**
+- **Un signal vit là où l'objet se voit.** Ce qui demande une action sur un
+  mod (mise à jour, erreur, conflit, dépendance manquante) doit se lire sur
+  sa **ligne** et en **tête de sa fiche**, pas seulement sur une page
+  dédiée. Relever, pour chaque signal, les endroits qui le lisent (au
+  2026-09-24, aucune vue de mod ne lisait les mises à jour disponibles).
+- **Le signal porte son action.** Un constat sans geste à côté est une
+  friction ; les Alertes système sont le modèle du dépôt.
+- **La fréquence décide de la place.** Par zone : l'action principale
+  seulement si elle existe (une fiche de mod à jour n'en a pas), les
+  fréquentes visibles, les rares dans un menu « … », le destructif isolé.
+- **La gravité décide de l'ordre** d'une page ou d'un onglet : cassé, puis à
+  faire, puis informatif. Une section rangée par type de donnée plutôt que
+  par gravité se signale.
+- **Le point d'arrivée compte** : un écran atteint par la liste et le même
+  atteint par un saut `pending…` doivent montrer la même chose d'abord.
 
 **Mise en évidence de l'information importante — à juger écran par écran :**
 - **Ce que l'utilisateur doit voir en premier** : le nommer pour chaque

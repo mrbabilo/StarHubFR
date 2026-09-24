@@ -979,6 +979,32 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       `SidebarComponents.activeColor` → jeton `installed` ; vert « FR 100 % »
       `Color(red: 0.20, 0.62, 0.34)` en trois endroits → `success`. · **S**
 
+**Logique et hiérarchie des actions et des informations** (demandé le
+2026-09-24 au soir, règles au rapport §5 bis : un signal vit là où l'objet
+se voit et porte son action ; la fréquence décide de la place ; la gravité
+décide de l'ordre) :
+
+- [ ] **I-T13** — **Le mod dit qu'il a une mise à jour.** Aujourd'hui ni la
+      ligne, ni la carte, ni la fiche ne lisent `nexusUpdates` /
+      `outOfDateMods` : pastille « ↑ version » sur la ligne, filtre « Mises à
+      jour » dans la liste, bandeau en tête de fiche avec son geste (MàJ
+      Premium, page Nexus, « Je l'ai déjà »). Même appariement que **X113** —
+      à livrer après lui. · **M**
+- [ ] **I-T14** — **Bandeau d'état en tête de fiche.** La fiche s'ouvre sur
+      la description (`selectedTab = .description`) et son en-tête ne résume
+      aucune anomalie ; depuis la liste, un mod en erreur ne le dit qu'à
+      l'onglet État. Bandeau sous l'en-tête (`ModAnomaly` + `SeverityBadge`)
+      avec « Voir l'état ». · **S**
+- [ ] **I-T15** — **Barre d'actions de la fiche hiérarchisée.** Six gestes
+      `.bordered` au même poids : garder l'interrupteur et « Réglages du
+      mod », Favori / À écarter en icônes à bascule (cible 18×18, libellé
+      d'accessibilité), Signaler et Finder dans un menu « … », « Mettre à
+      jour » en action principale seulement quand I-T13 la justifie. · **S**
+- [ ] **I-T16** — **Ordonner par gravité.** Onglet État : erreurs et
+      incompatibilités avant conflits de raccourcis, puis traduction et
+      suppléments. Page Mises à jour : la liste smapi.io/Nexus (qui porte les
+      gestes) avant le relevé SMAPI, fusionné une fois X113 livré. · **S**
+
 Écartées par l'audit, avec leur raison au rapport : centre de santé unique,
 traduction unifiée, Mises à jour dans Découvrir (§6 d'`AGENTS.md`), vues de
 parties, profils.
