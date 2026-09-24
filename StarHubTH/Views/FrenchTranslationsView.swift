@@ -71,7 +71,7 @@ struct FrenchTranslationsView: View {
                         .controlSize(.small)
                 } else {
                     Button {
-                        store.run(all.map(\.candidate))
+                        store.run(all.map(\.candidate)) { vm.log($0) }
                     } label: {
                         Label(localization.L(L10n.FrTranslations.search), systemImage: "magnifyingglass")
                     }
