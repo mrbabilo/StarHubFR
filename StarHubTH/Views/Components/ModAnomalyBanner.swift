@@ -35,17 +35,57 @@ struct ModAnomalyCard: View {
     let anomaly: ModAnomaly
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// Le dossier logique de la fiche ouverte : sa ligne de doublon ne
+    /// propose pas de s'ouvrir elle-même.
+    let currentFolder: String
     /// Mène à l'onglet Dépendances — le seul signal dont le détail vit ailleurs.
     let onShowDependencies: () -> Void
 
     var body: some View {
-        ModAnomalySummary(anomaly: anomaly, vm: vm, localization: localization,
-                          actionTitle: anomaly.hasDependencyIssue
-                              ? localization.L(L10n.Profiles.dependencies) : nil,
-                          action: onShowDependencies)
-            .padding(AppDesign.Spacing.md)
-            .background(anomaly.tint.opacity(AppDesign.Opacity.light),
-                        in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            ModAnomalySummary(anomaly: anomaly, vm: vm, localization: localization,
+                              actionTitle: anomaly.hasDependencyIssue
+                                  ? localization.L(L10n.Profiles.dependencies) : nil,
+                              action: onShowDependencies)
+            // Un doublon se règle dossier par dossier : les nommer ne suffit
+            // pas, il faut pouvoir les voir et ouvrir la fiche de chacun.
+            if let duplicate = anomaly.duplicate {
+                ForEach(duplicate.folders, id: \.self) { folder in
+                    duplicateRow(folder)
+                }
+            }
+        }
+        .padding(AppDesign.Spacing.md)
+        .background(anomaly.tint.opacity(AppDesign.Opacity.light),
+                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
+    }
+}
+
+extension ModAnomalyCard {
+    /// Un dossier du doublon, résolu dans le scan (composants de packs
+    /// compris). Introuvable — le scan a changé depuis l'index — : nommé seul.
+    private func duplicateRow(_ folder: String) -> some View {
+        let copy = vm.scanStore.mods.flattenedMods.first { $0.folderName == folder }
+        return HStack(spacing: AppDesign.Spacing.sm) {
+            Text(folder)
+                .font(AppDesign.Font.monoIconXS)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let copy {
+                Button(localization.L(L10n.Mods.revealInFinder)) {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: (vm.gameDir as NSString)
+                        .appendingPathComponent("Mods")).appendingPathComponent(copy.physicalFolderName))
+                }
+                .controlSize(.small)
+                if folder != currentFolder {
+                    Button(localization.L(L10n.Mods.updateDeltaOpenDetail)) {
+                        vm.navigationStore.setViewingModDetail(copy)
+                    }
+                    .controlSize(.small)
+                }
+            }
+        }
     }
 }
 

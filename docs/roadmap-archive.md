@@ -4668,6 +4668,8 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       doublon, manifeste sans identifiant et dépendance n'y avaient aucune
       section (`[APF] Tactical Echo Mines NPCs`, copié aussi dans
       `TacticalEchoMines/assets/` : bandeau allumé, onglet vide).
+      Chaque dossier d'un doublon y porte « Afficher dans le Finder » et
+      « Voir la fiche » (sauf la fiche ouverte).
 
 
 #### Axe F — Dette technique (suite)

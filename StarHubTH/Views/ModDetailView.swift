@@ -1285,7 +1285,7 @@ struct ModDetailView: View {
                 // A2-T7 — au-dessus de tout : seul à parler de code hostile.
                 MaliciousModBanner(vm: vm, localization: localization, mod: live)
                 if let anomaly = vm.anomaly(for: live) {
-                    ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .dependencies }
+                    ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization, currentFolder: live.folderName) { selectedTab = .dependencies }
                 }
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
