@@ -524,14 +524,8 @@ struct ModConfigEditorView: View {
     /// qu'on y touche — et une sauvegarde générale du même jour compte aussi.
     private func backUpCurrentConfig() {
         guard FileManager.default.fileExists(atPath: configPath) else { return }
-        guard ModConfigBackupManager.shared.backupFromToday(protecting: "config.json",
-                                                            forMod: mod.folderName) == nil
-        else { return }
         do {
-            _ = try ModConfigBackupManager.shared.createBackup(gameDir: vm.gameDir,
-                                                              mods: [mod],
-                                                              onlyEnabled: false)
-            _ = ModConfigBackupManager.shared.cleanupOldBackups()
+            try ModConfigBackupManager.shared.backUpConfigOncePerDay(for: mod, gameDir: vm.gameDir)
         } catch {
             vm.log(String(format: localization.L(L10n.Settings.configBackupFailed),
                           mod.name, error.localizedDescription), level: .warning)

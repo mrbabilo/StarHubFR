@@ -6879,7 +6879,8 @@ final class StarHubTHViewModel {
             .filter { entry in !appliedSet.contains { $0.newKey == entry.key } }
         delta.translation.removedKeys = delta.translation.removedKeys
             .filter { entry in !appliedSet.contains { $0.oldKey == entry.key } }
-        try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
+        do { try ModUpdateKeyDeltaStore.save(delta, directory: dir) } // un échec muet rejouerait « rien à reporter »
+        catch { log("Delta (\(mod.name)) non enregistré après report : \(error.localizedDescription)", level: .warning) }
         updateKeyDeltasRevision += 1
         // Sinon la pastille de couverture ment jusqu'au prochain scan.
         invalidateFrenchCoverage(for: mod.folderName)
@@ -6932,11 +6933,9 @@ final class StarHubTHViewModel {
 
         // Backup avant écriture — le patron de l'éditeur, `onlyEnabled:
         // false` pareil (le mod peut être en pause).
-        if ModConfigBackupManager.shared.backupFromToday(protecting: "config.json",
-                                                         forMod: mod.folderName) == nil {
-            _ = try? ModConfigBackupManager.shared.createBackup(gameDir: gameDir,
-                                                                mods: [mod],
-                                                                onlyEnabled: false)
+        do { try ModConfigBackupManager.shared.backUpConfigOncePerDay(for: mod, gameDir: gameDir) } catch {
+            log(String(format: localization.L(L10n.Settings.configBackupFailed),
+                       mod.name, error.localizedDescription), level: .warning)
         }
         // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
         ModZipInstaller.grantOwnerWriteAccess(in: configURL.deletingLastPathComponent())
@@ -6956,13 +6955,15 @@ final class StarHubTHViewModel {
                 .filter { entry in !appliedSet.contains { $0.oldKey == entry.key } }
             delta.config = config
         }
-        try? ModUpdateKeyDeltaStore.save(delta, directory: dir)
+        do { try ModUpdateKeyDeltaStore.save(delta, directory: dir) } // un échec muet rejouerait « rien à reporter »
+        catch { log("Delta (\(mod.name)) non enregistré après report : \(error.localizedDescription)", level: .warning) }
         updateKeyDeltasRevision += 1
         log(String(format: localization.L(L10n.Mods.updateDeltaRenamedDone), done.count))
         // Le delta config ne décrit que des clés de premier niveau : pas de
         // notion de composant, donc rien à annoncer en cross.
         return .applied(count: done.count, skippedCrossComponent: 0)
     }
+
 
     // MARK: - Mods à écarter (blacklist)
 

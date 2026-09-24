@@ -114,6 +114,20 @@ import Foundation
                                   now: t0) == true)
     }
 
+    @Test func untilGameVersionAdoptsTheFirstVersionReadAfterAnUnknownSnooze() {
+        // Version du jeu inconnue au snooze (aucun journal SMAPI lu) : la
+        // première lecture n'est pas un changement, c'est la référence. Elle
+        // réveillait l'update aussitôt ; seule une version suivante le fait.
+        let snoozer = freshSnoozer()
+        snoozer.snooze(uniqueId: "some.mod", mode: .untilGameVersion,
+                       currentModVersion: "2.0.0", currentGameVersion: nil, now: t0)
+        #expect(snoozer.isSnoozed(uniqueId: "some.mod", currentModVersion: "2.0.0",
+                                  currentGameVersion: "1.6.15", now: t0) == true)
+        #expect(snoozer.entry(for: "some.mod")?.gameVersionAtSnooze == "1.6.15")
+        #expect(snoozer.isSnoozed(uniqueId: "some.mod", currentModVersion: "2.0.0",
+                                  currentGameVersion: "1.6.16", now: t0) == false)
+    }
+
     // MARK: - Réveil explicite
 
     @Test func clearingAWakeUpImmediately() {

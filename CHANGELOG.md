@@ -32,6 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **« Jusqu'à la prochaine version de Stardew » tient sa promesse.** Mise en veille avant toute lecture du journal SMAPI, la mise à jour se réveillait dès la première lecture, jeu inchangé. Elle attend désormais une vraie nouvelle version.
 - **Un favori ne reste plus orphelin.** Un mod disparu hors de l'app gardait son favori ou sa marque « à écarter » : le badge Favoris comptait une ligne de trop, et rien ne pouvait la retirer. L'écran Entretien les nettoie désormais, et supprimer un mod déjà absent les efface.
 - **Les requêtes GraphQL de la recherche « Traductions FR » abandonnent après 20 s** au lieu de 60 : la progression ne se fige plus une minute sur un mod lent.
 - **« Arrêter » clôt la recherche « Traductions FR » tout de suite**, même au milieu d'une requête Nexus ; la trace suit chaque mod.

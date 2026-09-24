@@ -528,6 +528,17 @@ public final class ModConfigBackupManager: @unchecked Sendable {
         return found.backup
     }
 
+    /// Le filet d'une écriture dans `config.json`, une fois par mod et par jour,
+    /// partagé par l'éditeur et le report de clés (deux copies divergeaient).
+    @discardableResult
+    public func backUpConfigOncePerDay(for mod: ModItem, gameDir: String) throws -> Bool {
+        guard backupFromToday(protecting: "config.json", forMod: mod.folderName) == nil
+        else { return false }
+        _ = try createBackup(gameDir: gameDir, mods: [mod], onlyEnabled: false)
+        _ = cleanupOldBackups()
+        return true
+    }
+
     // MARK: - Cleanup
 
     /// Deletes backups older than 30 days, but always keeps at least the 5

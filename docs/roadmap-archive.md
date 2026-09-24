@@ -3637,6 +3637,26 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X108** ✅ *(livré le 2026-09-24)* — **Une mise en veille « jusqu'à la prochaine version de Stardew » se réveillait à la première lecture du journal SMAPI.**
+      Le menu propose ce mode même quand la version du jeu est inconnue (aucun
+      journal lu : installation neuve, journal illisible). Le snooze gardait
+      alors `gameVersionAtSnooze = nil`, et la lecture suivante comparait
+      `"1.6.15" != nil` : réveil immédiat, jeu inchangé — l'inverse de la règle
+      écrite dans l'en-tête de `ModUpdateSnoozer` (« on ne réveille pas sur une
+      absence, seulement sur un changement »). Prouvé par un test rouge.
+      ▸ **Livré** : la première version lue devient la référence manquante,
+      persistée, et seule une version suivante réveille. Le mode « jusqu'à la
+      prochaine version du mod » n'est pas concerné : `latestVersion` n'est
+      jamais `nil`.
+      ▸ **Au passage, deux silences d'écriture du report de clés renommées
+      (C2-T4)** : l'enregistrement du delta après report (`try?`) et la
+      sauvegarde de `config.json` avant report (`_ = try?`) se journalisent
+      désormais, comme le chemin de l'installation et l'éditeur. La sauvegarde
+      « une par mod et par jour » devient une seule fonction,
+      `ModConfigBackupManager.backUpConfigOncePerDay`, partagée par l'éditeur
+      et le report — les deux copies avaient divergé (l'une journalisait,
+      l'autre avalait ; l'une appliquait la rétention, l'autre non).
+
 - [x] **X107** ✅ *(livré le 2026-09-24)* — **Un favori dont le dossier a quitté le disque hors de l'app restait pour toujours.**
       `forgetStores` était la purge commune à la suppression, mais les favoris,
       la marque « à écarter », l'historique d'erreurs, la référence de

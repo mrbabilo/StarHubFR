@@ -108,6 +108,19 @@ public final class ModUpdateSnoozer {
     public func isSnoozed(uniqueId: String, currentModVersion: String?,
                           currentGameVersion: String?, now: Date = Date()) -> Bool {
         guard let entry = entries[uniqueId] else { return false }
+        // Version du jeu inconnue au snooze (aucun journal SMAPI lu) : la
+        // première version lue n'est pas un changement observé, c'est la
+        // référence qui manquait. La comparer à `nil` réveillait l'update
+        // aussitôt, jeu inchangé — l'inverse de la règle de l'en-tête.
+        if entry.mode == .untilGameVersion, entry.gameVersionAtSnooze == nil,
+           let current = currentGameVersion {
+            entries[uniqueId] = ModUpdateSnoozeEntry(
+                uniqueId: entry.uniqueId, mode: entry.mode, snoozedAt: entry.snoozedAt,
+                modVersionAtSnooze: entry.modVersionAtSnooze,
+                gameVersionAtSnooze: current)
+            persist()
+            return true
+        }
         if isExpired(entry, currentModVersion: currentModVersion,
                      currentGameVersion: currentGameVersion, now: now) {
             entries.removeValue(forKey: uniqueId)
