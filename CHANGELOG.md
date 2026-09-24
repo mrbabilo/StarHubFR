@@ -15,7 +15,7 @@ where the exact log format was verified.
 ### Added
 
 - **Un mod dit qu'il a une mise à jour.** Pastille « ↑ version » sur sa ligne et sa carte, filtre « Mises à jour » dans la liste, et bandeau en tête de fiche avec les mêmes gestes que la page Mises à jour (MàJ Premium, page Nexus, « Je l'ai déjà », veille).
-- **La fiche d'un mod dit tout de suite ce qui ne va pas.** Un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, avec « Voir l'état » ; l'onglet État ouvre sur le même résumé ; pour un mod installé deux fois, chaque dossier s'ouvre dans le Finder ou sur sa fiche.
+- **La fiche d'un mod dit tout de suite ce qui ne va pas.** Un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité ; l'onglet État reprend ce résumé, et chaque dossier d'un doublon s'ouvre dans le Finder ou sur sa fiche.
 - **La fusion entre traducteurs.** Un lot reçu se relit contre l'état complet du mod : traductions nouvelles écrites d'un coup, divergences arbitrées côte à côte (« garder le mien » / « prendre le sien »), identiques passées en silence. L'anglais est revérifié au moment d'écrire — une ligne bougée est abandonnée et nommée, jamais écrite dessus.
 - **Un lot ZIP pour un traducteur extérieur.** L'encart de « Traductions FR » exporte plusieurs mods dans un seul ZIP (un JSON par mod, le format déjà lu par un chat) et fusionne en retour un ZIP ou un JSON isolé, chaque lot routé vers son mod — un mod absent du parc est nommé, jamais bloquant.
 - **Nouvelle page « Traductions FR »** : les traductions françaises disponibles sur Nexus pour tous vos mods, en pause compris, et les mises à jour de celles déjà installées. La recherche part d'un bouton, suit le lien « requis par » de Nexus puis le nom, et signale ce qui ne vient que du nom.
@@ -35,7 +35,7 @@ where the exact log format was verified.
 - **Écran de lancement plus compact** : environ deux tiers de sa taille d'avant, la fenêtre épouse la carte.
 - **« Stardew Valley Thai » disparaît des extensions principales** dans les Réglages.
 - **L'accueil va à l'essentiel** : lancer le jeu, ce qui l'empêche et les compteurs d'attention. « Infos sur l'appli » et « Extensions principales » ne restent qu'aux Réglages. Le bandeau Nexus revient en tête, avec votre avatar Steam, votre nom et la version.
-- **Une seule page « Sauvegardes des mods »** remplace les deux entrées de la barre latérale : segments Installations, Configuration et Fichiers récupérables (auparavant une feuille). Le segment choisi est gardé d'un onglet à l'autre. Les fichiers récupérables incluent désormais toutes les seules copies, mods désinstallés compris, et l'Entretien y renvoie.
+- **Une seule page « Sauvegardes des mods »** : segments Installations, Configuration et Fichiers récupérables, au lieu de deux entrées et d'une feuille. Les fichiers récupérables incluent toutes les seules copies, mods désinstallés compris ; l'Entretien y renvoie.
 - **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.
 
 ### Fixed
