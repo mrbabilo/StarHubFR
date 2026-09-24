@@ -113,6 +113,7 @@ let package = Package(
                 "Models/I18nOutline.swift",
                 "Models/UpdateKeyDelta.swift",
                 "Models/UpdateCount.swift",
+                "Models/PendingModUpdates.swift",
                 "Models/KeyRenameMatcher.swift",
                 "Models/ModUpdateKeyDeltaStore.swift",
                 "Models/RenameReport.swift",
@@ -802,6 +803,11 @@ let package = Package(
             name: "UpdateCountTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/UpdateCountTests"
+        ),
+        .testTarget(
+            name: "PendingModUpdatesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/PendingModUpdatesTests"
         ),
         .testTarget(
             name: "LogBudgetTests",
