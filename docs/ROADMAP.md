@@ -251,6 +251,17 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       consultatif — si l'utilisateur n'agit jamais depuis ces lignes, les
       filtres sont du vernis. Livrer le premier filtre seul (conflits) et
       mesurer avant le reste. · **M**
+      ✅ **Livré le 2026-09-24 : la vue « tous les raccourcis »** — choix de
+      l'utilisateur, le filtre « conflits » seul ne changeait rien (le
+      rapport ne montrait déjà que les problèmes). `KeybindReport.settings`
+      (un réglage par `(modID, keyPath)`, mêmes exclusions que le rapport),
+      filtre tous / liés / en conflit / non assignés, recherche, engrenage
+      par ligne (`KeybindConfigButton`, extrait du rapport). Parc réel :
+      176 réglages sur 48 mods, 108 liés (= `keybindCount`, invariant
+      testé), 68 à `"None"` vérifiés dans les fichiers, 66 en conflit ;
+      zéro `""` sous un nom de raccourci. **Reste** : saut au réglage
+      **précis** (l'engrenage ouvre l'éditeur en haut, pas sur la clé),
+      export du rapport.
 
 #### C5 — Hub de traduction agnostique de la langue
 

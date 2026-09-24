@@ -199,6 +199,9 @@ public enum KeybindScanner {
         /// en pause absents). Une touche qu'on vient de capturer n'est encore
         /// dans aucune collision ; c'est ici qu'on voit qui d'autre la porte.
         public var activeUses: [KeybindCombo: [ModUse]] = [:]
+        /// C4-T13 — chaque réglage de raccourci des mods actifs, `None`
+        /// compris : la vue « tous les raccourcis » (`KeybindOverview.swift`).
+        public var settings: [SettingBinding] = []
 
         /// Problèmes avérés : collisions clavier et manette entre mods actifs
         /// plus conflits avec un contrôle du jeu. Les « non reconnus » n'y
@@ -431,6 +434,7 @@ public enum KeybindScanner {
         // deux mods du constat alors qu'ils sont deux dossiers distincts.
         var catalogMods: [(id: String, name: String)] = []
         var remapMods: [String] = []
+        var settings: [(modID: String, modName: String, keyPath: [String], combos: [KeybindCombo])] = []
         // Un même littéral peut rendre deux fois la même combinaison
         // (« F8, F8 ») : le même usage n'entre qu'une fois dans son seau,
         // sinon la vue reçoit deux lignes de même identité.
@@ -486,6 +490,9 @@ public enum KeybindScanner {
                 // raccourcis. Les mods en pause ne gonflent pas ce chiffre —
                 // ils ne lient pas au jeu.
                 if mod.isActive, combos.contains(where: { !$0.isEmpty }) { keybindCount += 1 }
+                if mod.isActive {
+                    settings.append((mod.id, mod.name, keyPath, combos.filter { !$0.isEmpty }))
+                }
                 // C4-T9 — le remap est écarté des conflits jeu, pas du reste :
                 // ses collisions mod-mod et son compte de liaisons restent.
                 for combo in combos where !combo.isEmpty {
@@ -593,6 +600,8 @@ public enum KeybindScanner {
                              keybindCount: keybindCount, pausedIgnored: pausedIgnored,
                              catalogModsIgnored: catalogModsIgnored,
                              remapModsIgnored: remapModsIgnored,
-                             activeUses: index)
+                             activeUses: index,
+                             settings: markConflicts(settings, collisions: allCollisions,
+                                                     gameConflicts: gameConflicts))
     }
 }

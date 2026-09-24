@@ -208,6 +208,14 @@ struct KeybindReportSection: View {
                 .font(.system(size: 11)).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
         }
+        if !report.settings.isEmpty {
+            // C4-T13 — replié par défaut, en dernier : ce n'est pas un
+            // signal, c'est l'inventaire, après les notes qui disent ce que
+            // le scan a écarté.
+            KeybindOverviewGroup(localization: localization, bindings: report.settings,
+                                 isExpanded: expansion("overview", defaultOpen: false),
+                                 openConfig: openConfig)
+        }
     }
 
     /// Défaut 2 (tâche 6) : un mod qui lie la même touche dans deux
@@ -232,40 +240,21 @@ struct KeybindReportSection: View {
         }
     }
 
-    /// Le chemin vers la config du mod cité par une ligne du rapport. La
-    /// demande doit traverser le changement d'onglet, qui remet
-    /// `editingModConfig` à nil (piège documenté dans `MainView`) : elle
-    /// passe par `vm.navigationStore.pendingConfigFocus`, consommé dans le `onChange`
-    /// **après** la remise à zéro — même patron que
-    /// `pendingTranslationFocus`. Glyphe seul, donc cible de 18×18 avec
-    /// `contentShape` : un glyph de 11 pt est plus petit que le curseur
-    /// immobile qu'exige macOS pour une infobulle, défaut déjà payé dans
-    /// la liste (note du glyph `note.text` dans `ModListView`).
-    ///
-    /// `.layoutPriority(1)` sur un cadre déjà fixe à 18×18 : en fenêtre
-    /// étroite c'est le texte de la ligne qui tronque (son `lineLimit` +
-    /// `truncationMode` restent maîtres), jamais le bouton qui rétrécit.
+    /// Voir `KeybindConfigButton` : partagé avec la vue « tous les
+    /// raccourcis » (C4-T13).
     private func configButton(modID: String) -> some View {
-        // Évaluée une fois par ligne (ronde finale) : elle servait à la
-        // fois à `.help` et à `.accessibilityLabel`.
-        let settingsLabel = localization.L(L10n.Settings.configModSettings)
-        return Button {
-            if vm.openModConfig(forFolder: modID) {
-                currentTab = .mods
-            }
-        } label: {
-            Image(systemName: "gearshape")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .frame(width: 18, height: 18)
-                .contentShape(.rect)
+        KeybindConfigButton(localization: localization) { openConfig(modID) }
+    }
+
+    /// Le geste « ouvrir la config » d'une ligne. La demande doit traverser
+    /// le changement d'onglet, qui remet `editingModConfig` à nil (piège
+    /// documenté dans `MainView`) : elle passe par
+    /// `navigationStore.pendingConfigFocus`, consommé dans le `onChange`
+    /// **après** la remise à zéro — même patron que `pendingTranslationFocus`.
+    private func openConfig(_ modID: String) {
+        if vm.openModConfig(forFolder: modID) {
+            currentTab = .mods
         }
-        .buttonStyle(PlainButtonStyle())
-        .pointingHandCursor()
-        .help(settingsLabel)
-        .accessibilityLabel(settingsLabel)
-        .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
-        .layoutPriority(1)
     }
 
     private func collisionsGroup(_ collisions: [KeybindScanner.KeybindCollision],

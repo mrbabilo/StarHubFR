@@ -110,6 +110,17 @@ enum L10n {
         static let subsetsHint        = "keybinds_subsets_hint"
         static let latentHeader       = "keybinds_latent_header"
         static let pausedSuffix       = "keybinds_paused_suffix"
+        // C4-T13 — la vue « tous les raccourcis ».
+        static let allHeader          = "keybinds_all_header"
+        static let filterAll          = "keybinds_filter_all"
+        static let filterBound        = "keybinds_filter_bound"
+        static let filterConflicts    = "keybinds_filter_conflicts"
+        static let filterUnassigned   = "keybinds_filter_unassigned"
+        static let filterCount        = "keybinds_filter_count"
+        static let searchPlaceholder  = "keybinds_search_placeholder"
+        static let noMatch            = "keybinds_no_match"
+        static let unassignedValue    = "keybinds_unassigned_value"
+        static let conflictHelp       = "keybinds_conflict_help"
     }
 
     // MARK: - Saves

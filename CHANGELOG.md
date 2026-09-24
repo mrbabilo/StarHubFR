@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Le rapport de raccourcis liste tous les raccourcis de vos mods actifs**, pas seulement les conflits : filtre tous / liés / en conflit / non assignés, recherche par mod, réglage ou touche, et accès direct à la config de chaque mod.
 - **Audit de Keybind Radar et SaveSaver**, deux mods tout neufs qui recouvrent les raccourcis et les sauvegardes, mesurés contre le parc et vos sauvegardes. Cinq items neufs en ROADMAP en sortent — avertir à la bascule d'un mod dont les données dorment dans une partie, audit de sauvegarde en lecture, nettoyage guidé, signal de conflit pendant la capture d'un raccourci, filtres du rapport.
 - **Le bilan de mise à jour nomme les données de mods remises en place.** Chaque fichier replacé dans le mod (`‹sauvegarde›_SaveData.save` et semblables) est listé sous son nom. Un réglage nouveau — « Remettre les données des mods après une mise à jour », actif par défaut — permet de ne pas les remettre : elles restent alors dans la sauvegarde d'installation, et le bilan le dit.
 - **Mettre un mod en pause chiffre ce qu'il a laissé dans vos sauvegardes.** Si des empreintes du mod (pack compris) y dorment, la bascule est suspendue derrière un avertissement chiffré par partie — objets, bâtiments, clés de données. Confirmer poursuit ; annuler ne touche à rien. Activer un profil ou « Tout désactiver » affiche le même avertissement.

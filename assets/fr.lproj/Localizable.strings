@@ -227,7 +227,15 @@
 "install_report_title_install" = "Installation terminée";
 "install_report_title_update" = "Mise à jour terminée";
 "install_report_window_title" = "Bilan d'installation";
+"keybinds_all_header" = "Tous les raccourcis — %lld réglages";
 "keybinds_catalog_note" = "Documentation de raccourcis écartée du scan (%1$lld) : %2$@";
+"keybinds_conflict_help" = "Partagé avec un autre mod actif ou avec une commande du jeu";
+"keybinds_filter_all" = "Tous";
+"keybinds_filter_bound" = "Liés";
+"keybinds_filter_conflicts" = "En conflit";
+"keybinds_filter_count" = "%lld réglages affichés";
+"keybinds_filter_unassigned" = "Non assignés";
+"keybinds_no_match" = "Aucun raccourci ne correspond.";
 "keybinds_remap_note" = "Un mod de remap (%s) est écarté des conflits avec le jeu : poser ces contrôles est sa fonction.";
 "keybinds_collisions_header" = "Conflits entre mods (%lld)";
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
@@ -242,9 +250,11 @@
 "keybinds_paused_suffix" = "en pause";
 "keybinds_rescan" = "Relancer l'analyse";
 "keybinds_scanning" = "Analyse des mods…";
+"keybinds_search_placeholder" = "Chercher un mod, un réglage ou une touche";
 "keybinds_subsets_header" = "Raccourcis co-déclenchés (%lld)";
 "keybinds_subsets_hint" = "Maintenir une combinaison déclenche aussi le raccourci plus court qu'elle contient — le plus court part en premier.";
 "keybinds_title" = "Raccourcis clavier";
+"keybinds_unassigned_value" = "non assigné";
 "keybinds_unrecognized_header" = "Raccourcis non reconnus (%lld)";
 "logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
 "logs_auto_scroll_hint" = "Défilement auto vers le bas";
