@@ -2839,7 +2839,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Pre-computed snapshot of the four "core extension" statuses shown on Home.
+    /// Pre-computed snapshot of the "core extension" statuses shown in Settings.
     /// Computed once per `mods` change (SwiftUI caches getter results within a
     /// single body evaluation) instead of flatMapping all mods 4× per render.
     var coreExtensionsSnapshot: CoreExtensionsSnapshot {
@@ -2849,19 +2849,9 @@ final class StarHubTHViewModel {
             CoreModSlot.resolve(keyword: keyword, among: allMods)
         }
 
-        // Le hub thaï est la seule extension dont on connaisse le **dossier** :
-        // il prime sur une correspondance de nom, un auteur pouvant renommer
-        // son mod d'une version à l'autre. La cascade était écrite à la main
-        // ici, à côté de `CoreModSlot.resolve` qui fait le même travail pour
-        // les autres — une copie de plus de la même règle.
-        let thaiSlot = CoreModSlot.resolve(keyword: "thai",
-                                           folderName: "stardew valley - thai",
-                                           among: allMods)
-
         return CoreExtensionsSnapshot(
             contentPatcher: slot(matching: "content patcher"),
             spacecore: slot(matching: "spacecore"),
-            thai: thaiSlot,
             sve: slot(matching: "stardew valley expanded"),
             unarTool: .init(installed: unarInstalled),
             sevenZipTool: .init(installed: sevenZipInstalled)

@@ -263,7 +263,6 @@ private struct AttentionCounterTile: View {
 struct CoreExtensionsSnapshot {
     let contentPatcher: CoreModSlot
     let spacecore: CoreModSlot
-    let thai: CoreModSlot
     let sve: CoreModSlot
     let unarTool: CoreToolSlot
     let sevenZipTool: CoreToolSlot

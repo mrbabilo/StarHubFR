@@ -28,6 +28,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Écran de lancement plus compact** : environ deux tiers de sa taille d'avant, la fenêtre épouse la carte.
+- **« Stardew Valley Thai » disparaît des extensions principales** dans les Réglages.
 - **L'accueil va à l'essentiel** : lancer le jeu, ce qui l'empêche et les compteurs d'attention. « Infos sur l'appli » et « Extensions principales » ne restent qu'aux Réglages. Le bandeau Nexus revient en tête, avec votre avatar Steam, votre nom et la version.
 - **Une seule page « Sauvegardes des mods »** remplace les deux entrées de la barre latérale : segments Installations, Configuration et Fichiers récupérables (auparavant une feuille). Le segment choisi est gardé d'un onglet à l'autre. Les fichiers récupérables incluent désormais toutes les seules copies, mods désinstallés compris, et l'Entretien y renvoie.
 - **Le changelog de l'app ne montre plus que les deux dernières versions**, sans le préambule.

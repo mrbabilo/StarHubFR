@@ -547,9 +547,6 @@ struct SettingsView: View {
                 CoreModRow(vm: vm, localization: localization, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
-                CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Thai", status: core.thai.status, mod: core.thai.mod)
-                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
                 CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
                 Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
 
