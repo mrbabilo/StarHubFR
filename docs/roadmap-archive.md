@@ -4643,6 +4643,9 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       Clés `home_mod_manager`, `home_installed_mods`, `home_item_count`
       retirées. Compteurs à zéro : déjà neutres (`tint` nul hors
       `.attention`), gardés visibles — un « 0 alerte » se lit.
+      À la demande de l'auteur, le même jour : le bandeau Nexus de la v1.6.0
+      revient en tête (`HomeHeroBanner`, avatar Steam à cheval sur le bord bas,
+      nom, version), au-dessus de la bande d'attention.
 
 
 #### Axe F — Dette technique (suite)

@@ -185,6 +185,11 @@ struct HomeView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .center, spacing: 24) {
 
+                // ── BANDEAU NEXUS + AVATAR ──
+                HomeHeroBanner(vm: vm, localization: localization)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 28)
+
                 // ── RECHERCHE INTERROMPUE ──
                 // (Le rembourrage vit dans la branche : appliqué ici, il
                 // envelopperait l'`EmptyView` du cas courant et laisserait un
@@ -194,7 +199,6 @@ struct HomeView: View {
                 // ── ATTENTION STRIP ──
                 attentionStrip
                     .padding(.horizontal, 40)
-                    .padding(.top, 28)
 
                 // ── LAUNCH CARD ──
                 launchCard
