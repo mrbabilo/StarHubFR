@@ -4658,6 +4658,13 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       confirmation — elle passe désormais par la même alerte que « Vider les
       archives », qui nomme le mod et la version.
 
+- [x] **I-T14** ✅ *(livré le 2026-09-24)* — **Bandeau d'état en tête de
+      fiche** : `ModAnomalyBanner`, entre le héros et les onglets (épinglé),
+      lit `vm.anomaly(for:)` — la source de la pastille de liste — gravité
+      (`SeverityBadge`), toutes les raisons (`anomalyReasons`) et « Voir
+      l'état ». Caché sur l'onglet État et pour un mod sans anomalie
+      (6 sur 863 en portaient une au dernier relevé).
+
 
 #### Axe F — Dette technique (suite)
 

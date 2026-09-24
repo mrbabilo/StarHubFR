@@ -585,6 +585,7 @@
   "mods_all_already_enabled": "All mods are already enabled",
   "mods_anomaly_compat": "Reported broken by smapi.io: %@",
   "mods_anomaly_dependency": "A required dependency is missing or paused",
+  "mods_anomaly_see_state": "See state",
   "mods_anomaly_duplicate_active": "Installed %1$lld times, more than one of them on — SMAPI loads one and ignores the rest: %2$@",
   "mods_anomaly_duplicate_dormant": "Installed %1$lld times; only one copy is on: %2$@",
   "mods_anomaly_errors": "%d recent error(s) on this version",

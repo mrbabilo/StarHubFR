@@ -952,11 +952,6 @@ décide de l'ordre) :
       jour » dans la liste, bandeau en tête de fiche avec son geste (MàJ
       Premium, page Nexus, « Je l'ai déjà »). Même appariement que **X113** —
       à livrer après lui. · **M**
-- [ ] **I-T14** — **Bandeau d'état en tête de fiche.** La fiche s'ouvre sur
-      la description (`selectedTab = .description`) et son en-tête ne résume
-      aucune anomalie ; depuis la liste, un mod en erreur ne le dit qu'à
-      l'onglet État. Bandeau sous l'en-tête (`ModAnomaly` + `SeverityBadge`)
-      avec « Voir l'état ». · **S**
 - [ ] **I-T15** — **Barre d'actions de la fiche hiérarchisée.** Six gestes
       `.bordered` au même poids : garder l'interrupteur et « Réglages du
       mod », Favori / À écarter en icônes à bascule (cible 18×18, libellé

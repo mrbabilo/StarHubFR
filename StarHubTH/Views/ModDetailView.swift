@@ -97,9 +97,11 @@ struct ModDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed hero + tab bar — both stay pinned while the tab content
-            // below scrolls.
+            // Hero, état (I-T14) et onglets épinglés ; le contenu défile.
             heroBanner
+            if selectedTab != .state, let anomaly = vm.anomaly(for: live) {
+                ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .state }
+            }
             tabBar
             ScrollView {
                 content
@@ -127,15 +129,13 @@ struct ModDetailView: View {
         .onChange(of: live.isEnabled) { _, _ in
             refreshConfigHolders()
         }
-        // B3-T6 — la note se sauvegarde à la perte du focus : une annotation
-        // n'est pas un formulaire, pas de bouton Enregistrer.
+        // B3-T6 — note sauvegardée au blur : pas un formulaire, pas de bouton.
         .onChange(of: noteFocused) { _, focused in
             if !focused { vm.setModNote(noteDraft, for: mod) }
         }
-        // …et aussi à la sortie de la fiche : cliquer un autre mod dans la
-        // liste remplace la vue (`.id(mod.folderName)`) avant que le blur ne
-        // tire — sans ce filet, une note vidée juste avant de partir n'était
-        // jamais committée. Idempotent avec le blur : même valeur, deux fois.
+        // …et à la sortie : un autre mod remplace la vue (`.id(mod.folderName)`)
+        // avant le blur — sans ce filet, une note vidée juste avant de partir
+        // n'était jamais committée. Idempotent avec le blur.
         .onDisappear {
             vm.setModNote(noteDraft, for: mod)
         }

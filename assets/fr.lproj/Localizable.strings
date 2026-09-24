@@ -585,6 +585,7 @@
 "mods_all_already_enabled" = "Tous les mods sont déjà activés";
 "mods_anomaly_compat" = "Signalé cassé par smapi.io : %@";
 "mods_anomaly_dependency" = "Une dépendance requise manque, ou est en pause";
+"mods_anomaly_see_state" = "Voir l'état";
 "mods_anomaly_duplicate_active" = "Installé %1$lld fois, dont plusieurs copies actives — SMAPI en charge une et ignore les autres : %2$@";
 "mods_anomaly_duplicate_dormant" = "Installé %1$lld fois ; une seule copie est active : %2$@";
 "mods_anomaly_errors" = "%d erreur(s) récente(s) sur cette version";
