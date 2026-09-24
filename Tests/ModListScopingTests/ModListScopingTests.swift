@@ -330,17 +330,42 @@ struct ModListScopingTests {
     @Test func scopingSplitsOnEnabledState() {
         var paused = mod("Pause"); paused.isEnabled = false
         let all = [mod("Actif"), paused]
-        #expect(ModListScoping.scoped(all, scope: .all, hasAnomaly: { _ in false }).count == 2)
+        #expect(ModListScoping.scoped(all, scope: .all, hasAnomaly: { _ in false },
+                                      pendingUpdates: { .empty }).count == 2)
         #expect(ModListScoping.scoped(all, scope: .enabled,
-                                      hasAnomaly: { _ in false }).map(\.name) == ["Actif"])
+                                      hasAnomaly: { _ in false },
+                                      pendingUpdates: { .empty }).map(\.name) == ["Actif"])
         #expect(ModListScoping.scoped(all, scope: .disabled,
-                                      hasAnomaly: { _ in false }).map(\.name) == ["Pause"])
+                                      hasAnomaly: { _ in false },
+                                      pendingUpdates: { .empty }).map(\.name) == ["Pause"])
+    }
+
+    /// I-T13 — le cadrage « Mises à jour » lit l'index, composants compris,
+    /// et ne le construit que sous ce cadrage.
+    @Test func theUpdatesScopeLightsAPackThroughAComponent() {
+        let pack = mod("RSV", children: [mod("Core")])
+        let index = PendingModUpdates(nexus: [(uniqueId: pack.children![0].uniqueId, latestVersion: "2")],
+                                      smapi: [])
+        let scoped = ModListScoping.scoped([pack, mod("Sain")], scope: .updates,
+                                           hasAnomaly: { _ in false }, pendingUpdates: { index })
+        #expect(scoped.map(\.name) == ["RSV"])
+    }
+
+    @Test func noOtherScopeBuildsTheUpdateIndex() {
+        final class Counter { var calls = 0 }
+        let counter = Counter()
+        for scope in [ModFilter.all, .enabled, .disabled, .issues] {
+            _ = ModListScoping.scoped([mod("A")], scope: scope, hasAnomaly: { _ in false },
+                                      pendingUpdates: { counter.calls += 1; return .empty })
+        }
+        #expect(counter.calls == 0)
     }
 
     @Test func theIssuesScopeReadsTheAnomalyThroughComponents() {
         let pack = mod("RSV", children: [mod("Core"), mod("Cassé")])
         let scoped = ModListScoping.scoped([pack, mod("Sain")], scope: .issues,
-                                           hasAnomaly: { $0.name == "Cassé" })
+                                           hasAnomaly: { $0.name == "Cassé" },
+                                      pendingUpdates: { .empty })
         #expect(scoped.map(\.name) == ["RSV"])
     }
 
@@ -354,7 +379,8 @@ struct ModListScopingTests {
         // silence de l'onglet censé les réunir.
         var paused = mod("Cassé"); paused.isEnabled = false
         let scoped = ModListScoping.scoped([paused], scope: .issues,
-                                           hasAnomaly: { _ in true })
+                                           hasAnomaly: { _ in true },
+                                      pendingUpdates: { .empty })
         #expect(scoped.map(\.name) == ["Cassé"])
     }
 
@@ -364,7 +390,8 @@ struct ModListScopingTests {
         final class Counter { var calls = 0 }
         let counter = Counter()
         _ = ModListScoping.scoped([mod("a"), mod("b")], scope: .all,
-                                  hasAnomaly: { _ in counter.calls += 1; return false })
+                                  hasAnomaly: { _ in counter.calls += 1; return false },
+                                      pendingUpdates: { .empty })
         #expect(counter.calls == 0)
     }
 

@@ -331,6 +331,7 @@ enum L10n {
         static let enabled              = "mods_enabled"
         static let disabled             = "mods_disabled"
         static let filterAll            = "mods_filter_all"
+        static let filterUpdates        = "mods_filter_updates"
         static let filterIssues         = "mods_filter_issues"
         static let sortName             = "mods_sort_name"
         static let sortNameDescending   = "mods_sort_name_descending"

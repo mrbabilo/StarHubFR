@@ -3,7 +3,8 @@ import Combine
 
 /// Scope filter for the mods list.
 enum ModFilter: String, CaseIterable, Identifiable {
-    case all, enabled, disabled, issues
+    /// `updates` — I-T13 : les mods qu'une mise à jour attend.
+    case all, enabled, disabled, issues, updates
     var id: String { rawValue }
 }
 

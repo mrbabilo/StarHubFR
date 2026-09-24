@@ -186,30 +186,31 @@ struct ModListView: View {
         base.filter { vm.category(for: $0) == nil && vm.inferredTagKey(for: $0) == "Other" }.count
     }
 
-    /// Precomputed counts for all four scope filters, derived in a single pass
-    /// over `filtered`. Avoids recomputing the `.issues` scope (which does a
-    /// per-mod dependency scan) every time the Picker label is evaluated.
-    /// `issues` applique le même verdict d'anomalie que
-    /// `ModListScoping.scoped(_:scope:hasAnomaly:)` — voir son commentaire pour
-    /// ce que « en pause » y change, et ce qu'il n'y change pas.
-    private func scopeCounts(for filtered: [ModItem]) -> (all: Int, enabled: Int, disabled: Int, issues: Int) {
-        var enabled = 0, disabled = 0, issues = 0
+    /// Counts for every scope filter, in one pass over `filtered` — the
+    /// `.issues` dependency scan is not redone per Picker label.
+    /// `issues` et `updates` appliquent les verdicts de `ModListScoping.scoped`
+    /// — voir son commentaire pour ce que « en pause » y change.
+    private func scopeCounts(for filtered: [ModItem])
+    -> (all: Int, enabled: Int, disabled: Int, issues: Int, updates: Int) {
+        var enabled = 0, disabled = 0, issues = 0, updates = 0
+        let pending = PendingModUpdates.current(vm) // même index que le filtre
         for mod in filtered {
             if mod.isEnabled { enabled += 1 } else { disabled += 1 }
             if vm.matchesSelfOrAnyChild(mod, { vm.hasIssues($0) }) { issues += 1 }
+            if pending.pending(for: mod) != nil { updates += 1 }
         }
-        return (filtered.count, enabled, disabled, issues)
+        return (filtered.count, enabled, disabled, issues, updates)
     }
 
-    /// Le titre de la section courante — les quatre scopes ne diffèrent que
-    /// par lui. La liste et la grille le partagent : le scope actif se lit
-    /// de la même façon dans les deux denses (P2).
+    /// Le titre de la section courante, partagé par la liste et la grille :
+    /// le scope actif se lit de la même façon dans les deux (P2).
     private var scopeSectionTitle: String {
         switch filters.scope {
         case .all: return localization.L(L10n.Mods.filterAll)
         case .enabled: return localization.L(L10n.Mods.enabled)
         case .disabled: return localization.L(L10n.Mods.disabled)
         case .issues: return localization.L(L10n.Mods.filterIssues)
+        case .updates: return localization.L(L10n.Mods.filterUpdates)
         }
     }
 
@@ -225,6 +226,9 @@ struct ModListView: View {
                                             tint: anomaly.severity == .error ? .orange : .yellow,
                                             help: anomalyReasons(anomaly, vm: vm)))
         }
+        if let pending = PendingModUpdates.current(vm).pending(for: mod) { attributes.append(CardAttribute( // I-T13
+            id: "update", systemImage: "arrow.up.circle.fill", tint: .blue,
+            help: String(format: localization.L(L10n.Updates.availableVersion), pending.availableVersion))) }
         if let note = vm.modNote(for: mod) {
             attributes.append(CardAttribute(id: "note", systemImage: "note.text", help: note))
         }
@@ -276,8 +280,7 @@ struct ModListView: View {
         VStack(spacing: 0) {
 
             // ── Sticky header ────────────────────────────────────────────
-            // The toolbar (scope picker + filters + sort) stays fixed above
-            // the scrolling list, mirroring LogsView's sticky header layout.
+            // Toolbar fixed above the scrolling list, as in LogsView.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 // Primary row: scope picker (left) + primary action (right).
                 // Keeps the most-used navigation and the key CTA at the
@@ -293,10 +296,13 @@ struct ModListView: View {
                         Label("\(localization.L(L10n.Mods.filterIssues)) (\(counts.issues))",
                               systemImage: "exclamationmark.triangle")
                             .tag(ModFilter.issues)
+                        Label("\(localization.L(L10n.Mods.filterUpdates)) (\(counts.updates))",
+                              systemImage: "arrow.up.circle")
+                            .tag(ModFilter.updates)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(maxWidth: 480)
+                    .frame(maxWidth: 600)
 
                     // La recherche vit ici, au motif des journaux
                     // (`LogsView.swift:182`) — la barre système `.searchable`
@@ -492,11 +498,8 @@ struct ModListView: View {
                                         ModCard(title: values.title,
                                                 subtitle: values.subtitle,
                                                 thumbnailURL: values.thumbnailURL,
-                                                // La pastille dit l'**état**,
-                                                // pas « installé » : tout l'est
-                                                // ici. Les deux états se posent,
-                                                // jamais l'un par l'absence de
-                                                // l'autre (P6).
+                                                // L'**état**, pas « installé » :
+                                                // les deux se posent (P6).
                                                 installedLabel: localization.L(active
                                                     ? L10n.Mods.cardActive
                                                     : L10n.Mods.cardPaused),
@@ -506,11 +509,8 @@ struct ModListView: View {
                                                 badgeSystemImage: active
                                                     ? "checkmark.circle.fill"
                                                     : "pause.circle.fill",
-                                                // La catégorie que la liste
-                                                // connaît déjà : celle que
-                                                // l'utilisateur a assignée, celle
-                                                // de Nexus, ou la dominante d'un
-                                                // pack (`category(for:)`).
+                                                // Assignée, Nexus ou dominante
+                                                // d'un pack (`category(for:)`).
                                                 category: vm.category(for: mod),
                                                 neutralBadge: values.neutralBadge,
                                                 endorsements: values.endorsements,

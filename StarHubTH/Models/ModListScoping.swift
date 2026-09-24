@@ -240,8 +240,11 @@ enum ModListScoping {
     ///   balayage inconditionnel, y compris sous « Tous », qui ne le lit jamais.
     ///   C'est le chemin même que **F3** met en cause. Il arrive en paramètre
     ///   plutôt que par `Inputs` parce que les vues appellent ce cadrage seul.
+    /// - Parameter pendingUpdates: l'index des mises à jour, paresseux comme
+    ///   `hasAnomaly` — construit seulement sous le cadrage « Mises à jour ».
     static func scoped(_ mods: [ModItem], scope: ModFilter,
-                       hasAnomaly: (ModItem) -> Bool) -> [ModItem] {
+                       hasAnomaly: (ModItem) -> Bool,
+                       pendingUpdates: () -> PendingModUpdates) -> [ModItem] {
         switch scope {
         case .all:      return mods
         case .enabled:  return mods.filter(\.isEnabled)
@@ -259,6 +262,10 @@ enum ModListScoping {
             // cessent pas d'exister parce qu'on l'a mis en pause.
             matchesSelfOrAnyChild(mod) { hasAnomaly($0) }
         }
+        case .updates:
+            // `pending(for:)` lit déjà les composants d'un pack.
+            let index = pendingUpdates()
+            return mods.filter { index.pending(for: $0) != nil }
         }
     }
 

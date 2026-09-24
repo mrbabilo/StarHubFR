@@ -709,6 +709,7 @@
   "mods_filter_favorites_empty_hint": "Marquez un mod d'une étoile depuis sa ligne pour le retrouver ici, et pour l'importer dans un profil.",
   "mods_filter_favorites_hint": "N'afficher que les mods marqués d'une étoile.",
   "mods_filter_issues": "Problèmes",
+  "mods_filter_updates": "Mises à jour",
   "mods_fr_coverage_percent": "FR %d %%",
   "mods_fr_translation_available": "FR disponible",
   "mods_fr_translation_filter_label": "Trad. FR",

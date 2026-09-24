@@ -1,8 +1,7 @@
 import SwiftUI
 
-// Les lignes, groupes et badges de la liste de mods — P8, geste B
-// (cadrage 2026-09-14) : types inchangés, déplacés du fichier de
-// `ModListView`. `anomalyReasons` est internal (lue par la vue
+// Lignes, groupes et badges de la liste de mods (P8, geste B, 2026-09-14),
+// sortis de `ModListView`. `anomalyReasons` est internal (lue par la vue
 // principale) ; les badges restent `private`, ils ne servent qu'ici.
 // MARK: - Section Group
 struct ModSectionGroup: View {
@@ -523,6 +522,8 @@ struct ModListRow: View {
                                              text: anomalyReasons(anomaly, vm: vm))
                         }
                     }
+                    if let pending = PendingModUpdates.current(vm).pending(for: mod) { PendingUpdateBadge(pending: pending,
+                        help: String(format: localization.L(L10n.Updates.availableVersion), pending.availableVersion)) }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
@@ -1089,9 +1090,8 @@ private struct ModWeightLabel: View {
 /// absente ou en pause, manifeste sans identifiant. Le détail passe par
 /// l'infobulle — la ligne porte déjà beaucoup.
 ///
-/// Sur un parc réel, six mods sur 863 en portent une, dont un seul en rouge :
-/// c'est peu, et c'est le résultat attendu. Une pastille qui s'allumerait
-/// souvent ne dirait plus rien.
+/// Six mods sur 863 en portent une sur le parc réel : c'est attendu, une
+/// pastille qui s'allumerait souvent ne dirait plus rien.
 private struct AnomalyBadge: View {
     let anomaly: ModAnomaly
     var vm: StarHubTHViewModel

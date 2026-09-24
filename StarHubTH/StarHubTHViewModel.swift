@@ -9044,7 +9044,7 @@ final class StarHubTHViewModel {
     /// quarts du poids dorment dans des mods en pause. L'état reste lisible
     /// ligne à ligne dans la liste ; ici, l'ordre du tri passe tel quel.
     func scopedMods(from filtered: [ModItem], scope: ModFilter) -> [ModItem] {
-        ModListScoping.scoped(filtered, scope: scope, hasAnomaly: { self.hasIssues($0) })
+        ModListScoping.scoped(filtered, scope: scope, hasAnomaly: { self.hasIssues($0) }, pendingUpdates: { .current(self) })
     }
 
 
