@@ -74,7 +74,7 @@ struct HomeView: View {
                     vm.resolveModFolder(forLoggedName: $0)?.version
                 },
             alerts: vm.systemAlertCount,
-            quarantined: vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0,
+            quarantined: vm.maintenanceStore.quarantineItemCount,
             mods: vm.scanStore.mods.count)
         return HStack(spacing: AppDesign.Spacing.md) {
             ForEach(counters) { counter in

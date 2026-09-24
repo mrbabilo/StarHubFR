@@ -3671,6 +3671,18 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X114** ✅ *(livré le 2026-09-24)* — **Le badge « Quarantaine » comptait le dernier rapport, pas le dossier.**
+      `lastRepairReport.quarantined.count` : une passe qui ne quarantaine
+      rien remettait le rapport à `nil` pendant que les `_Trash_*` des
+      passes précédentes dormaient toujours dans le dossier du jeu — le
+      badge se taisait sur une quarantaine réelle. Fix : compte vivant relu
+      du disque (`ModTrash.quarantineItemCount`, les `_Trash_*` **sans**
+      marqueur utilisateur — la corbeille X103-B reste hors compte), porté
+      par `MaintenanceStore`, rafraîchi à chaque passe de réparation et
+      après « Vider » de la page Quarantaine. Le parc n'a aucune
+      quarantaine aujourd'hui : le badge y dit 0 par le disque, plus par
+      l'absence d'un rapport.
+
 - [x] **X113** ✅ *(livré le 2026-09-24)* — **Le badge « Mises à jour » comptait une mise à jour déjà faite.**
       La barre latérale et l'accueil additionnaient `outOfDateMods` (relevé
       SMAPI du **dernier lancement du jeu**) et `nexusUpdates` sans confronter

@@ -178,6 +178,9 @@ struct QuarantineView: View {
                     vm.maintenanceStore.setQuarantineMessage(.init(text: localization.L(L10n.Quarantine.emptied), isError: false))
                     vm.maintenanceStore.setRepairReport(nil)
                 }
+                // X114 — le badge lit le disque : le recount suit le vidage,
+                // succès comme échec partiel.
+                vm.refreshTrash()
             }
         })
     }

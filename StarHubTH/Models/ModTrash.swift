@@ -221,6 +221,23 @@ enum ModTrash {
 
     // MARK: - Lister
 
+    /// Le compte vivant de la **quarantaine du réparateur** : les entrées de
+    /// premier niveau des `_Trash_*` **sans** marqueur utilisateur (X114).
+    /// Le badge ne lit plus le dernier rapport — une passe qui ne
+    /// quarantaine rien le remettait à zéro pendant que la quarantaine
+    /// précédente dormait toujours sur le disque.
+    static func quarantineItemCount(modsPath: String,
+                                    fm: FileManager = .default) -> Int {
+        let names = (try? fm.contentsOfDirectory(atPath: modsPath))?
+            .filter(isTrashFolder)
+            .filter { !isUserEvent(modsPath: modsPath, event: $0, fm: fm) } ?? []
+        return names.reduce(0) { count, name in
+            let dir = (modsPath as NSString).appendingPathComponent(name)
+            return count + ((try? fm.contentsOfDirectory(atPath: dir))?.count ?? 0)
+        }
+    }
+
+
     /// Les événements de corbeille **utilisateur** (marqués), du plus récent
     /// au plus ancien. Les quarantaines du réparateur — même préfixe, sans
     /// marqueur — ne sont pas de la corbeille : les lister proposerait de

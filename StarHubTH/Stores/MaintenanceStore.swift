@@ -28,6 +28,9 @@ final class MaintenanceStore {
     /// peut-être pas fini de lire.
     private(set) var lastRepairReport: ModFolderRepairer.Report?
 
+    /// X114 — quarantaine réellement sur le disque, pas le dernier rapport.
+    private(set) var quarantineItemCount = 0
+
     /// Le message d'une action de quarantaine, avec sa sévérité.
     private(set) var quarantineMessage: QuarantineMessage?
 
@@ -71,5 +74,11 @@ final class MaintenanceStore {
     /// demande, il n'y a rien à fusionner.
     func setTrashEvents(_ events: [ModTrash.Event]) {
         trashEvents = events
+    }
+
+    /// Le compte vivant de la quarantaine du réparateur, relu du disque
+    /// (X114) — le badge ne dérive plus du dernier rapport.
+    func setQuarantineItemCount(_ count: Int) {
+        quarantineItemCount = count
     }
 }

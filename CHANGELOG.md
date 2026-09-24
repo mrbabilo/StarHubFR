@@ -32,6 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Le badge « Quarantaine » lit la quarantaine réelle.** Une analyse qui ne met rien en quarantaine effaçait le badge pendant que la quarantaine précédente dormait toujours dans le dossier du jeu ; le compte se lit maintenant sur le disque.
 - **Le badge « Mises à jour » ne compte plus une mise à jour déjà faite.** Le relevé SMAPI date du dernier lancement du jeu ; chaque entrée est confrontée à la version installée, et celle que le disque couvre déjà sort du compte, à l'accueil comme dans la barre latérale.
 - **« Vider les mods désactivés » passe par la corbeille des mods.** Le lot ne s'efface plus sans retour : « Tout remettre » le rend d'un geste depuis Entretien, avec ses réglages et ses traductions.
 - **Le journal garde les erreurs de démarrage de SMAPI après « Effacer ».** Les nouvelles lignes de l'app faisaient disparaître les premières lignes SMAPI, « Skipped mods » compris, jusqu'à la relecture suivante.

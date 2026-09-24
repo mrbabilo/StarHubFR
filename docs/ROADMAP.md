@@ -86,14 +86,6 @@ Les X1–X112 vivent à l'archive, indexés au §11 (X112, le dernier, y est par
 le 2026-09-24). **Ouverts** — relevés par l'audit UX du 2026-09-24
 (`docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, local) :
 
-- [ ] **X114** — *(hypothèse, à mesurer)* **Le badge « Quarantaine » compte
-      le dernier rapport, pas le dossier.** `lastRepairReport.quarantined.count` ;
-      un lancement qui ne quarantaine rien remet le rapport à `nil`
-      (`StarHubTHViewModel:2562`) alors que les `_Trash_*` des passes
-      précédentes restent dans le dossier du jeu. Scénario : un dossier sans
-      manifeste dans `Mods/`, relancer (badge 1), relancer encore → le badge
-      doit rester tant que la quarantaine existe. Le parc n'en a aucune
-      aujourd'hui. · **S**
 - [ ] **X115** — *(question de conception)* **Chaque événement de corbeille
       est un « mod ignoré » pour SMAPI.** Décompilé (`SMAPI.Toolkit.dll`,
       `ModScanner`) : SMAPI n'ignore que les dossiers préfixés d'un point ;

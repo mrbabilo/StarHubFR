@@ -2566,6 +2566,10 @@ final class StarHubTHViewModel {
                         self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
                     }
                 }
+                // X114 — le badge de quarantaine lit le disque, pas ce
+                // rapport : une passe qui n'a rien déplacé laisse le compte
+                // de la quarantaine déjà en place.
+                self.refreshTrash()
             }
 
             // Ordre alphabétique unique, packs et mods simples mêlés — le
@@ -9387,8 +9391,13 @@ final class StarHubTHViewModel {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let events = ModTrash.events(modsPath: modsPath)
+            // X114 — même passe : la quarantaine du réparateur (les
+            // `_Trash_*` sans marqueur) se lit sur le même listing.
+            let quarantined = ModTrash.quarantineItemCount(modsPath: modsPath)
             DispatchQueue.main.async {
-                self?.maintenanceStore.setTrashEvents(events)
+                guard let self else { return }
+                self.maintenanceStore.setTrashEvents(events)
+                self.maintenanceStore.setQuarantineItemCount(quarantined)
             }
         }
     }

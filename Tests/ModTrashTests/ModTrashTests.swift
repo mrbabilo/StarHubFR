@@ -338,4 +338,43 @@ struct ModTrashTests {
         #expect(result.failed.map(\.physical) == [".Alpha"])
         #expect(FileManager.default.fileExists(atPath: path(mods, ".Alpha")))
     }
+
+    // MARK: - X114 — le compte vivant de la quarantaine
+
+    /// La quarantaine du réparateur : `_Trash_*` sans marqueur. Chaque
+    /// entrée de premier niveau compte — c'est ce que le badge affiche.
+    @Test func quarantaineSansMarqueurCompte() throws {
+        let mods = makeTempModsDir()
+        let junk = path(mods, "_Trash_20260924_080000")
+        try FileManager.default.createDirectory(atPath: path(junk, ".DS_Store inside"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: path(junk, "Dossier vide"), withIntermediateDirectories: true)
+        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 2)
+    }
+
+    /// La corbeille utilisateur (avec marqueur) n'est pas de la quarantaine.
+    @Test func corbeilleUtilisateurExclue() throws {
+        let mods = makeTempModsDir()
+        let ev = try makeEvent(mods, "_Trash_20260924_120000")
+        try "x".write(toFile: path(ev, "Alpha"), atomically: true, encoding: .utf8)
+        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 0)
+        #expect(ModTrash.events(modsPath: mods).count == 1)
+    }
+
+    /// Le cas voisin qui ne doit PAS fusionner : les deux coexistent et le
+    /// compte ne voit que la quarantaine.
+    @Test func quarantaineEtCorbeilleCoexistent() throws {
+        let mods = makeTempModsDir()
+        let junk = path(mods, "_Trash_20260924_080000")
+        try FileManager.default.createDirectory(atPath: path(junk, ".DS_Store"), withIntermediateDirectories: true)
+        let ev = try makeEvent(mods, "_Trash_20260924_120000")
+        try "x".write(toFile: path(ev, "Alpha"), atomically: true, encoding: .utf8)
+        try "x".write(toFile: path(ev, "Beta"), atomically: true, encoding: .utf8)
+        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 1)
+        #expect(ModTrash.events(modsPath: mods).first?.entries == ["Alpha", "Beta"])
+    }
+
+    @Test func quarantaineAbsenteVautZero() {
+        let mods = makeTempModsDir()
+        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 0)
+    }
 }

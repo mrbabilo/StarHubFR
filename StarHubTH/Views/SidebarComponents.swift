@@ -24,7 +24,7 @@ struct SidebarNavGroups: View {
         case .systemAlerts:
             return (vm.systemAlertCount, .orange)
         case .quarantine:
-            return (vm.maintenanceStore.lastRepairReport?.quarantined.count ?? 0, .purple)
+            return (vm.maintenanceStore.quarantineItemCount, .purple)
         case .home, .mods, .discover, .frenchTranslations, .profiles, .saves,
              .installBackups, .configBackups, .maintenance, .logs, .settings,
              .appChangelog:
