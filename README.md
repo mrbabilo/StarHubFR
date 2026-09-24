@@ -43,6 +43,7 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Journal périmé** — un badge vous prévient si le journal date d'avant votre session, et un bouton l'ouvre dans le Finder.
 *   **Journaux lisibles** — les lignes répétitives (un vrai journal en compte des milliers) sont repliées en une ligne dépliable, et un bouton regroupe les entrées par mod, les plus problématiques en tête. Rien n'est supprimé : le détail reste à un clic.
 *   **Suivi des erreurs par version** — chaque mod garde l'historique des erreurs et avertissements qu'il a journalisés, **version par version**, consultable depuis sa fiche : de quoi savoir si une nouvelle version se comporte moins bien que la précédente.
+*   **Tous vos raccourcis clavier, et leurs conflits** — le rapport liste chaque raccourci de vos mods actifs (tous, liés, en conflit, non assignés), cherchable par mod, réglage ou touche, avec la config de chaque mod à un clic. Dans l'éditeur de config, une touche capturée dit tout de suite si un autre mod la porte déjà.
 *   **Recherche du mod responsable** — quand le jeu plante sans que le journal désigne personne, StarHubFR met vos mods en pause par moitiés et vous pose une seule question à chaque étape. Une dizaine d'essais suffisent, même avec des centaines de mods. Rien n'est supprimé, tout se remet en un clic.
 
 ### 📦 Installation et organisation des mods
@@ -51,12 +52,13 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Un fichier destiné à un autre mod s'installe au bon endroit** — certains téléchargements Nexus sont du contenu pour un framework (un sac *ItemBags*, par exemple), pas un mod autonome, et ne portent pas de `manifest.json`. L'app les reconnaît et propose de les placer où ils appartiennent, en montrant le chemin exact et en sauvegardant d'abord un fichier existant ; un mod hôte en pause est géré, et une sauvegarde qui échoue annule l'installation plutôt que d'écraser.
 *   **Activation sans déplacer de fichiers** — activez ou désactivez un mod d'un clic, ou **tous vos mods d'un coup** (barre de progression, aucune perte). Supprimez un mod ou un pack du disque après confirmation.
 *   **Profils de mods** — regroupez vos mods en plusieurs profils et basculez de l'un à l'autre en un clic.
-*   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables, mods « à écarter » ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct.
+*   **Liste avancée** — classification automatique par type (UI, Framework, Content Patcher, Traduction, PNJ, Audio, Carte…) déduite du manifeste, qui sert aussi de repli hors ligne. Filtres par catégorie, mods non catégorisés, mods configurables, mods « à écarter » ; tri par nom, auteur, version ou ordre d'activation ; pagination avec saut de page direct. Cinq cadrages en tête — Tous, Activés, En pause, **Problèmes**, **Mises à jour** —, chacun avec son compte.
 *   **Marque « à écarter »** — un mod à retirer de la circulation sans le désinstaller : il reste installé, mais gris dans la liste, sa marque survit au redémarrage et à un renommage de dossier, un filtre les rassemble, et un profil peut importer le lot en un clic.
 
 ### 🔄 Mises à jour et téléchargements
 
 *   **Détection des mises à jour** via [smapi.io](https://smapi.io/) — sans clé API ni compte Nexus : la vérification lit ce que chaque mod déclare dans son manifeste, et un mod qu'elle n'a pas pu joindre reste signalé au lieu de passer pour à jour.
+*   **Chaque mod dit qu'il a une mise à jour** — pastille « ↑ version » sur sa ligne et sa carte, et bandeau en tête de sa fiche avec les mêmes gestes que la page Mises à jour. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus, que plusieurs mods partagent parfois.
 *   **« Je l'ai déjà »** — certains auteurs publient une nouvelle version sans incrémenter celle de leur manifeste : le contrôle voit un écart qui n'existe pas et le réaffiche à chaque passage. La ligne porte un bouton qui enregistre la version réellement installée, puis s'efface.
 *   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger. Le téléchargement s'affiche en **volet coulissant** au bas de la barre latérale : il glisse à l'écran au démarrage et repart glisser à la fin, sans masquer le reste.
 *   **Réconciliation automatique du `manifest.json`** après installation, pour qu'un mod mis à jour ne revienne pas indéfiniment dans la liste des mises à jour.
@@ -78,6 +80,8 @@ L'app savait tout faire **à partir d'un mod installé** — traductions, suppl�
 
 *   **Description complète** rendue en texte natif (BBCode/HTML) — gras, listes, liens, images à taille native, spoilers repliables.
 *   **Journal des modifications** du mod, et **arbre de dépendances transitif** avec statut (activé, désactivé, manquant), actions *Activer* / *Nexus* / *Chercher*, et navigation d'un mod à l'autre.
+*   **Ce qui ne va pas, dès l'ouverture** — un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, et mène à l'onglet État, qui trie tout par gravité. Un mod installé deux fois nomme ses dossiers, chacun ouvrable dans le Finder ou sur sa fiche.
+*   **Des gestes hiérarchisés** — l'interrupteur et les réglages du mod au premier plan, favori et « à écarter » en icônes, signaler et Finder rangés dans « … » ; la couverture française se lit en pastille dans l'en-tête.
 *   Édition de la catégorie et de l'identifiant Nexus directement depuis le volet.
 *   Bannières mises en cache pour un affichage instantané.
 
@@ -97,24 +101,30 @@ Un onglet **Traduction** sur la fiche de chaque mod vous montre l'état réel de
 *   **Clé absente ou clé vide, la différence compte** — une clé absente retombe sur l'anglais et ne casse rien ; une clé vide n'affiche rien du tout, silencieusement. Les deux sont listées séparément, vides d'abord, car un mod à 98 % dont les 2 % restants sont vides est plus cassé qu'un mod à 60 %.
 *   **Traduction obsolète signalée** — si l'anglais a été édité plus récemment que le français, la fiche donne l'écart de date et un filtre « À revoir » les rassemble ; les clés obsolètes sont marquées dans l'onglet, l'ancien anglais barré.
 *   **Traduction perdue lors d'une mise à jour** — les mises à jour remplacent tout le dossier et les auteurs ne renvoient pas toujours les traductions communautaires. Quand une sauvegarde StarHubFR en conserve une, la fiche le dit avec sa date.
+*   **Page « Traductions FR »** — les traductions françaises publiées sur Nexus pour tous vos mods, en pause compris, et les mises à jour de celles déjà installées. Chaque résultat est jugé : « confirmée » si le titre nomme le mod, « à vérifier » sinon.
+*   **Travailler à plusieurs** — un lot ZIP (un JSON par mod) s'exporte pour un traducteur extérieur ; son retour se fusionne clé par clé : traductions neuves écrites d'un coup, divergences arbitrées côte à côte, anglais revérifié avant d'écrire.
 *   **Filtre des mods entamés mais inachevés** — pour isoler le travail qui reste parmi ceux déjà commencés, noyés dans le reste.
 *   **Des fichiers lus comme leurs auteurs les écrivent** — commentaires, virgules en fin de ligne, clés sans guillemets, fins de ligne Windows (CRLF), encodages UTF-16/UTF-32/8 bits hérités : le lecteur permissif accepte ce que le jeu lui-même accepte, vérifié fichier par fichier contre sa propre bibliothèque JSON.
 
 ### ⚙️ Configuration et sauvegardes
 
 *   **Éditeur de configuration** — modifiez le `config.json` d'un mod via un éditeur visuel hiérarchique (arborescence de réglages typés avec recherche) ou un éditeur JSON brut avec numéros de ligne et validation en direct. Réinitialisation et restauration depuis une sauvegarde locale.
-*   **Sauvegarde d'installation** — copie automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récentes + celles de moins de 30 jours + 1 par mois au-delà).
-*   **Sauvegarde de configuration** — sauvegardez et restaurez les `config.json` / `fr.json` de vos mods activés.
+*   **Listes déroulantes lisibles** — l'éditeur affiche les libellés que le mod fournit, traduits quand il l'est : « Coffres dans l'emplacement actuel » plutôt que `CurrentLocation`.
+*   **Une page « Sauvegardes des mods »**, en trois segments :
+    *   **Installations** — copie automatique avant l'écrasement d'un mod, avec rétention hybride (5 plus récentes + celles de moins de 30 jours + 1 par mois au-delà) ;
+    *   **Configuration** — sauvegardez et restaurez les `config.json` / `fr.json` de vos mods activés ;
+    *   **Fichiers récupérables** — ce qu'une mise à jour a emporté (traduction, réglages) et qu'une sauvegarde peut rendre sans restaurer le mod entier, seules copies des mods désinstallés comprises.
 *   **Gestionnaire de sauvegardes de partie** — consultez le détail de vos parties (argent, date en jeu, saison, type de ferme), dupliquez-les, supprimez-les, ou ajustez l'argent et les statistiques du personnage.
-*   **Ce que vos mods laissent dans vos parties** — mettre un mod en pause n'efface pas ses objets, bâtiments et données d'une sauvegarde. Avant la pause, l'app chiffre ce qui reste, partie par partie ; et la fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu, chacun menant à sa fiche.
+*   **Ce que vos mods laissent dans vos parties** — mettre un mod en pause n'efface pas ses objets, bâtiments et données d'une sauvegarde. Avant la pause, l'app chiffre ce qui reste, partie par partie ; et la fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu, chacun menant à sa fiche. Un bouton « Nettoyer… » retire d'une partie les données de mods disparus, clé par clé, après une sauvegarde de sécurité.
 
 ### 🎮 Au quotidien
 
-*   **Lancement du jeu** — démarrez Stardew Valley en mode Vanilla ou via SMAPI, directement depuis l'accueil.
+*   **Un accueil qui va à l'essentiel** — bandeau Nexus et avatar Steam, les compteurs qui demandent votre attention (mises à jour, alertes, quarantaine, mods), et **Lancer le jeu** en Vanilla ou via SMAPI — ou, s'il manque quelque chose, l'action qui le règle.
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR dans l'application, avec filtrage par source et par niveau (compteurs à l'appui), recherche, et copie de lignes conservant l'origine et le mod concerné.
 *   **État toujours lisible** — la carte de compte en tête de barre latérale porte le profil actif, les mods actifs et l'état de SMAPI ; les mises à jour et les alertes comptent leurs badges sur leurs propres entrées ; le pied donne le poids du dossier `Mods/` et l'espace disque restant. Réduite, la fenêtre fait défiler les groupes de navigation — le compte et les réglages restent en place.
 *   **Journal des modifications intégré** — les deux dernières versions se consultent depuis la barre latérale ; l'historique complet reste dans [`CHANGELOG.md`](CHANGELOG.md).
-*   **Accessibilité VoiceOver** — navigation complète au lecteur d'écran sur la liste des mods, les boutons d'action et la barre latérale.
+*   **Accessibilité VoiceOver** — navigation complète au lecteur d'écran sur la liste des mods, les boutons d'action et la barre latérale ; les boutons de suppression et de purge sont annoncés comme destructifs.
+*   **Lisible en fenêtre étroite** — quand la place manque, les rangées de boutons passent en icônes, le titre en infobulle, plutôt que de se tronquer.
 *   **Détails qui comptent** — zone de glisser-déposer dédiée quand aucun mod n'est installé, recherche Nexus avec des termes lisibles (« Content Patcher » plutôt que `Pathoschild.ContentPatcher`), infobulles sur tous les boutons d'icône.
 
 <p align="center">
