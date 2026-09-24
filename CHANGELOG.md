@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-09-25
+
 ### Added
 
 - **Un mod dit qu'il a une mise à jour.** Pastille « ↑ version » sur sa ligne et sa carte, filtre « Mises à jour » dans la liste, et bandeau en tête de fiche avec les mêmes gestes que la page Mises à jour (MàJ Premium, page Nexus, « Je l'ai déjà », veille).
