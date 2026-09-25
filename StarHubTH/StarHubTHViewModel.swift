@@ -6129,9 +6129,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Ce que donnerait un import des favoris dans ce profil, sans rien
-    /// écrire. Sert à l'écran : dire combien de mods entreraient, et lesquels
-    /// ne le peuvent pas, **avant** de toucher au disque.
+    /// Aperçu d'un import des favoris, sans rien écrire : combien entrent,
+    /// lesquels ne le peuvent pas.
     func favoriteImportPreview(profileId: UUID) -> FavoriteResolution.Result {
         guard let profile = profilesStore.profile(with: profileId) else {
             return FavoriteResolution.Result(ids: [], unresolved: [])
@@ -6140,28 +6139,17 @@ final class StarHubTHViewModel {
                                              existing: profile.enabledModIds)
     }
 
-    /// Ajoute tous les favoris à un profil, **en une seule mutation**.
-    ///
-    /// Surtout pas une boucle sur `addModToProfile` : chacun de ses appels
-    /// passe par `updateProfile`, qui réapplique le profil au disque quand il
-    /// est actif. Importer trente favoris déclencherait trente passes de
-    /// renommage de dossiers sur un parc de 863 mods.
-    ///
-    /// `modMetadata` est renseigné dans la même passe : c'est la seule source
-    /// qui permette encore de **nommer** un mod du profil une fois qu'il aura
-    /// été désinstallé (voir le diagnostic de profil). L'omettre ici
-    /// dégraderait ce diagnostic pour les seuls mods entrés par cet import,
-    /// sans que rien ne le montre avant des mois.
-    ///
-    /// - Returns: ce qui a été fait, pour que l'appelant le dise.
+    /// Ajoute tous les favoris à un profil **en une mutation** (une boucle sur
+    /// `addModToProfile` réappliquerait le profil au disque à chaque mod).
+    /// `modMetadata` renseigné dans la même passe : seule source pour
+    /// **nommer** un mod désinstallé.
+    /// - Returns: ce qui a été fait.
     @discardableResult
     func importFavorites(into profileId: UUID) -> FavoriteResolution.Result {
         guard let index = modProfiles.firstIndex(where: { $0.id == profileId }) else {
             return FavoriteResolution.Result(ids: [], unresolved: [])
         }
-        // R2 : avant la moindre mutation — ce flux écrit `modMetadata` avant
-        // d'appeler `updateProfile`, qui réapplique au disque sur un profil
-        // actif ; un refus après coup laisserait un demi-état en mémoire.
+        // R2 : avant toute mutation, sinon demi-état en mémoire.
         guard guardProfileApply(for: profileId, name: modProfiles[index].name) else {
             return FavoriteResolution.Result(ids: [], unresolved: [])
         }
@@ -6170,18 +6158,13 @@ final class StarHubTHViewModel {
             existing: modProfiles[index].enabledModIds)
         guard !resolution.ids.isEmpty else { return resolution }
 
-        // La résolution (casse, composants de pack, doublons d'identifiant)
-        // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
-        // ici en deux exemplaires, un par import.
+        // Résolution dans `ProfileFactory.metadata(forIds:in:)` (une copie).
         profilesStore.mutateProfile(with: profileId) {
             $0.modMetadata.merge(
                 ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
         }
-        // Capturés **avant** `updateProfile` : sur un profil actif, il
-        // réapplique le profil au disque, et le rescan qui suit fait passer
-        // `syncActiveProfileIds`, qui réécrit `enabledModIds` depuis les mods
-        // réellement activés. Relire la ligne après coup, c'est risquer de
-        // journaliser l'état du disque plutôt que le résultat de l'import.
+        // Capturés **avant** `updateProfile` : le rescan réécrit
+        // `enabledModIds` depuis le disque.
         let name = modProfiles[index].name
         let newIds = modProfiles[index].enabledModIds + resolution.ids
         let importedCount = resolution.ids.count
@@ -6191,9 +6174,8 @@ final class StarHubTHViewModel {
         return resolution
     }
 
-    /// Ce que donnerait un import des mods « à écarter » dans ce profil. Voir
-    /// `favoriteImportPreview` pour l'esprit — la résolution est strictement
-    /// symétrique (folders → UniqueIDs, dédupliqué contre `existing`).
+    /// Aperçu d'un import des « à écarter », symétrique de
+    /// `favoriteImportPreview`.
     func blacklistImportPreview(profileId: UUID) -> BlacklistResolution.Result {
         guard let profile = profilesStore.profile(with: profileId) else {
             return BlacklistResolution.Result(ids: [], unresolved: [])
@@ -6202,11 +6184,8 @@ final class StarHubTHViewModel {
                                               existing: profile.enabledModIds)
     }
 
-    /// Ajoute tous les mods « à écarter » à un profil. Symétrique d'
-    /// `importFavorites(into:)` : les mêmes raisons d'éviter la boucle sur
-    /// `addModToProfile`, le même enrichissement de `modMetadata`, le même
-    /// filet `guardProfileApply` (R2) avant la moindre mutation, et le même
-    /// journal qui distingue le geste d'une passe de ré-application disque.
+    /// Ajoute tous les « à écarter », symétrique d'`importFavorites(into:)`
+    /// (une mutation, `modMetadata`, garde R2, journal).
     @discardableResult
     func importBlacklisted(into profileId: UUID) -> BlacklistResolution.Result {
         guard let index = modProfiles.firstIndex(where: { $0.id == profileId }) else {
@@ -6220,9 +6199,7 @@ final class StarHubTHViewModel {
             existing: modProfiles[index].enabledModIds)
         guard !resolution.ids.isEmpty else { return resolution }
 
-        // La résolution (casse, composants de pack, doublons d'identifiant)
-        // vit dans `ProfileFactory.metadata(forIds:in:)` — elle était écrite
-        // ici en deux exemplaires, un par import.
+        // Résolution dans `ProfileFactory.metadata(forIds:in:)` (une copie).
         profilesStore.mutateProfile(with: profileId) {
             $0.modMetadata.merge(
                 ProfileFactory.metadata(forIds: resolution.ids, in: mods)) { _, new in new }
@@ -6236,11 +6213,8 @@ final class StarHubTHViewModel {
         return resolution
     }
 
-    /// Copie un profil existant, sous le nom « <original> (copie) ».
-    ///
-    /// La copie n'est **pas** activée : dupliquer sert à partir d'une base pour
-    /// la modifier, et une activation déplacerait aussitôt des dossiers de mods
-    /// que personne n'a demandé de bouger.
+    /// Copie un profil sous « <original> (copie) », **non activée** (pas de
+    /// déplacement non demandé).
     func duplicateProfile(id: UUID) {
         guard let source = profilesStore.profile(with: id) else { return }
         let copy = ProfileFactory.duplicate(source, nameFormat: localization.L(L10n.Profiles.copyNameFormat))
@@ -6256,10 +6230,8 @@ final class StarHubTHViewModel {
             log(String(format: localization.L(L10n.VM.profileDeleted), name))
         }
         profilesStore.removeProfile(with: id)
-        // Le magasin de configs part avec le profil (B3-T7) : plus aucun
-        // écran ne pourrait le nommer, et rien ne le relirait jamais. Le
-        // dialogue de confirmation prévient quand il y a quelque chose à
-        // perdre — c'est là que la décision se prend, pas ici.
+        // Le magasin de configs part avec le profil (B3-T7) ; la confirmation
+        // prévient.
         ProfileConfigStore.delete(profileId: id)
         if activeProfileId == id {
             profilesStore.setActiveProfile(nil)
@@ -6268,10 +6240,8 @@ final class StarHubTHViewModel {
     }
     
     func updateProfile(id: UUID, newName: String, enabledModIds: [String]) {
-        // R2 : l'édition d'un profil actif se termine par une application au
-        // disque (branche ci-dessous) — mêmes gardes que l'activation. Sur un
-        // profil non actif, `guardProfileApply` est permissif : rien ne
-        // bouge, l'édition passe.
+        // R2 : un profil actif édité s'applique au disque ; inactif, la garde
+        // laisse passer.
         guard guardProfileApply(for: id, name: newName) else { return }
         if profilesStore.mutateProfile(with: id, {
             $0.name = newName
@@ -6288,15 +6258,12 @@ final class StarHubTHViewModel {
 
     // MARK: - Mod notes (B3-T6)
 
-    /// La note du mod dans le **profil actif** — la note vit au profil, elle
-    /// change avec lui. Nil sans note comme sans profil actif.
+    /// Note du mod dans le **profil actif** ; nil sans note ou sans profil.
     func modNote(for mod: ModItem) -> String? {
         activeProfile?.note(forModId: mod.uniqueId)
     }
 
-    /// Écrit la note du mod sur le profil actif (sauvegarde immédiate). La
-    /// règle — note vidée retirée, identifiant vide ignoré — vit dans
-    /// `ModProfile.setNote` (Core, testée) ; le VM ne fait que router.
+    /// Écrit la note sur le profil actif ; règle dans `ModProfile.setNote`.
     func setModNote(_ text: String?, for mod: ModItem) {
         guard let activeId = activeProfileId,
               modProfiles.contains(where: { $0.id == activeId }) else { return }
@@ -6315,34 +6282,26 @@ final class StarHubTHViewModel {
 
     // MARK: - Incompatibilités entre mods (A5-T2)
 
-    /// Les incompatibilités que l'utilisateur a déclarées ou écartées.
-    /// Chargé au démarrage (dans `seedNexusAndUserData`, avec les autres
-    /// registres utilisateur), réécrit à chaque décision. Fichier :
-    /// `Application Support/StarHubFR/mod_conflicts.json`.
+    /// Incompatibilités déclarées ou écartées, chargées au démarrage,
+    /// réécrites à chaque décision (`mod_conflicts.json`).
     private(set) var modConflictVerdicts = ModConflictVerdicts()
 
-    /// Écrit le magasin, et **le dit quand il n'a pas pu** — même patron que
-    /// `InstalledTranslationStore` : un verdict qui ne survit pas à la
-    /// fermeture doit se voir, pas se taire.
+    /// Écrit le magasin et **dit l'échec** (patron
+    /// `InstalledTranslationStore`).
     func saveConflictVerdicts() {
         if !ModConflictVerdictsStore.save(modConflictVerdicts) {
             log("Verdict non enregistré : il ne survivra pas à la fermeture", level: .warning)
         }
     }
 
-    /// Déclare une incompatibilité entre deux mods, saisie par l'utilisateur
-    /// depuis la fiche (tâche 9). `modConflictVerdicts` est `@Published
-    /// private(set)` : ce mutateur vit ici, dans le corps de la classe — pas
-    /// dans une extension ni dans la vue — pour garder l'écriture au même
-    /// endroit que la lecture.
+    /// Déclare une incompatibilité (fiche). Mutateur dans le corps de la
+    /// classe (`private(set)`).
     func declareConflict(_ pair: ModConflictPair, note: String) {
         modConflictVerdicts.declare(pair, note: note, at: Date())
         saveConflictVerdicts()
     }
 
-    /// Écarte une paire — un constat du journal jugé faux, ou un signalement
-    /// que l'utilisateur reprend. Même mutateur pour les deux usages : le
-    /// magasin ne distingue pas la source, seulement le verdict courant.
+    /// Écarte une paire (constat faux ou signalement repris) ; même mutateur.
     func dismissConflict(_ pair: ModConflictPair, note: String = "") {
         modConflictVerdicts.dismiss(pair, note: note, at: Date())
         saveConflictVerdicts()
@@ -6350,14 +6309,9 @@ final class StarHubTHViewModel {
 
     // MARK: - Bissection (recherche du mod responsable)
 
-    /// Pilote une recherche par moitiés. Créée à la demande : la grande
-    /// majorité des sessions ne s'en sert jamais. La paresse d'origine
-    /// (`lazy`) est refusée par la macro `@Observable` — sa transformation
-    /// fait de la propriété un calcul — d'où le stockage privé et
-    /// l'accesseur. Volontairement **non suivi** : les vues qui l'affichent
-    /// (`HomeView`, `BisectionCard`) observent le runner lui-même ; le
-    /// suivre ici n'invaliderait que le VM entier à chaque état de
-    /// bissection.
+    /// Recherche par moitiés, créée à la demande. `lazy` refusé par
+    /// `@Observable`, d'où stockage + accesseur. **Non suivi** : les vues
+    /// observent le runner.
     @ObservationIgnored
     private var _bisection: BisectionRunner?
     var bisection: BisectionRunner {
@@ -6367,24 +6321,16 @@ final class StarHubTHViewModel {
         return created
     }
 
-    /// Active exactement les dossiers de premier niveau donnés, met les autres
-    /// en pause, puis rescane. Chemin dédié à la bissection : il réutilise le
-    /// déplacement de dossiers éprouvé par les profils, mais neutralise
-    /// `activeProfileId` le temps de l'application — sinon `syncActiveProfileIds`,
-    /// lancé à la fin du rescane, réécrirait le profil actif de l'utilisateur
-    /// avec l'état éphémère de la recherche.
-    ///
-    /// - Parameter completion: reçoit le **résultat** de l'application. Un
-    ///   déplacement en échec (dossier tenu ouvert, jumeau déjà présent) laisse
-    ///   la modlist à moitié en pause : l'appelant doit le savoir pour ne pas
-    ///   jeter l'instantané qui permettrait de réessayer.
+    /// Active exactement ces dossiers, met les autres en pause, rescane
+    /// (bissection). `activeProfileId` neutralisé : sinon
+    /// `syncActiveProfileIds` écraserait le profil de l'utilisateur.
+    /// - Parameter completion: le **résultat** ; un échec partiel doit garder
+    ///   l'instantané de reprise.
     func applyEnabledFolders(_ folders: [String],
                              completion: @escaping (BisectionRestoreOutcome) -> Void) {
         let target = Set(folders)
         let ephemeral = ModProfile(
-            // Nom lisible : si un déplacement échoue, l'alerte d'application
-            // nomme le « profil » concerné — un nom vide donnerait un message
-            // parlant d'un profil « ».
+            // Nom lisible dans l'alerte d'échec.
             name: localization.L(L10n.Bisect.profileName),
             enabledModIds: mods
                 .filter { target.contains($0.folderName) }
@@ -6401,12 +6347,8 @@ final class StarHubTHViewModel {
 
     // MARK: - Configs par profil : capture et restauration (B3-T5)
 
-    /// Le profil actif dont le disque ne porte **pas** les configs (§6.3) :
-    /// une bascule antérieure faite jeu ouvert a sauté capture et/ou
-    /// restauration, et le disque tient encore les réglages d'un autre
-    /// profil que celui qui est actif. `nil` si aucun profil n'est dans ce
-    /// cas. Persisté dans `UserDefaults` : quitter l'application entre les
-    /// deux bascules incriminées ne doit pas effacer le trou.
+    /// Profil actif dont le disque ne porte **pas** les configs (§6.3 :
+    /// bascule faite jeu ouvert), ou `nil`. Persisté : survit à une fermeture.
     private static var profileConfigsDesyncedProfileId: UUID? {
         get {
             UserDefaults.standard.string(forKey: UDKey.profileConfigsDesyncedProfileId)
@@ -6422,21 +6364,10 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Pose ou lève la marque de désynchronisation. `entering` est
-    /// l'identifiant du profil qui devient actif — `nil` quand on ne fait que
-    /// quitter le profil courant, sans en prendre un autre.
-    ///
-    /// Jeu ouvert : la capture du sortant (et, pour une vraie bascule, la
-    /// restauration de l'entrant, plus tard dans le completion) sont
-    /// sautées, chacune se gardant elle-même. Un `entering` connu est marqué
-    /// désynchronisé, pour que la prochaine capture le concernant refuse
-    /// d'attribuer à son magasin un disque qui n'est pas le sien. Sans
-    /// `entering` (on ne fait que quitter), il n'y a personne à marquer — la
-    /// marque existante, si elle porte sur un autre profil, n'a pas à
-    /// bouger.
-    ///
-    /// Jeu fermé : la bascule tient sa promesse normalement, la marque n'a
-    /// plus lieu d'être.
+    /// Pose ou lève la marque de désynchronisation ; `entering` = profil qui
+    /// devient actif (`nil` si on ne fait que quitter). Jeu ouvert : capture
+    /// et restauration sautées, `entering` marqué pour que la prochaine
+    /// capture refuse ce disque. Jeu fermé : marque levée.
     private func syncProfileConfigsDesyncMarker(entering: UUID?) {
         guard isGameRunning() else {
             Self.profileConfigsDesyncedProfileId = nil
@@ -6447,10 +6378,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les mods marqués, présents dans le parc courant, avec leur chemin de
-    /// config sur disque. Le nom **physique** est employé pour le chemin (un
-    /// mod en pause vit dans un dossier préfixé par un point) et le nom
-    /// **logique** comme clé du magasin.
+    /// Mods marqués présents, avec chemin **physique** et clé **logique**.
     private func managedConfigTargets() -> [(key: String, url: URL)] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         return mods
@@ -6461,18 +6389,12 @@ final class StarHubTHViewModel {
                                                       physicalFolderName: $0.physicalFolderName)) }
     }
 
-    /// Mémorise le `config.json` de chaque mod marqué au crédit de ce profil.
-    ///
-    /// **N'appeler que sur une transition réelle de profil** (§6.3 de la
-    /// spec) : jamais à la reprise d'une application incomplète, jamais dans
-    /// `syncActiveProfileIds`. À la reprise, le disque porte déjà les réglages
-    /// du profil *entrant* ; les capturer au crédit du sortant écraserait son
-    /// config dans le geste même censé rattraper une erreur.
+    /// Mémorise le `config.json` de chaque mod marqué pour ce profil.
+    /// **Seulement sur une vraie transition** (§6.3), jamais à la reprise ni
+    /// dans `syncActiveProfileIds` : sinon on écrase le sortant avec l'entrant.
     func captureProfileConfigs(for profileId: UUID) {
-        // Les trois abstentions — jeu ouvert, profil désynchronisé (§6.3),
-        // application interrompue (R2) — vivent dans `ProfileConfigCapture`
-        // (Core, 14 tests). Elles partagent une règle : laisser le trou
-        // visible plutôt que maquiller une donnée fausse.
+        // Trois abstentions (jeu ouvert, désynchronisé, R2) dans
+        // `ProfileConfigCapture` (Core) : trou visible plutôt que donnée fausse.
         if let abstention = ProfileConfigCapture.abstention(
             capturing: profileId, profiles: modProfiles,
             gameRunning: isGameRunning(),
@@ -6495,37 +6417,25 @@ final class StarHubTHViewModel {
         let before = entries
         let now = Date()
         for target in managedConfigTargets() {
-            // Le texte, lu depuis le disque et non depuis un cache de scan :
-            // c'est l'état réel du fichier au moment de la bascule qui compte.
+            // Lu depuis le disque : l'état réel au moment de la bascule.
             let text = try? String(contentsOf: target.url, encoding: .utf8)
             entries = ProfileConfigStore.captured(entries, folderName: target.key,
                                                   diskText: text, now: now)
         }
         guard entries != before else { return }
         ProfileConfigStore.save(entries, to: url)
-        // Ce que cette passe a changé, pas le total du magasin : « 12 configs
-        // mémorisés » quand un seul a bougé donnerait une fausse idée de ce
-        // que la bascule vient de faire. Symétrique du compte de restauration.
+        // Ce que cette passe a changé, pas le total.
         let touched = ProfileConfigCapture.touchedCount(before: before, after: entries)
         let name = profilesStore.profile(with: profileId)?.name ?? ""
         log(String(format: localization.L(L10n.VM.profileConfigsCaptured), name, touched))
     }
 
-    /// Réécrit dans chaque mod marqué le `config.json` que ce profil avait
-    /// mémorisé. Un mod sans texte mémorisé n'est **pas touché** — c'est la
-    /// règle du premier passage : le profil entrant adoptera le fichier tel
-    /// quel à la capture suivante.
-    ///
-    /// Rejouable sans dommage à la reprise d'une application incomplète :
-    /// réécrire le même texte est idempotent, contrairement à la capture.
+    /// Réécrit le `config.json` mémorisé de chaque mod marqué ; sans texte,
+    /// **pas touché** (adopté à la capture suivante). Idempotent, rejouable.
     func restoreProfileConfigs(for profileId: UUID) {
         guard !isGameRunning() else {
             log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
-            // R2 (spec §3.5) : le disque ne portera pas les configs de ce
-            // profil — c'est la définition même du desync (doc de
-            // `profileConfigsDesyncedProfileId`). Sans marqueur, le trou
-            // restait invisible jusqu'à ce qu'une capture future maquille le
-            // disque en donnée du profil actif.
+            // R2 (spec §3.5) : desync marqué, sinon trou invisible.
             Self.profileConfigsDesyncedProfileId = profileId
             return
         }
@@ -6537,25 +6447,17 @@ final class StarHubTHViewModel {
         var reintroducedKeys = 0
         for target in managedConfigTargets() {
             guard let entry = entries[target.key] else { continue }
-            // Le dossier a pu disparaître entre-temps : ne rien écrire, et
-            // garder l'entrée — réinstaller le mod doit lui rendre ses
-            // réglages.
+            // Dossier disparu : rien écrit, entrée gardée.
             let modRoot = target.url.deletingLastPathComponent().path
             guard FileManager.default.fileExists(atPath: modRoot) else { continue }
-            // Le merge d'abord (spec §5.3) : le fichier sur disque peut avoir
-            // gagné des clés depuis la mémorisation — le mod a été mis à jour.
-            // Le verbatim les écrasait ; le merge les garde et réapplique les
-            // réglages du profil par-dessus. Tout ce qui ne se parse pas
-            // retombe sur le verbatim, qui reste le comportement de base.
+            // Merge d'abord (spec §5.3) : garde les clés gagnées par une mise à jour
+            // du mod ; illisible = verbatim.
             let diskText = try? String(contentsOf: target.url, encoding: .utf8)
             let result = diskText.flatMap {
                 ConfigJSONMerge.mergedText(disk: $0, memorized: entry.text)
             }
             do {
-                // Le dossier du mod est souvent en lecture seule — même remède
-                // que `recoverFile` : cette écriture rejoue à chaque bascule de
-                // profil, pour chaque mod marqué, bien plus souvent que le
-                // bouton « Repartir des réglages par défaut ».
+                // Lecture seule fréquente (même remède que `recoverFile`).
                 try RecoveredFileWriter.withWriteAccess(to: target.url.path, modRoot: modRoot) {
                     try (result?.text ?? entry.text)
                         .write(to: target.url, atomically: true, encoding: .utf8)
@@ -6572,15 +6474,11 @@ final class StarHubTHViewModel {
             }
         }
         guard verbatim + merged > 0 else { return }
-        // Des `config.json` viennent d'être réécrits : le rapport de
-        // raccourcis les lit, il est périmé (X66). Deux profils peuvent
-        // n'avoir *que* leurs configurations de différent — le parc ne bouge
-        // alors pas, et la signature de `scanIfNeeded` ne verrait rien.
+        // Configs réécrits : rapport de raccourcis périmé (X66), même parc
+        // inchangé.
         rescanKeybindsAfterConfigWrite()
         let name = profilesStore.profile(with: profileId)?.name ?? ""
-        // Deux comptes plutôt qu'un : « restaurés » masquerait qu'une partie
-        // l'a été sans merge, faute d'un texte lisible — la seule information
-        // qui distingue une restauration fidèle d'un repli.
+        // Deux comptes : restauration fidèle (merge) contre repli.
         if merged > 0 {
             log(String(format: localization.L(L10n.VM.profileConfigsMerged), name,
                        Int64(verbatim), Int64(merged), Int64(reintroducedKeys)))
@@ -6591,24 +6489,20 @@ final class StarHubTHViewModel {
 
     // MARK: - R2 : reprise d'une application interrompue
 
-    /// À appeler une fois la fenêtre principale révélée — le point établi
-    /// qui délivre aussi les liens `nxm://` en attente. Idempotent : ne
-    /// re-présente pas un dialogue déjà là.
+    /// Après révélation de la fenêtre (point des liens `nxm://`) ;
+    /// idempotent.
     func surfaceApplyRecoveryIfNeeded() {
         guard pendingApplyRecovery == nil else { return }
         pendingApplyRecovery = unresolvedApplyJournal
     }
 
-    /// Fermer le dialogue sans trancher : le journal reste, l'alerte reviendra
-    /// au prochain lancement, l'adoption demeure bloquée en attendant.
+    /// Fermer sans trancher : le journal reste, l'alerte revient.
     func dismissApplyRecovery() {
         pendingApplyRecovery = nil
     }
 
-    /// Trancher une interruption **sans la reprendre** : l'utilisateur vient
-    /// de faire un choix explicite sur ce profil (quitter, activer un autre,
-    /// « Garder l'état actuel ») — le disque reste tel quel, le journal part,
-    /// le choix est journalisé.
+    /// Trancher **sans reprendre** (choix explicite) : disque intact, journal
+    /// effacé, choix journalisé.
     func clearUnresolvedJournal(implicitKeepNamed name: String) {
         ProfileApplyJournalStore.clear(in: applyJournalDirectory)
         unresolvedApplyJournal = nil
@@ -6616,9 +6510,7 @@ final class StarHubTHViewModel {
         log(String(format: self.localization.L(L10n.VM.profileRecoveryImplicitKeep), name), level: .warning)
     }
 
-    /// Le texte du dialogue : profil, date, et le cas échéant la mention
-    /// d'un profil supprimé (« Reprendre » n'a alors plus de sens — le
-    /// dialogue n'offre que d'effacer le signalement).
+    /// Texte du dialogue : profil, date, mention d'un profil supprimé.
     var applyRecoveryDialogText: String? {
         guard let journal = unresolvedApplyJournal else { return nil }
         var text = String(format: self.localization.L(L10n.VM.profileRecoveryMessage),
@@ -6635,19 +6527,13 @@ final class StarHubTHViewModel {
         return modProfiles.contains { $0.id == journal.profileId }
     }
 
-    /// « Reprendre l'application ». Même branche que le re-clic de reprise,
-    /// à une différence près : le completion que le crash a avalé portait
-    /// aussi la **restauration** des configs du profil entrant (la capture,
-    /// elle, avait déjà couru à l'entrée d'`applyProfile`, avant le
-    /// dispatch). Reprendre sans restaurer laisserait sur disque les configs
-    /// du profil sortant sans aucun marqueur.
+    /// « Reprendre l'application » avec la **restauration** des configs de
+    /// l'entrant que le crash a avalée (la capture avait déjà couru).
     func resumeInterruptedApply() {
         let journal = pendingApplyRecovery ?? unresolvedApplyJournal
-        // Le dialogue se ferme dès qu'un geste est fait, y compris sur un
-        // refus : c'est l'alerte qui reprendra la main au prochain lancement.
+        // Dialogue fermé dès un geste, même refusé.
         if journal != nil { pendingApplyRecovery = nil }
-        // Les quatre gardes vivent dans `ProfileRecovery` (Core, 11 tests),
-        // `isGameRunning()` en closure paresseuse comme pour l'activation.
+        // Gardes dans `ProfileRecovery` (Core, 11 tests).
         switch ProfileRecovery.resume(journal: journal, profiles: modProfiles,
                                       isApplying: isApplyingProfile,
                                       gameRunning: { self.isGameRunning() }) {
@@ -6671,8 +6557,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// « Garder l'état actuel » — l'adoption explicite de l'état du disque,
-    /// celle que `syncActiveProfileIds` refuse tant que le journal vit.
+    /// « Garder l'état actuel » : adoption explicite du disque.
     func keepCurrentDiskState() {
         let journal = pendingApplyRecovery ?? unresolvedApplyJournal
         guard case .settle(let name, let adopting) = ProfileRecovery.keepDiskState(
@@ -6682,14 +6567,9 @@ final class StarHubTHViewModel {
         if adopting { syncActiveProfileIds() }
     }
 
-    /// Le garde des entrées qui **appliquent un profil au disque**.
-    ///
-    /// Deux refus, chacun avec son message : le jeu ouvert (une application
-    /// déplace des centaines de dossiers d'un coup — la bissection refuse
-    /// pour la même raison), et le journal d'interruption du profil lui-même
-    /// (éditer un profil à moitié appliqué, c'est appliquer un état neuf sur
-    /// un accident). Permissif et silencieux quand l'appelant ne déclenchera
-    /// de toute façon pas de déplacement (profil non actif, non journalisé).
+    /// Garde des entrées qui **appliquent un profil au disque** : refus jeu
+    /// ouvert, et refus si le profil a un journal d'interruption. Permissif
+    /// sans déplacement prévu.
     private func guardProfileApply(for profileId: UUID, name: String) -> Bool {
         guard activeProfileId == profileId || unresolvedApplyJournal?.profileId == profileId else {
             return true
@@ -6710,14 +6590,9 @@ final class StarHubTHViewModel {
     }
 
     func applyProfile(id: UUID?, fingerprintChecked: Bool = false) {
-        // L'aiguillage — six branches, dont trois qui ne se rencontrent
-        // qu'après un crash ou une application partielle — vit dans
-        // `ProfileActivation` (Core, 16 tests). Ici ne restent que les effets.
-        //
-        // ⚠️ `isGameRunning()` est passé **en closure** : il informe au
-        // passage le garde anti double-lancement, et le consulter pour un
-        // départ ou un refus déplacerait ce garde sans qu'aucune activation
-        // soit en jeu. Un test épingle cette paresse.
+        // Aiguillage dans `ProfileActivation` (Core, 16 tests).
+        // ⚠️ `isGameRunning()` **en closure** : il informe le garde anti
+        // double-lancement ; un test épingle cette paresse.
         let decision = ProfileActivation.decide(requested: id, profiles: modProfiles,
                                                 active: activeProfileId,
                                                 isApplying: isApplyingProfile,
@@ -6755,8 +6630,7 @@ final class StarHubTHViewModel {
 
         case .activate(let profileId, let capturing, let clearingJournalNamed):
             guard let profile = profilesStore.profile(with: profileId) else { return }
-            // A1-T9 — chiffrer ce que le profil met en pause avant tout effet
-            // (verrou posé pendant le scan) ; la reprise redécide.
+            // A1-T9 — chiffrer les mises en pause avant tout effet.
             let pausedIDs = ProfileApplyPlan.pausedModIDs(applying: profile, to: mods)
             if !fingerprintChecked, !pausedIDs.isEmpty {
                 guard !saveFingerprintPauseStore.isBusy else { return }
@@ -6767,8 +6641,7 @@ final class StarHubTHViewModel {
                         self?.applyProfile(id: id, fingerprintChecked: true) },
                     abort: { [weak self] in self?.profilesStore.setApplying(false) })
             }
-            // Capture AVANT tout : le disque porte encore les réglages du
-            // profil sortant. C'est la seule fenêtre où ils existent.
+            // Capture AVANT tout : seule fenêtre où les réglages du sortant existent.
             if let capturing { captureProfileConfigs(for: capturing) }
             if let clearingJournalNamed {
                 clearUnresolvedJournal(implicitKeepNamed: clearingJournalNamed)
@@ -6777,9 +6650,7 @@ final class StarHubTHViewModel {
             profilesStore.setActiveProfile(profileId)
             saveProfiles()
             profilesStore.setApplyingId(profileId)
-            // Restauration dans le completion : après les déplacements de
-            // dossiers et après le rescane, quand les chemins sont ceux du
-            // profil entrant.
+            // Restauration après déplacements et rescan.
             applyProfileToFilesystem(profile: profile) { [weak self] _ in
                 self?.restoreProfileConfigs(for: profileId)
             }
@@ -6787,83 +6658,48 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Actually move mod files to match the given profile's enabledModIds.
-    ///
-    /// Unlike `toggleMod`, the previous implementation swallowed every
-    /// filesystem error with `try?`, so a partial failure (e.g. one mod
-    /// folder locked by another process, a permission issue, a stale
-    /// destination) left the Mods/ layout in an inconsistent
-    /// state with no signal to the user. This version captures each move
-    /// error, logs it, and surfaces a user-visible alert summarizing how
-    /// many mods could not be relocated — while still rescanning so the UI
-    /// reflects the actual on-disk state (whatever it is).
-    ///
-    /// - Parameter completion: appelé après le rescane, avec le **nombre de
-    ///   dossiers qui n'ont pas pu être déplacés** (0 = application complète).
-    ///   Sans cette information, un appelant ne peut pas distinguer un succès
-    ///   d'une application partielle — et la bissection y jetterait l'instantané
-    ///   qui aurait permis de rattraper une modlist restée à moitié en pause.
+    /// Move mod folders to match the profile. Every move error is captured,
+    /// logged and summarized in an alert, and the rescan still runs.
+    /// - Parameter completion: après le rescan, avec le **nombre d'échecs**
+    ///   (0 = complet) ; la bissection en dépend.
     private func applyProfileToFilesystem(profile: ModProfile,
                                           journaling: Bool = true,
                                           completion: ((_ moveFailures: Int) -> Void)? = nil) {
-        // Mark an application in progress so `applyProfile` refuses to start a
-        // second one and the UI disables the Activate/Manage buttons until the
-        // move + rescan below completes.
+        // Application in progress: blocks a second one and the buttons.
         profilesStore.setApplying(true)
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        // Detect profile entries that don't match any installed mod. These
-        // are silently skipped by the move loops below, but the user must be
-        // told the profile references mods that aren't there (e.g. uninstalled
-        // since the profile was saved). Compare every profile enabledId
-        // against the set of uniqueIds present on disk (groups resolved to
-        // their children's ids), so a pack mod isn't reported missing when
-        // one of its children satisfies the id.
+        // Profile entries not installed (packs resolved to children) are
+        // skipped by the moves but reported to the user.
         let snapshotMods = mods
-        // Même calcul que l'écran des mods manquants : une seule définition de
-        // « le profil réclame un mod qui n'est plus là », sinon l'alerte de fin
-        // d'application et l'écran finissent par ne plus dire la même chose.
+        // Même définition que l'écran des mods manquants.
         let missingIds = ProfileDiagnostics.missingMods(in: profile,
                                                         installedUniqueIds: snapshotMods.allUniqueIds,
                                                         backupNames: [:],
                                                         nexusHints: [:]).map(\.uniqueId)
 
-        // Le plan des renommages est arrêté **ici**, sur l'instantané, et pas
-        // relu dans la boucle : les déplacements tournent en tâche de fond, et
-        // `mods` est réécrit par `scanMods` — le parcourir de là serait lire un
-        // tableau en cours de mutation. La règle elle-même (qui bouge, qui
-        // reste, dans quel ordre) vit dans `ProfileApplyPlan`, où elle est
-        // testable — ici elle n'aurait aucun test possible.
+        // Plan arrêté **ici** sur l'instantané (`mods` est réécrit par le
+        // scan) ; règle testée dans `ProfileApplyPlan`.
         let moves = ProfileApplyPlan.moves(applying: profile, to: snapshotMods)
 
         let profileName = profile.name
         let profileId = profile.id
 
-        // R2 : le journal dit « cette boucle existe » à tout lancement futur.
-        // Écrit avant le moindre déplacement, effacé dans le completion — sa
-        // présence ne signifie qu'une chose : la boucle est morte en route.
-        // La bissection passe `journaling: false` : profil éphémère, et son
-        // propre BisectionSnapshotStore couvre ses interruptions.
+        // R2 : journal écrit avant le premier déplacement, effacé au completion ;
+        // présent = boucle morte en route. Bissection : `journaling: false`.
         if journaling {
             let journal = ProfileApplyJournal(profileId: profileId,
                                               profileName: profileName,
                                               startedAt: Date(),
                                               moves: moves)
-            // Une écriture échouée (disque plein, droits refusés) prive le
-            // prochain lancement du filet de reprise après crash : la boucle
-            // mourrait en route, le journal n'existerait pas, et l'app ne
-            // proposerait pas de récupérer. On logue et on continue — la
-            // session courante reste correcte, c'est la **prochaine** qui
-            // perdra la mémoire.
+            // Écriture échouée : journalisée ; la **prochaine** session perd le filet.
             if let err = ProfileApplyJournalStore.save(journal, in: applyJournalDirectory) {
                 log(String(format: localization.L(L10n.VM.profileApplyJournalWriteFailed),
                            profileName, err.localizedDescription), level: .error)
             }
             unresolvedApplyJournal = journal
         }
-        // Le total est connu d'avance : la barre est déterminée dès le premier
-        // dossier. Publié avant le dispatch pour que le voile soit là au
-        // premier rendu, sans clignotement.
+        // Total connu : barre déterminée, publiée avant le dispatch.
         let total = moves.count
         profileApplyProgress = ProfileApplyProgress(done: 0, total: total, phase: .movingFolders)
 
@@ -6904,21 +6740,12 @@ final class StarHubTHViewModel {
                 self.log(String(format: self.localization.L(L10n.VM.applyProfileMissing),
                                profileName, missingIds.count, listing), level: .warning)
             }
-            // Les dossiers sont en place ; ce qui suit est la relecture du
-            // parc. Le voile le dit, sinon la barre reste pleine et figée
-            // pendant tout le rescane.
+            // Phase de relecture du parc annoncée.
             self.profileApplyProgress = ProfileApplyProgress(done: total,
                                                              total: total,
                                                              phase: .rescanning)
-            // Le scan est lourd (parcours du parc, décodage des manifestes,
-            // journal SMAPI — des secondes sur un grand parc) : il tourne
-            // HORS main, comme l'appelaient la file globale d'avant et
-            // `refresh()` (T10). La suspension laisse le voile se rendre ;
-            // la reprise revient sur main, et la suite garde l'ordre
-            // d'origine. `scanMods` est `nonisolated` depuis la tranche
-            // d'isolation : le saut par la file globale reste, c'est lui qui
-            // porte le travail lourd hors main — et le dossier de jeu se
-            // résout ici, sur l'acteur, pour ne pas se lire au fond.
+            // Scan lourd HORS main (T10) ; reprise sur main dans l'ordre d'origine.
+            // Dossier de jeu résolu ici, sur l'acteur.
             let resolvedGameDir = gameDir
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -6954,18 +6781,15 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Builds the user-facing alert message for a profile application that
-    /// had problems (move failures and/or missing mods). Names the affected
-    /// mods so the user can act on them; caps the lists to keep the alert
-    /// readable, with a "+N more" suffix when truncated.
+    /// Alert text for a problematic profile application, naming mods (lists
+    /// capped with "+N more").
     private func profileApplyMessage(profileName: String, failedNames: [String],
                                      missingIds: [String], attempted: Int,
                                      failureCount: Int) -> String {
         let listLimit = 8
         var sections: [String] = []
 
-        // Move failures — lead with the headline (full-failure vs partial),
-        // then enumerate the mod names.
+        // Move failures: headline, then names.
         if !failedNames.isEmpty {
             let headline: String
             if attempted == failureCount {
@@ -6991,39 +6815,21 @@ final class StarHubTHViewModel {
         return sections.joined(separator: "\n\n")
     }
 
-    /// Formats `headline` followed by a newline-separated, truncated list of
-    /// `names`. After `limit` entries, a "+N more" suffix is appended instead
-    /// of dumping the whole list into the alert.
+    /// `headline` + truncated list ("+N more" after `limit`).
     private func truncatedList(headline: String, names: [String], limit: Int) -> String {
         let shown = names.prefix(limit).joined(separator: " • ")
         let extra = names.count > limit ? " (+\(names.count - limit))" : ""
         return headline + "\n" + shown + extra
     }
 
-    /// Renomme un dossier de mod dans `Mods/`, en traitant le cas où la
-    /// destination est déjà occupée.
-    ///
-    /// La règle vivait en **deux exemplaires** (bascule unitaire, bascule en
-    /// masse) et manquait au **troisième** chemin, l'application d'un profil,
-    /// qui se contentait d'échouer avec le message brut du système. Les deux
-    /// exemplaires divergeaient déjà : l'un préfixait d'un point le dossier
-    /// écarté, l'autre non — cf. `ModFolderCollision.asideName`.
-    ///
-    /// Le travail disque vit dans `ModFolderRename.moveReplacingStaleDestination`
-    /// (Core, testé) — P5-T9 l'y a porté avec les deux types d'erreur
-    /// (`FolderToggleRefusal`, `ModFolderRenameFailure`) : une fonction
-    /// fichier ne journalise plus sur place, l'échec d'un rollback raté
-    /// **remonte** dans l'erreur (`ModFolderRenameFailure.rollbackFailed`,
-    /// avec `strandedAt`) et ce sont les trois appelants, qui savent écrire
-    /// au journal, qui le disent. Cette façade reste pour les trois chemins
-    /// de bascule ; elle ne touche à rien d'autre, et ne deviendra que plus
-    /// légère à l'heure du `@MainActor`.
-    ///
-    /// - Throws: `FolderToggleRefusal.folderClaimedByAnotherMod` quand la
-    ///   destination appartient à un **autre** mod (le déplacer lui ferait
-    ///   perdre favori, note, config de profil et identifiant Nexus, sans un
-    ///   mot) ; `ModFolderRenameFailure` pour un déplacement ou un rollback
-    ///   en échec.
+    /// Renomme un dossier dans `Mods/`, destination occupée comprise, pour les
+    /// trois chemins de bascule. Travail disque dans
+    /// `ModFolderRename.moveReplacingStaleDestination` (Core, P5-T9) ; l'échec
+    /// d'un rollback **remonte** (`rollbackFailed`, `strandedAt`) et les
+    /// appelants le journalisent.
+    /// - Throws: `FolderToggleRefusal.folderClaimedByAnotherMod` si la
+    ///   destination est à un **autre** mod ; `ModFolderRenameFailure` pour un
+    ///   déplacement ou rollback en échec.
     nonisolated private func renameModFolder(from srcPath: String, to dstPath: String,
                                  destinationName: String, uniqueId: String,
                                  fm: FileManager) throws {
@@ -7034,37 +6840,21 @@ final class StarHubTHViewModel {
 
     // MARK: - Règle de cadrage de la liste des mods
     //
-    // La règle qui décide quels mods la liste montre — et, depuis X57, ceux
-    // sur lesquels la bascule en masse agit. Elle vivait dans `ModListView` :
-    // « Tout activer » parcourait alors `mods` en entier (949 dossiers sur le
-    // parc de référence), filtré ou non. La liste et la bascule la partagent
-    // désormais au lieu de la recopier — deux pipelines jumeaux divergent à
-    // la première retouche, X45 en compte dix. Formulation de Stardrop
-    // (`c630c11`, 2026-09-01) : « what the user is looking at is what they
-    // act on ». La pagination n'entre pas dans la règle : c'est un artefact
-    // d'affichage, pas une intention — la bascule agit sur tout le résultat
-    // filtré, pas sur la page visible.
+    // Règle des mods montrés — et, depuis X57, de ceux sur lesquels agit la
+    // bascule en masse : « what the user is looking at is what they act on »
+    // (Stardrop). Une seule copie (X45). Pagination exclue : la bascule agit
+    // sur tout le résultat filtré.
 
-    /// Whether `mod` itself satisfies `predicate`, or — for a group — any of
-    /// its children do. Standalone mods just apply the predicate directly.
-    /// The single "does this row match X" test shared by search and the
-    /// issues filter, so the two can't independently drift out of sync (a
-    /// group's own `dependencies`/`uniqueId` are empty, so checking the
-    /// group itself before its children is always safe and often a no-op).
-    /// Façade **provisoire** vers `ModListScoping` : les vues appellent encore
-    /// ces prédicats sur le ViewModel (six sites dans `ModListView`). Elles
-    /// passeront directement au type extrait quand la vue sera découpée (§P8) ;
-    /// d'ici là, la règle n'a qu'une définition, ici comme là-bas.
+    /// `mod` or, for a group, any child satisfies `predicate`; shared by
+    /// search and the issues filter.
+    /// Façade **provisoire** vers `ModListScoping` (six sites dans
+    /// `ModListView`).
     func matchesSelfOrAnyChild(_ mod: ModItem, _ predicate: (ModItem) -> Bool) -> Bool {
         ModListScoping.matchesSelfOrAnyChild(mod, predicate)
     }
 
-    /// La même règle que la pastille d'anomalie. Elle ne l'était pas : le
-    /// cadrage ne regardait que les dépendances quand la pastille couvrait
-    /// aussi les erreurs du journal et les manifestes sans identifiant — un
-    /// mod portant une pastille pouvait manquer à l'onglet censé les réunir.
-    /// Mesuré avant de les réunir : sur les versions installées du parc,
-    /// cela n'ajoute qu'une erreur et cinq avertissements.
+    /// Même règle que la pastille d'anomalie (dépendances, erreurs du journal,
+    /// manifestes sans identifiant).
     func hasIssues(_ mod: ModItem) -> Bool {
         anomaly(for: mod) != nil || nexusPageState(for: mod) != nil
     }
@@ -7094,9 +6884,8 @@ final class StarHubTHViewModel {
         ModListScoping.matchesTranslation(mod, scope, state: translationScopingState)
     }
 
-    /// Les trois magasins de couverture, rassemblés pour le cadrage. Construit à
-    /// chaque appel : ce sont trois copies de références (`Dictionary` et `Set`
-    /// sont à copie sur écriture), pas un parcours.
+    /// Les trois magasins de couverture (copies de références, pas un
+    /// parcours).
     private var translationScopingState: ModListScoping.TranslationState {
         .init(coverage: frenchCoverageByMod, stale: staleTranslationMods,
               outdatedKeys: outdatedKeysByMod)
