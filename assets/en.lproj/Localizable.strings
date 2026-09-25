@@ -627,6 +627,7 @@
 "mods_compat_status_workaround" = "A replacement exists";
 "mods_compatibility_note" = "What the author says about compatibility";
 "mods_more_actions" = "More actions";
+"mods_backups_of_mod" = "Backups of this mod";
 "mods_nexus_page_removed" = "Nexus page removed";
 "mods_nexus_page_removed_hint" = "This mod no longer has a page on Nexus: no more updates, no more downloads.";
 "mods_nexus_page_unavailable" = "Nexus page unavailable";

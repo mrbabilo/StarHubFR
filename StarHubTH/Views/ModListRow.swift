@@ -123,23 +123,10 @@ struct ModListRow: View {
     /// (before `vm.scanStore.mods` catches up).
     private var effectiveEnabled: Bool { localIsOn ?? mod.isEnabled }
 
-    /// Compact metadata strip shown under the category/author/version line:
-    /// languages (FR highlighted), last-update date, install date. Returns nil
-    /// when nothing is known so no empty row is rendered. Uses relative dates
-    /// (short form) to keep the line scannable; full dates live in the detail
-    /// pane.
-    /// Les largeurs des colonnes, à un seul endroit.
-    ///
-    /// **Fixes, et non minimales.** Un `minWidth` laisse la colonne grandir
-    /// avec son contenu : l'auteur, mesuré de 1 à 99 caractères sur le parc
-    /// réel, décalait donc le numéro de version d'une ligne à l'autre — c'est
-    /// justement ce qu'un alignement doit empêcher. Une valeur absente garde
-    /// sa place pour la même raison : ce qui suit ne doit pas remonter.
-    ///
-    /// Sans risque pour le nom du mod : il occupe sa propre ligne au-dessus, et
-    /// ne partage la largeur avec aucune de ces colonnes. Total des deux
-    /// bandes : 340 et 470 points environ, sous la largeur d'une fenêtre même
-    /// étroite.
+    /// Largeurs des colonnes, à un seul endroit. **Fixes, pas minimales** :
+    /// l'auteur (1 à 99 caractères) décalait la version d'une ligne à l'autre ;
+    /// une valeur absente garde sa place. Le nom du mod a sa propre ligne ;
+    /// total ~340 et ~470 pt, sous une fenêtre étroite.
     enum Column {
         static let category: CGFloat = 110
         static let author: CGFloat = 150
@@ -191,21 +178,10 @@ struct ModListRow: View {
         }
     }
 
-    /// Bande compacte sous la ligne catégorie/auteur/version : couverture
-    /// française, dates, poids, puis les langues.
-    ///
-    /// Des créneaux de largeur **minimale**, pour que les mêmes valeurs se
-    /// retrouvent à la même abscisse d'une ligne à l'autre : sur 863 mods,
-    /// comparer deux poids ou deux dates demandait jusqu'ici de les chercher.
-    /// `minWidth` et non `width` — la colonne s'aligne quand la place est là et
-    /// reflue quand la fenêtre se resserre, plutôt que de rogner le nom du mod
-    /// au-dessus.
-    ///
-    /// Chaque valeur garde son créneau même absente : sans quoi ce qui la suit
-    /// remonte d'un cran et la colonne se défait — la moitié du parc n'ayant
-    /// aucune langue déclarée (445 dossiers sur 863), une ligne sur deux
-    /// décalait tout ce qui venait après. Les puces « • » qui séparaient les
-    /// champs n'ont plus lieu d'être : des colonnes n'ont pas de séparateurs.
+    /// Bande compacte sous la ligne catégorie/auteur/version : couverture FR,
+    /// dates, poids, langues, en colonnes (`Column`) pour aligner les valeurs
+    /// sur ~860 mods. Chaque valeur garde son créneau même absente (445 dossiers
+    /// sans langue décalaient tout le reste).
     private var rowMetadataLine: AnyView? {
         let updated = vm.nexusLastUpdated(for: mod)
         // La date **effective** : un en-tête de pack n'a pas de
@@ -901,6 +877,9 @@ struct ModListRow: View {
             }
             Button(localization.L(L10n.Settings.configModSettings)) {
                 vm.navigationStore.setEditingModConfig(mod)
+            }
+            Button(localization.L(L10n.Mods.backupsOfMod)) {
+                vm.navigationStore.openBackups(for: mod.folderName)
             }
             let effectiveLink = vm.nexusLink(for: mod)
             if !effectiveLink.isEmpty {

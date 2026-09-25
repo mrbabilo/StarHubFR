@@ -91,6 +91,18 @@ final class NavigationStore {
     /// `pendingConfigFocus`.
     var pendingLogFocus: String?
 
+    /// I-T5 — « Sauvegardes de ce mod » : le dossier logique dont la page
+    /// Sauvegardes doit s'ouvrir filtrée et dépliée. Consommé par
+    /// `ModInstallBackupsView` à son apparition (patron `pendingLogFocus`).
+    var pendingBackupsFocus: String?
+
+    /// Ouvre les sauvegardes d'installation d'un mod : segment, filtre, onglet.
+    func openBackups(for folderName: String) {
+        backupsSegment = .install
+        pendingBackupsFocus = folderName
+        requestTab(.backups)
+    }
+
     /// « Voir la fiche » depuis la fenêtre de bilan. La fenêtre ne peut
     /// pas lire `currentTab` (`@State` de MainView) — la décision se prend
     /// donc LÀ où vit l'état : MainView consomme ce canal et choisit la

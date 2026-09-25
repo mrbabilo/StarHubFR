@@ -22,8 +22,7 @@ enum L10n {
         static let launchingGame        = "main_launching_game"
         static let launchGame           = "main_launch_game"
         static let launching            = "main_launching"
-        // Granular launch step labels — surfaced in the launch overlay so the
-        // user sees what the app is doing instead of an indeterminate spinner.
+        // Launch step labels shown in the launch overlay.
         static let launchStepInit         = "main_launch_step_init"
         static let launchStepRegistry     = "main_launch_step_registry"
         static let launchStepPreparing    = "main_launch_step_preparing"
@@ -345,6 +344,7 @@ enum L10n {
         static let detailEnabled        = "mods_detail_enabled"
         static let revealInFinder       = "mods_reveal_in_finder"
         static let moreActions          = "mods_more_actions"
+        static let backupsOfMod         = "mods_backups_of_mod"
         static let pagerPrevious        = "mods_pager_previous"
         static let pagerNext            = "mods_pager_next"
         static let pagerUnavailable     = "mods_pager_unavailable"

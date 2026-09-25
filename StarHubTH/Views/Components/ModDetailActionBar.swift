@@ -77,6 +77,10 @@ struct ModDetailActionBar: View {
                 Button(action: revealInFinder) {
                     Label(localization.L(L10n.Mods.revealInFinder), systemImage: "folder")
                 }
+                // I-T5 : revenir à une version d'avant, depuis le mod lui-même.
+                Button { vm.navigationStore.openBackups(for: live.folderName) } label: {
+                    Label(localization.L(L10n.Mods.backupsOfMod), systemImage: "clock.arrow.circlepath")
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }

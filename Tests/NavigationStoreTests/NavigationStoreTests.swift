@@ -56,6 +56,17 @@ import Foundation
         #expect(s.pendingTabRequest == nil)
     }
 
+    /// I-T5 : le saut vers les sauvegardes d'un mod pose les trois états
+    /// d'un coup — sans le segment, il atterrirait sur « Configurations ».
+    @Test func openBackupsPoseSegmentFiltreEtOnglet() {
+        let s = NavigationStore()
+        s.backupsSegment = .config
+        s.openBackups(for: "Pack/Composant")
+        #expect(s.backupsSegment == .install)
+        #expect(s.pendingBackupsFocus == "Pack/Composant")
+        #expect(s.pendingTabRequest == .backups)
+    }
+
     /// Les deux canaux sont **distincts** : poser l'un ne déborde pas sur
     /// l'autre — une requête d'onglet qui atterrirait dans le canal du bilan
     /// (ou l'inverse) ferait ouvrir une fiche au retour d'un bilan.

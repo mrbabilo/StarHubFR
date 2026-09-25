@@ -1,12 +1,8 @@
 import SwiftUI
 
-/// Les trois confirmations de la vue passent par **un seul** modificateur
-/// `.alert`, porté par cette valeur — patron `SaveEditorConfirmation`
-/// (`SavesView.swift`) : deux présentateurs sur la même vue ne se
-/// présentent pas tous les deux (mesuré le 2026-09-02, dans les deux sens).
-/// Le compte rendu de restauration n'y figure plus : c'est désormais un
-/// panneau sous la liste (`restoreReport`), pas une alerte — une alerte ne
-/// peut pas porter un tableau.
+/// Un **seul** `.alert` pour les trois confirmations (patron
+/// `SaveEditorConfirmation` : deux présentateurs ne se présentent pas tous
+/// les deux). Le compte rendu de restauration est un panneau, pas une alerte.
 private enum ModInstallBackupsConfirmation {
     case error(String)
     case restore(ModInstallBackup)
@@ -22,18 +18,12 @@ struct ModInstallBackupsView: View {
     @ObservedObject var localization: LocalizationStore
     @State private var backups: [ModInstallBackup] = []
     @State private var confirmation: ModInstallBackupsConfirmation?
-    /// Le compte rendu de la dernière restauration — ce qui a été écrit, où,
-    /// et ce qu'il est advenu de la version remplacée. La vue ne fait que le
-    /// rendre : tout y est calculé par `ModInstallBackupManager` (B4-T2).
-    /// Rendu en panneau sous la liste (T9 H-T6), pas dans une alerte.
+    /// Compte rendu de la dernière restauration, calculé par
+    /// `ModInstallBackupManager` (B4-T2), rendu en panneau (H-T6).
     @State private var restoreReport: ModInstallRestoreReport?
-    /// Guards against a rapid double-click dispatching two concurrent
-    /// restore/delete operations on the same backup. Carries the id of the
-    /// backup currently in flight so the matching row can show a spinner.
+    /// Backup in flight (double-click guard, row spinner).
     @State private var busyBackupId: UUID? = nil
-    /// Recherche, tri et dépliage : ce que la page doit à un parc où l'on
-    /// mesure 1 494 sauvegardes pour 145 mods. La liste plate d'avant ne
-    /// permettait pas d'en retrouver une.
+    /// Recherche, tri, dépliage : 1 494 sauvegardes pour 145 mods.
     @State private var search = ""
     @State private var sort: BackupBrowser.Sort = .mostRecent
     @State private var expandedGroups: Set<String> = []
@@ -89,9 +79,7 @@ struct ModInstallBackupsView: View {
                 backupList
             }
 
-            // Le compte rendu de la dernière restauration : un panneau fixe
-            // sous la liste, pas une alerte — sept champs ne tiennent pas
-            // dans un paragraphe (T9 H-T6).
+            // Panneau fixe, pas une alerte : sept champs (H-T6).
             if let report = restoreReport {
                 Divider()
                 restoreReportPanel(report)
@@ -99,8 +87,7 @@ struct ModInstallBackupsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            // Opportunistically prune expired backups before showing the
-            // list, so what the user sees reflects the retention policy.
+            // Prune expired backups before listing.
             DispatchQueue.global(qos: .utility).async {
                 _ = backupManager.cleanupOldBackups()
                 DispatchQueue.main.async {
@@ -108,6 +95,9 @@ struct ModInstallBackupsView: View {
                 }
             }
         }
+        // I-T5 : la demande peut précéder la vue (changement d'onglet).
+        .onAppear { consumePendingBackupsFocus() }
+        .onChange(of: vm.navigationStore.pendingBackupsFocus) { _, _ in consumePendingBackupsFocus() }
         // Un seul présentateur pour les trois confirmations restantes — voir
         // `ModInstallBackupsConfirmation`. `presenting:` porte la valeur ;
         // les actions lisent `pending`, jamais `confirmation` (déjà remis à
@@ -223,11 +213,17 @@ struct ModInstallBackupsView: View {
         .padding(40)
     }
 
-    /// Les groupes affichés, recalculés à chaque frappe. Le coût est un tri
-    /// sur quelques milliers d'entrées — négligeable devant la lecture disque
-    /// qui les a chargées.
+    /// Groupes recalculés à chaque frappe (tri négligeable).
     private var groups: [BackupBrowser.ModGroup] {
         BackupBrowser.groups(from: backups, search: search, sort: sort)
+    }
+
+    /// « Sauvegardes de ce mod » (I-T5) : filtre et déplie ce mod, une fois.
+    private func consumePendingBackupsFocus() {
+        guard let folder = vm.navigationStore.pendingBackupsFocus else { return }
+        search = folder
+        expandedGroups.insert(folder)
+        vm.navigationStore.pendingBackupsFocus = nil
     }
 
     private var searchAndSortBar: some View {
