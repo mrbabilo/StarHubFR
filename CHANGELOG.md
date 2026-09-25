@@ -21,6 +21,7 @@ where the exact log format was verified.
 - **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
 - **L'en-tête de la gestion des mods tient en fenêtre étroite.** Les filtres débordaient, « Installer » était coupé et le poids s'écrivait à la verticale ; les rangées passent sur deux lignes quand il le faut.
 - **Les lignes de mods ne sont plus coupées en fenêtre étroite.** Leurs informations passent à la ligne, colonnes alignées, au lieu de déborder des deux côtés ; une catégorie longue ne fait plus déborder les filtres.
+- **Les boutons de la Quarantaine et les liens Nexus de la fiche restent lisibles en fenêtre étroite** : ils passent en icônes avec infobulle au lieu d'être coupés.
 
 ## [1.49.0] - 2026-09-25
 

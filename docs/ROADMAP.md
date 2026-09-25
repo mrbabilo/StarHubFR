@@ -940,13 +940,13 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       fiche, Quarantaine, Entretien. Largeur minimale réglée sur l'accueil
       (tuiles), la liste (en-tête adaptatif, `WrapHStack` pour les lignes
       et les filtres, vérifié à l'écran) et la ligne des versions des
-      Mises à jour. **Reste** : mesurer la largeur minimale sur la fiche,
-      la Quarantaine et l'Entretien ; trancher les couleurs laissées
+      Mises à jour. Fiche et Quarantaine passées en `AdaptiveLabels`,
+      Entretien mesuré sans défaut (`7ca96f9e`). **Reste** : trancher les
+      couleurs laissées
       littérales faute de sens clair — gravité des anomalies (orange/jaune,
       deux copies : `ModListView`, `ModListRow`), « nouvelle version » en
       vert et « mise à jour disponible » en orange (la charte dit info),
-      voile rouge des dépendances, étoile des favoris ; retirer
-      `role: .destructive` d'« effacer le filtre de catégorie ». Critère ajouté le
+      voile rouge des dépendances, étoile des favoris. Critère ajouté le
       2026-09-25 : à la fenêtre minimale, chaque rangée
       de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
       `AGENTS.md` §6) — déjà fait pour la barre d'actions et le bandeau de
