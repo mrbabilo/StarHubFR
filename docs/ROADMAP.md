@@ -912,9 +912,6 @@ Cadrage volontairement léger ici : la spec SDD complète se fera à son tour,
 sur les composants réels. Les tâches ci-dessous sont des hypothèses de
 travail, pas des engagements.
 
-- [ ] **I-T5** — Audit de navigation : chemins cliqués mesurés avant/après sur
-      des tâches représentatives (mettre à jour un mod, restaurer un backup,
-      changer de profil). · **S**
 
 **Audit UX du 2026-09-24** (skill `audit-ux`, rapport local
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de

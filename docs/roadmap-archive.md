@@ -4728,6 +4728,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       ligne, 0 écart. À regarder aux grands crans : cadres fixes de
       `SaveEditorView`, `SaveTimelineView`, `ModDetailView`,
       `KeybindOverviewGroup`, `AccountHeaderCard`.
+- [x] **I-T5** ✅ *(livré le 2026-09-25, vérification à l'écran due par
+      l'auteur)* — **Audit de navigation.** Relevé statique avant/après sur
+      trois tâches. Mettre à jour un mod : 4 clics, désormais faisable au
+      clavier (Entrée par défaut sur « Installer » et le bilan). Restaurer
+      une sauvegarde d'installation : 3 clics + saisie du nom → 3 clics
+      depuis la ligne ou la fiche du mod (« Sauvegardes de ce mod »,
+      `NavigationStore.openBackups`). Changer de profil : ⌘6 + « Activer »,
+      ou ⌘K + nom + Entrée (la palette active, id par UUID). Sauvegarde de
+      partie : 4 clics, inchangé. Écartés : raccourci ⌘ pour Sauvegardes
+      (chiffres pris), menu de profils sur la carte de compte.
 
 - [x] **Hors ROADMAP** *(livré le 2026-09-25, à la demande de l'auteur)* :
       écran des raccourcis clavier (icône du pied de barre, ⌘/ au menu Aide ;

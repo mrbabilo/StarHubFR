@@ -14,6 +14,9 @@ where the exact log format was verified.
 
 ### Added
 
+- **« Sauvegardes de ce mod ».** Clic droit sur un mod, ou « … » sur sa fiche : ses sauvegardes d'installation s'ouvrent, filtrées et dépliées, pour revenir à une version d'avant.
+- **⌘K active un profil.** Entrée sur un profil de la palette l'active, avec les mêmes vérifications que le bouton « Activer ».
+- **Entrée valide l'installation** d'une archive, puis referme le bilan.
 - **Diagnostic : les mods jugés cassés par smapi.io ont leurs actions** — ouvrir la fiche, suivre le lien proposé (version non officielle, remplaçant), voir leurs lignes du journal.
 - **Taille du texte réglable** (Réglages › Affichage : Normale, Grande, Très grande). L'app suit aussi « Réduire les animations » et « Augmenter le contraste » de macOS.
 - **Écran des raccourcis clavier.** Icône clavier au pied de la barre latérale, ou ⌘/ (menu Aide) : tous les raccourcis de l'app, groupés, touches en pastilles.
