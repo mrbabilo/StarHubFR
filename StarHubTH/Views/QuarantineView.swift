@@ -18,11 +18,11 @@ struct QuarantineView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                     Text(localization.L(L10n.Quarantine.title))
                         .font(.system(size: 20, weight: .bold))
                     Text(localization.L(L10n.Quarantine.subtitle))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                         .foregroundColor(AppDesign.Color.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -37,15 +37,15 @@ struct QuarantineView: View {
                     // vide, plutôt qu'un blanc entre le sous-titre et les
                     // boutons.
                     Text(localization.L(L10n.Quarantine.noQuarantine))
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                         .foregroundColor(AppDesign.Color.secondary)
                 }
 
                 // Actions
-                HStack(spacing: 12) {
+                HStack(spacing: AppDesign.Spacing.md) {
                     Button(action: { vm.refresh() }) {
                         Label(localization.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                     }
                     .buttonStyle(.bordered)
                     // `refresh()` est le « rafraîchissement manuel » établi —
@@ -60,7 +60,7 @@ struct QuarantineView: View {
 
                     Button(action: openQuarantineFolder) {
                         Label(localization.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppDesign.Color.info)
@@ -68,7 +68,7 @@ struct QuarantineView: View {
 
                     Button(role: .destructive, action: { showEmptyConfirmation = true }) {
                         Label(localization.L(L10n.Quarantine.emptyTrash), systemImage: "trash.fill")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                     }
                     .buttonStyle(.bordered)
                     .disabled(quarantineDir == nil)
@@ -76,9 +76,9 @@ struct QuarantineView: View {
 
                 if let result = vm.maintenanceStore.quarantineMessage {
                     Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                         .foregroundColor(result.isError ? AppDesign.Color.error : AppDesign.Color.success)
-                        .padding(12)
+                        .padding(AppDesign.Spacing.md)
                         .background((result.isError ? AppDesign.Color.error : AppDesign.Color.success).opacity(0.08))
                         .cornerRadius(8)
                 }
@@ -210,19 +210,19 @@ private struct RepairReportCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(localization.L(L10n.Quarantine.lastRepair))
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppDesign.Font.rowTitle(.semibold))
                 .foregroundColor(AppDesign.Color.primary)
 
             if report.quarantined.isEmpty && report.duplicates.isEmpty {
                 Text(localization.L(L10n.Quarantine.noQuarantine))
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                     .foregroundColor(AppDesign.Color.secondary)
             } else {
                 Label(
                     String(format: localization.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
                     systemImage: "tray.and.arrow.down.fill"
                 )
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
                 // Constat, pas panne : les éléments listés ici sont déjà
                 // déplacés en lieu sûr. `.purple` distinguait visuellement
                 // ce bloc du bloc doublons (`.orange`) qui, lui, réclame une
@@ -238,28 +238,28 @@ private struct RepairReportCard: View {
                 // tâche). `id: \.offset` ferait fuiter l'@State d'une ligne
                 // vers une autre au prochain scan (piège CLAUDE.md §SwiftUI).
                 ForEach(Array(report.quarantined.prefix(20).enumerated()), id: \.element.relativePath) { _, item in
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                         Image(systemName: "archivebox.fill")
                             // Pas de `.opacity(0.7)` supplémentaire ici :
                             // `secondary` est déjà une couleur hiérarchique
                             // atténuée (~0.5 alpha) — la multiplier aurait
                             // rendu ce glyphe de 10pt quasi invisible.
                             .foregroundColor(AppDesign.Color.secondary)
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.relativePath)
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(AppDesign.Font.monoCaption)
                                 .foregroundColor(AppDesign.Color.primary)
                             Text(item.reason)
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(AppDesign.Color.secondary)
                         }
                     }
                 }
                 if report.quarantined.count > 20 {
                     Text(String(format: localization.L(L10n.Quarantine.andNMore), Int64(report.quarantined.count - 20)))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.secondary)
                         .italic()
                 }
@@ -270,7 +270,7 @@ private struct RepairReportCard: View {
                     String(format: localization.L(L10n.Quarantine.duplicatesFound), Int64(report.duplicates.count)),
                     systemImage: "exclamationmark.triangle.fill"
                 )
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
                 // Vrai avertissement, à la différence du bloc quarantine
                 // ci-dessus : un doublon d'UniqueID n'est pas auto-résolu,
                 // il attend une décision de l'utilisateur.
@@ -285,24 +285,24 @@ private struct RepairReportCard: View {
                 // rang ajouté au contenu (`DuplicateRow`), jamais le rang
                 // seul (id: \.offset fuiterait l'@State au prochain scan).
                 ForEach(duplicateRows(from: report.duplicates)) { row in
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                         Image(systemName: "doc.on.doc.fill")
                             .foregroundColor(AppDesign.Color.warning.opacity(0.7))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(row.duplicate.uniqueId)
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(AppDesign.Font.monoCaption)
                                 .foregroundColor(AppDesign.Color.primary)
                             Text("\(row.duplicate.enabledFolder)  ⇄  \(row.duplicate.disabledFolder)")
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(AppDesign.Color.secondary)
                         }
                     }
                 }
                 if report.duplicates.count > 20 {
                     Text(String(format: localization.L(L10n.Quarantine.andNMore), Int64(report.duplicates.count - 20)))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.secondary)
                         .italic()
                 }
@@ -316,21 +316,21 @@ private struct RepairReportCard: View {
                     localization.L(L10n.Quarantine.reviewTitle),
                     systemImage: "folder.badge.questionmark"
                 )
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
                 .foregroundColor(AppDesign.Color.primary)
 
                 Text(localization.L(L10n.Quarantine.reviewNote))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(AppDesign.Color.secondary)
 
                 ForEach(report.reviewItems, id: \.relativePath) { item in
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                         Image(systemName: "folder")
                             .foregroundColor(AppDesign.Color.secondary)
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .padding(.top, 2)
                         Text(item.relativePath)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                             .foregroundColor(AppDesign.Color.primary)
                         Spacer()
                         Button(localization.L(L10n.ModInstall.revealInFinder)) {
@@ -340,7 +340,7 @@ private struct RepairReportCard: View {
                             NSWorkspace.shared.activateFileViewerSelecting([full])
                         }
                         .buttonStyle(.link)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                     }
                 }
             }
