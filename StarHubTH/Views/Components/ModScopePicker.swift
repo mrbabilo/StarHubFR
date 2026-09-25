@@ -42,7 +42,7 @@ struct ModScopePicker: View {
                 .font(AppDesign.Font.caption(selected ? .semibold : .regular))
                 .monospacedDigit()
                 .lineLimit(1)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, AppDesign.Spacing.sm)
                 .padding(.vertical, 3)
                 .background(RoundedRectangle(cornerRadius: 5)
                     .fill(selected ? Color.accentColor.opacity(0.22) : .clear))

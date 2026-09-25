@@ -227,7 +227,7 @@ struct ModListView: View {
                                             help: anomalyReasons(anomaly, vm: vm)))
         }
         if let pending = PendingModUpdates.current(vm).pending(for: mod) { attributes.append(CardAttribute( // I-T13
-            id: "update", systemImage: "arrow.up.circle.fill", tint: .blue,
+            id: "update", systemImage: "arrow.up.circle.fill", tint: AppDesign.Color.info,
             help: String(format: localization.L(L10n.Updates.availableVersion), pending.availableVersion))) }
         if let note = vm.modNote(for: mod) {
             attributes.append(CardAttribute(id: "note", systemImage: "note.text", help: note))
@@ -300,7 +300,7 @@ struct ModListView: View {
                     // disparaît : un geste, une place (P3). Filtrage à la
                     // frappe, comme `.searchable` le donnait ; le motif
                     // Découvrir est submit-only et l'aurait régressé.
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
                         Image(systemName: "magnifyingglass")
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
@@ -324,7 +324,7 @@ struct ModListView: View {
                         }
                     }
                     .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, AppDesign.Spacing.xs)
                     .background(Color.primary.opacity(AppDesign.Opacity.light))
                     .cornerRadius(6)
                     .frame(maxWidth: 220)
@@ -416,12 +416,12 @@ struct ModListView: View {
                                     .lineLimit(1)
                             }
                             .foregroundColor(.accentColor)
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, AppDesign.Spacing.sm)
                             .padding(.vertical, 3)
                             .background(Color.accentColor.opacity(0.12))
                             .clipShape(Capsule())
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .pointingHandCursor()
                         .help(localization.L(L10n.Profiles.title))
                         .accessibilityLabel(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))
@@ -429,9 +429,9 @@ struct ModListView: View {
                     }
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 12)
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.top, AppDesign.Spacing.xl)
+            .padding(.bottom, AppDesign.Spacing.md)
             .background(Color(nsColor: .controlBackgroundColor))
 
             Divider()
@@ -516,7 +516,7 @@ struct ModListView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.lg)
             }
 
@@ -526,7 +526,7 @@ struct ModListView: View {
             if !filtered.isEmpty && !display.isEmpty && pages > 1 {
                 Divider()
                 paginationFooter(total: display.count, shown: paged.count, page: page, totalPages: pages)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppDesign.Spacing.xl)
                     .padding(.vertical, 10)
                     .background(Color(nsColor: .controlBackgroundColor))
             }
@@ -615,7 +615,7 @@ struct ModListView: View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal.fill")
                 .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(.green.opacity(0.6))
+                .foregroundColor(AppDesign.Color.success.opacity(0.6))
             Text(localization.L(L10n.Mods.filterIssues))
                 .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
@@ -667,7 +667,7 @@ struct ModListView: View {
                                         .fill(n == page ? Color.accentColor : Color.secondary.opacity(0.08))
                                 )
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .pointingHandCursor()
                     }
                 }
@@ -688,7 +688,7 @@ struct ModListView: View {
                 .font(AppDesign.Font.iconXS)
                 .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
         }
-        .padding(.top, 4)
+        .padding(.top, AppDesign.Spacing.xs)
     }
 
     /// Builds the list of page-number slots to render. Always includes first,

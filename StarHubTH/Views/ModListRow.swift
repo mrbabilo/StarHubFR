@@ -272,7 +272,7 @@ struct ModListRow: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 .pointingHandCursor()
                 .help(note)
                 .popover(isPresented: $showingNote, arrowEdge: .bottom) {
@@ -408,7 +408,7 @@ struct ModListRow: View {
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(on ? .yellow : .secondary.opacity(isHovered ? 0.6 : 0.25))
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .pointingHandCursor()
         .help(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
         .accessibilityLabel(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
@@ -499,7 +499,7 @@ struct ModListRow: View {
                         Button { showingNexusPage = true } label: {
                             NexusPageBadge(state: page.state, L: localization.L)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .pointingHandCursor()
                         .popover(isPresented: $showingNexusPage, arrowEdge: .bottom) {
                             attributePopover(
@@ -514,7 +514,7 @@ struct ModListRow: View {
                         Button { showingAnomaly = true } label: {
                             AnomalyBadge(anomaly: anomaly, vm: vm)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .pointingHandCursor()
                         .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
                             attributePopover(title: localization.L(L10n.Mods.filterIssues),
@@ -548,7 +548,7 @@ struct ModListRow: View {
                 // les mêmes champs, agrégés de ses composants. Deux `HStack`
                 // jumeaux les auraient fait diverger dès la première retouche —
                 // et un pack mal aligné au milieu de la liste se voit.
-                HStack(spacing: 8) {
+                HStack(spacing: AppDesign.Spacing.sm) {
                     // Category badge — only for mods whose category was
                     // fetched from Nexus or manually pinned. Otherwise
                     // fall back to the offline-inferred type tag.
@@ -626,19 +626,19 @@ struct ModListRow: View {
                                     }
                                 }
                             }
-                            .foregroundColor(.red)
+                            .foregroundColor(AppDesign.Color.error)
                         }
                         if !disabledDeps.isEmpty {
                             HStack(spacing: AppDesign.Spacing.xs) {
                                 Image(systemName: "exclamationmark.octagon.fill")
                                 Text(String(format: localization.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppDesign.Color.warning)
                         }
                     }
                     .font(AppDesign.Font.footnote)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, AppDesign.Spacing.sm)
+                    .padding(.vertical, AppDesign.Spacing.xs)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
                             .fill(Color(red: 0.85, green: 0.25, blue: 0.20).opacity(0.08))
@@ -680,7 +680,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(blacklisted ? .secondary : .secondary.opacity(0.6))
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                     .help(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
                     .accessibilityLabel(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
                     .pointingHandCursor()
@@ -696,7 +696,7 @@ struct ModListRow: View {
                         .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 .help(localization.L(L10n.Mods.openFolder))
                 .accessibilityLabel(localization.L(L10n.Mods.openFolder))
                 .accessibilityHint(localization.L(L10n.Mods.openFolderA11yHint))
@@ -715,7 +715,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                     .help(localization.L(L10n.Settings.configModSettings))
                     .accessibilityLabel(localization.L(L10n.Settings.configModSettings))
                     .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
@@ -733,7 +733,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                     .help(localization.L(L10n.Mods.viewOnNexus))
                     .accessibilityLabel(localization.L(L10n.Mods.viewOnNexus))
                     .accessibilityHint(localization.L(L10n.Mods.viewOnNexusA11yHint))
@@ -750,7 +750,7 @@ struct ModListRow: View {
                         .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 .help(localization.L(L10n.Mods.openDetails))
                 .accessibilityLabel(localization.L(L10n.Mods.openDetails))
                 .accessibilityHint(localization.L(L10n.Mods.openDetailsHint))
@@ -776,7 +776,7 @@ struct ModListRow: View {
                                 .font(AppDesign.Font.rowTitle)
                                 .foregroundColor(.secondary)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .disabled(vm.pendingDeleteFolder != nil)
                         .help(localization.L(L10n.Mods.deleteMod))
                         .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
@@ -785,7 +785,7 @@ struct ModListRow: View {
                     }
                 }
             }
-            .padding(.trailing, 8)
+            .padding(.trailing, AppDesign.Spacing.sm)
 
 
             // macOS Native Switch Toggle
@@ -862,8 +862,8 @@ struct ModListRow: View {
                     .opacity(0)
             }
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+            .padding(.vertical, AppDesign.Spacing.xs)
+            .padding(.horizontal, AppDesign.Spacing.sm)
             // Dim the content (not the toggle/accent bar) for disabled mods to
             // create visual hierarchy — active mods draw the eye first.
             .opacity(effectiveEnabled ? 1.0 : 0.72)
@@ -1028,7 +1028,7 @@ private struct ModWeightLabel: View {
             Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
                 .font(AppDesign.Font.iconXS(isHeavy ? .semibold : .regular).monospacedDigit())
         }
-        .foregroundColor(isHeavy ? .orange : .secondary)
+        .foregroundColor(isHeavy ? AppDesign.Color.warning : .secondary)
     }
 }
 

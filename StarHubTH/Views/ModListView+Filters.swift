@@ -119,7 +119,7 @@ extension ModListView {
                         .stroke(filters.configOnly ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
                 )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .help(localization.L(L10n.Mods.configFilterLabel))
         // Sans texte visible, l'infobulle ne suffit pas : VoiceOver n'a plus
         // que ce libellé.
@@ -152,7 +152,7 @@ extension ModListView {
             // sur macOS. Réduite à une étoile grise, elle ne dirait plus rien —
             // elle garde donc son libellé dans ce seul état, celui où elle a
             // justement quelque chose à expliquer.
-            HStack(spacing: 4) {
+            HStack(spacing: AppDesign.Spacing.xs) {
                 Image(systemName: active ? "star.fill" : "star")
                     .font(AppDesign.Font.footnote)
                 if empty {
@@ -176,7 +176,7 @@ extension ModListView {
                     .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .disabled(empty && !active)
         .help(localization.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
         .accessibilityLabel(localization.L(L10n.Mods.filterFavorites))
@@ -202,7 +202,7 @@ extension ModListView {
         return Button {
             listState.filters.blacklistedOnly.toggle()
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: AppDesign.Spacing.xs) {
                 Image(systemName: active ? "xmark.circle.fill" : "xmark.circle")
                     .font(AppDesign.Font.footnote)
                 if empty {
@@ -226,7 +226,7 @@ extension ModListView {
                     .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .disabled(empty && !active)
         .help(localization.L(empty ? L10n.Mods.filterBlacklistedEmptyHint : L10n.Mods.filterBlacklistedHint))
         .accessibilityLabel(localization.L(L10n.Mods.filterBlacklisted))
