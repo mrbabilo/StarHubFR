@@ -859,7 +859,7 @@ struct ModListRow: View {
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                     .controlSize(.small)
                     .labelsHidden()
-                    .opacity(0)
+                    .opacity(0).accessibilityHidden(true)
             }
             }
             .padding(.vertical, AppDesign.Spacing.xs)

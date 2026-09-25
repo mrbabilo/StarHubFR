@@ -791,7 +791,7 @@ struct ModConfigEditorView: View {
     private func control(for row: ConfigEditorModel.Row) -> some View {
         switch row.control {
         case .toggle(let isOn, let asString):
-            Toggle("", isOn: Binding(
+            Toggle(row.label, isOn: Binding(
                 get: {
                     guard case .toggle(let live, _) = current(row) else { return isOn }
                     return live

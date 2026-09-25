@@ -129,7 +129,7 @@ struct InstallPreview: View {
                 }
             }
             Spacer()
-            Toggle("", isOn: allSelectedBinding)
+            Toggle(localization.L(L10n.Recovery.selectAll), isOn: allSelectedBinding)
                 .toggleStyle(.switch)
                 .labelsHidden()
         }
@@ -593,7 +593,7 @@ struct DetectedModRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Toggle("", isOn: Binding(
+            Toggle(mod.name, isOn: Binding(
                 get: { selection?.selected ?? false },
                 set: { newValue in
                     let newSelection = InstallSelection(
@@ -604,7 +604,7 @@ struct DetectedModRow: View {
                     onSelectionChange(newSelection)
                 }
             ))
-            .toggleStyle(.switch)
+            .toggleStyle(.switch).labelsHidden()
             .controlSize(.small)
 
             VStack(alignment: .leading, spacing: 4) {

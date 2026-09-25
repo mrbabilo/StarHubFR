@@ -125,7 +125,7 @@ struct TranslationRecoveryDiffView: View {
 
     private func selectableRow(_ diff: TranslationKeyDiff) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Toggle("", isOn: Binding(
+            Toggle(diff.key, isOn: Binding(
                 get: { selected.contains(diff.key) },
                 set: { isOn in
                     if isOn { selected.insert(diff.key) } else { selected.remove(diff.key) }

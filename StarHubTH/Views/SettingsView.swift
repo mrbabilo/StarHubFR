@@ -169,7 +169,7 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.nexusAutoCheck))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Toggle("", isOn: $autoCheckNexusUpdates)
+                    Toggle(localization.L(L10n.Settings.nexusAutoCheck), isOn: $autoCheckNexusUpdates)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
@@ -184,7 +184,7 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.keepNexusArchives))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Toggle("", isOn: $keepNexusArchives)
+                    Toggle(localization.L(L10n.Settings.keepNexusArchives), isOn: $keepNexusArchives)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
@@ -200,7 +200,7 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.restoreModData))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Toggle("", isOn: $restoreModData)
+                    Toggle(localization.L(L10n.Settings.restoreModData), isOn: $restoreModData)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
@@ -301,11 +301,11 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.defaultLaunchMode))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Picker("", selection: $launchProfile) {
+                    Picker(localization.L(L10n.Settings.defaultLaunchMode), selection: $launchProfile) {
                         Text(localization.L(L10n.Settings.playSMAPI)).tag("SMAPI")
                         Text(localization.L(L10n.Settings.vanillaGame)).tag("Vanilla")
                     }
-                    .pickerStyle(MenuPickerStyle())
+                    .pickerStyle(MenuPickerStyle()).labelsHidden()
                     .fixedSize()
                     
                     InfoPopoverButton(text: localization.L(L10n.Settings.hintNextLaunchMode))
@@ -317,7 +317,7 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.closeLauncher))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Toggle("", isOn: $closeAfterLaunch)
+                    Toggle(localization.L(L10n.Settings.closeLauncher), isOn: $closeAfterLaunch)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
@@ -375,7 +375,7 @@ struct SettingsView: View {
                     Text(localization.L(L10n.Settings.showDevLogs))
                         .font(AppDesign.Font.body)
                     Spacer()
-                    Toggle("", isOn: $showDeveloperLogs)
+                    Toggle(localization.L(L10n.Settings.showDevLogs), isOn: $showDeveloperLogs)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
@@ -397,7 +397,7 @@ struct SettingsView: View {
                 Text(localization.L(L10n.Settings.chainToggle))
                     .font(AppDesign.Font.body)
                 Spacer()
-                Toggle("", isOn: Binding(
+                Toggle(localization.L(L10n.Settings.chainToggle), isOn: Binding(
                     get: { vm.chainToggleDependencies },
                     set: { vm.chainToggleDependencies = $0 }
                 ))
