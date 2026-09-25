@@ -935,13 +935,20 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
       liste des mods (ajoutée le 2026-09-25 à la demande de l'auteur),
       Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
-      Entretien. **Faits** : lot 1 barre latérale et accueil (`cdb2e52e`,
-      jeton `quarantine` créé), lot 2 liste des mods (`7dd2e21f`). Reste de
-      la liste, en attente d'un constat à l'écran : la rangée de filtres
-      mesure ~700 pt (état par défaut) à ~1 000 pt (pire cas FR) pour 512 pt
-      à la fenêtre minimale ; ses puces sont des `Image`+`Text`, hors de
-      portée d'`AdaptiveLabels`. Critère ajouté le 2026-09-25 : à la fenêtre minimale, chaque
-      rangée de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
+      Entretien. **Faits** (2026-09-25) : les six lots, un par écran —
+      barre latérale et accueil (jeton `quarantine` créé), liste des mods, Mises à jour,
+      fiche, Quarantaine, Entretien. Largeur minimale réglée sur l'accueil
+      (tuiles), la liste (en-tête adaptatif, `WrapHStack` pour les lignes
+      et les filtres, vérifié à l'écran) et la ligne des versions des
+      Mises à jour. **Reste** : mesurer la largeur minimale sur la fiche,
+      la Quarantaine et l'Entretien ; trancher les couleurs laissées
+      littérales faute de sens clair — gravité des anomalies (orange/jaune,
+      deux copies : `ModListView`, `ModListRow`), « nouvelle version » en
+      vert et « mise à jour disponible » en orange (la charte dit info),
+      voile rouge des dépendances, étoile des favoris ; retirer
+      `role: .destructive` d'« effacer le filtre de catégorie ». Critère ajouté le
+      2026-09-25 : à la fenêtre minimale, chaque rangée
+      de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
       `AGENTS.md` §6) — déjà fait pour la barre d'actions et le bandeau de
       mise à jour de la fiche, les gestes de Mises à jour et le cadrage de
       la liste. · **L**
