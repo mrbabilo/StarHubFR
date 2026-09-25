@@ -50,11 +50,11 @@ struct KeybindOverviewGroup: View {
     /// Côte à côte si la carte le permet, empilés sinon : le segmenté garde
     /// sa largeur idéale (`fixedSize`, jamais tronqué) et le volet de détail
     /// descend à 560 pt — la ligne entière n'y tient pas toujours.
+    /// `SplitRow` (un `Layout`) et non un `ViewThatFits` : le ✕ qui apparaît au
+    /// premier caractère élargit la rangée, et une bascule entre deux
+    /// branches recréait le champ en pleine frappe.
     private var controls: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: AppDesign.Spacing.sm) { filterPicker; searchField }
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) { filterPicker; searchField }
-        }
+        SplitRow(spacing: AppDesign.Spacing.sm) { filterPicker } trailing: { searchField }
     }
 
     private var filterPicker: some View {

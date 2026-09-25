@@ -21,23 +21,18 @@ extension ModListView {
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             // Rangée principale : cadrage (gauche) et action clé (droite), à
             // la même priorité visuelle, au-dessus des filtres secondaires.
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    scopePicker(counts: counts)
-                    searchField
-                    Spacer()
-                    listTools(display: display)
-                }
-                // Trop étroit : la recherche descend sur sa propre ligne, et
-                // « Installer des mods » ne garde que son icône (infobulle).
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                    HStack {
-                        scopePicker(counts: counts)
-                        Spacer()
-                        listTools(display: display)
-                            .labelStyle(.iconOnly)
-                    }
-                    searchField
+            // Trop étroit : la recherche descend sur sa propre ligne. Un
+            // `Layout` et non un `ViewThatFits` — le champ ne doit exister
+            // qu'une fois, sinon il perd le focus pendant la frappe (voir
+            // `SearchToolbarLayout`).
+            SearchToolbarLayout {
+                scopePicker(counts: counts)
+                searchField
+                // « Installer des mods » ne garde que son icône (infobulle)
+                // quand la place manque.
+                ViewThatFits(in: .horizontal) {
+                    HStack { listTools(display: display) }
+                    HStack { listTools(display: display) }.labelStyle(.iconOnly)
                 }
             }
 
