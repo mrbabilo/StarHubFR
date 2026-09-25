@@ -1,16 +1,10 @@
 import Foundation
 
-/// Chercher un mod sur Nexus **par son nom**.
-///
-/// L'API publique v1 ne sait pas le faire : `/mods/search.json` rend 422, et
-/// `latest_updated.json` ne donne que dix entrées couvrant une heure. La voie
-/// est l'API GraphQL v2 (`POST /v2/graphql`), vérifiée sur un compte réel le
-/// 2026-08-25. Elle n'est **pas documentée publiquement** : tout ce fichier
-/// traite donc le service comme une dépendance qui peut changer sans préavis,
-/// et préfère dire « je n'ai pas pu chercher » plutôt que rendre une réponse
-/// fausse.
-///
-/// Type pur : construction de la requête et lecture de la réponse, sans réseau.
+/// Chercher un mod sur Nexus **par son nom**, via l'API GraphQL v2
+/// (`POST /v2/graphql`, vérifiée le 2026-08-25) : la v1 ne sait pas
+/// (`/mods/search.json` rend 422). **Non documentée** : traitée comme
+/// instable, on dit « pas pu chercher » plutôt qu'une réponse fausse.
+/// Type pur, sans réseau.
 public enum NexusModSearch {
     /// Ce que rend une recherche.
     public struct Hit: Equatable, Identifiable, Sendable, Codable {
@@ -22,32 +16,19 @@ public enum NexusModSearch {
         public let categoryName: String
         public let uploader: String
         public let adultContent: Bool
-        /// Les tags Nexus du mod.
-        ///
-        /// C'est ce qui sépare un supplément d'une traduction, et rien d'autre
-        /// ne le fait : mesuré sur douze résultats pour « Wildflour », les six
-        /// traductions portent toutes `Translation` et les deux vrais
-        /// suppléments n'en portent aucun. Le titre, lui, ne dit rien —
-        /// « (ES-LATAM) … » n'annonce pas plus une traduction que
-        /// « Item Bags for … » n'annonce une greffe.
+        /// Tags Nexus : seul signal séparant supplément et traduction (« Wildflour » :
+        /// 6 traductions toutes `Translation`, 2 suppléments sans). Le titre ne dit
+        /// rien.
         public let tags: [String]
-        /// Endossements Nexus, quand la réponse les porte. Le champ est
-        /// scalaire et NON_NULL côté schéma (introspection 2026-08-27), mais
-        /// l'API n'est pas documentée : absent ≠ zéro, la carte affiche sans.
+        /// Endossements ; NON_NULL au schéma (2026-08-27), mais absent ≠ zéro.
         public let endorsements: Int?
-        /// Le résumé d'une ligne — servi par les listings eux-mêmes, sans
-        /// requête de fiche (mesuré 2026-08-27).
+        /// Résumé d'une ligne, servi par les listings (2026-08-27).
         public let summary: String?
-        /// La vignette du mod, servie par les listings et la recherche
-        /// (4 mods sur 4 en tête de tendances, capture 2026-08-27). Une carte
-        /// sans vignette reste une carte.
+        /// Vignette, servie par listings et recherche ; optionnelle.
         public let thumbnailUrl: String?
-        /// L'identifiant Nexus de la catégorie — celui de `NexusCategory`,
-        /// vérifié sur données réelles le 2026-08-28 (3 = Gameplay Mechanics,
-        /// 25 = Visuals and Graphics). Il rebranche la carte sur la table
-        /// déjà traduite et colorée de la liste des mods installés, là où le
-        /// seul `categoryName` resterait un mot anglais. Optionnel : une page
-        /// cachée avant cette version n'en porte pas.
+        /// Id de catégorie `NexusCategory` (3 = Gameplay Mechanics, 25 = Visuals,
+        /// 2026-08-28) : rebranche la carte sur la table traduite et colorée.
+        /// Optionnel (pages en cache plus anciennes).
         public let categoryId: Int?
 
         public init(modId: Int, name: String, version: String, updatedAt: Date?,
@@ -75,14 +56,9 @@ public enum NexusModSearch {
         }
     }
 
-    /// Une page de résultats : ce qu'on a reçu, et **combien il y en a en tout**.
-    ///
-    /// Le total n'est pas décoratif. La requête plafonne à `count`, et l'écran
-    /// en montre moins encore ; sur un nom générique — « Content Patcher » rend
-    /// **428** résultats — taire le total laisserait croire que la poignée
-    /// affichée est tout ce qui existe.
-    /// `Sendable` explicite (type public : jamais implicite) — `SectionState`
-    /// le porte en valeur associée. `Hit` l'est déjà.
+    /// Page de résultats **et total** : « Content Patcher » rend 428
+    /// résultats ; taire le total ferait croire que la poignée affichée est
+    /// tout. `Sendable` explicite (porté par `SectionState`).
     public struct Page: Equatable, Codable, Sendable {
         public let hits: [Hit]
         public let totalCount: Int
@@ -94,11 +70,8 @@ public enum NexusModSearch {
     }
 
     public enum Failure: Error, Equatable {
-        /// Le service a répondu, mais avec des erreurs GraphQL — schéma changé,
-        /// filtre refusé, droits. **Un 200 ne suffit pas à conclure au succès :**
-        /// GraphQL rend 200 avec un tableau `errors`, et prendre ça pour un
-        /// résultat vide transformerait une panne en « aucune traduction
-        /// trouvée ».
+        /// Erreurs GraphQL (schéma, filtre, droits). **Un 200 ne suffit pas** :
+        /// `errors` pris pour vide dirait « aucune traduction trouvée ».
         case service(String)
         /// Réponse illisible : ce n'est pas du JSON, ou pas la forme attendue.
         case malformed
@@ -106,62 +79,36 @@ public enum NexusModSearch {
 
     // MARK: - Requête
 
-    /// Le tag que Nexus pose sur les traductions françaises.
-    ///
-    /// Mesuré sur 80 traductions françaises réelles : **77 le portent**, et
-    /// toutes portent `Translation`. Filtrer dessus laisse le tri au serveur —
-    /// sur le mod « Parchment », « nom + tag French » rend **exactement** la
-    /// bonne traduction là où le nom seul en rendait douze, toutes langues
-    /// confondues.
-    ///
-    /// ⚠️ **Ce n'est pas la catégorie.** Stardew Valley n'a aucune catégorie
-    /// « Traduction » — ses 27 catégories décrivent le contenu du mod — et les
-    /// traductions françaises se répartissent sur **treize** d'entre elles
-    /// (Gameplay Mechanics 27, Miscellaneous 17, Expansions 10…), chacune
-    /// héritant de la catégorie du mod qu'elle traduit. Filtrer par catégorie
-    /// ne rendrait rien.
+    /// Tag des traductions françaises : 77/80 le portent, et le serveur trie
+    /// (« Parchment » : nom + tag = la bonne, nom seul = douze).
+    /// ⚠️ **Pas une catégorie** : les traductions FR se répartissent sur
+    /// treize des 27 catégories (celle du mod traduit).
     public static let frenchTag = "French"
 
-    /// Le tag que Nexus pose sur **toute** traduction, quelle que soit la
-    /// langue. Sur 80 traductions françaises relevées, les 80 le portent — là
-    /// où 77 seulement portent `French`. C'est donc lui, et non le titre, qui
-    /// écarte les traductions d'une recherche de suppléments : sur
-    /// « Sword and Sorcery », les huit premiers résultats sur vingt-six sont
-    /// des traductions japonaises, chinoises, hongroises, brésiliennes…
+    /// Tag de **toute** traduction (80/80 contre 77 pour `French`) : c'est
+    /// lui qui écarte les traductions d'une recherche de suppléments (« Sword
+    /// and Sorcery » : 8 des 26 premiers).
     public static let translationTag = "Translation"
 
-    /// Corps JSON de la requête de recherche par nom.
-    ///
+    /// Corps JSON de la recherche par nom.
     /// - Parameters:
-    ///   - name: le nom à chercher — celui du mod installé, pas un mot-clé.
-    ///     Réduit par `searchTerm(for:)` avant l'envoi ; un terme qui s'y vide
-    ///     rend `nil` plutôt qu'une requête qui chercherait tout.
-    ///   - gameId: identifiant **numérique** du jeu. `gameDomainName` seul rend
-    ///     `totalCount: 0` sans la moindre erreur : un faux négatif silencieux,
-    ///     et la raison pour laquelle ce paramètre n'a pas de valeur par défaut
-    ///     lisible ailleurs que dans `NexusRequestBuilder`.
-    ///   - tag: un tag Nexus à exiger — `frenchTag` pour les traductions.
-    ///     Absent, le filtre n'entre pas dans la requête : un tag vide rendrait
-    ///     `totalCount: 0` sans erreur, comme le domaine du jeu.
-    ///   - category: une catégorie à exiger, filtrée **au serveur** pour que le
-    ///     total annoncé et la tranche suivante parlent du même ensemble que
-    ///     les cartes affichées.
-    ///   - count: nombre de résultats. Douze suffisaient à couvrir un mod et
-    ///     ses onze traductions ; le défaut laisse de la marge.
-    ///   - offset: le rang du premier résultat, pour la tranche suivante.
+    ///   - name: nom du mod installé, réduit par `searchTerm(for:)` ; vide
+    ///     après réduction → `nil`.
+    ///   - gameId: id **numérique** : `gameDomainName` seul rend
+    ///     `totalCount: 0` sans erreur (faux négatif silencieux).
+    ///   - tag: tag exigé (`frenchTag`) ; absent, hors requête (vide = 0 muet).
+    ///   - category: filtrée **au serveur** (total et tranche cohérents).
+    ///   - count: nombre de résultats (défaut avec marge).
+    ///   - offset: rang du premier résultat.
     public static func queryBody(name: String, gameId: Int, tag: String? = nil,
                                  category: String? = nil,
                                  count: Int = 30, offset: Int = 0) -> Data? {
         let term = searchTerm(for: name)
         guard !term.isEmpty else { return nil }
-        // Le filtre de tag n'entre dans la requête que s'il est demandé : un
-        // `tag` vide ou nul rendrait `totalCount: 0` sans erreur, comme le
-        // domaine du jeu à la place de son identifiant.
+        // Tag seulement s'il est demandé (vide = `totalCount: 0` sans erreur).
         let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
         let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
-        // Restreindre à une catégorie se fait au serveur, comme pour les
-        // sections : le total annoncé et la tranche suivante doivent parler
-        // du même ensemble que les cartes affichées.
+        // Catégorie filtrée au serveur, cohérente avec le total.
         let catFilter = category.map { _ in
             ", categoryName: { value: $category, op: EQUALS }"
         } ?? ""
@@ -190,32 +137,13 @@ public enum NexusModSearch {
                                                             "variables": variables])
     }
 
-    /// Le terme réellement envoyé : sans accents, sans préfixe de convention,
-    /// et débarrassé de ce qui ne sert qu'à l'humain.
-    ///
-    /// **L'index de Nexus ne connaît pas les accents.** Mesuré : « Français »
-    /// rend 0 résultat là où « Francais » en rend 184. Un nom de mod accentué
-    /// chercherait donc dans le vide sans qu'aucune erreur ne le signale.
-    ///
-    /// **Et il ne connaît pas non plus les préfixes de convention.** Le nom
-    /// déclaré par un manifeste commence souvent par l'acronyme du *framework*
-    /// qui charge le content pack — `[CP]` Content Patcher, `[FTM]` Farm Type
-    /// Manager, `[AT]` Alternative Textures, `[JA]` Json Assets… C'est une
-    /// convention communautaire pour ranger un dossier (cf. `docs/DOMAINE.md`),
-    /// **pas un morceau du titre Nexus**. La recherche portant sur une
-    /// **sous-chaîne** de ce titre, le préfixe la fait échouer entièrement, et
-    /// en silence. Mesuré sur l'API réelle le 2026-08-25, six noms du parc,
-    /// six fois le même écart :
-    ///
-    /// | nom déclaré | résultats | sans préfixe |
-    /// |---|---|---|
-    /// | `[CP] Make Gunther Real` | 0 | 9 |
-    /// | `[FTM] Wildflour's Atelier Goods` | 0 | 12 |
-    /// | `[AT] Vanilla Forage Crops and Bushes` | 0 | 6 |
-    ///
-    /// **148 manifestes sur 995** en portent un dans le parc de référence :
-    /// autant de fiches qui annonçaient « aucune traduction trouvée » sans
-    /// avoir rien cherché de trouvable.
+    /// Terme envoyé : sans accents, sans préfixe de convention.
+    /// **L'index ignore les accents** : « Français » 0, « Francais » 184.
+    /// **Et les préfixes de cadre** (`[CP]`, `[FTM]`, `[AT]`, `[JA]`…,
+    /// convention de dossier, cf. `docs/DOMAINE.md`) : la recherche par
+    /// sous-chaîne échoue en silence (2026-08-25 : `[CP] Make Gunther Real`
+    /// 0 → 9, `[FTM] Wildflour's Atelier Goods` 0 → 12). 148/995 manifestes
+    /// du parc en portent un.
     public static func searchTerm(for name: String) -> String {
         let stripped = stripConventionPrefixes(name)
         return stripped.folding(options: [.diacriticInsensitive],
@@ -223,13 +151,8 @@ public enum NexusModSearch {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Retire les préfixes `[…]` et `(…)` de tête, tant qu'il en reste.
-    ///
-    /// Uniquement en tête, uniquement courts : un `(Traduction francaise - FR)`
-    /// en fin de titre appartient au titre, et `[Something Very Long]` n'est
-    /// pas une convention de cadre. **Ne rend jamais le vide** : un nom qui ne
-    /// serait fait que de crochets vaut mieux cherché tel quel que pas cherché
-    /// du tout.
+    /// Retire les préfixes `[…]`/`(…)` de **tête**, courts seulement.
+    /// **Jamais le vide** : un nom tout en crochets est cherché tel quel.
     static func stripConventionPrefixes(_ name: String) -> String {
         var remainder = Substring(name).drop { $0.isWhitespace }
         while let opening = remainder.first, opening == "[" || opening == "(",
@@ -245,13 +168,8 @@ public enum NexusModSearch {
 
     // MARK: - Listing (vitrine « Découvrir », axe G)
 
-    /// Les tris demandables pour un listing de vitrine.
-    ///
-    /// Les noms viennent du type `ModsSort`, lu en introspection le
-    /// 2026-08-27 : `createdAt, downloads, endorsements, lastComment, name,
-    /// random, relevance, size, uniqueDownloads, updatedAt`. Pas de
-    /// `endorsed` ni d'`endorsementCount` — les deux premiers candidats du
-    /// plan étaient faux, l'introspection les a départagés.
+    /// Tris de vitrine, noms du type `ModsSort` (introspection 2026-08-27 ;
+    /// pas d'`endorsed`/`endorsementCount`).
     public enum ListingSort: String, CaseIterable, Sendable {
         case endorsed, recentlyUpdated, newest
 
@@ -264,26 +182,17 @@ public enum NexusModSearch {
         }
     }
 
-    /// Corps JSON d'un **listing** — les mods du jeu par tri, sans nom cherché.
-    ///
-    /// Même forme que `queryBody(name:)`, le filtre `name` en moins : la
-    /// vitrine ne cherche rien, elle montre. Mesuré sur l'API réelle le
-    /// 2026-08-27 : le jeu entier rend 33 199 mods, le seul tag `French`
-    /// en rend 747.
-    /// - Parameter offset: le rang du premier mod voulu — « voir plus » sur
-    ///   une section demande la tranche suivante plutôt que de recharger la
-    ///   même. Une section de tendances compte des milliers de mods : en
-    ///   figer vingt était une limite d'affichage, pas une limite de l'API.
+    /// Corps JSON d'un **listing** (tri, sans nom) : jeu entier 33 199 mods,
+    /// tag `French` 747 (2026-08-27).
+    /// - Parameter offset: rang du premier mod, pour « voir plus ».
     public static func listingBody(sort: ListingSort, tag: String? = nil,
                                    category: String? = nil,
                                    gameId: Int, count: Int = 20,
                                    offset: Int = 0) -> Data? {
         let tagFilter = tag.map { _ in ", tag: { value: $tag, op: EQUALS }" } ?? ""
         let tagParam = tag.map { _ in ", $tag: String!" } ?? ""
-        // `categoryName` est un champ de `ModsFilter` (introspection
-        // 2026-08-28) : la catégorie se filtre **au serveur**, comme le tag.
-        // Trier les 20 mods déjà reçus n'aurait rien donné — 50 mods des
-        // tendances se répartissent sur 15 catégories.
+        // `categoryName` de `ModsFilter` (2026-08-28) : filtré **au serveur**
+        // (50 mods de tendances couvrent 15 catégories).
         let catFilter = category.map { _ in
             ", categoryName: { value: $category, op: EQUALS }"
         } ?? ""
@@ -324,9 +233,7 @@ public enum NexusModSearch {
         public let version: String
         public let updatedAt: Date?
         public let tags: [String]
-        /// URL de l'image principale, seule que le schéma garantit
-        /// (`pictureUrl`, introspection 2026-08-27). Peut être vide : la fiche
-        /// sans image reste une fiche.
+        /// Image principale (`pictureUrl`, seule garantie) ; peut être vide.
         public let pictureUrls: [String]
         /// L'auteur Nexus, quand la réponse le porte.
         public let uploaderName: String?
@@ -342,9 +249,8 @@ public enum NexusModSearch {
         }
     }
 
-    /// La fiche d'un mod, par son identifiant — même racine `mods` éprouvée,
-    /// un filtre de plus. Champs optionnels partout : une fiche dégradée vaut
-    /// mieux qu'une erreur habillée en fiche introuvable.
+    /// Fiche d'un mod par id ; champs optionnels : fiche dégradée plutôt
+    /// qu'erreur.
     public static func detailBody(modId: Int, gameId: Int) -> Data? {
         let query = """
         query ModDetail($game: String!, $id: String!) {
@@ -361,8 +267,8 @@ public enum NexusModSearch {
                                                             "variables": variables])
     }
 
-    /// Lit une réponse de fiche. Mêmes règles que `decode` : `errors` l'emporte,
-    /// et une image ou une description absente ne fait pas échouer la fiche.
+    /// Lit une fiche : `errors` l'emporte ; image ou description absente
+    /// tolérée.
     public static func decodeDetail(_ data: Data) -> Result<Detail, Failure> {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return .failure(.malformed)
@@ -393,8 +299,7 @@ public enum NexusModSearch {
 
     // MARK: - Réponse
 
-    /// Lit une réponse GraphQL. Le tableau `errors` l'emporte sur les données :
-    /// une réponse partielle est une panne, pas un résultat.
+    /// Lit une réponse GraphQL : `errors` l'emporte (partielle = panne).
     public static func decode(_ data: Data) -> Result<Page, Failure> {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return .failure(.malformed)
@@ -408,23 +313,20 @@ public enum NexusModSearch {
               let nodes = mods["nodes"] as? [[String: Any]]
         else { return .failure(.malformed) }
 
-        // Un `totalCount` absent n'est pas zéro : mieux vaut retomber sur ce
-        // qu'on a reçu que d'annoncer « aucun résultat » en en affichant douze.
+        // `totalCount` absent ≠ zéro : repli sur ce qu'on a reçu.
         let total = (mods["totalCount"] as? Int) ?? nodes.count
         return .success(Page(hits: nodes.compactMap(hit(from:)), totalCount: total))
     }
 
     private static func hit(from node: [String: Any]) -> Hit? {
-        // `modId` peut arriver en nombre ou en chaîne selon les champs : les
-        // deux sont acceptés plutôt que d'écarter le résultat en silence.
+        // `modId` en nombre ou en chaîne, les deux acceptés.
         let modId: Int?
         if let value = node["modId"] as? Int { modId = value }
         else if let value = node["modId"] as? String { modId = Int(value) }
         else { modId = nil }
         guard let modId, let name = node["name"] as? String else { return nil }
 
-        // Seuls les mods publiés sont proposables : un brouillon ou un mod
-        // retiré ne se télécharge pas.
+        // Mods publiés seulement.
         if let status = node["status"] as? String, status != "published" { return nil }
 
         let categoryNode = node["modCategory"] as? [String: Any]
@@ -447,29 +349,16 @@ public enum NexusModSearch {
 
     // MARK: - Reconnaître une traduction française
 
-    /// Ce qui, dans un titre Nexus, annonce une traduction **française**.
-    ///
-    /// Relevé sur des titres réels : « … - Francais », « … FR », « … VF »,
-    /// « Traduction française de … », « French Translation ». Les auteurs
-    /// écrivent aussi bien avec qu'sans cédille, d'où le repli des accents.
+    /// Marqueurs d'une traduction **française** dans un titre (« Francais »,
+    /// « FR », « VF », « French Translation »…), accents repliés.
     private static let frenchMarkers: Set<String> = [
         "fr", "fra", "vf", "francais", "francaise", "french", "frenchie",
         "traduction", "traduit", "traduite", "francophone",
     ]
 
-    /// Ce qui, dans un titre, **parle d'une autre langue que le français** —
-    /// un filet contre X79 (audit Phase 2). Le mot « traduction » seul
-    /// matche une « Traduction espagnole de X » : sans ce filet, la
-    /// recherche large (« Traduction » sans tag `French`) remonterait
-    /// des traductions inutiles à un lecteur francophone.
-    ///
-    /// **Variantes longues uniquement.** Les codes ISO 2 lettres (`de`, `en`,
-    /// `it`, `pt`, `es`, `ja`...) sont volontairement exclus : ils sont
-    /// aussi des mots français courants (« de », « en », « y », « au »),
-    /// et un titre « Traduction française **de** Ridgeside » matcherait
-    /// `de` (allemand) sans aucune intention. Le filet ne porte que sur
-    /// les variantes linguistiquement explicites, qu'un auteur n'emploie
-    /// que pour signaler la langue cible.
+    /// Marqueurs **d'une autre langue** (X79) : « Traduction espagnole de X »
+    /// matche « traduction ». **Variantes longues seulement** : les codes ISO
+    /// (`de`, `en`…) sont aussi des mots français.
     private static let nonFrenchLanguageMarkers: Set<String> = [
         "espagnol", "espagnole", "allemand", "allemande",
         "italien", "italienne", "portugais", "portugaise",
@@ -482,37 +371,20 @@ public enum NexusModSearch {
         "ukrainienne",
     ]
 
-    /// `true` quand ce titre annonce une traduction française.
-    ///
-    /// **Filet de secours, pas chemin principal** : le tag `French` de Nexus
-    /// est plus sûr et se filtre côté serveur. Trois traductions sur quatre-
-    /// vingts ne le portent pas ; ce sont celles-là que le titre rattrape.
-    ///
-    /// Compare des **mots entiers**, jamais des fragments : « fr » contenu dans
-    /// « from », « fresh » ou « Frontier » ferait passer pour françaises la
-    /// moitié des pages de Nexus — le mot-clé « FR » seul rend 1 559 mods sur
-    /// Stardew, là où « Francais » en rend 184.
-    ///
-    /// X79 : un titre qui porte un marqueur français **et** un marqueur d'une
-    /// autre langue (« Traduction espagnole de X ») est retiré — le mot
-    /// « traduction » est neutre, mais « espagnole » ne l'est pas. Un titre
-    /// qui porte un marqueur français seul reste accepté.
+    /// `true` si le titre annonce une traduction française. **Filet** : le tag
+    /// `French` prime (3/80 ne l'ont pas). **Mots entiers** (« FR » en
+    /// sous-chaîne : 1 559 mods). X79 : marqueur d'une autre langue = retiré.
     public static func announcesFrenchTranslation(_ title: String) -> Bool {
         let words = words(in: title)
         let hasFrench = !words.isDisjoint(with: frenchMarkers)
         guard hasFrench else { return false }
-        // La présence d'un marqueur d'une autre langue **annule** le match
-        // français, sauf si le seul marqueur « fr » est en fait partagé
-        // (« fr » ne fait pas partie des marqueurs non-français — c'est
-        // ambigu mais tranché en faveur du français, parce qu'un titre
-        // « PT-fr » qui annonce à la fois la cible portugaise et la
-        // source française est rarissime sur Nexus).
+        // Une autre langue annule le match (« fr » exclu des marqueurs
+        // non-français, tranché pour le français).
         return words.isDisjoint(with: nonFrenchLanguageMarkers)
     }
 
-    /// Découpe un titre en mots comparables : accents repliés, minuscules,
-    /// césure sur tout ce qui n'est ni lettre ni chiffre — un « PT-BR » donne
-    /// donc « pt » et « br », et un « Log_JP » donne « log » et « jp ».
+    /// Mots comparables : accents repliés, minuscules, césure hors lettres et
+    /// chiffres (« PT-BR » → pt, br).
     static func words(in title: String) -> Set<String> {
         let folded = title.folding(options: [.diacriticInsensitive, .caseInsensitive],
                                    locale: Locale(identifier: "en_US_POSIX"))
@@ -521,29 +393,16 @@ public enum NexusModSearch {
             .filter { !$0.isEmpty })
     }
 
-    /// Parmi des résultats de recherche **non filtrés par le serveur**, les
-    /// seules traductions françaises, la plus récemment mise à jour en tête.
-    ///
-    /// Réservé à la recherche large, où rien d'autre que le titre ne distingue
-    /// une traduction. Sur un résultat déjà restreint au tag `French`, c'est
-    /// `ranked(_:excluding:)` qu'il faut : y rejouer le titre jetterait les
-    /// traductions correctement taguées dont le titre ne dit rien.
+    /// Traductions FR parmi des résultats **non filtrés**, récentes d'abord.
+    /// Sur un résultat déjà tagué `French`, utiliser `ranked(_:excluding:)`.
     public static func frenchTranslations(among hits: [Hit],
                                           excluding hostModId: Int? = nil) -> [Hit] {
         hits.filter { announcesFrenchTranslation($0.name) && $0.modId != hostModId }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
-    /// Des résultats **déjà tagués `French` par le serveur**, les plus probables
-    /// d'abord.
-    ///
-    /// **Le titre classe, il ne filtre pas.** Sur 80 traductions relevées, 77
-    /// portent le tag : rejeter celles dont le titre ne dit pas « FR »
-    /// reviendrait à perdre celles-là mêmes que le tag rattrapait, et la fiche
-    /// annoncerait qu'aucune traduction n'existe.
-    ///
-    /// Le mod hôte est écarté : un mod qui porte le tag `French` parce qu'il
-    /// est lui-même français n'est pas sa propre traduction.
+    /// Résultats **déjà tagués `French`**, plus probables d'abord. **Le titre
+    /// classe, ne filtre pas** (77/80 portent le tag). Mod hôte écarté.
     public static func ranked(_ hits: [Hit], excluding hostModId: Int? = nil) -> [Hit] {
         hits.filter { $0.modId != hostModId }
             .sorted {
@@ -554,17 +413,9 @@ public enum NexusModSearch {
             }
     }
 
-    /// La vitrine « Découvrir » est francophone : un mod non-traduction y
-    /// est toujours bienvenu, une traduction n'y figure que si elle est
-    /// **française**. Les autres — japonaises, chinoises, brésiliennes… —
-    /// n'ont rien à y faire.
-    ///
-    /// La règle se paie : le tag `French` porte **77 traductions sur 80**
-    /// (mesuré en A3-T3/T4, repris à la spec §3) — environ une traduction
-    /// française sur vingt est donc écartée à tort. Le compte « x affichés
-    /// sur y » de la section dit au moins qu'un filtre est passé.
-    /// À n'appliquer qu'en vitrine : une recherche par nom doit rendre ce
-    /// qu'on lui a demandé.
+    /// Vitrine francophone : non-traduction toujours, traduction seulement
+    /// **française**. Coût : ~1 traduction FR sur 20 écartée à tort (tag
+    /// 77/80) ; le compte « x sur y » le signale. Vitrine seulement.
     public static func vitrineEligible(_ hit: Hit) -> Bool {
         guard hit.isTranslation else { return true }
         return hit.tags.contains {
@@ -574,72 +425,34 @@ public enum NexusModSearch {
 
     // MARK: - Reconnaître un supplément
 
-    /// Les **suppléments** d'un mod parmi des résultats de recherche : greffes
-    /// d'assets, compatibilités, packs qui citent ce mod dans leur titre.
-    ///
-    /// **Chercher n'est pas le problème, trier l'est.** Mesuré sur l'API réelle
-    /// le 2026-08-25 : `op: WILDCARD` cherche une **sous-chaîne** du titre, si
-    /// bien que le nom du mod installé suffit à faire remonter ses suppléments
-    /// — « Wildflour » rend « Item Bags for Wildflour's Atelier Goods ». Mais
-    /// les résultats sont **noyés de traductions** : sur « Sword and Sorcery »,
-    /// les huit premiers sur vingt-six sont japonais, chinois, hongrois,
-    /// brésiliens… ; sur « Automate », 21 des 43.
-    ///
-    /// Deux retraits, et rien d'autre :
-    /// - **le tag `Translation`**, que Nexus pose sur toute traduction quelle
-    ///   que soit la langue. C'est le seul signal qui les sépare : sur douze
-    ///   résultats « Wildflour », les six traductions le portent toutes et les
-    ///   deux vrais suppléments n'en portent aucun. Le titre, lui, ne dit rien ;
-    /// - **le mod hôte lui-même**, qui n'est pas son propre supplément.
-    ///
-    /// Ce qui reste n'est **pas certain** d'être un supplément : c'est un mod
-    /// dont le titre cite celui-ci. Sur un nom générique — « Content Patcher »
-    /// rend 428 résultats dont 45 sur 50 ne sont pas des traductions — la liste
-    /// est surtout du bruit. L'appelant doit donc plafonner **et dire le
-    /// total**, jamais faire comme s'il savait.
+    /// **Suppléments** d'un mod : `WILDCARD` cherche une sous-chaîne du titre,
+    /// mais les résultats sont **noyés de traductions** (« Automate » : 21/43).
+    /// Deux retraits : **tag `Translation`** (seul signal), et **l'hôte**.
+    /// Le reste n'est **pas certain** (« Content Patcher » : 428 résultats) :
+    /// l'appelant plafonne **et dit le total**.
     /// - Parameters:
-    ///   - hostModId: l'identifiant Nexus du mod, quand il en déclare un.
-    ///   - hostName: son nom. **Le repli qui compte** : 111 mods du parc ne
-    ///     déclarent aucun identifiant, et sans ce second filet le mod
-    ///     figurerait en tête de ses propres suppléments — vu en simulant la
-    ///     recherche sur « Wildflour's Atelier Goods », qui se rendait
-    ///     lui-même.
+    ///   - hostModId: id Nexus du mod, s'il en déclare un.
+    ///   - hostName: **repli qui compte** (111 mods sans id) : sinon le mod
+    ///     figure en tête de ses propres suppléments.
     public static func supplements(among hits: [Hit], excluding hostModId: Int? = nil,
                                    hostName: String = "") -> [Hit] {
         let host = comparableTitle(hostName)
         return hits
             .filter { hit in
                 guard !hit.isTranslation, hit.modId != hostModId else { return false }
-                // Sur le titre **réduit**, jamais sur l'égalité brute : le
-                // manifeste dit « [FTM] Wildflour's Atelier Goods » là où Nexus
-                // titre « Wildflour's Atelier Goods » — préfixe de cadre,
-                // ponctuation et casse écartés, les deux se rejoignent.
-                //
-                // **Égalité, pas préfixe** : un titre qui *ajoute* un
-                // sous-titre reste, parce que c'est aussi la forme d'un vrai
-                // supplément. Mesuré sur le parc le 2026-09-03 : 59 mods
-                // installés sur 1 075 s'appellent « Hôte – Ajout » ou
-                // « Hôte: Ajout » avec l'hôte installé lui aussi (les neuf
-                // « Seeds N' Saplings - … », les onze « Hidden Pelican
-                // Village - … », « Chests Anywhere - Category Dropdown
-                // Patch »…). Exclure par préfixe les effacerait en silence,
-                // ce qui coûte plus que la ligne en trop qu'on éviterait.
-                //
-                // Reste connu : un hôte sans identifiant Nexus dont la fiche
-                // porte un sous-titre figure dans ses propres suppléments.
-                // L'appelant plafonne et dit le total.
+                // Titre **réduit** (préfixe, ponctuation, casse). **Égalité, pas
+                // préfixe** : « Hôte – Ajout » est la forme d'un vrai supplément (59
+                // mods au parc, 2026-09-03). Reste : hôte sans id à sous-titre Nexus.
                 return !host.isEmpty ? comparableTitle(hit.name) != host : true
             }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
-    /// Un candidat à l'identité d'un mod : la fiche Nexus qui pourrait être la
-    /// sienne, et si l'auteur le confirme.
+    /// Candidat à l'identité d'un mod, et accord de l'auteur.
     public struct IdentityCandidate: Equatable, Identifiable, Sendable {
         public var id: Int { hit.modId }
         public let hit: Hit
-        /// L'auteur déclaré par le manifeste et le pseudo Nexus concordent.
-        /// **Un indice, jamais un filtre** — voir `identityCandidates`.
+        /// Auteur du manifeste = pseudo Nexus. **Indice, jamais filtre**.
         public let authorMatches: Bool
 
         public init(hit: Hit, authorMatches: Bool) {
@@ -648,36 +461,12 @@ public enum NexusModSearch {
         }
     }
 
-    /// Les fiches Nexus qui pourraient être celle de ce mod, la plus probable
-    /// en tête.
-    ///
-    /// Un mod sans identifiant Nexus n'a ni suivi de version, ni page, ni
-    /// recherche de traduction. `NexusIdLearning` récupère ceux que smapi.io
-    /// connaît ; pour les autres, il ne reste que le nom — et le nom est
-    /// traître. Mesuré sur les **83 mods du parc qui restent sans identifiant**,
-    /// recherche réellement exécutée le 2026-08-26 :
-    ///
-    /// - **55 ne rendent rien.** Mod retiré, renommé, jamais publié sur Nexus.
-    ///   20 d'entre eux sont des **composants de pack** : « ARV- Maximum » n'a
-    ///   jamais été un titre Nexus, c'est le pack qui a une page.
-    /// - **23 rendent des candidats, dont 61 % sont des traductions** — 45 sur
-    ///   74. Le titre d'une traduction commence par celui du mod, donc la
-    ///   comparaison par préfixe les attrape toutes : « LewdDew Valley » rend
-    ///   neuf candidats, neuf traductions. Le tag `Translation` est le seul
-    ///   moyen de les écarter, et il les écarte toutes.
-    /// - Une fois écartées, **18 mods n'ont plus qu'un seul candidat** (contre
-    ///   14 sans le filtre) et les cinq listes restantes deviennent lisibles.
-    ///
-    /// **L'auteur confirme, il ne tranche pas.** Sur ces 18, le pseudo Nexus
-    /// concorde 12 fois, parfois à une variante près (`skeleton` /
-    /// `Skeleton0w0`), et parfois pas du tout alors que c'est bien le même mod
-    /// (`Owljoy` / `OwlandJoy`). En faire un filtre perdrait des candidats
-    /// justes ; il n'ordonne donc que l'affichage.
-    ///
-    /// Rien n'est écrit d'autorité : c'est une **proposition**, et l'utilisateur
-    /// désigne. Deux des 18 candidats uniques mesurés portent un auteur sans
-    /// rapport — une ligne qui suit le mauvais mod est pire qu'une ligne qui ne
-    /// suit rien.
+    /// Fiches Nexus possibles pour un mod sans id, plus probable d'abord.
+    /// Mesuré sur 83 mods sans id (2026-08-26) : **55 ne rendent rien** (dont
+    /// 20 composants de pack) ; **61 % des candidats sont des traductions**,
+    /// écartées par le tag `Translation` ; ensuite 18 mods à candidat unique.
+    /// **L'auteur ordonne, ne tranche pas** (12/18 concordent ; `Owljoy` /
+    /// `OwlandJoy`). **Proposition** seulement : l'utilisateur désigne.
     public static func identityCandidates(among hits: [Hit],
                                           modName: String,
                                           modAuthor: String) -> [IdentityCandidate] {
@@ -694,17 +483,9 @@ public enum NexusModSearch {
             }
     }
 
-    /// L'auteur déclaré par un manifeste et un pseudo Nexus désignent-ils la
-    /// même personne ?
-    ///
-    /// Par préfixe, dans les deux sens, avec le même plancher de quatre
-    /// caractères que `namesMatch` : le pseudo Nexus prolonge souvent celui du
-    /// manifeste (`kurts` / `kurtsietz`). Et un manifeste nomme parfois
-    /// **plusieurs** auteurs — « StarAmy/Mila Stavetskaya », « Haze1nuts, 58
-    /// and Cara » — dont un seul a publié la page : chacun est essayé.
-    ///
-    /// Répond `false` sans hésiter quand rien ne concorde : ce n'est pas une
-    /// accusation, seulement l'absence d'un indice.
+    /// Même personne ? Préfixe dans les deux sens, plancher de 4 (`kurts` /
+    /// `kurtsietz`) ; plusieurs auteurs déclarés, chacun essayé. `false` =
+    /// absence d'indice.
     static func authorsMatch(_ declared: String, _ uploader: String) -> Bool {
         let right = comparableTitle(uploader)
         guard right.count >= 4 else { return false }
@@ -722,8 +503,7 @@ public enum NexusModSearch {
         return false
     }
 
-    /// Un titre réduit à ce qui l'identifie : préfixe de cadre retiré, accents
-    /// repliés, ponctuation et casse écartées.
+    /// Titre réduit : préfixe retiré, accents repliés, ponctuation et casse.
     static func comparableTitle(_ name: String) -> String {
         stripConventionPrefixes(name)
             .folding(options: [.diacriticInsensitive, .caseInsensitive],
@@ -731,8 +511,7 @@ public enum NexusModSearch {
             .filter { $0.isLetter || $0.isNumber }
     }
 
-    /// Des résultats séparés en deux : ce qui est déjà en place, et ce qui
-    /// reste à découvrir.
+    /// Résultats séparés : déjà en place / à découvrir.
     public struct Partition: Equatable {
         /// Ce que le parc porte déjà.
         public let installed: [Hit]
@@ -745,28 +524,11 @@ public enum NexusModSearch {
         }
     }
 
-    /// Sépare des résultats selon ce qui est déjà installé.
-    ///
-    /// **Deux formes, mesurées sur le parc le 2026-08-26.** Un supplément peut
-    /// être installé de deux façons très différentes :
-    /// - **comme un mod à part entière**, avec son manifeste — 2 des 10
-    ///   suppléments de Cornucopia, 1 des 12 de Ridgeside Village. Il se
-    ///   reconnaît à son identifiant Nexus, déjà déclaré par le parc ;
-    /// - **comme une greffe sans manifeste**, un lot de sacs `ItemBags` déposé
-    ///   à la main. Aucun identifiant : c'est le registre qui le retient, et le
-    ///   nom du dépôt est parfois tout ce dont on dispose.
-    ///
-    /// D'où deux clés, et non une.
-    ///
-    /// ⚠️ **Le nom retenu d'un dépôt manuel est celui du fichier téléchargé, pas
-    /// le titre Nexus.** Mesuré sur les archives réelles : « FishingLogbook -
-    /// FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4 » pour un mod que Nexus
-    /// titre « FishingLogbook - FR ». L'égalité échoue donc sur **les trois**
-    /// archives éprouvées, et le **préfixe** réussit sur les trois : Nexus
-    /// suffixe ses noms de fichier d'identifiant, version, date et jeton, sans
-    /// jamais toucher au début. La comparaison se fait donc par préfixe, dans
-    /// les deux sens — l'archive peut être plus longue que le titre, et
-    /// l'inverse arrive quand l'auteur allonge son titre après coup.
+    /// Sépare selon l'installé, par deux clés : **mod entier** (id Nexus) ou
+    /// **greffe sans manifeste** (nom au registre).
+    /// ⚠️ Le nom d'un dépôt est **celui du fichier** (« FishingLogbook - FR
+    /// 50233 1.1.0 … ») : l'égalité échoue sur les trois archives, le
+    /// **préfixe** (deux sens) réussit.
     public static func partition(_ hits: [Hit], installedNexusIds: Set<Int>,
                                  installedTitles: Set<String>) -> Partition {
         var installed: [Hit] = []
@@ -782,17 +544,9 @@ public enum NexusModSearch {
         return Partition(installed: installed, available: available)
     }
 
-    /// Deux noms désignent-ils la même chose ?
-    ///
-    /// **Par préfixe, dans les deux sens**, sur les titres réduits — parce que
-    /// le nom d'un dépôt est celui du fichier téléchargé et que Nexus le
-    /// suffixe d'identifiant, version, date et jeton sans jamais toucher au
-    /// début (mesuré : l'égalité échoue sur les trois archives éprouvées, le
-    /// préfixe réussit sur les trois).
-    ///
-    /// **Le plancher de quatre caractères vaut des deux côtés.** Le garder d'un
-    /// seul laisserait un titre court reconnaître n'importe quoi : « R.S.V. »
-    /// se réduit à `rsv` et préfixe « RSV Item Bags ».
+    /// Même chose ? **Préfixe dans les deux sens** sur titres réduits (Nexus
+    /// suffixe ses noms de fichier). **Plancher de 4 des deux côtés**
+    /// (« R.S.V. » → `rsv` préfixerait « RSV Item Bags »).
     public static func namesMatch(_ lhs: String, _ rhs: String) -> Bool {
         let left = comparableTitle(lhs)
         let right = comparableTitle(rhs)
@@ -800,24 +554,10 @@ public enum NexusModSearch {
         return left.hasPrefix(right) || right.hasPrefix(left)
     }
 
-    /// Les identifiants Nexus que porte un nom de fichier téléchargé.
-    ///
-    /// **Mesuré : 14 des 15 archives du jeu d'épreuve en portent un.** Nexus
-    /// nomme ses téléchargements de deux façons, et l'identifiant suit le nom
-    /// dans les deux :
-    /// `FishingLogbook - FR 50233 1.1.0 2026-08-05T17-33Z 2hI4jbUR4`
-    /// `Utility Bags-37381-1-0-0-1757199288`
-    /// La seule exception est une archive renommée à la main.
-    ///
-    /// Plusieurs candidats sont rendus, jamais un seul « deviné » : une année
-    /// dans un titre en est un aussi. C'est `confirmedNexusId` qui tranche, en
-    /// exigeant qu'un second signal concorde.
-    ///
-    /// **À ne pas confondre avec `NexusArchiveName.parse`**, qui lit les mêmes
-    /// noms mais rend **un seul** identifiant, ancré sur l'horodatage, et sans
-    /// rien à confronter — c'est ce qu'il faut au moment du dépôt, hors ligne.
-    /// Ici on rend un ensemble large, précisément parce qu'un résultat de
-    /// recherche viendra le confirmer.
+    /// Ids Nexus d'un nom de fichier téléchargé (14/15 archives) :
+    /// `FishingLogbook - FR 50233 1.1.0 …`, `Utility Bags-37381-1-0-0-…`.
+    /// Plusieurs candidats (une année en est un) : `confirmedNexusId` tranche.
+    /// ≠ `NexusArchiveName.parse` (un seul id, hors ligne, au dépôt).
     public static func nexusIdCandidates(inFileName name: String) -> Set<Int> {
         var candidates: Set<Int> = []
         var digits = ""
@@ -834,17 +574,8 @@ public enum NexusModSearch {
         return candidates
     }
 
-    /// La fiche Nexus qu'on peut attribuer **avec certitude** à un dépôt manuel.
-    ///
-    /// Deux signaux indépendants doivent concorder : le titre, comparé par
-    /// préfixe, **et** l'identifiant lu dans le nom du fichier. Chacun seul se
-    /// tromperait — un titre proche n'est pas le même mod, et un nombre à cinq
-    /// chiffres dans un nom peut être une année. Ensemble, ils ne laissent pas
-    /// de place au doute, et c'est ce qui permet de rattacher sans rien
-    /// demander à l'utilisateur.
-    ///
-    /// `nil` dès qu'il y a la moindre ambiguïté : mieux vaut une ligne sans
-    /// suivi qu'une ligne qui suit le mauvais mod.
+    /// Fiche attribuable **avec certitude** à un dépôt manuel : titre (préfixe)
+    /// **et** id du nom de fichier concordent. `nil` à la moindre ambiguïté.
     public static func confirmedNexusId(forDeposit name: String, among hits: [Hit]) -> Hit? {
         let candidates = nexusIdCandidates(inFileName: name)
         guard !candidates.isEmpty else { return nil }
