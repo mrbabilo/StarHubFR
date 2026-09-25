@@ -1,126 +1,71 @@
 import Foundation
 
-/// Client Nexus Mods pour tout ce qui n'est pas la détection de mises à jour
-/// en masse : fiche d'un mod à la demande, description, changelogs, et les
-/// caches partagés (catégories, résumés/images, liste de mises à jour connue)
-/// que ces requêtes alimentent.
-///
-/// ⚠️ Ancien rôle disparu : ce client faisait autrefois LA détection de mises
-/// à jour, en interrogeant Nexus mod par mod (`check()`, jusqu'à ~850
-/// requêtes sur ce parc). Ce chemin a été retiré (Task 10, lot « ancrage des
-/// versions ») : `StarHubTHViewModel.checkNexusUpdates` interroge désormais
-/// `smapi.io/api/v3.0/mods` en quelques appels groupés — voir
-/// `SmapiUpdateClient`. Ce fichier ne fait plus que du ponctuel, à la demande
-/// de l'utilisateur (éditeur par mod, fiche détaillée), plus les caches que
-/// `checkNexusUpdates` lit pour afficher immédiatement au lancement.
-///
-/// Utilise l'API publique de Nexus Mods (https://api-docs.nexusmods.com/).
-/// Chaque utilisateur fournit sa propre clé API personnelle, gratuite via
-/// `https://www.nexusmods.com/users/myaccount?tab=api`. Les clés sont
-/// stockées dans le Trousseau macOS (jamais dans UserDefaults), une par app.
-///
-/// `@unchecked` : tout l'état mutable **d'instance** de ce type —
-/// `metadataGeneration` (sous `metadataCacheLock`) et `rateLimitGate` (sous
-/// `rateLimitLock`) — est pris sous le verrou qui le nomme, en lecture comme
-/// en écriture. Le compilateur ne voit pas un `NSLock` — cette annotation
-/// affirme ce qu'il ne peut pas vérifier. (Hors périmètre : le
-/// `DateFormatter` `static let legacyNexusFormatter` est un état **statique**
-/// partagé, pas une propriété d'instance ; il n'entre pas dans cette
-/// annotation et reste son propre diagnostic.)
+/// Client Nexus pour le ponctuel : fiche à la demande, description,
+/// changelogs, et les caches partagés (catégories, résumés/images, liste de
+/// mises à jour) que `checkNexusUpdates` lit au lancement.
+/// ⚠️ Ne détecte plus les mises à jour (ancien `check()`, ~850 requêtes) :
+/// c'est smapi.io, en quelques lots (`SmapiUpdateClient`).
+/// API publique Nexus ; clé personnelle de l'utilisateur, au Trousseau.
+/// `@unchecked` : état d'instance (`metadataGeneration`, `rateLimitGate`)
+/// sous le verrou qui le nomme. `legacyNexusFormatter`, statique, hors
+/// périmètre.
 final class NexusUpdateChecker: @unchecked Sendable {
     static let shared = NexusUpdateChecker()
 
-    // `gameDomain`/`apiBase`/`userAgent`/`appVersion` are centralized in
-    // `NexusRequestBuilder` and accessed via `NexusRequestBuilder.xxx` so the
-    // whole app reports a single consistent client to Nexus.
+    // Client identity centralized in `NexusRequestBuilder` (one client for
+    // Nexus).
 
-    /// UserDefaults key caching the last successful update list (JSON-encoded
-    /// `[ModUpdate]`). C'est la **vérité** de la liste des mises à jour, à
-    /// plat : ce qui s'affiche en est la consolidation par pack, jamais
-    /// l'inverse (voir `StarHubTHViewModel.republishUpdatesFromCache`).
+    /// Last update list (`[ModUpdate]` JSON) : la **vérité**, à plat ;
+    /// l'affichage en est la consolidation par pack.
     private let cachedUpdatesKey = "nexusCachedUpdates"
-    /// UserDefaults key holding the epoch of the last update check that
-    /// returned a response — A2-T4's TTL gate reads it at launch. A failed
-    /// pass writes nothing, so the next launch retries.
+    /// Epoch of the last check that answered (A2-T4 TTL gate); a failure
+    /// writes nothing.
     private let lastCheckedKey = "nexusUpdatesLastCheckedAt"
-    /// UserDefaults key caching the Nexus category id for every mod we've ever
-    /// queried (`{ "modId": categoryId }`). Persisted independently from
-    /// `cachedUpdates` because categories apply to *all* mods, not just those
-    /// with available updates — we want them to survive even when the update
-    /// list is empty.
+    /// `{ "modId": categoryId }` for every queried mod, kept apart from
+    /// updates (categories apply to all mods).
     private let cachedCategoriesKey = "nexusCachedCategories"
-    /// UserDefaults key caching the short summary + primary picture URL for
-    /// every mod we've ever queried (`{ "modId": NexusModExtra }`). Same
-    /// lifetime rules as `cachedCategoriesKey` — populated for free from the
-    /// same API response, so it's kept alongside it.
+    /// `{ "modId": NexusModExtra }` (summary + picture), same lifetime.
     private let cachedExtrasKey = "nexusCachedExtras"
 
-    /// Guards all metadata-cache mutations (categories + extras) so
-    /// `fetchSingleMod` (on-demand) and `check` (full scan) can't lose entries
-    /// when they overlap.
+    /// Guards metadata-cache mutations (overlapping fetches lose nothing).
     private let metadataCacheLock = NSLock()
-    /// Bumped (under `metadataCacheLock`) every time `clearApiKey()` runs.
-    /// `check()` and `fetchSingleMod()` capture it when they start and check
-    /// it again right before persisting their results — if it changed, the
-    /// key was cleared while they were in flight, so their results were
-    /// fetched under an account that no longer applies and must be discarded
-    /// instead of being written back (which would resurrect that account's
-    /// data right after `clearApiKey()` removed it).
+    /// Bumped by `clearApiKey()`: an in-flight fetch compares it before
+    /// persisting and discards results from the removed account.
     private var metadataGeneration = 0
 
-    /// Back-off partagé après un 429. Les trois chemins réseau (`fetchModInfo`,
-    /// `fetchRawDescription`, `fetchChangelogs`) l'arment et le consultent :
-    /// sans lui, seul `check()` freinait, et parcourir les fiches de mods
-    /// pendant une limitation continuait de taper l'API.
+    /// Back-off partagé après un 429, armé et lu par les trois chemins réseau.
     private var rateLimitGate = NexusRateLimitGate()
     private let rateLimitLock = NSLock()
 
     private init() {}
 
-    /// `true` si la requête doit être refusée sans partir. Armé par
-    /// `noteRateLimit`, relâché tout seul à l'expiration du délai.
+    /// `true` : refuser sans partir (relâché à l'expiration).
     private func isRateLimited() -> Bool {
         rateLimitLock.lock()
         defer { rateLimitLock.unlock() }
         return rateLimitGate.isBlocked()
     }
 
-    /// Enregistre un 429 pour tous les chemins réseau à la fois. Le quota
-    /// relevé sur la même réponse accompagne : une fenêtre épuisée avec sa
-    /// remise à zéro y vaut plus que le `Retry-After` plafonné (B2-T8).
+    /// Arme la porte pour tous ; le quota relevé (fenêtre épuisée) prime sur
+    /// `Retry-After` plafonné (B2-T8).
     private func noteRateLimit(retryAfter: TimeInterval, quota: NexusQuota?) {
         rateLimitLock.lock()
         rateLimitGate.note(retryAfter: retryAfter, quota: quota)
         rateLimitLock.unlock()
     }
 
-    /// Attente restante en secondes, pour rendre un `.rateLimited` cohérent
-    /// quand la requête est refusée localement plutôt que par le serveur.
+    /// Attente restante, pour un `.rateLimited` refusé localement.
     private func rateLimitRemaining() -> TimeInterval {
         rateLimitLock.lock()
         defer { rateLimitLock.unlock() }
         return rateLimitGate.remaining() ?? 0
     }
 
-    /// Arme la porte quand une réponse est un 429, et relève le quota que
-    /// **toute** réponse annonce. Pour les chemins qui rendent `""` sur
-    /// n'importe quel échec (`fetchRawDescription`, `fetchChangelogs`) : ils ne
-    /// distinguent pas le 429 du reste, mais leur 429 doit quand même freiner
-    /// tout le monde.
-    ///
-    /// Tous les `dataTask` de ce fichier passent par ici, sauf `fetchModInfo`
-    /// qui traite son 429 lui-même et appelle donc `noteQuota` directement :
-    /// une réponse qui échappe au relevé est un 429 non vu, qui aggrave le
-    /// bannissement au lieu de l'attendre.
-    ///
-    /// **Interne et non privé depuis X67** : `NexusSearchClient` (GraphQL v2,
-    /// autre fichier) ne relevait que le quota et n'armait donc jamais la
-    /// porte. Une seule entrée pour les deux API — le relevé, l'analyse de
-    /// `Retry-After` et l'armement ne se recopient pas.
-    ///
-    /// - Returns: le délai annoncé par le serveur quand la réponse est un 429,
-    ///   `nil` sinon — pour que l'appelant rende l'attente réelle plutôt qu'une
-    ///   constante.
+    /// Arme la porte sur un 429 et relève le quota de **toute** réponse. Tous
+    /// les `dataTask` passent ici, sauf `fetchModInfo` (qui appelle
+    /// `noteQuota`) : une réponse non relevée = un 429 non vu. **Interne**
+    /// depuis X67 : `NexusSearchClient` (GraphQL) y passe aussi.
+    /// - Returns: le délai annoncé sur un 429, `nil` sinon.
     @discardableResult
     func noteRateLimitIfThrottled(_ response: URLResponse?) -> TimeInterval? {
         guard let http = response as? HTTPURLResponse else { return nil }
@@ -133,21 +78,15 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Quota (B2-T6)
 
-    /// Clé UserDefaults du dernier quota relevé (JSON d'un `NexusQuota`).
-    /// Persisté parce que l'app ne parle plus à l'API Nexus qu'à la demande :
-    /// sans ça, les réglages n'afficheraient rien tant qu'aucune fiche de mod
-    /// n'a été ouverte dans la session.
+    /// Dernier quota (JSON `NexusQuota`), persisté : l'app n'appelle Nexus
+    /// qu'à la demande.
     private static let cachedQuotaKey = "nexusQuota"
 
-    /// Posté après chaque relevé, pour que les réglages ouverts se remettent
-    /// à jour sans être rouverts.
+    /// Posté après chaque relevé (réglages ouverts rafraîchis).
     static let quotaDidChange = Notification.Name("StarHubFR.nexusQuotaDidChange")
 
-    /// Relève les en-têtes `x-rl-*` d'une réponse Nexus et retient la mesure.
-    ///
-    /// Une réponse sans ces en-têtes (la patte CDN d'un téléchargement, par
-    /// exemple) ne dit **rien** du quota : `NexusQuota.init?` rend `nil` et la
-    /// mesure précédente reste en place, plutôt que d'être écrasée par un zéro.
+    /// Relève les en-têtes `x-rl-*`. Sans en-têtes (CDN) : rien, la mesure
+    /// précédente reste.
     @discardableResult
     func noteQuota(from response: HTTPURLResponse) -> NexusQuota? {
         var headers: [String: String] = [:]
@@ -157,21 +96,13 @@ final class NexusUpdateChecker: @unchecked Sendable {
         }
         guard let quota = NexusQuota(headers: headers) else { return nil }
 
-        // Le quota décrit un compte. Une réponse partie avant `clearApiKey()`
-        // et arrivée après ne doit pas ressusciter celui du compte retiré :
-        // plus de clé, plus de relevé. (La garde par génération des caches de
-        // métadonnées ne s'applique pas ici — elle suppose de connaître la
-        // génération au *départ* de la requête, que ce chemin générique, appelé
-        // depuis n'importe quelle réponse, n'a pas.)
+        // Plus de clé, plus de relevé : une réponse tardive ne ressuscite pas le
+        // compte retiré.
         guard apiKey()?.isEmpty == false else { return nil }
         guard let data = try? JSONEncoder().encode(quota) else { return nil }
         UserDefaults.standard.set(data, forKey: Self.cachedQuotaKey)
-        // Sur le fil principal : `NotificationCenter.post` délivre de façon
-        // synchrone sur le fil qui poste, et `.onReceive` ne change pas de file.
-        // Or ce code tourne dans un rappel `URLSession` — poster ici écrirait
-        // un `@Published` depuis un fil de fond. C'est la première notification
-        // du dépôt postée depuis le réseau ; les autres partent de boutons,
-        // déjà sur le fil principal.
+        // Sur main : `post` délivre sur le fil qui poste, et on est dans un
+        // rappel `URLSession`.
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: Self.quotaDidChange, object: nil)
         }
@@ -188,12 +119,8 @@ final class NexusUpdateChecker: @unchecked Sendable {
         return try? JSONDecoder().decode(NexusAccount.self, from: data)
     }
 
-    /// Demande à Nexus si ce compte est premium.
-    ///
-    /// La réponse décide d'un bouton : le téléchargement direct par l'API est
-    /// réservé aux comptes premium — `/download_link.json` répond sinon
-    /// `403 « this is for premium users only »`. Sans ce renseignement, l'app
-    /// propose une action qui échouera à coup sûr.
+    /// Compte premium ? Décide d'un bouton : `/download_link.json` répond 403
+    /// sinon.
     func fetchAccount(completion: @escaping @Sendable (NexusAccount?) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty,
               let request = NexusRequestBuilder.makeRequest(path: "/users/validate.json",
@@ -206,8 +133,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
                   let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                   let account = NexusAccount(json: json)
             else { DispatchQueue.main.async { completion(nil) }; return }
-            // Comme le quota : une réponse arrivée après le retrait de la clé
-            // ne doit pas ressusciter le compte auquel elle appartenait.
+            // Réponse après retrait de la clé : ignorée.
             guard self.apiKey()?.isEmpty == false else {
                 DispatchQueue.main.async { completion(nil) }; return
             }
@@ -218,8 +144,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
         }.resume()
     }
 
-    /// Le dernier quota relevé, périmé ou non — c'est l'affichage qui décide
-    /// quoi en dire (`NexusQuota.isStale`).
+    /// Dernier quota, périmé ou non (`NexusQuota.isStale` décide).
     func cachedQuota() -> NexusQuota? {
         guard let data = UserDefaults.standard.data(forKey: Self.cachedQuotaKey) else { return nil }
         return try? JSONDecoder().decode(NexusQuota.self, from: data)
@@ -244,19 +169,9 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     func clearApiKey() {
         KeychainSecret.nexusApiKey.clear()
-        // Drop any cached results so they don't leak across accounts, and
-        // bump the generation so an in-flight check()/fetchSingleMod() from
-        // the old key discards its results instead of writing them back
-        // after this clear. All under the same lock those writes use, so
-        // this can't interleave with one of them mid-write either.
-        //
-        // **Les mises à jour ne sont plus de celles-là.** Elles viennent de
-        // smapi.io — source publique, sans compte ni clé — et se déduisent des
-        // manifests du disque : rien à faire fuir d'un compte à l'autre. Les
-        // effacer ici ne faisait que détruire un travail valide, et obligeait à
-        // refaire les 7 lots pour retrouver ce que le retrait de la clé n'avait
-        // aucune raison d'emporter. Catégories et fiches, elles, viennent bien
-        // de l'API Nexus : leur purge reste juste.
+        // Drop cached metadata across accounts and bump the generation, under the
+        // writers' lock. **Pas les mises à jour** : smapi.io, sans compte ; les
+        // effacer détruisait un travail valide.
         metadataCacheLock.lock()
         metadataGeneration += 1
         UserDefaults.standard.removeObject(forKey: cachedCategoriesKey)
@@ -270,18 +185,11 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Update check
 
-    /// Represents a mod that has a newer version available on Nexus.
-    /// `uploadedTime` is the Nexus `updated_time` (timestamp of the latest
-    /// file/version upload) — used to break ties when several children of a
-    /// pack share the same highest version, and surfaced in the UI.
+    /// A mod with a newer Nexus version; `uploadedTime` breaks version ties
+    /// inside packs and is shown in the UI.
     struct ModUpdate: Identifiable, Equatable {
-        /// L'identité d'une ligne est le `UniqueID` du mod, **pas** son
-        /// identifiant Nexus. Sur le parc réel, 58 identifiants Nexus sont
-        /// portés par plusieurs dossiers et l'identifiant 8828 rassemble trois
-        /// mods sans rapport : indexer sur lui donnait plusieurs lignes de même
-        /// `id` à un `ForEach`, avec les lignes fantômes et la sélection
-        /// incohérente que ça entraîne. L'ancien code s'en protégeait par sa
-        /// déduplication par identifiant Nexus, partie avec lui.
+        /// Identité = `UniqueID`, **pas** l'id Nexus (58 partagés, 8828 = trois
+        /// mods) : sinon `id` dupliqués dans un `ForEach`.
         var id: String { uniqueId }
         let uniqueId: String
         let name: String
@@ -292,66 +200,40 @@ final class NexusUpdateChecker: @unchecked Sendable {
         let uploadedTime: Date?
     }
 
-    /// Short summary text + primary screenshot URL for a mod, as returned by
-    /// the Nexus API alongside version/category in the same response. Either
-    /// field may be empty when Nexus has none on file for that mod.
+    /// Summary + primary picture from the same response; either may be empty.
     struct NexusModExtra: Codable, Equatable {
         let summary: String
         let pictureUrl: String
-        /// The mod's latest Nexus version (the Main file / changelog version),
-        /// captured on every successful fetch. Optional so older cached entries
-        /// (written before this field existed) still decode. Used to show a
-        /// mod **pack**'s version in the list, since a pack is one Nexus mod
-        /// even though its installed children carry their own manifest versions.
+        /// Latest Nexus version (optional for old caches); shows a pack's version.
         var version: String? = nil
-        /// When the mod's latest file/version was uploaded on Nexus
-        /// (`updated_timestamp`). Optional/back-compatible; shown as the mod's
-        /// "last updated" date in the detail pane.
+        /// Latest upload date (`updated_timestamp`), optional; "last updated".
         var uploadedTime: Date? = nil
     }
 
-    /// Returns the last successful update list, regardless of freshness.
-    /// Useful for seeding the UI on launch before any check runs.
+    /// Last update list, regardless of freshness (launch seed).
     func cachedUpdates() -> [ModUpdate] {
         withMetadataCacheLock { loadCachedUpdates() }
     }
 
-    /// The last update check that returned a response, `nil` if none ever
-    /// completed. Read by the launch gate (A2-T4); the manual check button
-    /// on the Updates page bypasses the gate — asking outranks freshness.
+    /// Last answered check, `nil` if none (A2-T4 gate; manual check bypasses).
     var lastSuccessfulCheck: Date? {
         let epoch = UserDefaults.standard.double(forKey: lastCheckedKey)
         return epoch > 0 ? Date(timeIntervalSince1970: epoch) : nil
     }
 
-    /// Marks a pass as completed. Called when the smapi.io fetch returned —
-    /// per-mod states (broken, abandoned) are data, not failures.
+    /// Marks a completed pass (per-mod states are data, not failures).
     func recordSuccessfulCheck(at date: Date = Date()) {
         UserDefaults.standard.set(date.timeIntervalSince1970, forKey: lastCheckedKey)
     }
 
-    /// Remplace entièrement le cache des mises à jour.
-    ///
-    /// C'est le **seul** point de persistance du chemin smapi.io. Sans lui, les
-    /// lignes trouvées mouraient à la fermeture et le lancement suivant
-    /// réaffichait `cachedUpdates()`, c'est-à-dire la liste écrite par le code
-    /// que cette branche remplace. L'ancien `check()` persistait ; la garantie
-    /// est partie avec lui.
+    /// Remplace le cache des mises à jour : **seul** point de persistance du
+    /// chemin smapi.io (sinon l'ancienne liste revient au lancement).
     func replaceCachedUpdates(_ updates: [ModUpdate]) {
         withMetadataCacheLock { saveCachedUpdates(updates) }
     }
 
-    /// Retire une ligne du cache persistant des mises à jour, sur l'identité
-    /// qui fait foi : le `UniqueID`.
-    ///
-    /// La variante sur identifiant Nexus, retirée avec son dernier appelant,
-    /// emportait tout ce qui partage la page — et le parc réel montre que
-    /// « la page » n'est pas une identité : 47 identifiants y sont déclarés par
-    /// plusieurs `UniqueID`, dont le 8828 par trois mods sans rapport.
-    ///
-    /// Retrait ciblé plutôt que `replaceCachedUpdates(nexusUpdates)` : la liste
-    /// en mémoire est consolidée par pack au lancement, pas le cache. La
-    /// réécrire entière effacerait les lignes des enfants absorbés.
+    /// Retire une ligne par `UniqueID` (l'id Nexus emportait toute la page :
+    /// 47 partagés). Ciblé : le cache n'est pas consolidé par pack.
     func dismissUpdate(uniqueId: String) {
         withMetadataCacheLock {
             let remaining = loadCachedUpdates().filter { $0.uniqueId != uniqueId }
@@ -361,22 +243,17 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Single-mod fetch
 
-    /// Outcome of an on-demand single-mod metadata fetch (used when the user
-    /// enters a Nexus mod id in the per-mod editor popover).
+    /// On-demand single-mod fetch outcome (per-mod editor).
     enum SingleFetchResult {
-        /// `pageFile` : le MAIN le plus récent de la page, quand `files.json`
-        /// a répondu — c'est lui qui juge un mod installé par l'app (X9).
+        /// `pageFile` : MAIN le plus récent (X9), si `files.json` a répondu.
         case success(version: String, categoryId: Int?, extra: NexusModExtra, pageFile: NexusModFile?)
         case noApiKey
         case rateLimited(retryAfter: TimeInterval)
         case error(String)
     }
 
-    /// Fetches a single mod's metadata (latest version + category id + summary/
-    /// picture) by Nexus mod id. Caches the
-    /// category and extra immediately so the mods list badge and popover
-    /// preview pick them up without a full check. The completion is always
-    /// invoked on the main queue.
+    /// Single mod metadata by id; caches category + extra at once. Completion
+    /// on main.
     func fetchSingleMod(modId: String, completion: @escaping @Sendable (SingleFetchResult) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             DispatchQueue.main.async { completion(.noApiKey) }
@@ -389,11 +266,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
             switch result {
             case .success(let version, let catId, let extra, _, let pageFile):
                 guard let self = self else { return }
-                // Persist the category + extra in the shared cache so they
-                // survive relaunches and the mods-list badge / popover preview
-                // appear instantly — unless the key was cleared while this
-                // fetch was in flight, in which case discard it instead of
-                // resurrecting the old account's data (see `metadataGeneration`).
+                // Persist unless the key was cleared meanwhile (`metadataGeneration`).
                 self.metadataCacheLock.lock()
                 let staleGeneration = self.metadataGeneration != startGeneration
                 if !staleGeneration {
@@ -425,16 +298,14 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Cached results
     private struct CachedUpdate: Codable {
-        /// Optionnel : une charge écrite avant que `ModUpdate` porte ce champ
-        /// se décode encore, et retombe alors sur `nexusModId`.
+        /// Optionnel (anciennes charges) : repli sur `nexusModId`.
         let uniqueId: String?
         let name: String
         let installedVersion: String
         let latestVersion: String
         let nexusModId: String
         let url: String
-        // Optional for backward compatibility with caches written before this
-        // field existed — old entries decode with `nil`.
+        // Optional for older caches.
         let uploadedTime: Date?
     }
 
@@ -465,9 +336,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Category cache
 
-    /// Returns the last known `{ nexusModId: categoryId }` map, regardless of
-    /// freshness. Used to seed the mods-list filter on launch before any check
-    /// has run this session.
+    /// Last `{ nexusModId: categoryId }` (launch seed).
     func cachedCategories() -> [String: Int] {
         withMetadataCacheLock { loadCachedCategories() }
     }
@@ -487,9 +356,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Extras cache (summary + picture URL)
 
-    /// Returns the last known `{ nexusModId: NexusModExtra }` map, regardless
-    /// of freshness. Used to seed the popover preview on launch before any
-    /// check has run this session.
+    /// Last `{ nexusModId: NexusModExtra }` (launch seed).
     func cachedExtras() -> [String: NexusModExtra] {
         withMetadataCacheLock { loadCachedExtras() }
     }
@@ -508,10 +375,8 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Networking
 
-    /// `Sendable` explicite : la valeur traverse les callbacks `@Sendable`
-    /// d'`URLSession` (P5-L5). ⚠️ Le compilateur de la CI (Xcode 16.4, Swift
-    /// 6.0) l'exige là où une chaîne 6.3 laisse passer — c'est **lui** qui
-    /// juge, pas la machine de développement.
+    /// `Sendable` explicite (P5-L5). ⚠️ La CI (Xcode 16.4, Swift 6.0) l'exige :
+    /// c'est **elle** qui juge.
     private enum FetchResult: Sendable {
         case success(version: String, categoryId: Int?, extra: NexusModExtra, uploadedTime: Date?, pageFile: NexusModFile?)
         case rateLimited(retryAfter: TimeInterval)
@@ -520,16 +385,13 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     private func fetchModInfo(modId: String, apiKey: String,
                               completion: @escaping @Sendable (FetchResult) -> Void) {
-        // Ne pas repartir tant que le back-off d'un 429 précédent court : la
-        // boucle de `check()` s'arrête alors dès le premier mod, et un appel à
-        // la demande échoue localement au lieu d'ajouter une requête bannie.
+        // Back-off en cours : échec local, pas de requête bannie.
         if isRateLimited() {
             completion(.rateLimited(retryAfter: rateLimitRemaining()))
             return
         }
-        // Un modId vient d'un UpdateKey de manifest — source externe non fiable.
-        // Sans validation, l'interpoler dans le chemin (`/mods/<modId>.json`)
-        // ouvrirait la porte au path traversal et à l'injection de query.
+        // `modId` vient d'un manifeste (non fiable) : validé contre le path
+        // traversal et l'injection.
         guard NexusRequestBuilder.isValidModId(modId) else {
             completion(.failure("invalid_mod_id"))
             return
@@ -551,8 +413,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
                 completion(.failure("no_response"))
                 return
             }
-            // Relevé du quota avant tout aiguillage : c'est le 429 qui porte le
-            // « 0 restant », le chiffre qui compte le plus (B2-T6).
+            // Quota relevé d'abord : le 429 porte le « 0 restant » (B2-T6).
             let quota = self.noteQuota(from: http)
             if http.statusCode == 429 {
                 let retry = Self.parseRetryAfter(http.value(forHTTPHeaderField: "Retry-After"))
@@ -564,33 +425,24 @@ final class NexusUpdateChecker: @unchecked Sendable {
                 completion(.failure("http_\(http.statusCode)"))
                 return
             }
-            // `strict: false` — some mod descriptions embed raw control chars
-            // (e.g. form feeds) that JSONSerialization would otherwise reject.
+            // Some descriptions embed raw control chars.
             guard let json = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]),
                   let dict = json as? [String: Any],
                   let version = dict["version"] as? String else {
                 completion(.failure("parse_error"))
                 return
             }
-            // `category_id` is an Int in the Nexus payload; tolerate NSNumber
-            // / String just in case the API ever widens the field.
+            // `category_id` Int; NSNumber/String tolerated.
             var categoryId: Int?
             if let cid = dict["category_id"] as? Int {
                 categoryId = cid
             } else if let cid = dict["category_id"] as? NSNumber {
                 categoryId = cid.intValue
             }
-            // `summary` and `picture_url` are both optional in the Nexus
-            // payload (absent for some mods) — default to empty string rather
-            // than threading an extra Optional through every caller.
+            // Optional fields default to "".
             let summary = (dict["summary"] as? String) ?? ""
             let pictureUrl = (dict["picture_url"] as? String) ?? ""
-            // Nexus returns the "last updated" instant under TWO keys:
-            //  - `updated_timestamp`: a Unix epoch in seconds (the reliable one)
-            //  - `updated_time`: a human-readable ISO8601 string (fallback)
-            // We prefer the numeric form and fall back to parsing the string.
-            // This reflects when the latest file/version was uploaded and is
-            // used to break version ties inside packs + shown in the UI.
+            // Upload date: `updated_timestamp` (epoch), else `updated_time` (string).
             var uploadedDate: Date?
             if let ts = dict["updated_timestamp"] as? Int {
                 uploadedDate = Date(timeIntervalSince1970: TimeInterval(ts))
@@ -603,18 +455,11 @@ final class NexusUpdateChecker: @unchecked Sendable {
                 uploadedDate = iso.date(from: raw)
                     ?? Self.legacyNexusFormatter.date(from: raw)
             }
-            // Single source of truth: bake the latest version + upload date into
-            // the extra so every consumer (update check, single fetch, cache)
-            // carries them without re-injecting at each call site.
-            // Secondary lookup on `files.json`: some mod authors set a stale
-            // overview header version (e.g. "1") while uploading version "2.0.0"
-            // under Main Files. Querying files.json resolves the true main file version.
+            // Version + date baked into the extra. `files.json` second lookup: an
+            // overview header can lag (e.g. "1" vs Main File "2.0.0").
             var finalVersion = version
-            // X9 : le MAIN choisi remonte avec le verdict. C'est lui, et non
-            // le libellé, qui juge un mod que l'app a installé elle-même —
-            // un libellé posé par l'auteur peut vivre sa vie indépendante du
-            // manifeste de l'archive. Var capturée par `finalize`, lue à son
-            // appel (le fichier n'est connu qu'au retour de files.json).
+            // X9 : le MAIN choisi remonte ; c'est lui qui juge un mod installé par
+            // l'app.
             var finalPageFile: NexusModFile?
             let finalize = { (ver: String) in
                 let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
@@ -632,16 +477,11 @@ final class NexusUpdateChecker: @unchecked Sendable {
             }
 
             URLSession.shared.dataTask(with: filesRequest) { filesData, response, _ in
-                // La fenêtre de quota peut se fermer entre la requête principale
-                // (200) et cette requête secondaire files.json : son 429 doit lui
-                // aussi armer la porte partagée, sinon les chemins suivants
-                // repartent pendant la limitation.
+                // Le 429 de `files.json` arme aussi la porte.
                 self.noteRateLimitIfThrottled(response)
                 if let filesData = filesData,
                    let fileList = try? NexusDownloadAPI.decodeFileList(filesData),
-                   // X8 : le MAIN le plus récent, pas le premier renvoyé — un
-                   // mod à plusieurs MAIN comparerait sinon sa version à une
-                   // version passée.
+                   // X8 : MAIN le plus récent, pas le premier.
                    let primaryFile = NexusDownloadAPI.pickLatestMainFile(fileList) {
                     if let fileVer = (primaryFile.version ?? primaryFile.modVersion)?
                         .trimmingCharacters(in: .whitespacesAndNewlines), !fileVer.isEmpty,
@@ -658,27 +498,16 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Rich mod detail (Task 3: description + changelog)
 
-    /// Fetches only the raw HTML/BBCode `description` field for a mod, for the
-    /// rich detail pane. Reuses the exact same endpoint/headers as
-    /// `fetchModInfo` above (mods/{id}.json) rather than standing up a second
-    /// client. The pane's changelog comes separately from `fetchChangelogs`
-    /// (changelogs.json), so this request only owns the description.
-    /// Returns `""` on any failure (no API key, network error, non-200 status,
-    /// parse error, missing field) so callers can treat that uniformly as
-    /// "offline / unavailable" and keep showing cached/local data instead.
-    ///
-    /// ⚠️ **La complétion n'est PAS ramenée sur le fil principal**, à la
-    /// différence de `fetchSingleMod` et `fetchAccount` : elle est appelée là
-    /// où `URLSession` la rend, donc en tâche de fond. L'appelant actuel
-    /// (`StarHubTHViewModel.loadModDetail`) repasse par `DispatchQueue.main`
-    /// avant de toucher un `@Published` — le prochain devra faire de même.
+    /// Raw description (`mods/{id}.json`, same client) for the detail pane;
+    /// `""` on any failure (cached/local data stays).
+    /// ⚠️ **Complétion hors fil principal** (fil `URLSession`) : l'appelant
+    /// repasse par main.
     func fetchRawDescription(modId: Int, completion: @escaping (String) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             completion("")
             return
         }
-        // Un 429 en cours vaut « indisponible » : la fiche garde ses données en
-        // cache au lieu d'ajouter une requête pendant la limitation.
+        // 429 en cours = indisponible.
         guard !isRateLimited() else {
             completion("")
             return
@@ -707,15 +536,8 @@ final class NexusUpdateChecker: @unchecked Sendable {
         task.resume()
     }
 
-    /// Fetches a mod's **complete** changelog via the dedicated
-    /// `mods/{id}/changelogs.json` endpoint, which returns every version's
-    /// entries (`{ "1.2.0": ["line", …], … }`) — unlike `files.json`, whose
-    /// per-file `changelog_html` only covers a single upload. Formats the
-    /// result as Markdown, newest version first (compared with
-    /// `NexusUpdateChecker.compare`). Yields `""` on any failure (no key,
-    /// offline, empty) so the caller keeps its cached/local fallback.
-    /// ⚠️ Même contrat que `fetchRawDescription` : la complétion arrive sur le
-    /// fil de `URLSession`, pas sur le principal.
+    /// **Complete** changelog (`changelogs.json`, every version) as Markdown,
+    /// newest first; `""` on failure. ⚠️ Complétion sur le fil `URLSession`.
     func fetchChangelogs(modId: Int, completion: @escaping (String) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
             completion("")
@@ -748,9 +570,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
         task.resume()
     }
 
-    /// Renders `{version: [entries]}` as Markdown, newest version first: a bold
-    /// version heading followed by one `- ` bullet per entry. Kept pure/static
-    /// so it can be reasoned about (and unit-tested) without networking.
+    /// `{version: [entries]}` → Markdown, newest first. Pure.
     static func formatChangelogs(_ dict: [String: [String]]) -> String {
         let versions = dict.keys.sorted { compare($0, $1) == .orderedDescending }
         return versions.map { version -> String in
@@ -759,8 +579,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
         }.joined(separator: "\n\n")
     }
 
-    /// Legacy fallback for the human-readable `updated_time` string some
-    /// older Nexus responses use ("Wed, 21 Oct 2026 07:28:00 GMT").
+    /// Legacy `updated_time` format.
     private static let legacyNexusFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
@@ -769,9 +588,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
         return f
     }()
 
-    /// Parses a `Retry-After` header value, which per RFC 7231 can be either
-    /// a delay in seconds ("120") or an HTTP-date ("Wed, 21 Oct 2026
-    /// 07:28:00 GMT"). Falls back to 60s (logged) if neither form parses.
+    /// `Retry-After`: seconds or HTTP-date; 60 s fallback (logged).
     private static func parseRetryAfter(_ header: String?) -> TimeInterval {
         guard let header = header else { return 60 }
         if let seconds = TimeInterval(header) {
@@ -790,17 +607,12 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Version comparison
 
-    /// Returns `true` if `latest` is strictly newer than `installed` using
-    /// dotted-numeric comparison. Non-numeric segments are compared lexically.
+    /// `latest` strictly newer (dotted-numeric).
     static func isNewer(_ latest: String, installed: String) -> Bool {
         compare(latest, installed) == .orderedDescending
     }
 
-    /// Returns `true` when the Nexus upload date is known and strictly more
-    /// recent than the installed mod's on-disk file date. Used to flag a
-    /// same-version update (the modder re-uploaded the current version after
-    /// the local copy was installed). When either date is missing we can't be
-    /// sure, so we return `false` (don't show a spurious update).
+    /// Nexus upload strictly after the local file date; `false` if unknown.
     static func isNexusUploadNewer(_ nexusUpload: Date?, than installedFileDate: Date?) -> Bool {
         guard let nexus = nexusUpload, let installed = installedFileDate else {
             return false
@@ -808,18 +620,13 @@ final class NexusUpdateChecker: @unchecked Sendable {
         return nexus > installed
     }
 
-    /// Compares two version strings like "1.4.2", "1.4.10-beta.1".
-    /// Splits the numeric core on `.` and compares segment-by-segment. A
-    /// leading `v`/`V` prefix is stripped first. After the numeric core, a
-    /// `-suffix` (pre-release, e.g. "beta") ranks *lower* than no suffix per
-    /// the semver spec, so `1.0.0-beta` < `1.0.0`. `+build` metadata is
-    /// ignored entirely.
+    /// Compares "1.4.2", "1.4.10-beta.1": leading `v` stripped, numeric
+    /// segments, pre-release lower (semver), `+build` ignored.
     static func compare(_ a: String, _ b: String) -> ComparisonResult {
         let aNorm = a.hasPrefix("v") || a.hasPrefix("V") ? String(a.dropFirst()) : a
         let bNorm = b.hasPrefix("v") || b.hasPrefix("V") ? String(b.dropFirst()) : b
 
-        // Separate the numeric core from the pre-release suffix. `+build` is
-        // dropped (semver: build metadata does not affect precedence).
+        // Numeric core vs pre-release; `+build` dropped.
         func splitCore(_ s: String) -> (core: [String], hasPre: Bool, pre: [String]) {
             var work = s
             if let plusIdx = work.firstIndex(of: "+") {
@@ -849,8 +656,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
             }
         }
 
-        // Cores are equal — pre-release precedence (semver: a version with a
-        // pre-release tag is LOWER than the same version without one).
+        // Equal cores: pre-release ranks lower.
         if aHasPre && !bHasPre { return .orderedAscending }
         if !aHasPre && bHasPre { return .orderedDescending }
         if aHasPre && bHasPre {
