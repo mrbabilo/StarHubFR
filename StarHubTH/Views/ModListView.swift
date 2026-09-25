@@ -16,7 +16,7 @@ private enum PageSlot {
 
 struct ModListView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
-    @FocusState private var searchFocused: Bool
+    @FocusState var searchFocused: Bool
 
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -46,13 +46,13 @@ struct ModListView: View {
     /// constante pour les deux dispositions. 12 depuis le 2026-09-09 (15
     /// auparavant), à la demande de l'auteur.
     private let pageSize: Int = 12
-    @State private var showInstallSheet = false
+    @State var showInstallSheet = false
     /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
     /// se parcourent en rangées denses. `@AppStorage` suit le patron de
     /// `discoveryHideInstalled` (`DiscoverView.swift:15`) — c'est une
     /// habitude de parcours, pas un état de session.
     enum ModsListLayout: String { case list, grid }
-    @AppStorage("modsListLayout") private var listLayout: ModsListLayout = .list
+    @AppStorage("modsListLayout") var listLayout: ModsListLayout = .list
     /// Drives the confirmation dialog when the user picks "Enable All" or
     /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
     /// = disabling — kept as a single optional so the dialog binds cleanly.
@@ -281,158 +281,9 @@ struct ModListView: View {
 
             // ── Sticky header ────────────────────────────────────────────
             // Toolbar fixed above the scrolling list, as in LogsView.
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                // Primary row: scope picker (left) + primary action (right).
-                // Keeps the most-used navigation and the key CTA at the
-                // same visual priority, above the secondary filters.
-                HStack {
-                    // Libellés complets, ou icône et compte si la barre est
-                    // trop étroite (fenêtre minimale) : jamais tronqués.
-                    ViewThatFits(in: .horizontal) {
-                        ModScopePicker(scope: $listState.filters.scope, counts: counts,
-                                       localization: localization, compact: false)
-                        ModScopePicker(scope: $listState.filters.scope, counts: counts,
-                                       localization: localization, compact: true)
-                    }
-
-                    // La recherche vit ici, au motif des journaux
-                    // (`LogsView.swift:182`) — la barre système `.searchable`
-                    // disparaît : un geste, une place (P3). Filtrage à la
-                    // frappe, comme `.searchable` le donnait ; le motif
-                    // Découvrir est submit-only et l'aurait régressé.
-                    HStack(spacing: AppDesign.Spacing.xs) {
-                        Image(systemName: "magnifyingglass")
-                            .font(AppDesign.Font.iconXS)
-                            .foregroundColor(.secondary)
-                        TextField(localization.L(L10n.Mods.searchMods),
-                                  text: $listState.filters.search)
-                            .textFieldStyle(.plain)
-                            .searchFieldShortcut($searchFocused)
-                        if !listState.filters.search.isEmpty {
-                            Button {
-                                listState.filters.search = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                            }
-                            .buttonStyle(.plain)
-                            // Cible 18×18 + contentShape : un glyphe nu de
-                            // ~12 pt rend `.help` muet (contrainte a11y du
-                            // lot ; patron `ModListView` ligne ~1500).
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                            .help(localization.L(L10n.Discovery.clearSearch))
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, AppDesign.Spacing.xs)
-                    .background(Color.primary.opacity(AppDesign.Opacity.light))
-                    .cornerRadius(6)
-                    .frame(maxWidth: 220)
-
-                    Spacer()
-
-                    // La grille optionnelle (H-T4) : liste dense par défaut,
-                    // cartes au-dessus. Choix persisté — c'est une habitude
-                    // de parcours, pas un état de session.
-                    Picker(localization.L(L10n.Mods.layoutList), selection: $listLayout) {
-                        // `list.bullet` et non un glyph de disposition : à
-                        // 32 pt de demi-segment, tout ce qui dessine des
-                        // quartiers devient illisible.
-                        Image(systemName: "list.bullet")
-                            .tag(ModsListLayout.list)
-                        Image(systemName: "square.grid.2x2")
-                            .tag(ModsListLayout.grid)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 64)
-                    .help(listLayout == .list
-                          ? localization.L(L10n.Mods.layoutList)
-                          : localization.L(L10n.Mods.layoutGrid))
-
-                    // Bulk enable/disable all mods at once. Disabled when
-                    // there is nothing to act on (empty list, or every mod
-                    // is already in the target state), or while a bulk
-                    // toggle operation is already in flight.
-                    bulkToggleMenu(scoped: display)
-                        .disabled(vm.scanStore.mods.isEmpty || vm.bulkToggleProgress != nil)
-
-                    Button {
-                        showInstallSheet = true
-                    } label: {
-                        Label(localization.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-
-                // Secondary row: filters and sort, grouped as chips.
-                // Wraps the set of filter controls in a single HStack so
-                // they read as one visual unit ("refine the list"),
-                // separate from the primary scope/actions above.
-                HStack(spacing: 6) {
-                    sortPicker
-
-                    Divider()
-                        .frame(height: 16)
-
-                    configFilterToggle
-
-                    favoritesFilterToggle
-
-                    blacklistedFilterToggle
-
-                    Divider()
-                        .frame(height: 16)
-
-                    frenchTranslationPicker(counts: translationCounts)
-
-                    categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
-                        .disabled(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty)
-                        .help(categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
-                              ? localization.L(L10n.Mods.categoryFilterEmptyHint)
-                              : localization.L(L10n.Mods.categoryFilterHint))
-
-                    Spacer()
-
-                    scopeWeightLabel(for: display)
-
-                    if categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty {
-                        Text(localization.L(L10n.Mods.categoryFilterEmptyHint))
-                            .font(AppDesign.Font.footnote)
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
-                    }
-
-                    // Le profil appliqué — et le chemin vers la page qui le
-                    // gère : c'est là qu'on va quand on le lit ici.
-                    if let profile = vm.activeProfile {
-                        Button {
-                            currentTab = .profiles
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "person.crop.circle")
-                                    .font(AppDesign.Font.footnote)
-                                Text(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))
-                                    .font(AppDesign.Font.footnote(.medium))
-                                    .lineLimit(1)
-                            }
-                            .foregroundColor(.accentColor)
-                            .padding(.horizontal, AppDesign.Spacing.sm)
-                            .padding(.vertical, 3)
-                            .background(Color.accentColor.opacity(0.12))
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .pointingHandCursor()
-                        .help(localization.L(L10n.Profiles.title))
-                        .accessibilityLabel(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))
-                        .accessibilityHint(localization.L(L10n.Profiles.title))
-                    }
-                }
-            }
-            .padding(.horizontal, AppDesign.Spacing.xl)
-            .padding(.top, AppDesign.Spacing.xl)
-            .padding(.bottom, AppDesign.Spacing.md)
-            .background(Color(nsColor: .controlBackgroundColor))
+            listHeader(counts: counts, display: display, categories: categories,
+                       uncatCount: uncatCount, tagBuckets: tagBuckets,
+                       translationCounts: translationCounts)
 
             Divider()
 
@@ -738,7 +589,7 @@ struct ModListView: View {
     /// être des mods. Les deux chiffres répondent à deux questions : ce que
     /// pèse le dossier, et ce que pèse ce qu'on regarde.
     @ViewBuilder
-    private func scopeWeightLabel(for display: [ModItem]) -> some View {
+    func scopeWeightLabel(for display: [ModItem]) -> some View {
         let total = display.compactMap { vm.sizeOnDisk(of: $0) }.reduce(Int64(0), +)
         if total > 0 {
             HStack(spacing: 3) {
@@ -775,7 +626,7 @@ struct ModListView: View {
     /// Takes the scoped list computed once per render by `body` (`display`)
     /// rather than re-deriving it : the rule is the ViewModel's, the menu
     /// only reads its result.
-    private func bulkToggleMenu(scoped: [ModItem]) -> some View {
+    func bulkToggleMenu(scoped: [ModItem]) -> some View {
         let anyDisabled = scoped.contains { !$0.isEnabled }
         let anyEnabled = scoped.contains { $0.isEnabled }
         return Menu {
