@@ -3726,28 +3726,26 @@ final class StarHubTHViewModel {
             })
     }
 
-    /// Le verdict de compatibilité qui **demande une décision** pour ce mod,
-    /// et le composant qui le porte.
-    ///
-    /// Un pack rend celui du plus grave de ses composants, avec le composant
-    /// lui-même : c'est le dossier de premier niveau qu'on active ou qu'on met
-    /// en pause, mais c'est l'enfant qu'il faut nommer pour que l'utilisateur
-    /// sache où regarder.
-    ///
-    /// `nil` couvre **deux cas très différents** — le mod est sain, ou
-    /// smapi.io ne le connaît pas (552 mods du parc sur 840). Aucun appelant ne
-    /// doit rendre l'un pour l'autre : ce qui s'affiche ici est un
-    /// avertissement, jamais un satisfecit.
+    /// Le verdict de compatibilité qui **demande une décision** pour ce mod, et
+    /// le composant qui le porte (un pack rend le plus grave de ses composants).
+    /// `nil` = sain, déjà réglé par la version installée, **ou** inconnu de
+    /// smapi.io (552 mods sur 840) : un avertissement, jamais un satisfecit.
     func compatibilityWarning(for mod: ModItem) -> (component: ModItem,
                                                     verdict: ModCompatibility)? {
         let components = mod.components
         return components
             .compactMap { component -> (component: ModItem, verdict: ModCompatibility)? in
-                guard let verdict = modCompatibility[component.uniqueId],
-                      verdict.status.needsAttention else { return nil }
+                guard let verdict = modCompatibility[component.uniqueId], verdict.status.needsAttention,
+                      !isSettledCompatibility(verdict, for: component) else { return nil }
                 return (component, verdict)
             }
             .max { $0.verdict.status.severity < $1.verdict.status.severity }
+    }
+
+    /// smapi.io juge par `UniqueID`, pas par version (`CompatibilityResolution`).
+    func isSettledCompatibility(_ verdict: ModCompatibility, for mod: ModItem) -> Bool {
+        CompatibilityResolution.resolution(of: verdict, installedVersion: mod.version,
+                                           installedNexusId: effectiveNexusModId(for: mod)) != nil
     }
 
     /// L'état de page Nexus le plus grave porté par un mod ou l'un de ses
@@ -3767,8 +3765,8 @@ final class StarHubTHViewModel {
     var compatibilityFlaggedMods: [(name: String, folderName: String, verdict: ModCompatibility)] {
         allInstalledMods()
             .compactMap { mod -> (name: String, folderName: String, verdict: ModCompatibility)? in
-                guard let verdict = modCompatibility[mod.uniqueId],
-                      verdict.status.needsAttention else { return nil }
+                guard let verdict = modCompatibility[mod.uniqueId], verdict.status.needsAttention,
+                      !isSettledCompatibility(verdict, for: mod) else { return nil }
                 return (mod.name, mod.folderName, verdict)
             }
             .sorted {

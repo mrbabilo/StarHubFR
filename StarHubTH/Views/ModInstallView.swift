@@ -901,8 +901,8 @@ struct ModInstallView: View {
         return info.detectedMods
             .filter { selected.contains($0.id) }
             .compactMap { detected in
-                guard let verdict = vm.modCompatibility[detected.uniqueId],
-                      verdict.status.needsAttention else { return nil }
+                guard let verdict = vm.modCompatibility[detected.uniqueId], verdict.status.needsAttention, // l'archive peut ÊTRE le remplaçant
+                      CompatibilityResolution.resolution(of: verdict, installedVersion: detected.manifest.version, installedNexusId: detected.manifest.nexusModId) == nil else { return nil }
                 return (detected.name, verdict)
             }
     }

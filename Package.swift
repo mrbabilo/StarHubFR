@@ -68,6 +68,7 @@ let package = Package(
                 "Models/ModListKeyStep.swift",
                 "Models/KeyboardShortcutCatalog.swift",
                 "Models/TextScale.swift",
+                "Models/CompatibilityResolution.swift",
                 "Models/ModDetailCache.swift",
                 "Models/ModDetailState.swift",
                 "Models/ModDetailRefresh.swift",
@@ -691,6 +692,11 @@ let package = Package(
             name: "ModGridCardValuesTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModGridCardValuesTests"
+        ),
+        .testTarget(
+            name: "CompatibilityResolutionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/CompatibilityResolutionTests"
         ),
         .testTarget(
             name: "TextScaleTests",
