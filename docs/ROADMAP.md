@@ -590,6 +590,16 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > mods en pause, pas seulement les actifs — et son activation n'efface pas
 > l'historique : le dernier journal date d'avant la mise en pause.
 
+> *Mesuré le 2026-09-26 sur une vraie session (Profiler activé, lancement
+> + chargement) : `[BigLoop]` n'est que le résumé. Profiler écrit surtout des
+> lignes TRACE `[RawLog] {json}` — 1 011 sur la session, toutes lisibles — avec
+> `ModId`, `EventType`, `Duration` (ms) et des `InnerDetails` **imbriqués** :
+> la durée d'un gestionnaire inclut le travail des autres mods qu'il
+> déclenche (Content Patcher : 99 s inclusifs, 86 s propres). Toujours
+> soustraire les enfants avant d'attribuer. Les mods de contenu Content
+> Patcher y paraissent par patch (`ApplyLoad`/`ApplyEdit`, `Details` = le
+> chemin du patch). C'est la source par mod que D2-T2 ne peut pas donner.*
+
 - [ ] **D1-T1** — Détecter la présence et l'activation de Profiler ; guidage (installer →
       jouer une session représentative → revenir). · **S**
 - [ ] **D1-T2** — Parser les lignes `[Profiler] [BigLoop] … GameLoop.TimeChanged` : événement,
