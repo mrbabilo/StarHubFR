@@ -56,4 +56,16 @@ struct NexusRequestBuilderTests {
         let request = NexusRequestBuilder.makeGraphQLRequest(body: Data("{}".utf8), apiKey: "k")
         #expect(request?.timeoutInterval == 20)
     }
+
+    /// A3-T7 : sans clé, aucun en-tête `apikey` — pas même vide —, les
+    /// en-têtes d'identification restent ; avec clé, elle part.
+    @Test func graphQLRequestWithoutKeyOmitsTheHeader() {
+        let keyless = NexusRequestBuilder.makeGraphQLRequest(body: Data("{}".utf8), apiKey: nil)
+        #expect(keyless?.value(forHTTPHeaderField: "apikey") == nil)
+        #expect(keyless?.value(forHTTPHeaderField: "User-Agent") != nil)
+        #expect(keyless?.value(forHTTPHeaderField: "Application-Name") != nil)
+        #expect(keyless?.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        let keyed = NexusRequestBuilder.makeGraphQLRequest(body: Data("{}".utf8), apiKey: "k")
+        #expect(keyed?.value(forHTTPHeaderField: "apikey") == "k")
+    }
 }

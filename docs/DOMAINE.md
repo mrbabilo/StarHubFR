@@ -157,9 +157,11 @@ que ce défaut ne revienne pas par duplication.
   ([NexusUpdateChecker.swift:9](../StarHubTH/NexusUpdateChecker.swift#L9)). Pas
   d'OAuth. `Models/NexusDownloadAPI.swift`, `Models/NexusRequestBuilder.swift`,
   `Models/NexusDownloader.swift`.
-- **GraphQL v2 : nous ne l'utilisons pas.** L'upstream s'en sert pour les
-  *Collections* ; nous n'avons pas cette fonctionnalité. Leur paragraphe ne nous
-  décrit pas.
+- **GraphQL v2** (`https://api.nexusmods.com/v2/graphql`) — Découvrir, la
+  recherche de mods et de traductions, et le **repli de la fiche** (A3-T7) :
+  description et historique quand la v1 échoue. La clé part si elle existe ;
+  seule la fiche fonctionne **sans clé** (`NexusSearchClient.send(requiresKey:)`).
+  L'upstream s'en sert pour les *Collections*, que nous n'avons pas.
 - **Protocole `nxm://`** — l'application enregistre le schéma d'URL, si bien que
   « télécharger avec un gestionnaire » depuis le site Nexus la réveille.
   `Models/NxmLink.swift` analyse l'URL. Elle arrive par `application(_:open:)`
