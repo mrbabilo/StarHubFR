@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Diagnostic : les mods jugés cassés par smapi.io ont leurs actions** — ouvrir la fiche, suivre le lien proposé (version non officielle, remplaçant), voir leurs lignes du journal.
 - **Taille du texte réglable** (Réglages › Affichage : Normale, Grande, Très grande). L'app suit aussi « Réduire les animations » et « Augmenter le contraste » de macOS.
 - **Écran des raccourcis clavier.** Icône clavier au pied de la barre latérale, ou ⌘/ (menu Aide) : tous les raccourcis de l'app, groupés, touches en pastilles.
 - **La liste des mods se parcourt au clavier.** Tab passe de la barre latérale à la page ; dans la liste, ↑ ↓ déplacent la sélection (la page suit), Début et Fin vont aux bouts, Entrée ouvre la fiche.
