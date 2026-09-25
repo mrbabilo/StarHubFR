@@ -168,7 +168,7 @@ struct TranslationLotShuttleView: View {
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(localization.L(L10n.FrTranslations.shuttlePickTitle))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: AppDesign.Font.scaled(15), weight: .semibold))
                 TextField(localization.L(L10n.Mods.diffSearch), text: $searchText)
                     .textFieldStyle(.roundedBorder)
                 HStack {

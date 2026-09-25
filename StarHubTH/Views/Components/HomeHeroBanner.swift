@@ -42,7 +42,7 @@ struct HomeHeroBanner: View {
             Text(vm.steamUsername.isEmpty
                  ? localization.L(L10n.Main.playerFallback)
                  : vm.steamUsername)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: AppDesign.Font.scaled(24), weight: .bold))
                 .lineLimit(1)
             Text(String(format: localization.L(L10n.Settings.appVersion), Self.appVersion))
                 .font(AppDesign.Font.rowTitle)
@@ -69,11 +69,11 @@ struct HomeHeroBanner: View {
                     .clipShape(Circle())
             } else {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 44))
+                    .font(.system(size: AppDesign.Font.scaled(44)))
                     .foregroundColor(.secondary)
             }
             Image(systemName: "leaf.fill")
-                .font(.system(size: 22))
+                .font(.system(size: AppDesign.Font.scaled(22)))
                 .foregroundColor(.green)
                 .background(Circle().fill(Color(nsColor: .windowBackgroundColor))
                     .frame(width: 28, height: 28))

@@ -35,9 +35,9 @@ struct ProfileConfigCompareView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(format: localization.L(L10n.Mods.profileConfigDiffTitle),
                             mod.name, activeName, other.name))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppDesign.Font.headline(.semibold))
                 Text(localization.L(L10n.Mods.profileConfigDiffNote))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -94,7 +94,7 @@ struct ProfileConfigCompareView: View {
         VStack {
             Spacer()
             Text(text)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
@@ -111,7 +111,7 @@ struct ProfileConfigCompareView: View {
             if !items.isEmpty {
                 HStack {
                     Text(title)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppDesign.Font.footnote(.semibold))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -136,10 +136,10 @@ struct ProfileConfigCompareView: View {
     private func row(_ diff: ConfigKeyDiff) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(diff.path)
-                .font(.system(size: 10, design: .monospaced))
+                .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             Text((diff.valueA ?? diff.valueB) ?? "")
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,7 +152,7 @@ struct ProfileConfigCompareView: View {
     private func comparisonRow(_ diff: ConfigKeyDiff) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(diff.path)
-                .font(.system(size: 10, design: .monospaced))
+                .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
                 labelled(activeName, diff.valueA ?? "", color: .primary)
@@ -167,10 +167,10 @@ struct ProfileConfigCompareView: View {
     private func labelled(_ label: String, _ value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
+                .font(AppDesign.Font.iconXXS(.semibold))
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(color)
                 .textSelection(.enabled)
         }

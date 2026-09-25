@@ -90,11 +90,11 @@ struct SaveTimelineView: View {
                 VStack(spacing: 16) {
                     Spacer()
                     Image(systemName: "clock.badge.xmark")
-                        .font(.system(size: 40))
+                        .font(.system(size: AppDesign.Font.scaled(40)))
                         .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
                     Text(localization.L(L10n.Saves.noBackups))
                         .multilineTextAlignment(.center)
-                        .font(.system(size: 14))
+                        .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                     Spacer()
                 }

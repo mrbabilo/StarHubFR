@@ -12,10 +12,10 @@ struct AppUpdateAlertView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(String(format: localization.L(L10n.AppUpdate.title), release.tagName))
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppDesign.Font.headline(.semibold))
             if let excerpt = AppReleasePolicy.firstParagraph(of: release.body) {
                 Text(excerpt)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                     .foregroundColor(.secondary)
                     .lineLimit(4)
                     .textSelection(.enabled)

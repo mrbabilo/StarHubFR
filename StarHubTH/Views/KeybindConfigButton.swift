@@ -21,7 +21,7 @@ struct KeybindConfigButton: View {
         let settingsLabel = localization.L(L10n.Settings.configModSettings)
         Button(action: action) {
             Image(systemName: "gearshape")
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)

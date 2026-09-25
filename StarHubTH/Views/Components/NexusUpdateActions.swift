@@ -28,12 +28,12 @@ struct NexusUpdateActions: View {
                         .controlSize(.small)
                     if let percent = vm.nexusDownloadProgress?.displayPercent {
                         Text("\(percent) %")
-                            .font(.system(size: 11).monospacedDigit())
+                            .font(AppDesign.Font.footnote.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
                     Button(action: { vm.cancelNexusDownload() }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
@@ -70,7 +70,7 @@ struct NexusUpdateActions: View {
                     }
                 } label: {
                     Label(localization.L(L10n.Mods.nexusUpdate), systemImage: "arrow.up.forward.square")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
@@ -91,7 +91,7 @@ struct NexusUpdateActions: View {
                                        version: update.latestVersion)
                 } label: {
                     Label(localization.L(L10n.Updates.nexusAlreadyHave), systemImage: "checkmark.circle")
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -127,7 +127,7 @@ struct NexusUpdateActions: View {
                 } label: {
                     Label(localization.L(L10n.Updates.snoozeButton),
                           systemImage: "moon.zzz.fill")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)

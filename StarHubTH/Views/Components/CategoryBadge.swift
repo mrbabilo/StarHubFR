@@ -22,7 +22,7 @@ struct CategoryBadge: View {
                 .fill(Color(category.color))
                 .frame(width: 7, height: 7)
             Text(category.localizedName(L))
-                .font(.system(size: 10, weight: .medium))
+                .font(AppDesign.Font.iconXS(.medium))
                 .foregroundColor(Color(category.color))
                 .lineLimit(1)
         }

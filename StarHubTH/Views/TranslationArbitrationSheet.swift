@@ -39,7 +39,7 @@ struct TranslationArbitrationSheet: View {
                 }
             } else {
                 Text(localization.L(L10n.Mods.translationLotMergeTitle))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: AppDesign.Font.scaled(15), weight: .semibold))
                 summary
                 List {
                     ForEach(store.reviews) { review in

@@ -29,9 +29,9 @@ struct RecoverableFilesView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(localization.L(L10n.Recovery.title))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppDesign.Font.headline(.semibold))
                 Text(localization.L(L10n.Recovery.note))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -45,7 +45,7 @@ struct RecoverableFilesView: View {
             } else if vm.recoverableFiles.isEmpty && soleCopies.isEmpty {
                 centered {
                     Text(localization.L(L10n.Recovery.empty))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
             } else {
@@ -110,12 +110,12 @@ struct RecoverableFilesView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.modName)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 HStack(spacing: 6) {
                     Text(file.relativePath)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(AppDesign.Font.monoIconXS)
                     Text(reasonLabel(file.reason))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.orange)
                 }
                 .foregroundColor(.secondary)
@@ -155,12 +155,12 @@ struct RecoverableFilesView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(copy.modFolder)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                 HStack(spacing: 6) {
                     Text(copy.relativePath)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(AppDesign.Font.monoIconXS)
                     Text(localization.L(L10n.Maintenance.reasonGone))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.orange)
                 }
                 .foregroundColor(.secondary)
@@ -190,7 +190,7 @@ struct RecoverableFilesView: View {
     private var preview: some View {
         ScrollView {
             Text(previewText)
-                .font(.system(size: 11, design: .monospaced))
+                .font(AppDesign.Font.monoFootnote)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)

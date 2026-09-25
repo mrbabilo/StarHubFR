@@ -90,7 +90,7 @@ struct FrenchTranslationsView: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             HStack {
                 Text(localization.L(L10n.FrTranslations.title))
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: AppDesign.Font.scaled(20), weight: .bold))
                 Spacer()
                 if store.isRunning {
                     Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
@@ -107,7 +107,7 @@ struct FrenchTranslationsView: View {
                 }
             }
             Text(localization.L(L10n.FrTranslations.subtitle))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if store.isRunning {
                 HStack(spacing: AppDesign.Spacing.sm) {
@@ -115,21 +115,21 @@ struct FrenchTranslationsView: View {
                         .frame(maxWidth: 220)
                     Text(String(format: localization.L(L10n.FrTranslations.progress),
                                 store.done, store.total, store.currentName ?? ""))
-                        .font(.system(size: 11)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
             } else if let oldest = store.oldestSearch(among: all.map(\.candidate)) {
                 Text(summary(all) + " · "
                      + String(format: localization.L(L10n.FrTranslations.checkedAt),
                               oldest.formatted(date: .abbreviated, time: .shortened)))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             } else {
                 Text(String(format: localization.L(L10n.FrTranslations.never), all.count))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
             if let reason = store.stopReason {
                 Label(stopText(reason), systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(reason == .cancelled ? .secondary : .orange)
             }
         }
@@ -208,7 +208,7 @@ private struct FrenchTranslationSection<Content: View>: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) { content() }
                 .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(title).font(.system(size: 13, weight: .semibold))
+            Text(title).font(AppDesign.Font.body(.semibold))
         }
     }
 }
@@ -226,10 +226,10 @@ private struct FrenchTranslationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: AppDesign.Spacing.sm) {
-                Text(candidate.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                Text(candidate.name).font(AppDesign.Font.body(.medium)).lineLimit(1)
                 if !candidate.isActive {
                     Text(localization.L(L10n.FrTranslations.paused))
-                        .font(.system(size: 10)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Color.secondary.opacity(0.15)).cornerRadius(4)
                 }
@@ -273,11 +273,11 @@ private struct FrenchTranslationRow: View {
             EmptyView()
         case .linkedOnly:
             Text(localization.L(L10n.FrTranslations.linkedOnly))
-                .font(.system(size: 10)).foregroundColor(.orange)
+                .font(AppDesign.Font.iconXS).foregroundColor(.orange)
                 .help(localization.L(L10n.FrTranslations.linkedOnlyHelp))
         case .nameOnly:
             Text(localization.L(L10n.FrTranslations.byName))
-                .font(.system(size: 10)).foregroundColor(.orange)
+                .font(AppDesign.Font.iconXS).foregroundColor(.orange)
                 .help(localization.L(L10n.FrTranslations.byNameHelp))
         }
     }
@@ -286,13 +286,13 @@ private struct FrenchTranslationRow: View {
         HStack(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
-                    Text(hit.name).font(.system(size: 11, weight: .medium))
+                    Text(hit.name).font(AppDesign.Font.footnote(.medium))
                         .lineLimit(1).truncationMode(.middle)
                     caution(hit)
                 }
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
-                    .font(.system(size: 10)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
             }
             Spacer()
             Button(localization.L(action)) { vm.installTranslation(hit, into: mod) }
@@ -305,7 +305,7 @@ private struct FrenchTranslationRow: View {
                 }
             } label: {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
         }

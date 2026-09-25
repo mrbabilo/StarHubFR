@@ -73,24 +73,24 @@ struct DependencyRowView: View {
         HStack(spacing: 10) {
             Image(systemName: iconName)
                 .foregroundColor(iconColor)
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
             VStack(alignment: .leading, spacing: 2) {
                 if let resolved = node.resolved {
-                    Text(resolved.name).font(.system(size: 13, weight: .medium))
-                    Text(resolved.author).font(.system(size: 10)).foregroundColor(.secondary)
+                    Text(resolved.name).font(AppDesign.Font.body(.medium))
+                    Text(resolved.author).font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                 } else {
                     Text(node.uniqueId)
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(AppDesign.Font.monoCaption)
                         .foregroundColor(.secondary)
                 }
                 HStack(spacing: 6) {
                     Text(node.isRequired ? localization.L(L10n.Profiles.required) : localization.L(L10n.Profiles.optional))
-                        .font(.system(size: 9, weight: .bold))
+                        .font(AppDesign.Font.iconXXS(.bold))
                         .foregroundColor(node.isRequired ? .orange : .secondary)
                         .padding(.horizontal, 5).padding(.vertical, 2)
                         .background((node.isRequired ? Color.orange : Color.secondary).opacity(0.15))
                         .cornerRadius(3)
-                    Text(statusText).font(.system(size: 10)).foregroundColor(.secondary)
+                    Text(statusText).font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                 }
             }
             Spacer()

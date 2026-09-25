@@ -64,13 +64,13 @@ struct CompatibilityBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(tint)
                     Text(CompatibilityWarning.label(warning.verdict.status, localization))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppDesign.Font.caption(.semibold))
                         .foregroundColor(tint)
                     Text(localization.L(L10n.Mods.compatSource))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                 }
                 let body = CompatibilityWarning.message(warning.verdict,
@@ -78,7 +78,7 @@ struct CompatibilityBanner: View {
                                                        host: mod, l10n: localization)
                 if !body.isEmpty {
                     Text(body)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

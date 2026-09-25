@@ -180,7 +180,7 @@ struct ProfileDiagnosticsView: View {
             // Le pourcentage à chasse fixe, comme la pastille de la liste des
             // mods : deux rangées voisines ne doivent pas décaler leur nombre.
             Text("\(mod.displayPercent) %")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.system(size: AppDesign.Font.scaled(11), weight: .medium, design: .monospaced))
                 .foregroundColor(mod.translated == 0 ? .secondary : AppDesign.Color.accent)
 
             Button(localization.L(L10n.Profiles.translationOpen)) {
@@ -270,7 +270,7 @@ struct ProfileDiagnosticsView: View {
                 // retrouvera dans un manifeste ou dans un journal SMAPI, et
                 // pour les profils d'avant c'est parfois tout ce qu'on a.
                 Text(mod.uniqueId)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(AppDesign.Font.monoIconXS)
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
             }

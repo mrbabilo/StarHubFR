@@ -44,7 +44,7 @@ struct ModalProgressOverlay: View {
                         .font(AppDesign.Font.caption(.medium))
                     if total > 0 {
                         Text("\(done)/\(total)")
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppDesign.Font.monoCaption)
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                     }

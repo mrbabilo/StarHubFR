@@ -92,12 +92,12 @@ struct KeybindReportSection: View {
         HStack {
             Image(systemName: "keyboard")
             Text(localization.L(L10n.Keybinds.title))
-                .font(.system(size: 14, weight: .bold))
+                .font(AppDesign.Font.rowTitle(.bold))
                 .lineLimit(1)
             Spacer(minLength: AppDesign.Spacing.sm)
             Button(action: { service.scan(mods: vm.scanStore.mods, gameDir: vm.gameDir) }) {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .padding(.horizontal, AppDesign.Spacing.md)
@@ -131,7 +131,7 @@ struct KeybindReportSection: View {
         } else {
             Text(String(format: localization.L(L10n.Keybinds.counters),
                         report.scannedMods, report.keybindCount))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             // Le vert n'affirme l'absence de conflit que si le lot a aussi
             // été entièrement compris : des raccourcis non reconnus sont
             // eux aussi un signal, pas un simple à-côté du vert (ronde de
@@ -162,7 +162,7 @@ struct KeybindReportSection: View {
                     // elle qui évite la fausse alerte chez qui a remappé
                     // ses touches (ronde de revue 1, constat 3).
                     Text(localization.L(L10n.Keybinds.gameCaveat))
-                        .font(.system(size: 11)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     gameConflictsGroup(report.gameConflicts)
                 }
                 if !report.unrecognized.isEmpty {
@@ -177,7 +177,7 @@ struct KeybindReportSection: View {
         }
         if report.pausedIgnored > 0 {
             Text(String(format: localization.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
         }
         if !report.catalogModsIgnored.isEmpty {
             // Défaut 1 (tâche 6) : une exclusion muette est un mensonge par
@@ -196,7 +196,7 @@ struct KeybindReportSection: View {
             Text(String(format: localization.L(L10n.Keybinds.catalogNote),
                         report.catalogModsIgnored.count,
                         report.catalogModsIgnored.joined(separator: ", ")))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
         }
         if !report.remapModsIgnored.isEmpty {
@@ -205,7 +205,7 @@ struct KeybindReportSection: View {
             // (« mod de remap »), jamais un UniqueID.
             Text(String(format: localization.L(L10n.Keybinds.remapNote),
                         report.remapModsIgnored.joined(separator: ", ")))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
         }
         if !report.settings.isEmpty {
@@ -234,7 +234,7 @@ struct KeybindReportSection: View {
             // est en pause : c'est LUI qu'il faut activer pour que le conflit
             // naisse.
             Text("· \(use.modName)\(use.isActive ? "" : " (\(localization.L(L10n.Keybinds.pausedSuffix)))") (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             configButton(modID: use.modID)
         }
@@ -264,7 +264,7 @@ struct KeybindReportSection: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(collisions, id: \.combo) { collision in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(collision.combo.display).font(.system(size: 13, weight: .medium))
+                        Text(collision.combo.display).font(AppDesign.Font.body(.medium))
                         ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -274,7 +274,7 @@ struct KeybindReportSection: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(header), collisions.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -286,11 +286,11 @@ struct KeybindReportSection: View {
                                                defaultOpen: overlaps.count <= Self.autoExpandThreshold)) {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Keybinds.subsetsHint))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 ForEach(overlaps, id: \.self) { overlap in
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(overlap.subset.display)  ⊂  \(overlap.superset.display)")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                         ForEach(KeybindScanner.groupedUses(overlap.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -300,7 +300,7 @@ struct KeybindReportSection: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(L10n.Keybinds.subsetsHeader), overlaps.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -313,7 +313,7 @@ struct KeybindReportSection: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(collisions, id: \.combo) { collision in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(collision.combo.display).font(.system(size: 13, weight: .medium))
+                        Text(collision.combo.display).font(AppDesign.Font.body(.medium))
                         ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -323,7 +323,7 @@ struct KeybindReportSection: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(L10n.Keybinds.latentHeader), collisions.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -351,9 +351,9 @@ struct KeybindReportSection: View {
                         // revue 2, constat 1).
                         HStack(spacing: AppDesign.Spacing.xs) {
                             Text(conflict.control.buttons.joined(separator: " / "))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(AppDesign.Font.body(.medium))
                             Text(conflict.control.name)
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
                         ForEach(KeybindScanner.groupedUses(conflict.uses)) { use in
@@ -365,7 +365,7 @@ struct KeybindReportSection: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(L10n.Keybinds.gameHeader), conflicts.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -376,7 +376,7 @@ struct KeybindReportSection: View {
                 ForEach(items, id: \.self) { u in
                     HStack(spacing: AppDesign.Spacing.xs) {
                         Text("· \(u.modName) · \(u.keyPath.joined(separator: ".")) = \(u.raw)")
-                            .font(.system(size: 12)).foregroundColor(.secondary)
+                            .font(AppDesign.Font.caption).foregroundColor(.secondary)
                             .lineLimit(1).truncationMode(.middle)
                         configButton(modID: u.modID)
                     }
@@ -385,7 +385,7 @@ struct KeybindReportSection: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(L10n.Keybinds.unrecognizedHeader), items.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 }

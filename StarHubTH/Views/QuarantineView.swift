@@ -20,7 +20,7 @@ struct QuarantineView: View {
                 // Header
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                     Text(localization.L(L10n.Quarantine.title))
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: AppDesign.Font.scaled(20), weight: .bold))
                     Text(localization.L(L10n.Quarantine.subtitle))
                         .font(AppDesign.Font.body)
                         .foregroundColor(AppDesign.Color.secondary)

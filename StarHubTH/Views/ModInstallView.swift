@@ -100,7 +100,7 @@ struct ModInstallView: View {
                         isPresented = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 18))
+                            .font(.system(size: AppDesign.Font.scaled(18)))
                             .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
                     }
                     .buttonStyle(.plain)
@@ -283,7 +283,7 @@ struct ModInstallView: View {
     private var recoveryAckView: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56))
+                .font(.system(size: AppDesign.Font.scaled(56)))
                 .foregroundColor(.green)
             Text(recoveryAckMessage ?? "")
                 .font(AppDesign.Font.headline)
@@ -315,7 +315,7 @@ struct ModInstallView: View {
                     .foregroundColor(.secondary)
             } else {
                 Image(systemName: isDropTarget ? "arrow.down.doc.fill" : "arrow.down.doc")
-                    .font(.system(size: 48))
+                    .font(.system(size: AppDesign.Font.scaled(48)))
                     .foregroundColor(isDropTarget ? .accentColor : AppDesign.Color.dimmedSecondary(0.6))
 
                 VStack(spacing: AppDesignCore.Spacing.sm) {

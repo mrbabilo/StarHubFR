@@ -100,7 +100,7 @@ struct ModConfigBackupsView: View {
                     }
                     Text(localization.L(isBusy ? L10n.ModConfigBackups.creatingBackup : L10n.ModConfigBackups.createBackup))
                 }
-                .font(.system(size: 12, weight: .medium))
+                .font(AppDesign.Font.caption(.medium))
             }
             .buttonStyle(.plain)
             .foregroundColor(.accentColor)
@@ -117,11 +117,11 @@ struct ModConfigBackupsView: View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "archivebox")
-                .font(.system(size: 40))
+                .font(.system(size: AppDesign.Font.scaled(40)))
                 .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
             Text(localization.L(L10n.ModConfigBackups.noBackups))
                 .multilineTextAlignment(.center)
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -328,14 +328,14 @@ private struct ModConfigBackupRow: View {
                 Button(action: onToggleExpand) {
                     HStack(spacing: 10) {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppDesign.Font.footnote(.bold))
                             .foregroundColor(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(backup.formattedDate)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(AppDesign.Font.body(.medium))
                                 .foregroundColor(.primary)
                             Text("\(String(format: localization.L(L10n.ModConfigBackups.filesCount), backup.totalFiles)) · \(backup.formattedSize)")
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -370,12 +370,12 @@ private struct ModConfigBackupRow: View {
                         )) {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(item.modDisplayName)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppDesign.Font.caption(.medium))
                                 let subtitle = item.parentFolderName.map {
                                     "\(item.files.joined(separator: ", ")) — \(String(format: localization.L(L10n.ModConfigBackups.partOfGroup), $0))"
                                 } ?? item.files.joined(separator: ", ")
                                 Text(subtitle)
-                                    .font(.system(size: 10))
+                                    .font(AppDesign.Font.iconXS)
                                     .foregroundColor(.secondary)
                             }
                         }

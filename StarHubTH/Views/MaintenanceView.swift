@@ -171,7 +171,7 @@ struct MaintenanceView: View {
     private var nothingToDoInline: some View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "sparkles")
-                .font(.system(size: 34))
+                .font(.system(size: AppDesign.Font.scaled(34)))
                 .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
@@ -263,7 +263,7 @@ struct MaintenanceView: View {
                 .font(AppDesign.Font.body(.semibold))
                 .foregroundColor(.secondary)
             Text(Self.bytes(report.totalBytes))
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: AppDesign.Font.scaled(28), weight: .bold))
                 .foregroundStyle(.primary)
             VStack(alignment: .leading, spacing: 3) {
                 row(localization.L(L10n.Maintenance.installBackups),

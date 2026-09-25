@@ -122,7 +122,7 @@ struct LanguageFlagToggle: View {
             if localization.currentLanguage != code { localization.setLanguage(code) }
         } label: {
             Text(flag)
-                .font(.system(size: 15))
+                .font(.system(size: AppDesign.Font.scaled(15)))
                 .grayscale(isActive ? 0 : 0.9)
                 .opacity(isActive ? 1 : 0.55)
                 .padding(.horizontal, 7)

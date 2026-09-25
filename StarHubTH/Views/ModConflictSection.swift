@@ -136,7 +136,7 @@ struct ModConflictSection: View {
             // (ronde de correction 1, mineur).
             Image(systemName: "arrow.triangle.merge")
             Text(localization.L(L10n.Conflicts.title))
-                .font(.system(size: 14, weight: .bold))
+                .font(AppDesign.Font.rowTitle(.bold))
                 .lineLimit(1)
             Spacer(minLength: AppDesign.Spacing.sm)
             // Le journal décrit la dernière partie jouée, pas l'état actuel
@@ -145,7 +145,7 @@ struct ModConflictSection: View {
             if let date = vm.smapiLogDate {
                 Text(String(format: localization.L(L10n.Conflicts.observedAt),
                             DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
@@ -264,12 +264,12 @@ struct ModConflictSection: View {
         if !vm.modConflictVerdicts.dismissed.isEmpty {
             Text(String(format: localization.L(L10n.Conflicts.dismissedCount),
                         vm.modConflictVerdicts.dismissed.count))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
         }
         let orphanPairs = vm.modConflictVerdicts.orphans(among: installedMods.map(\.folderName))
         if !orphanPairs.isEmpty {
             Text(String(format: localization.L(L10n.Conflicts.orphans), orphanPairs.count))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
         }
     }
 
@@ -289,14 +289,14 @@ struct ModConflictSection: View {
             vm.dismissConflict(pair)
         }
         .buttonStyle(.borderless)
-        .font(.system(size: 10))
+        .font(AppDesign.Font.iconXS)
         .foregroundColor(.secondary)
         .pointingHandCursor()
     }
 
     private func badge(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .semibold))
+            .font(AppDesign.Font.iconXS(.semibold))
             .foregroundColor(.secondary)
             .padding(.horizontal, AppDesign.Spacing.xs)
             .padding(.vertical, 2)
@@ -309,7 +309,7 @@ struct ModConflictSection: View {
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: AppDesign.Spacing.xs) {
                 Text("· \(names.joined(separator: " × "))")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
                     .lineLimit(1).truncationMode(.middle)
                 if let label = activeBadgeLabel(for: conflict) {
                     badge(label)
@@ -322,7 +322,7 @@ struct ModConflictSection: View {
                 }
             }
             Text(String(format: localization.L(L10n.Conflicts.asset), conflict.asset))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             // La TRACE « Affected patches » de Content Patcher : quel patch
             // de chaque mod réclame l'asset. Absente quand la TRACE a été
@@ -332,7 +332,7 @@ struct ModConflictSection: View {
             if !conflict.affectedPatches.isEmpty {
                 Text(String(format: localization.L(L10n.Conflicts.affectedPatches),
                             conflict.affectedPatches.joined(separator: ", ")))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     .lineLimit(1).truncationMode(.middle)
             }
         }
@@ -342,7 +342,7 @@ struct ModConflictSection: View {
         let name = displayName(folders(conflict).first ?? "")
         return HStack(spacing: AppDesign.Spacing.xs) {
             Text(String(format: localization.L(L10n.Conflicts.withinOne), name))
-                .font(.system(size: 13, weight: .medium))
+                .font(AppDesign.Font.body(.medium))
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: AppDesign.Spacing.sm)
             if let p = pair(conflict) {
@@ -354,7 +354,7 @@ struct ModConflictSection: View {
     private func declaredRow(_ pair: ModConflictPair) -> some View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Text("· \(displayName(pair.first)) × \(displayName(pair.second))")
-                .font(.system(size: 13, weight: .medium))
+                .font(AppDesign.Font.body(.medium))
                 .lineLimit(1).truncationMode(.middle)
             badge(localization.L(L10n.Conflicts.declaredByYou))
             Spacer(minLength: AppDesign.Spacing.sm)

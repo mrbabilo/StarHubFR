@@ -324,7 +324,7 @@ struct SaveEditorView: View {
                                                     .fill(iconPath == key ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
                                                     .frame(width: 28, height: 28)
                                                 Image(systemName: sfName)
-                                                    .font(.system(size: 12))
+                                                    .font(AppDesign.Font.caption)
                                                     .foregroundColor(iconPath == key ? .accentColor : .secondary)
                                             }
                                         }
@@ -494,7 +494,7 @@ struct SaveEditorView: View {
             // Footer
             HStack {
                 Text(localization.L(L10n.Saves.backupNote))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Spacer()
                 

@@ -509,7 +509,7 @@ struct ProfileRow: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: AppDesign.Font.scaled(15)))
                     .foregroundColor(.secondary)
             }
             .menuStyle(.borderlessButton)
@@ -586,7 +586,7 @@ struct ProfileRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(format: localization.L(L10n.Profiles.configStored),
                             Int64(configSummary.total)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 if !configSummary.orphans.isEmpty {
                     let names = configSummary.orphans.prefix(5).joined(separator: ", ")
@@ -594,7 +594,7 @@ struct ProfileRow: View {
                     Text(String(format: localization.L(L10n.Profiles.configOrphans),
                                 Int64(configSummary.orphans.count),
                                 more > 0 ? "\(names) +\(more)" : names))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.orange)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -623,7 +623,7 @@ struct ProfileRow: View {
                          : String(format: localization.L(L10n.Profiles.frBadge),
                                   summary.displayPercent, Int64(summary.pending.count)))
                 }
-                .font(.system(size: 11, weight: .medium))
+                .font(AppDesign.Font.footnote(.medium))
                 .foregroundColor(summary.pending.isEmpty ? .secondary : .accentColor)
                 // Le libellé le plus long — « FR 100 % · 999 à traduire » —
                 // reste sur une ligne : la colonne le tient, mais rien ne doit

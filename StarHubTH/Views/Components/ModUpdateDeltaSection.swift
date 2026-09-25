@@ -32,10 +32,10 @@ struct ModUpdateDeltaSection: View {
             StandardSection(title: localization.L(L10n.Mods.updateDeltaTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(delta.date, style: .date)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                     Text(counters(delta).joined(separator: " · "))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppDesign.Font.caption(.medium))
                         .textSelection(.enabled)
                     renamedSubsection(delta)
                     lists(delta)
@@ -82,9 +82,9 @@ struct ModUpdateDeltaSection: View {
                 new: delta.translation.addedUntranslated))
             VStack(alignment: .leading, spacing: 6) {
                 Text(localization.L(L10n.Mods.updateDeltaRenamedTitle))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppDesign.Font.caption(.semibold))
                 Text(localization.L(L10n.Mods.updateDeltaRenamedExplain))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 ForEach(proposed.config, id: \.oldKey) { pair in
                     pairRow(pair, safe: false)
@@ -98,7 +98,7 @@ struct ModUpdateDeltaSection: View {
                             showReportConfigConfirm = true
                         }
                         .buttonStyle(.link)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .pointingHandCursor()
                     }
                     if !proposed.translation.isEmpty {
@@ -106,13 +106,13 @@ struct ModUpdateDeltaSection: View {
                             showReportTranslationConfirm = true
                         }
                         .buttonStyle(.link)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .pointingHandCursor()
                     }
                 }
                 if let message = reportMessage {
                     Text(message)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.secondary)
                 }
             }
@@ -123,17 +123,17 @@ struct ModUpdateDeltaSection: View {
     private func pairRow(_ pair: RenamePair, safe: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: safe ? "circle.fill" : "circle")
-                .font(.system(size: 6))
+                .font(.system(size: AppDesign.Font.scaled(6)))
                 .foregroundColor(safe ? .green : .secondary)
             Text(pair.oldKey)
-                .font(.system(size: 11).monospaced())
+                .font(AppDesign.Font.footnote.monospaced())
                 .lineLimit(1)
                 .truncationMode(.middle)
             Image(systemName: "arrow.right")
-                .font(.system(size: 8))
+                .font(.system(size: AppDesign.Font.scaled(8)))
                 .foregroundColor(.secondary)
             Text(pair.newKey)
-                .font(.system(size: 11).monospaced())
+                .font(AppDesign.Font.footnote.monospaced())
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
@@ -221,7 +221,7 @@ struct ModUpdateDeltaSection: View {
             LazyVStack(alignment: .leading, spacing: 4) {
                 ForEach(keys.prefix(shown), id: \.self) { key in
                     Text(key)
-                        .font(.system(size: 11).monospaced())
+                        .font(AppDesign.Font.footnote.monospaced())
                         .foregroundColor(.secondary)
                         .textSelection(.enabled)
                         .lineLimit(1)
@@ -233,7 +233,7 @@ struct ModUpdateDeltaSection: View {
                     more()
                 }
                 .buttonStyle(.link)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .pointingHandCursor()
             }
         }
@@ -250,7 +250,7 @@ struct ModUpdateDeltaSection: View {
                     onOpenConfig()
                 }
                 .buttonStyle(.link)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .pointingHandCursor()
             }
             if delta.translation.addedUntranslated.isEmpty == false {
@@ -258,7 +258,7 @@ struct ModUpdateDeltaSection: View {
                     onOpenTranslation()
                 }
                 .buttonStyle(.link)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .pointingHandCursor()
             }
         }

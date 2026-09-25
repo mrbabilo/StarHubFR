@@ -46,11 +46,11 @@ struct NexusPageBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: removed ? "xmark.circle.fill" : "eye.slash.fill")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(tint)
                     Text(localization.L(removed ? L10n.Mods.nexusPageRemoved
                                                 : L10n.Mods.nexusPageUnavailable))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppDesign.Font.caption(.semibold))
                         .foregroundColor(tint)
                 }
                 // Un pack nomme le composant porteur, comme le bandeau de
@@ -58,12 +58,12 @@ struct NexusPageBanner: View {
                 if mod.isGroup, found.component.uniqueId != mod.uniqueId {
                     Text(String(format: localization.L(L10n.Mods.compatInPack),
                                 found.component.name))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
                 Text(localization.L(removed ? L10n.Mods.nexusPageRemovedHint
                                             : L10n.Mods.nexusPageUnavailableHint))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             }
             .padding(.vertical, 6)
@@ -103,25 +103,25 @@ struct MaliciousModBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.octagon.fill")
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.red)
                     Text(localization.L(L10n.Mods.maliciousTitle))
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppDesign.Font.caption(.bold))
                         .foregroundColor(.red)
                 }
                 if mod.isGroup, hit.name != mod.name {
                     Text(String(format: localization.L(L10n.Mods.compatInPack), hit.name))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
                 Text(localization.L(L10n.Mods.maliciousAction))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppDesign.Font.footnote(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 // Le message de SMAPI, en anglais dans la source : il est repris
                 // mot pour mot plutôt que traduit approximativement.
                 if !hit.entry.message.isEmpty {
                     Text(hit.entry.message)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

@@ -30,9 +30,9 @@ extension SmapiHealthCard {
     private func pill(text: String, color: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "tray.and.arrow.down.fill")
-                .font(.system(size: 9))
+                .font(AppDesign.Font.iconXXS)
             Text(text)
-                .font(.system(size: 10, weight: .medium))
+                .font(AppDesign.Font.iconXS(.medium))
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
@@ -60,15 +60,15 @@ extension SmapiHealthCard {
                 ForEach(flagged.prefix(8), id: \.name) { entry in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(entry.name)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(AppDesign.Font.footnote(.medium))
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Text(CompatibilityWarning.label(entry.verdict.status, localization))
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(AppDesign.Font.iconXS(.semibold))
                             .foregroundColor(CompatibilityWarning.tint(entry.verdict.status))
                         if let brokeIn = entry.verdict.brokeIn {
                             Text(String(format: localization.L(L10n.Mods.compatBrokeIn), brokeIn))
-                                .font(.system(size: 10))
+                                .font(AppDesign.Font.iconXS)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
@@ -78,7 +78,7 @@ extension SmapiHealthCard {
                 }
                 if unknown > 0 {
                     Text(String(format: localization.L(L10n.Mods.compatHealthUnknown), unknown))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -102,7 +102,7 @@ extension SmapiHealthCard {
             if let link = links.first, let url = URL(string: link.url) {
                 Button { NSWorkspace.shared.open(url) } label: {
                     Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.accentColor)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())

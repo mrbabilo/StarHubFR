@@ -913,7 +913,7 @@ struct ModDetailView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(record.version)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .font(.system(size: AppDesign.Font.scaled(12), weight: .medium, design: .monospaced))
                             // Current version, for context.
                             if record.version == mod.version {
                                 Text(localization.L(L10n.Mods.errorHistoryCurrent))
@@ -1061,7 +1061,7 @@ struct ModDetailView: View {
     private var reportConflictSheet: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Conflicts.reportButton))
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: AppDesign.Font.scaled(15), weight: .bold))
             Picker(localization.L(L10n.Conflicts.pickMod), selection: $reportConflictTargetFolder) {
                 Text("").tag(String?.none)
                 ForEach(reportConflictCandidates, id: \.folderName) { candidate in

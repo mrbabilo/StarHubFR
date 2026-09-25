@@ -311,12 +311,12 @@ struct SpoilerView: View {
             } label: {
                 HStack {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppDesign.Font.footnote(.bold))
                     Text((title.isEmpty || title == "Spoiler") ? localization.L(L10n.Mods.spoiler) : title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppDesign.Font.body(.semibold))
                     Spacer()
                     Text(isExpanded ? localization.L(L10n.Mods.spoilerHide) : localization.L(L10n.Mods.spoilerShow))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.accentColor)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)

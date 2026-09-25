@@ -37,11 +37,11 @@ struct AccountHeaderCard: View {
                         Text(vm.steamUsername.isEmpty
                              ? localization.L(L10n.Main.playerFallback)
                              : vm.steamUsername)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppDesign.Font.body(.semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
                         Text(localization.L(L10n.Main.steamAccount))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
@@ -52,9 +52,9 @@ struct AccountHeaderCard: View {
                 if let profile = activeProfile {
                     HStack(spacing: 4) {
                         Image(systemName: "person.crop.circle.badge.checkmark")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(AppDesign.Font.iconXXS(.bold))
                         Text(profile.name)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppDesign.Font.iconXS(.medium))
                             .lineLimit(1)
                     }
                     .foregroundColor(.accentColor)
@@ -138,9 +138,9 @@ struct AccountHeaderCard: View {
     private func metricPill(icon: String, value: String, color: Color) -> some View {
         HStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 9))
+                .font(AppDesign.Font.iconXXS)
             Text(value)
-                .font(.system(size: 10, weight: .medium))
+                .font(AppDesign.Font.iconXS(.medium))
                 .monospacedDigit()
                 .lineLimit(1)
         }

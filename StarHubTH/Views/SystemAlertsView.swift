@@ -284,7 +284,7 @@ struct SystemAlertsView: View {
             HStack(spacing: AppDesign.Spacing.md) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(AppDesign.Color.success)
-                    .font(.system(size: 28))
+                    .font(.system(size: AppDesign.Font.scaled(28)))
                 Text(localization.L(L10n.Updates.noAlerts))
                     .font(AppDesign.Font.headline)
                     .foregroundColor(AppDesign.Color.secondary)

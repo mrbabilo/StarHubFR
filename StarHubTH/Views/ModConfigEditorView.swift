@@ -216,7 +216,7 @@ struct ModConfigEditorView: View {
                 
                 if isInvalidJson {
                     Text(localization.L(L10n.Settings.configInvalidJson))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .foregroundColor(.red)
                         .padding(.leading, 8)
                 }
@@ -626,7 +626,7 @@ struct ModConfigEditorView: View {
             Image(systemName: "gamecontroller.fill")
                 .foregroundColor(.orange)
             Text(localization.L(L10n.Settings.configGameRunning))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
@@ -642,7 +642,7 @@ struct ModConfigEditorView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.orange)
             Text(localization.L(L10n.Settings.configSchemaUnreadable))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
@@ -678,7 +678,7 @@ struct ModConfigEditorView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(node.title)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppDesign.Font.caption(.bold))
                             .foregroundColor(.secondary)
                             .padding(.top, 12)
                             .padding(.bottom, 4)
@@ -700,11 +700,11 @@ struct ModConfigEditorView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(row.label)
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                         .foregroundColor(.primary)
                     if row.defaultControl != nil {
                         Text(localization.L(L10n.Settings.configModified))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppDesign.Font.iconXS(.medium))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
@@ -721,7 +721,7 @@ struct ModConfigEditorView: View {
                 // portent un retour à la ligne le gardent.
                 if let description = row.description {
                     Text(description)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -736,10 +736,10 @@ struct ModConfigEditorView: View {
                 if let conflictNote = keybindConflictNote(row) {
                     HStack(alignment: .top, spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.orange)
                         Text(conflictNote)
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.orange)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -763,7 +763,7 @@ struct ModConfigEditorView: View {
                         update(row, to: defaultControl)
                     } label: {
                         Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             // 18×18 : un `.help` posé sur un glyphe plus petit
                             // reste muet, la cible ne recevant pas le survol.

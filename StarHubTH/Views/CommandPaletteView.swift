@@ -96,7 +96,7 @@ struct CommandPaletteView: View {
             Image(systemName: "magnifyingglass").foregroundColor(.secondary)
             TextField(localization.L(L10n.Palette.placeholder), text: $query)
                 .textFieldStyle(.plain)
-                .font(.system(size: 16))
+                .font(AppDesign.Font.headline)
                 .focused($fieldFocused)
                 .onSubmit { activate() }
                 // ⚠️ Les gestionnaires sont posés **sur le champ**, pas sur le
@@ -157,7 +157,7 @@ struct CommandPaletteView: View {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { i, e in
                         if i == 0 || rows[i - 1].kind != e.kind {
                             Text(sectionTitle(e.kind))
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppDesign.Font.footnote(.semibold))
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal, 14)
                                 .padding(.top, i == 0 ? 8 : 12)
@@ -195,7 +195,7 @@ struct CommandPaletteView: View {
     /// L'état vide **dit pourquoi** il est vide — règle posée par H-T7.
     private var emptyState: some View {
         Text(String(format: localization.L(L10n.Palette.noResults), query))
-            .font(.system(size: 13))
+            .font(AppDesign.Font.body)
             .foregroundColor(.secondary)
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,12 +250,12 @@ private struct CommandPaletteRow: View {
                 .foregroundColor(.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.title)
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if let s = entry.subtitle {
                     Text(s)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)

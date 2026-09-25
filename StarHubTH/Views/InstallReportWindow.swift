@@ -70,10 +70,10 @@ private struct ReportContent: View {
                             id: \.offset) { _, name in
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(AppDesign.Font.footnote(.bold))
                                 .foregroundColor(.green)
                             Text(name)
-                                .font(.system(size: 13))
+                                .font(AppDesign.Font.body)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
@@ -84,7 +84,7 @@ private struct ReportContent: View {
                     if !report.preserved.isEmpty {
                         Divider()
                         Text(localization.L(L10n.InstallReport.dataSection))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppDesign.Font.body(.semibold))
                         ForEach(Array(report.preserved.enumerated()),
                                 id: \.offset) { _, outcome in
                             PreservedRow(localization: localization, outcome: outcome)
@@ -140,16 +140,16 @@ private struct ReportContent: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 28))
+                    .font(.system(size: AppDesign.Font.scaled(28)))
                     .foregroundColor(.green)
                 Text(localization.L(summary.modsUpdated > 0
                           ? L10n.InstallReport.titleUpdate
                           : L10n.InstallReport.titleInstall))
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: AppDesign.Font.scaled(18), weight: .semibold))
             }
             if !summaryParts.isEmpty {
                 Text(summaryParts.joined(separator: " · "))
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                     .foregroundColor(.secondary)
                     // Le pire cas FR fait ~1 100 px pour une fenêtre large de
                     // 520 : sans ceci la ligne se tronque, et ce sont les
@@ -209,18 +209,18 @@ private struct PreservedRow: View {
             if outcome.restored > 0 {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "arrow.uturn.backward.circle")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.green)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(format: localization.L(L10n.InstallReport.dataRestoredRow),
                                     outcome.modFolder, outcome.restored))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .fixedSize(horizontal: false, vertical: true)
                         // A1-T7 (suite) — nommer ce qui a été remis, pas
                         // seulement le compter.
                         ForEach(Array(shownPaths.enumerated()), id: \.offset) { _, name in
                             Text(name)
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(AppDesign.Font.monoFootnote)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -232,11 +232,11 @@ private struct PreservedRow: View {
             if outcome.skipped > 0 {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "archivebox")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.orange)
                     Text(String(format: localization.L(L10n.InstallReport.dataSkippedRow),
                                 outcome.modFolder, outcome.skipped))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                 }
@@ -244,16 +244,16 @@ private struct PreservedRow: View {
             if !outcome.failed.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(format: localization.L(L10n.InstallReport.dataFailedRow),
                                     outcome.modFolder, outcome.failed.count))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .fixedSize(horizontal: false, vertical: true)
                         ForEach(Array(shownFailures.enumerated()), id: \.offset) { _, name in
                             Text(name)
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(AppDesign.Font.monoFootnote)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -275,11 +275,11 @@ private struct DeltaRow: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text((delta.folderName as NSString).lastPathComponent)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(parts.joined(separator: " · "))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -288,7 +288,7 @@ private struct DeltaRow: View {
                 vm.openReportDetail(for: delta.folderName)
             }
             .buttonStyle(.link)
-            .font(.system(size: 12))
+            .font(AppDesign.Font.caption)
         }
     }
 

@@ -30,10 +30,10 @@ struct KeybindOverviewGroup: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 controls
                 Text(String(format: localization.L(L10n.Keybinds.filterCount), shown.count))
-                    .font(.system(size: 11)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 if shown.isEmpty {
                     Text(localization.L(L10n.Keybinds.noMatch))
-                        .font(.system(size: 12)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 } else {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(shown) { row($0) }
@@ -43,7 +43,7 @@ struct KeybindOverviewGroup: View {
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
             Text(String(format: localization.L(L10n.Keybinds.allHeader), bindings.count))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -99,7 +99,7 @@ struct KeybindOverviewGroup: View {
             Group {
                 if binding.hasConflict {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.orange)
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
@@ -112,7 +112,7 @@ struct KeybindOverviewGroup: View {
             keys(binding)
                 .frame(width: 170, alignment: .leading)
             Text("\(binding.modName) · \(binding.keyPath.joined(separator: "."))")
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 0)
             KeybindConfigButton(localization: localization) { openConfig(binding.modID) }
@@ -122,10 +122,10 @@ struct KeybindOverviewGroup: View {
     @ViewBuilder private func keys(_ binding: KeybindScanner.SettingBinding) -> some View {
         if binding.isUnassigned {
             Text(localization.L(L10n.Keybinds.unassignedValue))
-                .font(.system(size: 12)).italic().foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).italic().foregroundColor(.secondary)
         } else {
             Text(binding.combos.map(\.display).joined(separator: ", "))
-                .font(.system(size: 12, weight: .medium))
+                .font(AppDesign.Font.caption(.medium))
                 .lineLimit(1).truncationMode(.middle)
         }
     }

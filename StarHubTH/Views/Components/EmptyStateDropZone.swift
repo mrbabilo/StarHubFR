@@ -17,7 +17,7 @@ struct EmptyStateDropZone: View {
         Button(action: onInstall) {
             VStack(spacing: AppDesign.Spacing.xl) {
                 Image(systemName: "arrow.down.doc")
-                    .font(.system(size: 48))
+                    .font(.system(size: AppDesign.Font.scaled(48)))
                     .foregroundColor(AppDesign.Color.accent)
 
                 VStack(spacing: AppDesign.Spacing.xs) {
