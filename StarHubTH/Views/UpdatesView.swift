@@ -16,13 +16,13 @@ struct UpdatesView: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 // ── Nexus Mods updates ─────────────────────────────────
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                     HStack {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .foregroundColor(.accentColor)
-                            .font(.system(size: 16))
+                            .font(AppDesign.Font.headline)
                         Text(localization.L(L10n.Updates.nexusSection))
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppDesign.Font.rowTitle(.bold))
                             .foregroundColor(.primary)
                         Spacer()
                         if vm.isCheckingNexusUpdates {
@@ -33,7 +33,7 @@ struct UpdatesView: View {
                                 vm.checkNexusUpdates()
                             } label: {
                                 Text(localization.L(L10n.Updates.nexusCheckButton))
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppDesign.Font.caption(.medium))
                             }
                         }
                     }
@@ -45,14 +45,14 @@ struct UpdatesView: View {
                     // aucune mise à jour n'était visible, quand bien même
                     // l'app en avait trouvé.
                     if !vm.hasNexusApiKey {
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                             Image(systemName: "key.fill")
                                 .foregroundColor(.secondary)
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .padding(.top, 2)
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                                 Text(localization.L(L10n.Updates.nexusApiKeyMissing))
-                                    .font(.system(size: 12))
+                                    .font(AppDesign.Font.caption)
                                     .foregroundColor(.secondary)
                                 Button {
                                     if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
@@ -60,7 +60,7 @@ struct UpdatesView: View {
                                     }
                                 } label: {
                                     Text(localization.L(L10n.Updates.nexusGetKey))
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(AppDesign.Font.caption(.medium))
                                         .foregroundColor(.accentColor)
                                 }
                                 .buttonStyle(.plain)
@@ -70,17 +70,17 @@ struct UpdatesView: View {
                     }
 
                     if vm.isCheckingNexusUpdates {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                            HStack(spacing: AppDesign.Spacing.sm) {
                                 ProgressView()
                                     .controlSize(.small)
                                 Text(localization.L(L10n.Updates.nexusChecking))
-                                    .font(.system(size: 12))
+                                    .font(AppDesign.Font.caption)
                                     .foregroundColor(.secondary)
                                 if let prog = vm.nexusCheckProgress, prog.total > 0 {
                                     Spacer()
                                     Text("\(prog.done)/\(prog.total)")
-                                        .font(.system(size: 11, design: .monospaced))
+                                        .font(AppDesign.Font.monoFootnote)
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
                                 }
@@ -103,12 +103,12 @@ struct UpdatesView: View {
                         Text(err == "rate_limited"
                              ? localization.L(L10n.Updates.nexusRateLimited)
                              : localization.L(L10n.Updates.nexusError))
-                            .font(.system(size: 12))
-                            .foregroundColor(.red.opacity(0.8))
+                            .font(AppDesign.Font.caption)
+                            .foregroundColor(AppDesign.Color.error.opacity(0.8))
                     } else if vm.nexusUpdates.isEmpty {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(AppDesign.Color.success)
                         // C'était `logs_system_alerts_section` — « Aucune
                         // alerte système » — sur la page des **mises à jour** :
                         // le libellé d'une autre page, qui répondait à côté de
@@ -123,7 +123,7 @@ struct UpdatesView: View {
                                   ? L10n.Updates.allUpToDate
                                   : L10n.Updates.allVerifiedUpToDate))
                         }
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                     } else {
                         // Summary line + list of available updates.
@@ -134,13 +134,13 @@ struct UpdatesView: View {
                         // fait disparaître sans que la phrase suive.
                         Text(String(format: localization.L(L10n.Updates.nexusUpdatesCount),
                                     Int64(vm.nexusUpdates.count)))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
-                            .padding(.top, 4)
+                            .padding(.top, AppDesign.Spacing.xs)
 
                         ForEach(vm.nexusUpdates) { update in
                             let isEnabled = vm.modForNexusUpdate(update)?.isEnabled ?? false
-                            HStack(alignment: .top, spacing: 16) {
+                            HStack(alignment: .top, spacing: AppDesign.Spacing.lg) {
                                 InitialsAvatar(
                                     text: update.name,
                                     initialsCount: 2,
@@ -150,32 +150,32 @@ struct UpdatesView: View {
                                     fontSize: 16
                                 )
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                                     HStack(spacing: 6) {
                                         Text(update.name)
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(AppDesign.Font.rowTitle(.semibold))
                                             .foregroundColor(.primary)
                                         Text(isEnabled ? localization.L(L10n.Updates.enabled) : localization.L(L10n.Updates.disabled))
-                                            .font(.system(size: 9, weight: .medium))
-                                            .foregroundColor(isEnabled ? AppDesign.Color.installed : .orange)
+                                            .font(AppDesign.Font.iconXXS(.medium))
+                                            .foregroundColor(isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 2)
-                                            .background((isEnabled ? AppDesign.Color.installed : Color.orange).opacity(0.12))
+                                            .background((isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning).opacity(0.12))
                                             .cornerRadius(4)
                                     }
-                                    HStack(spacing: 12) {
+                                    WrapHStack(spacing: AppDesign.Spacing.md) {
                                         Label("\(localization.L(L10n.Updates.installedVersion)) \(update.installedVersion)",
                                               systemImage: "tag.fill")
-                                            .font(.system(size: 11))
+                                            .font(AppDesign.Font.footnote)
                                             .foregroundColor(.secondary)
                                         Label("\(localization.L(L10n.Updates.latestVersion)) \(update.latestVersion)",
                                               systemImage: "sparkles")
-                                            .font(.system(size: 11))
+                                            .font(AppDesign.Font.footnote)
                                             .foregroundColor(.green)
                                         if let uploaded = update.uploadedTime {
                                             Label(vm.formatUploadedDate(uploaded),
                                                   systemImage: "clock.fill")
-                                                .font(.system(size: 11))
+                                                .font(AppDesign.Font.footnote)
                                                 .foregroundColor(.secondary.opacity(0.8))
                                         }
                                     }
@@ -185,9 +185,9 @@ struct UpdatesView: View {
 
                                 NexusUpdateActions(update: update, vm: vm, localization: localization)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(isEnabled ? Color.primary.opacity(0.04) : Color.orange.opacity(0.06))
+                            .padding(.vertical, AppDesign.Spacing.sm)
+                            .padding(.horizontal, AppDesign.Spacing.md)
+                            .background(isEnabled ? Color.primary.opacity(0.04) : AppDesign.Color.warning.opacity(0.06))
                             .cornerRadius(10)
                         }
                     }
@@ -208,21 +208,21 @@ struct UpdatesView: View {
                                 ForEach(vm.unverifiableMods, id: \.uniqueId) { row in
                                     HStack(spacing: 6) {
                                         Text(row.name)
-                                            .font(.system(size: 11, weight: .medium))
+                                            .font(AppDesign.Font.footnote(.medium))
                                         Text(localization.L(row.blocker.labelKey))
-                                            .font(.system(size: 11))
+                                            .font(AppDesign.Font.footnote)
                                             .foregroundStyle(.secondary)
                                         Spacer(minLength: 8)
                                     }
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, AppDesign.Spacing.xs)
                         } label: {
                             Label(String(format: localization.L(L10n.Updates.unverifiableTitle),
                                          Int64(vm.unverifiableMods.count)),
                                   systemImage: "exclamationmark.triangle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.orange)
+                                .font(AppDesign.Font.caption)
+                                .foregroundColor(AppDesign.Color.warning)
                         }
                     }
 
@@ -239,15 +239,15 @@ struct UpdatesView: View {
                                 // L'explication d'abord : la liste seule ne dit
                                 // ni ce que le geste a fait, ni ce qu'il coûte.
                                 Text(localization.L(L10n.Updates.affirmedExplanation))
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .padding(.bottom, 2)
 
                                 ForEach(vm.affirmedUpdates) { row in
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: AppDesign.Spacing.sm) {
                                         Text(row.name)
-                                            .font(.system(size: 11, weight: .medium))
+                                            .font(AppDesign.Font.footnote(.medium))
                                             .lineLimit(1)
                                         // Les deux versions côte à côte : le
                                         // numéro affirmé seul ne dit rien,
@@ -255,13 +255,13 @@ struct UpdatesView: View {
                                         // trahit le clic malheureux.
                                         Text(String(format: localization.L(L10n.Updates.affirmedVersion),
                                                     row.affirmedVersion))
-                                            .font(.system(size: 11, design: .monospaced))
+                                            .font(AppDesign.Font.monoFootnote)
                                             .foregroundStyle(.secondary)
                                         Text(String(format: localization.L(L10n.Updates.affirmedOnDisk),
                                                     row.manifestVersion))
-                                            .font(.system(size: 11, design: .monospaced))
+                                            .font(AppDesign.Font.monoFootnote)
                                             .foregroundColor(row.disagreesWithDisk
-                                                             ? .orange : .secondary)
+                                                             ? AppDesign.Color.warning : .secondary)
                                         Spacer(minLength: 8)
                                         // Voir la fiche avant de décider :
                                         // c'est là que se lisent la version,
@@ -283,29 +283,29 @@ struct UpdatesView: View {
                                             currentTab = .mods
                                         } label: {
                                             Text(localization.L(L10n.Updates.affirmedOpenMod))
-                                                .font(.system(size: 11))
+                                                .font(AppDesign.Font.footnote)
                                         }
-                                        .buttonStyle(PlainButtonStyle())
+                                        .buttonStyle(.plain)
                                         .pointingHandCursor()
                                         .help(localization.L(L10n.Updates.affirmedOpenModHelp))
                                         Button {
                                             vm.revealAffirmedUpdate(uniqueId: row.uniqueId)
                                         } label: {
                                             Text(localization.L(L10n.Updates.affirmedReveal))
-                                                .font(.system(size: 11))
+                                                .font(AppDesign.Font.footnote)
                                         }
-                                        .buttonStyle(PlainButtonStyle())
+                                        .buttonStyle(.plain)
                                         .pointingHandCursor()
                                         .help(localization.L(L10n.Updates.affirmedRevealHelp))
                                     }
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, AppDesign.Spacing.xs)
                         } label: {
                             Label(String(format: localization.L(L10n.Updates.affirmedTitle),
                                          Int64(vm.affirmedUpdates.count)),
                                   systemImage: "eye.slash")
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -320,36 +320,36 @@ struct UpdatesView: View {
                         DisclosureGroup {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(localization.L(L10n.Updates.snoozedExplanation))
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .padding(.bottom, 2)
                                 ForEach(vm.snoozedUpdates) { row in
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: AppDesign.Spacing.sm) {
                                         Text(row.name)
-                                            .font(.system(size: 11, weight: .medium))
+                                            .font(AppDesign.Font.footnote(.medium))
                                             .lineLimit(1)
                                         Text(vm.snoozeExpiryLabel(for: row))
-                                            .font(.system(size: 11))
+                                            .font(AppDesign.Font.footnote)
                                             .foregroundStyle(.secondary)
                                         Spacer(minLength: 8)
                                         Button {
                                             vm.unsnoozeUpdate(uniqueId: row.uniqueId)
                                         } label: {
                                             Text(localization.L(L10n.Updates.snoozedWake))
-                                                .font(.system(size: 11))
+                                                .font(AppDesign.Font.footnote)
                                         }
-                                        .buttonStyle(PlainButtonStyle())
+                                        .buttonStyle(.plain)
                                         .pointingHandCursor()
                                     }
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, AppDesign.Spacing.xs)
                         } label: {
                             Label(String(format: localization.L(L10n.Updates.snoozedTitle),
                                          Int64(vm.snoozedUpdates.count)),
                                   systemImage: "moon.zzz.fill")
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -363,24 +363,24 @@ struct UpdatesView: View {
                     // Ces cartes n'avaient aucun en-tête, quand celles de Nexus
                     // en ont un : rien ne disait d'où venait l'information, ni
                     // pourquoi ces mods-là étaient là et pas d'autres.
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                        HStack(spacing: AppDesign.Spacing.sm) {
                             Image(systemName: "exclamationmark.triangle")
-                                .foregroundColor(.orange)
-                                .font(.system(size: 16))
+                                .foregroundColor(AppDesign.Color.warning)
+                                .font(AppDesign.Font.headline)
                             Text(localization.L(L10n.Updates.smapiSection))
-                                .font(.system(size: 14, weight: .bold))
+                                .font(AppDesign.Font.rowTitle(.bold))
                                 .foregroundColor(.primary)
                         }
                         Text(localization.L(L10n.Updates.smapiNote))
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
                     ForEach(pendingSmapi) { mod in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .top, spacing: 16) {
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                            HStack(alignment: .top, spacing: AppDesign.Spacing.lg) {
                                 // App Icon Fake
                                 InitialsAvatar(
                                     text: mod.name,
@@ -391,9 +391,9 @@ struct UpdatesView: View {
                                     fontSize: 20
                                 )
                                 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                                     Text(mod.name)
-                                        .font(.system(size: 16, weight: .bold))
+                                        .font(AppDesign.Font.headline(.bold))
                                         .foregroundColor(.primary)
                                     // `ModUpdateInfo.version` est la version
                                     // **disponible** — celle que SMAPI annonce
@@ -402,7 +402,7 @@ struct UpdatesView: View {
                                     // version installée, c'est-à-dire l'inverse.
                                     Text(String(format: localization.L(L10n.Updates.availableVersion),
                                                 mod.version))
-                                        .font(.system(size: 12))
+                                        .font(AppDesign.Font.caption)
                                         .foregroundColor(.secondary)
                                     
                                     // Pas « disponible sur Nexus Mods » :
@@ -411,14 +411,14 @@ struct UpdatesView: View {
                                     // peut n'avoir aucune page Nexus. Le
                                     // pourquoi est dit une fois, plus bas.
                                     Text(localization.L(L10n.Updates.updateAvailable))
-                                        .font(.system(size: 12))
+                                        .font(AppDesign.Font.caption)
                                         .foregroundColor(.orange)
                                         .padding(.top, 2)
                                 }
                                 
                                 Spacer()
                                 
-                                HStack(spacing: 8) {
+                                HStack(spacing: AppDesign.Spacing.sm) {
                                     Button(action: {
                                         if let url = URL(string: mod.url) { NSWorkspace.shared.open(url) }
                                     }) {
@@ -426,43 +426,43 @@ struct UpdatesView: View {
                                         // ne se télécharge : promettre un
                                         // téléchargement était un faux départ.
                                         Text(localization.L(L10n.Updates.openSmapiPage))
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(AppDesign.Font.caption(.medium))
                                             .foregroundColor(.primary)
-                                            .padding(.horizontal, 16)
+                                            .padding(.horizontal, AppDesign.Spacing.lg)
                                             .padding(.vertical, 6)
                                             .background(Color.primary.opacity(0.1))
                                             .cornerRadius(6)
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    .buttonStyle(.plain)
                                     .pointingHandCursor()
                                 }
                             }
 
-                            VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                                 // Le texte d'avant — « apporte de nouvelles
                                 // fonctionnalités et des corrections de bugs »
                                 // — était inventé : l'app ne sait rien du
                                 // contenu de la mise à jour. La phrase le dit
                                 // maintenant, au lieu de le supposer.
                                 Text(localization.L(L10n.Updates.smapiDescription))
-                                    .font(.system(size: 13))
+                                    .font(AppDesign.Font.body)
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
 
-                                HStack(spacing: 4) {
+                                HStack(spacing: AppDesign.Spacing.xs) {
                                     Text(localization.L(L10n.Updates.visitWebsite))
-                                        .font(.system(size: 13))
+                                        .font(AppDesign.Font.body)
                                         .foregroundColor(.secondary)
                                     // Vrai lien cliquable plutôt qu'un Markdown
                                     // `[url](url)` interpolé que Text rendait en brut.
                                     if let url = URL(string: mod.url) {
                                         Link(url.absoluteString, destination: url)
-                                            .font(.system(size: 13))
+                                            .font(AppDesign.Font.body)
                                     }
                                 }
                                 .tint(.blue)
                             }
-                            .padding(.top, 8)
+                            .padding(.top, AppDesign.Spacing.sm)
                         }
                         .padding(20)
                         .background(Color.primary.opacity(0.04))
