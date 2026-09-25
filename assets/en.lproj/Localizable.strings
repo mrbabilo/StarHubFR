@@ -1597,4 +1597,4 @@
 "settings_text_size_normal" = "Normal";
 "settings_text_size_large" = "Large";
 "settings_text_size_extra_large" = "Extra large";
-"settings_footer_display" = "Applies to the app's text. A few labels still keep a fixed size.";
+"settings_footer_display" = "Applies to all of the app's text.";
