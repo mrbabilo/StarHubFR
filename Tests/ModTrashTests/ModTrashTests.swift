@@ -4,8 +4,8 @@ import Foundation
 
 /// X103-B — la corbeille des mods supprimés : nommage, dépôt, remise en
 /// désactivé, purge. Chaque règle ici est un engagement d'interface : la
-/// corbeille vit DANS `Mods/` sous le préfixe que le scanner saute déjà,
-/// « remettre » ne peut jamais écraser, la quarantaine du réparateur (même
+/// corbeille vit HORS de `Mods/` (X115, SMAPI lisait chaque événement comme
+/// un mod sans manifeste), « remettre » ne peut jamais écraser, la quarantaine du réparateur (même
 /// préfixe, sans marqueur) n'est pas de la corbeille, et aucune purge n'est
 /// automatique.
 struct ModTrashTests {
@@ -60,7 +60,7 @@ struct ModTrashTests {
     @Test func aReadOnlyEntryIsPurged() throws {
         let mods = makeTempModsDir()
         try makeReadOnlyEntry(mods, event: "_Trash_20260924_120000", entry: "Pet")
-        try ModTrash.purgeEntry(modsPath: mods, event: "_Trash_20260924_120000", entry: "Pet")
+        try ModTrash.purgeEntry(trashRoot: mods, event: "_Trash_20260924_120000", entry: "Pet")
         #expect(!FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_120000", "Pet")))
     }
 
@@ -68,8 +68,8 @@ struct ModTrashTests {
         let mods = makeTempModsDir()
         try makeReadOnlyEntry(mods, event: "_Trash_20260924_120000", entry: "Pet")
         try makeEvent(mods, "_Trash_20260924_130000")
-        #expect(try ModTrash.purgeAll(modsPath: mods) == 2)
-        #expect(ModTrash.events(modsPath: mods).isEmpty)
+        #expect(try ModTrash.purgeAll(trashRoot: mods) == 2)
+        #expect(ModTrash.events(trashRoot: mods).isEmpty)
     }
 
     // MARK: - Nommage
@@ -151,14 +151,14 @@ struct ModTrashTests {
         try FileManager.default.createDirectory(atPath: repairer, withIntermediateDirectories: true)
         try "x".write(to: URL(fileURLWithPath: path(repairer, "Junk")),
                       atomically: true, encoding: .utf8)
-        #expect(ModTrash.events(modsPath: mods).isEmpty)
+        #expect(ModTrash.events(trashRoot: mods).isEmpty)
 
         let user = path(mods, "_Trash_20260909_101112")
         try FileManager.default.createDirectory(atPath: user, withIntermediateDirectories: true)
         try ModTrash.markEvent(eventDir: user)
         try "x".write(to: URL(fileURLWithPath: path(user, "MyMod")),
                       atomically: true, encoding: .utf8)
-        let events = ModTrash.events(modsPath: mods)
+        let events = ModTrash.events(trashRoot: mods)
         #expect(events.count == 1)
         #expect(events.first?.entries == ["MyMod"])
     }
@@ -169,7 +169,7 @@ struct ModTrashTests {
         try FileManager.default.createDirectory(atPath: repairer, withIntermediateDirectories: true)
         try makeEvent(mods, "_Trash_20260909_101112")
 
-        let removed = try ModTrash.purgeAll(modsPath: mods)
+        let removed = try ModTrash.purgeAll(trashRoot: mods)
         #expect(removed == 1)
         // La quarantaine du réparateur survit au « vider la corbeille ».
         #expect(FileManager.default.fileExists(atPath: repairer))
@@ -182,7 +182,7 @@ struct ModTrashTests {
         let event = path(mods, "_Trash_20260909_090000")
         try FileManager.default.createDirectory(atPath: event, withIntermediateDirectories: true)
         #expect(throws: (Error).self) {
-            try ModTrash.purgeEntry(modsPath: mods, event: "_Trash_20260909_090000",
+            try ModTrash.purgeEntry(trashRoot: mods, event: "_Trash_20260909_090000",
                                     entry: "Junk")
         }
     }
@@ -192,7 +192,7 @@ struct ModTrashTests {
         let event = "_Trash_20260909_101112"
         let dir = try makeEvent(mods, event)
         // Le marqueur seul ne retient pas l'événement : vidé, il disparaît.
-        ModTrash.discardEventIfEmpty(modsPath: mods, event: event)
+        ModTrash.discardEventIfEmpty(trashRoot: mods, event: event)
         #expect(!FileManager.default.fileExists(atPath: dir))
     }
 
@@ -207,7 +207,7 @@ struct ModTrashTests {
         try "x".write(to: URL(fileURLWithPath: path(mods, "_Trash_20260909_101112", "NewMod")),
                       atomically: true, encoding: .utf8)
 
-        let events = ModTrash.events(modsPath: mods)
+        let events = ModTrash.events(trashRoot: mods)
         #expect(events.count == 2)
         #expect(events.first?.folderName == "_Trash_20260909_101112")
         #expect(events.first?.entries == ["NewMod"])
@@ -219,7 +219,7 @@ struct ModTrashTests {
     @Test func emptyEventsAreNotListed() throws {
         let mods = makeTempModsDir()
         try makeEvent(mods, "_Trash_20260909_101112")
-        #expect(ModTrash.events(modsPath: mods).isEmpty)
+        #expect(ModTrash.events(trashRoot: mods).isEmpty)
     }
 
     // MARK: - Purger
@@ -231,7 +231,7 @@ struct ModTrashTests {
         try FileManager.default.createDirectory(atPath: entry, withIntermediateDirectories: true)
         try ModTrash.markEvent(eventDir: path(mods, event))
 
-        try ModTrash.purgeEntry(modsPath: mods, event: event, entry: "CJBCheats")
+        try ModTrash.purgeEntry(trashRoot: mods, event: event, entry: "CJBCheats")
 
         #expect(!FileManager.default.fileExists(atPath: entry))
         // L'événement vidé ne laisse pas de dossier fantôme.
@@ -243,7 +243,7 @@ struct ModTrashTests {
         // Le nom d'événement est un garde : autre chose que `_Trash_*` est
         // refusé avant même de construire un chemin.
         #expect(throws: (Error).self) {
-            try ModTrash.purgeEntry(modsPath: mods, event: "CJBCheats", entry: "x")
+            try ModTrash.purgeEntry(trashRoot: mods, event: "CJBCheats", entry: "x")
         }
     }
 
@@ -251,9 +251,9 @@ struct ModTrashTests {
         let mods = makeTempModsDir()
         try makeEvent(mods, "_Trash_20260901_090000")
         try makeEvent(mods, "_Trash_20260909_101112")
-        let removed = try ModTrash.purgeAll(modsPath: mods)
+        let removed = try ModTrash.purgeAll(trashRoot: mods)
         #expect(removed == 2)
-        #expect(ModTrash.events(modsPath: mods).isEmpty)
+        #expect(ModTrash.events(trashRoot: mods).isEmpty)
     }
 
     // MARK: - Déposer un lot (« Vider les mods désactivés »)
@@ -262,58 +262,62 @@ struct ModTrashTests {
     /// `removeItem` définitif, seul chemin de suppression resté hors
     /// corbeille. Un lot = un seul événement, restaurable d'un bloc.
     @Test func aBatchLandsInOneEventUnderLogicalNames() throws {
-        let mods = makeTempModsDir()
+        let env = try makeGame()
+        let mods = env.mods, trash = ModTrash.root(gameDir: env.gameDir)
         for name in [".Alpha", ".[CP] Beta"] {
             try FileManager.default.createDirectory(atPath: path(mods, name, "i18n"),
                                                     withIntermediateDirectories: true)
         }
         let result = ModTrash.trash(
-            modsPath: mods, stamp: "20260924_194500",
+            modsPath: mods, trashRoot: trash, stamp: "20260924_194500",
             items: [.init(physical: ".Alpha", logicalLeaf: "Alpha"),
                     .init(physical: ".[CP] Beta", logicalLeaf: "[CP] Beta")])
 
         #expect(result.moved == [".Alpha", ".[CP] Beta"])
         #expect(result.failed.isEmpty)
         let event = "_Trash_20260924_194500"
-        #expect(ModTrash.isUserEvent(modsPath: mods, event: event))
-        #expect(FileManager.default.fileExists(atPath: path(mods, event, "Alpha", "i18n")))
-        #expect(FileManager.default.fileExists(atPath: path(mods, event, "[CP] Beta")))
+        #expect(ModTrash.isUserEvent(trashRoot: trash, event: event))
+        #expect(FileManager.default.fileExists(atPath: path(trash, event, "Alpha", "i18n")))
+        #expect(FileManager.default.fileExists(atPath: path(trash, event, "[CP] Beta")))
         #expect(!FileManager.default.fileExists(atPath: path(mods, ".Alpha")))
     }
 
     @Test func aFailedEntryDoesNotStopTheBatch() throws {
-        let mods = makeTempModsDir()
+        let env = try makeGame()
+        let mods = env.mods, trash = ModTrash.root(gameDir: env.gameDir)
         try FileManager.default.createDirectory(atPath: path(mods, ".Alpha"),
                                                 withIntermediateDirectories: true)
         let result = ModTrash.trash(
-            modsPath: mods, stamp: "20260924_194500",
+            modsPath: mods, trashRoot: trash, stamp: "20260924_194500",
             items: [.init(physical: ".Gone", logicalLeaf: "Gone"),
                     .init(physical: ".Alpha", logicalLeaf: "Alpha")])
 
         #expect(result.moved == [".Alpha"])
         #expect(result.failed.map(\.physical) == [".Gone"])
-        #expect(FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_194500", "Alpha")))
+        #expect(FileManager.default.fileExists(atPath: path(trash, "_Trash_20260924_194500", "Alpha")))
     }
 
     @Test func aBatchThatMovesNothingLeavesNoEvent() throws {
-        let mods = makeTempModsDir()
+        let env = try makeGame()
+        let mods = env.mods, trash = ModTrash.root(gameDir: env.gameDir)
         let result = ModTrash.trash(
-            modsPath: mods, stamp: "20260924_194500",
+            modsPath: mods, trashRoot: trash, stamp: "20260924_194500",
             items: [.init(physical: ".Gone", logicalLeaf: "Gone")])
 
         #expect(result.moved.isEmpty)
         #expect(result.failed.count == 1)
-        #expect(!FileManager.default.fileExists(atPath: path(mods, "_Trash_20260924_194500")))
+        #expect(!FileManager.default.fileExists(atPath: path(trash, "_Trash_20260924_194500")))
     }
 
     @Test func aWholeEventIsRestoredPausedInOneGesture() throws {
-        let mods = makeTempModsDir()
-        let ev = try makeEvent(mods, "_Trash_20260924_194500")
+        let env = try makeGame()
+        let mods = env.mods, trash = ModTrash.root(gameDir: env.gameDir)
+        let ev = try makeEvent(trash, "_Trash_20260924_194500")
         for name in ["Alpha", "Beta"] {
             try FileManager.default.createDirectory(atPath: path(ev, name, "i18n"),
                                                     withIntermediateDirectories: true)
         }
-        let result = ModTrash.restoreEvent(modsPath: mods, event: "_Trash_20260924_194500",
+        let result = ModTrash.restoreEvent(modsPath: mods, trashRoot: trash, event: "_Trash_20260924_194500",
                                            stamp: "20260924_200000")
 
         #expect(result.moved == ["Alpha", "Beta"])
@@ -328,23 +332,99 @@ struct ModTrashTests {
         let ev = try makeEvent(mods, "_Trash_20260924_194500")
         try FileManager.default.createDirectory(atPath: path(ev, "Alpha", "assets", "deep"),
                                                 withIntermediateDirectories: true)
-        #expect(ModTrash.events(modsPath: mods).first?.entries == ["Alpha"])
+        #expect(ModTrash.events(trashRoot: mods).first?.entries == ["Alpha"])
     }
 
     @Test func aBatchThatCannotOpenItsEventFailsWholeAndMovesNothing() throws {
-        let mods = makeTempModsDir()
+        let env = try makeGame()
+        let mods = env.mods, trash = ModTrash.root(gameDir: env.gameDir)
         try FileManager.default.createDirectory(atPath: path(mods, ".Alpha"),
                                                 withIntermediateDirectories: true)
-        // `Mods/` en lecture seule : ni l'événement ni son marqueur ne se posent.
-        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: mods)
-        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: mods) }
+        // Dossier du jeu en lecture seule : ni la corbeille ni son marqueur
+        // ne se posent.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: env.gameDir)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: env.gameDir) }
 
-        let result = ModTrash.trash(modsPath: mods, stamp: "20260924_194500",
+        let result = ModTrash.trash(modsPath: mods, trashRoot: trash, stamp: "20260924_194500",
                                     items: [.init(physical: ".Alpha", logicalLeaf: "Alpha")])
 
         #expect(result.moved.isEmpty)
         #expect(result.failed.map(\.physical) == [".Alpha"])
         #expect(FileManager.default.fileExists(atPath: path(mods, ".Alpha")))
+    }
+
+    // MARK: - X115 — la corbeille hors de `Mods/`
+
+    /// Le déposé ne laisse rien sous `Mods/` que SMAPI lirait comme un mod.
+    @Test func aTrashedModLeavesNothingInMods() throws {
+        let env = try makeGame()
+        try FileManager.default.createDirectory(atPath: path(env.mods, "Alpha"),
+                                                withIntermediateDirectories: true)
+        _ = ModTrash.trash(modsPath: env.mods, trashRoot: ModTrash.root(gameDir: env.gameDir),
+                           stamp: "20260925_120000",
+                           items: [.init(physical: "Alpha", logicalLeaf: "Alpha")])
+        #expect(try FileManager.default.contentsOfDirectory(atPath: env.mods).isEmpty)
+        #expect(ModTrash.events(trashRoot: ModTrash.root(gameDir: env.gameDir)).count == 1)
+    }
+
+    /// Même seconde, même dossier de jeu : la quarantaine du vrai réparateur
+    /// et un événement de corbeille ne se voient pas l'un l'autre — ni au
+    /// compte, ni à la liste, ni au « Vider la quarantaine » (tout `_Trash_*`
+    /// du dossier du jeu).
+    @Test func quarantineAndTrashInTheSameSecondStayApart() throws {
+        let env = try makeGame()
+        let trash = ModTrash.root(gameDir: env.gameDir)
+        try FileManager.default.createDirectory(atPath: path(env.mods, ".Alpha"),
+                                                withIntermediateDirectories: true)
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+
+        _ = ModTrash.trash(modsPath: env.mods, trashRoot: trash, stamp: ModTrash.makeStamp(),
+                           items: [.init(physical: ".Alpha", logicalLeaf: "Alpha")])
+        ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 1)
+        #expect(ModTrash.events(trashRoot: trash).map(\.entries) == [["Alpha"]])
+        let quarantineSweep = try FileManager.default.contentsOfDirectory(atPath: env.gameDir)
+            .filter { $0.hasPrefix("_Trash_") }
+        #expect(!quarantineSweep.contains(ModTrash.rootFolderName))
+        #expect(quarantineSweep.count == 1)
+    }
+
+    /// Un événement d'avant X115 (marqué, sous `Mods/`) sort vers la
+    /// corbeille ; la quarantaine d'autrefois (sans marqueur) reste où elle
+    /// est.
+    @Test func legacyEventsLeaveModsButUnmarkedOnesStay() throws {
+        let env = try makeGame()
+        let trash = ModTrash.root(gameDir: env.gameDir)
+        let legacy = try makeEvent(env.mods, "_Trash_20260910_101112")
+        try "x".write(toFile: path(legacy, "Alpha"), atomically: true, encoding: .utf8)
+        let unmarked = path(env.mods, "_Trash_20260909_090000")
+        try FileManager.default.createDirectory(atPath: unmarked, withIntermediateDirectories: true)
+
+        let result = ModTrash.migrateLegacyEvents(modsPath: env.mods, trashRoot: trash)
+
+        #expect(result.moved == ["_Trash_20260910_101112"])
+        #expect(result.failed.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: legacy))
+        #expect(FileManager.default.fileExists(atPath: unmarked))
+        #expect(ModTrash.events(trashRoot: trash).map(\.entries) == [["Alpha"]])
+        // Rejouée, la migration n'a plus rien à faire.
+        #expect(ModTrash.migrateLegacyEvents(modsPath: env.mods, trashRoot: trash).moved.isEmpty)
+    }
+
+    /// Un nom déjà pris dans la corbeille se décale, jamais n'écrase.
+    @Test func legacyMigrationNeverOverwrites() throws {
+        let env = try makeGame()
+        let trash = ModTrash.root(gameDir: env.gameDir)
+        let existing = try makeEvent(trash, "_Trash_20260910_101112")
+        try "x".write(toFile: path(existing, "Kept"), atomically: true, encoding: .utf8)
+        let legacy = try makeEvent(env.mods, "_Trash_20260910_101112")
+        try "x".write(toFile: path(legacy, "Moved"), atomically: true, encoding: .utf8)
+
+        #expect(ModTrash.migrateLegacyEvents(modsPath: env.mods, trashRoot: trash).failed.isEmpty)
+
+        let entries = ModTrash.events(trashRoot: trash).flatMap(\.entries).sorted()
+        #expect(entries == ["Kept", "Moved"])
     }
 
     // MARK: - X114 — le compte vivant de la quarantaine
@@ -373,7 +453,7 @@ struct ModTrashTests {
             atPath: path(env.mods, ".Alpha"), withIntermediateDirectories: true)
         try "x".write(toFile: path(env.mods, ".Alpha", "a.txt"), atomically: true, encoding: .utf8)
 
-        let result = ModTrash.trash(modsPath: env.mods, stamp: "20260924_120000",
+        let result = ModTrash.trash(modsPath: env.mods, trashRoot: ModTrash.root(gameDir: env.gameDir), stamp: "20260924_120000",
                                     items: [.init(physical: ".Alpha", logicalLeaf: "Alpha")])
 
         #expect(result.moved == [".Alpha"])

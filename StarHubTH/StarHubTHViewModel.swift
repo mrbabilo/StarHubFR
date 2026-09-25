@@ -5636,9 +5636,8 @@ final class StarHubTHViewModel {
         zipToDesktop(sourceDir: modsDir, filePrefix: "StardewMods_Backup", successKey: L10n.VM.backupModsSuccess, errorKey: L10n.VM.zipModsError)
     }
     
-    /// Dossiers que « Vider les mods désactivés » supprimerait, relevés **une
-    /// fois** : la confirmation et `cleanDisabledMods(targets:)` voient la
-    /// **même** liste.
+    /// Cibles de « Vider les mods désactivés », relevées une fois pour la
+    /// confirmation et `cleanDisabledMods(targets:)`.
     func disabledModTargets() -> [String] {
         guard !gameDir.isEmpty else { return [] }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -5648,17 +5647,15 @@ final class StarHubTHViewModel {
         return DisabledModsCleanup.targets(in: entries)
     }
 
-    /// Met en corbeille (X103-B) les mods en pause désignés par
-    /// `DisabledModsCleanup`, en **un** événement (721 dossiers au parc).
-    /// L'espace ne revient qu'au vidage.
+    /// Met en corbeille (X103-B) les mods en pause, en **un** événement
+    /// (721 dossiers au parc) ; l'espace ne revient qu'au vidage.
     func cleanDisabledMods(targets: [String]) {
         guard !gameDir.isEmpty else { return }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        let result = ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(), items: targets.map {
+        let result = ModTrash.trash(modsPath: modsPath, trashRoot: ModTrash.root(gameDir: gameDir), stamp: ModTrash.makeStamp(), items: targets.map {
             ModTrash.Item(physical: $0, logicalLeaf: String($0.drop { $0 == "." }))
         })
-        // Pas de `forgetStores` : « Tout remettre » rend le lot avec ses données
-        // (choix de l'auteur, 2026-09-24).
+        // Pas de `forgetStores` : « Tout remettre » rend le lot avec ses données.
         let firstError = result.failed.first?.error
 
         let outcome = DisabledModsCleanup.outcome(removed: result.moved.count,
@@ -7128,12 +7125,11 @@ final class StarHubTHViewModel {
         pendingDeleteFolder = mod.folderName
 
         do {
-            // X103-B — « supprimer » met en corbeille :
-            // `Mods/_Trash_<horodatage>/<feuille logique>` (sauté par le scanner).
+            // X103-B — « supprimer » met en corbeille, hors de `Mods/` (X115).
             // Purge = geste explicite de l'Entretien (X25). Feuille **logique**.
             let leaf = (mod.folderName as NSString).lastPathComponent
             if let failure = ModTrash.trash(
-                modsPath: modsPath, stamp: ModTrash.makeStamp(),
+                modsPath: modsPath, trashRoot: ModTrash.root(gameDir: gameDir), stamp: ModTrash.makeStamp(),
                 items: [.init(physical: mod.physicalFolderName, logicalLeaf: leaf)]).failed.first {
                 throw failure.error
             }
@@ -7165,16 +7161,18 @@ final class StarHubTHViewModel {
     var trashEvents: [ModTrash.Event] { maintenanceStore.trashEvents }
 
     func refreshTrash() {
+        guard !gameDir.isEmpty else { return }
         let gameDir = self.gameDir
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let events = ModTrash.events(modsPath: modsPath)
-            // X114 — la quarantaine vit à côté de `Mods/`, pas dedans.
-            let quarantined = ModTrash.quarantineItemCount(gameDir: gameDir)
+            let snapshot = ModTrash.snapshot(gameDir: gameDir)
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.maintenanceStore.setTrashEvents(events)
-                self.maintenanceStore.setQuarantineItemCount(quarantined)
+                if !snapshot.migrationFailures.isEmpty {
+                    self.log("Trash migration: \(snapshot.migrationFailures.joined(separator: ", ")) left in Mods/.",
+                             level: .warning)
+                }
+                self.maintenanceStore.setTrashEvents(snapshot.events)
+                self.maintenanceStore.setQuarantineItemCount(snapshot.quarantined)
             }
         }
     }
@@ -7182,7 +7180,7 @@ final class StarHubTHViewModel {
     /// Remet un mod en `Mods/.<nom>`, **désactivé** (§5.6).
     func restoreTrashEntry(event: String, entry: String) {
         restoreFromTrash(event: event) {
-            ModTrash.restoreEvent(modsPath: $0, event: event, entries: [entry],
+            ModTrash.restoreEvent(modsPath: $0, trashRoot: $1, event: event, entries: [entry],
                                   stamp: ModTrash.makeStamp())
         }
     }
@@ -7190,21 +7188,22 @@ final class StarHubTHViewModel {
     /// « Tout remettre » : l'événement revient en pause, un rescan (X112).
     func restoreTrashEvent(_ event: String) {
         restoreFromTrash(event: event) {
-            ModTrash.restoreEvent(modsPath: $0, event: event, stamp: ModTrash.makeStamp())
+            ModTrash.restoreEvent(modsPath: $0, trashRoot: $1, event: event, stamp: ModTrash.makeStamp())
         }
     }
 
     /// Trajet commun des remises, hors main (gel ~960 mods, 2026-09-14).
     private func restoreFromTrash(event: String,
-                                  _ work: @escaping @Sendable (String) -> ModTrash.TrashResult) {
+                                  _ work: @escaping @Sendable (String, String) -> ModTrash.TrashResult) {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let trashRoot = ModTrash.root(gameDir: gameDir)
         // Event non marqué (quarantaine, nom forgé) : pas une corbeille.
-        guard ModTrash.isUserEvent(modsPath: modsPath, event: event) else {
+        guard ModTrash.isUserEvent(trashRoot: trashRoot, event: event) else {
             showModal(message: String(format: localization.L(L10n.Maintenance.trashFailed2), event))
             return
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = work(modsPath)
+            let result = work(modsPath, trashRoot)
             DispatchQueue.main.async {
                 guard let self else { return }
                 let loc = self.localization
@@ -7231,10 +7230,10 @@ final class StarHubTHViewModel {
 
     /// Purge nominative, toujours après confirmation.
     func purgeTrashEntry(event: String, entry: String) {
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let trashRoot = ModTrash.root(gameDir: gameDir)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                try ModTrash.purgeEntry(modsPath: modsPath, event: event, entry: entry)
+                try ModTrash.purgeEntry(trashRoot: trashRoot, event: event, entry: entry)
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.log(String(format: self.localization.L(L10n.Maintenance.trashPurgedLog),
@@ -7254,10 +7253,10 @@ final class StarHubTHViewModel {
 
     /// Vide la corbeille ; compte annoncé tiré du même `trashEvents`.
     func purgeAllTrash() {
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
+        let trashRoot = ModTrash.root(gameDir: gameDir)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                let removed = try ModTrash.purgeAll(modsPath: modsPath)
+                let removed = try ModTrash.purgeAll(trashRoot: trashRoot)
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.log(String(format: self.localization.L(L10n.Maintenance.trashEmptiedLog), removed))

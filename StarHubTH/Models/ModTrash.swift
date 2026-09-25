@@ -3,9 +3,11 @@ import Foundation
 /// X103-B — la corbeille des mods supprimés.
 ///
 /// Un mod « supprimé » ne disparaît plus : il est déplacé sous
-/// `Mods/_Trash_<yyyyMMdd_HHmmss>/` — le **même préfixe** que la quarantaine
-/// du réparateur, que le scanner saute déjà au niveau 1 (un mod mis à la
-/// corbeille ne peut donc jamais revenir dans la liste). Une corbeille ne
+/// `<jeu>/_StarHubFR_Corbeille/_Trash_<yyyyMMdd_HHmmss>/`, **hors de
+/// `Mods/`** (X115) : SMAPI lisait chaque événement comme un mod sans
+/// manifeste et l'annonçait en `ERROR` « Skipped mods » à chaque lancement.
+/// Même volume que `Mods/` — un déplacement reste un renommage, même pour
+/// les ~720 dossiers d'un vidage des mods en pause. Une corbeille ne
 /// sert à rien si elle se vide toute seule : **aucune purge automatique**,
 /// jamais une heuristique silencieuse (leçon X25) — les deux sorties sont
 /// explicites : « remettre » (en désactivé, §5.6) ou « supprimer ».
@@ -30,11 +32,22 @@ enum ModTrash {
 
     // MARK: - Nommage
 
+    /// Le dossier parent, à côté de `Mods/`. Son nom ne commence **pas** par
+    /// `_Trash_` : la quarantaine du réparateur vit aussi dans le dossier du
+    /// jeu, et « Vider la quarantaine » envoie au Mac tout `_Trash_*` qu'il
+    /// y trouve.
+    static let rootFolderName = "_StarHubFR_Corbeille"
+
+    static func root(gameDir: String) -> String {
+        (gameDir as NSString).appendingPathComponent(rootFolderName)
+    }
+
     /// Fichier marqueur posé à la racine de chaque événement de corbeille
-    /// **utilisateur**. Le préfixe `_Trash_` est partagé avec la quarantaine
-    /// du réparateur (le scanner ne saute qu'un préfixe) : sans ce marqueur,
-    /// la corbeille listerait — et « Vider » effacerait — le travail du
-    /// réparateur. Un dossier `_Trash_*` sans marqueur n'est pas à nous.
+    /// **utilisateur**. Avant X115 la corbeille partageait `Mods/` et le
+    /// préfixe `_Trash_` avec d'autres ; le marqueur reste la preuve que
+    /// l'événement est à nous — c'est aussi lui qui désigne ce que la
+    /// migration sort de `Mods/`. Un dossier `_Trash_*` sans marqueur n'est
+    /// pas à nous.
     static let eventMarker = ".starhubfr-user-trash"
 
     /// Pose le marqueur. Appelé **avant** le déplacement du mod : si le
@@ -44,10 +57,10 @@ enum ModTrash {
         try Data().write(to: URL(fileURLWithPath: markerPath))
     }
 
-    static func isUserEvent(modsPath: String, event: String,
+    static func isUserEvent(trashRoot: String, event: String,
                             fm: FileManager = .default) -> Bool {
         guard isTrashFolder(event) else { return false }
-        let markerPath = (modsPath as NSString)
+        let markerPath = (trashRoot as NSString)
             .appendingPathComponent((event as NSString).appendingPathComponent(eventMarker))
         return fm.fileExists(atPath: markerPath)
     }
@@ -117,16 +130,16 @@ enum ModTrash {
     /// rien n'a bougé et tout le lot est rendu en échec, avec cette erreur.
     /// Un élément qui ne se déplace pas n'arrête pas les suivants ; un
     /// événement resté vide est retiré.
-    static func trash(modsPath: String, stamp: String, items: [Item],
+    static func trash(modsPath: String, trashRoot: String, stamp: String, items: [Item],
                       fm: FileManager = .default) -> TrashResult {
         let event = trashFolderName(stamp: stamp)
-        let eventDir = (modsPath as NSString).appendingPathComponent(event)
+        let eventDir = (trashRoot as NSString).appendingPathComponent(event)
         var result = TrashResult()
         do {
             try fm.createDirectory(atPath: eventDir, withIntermediateDirectories: true)
             try markEvent(eventDir: eventDir)
         } catch {
-            discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+            discardEventIfEmpty(trashRoot: trashRoot, event: event, fm: fm)
             result.failed = items.map { ($0.physical, error) }
             return result
         }
@@ -140,8 +153,59 @@ enum ModTrash {
                 result.failed.append((item.physical, error))
             }
         }
-        discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+        discardEventIfEmpty(trashRoot: trashRoot, event: event, fm: fm)
         return result
+    }
+
+    // MARK: - Migrer (X115)
+
+    /// Sort de `Mods/` les événements marqués d'avant X115, vers `trashRoot`.
+    /// Seuls les marqués bougent : un `_Trash_*` sans marqueur n'est pas à
+    /// nous. Un nom déjà pris se décale par compteur, jamais n'écrase ; un
+    /// événement qui résiste reste en place (le scanner le saute toujours)
+    /// et se dit dans `failed`.
+    static func migrateLegacyEvents(modsPath: String, trashRoot: String,
+                                    fm: FileManager = .default) -> TrashResult {
+        var result = TrashResult()
+        let legacy: [String]
+        do {
+            legacy = try fm.contentsOfDirectory(atPath: modsPath)
+                .filter { isUserEvent(trashRoot: modsPath, event: $0, fm: fm) }
+                .sorted()
+        } catch {
+            return result  // `Mods/` absent ou illisible : le scan le dit.
+        }
+        for event in legacy {
+            do {
+                try fm.createDirectory(atPath: trashRoot, withIntermediateDirectories: true)
+                let dest = destination(eventDir: trashRoot, logicalFolderName: event, fm: fm)
+                try fm.moveItem(atPath: (modsPath as NSString).appendingPathComponent(event),
+                                toPath: dest)
+                result.moved.append(event)
+            } catch {
+                result.failed.append((event, error))
+            }
+        }
+        return result
+    }
+
+    /// Ce que l'Entretien affiche, en une passe hors main : migration X115
+    /// d'abord (un événement resté sous `Mods/` ne serait pas listé).
+    struct Snapshot {
+        let events: [Event]
+        let quarantined: Int
+        /// Les événements d'avant X115 restés sous `Mods/`.
+        let migrationFailures: [String]
+    }
+
+    static func snapshot(gameDir: String, fm: FileManager = .default) -> Snapshot {
+        let trashRoot = root(gameDir: gameDir)
+        let migration = migrateLegacyEvents(
+            modsPath: (gameDir as NSString).appendingPathComponent("Mods"),
+            trashRoot: trashRoot, fm: fm)
+        return Snapshot(events: events(trashRoot: trashRoot, fm: fm),
+                        quarantined: quarantineItemCount(gameDir: gameDir, fm: fm),
+                        migrationFailures: migration.failed.map(\.physical))
     }
 
     // MARK: - Remettre
@@ -176,27 +240,28 @@ enum ModTrash {
 
     /// Remet une entrée : retour en pause sous `Mods/` (voir
     /// `restoreDestination`), puis l'événement vidé disparaît.
-    static func restoreEntry(modsPath: String, event: String, entry: String,
+    static func restoreEntry(modsPath: String, trashRoot: String, event: String, entry: String,
                              stamp: String, fm: FileManager = .default) throws {
-        let source = (modsPath as NSString).appendingPathComponent(
+        let source = (trashRoot as NSString).appendingPathComponent(
             (event as NSString).appendingPathComponent(entry))
         let dest = restoreDestination(modsPath: modsPath, entryRelativePath: entry,
                                       stamp: stamp, fm: fm)
         try fm.createDirectory(atPath: (dest as NSString).deletingLastPathComponent,
                                withIntermediateDirectories: true)
         try fm.moveItem(atPath: source, toPath: dest)
-        discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+        discardEventIfEmpty(trashRoot: trashRoot, event: event, fm: fm)
     }
 
     /// Remet des entrées d'un événement — `entries: nil` le remet **tout**,
     /// d'un geste : un vidage des mods en pause ne se remet pas entrée par
     /// entrée. Une entrée qui résiste n'arrête pas les suivantes.
-    static func restoreEvent(modsPath: String, event: String, entries: [String]? = nil,
+    static func restoreEvent(modsPath: String, trashRoot: String, event: String,
+                             entries: [String]? = nil,
                              stamp: String, fm: FileManager = .default) -> TrashResult {
         var result = TrashResult()
         var targets = entries ?? []
         if entries == nil {
-            let dir = (modsPath as NSString).appendingPathComponent(event)
+            let dir = (trashRoot as NSString).appendingPathComponent(event)
             do {
                 targets = try fm.contentsOfDirectory(atPath: dir)
                     .filter { $0 != eventMarker }.sorted()
@@ -209,7 +274,7 @@ enum ModTrash {
         }
         for entry in targets {
             do {
-                try restoreEntry(modsPath: modsPath, event: event, entry: entry,
+                try restoreEntry(modsPath: modsPath, trashRoot: trashRoot, event: event, entry: entry,
                                  stamp: stamp, fm: fm)
                 result.moved.append(entry)
             } catch {
@@ -243,17 +308,17 @@ enum ModTrash {
     /// « remettre » le junk que le réparateur vient d'écarter. Un événement
     /// sans entrée (tout a été remis ou supprimé item par item) n'est pas
     /// listé — la corbeille vide ne s'affiche pas.
-    static func events(modsPath: String, fm: FileManager = .default) -> [Event] {
-        let names = (try? fm.contentsOfDirectory(atPath: modsPath))?
+    static func events(trashRoot: String, fm: FileManager = .default) -> [Event] {
+        let names = (try? fm.contentsOfDirectory(atPath: trashRoot))?
             .filter(isTrashFolder)
-            .filter { isUserEvent(modsPath: modsPath, event: $0, fm: fm) } ?? []
+            .filter { isUserEvent(trashRoot: trashRoot, event: $0, fm: fm) } ?? []
         let parser = DateFormatter()
         parser.dateFormat = "yyyyMMdd_HHmmss"
         parser.locale = Locale(identifier: "en_US_POSIX")
 
         return names
             .map { name -> (Event, sortKey: String) in
-                let dir = (modsPath as NSString).appendingPathComponent(name)
+                let dir = (trashRoot as NSString).appendingPathComponent(name)
                 let suffix = String(name.dropFirst(ModFolderRepairer.trashPrefix.count))
                 // Les composantes de tête seulement — c'est ce que
                 // « remettre » remet — sans descendre dans les mods : un
@@ -278,9 +343,9 @@ enum ModTrash {
 
     /// Supprime une entrée, puis l'événement s'il est vide — une corbeille
     /// sans contenu ne laisse pas de dossier fantôme.
-    static func purgeEntry(modsPath: String, event: String, entry: String,
+    static func purgeEntry(trashRoot: String, event: String, entry: String,
                            fm: FileManager = .default) throws {
-        guard isUserEvent(modsPath: modsPath, event: event, fm: fm) else {
+        guard isUserEvent(trashRoot: trashRoot, event: event, fm: fm) else {
             throw CocoaError(.fileNoSuchFile,
                              userInfo: [NSFilePathErrorKey: event])
         }
@@ -291,7 +356,7 @@ enum ModTrash {
             throw CocoaError(.fileReadInvalidFileName,
                              userInfo: [NSFilePathErrorKey: entry])
         }
-        let eventDir = (modsPath as NSString).appendingPathComponent(event)
+        let eventDir = (trashRoot as NSString).appendingPathComponent(event)
         let entryPath = (eventDir as NSString).appendingPathComponent(trimmed)
         // Le chemin demandé doit rester DANS l'événement : un `..` ne doit
         // jamais franchir la corbeille (leçon zip-slip, côté purge).
@@ -303,15 +368,15 @@ enum ModTrash {
         // X110 — un mod livré en 0555 garde ses droits dans la corbeille :
         // `removeItem` nu échoue en Code=513. Même remède que l'installateur.
         try ModZipInstaller.removeItemGrantingWriteAccess(atPath: entryPath)
-        discardEventIfEmpty(modsPath: modsPath, event: event, fm: fm)
+        discardEventIfEmpty(trashRoot: trashRoot, event: event, fm: fm)
     }
 
     /// Après une remise ou une purge (l'entrée a disparu), l'événement vidé
     /// disparaît — le marqueur ne compte pas comme du contenu.
-    static func discardEventIfEmpty(modsPath: String, event: String,
+    static func discardEventIfEmpty(trashRoot: String, event: String,
                                     fm: FileManager = .default) {
         guard isTrashFolder(event) else { return }
-        let eventDir = (modsPath as NSString).appendingPathComponent(event)
+        let eventDir = (trashRoot as NSString).appendingPathComponent(event)
         let rest = ((try? fm.contentsOfDirectory(atPath: eventDir)) ?? [])
             .filter { $0 != eventMarker }
         if rest.isEmpty {
@@ -319,16 +384,15 @@ enum ModTrash {
         }
     }
 
-    /// Vide la corbeille **utilisateur** — les quarantaines du réparateur
-    /// (même préfixe, sans marqueur) ne sont pas de la corbeille et restent
-    /// le domaine du réparateur. Retourne le nombre d'événements supprimés.
-    static func purgeAll(modsPath: String, fm: FileManager = .default) throws -> Int {
-        let names = (try? fm.contentsOfDirectory(atPath: modsPath))?
+    /// Vide la corbeille **utilisateur** — seuls les événements marqués
+    /// partent. Retourne le nombre d'événements supprimés.
+    static func purgeAll(trashRoot: String, fm: FileManager = .default) throws -> Int {
+        let names = (try? fm.contentsOfDirectory(atPath: trashRoot))?
             .filter(isTrashFolder)
-            .filter { isUserEvent(modsPath: modsPath, event: $0, fm: fm) } ?? []
+            .filter { isUserEvent(trashRoot: trashRoot, event: $0, fm: fm) } ?? []
         for name in names {
             try ModZipInstaller.removeItemGrantingWriteAccess(
-                atPath: (modsPath as NSString).appendingPathComponent(name))
+                atPath: (trashRoot as NSString).appendingPathComponent(name))
         }
         return names.count
     }
