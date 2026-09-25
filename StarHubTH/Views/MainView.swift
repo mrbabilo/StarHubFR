@@ -407,6 +407,7 @@ struct MainView: View {
             guard url != nil else { return }
             showDropInstall = true
         }
+        .sheet(isPresented: Bindable(vm.navigationStore).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }
         .sheet(isPresented: $showDropInstall, onDismiss: {
             // PAS de discard ici : fichiers originaux de l'utilisateur.
             vm.clearDropPresentation()

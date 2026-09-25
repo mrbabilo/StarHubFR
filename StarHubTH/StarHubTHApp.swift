@@ -225,6 +225,12 @@ struct StarHubTHApp: App {
                 Button(localization.L(L10n.Palette.open)) { vm.requestPalette() }
                     .keyboardShortcut("k", modifiers: .command)
             }
+            // Le menu Aide ne proposait que « Aide StarHubFR » (indisponible) :
+            // il ouvre désormais l'écran des raccourcis clavier.
+            CommandGroup(replacing: .help) {
+                Button(localization.L(L10n.Shortcuts.title)) { vm.navigationStore.showsShortcutsHelp = true }
+                    .keyboardShortcut(KeyEquivalent(Character(KeyboardShortcutCatalog.helpKey)), modifiers: .command)
+            }
         }
 
         // Le bilan post-installation — une fenêtre dédiée, redimensionnable,

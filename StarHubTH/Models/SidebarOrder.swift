@@ -9,7 +9,7 @@ public enum SidebarGroup: String, CaseIterable, Sendable {
     case top
     case library, saves, health, app
     /// Pas un groupe dessiné non plus : un bouton du pied épinglé
-    /// (`ChangelogFooterButton`). Même raison que `top` d'être ici.
+    /// (`SidebarFooterIconButton`). Même raison que `top` d'être ici.
     case footer
 }
 

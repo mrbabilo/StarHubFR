@@ -209,6 +209,12 @@ final class NavigationStore {
     /// Hors de la règle de `TabChangePlan` : rien ne le remet à zéro.
     var backupsSegment: BackupsSegment = .install
 
+    /// L'écran d'aide des raccourcis clavier, ouvert par l'icône du pied de
+    /// la barre latérale ou par ⌘/ (menu Aide). Ici et non en `@State` de
+    /// MainView : le menu vit dans la scène App et ne peut écrire que les
+    /// canaux du ViewModel.
+    var showsShortcutsHelp = false
+
     func setEditingSave(_ save: SaveGameInfo?) {
         editingSave = save
         inventoryToEdit = []

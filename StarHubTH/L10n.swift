@@ -1793,6 +1793,30 @@ enum L10n {
     }
 
     // MARK: - Palette de commandes (I-T2)
+    enum Shortcuts {
+        static let title = "shortcuts_title"
+        static let groupScreens = "shortcuts_group_screens"
+        static let groupNavigation = "shortcuts_group_navigation"
+        static let groupModList = "shortcuts_group_mod_list"
+        static let groupPalette = "shortcuts_group_palette"
+        static let groupDialogs = "shortcuts_group_dialogs"
+        static let groupApp = "shortcuts_group_app"
+        static let palette = "shortcuts_palette"
+        static let search = "shortcuts_search"
+        static let tab = "shortcuts_tab"
+        static let help = "shortcuts_help"
+        static let listMove = "shortcuts_list_move"
+        static let listEnds = "shortcuts_list_ends"
+        static let listOpen = "shortcuts_list_open"
+        static let paletteMove = "shortcuts_palette_move"
+        static let paletteGo = "shortcuts_palette_go"
+        static let confirm = "shortcuts_confirm"
+        static let cancel = "shortcuts_cancel"
+        static let hide = "shortcuts_hide"
+        static let minimize = "shortcuts_minimize"
+        static let quit = "shortcuts_quit"
+    }
+
     enum Palette {
         static let goMenu               = "palette_go_menu"
         static let open                 = "palette_open"

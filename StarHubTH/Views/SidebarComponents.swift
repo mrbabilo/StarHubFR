@@ -87,7 +87,7 @@ struct SidebarPinnedFooter: View {
             HStack {
                 ThemeToggle(vm: vm, localization: localization, appColorScheme: $appColorScheme)
                 Spacer()
-                ChangelogFooterButton(localization: localization, currentTab: $currentTab)
+                SidebarFooterPages(vm: vm, localization: localization, currentTab: $currentTab)
                 Spacer()
                 LanguageFlagToggle(vm: vm, localization: localization)
             }
