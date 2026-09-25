@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Added
 
 - **La liste des mods se parcourt au clavier.** Tab passe de la barre latérale à la page ; dans la liste, ↑ ↓ déplacent la sélection (la page suit), Début et Fin vont aux bouts, Entrée ouvre la fiche.
+- **VoiceOver nomme les boutons à icône et les interrupteurs.** 31 boutons à icône seule et 11 interrupteurs n'avaient pas de nom lisible ; ils annoncent désormais leur action ou le réglage qu'ils changent.
 
 ### Changed
 
