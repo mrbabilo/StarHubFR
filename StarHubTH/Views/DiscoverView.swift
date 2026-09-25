@@ -37,7 +37,7 @@ struct DiscoverView: View {
         ScrollViewReader { scroller in
             content.onChange(of: jumpTarget) { _, target in
                 guard let target else { return }
-                withAnimation { scroller.scrollTo(target, anchor: .top) }
+                withMotion { scroller.scrollTo(target, anchor: .top) }
                 jumpTarget = nil
             }
         }

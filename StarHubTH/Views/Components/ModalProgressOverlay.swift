@@ -32,7 +32,7 @@ struct ModalProgressOverlay: View {
                         .progressViewStyle(.linear)
                         .tint(.accentColor)
                         .frame(width: 280)
-                        .animation(.easeInOut(duration: 0.2), value: fraction)
+                        .animation(Motion.animation(.easeInOut(duration: 0.2)), value: fraction)
                 } else {
                     ProgressView()
                         .progressViewStyle(.linear)

@@ -194,7 +194,7 @@ extension ModListView {
         if noCategory {
             Text(localization.L(L10n.Mods.categoryFilterEmptyHint))
                 .font(AppDesign.Font.footnote)
-                .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
                 .lineLimit(1)
                 .help(localization.L(L10n.Mods.categoryFilterEmptyHint))
         }

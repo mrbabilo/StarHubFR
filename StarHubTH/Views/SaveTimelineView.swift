@@ -91,7 +91,7 @@ struct SaveTimelineView: View {
                     Spacer()
                     Image(systemName: "clock.badge.xmark")
                         .font(.system(size: 40))
-                        .foregroundColor(.secondary.opacity(0.5))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
                     Text(localization.L(L10n.Saves.noBackups))
                         .multilineTextAlignment(.center)
                         .font(.system(size: 14))

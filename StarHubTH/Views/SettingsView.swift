@@ -267,9 +267,9 @@ struct SettingsView: View {
                                 guard !trimmed.isEmpty else { return }
                                 vm.setNexusApiKey(trimmed)
                                 nexusApiKeyInput = ""
-                                withAnimation { nexusKeySavedFlash = true }
+                                withMotion { nexusKeySavedFlash = true }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    withAnimation { nexusKeySavedFlash = false }
+                                    withMotion { nexusKeySavedFlash = false }
                                 }
                             } label: {
                                 Text(localization.L(L10n.Settings.nexusSaveKey))
@@ -524,7 +524,7 @@ struct SettingsView: View {
                         ProgressView(value: smapiInstaller.progress, total: 1.0)
                             .progressViewStyle(.linear)
                             .tint(.blue)
-                            .animation(.easeInOut, value: smapiInstaller.progress)
+                            .animation(Motion.animation(.easeInOut), value: smapiInstaller.progress)
                         Text(localization.L(smapiInstaller.statusMessage))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
@@ -971,10 +971,10 @@ private struct LocalAISettingsSection: View {
                         // « Copié » deux secondes, comme le flash de la clé
                         // Nexus — mais sans `DispatchQueue`, que le cliquet
                         // des conventions cherche justement à faire reculer.
-                        withAnimation { didCopyPullCommand = true }
+                        withMotion { didCopyPullCommand = true }
                         Task {
                             try? await Task.sleep(nanoseconds: 2_000_000_000)
-                            withAnimation { didCopyPullCommand = false }
+                            withMotion { didCopyPullCommand = false }
                         }
                     }
                     .controlSize(.small)

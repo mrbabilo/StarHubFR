@@ -307,7 +307,7 @@ struct SpoilerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+                withMotion(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
             } label: {
                 HStack {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")

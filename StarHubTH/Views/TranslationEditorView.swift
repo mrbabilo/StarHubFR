@@ -73,7 +73,7 @@ struct TranslationEditorView: View {
             if let component = row.component {
                 Text(component)
                     .font(AppDesign.Font.iconXS)
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
             }
 
             Text(localization.L(L10n.Mods.translationEditorSource))

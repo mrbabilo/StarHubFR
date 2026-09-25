@@ -94,7 +94,7 @@ struct UpdatesView: View {
                                     .transition(.opacity)
                             }
                         }
-                        .animation(.easeInOut(duration: 0.2), value: vm.nexusCheckProgress?.done)
+                        .animation(Motion.animation(.easeInOut(duration: 0.2)), value: vm.nexusCheckProgress?.done)
                     } else if let err = vm.nexusCheckError, vm.nexusUpdates.isEmpty {
                         // A partial run that still found updates falls
                         // through to the list below instead of here — an
@@ -176,7 +176,7 @@ struct UpdatesView: View {
                                             Label(vm.formatUploadedDate(uploaded),
                                                   systemImage: "clock.fill")
                                                 .font(AppDesign.Font.footnote)
-                                                .foregroundColor(.secondary.opacity(0.8))
+                                                .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
                                         }
                                     }
                                 }

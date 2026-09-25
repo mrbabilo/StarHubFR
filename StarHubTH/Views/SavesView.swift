@@ -80,7 +80,7 @@ struct SavesView: View {
                     Spacer()
                     Image(systemName: "cloud.bolt")
                         .font(AppDesign.Font.emptyScopeGlyph)
-                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
                     Text(localization.L(L10n.Saves.noSaves))
                         .multilineTextAlignment(.center)
                         .font(AppDesign.Font.body)

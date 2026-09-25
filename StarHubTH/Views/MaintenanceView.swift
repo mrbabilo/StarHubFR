@@ -172,7 +172,7 @@ struct MaintenanceView: View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "sparkles")
                 .font(.system(size: 34))
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(AppDesign.Font.rowTitle)
@@ -422,7 +422,7 @@ struct MaintenanceView: View {
             Spacer()
             Image(systemName: "sparkles")
                 .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(AppDesign.Font.rowTitle)

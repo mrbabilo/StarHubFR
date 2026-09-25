@@ -118,7 +118,7 @@ struct ModConfigBackupsView: View {
             Spacer()
             Image(systemName: "archivebox")
                 .font(.system(size: 40))
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
             Text(localization.L(L10n.ModConfigBackups.noBackups))
                 .multilineTextAlignment(.center)
                 .font(.system(size: 14))

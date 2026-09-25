@@ -214,7 +214,7 @@ struct InstallPreview: View {
                 Spacer()
                 // Bascule entre « problématiques seulement » et « tout voir ».
                 Button {
-                    withAnimation { showOnlyProblematicDeps.toggle() }
+                    withMotion { showOnlyProblematicDeps.toggle() }
                 } label: {
                     Text(showOnlyProblematicDeps
                          ? localization.L(L10n.ModInstall.depsShowAll)
@@ -471,7 +471,7 @@ struct DependencyRow: View {
             if !entry.isRequired && entry.status != .satisfied {
                 Text(localization.L(L10n.ModInstall.depOptional))
                     .font(.system(size: 9))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.secondary.opacity(0.1))
@@ -618,7 +618,7 @@ struct DetectedModRow: View {
                         .foregroundColor(.secondary)
 
                     Text("•")
-                        .foregroundColor(.secondary.opacity(0.5))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
 
                     Text(mod.author)
                         .font(.system(size: 11))

@@ -244,7 +244,7 @@ struct NexusDownloadFooter: View {
             // Le glissement est piloté côté vue : le VM se contente de muter
             // l'état à ses deux bascules (démarrage, complétion) ; animer ici
             // n'exige aucune transaction dans le ViewModel.
-            .animation(.spring(response: 0.3, dampingFraction: 0.85),
+            .animation(Motion.animation(.spring(response: 0.3, dampingFraction: 0.85)),
                        value: vm.isDownloadingFromNexus)
     }
 

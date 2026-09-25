@@ -300,7 +300,7 @@ struct ModListView: View {
                             VStack(spacing: AppDesign.Spacing.lg) {
                                 Image(systemName: "puzzlepiece.extension")
                                     .font(AppDesign.Font.emptyStateGlyph)
-                                    .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                                    .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
                                 Text(String(format: localization.L(L10n.Mods.noModFound), filters.search))
                                     .multilineTextAlignment(.center)
                                     .font(AppDesign.Font.rowTitle)
@@ -450,7 +450,7 @@ struct ModListView: View {
         VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "checkmark.seal")
                 .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
             Text(localization.L(filters.scope == .enabled
                       ? L10n.Mods.disabled
                       : L10n.Mods.enabled))
@@ -503,7 +503,7 @@ struct ModListView: View {
                     case .ellipsis:
                         Text("…")
                             .font(AppDesign.Font.footnote)
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
                             .frame(width: 24)
                     case .page(let n):
                         Button {
@@ -537,7 +537,7 @@ struct ModListView: View {
 
             Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
                 .font(AppDesign.Font.iconXS)
-                .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
         }
         .padding(.top, AppDesign.Spacing.xs)
     }
@@ -599,7 +599,7 @@ struct ModListView: View {
                             ByteCountFormatter.string(fromByteCount: total, countStyle: .file)))
                     .font(AppDesign.Font.footnote)
             }
-            .foregroundColor(.secondary.opacity(AppDesign.Opacity.secondary))
+            .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
         }
     }
 

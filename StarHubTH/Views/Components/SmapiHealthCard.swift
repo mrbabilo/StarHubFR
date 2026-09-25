@@ -338,7 +338,7 @@ struct SmapiHealthCard: View {
                         if !notice.sample.isEmpty {
                             Text(notice.sample)
                                 .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(.secondary.opacity(AppDesignCore.Opacity.secondary))
+                                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesignCore.Opacity.secondary))
                                 .textSelection(.enabled)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)

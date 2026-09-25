@@ -804,12 +804,12 @@ struct ModDetailView: View {
                 if let cat = catName {
                     Text(String(format: localization.L(L10n.Mods.nexusFetchedCategory), cat))
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.secondary.opacity(0.85))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.85))
                 }
                 if let v = latest {
                     Text(String(format: localization.L(L10n.Mods.nexusLatestVersion), v))
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.secondary.opacity(0.85))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.85))
                 }
             }
         case .noApiKey:

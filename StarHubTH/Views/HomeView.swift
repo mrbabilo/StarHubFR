@@ -146,7 +146,7 @@ struct HomeView: View {
                     ProgressView(value: smapiInstaller.progress, total: 1.0)
                         .progressViewStyle(.linear)
                         .tint(.blue)
-                        .animation(.easeInOut, value: smapiInstaller.progress)
+                        .animation(Motion.animation(.easeInOut), value: smapiInstaller.progress)
                     Text(localization.L(smapiInstaller.statusMessage))
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
@@ -171,7 +171,7 @@ struct HomeView: View {
 
             HStack(spacing: AppDesign.Spacing.xs) {
                 Text(mode == .vanilla ? localization.L(L10n.Settings.vanillaGame) : localization.L(L10n.Settings.playSMAPI))
-                Text("•").foregroundStyle(.secondary.opacity(0.5))
+                Text("•").foregroundStyle(AppDesign.Color.dimmedSecondary(0.5))
                 Text(vm.gameDir)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -301,7 +301,7 @@ struct CoreModRow: View {
                                 .foregroundColor(.secondary)
                         }
                         if !mod.author.isEmpty && !mod.version.isEmpty {
-                            Text("•").foregroundColor(.secondary.opacity(0.5))
+                            Text("•").foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
                         }
                         if !mod.version.isEmpty {
                             Text("v\(mod.version)")

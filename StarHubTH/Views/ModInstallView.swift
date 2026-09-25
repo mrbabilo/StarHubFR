@@ -129,7 +129,7 @@ struct ModInstallView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
@@ -360,7 +360,7 @@ struct ModInstallView: View {
             } else {
                 Image(systemName: isDropTarget ? "arrow.down.doc.fill" : "arrow.down.doc")
                     .font(.system(size: 48))
-                    .foregroundColor(isDropTarget ? .accentColor : .secondary.opacity(0.6))
+                    .foregroundColor(isDropTarget ? .accentColor : AppDesign.Color.dimmedSecondary(0.6))
 
                 VStack(spacing: AppDesignCore.Spacing.sm) {
                     Text(localization.L(L10n.ModInstall.dropZoneText))
@@ -388,7 +388,7 @@ struct ModInstallView: View {
                         )
                 )
         )
-        .animation(.easeInOut(duration: 0.2), value: isDropTarget)
+        .animation(Motion.animation(.easeInOut(duration: 0.2)), value: isDropTarget)
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) {

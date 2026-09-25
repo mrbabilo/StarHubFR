@@ -531,7 +531,7 @@ struct TranslationDiffView: View {
                     .frame(maxHeight: 460)
                     .onChange(of: scrollTarget) { _, target in
                         guard let target else { return }
-                        withAnimation { proxy.scrollTo(target, anchor: .top) }
+                        withMotion { proxy.scrollTo(target, anchor: .top) }
                         scrollTarget = nil
                     }
                     .sheet(item: $editing) { row in

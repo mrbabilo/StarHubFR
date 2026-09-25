@@ -366,7 +366,7 @@ struct LogsView: View {
                         // Pointless when grouped: the list is no longer
                         // chronological, so the newest line isn't at the bottom.
                         if autoScroll, !groupByMod, let last = logViews.filtered.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                            withMotion { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
                 }

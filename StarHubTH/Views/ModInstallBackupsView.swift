@@ -210,13 +210,13 @@ struct ModInstallBackupsView: View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
                 .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.4))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.4))
             Text(localization.L(L10n.ModInstall.noBackups))
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             Text(localization.L(L10n.ModInstall.noBackupsHint))
                 .font(.system(size: 12))
-                .foregroundColor(.secondary.opacity(0.7))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -274,7 +274,7 @@ struct ModInstallBackupsView: View {
         VStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 26))
-                .foregroundColor(.secondary.opacity(0.6))
+                .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
             Text(String(format: localization.L(L10n.ModInstall.backupsNoMatch), search))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
@@ -333,7 +333,7 @@ struct ModInstallBackupsView: View {
                             .font(.system(size: 13, weight: .medium))
                         Text(group.folderName)
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.secondary.opacity(0.7))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -345,7 +345,7 @@ struct ModInstallBackupsView: View {
                             .foregroundColor(.secondary)
                         Text(group.backups.first?.formattedDate ?? "")
                             .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.8))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
                     }
                 }
                 .contentShape(Rectangle())
@@ -402,7 +402,7 @@ struct ModInstallBackupsView: View {
                     .foregroundColor(.secondary)
                 Text(backup.originalFolderName)
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
             }
 
             Spacer()
@@ -413,7 +413,7 @@ struct ModInstallBackupsView: View {
                     .foregroundColor(.secondary)
                 Text(reasonText(for: backup.reason))
                     .font(.system(size: 10))
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
             }
 
             // Action buttons: while this row's operation is in flight, the

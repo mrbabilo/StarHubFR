@@ -201,7 +201,7 @@ struct SaveTreeListView: View {
                     hasChildren: hasChildren,
                     isExpanded: isExpanded,
                     onToggleExpand: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withMotion(.easeInOut(duration: 0.2)) {
                             if isExpanded {
                                 expandedSaves.remove(node.info.folderName)
                             } else {
@@ -240,7 +240,7 @@ struct SaveRow: View {
                 HStack(spacing: AppDesign.Spacing.xs) {
                     Spacer().frame(width: CGFloat(depth) * 16 - 8)
                     Image(systemName: "arrow.turn.down.right")
-                        .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
                         .font(AppDesign.Font.iconXS)
                 }
             }

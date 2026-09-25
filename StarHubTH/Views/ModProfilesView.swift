@@ -167,7 +167,7 @@ struct ModProfilesView: View {
                     VStack(spacing: AppDesign.Spacing.lg) {
                         Image(systemName: "person.2.slash")
                             .font(AppDesign.Font.emptyScopeGlyph)
-                            .foregroundColor(.secondary.opacity(AppDesign.Opacity.disabled))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
                         Text(localization.L(L10n.Profiles.noProfiles))
                             .font(AppDesign.Font.body)
                             .foregroundColor(.secondary)

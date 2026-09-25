@@ -50,7 +50,7 @@ struct ModGroupRow: View {
             ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
                        isChild: false, isGroupHeader: true, isExpanded: $isExpanded)
                 .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withMotion(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
                 }
@@ -406,7 +406,7 @@ struct ModListRow: View {
         } label: {
             Image(systemName: on ? "star.fill" : "star")
                 .font(AppDesign.Font.footnote)
-                .foregroundColor(on ? AppDesign.Color.favorite : .secondary.opacity(isHovered ? 0.6 : 0.25))
+                .foregroundColor(on ? AppDesign.Color.favorite : AppDesign.Color.dimmedSecondary(isHovered ? 0.6 : 0.25))
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
@@ -540,7 +540,7 @@ struct ModListRow: View {
                 if mod.name != mod.folderName {
                     Text(mod.folderName)
                         .font(AppDesign.Font.footnote)
-                        .foregroundColor(.secondary.opacity(0.7))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                         .lineLimit(1)
                 }
                 
@@ -572,7 +572,7 @@ struct ModListRow: View {
                         // plus rien ne le suit dont il pourrait décaler la place.
                         Text(mod.description)
                             .font(AppDesign.Font.footnote)
-                            .foregroundColor(.secondary.opacity(0.85))
+                            .foregroundColor(AppDesign.Color.dimmedSecondary(0.85))
                             .lineLimit(1)
                     }
                 }
@@ -581,7 +581,7 @@ struct ModListRow: View {
                 if let metaLine = rowMetadataLine {
                     metaLine
                         .font(AppDesign.Font.caption)
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
                 }
                 let missingDeps = vm.getMissingDependencies(for: mod)
                 let disabledDeps = vm.getDisabledDependencies(for: mod)
@@ -678,7 +678,7 @@ struct ModListRow: View {
                     } label: {
                         Image(systemName: blacklisted ? "xmark.circle.fill" : "xmark.circle")
                             .font(AppDesign.Font.rowTitle)
-                            .foregroundColor(blacklisted ? .secondary : .secondary.opacity(0.6))
+                            .foregroundColor(blacklisted ? .secondary : AppDesign.Color.dimmedSecondary(0.6))
                     }
                     .buttonStyle(.plain)
                     .help(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
@@ -883,8 +883,8 @@ struct ModListRow: View {
             RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
                 .stroke(isHovered ? Color.accentColor.opacity(0.2) : Color.clear, lineWidth: 1)
         )
-        .animation(.easeInOut(duration: 0.12), value: isHovered)
-        .animation(.easeInOut(duration: 0.15), value: effectiveEnabled)
+        .animation(Motion.animation(.easeInOut(duration: 0.12)), value: isHovered)
+        .animation(Motion.animation(.easeInOut(duration: 0.15)), value: effectiveEnabled)
         .onHover { isHovered = $0 }
         // Accessibility : VoiceOver annonce le mod comme un élément unifié
         // avec son nom, auteur, version et état (activé/désactivé).
