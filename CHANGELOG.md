@@ -33,6 +33,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La confirmation de suppression d'un mod ne parle plus de suppression définitive** : le mod part dans la corbeille des mods (Entretien), d'où il se restaure. Les boutons « Remettre » de la corbeille deviennent « Restaurer ».
 - **Supprimer un mod ne fait plus apparaître d'erreur dans SMAPI.** La corbeille quitte le dossier Mods pour `_StarHubFR_Corbeille`, à côté ; les anciennes y sont déplacées. Le badge de la Quarantaine compte à nouveau ses fichiers (il affichait toujours 0).
 - **Les mods déjà remplacés ne sont plus signalés cassés.** smapi.io juge un mod par son identifiant : quand la version installée est la version non officielle recommandée (ou plus récente), ou le mod de remplacement proposé, l'alerte se tait — 7 faux signalements sur 9 sur un parc réel.
 - **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
