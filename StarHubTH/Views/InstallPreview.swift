@@ -118,13 +118,13 @@ struct InstallPreview: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(zipModInfo.zipName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AppDesign.Font.rowTitle(.medium))
                 HStack(spacing: 16) {
                     Text(String(format: localization.L(L10n.ModInstall.modsInZip), zipModInfo.detectedMods.count))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                     Text(zipModInfo.formattedSize)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
             }
@@ -209,7 +209,7 @@ struct InstallPreview: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(localization.L(L10n.ModInstall.dependenciesTitle))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppDesign.Font.rowTitle(.semibold))
                     .foregroundColor(.primary)
                 Spacer()
                 // Bascule entre « problématiques seulement » et « tout voir ».
@@ -219,7 +219,7 @@ struct InstallPreview: View {
                     Text(showOnlyProblematicDeps
                          ? localization.L(L10n.ModInstall.depsShowAll)
                          : localization.L(L10n.ModInstall.depsShowProblemsOnly))
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppDesign.Font.iconXS(.medium))
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
@@ -230,7 +230,7 @@ struct InstallPreview: View {
                 ForEach(displayedDependencies) { report in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(report.modName)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppDesign.Font.caption(.semibold))
                             .foregroundColor(.primary)
 
                         ForEach(report.entries) { entry in
@@ -253,7 +253,7 @@ struct InstallPreview: View {
     private var conflictsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(localization.L(L10n.ModInstall.conflictsTitle))
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppDesign.Font.rowTitle(.semibold))
                 .foregroundColor(.primary)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -287,18 +287,18 @@ struct InstallPreview: View {
         VStack(alignment: .leading, spacing: 8) {
             Label(localization.L(L10n.ModInstall.updateCautionTitle),
                   systemImage: "exclamation.triangle.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppDesign.Font.rowTitle(.semibold))
                 .foregroundColor(.orange)
 
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(updateCautions, id: \.self) { caution in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(caution.modName)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppDesign.Font.caption(.semibold))
                         // Le message de l'auteur, souvent long : entier, jamais
                         // tronqué — c'est la seule chose qui explique l'alerte.
                         Text(caution.message)
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -324,7 +324,7 @@ struct InstallPreview: View {
             let selectedCount = selections.values.filter { $0.selected }.count
             if selectedCount == 0 {
                 Text(localization.L(L10n.ModInstall.cannotInstallEmpty))
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .foregroundColor(.red)
             }
 
@@ -427,38 +427,38 @@ struct DependencyRow: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                 Text(entry.uniqueId)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(AppDesign.Font.monoFootnote)
                     .foregroundColor(.secondary)
                 Text(localization.L(L10n.ModInstall.depInstalled))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.green)
             case .installedDisabled:
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                 Text(entry.uniqueId)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(AppDesign.Font.monoFootnote)
                     .foregroundColor(.primary)
                 Text(localization.L(L10n.ModInstall.depDisabled))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.orange)
             case .inPack:
                 Image(systemName: "arrow.down.circle.fill")
                     .foregroundColor(.blue)
                 Text(entry.uniqueId)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(AppDesign.Font.monoFootnote)
                     .foregroundColor(.primary)
                 Text(localization.L(L10n.ModInstall.depInPack))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.blue)
             case .missing:
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
                 Text(entry.uniqueId)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(AppDesign.Font.monoFootnote)
                     .foregroundColor(.primary)
                 if entry.isRequired {
                     Text(localization.L(L10n.ModInstall.depRequiredMissing))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.red)
                 }
                 Spacer()
@@ -470,7 +470,7 @@ struct DependencyRow: View {
             }
             if !entry.isRequired && entry.status != .satisfied {
                 Text(localization.L(L10n.ModInstall.depOptional))
-                    .font(.system(size: 9))
+                    .font(AppDesign.Font.iconXXS)
                     .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -505,9 +505,9 @@ struct DependencyRow: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: "arrow.up.right.square")
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                 Text(localization.L(L10n.ModInstall.depDownload))
-                    .font(.system(size: 10, weight: .medium))
+                    .font(AppDesign.Font.iconXS(.medium))
             }
             .foregroundColor(.accentColor)
         }
@@ -544,7 +544,7 @@ struct ConflictRow: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.red)
                 Text(conflict.folderName)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
             }
 
             // Un nom pris par un **autre** mod se dit : la ligne nomme
@@ -552,18 +552,18 @@ struct ConflictRow: View {
             if conflict.conflictType == .nameTakenByOtherMod {
                 Text(String(format: localization.L(L10n.ModInstall.nameTakenByOtherMod),
                             conflict.existingName, conflict.existingVersion))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 8) {
                 Text(String(format: localization.L(L10n.ModInstall.existingVersion), conflict.existingVersion))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                 Text("→")
                     .foregroundColor(.secondary)
                 Text(String(format: localization.L(L10n.ModInstall.newVersion), conflict.newVersion))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             .foregroundColor(.secondary)
 
@@ -609,19 +609,19 @@ struct DetectedModRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(mod.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
                     .foregroundColor(.primary)
 
                 HStack(spacing: 8) {
                     Text("v\(mod.version)")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(AppDesign.Font.monoFootnote)
                         .foregroundColor(.secondary)
 
                     Text("•")
                         .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
 
                     Text(mod.author)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
 
@@ -630,7 +630,7 @@ struct DetectedModRow: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                         Text(String(format: localization.L(L10n.ModInstall.existingVersion), existing.version))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.orange)
                     }
                 }
@@ -640,7 +640,7 @@ struct DetectedModRow: View {
                         Image(systemName: "link")
                             .foregroundColor(.secondary)
                         Text(String(format: localization.L(L10n.ModInstall.depCount), mod.dependencies.count))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -670,7 +670,7 @@ struct DetectedModRow: View {
                 infoRow(localization.L(L10n.ModInstall.labelUniqueId), mod.uniqueId)
                 if !mod.dependencies.isEmpty {
                     Text(localization.L(L10n.ModInstall.dependenciesTitle))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppDesign.Font.caption(.semibold))
                         .padding(.top, 4)
                     ForEach(mod.dependencies, id: \.self) { dep in
                         let depMod = existingMods.mod(withUniqueId: dep)
@@ -683,7 +683,7 @@ struct DetectedModRow: View {
                                     .foregroundColor(.red)
                             }
                             Text(dep)
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                         }
                     }
                 }
@@ -696,10 +696,10 @@ struct DetectedModRow: View {
     private func infoRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
             Spacer()
         }
     }
