@@ -143,7 +143,7 @@ struct MaintenanceView: View {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
                     Text(localization.L(L10n.Maintenance.loading))
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
             }
@@ -169,17 +169,17 @@ struct MaintenanceView: View {
     /// Le « rien à faire » de l'entretien, en version encastrée — la
     /// corbeille peut avoir des choses à dire juste en dessous.
     private var nothingToDoInline: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppDesign.Spacing.md) {
             Image(systemName: "sparkles")
                 .font(.system(size: 34))
                 .foregroundColor(.secondary.opacity(0.5))
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, AppDesign.Spacing.xl)
     }
 
     private var trashSection: some View {
@@ -214,7 +214,7 @@ struct MaintenanceView: View {
                             confirmation = .purgeArchives(only: nil)
                         }
                         .controlSize(.small)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppDesign.Color.error)
                     }
                 }
 
@@ -244,7 +244,7 @@ struct MaintenanceView: View {
                                 confirmation = .purgeArchives(only: entry)
                             }
                             .controlSize(.small)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppDesign.Color.error)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,9 +258,9 @@ struct MaintenanceView: View {
 
     /// Le total et sa décomposition — le chiffre que l'utilisateur est venu voir.
     private func summarySection(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.Maintenance.total))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
                 .foregroundColor(.secondary)
             Text(Self.bytes(report.totalBytes))
                 .font(.system(size: 28, weight: .bold))
@@ -279,7 +279,7 @@ struct MaintenanceView: View {
                         String(report.stalePreferenceKeys.count))
                 }
             }
-            .font(.system(size: 12))
+            .font(AppDesign.Font.caption)
             .foregroundColor(.secondary)
         }
     }
@@ -288,7 +288,7 @@ struct MaintenanceView: View {
     /// chemin que la purge : un chiffre qui divergerait de ce qui part serait
     /// un mensonge.
     private func purgeSection(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             ForEach([1, 3, 5], id: \.self) { keep in
                 let freed = report.freedBytes(keepPerMod: keep)
                 Button {
@@ -301,7 +301,7 @@ struct MaintenanceView: View {
                 } label: {
                     Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
                                 keep, Self.bytes(freed)))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(AppDesign.Font.body(.medium))
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(freed <= 0)
@@ -313,14 +313,14 @@ struct MaintenanceView: View {
     }
 
     private func cleanSection(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Button {
                 confirmation = .cleanStale(orphans: report.orphanSessions.count,
                                            keys: report.stalePreferenceKeys.count)
             } label: {
                 Label(localization.L(L10n.Maintenance.actionClean),
                       systemImage: "paintbrush")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
             }
             .buttonStyle(.bordered)
         }
@@ -333,7 +333,7 @@ struct MaintenanceView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(String(format: localization.L(L10n.Maintenance.protectedTitle),
                         report.protectedCount))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
             ForEach(protectedRows(report)) { row in
                 protectedCard(row)
             }
@@ -345,9 +345,9 @@ struct MaintenanceView: View {
             HStack {
                 Image(systemName: row.isGone ? "exclamationmark.triangle"
                                              : "arrow.uturn.backward")
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppDesign.Color.warning)
                 Text(row.modFolder)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
                 Spacer()
                 Text(row.timestamp.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
@@ -356,7 +356,7 @@ struct MaintenanceView: View {
             ForEach(row.files, id: \.relativePath) { file in
                 HStack(alignment: .firstTextBaseline) {
                     Text(file.relativePath)
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(AppDesign.Font.monoCaption)
                         .foregroundColor(.secondary)
                     Spacer()
                     Text(localization.L(row.isGone ? L10n.Maintenance.reasonGone
@@ -387,7 +387,7 @@ struct MaintenanceView: View {
                                                 modName: row.modFolder)
             }
             .controlSize(.small)
-            .foregroundColor(.red)
+            .foregroundColor(AppDesign.Color.error)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -406,11 +406,11 @@ struct MaintenanceView: View {
     // MARK: - États
 
     private var loadingState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppDesign.Spacing.lg) {
             Spacer()
             ProgressView()
             Text(localization.L(L10n.Maintenance.loading))
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -418,14 +418,14 @@ struct MaintenanceView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppDesign.Spacing.lg) {
             Spacer()
             Image(systemName: "sparkles")
-                .font(.system(size: 40))
+                .font(AppDesign.Font.emptyScopeGlyph)
                 .foregroundColor(.secondary.opacity(0.5))
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
             Spacer()
         }

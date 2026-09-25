@@ -19,13 +19,13 @@ struct MaintenanceTrashSection: View {
             if !viewModel.trashEvents.isEmpty {
                 HStack {
                     Text(localization.L(L10n.Maintenance.trashSectionTitle))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppDesign.Font.body(.semibold))
                     Spacer()
                     Button(localization.L(L10n.Maintenance.trashPurgeAll), role: .destructive) {
                         onPurgeAll(viewModel.trashEvents.count)
                     }
                     .controlSize(.small)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppDesign.Color.error)
                 }
                 ForEach(viewModel.trashEvents) { event in
                     VStack(alignment: .leading, spacing: 6) {
@@ -35,7 +35,7 @@ struct MaintenanceTrashSection: View {
                             Text(event.date.map {
                                 $0.formatted(date: .abbreviated, time: .shortened)
                             } ?? event.folderName)
-                                .font(.system(size: 12))
+                                .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
                             if event.entries.count > 1 {
@@ -55,7 +55,7 @@ struct MaintenanceTrashSection: View {
                         ForEach(shown, id: \.self) { entry in
                             HStack {
                                 Text(entry)
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(AppDesign.Font.monoCaption)
                                 Spacer()
                                 Button(localization.L(L10n.Maintenance.trashRestore)) {
                                     viewModel.restoreTrashEntry(event: event.folderName, entry: entry)
@@ -65,7 +65,7 @@ struct MaintenanceTrashSection: View {
                                     onPurgeEntry(event.folderName, entry)
                                 }
                                 .controlSize(.small)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppDesign.Color.error)
                             }
                         }
                         if event.entries.count > Self.trashPreviewCount {
