@@ -628,7 +628,20 @@ le journal réel le 2026-09-04.
       format visé ici ne bouge pas (SOURCES §5).*
       *UltraSmooth 2.3.7 (décompilé le 2026-09-26) garde `us_trace` et ses
       sections ; la ligne `Game Time` d'un pic peut finir par ` | Menu: …` et
-      ` | Weather: …`, suffixes que le parseur doit accepter (SOURCES §5).* · **M**
+      ` | Weather: …`, suffixes que le parseur doit accepter (SOURCES §5).*
+      🛑 *Mesuré le 2026-09-26 avant de coder : **aucun rapport sur le parc**
+      (zéro `UltraSmooth_TraceReport_*.txt`, et le dernier journal SMAPI date
+      du 2026-09-17, sans trace). Le rapport ne naît **que d'une commande
+      console** (`us_trace`, `us_trace stop` ou `us_diag`, fenêtre des 60
+      dernières secondes) — rien d'automatique. Il est aussi écrit **en entier
+      dans le journal SMAPI** (INFO), donc lisible sans le fichier ni le piège
+      0555. Et il **ne nomme aucun mod** : ses « causes » (§5 du rapport) sont
+      quatre textes figés (horloge des 10 min, boucle CPU, présentation GPU,
+      sain) — « rapprochées du mod » est impossible depuis cette source.
+      Reste exploitable : FPS moyen, 1 % bas, pire trame, tick CPU, horloge des
+      10 min, tas géré, GC Gen0/1/2, pics > 25 ms (heure de jeu, lieu, menu,
+      météo). Prérequis avant d'écrire le parseur : un vrai rapport, produit en
+      jeu.* · **M**
 - [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
       état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
