@@ -47,7 +47,10 @@ struct SplitRowLayout: Layout {
         }
         let leadingIdeal = subviews[0].sizeThatFits(.unspecified)
         let trailingIdeal = subviews[1].sizeThatFits(.unspecified)
-        guard let width else {
+        // Sans largeur finie (un `HStack` qui sonde la flexibilité, un
+        // défilement horizontal), rien à répartir : les tailles idéales. Sinon
+        // `∞ − ∞` donnerait une proposition NaN à la droite.
+        guard let width, width.isFinite else {
             return Arrangement(oneLine: true, leading: leadingIdeal, trailing: trailingIdeal)
         }
         if leadingIdeal.width + gap + trailingIdeal.width <= width {
@@ -68,7 +71,8 @@ struct SplitRowLayout: Layout {
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let a = arrange(width: proposal.width, subviews: subviews)
         if a.oneLine {
-            return CGSize(width: proposal.width ?? (a.leading.width + gap + a.trailing.width),
+            let natural = a.leading.width + gap + a.trailing.width
+            return CGSize(width: proposal.width.map { $0.isFinite ? $0 : natural } ?? natural,
                           height: max(a.leading.height, a.trailing.height))
         }
         return CGSize(width: proposal.width ?? max(a.leading.width, a.trailing.width),

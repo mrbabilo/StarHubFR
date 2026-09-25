@@ -16,6 +16,10 @@ where the exact log format was verified.
 
 - **Mods de performance qui font le même travail.** La fiche d'un mod et la feuille « Conflits entre mods » signalent les paires actives qui patchent les mêmes méthodes (UltraSmooth, Radiance, Stardropium…), sans compter comme alerte.
 
+### Fixed
+
+- **La recherche des mods garde le focus pendant la frappe.** Quand la fenêtre était juste assez étroite pour que l'en-tête passe sur deux lignes, taper pouvait faire sauter le focus hors du champ. Même correctif dans Découvrir et la vue d'ensemble des raccourcis.
+
 ## [1.50.0] - 2026-09-25
 
 ### Added
