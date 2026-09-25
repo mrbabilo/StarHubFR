@@ -215,6 +215,14 @@ final class NavigationStore {
     /// canaux du ViewModel.
     var showsShortcutsHelp = false
 
+    /// L'onglet des Réglages (un par groupe). Ici et non en `@State` de la
+    /// page : il survit à un aller-retour vers un autre écran.
+    var settingsGroup: SettingsGroup = .game
+    /// Une section à montrer à l'arrivée sur les Réglages (lien « ajouter une
+    /// clé API » de Découvrir) : la page ouvre son onglet, y défile, puis
+    /// remet ceci à `nil` — patron `pending…Focus`.
+    var pendingSettingsSection: SettingsSection?
+
     func setEditingSave(_ save: SaveGameInfo?) {
         editingSave = save
         inventoryToEdit = []

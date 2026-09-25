@@ -264,7 +264,7 @@ struct DiscoverView: View {
                 // le diagnostic.
                 StateCard(icon: "key", text: localization.L(L10n.Discovery.noKey),
                           actionTitle: localization.L(L10n.Discovery.openSettings)) {
-                    currentTab = .settings
+                    vm.navigationStore.pendingSettingsSection = .nexus; currentTab = .settings
                 }
             case .rateLimited:
                 StateCard(icon: "hourglass", text: localization.L(L10n.Discovery.rateLimited),
@@ -327,7 +327,7 @@ struct DiscoverView: View {
             // diagnostic.
             return ErrorBanner(text: text,
                                actionTitle: localization.L(L10n.Discovery.openSettings)) {
-                currentTab = .settings
+                vm.navigationStore.pendingSettingsSection = .nexus; currentTab = .settings
             }
         }
         return ErrorBanner(text: text,

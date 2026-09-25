@@ -74,4 +74,14 @@ struct SettingsSectionOrderTests {
                     == SettingsSectionOrder.sections(in: group))
         }
     }
+
+    @Test("chaque section se retrouve dans son groupe")
+    func groupOfSection() {
+        for group in SettingsSectionOrder.groups {
+            for section in SettingsSectionOrder.sections(in: group) {
+                #expect(SettingsSectionOrder.group(of: section) == group)
+            }
+        }
+        #expect(SettingsSectionOrder.group(of: .nexus) == .content)
+    }
 }

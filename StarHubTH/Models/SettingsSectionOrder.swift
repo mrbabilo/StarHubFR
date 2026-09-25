@@ -41,6 +41,12 @@ public enum SettingsSectionOrder {
     /// et les extensions cœur viennent une fois que tout tourne. Quelqu'un qui
     /// découvre l'écran le lit dans cet ordre-là. Les tests tiennent cette
     /// contrainte explicitement.
+    /// Le groupe — donc l'onglet — où vit une section : ce qu'un lien vers
+    /// une section (Découvrir → clé API Nexus) doit ouvrir avant de défiler.
+    public static func group(of section: SettingsSection) -> SettingsGroup {
+        groups.first { sections(in: $0).contains(section) } ?? .game
+    }
+
     public static func sections(in group: SettingsGroup) -> [SettingsSection] {
         switch group {
         case .game:    return [.gameFolder, .smapi, .launch, .coreExtensions]
