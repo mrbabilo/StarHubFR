@@ -5,48 +5,33 @@ import UniformTypeIdentifiers
 struct ModInstallView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
-    /// C2-T4 — le bouton « Voir la fiche » de l'écran de succès conduit au
-    /// bon onglet : même canal que `SystemAlertsView` (pending posé avant le
-    /// changement d'onglet — patron B3-T4).
+    /// C2-T4 — « Voir la fiche » mène au bon onglet (canal pending, patron
+    /// B3-T4).
     @Binding var currentTab: SidebarDestination
     @State private var isDropTarget = false
     @State private var zipModInfo: ZipModInfo?
     @State private var isAnalyzing = false
     @State private var isInstalling = false
     @State private var errorMessage: String?
-    /// B2-T4 : commande copiable attachée à l'erreur courante — posée avec
-    /// le message par `showFailure`, jamais l'une sans l'autre.
+    /// B2-T4 : commande copiable, posée avec le message par `showFailure`.
     @State private var copyableInstallCommand: String?
     @State private var errorRecoveryHint: String?
     @State private var showError = false
     @State private var tempDir: URL?
     @State private var showFilePicker = false
-    /// L'accusé du flux « fichiers déposés dans un mod existant » — un
-    /// message, pas un bilan : ce flux garde son écran réduit DANS la
-    /// feuille (spec §5.6).
+    /// Accusé du dépôt dans un mod existant : un message, pas un bilan (spec
+    /// §5.6).
     @State private var recoveryAckMessage: String?
-    /// Set false in `onDisappear`. A background analysis started before
-    /// dismissal can still complete afterward; its completion checks this
-    /// flag so it cleans up the temp dir itself instead of writing into
-    /// `@State` that `onDisappear` already ran past (which would leak it).
+    /// False after `onDisappear`: a late analysis then cleans its own temp dir.
     @State private var isViewActive = true
-    /// Cette feuille se ferme-t-elle parce qu'une installation a réussi ?
-    /// Si oui, le lot continue : c'est le **bilan** qui devient responsable
-    /// de la file (« Archive suivante », ou abandon à la fermeture de sa
-    /// fenêtre). Sinon, la feuille meurt sur un abandon et emporte la file.
-    ///
-    /// Un `@State` local, et pas une lecture de `vm.pendingInstallReport` :
-    /// le bilan s'ouvre pendant l'animation de fermeture de la feuille, si
-    /// bien qu'un clic rapide sur « Archive suivante » remet le report à nil
-    /// **avant** que cet `onDisappear` ne s'exécute — la file de la suite
-    /// serait alors effacée sous les pieds du lot en cours. Porté par
-    /// l'instance de vue, ce drapeau ne dépend d'aucun ordre.
+    /// Fermeture sur installation réussie ? Alors le **bilan** prend la file ;
+    /// sinon elle meurt avec la feuille. `@State` local, pas
+    /// `vm.pendingInstallReport` : un clic rapide sur « Archive suivante » le
+    /// remet à nil avant cet `onDisappear`.
     @State private var closingAfterInstall = false
 
-    /// Une archive qui n'est pas un mod, mais du contenu reconnu comme
-    /// destiné au dossier d'un autre mod — voir `DroppedContentRecognizer`.
-    /// Le dossier temporaire reste vivant tant que cette proposition est à
-    /// l'écran : c'est de là que le fichier sera copié.
+    /// Archive qui n'est pas un mod mais du contenu pour le dossier d'un autre
+    /// (`DroppedContentRecognizer`). Temp dir vivant tant qu'elle est affichée.
     private struct DroppedProposal {
         /// Un fichier reconnu et sa place chez l'hôte.
         struct File {
@@ -54,12 +39,9 @@ struct ModInstallView: View {
             let destination: URL
         }
         let hostDisplayName: String
-        /// Le mod hôte lui-même, pour pouvoir le sauvegarder avant écrasement
-        /// sans avoir à le retrouver depuis le chemin de destination.
+        /// Hôte, pour le sauvegarder avant écrasement.
         let host: ModItem
-        /// **Tous** les fichiers reconnus, pas seulement le premier : les
-        /// archives de sacs se distribuent par lot — dix dans `Utility Bags`,
-        /// cinq dans `Sword and Sorcery Bags`.
+        /// **Tous** les fichiers reconnus (dix sacs dans `Utility Bags`).
         let files: [File]
         let hostIsPaused: Bool
 
@@ -68,37 +50,27 @@ struct ModInstallView: View {
     }
     @State private var droppedProposal: DroppedProposal?
     @State private var showDroppedProposal = false
-    /// Une archive sans manifeste que `ManifestlessArchive` a su situer, ou
-    /// dont il faut désigner l'hôte. Distinct de `droppedProposal`, qui ne
-    /// traite qu'un fichier nu reconnu à ses clés : ici c'est un dossier entier.
+    /// Archive sans manifeste situable, ou dont l'hôte est à désigner (un
+    /// dossier entier, contre un fichier nu pour `droppedProposal`).
     @State private var manifestlessPlan: ManifestlessArchive.Plan?
     @State private var manifestlessCandidates: [String] = []
     @State private var manifestlessEntries: [ManifestlessArchive.Entry] = []
-    /// Ce que l'archive dépose. Une traduction s'inscrit au registre et se
-    /// retire depuis la fiche du mod ; une greffe, non — et le message le dit.
+    /// Traduction : au registre, retirable ; greffe : non (le message le dit).
     @State private var manifestlessKind: ManifestlessArchive.Kind = .addon
-    /// Le nom de l'archive en cours d'analyse. Retenu à part : `zipModInfo` est
-    /// remis à nil dès qu'une proposition de dépôt s'affiche, alors que c'est
-    /// ce nom qui nommera la traduction sur la fiche du mod.
+    /// Nom de l'archive, retenu à part (`zipModInfo` est remis à nil).
     @State private var analyzedArchiveName = ""
-    /// L'archive effectivement analysée. Sert à ne créditer un dépôt de
-    /// l'identifiant Nexus du téléchargement **que** s'il s'agit bien de
-    /// l'archive téléchargée : la même feuille accepte aussi un glisser-déposer,
-    /// et `vm.pendingNexusSource` vaudrait alors pour un autre fichier.
+    /// Archive analysée : l'id du téléchargement ne vaut **que** pour elle
+    /// (la feuille accepte aussi un glisser-déposer).
     @State private var analyzedURL: URL?
-    // Les archives restant à traiter d'un dépôt multiple vivent dans le
-    // ViewModel (`vm.pendingDropQueue`) : la fenêtre de bilan s'ouvre entre
-    // deux zips, un état de feuille serait perdu à sa fermeture. Leur ménage
-    // à l'abandon est explicite — voir `onDisappear` plus bas.
+    // File du dépôt multiple dans le VM (`vm.pendingDropQueue`), survit
+    // entre deux zips ; ménage à l'abandon dans `onDisappear`.
 
-    /// La sélection dont l'installation attend une confirmation : smapi.io
-    /// signale l'un de ses mods comme cassé. Voir `CompatibilityWarning`.
+    /// Sélection en attente : smapi.io signale un mod cassé.
     @State private var pendingBrokenInstall: [InstallSelection]?
     @State private var showManifestlessPlan = false
     @State private var showManifestlessChoice = false
 
-    /// Binding controlled by the parent so the sheet can be dismissed from
-    /// inside this view (close button / Done button).
+    /// Parent-controlled binding so the view can dismiss the sheet.
     @Binding var isPresented: Bool
 
     let preloadedZip: URL?
@@ -159,17 +131,11 @@ struct ModInstallView: View {
             }
         }
         .padding(AppDesignCore.Spacing.xl)
-        // Grande feuille : l'analyse d'un pack (liste des mods, dépendances,
-        // avertissements de compatibilité) demande de la place — et
-        // `InstallPreview` n'a aucun plafond de largeur propre, il profite
-        // de chaque point gagné ici.
+        // Grande feuille : `InstallPreview` profite de chaque point.
         .frame(minWidth: 800, idealWidth: 960, minHeight: 560, idealHeight: 700)
         .onDrop(of: [.fileURL], isTargeted: $isDropTarget) { providers in
-            // Reject drops while an analysis or install is in flight — both
-            // read from `tempDir` on a background queue, and `analyzeZip`
-            // below deletes the *current* `tempDir` synchronously before
-            // starting a new analysis, which would otherwise yank the
-            // directory out from under the in-flight operation.
+            // Reject drops during analysis/install: `analyzeZip` deletes the current
+            // `tempDir` synchronously.
             guard !isAnalyzing, !isInstalling else { return false }
             handleDrop(providers)
             return true
@@ -187,9 +153,8 @@ struct ModInstallView: View {
             }
         }
         .alert(localization.L(L10n.ModInstall.validationError), isPresented: $showError) {
-            // B2-T4 : le bouton n'existe que si l'erreur courante porte une
-            // commande. Le clic la copie et referme l'alerte — le contenu est
-            // au presse-papiers, prêt à coller dans Terminal.
+            // B2-T4 : bouton seulement si l'erreur porte une commande ; copie et
+            // referme.
             if let command = copyableInstallCommand {
                 Button(localization.L(L10n.ModInstall.copyCommand)) {
                     NSPasteboard.general.clearContents()
@@ -221,10 +186,8 @@ struct ModInstallView: View {
                     }
                 }
                 Button(localization.L(L10n.Mods.compatInstallConfirm)) {
-                    // **Directement `performInstall`, jamais `installSelected`.**
-                    // Repasser par la porte dépendrait de l'ordre dans lequel
-                    // SwiftUI exécute l'action et vide le binding : s'il le vide
-                    // d'abord, la question se reposerait — en boucle.
+                    // **Directement `performInstall`** : repasser par la porte reposerait la
+                    // question en boucle selon l'ordre de SwiftUI.
                     pendingBrokenInstall = nil
                     performInstall(selections: selections)
                 }
@@ -255,8 +218,7 @@ struct ModInstallView: View {
             }
         } message: {
             if let plan = manifestlessPlan {
-                // Une greffe ne promet pas d'être défaisable depuis l'app : le
-                // registre ne retient que les traductions.
+                // Une greffe n'est pas défaisable depuis l'app.
                 Text(String(format: localization.L(plan.kind == .translation
                                          ? L10n.ModInstall.depositMessage
                                          : L10n.ModInstall.depositMessageAddon),
@@ -265,8 +227,7 @@ struct ModInstallView: View {
         }
         .confirmationDialog(localization.L(L10n.ModInstall.depositChooseTitle),
                             isPresented: $showManifestlessChoice, titleVisibility: .visible) {
-            // Un bouton par candidat : c'est l'utilisateur qui tranche, jamais
-            // l'heuristique — écrire dans le mauvais mod ne se rattrape pas.
+            // Un bouton par candidat : l'utilisateur tranche, jamais l'heuristique.
             ForEach(manifestlessCandidates, id: \.self) { candidate in
                 Button(candidate) {
                     deposit(ManifestlessArchive.Plan(hostFolderName: candidate,
@@ -302,14 +263,11 @@ struct ModInstallView: View {
         }
         .onDisappear {
             isViewActive = false
-            // Le lot de dépôt meurt avec la feuille **sauf** si elle se ferme
-            // sur une installation réussie : le bilan prend alors la suite.
+            // Le lot meurt avec la feuille, **sauf** après une installation réussie.
             if !closingAfterInstall {
                 vm.abandonDropQueue()
             }
-            // If the sheet is dismissed without the Cancel button (swipe /
-            // Esc), don't leak the extracted temp directory. Skip cleanup
-            // while an install is in flight — it owns the temp dir.
+            // Swipe/Esc dismissal: clean the temp dir, unless an install owns it.
             if !isInstalling, let tempDir = tempDir {
                 installer.cleanupTempDir(at: tempDir)
                 self.tempDir = nil
@@ -320,10 +278,8 @@ struct ModInstallView: View {
         }
     }
 
-    /// L'accusé du flux « fichiers déposés dans un mod existant » — un
-    /// message, pas un bilan : ce flux garde son écran réduit DANS la
-    /// feuille (spec §5.6). Le bilan d'installation, lui, vit dans
-    /// `InstallReportWindow`.
+    /// Accusé du dépôt dans un mod existant (spec §5.6) ; le bilan
+    /// d'installation vit dans `InstallReportWindow`.
     private var recoveryAckView: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
@@ -374,8 +330,7 @@ struct ModInstallView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        // Plus haute : premier écran de la feuille, elle doit accueillir le
-        // geste sans que le texte soit tassé sous le glyphe.
+        // Premier écran : place pour le geste.
         .frame(height: isDropTarget ? 300 : 260)
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -394,13 +349,10 @@ struct ModInstallView: View {
     private func handleDrop(_ providers: [NSItemProvider]) {
         loadDroppedFileURLs(from: providers) { urls in
             DispatchQueue.main.async {
-                // A manually dropped zip is not the Nexus download that opened
-                // this sheet — drop any pending source so it can't misapply.
+                // A dropped zip isn't the Nexus download: clear the pending source.
                 self.vm.pendingNexusSource = nil
 
-                // Un seul chemin d'échec : le message change, le conseil
-                // découle du statut, et il n'y a qu'un saut de plus vers le fil
-                // principal.
+                // Un seul chemin d'échec.
                 guard !urls.isEmpty else {
                     self.showFailure(self.localization.L(L10n.ModInstall.invalidZipStructure))
                     self.errorRecoveryHint = ValidationStatus.invalidStructure.recoveryHintKey
@@ -409,10 +361,7 @@ struct ModInstallView: View {
                     return
                 }
 
-                // Le format se juge sur la signature, pas sur l'extension : un
-                // dépôt sans extension exploitable mais à la signature reconnue
-                // reste une archive installable. Un fichier étranger glissé
-                // dans le lot est écarté, pas subi.
+                // Signature plutôt qu'extension ; fichier étranger écarté.
                 let (archives, _) = ModZipInstaller.partitionDroppedFiles(urls)
                 guard let first = archives.first else {
                     if let url = urls.first {
@@ -427,8 +376,7 @@ struct ModInstallView: View {
                 }
 
                 if self.isSheetShowingAnArchive {
-                    // Une fiche est déjà ouverte : ne pas la balayer sous le
-                    // dépôt — les nouvelles archives attendent leur tour.
+                    // Fiche ouverte : les nouvelles archives attendent.
                     self.vm.dropQueuePush(archives)
                 } else {
                     // La première part tout de suite ; les suivantes en file.
@@ -439,17 +387,13 @@ struct ModInstallView: View {
         }
     }
 
-    /// Charge l'URL de fichier portée par chaque provider du dépôt, dans
-    /// l'ordre du dépôt. Un dépôt multiple n'est plus réduit à son premier
-    /// élément : chaque archive déposée a droit à sa fiche.
+    /// URL de chaque provider, dans l'ordre : chaque archive a sa fiche.
     private func loadDroppedFileURLs(from providers: [NSItemProvider],
                                      accumulated: [URL] = [],
                                      completion: @escaping @MainActor @Sendable ([URL]) -> Void) {
         guard let provider = providers.first else { completion(accumulated); return }
-        // `NSItemProvider` n'est pas `Sendable` et la complétion de `loadItem`
-        // l'est : le reste de la file se transporte donc explicitement
-        // (P5-L6). AppKit livre ces objets au dépôt et personne d'autre ne
-        // les touche — la récursion les consomme un par un, sur l'acteur.
+        // `NSItemProvider` non `Sendable` : la file se transporte explicitement
+        // (P5-L6), consommée une à une sur l'acteur.
         nonisolated(unsafe) let rest = Array(providers.dropFirst())
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
             var urls = accumulated
@@ -466,21 +410,16 @@ struct ModInstallView: View {
         }
     }
 
-    /// Vrai quand la feuille montre déjà quelque chose à ne pas balayer :
-    /// une fiche d'installation, un succès, ou une proposition de dépôt.
+    /// Feuille occupée : fiche, succès ou proposition de dépôt.
     private var isSheetShowingAnArchive: Bool {
         zipModInfo != nil || recoveryAckMessage != nil || droppedProposal != nil
             || manifestlessPlan != nil || !manifestlessCandidates.isEmpty
     }
 
-    /// Referme le cycle de l'archive courante et ouvre la fiche de la
-    /// suivante du dépôt, s'il en reste une en file. Appelé de chaque point
-    /// qui ramène à la zone de dépôt : bouton Terminé, annulation, alertes
-    /// refermées. Une feuille fermée par l'utilisateur n'y passe pas : la
-    /// file meurt avec elle, c'est l'arrêt volontaire du lot.
+    /// Ouvre la fiche de l'archive suivante, depuis chaque retour à la zone de
+    /// dépôt. Une feuille fermée par l'utilisateur n'y passe pas (arrêt du lot).
     private func analyzeNextQueuedArchive() {
-        // Dépile : qui présente une archive la retire de la file (invariant
-        // partagé avec `queueNextDropArchive`).
+        // Qui présente dépile (invariant partagé avec `queueNextDropArchive`).
         guard let next = vm.dropQueueAdvance() else { return }
         analyzeZip(next)
     }
@@ -498,19 +437,13 @@ struct ModInstallView: View {
             self.tempDir = nil
         }
 
-        // Captured before dispatching so a concurrent `vm.refresh()` on the
-        // main thread can't reassign `vm.scanStore.mods`/`vm.gameDir` mid-flight out
-        // from under this background read.
+        // Captured before dispatch: a concurrent refresh can't swap them.
         let gameDir = vm.gameDir
         let existingMods = vm.scanStore.mods
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                // Capture the temp dir locally instead of hopping to main
-                // synchronously mid-analysis (avoids blocking the background
-                // thread on the main run loop). It is assigned to @State in
-                // the main.async block below, before any code path that
-                // reads it.
+                // Temp dir captured locally, assigned to @State in the main block below.
                 var capturedTempDir: URL?
                 let info = try self.installer.analyzeZip(
                     at: url,
@@ -521,19 +454,14 @@ struct ModInstallView: View {
                 }
 
                 let finalTempDir = capturedTempDir
-                // Ce que l'extraction a eu à dire alors même qu'elle a réussi :
-                // un repli sur un autre outil, typiquement. Le succès seul ne
-                // se raconte pas, et c'est pourtant le moment où l'on veut
-                // savoir que l'archive n'était pas ordinaire.
+                // Notes d'une extraction réussie (repli d'outil) : archive pas ordinaire.
                 let extractionNotes = self.installer.lastExtractionNotes
                 DispatchQueue.main.async {
                     for note in extractionNotes {
                         self.vm.log("Installation: \(note)", level: .warning)
                     }
                     guard self.isViewActive else {
-                        // Dismissed while this analysis was running —
-                        // `onDisappear` already ran with `tempDir == nil`,
-                        // so clean up here instead of leaking the directory.
+                        // Dismissed meanwhile: clean up here.
                         if let finalTempDir = finalTempDir {
                             self.installer.cleanupTempDir(at: finalTempDir)
                         }
@@ -544,10 +472,8 @@ struct ModInstallView: View {
                     self.zipModInfo = info
 
                     if !info.isValid {
-                        // Avant de refuser : ce n'est peut-être pas un mod
-                        // manqué, mais du contenu destiné au dossier d'un autre
-                        // mod. Se décide sur le dossier extrait, donc avant tout
-                        // nettoyage.
+                        // Avant de refuser : peut-être du contenu pour un autre mod, décidé sur
+                        // le dossier extrait.
                         if case .invalidStructure = info.validationStatus,
                            let outcome = self.recognizeDroppedContent() {
                             switch outcome {
@@ -570,12 +496,8 @@ struct ModInstallView: View {
                             }
                         }
 
-                        // Le reconnaisseur ci-dessus ne traite qu'un fichier
-                        // nu identifié à ses clés. Une archive qui porte un
-                        // dossier — une traduction, un pack de greffes — relève
-                        // de `ManifestlessArchive`, qui la situe par sa
-                        // structure. Les deux se complètent ; aucun ne double
-                        // l'autre.
+                        // Dossier entier (traduction, greffes) : `ManifestlessArchive` ; les
+                        // deux se complètent.
                         if case .invalidStructure = info.validationStatus,
                            self.considerManifestlessArchive() {
                             self.zipModInfo = nil
@@ -584,9 +506,7 @@ struct ModInstallView: View {
 
                         switch info.validationStatus {
                         case .invalidStructure:
-                            // Dire ce que l'archive contenait : sans cela
-                            // l'utilisateur sait seulement qu'il manque un
-                            // manifeste, pas ce qu'il y avait à la place.
+                            // Dire ce que l'archive contenait.
                             var msg = self.localization.L(L10n.ModInstall.invalidZipStructure)
                             if !info.extractedTopLevel.isEmpty {
                                 msg += "\n\n" + String(format: self.localization.L(L10n.ModInstall.archiveContains),
@@ -604,8 +524,7 @@ struct ModInstallView: View {
                         case .valid:
                             break
                         }
-                        // Le conseil découle du statut, et cette règle vit dans
-                        // Core avec ses tests — la vue ne fait que l'afficher.
+                        // Conseil tiré du statut (règle en Core).
                         self.errorRecoveryHint = info.validationStatus.recoveryHintKey.map { self.localization.L($0) }
                         self.showError = true
                         self.zipModInfo = nil
@@ -642,8 +561,7 @@ struct ModInstallView: View {
         }
     }
 
-    /// Le texte de la proposition. Montre le **chemin exact** : c'est la seule
-    /// façon pour l'utilisateur de vérifier qu'on écrit là où il l'entend.
+    /// Montre le **chemin exact** : l'utilisateur vérifie où l'on écrit.
     private var droppedProposalMessage: String {
         guard let proposal = droppedProposal else { return "" }
         var text: String
@@ -651,8 +569,7 @@ struct ModInstallView: View {
             text = String(format: localization.L(L10n.ModInstall.droppedQuestion),
                           proposal.hostDisplayName, proposal.files[0].destination.path)
         } else {
-            // Un lot : c'est le dossier qui compte, pas dix chemins qui ne
-            // tiendraient pas dans l'alerte.
+            // Un lot : le dossier, pas dix chemins.
             text = String(format: localization.L(L10n.ModInstall.droppedQuestionMany),
                           proposal.files.count, proposal.hostDisplayName,
                           proposal.destinationFolder.path)
@@ -670,14 +587,8 @@ struct ModInstallView: View {
         case hostMissing(String)
     }
 
-    /// Tente de reconnaître, dans le dossier extrait, un fichier destiné au
-    /// dossier d'un autre mod. `nil` si rien n'est reconnu — l'archive suit
-    /// alors le refus ordinaire.
-    /// Regarde si l'archive, faute de manifeste, vise un mod installé.
-    ///
-    /// - Returns: `true` quand une suite est proposée — plan à confirmer ou
-    ///   hôte à désigner —, `false` pour laisser le refus ordinaire suivre son
-    ///   cours.
+    /// Archive sans manifeste visant un mod installé ?
+    /// - Returns: `true` si une suite est proposée (plan ou hôte à désigner).
     private func considerManifestlessArchive() -> Bool {
         guard let tempDir else { return false }
         let paths = ManifestlessArchive.paths(under: tempDir)
@@ -689,16 +600,14 @@ struct ModInstallView: View {
             showManifestlessPlan = true
             return true
         case .needsHost(let candidates, let kind, let entries):
-            // L'archive venue d'un lien Nexus : les mods pour lesquels cette
-            // fiche a été trouvée passent devant ce que le nom suggère — le nom
-            // d'une archive de traduction ne dit souvent rien (C5-T1).
+            // Archive d'un lien Nexus : les mods de la fiche passent devant le nom
+            // (souvent muet, C5-T1).
             let downloaded = analyzedURL == preloadedZip ? vm.pendingNexusSource?.modId : nil
             let linked = downloaded.map { FrenchTranslationSweep.hosts(
                 ofTranslation: $0, in: vm.translationSweep.entries,
                 detailHits: vm.translationHub.hits, installed: installed) } ?? []
             let ranked = linked + candidates.filter { !linked.contains($0) }
-            // Sans candidat, on n'a rien à proposer : le refus ordinaire dit au
-            // moins ce que l'archive contenait.
+            // Sans candidat : refus ordinaire.
             guard !ranked.isEmpty else { return false }
             manifestlessCandidates = Array(ranked.prefix(4))
             manifestlessEntries = entries
@@ -710,22 +619,15 @@ struct ModInstallView: View {
         }
     }
 
-    /// Dépose les fichiers dans le mod désigné.
-    ///
-    /// B2-T4 — un seul point d'entrée pour l'erreur que montre l'alerte : le
-    /// message et la commande copiable se posent ensemble. La feuille ne
-    /// remet jamais `errorMessage` à zéro, donc une commande posée séparément
-    /// traînerait jusqu'à une erreur qui n'est pas la sienne — l'alerte
-    /// offrirait « Copier la commande » sur une erreur sans commande.
+    /// B2-T4 — message et commande posés ensemble : sinon une commande
+    /// traînerait sur une erreur qui n'est pas la sienne.
     private func showFailure(_ message: String, copyableCommand: String? = nil) {
         errorMessage = message
         copyableInstallCommand = copyableCommand
     }
 
-    /// Passe par le ViewModel : c'est lui qui tient le registre des traductions,
-    /// sans lequel le bouton « Retirer » de la fiche du mod n'existerait pas —
-    /// et le message de confirmation promet précisément que l'opération reste
-    /// défaisable.
+    /// Dépose dans le mod désigné, via le VM (registre des traductions, d'où
+    /// « Retirer » sur la fiche).
     private func deposit(_ plan: ManifestlessArchive.Plan) {
         guard let tempDir,
               let host = vm.scanStore.mods.first(where: { $0.folderName == plan.hostFolderName }) else {
@@ -733,11 +635,8 @@ struct ModInstallView: View {
             showError = true
             return
         }
-        // L'identifiant de la page ne se retient que pour l'archive
-        // téléchargée : la branche d'installation d'un mod le fait depuis
-        // toujours (« la seule occasion où l'app le connaît »), celle du dépôt
-        // le jetait — un lot de sacs venu d'un lien `nxm://` entrait au
-        // registre sans identifiant, donc sans suivi de version.
+        // Id de page retenu pour l'archive téléchargée seulement (sinon un lot
+        // `nxm://` entrait sans suivi).
         let downloadedModId = analyzedURL == preloadedZip ? vm.pendingNexusSource?.modId : nil
         let result = vm.depositIntoMod(plan: plan, extractedRoot: tempDir, host: host,
                                        sourceName: analyzedArchiveName, nexus: nil,
@@ -752,13 +651,13 @@ struct ModInstallView: View {
         installer.cleanupTempDir(at: tempDir)
         self.tempDir = nil
         vm.refresh()
-        // Un dépôt réussi peut avoir quelque chose à dire — le registre non
-        // écrit, par exemple. Ce n'est pas une erreur de validation : le dire
-        // par la fenêtre modale de l'app, et fermer la feuille comme d'habitude.
+        // Message éventuel par la modale ; la feuille se ferme.
         if let message = result.message { vm.showModal(message: message) }
         isPresented = false
     }
 
+    /// Fichier du dossier extrait destiné au dossier d'un autre mod ; `nil`
+    /// sinon (refus ordinaire).
     private func recognizeDroppedContent() -> DroppedOutcome? {
         guard let tempDir = tempDir else { return nil }
         let found = DroppedContentRecognizer.recognizeAll(inExtractedDirectory: tempDir)
@@ -766,8 +665,7 @@ struct ModInstallView: View {
 
         var files: [DroppedProposal.File] = []
         var paused = false
-        // Une seule proposition, donc un seul hôte : si l'archive mêlait des
-        // fichiers relevant de deux règles, seule la première est traitée.
+        // Une proposition, un hôte : seule la première règle est traitée.
         for match in found where match.rule == first.rule {
             switch DroppedContentRecognizer.destination(for: match.rule,
                                                         fileName: match.fileURL.lastPathComponent,
@@ -779,35 +677,29 @@ struct ModInstallView: View {
             case .hostMissing(let name):
                 return .hostMissing(name)
             case .unusableFileName:
-                // Nom de fichier refusé : celui-là seul est écarté. Refuser le
-                // lot entier pour un nom douteux priverait l'utilisateur des
-                // neuf autres sacs.
+                // Nom refusé : celui-là seul écarté.
                 continue
             }
         }
-        // Rien de retenu : l'archive repart sur le refus ordinaire plutôt que
-        // sur une destination approximative.
+        // Rien retenu : refus ordinaire.
         guard !files.isEmpty else { return nil }
 
-        // Le dépliage était réécrit ici à la main — la 23e copie de
-        // `flattenedMods`, dont le commentaire raconte les 22 premières.
+        // `mod(withUniqueId:)` plutôt qu'un 23e dépliage à la main.
         guard let host = vm.scanStore.mods.mod(withUniqueId: first.rule.hostUniqueId)
         else { return .hostMissing(first.rule.hostDisplayName) }
         return .proposal(DroppedProposal(hostDisplayName: first.rule.hostDisplayName,
                                          host: host, files: files, hostIsPaused: paused))
     }
 
-    /// Ce qu'un lot de glisser-déposer a produit : le compte de fichiers
-    /// posés, ou l'erreur qui a tout arrêté. Une seule valeur traverse la
-    /// frontière de fil — les deux fils (travail disque ici, affichage sur
-    /// main) ne partagent plus de variable boîtée.
+    /// Résultat d'un lot : fichiers posés ou erreur ; une seule valeur
+    /// traverse les fils.
     private enum DroppedInstallOutcome {
         case done(installed: Int)
         case failed(error: Error, installed: Int)
     }
 
-    /// Copie le fichier reconnu chez son hôte, après avoir sauvegardé ce dernier
-    /// si le fichier existait déjà.
+    /// Copie le fichier reconnu chez son hôte, sauvegardé d'abord si le
+    /// fichier existait.
     private func installDroppedContent(_ proposal: DroppedProposal) {
         isInstalling = true
         let gameDir = vm.gameDir
@@ -815,16 +707,9 @@ struct ModInstallView: View {
             var installed = 0
             let outcome: DroppedInstallOutcome
             do {
-                // Un sac peut avoir été retouché à la main (prix, capacités) :
-                // sauvegarder l'hôte avant d'écraser. Rien à préserver si le
-                // fichier n'existait pas.
-                //
-                // Le `try` n'est pas un `try?` : « sauvegarder **puis**
-                // écraser » n'a de sens que si l'échec de la sauvegarde arrête
-                // l'écrasement. L'avaler écraserait un fichier retouché sans
-                // filet et sans le dire.
-                // Une seule sauvegarde pour le lot : elle porte le dossier du
-                // mod entier, la refaire à chaque fichier n'ajouterait rien.
+                // Sauvegarder l'hôte avant d'écraser (sac retouché à la main), une fois
+                // pour le lot. `try`, pas `try?` : un échec de sauvegarde arrête
+                // l'écrasement.
                 if proposal.files.contains(where: {
                     FileManager.default.fileExists(atPath: $0.destination.path)
                 }) {
@@ -841,9 +726,7 @@ struct ModInstallView: View {
                 }
                 outcome = .done(installed: installed)
             } catch {
-                // Un lot interrompu en cours de route a déjà posé des fichiers :
-                // dire « échec » sans le compte laisserait croire que rien n'a
-                // bougé, et l'utilisateur chercherait au mauvais endroit.
+                // Lot interrompu : dire le compte de fichiers déjà posés.
                 outcome = .failed(error: error, installed: installed)
             }
             DispatchQueue.main.async {
@@ -854,19 +737,14 @@ struct ModInstallView: View {
                 }
                 switch outcome {
                 case .done:
-                    // Pas de `scanMods()` ici : le fichier a atterri *dans* un
-                    // mod existant, aucun dossier de mod n'a bougé. Rescanner
-                    // ne changerait rien à l'écran et laisserait croire le
-                    // contraire.
+                    // Pas de `scanMods()` : aucun dossier de mod n'a bougé.
                     self.recoveryAckMessage = proposal.files.count == 1
                         ? String(format: self.localization.L(L10n.ModInstall.droppedDone),
                                  proposal.hostDisplayName)
                         : String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
                                  proposal.files.count, proposal.hostDisplayName)
                 case .failed(let installError, let installed):
-                    // Le message s'assemble **sur main** depuis L2 :
-                    // `installErrorMessage` écrit au journal et lit les
-                    // libellés, tous deux isolés sur l'acteur principal.
+                    // Message assemblé **sur main** (L2).
                     var failure = self.vm.installErrorMessage(installError)
                     if installed > 0 {
                         failure += "\n\n" + String(format: self.localization.L(L10n.ModInstall.droppedDoneMany),
@@ -882,10 +760,8 @@ struct ModInstallView: View {
     }
 
     private func installSelected(selections: [InstallSelection]) {
-        // **Le moment qui décide.** Sept mods du parc sont signalés cassés, et
-        // les sept étaient déjà en pause : l'utilisateur les avait trouvés
-        // seul. Ce qu'il ne peut pas savoir, c'est qu'un mod qu'il vient de
-        // télécharger l'est aussi. On le dit ici, avant d'écrire.
+        // **Le moment qui décide** : les 7 mods cassés du parc étaient déjà en
+        // pause ; celui qu'on vient de télécharger, l'utilisateur l'ignore.
         guard brokenAmong(selections).isEmpty else {
             pendingBrokenInstall = selections
             return
@@ -921,14 +797,9 @@ struct ModInstallView: View {
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                // The installer's `to:` param is now a no-op (mods land under
-                // Mods/ directly), but we still pass the legacy path for
-                // source compatibility.
+                // Installer's `to:` is a no-op; legacy path kept for source compatibility.
                 let modsDisabledPath = (gameDir as NSString).appendingPathComponent("Mods_disabled")
-                // Les chemins viennent de l'installateur : lui seul sait où
-                // il a écrit — un composant reste dans son pack, un mod
-                // activé garde sa place, un `.rename` porte un horodatage
-                // fabriqué au moment de l'écriture.
+                // Chemins rendus par l'installateur, seul à savoir où il a écrit.
                 let written = try self.installer.install(
                     from: tempDir,
                     to: modsDisabledPath,
@@ -938,11 +809,8 @@ struct ModInstallView: View {
                     existingMods: existingMods
                 )
 
-                // Les chemins qui comptent pour la comptabilité Nexus
-                // (ancre, réconciliation, enregistrement) : l'installateur
-                // les connaît, la règle d'abstention vit testée dans Core
-                // (`accountingPaths`) — copie du même identifiant restée en
-                // place et déplacement X63 exceptés.
+                // Chemins comptés (ancre, réconciliation, enregistrement), règle
+                // d'abstention testée (`accountingPaths`).
                 let installedFolderPaths = ModZipInstaller.accountingPaths(
                     written: written,
                     selections: selections,
@@ -952,24 +820,17 @@ struct ModInstallView: View {
                     self.isInstalling = false
                     self.installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
-                    // C2-T4 — le delta de clés se persiste avant l'écran de
-                    // succès : la feuille et la fiche liront la même chose.
+                    // C2-T4 — delta persisté avant l'écran de succès.
                     self.vm.persistUpdateKeyDeltas(written)
                     self.zipModInfo = nil
-                    // Les fichiers de ces mods viennent de changer : leur
-                    // couverture en cache ne vaut plus rien. Sans cela, un mod
-                    // mis à jour garderait le pourcentage de sa version
-                    // précédente indéfiniment.
+                    // Couverture en cache périmée pour ces mods.
                     for mod in modsBeingInstalled {
                         self.vm.invalidateFrenchCoverage(for: mod.folderName)
                     }
                     self.vm.refresh()
                     self.vm.log(self.localization.L(L10n.ModInstall.installSuccess), level: .info)
 
-                    // X63 — un mod dont le nom de dossier était déjà pris par
-                    // un autre mod a été posé ailleurs. Sans cette ligne, la
-                    // liste montre deux mods de même nom logique et rien ne
-                    // dit pourquoi l'un vit dans un dossier horodaté.
+                    // X63 — mod posé ailleurs (nom pris) : le dire.
                     for written in written where written.displacedFrom != nil {
                         self.vm.log(String(format: self.localization.L(L10n.ModInstall.folderTaken),
                                            written.displacedFrom ?? "",
@@ -977,64 +838,37 @@ struct ModInstallView: View {
                                     level: .warning)
                     }
 
-                    // The install registry is updated by scanMods() during the
-                    // refresh() above (syncInstalledModRegistry detects the new
-                    // version and stamps it with Date()), so no explicit
-                    // recording is needed here — it covers ALL install paths
-                    // (Nexus, drag-and-drop, manual folder copy).
+                    // Registry updated by scanMods() in refresh() (all install paths).
 
-                    // A Nexus-sourced install (nxm:// deep link or in-app
-                    // download) may have an author-forgotten manifest
-                    // Version — reconcile it against the Nexus file's own
-                    // version/date now that the mod is on disk.
+                    // Nexus-sourced install: reconcile the manifest Version.
                     if let source = self.vm.pendingNexusSource {
-                        // X103-C — garder l'archive AVANT tout le reste, pour
-                        // la même raison que l'identifiant juste dessous : on
-                        // est ici au succès de l'installation, le seul instant
-                        // où l'archive, son mod et sa version sont connus
-                        // ensemble. Un seul mod installé, sinon abstention —
-                        // un pack porte plusieurs UniqueID pour une archive.
+                        // X103-C — archive gardée AVANT le reste (seul instant où archive, mod
+                        // et version sont connus). Pack : abstention.
                         let onlyMod = modsBeingInstalled.count == 1 ? modsBeingInstalled.first : nil
                         self.vm.keepNexusArchiveIfEnabled(
                             archive: self.preloadedZip,
                             uniqueId: onlyMod?.uniqueId,
                             version: onlyMod?.version,
                             modName: onlyMod?.name)
-                        // Retenir l'identifiant AVANT tout le reste : c'est la
-                        // seule occasion où l'app le connaît, et
-                        // `reconcileManifestVersion` consomme
-                        // `pendingNexusSource` en le remettant à nil.
+                        // Id retenu AVANT : `reconcileManifestVersion` consomme
+                        // `pendingNexusSource`.
                         self.vm.recordNexusModId(source.modId,
                                                  installedFolderPaths: installedFolderPaths)
-                        // L'installation est le seul instant où l'app sait avec
-                        // certitude ce qui est posé. `isReferenceFile: true` :
-                        // le téléchargement intégré et les liens `nxm://` ne
-                        // servent aujourd'hui que le fichier principal.
-                        // X9 : les faits du fichier résolu (identifiant + date)
-                        // partent avec — l'ancre saura dire, au prochain check,
-                        // si la page publie plus récent que ce qu'on vient de
-                        // poser, libellés ou pas.
+                        // Ancres posées au seul instant de certitude ; X9 : faits du fichier
+                        // résolu joints.
                         let anchoredIds = self.vm.anchorInstalledMods(
                             installedFolderPaths: installedFolderPaths,
                             nexusFacts: source.facts)
-                        // Reconcile FIRST — it reads this mod's update entry to
-                        // learn the version the checker flags on — then drop the
-                        // entry from the list so it no longer appears.
+                        // Reconcile FIRST (reads the entry), then drop the entry.
                         self.vm.reconcileManifestVersion(installedFolderPaths: installedFolderPaths)
                         self.vm.dismissInstalledUpdates(uniqueIds: anchoredIds)
                     }
 
-                    // Auto-fetch Nexus metadata (image + description) for
-                    // installed mods that have a Nexus mod id, so the mods
-                    // list shows them immediately without a manual check.
+                    // Auto-fetch Nexus metadata for installed mods with an id.
                     self.fetchNexusMetadata(for: modsBeingInstalled)
 
-                    // Le bilan quitte la feuille : le report est posé, la
-                    // feuille se referme — le `onDismiss` de la MainView
-                    // (archive, X103-C, file nxm) s'exécute à l'identique.
-                    // ICI, et pas avant : l'archive a déjà été copiée par
-                    // `keepNexusArchiveIfEnabled` pendant que le fichier
-                    // téléchargé vivait encore.
+                    // Bilan posé, feuille refermée (`onDismiss` inchangé) — ICI, après la
+                    // copie de l'archive par `keepNexusArchiveIfEnabled`.
                     self.vm.completeInstall(
                         installedNames: modsBeingInstalled.map { $0.name })
                     self.closingAfterInstall = true
@@ -1046,34 +880,19 @@ struct ModInstallView: View {
                     self.showFailure(self.vm.installErrorMessage(error),
                                      copyableCommand: (error as? InstallError)?.copyableCommand)
                     self.showError = true
-                    // Always clean up the temp extract dir, even on failure —
-                    // otherwise a failed multi-mod install leaks the extracted
-                    // zip on disk until the view is dismissed.
+                    // Always clean the temp dir, even on failure.
                     self.installer.cleanupTempDir(at: tempDir)
                     self.tempDir = nil
-                    // A partial multi-mod install can leave some mods
-                    // actually installed on disk even though this call
-                    // threw — refresh so they show up immediately instead
-                    // of only appearing after a manual refresh, which also
-                    // avoids a retry re-using now-stale `existingMods`.
+                    // Partial install: refresh so installed mods show up.
                     self.vm.refresh()
                 }
             }
         }
     }
 
-    /// Fetches Nexus metadata for installed mods that declare a Nexus mod id
-    /// in their manifest UpdateKeys.
-    ///
-    /// `fetchMetadata` part sans attendre : la boucle rendait donc la main
-    /// aussitôt et lâchait toutes les requêtes d'un coup — un pack de 20 mods
-    /// en envoyait 20 en même temps, juste après une installation. Le
-    /// commentaire d'origine affirmait ici que `NexusUpdateChecker` bornait la
-    /// concurrence : c'est vrai de `check()`, qui a sa propre sémaphore, pas de
-    /// `fetchSingleMod`, qui tire directement.
-    ///
-    /// Même borne que `check()` : l'app doit se présenter à l'API Nexus comme un
-    /// seul client cohérent, quel que soit le chemin qui appelle.
+    /// Nexus metadata for installed mods with an id, **bornée** comme
+    /// `check()` (`fetchSingleMod` tirait tout d'un coup : 20 requêtes pour un
+    /// pack). Un seul client cohérent vu de Nexus.
     private func fetchNexusMetadata(for mods: [DetectedMod]) {
         let toFetch = mods.filter { !$0.nexusModId.isEmpty }
         guard !toFetch.isEmpty else { return }
@@ -1081,14 +900,8 @@ struct ModInstallView: View {
             let limiter = DispatchSemaphore(value: Self.maxConcurrentMetadataFetches)
             for mod in toFetch {
                 limiter.wait()
-                // La complétion de `fetchMetadata` est garantie sur le main par
-                // `fetchSingleMod`, sur tous ses chemins de sortie : la place
-                // est donc toujours rendue, même sur 429 ou clé absente.
-                //
-                // L'amorce passe par main depuis L2 : `fetchMetadata` écrit
-                // `nexusCategories`/`nexusModExtras` dans sa complétion, état
-                // du VM isolé sur l'acteur principal. Le travail réseau reste
-                // sur les fils d'`URLSession` ; seul le départ traverse.
+                // Complétion garantie sur main (place toujours rendue, 429 compris).
+                // Amorce sur main (L2) ; réseau sur les fils d'`URLSession`.
                 let modId = mod.nexusModId
                 DispatchQueue.main.async {
                     self.vm.fetchMetadata(forNexusModId: modId) { _ in
@@ -1099,8 +912,7 @@ struct ModInstallView: View {
         }
     }
 
-    /// Requêtes de métadonnées Nexus en vol au maximum. Aligné sur le
-    /// `maxConcurrent` de `NexusUpdateChecker.check`.
+    /// Maximum en vol, aligné sur `NexusUpdateChecker.check`.
     private static let maxConcurrentMetadataFetches = 6
 
     private func cancelInstall() {
