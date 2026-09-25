@@ -84,12 +84,11 @@ struct SidebarPinnedFooter: View {
 
             ModsWeightFooter(vm: vm, localization: localization)
 
+            SidebarFooterPages(vm: vm, localization: localization, currentTab: $currentTab) // ligne à part : 220 pt ne tiennent pas thème + pages + drapeaux
             HStack {
-                ThemeToggle(vm: vm, localization: localization, appColorScheme: $appColorScheme)
+                ThemeToggle(vm: vm, localization: localization, appColorScheme: $appColorScheme).fixedSize()
                 Spacer()
-                SidebarFooterPages(vm: vm, localization: localization, currentTab: $currentTab)
-                Spacer()
-                LanguageFlagToggle(vm: vm, localization: localization)
+                LanguageFlagToggle(vm: vm, localization: localization).fixedSize()
             }
         }
         .padding(.horizontal, 10)
