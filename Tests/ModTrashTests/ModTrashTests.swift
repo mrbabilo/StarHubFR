@@ -23,6 +23,14 @@ struct ModTrashTests {
         parts.reduce(base) { ($0 as NSString).appendingPathComponent($1) }
     }
 
+    /// Un dossier de jeu jetable : `gameDir` et son `Mods/`.
+    private func makeGame() throws -> (gameDir: String, mods: String) {
+        let gameDir = makeTempModsDir()
+        let mods = path(gameDir, "Mods")
+        try FileManager.default.createDirectory(atPath: mods, withIntermediateDirectories: true)
+        return (gameDir, mods)
+    }
+
     /// Crée un événement de corbeille **utilisateur** : dossier + marqueur.
     @discardableResult
     private func makeEvent(_ mods: String, _ name: String) throws -> String {
@@ -341,40 +349,39 @@ struct ModTrashTests {
 
     // MARK: - X114 — le compte vivant de la quarantaine
 
-    /// La quarantaine du réparateur : `_Trash_*` sans marqueur. Chaque
-    /// entrée de premier niveau compte — c'est ce que le badge affiche.
-    @Test func quarantaineSansMarqueurCompte() throws {
-        let mods = makeTempModsDir()
-        let junk = path(mods, "_Trash_20260924_080000")
-        try FileManager.default.createDirectory(atPath: path(junk, ".DS_Store inside"), withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(atPath: path(junk, "Dossier vide"), withIntermediateDirectories: true)
-        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 2)
+    /// La quarantaine est produite par le **vrai** réparateur, jamais posée à
+    /// la main : les anciennes fixtures la mettaient sous `Mods/`, où il
+    /// n'écrit jamais, et le badge valait zéro en production sans qu'un test
+    /// rougisse.
+    @Test func quarantaineDuReparateurCompte() throws {
+        let env = try makeGame()
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, "Dossier vide"), withIntermediateDirectories: true)
+
+        let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        #expect(report.quarantined.count == 2)
+        #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 2)
     }
 
-    /// La corbeille utilisateur (avec marqueur) n'est pas de la quarantaine.
-    @Test func corbeilleUtilisateurExclue() throws {
-        let mods = makeTempModsDir()
-        let ev = try makeEvent(mods, "_Trash_20260924_120000")
-        try "x".write(toFile: path(ev, "Alpha"), atomically: true, encoding: .utf8)
-        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 0)
-        #expect(ModTrash.events(modsPath: mods).count == 1)
+    /// Le cas voisin : une corbeille utilisateur sous `Mods/` n'est pas de la
+    /// quarantaine.
+    @Test func corbeilleUtilisateurPasComptee() throws {
+        let env = try makeGame()
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, ".Alpha"), withIntermediateDirectories: true)
+        try "x".write(toFile: path(env.mods, ".Alpha", "a.txt"), atomically: true, encoding: .utf8)
+
+        let result = ModTrash.trash(modsPath: env.mods, stamp: "20260924_120000",
+                                    items: [.init(physical: ".Alpha", logicalLeaf: "Alpha")])
+
+        #expect(result.moved == [".Alpha"])
+        #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 0)
     }
 
-    /// Le cas voisin qui ne doit PAS fusionner : les deux coexistent et le
-    /// compte ne voit que la quarantaine.
-    @Test func quarantaineEtCorbeilleCoexistent() throws {
-        let mods = makeTempModsDir()
-        let junk = path(mods, "_Trash_20260924_080000")
-        try FileManager.default.createDirectory(atPath: path(junk, ".DS_Store"), withIntermediateDirectories: true)
-        let ev = try makeEvent(mods, "_Trash_20260924_120000")
-        try "x".write(toFile: path(ev, "Alpha"), atomically: true, encoding: .utf8)
-        try "x".write(toFile: path(ev, "Beta"), atomically: true, encoding: .utf8)
-        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 1)
-        #expect(ModTrash.events(modsPath: mods).first?.entries == ["Alpha", "Beta"])
-    }
-
-    @Test func quarantaineAbsenteVautZero() {
-        let mods = makeTempModsDir()
-        #expect(ModTrash.quarantineItemCount(modsPath: mods) == 0)
+    @Test func quarantaineAbsenteVautZero() throws {
+        let env = try makeGame()
+        #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 0)
     }
 }

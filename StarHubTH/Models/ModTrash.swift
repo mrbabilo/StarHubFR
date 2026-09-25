@@ -222,17 +222,16 @@ enum ModTrash {
     // MARK: - Lister
 
     /// Le compte vivant de la **quarantaine du réparateur** : les entrées de
-    /// premier niveau des `_Trash_*` **sans** marqueur utilisateur (X114).
-    /// Le badge ne lit plus le dernier rapport — une passe qui ne
-    /// quarantaine rien le remettait à zéro pendant que la quarantaine
-    /// précédente dormait toujours sur le disque.
-    static func quarantineItemCount(modsPath: String,
+    /// premier niveau des `_Trash_*` posés **à côté** de `Mods/`, dans le
+    /// dossier du jeu — là où `ModFolderRepairer` les crée. Le badge lit le
+    /// disque, pas le dernier rapport (X114) ; il lisait `Mods/`, où le
+    /// réparateur n'écrit jamais, et affichait donc toujours zéro.
+    static func quarantineItemCount(gameDir: String,
                                     fm: FileManager = .default) -> Int {
-        let names = (try? fm.contentsOfDirectory(atPath: modsPath))?
-            .filter(isTrashFolder)
-            .filter { !isUserEvent(modsPath: modsPath, event: $0, fm: fm) } ?? []
+        let names = (try? fm.contentsOfDirectory(atPath: gameDir))?
+            .filter(isTrashFolder) ?? []
         return names.reduce(0) { count, name in
-            let dir = (modsPath as NSString).appendingPathComponent(name)
+            let dir = (gameDir as NSString).appendingPathComponent(name)
             return count + ((try? fm.contentsOfDirectory(atPath: dir))?.count ?? 0)
         }
     }

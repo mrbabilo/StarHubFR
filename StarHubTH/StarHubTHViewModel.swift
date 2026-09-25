@@ -7165,11 +7165,12 @@ final class StarHubTHViewModel {
     var trashEvents: [ModTrash.Event] { maintenanceStore.trashEvents }
 
     func refreshTrash() {
+        let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let events = ModTrash.events(modsPath: modsPath)
-            // X114 — quarantaine du réparateur, même listing.
-            let quarantined = ModTrash.quarantineItemCount(modsPath: modsPath)
+            // X114 — la quarantaine vit à côté de `Mods/`, pas dedans.
+            let quarantined = ModTrash.quarantineItemCount(gameDir: gameDir)
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.maintenanceStore.setTrashEvents(events)
