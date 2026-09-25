@@ -560,7 +560,21 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       ✅ *Marche 1 livrée le 2026-09-26* : `PerformanceOverlap.catalog`, 6 paires
       à 2 méthodes ou plus (Radiance compris ; les paires à une méthode écartées
       comme bruit), fiche du mod + feuille Conflits, hors pastille. Reste la
-      lecture ECMA-335 ci-dessous. Complet, il
+      lecture ECMA-335 ci-dessous.
+      🔬 *Essai du mod d'observation `companion/StarHubFR.Probe` (2026-09-26,
+      parc réel, UltraSmooth + Stardropium actifs, Radiance en pause) : sa
+      carte Harmony recoupe `harmony_summary` de SMAPI à 2 094 couples sur
+      2 095 (le 2 095ᵉ est posé après le chargement). Elle **contredit le
+      catalogue** là où l'exécution diffère du code : (1) **Stardew Loading
+      Optimizer neutralise SinZ au démarrage** (`removedHarmonyPatches=6`,
+      2 gestionnaires retirés) — les paires avec SinZ n'existent pas en jeu, et
+      le limiteur mémoire que Stardropium greffe sur SinZ s'accroche à du code
+      mort ; (2) UltraSmooth ne pose pas ses patches `Tree`/`FruitTree`/
+      `HoeDirt.draw` avec la config du parc : 6 méthodes communes avec
+      Stardropium, pas 9 ; (3) SLO × UltraSmooth partagent 2 méthodes
+      (`ScreenFade.UpdateFadeAlpha`, `LoadGameMenu.SaveFileSlot..ctor`) que le
+      seuil « ≥ 2 » aurait dû retenir. La décompilation dit ce qu'un mod
+      **peut** patcher ; seule la carte dit ce qu'il **a** patché.* Complet, il
       faut lire les tables de métadonnées ECMA-335 (`MemberRef`, `TypeRef`) et
       l'IL autour des appels `Harmony.Patch` — le nom de méthode est une chaîne
       lisible, son type ne l'est pas. **Première marche, moins chère** : une
