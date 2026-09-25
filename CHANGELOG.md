@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le journal des modifications passe au pied de la barre latérale**, en bouton entre thème et langue ; il reste dans le menu « Aller » et la palette ⌘K.
+
 ### Fixed
 
 - **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
