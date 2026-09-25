@@ -4717,8 +4717,8 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       faire, matériaux système. Taille du texte : Réglages › Affichage, trois
       crans (`TextScale`, Core, 4 tests), jetons `AppDesign.Font` calculés ;
       les tailles littérales restantes → **I-T17**.
-- [x] **I-T17** ✅ *(livré le 2026-09-25, vérification aux trois crans due
-      par l'auteur)* — **Tailles de police littérales → jetons.** 394
+- [x] **I-T17** ✅ *(livré le 2026-09-25, vérifié aux trois crans par
+      l'auteur)* — **Tailles de police littérales → jetons.** 394
       `.system(size:)` relevés : les tailles 9 à 16 passent à leur jeton
       `AppDesign.Font` (graisse et monospace compris), les autres gardent leur
       valeur via `AppDesign.Font.scaled(N)`. Restent littérales à dessein :
