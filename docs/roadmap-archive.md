@@ -4717,6 +4717,17 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       faire, matériaux système. Taille du texte : Réglages › Affichage, trois
       crans (`TextScale`, Core, 4 tests), jetons `AppDesign.Font` calculés ;
       les tailles littérales restantes → **I-T17**.
+- [x] **I-T17** ✅ *(livré le 2026-09-25, vérification aux trois crans due
+      par l'auteur)* — **Tailles de police littérales → jetons.** 394
+      `.system(size:)` relevés : les tailles 9 à 16 passent à leur jeton
+      `AppDesign.Font` (graisse et monospace compris), les autres gardent leur
+      valeur via `AppDesign.Font.scaled(N)`. Restent littérales à dessein :
+      glyphes `AppDesign.Icon`, initiales d'avatar (cercle de taille fixe),
+      vignette de ferme (proportionnelle à son cadre). Cran normal = facteur
+      1, rien ne change par défaut. Preuve : substitution inverse ligne à
+      ligne, 0 écart. À regarder aux grands crans : cadres fixes de
+      `SaveEditorView`, `SaveTimelineView`, `ModDetailView`,
+      `KeybindOverviewGroup`, `AccountHeaderCard`.
 
 - [x] **Hors ROADMAP** *(livré le 2026-09-25, à la demande de l'auteur)* :
       écran des raccourcis clavier (icône du pied de barre, ⌘/ au menu Aide ;

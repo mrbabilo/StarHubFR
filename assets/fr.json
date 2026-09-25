@@ -1597,5 +1597,5 @@
   "settings_text_size_normal": "Normale",
   "settings_text_size_large": "Grande",
   "settings_text_size_extra_large": "Très grande",
-  "settings_footer_display": "S'applique aux textes de l'app. Quelques libellés gardent encore leur taille fixe."
+  "settings_footer_display": "S'applique à tous les textes de l'app."
 }

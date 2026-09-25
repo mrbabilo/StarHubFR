@@ -22,6 +22,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **La taille du texte s'applique partout.** Les libellés qui gardaient une taille fixe (fiche mod, installation, recherche guidée, sauvegardes d'installation, santé SMAPI…) suivent désormais le cran choisi dans Réglages › Affichage.
 - **Réglages réorganisés.** Trois onglets (Jeu, Mods & contenu, À propos) au lieu d'une longue page ; chaque réglage affiche son explication sous son titre ; la clé Nexus passe en tête, et « ajouter une clé API » depuis Découvrir y mène directement.
 - **Les actions ponctuelles quittent les Réglages** : dossier et zip des parties dans Sauvegardes du jeu ; « Vider les mods désactivés » (avec confirmation) et zip du dossier Mods dans Entretien.
 - **Le journal des modifications passe au pied de la barre latérale**, en icône à côté de celle des raccourcis clavier ; il reste dans le menu « Aller » et la palette ⌘K.
