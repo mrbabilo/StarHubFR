@@ -29,6 +29,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Les mods déjà remplacés ne sont plus signalés cassés.** smapi.io juge un mod par son identifiant : quand la version installée est la version non officielle recommandée (ou plus récente), ou le mod de remplacement proposé, l'alerte se tait — 7 faux signalements sur 9 sur un parc réel.
 - **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
 - **L'en-tête de la gestion des mods tient en fenêtre étroite.** Les filtres débordaient, « Installer » était coupé et le poids s'écrivait à la verticale ; les rangées passent sur deux lignes quand il le faut.
 - **Les lignes de mods ne sont plus coupées en fenêtre étroite.** Leurs informations passent à la ligne, colonnes alignées, au lieu de déborder des deux côtés ; une catégorie longue ne fait plus déborder les filtres.
