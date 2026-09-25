@@ -629,19 +629,27 @@ le journal réel le 2026-09-04.
       *UltraSmooth 2.3.7 (décompilé le 2026-09-26) garde `us_trace` et ses
       sections ; la ligne `Game Time` d'un pic peut finir par ` | Menu: …` et
       ` | Weather: …`, suffixes que le parseur doit accepter (SOURCES §5).*
-      🛑 *Mesuré le 2026-09-26 avant de coder : **aucun rapport sur le parc**
-      (zéro `UltraSmooth_TraceReport_*.txt`, et le dernier journal SMAPI date
-      du 2026-09-17, sans trace). Le rapport ne naît **que d'une commande
-      console** (`us_trace`, `us_trace stop` ou `us_diag`, fenêtre des 60
-      dernières secondes) — rien d'automatique. Il est aussi écrit **en entier
-      dans le journal SMAPI** (INFO), donc lisible sans le fichier ni le piège
-      0555. Et il **ne nomme aucun mod** : ses « causes » (§5 du rapport) sont
-      quatre textes figés (horloge des 10 min, boucle CPU, présentation GPU,
-      sain) — « rapprochées du mod » est impossible depuis cette source.
-      Reste exploitable : FPS moyen, 1 % bas, pire trame, tick CPU, horloge des
-      10 min, tas géré, GC Gen0/1/2, pics > 25 ms (heure de jeu, lieu, menu,
-      météo). Prérequis avant d'écrire le parseur : un vrai rapport, produit en
-      jeu.* · **M**
+      *Mesuré le 2026-09-26 sur **4 vrais rapports** (session de l'auteur,
+      01:03–01:07). Le rapport ne naît que d'une commande console (`us_diag`,
+      `us_trace`), rien d'automatique ; il est **aussi écrit en entier dans le
+      journal SMAPI** (une entrée INFO `Ultra Smooth` multiligne), donc
+      lisible sans le fichier ni le piège 0555. Il **ne nomme aucun mod** :
+      « rapprochées du mod » est impossible depuis cette source. Pièges de
+      lecture, tous constatés :
+      (1) « Last 60s » et `Duration` sont **3 600 trames ÷ 60**, pas du temps :
+      à 26 FPS la fenêtre couvre ~2 min 20 ;
+      (2) une commande tapée pendant le chargement ne s'exécute qu'à la fin
+      (01:01:34 → rapport à 01:03:10) : `Game Loop Ticks: 0`, CPU 0,00 ms, et
+      le diagnostic « GPU » qui en découle est faux ;
+      (3) `Occurred 0x in session` à côté d'une durée de 28,8 ms : compteur
+      mort ;
+      (4) les « pics » > 25 ms sont, sous VSync 60 Hz, des trames de 3
+      intervalles (~53 ms, huit fois de suite) : la cadence, pas un à-coup ;
+      (5) `Worst Frame Peak` reste à 1 643,72 ms trois rapports d'affilée.
+      Fiable : FPS moyen, 1 % bas, tick CPU moyen, tas géré, GC, lieu et heure
+      de jeu. Lecture utile mesurée : tick CPU 2,6–4,2 ms pour une trame de
+      29–38 ms — **le rendu coûte l'essentiel**, contrairement à la cause
+      « CPU » affichée par le rapport.* · **M**
 - [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
       état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
