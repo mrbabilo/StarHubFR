@@ -499,17 +499,16 @@ struct TranslationDiffView: View {
                                 Section {
                                     if !collapsed.contains(group.id) {
                                         ForEach(group.rows) { row in
+                                            Button { editing = row } label: { // bouton : atteignable au clavier (I-T6)
                                             DiffRowView(row: row,
                                                         emptyPlaceholder: localization.L(L10n.Mods.diffEmptyValue),
                                                         previousEnglishLabel: localization.L(L10n.Mods.diffPreviousEnglish),
                                                         needsReview: reviewNeededIDs.contains(row.id),
                                                         reviewLabel: localization.L(L10n.Mods.translationReviewNeeded))
                                                 .contentShape(Rectangle())
-                                                .onTapGesture { editing = row }
-                                                // Rien n'indiquait qu'une
-                                                // rangée s'ouvre : le curseur
-                                                // le dit avant le clic.
-                                                .pointingHandCursor()
+                                            }
+                                            .buttonStyle(.plain)
+                                                .pointingHandCursor() // le curseur dit qu'une rangée s'ouvre
                                             Divider()
                                         }
                                     }

@@ -138,12 +138,12 @@ struct ModInstallView: View {
 
                 // Drop zone
                 if zipModInfo == nil {
-                    dropZone
-                        .onTapGesture {
-                            guard !isAnalyzing, !isInstalling else { return }
-                            showFilePicker = true
-                        }
-                        .pointingHandCursor()
+                    Button { // un bouton, et non un geste : atteignable au clavier (I-T6)
+                        guard !isAnalyzing, !isInstalling else { return }
+                        showFilePicker = true
+                    } label: { dropZone }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
                 } else {
                     InstallPreview(
                         zipModInfo: zipModInfo!,
