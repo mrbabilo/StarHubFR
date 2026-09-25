@@ -3692,6 +3692,9 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       jeu ; le badge et l'accueil valaient toujours 0. Les fixtures posaient
       la quarantaine à la main sous `Mods/` — état que le vrai producteur ne
       crée jamais ; le test fait désormais tourner le réparateur.
+      Conséquence assumée par l'auteur le 2026-09-25 : le badge et la tuile
+      d'accueil passent en « attention » dès qu'un `.DS_Store` de Finder est
+      mis en quarantaine — niveau **conservé**, ne pas l'adoucir.
 
 - [x] **X114** ✅ *(livré le 2026-09-24)* — **Le badge « Quarantaine » comptait le dernier rapport, pas le dossier.**
       `lastRepairReport.quarantined.count` : une passe qui ne quarantaine
