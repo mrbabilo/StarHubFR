@@ -4459,36 +4459,24 @@ final class StarHubTHViewModel {
         refresh()
     }
 
-    /// Pour chaque nom de fichier présent **à la racine** d'un mod installé,
-    /// les mods qui le portent.
-    ///
-    /// Sert à reconnaître un remplacement de configuration — `bagconfig.json`
-    /// déposé seul appartient à `ItemBags`, et à lui seul. **Mesuré sur le
-    /// parc : 76 des 91 noms de fichiers JSON de premier niveau n'ont qu'un
-    /// propriétaire**, quand `config.json` en a 544 et `content.json` 522 :
-    /// c'est l'unicité qui autorise à conclure, jamais le nom seul.
-    ///
-    /// Calculé à la demande, au moment d'analyser une archive : c'est un
-    /// parcours du disque, et il n'a rien à faire dans un rendu de liste.
+    /// Pour chaque nom de fichier **à la racine** d'un mod, ses propriétaires :
+    /// reconnaît un remplacement de config (`bagconfig.json` → `ItemBags`).
+    /// Parc : 76/91 noms JSON n'ont qu'un propriétaire, `config.json` 544 —
+    /// seule l'unicité autorise à conclure. À la demande (parcours disque).
     func rootFileOwners() -> [String: [String]] {
         let root = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods")
         var owners: [String: [String]] = [:]
         var unreadable = 0
         for mod in allInstalledMods() {
             let folder = root.appendingPathComponent(mod.physicalFolderName)
-            // `contentsOfDirectory` et non un parcours récursif : la forme ne
-            // vaut que pour la **racine** du mod. Un `config.json` enfoui trois
-            // niveaux plus bas n'est pas ce qu'on remplace.
+            // Racine seulement, pas de parcours récursif.
             do {
                 for name in try FileManager.default.contentsOfDirectory(atPath: folder.path)
                 where !name.hasPrefix(".") {
                     owners[name.lowercased(), default: []].append(mod.folderName)
                 }
             } catch {
-                // Un dossier qu'on ne sait pas lire ne portera aucun candidat :
-                // une archive de remplacement qui le visait sera refusée sans
-                // qu'on sache pourquoi. Compté et dit une fois, plutôt que 863
-                // lignes ou aucune.
+                // Dossier illisible : compté et dit une fois.
                 unreadable += 1
             }
         }
@@ -4502,16 +4490,10 @@ final class StarHubTHViewModel {
 
     // MARK: - Découverte (axe G)
 
-    /// La carte de la vitrine vit en Core (`DiscoveryScoping.Row`), avec les
-    /// trois écarts qui décident de ce qu'elle contient. L'alias tient les
-    /// vues en place — elles nomment encore `StarHubTHViewModel.DiscoveryRow`
-    /// — et tombera au découpage des vues (REFACTORING §5, P8). Il reste ici
-    /// exprès : `DiscoverySearchResult` a rejoint Core sans lui, pour ne pas
-    /// toucher trois lignes de `DiscoverView` au passage.
+    /// Carte de la vitrine en Core (`DiscoveryScoping.Row`) ; l'alias garde
+    /// les vues en place.
     typealias DiscoveryRow = DiscoveryScoping.Row
 
-    /// Le résultat d'une recherche par nom dans la vitrine : les cartes et le
-    /// total serveur — la poignée affichée n'est jamais tout ce qui existe.
     // MARK: Le store du domaine (cadrage §4, domaine 3). Il porte l'état de
     // la vitrine ; le réseau, le cache disque et le calcul des cartes restent
     // ici — `discoveryRows` lit `mods`, donc le domaine Scan.
@@ -4525,26 +4507,14 @@ final class StarHubTHViewModel {
     var lastDiscoveryError: NexusSearchError? { discoveryStore.lastError }
     var discoveryCategory: NexusCategory? { discoveryStore.category }
 
-    /// Ce qui dit si une réponse de recherche est encore attendue. Les
-    /// réponses arrivent sur le fil principal (`NexusSearchClient`), comme les
-    /// mutations d'ici. Reste au ViewModel : c'est l'orchestration réseau qui
-    /// l'ouvre et le vérifie, pas l'état affiché.
+    /// Réponse de recherche encore attendue ? Orchestration réseau, reste au VM.
     private var discoveryEpoch = RequestEpoch()
-    /// Même rôle que `discoveryEpoch`, pour la fiche : la feuille se ferme et
-    /// s'ouvre sur un autre mod plus vite qu'une requête ne revient.
+    /// Même rôle pour la fiche (fermée et rouverte plus vite qu'une requête).
     private var discoveryDetailEpoch = RequestEpoch()
 
-    /// Les mods installés depuis Nexus **pendant cette session**, par leur
-    /// identifiant de page.
-    ///
-    /// Une installation ne devient visible dans `mods` qu'au terme d'un scan
-    /// du parc — passe de réparation comprise, deux parcours récursifs de
-    /// 104 000 fichiers, plusieurs secondes. La pastille « installé » de la
-    /// vitrine attendait donc tout ce temps, et l'utilisateur concluait
-    /// qu'elle ne s'allumait qu'après un rafraîchissement manuel. Ce que
-    /// l'app vient d'installer, elle le sait tout de suite : elle le dit tout
-    /// de suite. Rien à persister — au prochain lancement, le scan porte
-    /// l'identifiant.
+    /// Mods installés depuis Nexus **cette session**, par id de page : la
+    /// pastille « installé » s'allume sans attendre le scan (plusieurs
+    /// secondes). Non persisté.
     private(set) var recentNexusInstalls: Set<Int> = []
 
     /// Cache sur disque : `~/Library/Caches/StarHubFR/discovery/` (spec §6).
@@ -4557,30 +4527,19 @@ final class StarHubTHViewModel {
             save: { key, data in try? data.write(to: dir.appendingPathComponent("\(key).json")) })
     }()
 
-    /// Charge les trois sections : le cache d'abord, une requête par section
-    /// périmée ou absente (spec §5.3). `force` re-demande tout — le bouton
-    /// de rafraîchissement, seule chose qui déclenche une requête hors
-    /// ouverture périmée.
-    /// Restreint la vitrine à une catégorie — ou la rouvre en grand. Chaque
-    /// catégorie a son propre cache : rebasculer sur « toutes » ne relance
-    /// aucune requête si la liste complète est encore fraîche.
-    ///
-    /// Le filtre ne touche **pas** la recherche par nom : on y cherche un mod
-    /// précis, le lui cacher parce qu'il est rangé ailleurs rendrait un vide
-    /// inexplicable.
+    /// Restreint la vitrine à une catégorie, ou la rouvre ; un cache par
+    /// catégorie. Ne filtre **pas** la recherche par nom (vide inexplicable).
     func setDiscoveryCategory(_ category: NexusCategory?) {
         guard discoveryStore.setCategory(category) else { return }
         loadDiscovery()
-        // Une recherche affichée se refait sous la nouvelle catégorie : la
-        // laisser telle quelle montrerait des résultats que le filtre visible
-        // dit avoir écartés.
+        // Recherche affichée refaite sous la nouvelle catégorie.
         if let search = discoverySearch { searchDiscovery(name: search.term) }
     }
 
+    /// Charge les trois sections : cache d'abord, une requête par section
+    /// périmée ou absente (spec §5.3). `force` (bouton) redemande tout.
     func loadDiscovery(force: Bool = false) {
-        // La panne d'avant ne parle pas de la tentative qui commence : sans
-        // cette remise à zéro, un bandeau d'erreur restait en haut de
-        // l'onglet pour toujours, y compris après un chargement réussi.
+        // Remet la panne précédente à zéro : sinon bandeau d'erreur permanent.
         discoveryStore.startLoad()
         for kind in ModCatalog.SectionKind.allCases {
             let state = discoveryCatalog.state(kind, category: discoveryCategory?.id)
@@ -4594,10 +4553,8 @@ final class StarHubTHViewModel {
 
     private func fetchDiscoverySection(_ kind: ModCatalog.SectionKind) {
         discoveryStore.beginFetch()
-        // La catégorie demandée est retenue ici : la réponse peut arriver
-        // après que l'utilisateur en a choisi une autre. Elle est alors
-        // rangée dans **son** cache mais n'est pas affichée — sinon la
-        // vitrine montrerait des mods d'une catégorie qu'on vient de quitter.
+        // Catégorie retenue : une réponse tardive va dans **son** cache sans
+        // s'afficher.
         let category = discoveryCategory
         NexusSearchClient.listing(sort: kind.defaultSort, tag: kind.defaultTag,
                                   category: category?.englishName) { [weak self] result in
@@ -4608,20 +4565,16 @@ final class StarHubTHViewModel {
                 switch result {
                 case .success(let page):
                     self.discoveryCatalog.record(kind, category: category?.id, page: page)
-                    // Relu depuis le cache : c'est la page dédoublonnée qui
-                    // s'affiche.
+                    // Relu du cache : page dédoublonnée.
                     guard stillWanted else { return }
                     self.discoveryStore.setSection(kind,
                                                    to: self.discoveryCatalog.state(kind,
                                                                                    category: category?.id))
                 case .failure(let error):
                     guard stillWanted else { return }
-                    // La panne est dite dans tous les cas (spec §8) : garder des
-                    // lignes de la veille sans prévenir qu'elles n'ont pas pu
-                    // être rafraîchies, c'est mentir en silence.
+                    // Panne toujours dite (spec §8) : sinon des lignes de la veille mentent.
                     self.discoveryStore.recordFailure(error)
-                    // Le stale reste affiché pendant la panne (spec §6) — le
-                    // bandeau suffit, on ne blanchit pas la section.
+                    // Stale gardé pendant la panne (spec §6), le bandeau suffit.
                     if case .stale = self.discovery[kind] ?? .empty(.neverLoaded) { return }
                     self.discoveryStore.setSection(kind, to: .empty(.failed))
                 }
@@ -4629,18 +4582,13 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les cartes d'une liste de hits : adulte exclu (spec §8), « installé »
-    /// calculé par identifiant **et** par titre — les deux clés du
-    /// partitionnement des traductions (A3-T5).
-    /// `francophoneOnly` ne vaut que pour les **sections** : la vitrine est
-    /// une sélection, on y écarte les traductions d'autres langues. Une
-    /// recherche par nom, elle, rend ce qu'on lui a demandé — filtrer ce que
-    /// l'utilisateur vient de taper serait un résultat vide inexplicable.
+    /// Cartes d'une liste : adulte exclu (spec §8), « installé » par id **et**
+    /// titre (A3-T5). `francophoneOnly` pour les **sections** seulement : une
+    /// recherche rend ce qu'on a tapé.
     private func discoveryRows(in hits: [NexusModSearch.Hit],
                                hidingInstalled: Bool,
                                francophoneOnly: Bool) -> [DiscoveryRow] {
-        // Les trois écarts et la reconnaissance du parc vivent dans
-        // `DiscoveryScoping` (Core, 14 tests) ; ici ne restent que les deux
+        // Écarts dans `DiscoveryScoping` (Core, 14 tests) ; ici les deux
         // ensembles que seul le VM connaît.
         DiscoveryScoping.rows(from: hits,
                               installedNexusIds: installedNexusIds(),
@@ -4649,14 +4597,8 @@ final class StarHubTHViewModel {
                               francophoneOnly: francophoneOnly)
     }
 
-    /// Les cartes visibles d'une section, ce qui a été **reçu** pour elle, et
-    /// ce que le serveur dit avoir en tout.
-    ///
-    /// Le compte se lit « x affichés sur y chargés » : un filtre ne doit pas
-    /// masquer qu'il a filtré (spec §7.1), mais l'annoncer sur le total du
-    /// catalogue — « 20 affichés sur 33 204 » — ne comparait rien à rien. Le
-    /// total serveur ne sert plus qu'à savoir s'il reste une tranche à
-    /// demander.
+    /// Cartes visibles, mods **reçus** et total serveur. « x affichés sur y
+    /// chargés » (spec §7.1) ; le total dit seulement s'il reste à demander.
     func discoveryRows(for kind: ModCatalog.SectionKind,
                        hidingInstalled: Bool)
     -> (rows: [DiscoveryRow], shown: Int, loaded: Int, total: Int) {
@@ -4666,11 +4608,8 @@ final class StarHubTHViewModel {
         return (rows, rows.count, page.hits.count, page.totalCount)
     }
 
-    /// Demande la tranche suivante d'une section — « voir plus ».
-    ///
-    /// L'offset est le nombre de mods **déjà reçus**, pas le nombre affiché :
-    /// compter les cartes visibles ferait redemander sans fin ce que les
-    /// filtres viennent d'écarter.
+    /// « Voir plus » : offset = mods **reçus**, pas affichés (sinon redemande
+    /// sans fin ce que les filtres écartent).
     func loadMoreDiscovery(_ kind: ModCatalog.SectionKind) {
         guard let page = discovery[kind]?.page,
               DiscoveryScoping.hasMore(received: page.hits.count,
@@ -4691,23 +4630,18 @@ final class StarHubTHViewModel {
                                                    to: self.discoveryCatalog.state(kind,
                                                                                    category: category?.id))
                 case .failure(let error):
-                    // La bande déjà là ne bouge pas : seule la suite manque, et
-                    // le bandeau dit pourquoi.
+                    // Bande déjà là inchangée ; le bandeau dit pourquoi.
                     self.discoveryStore.recordFailure(error)
                 }
                                       }
         }
     }
 
-    /// Recherche par nom dans la vitrine : même client que la liaison
-    /// d'identité, présentation propre à l'onglet (spec §7.1). Elle montre
-    /// tout, badge « installé » compris — on cherche un mod précis, installé
-    /// ou non.
+    /// Recherche par nom : montre tout, « installé » compris (spec §7.1).
     func searchDiscovery(name: String) {
         let term = NexusModSearch.searchTerm(for: name)
         guard !term.isEmpty else {
-            // Vider le champ périme ce qui est en vol : sinon la réponse
-            // arrivée une seconde plus tard ferait revenir la liste.
+            // Champ vidé : périmer l'en-vol, sinon la liste revient.
             discoveryEpoch.abandonAll()
             discoveryStore.setSearch(nil)
             return
@@ -4734,15 +4668,10 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// La tranche suivante des résultats de recherche.
-    ///
-    /// Le terme redemandé est celui qui a produit la liste, retenu au
-    /// résultat : reprendre le champ de saisie servirait la suite d'une autre
-    /// recherche à qui aurait retapé entre-temps.
+    /// Tranche suivante, sur le terme retenu au résultat (pas le champ).
     func loadMoreDiscoverySearch() {
         guard let current = discoverySearch, current.loaded < current.totalCount else { return }
-        // Le jeton de la recherche en cours, pas un neuf : demander la suite
-        // prolonge la recherche, il ne la remplace pas.
+        // Jeton courant : la suite prolonge la recherche.
         let token = discoveryEpoch.currentToken
         NexusSearchClient.search(name: current.term,
                                  category: discoveryCategory?.englishName,
@@ -4771,11 +4700,9 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Quitte les résultats : les sections reprennent la place. Sans cette
-    /// porte de sortie, une recherche remplacerait définitivement la vitrine.
+    /// Quitte les résultats ; les sections reviennent.
     func clearDiscoverySearch() {
-        // Périmer d'abord : une réponse en vol repeuplerait sinon la liste
-        // que l'utilisateur vient de fermer.
+        // Périmer d'abord, sinon une réponse repeuple la liste fermée.
         discoveryEpoch.abandonAll()
         discoveryStore.setSearch(nil)
     }
@@ -4790,8 +4717,7 @@ final class StarHubTHViewModel {
         let token = discoveryDetailEpoch.open()
         NexusSearchClient.detail(modId: modId) { [weak self] result in
             Task { @MainActor in
-                // Sans ce jeton, la réponse d'une fiche fermée entre-temps
-                // s'affichait sous le titre de celle qu'on venait d'ouvrir.
+                // Sans jeton, la réponse d'une fiche fermée s'affichait dans la suivante.
                 guard let self, self.discoveryDetailEpoch.isCurrent(token) else { return }
                 switch result {
                 case .success(let detail):
@@ -4825,16 +4751,13 @@ final class StarHubTHViewModel {
 
     // MARK: - Mise à jour de l'app (release GitHub du fork)
 
-    /// L'alerte à présenter — `nil` = rien. Posé seulement pour le chemin
-    /// du lancement, et seulement si le tag n'a pas déjà été acquitté.
+    /// Alerte à présenter (`nil` = rien) : lancement seulement, tag non
+    /// acquitté.
     private(set) var availableAppRelease: GitHubRelease?
-    /// La dernière release connue — l'état de Réglages → À propos en
-    /// dérive, indépendant du tag acquitté : vue mais non installée, une
-    /// release reste « disponible ».
+    /// Dernière release connue (À propos), indépendante de l'acquittement.
     private(set) var lastKnownRelease: GitHubRelease?
     private(set) var releaseCheckInFlight = false
-    /// L'échec du check — dit **seulement** sur le check manuel ; au
-    /// lancement, une app hors-ligne ne doit pas brair à chaque ouverture.
+    /// Échec dit **seulement** au check manuel.
     private(set) var releaseCheckFailedMessage: String?
 
     private static let appReleaseURL = URL(string:
@@ -4855,21 +4778,16 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// `@MainActor` explicite : la classe ne l'est pas, et une `func async`
-    /// non isolée exécuterait son corps hors du fil principal — or tout ce
-    /// qui suit mute des `@Published`.
+    /// `@MainActor` explicite : une `func async` non isolée tournerait hors
+    /// main.
     @MainActor
     private func performReleaseCheck(lastChecked: Date?, bypassThrottle: Bool) async {
-        // Le drapeau retombe par **tous** les chemins, succès comme échec.
-        // Sans ce `defer`, le check du lancement le laissait à `true` pour
-        // la session : « Vérifier les mises à jour » devenait inopérant
-        // (le garde de `checkForAppRelease`) et À propos affichait
-        // « Vérification… » indéfiniment, bouton grisé.
+        // Le drapeau retombe par **tous** les chemins : sinon « Vérifier »
+        // inopérant et « Vérification… » infini.
         defer { releaseCheckInFlight = false }
         var request = URLRequest(url: Self.appReleaseURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        // Session éphémère comme la lookup SMAPI (X83) : un blip réseau ne
-        // doit pas laisser traîner une connexion.
+        // Session éphémère (X83).
         let session = URLSession(configuration: .ephemeral)
         do {
             let (data, response) = try await session.data(for: request)
@@ -4886,8 +4804,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Échec : `lastCheckedAt` n'est PAS repoussé — on retente au prochain
-    /// lancement. Le manuel, lui, dit pourquoi ; le lancement se tait.
+    /// Échec : `lastCheckedAt` non repoussé. Le manuel dit pourquoi.
     @MainActor
     private func recordReleaseCheckFailure(status: Int?, bypassThrottle: Bool,
                                            underlying: Error? = nil) {
@@ -4897,16 +4814,14 @@ final class StarHubTHViewModel {
             underlying?.localizedDescription ?? "HTTP \(status ?? 0)")
     }
 
-    /// Le traitement d'une réponse 200 — séparé du transport pour la
-    /// lisibilité ; la décision est déjà testée en Core.
+    /// Réponse 200, séparée du transport ; décision testée en Core.
     @MainActor
     private func applyReleaseCheck(data: Data, lastChecked: Date?, bypassThrottle: Bool) {
         let release: GitHubRelease
         do {
             release = try JSONDecoder().decode(GitHubRelease.self, from: data)
         } catch {
-            // Une réponse 200 illisible se traite comme un échec — jamais
-            // comme « à jour » (leçon du cache d'octets étrangers).
+            // 200 illisible = échec, jamais « à jour ».
             recordReleaseCheckFailure(status: 200, bypassThrottle: bypassThrottle,
                                       underlying: error)
             return
@@ -4936,9 +4851,8 @@ final class StarHubTHViewModel {
             }
             lastKnownRelease = knownRelease
             releaseCheckFailedMessage = nil
-            // L'alerte n'est posée que pour le chemin du lancement et un
-            // tag jamais acquitté. Le check manuel met à jour l'état
-            // d'À propos sans présenter de sheet (spec §7.5).
+            // Alerte : lancement + tag jamais acquitté. Le manuel met À propos à
+            // jour sans feuille (spec §7.5).
             if !bypassThrottle && !alreadySeen {
                 availableAppRelease = knownRelease
             }
@@ -4946,8 +4860,7 @@ final class StarHubTHViewModel {
     }
 
     func acknowledgeRelease(_ release: GitHubRelease) {
-        // « Voir la release » comme « Plus tard » acquittent (spec §7.4) :
-        // l'alerte se montre une fois par tag, point.
+        // Les deux boutons acquittent (spec §7.4) : une fois par tag.
         UserDefaults.standard.set(release.tagName, forKey: UDKey.frReleaseLastSeenTag)
         availableAppRelease = nil
     }
@@ -4962,46 +4875,35 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// L'état d'À propos au lancement, avant tout check : la dernière
-    /// release connue relue du disque.
+    /// État d'À propos au lancement, relu du disque.
     func loadLastKnownRelease() {
         guard let json = UserDefaults.standard.string(forKey: UDKey.frReleaseLastKnown),
               let data = json.data(using: .utf8) else { return }
         do {
             lastKnownRelease = try JSONDecoder().decode(GitHubRelease.self, from: data)
         } catch {
-            // JSON corrompu : repartir de nil plutôt qu'un état fantôme —
-            // le prochain check réussi réécrira la clé.
+            // JSON corrompu : nil ; le prochain check réécrit.
             lastKnownRelease = nil
         }
     }
 
     // MARK: - Bilan d'installation (fenêtre dédiée)
 
-    /// Posé au succès de l'installation ; la `MainView` l'observe pour
-    /// ouvrir la fenêtre de bilan. Sa remise à nil se fait à la fermeture
-    /// de la fenêtre (ou avant réouverture de la feuille).
+    /// Posé au succès de l'installation (fenêtre de bilan) ; remis à nil à sa
+    /// fermeture.
     private(set) var pendingInstallReport: InstallReport?
-    /// La file de dépôt multiple, migrée du `@State` de `ModInstallView` :
-    /// la fenêtre de bilan vit entre deux zips, un état de feuille serait
-    /// perdu à sa fermeture.
+    /// File de dépôt multiple (ex-`@State` de `ModInstallView`) : survit entre
+    /// deux zips.
     private(set) var pendingDropQueue = InstallDropQueue()
 
     func dropQueuePush(_ urls: [URL]) { pendingDropQueue.push(urls) }
     @discardableResult func dropQueueAdvance() -> URL? { pendingDropQueue.advance() }
     var nextQueuedDropURL: URL? { pendingDropQueue.current }
 
-    /// Appelé par la feuille AU succès de l'installation — les noms restent
-    /// apportés par la vue, qui les possède. Publie le bilan figé. Ne touche
-    /// à aucun ménage : le `onDismiss` de la feuille (archive, X103-C, file
-    /// nxm) s'exécute ensuite à l'identique.
-    ///
-    /// ⚠️ **Ne dépile pas.** L'invariant de la file est : *elle porte les
-    /// archives qui n'ont pas encore été présentées, et c'est celui qui
-    /// présente qui dépile* (`analyzeNextQueuedArchive`,
-    /// `queueNextDropArchive`). Dépiler ici en plus sautait une archive en
-    /// silence sur un dépôt multiple — l'archive suivant celle qu'on venait
-    /// d'installer n'était jamais analysée, et le compte annoncé était faux.
+    /// Appelé par la feuille au succès : publie le bilan figé, sans ménage.
+    /// ⚠️ **Ne dépile pas** : c'est celui qui présente qui dépile
+    /// (`analyzeNextQueuedArchive`, `queueNextDropArchive`) ; dépiler ici
+    /// sautait une archive en silence.
     func completeInstall(installedNames: [String]) {
         pendingInstallReport = InstallReport(
             installedNames: installedNames,
@@ -5015,50 +4917,38 @@ final class StarHubTHViewModel {
         pendingInstallReport = nil
     }
 
-    /// Le canal de réouverture de la feuille sur l'archive suivante —
-    /// observé par la MainView. ⚠️ Ne passe JAMAIS par le `onDismiss` qui
-    /// discard : ce sont les fichiers originaux de l'utilisateur, pas des
-    /// téléchargements.
+    /// Réouverture de la feuille sur l'archive suivante. ⚠️ JAMAIS par le
+    /// `onDismiss` qui discard : fichiers originaux de l'utilisateur.
     private(set) var pendingDropPresentation: URL?
 
-    /// « Archive suivante (n) » : dépile la prochaine archive, la pose pour
-    /// réouverture de la feuille et referme le bilan. **Dépile** — voir
-    /// l'invariant de `completeInstall`.
+    /// « Archive suivante (n) » : **dépile**, pose, referme le bilan.
     func queueNextDropArchive() {
         pendingDropPresentation = pendingDropQueue.advance()
         pendingInstallReport = nil
     }
 
-    /// Le lot est abandonné : la feuille a été refermée sans installer.
-    /// L'ancienne file vivait en `@State` sur la feuille et mourait avec
-    /// elle — ce que ce `@Published` ne fait plus tout seul. Sans ce ménage,
-    /// des archives d'un dépôt délaissé resurgissent à une installation
-    /// ultérieure, en pointant peut-être sur des fichiers disparus.
+    /// Lot abandonné (feuille fermée sans installer) : vider la file, sinon
+    /// des archives ressurgissent plus tard.
     func abandonDropQueue() {
         guard !pendingDropQueue.isEmpty else { return }
         pendingDropQueue = InstallDropQueue()
     }
 
-    /// La fenêtre de bilan a été fermée à la main, sans « Archive suivante » :
-    /// le reste du lot part avec elle.
+    /// Bilan fermé à la main : le reste du lot part avec lui.
     func abandonInstallReport() {
         pendingInstallReport = nil
         abandonDropQueue()
     }
 
-    /// La feuille est refermée (onDismiss MainView) : le canal de
-    /// réouverture a été consommé.
+    /// Feuille refermée : canal consommé.
     func clearDropPresentation() {
         pendingDropPresentation = nil
     }
 
-    // ⚠️ Les deux canaux de navigation demandée sont des façades provisoires
-    // (P8) — l'état, ses verbes et leur documentation vivent dans
-    // `navigationStore` ; la reprise des vues les appellera directement.
-    // `reportDetailFocus` : « voir la fiche » depuis la fenêtre de bilan.
-    // `pendingTabRequest` : l'onglet demandé depuis le menu « Aller » ou la
-    // palette ⌘K (I-T1 / I-T2) — `.commands` vit dans la scène App,
-    // `currentTab` est un `@State` de MainView (patron B3-T4).
+    // ⚠️ Façades provisoires (P8) — état dans `navigationStore`.
+    // `reportDetailFocus` : « voir la fiche » depuis le bilan.
+    // `pendingTabRequest` : onglet demandé par le menu « Aller » ou ⌘K
+    // (I-T1 / I-T2 ; patron B3-T4).
     var reportDetailFocus: String? { navigationStore.reportDetailFocus }
 
     func consumeReportDetailFocus() {
@@ -5082,19 +4972,16 @@ final class StarHubTHViewModel {
         navigationStore.consumePendingTabRequest()
     }
 
-    /// Ouverture de la palette demandée depuis le menu — ⌘K y est déclaré pour
-    /// être visible et découvrable. Même problème, même remède : la
-    /// superposition est un `@State` de MainView.
+    /// Palette demandée depuis le menu (⌘K) ; la superposition est un
+    /// `@State` de MainView.
     private(set) var paletteRequested = false
 
     func requestPalette() {
         paletteRequested = true
     }
 
-    /// Consommé par MainView — que la palette s'ouvre **ou non** : elle refuse
-    /// de s'ouvrir sous une feuille (spec §10), et le canal doit retomber quand
-    /// même. Un canal resté armé ferait voir la demande suivante comme « déjà
-    /// en cours » : la famille de bugs de `releaseCheckInFlight`.
+    /// Consommé que la palette s'ouvre **ou non** (refus sous une feuille,
+    /// spec §10) : un canal resté armé bloquerait la suivante.
     func consumePaletteRequest() {
         paletteRequested = false
     }
@@ -5106,15 +4993,11 @@ final class StarHubTHViewModel {
     /// A1-T7 — ce que la dernière installation a remis en place, pour le bilan.
     private(set) var lastInstallPreserved: [PreservedDataOutcome] = []
 
-    /// Écrit le store pour chaque chemin installé portant un delta. Appelé
-    /// dans le completion de `performInstall` AVANT l'écran de succès : un
-    /// crash ne perd pas le delta, et la feuille comme la fiche lisent la
-    /// même chose. Échec journalisé, jamais bloquant.
+    /// Écrit le store des deltas AVANT l'écran de succès (survit à un crash) ;
+    /// échec journalisé, jamais bloquant.
     func persistUpdateKeyDeltas(_ paths: [InstalledModPath]) {
         lastInstallKeyDeltas = paths.compactMap(\.keyDelta)
-        // A1-T7 — une préservation muette serait le défaut qu'on corrige : elle
-        // part au journal **et** au bilan. Le journal garde la trace quand la
-        // fenêtre a été fermée ; le bilan la met sous les yeux.
+        // A1-T7 — préservation dite au journal **et** au bilan.
         lastInstallPreserved = paths.map {
             PreservedDataOutcome(modFolder: ($0.path as NSString).lastPathComponent,
                                  restored: $0.extrasRestored, failed: $0.extrasFailed,
@@ -5129,9 +5012,7 @@ final class StarHubTHViewModel {
                 log(m.text, level: m.isFailure ? .warning : .info)
             }
         }
-        // Le store vient de changer sous les caches de lecture : une mise à
-        // jour du MÊME mod dans la session ne doit pas resservir l'ancien
-        // delta mémorisé.
+        // Store changé : invalider les caches de lecture.
         updateKeyDeltasRevision += 1
         guard let dir = ModUpdateKeyDeltaStore.defaultDirectory() else {
             log("Delta de mise à jour : dossier Application Support indisponible, non persisté",
@@ -5149,35 +5030,17 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Incrémenté à chaque mutation du store (report, nouvelle capture,
-    /// suppression) : la section fiche relit le delta et rejoue le matcher
-    /// (le magasin n'est pas `@Published` — sans ce compteur, ni le
-    /// rafraîchissement ni l'invalidation des caches ci-dessous ne marchent).
+    /// Révision du store (magasin non observé) : rafraîchit la fiche et
+    /// invalide les caches.
     private(set) var updateKeyDeltasRevision = 0
 
-    /// Caches de lecture de la fiche. Le body relit le delta à CHAQUE rendu
-    /// et le matcher de renommage est O(retirées × ajoutées) — sans
-    /// mémoïsation, chaque republication du VM (scan, journal, Nexus)
-    /// rejouait lecture disque + Levenshtein sur le fil principal tant que
-    /// la fiche est ouverte, la classe exacte de gel corrigée deux fois
-    /// (index glossaire, LazyVStack). Une entrée suffit : la fiche ne
-    /// montre qu'un mod, et la révision invalide à toute mutation du store.
-    /// Touchés du fil principal seulement (body, actions de boutons,
-    /// completion d'installation sur `DispatchQueue.main`).
-    ///
-    /// ⚠️ `@ObservationIgnored` est **obligatoire** ici, et c'est un piège
-    /// propre à `@Observable` : sous `ObservableObject`, écrire un stocké non
-    /// publié pendant un rendu ne réveillait personne ; désormais **tout**
-    /// stocké est suivi. Un cache à créneau unique lu depuis un `body` et
-    /// réécrit à chaque manque invalide alors les vues **sœurs** qui l'avaient
-    /// lu — mesuré le 2026-09-11 sur `withObservationTracking` : deux vues
-    /// lisant deux clés bouclent **à l'infini** (60 rendus, garde atteinte),
-    /// là où un cache-dictionnaire converge en deux passes. Aujourd'hui
-    /// `ModUpdateDeltaSection` n'est instanciée qu'une fois (la fiche d'un
-    /// mod) — la boucle est à une liste près, pas dans le code livré.
-    /// Retirer le suivi est sûr parce que l'invalidation ne passe pas par le
-    /// cache : les deux lisent `updateKeyDeltasRevision`, un stocké suivi, à
-    /// **chaque** appel — succès de cache compris.
+    /// Caches de lecture de la fiche (delta + matcher O(retirées × ajoutées)) :
+    /// sans eux, chaque republication rejouait disque + Levenshtein sur main.
+    /// Une entrée ; fil principal seulement.
+    /// ⚠️ `@ObservationIgnored` **obligatoire** : sous `@Observable`, un cache
+    /// à créneau unique réécrit pendant un rendu invalide les vues sœurs —
+    /// deux vues bouclent à l'infini (mesuré 2026-09-11). Sûr car
+    /// l'invalidation lit `updateKeyDeltasRevision` (suivi) à **chaque** appel.
     @ObservationIgnored
     private var deltaReadCache: (uniqueId: String, revision: Int, delta: ModUpdateKeyDelta?)?
     @ObservationIgnored
@@ -5197,9 +5060,8 @@ final class StarHubTHViewModel {
         return delta
     }
 
-    /// Les paires de renommage proposées pour ce delta : fusion des deux
-    /// signaux (valeur EN identique = sûr ; similarité de nom = à vérifier
-    /// à l'œil), moins ce qui est déjà réconcilié.
+    /// Paires de renommage : valeur EN identique (sûr) ∪ similarité de nom (à
+    /// vérifier), moins le déjà réconcilié.
     func renamePairs(for delta: ModUpdateKeyDelta) -> (translation: [RenamePair], config: [RenamePair]) {
         if let cached = renamePairsCache,
            cached.uniqueId == delta.uniqueId,
@@ -5227,11 +5089,8 @@ final class StarHubTHViewModel {
         return result
     }
 
-    /// Reporte des paires renommées dans le(s) `fr.json` du mod. Les clés
-    /// qualifiées `"Composant/clé"` désignent le fr.json du composant — le
-    /// préfixe est le **chemin relatif sous le mod**, ce que le snapshot
-    /// nomme ; le routage et la désqualification vivent dans
-    /// `RenameReport.routeByOldComponent` (Core, testé).
+    /// Reporte des paires dans le(s) `fr.json`. `"Composant/clé"` = chemin
+    /// relatif sous le mod ; routage dans `RenameReport.routeByOldComponent`.
     @MainActor
     func applyRenameReportTranslation(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
@@ -5239,13 +5098,9 @@ final class StarHubTHViewModel {
         else { return .nothingLeft(skippedCrossComponent: 0) }
 
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
-        // Les composants du mod = ses descendants dans l'arbre scanné — PAS
-        // mod.children : les descendants d'un groupe vivent À PLAT sous
-        // l'en-tête (scanMods), la fiche d'un enfant imbriqué a children nil
-        // alors que son delta peut porter les clés qualifiées de ses propres
-        // sous-mods — « Rien à reporter » à jamais, sinon. Le préfixe est le
-        // chemin relatif sous le mod, ce que le snapshot a nommé ; le disque,
-        // le chemin physique réel (point de pause inclus).
+        // Composants = descendants dans l'arbre scanné, PAS `mod.children` (à
+        // plat sous l'en-tête ; sinon « Rien à reporter »). Préfixe relatif,
+        // disque physique (point de pause inclus).
         var descendants: [ModItem] = []
         func collect(_ items: [ModItem]) {
             for item in items {
@@ -5267,10 +5122,8 @@ final class StarHubTHViewModel {
         let physicalByPrefix = Dictionary(componentFolders.map { ($0.prefix, $0.physical) },
                                           uniquingKeysWith: { first, _ in first })
 
-        // Désqualifier et router : le fr.json ne voit que des clés brutes —
-        // une clé qualifiée cherchée dedans ne matcherait rien, en silence.
-        // Les paires qui CHANGENT de composant ne sont pas reportables
-        // (RenameReport.routeByOldComponent) : comptées, rendues à l'écran.
+        // Désqualifier et router (sinon aucune clé ne matche, en silence). Les
+        // paires qui changent de composant sont comptées, non reportées.
         let routed = RenameReport.routeByOldComponent(pairs, known: prefixes)
         let skipped = routed.crossComponent.count
 
@@ -5280,10 +5133,8 @@ final class StarHubTHViewModel {
             let i18nDir = URL(fileURLWithPath: modsRoot)
                 .appendingPathComponent(physical, isDirectory: true)
                 .appendingPathComponent("i18n", isDirectory: true)
-            // **Tous** les fichiers de la locale, jamais un `i18n/fr.json`
-            // composé à la main : un mod rangé en layout B (`i18n/fr/
-            // dialogue.json`…) n'en a aucun, et cette boucle abandonnait ici
-            // sans rien journaliser — 5 mods du parc dans ce cas.
+            // **Tous** les fichiers de la locale (layout B) : l'ancien
+            // `i18n/fr.json` en dur abandonnait sans trace (5 mods).
             let frFiles = I18nLocaleResolver.files(in: i18nDir, locale: "fr")
                 .compactMap { url -> RenameReport.FrenchFile? in
                     guard let data = try? Data(contentsOf: url),
@@ -5304,9 +5155,7 @@ final class StarHubTHViewModel {
             for rewrite in spread.files {
                 do {
                     try rewrite.text.write(toFile: rewrite.id, atomically: true, encoding: .utf8)
-                    // Seules les paires de CE fichier entrent au bilan : une
-                    // écriture ratée ne doit pas emporter celles des autres
-                    // sections, ni les faire compter comme reportées.
+                    // Seules les paires de CE fichier entrent au bilan.
                     for d in rewrite.applied {
                         if let q = routedPairs.first(where: { $0.raw == d })?.pair {
                             applied.append(q)
@@ -5322,8 +5171,7 @@ final class StarHubTHViewModel {
         guard !applied.isEmpty else {
             return .nothingLeft(skippedCrossComponent: skipped)
         }
-        // Le delta persisté : les paires appliquées passent en reconciled et
-        // quittent les compteurs.
+        // Paires appliquées → reconciled.
         let appliedSet = Set(applied)
         delta.translation.reconciled += applied
         delta.translation.addedUntranslated = delta.translation.addedUntranslated
@@ -5339,10 +5187,8 @@ final class StarHubTHViewModel {
         return .applied(count: applied.count, skippedCrossComponent: skipped)
     }
 
-    /// Reporte des paires renommées dans le `config.json` racine du mod —
-    /// le seul que le delta décrit (les composants n'y figurent pas).
-    /// Backup avant écriture et garde anti-écrasement : le patron de
-    /// l'éditeur de config, repris tel quel.
+    /// Reporte des paires dans le `config.json` racine, avec backup et garde
+    /// anti-écrasement (patron de l'éditeur).
     @MainActor
     func applyRenameReportConfig(_ pairs: [RenamePair], to mod: ModItem) -> KeyRenameReportOutcome {
         guard !pairs.isEmpty, let dir = ModUpdateKeyDeltaStore.defaultDirectory(),
@@ -5360,8 +5206,7 @@ final class StarHubTHViewModel {
         let (rewritten, done) = RenameReport.applyToConfig(loadedText, pairs: pairs)
         guard !done.isEmpty else { return .nothingLeft(skippedCrossComponent: 0) }
 
-        // Garde : relecture fraîche juste avant d'écrire — un fichier que le
-        // mod ou le jeu vient de toucher ne se fait pas écraser en silence.
+        // Relecture juste avant d'écrire : pas d'écrasement silencieux.
         let onDisk: ModConfigWriteGuard.DiskState
         if !FileManager.default.fileExists(atPath: configURL.path) {
             onDisk = .missing
@@ -5374,16 +5219,14 @@ final class StarHubTHViewModel {
         case .proceed:
             break
         case .externallyChanged, .unverifiable:
-            // On ne décide pas à sa place : journalisé, le report attendra.
-            // Le `.cancelled` est porté jusqu'à l'écran : « rien à reporter »
-            // ferait conclure que les paires étaient fantaisistes.
+            // Journalisé ; `.cancelled` porté à l'écran (« rien à reporter »
+            // tromperait).
             log("Report de réglages (\(mod.name)) : config.json a changé sous nos pieds, report annulé",
                 level: .warning)
             return .cancelled
         }
 
-        // Backup avant écriture — le patron de l'éditeur, `onlyEnabled:
-        // false` pareil (le mod peut être en pause).
+        // Backup avant écriture, `onlyEnabled: false` (mod en pause possible).
         do { try ModConfigBackupManager.shared.backUpConfigOncePerDay(for: mod, gameDir: gameDir) } catch {
             log(String(format: localization.L(L10n.Settings.configBackupFailed),
                        mod.name, error.localizedDescription), level: .warning)
@@ -5410,8 +5253,7 @@ final class StarHubTHViewModel {
         catch { log("Delta (\(mod.name)) non enregistré après report : \(error.localizedDescription)", level: .warning) }
         updateKeyDeltasRevision += 1
         log(String(format: localization.L(L10n.Mods.updateDeltaRenamedDone), done.count))
-        // Le delta config ne décrit que des clés de premier niveau : pas de
-        // notion de composant, donc rien à annoncer en cross.
+        // Premier niveau seulement : rien en cross.
         return .applied(count: done.count, skippedCrossComponent: 0)
     }
 
@@ -5457,44 +5299,28 @@ final class StarHubTHViewModel {
 
     // MARK: - Installed mod registry (version + install date)
 
-    /// Le registre des mods installés — version vue sur disque et date de ce
-    /// constat. Sa persistance, ses trois mécanismes de sûreté et la règle de
-    /// rapprochement vivent dans `InstalledModRegistryStore` (Core, testé) ;
-    /// le ViewModel ne garde ici que le câblage et le journal.
+    /// Registre des mods installés ; persistance, sûreté et règle dans
+    /// `InstalledModRegistryStore` (Core). Ici câblage et journal.
     private let installedModRegistryStore = InstalledModRegistryStore()
 
-    /// Tous les mods, packs aplatis en leurs composants. Réutilise
-    /// `flattenedMods` (module Core testé) plutôt que de réécrire le
-    /// dépliage une 23e fois — voir son commentaire pour l'historique.
+    /// Mods, packs aplatis (`flattenedMods`, Core).
     private func allInstalledMods() -> [ModItem] {
         mods.flattenedMods
     }
 
-    /// La date d'installation enregistrée pour un dossier, ou `nil` si le mod
-    /// n'a jamais été enregistré. Façade : les vues et le reste du ViewModel
-    /// l'appellent, le store la calcule.
+    /// Date d'installation enregistrée, `nil` sinon.
     nonisolated func installedModDate(for folderName: String) -> Date? {
         installedModRegistryStore.installedDate(for: folderName)
     }
 
-    /// Rapproche le registre de ce que le scan a vu, puis dit à l'utilisateur ce
-    /// qui s'est passé. Le store ne journalise pas lui-même : il rend un
-    /// rapport, et c'est ici qu'on sait écrire dans le journal de l'app.
-    ///
-    /// - Parameter modsFolderWasReadable: faux quand le scan n'a pas pu lire
-    ///   `Mods/`. Les deux purges de cette passe — le registre lui-même et les
-    ///   ancres de version — sont alors suspendues : elles répondent à « ce
-    ///   dossier a disparu », question à laquelle un lot qu'on n'a pas pu lire
-    ///   ne répond pas. L'enregistrement, lui, continue.
+    /// Rapproche le registre du scan et journalise le rapport du store.
+    /// - Parameter modsFolderWasReadable: faux si `Mods/` illisible : les deux
+    ///   purges (registre, ancres) sont suspendues ; l'enregistrement continue.
     nonisolated private func syncInstalledModRegistry(scannedMods: [ModItem],
                                           modsFolderWasReadable: Bool = true) {
-        // La version que smapi.io suggère, par `UniqueID`. Source : le cache
-        // plat sous son lock, pas `nexusUpdates`. La propriété @Published ne
-        // s'écrit que sur le fil principal (`republishUpdatesFromCache`) — la
-        // lire ici, sur le fil du scan, est une course. Et la liste consolidée
-        // par pack ne garde que l'enfant gagnant de chaque pack : un enfant
-        // perdant avec mise à jour y perd sa suggestion. Le cache plat, lui, a
-        // une ligne par mod.
+        // Version suggérée par `UniqueID`, depuis le cache plat sous lock : lire
+        // `nexusUpdates` ici serait une course, et la liste consolidée perd les
+        // enfants perdants.
         let suggested = Dictionary(
             NexusUpdateChecker.shared.cachedUpdates().map { ($0.uniqueId, $0.latestVersion) },
             uniquingKeysWith: { first, _ in first })
