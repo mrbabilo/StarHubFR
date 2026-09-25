@@ -43,7 +43,7 @@ struct SettingsSectionOrderTests {
 
     @Test("les groupes sont rendus dans un ordre stable")
     func groupsAreOrdered() {
-        #expect(SettingsSectionOrder.groups == [.game, .content, .data, .about])
+        #expect(SettingsSectionOrder.groups == [.game, .content, .about])
     }
 
     @Test("les réglages de développeur ne sont pas dans le premier groupe")
@@ -51,7 +51,7 @@ struct SettingsSectionOrderTests {
         // Ils étaient au milieu de l'écran, entre la sauvegarde et le
         // comportement des mods ; ce sont les moins utilisés de tous.
         #expect(!SettingsSectionOrder.sections(in: .game).contains(.developer))
-        #expect(SettingsSectionOrder.sections(in: .data).contains(.developer))
+        #expect(SettingsSectionOrder.sections(in: .about).contains(.developer))
     }
 
     @Test("le glossaire et le secours ne sont pas des sections de premier niveau")
@@ -60,8 +60,10 @@ struct SettingsSectionOrderTests {
         // leur donner un cas ici les ferait rendre deux fois, ou obligerait à
         // éclater cette vue — la refonte de parcours que la spec §9 exclut.
         // Le test ne peut pas nommer un cas absent ; il tient le compte.
-        // 12 depuis « Affichage » (taille du texte, I-T4, 2026-09-25).
-        #expect(SettingsSection.allCases.count == 12)
+        // 12 avec « Affichage » (I-T4), puis 10 : « Gestion » et
+        // « Sauvegarde » parties sur Entretien et Sauvegardes du jeu
+        // (2026-09-25).
+        #expect(SettingsSection.allCases.count == 10)
         #expect(SettingsSectionOrder.sections(in: .content) == [.nexus, .translationAI, .modBehavior])
     }
 

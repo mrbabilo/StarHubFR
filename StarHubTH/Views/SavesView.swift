@@ -51,7 +51,8 @@ struct SavesView: View {
                             .font(AppDesign.Font.caption)
                     }
                     .buttonStyle(.bordered)
-                    .help(localization.L(L10n.Saves.reloadHint))
+                    .iconHelp(localization.L(L10n.Saves.reloadHint))
+                    SavesDataActions(vm: vm, localization: localization) // sorti des Réglages
                 }
 
                 // Rangée secondaire : tri et filtre par tag, en chips au

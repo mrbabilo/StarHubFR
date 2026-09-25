@@ -37,6 +37,7 @@ struct MaintenanceView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            MaintenanceModActions(vm: vm, localization: localization) // sorti des Réglages
             Divider()
             if let report = vm.maintenanceReport {
                 // La corbeille (X103-B) se montre même sur un entretien sans
@@ -71,8 +72,7 @@ struct MaintenanceView: View {
             vm.refreshTrash()
             vm.refreshNexusArchives()
         }
-        // Un seul présentateur pour les trois confirmations — voir
-        // `MaintenanceConfirmation`.
+        // Un seul présentateur pour les confirmations — voir `MaintenanceConfirmation`.
         .alert(alertTitle,
                isPresented: Binding(get: { confirmation != nil },
                                     set: { if !$0 { confirmation = nil } }),

@@ -16,8 +16,10 @@ public enum SettingsSection: String, CaseIterable, Sendable {
     // pas à côté. Les hisser au premier niveau serait éclater une vue — la
     // refonte de parcours que la spec §9 exclut.
     case nexus, translationAI, modBehavior
-    // Ce que l'app garde sur le disque.
-    case management, backup, developer
+    // Le dépannage. « Gestion » et « Sauvegarde » (actions ponctuelles, pas
+    // des réglages) sont parties sur Entretien et Sauvegardes du jeu le
+    // 2026-09-25 ; le groupe « Données & stockage » avec elles.
+    case developer
     // L'app elle-même : son affichage (taille du texte, I-T4), puis ses infos.
     case display, appInfo
 }
@@ -26,13 +28,13 @@ public enum SettingsSection: String, CaseIterable, Sendable {
 /// « sections unifiées, groupées par nature » (§6) : c'est ici que « par
 /// nature » est écrit — une fois, et sous test.
 public enum SettingsGroup: String, CaseIterable, Sendable {
-    case game, content, data, about
+    case game, content, about
 }
 
 public enum SettingsSectionOrder {
 
     /// L'ordre de lecture des groupes, du plus souvent touché au moins souvent.
-    public static let groups: [SettingsGroup] = [.game, .content, .data, .about]
+    public static let groups: [SettingsGroup] = [.game, .content, .about]
 
     /// Les sections d'un groupe, dans leur ordre de lecture.
     ///
@@ -51,8 +53,7 @@ public enum SettingsSectionOrder {
         switch group {
         case .game:    return [.gameFolder, .smapi, .launch, .coreExtensions]
         case .content: return [.nexus, .translationAI, .modBehavior]
-        case .data:    return [.management, .backup, .developer]
-        case .about:   return [.display, .appInfo]
+        case .about:   return [.display, .developer, .appInfo]
         }
     }
 }

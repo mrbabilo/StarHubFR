@@ -19,11 +19,9 @@ struct SettingsView: View {
     // Nexus Mods API key entry (only used when no key is stored yet).
     @State private var nexusApiKeyInput: String = ""
     @State private var nexusKeySavedFlash: Bool = false
-    @State private var showClearDisabledConfirm = false
     /// Les dossiers relevés au clic, que la confirmation chiffre et que la
     /// suppression reprend tels quels — annoncer un compte puis en supprimer
     /// un autre serait pire que de ne rien annoncer.
-    @State private var disabledModsToClear: [String] = []
 
     init(vm: StarHubTHViewModel, localization: LocalizationStore) {
         self.localization = localization
@@ -73,20 +71,6 @@ struct SettingsView: View {
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
-        .alert(isPresented: $showClearDisabledConfirm) {
-            // cleanDisabledMods met tout le lot dans la corbeille des mods
-            // (restaurable depuis Entretien) : la confirmation chiffre ce qui
-            // part avant le clic.
-            Alert(
-                title: Text(localization.L(L10n.Settings.clearDisabledMods)),
-                message: Text(String(format: localization.L(L10n.Settings.clearDisabledConfirmCount),
-                                     Int64(disabledModsToClear.count))),
-                primaryButton: .destructive(Text(localization.L(L10n.Settings.deleteJunkMods))) {
-                    vm.cleanDisabledMods(targets: disabledModsToClear)
-                },
-                secondaryButton: .cancel(Text(localization.L(L10n.Saves.cancel)))
-            )
-        }
     }
 
     // MARK: - Groupes
@@ -143,7 +127,6 @@ struct SettingsView: View {
         switch group {
         case .game:    return L10n.Settings.groupGame
         case .content: return L10n.Settings.groupContent
-        case .data:    return L10n.Settings.groupData
         case .about:   return L10n.Settings.groupAbout
         }
     }
@@ -158,8 +141,6 @@ struct SettingsView: View {
         case .nexus:          nexusSection
         case .translationAI:  translationAISection
         case .modBehavior:    modBehaviorSection
-        case .management:     managementSection
-        case .backup:         backupSection
         case .developer:      developerSection
         case .display:        TextScaleSettingsSection(localization: localization)
         case .appInfo:        appInfoSection
@@ -319,31 +300,6 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var backupSection: some View {
-        // ── Backup ──
-        StandardSection(
-            title: localization.L(L10n.Settings.backup),
-            footer: localization.L(L10n.Settings.footerBackup)
-        ) {
-            VStack(alignment: .leading, spacing: 16) {
-                SettingsRow(title: localization.L(L10n.Settings.backupSaves), hint: localization.L(L10n.Settings.hintCompressSaves)) {
-                    Button(action: { vm.backupAllSaves() }) {
-                        Text(localization.L(L10n.Settings.backupSavesButton))
-                    }
-                }
-                
-                Divider().padding(.leading, 0)
-                
-                SettingsRow(title: localization.L(L10n.Settings.backupMods), hint: localization.L(L10n.Settings.hintCompressMods)) {
-                    Button(action: { vm.backupAllMods() }) {
-                        Text(localization.L(L10n.Settings.backupModsButton))
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
     private var developerSection: some View {
         // ── Developer ──
         // (App theme and language now live as toggles at the bottom of
@@ -367,8 +323,7 @@ struct SettingsView: View {
     private var modBehaviorSection: some View {
         // ── Mod Behavior ──
         StandardSection(
-            title: localization.L(L10n.Settings.modBehavior),
-            footer: localization.L(L10n.Settings.chainToggleHint)
+            title: localization.L(L10n.Settings.modBehavior)
         ) {
             SettingsRow(title: localization.L(L10n.Settings.chainToggle), hint: localization.L(L10n.Settings.chainToggleHint)) {
                 Toggle(localization.L(L10n.Settings.chainToggle), isOn: Binding(
@@ -378,41 +333,6 @@ struct SettingsView: View {
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                 .controlSize(.small)
                 .labelsHidden()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var managementSection: some View {
-        // ── Management ──
-        StandardSection(
-            title: localization.L(L10n.Settings.management),
-            footer: localization.L(L10n.Settings.footerManagement)
-        ) {
-            VStack(alignment: .leading, spacing: 16) {
-                SettingsRow(title: localization.L(L10n.Settings.savesFolder), hint: "") {
-                    Button(action: { vm.openSavesFolder() }) {
-                        Text(localization.L(L10n.Settings.openFolder))
-                    }
-                }
-                
-                Divider().padding(.leading, 0)
-                
-                SettingsRow(title: localization.L(L10n.Settings.clearDisabledMods), hint: "") { // l'ancienne infobulle répétait le titre ; la note de section explique
-                    Button(action: {
-                        disabledModsToClear = vm.disabledModTargets()
-                        // Rien à supprimer : le dire, plutôt qu'ouvrir une
-                        // alerte destructive qui n'emporterait rien.
-                        if disabledModsToClear.isEmpty {
-                            vm.showModal(message: localization.L(L10n.VM.cleanModsNotFound))
-                        } else {
-                            showClearDisabledConfirm = true
-                        }
-                    }) {
-                        Text(localization.L(L10n.Settings.deleteJunkMods))
-                    }
-                    .foregroundColor(.red)
-                }
             }
         }
     }
