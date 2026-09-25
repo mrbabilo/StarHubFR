@@ -76,7 +76,8 @@ struct SidebarOrderTests {
         #expect(SidebarOrder.entries(in: .health).map(\.destination)
                 == [.systemAlerts, .quarantine, .backups, .maintenance])
         #expect(SidebarOrder.entries(in: .app).map(\.destination)
-                == [.logs, .settings, .appChangelog])
+                == [.logs, .settings])
+        #expect(SidebarOrder.entries(in: .footer).map(\.destination) == [.appChangelog])
     }
 
     /// Les clés des destinations d'origine restent celles relevées le

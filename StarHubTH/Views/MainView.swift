@@ -251,7 +251,7 @@ struct MainView: View {
                             .padding(.horizontal, 10)
                     }
     
-                    SidebarPinnedFooter(vm: vm, localization: localization, appColorScheme: $appColorScheme)
+                    SidebarPinnedFooter(vm: vm, localization: localization, appColorScheme: $appColorScheme, currentTab: $currentTab)
                 }
                 .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top)
                 .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())

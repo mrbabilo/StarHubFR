@@ -67,28 +67,27 @@ struct SidebarNavGroups: View {
 
 // MARK: - Sidebar Pinned Footer
 
-/// Le pied épinglé de la barre latérale : volet de téléchargement Nexus,
-/// poids de `Mods/`, réglages de thème et de langue. Ce bloc doit rester
-/// visible quelle que soit la hauteur de la fenêtre — c'est lui que
-/// l'ancienne pile plein-fixe laissait écrêter en premier.
+/// Le pied épinglé de la barre latérale : volet Nexus, poids de `Mods/`,
+/// thème, journal des modifications et langue. Toujours visible, quelle que
+/// soit la hauteur de la fenêtre.
 struct SidebarPinnedFooter: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var appColorScheme: String
+    @Binding var currentTab: SidebarDestination
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            // Au-dessus du poids de `Mods/` : un lien `nxm://` peut
-            // arriver du navigateur quel que soit l'onglet ouvert, et le
-            // téléchargement n'avait jusqu'ici pour tout témoin qu'un
-            // spinner sur la page des mises à jour.
+            // Un lien `nxm://` arrive quel que soit l'onglet ouvert : son
+            // téléchargement se voit ici, pas sur la seule page des mises à jour.
             NexusDownloadFooter(vm: vm, localization: localization)
 
             ModsWeightFooter(vm: vm, localization: localization)
 
-            // Bottom bar: theme switcher (left) + language switcher (right).
             HStack {
                 ThemeToggle(vm: vm, localization: localization, appColorScheme: $appColorScheme)
+                Spacer()
+                ChangelogFooterButton(localization: localization, currentTab: $currentTab)
                 Spacer()
                 LanguageFlagToggle(vm: vm, localization: localization)
             }
