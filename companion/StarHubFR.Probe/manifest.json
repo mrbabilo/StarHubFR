@@ -1,7 +1,7 @@
 {
   "Name": "StarHubFR Probe",
   "Author": "mrbabilo",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "Description": "Observation pour StarHubFR : carte des patches Harmony et temps de trame. N'optimise rien, ne touche à aucun autre mod, aucun réseau.",
   "UniqueID": "mrbabilo.StarHubFR.Probe",
   "EntryDll": "StarHubFR.Probe.dll",

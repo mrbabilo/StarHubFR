@@ -13,6 +13,11 @@ namespace StarHubFR.Probe;
 /// .NET — technique reprise de `GcEventListener.cs` du mod Profiler de SinZ
 /// (MIT, voir LICENSE-THIRD-PARTY.md). Les rappels arrivent sur un autre fil
 /// que le jeu : tout passe sous verrou.
+///
+/// ⚠️ Un GC d'arrière-plan (`Type` = 1) court **pendant** que le jeu tourne :
+/// sa durée n'est pas une pause. La v0.1 les additionnait et annonçait 5 s de
+/// « pause » par minute, alors que la pire trame en durait 0,2. Comme chez
+/// Profiler, le type sépare les deux.
 /// </summary>
 internal sealed class GcPauses : EventListener
 {
@@ -21,9 +26,9 @@ internal sealed class GcPauses : EventListener
     private static IMonitor? Monitor;
 
     private readonly Stopwatch clock = Stopwatch.StartNew();
-    private readonly ConcurrentDictionary<uint, double> started = new();
+    private readonly ConcurrentDictionary<uint, (double At, uint Type)> started = new();
     private readonly object gate = new();
-    private double totalMs, maxMs;
+    private double totalMs, maxMs, backgroundMs;
 
     public static void Start(IMonitor monitor)
     {
@@ -32,14 +37,16 @@ internal sealed class GcPauses : EventListener
     }
 
     /// <summary>Le cumul et la plus longue pause depuis le dernier appel.</summary>
-    public static (double Total, double Max) Drain()
+    /// <summary>Pauses bloquantes (cumul, max) et durée des GC d'arrière-plan, depuis le dernier appel.</summary>
+    public static (double Blocking, double BlockingMax, double Background) Drain()
     {
-        if (Instance is null) return (0, 0);
+        if (Instance is null) return (0, 0, 0);
         lock (Instance.gate)
         {
-            var result = (Instance.totalMs, Instance.maxMs);
+            var result = (Instance.totalMs, Instance.maxMs, Instance.backgroundMs);
             Instance.totalMs = 0;
             Instance.maxMs = 0;
+            Instance.backgroundMs = 0;
             return result;
         }
     }
@@ -65,15 +72,24 @@ internal sealed class GcPauses : EventListener
         uint count = Convert.ToUInt32(e.Payload[countIndex]);
         if (e.EventName.Contains("GCStart"))
         {
-            started[count] = clock.Elapsed.TotalMilliseconds;
+            int typeIndex = e.PayloadNames.IndexOf("Type");
+            uint type = typeIndex >= 0 ? Convert.ToUInt32(e.Payload[typeIndex]) : 0;
+            started[count] = (clock.Elapsed.TotalMilliseconds, type);
         }
-        else if (e.EventName.Contains("GCEnd") && started.TryRemove(count, out double at))
+        else if (e.EventName.Contains("GCEnd") && started.TryRemove(count, out var begun))
         {
-            double pause = clock.Elapsed.TotalMilliseconds - at;
+            double duration = clock.Elapsed.TotalMilliseconds - begun.At;
             lock (gate)
             {
-                totalMs += pause;
-                if (pause > maxMs) maxMs = pause;
+                if (begun.Type == 1)
+                {
+                    backgroundMs += duration;
+                }
+                else
+                {
+                    totalMs += duration;
+                    if (duration > maxMs) maxMs = duration;
+                }
             }
         }
     }
