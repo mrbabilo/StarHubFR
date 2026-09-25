@@ -13,7 +13,7 @@
     "default_branch": "development",
     "last_commit": "9c5e145",
     "last_commit_at": "2026-09-23T20:10:58Z",
-    "pushed_at": "2026-09-23T20:14:13Z",
+    "pushed_at": "2026-09-24T14:42:18Z",
     "release": "v1.10.4",
     "released_at": "2026-09-23T20:14:21Z"
   },
@@ -52,11 +52,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "d8ed56a",
-    "last_commit_at": "2026-09-23T23:22:47Z",
-    "pushed_at": "2026-09-23T23:23:38Z",
-    "release": "v1.48.0",
-    "released_at": "2026-09-17T22:32:34Z"
+    "last_commit": "0b2d0db",
+    "last_commit_at": "2026-09-25T17:11:39Z",
+    "pushed_at": "2026-09-25T17:12:17Z",
+    "release": "v1.49.0",
+    "released_at": "2026-09-24T23:43:41Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -82,10 +82,10 @@
     "pushed_at": "2026-03-17T01:20:57Z"
   },
   "mod/event-studio": {
-    "changelog_reviewed": "1.0.0-beta.2",
+    "changelog_reviewed": "1.0.0-rc.2",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.0-beta.2"
+    "version": "1.0.0-rc.2"
   },
   "mod/faster-menu-load": {
     "changelog_reviewed": "1.5.0",
@@ -112,10 +112,10 @@
     "version": "1.0.0"
   },
   "mod/modern-config-menu": {
-    "changelog_reviewed": "2.1.6",
+    "changelog_reviewed": "2.1.7",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.1.6"
+    "version": "2.1.7"
   },
   "mod/profiler": {
     "changelog_reviewed": "2.0.0",
@@ -124,10 +124,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.2.0",
+    "changelog_reviewed": "2.2.1",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.0"
+    "version": "2.2.1"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -153,10 +153,10 @@
     "pushed_at": "2026-09-25T13:04:05Z"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.3.6",
+    "changelog_reviewed": "2.3.7",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.3.6"
+    "version": "2.3.7"
   },
   "nexus/api-v1": {
     "bytes": 53,

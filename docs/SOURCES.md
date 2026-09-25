@@ -486,6 +486,34 @@ ici :
 - **Ligne de journal quotidienne** `[Morning Memory Optimizer (Background)]
   RAM: a MB -> b MB (Managed Heap: …)` : candidate pour D2.
 
+### Relevé du 2026-09-25 — quatre mods, Stardrop
+
+Les changelogs ci-dessous viennent de l'**API Nexus v2 sans clé** :
+`modFiles(modId, gameId: 1303) { version date changelogText }` rend le
+journal de chaque fichier. Le §1 disait qu'aucun script ne lit les
+changelogs Nexus ; c'est faux pour la v2 (mesuré sur les quatre mods).
+
+- **Modern Config Menu 2.1.7** — installé sur le parc, **décompilé et
+  comparé** à la 2.1.6 du backup d'installation : 7 fichiers d'interface
+  (bouton `[×]` dans la recherche, retour arrière des claviers virtuels).
+  Aucune E/S, aucun réseau, aucune ligne de journal ajoutée ; `i18n/` et
+  `data/` identiques.
+- **UltraSmooth 2.3.7** — changelog seul, **pas encore installé**. À
+  décompiler dès l'installation : « stripped out all tick stage profilers
+  and telemetry logging » peut toucher `us_trace` (D2-T2) ; le budget du
+  planificateur est borné à 1,0–4,5 ms dans `Normalize()` (une valeur plus
+  haute dans `config.json` sera ramenée) ; nouvelle section « Experimental »
+  (`EnableExperimentalFeatures`, désactivée par défaut).
+- **Radiance 2.2.1** — changelog seul, pas encore installé : réglages neufs
+  (herbe au vent, ombres aux pieds), traduction chinoise complétée ; rien qui
+  touche nos lecteurs.
+- **Event Studio 1.0.0-rc.1/rc.2** — changelog seul, en pause sur le parc :
+  ses exports Content Patcher rangent désormais les évènements dans
+  `events/<lieu>.json` appelés par `Include` — la forme que suit A5-T4.
+- **Stardrop** — `pushed_at` a bougé sans code : dernier commit le
+  2026-09-23 (v1.10.4 : dossier de collection créé au démarrage, traduction
+  chinoise). Rien pour nous.
+
 ---
 
 ### Outils de traduction de mods *(2026-09-24)*
