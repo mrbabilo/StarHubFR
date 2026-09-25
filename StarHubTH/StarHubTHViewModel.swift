@@ -1468,43 +1468,34 @@ final class StarHubTHViewModel {
     
     init(localization: LocalizationStore) {
         self.localization = localization
-        // `didSet` ne voit pas la valeur d'initialisation : sans cette ligne,
-        // les verdicts relus au lancement seraient là sans que rien ne les
-        // signale, jusqu'à la première vérification.
+        // `didSet` ne voit pas l'initialisation : sans cette ligne, les verdicts
+        // relus resteraient muets jusqu'à la première vérification.
         compatibilityStatuses = modCompatibility.mapValues(\.status)
-        // A2-T3 : un dump Pathoschild déjà en cache vaut « source disque »
-        // jusqu'à ce qu'une vérification smapi.io confirme ou révoque. On ne
-        // va pas le chercher ici : la date suffit à faire parler le bandeau.
+        // A2-T3 : un dump en cache vaut « source disque » jusqu'à une
+        // vérification smapi.io ; sa date suffit au bandeau.
         if let cached = PathoschildCompatibilityList.dumpFetchedAt() {
             pathoschildDumpDate = cached
             compatibilitySource = .diskCache
         }
-        // Les avertissements de l'installateur SMAPI n'ont pas d'autre chemin
-        // vers l'onglet Journaux : sa complétion ne porte qu'un succès ou un
-        // échec, et une installation peut réussir en laissant un défaut.
+        // Seul chemin des avertissements de l'installateur SMAPI vers le
+        // journal : une installation peut réussir avec un défaut.
         smapiInstaller.onWarning = { [weak self] message in
             self?.log(message, level: .warning)
         }
-        // Navigation (P8) : le store porte les poses à effet ; l'app câble
-        // ici leur plomberie — lecture de fiche, rescan raccourcis (X66),
-        // inventaire hors fil principal (un vrai fichier de sauvegarde
-        // fait ~40 Mo).
+        // Navigation (P8) : plomberie des poses à effet — fiche, rescan
+        // raccourcis (X66), inventaire hors fil principal (~40 Mo).
         navigationStore.wireEffects(
             onModDetailOpen: { [weak self] in self?.loadModDetail(for: $0) },
             onConfigEditorClosed: { [weak self] in self?.rescanKeybindsAfterConfigWrite() },
             loadInventory: { save, done in
                 DispatchQueue.global(qos: .userInitiated).async {
                     let items = SaveManager.shared.fetchInventory(for: save) ?? []
-                    // `done` est `@MainActor` : le hop de retour est déjà là,
-                    // `assumeIsolated` le dit au compilateur sans en ajouter
-                    // un second.
+                    // `done` est `@MainActor` : `assumeIsolated` évite un second saut.
                     DispatchQueue.main.async { MainActor.assumeIsolated { done(items) } }
                 }
             })
-        // Scan (domaine 8) : poser le parc enchaîne les trois cascades que
-        // le `didSet` d'origine portait — le cache de catégories Nexus, la
-        // couverture française, et le rapport de raccourcis (la signature
-        // de `scanIfNeeded` ne relance que si le parc a changé).
+        // Scan (domaine 8) : poser le parc enchaîne cache de catégories Nexus,
+        // couverture FR et rapport de raccourcis (`scanIfNeeded`).
         scanStore.wireEffects(onModsChanged: { [weak self] _ in
             guard let self else { return }
             self.invalidateCategoryCache()
@@ -1514,114 +1505,75 @@ final class StarHubTHViewModel {
                 self.keybindScanService.scanIfNeeded(mods: self.mods, gameDir: self.gameDir)
             }
         })
-        // `AppleLanguages` is resynced from the store's `currentLanguage.didSet`
-        // (`LocalizationStore`); no manual write needed here. The previous
-        // 3-line block caused a triple write on first launch (initializer →
-        // didSet, init reassignment → didSet, explicit set below) and risked
-        // a desync if any of the three branches diverged.
+        // `AppleLanguages` is resynced by `LocalizationStore`; no write here.
         
-        // Automatically retrieve saved game path, or attempt to find the
-        // default Steam path on Mac.
+        // Restore the saved game path, or detect the default Steam one.
         environment.restoreGameDir()
-        // Remède cadrage §3 bis : le rapport des raccourcis rejoint l'état du
-        // VM (voir `keybindReport`). `$report` est isolé au main (service
-        // @MainActor), l'init du VM ne l'est pas — mais son unique site de
-        // construction est le main (`StarHubTHApp.init`). `assumeIsolated`
-        // borne cet accès à la seule expression qui en a besoin.
-        // ⚠️ Le `Publisher` de `@Published` n'est pas `Sendable` : le sortir
-        // du bloc le ferait traverser une frontière d'isolation (erreur en
-        // mode Swift 6). Tout le câblage vit donc **dans** l'assertion.
+        // Remède §3 bis : `$report` est isolé au main ; l'init du VM est
+        // construit sur main (`StarHubTHApp.init`), d'où `assumeIsolated`.
+        // ⚠️ Le `Publisher` n'est pas `Sendable` : tout le câblage reste
+        // **dans** l'assertion (erreur Swift 6 sinon).
         MainActor.assumeIsolated {
-            // L'abonnement lui-même ne sort pas non plus du bloc :
-            // `AnyCancellable` n'est pas `Sendable`. On assigne dedans.
+            // `AnyCancellable` non `Sendable` : assigné dans le bloc.
             self.keybindCancellable = keybindScanService.$report
                 .removeDuplicates()
                 .sink { [weak self] in self?.keybindReport = $0 }
         }
-        // Les réglages IA/DeepL sont écrits par SettingsView en @AppStorage,
-        // hors du VM : la notification système est l'unique point où
-        // l'écriture est visible (prouvée postée en-process, cadrage plan
-        // Task 2). La garde de différence évite de republier une valeur
-        // inchangée — la notification porte TOUTES les écritures defaults.
+        // Réglages IA/DeepL écrits en `@AppStorage` hors VM : la notification
+        // est le seul signal. Garde de différence : elle porte TOUTES les
+        // écritures defaults.
         defaultsCancellable = NotificationCenter.default
             .publisher(for: UserDefaults.didChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.resyncMirroredDefaults() }
-        // La publication est inutile sous @Observable : une vue qui lit une
-        // façade suit la propriété du store à travers elle (cadrage §2, cas
-        // 1). Le store n'a plus d'objectWillChange non plus — l'invalidation
-        // du cache de catégories passe par la closure qu'on lui injecte
-        // (appelée par persistCategories/persistModIds, que toute mutation
-        // emprunte). Sans elle, une catégorie épinée laisserait les lignes
-        // sur une valeur périmée. Le patron existe déjà sur
-        // `nexusCategories.didSet` et le `didSet` de `mods`.
+        // L'invalidation du cache de catégories passe par cette closure
+        // (appelée par `persistCategories`/`persistModIds`) ; sans elle, une
+        // catégorie épinglée laisserait des lignes périmées.
         nexusMetadata.setOnInvalidate { [weak self] in self?.invalidateCategoryCache() }
-        // L'historique d'erreurs s'accumule et ne se rebâtit pas : une panne
-        // d'écriture ne se verrait qu'au lancement suivant, et par une perte.
+        // L'historique d'erreurs ne se rebâtit pas : une panne d'écriture ne se
+        // verrait qu'au lancement suivant, par une perte.
         errorHistory.setOnWriteFailure { [weak self] in
             self?.log("Historique d'erreurs non enregistré : il ne survivra pas à la fermeture",
                       level: .warning)
         }
-        // Seed the first launch step label synchronously so the overlay never
-        // shows an empty string before the first async hop lands.
+        // Seed the first step label so the overlay never shows an empty string.
         self.launchStep = self.localization.L(L10n.Main.launchStepInit)
-        // R2 : une application de profil morte en route ? Le journal est lu
-        // ici, mais il ne sera **présenté** qu'une fois la fenêtre révélée
-        // (voir `surfaceApplyRecoveryIfNeeded`, appelée par StarHubFRApp).
+        // R2 : journal d'application interrompue lu ici, **présenté** après
+        // révélation de la fenêtre (`surfaceApplyRecoveryIfNeeded`).
         unresolvedApplyJournal = ProfileApplyJournalStore.load(from: applyJournalDirectory)
-        // IMPORTANT: everything below `performInitialLoad()` runs on a
-        // background thread; this `init()` returns as fast as possible so the
-        // app window can render the launch overlay without waiting for any
-        // JSON decode, file I/O, or cache seeding. The old init blocked the
-        // main thread on ~6 UserDefaults decodes + a pack-consolidation pass
-        // before the window could appear — visibly slow on cold launches.
+        // IMPORTANT: `performInitialLoad()` work runs in background; `init()`
+        // returns fast so the launch overlay renders without waiting on I/O.
         self.performInitialLoad()   // launches the overlay-tracked first load
     }
 
-    /// Seeds the UI with the last-known Nexus data (cached from the previous
-    /// session) plus user overrides. Moved out of `init()` so the window can
-    /// render the launch overlay immediately; this runs on the background
-    /// launch task and publishes each @Published value on the main thread.
-    /// All these caches are non-blocking for the first frame: the sidebar
-    /// and home tab don't need them, and the mods list catches up the moment
-    /// the Nexus data lands.
+    /// Seeds last-known Nexus data + user overrides, off `init()`, on the
+    /// background launch task; publishes on main. Not needed for first frame.
     private func seedNexusAndUserData() {
-        // Keychain lookup — light, but it's still a round-trip to the security
-        // daemon, so we avoid it during the time-critical init.
+        // Keychain lookup: a security-daemon round-trip, kept out of init.
         let hasKey = NexusUpdateChecker.shared.apiKey()?.isEmpty == false
-        // Two UserDefaults-backed JSON decodes. Each one independently parses
-        // a blob; running them together here (rather than one-by-one on demand)
-        // front-loads the work so later UI hits are cache-fast. (Le cache des
-        // mises à jour, lui, se relit sur le fil principal juste en dessous —
-        // c'est une petite liste, et sa consolidation doit lire `mods`.)
+        // Two UserDefaults JSON decodes, front-loaded. (Le cache des mises à
+        // jour se relit sur main : sa consolidation lit `mods`.)
         let categories = NexusUpdateChecker.shared.cachedCategories()
         let extras = NexusUpdateChecker.shared.cachedExtras()
-        // Le quota du dernier appel à Nexus : persisté justement parce que
-        // l'app ne l'interroge plus qu'à la demande (B2-T6).
+        // Quota du dernier appel Nexus, persisté : interrogé à la demande (B2-T6).
         let quota = NexusUpdateChecker.shared.cachedQuota()
         let account = NexusUpdateChecker.shared.cachedAccount()
-        // User-saved overrides (per-mod custom categories / Nexus id links /
-        // activation timestamps). Small dicts, but still UserDefaults I/O.
+        // User overrides (categories, Nexus ids, activation timestamps).
 
         let activationTs = Self.loadModActivationTimestamps()
         let favorites = Self.loadFavoriteMods()
         let blacklisted = Self.loadBlacklistedMods()
         let managedConfigs = Self.loadProfileManagedConfigMods()
         let translations = InstalledTranslationStore.load()
-        // Les verdicts d'incompatibilité (A5-T2) : même lot que les autres
-        // registres utilisateur, lus ici hors fil principal.
+        // Verdicts d'incompatibilité (A5-T2), lus hors fil principal.
         let conflictVerdicts = ModConflictVerdictsStore.load()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.accountStore.apply(hasApiKey: hasKey, quota: quota, account: account)
-            // Redemandé quand on ne sait pas, ou quand le renseignement a plus
-            // d'une semaine : un compte peut devenir premium, ou cesser de
-            // l'être. La règle vit dans le store.
+            // Redemandé si inconnu ou vieux d'une semaine (règle dans le store).
             if self.accountStore.needsAccountRefresh() { self.refreshNexusAccount() }
-            // `republishUpdatesFromCache` et non une consolidation calculée en
-            // amont : elle lit `mods`, qui est `@Published`, et la lire depuis
-            // la file de fond était une lecture non synchronisée. Sur le fil
-            // principal, et par le même chemin que la vérification manuelle.
+            // Sur main via `republishUpdatesFromCache` : lire `mods` depuis la file
+            // de fond était non synchronisé.
             self.republishUpdatesFromCache()
             self.nexusCategories = categories
             self.nexusModExtras = extras
@@ -1632,46 +1584,28 @@ final class StarHubTHViewModel {
             self.translationHub.setInstalled(translations)
             self.modConflictVerdicts = conflictVerdicts
 
-            // Pré-charger le dump Pathoschild pendant que le splash est encore
-            // visible — le label "Loading Nexus data…" est juste au-dessus, et
-            // les logs `Récupération du dump Pathoschild en cours…` /
-            // `Dump Pathoschild : N mod(s) récupérés…` tomberont dans le
-            // journal **avant** que `isLaunching` ne tombe à false, donc
-            // l'utilisateur les verra pendant que le splash est encore là.
-            // Fire-and-forget : le fetch peut prendre 1-2 s au premier
-            // lancement, mais on ne bloque pas le splash dessus (le `cacheTTL`
-            // de 6 h garantit que les lancements suivants sont
-            // quasi-instantanés).
+            // Pré-charge le dump Pathoschild pendant le splash, pour que ses lignes
+            // de journal précèdent la fin de `isLaunching`. Sans attente (1-2 s au
+            // premier lancement ; TTL 6 h).
             PathoschildCompatibilityList.fetch(
                 onEvent: { [weak self] message in
-                    // Filtrage défensif : un `onEvent` qui crashe ne doit pas
-                    // faire échouer le fetch sous-jacent. `log` lui-même
-                    // n'est pas marqué `@Sendable`, mais `PathoschildCompatibilityList`
-                    // promet déjà d'invoquer sur le fil principal.
+                    // `PathoschildCompatibilityList` invoque déjà sur main.
                     self?.log(message, level: .info)
                 },
                 completion: { [weak self] _ in
-                    // Les verdicts, eux, attendent : `checkNexusUpdates` lira
-                    // le cache disque au clic sur « Vérifier ». Mais les lignes
-                    // « à savoir » n'ont pas d'autre déclencheur au **premier**
-                    // lancement, celui où le cache n'existait pas encore quand
-                    // le scan est passé. Sans ça, l'écran d'alertes reste muet
-                    // jusqu'à une vérification manuelle.
+                    // Les lignes « à savoir » n'ont pas d'autre déclencheur au **premier**
+                    // lancement (cache absent au scan) : sinon alertes muettes.
                     self?.refreshModWarnings()
                 }
             )
-            // A2-T7 — la liste des mods malveillants, dans la même fenêtre de
-            // splash. Séparée du dump Pathoschild : ce sont deux ressources,
-            // deux TTL (1 h ici contre 6 h là), et l'une qui tombe ne doit pas
-            // emporter l'autre.
+            // A2-T7 — liste des mods malveillants, séparée du dump : deux TTL
+            // (1 h / 6 h), l'une qui tombe n'emporte pas l'autre.
             self.refreshMaliciousMods()
         }
     }
 
-    /// A2-T7 — récupère la liste noire SMAPI et la croise au parc installé.
-    ///
-    /// Un échec **n'efface pas** ce qu'on savait : ne pas avoir pu lire la
-    /// liste n'est pas la preuve qu'un mod en est sorti.
+    /// A2-T7 — récupère la liste noire SMAPI et la croise au parc. Un échec
+    /// **n'efface pas** ce qu'on savait.
     func refreshMaliciousMods() {
         SmapiBlacklist.fetch(
             onEvent: { [weak self] message in self?.log(message, level: .info) },
@@ -1687,8 +1621,7 @@ final class StarHubTHViewModel {
                         self.log("Liste noire SMAPI : aucun mod malveillant sur "
                                  + "\(uniqueIds.count) identifiants installés", level: .info)
                     } else {
-                        // En `error` : c'est la seule chose de ce journal qui
-                        // parle de code hostile.
+                        // `error` : seule ligne qui parle de code hostile.
                         self.log("Liste noire SMAPI : \(hits.count) mod(s) malveillant(s) "
                                  + "installé(s) — " + hits.keys.sorted().joined(separator: ", "),
                                  level: .error)
@@ -1698,10 +1631,8 @@ final class StarHubTHViewModel {
     }
     
     /// Façade provisoire (REFACTORING §6, cond. 1) — HomeView et
-    /// SettingsView l'appellent encore. La décision vit dans le store
-    /// (`GameEnvironmentStore.selectGameDir`, panneau injecté via
-    /// `FilePicking`, chemin normalisé, `Mods/` créé au besoin) ; le
-    /// `refresh()` et le message traduit n'appartiennent pas au store.
+    /// SettingsView. Décision dans `GameEnvironmentStore.selectGameDir` ;
+    /// `refresh()` et le message restent ici.
     func selectGameDir() {
         let previousGameDir = gameDir
         environment.selectGameDir { [weak self] problem in
@@ -1723,13 +1654,9 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// La vérification automatique des mises à jour — **un seul endroit** pour
-    /// les deux moments où elle se pose : la fin du lancement
-    /// (`gameFolderChanged: false`) et le choix d'un dossier de jeu.
-    ///
-    /// La décision vit dans `UpdateCheckPolicy` (Core, testée) ; ici ne
-    /// restent que la lecture des réglages et la trace — une passe sautée en
-    /// silence serait indiscernable d'une panne.
+    /// Vérification automatique des mises à jour, **un seul endroit** : fin du
+    /// lancement et choix du dossier de jeu. Décision : `UpdateCheckPolicy`
+    /// (Core) ; ici réglages et trace (une passe sautée doit se voir).
     private func autoCheckUpdatesIfDue(gameFolderChanged: Bool) {
         guard UpdateCheckPolicy.shouldCheckAfterSelection(
                 gameFolderChanged: gameFolderChanged,
@@ -1744,24 +1671,13 @@ final class StarHubTHViewModel {
         checkNexusUpdates()
     }
     
-    /// `onScanned` part sur le main **après** que `scanMods` a publié les
-    /// siennes (l'ordre FIFO de la file principale le garantit, comme à
-    /// l'étape 5 du lancement). C'est le seul moment où `mods` décrit le
-    /// dossier qu'on vient de choisir : un appelant qui enchaîne sans
-    /// l'attendre interroge un parc encore vide.
+    /// `onScanned` part sur main **après** la publication de `scanMods`
+    /// (FIFO) : seul moment où `mods` décrit le nouveau dossier.
     func refresh(onScanned: (@MainActor () -> Void)? = nil) {
-        // Run heavy file I/O off the main thread to keep the UI responsive.
-        // Each sub-method dispatches its @Published mutations back to main.
-        // `[weak self]` even though the VM is app-lifetime today, so a future
-        // non-singleton refactoring (e.g. SwiftUI previews, scoped VMs) can't
-        // turn into a retain cycle.
-        // Le repli « Farmer » se résout **ici**, sur l'acteur principal : la
-        // file de fond ne lit plus `currentLanguage` pendant que le main peut
-        // l'écrire (P5-L5).
+        // Heavy I/O off main; sub-methods publish back on main.
+        // Repli « Farmer » résolu **ici**, sur main (P5-L5).
         let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
-        // Le dossier de jeu se résout **ici aussi**, et pour la même raison
-        // que le repli ci-dessus : la file de fond ne lit plus une propriété
-        // que l'acteur principal peut écrire.
+        // Dossier de jeu résolu ici aussi, même raison.
         let resolvedGameDir = gameDir
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
@@ -1771,27 +1687,17 @@ final class StarHubTHViewModel {
             guard let onScanned else { return }
             DispatchQueue.main.async { MainActor.assumeIsolated { onScanned() } }
         }
-        // Lightweight synchronous check: reads the install marker, or the
-        // first 256 bytes of SMAPI-latest.txt — no process is ever launched
-        // (la lecture vit en Core : `SmapiVersionEvidence.installedVersion`).
+        // Synchronous: install marker or first 256 bytes of the log, no process
+        // (`SmapiVersionEvidence.installedVersion`).
         self.environment.checkSmapiVersion()
     }
 
-    /// `true` pendant qu'un `refreshSmapiLog()` tourne — piloter le bouton de
-    /// la page des alertes système (spinner, anti double-clic).
+    /// `true` pendant `refreshSmapiLog()` (spinner, anti double-clic).
     var isRefreshingSmapiLog: Bool { smapiHealth.isRefreshing }
 
-    /// Relit le journal SMAPI et recalcule ce qui en découle : alertes
-    /// système, diagnostics, mods signalés à jour. Sortie ciblée de
-    /// `refresh()` pour la page des alertes — elle ne montre que ce que dit
-    /// le journal, et rescanner le parc entier pour relire un fichier serait
-    /// un contresens.
-    ///
-    /// `parseSMAPILog` est pensée pour un thread d'arrière-plan (`scanMods`
-    /// l'appelle depuis le sien) : ses mutations `@Published` repartent sur
-    /// main en interne. Le drapeau s'abaisse après son retour, donc après les
-    /// mutations qu'elle a mises en file sur main — l'ordre est celui de la
-    /// file.
+    /// Relit le journal SMAPI (alertes, diagnostics, mods périmés) sans
+    /// rescanner le parc. `parseSMAPILog` publie sur main ; le drapeau
+    /// s'abaisse après, dans l'ordre de la file.
     func refreshSmapiLog() {
         guard smapiHealth.beginRefresh() else { return }
         let resolvedGameDir = gameDir
@@ -1802,47 +1708,26 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// One-shot, idempotent migration from the legacy `Mods_disabled/`
-    /// layout to the dot-prefix convention where disabled mods live as
-    /// `Mods/.X` (SMAPI ignores dotted folders). Runs on the background
-    /// queue from `performInitialLoad`, **before** the first `scanMods()`.
-    ///
-    /// Guards itself with a UserDefaults flag so it's a no-op on every
-    /// subsequent launch, and is safe to call from anywhere. On a partial
-    /// failure (e.g. a locked folder) it logs and still sets the flag: any
-    /// leftover mods stay invisible to the app until the user reinstalls
-    /// them (the permanent `Mods_disabled/` warning in `scanMods` covers
-    /// this case and the cross-version-skip case described in the plan's
-    /// step 17).
-    ///
-    /// No registry/timestamp/profile migration is needed: those maps key on
-    /// the logical `folderName` (without the dot), which is unchanged.
+    /// One-shot, idempotent migration from `Mods_disabled/` to `Mods/.X`,
+    /// before the first `scanMods()`. Flag set even on partial failure:
+    /// leftovers are covered by the permanent `Mods_disabled/` warning. Maps
+    /// key on the logical `folderName`, so nothing else to migrate.
     nonisolated private func migrateDisabledModsToDotPrefix(gameDir: String) {
-        // La règle vit en Core (`DisabledModsMigration`, §6 tranche 1) avec
-        // ses tests ; ici ne reste que le journal de l'app, pré-lié.
+        // Règle en Core (`DisabledModsMigration`).
         DisabledModsMigration.runIfNeeded(gameDir: gameDir) { [weak self] message, level in
             self?.log(message, level: level)
         }
     }
 
-    /// First-launch load tracked by the launch overlay. Mirrors `refresh()`
-    /// but publishes a granular progress (0.0 → 1.0) + a localized step label
-    /// so the user sees what the app is doing instead of an indeterminate
-    /// spinner. Flips `isLaunching` to `false` once the background scan has
-    /// finished AND published its results on the main thread, so the overlay
-    /// stays up exactly until the first mod list is ready.
-    ///
-    /// Step weights are rough heuristics — the goal is visible progress, not
-    /// precise timing. Heavy filesystem ops (scanMods) get the biggest slice.
+    /// First load behind the launch overlay: progress + step label;
+    /// `isLaunching` flips once the first mod list is published on main.
+    /// Step weights are rough heuristics.
     private func performInitialLoad() {
-        // Même règle qu'à `refresh()` : le repli « Farmer » se résout sur le
-        // main, avant que la file de fond n'en ait besoin (P5-L5).
+        // Repli « Farmer » résolu sur main (P5-L5).
         let farmerFallback = localization.L(L10n.VM.defaultFarmerName)
-        // Et le dossier de jeu avec lui : la file de fond ci-dessous le lirait
-        // sinon pendant que l'acteur principal peut l'écrire.
+        // Dossier de jeu aussi.
         let resolvedGameDir = gameDir
-        // Step 0 — "Initializing": caches already seeded synchronously in
-        // init (game dir, Nexus caches). Just publish the first frame.
+        // Step 0 — "Initializing": publish the first frame.
         DispatchQueue.main.async { [weak self] in
             self?.launchStep = self?.localization.L(L10n.Main.launchStepInit) ?? ""
             self?.launchProgress = 0.05
@@ -1851,30 +1736,14 @@ final class StarHubTHViewModel {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
 
-            // Le champ `nexusVersion` du registre affirmait une version installée
-            // que rien n'attestait. On le retire une fois pour toutes, avant que
-            // rien d'autre ne touche le registre ; ce que l'app affirme vit
-            // désormais dans les ancres.
-            //
-            // Hors du fil principal comme le reste de cette étape : c'est une
-            // lecture UserDefaults suivie d'une désérialisation JSON complète du
-            // registre (jusqu'à ~900 entrées), pas le genre de travail que le
-            // commentaire au-dessus de `performInitialLoad` veut voir bloquer le
-            // premier rendu de l'overlay.
-            //
-            // Un registre illisible se signale au lieu de se taire : c'est un
-            // filet de récupération, pas un cache. Sans cette branche, un registre
-            // corrompu ne serait jamais migré et rien ne le dirait. Naturellement
-            // idempotente (rien à retirer une fois fait) : pas besoin d'un drapeau
-            // UserDefaults dédié comme la migration voisine.
+            // Retire `nexusVersion` du registre (version non attestée ; l'app
+            // affirme via les ancres), avant tout autre accès, hors fil principal.
+            // Illisible = signalé. Idempotente, sans drapeau.
             switch ModVersionAnchorStore.migrateAwayFromNexusVersion() {
             case .stripped(let folders):
-                // Ces dossiers verront leur version « changer » au prochain scan
-                // sans que le disque ait bougé — le registre portait la version
-                // Nexus, il portera celle du manifest. On les met en grâce pour
-                // que `syncInstalledModRegistry` ne ré-estampille pas leur date
-                // d'installation, seule trace qu'aucune autre source ne
-                // reconstitue.
+                // Leur version « changera » au prochain scan sans que le disque bouge :
+                // la grâce empêche `syncInstalledModRegistry` d'écraser leur date
+                // d'installation, irremplaçable.
                 self.installedModRegistryStore.setInstallDateGrace(folders)
                 self.log("Registre nettoyé : \(folders.count) entrées portaient une version Nexus non constatée",
                     level: .info)
@@ -1885,56 +1754,39 @@ final class StarHubTHViewModel {
                 break
             }
 
-            // Step 1 — Registry: warm the in-memory cache once. This is the
-            // single JSON decode from UserDefaults that every subsequent
-            // read depends on. Cheap (cached after this), but explicit so
-            // the user knows the registry is part of the startup cost.
+            // Step 1 — Registry: warm the in-memory cache (one decode).
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepRegistry) ?? ""
                 self?.launchProgress = 0.15
             }
             self.installedModRegistryStore.warmCache()
 
-            // Step 2 — Scanning mods: the big one. Walks the game's Mods/
-            // folder (both enabled entries and `.X` disabled ones, which SMAPI
-            // ignores), parses every manifest.json, builds groups, syncs the
-            // registry. Published mutations land on main inside scanMods()
-            // itself.
+            // Step 2 — Scanning mods (enabled and `.X`); publishes inside scanMods().
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepScan) ?? ""
                 self?.launchProgress = Self.launchScanProgressStart
             }
-            // One-shot migration from the legacy Mods_disabled/ layout to the
-            // dot-prefix convention (Mods/.X = disabled). Must run BEFORE the
-            // first scanMods() so the scanner sees every mod — enabled and
-            // disabled — in a single location. Idempotent and safe to call on
-            // every launch (it self-guards with a UserDefaults flag).
+            // Legacy `Mods_disabled/` migration; must run BEFORE the first scan.
             self.migrateDisabledModsToDotPrefix(gameDir: resolvedGameDir)
             self.scanMods(gameDir: resolvedGameDir)
 
-            // Step 3 — Saves: read & parse the user's save XML files. Can be
-            // slow when many saves exist.
+            // Step 3 — Saves (can be slow with many saves).
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepSaves) ?? ""
                 self?.launchProgress = Self.launchScanPhasesEnd
             }
             self.reloadSaves()
 
-            // Step 4 — Steam user identity (lightweight NSUserName call) +
-            // profiles (UserDefaults decode) + Nexus caches / overrides.
-            // Grouped here because they don't block the mod list and can run
-            // concurrently with the UI work that scanMods already published.
+            // Step 4 — Steam user + profiles + Nexus caches; don't block the list.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepProfile) ?? ""
                 self?.launchProgress = 0.80
-                // loadProfiles() mutates @Published (modProfiles/activeProfileId):
-                // call it here, on main, rather than on the background queue below.
+                // loadProfiles() mutates published state: on main.
                 self?.loadProfiles()
             }
             self.environment.fetchSteamUser(fallbackFarmerName: farmerFallback)
 
-            // Step 4b — Seed the Nexus caches + user overrides (was blocking
-            // the window's first paint when it ran in init).
+            // Step 4b — Nexus caches + user overrides.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepNexus) ?? ""
                 self?.launchProgress = 0.90
@@ -1943,87 +1795,50 @@ final class StarHubTHViewModel {
             // Startup marker — confirms LogsView is receiving entries.
             self.log(self.localization.L(L10n.VM.started), level: .info)
 
-            // Step 5 — Done. Hop back to main *after* scanMods() has
-            // published its own @Published mutations, so `isLaunching = false`
-            // lands on the same runloop turn as the freshly-populated `mods`
-            // array. Animate the bar to 100% then dismiss.
+            // Step 5 — Done, after scanMods() published, so `isLaunching = false`
+            // lands with the populated `mods`.
             DispatchQueue.main.async { [weak self] in
                 self?.launchStep = self?.localization.L(L10n.Main.launchStepDone) ?? ""
                 self?.launchProgress = 1.0
             }
-            // 0,15 s ne suffisait pas : le commentaire ci-dessus promettait
-            // « animate the bar to 100% then dismiss », mais la barre partait
-            // encore de ~0,90 et disparaissait avant d'arriver. Avec le pas de
-            // fin élargi (`LaunchProgressBar`), le remplissage prend ~0,25 s —
-            // ce délai le laisse se voir.
+            // 0,45 s : laisse voir le remplissage final (~0,25 s) de la barre.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
                 guard let self else { return }
                 self.isLaunching = false
-                // Aucune garde sur la clé API : la vérification passe par
-                // smapi.io, qui n'en demande pas. La clé ne sert qu'au
-                // téléchargement intégré et aux métadonnées de la fiche. La
-                // garde qui était ici privait de toute détection de mise à
-                // jour quiconque n'avait pas de compte Nexus.
-                //
-                // Le lancement et le choix de dossier posent la **même**
-                // question ; elle se décide en un seul endroit depuis le
-                // 2026-09-17. Ici le dossier n'a pas bougé : A2-T4 s'applique
-                // tel quel (TTL 12 h, le bouton « Vérifier » passant outre).
+                // Pas de garde sur la clé API : smapi.io n'en demande pas ; la garde
+                // privait sans compte Nexus de toute détection. Dossier inchangé :
+                // A2-T4 (TTL 12 h).
                 self.autoCheckUpdatesIfDue(gameFolderChanged: false)
             }
         }
-        // SMAPI version probe — synchronous here, on the caller's thread,
-        // après le dispatch background ci-dessus. Deux petits fichiers lus
-        // (marqueur, ou 256 octets de journal) : sub-milliseconde, rien sur
-        // quoi l'overlay de lancement doive attendre.
+        // SMAPI version probe, synchronous (two tiny reads).
         self.environment.checkSmapiVersion()
     }
     
-    /// - Parameter gameDir: résolu **par l'appelant, sur l'acteur principal**
-    ///   (précédent `fetchSteamUser`, L5) — c'est ce qui rend ce balayage
-    ///   `nonisolated`. Il masque délibérément la propriété du même nom : tout
-    ///   le corps lit le paramètre. ⚠️ **Ne pas y substituer une lecture hors
-    ///   acteur des préférences** : `restoreGameDir` écrit un chemin détecté
-    ///   *avant* que son `didSet` ne le persiste, et une lecture qui croise
-    ///   cette fenêtre rend l'ancien chemin.
+    /// - Parameter gameDir: résolu **sur main par l'appelant** (L5), d'où
+    ///   `nonisolated` ; masque la propriété à dessein. ⚠️ **Pas de lecture
+    ///   hors acteur des préférences** : `restoreGameDir` écrit avant que son
+    ///   `didSet` persiste, l'ancien chemin reviendrait.
     nonisolated func scanMods(gameDir: String, includeRepair: Bool = true) {
         guard !gameDir.isEmpty else {
-            // scanMods est appelé depuis background (refresh, initialLoad…).
-            // Muter @Published mods sur ce thread déclenche un warning SwiftUI —
-            // dispatcher sur main, comme l'affectation principale plus bas.
+            // Called from background: publish on main.
             DispatchQueue.main.async { [weak self] in
                 self?.scanStore.setMods([], modsFolderWasReadable: false)
-                // Reset selection so the detail pane doesn't reference a mod
-                // that just disappeared from the list.
+                // Reset selection (the mod may have disappeared).
                 self?.selectedMod = nil
             }
             return
         }
 
-        // Repair corrupt mod folders (orphans, OS junk, empty dirs) *before*
-        // scanning so the scan sees a clean tree. Duplicates are reported but
-        // not auto-resolved. The report is captured here on the background
-        // thread and published on main below (next to self.mods assignment)
-        // to avoid mutating @Published off the main thread.
-        //
-        // `includeRepair` skips this pass after a toggle: toggling only renames
-        // a folder in place (Mods/X ↔ Mods/.X), which can't create orphans, OS
-        // junk or X/.X duplicates — so the two recursive tree walks plus the
-        // per-manifest JSON decode the repair performs were pure overhead on
-        // the toggle path, and were the dominant cause of the 5–10s toggle
-        // delay. Repairs still run on initial load, manual refresh, install,
-        // delete and profile-apply, where they can actually find new problems.
+        // Repair corrupt folders *before* scanning; report published on main
+        // below. `includeRepair` false after a toggle: a rename can't create
+        // orphans or duplicates, and this pass caused the 5–10 s toggle delay.
 
-        // Hoist the file manager + mods path so we can publish an early
-        // (0/N) progress frame BEFORE the repair sweep. Without it the launch
-        // overlay's bar sits frozen at the scan-start weight while the repair
-        // walk + registry decode run with no per-mod name to show yet.
+        // Early (0/N) frame before the repair sweep, so the bar isn't frozen.
         let fm = FileManager.default
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         if let topCount = try? fm.contentsOfDirectory(atPath: modsPath).count, topCount > 0 {
-            // Le libellé se résout **dans** le saut, donc sur l'acteur : le
-            // lire ici, au fond, était la dernière lecture inter-fils de ce
-            // corps. Rien n'arrive plus par paramètre pour si peu.
+            // Libellé résolu **dans** le saut, sur l'acteur.
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     let preparing = self.localization.L(L10n.Main.launchStepPreparing)
@@ -2038,12 +1853,8 @@ final class StarHubTHViewModel {
  ? repairer.repairIfNeeded(gameDir: gameDir, detectDuplicates: false)
             : ModFolderRepairer.Report()
 
-        // Le balayage lui-même — énumération de `Mods/`, lecture des
-        // manifestes (cache mtime compris), groupement des packs, décision
-        // `Mods_disabled` — vit dans `ModScanner` (Core, §6 tranche 1). Ici
-        // ne reste que ce qui touche d'autres domaines : la réparation
-        // ci-dessus, le journal SMAPI, la synchronisation du registre, les
-        // doublons, la publication de la liste.
+        // Balayage dans `ModScanner` (Core) ; ici ce qui touche d'autres
+        // domaines : réparation, journal SMAPI, registre, doublons, publication.
         let scanned = scanner.scan(
             gameDir: gameDir,
             installedModDate: { installedModDate(for: $0) },
@@ -2058,11 +1869,8 @@ final class StarHubTHViewModel {
         )
         let scannedMods = scanned.mods
 
-        // **La boucle est finie : le compte est complet.** Le throttle publie
-        // au plus toutes les 80 ms et *avant* de traiter l'entrée, si bien que
-        // les dernières ne paraissaient jamais — l'écran restait sur un
-        // « 949/957 » pendant que les phases ci-dessous tournaient. Chacune
-        // s'annonce désormais, compte complet à l'appui.
+        // **Compte complet** : le throttle (80 ms, avant traitement) laissait
+        // « 949/957 » affiché pendant les phases suivantes.
         publishLaunchPhase(L10n.Main.launchStepSmapiLog,
                            progress: Self.launchSmapiLogStart, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         parseSMAPILog(gameDir: gameDir, onProgress: { [weak self] fraction in
@@ -2073,14 +1881,10 @@ final class StarHubTHViewModel {
                                              entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         })
 
-        // Synchronize the installed-mod registry with what's on disk. This
-        // catches mods added by ANY means — drag-and-drop, manual copy into
-        // Mods/, or the app's own installer. The rules:
-        //   1. A mod whose version changed since last scan → record NOW.
-        //   2. A mod on disk but absent from the registry (first time seen)
-        //      → record with the folder mtime as a best-effort date.
-        //   3. Registry entries whose folder no longer exists → pruned —
-        //      sauf si `Mods/` n'a pas pu être lu (X71).
+        // Sync the installed-mod registry with disk (any install path):
+        //   1. version changed → record NOW;
+        //   2. first seen → record with folder mtime;
+        //   3. folder gone → pruned — sauf si `Mods/` illisible (X71).
         publishLaunchPhase(L10n.Main.launchStepRegistrySync,
                            progress: Self.launchRegistrySyncProgress, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
         syncInstalledModRegistry(scannedMods: scannedMods,
@@ -2090,8 +1894,7 @@ final class StarHubTHViewModel {
                 level: .warning)
         }
 
-        // Detect X/.X duplicates from the just-scanned mods instead of the
-        // repairer's separate disk walk — same result, no extra I/O or decode.
+        // X/.X duplicates from the scanned mods, no extra disk walk.
         if includeRepair {
             publishLaunchPhase(L10n.Main.launchStepDuplicates,
                                progress: Self.launchDuplicatesProgress, entries: scanned.scannedEntries, modsFound: scanned.mods.count)
@@ -2105,21 +1908,14 @@ final class StarHubTHViewModel {
 
         let modsFolderWasReadable = scanned.modsFolderWasReadable
         DispatchQueue.main.async {
-            // Scan finished — advance the coarse progress to the scan-end
-            // weight BEFORE clearing the per-mod scanProgress, so the overlay
-            // falls back to launchScanProgressEnd (not the stale scan-start
-            // value) and the bar never visibly regresses before step 3 runs.
+            // Advance to scan-end weight BEFORE clearing scanProgress: no regression.
             self.launchProgress = Self.launchScanPhasesEnd
             self.scanStore.scanProgress = nil
-            // Publish the repair report on the main thread (the scan itself
-            // runs on a background queue via refresh()).
-            // Only touch lastRepairReport when a repair actually ran. A
-            // repair-skipped scan (after a toggle) must preserve the last real
-            // report instead of clearing it to nil.
+            // Publish the repair report on main, only if a repair ran (a
+            // toggle scan keeps the last real report).
             if includeRepair {
-                // Les dossiers sans manifeste rejoignent le rapport comme
-                // « à voir » — jamais déplacés, donc jamais dans
-                // `quarantined` : c'est le contrat de ce champ.
+                // Dossiers sans manifeste « à voir » : jamais déplacés, donc jamais
+                // dans `quarantined`.
                 var published = repairReport
                 published.reviewItems = scanned.entriesWithoutMods.map {
                     ModFolderRepairer.Item(kind: .orphanFolder, relativePath: $0,
@@ -2133,38 +1929,24 @@ final class StarHubTHViewModel {
                         self.log("Folder repair: \(repairReport.quarantined.count) item(s) quarantined, \(repairReport.duplicates.count) duplicate(s) found.", level: .info)
                     }
                 }
-                // X114 — le badge de quarantaine lit le disque, pas ce
-                // rapport : une passe qui n'a rien déplacé laisse le compte
-                // de la quarantaine déjà en place.
+                // X114 — le badge lit le disque, pas ce rapport.
                 self.refreshTrash()
             }
 
-            // Ordre alphabétique unique, packs et mods simples mêlés — le
-            // tri d'origine plaçait les packs en tête (retour du 2026-08-26).
-            // C'est aussi l'ordre que le tri « Nom » de la liste suppose
-            // déjà établi (voir le cas `.name` de ModListView).
+            // Ordre alphabétique, packs et mods mêlés (2026-08-26) ; le tri « Nom »
+            // le suppose.
             self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
             self.rebuildDependencyIndexes()
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
             }
-            // Seed a default profile on first run (no-op after the first time,
-            // and once mods have actually been scanned).
+            // Seed a default profile on first run.
             self.ensureDefaultProfileIfNeeded()
         }
 
-        // Le poids du parc, après la publication de la liste : c'est une
-        // seconde traversée de `Mods/` (~3 s sur 100 000 fichiers), et elle ne
-        // doit retarder l'affichage d'aucun mod.
-        //
-        // Le saut par main est ce qui reste de `@MainActor` ici : `scanStore`
-        // porte l'état qu'observent les vues, il n'a pas à s'ouvrir pour que ce
-        // balayage sorte de l'acteur. La mesure repart aussitôt sur utility ;
-        // seul le test-and-set du tour (`beginSizeMeasure`, sous `sizeLock`)
-        // change de fil. ⚠️ Son atomicité n'en dépend pas — le verrou la tient
-        // d'où qu'on appelle, et la file principale ne fait que **sérialiser**
-        // deux demandes rivales. Le saut suit dans le FIFO celui qui publie la
-        // liste ci-dessus, comme avant.
+        // Poids du parc après publication (~3 s sur 100 000 fichiers). Le saut
+        // par main sérialise deux demandes ; ⚠️ l'atomicité de
+        // `beginSizeMeasure` tient au verrou, pas au fil.
         DispatchQueue.main.async {
             MainActor.assumeIsolated { self.measureModsFolderSize() }
         }
@@ -2172,22 +1954,15 @@ final class StarHubTHViewModel {
 
     // MARK: - Poids du parc (B2-T2)
 
-    // ⚠️ Façades provisoires (P8, domaine 8) — l'état et le mécanisme de
-    // sérialisation (une passe à la fois, demande rejouée, mesure ratée qui
-    // n'efface pas pendant qu'une passe est en route) vivent dans
-    // `scanStore` ; seule l'orchestration de files reste ici.
+    // ⚠️ Façades provisoires (P8, domaine 8) — état et sérialisation dans
+    // `scanStore` ; ici l'orchestration des files.
     var modsFolderSizes: ModsFolderSizes? { scanStore.modsFolderSizes }
     var isMeasuringModsFolder: Bool { scanStore.isMeasuringModsFolder }
 
-    /// Mesure le poids du parc en tâche de fond, en une passe à la fois.
-    ///
-    /// Accrochée à `scanMods()` plutôt qu'à un cache invalidé à la main : le
-    /// scan est déjà le point de passage de tout ce qui change `Mods/`, et un
-    /// schéma d'invalidation maison finirait par mentir sur un chemin oublié.
+    /// Poids du parc en fond, une passe à la fois, accroché à `scanMods()` :
+    /// une invalidation maison mentirait sur un chemin oublié.
     func measureModsFolderSize() {
-        // Sans jeu désigné, il n'y a rien à mesurer et rien à annoncer : même
-        // le « Mesure en cours… » du pied de barre serait un clignotement pour
-        // rien.
+        // Sans jeu, rien à mesurer ni à annoncer.
         guard !gameDir.isEmpty else { return }
         let alreadyRunning = scanStore.beginSizeMeasure()
         guard !alreadyRunning else { return }
@@ -2199,9 +1974,7 @@ final class StarHubTHViewModel {
             let sizes = ModsFolderSizer.measure(
                 modsFolder: URL(fileURLWithPath: dir).appendingPathComponent("Mods"))
             DispatchQueue.main.async {
-                // `endSizeMeasure` ne bascule qu'un drapeau : rejoint la
-                // publication sur main, désormais que le VM est isolé sur
-                // l'acteur principal (L2). La mesure, elle, reste sur la file.
+                // `endSizeMeasure` publie sur main (L2) ; la mesure reste sur la file.
                 let again = self.scanStore.endSizeMeasure()
                 self.scanStore.setSizeMeasureResult(sizes, again: again)
                 if again { self.measureModsFolderSize() }
@@ -2209,20 +1982,14 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Le poids d'un mod, `nil` s'il n'a pas été mesuré.
-    ///
-    /// **Sur le nom physique** : un mod en pause vit dans un dossier préfixé
-    /// d'un point, et sur le parc réel cinq des huit plus gros mods sont en
-    /// pause. Joindre sur `folderName` les afficherait tous à 0 octet.
+    /// Poids d'un mod, `nil` si non mesuré. **Nom physique** : 5 des 8 plus
+    /// gros mods sont en pause ; `folderName` les donnerait à 0.
     func sizeOnDisk(of mod: ModItem) -> Int64? {
         modsFolderSizes?.bytes(forPhysicalFolder: mod.physicalFolderName)
     }
 
-    /// Rebuilds the lowercased UniqueID → enabled-state / mod lookup indexes
-    /// used for O(1) dependency checks (`getMissingDependencies`, core-mod
-    /// slots, …) from the current `mods`. Called at the end of every full
-    /// `scanMods()` and after an in-memory toggle, which flips `isEnabled`
-    /// without rescanning.
+    /// Rebuilds dependency lookup indexes from `mods`; after each full scan
+    /// and each in-memory toggle.
     private func rebuildDependencyIndexes() {
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
@@ -2230,11 +1997,8 @@ final class StarHubTHViewModel {
     }
     
     // Parses the SMAPI-latest.txt log for updates and errors
-    /// - Parameter onProgress: fraction de **son propre** travail (0…1),
-    ///   rapportée en continu. Les poids ci-dessous viennent des coûts mesurés
-    ///   sur le journal réel de l'auteur (9,8 Mo) : le diagnostic pèse 5,4 s
-    ///   des ~7,1 s, les trois autres passes se partagent le reste. Sans ce
-    ///   compte rendu, l'écran de démarrage restait immobile toute la durée.
+    /// - Parameter onProgress: fraction de **son** travail (0…1). Poids
+    ///   mesurés (9,8 Mo) : diagnostic 5,4 s sur ~7,1 s.
     nonisolated func parseSMAPILog(gameDir: String, onProgress: ((Double) -> Void)? = nil) {
         // Bornes des quatre passes, proportionnelles à leur coût mesuré.
         let wDiagnostics = 0.76, wUpdates = 0.83, wConflicts = 0.93
@@ -2245,9 +2009,7 @@ final class StarHubTHViewModel {
         guard FileManager.default.fileExists(atPath: logPath),
               let logContent = try? String(contentsOfFile: logPath, encoding: .utf8) else {
             DispatchQueue.main.async {
-                // Un journal disparu ne laisse rien derrière lui : sans ce
-                // reset, les conflits de la lecture précédente restaient
-                // affichés à côté d'une date à `nil`.
+                // Journal disparu : reset, sinon anciens conflits à côté d'une date `nil`.
                 self.smapiHealth.reset()
             }
             return
@@ -2260,15 +2022,9 @@ final class StarHubTHViewModel {
         // Bloc « You can update N mods » — voir SmapiLogParser.updates(in:).
         let updates = SmapiLogParser.updates(in: logContent)
         onProgress?(wUpdates)
-        // Ce scan (rafraîchissement ordinaire du parc, déclenché à chaque
-        // `scanMods()`) alimente aussi `contentPatcherConflicts`, en plus de
-        // `parseAndAppendSmapiLog` (onglet Journaux / veilleur) : la section
-        // « Conflits » vit dans Alertes système, qui n'ouvre ni l'un ni
-        // l'autre chemin explicitement. Sans ce second câblage, elle
-        // afficherait une liste vide à côté d'une `smapiLogDate` fraîche —
-        // « vérifié, aucun conflit » alors que rien n'a été lu pour cet axe.
-        // Réutilise le même analyseur que l'autre chemin (`SmapiLogParser.parse`)
-        // plutôt que d'écrire un second parseur de conflits.
+        // Alimente aussi `contentPatcherConflicts` : Alertes système n'ouvre pas
+        // `parseAndAppendSmapiLog`, et dirait sinon « aucun conflit » sans avoir
+        // lu. Même parseur (`SmapiLogParser.parse`).
         let conflictEntries = SmapiLogParser.parse(logContent)
         onProgress?(wConflicts)
         let conflicts = ContentPatcherConflicts.read(from: conflictEntries)
@@ -2329,17 +2085,12 @@ final class StarHubTHViewModel {
         )
         
         DispatchQueue.main.async {
-            // Date, diagnostics, conflits et mods périmés viennent d'une même
-            // lecture et changent ensemble — le store le garantit, tri par nom
-            // compris (l'ordre de SMAPI est celui du chargement).
+            // Même lecture, publiées ensemble par le store (tri par nom).
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
                                    isStale: smapiStale, conflicts: conflicts,
                                    outOfDate: updates)
-            // Seules les alertes **neuves** méritent une ligne, pour que
-            // l'onglet Journaux reste lisible d'une relecture à l'autre. La
-            // règle vit dans `SmapiHealthFold` ; le store la tient, et rend
-            // ici ce qu'il reste à écrire — la localisation n'appartient
-            // qu'au ViewModel.
+            // Seules les alertes **neuves** s'écrivent (`SmapiHealthFold`) ; la
+            // localisation reste au VM.
             let newAlerts = self.smapiHealth.apply(errors: uniqueErrors)
             if !newAlerts.isEmpty {
                 self.log(
@@ -2354,24 +2105,15 @@ final class StarHubTHViewModel {
     }
     
     // Returns missing required unique IDs for a given mod
-    /// « Ce mod compte sur quelque chose qui n'est pas là » : une dépendance
-    /// requise absente, ou installée mais en pause.
-    ///
-    /// Portée par le ViewModel et non par la liste, parce que deux écrans s'en
-    /// servent désormais — le cadrage « Problèmes » et la pastille d'anomalie —
-    /// et que deux définitions de « ce mod a un problème » finiraient par ne
-    /// plus dire la même chose.
-    ///
-    /// Un mod en pause est écarté : il ne compte sur rien pour l'instant.
+    /// Dépendance requise absente ou en pause. Au VM : cadrage « Problèmes »
+    /// et pastille partagent une seule définition. Mod en pause écarté.
     func hasDependencyIssue(_ mod: ModItem) -> Bool {
         mod.isEnabled
             && (!getMissingDependencies(for: mod).isEmpty
                 || !getDisabledDependencies(for: mod).isEmpty)
     }
 
-    /// Ce qu'il faut signaler sur la ligne d'un mod, `nil` s'il n'y a rien.
-    /// Voir `ModAnomalyReport` — les compteurs ne portent que sur la version
-    /// installée.
+    /// Anomalie de ligne, ou `nil` (voir `ModAnomalyReport`).
     func anomaly(for mod: ModItem) -> ModAnomaly? {
         ModAnomalyReport.anomaly(for: mod, history: modErrorHistory,
                                  dependencyIssue: { self.hasDependencyIssue($0) },
@@ -2382,23 +2124,17 @@ final class StarHubTHViewModel {
 
 
     func getMissingDependencies(for mod: ModItem) -> [String] {
-        // Uses the precomputed index built in scanMods() — O(deps) per call,
-        // safe to invoke from every ModListRow render (Views/ModListRow.swift).
+        // Precomputed index — safe per row render.
         dependencyIndex.missing(for: mod)
     }
 
-    /// Required dependency UniqueIDs that are installed but currently disabled.
-    /// A disabled required dependency is just as problematic for an enabled mod
-    /// as a missing one, so these are surfaced in the "Issues" filter too.
+    /// Required dependencies installed but disabled (also in "Issues").
     func getDisabledDependencies(for mod: ModItem) -> [String] {
         dependencyIndex.disabled(for: mod)
     }
 
-    /// Builds `mod`'s transitive dependency tree (see `DependencyTreeBuilder`).
-    /// For a pack header (group, whose own `dependencies` are empty) it seeds the
-    /// builder with the de-duplicated UNION of its children's dependencies, so a
-    /// pack still shows a meaningful tree. Rebuilds from `@Published mods` state,
-    /// so an "Enable" action (which republishes `mods`) makes the view re-resolve.
+    /// Transitive dependency tree; a pack header uses the union of its
+    /// children's dependencies. Reads `mods`, so "Enable" re-resolves.
     func dependencyTree(for mod: ModItem) -> [DependencyNode] {
         let roots = DependencyIndex.mergedPackRoots(of: mod)
         return DependencyTreeBuilder.build(roots) { [weak self] uid in
@@ -2406,9 +2142,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Pre-computed snapshot of the "core extension" statuses shown in Settings.
-    /// Computed once per `mods` change (SwiftUI caches getter results within a
-    /// single body evaluation) instead of flatMapping all mods 4× per render.
+    /// Core-extension statuses shown in Settings.
     var coreExtensionsSnapshot: CoreExtensionsSnapshot {
         let allMods = mods.flattenedMods
 
@@ -2425,43 +2159,33 @@ final class StarHubTHViewModel {
         )
     }
 
-    /// `true` if `unar` (The Unarchiver) is available in PATH. Used by the
-    /// home screen to display a status row for RAR extraction support.
+    /// `true` if `unar` is available (RAR support row on home).
     var unarInstalled: Bool {
-        // Même recherche que l'extraction, pour que l'accueil ne puisse pas
-        // annoncer une capacité que l'installation n'a pas — cette méthode
-        // maintenait auparavant sa propre liste de chemins, plus étroite.
+        // Même recherche que l'extraction : l'accueil n'annonce que ce que
+        // l'installation sait faire.
         ModZipInstaller.firstAvailableTool(named: ["unar"]) != nil
     }
 
-    /// `true` si une archive `.7z` peut être extraite. Adossé à
-    /// `ModZipInstaller.find7zTool()` — celui-là même qui choisit l'outil au
-    /// moment d'extraire — pour que l'accueil ne puisse pas annoncer une
-    /// capacité que l'installation n'a pas.
+    /// `true` si `.7z` extractible, via `ModZipInstaller.find7zTool()` (même
+    /// outil que l'extraction).
     var sevenZipInstalled: Bool { ModZipInstaller.find7zTool() != nil }
     
     private var isToggling = false
     private var pendingToggles: [(ModItem, (() -> Void)?)] = []
 
-    /// A1-T8 — l'état de l'avertissement d'empreintes de sauvegarde vit
-    /// dans son store (règle F1-T2) ; le VM ne garde que le fil : intercepter
-    /// la bascule vers pause dans `performToggle` et relancer au confirm.
+    /// A1-T8 — état de l'avertissement d'empreintes dans son store ; le VM
+    /// intercepte la pause dans `performToggle` et relance au confirm.
     let saveFingerprintPauseStore = SaveFingerprintPauseStore()
 
-    /// Progress of an in-flight bulk enable/disable-all operation:
-    /// `(done, total)`. `nil` when idle. Drives the progress overlay in
-    /// `ModListView`. Published on the main thread after each individual move.
+    /// Bulk enable/disable progress `(done, total)`, nil when idle.
     var bulkToggleProgress: (done: Int, total: Int)? = nil
 
-    /// Les deux temps d'une application de profil. Le second n'est pas de la
-    /// décoration : le rescane d'un parc de près de mille mods dure, et sans
-    /// lui la barre restait pleine, immobile, sans dire qu'il se passait encore
-    /// quelque chose.
+    /// Deux temps d'une application de profil : le rescan de ~1 000 mods
+    /// dure, et la barre pleine semblait figée.
     enum ProfileApplyPhase: Equatable {
         /// Déplacement des dossiers de mods — un compte connu d'avance.
         case movingFolders
-        /// Relecture de `Mods/` une fois les dossiers en place. L'avancement
-        /// détaillé est celui que `scanMods` publie déjà dans `scanProgress`.
+        /// Relecture de `Mods/` ; détail dans `scanProgress`.
         case rescanning
     }
 
@@ -2471,33 +2195,18 @@ final class StarHubTHViewModel {
         let phase: ProfileApplyPhase
     }
 
-    /// L'avancement de l'application d'un profil, `nil` au repos.
-    ///
-    /// Distinct de `bulkToggleProgress`, qui sert aussi de verrou de réentrance
-    /// à `toggleAllMods` : les partager ferait qu'activer un profil bloquerait
-    /// « tout activer », un couplage que personne n'a demandé. L'application
-    /// d'un profil a son propre verrou, `isApplyingProfile`.
+    /// Avancement d'une application de profil, `nil` au repos. Distinct de
+    /// `bulkToggleProgress` (verrou de `toggleAllMods`) : sinon activer un
+    /// profil bloquerait « tout activer ».
     private(set) var profileApplyProgress: ProfileApplyProgress? = nil
-    /// Direction of the in-flight bulk toggle: `true` = enabling all,
-    /// `false` = disabling all. Meaningful only while
-    /// `bulkToggleProgress` is non-nil.
+    /// Bulk toggle direction (`true` = enabling); valid while in progress.
     var bulkToggleEnabling: Bool = false
 
-    // Toggle Mod Status (Enabled / Disabled)
-    //
-    // Requests are queued and run one at a time: a queued call only reads
-    // self.mods after the previous toggle's full cycle (file move +
-    // background scanMods + syncActiveProfileIds) has landed. Without this,
-    // two near-simultaneous toggles that share a chain-dependency folder
-    // could each compute their move set from a stale isEnabled snapshot —
-    // the second call could think a folder still needs moving after the
-    // first call already moved it, tripping the "destination already
-    // exists" path on a folder that no longer has a source. See performToggle.
-    //
-    // `@MainActor` enforces that `pendingToggles` and `isToggling` are
-    // only ever touched on the main thread (UI-driven callers), closing
-    // the theoretical data race on these unprotected mutable fields and
-    // silencing `@Published` mutations from background threads.
+    // Toggle Mod Status. Requests run one at a time: a queued call reads
+    // `mods` only after the previous full cycle (move + scan + profile sync),
+    // else a shared chain-dependency folder could be moved twice ("destination
+    // already exists"). See performToggle. `@MainActor` guards
+    // `pendingToggles`/`isToggling`.
     @MainActor
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
         // Refuse individual toggles while a bulk enable/disable-all is in
