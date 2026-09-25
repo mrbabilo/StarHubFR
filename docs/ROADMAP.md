@@ -913,7 +913,12 @@ sur les composants réels. Les tâches ci-dessous sont des hypothèses de
 travail, pas des engagements.
 
 - [ ] **I-T3** — VoiceOver : labels, traits et ordre de lecture sur chaque
-      composant de la bibliothèque, écrans majeurs vérifiés à l'oreille. · **M**
+      composant de la bibliothèque, écrans majeurs vérifiés à l'oreille.
+      **Fait (2026-09-25)** : 31 boutons à icône seule nommés (`iconHelp`),
+      11 interrupteurs titrés, trait « en-tête » sur les titres de section,
+      compteurs lus « libellé, valeur », tuiles de l'accueil et lignes de
+      mise à jour groupées. **Reste** : l'écoute des écrans majeurs (ordre
+      de lecture), puis les glyphes d'état isolés qu'elle signalera. · **M**
 - [ ] **I-T4** — Réglages d'accessibilité système respectés (réduire les
       animations, réduire la transparence, augmenter le contraste) et taille
       de texte réglable dans l'app. · **M**
