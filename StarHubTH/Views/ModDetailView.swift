@@ -304,10 +304,10 @@ struct ModDetailView: View {
             if mod.languages.contains("fr") { FrenchCoverageBadge(percent: vm.frenchCoverage(for: mod), unmeasuredLabel: "FR", percentFormat: localization.L(L10n.Mods.frCoveragePercent)) }
             let link = vm.nexusLink(for: mod)
             if !link.isEmpty {
-                HStack(spacing: AppDesign.Spacing.lg) {
+                AdaptiveLabels { HStack(spacing: AppDesign.Spacing.lg) { // ~547 pt en FR pour 512 : icônes seules
                     linkButton(icon: "link", label: localization.L(L10n.Mods.nexusOpenPage), url: link)
                     linkButton(icon: "ladybug", label: localization.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
-                }
+                } }
             }
             Spacer()
             if let installed = vm.installedDate(for: mod) {
@@ -477,13 +477,10 @@ struct ModDetailView: View {
         Button {
             if let u = URL(string: url) { NSWorkspace.shared.open(u) }
         } label: {
-            HStack(spacing: AppDesign.Spacing.xs) {
-                Image(systemName: icon)
-                Text(label)
-            }
-            .font(.footnote.weight(.medium))
+            Label(label, systemImage: icon).font(.footnote.weight(.medium))
         }
         .buttonStyle(.plain)
+        .help(label)
         .foregroundStyle(Color.accentColor)
         .pointingHandCursor()
     }

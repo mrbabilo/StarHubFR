@@ -41,13 +41,15 @@ struct QuarantineView: View {
                         .foregroundColor(AppDesign.Color.secondary)
                 }
 
-                // Actions
-                HStack(spacing: AppDesign.Spacing.md) {
+                // Actions — ~624 pt de libellés FR pour 500 à la fenêtre
+                // minimale : icônes seules (infobulles) quand ça ne tient pas.
+                AdaptiveLabels { HStack(spacing: AppDesign.Spacing.md) {
                     Button(action: { vm.refresh() }) {
                         Label(localization.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
                             .font(AppDesign.Font.body(.medium))
                     }
                     .buttonStyle(.bordered)
+                    .help(localization.L(L10n.Quarantine.rescan))
                     // `refresh()` est le « rafraîchissement manuel » établi —
                     // celui des installations et de l'accueil — et c'est le seul
                     // chemin qui relance la réparation dont cette page publie
@@ -64,6 +66,7 @@ struct QuarantineView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppDesign.Color.info)
+                    .help(localization.L(L10n.Quarantine.openFolder))
                     .disabled(quarantineDir == nil)
 
                     Button(role: .destructive, action: { showEmptyConfirmation = true }) {
@@ -71,8 +74,9 @@ struct QuarantineView: View {
                             .font(AppDesign.Font.body(.medium))
                     }
                     .buttonStyle(.bordered)
+                    .help(localization.L(L10n.Quarantine.emptyTrash))
                     .disabled(quarantineDir == nil)
-                }
+                } }
 
                 if let result = vm.maintenanceStore.quarantineMessage {
                     Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")

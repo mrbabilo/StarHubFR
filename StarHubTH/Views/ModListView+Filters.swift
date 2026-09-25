@@ -360,7 +360,7 @@ extension ModListView {
             }
             if filters.category != .all {
                 Divider()
-                Button(role: .destructive) {
+                Button {
                     listState.filters.category = .all
                 } label: {
                     Label(localization.L(L10n.Mods.categoryFilterClear), systemImage: "xmark.circle")
