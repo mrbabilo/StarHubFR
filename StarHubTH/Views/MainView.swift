@@ -253,7 +253,7 @@ struct MainView: View {
     
                     SidebarPinnedFooter(vm: vm, localization: localization, appColorScheme: $appColorScheme, currentTab: $currentTab)
                 }
-                .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top)
+                .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity, alignment: .top).focusSection() // Tab : sortir de la barre (I-T6)
                 .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
     }
 
@@ -276,7 +276,7 @@ struct MainView: View {
             .navigationTitle(navigationTitleText)
             .onChange(of: currentTab) { _, _ in handleTabChange() }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }
-            .frame(minWidth: 560, minHeight: 400)
+            .frame(minWidth: 560, minHeight: 400).focusSection()
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
