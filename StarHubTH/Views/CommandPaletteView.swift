@@ -30,7 +30,12 @@ struct CommandPaletteView: View {
         var out: [CommandPaletteEntry] = SidebarOrder.all
             .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
         out += vm.scanStore.mods.flattenedMods.map(CommandPaletteEntry.forMod)
-        out += vm.modProfiles.map { CommandPaletteEntry.forProfile(name: $0.name) }
+        out += vm.modProfiles.map {
+            CommandPaletteEntry.forProfile(
+                name: $0.name, id: $0.id,
+                subtitle: localization.L($0.id == vm.activeProfileId ? L10n.Profiles.active
+                                                                     : L10n.Profiles.activate))
+        }
         out += vm.saves.map {
             CommandPaletteEntry.forSave(playerName: $0.playerName,
                                         farmName: $0.farmName)
@@ -226,10 +231,15 @@ struct CommandPaletteView: View {
             // fantôme — et la palette se ferme quand même.
             vm.openReportDetail(for: String(e.id.dropFirst("mod:".count)))
         case .profile:
-            // Pas de canal « ce profil » : on conduit à l'onglet, décision de
-            // spec §7. Ajouter deux canaux pour un besoin non mesuré est ce
-            // que ce dépôt regrette ailleurs.
-            vm.requestTab(.profiles)
+            // I-T5 : ↩ active le profil, par le même chemin que le bouton
+            // « Activer » (gardes jeu lancé, reprise R2, alerte d'empreintes
+            // A1-T9 posée à la racine). Le profil déjà actif mène à l'onglet.
+            let raw = String(e.id.dropFirst("profile:".count))
+            if let id = UUID(uuidString: raw), id != vm.activeProfileId {
+                vm.applyProfile(id: id)
+            } else {
+                vm.requestTab(.profiles)
+            }
         case .save:
             vm.requestTab(.saves)
         }

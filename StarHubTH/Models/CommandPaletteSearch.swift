@@ -54,11 +54,13 @@ public struct CommandPaletteEntry: Identifiable, Equatable, Sendable {
                             icon: "puzzlepiece.extension.fill")
     }
 
-    /// Prend le **nom**, pas un `ModProfile` : ce type est interne au module
-    /// Core, un test vivant dans un autre module ne peut pas en construire.
-    public static func forProfile(name: String) -> CommandPaletteEntry {
-        CommandPaletteEntry(id: "profile:\(name)", kind: .profile, title: name,
-                            subtitle: nil, icon: "person.2.fill")
+    /// Nom et identifiant, pas un `ModProfile` (interne au module Core).
+    /// L'id porte l'**UUID** : deux profils peuvent partager un nom, et ↩
+    /// active le profil désigné (I-T5), jamais son homonyme.
+    public static func forProfile(name: String, id: UUID,
+                                  subtitle: String? = nil) -> CommandPaletteEntry {
+        CommandPaletteEntry(id: "profile:\(id.uuidString)", kind: .profile, title: name,
+                            subtitle: subtitle, icon: "person.2.fill")
     }
 
     public static func forSave(playerName: String,

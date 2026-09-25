@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 @testable import StarHubTHCore
 
 @Suite("Classement de la palette de commandes")
@@ -123,9 +124,12 @@ struct CommandPaletteSearchTests {
     }
 
     @Test func fabriqueDepuisUnProfilEtUneSauvegarde() {
-        let p = CommandPaletteEntry.forProfile(name: "Ferme d'été")
+        let id = UUID()
+        let p = CommandPaletteEntry.forProfile(name: "Ferme d'été", id: id)
         #expect(p.kind == .profile)
-        #expect(p.id == "profile:Ferme d'été")
+        #expect(p.id == "profile:\(id.uuidString)")
+        // Deux homonymes restent deux entrées distinctes (I-T5).
+        #expect(CommandPaletteEntry.forProfile(name: "Ferme d'été", id: UUID()).id != p.id)
 
         let s = CommandPaletteEntry.forSave(playerName: "David", farmName: "Rivedoux")
         #expect(s.kind == .save)
