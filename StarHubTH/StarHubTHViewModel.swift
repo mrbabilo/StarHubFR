@@ -3033,13 +3033,9 @@ final class StarHubTHViewModel {
                            pageStates: [:])
     }
 
-    /// Une page après l'autre. `settled` retient les mods dont Nexus a bien
-    /// rendu un verdict — mise à jour trouvée **ou** confirmation qu'il n'y en
-    /// a pas : dans les deux cas le mod n'est plus « non vérifiable ».
-    ///
-    /// Les décisions d'une page (page sans version ≠ verdict, 429 arrêtant la
-    /// reprise, verdicts nommés) vivent dans `NexusResume` (Core, testé) ; la
-    /// récursion, la progression et l'émission du journal restent ici.
+    /// Une page après l'autre. `settled` = mods tranchés par Nexus (mise à
+    /// jour trouvée **ou** absente). Décisions d'une page dans `NexusResume`
+    /// (Core) ; récursion, progression et journal ici.
     private func fetchNexusFallback(_ targets: [NexusFallbackCheck.Target],
                                     index: Int,
                                     found: [NexusUpdateChecker.ModUpdate],
@@ -3054,10 +3050,8 @@ final class StarHubTHViewModel {
             return
         }
         let target = targets[index]
-        // Complétion `@Sendable` (P5-L4) : le corps entier passe par un hop
-        // `Task { @MainActor in }`. L'ordre journal → progression → page
-        // suivante y reste intact, et la récursion garde un tour du main par
-        // page — ce que le `DispatchQueue.main.async` du checker faisait déjà.
+        // Complétion `@Sendable` (P5-L4) : hop `Task { @MainActor in }` ; ordre
+        // journal → progression → page suivante intact.
         NexusUpdateChecker.shared.fetchSingleMod(modId: target.nexusId) { [weak self] result in
             guard let self else { return }
             Task { @MainActor in
@@ -3085,22 +3079,16 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Publie ce que la reprise a trouvé, et retire de la liste des « non
-    /// vérifiables » les mods qu'elle a tranchés.
-    ///
-    /// La substitution du cache et le décompte honnête vivent dans
-    /// `NexusResume.settle` (Core, testé) — y compris le niveau du bilan,
-    /// `.warning` dès que la reprise a trouvé quelque chose.
+    /// Publie la reprise et retire les mods tranchés des « non vérifiables ».
+    /// Substitution et bilan dans `NexusResume.settle` (Core).
     private func finishNexusFallback(found: [NexusUpdateChecker.ModUpdate],
                                      settled: Set<String>,
                                      failures: Int,
                                      attempted: Int,
                                      notFound: Int,
                                      pageStates: [String: NexusPageState]) {
-        // Baissé **en premier**, avant tout retour possible : les deux sorties
-        // de `fetchNexusFallback` (dernière page atteinte, et l'abandon sur
-        // limitation de débit) passent par ici, et un drapeau resté levé
-        // laisserait la vérification bloquée « en cours » pour la session.
+        // Baissé **en premier** : les deux sorties passent ici, et un drapeau
+        // levé bloquerait la vérification pour la session.
         updateStore.endFallback()
 
         let settlement = NexusResume.settle(
@@ -3109,10 +3097,8 @@ final class StarHubTHViewModel {
             cachedRows: NexusUpdateChecker.shared.cachedUpdates(),
             notFoundPages: notFound, pageStates: pageStates)
 
-        // La projection des états de page **remplace** l'ancienne (A2-T6) :
-        // une page redevenue visible doit voir son état mourir, pas fusionner
-        // avec ce que la dernière reprise avait vu. Purge des mods
-        // désinstallés avant publication et écriture.
+        // Les états de page **remplacent** les anciens (A2-T6) ; purge des
+        // désinstallés avant publication.
         let installedIds = Set(allInstalledMods().filter { !$0.uniqueId.isEmpty }
             .map(\.uniqueId))
         let states = NexusPageState.prune(settlement.pageStates, keeping: installedIds)
@@ -3133,20 +3119,11 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Retient l'identifiant Nexus que smapi.io connaît, pour les mods dont le
-    /// manifeste n'en déclare aucun.
-    ///
-    /// Sans page Nexus, un mod n'a ni suivi de version, ni bouton vers sa page,
-    /// ni recherche de traduction — et rien ne le disait. Mesuré sur le parc
-    /// réel : **148 mods sans clé Nexus dans leur manifeste, dont 30 que
-    /// smapi.io identifie**. Dix avaient déjà été renseignés à la main, et les
-    /// dix concordent exactement ; restent **20 identifiants gratuits perdus**.
-    ///
-    /// La décision vit dans `NexusIdLearning` (Core, testé) : le manifeste fait
-    /// foi, une saisie manuelle ne se fait jamais écraser, et rien n'est
-    /// réécrit à l'identique — sinon chaque vérification toucherait les
-    /// préférences pour rien.
-    /// - Parameter folders: le parc **tel qu'interrogé**, figé avec la requête.
+    /// Retient l'id Nexus que smapi.io connaît pour les mods dont le manifeste
+    /// n'en déclare pas (parc : 148 sans clé, 30 identifiés, 20 gagnés).
+    /// Règle dans `NexusIdLearning` (Core) : le manifeste fait foi, saisie
+    /// manuelle jamais écrasée, rien réécrit à l'identique.
+    /// - Parameter folders: le parc **tel qu'interrogé**.
     private func learnNexusIds(from responses: [SmapiUpdateResponse.Mod],
                                folders: [NexusIdLearning.Folder]) {
         var knownIds: [String: Int] = [:]
@@ -3160,49 +3137,32 @@ final class StarHubTHViewModel {
                                         existingOverrides: nexusCustomModIds)
         guard !plan.isEmpty else { return }
 
-        // Le log reste par entrée (trié, pour la lisibilité du journal) ;
-        // la fusion + la persistance sont un bloc unique dans le store.
+        // Journal par entrée, trié ; fusion + persistance en un bloc (store).
         for (folderName, id) in plan.sorted(by: { $0.key < $1.key }) {
             log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
         }
         nexusMetadata.mergeCustomModIds(plan)
     }
 
-    /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée.
-    ///
-    /// C'est la seule échappatoire quand l'auteur a oublié d'incrémenter le
-    /// champ `Version` de son manifest : smapi.io compare des chaînes, voit un
-    /// retard qui n'existe pas, et le redira à chaque passe. L'ancre
-    /// `.userAffirmed` fige la version envoyée et éteint la ligne pour de bon.
-    ///
-    /// ⚠️ La version enregistrée est celle **affichée** dans la ligne, donc
-    /// parfois une étiquette Nexus libre (« 5 », « 1.01 ») que smapi.io ne sait
-    /// pas analyser. C'est voulu, et ça ne doit pas être « corrigé » ici :
-    /// `NexusFallbackCheck` compare l'ancre à ce que la page Nexus annonce, et
-    /// c'est cette comparaison-là qui tait la ligne. La traduction vers ce que
-    /// le serveur sait lire se fait au moment d'écrire la requête — voir
-    /// `SmapiUpdateRequest.isExpressibleVersion`, sans lequel une seule de ces
-    /// étiquettes vidait un lot de 150 mods.
+    /// « Je l'ai déjà » : l'utilisateur affirme avoir la version suggérée —
+    /// seule issue quand l'auteur n'a pas incrémenté `Version`. L'ancre
+    /// `.userAffirmed` éteint la ligne pour de bon.
+    /// ⚠️ Version enregistrée = celle **affichée**, parfois une étiquette
+    /// Nexus libre (« 5 ») : voulu, ne pas « corriger ». `NexusFallbackCheck`
+    /// compare l'ancre à la page ; la traduction pour smapi.io se fait à la
+    /// requête (`SmapiUpdateRequest.isExpressibleVersion`).
     func affirmInstalled(uniqueId: String, version: String) {
         anchorStore.put(ModVersionAnchorRules.afterUserAffirmation(
             uniqueId: uniqueId, version: version, now: Date()))
         refreshAffirmedUpdates()
-        // `$0.id` — c'est-à-dire l'`UniqueID`. Le prédicat comparait `name`,
-        // un nom d'affichage, et `nexusModId`, une identité partagée : il ne
-        // retirait donc jamais la bonne ligne, quand il en retirait une.
-        // Le cache d'abord — sans persistance, le lancement suivant réaffiche
-        // `cachedUpdates()` et la ligne revient : l'affirmation ne survivait
-        // pas à la fermeture. L'affichage se recalcule ensuite depuis lui.
+        // Par `UniqueID` (`$0.id`), pas `name` ni `nexusModId` (partagé). Cache
+        // d'abord : sinon la ligne revient au lancement suivant.
         NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
         republishUpdatesFromCache()
     }
 
-    /// Relit les avertissements du dump pour les mods réellement installés.
-    ///
-    /// Lecture disque seule, sans réseau : le dump est posé par
-    /// `PathoschildCompatibilityList.fetch`, déclenché à chaque vérification
-    /// des mises à jour. Un cache absent rend une table vide — aucune ligne,
-    /// aucun effet de bord.
+    /// Relit les avertissements du dump (disque seul) pour les mods installés.
+    /// Cache absent : table vide, sans effet.
     func refreshModWarnings() {
         let installed = allInstalledMods().map(\.uniqueId).filter { !$0.isEmpty }
         guard !installed.isEmpty,
@@ -3221,29 +3181,17 @@ final class StarHubTHViewModel {
     enum ModFolderRenameOutcome: Equatable {
         case renamed(newFolderName: String)
         case refused(ModFolderRename.Verdict)
-        /// Le dossier n'a pas pu être renommé sur le disque. Aucun magasin
-        /// n'a bougé : la migration ne part qu'après un renommage réussi.
+        /// Renommage disque échoué ; aucun magasin n'a bougé.
         case failed(String)
     }
 
-    /// Donne un nouveau nom de dossier à un mod, et emmène avec lui tout ce qui
-    /// s'indexe dessus.
-    ///
-    /// **Pourquoi ce geste existe** : `ModItem.id` **est** `folderName`, et
-    /// deux mods peuvent porter le même — `X` actif et `.X` en pause sont deux
-    /// dossiers distincts. Sur le parc de référence ce sont deux
-    /// `[CP] Seaside Sounds` d'identifiants différents ; ils partagent alors
-    /// identité, favori, catégorie, identifiant Nexus, horodatage et
-    /// configuration de profil, un `ForEach` n'en rend qu'un, et un profil qui
-    /// demande d'échanger leurs états ne peut pas aboutir. Renommer l'un des
-    /// deux est la seule chose qui supprime **la cause**.
-    ///
-    /// ⚠️ **La liste ci-dessous doit rester exhaustive.** Un magasin oublié
-    /// n'échoue pas : il perd silencieusement un favori, une note ou une
-    /// sauvegarde qui ne se rattache plus à rien. Elle a été relevée le
-    /// 2026-09-05 en croisant `deleteMod`/`forgetStores` (X55), les clés de
-    /// `UDKey` et les gestionnaires de fichiers. Ce qui suit l'`UniqueID` —
-    /// les notes de profil, les ancres de version — n'y figure pas, à raison.
+    /// Renomme le dossier d'un mod et emmène tout ce qui s'indexe dessus.
+    /// `ModItem.id` = `folderName` : `X` et `.X` (deux `[CP] Seaside Sounds`
+    /// du parc) partagent identité, favori, catégorie, id Nexus, horodatage et
+    /// config de profil. Renommer supprime **la cause**.
+    /// ⚠️ **Liste exhaustive obligatoire** : un magasin oublié perd en silence
+    /// favori, note ou sauvegarde (relevé 2026-09-05 : X55, `UDKey`,
+    /// gestionnaires de fichiers). Ce qui suit l'`UniqueID` n'y est pas.
     @discardableResult
     func renameModFolder(_ mod: ModItem, to rawName: String) -> ModFolderRenameOutcome {
         let old = mod.folderName
@@ -3263,8 +3211,7 @@ final class StarHubTHViewModel {
             return .failed(error.localizedDescription)
         }
 
-        // Un **autre** mod réclame-t-il encore l'ancien nom ? C'est le cas
-        // d'une collision, et il départage les clés en deux natures : voir
+        // Un **autre** mod réclame-t-il l'ancien nom ? Voir
         // `ModFolderRename.SharedKeyPolicy`.
         let stillClaimed = mods.contains { $0.folderName == old && $0.uniqueId != mod.uniqueId }
         migrateFolderKeyedStores(from: old, to: new, shared: stillClaimed)
@@ -3277,12 +3224,10 @@ final class StarHubTHViewModel {
         return .renamed(newFolderName: new)
     }
 
-    /// Les douze surfaces indexées par nom de dossier. Voir l'avertissement de
-    /// `renameModFolder` : cette liste est le cœur du geste.
+    /// Les douze surfaces indexées par nom de dossier — cœur du geste.
     private func migrateFolderKeyedStores(from old: String, to new: String,
                                           shared: Bool) {
-        // 1-5. Les préférences, celles que X55 a câblées à la suppression —
-        // sauf l'identifiant Nexus, qui n'en est pas une (voir plus bas).
+        // 1-5. Préférences câblées par X55 (hors id Nexus, voir plus bas).
         if ModFolderRename.migrate(&favoriteMods, from: old, to: new,
                                    shared: shared) {
             Self.saveFavoriteMods(favoriteMods)
@@ -3299,22 +3244,15 @@ final class StarHubTHViewModel {
                                    shared: shared) {
             Self.saveModActivationTimestamps(modActivationTimestamps)
         }
-        // L'identifiant Nexus saisi à la main est une **affirmation** sur un
-        // mod, pas une préférence : en cas de collision, rien ne dit lequel des
-        // deux prétendants il désignait. Le copier enverrait le mod renommé
-        // chercher ses mises à jour sur la page d'un autre — et « je l'ai
-        // déjà » (X62) s'ancrerait sur cette version-là. On le laisse à celui
-        // qui reste ; le renommé le réapprend de ses `UpdateKeys` au scan.
+        // Id Nexus saisi = **affirmation**, pas préférence : en collision, gardé
+        // par celui qui reste (sinon mises à jour et X62 sur la page d'un autre) ;
+        // le renommé le réapprend de ses `UpdateKeys`.
         nexusMetadata.migrateFolderName(from: old, to: new, shared: shared)
 
-        // 6. Le registre : sans lui, le mod repasserait pour « vu pour la
-        // première fois » au prochain scan, et perdrait sa date d'installation.
-        // Même réserve que l'identifiant Nexus, pour la même raison : une date
-        // d'installation copiée serait une date inventée. En cas de collision,
-        // le mod renommé repart neuf — c'est la seule chose vraie qu'on sache
-        // de lui.
-        // Sous verrou (`mutateIfChanged`) — réécrire hors verrou perd la course (2026-08-05) ; sans entrée à migrer, rien ne s'écrit.
-        // Le `Bool` rendu (« est-ce que ça a bougé ») n'a pas d'action ici — l'abandon est dit par le `_ =`.
+        // 6. Registre : sinon « vu pour la première fois », date perdue. En
+        // collision, le renommé repart neuf (date copiée = inventée).
+        // Sous verrou (`mutateIfChanged`, course du 2026-08-05) ; `_ =` : le
+        // `Bool` rendu ne sert pas.
         _ = installedModRegistryStore.mutateIfChanged {
             ModFolderRename.migrate(&$0, from: old, to: new,
                                     shared: shared, policy: .leaveBehind)
@@ -3323,10 +3261,8 @@ final class StarHubTHViewModel {
         // 7. L'historique d'erreurs par version.
         errorHistory.rename(from: old, to: new, shared: shared)
 
-        // 8-9. Les deux jeux de sauvegardes : configuration et installation.
-        // Même nature que l'identifiant Nexus et le registre — ce sont des
-        // affirmations sur un mod, pas des préférences : en cas de collision
-        // elles restent à celui qui garde le nom.
+        // 8-9. Sauvegardes de config et d'installation : affirmations, gardées
+        // par celui qui garde le nom en collision.
         ModConfigBackupManager.shared.renameMod(from: old, to: new, shared: shared)
         ModInstallBackupManager.shared.renameMod(from: old, to: new, shared: shared)
 
@@ -3355,26 +3291,19 @@ final class StarHubTHViewModel {
             }
         }
 
-        // Et deux caches, qui ne survivent pas au lancement mais mentiraient
-        // d'ici là. Le poids est indexé sur le nom **physique**.
+        // Deux caches de session ; le poids est sur le nom **physique**.
         scanStore.renameSizeKey(from: old, to: new)
         scanStore.renameSizeKey(from: "." + old, to: "." + new)
-        // `invalidateFrenchCoverage` est `@MainActor` (trois mutations
-        // `@Published`). Le renommage part d'une action de vue, toujours sur le
-        // fil principal : `assumeIsolated` garde l'invalidation **synchrone**,
-        // juste après la migration — un saut par `Task` la ferait courir après
-        // le rescane, qui aurait déjà relu l'ancienne couverture.
+        // `invalidateFrenchCoverage` est `@MainActor` ; `assumeIsolated` la
+        // garde **synchrone**, avant le rescan (un `Task` passerait après).
         MainActor.assumeIsolated {
             invalidateFrenchCoverage(for: old)
         }
     }
 
-    /// Recompose la liste des affirmations depuis les ancres et le parc.
-    ///
-    /// Appelée aux trois seuls moments où elle peut changer — voir
-    /// `affirmedUpdates`. `allInstalledMods()` déplie les packs : une
-    /// affirmation porte sur un `UniqueID`, donc sur un composant, jamais sur
-    /// l'en-tête qui le contient.
+    /// Recompose les affirmations depuis ancres et parc (voir
+    /// `affirmedUpdates`). `allInstalledMods()` déplie les packs : une
+    /// affirmation porte sur un composant.
     func refreshAffirmedUpdates() {
         updateStore.setAffirmed(AffirmedUpdates.rows(
             anchors: anchorStore.all(),
@@ -3385,18 +3314,9 @@ final class StarHubTHViewModel {
             }))
     }
 
-    /// « Réafficher » : retire l'affirmation posée sur un mod.
-    ///
-    /// C'est le seul appelant de `ModVersionAnchorStore.remove(uniqueId:)`, qui
-    /// n'en avait aucun : le geste « Je l'ai déjà » était un aller sans retour,
-    /// et la seule sortie était de désinstaller le mod pour que `pruneAnchors`
-    /// nettoie l'ancre.
-    ///
-    /// **La ligne ne revient pas sur-le-champ**, et c'est assumé : le cache ne
-    /// la porte plus, et rien ici ne sait ce que la page annonce aujourd'hui.
-    /// Relancer une passe complète — huit lots réseau — sur un clic isolé
-    /// serait disproportionné, surtout pour qui en réaffiche plusieurs. Le
-    /// libellé d'aide de l'action le dit.
+    /// « Réafficher » : retire l'affirmation d'un mod (seul appelant de
+    /// `remove(uniqueId:)`). **La ligne ne revient pas sur-le-champ**, assumé :
+    /// une passe complète sur un clic serait disproportionnée ; l'aide le dit.
     func revealAffirmedUpdate(uniqueId: String) {
         anchorStore.remove(uniqueId: uniqueId)
         refreshAffirmedUpdates()
@@ -3411,32 +3331,16 @@ final class StarHubTHViewModel {
         anchorStore.anchorInstalled(folderPaths: installedFolderPaths, nexusFacts: nexusFacts)
     }
 
-    /// **L'invariant de la liste des mises à jour** : ce qui est affiché est,
-    /// toujours, la consolidation par pack de ce que porte le cache.
-    ///
-    /// Le cache est plat — une ligne par `UniqueID` — parce que c'est la forme
-    /// dans laquelle les verdicts arrivent, celle qu'un retrait cible, et celle
-    /// que la fusion sait comparer. Le regroupement par pack est une vue, et
-    /// rien d'autre : il n'est jamais écrit.
-    ///
-    /// Passer par ici plutôt que d'écrire `nexusUpdates` à la main, sans quoi
-    /// les chemins divergent — ce qu'ils faisaient : seul le chargement
-    /// consolidait, et le même parc donnait deux décomptes selon qu'on venait
-    /// de redémarrer ou de cliquer « Vérifier ».
-    ///
-    /// À appeler sur le fil principal (`nexusUpdates` est `@Published`), et
-    /// après le scan : la table des packs se lit dans `mods`.
+    /// **Invariant** : la liste affichée est toujours la consolidation par pack
+    /// du cache plat (une ligne par `UniqueID`, jamais regroupé à l'écriture).
+    /// Passer par ici, sinon redémarrage et « Vérifier » divergent. Sur main,
+    /// après le scan (lit `mods`).
     private func republishUpdatesFromCache() {
-        // L'ordre alphabétique vient de `NexusUpdateConsolidation`, où il
-        // est testé — pas d'un second tri ici, qui divergerait un jour.
+        // Ordre alphabétique testé dans `NexusUpdateConsolidation`, pas retrié.
         let consolidated = consolidateUpdatesByPack(NexusUpdateChecker.shared.cachedUpdates())
-        // R3 — partition actifs / en veille. Le snooze se juge **après** la
-        // consolidation et ne touche jamais le cache plat : une passe Nexus
-        // partielle doit continuer d'y fusionner (piège mesuré le
-        // 2026-09-03). La version du jeu local, critère du mode « jusqu'à
-        // prochaine version de Stardew », vient du journal SMAPI — brute,
-        // comme au moment du snooze, pour que la comparaison reste
-        // symétrique.
+        // R3 — partition actifs / en veille, **après** consolidation, sans
+        // toucher le cache plat (une passe partielle doit y fusionner,
+        // 2026-09-03). Version du jeu brute, comme au snooze.
         let gameVersion = smapiDiagnostics?.gameVersion
         var active: [NexusUpdateChecker.ModUpdate] = []
         var sleeping: [NexusUpdateChecker.ModUpdate] = []
@@ -3449,14 +3353,12 @@ final class StarHubTHViewModel {
                 active.append(row)
             }
         }
-        // Les deux moitiés d'un seul geste : publiées séparément, un instant
-        // de rendu verrait un mod dans les deux, ou dans aucune.
+        // Publiées ensemble : sinon un mod dans les deux listes, ou aucune.
         updateStore.setPartition(active: active, sleeping: sleeping)
     }
 
-    /// R3 — met en veille la mise à jour d'un mod. La ligne quitte la liste
-    /// « updates » (et le badge) à l'instant ; elle revient toute seule à
-    /// l'échéance du mode choisi. L'inventaire, lui, n'est jamais touché.
+    /// R3 — met en veille : la ligne quitte la liste et le badge, revient à
+    /// l'échéance. Inventaire intact.
     func snoozeUpdate(_ update: NexusUpdateChecker.ModUpdate,
                       mode: ModUpdateSnoozeEntry.Mode) {
         updateSnoozer.snooze(uniqueId: update.uniqueId, mode: mode,
@@ -3465,16 +3367,13 @@ final class StarHubTHViewModel {
         republishUpdatesFromCache()
     }
 
-    /// R3 — réveille une mise à jour en veille : elle revient dans la liste
-    /// immédiatement, dans l'ordre de la consolidation.
+    /// R3 — réveille : retour immédiat dans l'ordre de consolidation.
     func unsnoozeUpdate(uniqueId: String) {
         updateSnoozer.clear(uniqueId: uniqueId)
         republishUpdatesFromCache()
     }
 
-    /// R3 — le motif affiché d'une mise à jour en veille : l'échéance pour
-    /// le mode horloge, la condition pour les modes événementiels (eux
-    /// n'ont pas de date de fin).
+    /// R3 — motif affiché : échéance (horloge) ou condition (événement).
     func snoozeExpiryLabel(for update: NexusUpdateChecker.ModUpdate) -> String {
         guard let entry = updateSnoozer.entry(for: update.uniqueId) else { return "" }
         switch entry.mode {
@@ -3491,30 +3390,11 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Consolidates the flat Nexus update list so each pack (mod group)
-    /// appears as a single row instead of one row per child.
-    ///
-    /// For a pack with multiple children that have updates, the winning row is
-    /// the child whose `latestVersion` is the highest (dotted-numeric
-    /// comparison via `NexusUpdateChecker.compare`); when several children
-    /// share that same highest version, the most recent Nexus `uploadedTime`
-    /// wins. The consolidated row reuses the winning child's version/url/date
-    /// but shows the pack's display name so the user sees the pack as a whole.
-    ///
-    /// Standalone mods (not part of a group) are returned unchanged. Mods whose
-    /// effective Nexus id isn't found in the installed set are also passed
-    /// through (defensive — shouldn't normally happen).
-    /// Regroupe les mises à jour par pack avant affichage.
-    ///
-    /// Ne garde ici que ce qui dépend du ViewModel : la table « identifiant
-    /// Nexus effectif → nom du pack parent ». Le regroupement, le choix du
-    /// composant représentatif et le tri vivent dans `NexusUpdateConsolidation`
-    /// (module testable).
+    /// Regroupe les mises à jour par pack. Ici la table « id Nexus effectif →
+    /// pack » ; regroupement, choix et tri dans `NexusUpdateConsolidation`.
     private func consolidateUpdatesByPack(_ updates: [NexusUpdateChecker.ModUpdate]) -> [NexusUpdateChecker.ModUpdate] {
-        // Par `UniqueID`, jamais par identifiant Nexus : quatre identifiants du
-        // parc sont déclarés à la fois par l'enfant d'un pack et par un mod
-        // extérieur, qui se faisait alors absorber dans la ligne du pack — voir
-        // la note de `consolidate`.
+        // Par `UniqueID`, pas par id Nexus : quatre ids du parc sont partagés
+        // entre un enfant de pack et un mod extérieur, absorbé à tort.
         var packNameByUniqueId: [String: String] = [:]
         for mod in mods where mod.isGroup {
             for child in mod.children ?? [] where !child.uniqueId.isEmpty {
@@ -3525,8 +3405,7 @@ final class StarHubTHViewModel {
                                                     packNameByUniqueId: packNameByUniqueId)
     }
 
-    /// Formats a Nexus upload timestamp for display next to the latest version
-    /// in the update window. Uses the user's locale so it reads naturally.
+    /// Localized Nexus upload date for the update window.
     func formatUploadedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -3534,15 +3413,8 @@ final class StarHubTHViewModel {
         return String(format: localization.L(L10n.Updates.uploadedOn), formatter.string(from: date))
     }
 
-    /// Returns the effective category for a mod.
-    ///
-    /// Precedence (first wins):
-    /// 1. User-assigned override keyed by `mod.folderName` — lets the user
-    ///    categorize mods that the API never returned a `category_id` for.
-    ///    Also works for pack headers (whose `folderName` is the group name).
-    /// 2. Category fetched from the Nexus API, keyed by `mod.nexusModId`.
-    /// 3. For pack headers: the dominant category among the children.
-    /// 4. `nil` — unknown.
+    /// Effective category: user override (by `folderName`, pack headers too)
+    /// > Nexus API category > pack's dominant child category > `nil`.
     func category(for mod: ModItem) -> NexusCategory? {
         trackCategoryCache()
         if let cached = categoryCache[mod.folderName] {
@@ -3555,14 +3427,12 @@ final class StarHubTHViewModel {
         return result
     }
 
-    /// Stable inferred type key for a mod. For a group, uses the primary
-    /// (first) child — mirrors upstream's "group shows its primary child's tag".
+    /// Inferred type key; a group uses its primary child.
     func inferredTagKey(for mod: ModItem) -> String {
         ModListScoping.inferredTagKey(for: mod)
     }
 
-    /// The category id the user manually pinned on this mod, or `nil` when the
-    /// mod relies on the automatic (API-fetched) category.
+    /// User-pinned category id, or `nil` (automatic).
     func customCategoryId(for mod: ModItem) -> Int? {
         nexusCustomCategories[mod.folderName]
     }
@@ -3572,77 +3442,39 @@ final class StarHubTHViewModel {
         nexusMetadata.setCustomCategory(categoryId, for: mod.folderName)
     }
 
-    /// The effective Nexus mod id for a mod: user override first, then the id
-    /// declared in the mod's manifest `UpdateKeys`. Empty when neither is set.
-    /// Façade provisoire (REFACTORING §6, cond. 1) — la règle vit dans
-    /// `NexusModIdentity` (Core, testé).
+    /// Effective Nexus id: user override, then manifest `UpdateKeys`.
+    /// Façade provisoire (REFACTORING §6, cond. 1) — règle dans
+    /// `NexusModIdentity`.
     func effectiveNexusModId(for mod: ModItem) -> String {
         NexusModIdentity.effectiveId(for: mod, customIds: nexusCustomModIds)
     }
 
-    /// Like `effectiveNexusModId(for:)`, but for a pack header with no own id
-    /// falls back to the first child that has one — mirroring `nexusLink(for:)`
-    /// and `modExtra(for:)`. The detail pane fetches against this id so a pack
-    /// shows the same mod its header links to, instead of no Nexus content.
+    /// Like `effectiveNexusModId`, but a pack header falls back to its first
+    /// child with an id (same as the link).
     /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func resolvedNexusModId(for mod: ModItem) -> String {
         NexusModIdentity.resolvedId(for: mod, customIds: nexusCustomModIds)
     }
 
-    /// The Nexus Mods URL for a mod derived from its effective mod id, or the
-    /// manifest's `nexusUrl` when no effective id is available (they normally
-    /// agree, but the manifest URL is the original source of truth). For pack
-    /// headers with no own link, falls back to the first child that has one.
-    /// Empty when neither the mod nor any child has a Nexus link.
+    /// Nexus URL from the effective id, else the manifest's `nexusUrl`; pack
+    /// headers fall back to a child. Empty if none.
     /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func nexusLink(for mod: ModItem) -> String {
         NexusModIdentity.link(for: mod, customIds: nexusCustomModIds)
     }
 
-    /// The cached Nexus summary + picture URL for a mod, or `nil` when none
-    /// has been fetched yet (no check has run, or the mod has no effective
-    /// Nexus id). For pack headers with no own data, falls back to the first
-    /// child that has some — same convention as `nexusLink(for:)`.
+    /// Cached Nexus summary + picture, or `nil`; pack headers fall back to a
+    /// child.
     /// Façade provisoire (§6, cond. 1) — règle dans `NexusModIdentity`.
     func modExtra(for mod: ModItem) -> NexusUpdateChecker.NexusModExtra? {
         NexusModIdentity.extra(for: mod, customIds: nexusCustomModIds, extras: nexusModExtras)
     }
 
-    /// Finds the installed mod corresponding to a Nexus update. Searches both
-    /// standalone mods and pack children. Returns `nil` for orphaned updates
-    /// (e.g. the mod was removed after the check ran).
-    ///
-    /// `update.nexusModId` porte l'identifiant Nexus quand smapi.io le connaît,
-    /// l'`UniqueID` du mod sinon (voir `applySmapiResults`) — un mod publié sur
-    /// GitHub, ou simplement absent de la base de smapi.io, n'a aucun
-    /// identifiant Nexus du tout. Ne comparer qu'à `effectiveNexusModId(for:)`
-    /// laisserait ces mods sans correspondance, avec pour effet un badge
-    /// Activé/Désactivé faux sur leur ligne. D'où les deux passes ci-dessous
-    /// plutôt qu'un unique prédicat combiné : un `UniqueID` pourrait en
-    /// principe coïncider avec l'identifiant Nexus d'un AUTRE mod, et la
-    /// correspondance par identifiant Nexus — celle que smapi.io a réellement
-    /// vérifiée — doit l'emporter chaque fois qu'elle s'applique.
-    /// Le nom du mod derrière un identifiant Nexus, quand l'app le connaît.
-    ///
-    /// Un journal qui ne dit que « mod 41318 » oblige à ouvrir Nexus pour
-    /// savoir de quoi il parle — or l'app a le nom sous la main, par trois
-    /// chemins. Ils sont essayés du plus sûr au plus lointain :
-    ///
-    /// 1. **un mod installé** qui porte cet identifiant — c'est le nom que
-    ///    l'utilisateur voit dans sa liste, donc celui qu'il reconnaîtra ;
-    /// 2. **la liste des mises à jour**, qui porte le nom Nexus.
-    ///
-    /// Pas de troisième chemin par le cache sur disque : `nexusUpdates` en est
-    /// justement rempli au lancement, et le relire ici n'aurait fait qu'ajouter
-    /// un accès au singleton pour la même réponse.
-    ///
-    /// `nil` quand aucun ne répond : un `nxm://` pour un mod qu'on n'a jamais
-    /// vu ne peut pas être nommé avant son téléchargement, et inventer un nom
-    /// serait pire que l'identifiant nu.
+    /// Nom du mod derrière un id Nexus : mod installé d'abord (nom de la
+    /// liste), puis liste des mises à jour. `nil` sinon — mieux que d'inventer.
     func nexusModDisplayName(for modId: Int) -> String? {
         let wanted = String(modId)
-        // Les mods de premier niveau d'abord : pour un composant de pack, le
-        // nom du pack est celui qui parle — c'est lui qui a une page Nexus.
+        // Premier niveau d'abord : pour un composant, le pack a la page Nexus.
         for mod in mods where effectiveNexusModId(for: mod) == wanted {
             return mod.name
         }
@@ -3655,10 +3487,8 @@ final class StarHubTHViewModel {
         return nil
     }
 
-    /// Un message de journal qui nomme le mod quand c'est possible, et se
-    /// rabat sur l'identifiant seul sinon. Les deux formats sont fournis par
-    /// l'appelant : seule une vue résout `localization.L(…)`, et les deux phrases n'ont pas
-    /// le même nombre de substitutions.
+    /// Message qui nomme le mod si possible, sinon l'id ; l'appelant fournit
+    /// les deux formats (substitutions différentes).
     private func nexusDownloadLogMessage(named: String, plain: String, modId: Int) -> String {
         guard let name = nexusModDisplayName(for: modId) else {
             return String(format: localization.L(plain), Int64(modId))
@@ -3666,6 +3496,9 @@ final class StarHubTHViewModel {
         return String(format: localization.L(named), name, Int64(modId))
     }
 
+    /// Installed mod (standalone or pack child) for a Nexus update, `nil` if
+    /// orphaned. Deux passes : id Nexus d'abord (vérifié par smapi.io), puis
+    /// `UniqueID` (mods hors Nexus) — sinon badge Activé/Désactivé faux.
     func modForNexusUpdate(_ update: NexusUpdateChecker.ModUpdate) -> ModItem? {
         guard !update.nexusModId.isEmpty else { return nil }
 
@@ -3687,9 +3520,7 @@ final class StarHubTHViewModel {
         return find({ $0.uniqueId == update.nexusModId })
     }
 
-    /// Display author for a mod. For pack headers, aggregates the children:
-    /// if every child shares the same author it is shown verbatim, otherwise a
-    /// localized "multiple authors" placeholder is returned.
+    /// Display author; a pack shows the shared author or "multiple authors".
     func displayAuthor(for mod: ModItem) -> String {
         if mod.isGroup, let children = mod.children {
             let authors = Set(children.map { $0.author }
@@ -3701,16 +3532,11 @@ final class StarHubTHViewModel {
         return mod.author
     }
 
-    /// Display version for a mod. For pack headers, shows the shared version
-    /// when every child agrees, otherwise "—" (mixed versions are common in
-    /// packs and a single number would be misleading).
+    /// Display version; a pack shows the shared version or "—".
     func displayVersion(for mod: ModItem) -> String {
         if mod.isGroup, let children = mod.children {
-            // A pack is a single Nexus mod (its children are the installed
-            // sub-mods). Prefer the pack's latest **Nexus** version — the Main
-            // file / changelog version — once a Nexus check (or the per-mod
-            // fetch) has retrieved it, since the children's own manifest
-            // versions can differ or lag behind the pack release.
+            // A pack is one Nexus mod: prefer its latest Nexus version once known;
+            // children's manifests can lag.
             if let v = nexusLatestVersion(for: mod), !v.isEmpty { return v }
             let versions = Set(children.map { $0.version }
                                 .filter { !$0.isEmpty && $0 != "Unknown" })
@@ -3720,61 +3546,32 @@ final class StarHubTHViewModel {
         return mod.version
     }
 
-    /// The latest Nexus version cached for a mod (or, for a pack, its resolved
-    /// Nexus mod id), from the last update check / per-mod fetch. `nil` until a
-    /// check has populated it, or when the mod has no resolvable Nexus id.
+    /// Latest cached Nexus version (pack: resolved id), `nil` before a check.
     func nexusLatestVersion(for mod: ModItem) -> String? {
         let id = resolvedNexusModId(for: mod)
         guard !id.isEmpty else { return nil }
         return nexusModExtras[id]?.version
     }
 
-    /// When the mod was last updated on Nexus (from the last check / fetch), or
-    /// nil until one has run / when there's no resolvable Nexus id.
+    /// Last Nexus update date, `nil` before a check.
     func nexusLastUpdated(for mod: ModItem) -> Date? {
         let id = resolvedNexusModId(for: mod)
         guard !id.isEmpty else { return nil }
         return nexusModExtras[id]?.uploadedTime
     }
 
-    /// The mod's install date (its `manifest.json` mtime). For a pack, the most
-    /// recent child's date (packs have no manifest of their own).
+    /// Install date (manifest mtime; pack: most recent child).
     func installedDate(for mod: ModItem) -> Date? { mod.effectiveInstallDate }
 
-    /// Sets a user-defined Nexus mod id for a mod (generates its link and lets
-    /// it participate in update checks). Pass `nil`/empty to clear the override
-    /// and fall back to the manifest-declared id.
+    /// Sets or clears (`nil`/empty) a user Nexus id override.
     func setCustomNexusModId(for mod: ModItem, modId: String?) {
         nexusMetadata.setCustomModId(modId, for: mod.folderName)
     }
 
-    /// Retient l'identifiant Nexus d'une installation venue de Nexus, quand le
-    /// manifeste installé n'en déclare aucun.
-    ///
-    /// Sans ça, l'app connaissait l'identifiant (elle venait de télécharger
-    /// depuis cette page) et le jetait : un mod dont l'auteur a oublié
-    /// `UpdateKeys` n'était plus jamais interrogé, sans le moindre signal. Sur
-    /// un parc de 966 mods, 111 étaient dans ce cas.
-    ///
-    /// Doit être appelé **avant** `reconcileManifestVersion`, qui consomme
-    /// `pendingNexusSource`. La décision elle-même vit dans
-    /// `NexusInstallIdRecording` (Core, testée).
-    ///
-    /// v1 : installations d'un seul mod. Un pack livre plusieurs dossiers pour
-    /// une seule page Nexus — les relier tous au même identifiant ferait de
-    /// chaque composant un faux candidat, avec sa propre version.
-    /// X103-C — garde l'archive Nexus qui vient de servir, si l'utilisateur
-    /// l'a demandé dans les Réglages.
-    ///
-    /// **Appelée au succès de l'installation, pas à la fermeture de la
-    /// feuille.** Les deux sites qui effacent l'archive
-    /// (`MainView:onDismiss`, le `defer` de `depositTranslation`) se
-    /// déclenchent aussi à l'annulation et à l'échec : y brancher l'archivage
-    /// stockerait des archives d'installations qui n'ont jamais eu lieu.
-    ///
-    /// **S'abstient sur un pack** — plusieurs mods, plusieurs `UniqueID`, une
-    /// seule archive : rien ne dit sous quelle identité la ranger. Même
-    /// abstention que `reconcileManifestVersion`, et pour la même raison.
+    /// X103-C — garde l'archive Nexus si demandé. **Au succès de
+    /// l'installation**, pas à la fermeture de la feuille (qui suit aussi
+    /// annulation et échec). **S'abstient sur un pack** : une archive,
+    /// plusieurs `UniqueID`.
     func keepNexusArchiveIfEnabled(archive: URL?, uniqueId: String?,
                                    version: String?, modName: String?) {
         guard UserDefaults.standard.bool(forKey: UDKey.keepNexusArchives),
@@ -3783,33 +3580,22 @@ final class StarHubTHViewModel {
         do {
             try nexusArchiveStore.keep(archive: archive, uniqueId: uniqueId,
                                        version: version, modName: modName)
-            // La rétention court à chaque dépôt, comme celle des sauvegardes
-            // d'installation : sans elle le magasin ne connaîtrait aucune
-            // borne tant que l'utilisateur n'ouvre pas l'écran Entretien.
+            // Rétention à chaque dépôt : sinon aucune borne avant l'écran Entretien.
             let purged = nexusArchiveStore.applyRetention()
             if purged > 0 {
                 log("Archives Nexus : \(purged) ancienne(s) archive(s) retirée(s) par la rétention.",
                     level: .info)
             }
         } catch {
-            // Un magasin d'archives qui échoue ne doit jamais faire échouer
-            // l'installation : le mod est posé, c'est ce qui compte.
+            // N'échoue jamais l'installation : le mod est posé.
             log("Archive Nexus non conservée : \(error.localizedDescription)", level: .warning)
         }
     }
 
-    /// X103-C — réinstalle un mod depuis son archive conservée.
-    ///
-    /// ⚠️ **Une copie, jamais l'archive elle-même.** La feuille d'installation
-    /// efface le fichier qu'on lui confie à sa fermeture
-    /// (`MainView:onDismiss` → `discardDownloaded`), et ce ménage n'épargne
-    /// que les dossiers portant le préfixe du téléchargeur. Lui passer le
-    /// fichier du magasin le détruirait — réinstaller un mod supprimerait donc
-    /// le moyen de le réinstaller une seconde fois.
-    ///
-    /// La copie va dans un dossier au préfixe du téléchargeur, pour que le
-    /// ménage de la feuille l'emporte entière comme n'importe quel
-    /// téléchargement.
+    /// X103-C — réinstalle depuis l'archive conservée.
+    /// ⚠️ **Une copie, jamais l'archive** : la feuille efface le fichier
+    /// confié à sa fermeture (`discardDownloaded`) ; la copie va dans un
+    /// dossier au préfixe du téléchargeur, nettoyé comme un téléchargement.
     func reinstallFromArchive(_ entry: NexusArchiveEntry) {
         let source = nexusArchiveStore.fileURL(of: entry)
         guard FileManager.default.fileExists(atPath: source.path) else {
@@ -3830,9 +3616,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les archives conservées, telles que l'écran Entretien les lit.
-    /// En lecture seule au-dehors : la liste se recharge par
-    /// `refreshNexusArchives()`, jamais en la réécrivant depuis une vue.
+    /// Archives conservées ; rechargées par `refreshNexusArchives()` seulement.
     private(set) var nexusArchives: [NexusArchiveEntry] = []
 
     func refreshNexusArchives() {
@@ -3849,19 +3633,20 @@ final class StarHubTHViewModel {
         refreshNexusArchives()
     }
 
+    /// Retient l'id Nexus d'une installation venue de Nexus quand le manifeste
+    /// n'en déclare pas (111 mods sur 966). **Avant**
+    /// `reconcileManifestVersion`, qui consomme `pendingNexusSource`. Règle
+    /// dans `NexusInstallIdRecording` (Core). Mono-dossier : un pack ferait de
+    /// chaque composant un faux candidat.
     func recordNexusModId(_ modId: Int, installedFolderPaths: [String]) {
-        // **Avant** les deux refus qui suivent — pack multi-dossiers,
-        // manifeste qui fait foi. Aucun des deux ne change le fait qui
-        // intéresse la vitrine : ce mod vient d'être installé depuis cette
-        // page, et sa pastille ne doit pas attendre le prochain scan.
+        // **Avant** les deux refus : la pastille de la vitrine n'attend pas le
+        // scan.
         recentNexusInstalls.insert(modId)
 
         guard installedFolderPaths.count == 1,
               let folderPath = installedFolderPaths.first else { return }
 
-        // Le dossier vient d'être installé, donc actif ; on retire quand même
-        // un point de tête pour indexer sur le nom *logique*, celui que la
-        // vérification utilise (un mod en pause est un dossier préfixé).
+        // Nom *logique* (sans point de tête), celui de la vérification.
         let leaf = (folderPath as NSString).lastPathComponent
         let folderName = leaf.hasPrefix(".") ? String(leaf.dropFirst()) : leaf
 
@@ -3880,18 +3665,10 @@ final class StarHubTHViewModel {
         log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
     }
 
-    /// Fetches a single mod's metadata (category + latest version + summary/
-    /// picture) from Nexus and applies it to the published `nexusCategories`
-    /// / `nexusModExtras` maps so the mods-list badge and popover preview
-    /// update instantly. Intended for on-demand
-    /// lookups after the user enters a mod id in the per-mod editor popover.
-    /// `completion` is invoked on the main queue.
-    /// `completion` est `@MainActor @Sendable` (P5-L4) : la garantie « sur la
-    /// queue principale » que ce commentaire portait déjà devient une
-    /// garantie de type. Ses appelants — dont la fiche de mod, qui écrit un
-    /// `@State` dans son corps — gardent donc une complétion **synchrone**
-    /// sur l'acteur principal, sans hop supplémentaire ni changement de
-    /// comportement. Le `@Sendable` seul les aurait tous fait migrer.
+    /// Fetches one mod's metadata and updates `nexusCategories` /
+    /// `nexusModExtras` at once (per-mod id editor). `completion` est
+    /// `@MainActor @Sendable` (P5-L4) : reste synchrone sur main pour ses
+    /// appelants.
     func fetchMetadata(forNexusModId modId: String,
                        completion: @escaping @MainActor @Sendable (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
@@ -3909,25 +3686,11 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Refuse un téléchargement concurrent tant qu'un premier tourne, ou que
-    /// son archive attend encore dans la feuille d'installation. Ne garde
-    /// plus que le dépôt de traduction : les téléchargements de mods
-    /// passent par la file (`enqueueOrStartNexusDownload`) au lieu d'être
-    /// refusés.
-    ///
-    /// Sans ce garde-fou, un second lien `nxm://` — livré par AppKit, donc
-    /// insensible à la feuille ouverte — écrasait `pendingDownloadedZip` : la
-    /// première archive restait dans le dossier temporaire sans que personne
-    /// n'en connaisse plus le chemin. Supprimer l'ancienne à la place n'est pas
-    /// une option : la feuille ouverte est peut-être en train d'en extraire.
-    ///
-    /// Aucun des deux verrous ne peut rester fermé pour la session — ce qui
-    /// couperait le lien `nxm://`, seule voie de téléchargement d'un compte non
-    /// premium. `pendingDownloadedZip` est remis à nil à la fermeture de la
-    /// feuille (`MainView`, `.sheet(onDismiss:)`), quelle que soit la façon dont
-    /// elle se ferme ; `isDownloadingFromNexus` est remis à false par
-    /// `handleNexusDownloadResult`, et chaque branche de
-    /// `NexusDownloader.download` appelle sa complétion exactement une fois.
+    /// Refuse un téléchargement concurrent (dépôt de traduction seulement ;
+    /// les mods passent par la file). Sinon un second `nxm://` écrasait
+    /// `pendingDownloadedZip` et perdait la première archive. Les deux verrous
+    /// se rouvrent toujours : `pendingDownloadedZip` à la fermeture de la
+    /// feuille, `isDownloadingFromNexus` dans `handleNexusDownloadResult`.
     private func rejectNexusDownloadIfBusy() -> Bool {
         guard NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
                                        hasPendingZip: pendingDownloadedZip != nil)
@@ -3947,18 +3710,14 @@ final class StarHubTHViewModel {
                                           expires: link.expires))
     }
 
-    /// In-app download for the current game via the API key alone (Nexus
-    /// Premium required for a direct link). fileId nil → main file resolved.
+    /// In-app download (Premium); fileId nil → main file resolved.
     func downloadModFromNexus(nexusId: Int) {
         enqueueOrStartNexusDownload(.init(modId: nexusId, fileId: nil,
                                           game: "stardewvalley", key: nil, expires: nil))
     }
 
-    /// Point de passage unique des demandes de téléchargement de mods :
-    /// démarre si le couple (`isDownloadingFromNexus`,
-    /// `pendingDownloadedZip`) est au repos, met en file sinon. Un clic
-    /// répété sur un fichier déjà en attente ne duplique pas l'entrée
-    /// (dédupliquée par `NexusDownloadQueue`) et ne rejournalise pas.
+    /// Point unique des demandes : démarre au repos, sinon en file
+    /// (dédupliquée par `NexusDownloadQueue`).
     private func enqueueOrStartNexusDownload(_ entry: NexusDownloadQueue.Entry) {
         switch NexusDownloadFlow.route(
             entry,
@@ -3974,8 +3733,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Lance effectivement le téléchargement — appelé sur un état de repos
-    /// garanti par l'appelant (entrée directe ou drainage de la file).
+    /// Lance le téléchargement ; repos garanti par l'appelant.
     private func startNexusDownload(_ entry: NexusDownloadQueue.Entry) {
         downloadStore.beginDownload(modId: entry.modId)
         log(nexusDownloadLogMessage(named: L10n.VM.nexusDlStartingNamed,
@@ -3991,13 +3749,8 @@ final class StarHubTHViewModel {
         })
     }
 
-    /// Démarre le téléchargement suivant de la file, si le couple
-    /// (`isDownloadingFromNexus`, `pendingDownloadedZip`) est au repos.
-    /// Appelé aux trois bascules : fin d'un téléchargement de mod sans
-    /// feuille (échec, annulation), fin d'un téléchargement de traduction,
-    /// et fermeture de la feuille d'installation (`MainView`). Sur succès
-    /// d'un téléchargement de mod, la feuille est ouverte : le garde tient
-    /// le suivant jusqu'à sa fermeture.
+    /// Démarre le suivant de la file au repos. Appelé aux trois bascules :
+    /// fin sans feuille, fin de traduction, fermeture de la feuille.
     func drainQueuedNexusDownloads() {
         guard !NexusDownloadFlow.isBusy(isDownloading: isDownloadingFromNexus,
                                         hasPendingZip: pendingDownloadedZip != nil),
