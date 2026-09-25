@@ -35,6 +35,7 @@ struct HeroHeader: View {
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
+                        .accessibilityAddTraits(.isHeader)
                         .font(AppDesign.Font.viewTitle)
                         .foregroundStyle(.white)
                         .lineLimit(2)

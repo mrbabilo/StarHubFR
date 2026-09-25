@@ -33,6 +33,7 @@ struct StatColumn: View {
                     .lineLimit(1)
             }
         }
+        .accessibilityElement(children: .combine) // « libellé, valeur » en un arrêt
         .help(help)
     }
 }

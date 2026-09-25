@@ -57,6 +57,7 @@ struct StandardSection<Content: View>: View {
                 Text(verbatim: title)
                     .font(AppDesign.Font.body(.bold))
                     .foregroundColor(.primary)
+                    .accessibilityAddTraits(.isHeader) // rotor VoiceOver : navigation par titres (I-T3)
             }
 
             VStack(spacing: 0) {

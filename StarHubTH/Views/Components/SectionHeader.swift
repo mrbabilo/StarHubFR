@@ -14,7 +14,7 @@ struct SectionHeader: View {
 
     var body: some View {
         HStack {
-            Text(title).font(.title3.bold())
+            Text(title).font(.title3.bold()).accessibilityAddTraits(.isHeader)
             Spacer()
             Text(countText)
                 .font(.caption).foregroundStyle(.secondary)

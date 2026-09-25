@@ -33,6 +33,7 @@ struct StatStrip: View {
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine) // « libellé, valeur » en un arrêt
                 .helpIfPresent(item.help)
             }
         }

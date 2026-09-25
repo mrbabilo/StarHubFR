@@ -257,6 +257,10 @@ private struct AttentionCounterTile: View {
                 .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
         }
         .buttonStyle(.plain)
+        // Un arrêt « Mise à jour des mods, 11 », pas le nom du symbole puis
+        // le chiffre puis le libellé.
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)")
     }
 }
 

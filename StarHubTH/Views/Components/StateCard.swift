@@ -17,6 +17,7 @@ struct StateCard: View {
             Image(systemName: icon)
                 .font(.system(size: AppDesign.Icon.md))
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true) // décoratif : le texte dit l'état
             Text(text).font(AppDesign.Font.body).foregroundStyle(.secondary)
             Spacer(minLength: AppDesign.Spacing.sm)
             if let actionTitle {

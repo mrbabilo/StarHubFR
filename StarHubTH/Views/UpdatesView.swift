@@ -189,14 +189,13 @@ struct UpdatesView: View {
                             .padding(.horizontal, AppDesign.Spacing.md)
                             .background(isEnabled ? Color.primary.opacity(0.04) : AppDesign.Color.warning.opacity(0.06))
                             .cornerRadius(10)
+                            .accessibilityElement(children: .contain).accessibilityLabel(update.name) // VoiceOver : groupe nommé par le mod
                         }
                     }
 
-                    // Le silence sur ces mods est ce qui a rendu la fenêtre
-                    // mensongère : « tous à jour » alors que certains n'avaient
-                    // de verdict d'aucune source. Jusqu'à 115 mods du parc réel
-                    // sont dans ce cas — d'où le repli : à plat, la liste
-                    // noierait les mises à jour réelles au-dessus d'elle.
+                    // Mods sans verdict d'aucune source (jusqu'à 115 sur le parc) : les
+                    // taire rendait la fenêtre mensongère ; repliés, pour ne pas noyer
+                    // les mises à jour réelles.
                     if !vm.unverifiableMods.isEmpty {
                         DisclosureGroup {
                             VStack(alignment: .leading, spacing: 3) {
