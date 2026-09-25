@@ -665,9 +665,8 @@ def fetch_changelog(mod_id):
     du Trousseau. La v2 rend le même contenu sans clé — mesuré le 2026-09-25
     sur cinq mods (F9) : `modFiles` donne, **par fichier**, sa version, sa date
     et `changelogText`. Rendu ici au format de la v1, `{version: [lignes]}`,
-    du plus ancien au plus récent : deux fichiers d'une même version fusionnent
-    leurs lignes (dans l'ordre, sans doublon), un fichier sans journal ne crée
-    pas d'entrée — un mod qui n'en publie aucun rend `{}`.
+    du plus ancien au plus récent ; un fichier sans journal ne crée pas
+    d'entrée — un mod qui n'en publie aucun rend `{}`.
     """
     query = ("{ modFiles(modId: %d, gameId: 1303) "
              "{ version date changelogText } }" % int(mod_id))
@@ -682,13 +681,20 @@ def fetch_changelog(mod_id):
     files = (data.get("data") or {}).get("modFiles")
     if files is None:
         return None, "réponse sans modFiles"
+    # Même règle que `NexusModDetailV2.mergeChangelogs` (A3-T7) : un journal
+    # identique sur plusieurs fichiers d'une version compte une fois, un
+    # journal différent ajoute ses lignes neuves — jamais de dédoublonnage à
+    # l'intérieur d'un fichier (SVE répète « . » comme séparateur).
     logs = {}
     for f in sorted(files, key=lambda f: f.get("date") or 0):
         lines = f.get("changelogText") or []
-        if not lines:
+        version = f.get("version")
+        if not lines or not version:
             continue
-        bucket = logs.setdefault(f.get("version") or "?", [])
-        bucket.extend(line for line in lines if line not in bucket)
+        if version not in logs:
+            logs[version] = list(lines)
+        elif lines != logs[version]:
+            logs[version].extend(line for line in lines if line not in logs[version])
     return logs, None
 
 
