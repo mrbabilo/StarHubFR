@@ -45,7 +45,7 @@ struct ModListView: View {
     /// Nombre de mods rendus par page — liste **et** grille, une seule
     /// constante pour les deux dispositions. 12 depuis le 2026-09-09 (15
     /// auparavant), à la demande de l'auteur.
-    private let pageSize: Int = 12
+    let pageSize: Int = 12
     @State var showInstallSheet = false
     /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
     /// se parcourent en rangées denses. `@AppStorage` suit le patron de
@@ -287,8 +287,8 @@ struct ModListView: View {
 
             Divider()
 
-            // ── Scrollable list ──────────────────────────────────────────
-            ScrollView(showsIndicators: false) {
+            // ── Scrollable list — ↑ ↓ Début Fin Entrée (ModListView+Keyboard) ──
+            ScrollViewReader { proxy in ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
                     if filtered.isEmpty {
                         if vm.scanStore.mods.isEmpty {
@@ -370,10 +370,10 @@ struct ModListView: View {
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.lg)
             }
-
+            .focusable().focusEffectDisabled()
+            .onKeyPress(keys: Self.navigationKeys) { handleListKey($0.key, display: display, page: page, proxy: proxy) } }
             // ── Sticky pagination footer ─────────────────────────────────
-            // Stays pinned at the bottom of the view while the list scrolls,
-            // mirroring LogsView's sticky status bar.
+            // Pinned under the scrolling list, like LogsView's status bar.
             if !filtered.isEmpty && !display.isEmpty && pages > 1 {
                 Divider()
                 paginationFooter(total: display.count, shown: paged.count, page: page, totalPages: pages)

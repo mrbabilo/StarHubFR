@@ -65,6 +65,7 @@ let package = Package(
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
+                "Models/ModListKeyStep.swift",
                 "Models/ModDetailCache.swift",
                 "Models/ModDetailState.swift",
                 "Models/ModDetailRefresh.swift",
@@ -688,6 +689,11 @@ let package = Package(
             name: "ModGridCardValuesTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModGridCardValuesTests"
+        ),
+        .testTarget(
+            name: "ModListKeyStepTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModListKeyStepTests"
         ),
         .testTarget(
             name: "ModDetailPagerTests",
