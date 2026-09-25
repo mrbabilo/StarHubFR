@@ -149,3 +149,33 @@ qu'UltraSmooth est actif. Pour l'essayer, couper au moins
 du constat 1), `EnableFTMOptimization` (constat 3) et
 `EnablePreWarmDataLoader` (constat 4), puis comparer deux sessions avec
 Profiler (D1).
+
+## 4. Delta 0.1.1 → 0.1.3 *(2026-09-26)*
+
+Installé sur le parc (toujours en pause). Décompilé contre la DLL 0.1.1
+gardée dans `Backups/ModInstalls` ; aucune nouvelle référence réseau,
+process ou chargement d'assembly (le seul `Process` reste la lecture mémoire
+de `LiveDiagnosticsModule`, déjà là en 0.1.1). 37 modules : deux ajoutés,
+un retiré.
+
+- **Retiré** : `VisibleFishOptimizationModule` — le mod Visible Fish le fait
+  lui-même. Ses deux clés disparaissent du `config.json`. Il patchait trois
+  types internes de Visible Fish (`showFishInWater.*`) : 15 modules touchent
+  désormais l'intérieur d'autres mods, contre 16.
+- **`TMXTilePropertyOptimizationModule`**, activé par défaut : préfixes sur
+  `TMXTile.TMXExtensions.SetRotationValue` et `SetFlip` qui sautent l'écriture
+  quand la valeur vaut 0, plus un balayage à `SaveLoaded` qui retire des
+  cartes du monde les `@Rotation`/`@Flip` valant `"0"`. Cas limite : une
+  tuile déjà tournée qu'on remet à 0 garde son ancienne valeur. Personne
+  d'autre sur le parc ne patche ces méthodes (SLO appelle seulement
+  `TMXExtensions.SetupImageLayer`).
+- **`ItemQueryOptimizationModule`**, activé par défaut : préfixe sur
+  `ItemQueryResolver.TryResolve` qui remplace le résolveur du jeu pour les
+  requêtes `ALL_ITEMS` (1 259 lignes décompilées) et rend la main au jeu
+  quand il ne sait pas. 51 DLL du parc référencent `ItemQueryResolver` : un
+  écart de résultat se verrait dans les boutiques, machines et Automate.
+- **API publique** `IStardropiumApi` (index d'objets et requêtes par tag).
+
+Conclusion pour le parc inchangée : pause tant qu'UltraSmooth est actif. Pour
+l'essayer, ajouter `EnableItemQueryOptimization` aux clés à couper d'abord,
+le temps de vérifier les boutiques.

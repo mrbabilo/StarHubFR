@@ -542,8 +542,9 @@ SOURCES = [
 
     {"key": "mod/stardropium", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 52803, "uniqueId": "Arshia1381.Stardropium",
-     "role": "mod de performances (36 modules, dont 16 patchent des types "
-             "internes d'autres mods) ; paru et audité le 2026-09-25, en pause "
+     "role": "mod de performances (37 modules en 0.1.3, dont 15 patchent des types "
+             "internes d'autres mods) ; paru et audité le 2026-09-25, delta "
+             "0.1.3 audité le 2026-09-26, en pause "
              "sur le parc. SANS UpdateKeys — smapi.io peut rester muet, état "
              "relevé, pas alerte ; 7 méthodes patchées en commun avec UltraSmooth",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},

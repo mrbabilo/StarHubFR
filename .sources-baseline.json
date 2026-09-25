@@ -52,11 +52,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "0b2d0db",
-    "last_commit_at": "2026-09-25T17:11:39Z",
-    "pushed_at": "2026-09-25T17:12:17Z",
-    "release": "v1.49.0",
-    "released_at": "2026-09-24T23:43:41Z"
+    "last_commit": "8cf583e",
+    "last_commit_at": "2026-09-25T21:54:14Z",
+    "pushed_at": "2026-09-25T21:54:18Z",
+    "release": "v1.50.0",
+    "released_at": "2026-09-25T21:54:27Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -82,10 +82,10 @@
     "pushed_at": "2026-03-17T01:20:57Z"
   },
   "mod/event-studio": {
-    "changelog_reviewed": "1.0.0-rc.2",
+    "changelog_reviewed": "1.0.0-rc.3",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.0-rc.2"
+    "version": "1.0.0-rc.3"
   },
   "mod/faster-menu-load": {
     "changelog_reviewed": "1.5.0",
@@ -140,17 +140,17 @@
     "version": null
   },
   "mod/stardropium": {
-    "changelog_reviewed": "0.1.1",
+    "changelog_reviewed": "0.1.3",
     "gitHubRepo": null,
     "name": null,
-    "version": "0.1.1"
+    "version": "0.1.3"
   },
   "mod/stardropium-src": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "bbdd0c0",
-    "last_commit_at": "2026-09-25T12:54:48Z",
-    "pushed_at": "2026-09-25T13:04:05Z"
+    "last_commit": "121b839",
+    "last_commit_at": "2026-09-25T18:49:16Z",
+    "pushed_at": "2026-09-25T18:58:31Z"
   },
   "mod/ultrasmooth": {
     "changelog_reviewed": "2.3.7",
@@ -186,9 +186,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "d9828cb",
-    "last_commit_at": "2026-09-20T19:12:43Z",
-    "pushed_at": "2026-09-20T19:12:44Z"
+    "last_commit": "cfdaf4c",
+    "last_commit_at": "2026-09-25T21:05:41Z",
+    "pushed_at": "2026-09-25T21:05:51Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [
