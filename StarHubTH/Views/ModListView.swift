@@ -495,7 +495,7 @@ struct ModListView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(filters.page == 1)
-                .help(localization.L(L10n.Mods.prevPageHint))
+                .iconHelp(localization.L(L10n.Mods.prevPageHint))
 
                 // Numbered page buttons with ellipsis logic.
                 ForEach(Array(pageSlots(current: page, total: totalPages).enumerated()), id: \.offset) { _, slot in
@@ -532,7 +532,7 @@ struct ModListView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(filters.page == totalPages)
-                .help(localization.L(L10n.Mods.nextPageHint))
+                .iconHelp(localization.L(L10n.Mods.nextPageHint))
             }
 
             Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))

@@ -12,6 +12,7 @@ enum L10n {
         static let sidebarModsWeightActive    = "sidebar_mods_weight_active"
         static let sidebarModsWeightAsleep    = "sidebar_mods_weight_asleep"
         static let sidebarModsWeightA11y      = "sidebar_mods_weight_a11y"
+        static let collapse = "main_collapse", expand = "main_expand", close = "main_close"
         static let account              = "main_account"
         static let groupLibrary = "main_group_library"
         static let groupSaves   = "main_group_saves"

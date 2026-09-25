@@ -166,7 +166,7 @@ struct SavesView: View {
                 .buttonStyle(.plain)
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)
-                .help(localization.L(L10n.Discovery.clearSearch))
+                .iconHelp(localization.L(L10n.Discovery.clearSearch))
             }
         }
         .padding(.horizontal, 6)

@@ -334,7 +334,7 @@ struct BisectionCard: View {
                             Image(systemName: "arrow.right.circle")
                         }
                         .buttonStyle(.plain)
-                        .help(localization.L(L10n.Bisect.showMod))
+                        .iconHelp(localization.L(L10n.Bisect.showMod))
                     }
                     if let sample = suspect.sample {
                         // L'erreur elle-même : un compte ne dit pas ce qui a

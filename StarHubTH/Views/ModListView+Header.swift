@@ -104,7 +104,7 @@ extension ModListView {
                 // `.help` muet (contrainte a11y du lot).
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)
-                .help(localization.L(L10n.Discovery.clearSearch))
+                .iconHelp(localization.L(L10n.Discovery.clearSearch))
             }
         }
         .padding(.horizontal, 6)

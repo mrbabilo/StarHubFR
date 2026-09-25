@@ -134,7 +134,7 @@ struct SmapiHealthCard: View {
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
-                .help(localization.L(L10n.Logs.healthReveal))
+                .iconHelp(localization.L(L10n.Logs.healthReveal))
 
                 if !isHealthy || hasDetails {
                     Button { userCollapsed = !isExpanded } label: {
@@ -142,7 +142,7 @@ struct SmapiHealthCard: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).iconHelp(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
                     .pointingHandCursor()
                 }
             }
@@ -493,7 +493,7 @@ struct SmapiHealthCard: View {
                             }
                             .buttonStyle(.plain)
                             .pointingHandCursor()
-                            .help(localization.L(L10n.Logs.healthShowSection))
+                            .iconHelp(localization.L(L10n.Logs.healthShowSection))
                         }
                     }
                 )

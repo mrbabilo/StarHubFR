@@ -64,7 +64,7 @@ struct ModInstallBackupsView: View {
                         .font(.system(size: 13))
                 }
                 .buttonStyle(.bordered)
-                .help(localization.L(L10n.ModInstall.refreshBackups))
+                .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -165,7 +165,7 @@ struct ModInstallBackupsView: View {
                         .font(AppDesign.Font.caption)
                         .foregroundColor(AppDesign.Color.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).iconHelp(localization.L(L10n.Main.close))
                 .pointingHandCursor()
             }
             StatColumn(label: localization.L(L10n.ModInstall.labelName), value: report.modName)
@@ -248,7 +248,7 @@ struct ModInstallBackupsView: View {
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).iconHelp(localization.L(L10n.Discovery.clearSearch))
                 }
             }
             .padding(.horizontal, 8)
@@ -435,7 +435,7 @@ struct ModInstallBackupsView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
-                    .help(localization.L(L10n.ModInstall.restoreBackup))
+                    .iconHelp(localization.L(L10n.ModInstall.restoreBackup))
 
                     Button {
                         confirmation = .delete(backup)
@@ -446,7 +446,7 @@ struct ModInstallBackupsView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
-                    .help(localization.L(L10n.ModInstall.deleteBackup))
+                    .iconHelp(localization.L(L10n.ModInstall.deleteBackup))
                 }
             }
         }

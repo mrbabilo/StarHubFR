@@ -1568,3 +1568,6 @@
 "mods_translation_lot_merge_nothing_new" = "Ce lot n'apporte rien de nouveau : ni traduction inédite, ni divergence.";
 "mods_translation_lot_merge_refused" = "Refusés";
 "mods_translation_lot_unknown_mod" = "mod absent du parc : %@";
+"main_collapse" = "Replier";
+"main_expand" = "Déplier";
+"main_close" = "Fermer";

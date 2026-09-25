@@ -133,7 +133,7 @@ struct ModInstallView: View {
                     }
                     .buttonStyle(.plain)
                     .pointingHandCursor()
-                    .help(localization.L(L10n.Saves.cancel))
+                    .iconHelp(localization.L(L10n.Saves.cancel))
                 }
 
                 // Drop zone

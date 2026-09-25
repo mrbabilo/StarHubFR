@@ -193,7 +193,7 @@ struct LogsView: View {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                         }.buttonStyle(.plain)
-                         .help(localization.L(L10n.Logs.clearSearchHint))
+                         .iconHelp(localization.L(L10n.Logs.clearSearchHint))
                     }
                 }
                 .padding(.horizontal, AppDesignCore.Spacing.sm)
@@ -215,7 +215,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Logs.autoScrollHint))
+                .iconHelp(localization.L(L10n.Logs.autoScrollHint))
 
                 // Copy
                 Button {
@@ -235,7 +235,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Logs.copyAll))
+                .iconHelp(localization.L(L10n.Logs.copyAll))
 
                 // Group by mod
                 Button { groupByMod.toggle() } label: {
@@ -249,7 +249,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Logs.groupByMod))
+                .iconHelp(localization.L(L10n.Logs.groupByMod))
 
                 // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
                 Button {
@@ -265,7 +265,7 @@ struct LogsView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Logs.refreshHint))
+                .iconHelp(localization.L(L10n.Logs.refreshHint))
 
                 // Clear app logs (destructive — confirmed via dialog below)
                 Button(localization.L(L10n.Logs.clearLogs)) {

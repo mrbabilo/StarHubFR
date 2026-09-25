@@ -136,7 +136,7 @@ struct ModKeybindField: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Settings.configKeybindClear))
+                .iconHelp(localization.L(L10n.Settings.configKeybindClear))
             }
         }
         .onDisappear { disarm() }

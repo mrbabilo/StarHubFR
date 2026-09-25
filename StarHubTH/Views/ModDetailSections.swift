@@ -86,7 +86,7 @@ struct SupplementSection: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(localization.L(L10n.Mods.searchClose))
+                    .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     Text(localization.L(L10n.Mods.nexusNoApiKey))
@@ -525,7 +525,7 @@ struct TranslationSection: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(localization.L(L10n.Mods.searchClose))
+                .iconHelp(localization.L(L10n.Mods.searchClose))
                 .pointingHandCursor()
             } else if !vm.hasNexusApiKey {
                 // Écrit, pas seulement en infobulle : AppKit ne garantit pas
@@ -650,7 +650,7 @@ struct NexusIdentitySection: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(localization.L(L10n.Mods.searchClose))
+                    .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     // Écrit, pas seulement en infobulle : AppKit ne garantit
@@ -738,7 +738,7 @@ struct NexusIdentitySection: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help(localization.L(L10n.Mods.translationOpenNexus))
+            .iconHelp(localization.L(L10n.Mods.translationOpenNexus))
             .pointingHandCursor()
             Button(localization.L(L10n.Mods.nexusIdentityAdopt)) {
                 vm.adoptNexusIdentity(candidate, for: mod)

@@ -83,7 +83,7 @@ struct DiscoverView: View {
             } label: {
                 Image(systemName: "magnifyingglass")
             }
-            .help(localization.L(L10n.Main.search))
+            .iconHelp(localization.L(L10n.Main.search))
             .disabled(searchText.trimmingCharacters(in: .whitespaces).isEmpty)
             if !searchText.isEmpty || vm.discoverySearch != nil {
                 Button {
@@ -93,7 +93,7 @@ struct DiscoverView: View {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.borderless)
-                .help(localization.L(L10n.Discovery.clearSearch))
+                .iconHelp(localization.L(L10n.Discovery.clearSearch))
             }
         } trailing: {
             categoryPicker
@@ -109,7 +109,7 @@ struct DiscoverView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help(localization.L(L10n.Discovery.refresh))
+            .iconHelp(localization.L(L10n.Discovery.refresh))
             .disabled(vm.discoveryLoading)
         }
     }

@@ -1568,3 +1568,6 @@
 "mods_translation_lot_merge_nothing_new" = "This lot brings nothing new: neither a new translation nor a divergence.";
 "mods_translation_lot_merge_refused" = "Refused";
 "mods_translation_lot_unknown_mod" = "mod missing from the library: %@";
+"main_collapse" = "Collapse";
+"main_expand" = "Expand";
+"main_close" = "Close";

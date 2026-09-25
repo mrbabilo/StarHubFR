@@ -274,7 +274,7 @@ struct ModListRow: View {
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
-                .help(note)
+                .iconHelp(note)
                 .popover(isPresented: $showingNote, arrowEdge: .bottom) {
                     attributePopover(title: localization.L(L10n.Mods.noteTitle),
                                      systemImage: "note.text",

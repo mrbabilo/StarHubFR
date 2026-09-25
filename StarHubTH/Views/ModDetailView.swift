@@ -361,7 +361,7 @@ struct ModDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(help)
+                .iconHelp(help)
             } else {
                 Image(systemName: icon)
                     .font(.system(size: AppDesign.Icon.sm))
