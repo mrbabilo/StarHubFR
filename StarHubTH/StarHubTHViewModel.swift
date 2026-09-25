@@ -2209,10 +2209,9 @@ final class StarHubTHViewModel {
     // `pendingToggles`/`isToggling`.
     @MainActor
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
-        // Refuse individual toggles while a bulk enable/disable-all is in
-        // flight — concurrent moves on the same folders could lose a mod.
-        // Ni pendant le chiffrage d'un « Tout désactiver » (store pris hors
-        // de la file unitaire) : il écraserait la suspension en attente.
+        // Refused during a bulk toggle (concurrent moves could lose a mod), and
+        // during a « Tout désactiver » estimate (it would overwrite the pending
+        // suspension).
         guard bulkToggleProgress == nil,
               isToggling || !saveFingerprintPauseStore.isBusy else {
             completion?()
@@ -2242,22 +2241,16 @@ final class StarHubTHViewModel {
         completion: (() -> Void)? = nil,
         fingerprintChecked: Bool = false
     ) {
-        // Le QUOI — quels dossiers, quel état visé — vit dans `TogglePlan`
-        // (Core, testé) : rapprochement enfant de pack → dossier de premier
-        // niveau, re-dérivation de l'état depuis l'instantané `mods` (le mod
-        // a été capturé par valeur à l'empilement), chaînage des dépendances
-        // requises. Ici ne reste que le COMMENT : les renommages disque et
-        // la publication.
+        // Le QUOI dans `TogglePlan` (Core) : dossier de premier niveau, état
+        // re-dérivé de `mods`, chaînage des dépendances. Ici le COMMENT.
         let plan = TogglePlan.make(mod: mod, mods: mods, chain: chainToggleDependencies)
         let targetState = plan.targetState
         let foldersToToggle = plan.folders
 
-        // A1-T8 — mettre en pause n'efface pas ce que le mod a laissé dans
-        // les sauvegardes. Avant le premier renommage d'une bascule vers
-        // pause, chiffrer les empreintes réelles du plan ; le store suspend
-        // la bascule derrière la confirmation si le rapport n'est pas vide.
-        // La reprise (confirmer, ou reprise sans empreinte) repasse par ici
-        // avec `fingerprintChecked: true` — jamais deux scans pour un geste.
+        // A1-T8 — une pause n'efface pas les traces dans les sauvegardes : avant
+        // le premier renommage, chiffrer les empreintes ; le store suspend
+        // derrière une confirmation. La reprise revient avec
+        // `fingerprintChecked: true` — jamais deux scans.
         if !targetState && !fingerprintChecked {
             // Composants compris : l'en-tête d'un pack n'a pas d'uid.
             let planIDs = mods.uniqueIds(inTopFolders: Set(foldersToToggle))
@@ -2281,61 +2274,42 @@ final class StarHubTHViewModel {
             guard let m = self.mods.first(where: { $0.folderName == folderName }) else { continue }
             if m.isEnabled == targetState { continue }
 
-            // Defensive: a missing folderName would yield dstName == ".",
-            // which `moveItem` rejects (the path is a directory, not a
-            // file — macOS refuses to rename to a single dot). The scan
-            // (§J parseModFolder) should never produce such an entry, but
-            // a custom override or a corrupted manifest could.
+            // Defensive: an empty folderName would rename to ".", which fails.
             guard !m.folderName.isEmpty else {
                 log("Skipping toggle: empty folderName for \(m.name)", level: .error)
                 continue
             }
 
-            // Dot-prefix toggle: a rename WITHIN Mods/ flips enabled↔disabled.
-            // `physicalFolderName` carries the current state's prefix; the
-            // destination uses the opposite prefix. Both paths share the same
-            // parent (Mods/), so the rename is atomic and O(1) — no folder
-            // copy, no freeze on large mods.
+            // Dot-prefix toggle: an atomic, O(1) rename within Mods/.
             let srcPath = (modsPath as NSString).appendingPathComponent(m.physicalFolderName)
             let dstName = targetState ? m.folderName : "." + m.folderName
             let destPath = (modsPath as NSString).appendingPathComponent(dstName)
 
-            // self.mods can be stale if another toggle's background scanMods()
-            // (see the completion-driven dispatch below) hasn't landed yet.
-            // Trust the filesystem over the cached isEnabled flag: if the
-            // source is already gone, this mod was already renamed by a prior
-            // call — skip instead of operating on a non-existent path.
+            // `mods` can be stale: trust the filesystem; a missing source was
+            // already renamed by a prior call.
             guard fm.fileExists(atPath: srcPath) else {
                 log("Skipping toggle for \(m.name): source folder missing at \(srcPath) (likely already renamed by a concurrent toggle)", level: .warning)
                 continue
             }
 
             do {
-                // ⚠️ Une collision à destination n'est PAS forcément un résidu
-                // de bascule plantée : `folderName` est logique, et deux mods
-                // différents peuvent le partager — `X` actif et `.X` en pause.
-                // La règle, le dossier écarté et le retour arrière vivent dans
-                // `renameModFolder`, partagé avec la bascule en masse et
-                // l'application d'un profil.
+                // ⚠️ Une collision n'est PAS forcément un résidu : `X` actif et `.X` en
+                // pause peuvent coexister. Règle et retour arrière dans
+                // `renameModFolder` (partagé).
                 try renameModFolder(from: srcPath, to: destPath,
                                     destinationName: dstName,
                                     uniqueId: m.uniqueId, fm: fm)
 
                 anyMoved = true
-                // Le poids mesuré suit le renommement : la clé physique
-                // change, le contenu non. `m` est encore à son ancien état —
-                // sa clé physique est l'ancienne, `dstName` la nouvelle.
-                // Sans ce déplacement, fiche et rangées perdraient le poids
-                // jusqu'au prochain scan complet.
+                // Le poids suit le renommage (clé physique change, contenu non) ; `m`
+                // porte l'ancienne clé.
                 self.scanStore.renameSizeKey(from: m.physicalFolderName, to: dstName)
                 if targetState {
                     self.modActivationTimestamps[folderName] = Date()
                 }
             } catch {
-                // P5-T9 : l'échec d'un rollback raté remonte dans l'erreur au
-                // lieu d'être journalisé sur place — c'est ici qu'on sait
-                // écrire au journal, et la ligne CRITICAL ne vit qu'à un
-                // endroit (`rollbackCriticalLog`).
+                // P5-T9 : l'échec d'un rollback remonte ; la ligne CRITICAL vit dans
+                // `rollbackCriticalLog`.
                 if let critical = (error as? ModFolderRenameFailure)?.rollbackCriticalLog {
                     log(critical, level: .error)
                 }
@@ -2348,21 +2322,12 @@ final class StarHubTHViewModel {
                 Self.saveModActivationTimestamps(self.modActivationTimestamps)
             }
             log("\(targetState ? localization.L(L10n.Mods.enabled) : localization.L(L10n.Mods.disabled)): \(mod.name)\(foldersToToggle.count > 1 ? " + Dependencies" : "")")
-            // A toggle only renames Mods/X ↔ Mods/.X in place — every other
-            // mod attribute (name, version, dependencies, …) is unchanged. So
-            // instead of re-walking the whole Mods/ tree (O(total files), which
-            // takes several seconds for large mod collections), flip the
-            // affected mods' isEnabled in memory and rebuild the lightweight
-            // dependency index. `physicalFolderName` is computed from
-            // isEnabled, so it immediately reflects the renamed folder. The
-            // next full scan (launch / refresh / install / delete) reconciles
-            // against the disk. Done on the main thread: it's an O(toggled) map
-            // over self.mods, cheaper than the UI refresh it triggers.
+            // A toggle only renames in place: flip `isEnabled` in memory and rebuild
+            // the dependency index instead of re-walking Mods/ (seconds). The next
+            // full scan reconciles. On main: O(toggled).
             DispatchQueue.main.async { [weak self] in
                 guard let self else {
-                    // Self is gone — the queue runner is dead anyway. Try to
-                    // honour the completion so callers don't hang waiting on
-                    // a toggle that will never finish.
+                    // Self is gone: still honour the completion so callers don't hang.
                     completion?()
                     return
                 }
@@ -2376,20 +2341,15 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Resolves a message key with an optional format detail — the
-    /// counterpart to `SmapiInstaller`'s `(Bool, String, String?)`
-    /// completion, since only this class (not `SmapiInstaller`) can
-    /// translate.
+    /// Resolves a message key + detail for `SmapiInstaller` (only the VM
+    /// translates).
     private func resolveSmapiMessage(_ key: String, _ detail: String?) -> String {
         guard let detail = detail else { return self.localization.L(key) }
         return String(format: self.localization.L(key), detail)
     }
 
-    // Install SMAPI via Installer Helper
-    //
-    // La complétion est `@Sendable` (P5-L4) : son corps n'a pas d'isolation,
-    // les touches au VM passent par un hop `Task { @MainActor in }` — en
-    // pratique `SmapiInstaller` l'invoque déjà depuis le main.
+    // Install SMAPI via Installer Helper. Complétion `@Sendable` (P5-L4) :
+    // les touches au VM passent par `Task { @MainActor in }`.
     func installSmapi() {
         smapiInstaller.install(gameDir: gameDir) { success, key, detail in
             Task { @MainActor in
@@ -2421,16 +2381,9 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Cadrage de la liste des mods : recherche, filtres, tri, page courante.
-    ///
-    /// Ici et non en `@State` de `ModListView` pour la même raison que
-    /// `pendingModFocus` : ouvrir une fiche mod *remplace* la liste (voir
-    /// `MainView`), donc la vue est détruite et son état local avec. Tri,
-    /// filtres et page repartaient à zéro dès qu'on ouvrait un mod.
-    ///
-    /// Objet observable à part, et **non** `@Published` ici : sinon chaque
-    /// lettre tapée dans la recherche publierait à toute la fenêtre. Voir
-    /// `ModListState`.
+    /// Cadrage de la liste (recherche, filtres, tri, page) : ici, pas en
+    /// `@State`, car ouvrir une fiche détruit `ModListView`. Objet à part :
+    /// sinon chaque lettre tapée publierait à toute la fenêtre.
     let modList = ModListState()
 
     var selectedModID: String? = nil {
@@ -2442,30 +2395,23 @@ final class StarHubTHViewModel {
     }
     // Launch Stardew Valley (with selected profile)
     ///
-    /// - Parameter honoringCloseAfterLaunch: whether the user's "quit StarHubFR
-    ///   after launching" setting applies. Defaults to `true` — the Home button
-    ///   behaves exactly as before. The guided search passes `false`: it starts
-    ///   the game at *every* step and needs to still be running when the player
-    ///   comes back to answer, otherwise the app would quit mid-search and leave
-    ///   the mod list half-paused.
+    /// - Parameter honoringCloseAfterLaunch: the guided search passes `false`
+    ///   so the app keeps running between its steps.
     func launchGame(honoringCloseAfterLaunch: Bool = true) {
         guard !gameDir.isEmpty else {
             showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return
         }
-        // Première couche : le jeu tourne déjà — refus net. La seconde
-        // instance corromprait les sauvegardes (deux processus sur les mêmes
-        // fichiers). Ce passage rouvre aussi le gate : le jeu étant visible,
-        // la protection repose désormais sur cette seule garde.
+        // Couche 1 : jeu déjà lancé — refus (deux processus corrompraient les
+        // sauvegardes). Rouvre aussi le gate.
         guard !isGameRunning() else {
             let message = self.localization.L(L10n.VM.launchRefusedRunning)
             log(message, level: .warning)
             showModal(message: message)
             return
         }
-        // Seconde couche : la fenêtre aveugle — le jeu vient d'être lancé et
-        // n'apparaît pas encore dans `runningApplications`. Un double-clic
-        // passerait la garde ci-dessus ; le délai le retient.
+        // Couche 2 : fenêtre aveugle avant `runningApplications` ; le délai
+        // retient un double-clic.
         guard launchGate.admit() else {
             let message = self.localization.L(L10n.VM.launchRefusedRecent)
             log(message, level: .warning)
@@ -2495,11 +2441,8 @@ final class StarHubTHViewModel {
             }
         } else {
             log(localization.L(L10n.VM.launchingSmapi))
-            // Route through Steam ONLY for an actual Steam install. NSWorkspace.open(steam://)
-            // returns true whenever Steam is installed at all, so an unconditional attempt
-            // hijacks direct/GOG launches (Steam opens, the game never starts). Detect a
-            // Steam install by its path signature — matches detectDefaultGameDir() and holds
-            // for custom Steam library folders too (they still contain `steamapps`).
+            // Steam only for an actual Steam install (`steamapps` in the path):
+            // `steam://` succeeds whenever Steam exists and would hijack GOG/direct.
             let isSteamInstall = gameDir.contains("steamapps")
             if isSteamInstall, let steamURL = URL(string: "steam://run/413150"),
                NSWorkspace.shared.open(steamURL) {
@@ -2509,12 +2452,8 @@ final class StarHubTHViewModel {
                 return
             }
 
-            // Direct/GOG install: run SMAPI's launcher in place. SMAPI's installer replaced
-            // `StardewValley` with its own launcher (vanilla backed up as
-            // `StardewValley-original`), so invoking it starts SMAPI. Mirrors the
-            // confirmed-working Vanilla branch above; using bash rather than
-            // NSWorkspace.open(.app) also sidesteps the bundle code signature that SMAPI's
-            // in-place replacement invalidates (which Gatekeeper can block).
+            // Direct/GOG: run SMAPI's launcher in place (it replaced `StardewValley`)
+            // via bash, avoiding the code signature SMAPI invalidates.
             let smapiLauncher = (gameDir as NSString).appendingPathComponent("StardewValley")
             if FileManager.default.fileExists(atPath: smapiLauncher) {
                 let process = Process()
@@ -2558,14 +2497,8 @@ final class StarHubTHViewModel {
         }
     }
     
-    /// Shared formatter (DateFormatter allocation is expensive when logging frequently).
-    ///
-    /// `nonisolated(unsafe)` nomme un partage **qui existe déjà** : `log` est
-    /// `nonisolated` et les cinq appelants du chemin de scan l'appellent
-    /// depuis une file de fond. Ce qui rend le partage sûr n'est pas une
-    /// convention du dépôt mais le contrat d'Apple — `DateFormatter` est
-    /// thread-safe **en formatage** ; ce qui ne l'est pas, c'est le
-    /// reconfigurer. Il est configuré une fois, ici, puis seulement lu.
+    /// Shared formatter. `nonisolated(unsafe)` : `DateFormatter` est
+    /// thread-safe en formatage ; configuré une fois ici, puis seulement lu.
     nonisolated(unsafe) private static let logTimeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm:ss"
@@ -2576,21 +2509,16 @@ final class StarHubTHViewModel {
         logStore.append(entry)
     }
 
-    /// `nonisolated` (P5, tranche d'isolation) : ce corps **était déjà écrit
-    /// pour le hors-main** — la branche `Thread.isMainThread` le dit depuis
-    /// toujours. C'est l'étiquette `@MainActor`, héritée de l'isolation de la
-    /// classe entière en L2, qui mentait : les cinq appelants du chemin de
-    /// scan journalisent depuis une file de fond. La rendre `nonisolated`
-    /// aligne la déclaration sur ce que la fonction fait, et permet aux
-    /// méthodes de fond de rester `nonisolated` à leur tour.
+    /// `nonisolated` (P5) : corps écrit pour le hors-main
+    /// (`Thread.isMainThread`) ; les appelants du scan journalisent depuis
+    /// une file de fond.
     nonisolated func log(_ message: String, level: LogLevel = .info) {
         let timestamp = Self.logTimeFormatter.string(from: Date())
         let entry = LogEntry(timestamp: timestamp, message: message, level: level, source: .app)
 
         if Thread.isMainThread {
-            // Sur le main sans en avoir la preuve statique : l'affirmer borne
-            // l'exception à cette ligne, et garde l'écriture **synchrone** —
-            // l'ordre du journal est ce que l'utilisateur lit.
+            // Sur main sans preuve statique : écriture **synchrone** pour garder
+            // l'ordre du journal.
             MainActor.assumeIsolated { appendLogEntry(entry) }
         } else {
             DispatchQueue.main.async {
@@ -2603,14 +2531,8 @@ final class StarHubTHViewModel {
 
     // MARK: - SMAPI Log Reader
 
-    /// Load SMAPI-latest.txt once when Logs tab is opened.
-    /// No live polling — SMAPI doesn't flush continuously anyway.
-    /// Reading + line-by-line parsing of the SMAPI log runs off the main
-    /// thread — the file can be large, and this used to block the UI on
-    /// every call (refresh button, watcher start).
-    /// Recharge le journal SMAPI. `completion` s'exécute sur le thread principal
-    /// **après** publication des diagnostics : sans elle, un appelant qui lit
-    /// `smapiDiagnostics` juste après jugerait encore sur la session précédente.
+    /// Loads SMAPI-latest.txt off main, on demand (no polling). `completion`
+    /// runs on main **after** diagnostics are published.
     func loadSmapiLog(completion: (@Sendable () -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.parseAndAppendSmapiLog(completion: completion)
@@ -2627,63 +2549,31 @@ final class StarHubTHViewModel {
 
         let entries = SmapiLogParser.parse(text)
 
-        // Trim to the memory cap by dropping TRACE noise, not by cutting the
-        // head of the file.
-        //
-        // A real log is ~90 % TRACE and can run past 4000 lines, while SMAPI
-        // writes its whole diagnostic (skipped mods, save-serializer warnings,
-        // failed integrations) at *startup* — i.e. at the top. Keeping the last
-        // N lines therefore threw away exactly the lines that matter: they
-        // stayed in the diagnostics card (which parses the full file) but
-        // vanished from the log list, so the two disagreed.
-        //
-        // Cet écrêtage-ci est celui du travail : il borne ce que la passe
-        // d'imputation ci-dessous a à parcourir. Le plafond qui décide de
-        // l'affichage, lui, est appliqué par `LogStore` — c'est lui qui
-        // connaît le compte des entrées de l'app.
+        // Trim by dropping TRACE, not the head: SMAPI writes its diagnostic at
+        // startup, so cutting the head hid the lines that matter. Borne le
+        // travail ; le plafond d'affichage vit dans `LogStore`.
         let trimmedEntries = LogBudget.trimPreservingSignal(entries, cap: LogStore.defaultCap)
 
         DispatchQueue.main.async {
-            // Les imputations **devinées** dans le préfixe d'un message sont
-            // confrontées au parc, ici et pas dans le parseur : celui-ci tourne
-            // sur `DispatchQueue.global`, où `mods` n'est pas lisible. Sans
-            // cette passe, « You can update 1 mod » et « Galaxy auth failure »
-            // s'affichaient en pastille cliquable menant nulle part, et en
-            // groupe « par mod » qui n'était pas un mod (3 cas sur le journal
-            // de l'auteur, tous faux). Le crochet de SMAPI, lui, n'est jamais
-            // remis en cause.
-            //
-            // Parc vide (dossier de jeu non défini, scan pas encore fini) : on
-            // ne juge rien plutôt que de tout déclarer inconnu — sinon
-            // l'imputation disparaîtrait aussi des lignes qui la méritent.
+            // Imputations **devinées** confrontées au parc ici (`mods` illisible
+            // dans le parseur) : sinon pastilles vers nulle part (3 faux cas). Le
+            // crochet de SMAPI n'est jamais remis en cause. Parc vide : on ne juge
+            // rien.
             let displayed = self.mods.isEmpty
                 ? trimmedEntries
                 : SmapiLogParser.dismissingUnknownInferredMods(trimmedEntries) { name in
                     self.resolveModFolder(forLoggedName: name) != nil
                 }
-            // Remplace le bloc SMAPI et le budgète sur ce que les entrées de
-            // l'app laissent — les deux règles vivent dans `LogBudget`, avec
-            // leurs deux bugs historiques.
+            // Remplace et budgète le bloc SMAPI (`LogBudget`).
             self.logStore.replaceSmapi(with: displayed)
-            // Les conflits Content Patcher se lisent sur `entries` (le parse
-            // complet), pas sur la liste écrêtée : le cap sacrifie les TRACE
-            // en premier, donc les ERROR de conflit survivraient sans doute,
-            // mais lire la liste complète retire la question — elle est déjà
-            // sous la main ici. La date du constat est `logDate`, publiée
-            // dans le même appel : le store garantit qu'elles ne divergent
-            // pas, ce que deux affectations voisines ne garantissaient que
-            // par convention.
-            // ⚠️ `outOfDate` se relit **ici aussi** : ce chemin republiait une
-            // date fraîche en laissant la liste du dernier scan (même trou
-            // que celui bouché juste au-dessus pour les conflits). `text` est
-            // le fichier entier, non écrêté, qu'exige `updates(in:)`.
+            // Conflits lus sur `entries` (parse complet) ; date et conflits publiés
+            // ensemble par le store. ⚠️ `outOfDate` relu **ici aussi** (fichier
+            // entier) : sinon date fraîche, liste du dernier scan.
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
                                    isStale: smapiStale,
                                    conflicts: ContentPatcherConflicts.read(from: entries),
                                    outOfDate: SmapiLogParser.updates(in: text))
-            // Fold this log into the per-version error history. Uses `entries`
-            // (the full parse), not the capped list: the display cap must not
-            // cost us recorded errors.
+            // Error history from the full parse: the display cap must not drop errors.
             self.recordErrorHistory(from: entries, logDate: smapiDate)
             completion?()
         }
@@ -2692,27 +2582,20 @@ final class StarHubTHViewModel {
     // MARK: - Per-mod error history
 
     // MARK: Historique d'erreurs — le store du sous-domaine (cadrage §4,
-    // domaine 2, tranche 3). Il tient lui-même la garde « rien ne se mute
-    // avant le chargement », qui vivait ici sous forme de deux
-    // `if errorHistoryLoaded` posés au point d'appel.
+    // domaine 2, tranche 3) : garde « rien avant le chargement » dans le store.
     private let errorHistory = ErrorHistoryStore()
 
-    /// Per-mod, per-version error history (see `ModErrorHistory`). Loaded once,
-    /// then kept in memory; the mod detail view reads it.
+    /// Per-mod, per-version error history, loaded once.
     var modErrorHistory: ModErrorHistory { errorHistory.history }
 
-    /// Folds a parsed SMAPI log into the error history and persists it.
-    ///
-    /// Skips logs already folded in: the same file is re-read on every tab open
-    /// and refresh, which would otherwise inflate every count. A log with no
-    /// date is skipped too — without one we can't tell repeats apart.
+    /// Folds a SMAPI log into the error history and persists it. Skips logs
+    /// already folded (re-read on every open) and undated ones.
     private func recordErrorHistory(from entries: [LogEntry], logDate: Date?) {
         errorHistory.loadIfNeeded()
         guard let logDate,
               SmapiHealthFold.shouldFold(logDate: logDate,
                                          lastFolded: errorHistory.lastFoldedDate) else { return }
-        // `resolveModFolder` a besoin du parc : c'est pour ça que cette
-        // fonction reste au ViewModel. La règle, elle, est en Core.
+        // `resolveModFolder` a besoin du parc ; la règle est en Core.
         let observations = SmapiHealthFold.observations(from: entries) { name in
             guard let mod = resolveModFolder(forLoggedName: name) else { return nil }
             return .init(folderName: mod.folderName, version: mod.version)
@@ -2720,57 +2603,31 @@ final class StarHubTHViewModel {
         errorHistory.fold(observations, at: logDate)
     }
 
-    /// Écrit l'historique d'erreurs et dit quand l'écriture échoue : cette
-    /// donnée est accumulée et ne se rebâtit pas (le journal SMAPI suivant
-    /// écrase le précédent). Une panne silencieuse ne se verrait qu'au
-    /// lancement suivant — convention des stores voisins, l'appelant doit
-    /// le dire.
-    /// Maps a name as SMAPI logged it to an installed mod. SMAPI logs the
-    /// manifest's display name, which usually matches but isn't guaranteed to,
-    /// hence the tolerant containment match used elsewhere for mod jumps.
-    /// Relie le nom qu'un mod porte dans le journal au `ModItem` installé.
-    /// Non privé : la recherche guidée croise les erreurs relevées avec les
-    /// dossiers actifs, ce qui exige la même correspondance.
+    /// Relie un nom journalisé au `ModItem` installé. Non privé : la
+    /// recherche guidée l'utilise aussi.
     func resolveModFolder(forLoggedName name: String) -> ModItem? {
         let all = mods.flattenedMods
-        // Égalité exacte (insensible à la casse) d'abord — SMAPI journalise le
-        // `Name` du manifeste, donc le cas courant se résout sans ambiguïté.
+        // Égalité exacte (insensible à la casse) d'abord.
         if let exact = all.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
             return exact
         }
-        // Repli tolérant : SMAPI peut tronquer ou orner le nom. Parmi ceux qui
-        // le contiennent, le nom le plus court est le plus spécifique — un nom
-        // long qui le contient (ex. « Farm » vs « FarmExpansion ») est
-        // probablement un autre mod, que le premier-venu renvoyait à tort.
+        // Repli : le plus court des noms contenant — « FarmExpansion » est
+        // sûrement un autre mod que « Farm ».
         let containing = all.filter { $0.name.localizedCaseInsensitiveContains(name) }
         return containing.min(by: { $0.name.count < $1.name.count })
     }
 
-    /// Les `folderName` logiques des packs d'un conflit, dans l'ordre du message.
-    ///
-    /// Content Patcher imprime des **noms d'affichage** (« Unlockable Bundles »),
-    /// pas des `folderName` — sans ce pont, un conflit ne peut pas être comparé
-    /// à `mods`. **Un nom non résolu est conservé tel quel**, pas jeté : mieux
-    /// vaut un conflit approximativement nommé qu'un conflit tu. L'appelant
-    /// distingue les deux en testant l'appartenance à `mods`.
+    /// `folderName` logiques d'un conflit, dans l'ordre du message (CP imprime
+    /// des noms d'affichage). **Non résolu = gardé tel quel** : mieux qu'un
+    /// conflit tu ; l'appelant teste l'appartenance à `mods`.
     func conflictFolderNames(_ conflict: LoadConflict) -> [String] {
         conflict.packs.map { resolveModFolder(forLoggedName: $0)?.folderName ?? $0 }
     }
 
-    /// La paire canonique d'un conflit du journal, quand il en représente
-    /// une. `nil` pour un `betweenPacks` à plus de deux packs (forme
-    /// « Multiple content packs want to load… ») : `ModConflictPair` ne
-    /// modélise qu'une paire de deux, et choisir laquelle des C(n,2) paires
-    /// internes représenterait le groupe serait une décision de
-    /// modélisation que rien n'impose. Un tel conflit n'est donc jamais
-    /// filtré par un verdict, dans aucun des deux sens (voir le commentaire
-    /// de tête de `ModConflictSection`, qui documente ce cas limite).
-    ///
-    /// Extrait ici (tâche 9, ex-`ModConflictSection.pair(_:)`) : `Signaler`/
-    /// `Écarter` sur la fiche d'un mod et `conflictWarning(for:)` en ont
-    /// aussi besoin — deux copies de cette correspondance auraient fini par
-    /// diverger (le dépôt en a déjà payé le prix ailleurs, voir la fiche
-    /// mémoire sur les copies d'`isOsJunk`).
+    /// Paire canonique d'un conflit ; `nil` au-delà de deux packs (aucune
+    /// paire ne représente le groupe, jamais filtré par un verdict — voir
+    /// `ModConflictSection`). Une seule copie : fiche et
+    /// `conflictWarning(for:)` s'en servent aussi.
     func conflictPair(for conflict: LoadConflict) -> ModConflictPair? {
         let names = conflictFolderNames(conflict)
         switch conflict.kind {
@@ -2783,8 +2640,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Chemin du journal SMAPI. Non privé : la recherche guidée surveille sa
-    /// date de modification pour rafraîchir l'affichage pendant une partie.
+    /// Chemin du journal SMAPI ; la recherche guidée surveille sa date.
     var smapiLogPath: String {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
         return (homeDir as NSString).appendingPathComponent(
@@ -2792,11 +2648,8 @@ final class StarHubTHViewModel {
         )
     }
 
-    /// Parses structured diagnostics + staleness from SMAPI-log content that was
-    /// already read by the caller (no second file read). Safe off-main:
-    /// `SmapiDiagnostics.parse` is pure and the mtime lookup is a single stat.
-    /// Reused by both `parseSMAPILog` (scan/refresh) and `parseAndAppendSmapiLog`
-    /// (reload button) so the health card refreshes on either path.
+    /// Diagnostics + staleness from already-read log content; safe off-main.
+    /// Shared by `parseSMAPILog` and `parseAndAppendSmapiLog`.
     nonisolated private func computeSmapiDiagnostics(logContent: String, atPath path: String,
                                         onProgress: ((Double) -> Void)? = nil)
     -> (SmapiDiagnostics, Date?, Bool) {
@@ -2813,8 +2666,7 @@ final class StarHubTHViewModel {
 
     func startSmapiLogWatcher() { loadSmapiLog() }
 
-    /// Retained for `LogsView.onDisappear`. SMAPI logs are loaded on demand via
-    /// `loadSmapiLog()` (no live polling / file handle to tear down).
+    /// Kept for `LogsView.onDisappear`; nothing to tear down.
     func stopSmapiLogWatcher() {}
 
     // MARK: - Nexus Mods update checking
@@ -2823,21 +2675,16 @@ final class StarHubTHViewModel {
     func setNexusApiKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        // Ne déclarer la clé configurée que si la Keychain l'a acceptée : sinon
-        // l'UI affichait « configurée » et le prochain check partait en .noApiKey
-        // (Keychain locked, quota, sandbox).
+        // « Configurée » seulement si la Keychain accepte.
         if NexusUpdateChecker.shared.setApiKey(trimmed) {
-            // Le statut appartient à la clé : une nouvelle clé, un nouveau
-            // compte, éventuellement d'un autre type — `keyAccepted()` les
-            // pose ensemble.
+            // Nouvelle clé, nouveau compte : `keyAccepted()` pose les deux.
             accountStore.keyAccepted()
             refreshNexusAccount()
         }
     }
 
-    /// Relit le dernier quota Nexus relevé. Appelé à l'ouverture des réglages
-    /// et sur `NexusUpdateChecker.quotaDidChange` : l'app ne parle à l'API Nexus
-    /// qu'à la demande, la valeur ne bouge donc qu'après une action.
+    /// Relit le dernier quota (réglages, `quotaDidChange`) ; il ne bouge
+    /// qu'après une action.
     func refreshNexusQuota() {
         accountStore.setQuota(NexusUpdateChecker.shared.cachedQuota())
     }
@@ -2845,8 +2692,7 @@ final class StarHubTHViewModel {
     /// Redemande à Nexus si ce compte est premium.
     func refreshNexusAccount() {
         guard hasNexusApiKey || NexusUpdateChecker.shared.apiKey()?.isEmpty == false else { return }
-        // Complétion `@Sendable` (P5-L4) : la touche au magasin passe par un
-        // hop `Task { @MainActor in }`, comme `installSmapi`.
+        // Complétion `@Sendable` (P5-L4) : hop `Task { @MainActor in }`.
         NexusUpdateChecker.shared.fetchAccount { [weak self] account in
             guard let account else { return }
             Task { @MainActor in self?.accountStore.setAccount(account) }
@@ -2856,9 +2702,8 @@ final class StarHubTHViewModel {
     /// Removes the stored Nexus Mods API key.
     func clearNexusApiKey() {
         NexusUpdateChecker.shared.clearApiKey()
-        // Clé, compte et quota partent ensemble — et eux seuls : les mises à
-        // jour ne doivent rien à la clé, qui ne sert plus qu'au
-        // téléchargement intégré et aux fiches.
+        // Clé, compte et quota partent ensemble — les mises à jour n'en dépendent
+        // pas.
         accountStore.clearKey()
         nexusCategories = [:]
         nexusModExtras = [:]
@@ -2866,21 +2711,10 @@ final class StarHubTHViewModel {
     }
 
     /// Demande à smapi.io, en un appel groupé, s'il existe plus récent.
-    ///
-    /// L'app ne compare plus de numéros : smapi.io le fait, en tenant compte
-    /// des `UpdateKeys` du mod (Nexus, GitHub, CurseForge, ModDrop) et en
-    /// jugeant chaque composant d'un pack sur *sa* version. Ce que l'app
-    /// fournit, c'est la version qu'elle **affirme** installée — d'ancre s'il
-    /// y en a une, de manifest sinon.
-    ///
-    /// La composition des deux requêtes (le filet Pathoschild part
-    /// systématiquement, en parallèle ; l'application n'est rendue qu'une
-    /// fois les deux résolues) vit dans `NexusUpdateCheck` (Core, testé) —
-    /// les tampons qui capturaient le résultat smapi.io étaient des
-    /// propriétés du ViewModel, ce sont désormais des variables locales au
-    /// type. Ici ne restent que les gardes, la construction des candidats,
-    /// les effets (journal, publications, application) et le relâchement de
-    /// fin de passe.
+    /// smapi.io compare (`UpdateKeys`, composant par composant) ; l'app fournit
+    /// la version **affirmée** (ancre, sinon manifest). Composition des deux
+    /// requêtes (filet Pathoschild en parallèle) dans `NexusUpdateCheck`
+    /// (Core) ; ici gardes, candidats, effets et relâchement.
     func checkNexusUpdates() {
         guard !isCheckingNexusUpdates else { return }
         updateStore.beginCheck()
@@ -2896,10 +2730,8 @@ final class StarHubTHViewModel {
                 isPaused: !mod.isEnabled,
                 manualNexusId: nexusCustomModIds[mod.folderName])
         }
-        // Une version affirmée que smapi.io ne sait pas lire vide **tout son
-        // lot** — 150 mods — sur un HTTP 200 sans message. Le repli est décidé
-        // dans `SmapiUpdateRequest` ; il se dit ici, sinon il serait aussi muet
-        // que la panne qu'il corrige.
+        // Une version illisible vide **tout son lot** (150 mods, HTTP 200 muet) ;
+        // le repli (`SmapiUpdateRequest`) se journalise.
         let entries = SmapiUpdateRequest.entries(
             from: candidates, anchors: anchors,
             reportingSubstitution: { [weak self] uniqueId, refused, sent in
@@ -2907,10 +2739,8 @@ final class StarHubTHViewModel {
                           + "n'est pas analysable par smapi.io, envoi de "
                           + (sent.isEmpty ? "rien" : "« \(sent) »"), level: .warning)
             })
-        // Le parc **tel qu'interrogé**, figé avec la requête. Un scan peut
-        // survenir entre l'envoi et la réponse (installation, activation,
-        // profil appliqué) : relire la liste vivante à l'arrivée ferait
-        // dépendre ce qu'on apprend d'un état que la réponse ne décrit pas.
+        // Parc **tel qu'interrogé**, figé avec la requête : un scan peut survenir
+        // avant la réponse.
         let folders = installed.map {
             NexusIdLearning.Folder(folderName: $0.folderName,
                                    uniqueId: $0.uniqueId,
@@ -2925,10 +2755,7 @@ final class StarHubTHViewModel {
                     entries: entries, gameVersion: gameVersion,
                     progress: { done, total in progress(done, total) },
                     completion: { result in
-                        // La progression smapi.io se tait dès son retour — pas
-                        // à la fin de la composition : on attend alors encore
-                        // le dump Pathoschild, et l'UI ne se relâche pas entre
-                        // les deux requêtes.
+                        // Progression smapi.io close dès son retour, sans attendre le dump.
                         Task { @MainActor in
                             self.updateStore.setProgress(nil)
                             completion(result)
@@ -2943,11 +2770,8 @@ final class StarHubTHViewModel {
                     case .success:
                         done(false)
                     }
-                    // Le dump vient d'être posé : c'est le seul moment où les
-                    // lignes « à savoir » peuvent changer sans que le parc
-                    // bouge. Sans ça, elles n'apparaîtraient qu'au scan
-                    // suivant. L'ordre compte : `done` **avant** le hop, sans
-                    // quoi la composition attendrait un tour de main de plus.
+                    // Dump posé : les lignes « à savoir » peuvent changer. `done` **avant**
+                    // le hop.
                     Task { @MainActor in self?.refreshModWarnings() }
                 }
             },
@@ -2967,15 +2791,9 @@ final class StarHubTHViewModel {
                     self.applySmapiResults(outcome.mods, entries: composition.entries,
                                            folders: composition.folders)
                     self.compatibilitySource = .live
-                    // Une passe amputée n'est pas un passage réussi du parc.
-                    // Enregistrer un succès couperait la vérification automatique
-                    // pendant douze heures (`UpdateCheckPolicy`) pour des mods qui
-                    // n'ont pas été interrogés. Ils repartent bien en reprise
-                    // Nexus faute de verdict — mais aux dépens du quota Nexus, là
-                    // où smapi.io est gratuit et sans quota. Depuis X47, un lot en
-                    // échec ne sacrifie plus les suivants : une passe amputée
-                    // signifie un lot échoué **deux fois** (première passe et
-                    // seconde chance) ou un budget de re-découpage épuisé (X64).
+                    // Passe amputée ≠ succès : l'enregistrer couperait l'auto-vérification
+                    // 12 h (`UpdateCheckPolicy`) et reporterait ces mods sur le quota Nexus.
+                    // Depuis X47 : lot échoué deux fois ou budget de re-découpage épuisé (X64).
                     if isComplete {
                         NexusUpdateChecker.shared.recordSuccessfulCheck()
                     }
@@ -2985,27 +2803,16 @@ final class StarHubTHViewModel {
                 case .noResult:
                     break
                 }
-                // Reset AFTER the heavy work (applySmapiResults /
-                // applyPathoschildFallback can take seconds on large parks).
-                // Setting it before would let a fast user re-trigger a 2nd
-                // check before the 1st has finished processing.
-                //
-                // Sauf si une reprise Nexus vient de partir : `applySmapiResults`
-                // l'a lancée quelques lignes plus haut, dans ce même bloc, et elle
-                // interroge Nexus page par page bien après ce point. Relâcher ici
-                // rouvrirait précisément le re-déclenchement que le paragraphe
-                // ci-dessus décrit — et cette fois sur le quota Nexus.
-                // `finishNexusFallback` relâche les deux à sa place.
-                // La décision de relâcher — ou pas — vit dans le store : elle
-                // était ici un `guard` qu'il fallait penser à écrire.
+                // Reset AFTER the heavy work, else a fast user re-triggers a check. Sauf
+                // reprise Nexus en cours (lancée par `applySmapiResults`) :
+                // `finishNexusFallback` relâche alors. Décision dans le store.
                 self.updateStore.endCheck()
             })
     }
 
-    /// Le verdict de compatibilité qui **demande une décision** pour ce mod, et
-    /// le composant qui le porte (un pack rend le plus grave de ses composants).
-    /// `nil` = sain, déjà réglé par la version installée, **ou** inconnu de
-    /// smapi.io (552 mods sur 840) : un avertissement, jamais un satisfecit.
+    /// Verdict qui **demande une décision** et le composant qui le porte (le
+    /// plus grave d'un pack). `nil` = sain, réglé par la version installée,
+    /// **ou** inconnu (552/840) — jamais un satisfecit.
     func compatibilityWarning(for mod: ModItem) -> (component: ModItem,
                                                     verdict: ModCompatibility)? {
         let components = mod.components
@@ -3024,9 +2831,8 @@ final class StarHubTHViewModel {
                                            installedNexusId: effectiveNexusModId(for: mod)) != nil
     }
 
-    /// L'état de page Nexus le plus grave porté par un mod ou l'un de ses
-    /// composants (A2-T6) — le badge de ligne/carte et le bandeau de fiche
-    /// lisent tous les deux ici.
+    /// État de page Nexus le plus grave d'un mod ou composant (A2-T6), pour
+    /// badge et bandeau.
     func nexusPageState(for mod: ModItem) -> (component: ModItem,
                                               state: NexusPageState)? {
         mod.components
@@ -3052,52 +2858,30 @@ final class StarHubTHViewModel {
             }
     }
 
-    /// Combien de mods installés smapi.io ne sait **pas** juger.
-    ///
-    /// Le chiffre qui donne sa mesure à tout le reste : 552 sur 840 au relevé
-    /// du 2026-08-25. Une absence de signalement ne vaut pas quitus, et le dire
-    /// est la seule façon honnête de présenter les sept qui le sont.
+    /// Mods que smapi.io ne sait **pas** juger (552/840, 2026-08-25) : une
+    /// absence de signalement ne vaut pas quitus.
     var compatibilityUnknownCount: Int {
         allInstalledMods().filter { !$0.uniqueId.isEmpty && modCompatibility[$0.uniqueId] == nil }
             .count
     }
 
-    /// L'avertissement à montrer **avant d'activer** ce mod, s'il y a lieu.
-    ///
-    /// `nil` quand le mod est déjà actif : mettre en pause un mod cassé est
-    /// précisément ce qu'il faut faire, et le confirmer serait une friction
-    /// pure. C'est aussi ce qui protège l'application d'un profil, qui bascule
-    /// des centaines de dossiers sans qu'aucune alerte n'ait à s'ouvrir — elle
-    /// passe par `toggleMod`, pas par cette porte.
+    /// Avertissement **avant d'activer**. `nil` si déjà actif (pause d'un mod
+    /// cassé = geste voulu) ; l'application d'un profil passe par `toggleMod`.
     func activationWarning(for mod: ModItem) -> (component: ModItem,
                                                  verdict: ModCompatibility)? {
         guard !mod.isEnabled else { return nil }
         return compatibilityWarning(for: mod)
     }
 
-    /// Le mod **déjà actif** avec lequel activer `mod` formerait un conflit
-    /// connu, s'il y a lieu d'avertir. `nil` sinon.
-    ///
-    /// Fonction **séparée** d'`activationWarning` (décision du contrôleur,
-    /// tâche 9), pas une extension de celle-ci : `activationWarning` rend un
-    /// tuple `(component, verdict: ModCompatibility)` taillé pour le verdict
-    /// de smapi.io et déjà consommé par `compatibilityGate`, un dialogue en
-    /// production. Changer son type de retour ferait rippler cet écran pour
-    /// aucun gain — les vues interrogent donc les deux séparément, et
-    /// peuvent montrer l'une puis l'autre pour un même geste.
-    ///
-    /// Ne teste que l'état **actuel** du parc (`mods`), jamais le journal :
-    /// un conflit du journal dit ce qui s'est passé à une partie précédente,
-    /// pas si l'autre mod est encore actif aujourd'hui. Se déclenche sur une
-    /// paire déclarée par l'utilisateur comme sur un conflit observé dans le
-    /// journal, jamais sur une paire écartée — la décision elle-même vit
-    /// dans `ModConflictVerdicts.activationConflict`, pure et testée.
+    /// Mod **actif** avec lequel activer `mod` formerait un conflit connu.
+    /// **Séparée** d'`activationWarning` (type de retour taillé pour smapi.io,
+    /// déjà consommé par `compatibilityGate`). État **actuel** du parc
+    /// seulement ; paire déclarée ou observée, jamais écartée — règle dans
+    /// `ModConflictVerdicts.activationConflict`.
     func conflictWarning(for mod: ModItem) -> ModItem? {
         guard !mod.isEnabled else { return nil }
-        // Un pack s'active par son en-tête, mais un conflit du journal cite
-        // ses composants (`SVE/Farm`, pas `SVE`) — sans les deux dans
-        // `activating`, la moitié « journal » de la règle ne se
-        // déclencherait jamais pour aucun pack.
+        // Un conflit du journal cite les composants (`SVE/Farm`) : en-tête et
+        // composants dans `activating`.
         let activating = Set([mod.folderName] + (mod.children ?? []).map(\.folderName))
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
         let candidates = modConflictVerdicts.declared + contentPatcherConflicts.compactMap(conflictPair)
@@ -3107,19 +2891,12 @@ final class StarHubTHViewModel {
         return mods.flattenedMods.first(where: { $0.folderName == otherFolder })
     }
 
-    /// Transforme les verdicts de smapi.io en lignes affichables, et retient
-    /// les motifs de non-vérifiabilité.
-    ///
-    /// Les décisions (classification, filet « sans réponse », fusion avec le
-    /// cache plat, fusion des verdicts de compatibilité) vivent dans
-    /// `SmapiVerdicts` (Core, testé). Ici ne restent que la publication, la
-    /// persistance, la journalisation des faits rendus par le rapport, et le
-    /// lancement de la reprise Nexus — tout ce qui touche un autre domaine.
+    /// Verdicts smapi.io en lignes affichables. Décisions dans `SmapiVerdicts`
+    /// (Core) ; ici publication, persistance, journal et reprise Nexus.
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
                                    entries: [SmapiUpdateRequest.Entry],
                                    folders: [NexusIdLearning.Folder]) {
-        // Le nom que le mod déclare, celui que la liste des mods affiche : un
-        // même mod ne doit pas changer de nom d'un écran à l'autre.
+        // Nom déclaré, le même que dans la liste.
         let installedName = Dictionary(
             allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
             uniquingKeysWith: { first, _ in first })
@@ -3134,31 +2911,22 @@ final class StarHubTHViewModel {
         updateStore.setUnverifiable(app.unverifiable)
         modCompatibility = app.verdicts
         if !ModCompatibilityStore.save(app.verdicts) {
-            // Les verdicts valent pour cette session, mais l'avertissement à
-            // l'activation ne se rouvrira pas au prochain lancement.
+            // Verdicts valables pour la session seulement.
             log("Verdicts de compatibilité non enregistrés : l'avertissement à "
                 + "l'activation ne survivra pas à la fermeture", level: .warning)
         }
-        // A2-T3 : smapi.io a parlé, c'est la source à utiliser. Le dump
-        // Pathoschild reste en cache pour la prochaine panne, mais il ne
-        // dicte plus l'affichage tant qu'une nouvelle vérification n'a pas
-        // échoué.
+        // A2-T3 : smapi.io a parlé ; le dump reste en cache pour la prochaine
+        // panne.
         compatibilitySource = .live
         pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
 
-        // Le `metadata.nexusID` de la réponse ne servait qu'aux lignes de mise
-        // à jour — pour leur bouton de téléchargement — et disparaissait pour
-        // tous les autres mods. Il est désormais retenu.
+        // `metadata.nexusID` retenu pour tous les mods.
         learnNexusIds(from: mods, folders: folders)
 
-        // Persister, sinon tout ceci meurt à la fermeture et le lancement
-        // suivant réaffiche `cachedUpdates()` — la liste écrite par le code
-        // que cette branche remplace.
+        // Persister, sinon le lancement suivant réaffiche l'ancienne liste.
         NexusUpdateChecker.shared.replaceCachedUpdates(app.merged)
-        // Puis republier depuis ce cache : une vérification manuelle affiche
-        // désormais la même chose qu'un redémarrage. Le regroupement par pack
-        // ne s'appliquait qu'au chargement, si bien que le même parc donnait
-        // deux décomptes selon le chemin emprunté.
+        // Republier depuis le cache : vérification et redémarrage donnent le
+        // même décompte.
         republishUpdatesFromCache()
 
         for trigger in app.report.resumeTriggered {
@@ -3180,34 +2948,19 @@ final class StarHubTHViewModel {
         recheckBlockedViaNexus(app.blocked)
     }
 
-    /// A2-T3 — quand smapi.io est muet, on tente le dump Pathoschild.
-    ///
-    /// Le filet est **silencieux** quand il n'a rien à dire : un mod absent
-    /// du dump n'est pas plus promu « cassé » qu'il ne l'était avant. La
-    /// jointure porte uniquement sur les `UniqueID` envoyés à smapi.io, et
-    /// n'écrit que les verdicts **non déjà connus** : un verdict smapi.io
-    /// précédent (cache disque, dernière vérification partielle) reste
-    /// prioritaire, parce qu'il a le rang temporel le plus frais.
-    ///
-    /// Le dump est mis en cache avec un TTL de 6 h ; passé ce délai, la
-    /// requête repart. Une panne réseau prolongée utilise le cache périmé :
-    /// on n'est pas en ligne, on dit ce qu'on a.
+    /// A2-T3 — smapi.io muet : dump Pathoschild. **Silencieux** sans rien à
+    /// dire ; jointure sur les `UniqueID` envoyés ; n'écrit que les verdicts
+    /// **inconnus** (smapi.io prime). TTL 6 h ; hors ligne, cache périmé.
     private func applyPathoschildFallback(entries: [SmapiUpdateRequest.Entry]) {
         let uniqueIds = entries.map(\.id).filter { !$0.isEmpty }
         guard !uniqueIds.isEmpty else { return }
         PathoschildCompatibilityList.fetch { [weak self] result in
             guard let self else { return }
-            // Complétion `@Sendable` (P5-L5) : tout le corps touche l'état
-            // du ViewModel, il passe donc par un hop `Task { @MainActor in }`.
-            // `fetch` rend déjà sa complétion sur le main ; ce hop ne monte
-            // rien, il le **prouve** au compilateur.
+            // Complétion `@Sendable` (P5-L5) : le hop le **prouve** au compilateur.
             Task { @MainActor in
                 let entries = (try? result.get()) ?? []
                 guard !entries.isEmpty else {
-                    // Dire **pourquoi** : un corps de réponse illisible n'est pas
-                    // une panne de réseau, et le cache n'est plus écrasé dans ce
-                    // cas — les deux méritent des phrases différentes dans le
-                    // journal, sans quoi on cherche une coupure qui n'existe pas.
+                    // Dire **pourquoi** : réponse illisible ≠ panne réseau.
                     switch result {
                     case .failure(.decoding(let detail)):
                         self.log("Filet Pathoschild : dump reçu mais illisible (\(detail)) — "
@@ -3230,10 +2983,7 @@ final class StarHubTHViewModel {
                     self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
                     return
                 }
-                // Le verdict Pathoschild est **secondaire** : on ne remplace un
-                // verdict smapi.io existant que s'il n'y en a pas. La fusion
-                // passe par `modCompatibility` pour respecter la règle de
-                // priorité temporelle déjà appliquée par `applySmapiResults`.
+                // Pathoschild **secondaire** : ne remplace pas un verdict smapi.io.
                 var merged = self.modCompatibility
                 var added = 0
                 for (uniqueId, verdict) in verdicts where merged[uniqueId] == nil {
@@ -3245,10 +2995,7 @@ final class StarHubTHViewModel {
                              + "troués sont déjà couverts)", level: .info)
                     return
                 }
-                // Purge des mods désinstallés (règle partagée avec `applySmapiResults`).
-                // `stillInstalled` = les `UniqueID` envoyés à smapi.io, c'est-à-dire
-                // le parc figé au moment de l'envoi. Un verdict hors de ce parc est
-                // un mod qui n'est plus là.
+                // Purge des désinstallés : `stillInstalled` = parc figé à l'envoi.
                 let stillInstalled = Set(uniqueIds)
                 merged = merged.filter { stillInstalled.contains($0.key) }
                 self.modCompatibility = merged
@@ -3265,29 +3012,11 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// B2-T10 — reprend par Nexus les mods que smapi.io n'a pas su juger.
-    ///
-    /// Le verdict de mise à jour est délégué à smapi.io ; quand elle répond une
-    /// erreur, le mod reste sans verdict de **toute** source, et la fenêtre le
-    /// taisait. Preuve levée le 2026-08-27 : *Powered Automation*, installé en
-    /// 1.0.0, publié en 1.025, refusé par smapi.io faute de version indexable.
-    ///
-    /// Ce que la reprise coûte, mesuré sur le parc réel : sur 122 mods bloqués,
-    /// **51 sont repris**, et ils se ramènent à **41 pages** — autant de
-    /// requêtes, une fois par vérification manuelle. Le quota mesuré
-    /// est de 2 000 requêtes par heure : la dépense est marginale, et elle
-    /// reste **à la demande** — rien ici ne part sans que l'utilisateur ait
-    /// lancé une vérification.
-    ///
-    /// Sans clé d'API, la reprise ne fait rien et ne signale aucune erreur : la
-    /// clé ne sert qu'au téléchargement intégré et aux fiches, et un bandeau
-    /// rouge sur une fonction d'appoint dirait le contraire.
-    ///
-    /// Les requêtes partent **en série**, pour la raison qui vaut déjà pour les
-    /// lots smapi.io : une rafale de 39 requêtes parallèles ne gagnerait que le
-    /// risque d'un 429. Un 429 arrête la reprise sur place — `fetchModInfo`
-    /// refuse localement les suivantes de toute façon, mais les compter comme
-    /// des échecs salirait le journal.
+    /// B2-T10 — reprend par Nexus les mods que smapi.io n'a pas su juger
+    /// (*Powered Automation*, 2026-08-27). Parc : 122 bloqués, 51 repris,
+    /// 41 pages ; quota 2 000/h, et **à la demande** seulement. Sans clé :
+    /// rien, sans erreur. **En série** : une rafale risquerait un 429, qui
+    /// arrête la reprise sans compter d'échecs.
     private func recheckBlockedViaNexus(_ blocked: [NexusFallbackCheck.Blocked]) {
         let targets = NexusFallbackCheck.plan(blocked)
         guard !targets.isEmpty else { return }
