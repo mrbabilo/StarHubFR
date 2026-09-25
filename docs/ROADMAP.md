@@ -82,21 +82,8 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X112 vivent à l'archive, indexés au §11 (X112, le dernier, y est parti
-le 2026-09-24). **Ouverts** — relevés par l'audit UX du 2026-09-24
-(`docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, local) :
-
-- [ ] **X115** — *(question de conception)* **Chaque événement de corbeille
-      est un « mod ignoré » pour SMAPI.** Décompilé (`SMAPI.Toolkit.dll`,
-      `ModScanner`) : SMAPI n'ignore que les dossiers préfixés d'un point ;
-      `Mods/_Trash_*` contient le marqueur `.starhubfr-user-trash`, fichier
-      qu'il juge pertinent, donc il lit l'événement comme **un** mod sans
-      manifeste et **ne descend pas** dedans (les mods en corbeille ne sont
-      pas chargés — c'est le marqueur qui l'évite). Effet : une ligne `ERROR`
-      « Skipped mods » par événement à chaque lancement, reprise par la carte
-      santé et les alertes. Existe depuis X103-B. À trancher : corbeille hors
-      de `Mods/` (comme la quarantaine, dans le dossier du jeu), ou filtrer ces
-      lignes côté diagnostic. · **M**
+Les X1–X115 vivent à l'archive, indexés au §11 (X115, le dernier, y est parti
+le 2026-09-25). **Aucun correctif ouvert.**
 
 ---
 
@@ -2162,6 +2149,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X115** | 2026-09-25 | Chaque événement de corbeille `Mods/_Trash_*` était un « Skipped mods » `ERROR` de SMAPI à chaque lancement : la corbeille vit sous `<jeu>/_StarHubFR_Corbeille/`, les anciens événements marqués migrent. Au passage, le badge X114 lisait `Mods/` où le réparateur n'écrit jamais : toujours 0 |
 | **X112** | 2026-09-24 | « Vider les mods désactivés » effaçait ~720 dossiers sans retour, hors corbeille : `ModTrash.trash` met le lot en un événement (partagé avec `deleteMod`), « Tout remettre » le rend avec ses données |
 | **X111** | 2026-09-24 | Après « Effacer », chaque ligne du journal de l'app jetait la tête du bloc SMAPI (ses `ERROR` de démarrage) : `LogBudget.appending` jette l'entrée de l'app la plus ancienne, sinon le bruit SMAPI |
 | **X110** | 2026-09-24 | La corbeille ne purgeait pas un mod en 0555 (`Code=513`, « Vider » bloqué au premier) : purges par `removeItemGrantingWriteAccess`. 1 mod du parc, Toothless Pet |

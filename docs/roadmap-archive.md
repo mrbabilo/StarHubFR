@@ -3671,6 +3671,28 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X115** ✅ *(livré le 2026-09-25)* — **Chaque événement de corbeille était un « mod ignoré » pour SMAPI.**
+      Décompilé (`SMAPI.Toolkit.dll`, `ModScanner`) : SMAPI n'ignore que les
+      dossiers pointés ; `Mods/_Trash_*` portait le marqueur
+      `.starhubfr-user-trash`, fichier qu'il juge pertinent, donc il lisait
+      l'événement comme un mod sans manifeste — une ligne `ERROR` « Skipped
+      mods » par événement à chaque lancement, reprise par la carte santé.
+      Tranché par l'auteur : corbeille **hors de `Mods/`**, sous
+      `<jeu>/_StarHubFR_Corbeille/_Trash_<horodatage>/`. Même volume que
+      `Mods/` (le jeu vit sur un disque externe : Application Support aurait
+      changé chaque déplacement en copie). Le parent ne commence **pas** par
+      `_Trash_` : la quarantaine du réparateur vit aussi dans le dossier du
+      jeu et « Vider la quarantaine » envoie au Mac tout `_Trash_*` qu'il y
+      trouve. Les événements marqués d'avant migrent au rafraîchissement de
+      la corbeille (`ModTrash.snapshot`), les non marqués restent ; un nom
+      pris se décale, jamais n'écrase. Parc au moment du correctif :
+      **0 événement**, la migration n'est exercée que par les tests.
+      **Trouvé au passage — X114 ne comptait rien** : `quarantineItemCount`
+      lisait `Mods/_Trash_*`, or `ModFolderRepairer` écrit dans le dossier du
+      jeu ; le badge et l'accueil valaient toujours 0. Les fixtures posaient
+      la quarantaine à la main sous `Mods/` — état que le vrai producteur ne
+      crée jamais ; le test fait désormais tourner le réparateur.
+
 - [x] **X114** ✅ *(livré le 2026-09-24)* — **Le badge « Quarantaine » comptait le dernier rapport, pas le dossier.**
       `lastRepairReport.quarantined.count` : une passe qui ne quarantaine
       rien remettait le rapport à `nil` pendant que les `_Trash_*` des
