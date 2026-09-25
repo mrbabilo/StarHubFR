@@ -60,8 +60,8 @@ extension PerformanceOverlap {
     private static let loadingOptimizer = Member(uniqueId: "neoiw.StardewLoadingOptimizer", measuredVersion: "1.0.0")
 
     /// Les paires mesurées. Ajouter une paire = la décompiler d'abord ; le
-    /// relevé des sources (`check_sources.py`) signale chaque nouvelle version
-    /// de ces mods, qui peut rendre une ligne fausse.
+    /// relevé des sources (`check_sources.py`, les cinq mods y sont suivis)
+    /// signale chaque nouvelle version, qui peut rendre une ligne fausse.
     public static let catalog: [PerformanceOverlap] = [
         PerformanceOverlap(
             first: stardropium, second: ultraSmooth,

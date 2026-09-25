@@ -486,6 +486,13 @@ SOURCES = [
      "role": "orchestrateur perf ; journalise [OPTIMIZER CONFIG], ligne à parser (chantier D2)",
      "used_by": "docs/audit-mods-config-perf.md"},
 
+    {"key": "mod/speedy-solutions", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 37301, "uniqueId": "SinZ.SpeedySolutions",
+     "role": "mod de perf de chargement (cache d'images, TBin) ; membre de deux "
+             "paires du catalogue des recouvrements (A5-T7) — une version neuve "
+             "peut rendre la ligne fausse, la redécompiler",
+     "used_by": "StarHubTH/Models/PerformanceOverlap.swift"},
+
     {"key": "mod/profiler", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 12135, "uniqueId": "SinZ.Profiler",
      "role": "la télémétrie que le chantier D1 parse ([BigLoop]) ; installé mais en pause sur le parc",
@@ -546,7 +553,8 @@ SOURCES = [
              "internes d'autres mods) ; paru et audité le 2026-09-25, delta "
              "0.1.3 audité le 2026-09-26, en pause "
              "sur le parc. SANS UpdateKeys — smapi.io peut rester muet, état "
-             "relevé, pas alerte ; 7 méthodes patchées en commun avec UltraSmooth",
+             "relevé, pas alerte ; 9 méthodes patchées en commun avec UltraSmooth 2.3.7 "
+             "(catalogue A5-T7)",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
 
     {"key": "mod/stardropium-src", "kind": "repo", "repo": "ArshiaS1381/StardropiumMod",

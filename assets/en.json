@@ -1601,7 +1601,7 @@
   "settings_text_size_extra_large": "Extra large",
   "settings_footer_display": "Applies to all of the app's text.",
   "perf_overlaps_title": "Performance mods doing the same work",
-  "perf_overlaps_intro": "These active pairs patch the same game methods. That is not an incompatibility: such patches often stack harmlessly, but one mod may redo or cancel the other's work. If something looks wrong, pause one of the two.",
+  "perf_overlaps_intro": "These active pairs patch the same methods. That is not an incompatibility: such patches often stack harmlessly, but one mod may redo or cancel the other's work. If something looks wrong, pause one of the two.",
   "perf_overlaps_none": "No active pair of performance mods overlaps.",
   "perf_overlaps_methods": "%1$lld methods patched by both: %2$@",
   "perf_overlaps_conditional": "%1$lld more if %2$@ is enabled",
