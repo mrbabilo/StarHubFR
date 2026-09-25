@@ -4699,6 +4699,34 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       barre** : le bandeau d'I-T13 porte déjà ces gestes, juste au-dessus —
       un second exemplaire se disputerait la place.
 
+- [x] **I-T3** ✅ *(livré le 2026-09-25)* — **VoiceOver.** 31 boutons à
+      icône seule nommés (`iconHelp`, infobulle et libellé d'un coup ;
+      `.help` seul ne nomme rien pour VoiceOver sur macOS), 11 interrupteurs
+      et un menu titrés (`labelsHidden`, apparence inchangée), trait
+      « en-tête » sur les titres de section (rotor), compteurs lus
+      « libellé, valeur » en un arrêt, icônes décoratives masquées, tuiles
+      de l'accueil et mises à jour Nexus groupées. Écoute des écrans majeurs
+      par l'auteur : conforme. Restent sans titre quelques sélecteurs
+      segmentés, dont VoiceOver lit les segments.
+
+- [x] **I-T4** ✅ *(livré le 2026-09-25)* — **Réglages d'accessibilité.**
+      « Réduire les animations » : les 19 animations passent par
+      `withMotion` / `Motion.animation` (aucune sous le réglage ; fondus AppKit
+      du splash admis). « Augmenter le contraste » : 36 gris atténués via
+      `AppDesign.Color.dimmedSecondary`. « Réduire la transparence » : rien à
+      faire, matériaux système. Taille du texte : Réglages › Affichage, trois
+      crans (`TextScale`, Core, 4 tests), jetons `AppDesign.Font` calculés ;
+      les tailles littérales restantes → **I-T17**.
+
+- [x] **Hors ROADMAP** *(livré le 2026-09-25, à la demande de l'auteur)* :
+      écran des raccourcis clavier (icône du pied de barre, ⌘/ au menu Aide ;
+      `KeyboardShortcutCatalog`, ⌘1…⌘9 lus dans `SidebarOrder`) ; Réglages en
+      trois onglets avec lien direct vers une section, explications
+      visibles (`SettingsRow`), actions ponctuelles rendues à Entretien et
+      Sauvegardes du jeu ; Diagnostic : actions sur les mods jugés cassés par
+      smapi.io (fiche, lien proposé, journal) ; revue de tous les écrans en
+      fenêtre étroite (`SplitRow`, `WrapHStack`).
+
 - [x] **I-T6** ✅ *(livré le 2026-09-25)* — **Navigation au focus.**
       Mesure à l'écran par l'auteur (« Navigation au clavier » activée) :
       Tab, Espace, Entrée et Échap marchent sur les écrans, à deux

@@ -912,16 +912,14 @@ Cadrage volontairement léger ici : la spec SDD complète se fera à son tour,
 sur les composants réels. Les tâches ci-dessous sont des hypothèses de
 travail, pas des engagements.
 
-- [ ] **I-T3** — VoiceOver : labels, traits et ordre de lecture sur chaque
-      composant de la bibliothèque, écrans majeurs vérifiés à l'oreille.
-      **Fait (2026-09-25)** : 31 boutons à icône seule nommés (`iconHelp`),
-      11 interrupteurs titrés, trait « en-tête » sur les titres de section,
-      compteurs lus « libellé, valeur », tuiles de l'accueil et lignes de
-      mise à jour groupées. **Reste** : l'écoute des écrans majeurs (ordre
-      de lecture), puis les glyphes d'état isolés qu'elle signalera. · **M**
-- [ ] **I-T4** — Réglages d'accessibilité système respectés (réduire les
-      animations, réduire la transparence, augmenter le contraste) et taille
-      de texte réglable dans l'app. · **M**
+- [ ] **I-T17** — **Migrer les 386 tailles de police littérales vers les
+      jetons** *(sorti d'I-T4 le 2026-09-25)*. La taille du texte réglable
+      (Réglages › Affichage) n'agit que sur `AppDesign.Font` ; les
+      `.system(size: N)` restants gardent leur taille, et la note de la
+      section le dit. Même méthode qu'I-T11 : même valeur → jeton, un écran
+      par lot, puis vérification aux trois crans. Plus gros foyers :
+      `ModDetailSections` (58), `InstallPreview` (35), `BisectionCard` (35),
+      `ModInstallBackupsView` (29), `SmapiHealthCard` (28). · **M**
 - [ ] **I-T5** — Audit de navigation : chemins cliqués mesurés avant/après sur
       des tâches représentatives (mettre à jour un mod, restaurer un backup,
       changer de profil). · **S**
