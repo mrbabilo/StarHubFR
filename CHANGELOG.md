@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Fixed
 
 - **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
+- **L'en-tête de la gestion des mods tient en fenêtre étroite.** Les filtres débordaient, « Installer » était coupé et le poids s'écrivait à la verticale ; les rangées passent sur deux lignes quand il le faut.
 
 ## [1.49.0] - 2026-09-25
 
