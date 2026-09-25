@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Changed
 
 - **Le journal des modifications passe au pied de la barre latérale**, en bouton entre thème et langue ; il reste dans le menu « Aller » et la palette ⌘K.
+- **Couleurs d'état harmonisées.** Sur la liste et les cartes, une anomalie grave s'affiche en rouge et un avertissement en orange, comme sur la fiche ; les mises à jour passent en bleu sur la page Mises à jour.
 
 ### Fixed
 
