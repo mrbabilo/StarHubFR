@@ -6,9 +6,7 @@ import AppKit
 
 // MARK: - Save Backup Model
 
-/// `Sendable` explicite (P5-L6) : la valeur traverse les `Task.detached` et
-/// les hops de la liste des sauvegardes. Un `struct` **public** n'a jamais
-/// d'inférence — règle §9.
+/// `Sendable` explicite (P5-L6, type public : jamais inféré, §9).
 public struct SaveBackup: Identifiable, Equatable, Sendable {
     public var id: String { folderPath.path }
     public let folderPath: URL
@@ -30,16 +28,9 @@ struct SaveNote: Codable {
 
 // MARK: - Save Notes Store (UserDefaults-backed)
 
-/// `@MainActor` (P5-L5, reporté de L1) : un `static let shared` d'un type
-/// non-`Sendable` est une erreur en mode Swift 6 — c'était le seul, de tout le
-/// Core, à ne pas encore avoir sa réponse.
-///
-/// L'isolation plutôt qu'un verrou ou un acteur, parce que c'est ce que le type
-/// **est** : un magasin `@Observable` lu par les vues et écrit par le
-/// ViewModel. Ses huit appelants (six au ViewModel, deux à `SavesView`) sont
-/// déjà sur l'acteur principal, aucun chemin de fond n'y touche — l'isolation
-/// ne coûte donc pas un seul `await`, et elle interdit désormais qu'un
-/// futur worker en gagne un en douce.
+/// `@MainActor` (P5-L5) : un `static let shared` non-`Sendable` est une
+/// erreur en Swift 6. Magasin `@Observable` lu par les vues ; ses huit
+/// appelants sont déjà sur main, aucun `await` ajouté.
 @Observable
 @MainActor
 final class SaveNotesStore {
@@ -80,13 +71,8 @@ struct SaveNode: Identifiable, Equatable {
     var children: [SaveNode]
 }
 
-/// Couleur de cheveux d'un fermier, lue depuis `<hairstyleColor>`.
-///
-/// Le jeu y sérialise un `Color` XNA **libre** (composantes R/G/B 0-255,
-/// dans le désordre alphabétique B,G,R,A puis PackedValue) — pas un index
-/// dans une palette : le créateur de personnage propose des préréglages,
-/// mais la save porte la couleur effective, modifiable par mod. Les
-/// composantes sont bornées à 0-255 à la construction.
+/// Couleur de cheveux (`<hairstyleColor>`) : un `Color` XNA **libre**
+/// (B,G,R,A,PackedValue), pas un index de palette. Bornée à 0-255.
 public struct SaveHairColor: Hashable, Sendable {
     public var r: Int
     public var g: Int
@@ -99,17 +85,12 @@ public struct SaveHairColor: Hashable, Sendable {
         self.b = clamp255(b)
     }
 
-    /// Le brun sombre du préréglage SDV n° 0 (≈ 90, 73, 38), quand la save
-    /// ne porte pas de couleur lisible.
+    /// Brun du préréglage n° 0, sans couleur lisible.
     public static let `default` = SaveHairColor(r: 90, g: 73, b: 38)
 }
 
-/// `SaveGameInfo` reste non-`Sendable` ; les lectures sont sérialisées via
-/// `SaveManager.shared.fetchSaves()` / `reloadSaves()`. L'ajout de 4 champs
-/// n'aggrave pas la situation. Parsing `<whichModFarm>` ne traverse pas de
-/// frontière de thread supplémentaire.
-/// `Sendable` explicite (P5-L6) : même raison que `SaveBackup` — c'est la
-/// valeur que les opérations lourdes emportent hors de l'acteur principal.
+/// `Sendable` explicite (P5-L6) : emporté hors de l'acteur principal par
+/// les opérations lourdes.
 public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
     public var id: String { folderName }
     public let folderName: String
@@ -138,10 +119,9 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
     public var hairColor: SaveHairColor = .default
     public var skinIndex: Int = 0
     public var modFarmName: String? = nil
-    /// Sexe du fermier (`<gender>`/`<Gender>` textuel : Male/Female/Undefined),
-    /// lu sur l'enfant **direct** de `<player>` : la première occurrence du
-    /// fichier appartient à un objet ou à un monstre de quête (mesuré : 41 à
-    /// 294 occurrences par save). `Undefined` et l'absence lisent comme fermier.
+    /// Sexe du fermier, lu sur l'enfant **direct** de `<player>` (la première
+    /// occurrence du fichier est un objet ou un monstre : 41 à 294 par save).
+    /// `Undefined`/absent = fermier.
     public var isFemale: Bool = false
 
     public init(
@@ -218,9 +198,7 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
         case 5: return "square.grid.2x2.fill"
         case 6: return "sun.max.fill"
         case 7: return "pawprint.fill"
-        // Une ferme de mod, pas une ferme inconnue : depuis que `SaveFarmType`
-        // la reconnaît, le point d'interrogation mentait — et se lisait comme
-        // une vignette cassée là où l'illustration manque simplement.
+        // Ferme de mod reconnue (`SaveFarmType`) : pas de point d'interrogation.
         default: return "house.fill"
         }
     }
@@ -236,29 +214,17 @@ public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
     }
 }
 
-/// `@unchecked` : la classe porte un état mutable d'instance — `parseCache`
-/// (ligne 291), la mémoïsation de `fetchSaves()` — pris sous `parseCacheLock`
-/// à chacun de ses trois accès (`invalidateParseCache`, `cached`, `remember`),
-/// en lecture comme en écriture. Un `var` stocké interdit à lui seul une
-/// conformité `Sendable` ordinaire (SE-0302) : le compilateur ne voit pas un
-/// `NSLock`, quel que soit le verrou posé dessus. L'état de type, `regexCache`,
-/// est pris sous `regexCacheLock` (déjà `nonisolated(unsafe)`, tâche 4).
-/// `savesDir` est le seul autre stocké d'instance, et il est immuable.
-/// `SaveManager` lit le disque depuis des files de fond (`fetchSaves()` peut
-/// être appelé hors du fil principal, cf. commentaire ligne ~269) — il ne peut
-/// donc pas être `@MainActor`.
+/// `@unchecked` : `parseCache` (état d'instance) pris sous
+/// `parseCacheLock` à ses trois accès ; `regexCache` sous
+/// `regexCacheLock`. Lit le disque depuis des files de fond : pas
+/// `@MainActor`.
 public final class SaveManager: @unchecked Sendable {
     public static let shared = SaveManager()
 
     private let savesDir: URL
 
-    /// Cache of compiled regexes for `<tag>([^<]+)</tag>` keyed by tag name.
-    /// `NSRegularExpression` compilation is expensive; `fetchSaves()` parses ~14
-    /// tags per save file, so caching avoids recompiling the same pattern hundreds
-    /// of times across reloads.
-    /// `nonisolated(unsafe)` : chaque lecture et chaque écriture de ce cache
-    /// passe par `regexCacheLock` (ligne suivante). Le compilateur ne voit pas
-    /// un `NSLock` — c'est la seule façon de le lui dire sans déplacer l'état.
+    /// Compiled regex cache per tag (~14 tags per save, reloaded often).
+    /// `nonisolated(unsafe)` : tout accès passe par `regexCacheLock`.
     nonisolated(unsafe) private static var regexCache: [String: NSRegularExpression] = [:]
     private static let regexCacheLock = NSLock()
 
@@ -283,34 +249,16 @@ public final class SaveManager: @unchecked Sendable {
         let info: SaveGameInfo
     }
 
-    /// `fetchSaves()` reparse chaque dossier à **chaque** rafraîchissement de
-    /// la page Parties, dossiers de secours compris — soit ~230 ms par fichier
-    /// de 37 Mo pour un contenu qui n'a pas bougé.
-    ///
-    /// L'empreinte croise la **date de modification et la taille** : la date
-    /// seule ne suffit pas (une restauration de sauvegarde recopie un fichier
-    /// en la préservant), la taille seule non plus (éditer 500 en 600 ne la
-    /// change pas). Les deux ensemble laissent encore un angle mort, fermé par
-    /// l'invalidation explicite de tout chemin d'écriture de ce type.
-    ///
-    /// Verrou dédié : `fetchSaves()` peut être appelé hors du fil principal,
-    /// et le subscript d'un `Dictionary` Swift sans verrou a déjà coûté un
-    /// `EXC_BAD_ACCESS` à ce dépôt (CLAUDE.md §Concurrence).
-    ///
-    /// **Porté par l'instance, pas par le type.** La production n'en a qu'une
-    /// (`shared`), donc rien n'y change ; mais un cache statique était vidé
-    /// par *tout* test appelant une écriture, et les suites tournent en
-    /// parallèle : une invalidation d'une autre suite tombant entre les deux
-    /// lectures du test de mémoïsation le faisait échouer par intermittence
-    /// (`money == 999` au lieu de 100, vu le 2026-09-03). Chaque test peut
-    /// désormais posséder son propre `SaveManager()`.
+    /// Mémoïsation de `fetchSaves()` (~230 ms par fichier de 37 Mo inchangé),
+    /// empreinte **date + taille** (la date seule survit à une restauration) ;
+    /// angle mort fermé par l'invalidation de tout chemin d'écriture. Verrou
+    /// dédié (lu hors main). **Par instance** : un cache statique rendait les
+    /// tests parallèles intermittents (2026-09-03).
     private var parseCache: [String: ParsedSave] = [:]
     private let parseCacheLock = NSLock()
 
-    /// Vide le cache. Appelé par tout chemin qui écrit dans une sauvegarde —
-    /// vider entièrement plutôt que par entrée : une invalidation partielle
-    /// oubliée resservirait du contenu périmé, et un reparse complet ne coûte
-    /// qu'une fois ce que la mémoïsation économise ensuite.
+    /// Vide tout le cache à chaque écriture : une invalidation partielle
+    /// oubliée resservirait du périmé.
     public func invalidateParseCache() {
         parseCacheLock.lock()
         parseCache.removeAll()
@@ -380,10 +328,8 @@ public final class SaveManager: @unchecked Sendable {
         }
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
 
-        // Une seule passe sur `<player>` donne tous les champs du fermier, par
-        // enfant direct. Lire la première occurrence du fichier — ou même du
-        // bloc — attrapait celle d'un monstre de quête imbriqué : voir
-        // `SavePlayerFields`, mesuré sur la save du parc.
+        // Une passe sur les enfants directs de `<player>` (`SavePlayerFields`) :
+        // la première occurrence peut être un monstre de quête.
         let player = SavePlayerFields.directChildren(in: content)
         func playerInt(_ tag: String, default fallback: Int) -> Int {
             player[tag].flatMap(Int.init) ?? fallback
@@ -395,9 +341,7 @@ public final class SaveManager: @unchecked Sendable {
         let money = playerInt("money", default: 0)
         let spouse = extractSpouseFromPlayer(from: content) ?? ""
 
-        // La date est un champ du **fermier** (mesuré : enfant direct de
-        // `<player>` sur les 10 fichiers de save du disque). Repli hors du bloc
-        // pour les sauvegardes qui ne la porteraient pas là.
+        // Date = champ du fermier (10/10 fichiers) ; repli hors du bloc.
         func dateInt(_ tag: String, default fallback: Int) -> Int {
             if let value = player[tag].flatMap(Int.init) { return value }
             return Int(extractTag(tag: tag, from: content) ?? "") ?? fallback
@@ -406,25 +350,19 @@ public final class SaveManager: @unchecked Sendable {
         let season = dateInt("seasonForSaveGame", default: 0)
         let day = dateInt("dayOfMonthForSaveGame", default: 1)
 
-        // Les scalaires de `<SaveGame>` sont écrits après ses grandes
-        // collections : les chercher dans la queue du fichier coûte ~90 ms au
-        // lieu de ~980 ms sur la save de 37 Mo du parc. L'ancre `whichFarm`
-        // prouve qu'on a la bonne zone ; sinon on repart du fichier entier.
+        // Scalaires de `<SaveGame>` cherchés en fin de fichier (~90 ms au lieu de
+        // ~980 ms sur 37 Mo) ; ancre `whichFarm`, sinon fichier entier.
         let saveScope = SaveGameFields.trailingScope(of: content, anchor: "whichFarm") ?? content
-        // `<whichFarm>` n'est **pas** toujours un entier : une ferme de mod y
-        // écrit son identifiant (`FrontierFarm`).
+        // `<whichFarm>` peut être un identifiant de mod (`FrontierFarm`).
         let farmType = SaveFarmType.parse(rawWhichFarm: extractTag(tag: "whichFarm", from: saveScope))
         let whichFarm = farmType.whichFarm
-        // Les vrais tags du jeu : `<hair>` (int) et `<hairstyleColor>` (Color
-        // XNA composé) — pas `<hairStyle>`/`<hairColor>` (audit H-T5b : ces
-        // tags-là n'existent pas dans le XML, l'avatar restait chauve-couleur-0).
+        // Vrais tags : `<hair>` et `<hairstyleColor>` (pas `hairStyle`/
+        // `hairColor`, inexistants — H-T5b).
         let hairStyle = playerInt("hair", default: 0)
         let hairColor = extractHairColor(from: content) ?? .default
         let skinIndex = playerInt("skin", default: 0)
-        // `<whichModFarm>` n'existe dans aucune save du parc ; quand il manque,
-        // l'identifiant de `<whichFarm>` est le seul nom que la ferme porte.
-        // Sa présence reste toutefois le signal qui prime — un mod peut la
-        // poser avec un `<whichFarm>` entier — donc on la cherche toujours.
+        // `<whichModFarm>` absent du parc : l'id de `<whichFarm>` sert de nom ;
+        // présent, il prime.
         let modFarmName = extractModFarmName(from: saveScope) ?? farmType.modFarmId
         // Textuel (Male/Female/Undefined). Tout sauf « Female » lit fermier.
         let isFemale = player["gender"] == "Female" || player["Gender"] == "Female"
@@ -471,15 +409,10 @@ public final class SaveManager: @unchecked Sendable {
         return parsed
     }
 
-    /// `<hairstyleColor>` est un bloc composé — `extractTag` (à valeur
-    /// simple, `[^<]+`) ne le voit pas. Extrait le bloc puis y lit `<R>`,
-    /// `<G>` et `<B>` par nom : XNA sérialise les composantes en ordre
-    /// alphabétique (B,G,R,A,PackedValue), aucun ordre n'est supposé.
-    /// Retourne `nil` si le bloc, ou une composante, manque — l'appelant
-    /// retombe sur la couleur par défaut plutôt que d'inventer une teinte.
+    /// Bloc composé : `<R>`, `<G>`, `<B>` lus par nom (ordre XNA
+    /// alphabétique). `nil` si incomplet : couleur par défaut.
     private func extractHairColor(from xml: String) -> SaveHairColor? {
-        // Scopé au bloc `<player>` : le fichier entier n'a aucune raison de
-        // n'en porter qu'un seul, et un mod peut en poser ailleurs.
+        // Scopé à `<player>`.
         let scope = SavePlayerFields.playerBlock(in: xml).map(String.init) ?? xml
         guard let block = extractBlock(tag: "hairstyleColor", from: scope) else { return nil }
         guard let r = Int(extractTag(tag: "R", from: block) ?? ""),
@@ -488,10 +421,7 @@ public final class SaveManager: @unchecked Sendable {
         return SaveHairColor(r: r, g: g, b: b)
     }
 
-    /// Premier bloc `<tag>…</tag>` avec son contenu entier (sous-balises
-    /// comprises). Un élément auto-fermé ou à attributs (`<tag />`,
-    /// `<tag xsi:nil="true" />`) ne matche pas le littéral `<tag>` — voulu :
-    /// une couleur nulle n'a rien à lire.
+    /// Premier bloc `<tag>…</tag>` complet ; `<tag />` ne matche pas (voulu).
     private func extractBlock(tag: String, from xml: String) -> String? {
         let pattern = "<\(tag)>([\\s\\S]*?)</\(tag)>"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
@@ -501,15 +431,11 @@ public final class SaveManager: @unchecked Sendable {
         return String(xml[swiftRange])
     }
 
-    /// Tolère les deux formes rencontrées dans la nature :
-    /// - vanilla : `<whichModFarm><name>Ridgeside</name></whichModFarm>`
-    /// - mod mal codé : `<whichModFarm>Ridgeside</whichModFarm>`
-    /// Retourne `nil` si absent, vide, ou sans `<name>`.
+    /// Deux formes : `<whichModFarm><name>X</name></whichModFarm>` (vanilla)
+    /// ou `<whichModFarm>X</whichModFarm>`. `nil` si absent ou vide.
     private func extractModFarmName(from xml: String) -> String? {
-        // ⚠️ Ne PAS pré-filtrer par `range(of:)` : mesuré sur la save de 37 Mo
-        // du parc, la regex qui échoue coûte 353 ms, `range(of:)` 1108 ms,
-        // `range(of:, .literal)` 391 ms et `utf8.firstRange(of:)` 15,7 s.
-        // La regex est déjà la recherche la plus rapide disponible ici.
+        // ⚠️ Pas de pré-filtre `range(of:)` (37 Mo : regex 353 ms, `range(of:)`
+        // 1 108 ms, `utf8.firstRange` 15,7 s).
         let pattern = "<whichModFarm>(?:\\s*<name>)?([^<]+)(?:</name>)?\\s*</whichModFarm>"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
@@ -520,27 +446,21 @@ public final class SaveManager: @unchecked Sendable {
     }
     
     private func extractTag(tag: String, from xml: String) -> String? {
-        // Find <tag>value</tag>
-        // Note: For <name>, there are multiple in the file (e.g., NPC names, animals).
-        // The player's name is usually the first <name> inside <player>.
-        // A simple regex might catch the first one which is player name, but let's be careful.
-        // Actually, player money is <money>, farm name is <farmName>. They are unique or first.
+        // Find <tag>value</tag>: money, farmName… are unique or first.
 
         guard let regex = Self.cachedRegex(for: tag) else { return nil }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
         if let match = regex.firstMatch(in: xml, options: [], range: range) {
             if let swiftRange = Range(match.range(at: 1), in: xml) {
-                // Stardew stocke les noms échappés (« D&amp;D ») : décoder pour
-                // exposer la vraie valeur (éditeur, matching) et éviter le double-
-                // encodage à la réécriture. No-op sur les valeurs numériques.
+                // Noms échappés (« D&amp;D ») décodés : vraie valeur, pas de double
+                // encodage.
                 return XMLEntities.unescape(String(xml[swiftRange]))
             }
         }
         return nil
     }
     
-    /// Extract spouse from inside the <player>...</player> block only,
-    /// to avoid picking up NPC <spouse> tags in other parts of the save.
+    /// Spouse from inside <player> only (NPCs have <spouse> too).
     private func extractSpouseFromPlayer(from xml: String) -> String? {
         // Find the <player> block
         guard let playerStart = xml.range(of: "<player>"),
@@ -551,9 +471,7 @@ public final class SaveManager: @unchecked Sendable {
         return extractTag(tag: "spouse", from: playerBlock)
     }
     
-    /// Update or remove the <spouse> tag inside the <player> block.
-    /// - If newSpouse is non-empty: sets <spouse>newSpouse</spouse>
-    /// - If newSpouse is empty: removes the <spouse>...</spouse> tag
+    /// Sets <spouse> in <player>, or removes it when empty.
     private func updateSpouseInPlayer(newSpouse: String, in xml: String) -> String {
         let spousePattern = "<spouse>[^<]*</spouse>"
         guard let regex = try? NSRegularExpression(pattern: spousePattern, options: []) else { return xml }
@@ -603,35 +521,20 @@ public final class SaveManager: @unchecked Sendable {
         }
     }
     
-    /// La marque d'ordre des octets UTF-8 (`EF BB BF`).
-    ///
-    /// **Stardew écrit ses sauvegardes avec.** Mesuré sur le disque de
-    /// l'auteur : les 38 fichiers produits par le jeu en portent une, et les
-    /// seuls fichiers sans sont trois copies réécrites par cette app — trois
-    /// octets de moins, à l'octet près. `String(contentsOf:encoding:)` la
-    /// consomme au décodage et `write(to:atomically:encoding:)` ne la remet
-    /// pas : sans ces deux helpers, éditer une fiche de joueur ou un
-    /// inventaire rendait le fichier dans un encodage que le jeu n'emploie
-    /// pas. .NET lit l'UTF-8 sans marque, donc rien n'était cassé — mais une
-    /// sauvegarde vaut des centaines d'heures, et on la rend comme on l'a
+    /// Marque UTF-8 (`EF BB BF`) : **Stardew en écrit une** (38/38 fichiers
+    /// du jeu). Lecture et écriture Swift la perdent : on la rend comme on l'a
     /// prise.
     static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
 
-    /// Les trois premiers octets du fichier valent-ils la marque ? Lu par
-    /// poignée : la sauvegarde du parc fait 36 Mo.
-    /// `FileHandle(forReadingAtPath:)` et `readData(ofLength:)` plutôt que
-    /// leurs variantes lançantes : trois `try?` de plus pour lire trois octets
-    /// feraient reculer le cliquet des conventions pour rien, et le repli est
-    /// le même (fichier illisible → pas de marque). Même patron que
-    /// `ModZipInstaller.detectedArchiveExtension(at:)`.
+    /// Marque présente ? Lu par poignée (36 Mo), variantes non lançantes
+    /// (cliquet `try?`).
     static func fileStartsWithBOM(at url: URL) -> Bool {
         guard let handle = FileHandle(forReadingAtPath: url.path) else { return false }
         defer { handle.closeFile() }
         return handle.readData(ofLength: 3) == utf8BOM
     }
 
-    /// Le contenu à écrire, précédé de la marque si le fichier d'origine en
-    /// portait une. Fonction pure : c'est la règle, pas l'écriture.
+    /// Contenu précédé de la marque si l'original la portait (règle pure).
     static func bytes(_ payload: Data, preservingBOM: Bool) -> Data {
         guard preservingBOM, !payload.starts(with: utf8BOM) else { return payload }
         return utf8BOM + payload
@@ -639,8 +542,7 @@ public final class SaveManager: @unchecked Sendable {
 
     public func backupSave(info: SaveGameInfo) -> Bool { backupSaveURL(info: info) != nil }
 
-    /// Le dossier de backup créé — pour qui doit le vérifier avant d'écrire
-    /// (A1-T10 : « backup non vide », sans deviner lequel par sa date).
+    /// Dossier de backup créé, vérifiable avant écriture (A1-T10).
     public func backupSaveURL(info: SaveGameInfo) -> URL? {
         let fm = FileManager.default
         let formatter = DateFormatter()
@@ -648,8 +550,7 @@ public final class SaveManager: @unchecked Sendable {
         let timestamp = formatter.string(from: Date())
         
         let folderPath = info.fileURL.deletingLastPathComponent()
-        // Deux backups dans la même seconde (horodatage à la seconde) : le
-        // second prend un suffixe au lieu d'échouer sur un dossier existant.
+        // Même seconde : suffixe plutôt qu'échec.
         var backupPath = folderPath.appendingPathExtension("backup_\(timestamp)")
         var n = 2
         while fm.fileExists(atPath: backupPath.path) {
@@ -668,14 +569,11 @@ public final class SaveManager: @unchecked Sendable {
     }
     
     func updateSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) -> Bool {
-        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
-        // fin : un échec partiel a pu toucher le disque, et resservir une
-        // lecture d'avant serait pire que reparser pour rien.
+        // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         guard backupSave(info: info) else { return false }
 
-        // Relevé **avant** la lecture : `String(contentsOf:encoding:)` consomme
-        // la marque, elle n'est plus visible dans `content`.
+        // Marque relevée **avant** la lecture, qui la consomme.
         let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
         guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
         
@@ -697,16 +595,13 @@ public final class SaveManager: @unchecked Sendable {
         // Spouse: update or remove tag inside <player> block
         content = updateSpouseInPlayer(newSpouse: newSpouse, in: content)
         
-        // If removing or changing a spouse, also fix the NPC's friendship entry
-        // so they return to their original home/schedule without glitching.
+        // Old spouse: fix their friendship entry (home and schedule).
         if !oldSpouse.isEmpty && newSpouse != oldSpouse {
             content = cleanDivorceNPCFriendship(npcName: oldSpouse, in: content)
         }
 
-        // Et symétriquement, le nouveau conjoint (remariage ou premier
-        // mariage) est promu : le tag seul faisait lire « marié » au jeu
-        // contre « Friendly »/« Dating » dans l'amitié — glitch du nouveau
-        // conjoint (audit 2026-08-05).
+        // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit
+        // 2026-08-05).
         if !newSpouse.isEmpty && newSpouse != oldSpouse {
             content = promoteMarriageNPCFriendship(npcName: newSpouse, in: content)
         }
@@ -722,16 +617,9 @@ public final class SaveManager: @unchecked Sendable {
         }
     }
     
-    /// Cleans up a previously married NPC's friendship entry so they return
-    /// to their normal home and schedule without bugging out.
-    ///
-    /// Changes inside the NPC's `<Friendship>` block (inside a `<key><string>NpcName</string></key>` item):
-    ///   - `<Status>Married</Status>`  →  `<Status>Friendly</Status>`
-    ///   - `<WeddingDate>...</WeddingDate>` block is removed entirely
-    ///
-    /// Scoped to the `<player>` block (and `<friendshipData>` within it when
-    /// present) so this can't match a farmhand's own friendship data or an
-    /// unrelated `<string>NpcName</string>` occurrence elsewhere in the save.
+    /// Demotes a former spouse: `Status` Married → Friendly, `WeddingDate`
+    /// removed. Scoped to `<player>` (and `<friendshipData>`), so farmhands and
+    /// unrelated `<string>Npc</string>` are untouched.
     private func cleanDivorceNPCFriendship(npcName: String, in xml: String) -> String {
         guard let playerStartRange = xml.range(of: "<player>"),
               let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
@@ -747,8 +635,7 @@ public final class SaveManager: @unchecked Sendable {
         return beforePlayer + updatedPlayerBlock + afterPlayer
     }
 
-    /// Narrows further to `<friendshipData>...</friendshipData>` when present,
-    /// then delegates to `cleanDivorceNPCFriendshipEntry` for the actual edit.
+    /// Narrows to `<friendshipData>` when present.
     private func cleanDivorceNPCFriendshipInScope(npcName: String, in xml: String) -> String {
         guard let fdStartRange = xml.range(of: "<friendshipData>"),
               let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
@@ -763,11 +650,9 @@ public final class SaveManager: @unchecked Sendable {
         return before + cleanDivorceNPCFriendshipEntry(npcName: npcName, in: fdBlock) + after
     }
 
-    /// Locates the `<item>` block keyed by `npcName` within the given scope
-    /// and applies the Married→Friendly / WeddingDate-removal edit to it.
+    /// Edits the `<item>` keyed by `npcName`.
     private func cleanDivorceNPCFriendshipEntry(npcName: String, in xml: String) -> String {
-        // We locate the <item> block that belongs to this NPC.
-        // Structure: <item><key><string>NpcName</string></key><value><Friendship>...</Friendship></value></item>
+        // <item><key><string>Npc</string></key><value><Friendship>…
         let keyMarker = "<string>\(npcName)</string>"
         guard let keyRange = xml.range(of: keyMarker) else {
             print("[Divorce] Could not find friendship entry for \(npcName)")
@@ -796,8 +681,7 @@ public final class SaveManager: @unchecked Sendable {
         // 1. Change <Status>Married</Status> → <Status>Friendly</Status>
         itemBlock = itemBlock.replacingOccurrences(of: "<Status>Married</Status>", with: "<Status>Friendly</Status>")
 
-        // 2. Remove <WeddingDate>...</WeddingDate> (multiline/nested block)
-        //    Pattern matches <WeddingDate> followed by any content up to </WeddingDate>
+        // 2. Remove the <WeddingDate> block.
         if let wdRegex = try? NSRegularExpression(pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators) {
             let nsBlock = itemBlock as NSString
             itemBlock = wdRegex.stringByReplacingMatches(
@@ -812,25 +696,14 @@ public final class SaveManager: @unchecked Sendable {
 
     // MARK: Marriage — promotion du nouveau conjoint
 
-    /// Index de saison tel que le save le porte (`seasonForSaveGame`) et tel
-    /// que `StardewValley.GameData.dll` définit l'enum `Season` (mesuré) :
+    /// Index de saison du save = enum `Season` du jeu (mesuré) :
     /// Spring=0, Summer=1, Fall=2, Winter=3.
     private static let seasonsByIndex = ["spring", "summer", "fall", "winter"]
 
-    /// Promotes the NEW spouse's friendship entry so the game reads them as
-    /// married: `Status` → `Married`, plus a `WeddingDate` anchored to the
-    /// save's current in-game date. Only the demotion of the OLD spouse
-    /// existed (audit 2026-08-05) — the game read « married » from the
-    /// `<spouse>` tag against « Friendly »/« Dating » in the friendship
-    /// data, glitching the new spouse.
-    ///
-    /// `WorldDate` serializes `Year`, `DayOfMonth` and the season **string**
-    /// (the `Season`/`SeasonIndex` properties are `[XmlIgnore]`, the string
-    /// lives on an `[XmlElement]` property) — measured against the game's
-    /// own assemblies (1.6.15) and cross-checked with the save-format
-    /// definition of the community save editor. Without a friendship entry
-    /// for this NPC, nothing is invented: the `<spouse>` tag alone stays
-    /// updated.
+    /// Promotes the new spouse: `Status` → Married + `WeddingDate` at the
+    /// current in-game date (`WorldDate`: `Year`, `DayOfMonth`, season
+    /// **string** — measured on the 1.6.15 assemblies). No friendship entry:
+    /// nothing invented.
     private func promoteMarriageNPCFriendship(npcName: String, in xml: String) -> String {
         // Date courante du fermier (mesuré : enfants directs de <player>).
         guard let year = extractTag(tag: "yearForSaveGame", from: xml), !year.isEmpty,
@@ -859,8 +732,7 @@ public final class SaveManager: @unchecked Sendable {
         return beforePlayer + updatedPlayerBlock + afterPlayer
     }
 
-    /// Même resserrement que la démotion : `<friendshipData>…</friendshipData>`
-    /// quand il est présent, le bloc joueur entier sinon.
+    /// Même resserrement que la démotion.
     private func promoteNPCFriendshipInScope(npcName: String, in xml: String, weddingDate: String) -> String {
         guard let fdStartRange = xml.range(of: "<friendshipData>"),
               let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
@@ -874,14 +746,12 @@ public final class SaveManager: @unchecked Sendable {
         return before + promoteNPCFriendshipEntry(npcName: npcName, in: fdBlock, weddingDate: weddingDate) + after
     }
 
-    /// Motifs constants — `try!` sur un motif figé, idiome du dépôt
-    /// (`ManifestVersionPatcher.versionStringRegex`).
+    /// Motifs constants, `try!` (idiome du dépôt).
     private static let statusTagRegex = try! NSRegularExpression(pattern: "<Status>[^<]*</Status>")
     private static let weddingDateTagRegex = try! NSRegularExpression(
         pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators)
 
-    /// Locates the `<item>` block keyed by `npcName` and applies the
-    /// Status→Married / WeddingDate-insertion edit to it.
+    /// Edits the `<item>` keyed by `npcName`: Married + WeddingDate.
     private func promoteNPCFriendshipEntry(npcName: String, in xml: String, weddingDate: String) -> String {
         let keyMarker = "<string>\(npcName)</string>"
         guard let keyRange = xml.range(of: keyMarker) else {
@@ -903,9 +773,8 @@ public final class SaveManager: @unchecked Sendable {
         var itemBlock  = String(xml[itemStart.lowerBound..<itemEnd.upperBound])
         let afterItem  = String(xml[itemEnd.upperBound...])
 
-        // 1. Le statut courant (Dating, Friendly…) vaut désormais Married.
-        // 2. Une WeddingDate résiduelle (ce NPC a été marié plus tôt) saute,
-        //    comme à la démotion ; la nouvelle s'insère derrière le statut.
+        // Statut → Married ; ancienne WeddingDate retirée, la neuve insérée
+        // après le statut.
         let nsBlock = itemBlock as NSString
         let fullRange = NSRange(location: 0, length: nsBlock.length)
         itemBlock = Self.statusTagRegex.stringByReplacingMatches(
@@ -924,15 +793,9 @@ public final class SaveManager: @unchecked Sendable {
     }
 
 
-    /// Like replaceFirstTag, but scoped to the <player> block so it can't
-    /// accidentally match an NPC's, farmhand's (<Farmer> in <farmhands>), or
-    /// location's identically named tag that happens to appear earlier in
-    /// the file than the intended player field.
-    ///
-    /// Falls back to whole-file replacement if the <player> block can't be
-    /// found, or if the tag doesn't appear inside it — some save fields
-    /// (e.g. goldenWalnuts, which is farm-wide) live outside <player>, and
-    /// those must remain editable rather than silently no-op.
+    /// Like replaceFirstTag, scoped to <player> (not an NPC's or farmhand's
+    /// tag). Falls back to the whole file when absent from <player>
+    /// (goldenWalnuts is farm-wide).
     private func replaceFirstTagInPlayer(tag: String, with value: String, in xml: String) -> String {
         guard let playerStartRange = xml.range(of: "<player>"),
               let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
@@ -943,10 +806,8 @@ public final class SaveManager: @unchecked Sendable {
         let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
         let afterPlayer  = String(xml[playerEndRange.upperBound...])
 
-        // Viser l'enfant **direct** de `<player>`. La première occurrence du
-        // bloc peut appartenir à un monstre de quête imbriqué : sur la save du
-        // parc, `<maxHealth>` la première vaut 24 (le monstre) et non 150 (le
-        // fermier) — écrire là laissait la vraie valeur inchangée.
+        // Enfant **direct** de `<player>` : `<maxHealth>` la première vaut 24
+        // (un monstre), pas 150.
         if let updated = SavePlayerFields.replacingDirectChild(tag, with: value, in: xml) {
             return updated
         }
@@ -960,9 +821,8 @@ public final class SaveManager: @unchecked Sendable {
     }
 
     private func replaceFirstTag(tag: String, with value: String, in xml: String) -> String {
-        // `*`, pas `+` : une balise vide (`<favoriteThing></favoriteThing>`) est
-        // une valeur comme une autre. Avec `+`, la regex ne la voyait pas,
-        // l'édition n'écrivait rien et se déclarait quand même réussie.
+        // `*`, pas `+` : une balise vide est une valeur (sinon « réussi » sans
+        // écrire).
         let pattern = "(<\(tag)>)([^<]*)(</\(tag)>)"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return xml }
         let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
@@ -970,17 +830,11 @@ public final class SaveManager: @unchecked Sendable {
         // We only want to replace the first occurrence (player data is always at the top)
         if let match = regex.firstMatch(in: xml, options: [], range: range) {
 
-            // wait, stringByReplacingMatches with match.range will only return the replaced SUBSTRING,
-            // no, wait, it returns a new string where the matches within the range are replaced.
-            // Oh, the range param to stringByReplacingMatches specifies the portion of the string to search.
-            // If I restrict the search to match.range, it will only return that small portion.
-            // Better to use mutating String method.
+            // Mutating replacement on the matched range.
             if let swiftRange = Range(match.range, in: xml) {
                 var modified = xml
-                // Échapper la valeur : un nom de ferme « D&D » ou un « < »
-                // cassait le XML sans cela (data-loss au prochain fetchSaves).
-                // Échappement centralisé ici → tous les callers (édition, clone,
-                // remariage) sont protégés. Symétrique du unescape d'extractTag.
+                // Valeur échappée ici pour tous les appelants (« D&D » cassait le XML) ;
+                // symétrique d'`extractTag`.
                 modified.replaceSubrange(swiftRange, with: "<\(tag)>\(XMLEntities.escape(value))</\(tag)>")
                 return modified
             }
@@ -998,9 +852,7 @@ public final class SaveManager: @unchecked Sendable {
     }
     
     public func deleteSave(info: SaveGameInfo) -> Bool {
-        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
-        // fin : un échec partiel a pu toucher le disque, et resservir une
-        // lecture d'avant serait pire que reparser pour rien.
+        // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let folderPath = info.fileURL.deletingLastPathComponent()
         do {
@@ -1018,14 +870,8 @@ public final class SaveManager: @unchecked Sendable {
         let mainSaveURL = folderURL.appendingPathComponent(newSaveName)
 
         func updateFile(at url: URL) throws {
-            // Lecture tolérante : un fichier absent/illisible n'a rien à
-            // patcher, on l'ignore. En revanche l'échec en écriture est une
-            // perte de données silencieuse — la sauvegarde clonée porterait
-            // l'ancien nom interne, invisible pour Stardew — donc on propage.
-            //
-            // Troisième chemin d'écriture du fichier, après `updateSave` et
-            // `updateInventory` : la marque d'octets se relève avant la
-            // lecture, qui la consomme, et se rend à l'écriture.
+            // Lecture tolérante, écriture propagée (sinon clone sous l'ancien nom
+            // interne, invisible pour Stardew). Marque d'octets relevée et rendue.
             let hadBOM = Self.fileStartsWithBOM(at: url)
             guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
             var modified = replaceFirstTag(tag: "name", with: newPlayerName, in: content)
@@ -1042,18 +888,11 @@ public final class SaveManager: @unchecked Sendable {
         }
     }
 
-    /// Copies `sourceFolder` (a save's own folder or a backup's folder) into
-    /// a new sibling folder named "<baseName>_<suffix>" (appending "_2",
-    /// "_3"... on collision), renames the internal save file to match, and
-    /// patches its name/farm-name XML fields. Shared by duplicateSave and
-    /// branchFromBackup, which differ only in where sourceFolder/baseName
-    /// come from.
+    /// Copies a save or backup folder into "<baseName>_<suffix>" (+ "_2"…),
+    /// renames the inner file and patches the name fields (duplicateSave,
+    /// branchFromBackup).
     private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> Bool {
-        // Toute écriture invalide la lecture mémorisée — ici plutôt que chez
-        // les appelants : `duplicateSave` le faisait, `branchFromBackup` non.
-        // Sans conséquence (les deux écrivent dans un dossier neuf, absent du
-        // cache), mais une règle qui ne vaut que pour un appelant sur deux
-        // finit par être oubliée du bon côté.
+        // Invalidation ici, pas chez un seul des deux appelants.
         invalidateParseCache()
         let fm = FileManager.default
         let parentDir = sourceFolder.deletingLastPathComponent()
@@ -1083,9 +922,7 @@ public final class SaveManager: @unchecked Sendable {
 
             return true
         } catch {
-            // Un clone partiel (dossier copié mais renommage/patchage raté)
-            // laisserait une sauvegarde illisible par Stardew : on la retire
-            // plutôt que de signaler une réussite sur un dossier cassé.
+            // Clone partiel retiré plutôt qu'une réussite sur un dossier cassé.
             try? fm.removeItem(at: newFolderPath)
             print("Failed to \(context): \(error)")
             return false
@@ -1102,10 +939,8 @@ public final class SaveManager: @unchecked Sendable {
 
     public func branchFromBackup(backup: SaveBackup, newName: String, newFarm: String) -> Bool {
         let backupFolderPath = backup.folderPath
-        // `backup.saveFolder` porte le nom d'origine de la partie (ex. « Farm.1 »).
-        // L'ancien `split(".")[0]` l'amputait à « Farm » dès qu'il contenait un
-        // point, le fichier interne n'était alors jamais renommé et Stardew
-        // ignorait la branche (nom dossier ≠ nom fichier).
+        // Nom d'origine complet (« Farm.1 ») : l'ancien `split(".")` coupait au
+        // point et Stardew ignorait la branche.
         let originalSaveName = backup.saveFolder
         return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup")
     }
@@ -1144,9 +979,7 @@ public final class SaveManager: @unchecked Sendable {
 
     /// Restore a backup: backup current save first, then swap
     public func restoreBackup(backup: SaveBackup, info: SaveGameInfo) -> Bool {
-        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
-        // fin : un échec partiel a pu toucher le disque, et resservir une
-        // lecture d'avant serait pire que reparser pour rien.
+        // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let fm = FileManager.default
         let saveFolder = info.fileURL.deletingLastPathComponent()
@@ -1161,22 +994,15 @@ public final class SaveManager: @unchecked Sendable {
         let tempTrash = saveFolder.deletingLastPathComponent()
             .appendingPathComponent("\(saveFolder.lastPathComponent)_RESTORING_TEMP")
 
-        // A previous restore attempt that failed before reaching cleanup can
-        // leave `tempTrash` behind, which would make `moveItem` below refuse
-        // to overwrite it. Clear it first — anything in it is already
-        // superseded by `preRestoreBackupPath` copies from those attempts.
+        // Leftover `tempTrash` from a failed attempt would block `moveItem`:
+        // clear it (already superseded).
         if fm.fileExists(atPath: tempTrash.path) {
             try? fm.removeItem(at: tempTrash)
         }
 
-        // Tracks whether the live save folder has been moved aside to
-        // `tempTrash` yet, so a failure after that point can move it back
-        // instead of leaving the path the game expects to find empty.
+        // Live folder moved aside? A later failure moves it back.
         var liveFolderMovedAside = false
-        // Set once the backup has actually been copied into `saveFolder`.
-        // Only failures *before* this point should trigger the rollback —
-        // a failure afterward (e.g. trashing the now-redundant temp copy)
-        // must not undo a restore that already succeeded.
+        // Only failures before the copy roll back.
         var restoreCompleted = false
 
         do {
@@ -1191,30 +1017,22 @@ public final class SaveManager: @unchecked Sendable {
             try fm.copyItem(at: backup.folderPath, to: saveFolder)
             restoreCompleted = true
 
-            // Trash the temp. Non-fatal: the restore already succeeded, so a
-            // failure here just leaves `tempTrash` for next time to clean up
-            // (see the check at the top of this function) rather than
-            // reverting a completed restore.
+            // Trash the temp; non-fatal (cleaned next time).
             try? fm.trashItem(at: tempTrash, resultingItemURL: nil)
 
             return true
         } catch {
             print("Failed to restore backup: \(error)")
             if liveFolderMovedAside && !restoreCompleted {
-                // Put the live save back where the game expects it. Clear
-                // any partial folder a failed copy may have left behind
-                // first — moveItem refuses to overwrite an existing
-                // destination.
+                // Put the live save back; clear a partial folder first.
                 if fm.fileExists(atPath: saveFolder.path) {
                     try? fm.removeItem(at: saveFolder)
                 }
                 do {
                     try fm.moveItem(at: tempTrash, to: saveFolder)
                 } catch {
-                    // Ne pas avaler silencieusement : la save live est coincée
-                    // dans tempTrash et saveFolder est vide. Signaler le chemin
-                    // pour que l'utilisateur puisse la récupérer manuellement,
-                    // sinon c'est une perte de donnée invisible.
+                    // Ne pas avaler : la save vivante est dans `tempTrash`, signaler le
+                    // chemin (sinon perte invisible).
                     print("CRITICAL: restore rollback failed — live save still in \(tempTrash.path) (could not move to \(saveFolder.path): \(error))")
                 }
             }
@@ -1276,9 +1094,7 @@ public final class SaveManager: @unchecked Sendable {
     }
     
     func updateInventory(info: SaveGameInfo, items: [InventoryItem]) -> Bool {
-        // Toute écriture invalide la lecture mémorisée. En tête plutôt qu'en
-        // fin : un échec partiel a pu toucher le disque, et resservir une
-        // lecture d'avant serait pire que reparser pour rien.
+        // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         // Backup first
         guard backupSave(info: info) else { return false }
