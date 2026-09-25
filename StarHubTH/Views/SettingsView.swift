@@ -176,48 +176,6 @@ struct SettingsView: View {
             footer: localization.L(L10n.Settings.nexusApiKeyHint)
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(localization.L(L10n.Settings.nexusAutoCheck))
-                        .font(AppDesign.Font.body)
-                    Spacer()
-                    Toggle(localization.L(L10n.Settings.nexusAutoCheck), isOn: $autoCheckNexusUpdates)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        .controlSize(.small)
-                        .labelsHidden()
-                    InfoPopoverButton(text: localization.L(L10n.Settings.nexusAutoCheckHint))
-                }
-
-                // X103-C. Il vit ici, avec ce qui touche à Nexus, plutôt que
-                // dans « Données & stockage » : c'est en réglant Nexus qu'on
-                // se demande ce que deviennent les fichiers téléchargés. Son
-                // poids et sa purge, eux, sont à l'écran Entretien.
-                HStack {
-                    Text(localization.L(L10n.Settings.keepNexusArchives))
-                        .font(AppDesign.Font.body)
-                    Spacer()
-                    Toggle(localization.L(L10n.Settings.keepNexusArchives), isOn: $keepNexusArchives)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        .controlSize(.small)
-                        .labelsHidden()
-                    InfoPopoverButton(text: localization.L(L10n.Settings.keepNexusArchivesHint))
-                }
-
-                // A1-T7 (suite). Section installation, pas « Données » :
-                // c'est au moment d'une mise à jour qu'on se demande ce que
-                // deviennent les fichiers écrits en jouant. Le défaut est
-                // actif (comportement livré) ; l'installer lit la clé via
-                // `PreservedModData.shouldRestore`, jamais `bool` nu.
-                HStack {
-                    Text(localization.L(L10n.Settings.restoreModData))
-                        .font(AppDesign.Font.body)
-                    Spacer()
-                    Toggle(localization.L(L10n.Settings.restoreModData), isOn: $restoreModData)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        .controlSize(.small)
-                        .labelsHidden()
-                    InfoPopoverButton(text: localization.L(L10n.Settings.restoreModDataHint))
-                }
-
                 if vm.hasNexusApiKey {
                     // Key stored — offer removal and link to fetch another.
                     HStack {
@@ -290,6 +248,37 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                SettingsRow(title: localization.L(L10n.Settings.nexusAutoCheck), hint: localization.L(L10n.Settings.nexusAutoCheckHint)) {
+                    Toggle(localization.L(L10n.Settings.nexusAutoCheck), isOn: $autoCheckNexusUpdates)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
+                // X103-C. Il vit ici, avec ce qui touche à Nexus, plutôt que
+                // dans « Données & stockage » : c'est en réglant Nexus qu'on
+                // se demande ce que deviennent les fichiers téléchargés. Son
+                // poids et sa purge, eux, sont à l'écran Entretien.
+                SettingsRow(title: localization.L(L10n.Settings.keepNexusArchives), hint: localization.L(L10n.Settings.keepNexusArchivesHint)) {
+                    Toggle(localization.L(L10n.Settings.keepNexusArchives), isOn: $keepNexusArchives)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
+                // A1-T7 (suite). Section installation, pas « Données » :
+                // c'est au moment d'une mise à jour qu'on se demande ce que
+                // deviennent les fichiers écrits en jouant. Le défaut est
+                // actif (comportement livré) ; l'installer lit la clé via
+                // `PreservedModData.shouldRestore`, jamais `bool` nu.
+                SettingsRow(title: localization.L(L10n.Settings.restoreModData), hint: localization.L(L10n.Settings.restoreModDataHint)) {
+                    Toggle(localization.L(L10n.Settings.restoreModData), isOn: $restoreModData)
+                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
             }
         }
     }
@@ -308,32 +297,22 @@ struct SettingsView: View {
             footer: localization.L(L10n.Settings.footerLaunch)
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(localization.L(L10n.Settings.defaultLaunchMode))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.defaultLaunchMode), hint: localization.L(L10n.Settings.hintNextLaunchMode)) {
                     Picker(localization.L(L10n.Settings.defaultLaunchMode), selection: $launchProfile) {
                         Text(localization.L(L10n.Settings.playSMAPI)).tag("SMAPI")
                         Text(localization.L(L10n.Settings.vanillaGame)).tag("Vanilla")
                     }
                     .pickerStyle(MenuPickerStyle()).labelsHidden()
                     .fixedSize()
-                    
-                    InfoPopoverButton(text: localization.L(L10n.Settings.hintNextLaunchMode))
                 }
                 
                 Divider().padding(.leading, 0)
                 
-                HStack {
-                    Text(localization.L(L10n.Settings.closeLauncher))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.closeLauncher), hint: localization.L(L10n.Settings.hintSaveResources)) {
                     Toggle(localization.L(L10n.Settings.closeLauncher), isOn: $closeAfterLaunch)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
-                    
-                    InfoPopoverButton(text: localization.L(L10n.Settings.hintSaveResources))
                 }
             }
         }
@@ -347,26 +326,18 @@ struct SettingsView: View {
             footer: localization.L(L10n.Settings.footerBackup)
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(localization.L(L10n.Settings.backupSaves))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.backupSaves), hint: localization.L(L10n.Settings.hintCompressSaves)) {
                     Button(action: { vm.backupAllSaves() }) {
                         Text(localization.L(L10n.Settings.backupSavesButton))
                     }
-                    InfoPopoverButton(text: localization.L(L10n.Settings.hintCompressSaves))
                 }
                 
                 Divider().padding(.leading, 0)
                 
-                HStack {
-                    Text(localization.L(L10n.Settings.backupMods))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.backupMods), hint: localization.L(L10n.Settings.hintCompressMods)) {
                     Button(action: { vm.backupAllMods() }) {
                         Text(localization.L(L10n.Settings.backupModsButton))
                     }
-                    InfoPopoverButton(text: localization.L(L10n.Settings.hintCompressMods))
                 }
             }
         }
@@ -382,16 +353,11 @@ struct SettingsView: View {
             footer: localization.L(L10n.Settings.footerAppearance)
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(localization.L(L10n.Settings.showDevLogs))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.showDevLogs), hint: localization.L(L10n.Settings.hintDevLogs)) {
                     Toggle(localization.L(L10n.Settings.showDevLogs), isOn: $showDeveloperLogs)
                         .toggleStyle(SwitchToggleStyle(tint: .blue))
                         .controlSize(.small)
                         .labelsHidden()
-                    
-                    InfoPopoverButton(text: localization.L(L10n.Settings.hintDevLogs))
                 }
             }
         }
@@ -404,10 +370,7 @@ struct SettingsView: View {
             title: localization.L(L10n.Settings.modBehavior),
             footer: localization.L(L10n.Settings.chainToggleHint)
         ) {
-            HStack {
-                Text(localization.L(L10n.Settings.chainToggle))
-                    .font(AppDesign.Font.body)
-                Spacer()
+            SettingsRow(title: localization.L(L10n.Settings.chainToggle), hint: localization.L(L10n.Settings.chainToggleHint)) {
                 Toggle(localization.L(L10n.Settings.chainToggle), isOn: Binding(
                     get: { vm.chainToggleDependencies },
                     set: { vm.chainToggleDependencies = $0 }
@@ -415,8 +378,6 @@ struct SettingsView: View {
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                 .controlSize(.small)
                 .labelsHidden()
-                
-                InfoPopoverButton(text: localization.L(L10n.Settings.chainToggleHint))
             }
         }
     }
@@ -429,22 +390,15 @@ struct SettingsView: View {
             footer: localization.L(L10n.Settings.footerManagement)
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(localization.L(L10n.Settings.savesFolder))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.savesFolder), hint: "") {
                     Button(action: { vm.openSavesFolder() }) {
                         Text(localization.L(L10n.Settings.openFolder))
                     }
-                    InfoPopoverButton(text: localization.L(L10n.Settings.openFolder))
                 }
                 
                 Divider().padding(.leading, 0)
                 
-                HStack {
-                    Text(localization.L(L10n.Settings.clearDisabledMods))
-                        .font(AppDesign.Font.body)
-                    Spacer()
+                SettingsRow(title: localization.L(L10n.Settings.clearDisabledMods), hint: "") { // l'ancienne infobulle répétait le titre ; la note de section explique
                     Button(action: {
                         disabledModsToClear = vm.disabledModTargets()
                         // Rien à supprimer : le dire, plutôt qu'ouvrir une
@@ -458,8 +412,6 @@ struct SettingsView: View {
                         Text(localization.L(L10n.Settings.deleteJunkMods))
                     }
                     .foregroundColor(.red)
-                    
-                    InfoPopoverButton(text: localization.L(L10n.Settings.clearDisabledMods), color: .red.opacity(0.8))
                 }
             }
         }
