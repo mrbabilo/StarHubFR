@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Essai A5-T7 / D1 (2026-09-26) : un mod d'observation que StarHubFR lit.
+    Construit sur la machine qui a le jeu (ModBuildConfig lit ses DLL) ;
+    la CI ne le construit pas. Jamais déployé automatiquement : le dossier
+    de sortie se copie à la main dans Mods/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <EnableHarmony>true</EnableHarmony>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableModZip>false</EnableModZip>
+    <GamePath Condition="'$(GamePath)' == ''">/Volumes/BABILOGAMES/JEUX EN COURS/Stardew Valley.app/Contents/MacOS</GamePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+  </ItemGroup>
+
+</Project>
