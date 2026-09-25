@@ -207,8 +207,8 @@ struct ModConfigEditorView: View {
             
             Divider()
             
-            // Footer Action Bar
-            HStack {
+            // Footer Action Bar — ~637 pt en FR : repli sur deux lignes si étroit
+            SplitRow {
                 Button(action: { restoreConfigBackup() }) {
                     Label(localization.L(L10n.Settings.configRestoreConfig), systemImage: "arrow.counterclockwise")
                 }
@@ -220,9 +220,7 @@ struct ModConfigEditorView: View {
                         .foregroundColor(.red)
                         .padding(.leading, 8)
                 }
-                
-                Spacer()
-                
+            } trailing: {
                 Button(action: {
                     configText = originalText
                     isInvalidJson = false

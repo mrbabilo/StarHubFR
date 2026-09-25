@@ -424,7 +424,7 @@ struct TranslationSection: View {
 
     @ViewBuilder
     private func inPlace(_ installed: InstalledTranslation) -> some View {
-        HStack(spacing: 6) {
+        SplitRow(spacing: 6) { // ~720 pt en FR avec une mise à jour : repli sous 512
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 10))
                 .foregroundColor(AppDesign.Color.installed)
@@ -440,7 +440,7 @@ struct TranslationSection: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.orange)
             }
-            Spacer()
+        } trailing: {
             if let newer = update {
                 Button(localization.L(L10n.Mods.translationUpdate)) {
                     vm.installTranslation(newer, into: mod)

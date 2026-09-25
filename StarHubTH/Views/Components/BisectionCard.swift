@@ -154,10 +154,10 @@ struct BisectionCard: View {
                         .foregroundColor(.orange)
                 }
                 Text(localization.L(L10n.Bisect.question)).font(.system(size: 12, weight: .medium))
-                HStack {
+                SplitRow { // ~523 pt en FR : repli sur deux lignes à la fenêtre minimale
                     Button(localization.L(L10n.Bisect.answerYes)) { runner.answer(.stillBroken) }
                     Button(localization.L(L10n.Bisect.answerNo)) { runner.answer(.fixed) }
-                    Spacer()
+                } trailing: {
                     Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                         .buttonStyle(.borderless).foregroundColor(.secondary)
                 }

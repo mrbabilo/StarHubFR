@@ -70,12 +70,10 @@ struct DiscoverView: View {
         }
     }
 
-    /// Une seule rangée de commandes au lieu de trois : recherche, catégorie,
-    /// « masquer les installés », et **un** rafraîchissement. Les trois ⟳ des
-    /// en-têtes de section appelaient tous le même rechargement global — trois
-    /// boutons pour un geste.
+    /// Une rangée de commandes (recherche, catégorie, « masquer les
+    /// installés », **un** ⟳) ; ~638 pt en FR, repliée sous 500 (SplitRow).
     private var toolbar: some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
+        SplitRow(spacing: AppDesign.Spacing.sm) {
             TextField(localization.L(L10n.Discovery.searchPlaceholder), text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { vm.searchDiscovery(name: searchText) }
@@ -97,6 +95,7 @@ struct DiscoverView: View {
                 .buttonStyle(.borderless)
                 .help(localization.L(L10n.Discovery.clearSearch))
             }
+        } trailing: {
             categoryPicker
             // « Masquer les installés » ne vaut que pour les sections : une
             // recherche par nom rend ce qu'on lui a demandé, installé ou non.
