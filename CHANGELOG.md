@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Les tuiles de l'accueil ne tronquent plus leur libellé.** « Mise à jour des mods » se lisait « Mise à jour d… » en fenêtre étroite ; le libellé se resserre légèrement au lieu d'être coupé.
+
 ## [1.49.0] - 2026-09-25
 
 ### Added

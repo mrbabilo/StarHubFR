@@ -933,8 +933,14 @@ conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
       par sens pour la couleur, une orthographe par style de bouton, un jeton
       `quarantine` à créer). Un lot = un écran, compilé seul, scénario clair
       et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
+      liste des mods (ajoutée le 2026-09-25 à la demande de l'auteur),
       Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
-      Entretien. Critère ajouté le 2026-09-25 : à la fenêtre minimale, chaque
+      Entretien. **Faits** : lot 1 barre latérale et accueil (`cdb2e52e`,
+      jeton `quarantine` créé), lot 2 liste des mods (`7dd2e21f`). Reste de
+      la liste, en attente d'un constat à l'écran : la rangée de filtres
+      mesure ~700 pt (état par défaut) à ~1 000 pt (pire cas FR) pour 512 pt
+      à la fenêtre minimale ; ses puces sont des `Image`+`Text`, hors de
+      portée d'`AdaptiveLabels`. Critère ajouté le 2026-09-25 : à la fenêtre minimale, chaque
       rangée de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
       `AGENTS.md` §6) — déjà fait pour la barre d'actions et le bandeau de
       mise à jour de la fiche, les gestes de Mises à jour et le cadrage de
