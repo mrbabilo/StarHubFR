@@ -2137,7 +2137,7 @@ final class StarHubTHViewModel {
     /// children's dependencies. Reads `mods`, so "Enable" re-resolves.
     func dependencyTree(for mod: ModItem) -> [DependencyNode] {
         let roots = DependencyIndex.mergedPackRoots(of: mod)
-        return DependencyTreeBuilder.build(roots) { [weak self] uid in
+        return DependencyTreeBuilder.build(roots, excluding: mod.components.map(\.uniqueId)) { [weak self] uid in
             self?.dependencyIndex.resolve(uid)
         }
     }

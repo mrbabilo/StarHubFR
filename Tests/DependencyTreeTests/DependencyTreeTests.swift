@@ -42,15 +42,62 @@ struct DependencyTreeTests {
         #expect(tree[0].resolved == nil)
         #expect(tree[0].children.isEmpty)
     }
-    @Test func diamondShowsSharedNodeUnderBothParents() {
+    /// Un diamant (D requis par B et par C) : D une seule fois, sous le
+    /// premier parent. L'ancien arbre le répétait sous chacun, sous-arbre
+    /// compris — 1 873 lignes pour 125 dépendances sur le parc.
+    @Test func diamondShowsSharedNodeOnce() {
         let d = mod("D")
         let b = mod("B", deps: [req("D")])
         let c = mod("C", deps: [req("D")])
         let a = mod("A", deps: [req("B"), req("C")])
         let tree = DependencyTreeBuilder.build(a.dependencies, resolve: resolver([a, b, c, d]))
-        #expect(tree[0].children[0].uniqueId == "D")
-        #expect(tree[1].children[0].uniqueId == "D")
-        #expect(tree[0].children[0].id != tree[1].children[0].id)
+        #expect(tree.map(\.uniqueId) == ["B", "C"])
+        #expect(tree[0].children.map(\.uniqueId) == ["D"])
+        #expect(tree[1].children.isEmpty)
+    }
+    /// Une dépendance directe, aussi atteinte par une autre : elle reste à la
+    /// racine (le moins profond gagne), pas sous l'autre.
+    @Test func directDependencyWinsOverNestedOccurrence() {
+        let cp = mod("CP")
+        let x = mod("X", deps: [req("CP")])
+        let a = mod("A", deps: [req("X"), req("CP")])
+        let tree = DependencyTreeBuilder.build(a.dependencies, resolve: resolver([a, x, cp]))
+        #expect(tree.map(\.uniqueId) == ["X", "CP"])
+        #expect(tree[0].children.isEmpty)
+    }
+    /// Optionnelle pour le mod, requise par une autre de ses dépendances :
+    /// elle s'affiche « Requis ». Le cas voisin, optionnelle partout, reste
+    /// optionnelle.
+    @Test func requiredWhenAnyOccurrenceRequiresIt() {
+        let d = mod("D")
+        let e = mod("E")
+        let b = mod("B", deps: [req("D"), ModDependency(uniqueId: "E", isRequired: false)])
+        let a = mod("A", deps: [ModDependency(uniqueId: "D", isRequired: false), req("B"),
+                                ModDependency(uniqueId: "E", isRequired: false)])
+        let tree = DependencyTreeBuilder.build(a.dependencies, resolve: resolver([a, b, d, e]))
+        #expect(tree.first { $0.uniqueId == "D" }?.isRequired == true)
+        #expect(tree.first { $0.uniqueId == "E" }?.isRequired == false)
+    }
+    /// Le mod lui-même (ou un composant de son pack) n'est jamais sa propre
+    /// dépendance : un cycle vers la racine s'arrête là.
+    @Test func ownIdsAreExcluded() {
+        let a = mod("A", deps: [req("B")])
+        let b = mod("B", deps: [req("a")])
+        let tree = DependencyTreeBuilder.build(a.dependencies, excluding: ["A"], resolve: resolver([a, b]))
+        #expect(tree.map(\.uniqueId) == ["B"])
+        #expect(tree[0].children.isEmpty)
+    }
+    /// Identifiants distincts partout : `ForEach` ne confond jamais deux lignes.
+    @Test func nodeIdsAreUnique() {
+        let d = mod("D")
+        let b = mod("B", deps: [req("D")])
+        let c = mod("C", deps: [req("D"), req("B")])
+        let a = mod("A", deps: [req("B"), req("C")])
+        let tree = DependencyTreeBuilder.build(a.dependencies, resolve: resolver([a, b, c, d]))
+        func ids(_ n: [DependencyNode]) -> [String] { n.flatMap { [$0.id] + ids($0.children) } }
+        let all = ids(tree)
+        #expect(all.count == 3)
+        #expect(Set(all).count == all.count)
     }
     @Test func statusReflectsEnabledState() {
         let b = mod("B", enabled: false)
