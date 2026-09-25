@@ -8,9 +8,8 @@ import SwiftUI
 @Observable
 final class StarHubTHViewModel {
     // MARK: Sauvegardes — le store du domaine (cadrage §4, domaine 1). Les
-    // étiquettes arrivent en closure : le store ne connaît pas
-    // `SaveNotesStore` ; lue à l'appel, l'observation traverse jusqu'aux
-    // notes. Exposé pour son verrou d'écriture (nettoyage A1-T10).
+    // étiquettes arrivent en closure (le store ignore `SaveNotesStore`) ;
+    // exposé pour son verrou d'écriture (A1-T10).
     let savesStore = SavesStore(
         tagForSave: { SaveNotesStore.shared.note(for: $0).tag }
     )
@@ -31,15 +30,11 @@ final class StarHubTHViewModel {
     var isSaveOperationRunning: Bool { savesStore.isOperationRunning }
 
     // MARK: Environnement — le store du domaine (REFACTORING §6), et ses
-    // façades provisoires (condition 1) : les vues lisent encore
-    // `vm.gameDir` etc. La reprise des vues au contact (P8) fera observer
-    // le store directement et supprimera ces façades avec le relais
-    // `objectWillChange` posé dans `init()`.
+    // façades de lecture (condition 1).
     //
-    // `gameDir` ne s'y rafraîchit jamais tout seul : chaque appelant qui le
-    // change (init, selectGameDir) relance `refresh()` exactement une fois —
-    // l'auto-refresh historique lançait deux scans concurrents qui
-    // écrivaient `gameDir` et `mods` sans synchronisation.
+    // `gameDir` ne se rafraîchit pas seul : qui le change (init,
+    // selectGameDir) relance `refresh()` une fois — l'ancien auto-refresh
+    // lançait deux scans concurrents sur `gameDir` et `mods`.
     private let environment = GameEnvironmentStore(picker: LiveFilePicker())
     private let imagePicker: ImagePicking = LiveImagePicker()
 
@@ -49,128 +44,79 @@ final class StarHubTHViewModel {
     var smapiInstalledVersion: String? { environment.smapiInstalledVersion }
 
     // MARK: Localisation — le store du domaine (REFACTORING §6). Il
-    // appartient à l'App, qui le passe à l'init et l'observe pour ses
-    // menus ; les vues le reçoivent directement en paramètre. Le VM ne
-    // publie plus rien pour lui : plus de façade, plus de relais.
+    // appartient à l'App (init + menus) ; les vues le reçoivent en paramètre.
     let localization: LocalizationStore
     
-    /// Les mods que **SMAPI** signale périmés — publiés par `smapiHealth`
-    /// dans le même geste que la date (même lecture).
+    /// Mods que **SMAPI** signale périmés (même lecture que la date).
     var outOfDateMods: [ModUpdateInfo] { smapiHealth.outOfDateMods }
     // MARK: Santé SMAPI — le store du domaine (cadrage §4, domaine 2,
-    // tranche 2). Il porte ce que le journal dit de l'installation ; les
-    // lignes affichées, elles, vivent dans `logStore`.
+    // tranche 2) : ce que le journal dit de l'installation ; les lignes
+    // affichées vivent dans `logStore`.
     private let smapiHealth = SmapiHealthStore()
 
     /// Les alertes système de la dernière lecture.
     var smapiErrors: [String] { smapiHealth.errors }
-    /// Structured health diagnostics parsed from SMAPI-latest.txt (nil until
-    /// first parse). Drives the SMAPI health card in LogsView.
+    /// SMAPI health card diagnostics (nil until first parse).
     var smapiDiagnostics: SmapiDiagnostics? { smapiHealth.diagnostics }
     /// mtime of the parsed SMAPI log (nil if unread); used for the "stale" badge.
     var smapiLogDate: Date? { smapiHealth.logDate }
-    /// True when the log's mtime predates this app session (= no game launch
-    /// logged since StarHubFR was opened).
+    /// True when the log predates this app session (no launch since opening).
     var smapiLogStale: Bool { smapiHealth.isStale }
-    /// Les conflits de chargement que Content Patcher a constatés lors de la
-    /// **dernière partie** journalisée. La date de ce constat est `smapiLogDate`
-    /// (mtime de `SMAPI-latest.txt`), pas maintenant : ce n'est pas l'état du
-    /// parc aujourd'hui, un conflit rapporté peut concerner deux mods qui sont
-    /// en pause à l'instant où on le lit.
+    /// Conflits constatés par Content Patcher lors de la **dernière partie**
+    /// journalisée (date : `smapiLogDate`), pas l'état actuel du parc.
     var contentPatcherConflicts: [LoadConflict] { smapiHealth.contentPatcherConflicts }
-    /// App-session start captured once at init (= app launch for the single
-    /// @StateObject VM). Reference for SMAPI-log staleness.
+    /// App-session start; reference for SMAPI-log staleness.
     private let sessionStart = Date()
 
-    /// Folder name of the mod currently being toggled (enabled/disabled), or
-    /// nil when no toggle operation is in flight. Drives the spinner shown
-    /// next to the toggle in ModListRow during the (now fast, but still
-    /// background-dispatched) rename within Mods/.
+    /// Folder being toggled, or nil. Drives the ModListRow spinner.
     var pendingToggleFolder: String? = nil
 
-    /// Folder name of the mod currently being deleted, or nil when no delete
-    /// is in flight. Drives the per-row spinner shown in place of the delete
-    /// button (and the row is dimmed) during the (potentially slow) folder
-    /// removal + rescan.
+    /// Folder being deleted, or nil. Drives the per-row spinner and dimming.
     var pendingDeleteFolder: String? = nil
 
     // MARK: Mises à jour — le store du domaine (cadrage §4, domaine 7,
-    // tranche 1). Il porte les lignes et le verrou à deux détenteurs des
-    // deux passes ; le cache plat reste chez `NexusUpdateChecker.shared`.
+    // tranche 1) : lignes + verrou à deux détenteurs ; cache plat chez
+    // `NexusUpdateChecker.shared`.
     private let updateStore = ModUpdateStore()
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     var nexusUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.updates }
-    /// R3 — les mises à jour en veille : vraies, mais repoussées par un
-    /// snooze encore vivant. Affichées repliées sous la liste, jamais dans
-    /// l'inventaire masquées. Le badge sidebar ne les compte pas (`nexusUpdates`
-    /// seul y figure).
+    /// R3 — mises à jour repoussées par un snooze vivant. Repliées sous la
+    /// liste ; hors badge sidebar.
     var snoozedUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.snoozed }
-    /// R3 — le store des snoozes (persistance UserDefaults, expiration
-    /// paresseuse). Touche principale uniquement, comme `nexusUpdates`.
+    /// R3 — snoozes (UserDefaults, expiration paresseuse).
     let updateSnoozer = ModUpdateSnoozer()
-    /// Les mods que smapi.io n'a pas pu vérifier, avec le nom affiché partout
-    /// ailleurs et le motif classé. 115 mods du parc réel sont dans ce cas :
-    /// les taire laissait la fenêtre dire « tous à jour » alors qu'ils
-    /// n'avaient de verdict d'aucune source — Powered Automation et sa mise à
-    /// jour réelle invisible en sont la preuve levée le 2026-08-27.
-    ///
-    /// L'`UniqueID` accompagne le nom depuis B2-T10 : une ligne sur laquelle on
-    /// veut agir — ici la retirer quand Nexus a fini par la trancher — doit
-    /// pouvoir être désignée, et deux mods peuvent porter le même nom.
+    /// Mods que smapi.io n'a pas pu vérifier (115 sur le parc) : les taire
+    /// faisait dire « tous à jour » sans verdict (Powered Automation,
+    /// 2026-08-27). `UniqueID` joint (B2-T10) : deux mods peuvent porter le
+    /// même nom.
     var unverifiableMods: [SmapiVerdicts.Unverifiable] { updateStore.unverifiable }
-    /// Les mods que « Je l'ai déjà » a fait taire (X12).
-    ///
-    /// **Publié, et non calculé à la demande** : le construire relit et décode
-    /// les ancres depuis `UserDefaults`, et une propriété calculée est
-    /// réévaluée à chaque accès d'un corps de vue — le patron même relevé sur
-    /// `healthIssues` et rangé en F3. Rafraîchi aux trois seuls moments où la
-    /// liste peut changer : après un scan, après une affirmation, après un
-    /// réaffichage.
+    /// Mods tus par « Je l'ai déjà » (X12). **Publié, pas calculé** : le
+    /// construire décode les ancres, et un calculé se réévalue à chaque rendu
+    /// (F3). Rafraîchi après scan, affirmation, réaffichage.
     var affirmedUpdates: [AffirmedUpdates.Row] { updateStore.affirmed }
 
-    /// Ce que smapi.io sait de la compatibilité de chaque mod, par `UniqueID`.
-    ///
-    /// Relu au lancement plutôt que reconstruit : l'avertissement le plus utile
-    /// se déclenche à l'**activation** d'un mod, geste qui n'attend pas qu'une
-    /// vérification ait abouti.
-    ///
-    /// Mesuré sur le parc : 281 mods `Ok`, 7 signalés, et **552 sans verdict**.
-    /// Une absence n'est donc pas un satisfecit, et rien ne doit l'afficher
-    /// comme tel.
+    /// Compatibilité smapi.io par `UniqueID`, relue au lancement :
+    /// l'avertissement d'**activation** n'attend pas de vérification.
+    /// Parc : 281 `Ok`, 7 signalés, **552 sans verdict** — absence ≠ satisfecit.
     private(set) var modCompatibility: [String: ModCompatibility] =
         ModCompatibilityStore.load() {
         didSet { compatibilityStatuses = modCompatibility.mapValues(\.status) }
     }
-    /// Ce que le dump Pathoschild signale d'un mod **sans le déclarer cassé**,
-    /// par `UniqueID`, déjà tamisé par `ModPlatformWarnings`.
-    ///
-    /// Relu depuis le cache disque, **quel que soit son âge** : un
-    /// avertissement d'il y a trois jours reste vrai, et le lier à la fraîcheur
-    /// du dump ferait disparaître ces lignes 18 heures par jour.
-    ///
-    /// Mesuré le 2026-09-05 sur le parc de référence : **zéro ligne** — les
-    /// deux mods concernés portent l'un « Broken on Android », l'autre
-    /// « use Nexus, ModDrop is NOT updated », tous deux écartés à raison.
+    /// Avertissements Pathoschild **sans verdict cassé**, par `UniqueID`,
+    /// tamisés par `ModPlatformWarnings`. Cache lu **quel que soit son âge** :
+    /// sinon ces lignes disparaîtraient 18 h par jour. Parc 2026-09-05 : zéro.
     private(set) var modWarnings: [String: [String]] = [:]
-    /// A2-T7 — les mods installés qui figurent sur la **liste noire SMAPI**
-    /// (mods malveillants), par `UniqueID` tel que le manifeste le déclare.
-    ///
-    /// ⚠️ **Rien à voir avec `blacklistedMods`**, qui est la liste des mods que
-    /// l'utilisateur a lui-même marqués « à écarter ». Celle-ci est subie,
-    /// l'autre est choisie — les confondre ferait passer un choix de l'auteur
-    /// pour une alerte de sécurité, ou l'inverse.
+    /// A2-T7 — mods installés sur la **liste noire SMAPI** (malveillants).
+    /// ⚠️ **Rien à voir avec `blacklistedMods`** (choix de l'utilisateur) :
+    /// les confondre ferait passer un choix pour une alerte, ou l'inverse.
     private(set) var maliciousMods: [String: SmapiBlacklist.Entry] = [:]
 
-    /// Les mêmes verdicts réduits à leur statut, **tenus à jour plutôt que
-    /// recalculés** : `anomaly(for:)` tourne sur chaque ligne du parc, deux
-    /// fois — pour le compteur du cadrage et pour le filtrage. Reconstruire le
-    /// dictionnaire à chaque appel rendrait la liste quadratique.
+    /// Statuts **tenus à jour** : `anomaly(for:)` tourne deux fois par ligne ;
+    /// reconstruire à chaque appel rendrait la liste quadratique.
     private var compatibilityStatuses: [String: ModCompatibility.Status] = [:]
-    /// D'où viennent **en dernier** les verdicts de compatibilité affichés.
-    /// La valeur porte une date : un verdict ramené du cache disque d'il y a
-    /// huit heures n'a pas la même fraîcheur qu'un verdict tout juste sorti
-    /// de smapi.io, et le bandeau de la fiche doit le dire (A2-T3).
+    /// Source et date des derniers verdicts affichés : le bandeau de la fiche
+    /// distingue cache disque et réponse fraîche (A2-T3).
     public enum CompatibilitySource: Equatable {
         case live
         case pathoschildDump
@@ -178,8 +124,7 @@ final class StarHubTHViewModel {
         case none
     }
     private(set) var compatibilitySource: CompatibilitySource = .none
-    /// La date du dump Pathoschild effectivement utilisé (`fetchedAt` du
-    /// décodeur, ou `nil` quand aucun dump n'a jamais été posé).
+    /// Date (`fetchedAt`) du dump Pathoschild utilisé, `nil` si jamais posé.
     private(set) var pathoschildDumpDate: Date? = nil
     /// True while a Nexus check is in flight.
     var isCheckingNexusUpdates: Bool { updateStore.isChecking }
@@ -188,29 +133,23 @@ final class StarHubTHViewModel {
     /// Progress of the in-flight Nexus check. `nil` when idle.
     var nexusCheckProgress: UpdateCheckProgress? { updateStore.progress }
     // MARK: Compte Nexus — le store du domaine (cadrage §4, domaine 7,
-    // tranche 2). Le Trousseau n'y entre pas : la clé reste chez
-    // `NexusUpdateChecker.shared`, le store n'en retient que le fait
-    // qu'elle a été acceptée.
+    // tranche 2). Le Trousseau reste chez `NexusUpdateChecker.shared` ; le
+    // store ne retient que « clé acceptée ».
     private let accountStore = NexusAccountStore()
 
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
-    /// `true` seulement quand on **sait** que le compte n'est pas premium.
-    /// L'ignorance ne retire rien : mieux vaut un bouton qui échoue qu'un
-    /// bouton absent chez quelqu'un qui y avait droit.
+    /// `true` seulement si on **sait** le compte non premium : mieux vaut un
+    /// bouton qui échoue qu'un bouton absent.
     var nexusDirectDownloadUnavailable: Bool { accountStore.directDownloadUnavailable }
 
-    /// Dernier quota Nexus relevé, `nil` tant qu'aucune réponse de l'API n'a été
-    /// vue. Rafraîchi à l'ouverture des réglages et à chaque relevé (B2-T6).
+    /// Dernier quota Nexus relevé (B2-T6), `nil` avant toute réponse.
     var nexusQuota: NexusQuota? { accountStore.quota }
-    /// Set when a Nexus download finishes; MainView observes it to open the
-    /// install sheet pre-loaded with the downloaded .zip.
+    /// Set when a Nexus download finishes; MainView opens the install sheet.
     var pendingDownloadedZip: URL?
-    /// Ce que l'app sait du téléchargement Nexus qui attend sa feuille
-    /// d'installation. `facts` n'est renseigné que quand l'app a **choisi**
-    /// le fichier elle-même (résolution du MAIN le plus récent) — l'ancre de
-    /// l'installation s'en servira pour juger « plus récent que ce qu'on
-    /// tient » plutôt que « libellé plus grand » (X9).
+    /// Ce que l'app sait du téléchargement qui attend sa feuille. `facts`
+    /// seulement si l'app a **choisi** le fichier : l'ancre juge alors « plus
+    /// récent », pas « libellé plus grand » (X9).
     struct NexusInstallSource: Equatable {
         let modId: Int
         let facts: NexusInstallFacts?
@@ -220,71 +159,47 @@ final class StarHubTHViewModel {
             self.facts = facts
         }
     }
-    /// Set alongside pendingDownloadedZip when the zip came from a Nexus download,
-    /// so the post-install step can reconcile the manifest version.
+    /// Set with pendingDownloadedZip for a Nexus download (manifest reconcile).
     var pendingNexusSource: NexusInstallSource?
-    /// X103-C — le magasin d'archives Nexus. Inerte tant que le réglage
-    /// `keepNexusArchives` est éteint : rien n'appelle `keep`.
+    /// X103-C — archives Nexus ; inerte tant que `keepNexusArchives` est éteint.
     let nexusArchiveStore = NexusArchiveStore(
         root: NexusArchiveStore.defaultRoot(
             applicationSupport: AppSupport.directory
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())))
     // MARK: Téléchargement Nexus — le store du domaine (cadrage §4, domaine
-    // 7, tranche 3). Il porte le cycle d'un transfert, sa file et le lissage
-    // du débit. Le jugement « suis-je occupé ? » reste ici :
-    // `NexusDownloadFlow` tranche aussi sur `pendingDownloadedZip`, qui est
-    // de l'installation.
-    //
-    // `nonisolated(unsafe)` porté par la propriété : le rappel de progression
-    // (`noteNexusDownloadProgress`) part du fil de délégué d'`URLSession` et
-    // ne traverse que la référence ; les écritures restent toutes sur main.
-    // La vraie isolation du store est la voie P5 (tranche LS).
+    // 7, tranche 3) : cycle, file, lissage du débit. « Suis-je occupé ? »
+    // reste ici (`NexusDownloadFlow` lit aussi `pendingDownloadedZip`).
+    // `nonisolated(unsafe)` : la progression part du fil de délégué
+    // `URLSession` et ne traverse que la référence ; écritures sur main.
     private nonisolated(unsafe) let downloadStore = NexusDownloadStore()
 
     // MARK: Navigation — le store du domaine (chantier B, cadrage P8). Les
-    // vues de détail que MainView remet à nil au changement d'onglet, et les
-    // requêtes posées d'une vue, consommées par une autre. La règle du
-    // changement d'onglet reste dans `TabChangePlan` (Core, testée) ; le
-    // store ne détient que l'état.
+    // vues de détail remises à nil au changement d'onglet, et requêtes entre
+    // vues. La règle vit dans `TabChangePlan` (Core) ; le store tient l'état.
     let navigationStore = NavigationStore()
 
     // MARK: Scan & parc — le store du domaine (cadrage §3, domaine 8). Le
-    // lourd vit dans `ModScanner` (cache mtime et verrou dedans — deux
-    // scans concurrents touchent le même cache) ; ce store porte l'état
-    // publié : le parc, la progression, l'index de duplication, les poids.
-    // Poser le parc prévient les trois consommateurs câblés dans l'init.
+    // lourd vit dans `ModScanner` (cache mtime + verrou) ; ce store porte
+    // l'état publié. Poser le parc prévient les trois consommateurs de l'init.
     let scanStore = ScanStore()
 
     var isDownloadingFromNexus: Bool { downloadStore.isDownloading }
-    /// Nexus mod id of the mod currently being downloaded, or nil when idle.
-    /// Drives the per-row spinner in the Updates list while a premium update
-    /// is in flight (isDownloadingFromNexus only tells "one is running").
+    /// Nexus mod id being downloaded, or nil. Drives the Updates row spinner.
     var downloadingNexusModId: Int? { downloadStore.downloadingModId }
     private let nexusDownloader = NexusDownloader()
 
-    /// Où en est le téléchargement Nexus en cours (B2-T1). `nil` au repos, et
-    /// aussi pendant les deux appels d'API qui résolvent le lien : il n'y a
-    /// alors rien à mesurer, seulement une attente — `isDownloadingFromNexus`
-    /// la porte déjà.
-    ///
-    /// Un seul téléchargement en vol à la fois, à dessein : deux se
-    /// disputeraient `pendingDownloadedZip`. Les demandes surnuméraires ne
-    /// sont plus refusées pour autant — elles attendent dans la file du
-    /// store et reprennent tour à tour à chaque bascule de repos
+    /// Téléchargement Nexus en cours (B2-T1) ; `nil` au repos et pendant la
+    /// résolution du lien. Un seul en vol (ils se disputeraient
+    /// `pendingDownloadedZip`) ; les suivants attendent dans la file
     /// (`drainQueuedNexusDownloads`).
     var nexusDownloadProgress: DownloadProgress? { downloadStore.progress }
 
-    /// Rich detail state for the mod currently shown in the detail pane
-    /// (Task 3 data layer; nav wiring lands in a later task).
-    // `ModDetailState` vit en Core (Models/ModDetailState.swift, REFACTORING
-    // §6) avec ses transitions testées ; le VM garde l'état publié.
+    /// Rich detail state for the mod shown in the detail pane.
+    // Transitions en Core (`Models/ModDetailState.swift`, testées).
     var modDetailState: ModDetailState?
 
-    /// Loads a mod's rich detail: cached raw shown instantly (parsed), then a
-    /// background refresh. Offline / no-cache → falls back to the local manifest
-    /// description. The refreshed result is applied only if `viewingModDetail`
-    /// is still this same mod (anti-race guard) — if the user navigated away
-    /// before the network call returned, its result is dropped.
+    /// Cached detail shown instantly, then background refresh; offline falls
+    /// back to the manifest. Result dropped if `viewingModDetail` changed.
     func loadModDetail(for mod: ModItem) {
         let modId = Int(resolvedNexusModId(for: mod)) ?? -1
         // Immediate: cache if any, else local manifest description.
@@ -311,136 +226,85 @@ final class StarHubTHViewModel {
         modDetailState?.stopLoading(ifShowing: modId)
     }
 
-    /// Fetches the remote description + changelog for `modId`, combining two
-    /// calls: `NexusUpdateChecker.fetchRawDescription` (mods/{id}.json) and
-    /// `fetchChangelogs` (mods/{id}/changelogs.json — the *complete*, all-
-    /// versions changelog, not a single file's `changelog_html`). Both reuse
-    /// the fork's existing Nexus request infra/headers/API key — no second HTTP
-    /// client. Returns `nil` when the description fetch fails (no key / offline
-    /// / parse error) so the caller leaves the cached/local fallback untouched
-    /// instead of overwriting it with blanks; an empty changelog is fine (some
-    /// mods simply have none) and doesn't void the description.
+    /// Description (`mods/{id}.json`) + full changelog (`changelogs.json`) via
+    /// the existing Nexus client. `nil` if the description fails, so the
+    /// fallback stays; an empty changelog is fine.
     private func fetchModDetailRemote(modId: Int, completion: @escaping (ModDetailRaw?) -> Void) {
-        // La règle de composition (description vide -> tout invalide,
-        // changelog vide acceptable) vit en Core, testée avec des stubs.
+        // Règle de composition en Core, testée.
         ModDetailRefresh.fetch(
             modId: modId,
             fetchDescription: { NexusUpdateChecker.shared.fetchRawDescription(modId: $0, completion: $1) },
             fetchChangelogs: { NexusUpdateChecker.shared.fetchChangelogs(modId: $0, completion: $1) },
             completion: completion)
     }
-    /// `{ nexusModId: categoryId }` map populated from each Nexus check.
-    /// Survives launches (cached in UserDefaults) so the mods-list category
-    /// filter works even before the user re-checks. Mods without a known
-    /// category simply don't appear under any category scope.
+    /// `{ nexusModId: categoryId }`, persisted so the category filter works
+    /// before a re-check.
     var nexusCategories: [String: Int] = [:] {
         didSet { invalidateCategoryCache() }
     }
 
-    /// `{ nexusModId: NexusModExtra }` map (summary + primary picture URL)
-    /// populated alongside `nexusCategories` from the same API response.
-    /// Survives launches (cached in UserDefaults). Powers the preview shown
-    /// in the mod details popover.
+    /// `{ nexusModId: NexusModExtra }` (summary + picture), persisted; powers
+    /// the details popover.
     var nexusModExtras: [String: NexusUpdateChecker.NexusModExtra] = [:]
 
-    // Les overrides **écrits par l'utilisateur** (catégorie épinglée,
-    // identifiant Nexus saisi) vivent dans `NexusMetadataStore` (Core,
-    // testé) avec leur persistance. Les deux propriétés ci-dessous sont des
-    // façades de lecture pour les vues — le relais `objectWillChange` du
-    // store, posé dans `init()`, invalide le cache de catégories et
-    // republie. L'invalidation remplace les `didSet` d'origine.
+    // Overrides **utilisateur** (catégorie, id Nexus) dans
+    // `NexusMetadataStore` (Core) ; façades de lecture ci-dessous.
     var nexusCustomCategories: [String: Int] { nexusMetadata.customCategories }
     var nexusCustomModIds: [String: String] { nexusMetadata.customModIds }
 
-    /// Le store des métadonnées utilisateur. Il appartient au VM tant que
-    /// les vues ne l'observent pas directement (P8) ; le relais ci-dessous
-    /// républie à chaque écriture.
+    /// Store des métadonnées utilisateur.
     private let nexusMetadata = NexusMetadataStore()
 
-    /// `{ folderName: lastActivatedDate }` — stamped every time a mod (or a
-    /// whole pack, which moves as a single folder) transitions from
-    /// disabled to enabled, in `toggleMod()` and
-    /// `applyProfileToFilesystem()`. Never touched on disable — it records
-    /// the *last activation*, not the last state change. Drives the
-    /// "Activation order" sort in the mods list. Persisted in UserDefaults.
+    /// `{ folderName: lastActivatedDate }` — stamped on disabled → enabled
+    /// (`toggleMod`, `applyProfileToFilesystem`), never on disable. Drives the
+    /// "Activation order" sort. Persisted.
     var modActivationTimestamps: [String: Date] = [:]
-    /// Les mods marqués comme favoris, par leur `folderName` **logique** —
-    /// celui qui ne porte pas le point d'un dossier en pause, donc le marquage
-    /// survit à une mise en pause. Même clé que `modActivationTimestamps`.
+    /// Favoris par `folderName` **logique** (sans le point de pause) : le
+    /// marquage survit à une pause.
     private(set) var favoriteMods: Set<String> = []
-    /// Les mods marqués « à écarter » (blacklist) — même clé que
-    /// `favoriteMods` : `folderName` **logique**, pour survivre à une mise en
-    /// pause. Le mod reste installé et activable ; il est juste **grisé** dans
-    /// la liste, et un filtre / import dans un profil le distingue du reste.
+    /// Mods « à écarter », même clé que `favoriteMods`. Restent installés et
+    /// activables, **grisés** dans la liste.
     private(set) var blacklistedMods: Set<String> = []
-    /// Les mods dont le `config.json` suit le profil actif (B3-T5), par nom
-    /// **logique** de dossier — même clé que `favoriteMods`.
+    /// Mods dont le `config.json` suit le profil actif (B3-T5), nom logique.
     private(set) var profileManagedConfigMods: Set<String> = []
 
     // MARK: Entretien & corbeille — le store du domaine (cadrage §4,
-    // domaine 4). Les calculs vivent en Core (`MaintenanceInventory`,
-    // `ModFolderRepairer`, `ModTrash`) ; ici ne restent que l'état et le
-    // verrou de construction.
+    // domaine 4). Calculs en Core (`MaintenanceInventory`,
+    // `ModFolderRepairer`, `ModTrash`) ; ici l'état et le verrou.
     let maintenanceStore = MaintenanceStore()
 
-    /// L'inventaire de l'écran « Entretien » (X25). `nil` tant qu'il n'a pas
-    /// été construit — distinct d'un rapport vide, qui veut dire « rien à
-    /// faire ».
+    /// Inventaire « Entretien » (X25). `nil` = pas construit ≠ rapport vide.
     var maintenanceReport: MaintenanceInventory.Report? { maintenanceStore.report }
     var isBuildingMaintenanceReport: Bool { maintenanceStore.isBuilding }
 
-    /// True during the initial launch load (mod scan + save reload + profile
-    /// load). Drives the launch spinner overlay in `MainView` so the user sees
-    /// immediate feedback before the first mod list is ready.
+    /// True during the initial launch load; drives the launch overlay.
     var isLaunching: Bool = true
-    /// Granular progress for the launch overlay, 0.0 → 1.0. Drives a
-    /// determinate progress bar instead of an indeterminate spinner, so the
-    /// user sees exactly where the app is in its startup sequence.
+    /// Launch progress 0.0 → 1.0 (determinate bar).
     var launchProgress: Double = 0.0
-    /// Localized label of the current launch step (e.g. "Scanning mods…").
-    /// Updated atomically with `launchProgress` from `performInitialLoad`.
+    /// Localized launch step label, updated with `launchProgress`.
     var launchStep: String = ""
 
-    /// Per-mod progress published (throttled) during `scanMods()`'s top-level
-    /// enumeration, so the launch overlay can show "Analyse de <mod>… (X/N)"
-    /// instead of a frozen bar. `nil` outside a scan. The overlay maps
-    /// `done/total` onto the [`launchScanProgressStart`…`launchScanProgressEnd`]
-    /// slice of the launch bar.
-    // `ScanProgress` vit désormais en Core (`Models/ModScanner.swift`, avec
-    // le scanner qui le produit) — même nom, mêmes champs, `phase` compris.
-    /// Launch-bar slice reserved for the "Scanning mods" phase. Kept as
-    /// constants so `performInitialLoad` and the launch overlay agree on how
-    /// far the bar should move while `scanMods` streams per-mod progress.
+    /// Per-mod scan progress (throttled), mapped onto the
+    /// [`launchScanProgressStart`…`launchScanProgressEnd`] slice. `nil` outside a scan.
+    // `ScanProgress` vit en Core (`Models/ModScanner.swift`).
+    /// Launch-bar slice for the "Scanning mods" phase.
     static let launchScanProgressStart: Double = 0.25
-    /// Fin de la **boucle par mod**. Ramenée de 0,70 à 0,60 pour laisser une
-    /// tranche aux phases qui la suivent : elles duraient plusieurs secondes
-    /// sans rien annoncer, barre figée sur le dernier échantillon publié.
+    /// Fin de la boucle par mod (0,60) : laisse une tranche aux phases
+    /// suivantes, qui figeaient la barre plusieurs secondes.
     static let launchScanProgressEnd: Double = 0.60
     /// Fin des phases post-boucle, à l'intérieur de `scanMods`.
     static let launchScanPhasesEnd: Double = 0.70
-    /// Poids de chacune, proportionnels à leur coût mesuré sur le journal réel
-    /// de l'auteur (9,8 Mo) : la lecture du journal en est l'essentiel.
-    /// La lecture du journal occupe l'essentiel des phases : elle avance en
-    /// **continu** entre ces deux bornes, au rythme de ses propres lignes.
-    /// `nonisolated` : ce sont quatre `Double` immuables, lus par le balayage
-    /// qui tourne hors acteur. L'isolation héritée de la classe (L2) les
-    /// rendait inatteignables depuis lui sans rien protéger.
+    /// Poids proportionnels au coût mesuré (journal de 9,8 Mo) ; la lecture du
+    /// journal avance en continu entre ces bornes. `nonisolated` : `Double`
+    /// immuables lus hors acteur (L2).
     nonisolated static let launchSmapiLogStart: Double = 0.60
     nonisolated static let launchSmapiLogEnd: Double = 0.66
     nonisolated static let launchRegistrySyncProgress: Double = 0.68
     nonisolated static let launchDuplicatesProgress: Double = 0.69
 
-    /// Annonce une phase qui suit la boucle par mod de `scanMods`.
-    ///
-    /// Le compteur affiche désormais le compte **définitif de mods trouvés**
-    /// (`modsFound`) et non plus `total/total` : le total de `total` comptait
-    /// toutes les entrées de `Mods/` — dossiers d'outils, packs sans
-    /// manifeste — et n'a jamais convergé vers le compte de la liste (écart
-    /// signalé le 2026-09-10). `phase` fait suivre la barre à `launchProgress`
-    /// plutôt qu'au ratio, qui serait immobile à 1.
-    /// `nonisolated` (P5, tranche d'isolation) : le corps dispatche déjà vers
-    /// le main, comme `log`. La déclaration s'aligne sur l'usage — ces
-    /// publications viennent toutes du fil de scan.
+    /// Annonce une phase qui suit la boucle par mod. Affiche `modsFound`, pas
+    /// `total/total` (qui comptait les dossiers sans manifeste, écart du
+    /// 2026-09-10). `nonisolated` (P5) : le corps dispatche vers main.
     nonisolated private func publishLaunchPhase(_ stepKey: String, progress: Double,
                                     entries: (done: Int, total: Int),
                                     modsFound: Int) {
@@ -448,8 +312,7 @@ final class StarHubTHViewModel {
             guard let self else { return }
             let label = self.localization.L(stepKey)
             self.launchStep = label
-            // `max` : la barre ne recule jamais, même si une passe hors
-            // lancement repassait ici avec un poids inférieur.
+            // `max` : la barre ne recule jamais.
             self.launchProgress = max(self.launchProgress, progress)
             guard entries.total > 0 else { return }
             self.scanStore.scanProgress = ScanProgress(done: entries.done, total: entries.total,
@@ -458,10 +321,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// La même annonce, mais à une fraction d'une tranche : une phase qui dure
-    /// rapporte son avancée plutôt que de laisser la barre immobile jusqu'à sa
-    /// fin. Délègue à `publishLaunchPhase` — donc aucun saut de file
-    /// supplémentaire.
+    /// Même annonce à une fraction de la tranche, pour une phase longue.
     nonisolated private func publishLaunchPhaseProgress(_ stepKey: String, fraction: Double,
                                             from: Double, to: Double,
                                             entries: (done: Int, total: Int),
@@ -471,18 +331,12 @@ final class StarHubTHViewModel {
                            entries: entries, modsFound: modsFound)
     }
 
-    /// Façade de **lecture** assumée (cadrage §6, cond. 1 assouplie) — l'état
-    /// vit dans `scanStore`, qui prévient les trois consommateurs câblés dans
-    /// l'init. Les vues lisent `vm.scanStore.mods` directement ; cette forme
-    /// courte reste pour les dizaines d'usages internes du VM. Écritures :
-    /// `scanStore.setMods(...)` (les cascades du store), jamais par ici.
+    /// Façade de **lecture** assumée (§6, cond. 1). Écritures :
+    /// `scanStore.setMods(...)`, jamais par ici.
     var mods: [ModItem] { scanStore.mods }
 
-    /// Les problèmes de santé du parc, résolus une seule fois.
-    ///
-    /// L'accueil, le badge de la barre latérale et l'écran d'alertes lisent
-    /// **cette** liste. Deux chemins de calcul finiraient par diverger, et
-    /// l'accueil annoncerait un nombre que l'écran ne montre pas.
+    /// Problèmes de santé du parc, résolus une fois : accueil, badge et écran
+    /// d'alertes lisent **cette** liste, sinon les nombres divergent.
     @MainActor
     var healthIssues: [HealthIssue] {
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
@@ -490,14 +344,11 @@ final class StarHubTHViewModel {
             + contentPatcherConflicts.compactMap(conflictPair)
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
                                                     activeFolders: activeFolders)
-        // Résolution dossier → nom de mod (revue globale, bloquant 4) : seul
-        // le ViewModel connaît `[ModItem]`, la RÈGLE (repli sur le dossier si
-        // le mod est introuvable) reste dans `HealthIssueResolver`.
+        // Seul le VM connaît `[ModItem]` ; la règle (repli sur le dossier) est
+        // dans `HealthIssueResolver`.
         let installedMods = mods.flattenedMods
-        // X13 — deux mods peuvent réclamer le même nom logique de dossier
-        // (`X` actif et `.X` en pause). `ModItem.id` étant `folderName`, l'un
-        // des deux disparaît de la liste sans que rien ne le dise : cette
-        // ligne est la seule chose qui l'explique.
+        // X13 — deux mods peuvent réclamer le même nom logique (`X` et `.X`) ;
+        // `ModItem.id` = `folderName` en cache un : cette ligne l'explique.
         let collisions = ModFolderCollision.collisions(installedMods.map {
             ModFolderCollision.Claim(folderName: $0.folderName, uniqueId: $0.uniqueId,
                                      physicalFolderName: $0.physicalFolderName)
@@ -508,9 +359,8 @@ final class StarHubTHViewModel {
             title: { String(format: self.localization.L(L10n.Health.folderCollisionTitle), $0.folderName) },
             detail: { String(format: self.localization.L(L10n.Health.folderCollisionDetail),
                              $0.uniqueIds.joined(separator: " · ")) })
-        // X58 — ce que le dump signale sans déclarer le mod cassé. Le nom
-        // affiché vient du parc : c'est lui que `ModFocusResolver` sait
-        // résoudre, et il doit être le même qu'ailleurs à l'écran.
+        // X58 — signalé sans être cassé. Nom tiré du parc, celui que
+        // `ModFocusResolver` résout.
         let nameByUniqueId = Dictionary(installedMods.map { ($0.uniqueId, $0.name) },
                                         uniquingKeysWith: { first, _ in first })
         let warningIssues = HealthIssueResolver.modWarningIssues(
@@ -545,55 +395,35 @@ final class StarHubTHViewModel {
         })
     }
 
-    /// La définition d'une « alerte » (pastille de la barre latérale et
-    /// bande de l'accueil, tâche 7) : dérive de `healthIssues`, la même
-    /// liste que l'écran d'alertes — barre latérale et accueil ne peuvent
-    /// plus diverger.
-    ///
-    /// Compte **actionnable** (revue globale, bloquant 1) : `.info` reste
-    /// affiché dans la liste mais n'entre pas ici — sinon une pastille sonne
-    /// sur un parc sain (mesuré : 7 notices bénignes, 0 échec, 0 conflit).
-    /// `[HealthIssue].actionableCount` est la même règle que lit le pied de
-    /// `SystemAlertsView`, jamais un second filtre écrit à part.
+    /// Définition d'une « alerte » (pastille, accueil) : dérive de
+    /// `healthIssues`. Compte **actionnable** : `.info` exclu, sinon la
+    /// pastille sonne sur un parc sain (7 notices bénignes mesurées). Même
+    /// règle que `SystemAlertsView` (`actionableCount`).
     @MainActor
     var systemAlertCount: Int { healthIssues.actionableCount }
 
-    /// Combien d'incompatibilités entre mods réclament une attention
-    /// aujourd'hui (spec A5-T2, « Pastille » ; spec §6 bis, H-T6) : dérive de
-    /// `healthIssues`, comme `systemAlertCount` — un second chemin de calcul
-    /// (reconstruire `activeFolders`/`candidates` et rappeler
-    /// `liveConflictCount`) redivergerait de l'écran d'alertes, qui lit déjà
-    /// ces mêmes lignes sous `source == .modConflict`.
+    /// Incompatibilités actives (A5-T2, H-T6) : dérive de `healthIssues`
+    /// (`.modConflict`) ; un second calcul divergerait de l'écran d'alertes.
     @MainActor
     var activeConflictCount: Int {
         healthIssues.filter { $0.source == .modConflict }.count
     }
 
-    /// Couverture française par mod, indexée par `folderName`. Absente tant
-    /// qu'elle n'est pas calculée — c'est un badge qui apparaît, pas une valeur
-    /// qu'on attend.
-    ///
-    /// La `Coverage` entière est conservée, pas seulement son pourcentage : la
-    /// fiche mod doit pouvoir dire **ce qui** manque — les clés absentes, et
-    /// surtout les vides, qui cassent l'affichage en jeu au lieu de retomber
-    /// sur l'anglais.
+    /// Couverture FR par `folderName`, absente tant que non calculée. `Coverage`
+    /// entière : la fiche dit **ce qui** manque, dont les vides qui cassent
+    /// l'affichage en jeu.
     private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
 
-    /// L'index des clés obsolètes, relu après chaque calcul de diff. Le lire
-    /// depuis le disque à chaque ligne de la liste ouvrirait un fichier par mod
-    /// affiché.
+    /// Index des clés obsolètes, relu après chaque diff (évite un fichier par
+    /// ligne).
     private(set) var outdatedKeysByMod: [String: Int] = [:]
 
-    /// Les mods dont l'anglais est plus récent que le français, mesuré au scan.
-    /// Deux lectures d'attributs par dossier `i18n` : assez léger pour la liste
-    /// entière, contrairement à la lecture des fichiers eux-mêmes.
+    /// Mods dont l'anglais est plus récent que le FR, mesuré au scan (deux
+    /// lectures d'attributs par `i18n`).
     private(set) var staleTranslationMods: Set<String> = []
 
-    /// `@MainActor` explicite : `translationDiff(for:)` n'est pas lui-même
-    /// isolé à l'acteur principal, et la reprise après un `await` sur une
-    /// tâche détachée n'y revient pas toute seule — `scanMods()` documente
-    /// déjà ce piège plus haut dans ce fichier. Sans l'annotation, cette
-    /// mutation de `@Published` s'exécuterait parfois hors du fil principal.
+    /// `@MainActor` explicite : la reprise après `await` d'une tâche détachée
+    /// ne revient pas seule sur main (voir `scanMods()`).
     @MainActor
     func reloadOutdatedKeyIndex() {
         guard let store = TranslationBaseline.defaultDirectory() else { return }
@@ -603,44 +433,23 @@ final class StarHubTHViewModel {
     /// Le calcul en cours, annulé dès qu'un nouveau scan le rend caduc.
     private var frenchCoverageTask: Task<Void, Never>?
 
-    /// Recalcule la couverture française **hors du thread principal**.
-    ///
-    /// Jamais pendant le scan : celui-ci est déjà le coût dominant au
-    /// lancement, et lire tous les `default.json` et `fr.json` du parc y
-    /// ajouterait des secondes. Le badge peut apparaître après la liste.
-    ///
-    /// Seuls les mods que la détection dit traduits en français sont mesurés —
-    /// c'est ce qui rend la passe abordable, et c'est pourquoi cette détection
-    /// devait être juste d'abord.
-    ///
-    /// **Incrémental.** La passe complète coûte ~13 s de lecture disque sur le
-    /// parc de référence (424 mods, 159 503 clés), et `mods` est republié à
-    /// chaque mise en pause, chaque rafraîchissement, chaque activation de
-    /// profil : tout recalculer à chaque fois relancerait ce travail pour rien.
-    /// Seuls les mods dont la couverture n'est pas déjà connue sont mesurés.
-    /// Mettre un mod en pause déplace son dossier sans toucher à ses fichiers de
-    /// traduction — le résultat reste valable. `invalidateFrenchCoverage(for:)`
-    /// est là pour les cas où le contenu change réellement.
+    /// Recalcule la couverture FR **hors du fil principal**, jamais pendant le
+    /// scan (coût dominant au lancement). Seuls les mods détectés traduits.
+    /// **Incrémental** : la passe complète coûte ~13 s (424 mods, 159 503
+    /// clés) et `mods` est republié à chaque pause/activation ; seuls les
+    /// inconnus sont mesurés. Une pause ne change pas les fichiers ;
+    /// `invalidateFrenchCoverage(for:)` couvre les vrais changements.
     private func recomputeFrenchCoverage() {
         frenchCoverageTask?.cancel()
-        // L'index des clés obsolètes survit au redémarrage sur disque
-        // (`TranslationBaseline.updateIndex`, dans `translationDiff(for:)`),
-        // mais sans cette relecture il ne serait jamais chargé en bloc : le
-        // filtre « À revoir » repartirait de zéro à chaque lancement pour tout
-        // le parc, jusqu'à ce qu'on rouvre un par un les onglets Traduction
-        // déjà consultés lors d'une session précédente. Une seule lecture d'un
-        // petit fichier JSON, sans mesure de fichiers : le coût est
-        // négligeable, même répété à chaque recalcul (mise en pause,
-        // rafraîchissement, activation de profil). `Task { @MainActor … }`
-        // plutôt qu'un appel direct : cette fonction n'est pas elle-même
-        // isolée à l'acteur principal.
+        // Charge en bloc l'index des clés obsolètes (`TranslationBaseline`) :
+        // sans ça, « À revoir » repartirait de zéro à chaque lancement. Coût
+        // négligeable. `Task { @MainActor … }` : fonction non isolée.
         Task { @MainActor [weak self] in
             self?.reloadOutdatedKeyIndex()
         }
         let root = gameDir
         guard !root.isEmpty else { return }
-        // Le lot se fige ici, avant la tâche détachée : lui faire relire `mods`
-        // déplacerait la course au lieu de l'éviter.
+        // Lot figé avant la tâche détachée : relire `mods` déplacerait la course.
         let snapshot = FrenchCoveragePass.targets(in: mods,
                                                   known: Set(frenchCoverageByMod.keys))
         guard !snapshot.isEmpty else { return }
@@ -675,8 +484,8 @@ final class StarHubTHViewModel {
     @MainActor
     private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage],
                                      stale: Set<String>) {
-        // Garde de génération non câblée à dessein (F6-T1) : testée, pas
-        // encore utile — voir `FrenchCoveragePass.merging`.
+        // Garde de génération non câblée à dessein (F6-T1) — voir
+        // `FrenchCoveragePass.merging`.
         guard let next = FrenchCoveragePass.merging(
             batch, stale: stale,
             into: .init(coverage: frenchCoverageByMod, stale: staleTranslationMods))
@@ -690,24 +499,14 @@ final class StarHubTHViewModel {
         frenchCoverageByMod[mod.folderName]?.displayPercent
     }
 
-    /// Le détail de la couverture — ce qui manque, ce qui est vide — pour la
-    /// fiche mod, qui a la place de l'expliquer.
+    /// Détail de la couverture pour la fiche mod.
     func frenchCoverageDetail(for mod: ModItem) -> TranslationCoverage.Coverage? {
         frenchCoverageByMod[mod.folderName]
     }
 
-    /// Le diff EN/FR d'un mod, clé par clé.
-    ///
-    /// **Hors du fil principal, obligatoirement.** Lire et analyser les fichiers
-    /// d'un mod n'est pas gratuit : `East Scarp NPCs` en compte 11 021 clés
-    /// réparties sur plusieurs composants. Le faire dans un `.task` synchrone
-    /// figerait la fenêtre le temps du chargement — c'est la faute qui avait
-    /// rendu la vue des journaux inutilisable à 2 000 lignes.
-    ///
-    /// Rien n'est mis en cache ici : le diff ne sert qu'à une vue ouverte à la
-    /// demande, là où la couverture alimente une liste entière.
-    /// Les rangées de diff gardées d'un appel à l'autre (F7). Trois entrées,
-    /// mesurées à 1,1–2,3 Mo chacune.
+    /// Diff EN/FR clé par clé, **hors fil principal** (`East Scarp NPCs` :
+    /// 11 021 clés ; un `.task` synchrone figerait la fenêtre).
+    /// Cache des rangées (F7) : trois entrées de 1,1–2,3 Mo.
     private let translationDiffCache = TranslationDiffCache()
 
     func translationDiff(for mod: ModItem) async -> [TranslationCoverage.DiffRow] {
