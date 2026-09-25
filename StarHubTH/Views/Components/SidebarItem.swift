@@ -15,7 +15,7 @@ struct SidebarItem: View {
     /// la capsule disparaît mais l'item reste, parce que la destination doit
     /// rester atteignable quand tout va bien.
     var badge: Int? = nil
-    var badgeColor: Color = .blue
+    var badgeColor: Color = AppDesign.Color.info
     @Binding var currentTab: SidebarDestination
     @State private var isHovered = false
 
@@ -56,7 +56,7 @@ struct SidebarItem: View {
                           : (isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear))
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .pointingHandCursor()
         .accessibilityLabel(accessibilityText)

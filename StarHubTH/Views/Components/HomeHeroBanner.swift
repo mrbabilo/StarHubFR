@@ -45,7 +45,7 @@ struct HomeHeroBanner: View {
                 .font(.system(size: 24, weight: .bold))
                 .lineLimit(1)
             Text(String(format: localization.L(L10n.Settings.appVersion), Self.appVersion))
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

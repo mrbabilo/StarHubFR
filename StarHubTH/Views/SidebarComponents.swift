@@ -20,11 +20,11 @@ struct SidebarNavGroups: View {
             return (UpdateCount.pending(outOfDate: vm.outOfDateMods,
                                         nexusCount: vm.nexusUpdates.count) {
                 vm.resolveModFolder(forLoggedName: $0)?.version
-            }, .blue)
+            }, AppDesign.Color.info)
         case .systemAlerts:
-            return (vm.systemAlertCount, .orange)
+            return (vm.systemAlertCount, AppDesign.Color.warning)
         case .quarantine:
-            return (vm.maintenanceStore.quarantineItemCount, .purple)
+            return (vm.maintenanceStore.quarantineItemCount, AppDesign.Color.quarantine)
         case .home, .mods, .discover, .frenchTranslations, .profiles, .saves,
              .backups, .maintenance, .logs, .settings,
              .appChangelog:
@@ -43,7 +43,7 @@ struct SidebarNavGroups: View {
                 let b = badge(e.destination)
                 SidebarItem(icon: e.icon, label: localization.L(e.labelKey),
                             tab: e.destination, badge: b?.count,
-                            badgeColor: b?.color ?? .blue,
+                            badgeColor: b?.color ?? AppDesign.Color.info,
                             currentTab: $currentTab)
             }
         }
@@ -53,7 +53,7 @@ struct SidebarNavGroups: View {
     /// `AccountHeaderCard`, en tête de colonne. Il est dans `SidebarOrder`
     /// parce que le menu « Aller » et la palette en ont besoin, pas la barre.
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
             group(.library, header: localization.L(L10n.Main.groupLibrary),
                   icon: "square.grid.2x2")
             group(.saves, header: localization.L(L10n.Main.groupSaves),
@@ -77,7 +77,7 @@ struct SidebarPinnedFooter: View {
     @Binding var appColorScheme: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             // Au-dessus du poids de `Mods/` : un lien `nxm://` peut
             // arriver du navigateur quel que soit l'onglet ouvert, et le
             // téléchargement n'avait jusqu'ici pour tout témoin qu'un
@@ -94,7 +94,7 @@ struct SidebarPinnedFooter: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 8)
+        .padding(.top, AppDesign.Spacing.sm)
         .padding(.bottom, 10)
     }
 }
@@ -164,11 +164,11 @@ struct ThemeToggle: View {
             if appColorScheme != value { appColorScheme = value }
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(isActive ? .accentColor : .secondary)
                 .opacity(isActive ? 1 : 0.6)
                 .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+                .padding(.vertical, AppDesign.Spacing.xs)
                 .background(isActive ? Color.accentColor.opacity(0.18) : Color.clear)
                 .clipShape(Capsule())
         }
@@ -254,12 +254,12 @@ struct NexusDownloadFooter: View {
     /// bas de la colonne, repart en sens inverse à la complétion.
     @ViewBuilder private var panel: some View {
         if vm.isDownloadingFromNexus {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                HStack(spacing: AppDesign.Spacing.xs) {
                     Image(systemName: "arrow.down.circle")
-                        .font(.system(size: 9))
+                        .font(AppDesign.Font.iconXXS)
                     Text(headline)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppDesign.Font.iconXS(.medium))
                         .lineLimit(1)
                     Spacer(minLength: 4)
                     // Le bouton existe **dès** la demande, avant même que le
@@ -267,7 +267,7 @@ struct NexusDownloadFooter: View {
                     // compte qu'on s'est trompé de mod.
                     Button(action: { vm.cancelNexusDownload() }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
@@ -283,12 +283,12 @@ struct NexusDownloadFooter: View {
                 }
 
                 Text(detail)
-                    .font(.system(size: 9).monospacedDigit())
+                    .font(AppDesign.Font.iconXXS.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.vertical, AppDesign.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.regularMaterial,
                         in: RoundedRectangle(cornerRadius: AppDesign.Radius.md,
@@ -366,14 +366,14 @@ struct ModsWeightFooter: View {
 
     var body: some View {
         if let sizes = vm.modsFolderSizes {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                HStack(spacing: AppDesign.Spacing.xs) {
                     Image(systemName: "internaldrive")
-                        .font(.system(size: 9))
+                        .font(AppDesign.Font.iconXXS)
                         .foregroundStyle(.secondary)
                     Text(String(format: localization.L(L10n.Main.sidebarModsWeight),
                                 Self.bytes(sizes.totalBytes)))
-                        .font(.system(size: 10, weight: .medium).monospacedDigit())
+                        .font(AppDesign.Font.iconXS(.medium).monospacedDigit())
                         .foregroundStyle(.secondary)
                     if vm.isMeasuringModsFolder {
                         ProgressView().controlSize(.mini).scaleEffect(0.6)
@@ -395,14 +395,14 @@ struct ModsWeightFooter: View {
 
                 if let free = sizes.availableBytes {
                     Text(String(format: localization.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
-                        .font(.system(size: 9).monospacedDigit())
+                        .font(AppDesign.Font.iconXXS.monospacedDigit())
                         // Orange quand il reste moins que ce que pèsent déjà
                         // les mods : le prochain gros mod ne rentrera pas.
-                        .foregroundStyle(free < sizes.totalBytes ? Color.orange : Color.secondary)
+                        .foregroundStyle(free < sizes.totalBytes ? AppDesign.Color.warning : Color.secondary)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .padding(.horizontal, AppDesign.Spacing.sm)
+            .padding(.bottom, AppDesign.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.a11yLabel(sizes, vm: vm))
@@ -410,14 +410,14 @@ struct ModsWeightFooter: View {
             // Sans cet état, le pied reste vide plusieurs secondes au
             // lancement — de trois à six secondes de traversée sur 100 000
             // fichiers — et le vide se lit comme un défaut.
-            HStack(spacing: 4) {
+            HStack(spacing: AppDesign.Spacing.xs) {
                 ProgressView().controlSize(.mini).scaleEffect(0.6)
                 Text(localization.L(L10n.Main.sidebarModsWeightMeasuring))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
             }
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .padding(.horizontal, AppDesign.Spacing.sm)
+            .padding(.bottom, AppDesign.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -453,7 +453,7 @@ struct ModsWeightFooter: View {
             Text(String(format: localization.L(L10n.Main.sidebarModsWeightAsleep),
                         Self.bytes(sizes.pausedBytes)))
         }
-        .font(.system(size: 9).monospacedDigit())
+        .font(AppDesign.Font.iconXXS.monospacedDigit())
         .foregroundStyle(.secondary)
         .lineLimit(1)
     }

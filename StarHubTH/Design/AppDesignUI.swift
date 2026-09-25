@@ -143,6 +143,12 @@ enum AppDesign {
         /// raison pour laquelle celle de `ModCard` est pleine. Du blanc tient
         /// dessus sur les deux thèmes.
         static let paused     = SwiftUI.Color(white: 0.38)
+
+        /// La quarantaine : un sens propre, ni avertissement ni erreur — des
+        /// mods écartés par l'app, en attente d'une décision. Portait `.purple`
+        /// littéral dans la barre latérale et l'accueil (charte, audit UX du
+        /// 2026-09-24 §4.2).
+        static let quarantine = SwiftUI.Color.purple
     }
 }
 

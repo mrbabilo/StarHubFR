@@ -37,9 +37,9 @@ struct HomeView: View {
         if let snapshot = bisection.interruptedSnapshot, bisection.state == nil {
             StandardSection(title: localization.L(L10n.Bisect.interruptedTitle)) {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppDesign.Color.warning)
                         Text(String(format: localization.L(L10n.Bisect.interruptedBody),
                                     DateFormatter.localizedString(from: snapshot.startedAt,
                                                                   dateStyle: .short,
@@ -105,9 +105,9 @@ struct HomeView: View {
     /// façon jamais lue : `counter.level` du parc n'atteint jamais `.attention`.
     private func tint(for kind: HomeAttention.Kind) -> Color {
         switch kind {
-        case .updates: return .blue
-        case .alerts: return .orange
-        case .quarantine: return .purple
+        case .updates: return AppDesign.Color.info
+        case .alerts: return AppDesign.Color.warning
+        case .quarantine: return AppDesign.Color.quarantine
         case .library: return .secondary
         }
     }
@@ -183,7 +183,7 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .center, spacing: 24) {
+            VStack(alignment: .center, spacing: AppDesign.Spacing.xl) {
 
                 // ── BANDEAU NEXUS + AVATAR ──
                 HomeHeroBanner(vm: vm, localization: localization)
@@ -245,6 +245,9 @@ private struct AttentionCounterTile: View {
                     .font(AppDesign.Font.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    // Fenêtre minimale : 111 pt par tuile, « Mise à jour des
+                    // mods » en mesure 111,3 — tronqué d'un cheveu sans ça.
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppDesign.Spacing.md)
@@ -288,7 +291,7 @@ struct CoreModRow: View {
 
                 // Author + version when installed, otherwise status text
                 if let mod = mod {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
                         if !mod.author.isEmpty {
                             Text(mod.author)
                                 .foregroundColor(.secondary)
@@ -312,7 +315,7 @@ struct CoreModRow: View {
                                 .foregroundColor(.secondary)
                         case .installedButDisabled:
                             Text(localization.L(L10n.Home.installedButDisabled))
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppDesign.Color.warning)
                         case .notInstalled:
                             EmptyView()
                         }
@@ -321,24 +324,24 @@ struct CoreModRow: View {
                 } else {
                     Text(localization.L(L10n.Home.notInstalledOrDisabled))
                         .font(AppDesign.Font.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppDesign.Color.error)
                 }
             }
             Spacer()
             switch status {
             case .enabledAndInstalled:
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(AppDesign.Color.installed)
             case .installedButDisabled:
                 Image(systemName: "minus.circle.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppDesign.Color.warning)
             case .notInstalled:
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.red)
+                    .foregroundColor(AppDesign.Color.error)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, AppDesign.Spacing.xs)
+        .padding(.horizontal, AppDesign.Spacing.sm)
     }
 }
 
@@ -374,17 +377,17 @@ struct CoreToolRow: View {
             switch status {
             case .enabledAndInstalled:
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(AppDesign.Color.success)
             case .installedButDisabled:
                 Image(systemName: "minus.circle.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppDesign.Color.warning)
             case .notInstalled:
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.red.opacity(0.6))
+                    .foregroundColor(AppDesign.Color.error.opacity(0.6))
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, AppDesign.Spacing.xs)
+        .padding(.horizontal, AppDesign.Spacing.sm)
         .help(tooltip)
     }
 }
