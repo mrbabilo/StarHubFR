@@ -139,6 +139,19 @@
     "name": null,
     "version": null
   },
+  "mod/stardropium": {
+    "changelog_reviewed": "0.1.1",
+    "gitHubRepo": null,
+    "name": null,
+    "version": "0.1.1"
+  },
+  "mod/stardropium-src": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "bbdd0c0",
+    "last_commit_at": "2026-09-25T12:54:48Z",
+    "pushed_at": "2026-09-25T13:04:05Z"
+  },
   "mod/ultrasmooth": {
     "changelog_reviewed": "2.3.6",
     "gitHubRepo": null,

@@ -464,6 +464,28 @@ sockets du multijoueur (`CoopSocketBufferSizeKb`) et interroge l'affichage
   rapport `radiance_report` gagne une ligne (« memory asked of the collector
   per frame, KB »), format autrement stable.
 
+### Stardropium — un mod de performances qui patche les autres *(2026-09-25)*
+
+Paru le 2026-09-25 (Nexus 52803, sources sur GitHub), **en pause sur le
+parc**, audité dans [`audit-stardropium.md`](audit-stardropium.md). À retenir
+ici :
+
+- **Sans `UpdateKeys`**, comme SaveSaver : smapi.io le connaît quand on lui
+  passe l'identifiant (0.1.1 relevé), SMAPI et notre vérificateur non.
+- **Couplage de versions non déclaré** : 16 modules patchent des types
+  internes d'autres mods par leur nom ; un type disparu éteint le module sans
+  journal. Sonde `mod/stardropium-src` : suivre les **commits** — le premier
+  correctif, le jour de la parution, a retiré un module entier.
+- **7 méthodes patchées en commun avec UltraSmooth** (culling des
+  `TerrainFeature`, `getTimeOfDayString`, `NPC.update`) et le même réglage
+  du tampon réseau : premier cas mesuré de deux mods de performance actifs
+  qui se recouvrent au niveau Harmony.
+- **Il saute des écritures de Farm Type Manager** (`_SaveData.save` quand
+  `SavedObjects` est vide, alors que le fichier porte aussi `LNOSCounter`) :
+  l'état de la veille reste sur le disque.
+- **Ligne de journal quotidienne** `[Morning Memory Optimizer (Background)]
+  RAM: a MB -> b MB (Managed Heap: …)` : candidate pour D2.
+
 ---
 
 ### Outils de traduction de mods *(2026-09-24)*

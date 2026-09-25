@@ -540,6 +540,20 @@ SOURCES = [
              "(classe « données runtime » du §6, non régénérables)",
      "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
 
+    {"key": "mod/stardropium", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 52803, "uniqueId": "Arshia1381.Stardropium",
+     "role": "mod de performances (36 modules, dont 16 patchent des types "
+             "internes d'autres mods) ; paru et audité le 2026-09-25, en pause "
+             "sur le parc. SANS UpdateKeys — smapi.io peut rester muet, état "
+             "relevé, pas alerte ; 7 méthodes patchées en commun avec UltraSmooth",
+     "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
+
+    {"key": "mod/stardropium-src", "kind": "repo", "repo": "ArshiaS1381/StardropiumMod",
+     "role": "sources de Stardropium — un module retiré le jour même de la "
+             "parution (suppression de mises à jour de Content Patcher) : "
+             "suivre les commits, pas seulement la version",
+     "used_by": "docs/audit-stardropium.md"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",
