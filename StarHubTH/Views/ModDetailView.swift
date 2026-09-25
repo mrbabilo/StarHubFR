@@ -107,7 +107,7 @@ struct ModDetailView: View {
             ScrollView {
                 content
                     .frame(maxWidth: 700, alignment: .leading)
-                    .padding(24)
+                    .padding(AppDesign.Spacing.xl)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -232,7 +232,7 @@ struct ModDetailView: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .frame(maxWidth: 700)
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -288,7 +288,7 @@ struct ModDetailView: View {
     /// sans ce retour, sa fiche est un cul-de-sac.
     @ViewBuilder
     private var fineBand: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: AppDesign.Spacing.lg) {
             if let pack = parentPack {
                 Button {
                     vm.navigationStore.setViewingModDetail(pack)
@@ -304,7 +304,7 @@ struct ModDetailView: View {
             if mod.languages.contains("fr") { FrenchCoverageBadge(percent: vm.frenchCoverage(for: mod), unmeasuredLabel: "FR", percentFormat: localization.L(L10n.Mods.frCoveragePercent)) }
             let link = vm.nexusLink(for: mod)
             if !link.isEmpty {
-                HStack(spacing: 16) {
+                HStack(spacing: AppDesign.Spacing.lg) {
                     linkButton(icon: "link", label: localization.L(L10n.Mods.nexusOpenPage), url: link)
                     linkButton(icon: "ladybug", label: localization.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
                 }
@@ -317,7 +317,7 @@ struct ModDetailView: View {
                     .accessibilityLabel(localization.L(L10n.Mods.detailInstalled))
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.vertical, 10)
         .frame(maxWidth: 700, alignment: .leading)
         .frame(maxWidth: .infinity)
@@ -342,7 +342,7 @@ struct ModDetailView: View {
     private var pagerControls: some View {
         let neighbors = ModDetailPager.neighbors(of: mod.folderName,
                                                  in: vm.modList.displayOrder)
-        return HStack(spacing: 4) {
+        return HStack(spacing: AppDesign.Spacing.xs) {
             chevron(icon: "chevron.left", target: neighbors.previous,
                     help: localization.L(L10n.Mods.pagerPrevious))
             chevron(icon: "chevron.right", target: neighbors.next,
@@ -391,7 +391,7 @@ struct ModDetailView: View {
         // Même cadrage que la bande au-dessus : la fiche tient en 700 pt,
         // les colonnes ne s'étalent pas sur la fenêtre entière (Découvrir
         // n'a pas le cas — sa feuille a largeur fixe).
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppDesign.Spacing.xl)
         .frame(maxWidth: 700, alignment: .leading)
         .frame(maxWidth: .infinity)
     }
@@ -438,19 +438,19 @@ struct ModDetailView: View {
         if let cat = vm.category(for: mod) {
             HStack(spacing: 5) {
                 Circle().fill(Color(cat.color)).frame(width: 7, height: 7)
-                Text(cat.localizedName(localization.L)).font(.system(size: 11, weight: .semibold))
+                Text(cat.localizedName(localization.L)).font(AppDesign.Font.footnote(.semibold))
             }
             .foregroundStyle(.primary)
-            .padding(.horizontal, 9).padding(.vertical, 4)
+            .padding(.horizontal, 9).padding(.vertical, AppDesign.Spacing.xs)
             .background(Color(cat.color).opacity(0.18))
             .clipShape(Capsule())
         } else {
             HStack(spacing: 5) {
-                Image(systemName: "tag.fill").font(.system(size: 9))
-                Text(localization.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod)))).font(.system(size: 11, weight: .semibold))
+                Image(systemName: "tag.fill").font(AppDesign.Font.iconXXS)
+                Text(localization.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod)))).font(AppDesign.Font.footnote(.semibold))
             }
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 9).padding(.vertical, 4)
+            .padding(.horizontal, 9).padding(.vertical, AppDesign.Spacing.xs)
             .background(Color.secondary.opacity(0.15))
             .clipShape(Capsule())
         }
@@ -477,7 +477,7 @@ struct ModDetailView: View {
         Button {
             if let u = URL(string: url) { NSWorkspace.shared.open(u) }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: AppDesign.Spacing.xs) {
                 Image(systemName: icon)
                 Text(label)
             }
@@ -493,7 +493,7 @@ struct ModDetailView: View {
     @ViewBuilder
     private var packContentsSection: some View {
         if let children = mod.children, !children.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(String(format: localization.L(L10n.Mods.detailPackContents), children.count))
                     .font(.headline)
                 VStack(spacing: 6) {
@@ -507,11 +507,11 @@ struct ModDetailView: View {
                                 Circle()
                                     .fill(child.isEnabled ? AppDesign.Color.installed : Color.secondary.opacity(0.35))
                                     .frame(width: 7, height: 7)
-                                Text(child.name).font(.system(size: 13))
+                                Text(child.name).font(AppDesign.Font.body)
                                 Spacer()
                                 if !child.version.isEmpty, child.version != "Unknown" {
                                     Text("v\(child.version)")
-                                        .font(.system(size: 11, design: .monospaced))
+                                        .font(AppDesign.Font.monoFootnote)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -523,7 +523,7 @@ struct ModDetailView: View {
                         .pointingHandCursor()
                     }
                 }
-                .padding(12)
+                .padding(AppDesign.Spacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.primary.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -540,7 +540,7 @@ struct ModDetailView: View {
     @ViewBuilder
     private var settingsSection: some View {
         GroupBox {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 categorySection
                 Divider()
                 nexusSection
@@ -549,7 +549,7 @@ struct ModDetailView: View {
                 Divider()
                 profileConfigSection
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, AppDesign.Spacing.xs)
         }
     }
 
@@ -566,7 +566,7 @@ struct ModDetailView: View {
                     Text(String(format: localization.L(L10n.Mods.noteTitleProfile), profile.name))
                         .font(.headline)
                     TextEditor(text: $noteDraft)
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .frame(height: 52)
                         .scrollContentBackground(.hidden)
                         .background(Color.secondary.opacity(0.12))
@@ -622,7 +622,7 @@ struct ModDetailView: View {
                     }
                 ))
                 .toggleStyle(.checkbox)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
 
                 Text(localization.L(L10n.Mods.profileConfigHint))
                     .font(.caption)
@@ -642,7 +642,7 @@ struct ModDetailView: View {
                     } label: {
                         Label(localization.L(L10n.Mods.profileConfigCompare),
                               systemImage: "rectangle.split.2x1")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                     }
                     .disabled(vm.modProfiles.filter { $0.id != vm.activeProfileId }.isEmpty)
                 }
@@ -687,23 +687,23 @@ struct ModDetailView: View {
                 ForEach(Array(configHolders.enumerated()), id: \.offset) { _, holder in
                     HStack(spacing: 6) {
                         Text(holder.profileName)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(AppDesign.Font.footnote(.medium))
                         Text(ByteCountFormatter.string(fromByteCount: Int64(holder.bytes),
                                                        countStyle: .file))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
                         Text(holder.capturedAt.formatted(date: .abbreviated, time: .shortened))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 8)
                         Text(localization.L(holder.matchesDisk ? L10n.Mods.profileConfigSame
                                                      : L10n.Mods.profileConfigDiffers))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            .padding(8)
+            .padding(AppDesign.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.primary.opacity(0.04))
             .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -747,11 +747,11 @@ struct ModDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(localization.L(L10n.Mods.nexusSection))
                 .font(.headline)
-            HStack(spacing: 8) {
+            HStack(spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Mods.nexusModId))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppDesign.Font.footnote(.medium))
                 TextField("191", text: $nexusIdDraft)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(AppDesign.Font.monoCaption)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 120)
                     .onSubmit { commitDraft() }
@@ -763,7 +763,7 @@ struct ModDetailView: View {
                     Button(localization.L(L10n.Mods.nexusReset), role: .destructive) { resetDraft() }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppDesign.Color.error)
                 }
             }
             Text(localization.L(L10n.Mods.nexusModIdHint))
@@ -791,42 +791,42 @@ struct ModDetailView: View {
                 ProgressView()
                     .controlSize(.small)
                 Text(localization.L(L10n.Mods.nexusFetching))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
         case .success(let catName, let latest):
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
+                HStack(spacing: AppDesign.Spacing.xs) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.system(size: 10))
+                        .foregroundColor(AppDesign.Color.success)
+                        .font(AppDesign.Font.iconXS)
                     Text(localization.L(L10n.Mods.nexusFetchSuccess))
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppDesign.Font.iconXS(.medium))
                         .foregroundColor(.secondary)
                 }
                 if let cat = catName {
                     Text(String(format: localization.L(L10n.Mods.nexusFetchedCategory), cat))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary.opacity(0.85))
                 }
                 if let v = latest {
                     Text(String(format: localization.L(L10n.Mods.nexusLatestVersion), v))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary.opacity(0.85))
                 }
             }
         case .noApiKey:
             Text(localization.L(L10n.Mods.nexusNoApiKey))
-                .font(.system(size: 10))
-                .foregroundColor(.orange)
+                .font(AppDesign.Font.iconXS)
+                .foregroundColor(AppDesign.Color.warning)
         case .failed(let msg):
-            HStack(spacing: 4) {
+            HStack(spacing: AppDesign.Spacing.xs) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.red)
-                    .font(.system(size: 10))
+                    .foregroundColor(AppDesign.Color.error)
+                    .font(AppDesign.Font.iconXS)
                 Text(String(format: localization.L(L10n.Mods.nexusFetchFailed), msg))
-                    .font(.system(size: 10))
-                    .foregroundColor(.red)
+                    .font(AppDesign.Font.iconXS)
+                    .foregroundColor(AppDesign.Color.error)
             }
         }
     }
@@ -929,9 +929,9 @@ struct ModDetailView: View {
         // un `pt-BR.json` mort n'a pas besoin de français pour mériter la note.
         if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil
             || !unloadableLocaleFiles.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Mods.translationSection))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppDesign.Font.body(.semibold))
 
                 // Un défaut du mod, pas une panne de l'app : le jeu ne charge
                 // que des codes de langue nus, donc un `pt-BR.json` sans
@@ -959,7 +959,7 @@ struct ModDetailView: View {
                     translationNote(String(format: localization.L(L10n.Mods.translationInBackup),
                                            backup.modifiedAt.formatted(date: .abbreviated,
                                                                        time: .omitted)),
-                                    icon: "clock.arrow.circlepath", color: .orange)
+                                    icon: "clock.arrow.circlepath", color: AppDesign.Color.warning)
                 }
 
                 if let stale = translationStaleness {
@@ -984,7 +984,7 @@ struct ModDetailView: View {
                     TranslationProgressBar(percent: coverage.displayPercent)
                     Text(String(format: localization.L(L10n.Mods.translationCounts),
                                 coverage.translated, coverage.total))
-                        .font(.system(size: 11).monospacedDigit())
+                        .font(AppDesign.Font.footnote.monospacedDigit())
                         .foregroundColor(.secondary)
 
                     // Les vides d'abord : c'est le seul défaut qui casse
@@ -994,7 +994,7 @@ struct ModDetailView: View {
                         translationNote(String(format: localization.L(L10n.Mods.translationEmpty),
                                                coverage.empty.count),
                                         icon: "exclamationmark.triangle.fill",
-                                        color: .orange)
+                                        color: AppDesign.Color.warning)
                     }
                     if !coverage.missing.isEmpty {
                         translationNote(String(format: localization.L(L10n.Mods.translationMissing),
@@ -1023,7 +1023,7 @@ struct ModDetailView: View {
                     // Le calcul se fait en tâche de fond : le dire plutôt que
                     // de laisser un blanc qu'on prendrait pour une erreur.
                     Text(localization.L(L10n.Mods.translationPending))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
             }
@@ -1033,10 +1033,10 @@ struct ModDetailView: View {
     private func translationNote(_ text: String, icon: String, color: Color) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(color)
             Text(text)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(color == .secondary ? .secondary : color)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1049,11 +1049,11 @@ struct ModDetailView: View {
     private var errorHistorySection: some View {
         let records = vm.modErrorHistory.history(for: mod.folderName)
         if !records.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Mods.errorHistory))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppDesign.Font.body(.semibold))
                 Text(localization.L(L10n.Mods.errorHistoryHint))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -1066,7 +1066,7 @@ struct ModDetailView: View {
                             // version's tally isn't what the player runs today.
                             if record.version == mod.version {
                                 Text(localization.L(L10n.Mods.errorHistoryCurrent))
-                                    .font(.system(size: 9, weight: .medium))
+                                    .font(AppDesign.Font.iconXXS(.medium))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
                                     .background(Color.accentColor.opacity(0.15))
@@ -1076,21 +1076,21 @@ struct ModDetailView: View {
                             Spacer()
                             if record.errorCount > 0 {
                                 Label("\(record.errorCount)", systemImage: "xmark.octagon")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.red)
+                                    .font(AppDesign.Font.iconXS)
+                                    .foregroundColor(AppDesign.Color.error)
                             }
                             if record.warningCount > 0 {
                                 Label("\(record.warningCount)", systemImage: "exclamationmark.triangle")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.orange)
+                                    .font(AppDesign.Font.iconXS)
+                                    .foregroundColor(AppDesign.Color.warning)
                             }
                         }
                         Text(record.lastSeen, style: .date)
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                         ForEach(record.samples, id: \.self) { sample in
                             Text(sample)
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(AppDesign.Font.monoIconXS)
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
                                 .textSelection(.enabled)
@@ -1125,16 +1125,16 @@ struct ModDetailView: View {
            !conflicts.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Keybinds.title))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppDesign.Font.body(.semibold))
 
                 if !conflicts.collisions.isEmpty {
                     Text(String(format: localization.L(L10n.Keybinds.collisionsHeader),
                                 conflicts.collisions.count))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppDesign.Font.caption(.semibold))
                     ForEach(conflicts.collisions, id: \.combo) { collision in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(collision.combo.display)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(AppDesign.Font.body(.medium))
                             ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
                                 // Hors de l'interpolation : une fermeture
                                 // multiligne dans `\(...)` ne compile pas.
@@ -1142,7 +1142,7 @@ struct ModDetailView: View {
                                     .map { $0.joined(separator: ".") }
                                     .joined(separator: ", ")
                                 Text("· \(use.modName) (\(paths))")
-                                    .font(.system(size: 12)).foregroundColor(.secondary)
+                                    .font(AppDesign.Font.caption).foregroundColor(.secondary)
                                     .lineLimit(1).truncationMode(.middle)
                             }
                         }
@@ -1154,20 +1154,20 @@ struct ModDetailView: View {
                     // fausse alerte chez qui a remappé ses touches (même
                     // raison que dans le rapport global).
                     Text(localization.L(L10n.Keybinds.gameCaveat))
-                        .font(.system(size: 11)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     Text(String(format: localization.L(L10n.Keybinds.gameHeader),
                                 conflicts.gameConflicts.count))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppDesign.Font.caption(.semibold))
                     ForEach(conflicts.gameConflicts, id: \.control.name) { conflict in
                         // Même règle que chaque ligne de la zone : bornée à
                         // une ligne, tronquée au milieu — la fenêtre peut
                         // être étroite (ronde finale de revue).
                         HStack(spacing: AppDesign.Spacing.xs) {
                             Text(conflict.control.buttons.joined(separator: " / "))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(AppDesign.Font.body(.medium))
                                 .lineLimit(1).truncationMode(.middle)
                             Text(conflict.control.name)
-                                .font(.system(size: 11))
+                                .font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1).truncationMode(.middle)
                         }
@@ -1199,21 +1199,21 @@ struct ModDetailView: View {
         if !pairs.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Conflicts.title))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppDesign.Font.body(.semibold))
                 ForEach(pairs, id: \.self) { pair in
                     let otherFolder = pair.first == mod.folderName ? pair.second : pair.first
                     let otherName = vm.scanStore.mods.flattenedMods.first(where: { $0.folderName == otherFolder })?.name
                         ?? otherFolder
                     HStack(spacing: AppDesign.Spacing.xs) {
                         Text("· \(otherName)")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                             .lineLimit(1).truncationMode(.middle)
                         Spacer()
                         Button(localization.L(L10n.Conflicts.dismissButton)) {
                             vm.dismissConflict(pair)
                         }
                         .buttonStyle(.borderless)
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .pointingHandCursor()
                     }
@@ -1281,7 +1281,7 @@ struct ModDetailView: View {
         case .state:
             // L'état du mod se lit groupé : ce qui dit s'il va bien, pas ce
             // que l'auteur en raconte. Sections déplacées telles quelles.
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 // A2-T7 — au-dessus de tout : seul à parler de code hostile.
                 MaliciousModBanner(vm: vm, localization: localization, mod: live)
                 if let anomaly = vm.anomaly(for: live) {
@@ -1301,7 +1301,7 @@ struct ModDetailView: View {
         case .description:
             // Description tab: pack contents (for a pack) + the settings
             // (which holds the Nexus-id editor) + the rendered description.
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 if mod.isGroup { packContentsSection }
                 settingsSection
                 // C2-T4 — ce que la dernière mise à jour a changé aux clés.
@@ -1342,7 +1342,7 @@ struct ModDetailView: View {
                     .frame(maxWidth: .infinity, minHeight: 160)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                     if state.isStale {
                         stalenessHint
                     }
@@ -1359,13 +1359,13 @@ struct ModDetailView: View {
                     // « Compatibility » y désignerait une note de version, pas
                     // la déclaration de l'auteur sur la fiche.
                     if !isChangelog, let note = CompatibilityNote.find(in: blocks) {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                             Text(localization.L(L10n.Mods.compatibilityNote))
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(AppDesign.Font.caption(.semibold))
                                 .foregroundColor(.secondary)
                             DescriptionBlocksView(blocks: note.blocks, vm: vm, localization: localization)
                         }
-                        .padding(12)
+                        .padding(AppDesign.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 8)
                             .fill(Color.secondary.opacity(0.08)))
