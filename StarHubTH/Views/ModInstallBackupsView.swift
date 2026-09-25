@@ -48,12 +48,12 @@ struct ModInstallBackupsView: View {
                     // Le segment Installation de « Sauvegardes des mods »
                     // (I-T8) : le titre de la page est déjà dans la fenêtre.
                     Text(localization.L(L10n.Maintenance.installBackups))
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: AppDesign.Font.scaled(18), weight: .semibold))
                     // Clé dédiée : mettre en minuscules le titre « Gérer les
                     // sauvegardes » donnait « 12 gérer les sauvegardes ».
                     Text(String(format: localization.L(L10n.ModInstall.backupsModsCount),
                                 Int64(groups.count), Int64(backups.count)))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
                 Spacer()
@@ -61,7 +61,7 @@ struct ModInstallBackupsView: View {
                     loadBackups()
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13))
+                        .font(AppDesign.Font.body)
                 }
                 .buttonStyle(.bordered)
                 .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
@@ -209,13 +209,13 @@ struct ModInstallBackupsView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
-                .font(.system(size: 48))
+                .font(.system(size: AppDesign.Font.scaled(48)))
                 .foregroundColor(AppDesign.Color.dimmedSecondary(0.4))
             Text(localization.L(L10n.ModInstall.noBackups))
-                .font(.system(size: 14))
+                .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
             Text(localization.L(L10n.ModInstall.noBackupsHint))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                 .multilineTextAlignment(.center)
         }
@@ -234,18 +234,18 @@ struct ModInstallBackupsView: View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 TextField(localization.L(L10n.ModInstall.backupsSearch), text: $search)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 12))
+                    .font(AppDesign.Font.caption)
                     .searchFieldShortcut($searchFocused)
                 if !search.isEmpty {
                     Button {
                         search = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain).iconHelp(localization.L(L10n.Discovery.clearSearch))
@@ -264,7 +264,7 @@ struct ModInstallBackupsView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .font(.system(size: 12))
+            .font(AppDesign.Font.caption)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -273,10 +273,10 @@ struct ModInstallBackupsView: View {
     private var noMatchState: some View {
         VStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 26))
+                .font(.system(size: AppDesign.Font.scaled(26)))
                 .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
             Text(String(format: localization.L(L10n.ModInstall.backupsNoMatch), search))
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -319,20 +319,20 @@ struct ModInstallBackupsView: View {
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppDesign.Font.iconXS(.semibold))
                         .foregroundColor(.secondary)
                         .frame(width: 12)
                     ZStack {
                         Circle().fill(Color.pink.opacity(0.12)).frame(width: 30, height: 30)
                         Image(systemName: "shippingbox")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .foregroundColor(.pink)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.displayName)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppDesign.Font.body(.medium))
                         Text(group.folderName)
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(AppDesign.Font.monoIconXS)
                             .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
                     }
                     Spacer()
@@ -341,10 +341,10 @@ struct ModInstallBackupsView: View {
                              ? localization.L(L10n.ModInstall.backupsGroupSingle)
                              : String(format: localization.L(L10n.ModInstall.backupsGroupSummary),
                                       Int64(group.backups.count), Int64(group.versions.count)))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                         Text(group.backups.first?.formattedDate ?? "")
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
                     }
                 }
@@ -363,7 +363,7 @@ struct ModInstallBackupsView: View {
                         // qu'une sauvegarde, et le rappeler serait du bruit.
                         if group.versions.count > 1 {
                             Text("v\(version.version)")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .font(.system(size: AppDesign.Font.scaled(10), weight: .semibold, design: .monospaced))
                                 .foregroundColor(.secondary)
                                 .padding(.top, 2)
                         }
@@ -390,18 +390,18 @@ struct ModInstallBackupsView: View {
                     .fill(Color.pink.opacity(0.12))
                     .frame(width: 34, height: 34)
                 Image(systemName: reasonIcon(for: backup.reason))
-                    .font(.system(size: 13))
+                    .font(AppDesign.Font.body)
                     .foregroundColor(.pink)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(backup.modMetadata.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppDesign.Font.body(.medium))
                 Text("v\(backup.modMetadata.version) • \(backup.modMetadata.author)")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Text(backup.originalFolderName)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(AppDesign.Font.monoIconXS)
                     .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
             }
 
@@ -409,10 +409,10 @@ struct ModInstallBackupsView: View {
 
             VStack(alignment: .trailing, spacing: 3) {
                 Text(backup.formattedDate)
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Text(reasonText(for: backup.reason))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
             }
 
@@ -430,7 +430,7 @@ struct ModInstallBackupsView: View {
                         confirmation = .restore(backup)
                     } label: {
                         Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -441,7 +441,7 @@ struct ModInstallBackupsView: View {
                         confirmation = .delete(backup)
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -483,10 +483,10 @@ struct ModInstallBackupsView: View {
     private var retentionInfoBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle.fill")
-                .font(.system(size: 13))
+                .font(AppDesign.Font.body)
                 .foregroundColor(.accentColor.opacity(0.7))
             Text(localization.L(L10n.ModInstall.retentionPolicy))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
             Spacer()
         }
