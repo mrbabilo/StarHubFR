@@ -4699,6 +4699,21 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       barre** : le bandeau d'I-T13 porte déjà ces gestes, juste au-dessus —
       un second exemplaire se disputerait la place.
 
+- [x] **I-T11** ✅ *(livré le 2026-09-25)* — **Charte de présentation,
+      écran par écran.** Six lots, un par écran (barre latérale et accueil,
+      liste des mods — ajoutée à la demande de l'auteur —, Mises à jour,
+      fiche, Quarantaine, Entretien) : littéral → jeton de même valeur,
+      `PlainButtonStyle()` → `.plain`, jetons `quarantine` et `favorite`
+      créés. Sens tranchés par l'auteur : anomalies rouge/orange (la liste
+      divergeait du bandeau de fiche), mises à jour en info, voile des
+      dépendances en error. Largeur minimale : tuiles de l'accueil
+      (`minimumScaleFactor`), en-tête de la liste adaptatif
+      (`ModListView+Header`), nouveau `WrapHStack` pour les lignes de mod —
+      la bande d'infos mesurait ~590 pt pour ~260 et décentrait toute la
+      liste —, `AdaptiveLabels` sur la Quarantaine et les liens de la fiche.
+      Vérifié à l'écran par l'auteur. Journal des modifications sorti de la
+      liste de la barre vers un bouton du pied (groupe `.footer`).
+
 - [x] **I-T12** ✅ *(livré le 2026-09-25)* — **Finitions relevées.**
       `SystemStatusFooter` supprimé (sans appelant) avec sa clé
       `main_system_status_a11y` ; `AccountHeaderCard`, qui partageait son

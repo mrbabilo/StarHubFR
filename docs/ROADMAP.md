@@ -928,30 +928,6 @@ travail, pas des engagements.
 `docs/superpowers/specs/2026-09-24-audit-ux-phases2-4.md`, table de
 conservation validée par l'auteur). Dans l'ordre de livraison recommandé :
 
-- [ ] **I-T11** — **Charte de présentation, écran par écran** (charte au
-      rapport : littéral → jeton de même valeur pour la typographie, un jeton
-      par sens pour la couleur, une orthographe par style de bouton, un jeton
-      `quarantine` à créer). Un lot = un écran, compilé seul, scénario clair
-      et sombre + libellé FR le plus long. Ordre : barre latérale et accueil,
-      liste des mods (ajoutée le 2026-09-25 à la demande de l'auteur),
-      Mises à jour (46 littéraux, 0 jeton), fiche d'un mod (108), Quarantaine,
-      Entretien. **Faits** (2026-09-25) : les six lots, un par écran —
-      barre latérale et accueil (jeton `quarantine` créé), liste des mods, Mises à jour,
-      fiche, Quarantaine, Entretien. Largeur minimale réglée sur l'accueil
-      (tuiles), la liste (en-tête adaptatif, `WrapHStack` pour les lignes
-      et les filtres, vérifié à l'écran) et la ligne des versions des
-      Mises à jour. Fiche et Quarantaine passées en `AdaptiveLabels`,
-      Entretien mesuré sans défaut (`7ca96f9e`). **Reste** : trancher les
-      couleurs laissées
-      littérales faute de sens clair — gravité des anomalies (orange/jaune,
-      deux copies : `ModListView`, `ModListRow`), « nouvelle version » en
-      vert et « mise à jour disponible » en orange (la charte dit info),
-      voile rouge des dépendances, étoile des favoris. Critère ajouté le
-      2026-09-25 : à la fenêtre minimale, chaque rangée
-      de boutons textuels tient ou passe en icônes (`AdaptiveLabels`,
-      `AGENTS.md` §6) — déjà fait pour la barre d'actions et le bandeau de
-      mise à jour de la fiche, les gestes de Mises à jour et le cadrage de
-      la liste. · **L**
 **Logique et hiérarchie des actions et des informations** (demandé le
 2026-09-24 au soir, règles au rapport §5 bis : un signal vit là où l'objet
 se voit et porte son action ; la fréquence décide de la place ; la gravité
