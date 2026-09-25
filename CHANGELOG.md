@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.50.0] - 2026-09-25
+
 ### Added
 
 - **La fiche d'un mod montre sa description et son historique Nexus même sans clé API.** Quand la clé manque ou que le quota est atteint, l'app les demande à l'API publique de Nexus au lieu de s'en tenir à la description du manifeste.
@@ -1586,7 +1588,10 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.47.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.50.0...HEAD
+[1.50.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.49.0...v1.50.0
+[1.49.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.48.0...v1.49.0
+[1.48.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.47.0...v1.48.0
 [1.47.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.46.0...v1.47.0
 [1.26.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.25.0...v1.26.0
 [1.25.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.24.0...v1.25.0
