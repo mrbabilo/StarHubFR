@@ -111,11 +111,11 @@ struct SmapiHealthCard: View {
             HStack(alignment: .center, spacing: AppDesignCore.Spacing.md) {
                 Image(systemName: isHealthy ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .foregroundColor(accent)
-                    .font(.system(size: 22))
+                    .font(.system(size: AppDesign.Font.scaled(22)))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(isHealthy ? localization.L(L10n.Logs.healthHealthy) : localization.L(L10n.Logs.healthTitle))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppDesign.Font.rowTitle(.semibold))
                     if !versionLine.isEmpty {
                         Text(versionLine)
                             .font(AppDesign.Font.footnote)
@@ -129,7 +129,7 @@ struct SmapiHealthCard: View {
 
                 Button { vm.revealSmapiLogInFinder() } label: {
                     Image(systemName: "folder")
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -139,7 +139,7 @@ struct SmapiHealthCard: View {
                 if !isHealthy || hasDetails {
                     Button { userCollapsed = !isExpanded } label: {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(AppDesign.Font.caption(.medium))
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain).iconHelp(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
@@ -176,10 +176,10 @@ struct SmapiHealthCard: View {
     private func countChip(_ count: Int, _ label: String, _ color: Color) -> some View {
         HStack(spacing: AppDesignCore.Spacing.xs) {
             Text("\(count)")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppDesign.Font.caption(.semibold))
                 .foregroundColor(color)
             Text(label)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, AppDesignCore.Spacing.sm)
@@ -194,11 +194,11 @@ struct SmapiHealthCard: View {
     private var staleBadge: some View {
         HStack(spacing: AppDesignCore.Spacing.xs) {
             Image(systemName: "clock.badge.exclamationmark")
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
             Text(localization.L(L10n.Logs.healthStale))
-                .font(.system(size: 10, weight: .medium))
+                .font(AppDesign.Font.iconXS(.medium))
             if let date = vm.smapiLogDate {
-                Text(date, style: .relative).font(.system(size: 10))
+                Text(date, style: .relative).font(AppDesign.Font.iconXS)
             }
         }
         .padding(.horizontal, AppDesignCore.Spacing.sm)
@@ -257,11 +257,11 @@ struct SmapiHealthCard: View {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { index, text in
                     HStack(alignment: .top, spacing: AppDesignCore.Spacing.sm) {
                         Text("\(index + 1).")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(.system(size: AppDesign.Font.scaled(11), weight: .semibold, design: .rounded))
                             .foregroundColor(.accentColor)
                             .frame(width: 16, alignment: .trailing)
                         Text(text)
-                            .font(.system(size: 12))
+                            .font(AppDesign.Font.caption)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -273,7 +273,7 @@ struct SmapiHealthCard: View {
         sectionCard(.orange) {
             sectionTitle(localization.L(L10n.Logs.healthConflicts), icon: "bolt.trianglebadge.exclamationmark.fill", color: .orange)
             ForEach(diagnostics.externalConflicts, id: \.self) { conflict in
-                Text(conflict).font(.system(size: 12))
+                Text(conflict).font(AppDesign.Font.caption)
             }
         }
     }
@@ -284,9 +284,9 @@ struct SmapiHealthCard: View {
             VStack(spacing: AppDesignCore.Spacing.xs) {
                 ForEach(diagnostics.topErrorMods) { entry in
                     HStack(spacing: AppDesignCore.Spacing.sm) {
-                        Text(entry.name).font(.system(size: 12, weight: .medium))
+                        Text(entry.name).font(AppDesign.Font.caption(.medium))
                         Text(String(format: localization.L(L10n.Logs.healthErrorsCount), Int64(entry.count)))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppDesign.Font.iconXS(.medium))
                             .foregroundColor(.red)
                             .padding(.horizontal, AppDesignCore.Spacing.xs)
                             .padding(.vertical, 1)
@@ -304,7 +304,7 @@ struct SmapiHealthCard: View {
         sectionCard(.green) {
             sectionTitle(localization.L(L10n.Logs.healthBenign), icon: "checkmark.circle.fill", color: .green)
             Text(localization.L(L10n.Logs.healthExpBenign))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -315,10 +315,10 @@ struct SmapiHealthCard: View {
                         // mod is fine, not just that something is.
                         if let mod = notice.mod {
                             HStack(spacing: AppDesignCore.Spacing.xs) {
-                                Text(mod).font(.system(size: 12, weight: .medium))
+                                Text(mod).font(AppDesign.Font.caption(.medium))
                                 if notice.count > 1 {
                                     Text("×\(notice.count)")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(AppDesign.Font.iconXS(.medium))
                                         .foregroundColor(.secondary)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
@@ -330,14 +330,14 @@ struct SmapiHealthCard: View {
                             }
                         }
                         Text(benignText(notice))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                         // The original line, so the explanation can be checked
                         // against the raw log.
                         if !notice.sample.isEmpty {
                             Text(notice.sample)
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(AppDesign.Font.monoIconXS)
                                 .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesignCore.Opacity.secondary))
                                 .textSelection(.enabled)
                                 .lineLimit(2)
@@ -361,13 +361,13 @@ struct SmapiHealthCard: View {
                               trailing: (() -> AnyView)? = nil) -> some View {
         HStack(spacing: AppDesignCore.Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppDesign.Font.iconXS(.semibold))
                 .foregroundColor(.white)
                 .frame(width: 18, height: 18)
                 .background(color)
                 .cornerRadius(AppDesignCore.Radius.sm)
             Text(text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppDesign.Font.caption(.semibold))
                 .textCase(.uppercase)
                 .kerning(0.3)
             if let trailing { trailing() }
@@ -408,7 +408,7 @@ struct SmapiHealthCard: View {
                                 NotificationCenter.default.post(name: .showLogSection, object: logHeader)
                             } label: {
                                 Image(systemName: "list.bullet.rectangle")
-                                    .font(.system(size: 11))
+                                    .font(AppDesign.Font.footnote)
                                     .foregroundColor(.accentColor)
                             }
                             .buttonStyle(.plain)
@@ -419,7 +419,7 @@ struct SmapiHealthCard: View {
                 )
             }
             Text(localization.L(explanation))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -428,7 +428,7 @@ struct SmapiHealthCard: View {
             VStack(spacing: AppDesignCore.Spacing.xs) {
                 ForEach(mods.prefix(Self.maxListedMods), id: \.self) { mod in
                     HStack(spacing: AppDesignCore.Spacing.sm) {
-                        Text(mod).font(.system(size: 12))
+                        Text(mod).font(AppDesign.Font.caption)
                         Spacer()
                         modActions(mod)
                     }
@@ -436,7 +436,7 @@ struct SmapiHealthCard: View {
             }
             if mods.count > Self.maxListedMods {
                 Text(String(format: localization.L(L10n.Logs.healthAndMore), Int64(mods.count - Self.maxListedMods)))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             }
         }
@@ -450,12 +450,12 @@ struct SmapiHealthCard: View {
                 ForEach(items) { issue in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: AppDesignCore.Spacing.sm) {
-                            Text(issue.name).font(.system(size: 12, weight: .medium))
+                            Text(issue.name).font(AppDesign.Font.caption(.medium))
                             Spacer()
                             modActions(issue.name)
                         }
                         Text(issue.reason)
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -483,7 +483,7 @@ struct SmapiHealthCard: View {
     func actionButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.accentColor)
                 .frame(width: 20, height: 20)
                 .contentShape(Rectangle())
