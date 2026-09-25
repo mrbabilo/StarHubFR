@@ -494,12 +494,24 @@ changelogs Nexus ; c'est faux pour la v2 (mesuré sur les quatre mods) —
   (bouton `[×]` dans la recherche, retour arrière des claviers virtuels).
   Aucune E/S, aucun réseau, aucune ligne de journal ajoutée ; `i18n/` et
   `data/` identiques.
-- **UltraSmooth 2.3.7** — changelog seul, **pas encore installé**. À
-  décompiler dès l'installation : « stripped out all tick stage profilers
-  and telemetry logging » peut toucher `us_trace` (D2-T2) ; le budget du
-  planificateur est borné à 1,0–4,5 ms dans `Normalize()` (une valeur plus
-  haute dans `config.json` sera ramenée) ; nouvelle section « Experimental »
-  (`EnableExperimentalFeatures`, désactivée par défaut).
+- **UltraSmooth 2.3.7** — installé sur le parc, **décompilé et comparé** à
+  la 2.3.6 du backup d'installation (2026-09-26). « Stripped out all tick
+  stage profilers and telemetry logging » vise `EnableRenderTelemetry` et
+  quelques clés de réglage retirées du `config.json`, **pas `us_trace`** :
+  `LagTraceRecorder` est toujours là, même nom de fichier
+  (`UltraSmooth_TraceReport_*.txt` dans le dossier du mod), mêmes sections.
+  Un seul changement de format : la ligne `Game Time: … | Location: …` de
+  chaque pic peut finir par ` | Menu: <menu>` et/ou ` | Weather: <météo>`. Le
+  parseur de D2-T2 doit accepter ces suffixes optionnels. Aucune nouvelle E/S
+  ni réseau. Nouveautés : `JitPrewarmer` et `SafeWindowMemoryManager` (actifs
+  par défaut), et une section Experimental (`EnableExperimentalFeatures`,
+  **désactivée par défaut**) qui ne pose ses patches qu'une fois activée :
+  `GameLocation.passTimeForObjects`, `performTenMinuteUpdate`, `timeUpdate`,
+  `Object.minutesElapsed`, `MinutesUntilReady`, `checkForAction`,
+  `PathFindController.findPathForNPCSchedules` (à compter pour A5-T7). i18n :
+  +36 clés `config.*` (194 → 230), et le `fr.json` de l'auteur (inchangé) en
+  laisse maintenant 113 sans traduction, contre 77. Le `config.json` du parc
+  ne sera réécrit qu'au prochain lancement du jeu.
 - **Radiance 2.2.1** — changelog seul, pas encore installé : réglages neufs
   (herbe au vent, ombres aux pieds), traduction chinoise complétée ; rien qui
   touche nos lecteurs.
