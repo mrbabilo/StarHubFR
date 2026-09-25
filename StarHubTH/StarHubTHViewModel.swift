@@ -3764,12 +3764,12 @@ final class StarHubTHViewModel {
     }
 
     /// Les mods installés que smapi.io signale, par nom, du plus grave au moins.
-    var compatibilityFlaggedMods: [(name: String, verdict: ModCompatibility)] {
+    var compatibilityFlaggedMods: [(name: String, folderName: String, verdict: ModCompatibility)] {
         allInstalledMods()
-            .compactMap { mod -> (name: String, verdict: ModCompatibility)? in
+            .compactMap { mod -> (name: String, folderName: String, verdict: ModCompatibility)? in
                 guard let verdict = modCompatibility[mod.uniqueId],
                       verdict.status.needsAttention else { return nil }
-                return (mod.name, verdict)
+                return (mod.name, mod.folderName, verdict)
             }
             .sorted {
                 $0.verdict.status.severity != $1.verdict.status.severity

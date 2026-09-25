@@ -355,89 +355,9 @@ struct SmapiHealthCard: View {
 
     // MARK: - Section building blocks
 
-    /// D'où viennent les verdicts affichés (A2-T3) : permet au bandeau de
-    /// signaler la fraîcheur de la source. Une lecture depuis le cache disque
-    /// d'il y a huit heures n'a pas le même poids qu'un verdict tout juste
-    /// sorti de smapi.io, et l'utilisateur a le droit de savoir.
-    @ViewBuilder
-    private var compatibilitySourceBadge: some View {
-        switch vm.compatibilitySource {
-        case .live:
-            pill(text: localization.L(L10n.Mods.compatSourceLive), color: .green)
-        case .pathoschildDump:
-            pill(text: String(format: localization.L(L10n.Mods.compatSourcePathoschild),
-                              PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
-                 color: .orange)
-        case .diskCache:
-            pill(text: String(format: localization.L(L10n.Mods.compatSourceCache),
-                              PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
-                 color: .secondary)
-        case .none:
-            EmptyView()
-        }
-    }
-
-    private func pill(text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "tray.and.arrow.down.fill")
-                .font(.system(size: 9))
-            Text(text)
-                .font(.system(size: 10, weight: .medium))
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(color.opacity(AppDesignCore.Opacity.medium))
-        .foregroundColor(color)
-        .cornerRadius(AppDesignCore.Radius.sm)
-    }
-
-    /// Ce que smapi.io dit de la compatibilité du parc.
-    ///
-    /// **Les deux chiffres vont ensemble, et le second n'est pas décoratif** :
-    /// sur le parc de référence, sept mods sont signalés et **552 sur 840 sont
-    /// inconnus** de smapi.io. Montrer les sept sans dire les 552 laisserait
-    /// croire que le reste est vérifié sain, ce que personne n'a établi.
-    @ViewBuilder
-    private var compatibilityBlock: some View {
-        let flagged = vm.compatibilityFlaggedMods
-        let unknown = vm.compatibilityUnknownCount
-        if !flagged.isEmpty || unknown > 0 {
-            sectionCard(flagged.isEmpty ? .secondary : .red) {
-                sectionTitle(String(format: localization.L(L10n.Mods.compatHealthFlagged), flagged.count),
-                             icon: "exclamationmark.triangle.fill",
-                             color: flagged.isEmpty ? .secondary : .red,
-                             trailing: { AnyView(compatibilitySourceBadge) })
-                ForEach(flagged.prefix(8), id: \.name) { entry in
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(entry.name)
-                            .font(.system(size: 11, weight: .medium))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text(CompatibilityWarning.label(entry.verdict.status, localization))
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(CompatibilityWarning.tint(entry.verdict.status))
-                        if let brokeIn = entry.verdict.brokeIn {
-                            Text(String(format: localization.L(L10n.Mods.compatBrokeIn), brokeIn))
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-                if unknown > 0 {
-                    Text(String(format: localization.L(L10n.Mods.compatHealthUnknown), unknown))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
     /// A section heading: a filled icon chip plus the title, sitting on the
     /// section's own tinted strip so each block announces itself.
-    private func sectionTitle(_ text: String, icon: String, color: Color,
+    func sectionTitle(_ text: String, icon: String, color: Color,
                               trailing: (() -> AnyView)? = nil) -> some View {
         HStack(spacing: AppDesignCore.Spacing.sm) {
             Image(systemName: icon)
@@ -457,7 +377,7 @@ struct SmapiHealthCard: View {
 
     /// Wraps a section in its own surface with a severity rail, so blocks read
     /// as separate cards instead of one long stack of paragraphs.
-    private func sectionCard<Content: View>(_ color: Color,
+    func sectionCard<Content: View>(_ color: Color,
                                             @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 0) {
             Rectangle()
@@ -560,7 +480,7 @@ struct SmapiHealthCard: View {
         }
     }
 
-    private func actionButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
+    func actionButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 11))
@@ -570,7 +490,7 @@ struct SmapiHealthCard: View {
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
-        .help(localization.L(help))
+        .iconHelp(localization.L(help))
     }
 
     /// Plain-language reassurance for a known-harmless error. The mod name is
