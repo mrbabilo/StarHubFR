@@ -24,6 +24,7 @@ where the exact log format was verified.
 - **Les lignes de mods ne sont plus coupées en fenêtre étroite.** Leurs informations passent à la ligne, colonnes alignées, au lieu de déborder des deux côtés ; une catégorie longue ne fait plus déborder les filtres.
 - **Les boutons de la Quarantaine et les liens Nexus de la fiche restent lisibles en fenêtre étroite** : ils passent en icônes avec infobulle au lieu d'être coupés.
 - **La page Diagnostic & Performances tient en fenêtre étroite.** Les filtres des journaux ne s'écrivent plus lettre par lettre, et les textes de la carte de santé et de la recherche du mod responsable ne sont plus coupés.
+- **Toutes les rangées de boutons tiennent en fenêtre étroite** : recherche du mod responsable, éditeur de configuration, Découvrir, traduction installée sur la fiche passent sur deux lignes au besoin. L'onglet « Journal des modifications » de la fiche devient « Historique ».
 
 ## [1.49.0] - 2026-09-25
 
