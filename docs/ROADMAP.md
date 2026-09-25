@@ -334,7 +334,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 27** *(recompté le 2026-09-25 : **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 28** *(recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -457,7 +457,24 @@ backup se retrouve en moins de dix secondes.
 
 #### A3 — Métadonnées Nexus
 
-> ✅ **Les 6 items de ce lot sont livrés.** Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **Les 6 premiers items de ce lot sont livrés.** Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels. **A3-T7** ajouté le 2026-09-25.
+
+- [ ] **A3-T7** — **Description et historique de la fiche sans clé Nexus.** Aujourd'hui
+      la fiche les lit par l'API v1 (`mods/{id}.json`, `mods/{id}/changelogs.json`,
+      `NexusUpdateChecker.fetchChangelogs`), qui exige la clé : sans clé, ou quota
+      atteint (`isRateLimited`), les deux sections restent vides. L'API **v2 GraphQL**
+      les rend **sans clé** — `legacyMods(ids:[{gameId:1303, modId:N}]) { nodes {
+      description } }` et `modFiles(modId: N, gameId: 1303) { version date
+      changelogText }` — mesuré le 2026-09-25 sur 5 mods ([SOURCES §5](SOURCES.md),
+      relevé du jour). Découvrir parle déjà la v2 (`NexusSearchClient`). Repli, pas
+      remplacement : la v1 reste la voie avec clé, la v2 prend le relais quand la
+      clé manque ou que le quota est épuisé.
+      ⚠️ **À mesurer avant de coder** : la limite de débit de la v2 sans clé ; le
+      format de `description` (BBCode identique à la v1 ? `DescriptionBlocksView`
+      le rend) ; l'ordre et les versions de `changelogText` contre `formatChangelogs`
+      (la v1 rend `{version: [lignes]}`, la v2 un tableau par **fichier** — deux
+      fichiers d'une même version se fusionnent, un fichier sans journal se tait).
+      Toute requête passe par `NexusRequestBuilder` (un seul jeu d'en-têtes). · **S–M**
 
 
 #### A5 — Incompatibilités entre mods
@@ -1376,6 +1393,15 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       défaut est dans la façon de le dire, pas dans la détection. Sévérités sans rapport.
       · **XS**
 
+- [ ] **F9** — **`check_sources.py --fetch-changelogs` sans clé.** *(relevé le
+      2026-09-25.)* L'option lit les changelogs par l'API v1 et demande la clé du
+      Trousseau (`--use-keychain`) ; le §1 de `SOURCES.md` en concluait qu'aucun
+      script ne peut lire un changelog Nexus. La v2 GraphQL les rend sans clé
+      (`modFiles.changelogText`, même requête qu'**A3-T7**). Basculer
+      `fetch_changelog` sur la v2, retirer le rappel « aucun script ne lit les
+      changelogs » du relevé, garder `--changelog-reviewed` comme seul geste qui
+      estampille une lecture. · **XS**
+
 - [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
       fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
@@ -1559,7 +1585,7 @@ venir), ~~**F5**~~ *(clos le 2026-09-10 : dossier de données, domaine de
 préférences et Trousseau propres au fork — le plan du 2026-08-26 exécuté avec
 re-mesures ; reste X105 pour `Backups/`)*, puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
-~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5/T6/T7), **D1/D2**
+~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A3-T7, A5-T4/T5/T6/T7), **D1/D2**
 (Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité — **débloqué**, H est clos),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
