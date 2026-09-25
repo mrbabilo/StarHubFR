@@ -335,6 +335,7 @@ struct InstallPreview: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.defaultAction) // I-T5 : Entrée installe
             .disabled(selectedCount == 0 || isInstalling)
 
             if isInstalling {
@@ -365,11 +366,8 @@ struct InstallPreview: View {
         }
     }
 
-    /// Derived (rather than independent `@State`) so the switch always
-    /// reflects whether every mod is actually selected — previously a
-    /// standalone `@State` could go stale after a manual per-mod
-    /// deselection, and toggling it off-then-on again would silently
-    /// re-select mods the user had explicitly unchecked.
+    /// Derived, not a separate `@State`: a stale copy re-selected mods the
+    /// user had unchecked when toggled off then on.
     private var allSelectedBinding: Binding<Bool> {
         Binding(
             get: { !selections.isEmpty && selections.values.allSatisfy { $0.selected } },

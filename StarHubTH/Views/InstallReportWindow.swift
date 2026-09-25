@@ -174,11 +174,13 @@ private struct ReportContent: View {
                     vm.queueNextDropArchive()
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
             } else {
                 Button(localization.L(L10n.InstallReport.done)) {
                     vm.dismissInstallReport()
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction) // I-T5 : Entrée conclut le bilan
                 .controlSize(.large)
             }
         }
