@@ -60,7 +60,8 @@ struct SettingsSectionOrderTests {
         // leur donner un cas ici les ferait rendre deux fois, ou obligerait à
         // éclater cette vue — la refonte de parcours que la spec §9 exclut.
         // Le test ne peut pas nommer un cas absent ; il tient le compte.
-        #expect(SettingsSection.allCases.count == 11)
+        // 12 depuis « Affichage » (taille du texte, I-T4, 2026-09-25).
+        #expect(SettingsSection.allCases.count == 12)
         #expect(SettingsSectionOrder.sections(in: .content) == [.nexus, .translationAI, .modBehavior])
     }
 

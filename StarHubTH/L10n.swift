@@ -930,6 +930,12 @@ enum L10n {
 
     // MARK: - Settings
     enum Settings {
+        static let display = "settings_display"
+        static let textSize = "settings_text_size"
+        static let textSizeNormal = "settings_text_size_normal"
+        static let textSizeLarge = "settings_text_size_large"
+        static let textSizeExtraLarge = "settings_text_size_extra_large"
+        static let footerDisplay = "settings_footer_display"
         static let groupGame            = "settings_group_game"
         static let groupContent         = "settings_group_content"
         static let groupData            = "settings_group_data"

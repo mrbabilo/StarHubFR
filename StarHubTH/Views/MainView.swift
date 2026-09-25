@@ -23,6 +23,7 @@ struct MainView: View {
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
+    @AppStorage(TextScale.defaultsKey) private var textScale = TextScale.normal.rawValue
     
     @State private var isProfileHovered = false
     @State private var showDownloadedInstall = false
@@ -309,9 +310,8 @@ struct MainView: View {
                     .zIndex(10)
             }
         } // End of outer ZStack
-        // No launch overlay here any more: the splash is its own window
-        // (`LaunchSplashController`) and this window stays hidden until the
-        // app is ready, so there's never a half-loaded UI to cover up.
+        .id(textScale) // un cran de texte changé : tout se redessine aux nouvelles tailles (I-T4)
+        // No launch overlay: the splash is its own window (`LaunchSplashController`).
         .frame(minWidth: 820, minHeight: 520)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, Locale(identifier: localization.currentLanguage))

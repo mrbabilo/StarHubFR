@@ -1592,3 +1592,9 @@
 "shortcuts_hide" = "Hide StarHubFR";
 "shortcuts_minimize" = "Minimize the window";
 "shortcuts_quit" = "Quit StarHubFR";
+"settings_display" = "Display";
+"settings_text_size" = "Text size";
+"settings_text_size_normal" = "Normal";
+"settings_text_size_large" = "Large";
+"settings_text_size_extra_large" = "Extra large";
+"settings_footer_display" = "Applies to the app's text. A few labels still keep a fixed size.";

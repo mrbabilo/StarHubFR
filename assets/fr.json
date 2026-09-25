@@ -1591,5 +1591,11 @@
   "shortcuts_cancel": "Annuler et fermer",
   "shortcuts_hide": "Masquer StarHubFR",
   "shortcuts_minimize": "Réduire la fenêtre",
-  "shortcuts_quit": "Quitter StarHubFR"
+  "shortcuts_quit": "Quitter StarHubFR",
+  "settings_display": "Affichage",
+  "settings_text_size": "Taille du texte",
+  "settings_text_size_normal": "Normale",
+  "settings_text_size_large": "Grande",
+  "settings_text_size_extra_large": "Très grande",
+  "settings_footer_display": "S'applique aux textes de l'app. Quelques libellés gardent encore leur taille fixe."
 }

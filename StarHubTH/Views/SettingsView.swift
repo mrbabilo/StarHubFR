@@ -151,6 +151,7 @@ struct SettingsView: View {
         case .management:     managementSection
         case .backup:         backupSection
         case .developer:      developerSection
+        case .display:        TextScaleSettingsSection(localization: localization)
         case .appInfo:        appInfoSection
         }
     }

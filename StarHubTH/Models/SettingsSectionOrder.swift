@@ -18,8 +18,8 @@ public enum SettingsSection: String, CaseIterable, Sendable {
     case nexus, translationAI, modBehavior
     // Ce que l'app garde sur le disque.
     case management, backup, developer
-    // L'app elle-même.
-    case appInfo
+    // L'app elle-même : son affichage (taille du texte, I-T4), puis ses infos.
+    case display, appInfo
 }
 
 /// Le groupe sous lequel une section se lit. La spec de refonte demande des
@@ -46,7 +46,7 @@ public enum SettingsSectionOrder {
         case .game:    return [.gameFolder, .smapi, .launch, .coreExtensions]
         case .content: return [.nexus, .translationAI, .modBehavior]
         case .data:    return [.management, .backup, .developer]
-        case .about:   return [.appInfo]
+        case .about:   return [.display, .appInfo]
         }
     }
 }
