@@ -53,7 +53,8 @@ struct BisectionCard: View {
                 // lancement du jeu : rien à proposer tant que ça tourne.
                 Text(localization.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
             } else {
-                Text(localization.L(L10n.Bisect.intro)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.intro)).font(AppDesign.Font.caption).foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true) // tronqué en fenêtre étroite sinon
                 Button(localization.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
             }
         }

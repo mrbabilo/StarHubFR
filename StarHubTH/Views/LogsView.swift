@@ -156,14 +156,13 @@ struct LogsView: View {
         let views = logViews
         return VStack(spacing: 0) {
 
-            // ── Source + Level filter (one row) ─────────────────────
-            HStack(spacing: 10) {
+            // ── Source + Level filter : une rangée, repliée si trop étroite ──
+            WrapHStack(spacing: 10, lineSpacing: AppDesign.Spacing.sm) {
                 sourceTab(nil,    label: localization.L(L10n.Logs.filterAll), icon: "list.bullet")
                 sourceTab(.app,   label: "StarHubFR",               icon: "app.badge")
                 sourceTab(.smapi, label: "SMAPI",                    icon: "terminal")
 
-                Divider().frame(height: 16)
-
+                Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1, height: 16)
                 levelPill(nil,      label: localization.L(L10n.Logs.filterAll), count: views.sourceTotal)
                 levelPill(.info,    label: "INFO",  count: views.counts[.info] ?? 0)
                 levelPill(.warning, label: "WARN",  count: views.counts[.warning] ?? 0)
@@ -171,9 +170,8 @@ struct LogsView: View {
                 if selectedSource != .app {
                     levelPill(.trace, label: "TRACE", count: views.counts[.trace] ?? 0)
                 }
-
-                Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Color(nsColor: .windowBackgroundColor))

@@ -118,8 +118,8 @@ struct SmapiHealthCard: View {
                         .font(.system(size: 14, weight: .semibold))
                     if !versionLine.isEmpty {
                         Text(versionLine)
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .font(AppDesign.Font.footnote)
+                            .foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
