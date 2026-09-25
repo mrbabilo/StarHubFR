@@ -228,7 +228,7 @@ struct ModListRow: View {
             return nil
         }
         return AnyView(
-            HStack(spacing: 10) {
+            WrapHStack(spacing: 10) {
                 updatedSlot(updated)
                 installedSlot(installed)
                 weightSlot(size)
@@ -548,7 +548,7 @@ struct ModListRow: View {
                 // les mêmes champs, agrégés de ses composants. Deux `HStack`
                 // jumeaux les auraient fait diverger dès la première retouche —
                 // et un pack mal aligné au milieu de la liste se voit.
-                HStack(spacing: AppDesign.Spacing.sm) {
+                WrapHStack(spacing: AppDesign.Spacing.sm) {
                     // Category badge — only for mods whose category was
                     // fetched from Nexus or manually pinned. Otherwise
                     // fall back to the offline-inferred type tag.

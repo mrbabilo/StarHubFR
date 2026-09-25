@@ -52,15 +52,14 @@ extension ModListView {
                     Spacer()
                     listMeta(display: display, noCategory: noCategory)
                 }
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                    HStack(spacing: 6) {
-                        filterChips(categories: categories, uncatCount: uncatCount,
-                                    tagBuckets: tagBuckets, noCategory: noCategory,
-                                    translationCounts: translationCounts)
-                    }
-                    HStack(spacing: 6) {
-                        listMeta(display: display, noCategory: noCategory)
-                    }
+                // Repli : les puces passent à la ligne une à une — une
+                // catégorie longue (« Animaux de compagnie / Chevaux »)
+                // suffisait à élargir tout l'en-tête au-delà de la fenêtre.
+                WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.sm) {
+                    filterChips(categories: categories, uncatCount: uncatCount,
+                                tagBuckets: tagBuckets, noCategory: noCategory,
+                                translationCounts: translationCounts)
+                    listMeta(display: display, noCategory: noCategory)
                 }
             }
         }
@@ -159,8 +158,7 @@ extension ModListView {
                              translationCounts: [FrenchTranslationScope: Int]) -> some View {
         sortPicker
 
-        Divider()
-            .frame(height: 16)
+        chipSeparator
 
         configFilterToggle
 
@@ -168,8 +166,7 @@ extension ModListView {
 
         blacklistedFilterToggle
 
-        Divider()
-            .frame(height: 16)
+        chipSeparator
 
         frenchTranslationPicker(counts: translationCounts)
 
@@ -178,6 +175,14 @@ extension ModListView {
             .help(noCategory
                   ? localization.L(L10n.Mods.categoryFilterEmptyHint)
                   : localization.L(L10n.Mods.categoryFilterHint))
+    }
+
+    /// Un trait vertical, et non `Divider` : dans `WrapHStack`, qui n'est pas
+    /// une pile, un `Divider` se dessinerait à l'horizontale.
+    private var chipSeparator: some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(width: 1, height: 16)
     }
 
     @ViewBuilder
