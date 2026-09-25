@@ -6891,20 +6891,10 @@ final class StarHubTHViewModel {
               outdatedKeys: outdatedKeysByMod)
     }
 
-    /// La liste cadrée : les cinq filtres composés, puis triée. C'est la
-    /// source dont `ModListView.filteredMods` et `toggleAllMods` dérivent
-    /// tous deux — le scope (`scopedMods(from:scope:)`) et la pagination
-    /// (vue) s'appliquent par-dessus.
-    /// Les entrées du cadrage, assemblées **ici et nulle part ailleurs** : les
-    /// deux closures capturent `self`, et les faire construire par une vue les
-    /// ferait vivre dans un `@State` retenant le ViewModel.
-    ///
-    /// Capture **forte**, à dessein. La règle du dépôt (`weak self` obligatoire)
-    /// vise les closures confiées à `DispatchQueue.global().async`, qui
-    /// survivent à leur appelant ; celles-ci sont construites et consommées dans
-    /// un seul appel synchrone. Un `weak` n'y protégerait rien et changerait un
-    /// plantage impossible en réponses fausses et muettes : « aucune catégorie »,
-    /// « aucun poids mesuré ».
+    /// Entrées du cadrage, assemblées **ici seulement** (en vue, un `@State`
+    /// retiendrait le VM). Capture **forte** voulue : consommées dans un appel
+    /// synchrone ; un `weak` changerait un plantage impossible en réponses
+    /// fausses et muettes.
     private var scopingInputs: ModListScoping.Inputs {
         .init(category: { self.category(for: $0) },
               sizeOnDisk: { self.sizeOnDisk(of: $0) },
@@ -6914,57 +6904,36 @@ final class StarHubTHViewModel {
               activationDates: modActivationTimestamps)
     }
 
-    /// La liste cadrée : les six filtres composés, puis triée. C'est la source
-    /// dont `ModListView.filteredMods` et `toggleAllMods` dérivent tous deux —
-    /// le cadrage (`scopedMods(from:scope:)`) et la pagination (vue)
-    /// s'appliquent par-dessus.
+    /// Liste cadrée : six filtres composés, puis triée — source de
+    /// `ModListView.filteredMods` et de `toggleAllMods` ; scope et pagination
+    /// par-dessus.
     func mods(matching filters: ModListFilters) -> [ModItem] {
         let inputs = scopingInputs
         let filtered = mods.filter { ModListScoping.matches($0, filters: filters, inputs: inputs) }
         return ModListScoping.sorted(filtered, by: filters.sort, inputs: inputs)
     }
 
-    /// La liste cadrée restreinte au scope courant — ce que la section
-    /// « Tous / Activés / En pause / Problèmes » montre, et l'ensemble
-    /// exact sur lequel la bascule en masse agit (X57).
-    ///
-    /// **Pas** de partition actifs/en pause sous « Tous » : grouper d'abord
-    /// par état écraserait le tri choisi — trier par poids remontait le plus
-    /// gros mod *actif*, jamais le plus gros du parc, alors que les trois
-    /// quarts du poids dorment dans des mods en pause. L'état reste lisible
-    /// ligne à ligne dans la liste ; ici, l'ordre du tri passe tel quel.
+    /// Liste cadrée restreinte au scope (« Tous / Activés / En pause /
+    /// Problèmes ») : l'ensemble exact de la bascule en masse (X57). **Pas**
+    /// de partition actifs/pause sous « Tous » : elle écraserait le tri.
     func scopedMods(from filtered: [ModItem], scope: ModFilter) -> [ModItem] {
         ModListScoping.scoped(filtered, scope: scope, hasAnomaly: { self.hasIssues($0) }, pendingUpdates: { .current(self) })
     }
 
 
-    /// Enable or disable every installed mod at once. File operations run on a
-    /// background queue so the UI (and the progress bar) stay responsive. Each
-    /// move uses the same "stale duplicate aside" safety pattern as
-    /// `performToggle` — **garde de collision comprise** : un dossier déjà
-    /// présent à destination n'est mis de côté que s'il porte l'identité du mod
-    /// qu'on bascule, sans quoi le mod est refusé et compté dans le bilan.
-    /// Progress is published after every move. Activation
-    /// timestamps are stamped only for mods that were actually moved.
-
-    /// `modList.filters`. Filtrer puis « Tout désactiver » ne touche que
-    /// l'ensemble cadré, pas les 949 dossiers du parc.
+    /// Enable or disable every mod of the current framing
+    /// (`modList.filters`, pas les 949 dossiers du parc), off main. Same
+    /// collision guard as `performToggle` : un dossier à destination n'est
+    /// écarté que s'il porte l'identité du mod, sinon refus compté. Progress
+    /// after every move; timestamps only for moved mods.
     @MainActor
     func toggleAllMods(enable: Bool, fingerprintChecked: Bool = false) {
-        // Guard against re-entry: a second tap while the first run is still
-        // moving folders would race on the same source/destination paths.
-        // Et contre la file des toggles unitaires : un performToggle en vol
-        // croiserait les moves bulk sur les mêmes dossiers (l'unitaire renomme
-        // sur main, la masse en background) — les gardes disque contiennent
-        // la collision, ce garde l'empêche d'exister.
+        // No re-entry (same paths), and not while unit toggles are queued: the
+        // guard prevents the collision the disk checks would only contain.
         guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
               !saveFingerprintPauseStore.isBusy else { return }
 
-        // X57 : l'ensemble vient du cadrage courant de la liste — la même
-        // règle qui la rend (filtres, catégorie, traduction, scope), pas le
-        // parc entier. Instantané pris ici, sur le main thread : les filtres
-        // ne peuvent plus changer l'ensemble une fois la bascule partie en
-        // arrière-plan.
+        // X57 : ensemble du cadrage courant, figé ici sur main.
         let framing = modList.filters
         let modsToMove = scopedMods(from: mods(matching: framing), scope: framing.scope)
             .filter { $0.isEnabled != enable }
@@ -6987,9 +6956,7 @@ final class StarHubTHViewModel {
         let gameDir = self.gameDir
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
 
-        // La bascule en masse construit ses moves depuis l'instantané :
-        // la source porte le nom physique actuel, la destination l'état
-        // visé — la même primitive que le plan de profil.
+        // Moves depuis l'instantané (même primitive que le plan de profil).
         let moves = modsToMove.map { mod in
             ProfileApplyPlan.Move(
                 folderName: mod.folderName, modName: mod.name,
@@ -7002,8 +6969,7 @@ final class StarHubTHViewModel {
                                                skipMissingSource: true,
                                                progressStep: 1)
 
-        // Le Task hérite de @MainActor : les écritures d'état sont directes.
-        // L'arrière-plan vit DANS l'exécutant — plus aucune closure lourde ici.
+        // `Task` hérite de `@MainActor` ; l'arrière-plan vit dans l'exécutant.
         Task { [weak self] in
             var anyEnabled = false
             var outcome: BulkMoveOutcome?
@@ -7031,15 +6997,8 @@ final class StarHubTHViewModel {
                 self.log(String(format: "%@ %@: %@", failure.modName, direction, failure.message),
                          level: .error)
             }
-            // Rescan so the list reflects the real on-disk state, whatever it
-            // is after partial failures. syncActiveProfileIds runs after so the
-            // active profile's stored id list tracks the actual enabled set.
-            // Le scan est lourd : il vit hors main (T10) — la suspension
-            // laisse la barre de bascule se rendre avant le blocage, la
-            // reprise revient sur main et la suite garde l'ordre d'origine.
-            // `scanMods` est `nonisolated` depuis la tranche d'isolation :
-            // le saut par la file globale porte le travail lourd hors main, et
-            // le dossier de jeu se résout ici, sur l'acteur.
+            // Rescan to reflect disk after partial failures, then
+            // syncActiveProfileIds. Scan hors main (T10), dossier de jeu résolu ici.
             let resolvedGameDir = gameDir
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -7062,44 +7021,22 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Permanently delete a mod (or an entire mod pack) from disk. The mod's
-    /// folder is removed from `Mods/` (disabled mods live there as `.X`,
-    /// enabled ones as `X`). For a pack (`isGroup == true`), this deletes the
-    /// single top-level folder that contains all child mods. The mod list is
-    /// rescanned afterward so the UI reflects the real on-disk state. Surfaces
-    /// a user-visible alert on failure.
-    /// Oublie tout ce que les magasins persistés savaient d'un mod supprimé
-    /// (X55). Politique tranchée le 2026-09-04 : **on efface tout** — ce qu'on
-    /// supprime disparaît, et une réinstallation repart d'une page blanche.
-    ///
-    /// Quatre magasins étaient indexés sur le nom de dossier et survivaient à
-    /// la suppression. Le plus visible : la vitrine Découverte affichait
-    /// encore « Je l'ai ». Le plus coûteux, quoique rare : un dossier
-    /// **réutilisé par un autre mod** héritait du drapeau « sa config suit le
-    /// profil », et le changement de profil suivant lui restaurait la
-    /// configuration du disparu.
-    ///
-    /// Un pack emporte ses composants — leur `folderName` est le chemin
-    /// relatif sous lui — sans toucher au voisin dont le nom commence pareil :
-    /// la règle vit dans `ModRemovalPurge`, avec ses tests.
-    ///
-    /// Chaque magasin n'est réécrit **que s'il a changé** : réécrire les
-    /// préférences pour rien à chaque suppression n'apporte rien.
+    /// Oublie ce que les magasins persistés savaient d'un mod supprimé (X55) :
+    /// **on efface tout** (2026-09-04). Sinon « Je l'ai » dans la vitrine, et
+    /// un dossier réutilisé héritait du drapeau de config par profil. Un pack
+    /// emporte ses composants, pas le voisin au nom proche
+    /// (`ModRemovalPurge`). Chaque magasin réécrit **seulement s'il change**.
     private func forgetStores(of mod: ModItem) {
         let folder = mod.folderName
-        // X107 — le favori et la marque « à écarter » partent ici, pas dans la
-        // seule branche de succès de `deleteMod` : la branche « dossier déjà
-        // absent » (le mod a quitté le disque hors de l'app) les laissait
-        // orphelins, et le badge Favoris comptait un mod qu'aucune ligne ne
-        // montrait. `ModRemovalPurge` emporte aussi les composants d'un pack.
+        // X107 — ici, pas dans la seule branche de succès : un dossier déjà
+        // absent laissait favori et « à écarter » orphelins.
         if ModRemovalPurge.purge(&favoriteMods, removing: folder) {
             Self.saveFavoriteMods(favoriteMods)
         }
         if ModRemovalPurge.purge(&blacklistedMods, removing: folder) {
             Self.saveBlacklistedMods(blacklistedMods)
         }
-        // L'historique d'erreurs et la référence de traduction grossiraient
-        // sinon indéfiniment avec des mods qui ne sont plus installés.
+        // Sinon croissance indéfinie.
         errorHistory.forget(mod: folder)
         if let store = TranslationBaseline.defaultDirectory() {
             try? TranslationBaseline.remove(modFolderName: folder, in: store)
@@ -7112,51 +7049,28 @@ final class StarHubTHViewModel {
             Self.saveModActivationTimestamps(modActivationTimestamps)
         }
         nexusMetadata.purgeMod(folderName: folder)
-        // « Je l'ai déjà » dans la vitrine : `installedNexusInstalls` n'est
-        // qu'un complément de ce que le disque dit (`installedNexusIds()` en
-        // fait l'union avec les mods réellement installés). Le retrait est
-        // donc sans risque même quand deux mods partagent un identifiant
-        // Nexus — 58 cas sur le parc : celui qui reste installé continue de
-        // se voir par l'autre moitié de l'union.
+        // Retrait sûr même avec un id Nexus partagé (58 cas) :
+        // `installedNexusIds()` fait l'union avec le disque.
         if let id = Int(resolvedNexusModId(for: mod)) {
             recentNexusInstalls.remove(id)
         }
         forgetTranslations(of: folder)
 
-        // C2-T4 — le delta du mod n'a plus de titulaire. Un pack emporte
-        // ceux de ses composants : l'en-tête de groupe n'a pas d'identifiant
-        // (""), ce sont les enfants qui portent les fichiers <uniqueId>.json.
-        // Sans eux, la fiche d'un composant réinstallé ressusciterait le
-        // delta d'un install qui ne décrit plus rien (promesse X55).
+        // C2-T4 — deltas du mod et de ses composants (fichiers `<uniqueId>.json`),
+        // sinon un composant réinstallé ressusciterait un delta mort (X55).
         if let dir = ModUpdateKeyDeltaStore.defaultDirectory() {
             ModUpdateKeyDeltaStore.removeAll(
                 uniqueIds: [mod.uniqueId] + (mod.children ?? []).map(\.uniqueId),
                 directory: dir)
-            // Le store a changé : les caches de lecture (delta, paires) ne
-            // doivent pas ressusciter un fichier qui vient de partir — cas
-            // réel du parc, deux dossiers partageant un même UniqueID.
+            // Invalider les caches (deux dossiers d'un même UniqueID au parc).
             updateKeyDeltasRevision += 1
         }
     }
 
-    /// X69 — le registre des traductions et des greffes, oublié lui aussi.
-    ///
-    /// Le renommage le migre (`installedTranslations.rename(host:to:)`, un des
-    /// douze magasins de X60) ; la suppression, elle, ne le touchait pas. Sur
-    /// le parc de référence, il gardait une greffe posée sur
-    /// `[CP] Make Gunther Real`, un mod absent du disque : l'entrée affirme
-    /// qu'une traduction est installée sur un mod qui n'existe plus.
-    ///
-    /// `forgetEverything` et non `forget(host:)` : ce dernier ne vide que
-    /// `byHost`, et l'orphelin du parc vivait justement dans `addonsByHost` —
-    /// le câblage seul n'aurait pas suffi.
-    ///
-    /// **Les originaux mis à l'abri partent avec.** Les valeurs de
-    /// `replacedFiles` sont les seuls pointeurs vers eux, et rien ne balaie
-    /// `TranslationBackups/` : les oublier sans les retirer échangerait une
-    /// entrée fausse contre des octets que plus personne ne désigne. On ne
-    /// retire que ce qui vit **sous la racine des sauvegardes** — un chemin
-    /// venu d'ailleurs ne s'efface pas sur la foi d'un registre.
+    /// X69 — oublie aussi le registre des traductions et greffes
+    /// (`forgetEverything` : l'orphelin du parc vivait dans `addonsByHost`).
+    /// **Les originaux mis à l'abri partent avec** (seuls pointeurs), mais
+    /// seulement **sous la racine des sauvegardes**.
     private func forgetTranslations(of folder: String) {
         let strandedOriginals = installedTranslations.entries(forHost: folder)
             .flatMap { $0.replacedFiles.values }
@@ -7169,9 +7083,7 @@ final class StarHubTHViewModel {
         }
         guard let root = InstalledTranslationStore.backupRoot?.standardizedFileURL.path else { return }
         let prefix = root.hasSuffix("/") ? root : root + "/"
-        // Un échec se dit, mais une fois : huit fichiers récalcitrants ne
-        // valent pas huit lignes de journal. Et il ne s'avale pas non plus —
-        // c'est la seule occasion de savoir que des octets sont restés.
+        // Échec dit une fois, jamais avalé.
         var failed: [String] = []
         for path in strandedOriginals
         where URL(fileURLWithPath: path).standardizedFileURL.path.hasPrefix(prefix) {
@@ -7196,21 +7108,14 @@ final class StarHubTHViewModel {
         }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        // A mod always lives under Mods/ now — disabled ones carry a leading
-        // dot in their physical folder name. `physicalFolderName` resolves
-        // the right on-disk path regardless of enabled state.
+        // Physical path (dot prefix when disabled).
         let modPath = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
 
         let fm = FileManager.default
         guard fm.fileExists(atPath: modPath) else {
             showModal(message: localization.L(L10n.Mods.deleteNotFound))
-            // Le dossier a disparu hors de l'app (Finder, mise à jour ratée,
-            // autre gestionnaire) : c'est **le** producteur de traces mortes,
-            // parce que ce chemin ne touchait aucun magasin. On purge ici
-            // aussi — et ce n'est pas le balayage que X25 interdit : là-bas
-            // une absence *déciderait seule* d'une suppression, ici
-            // l'utilisateur vient de demander la suppression de ce mod
-            // nommément. Le consentement fait toute la différence.
+            // Dossier disparu hors de l'app : purge ici aussi. Pas le balayage que
+            // X25 interdit : l'utilisateur a demandé cette suppression nommément.
             forgetStores(of: mod)
             let resolvedGameDir = gameDir
             DispatchQueue.global(qos: .userInitiated).async {
@@ -7219,28 +7124,20 @@ final class StarHubTHViewModel {
             return
         }
 
-        // Mark this row as deleting so its spinner shows until the rescan
-        // that follows the folder removal has republished `mods`.
+        // Row spinner until the rescan republishes `mods`.
         pendingDeleteFolder = mod.folderName
 
         do {
-            // X103-B — « supprimer » met en corbeille : le dossier déménage
-            // sous `Mods/_Trash_<horodatage>/<feuille logique>`, le préfixe
-            // que le scanner saute déjà au niveau 1. Rien n'est effacé ici :
-            // la purge est un geste explicite de l'écran Entretien, jamais
-            // une heuristique (leçon X25). La feuille est le nom **logique**
-            // (jamais le point) — un composant de pack supprimé un à un
-            // atterrit à plat, sous son propre nom.
+            // X103-B — « supprimer » met en corbeille :
+            // `Mods/_Trash_<horodatage>/<feuille logique>` (sauté par le scanner).
+            // Purge = geste explicite de l'Entretien (X25). Feuille **logique**.
             let leaf = (mod.folderName as NSString).lastPathComponent
             if let failure = ModTrash.trash(
                 modsPath: modsPath, stamp: ModTrash.makeStamp(),
                 items: [.init(physical: mod.physicalFolderName, logicalLeaf: leaf)]).failed.first {
                 throw failure.error
             }
-            // The registry entry is pruned by the next scanMods() (below),
-            // which removes entries for folders no longer on disk. Every
-            // other folder-keyed store is forgotten by `forgetStores` — the
-            // one purge both branches of this function share (X107).
+            // Registry pruned by the next scan; other stores by `forgetStores` (X107).
             forgetStores(of: mod)
             log(String(format: localization.L(L10n.Mods.deletedLog), mod.name))
             let resolvedGameDir = gameDir
@@ -7264,18 +7161,14 @@ final class StarHubTHViewModel {
 
     // MARK: - Corbeille des mods supprimés (X103-B)
 
-    /// Les événements de corbeille, du plus récent au plus ancien. Lu à la
-    /// demande (ouverture de l'écran Entretien, geste de remise/purge) — pas
-    /// un état que le scan entretient, la corbeille est hors liste par
-    /// construction.
+    /// Événements de corbeille, récents d'abord, lus à la demande.
     var trashEvents: [ModTrash.Event] { maintenanceStore.trashEvents }
 
     func refreshTrash() {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let events = ModTrash.events(modsPath: modsPath)
-            // X114 — même passe : la quarantaine du réparateur (les
-            // `_Trash_*` sans marqueur) se lit sur le même listing.
+            // X114 — quarantaine du réparateur, même listing.
             let quarantined = ModTrash.quarantineItemCount(modsPath: modsPath)
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -7285,9 +7178,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Remet un mod de la corbeille : `Mods/.<nom>` — **désactivé**, même
-    /// règle que la restauration de sauvegarde (§5.6). L'utilisateur le
-    /// réactive explicitement ; le rescan qui suit le fait réapparaître.
+    /// Remet un mod en `Mods/.<nom>`, **désactivé** (§5.6).
     func restoreTrashEntry(event: String, entry: String) {
         restoreFromTrash(event: event) {
             ModTrash.restoreEvent(modsPath: $0, event: event, entries: [entry],
@@ -7295,22 +7186,18 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// « Tout remettre » : l'événement entier revient en pause, un seul
-    /// rescan — le pendant d'un vidage des mods en pause (X112).
+    /// « Tout remettre » : l'événement revient en pause, un rescan (X112).
     func restoreTrashEvent(_ event: String) {
         restoreFromTrash(event: event) {
             ModTrash.restoreEvent(modsPath: $0, event: event, stamp: ModTrash.makeStamp())
         }
     }
 
-    /// Le trajet commun des deux remises : garde, travail hors main, puis
-    /// journal, erreur, corbeille relue et rescan (hors main aussi — gel
-    /// ~960 mods, 2026-09-14).
+    /// Trajet commun des remises, hors main (gel ~960 mods, 2026-09-14).
     private func restoreFromTrash(event: String,
                                   _ work: @escaping @Sendable (String) -> ModTrash.TrashResult) {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        // Même garde que la purge : un event non marqué (quarantaine du
-        // réparateur, nom forgé) n'est pas une corbeille à remettre.
+        // Event non marqué (quarantaine, nom forgé) : pas une corbeille.
         guard ModTrash.isUserEvent(modsPath: modsPath, event: event) else {
             showModal(message: String(format: localization.L(L10n.Maintenance.trashFailed2), event))
             return
@@ -7341,8 +7228,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Purge nominative : une entrée, pour de bon. Jamais appelée sans la
-    /// confirmation de l'écran Entretien.
+    /// Purge nominative, toujours après confirmation.
     func purgeTrashEntry(event: String, entry: String) {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -7365,9 +7251,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Vide toute la corbeille. Le compte annoncé par la confirmation vient
-    /// du même `trashEvents` que l'écran affiche — un chiffre qui divergerait
-    /// de ce qui part serait un mensonge.
+    /// Vide la corbeille ; compte annoncé tiré du même `trashEvents`.
     func purgeAllTrash() {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -7407,57 +7291,38 @@ final class StarHubTHViewModel {
         profilesStore.mutateProfile(with: id) {
             $0.enabledModIds = enabledMods.map(\.uniqueId)
         }
-        // Le nom et l'identifiant Nexus sont rafraîchis en même temps : ce sont
-        // les seules traces qui resteront le jour où l'un de ces mods aura été
-        // désinstallé. Ce qui était su des mods **sortis** du profil est
-        // abandonné avec eux — le profil ne les réclame plus.
+        // Nom et id Nexus rafraîchis (traces après désinstallation) ; les mods
+        // sortis du profil sont oubliés.
         profilesStore.mutateProfile(with: id) {
             $0.modMetadata = ProfileFactory.metadata(of: enabledMods)
         }
         saveProfiles()
-        // Le profil vient d'adopter l'état du disque : il n'y a plus d'écart
-        // en suspens à protéger.
+        // État du disque adopté : plus d'écart à protéger.
         incompletelyAppliedProfileIds.remove(id)
     }
 
     // MARK: - Entretien (X25)
 
-    /// Construit l'inventaire d'entretien. Une **seule** traversée du dossier
-    /// de sauvegardes : taille et fichiers utilisateur sont relevés ensemble.
-    /// Mesuré le 2026-09-04 : 0,86 s pour 17 628 fichiers, d'où le passage
-    /// hors du fil principal et le témoin de chargement.
+    /// Inventaire d'entretien, **une** traversée des sauvegardes (0,86 s pour
+    /// 17 628 fichiers) : hors main, avec témoin.
     func buildMaintenanceReport() {
         guard maintenanceStore.beginBuilding() else { return }
-        // X74 — les en-têtes de packs comptent : une préférence se pose sur la
-        // **ligne** qu'on a sous les yeux, pas sur une identité. Le champ
-        // « identifiant Nexus » et le sélecteur de catégorie sont offerts sur
-        // la fiche d'un pack — c'est même le seul endroit sensé pour eux, un
-        // composant n'ayant pas de page Nexus — et la bascule horodate la
-        // ligne de tête. `flattenedMods` seul les déclarait mortes.
+        // X74 — en-têtes de packs compris : id Nexus et catégorie se posent sur
+        // la fiche d'un pack.
         let installedFolders = mods.preferenceKeyableFolders
-        // X70 — un parc vide ne juge aucune clé morte (`stalePreferenceKeys`
-        // s'en garde). Mais l'écran afficherait alors « rien à nettoyer » sans
-        // dire pourquoi : le dire ici, c'est la seule trace que l'utilisateur
-        // aura de la différence entre « tout est propre » et « je n'ai rien
-        // pu lire ».
+        // X70 — parc vide : le dire, sinon « rien à nettoyer » cache « rien lu ».
         if installedFolders.isEmpty {
             log("Entretien : aucun mod lu (dossier de jeu introuvable, ou "
                 + "balayage en cours) — les clés de préférences ne sont pas jugées",
                 level: .warning)
         }
-        // X76 — l'état de lecture de l'index doit exister **avant** la passe :
-        // un index absent ou corrompu ne rend orpheline aucune session, et le
-        // dire est la seule trace que l'utilisateur aura de la différence
-        // entre « rien à nettoyer » et « je n'ai rien pu lire ».
+        // X76 — état de lecture de l'index relevé **avant** la passe, même raison.
         let installRead = ModInstallBackupManager.shared.loadBackupsWithIndexState()
         if !installRead.indexWasReadable {
             log(self.localization.L(L10n.Maintenance.indexUnreadable), level: .warning)
         }
         let translationPathsByHost = installedTranslationRelativePaths()
-        // `gameDir` et les clés de préférences se lisent **avant** la file :
-        // propriétés du VM isolées sur l'acteur principal depuis L2, seules
-        // leurs valeurs (Sendable) traversent la closure. La lecture des
-        // sauvegardes, lourde, reste dans la closure.
+        // Valeurs lues sur l'acteur avant la file (L2) ; lecture lourde dedans.
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
         let preferenceKeys = maintenancePreferenceKeys()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -7479,10 +7344,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les clés des six magasins indexés par nom de dossier — les quatre que
-    /// X55 a câblés à la suppression d'un mod (35 entrées d'avant X55
-    /// mesurées le 2026-09-04), plus les favoris et la marque « à écarter »
-    /// (X107 : un orphelin sur le parc le 2026-09-24).
+    /// Clés des six magasins indexés par dossier (quatre de X55, + favoris et
+    /// « à écarter », X107).
     private func maintenancePreferenceKeys() -> Set<String> {
         MaintenanceInventory.folderKeyedPreferenceKeys(
             favorites: favoriteMods,
@@ -7493,18 +7356,10 @@ final class StarHubTHViewModel {
             nexusCategories: nexusCustomCategories.keys)
     }
 
-    /// Les chemins des traductions et greffes que **l'app** a posées, par mod
-    /// hôte. Une traduction d'auteur (`i18n/default.json`) n'en fait pas
-    /// partie : elle revient avec le mod, donc elle ne protège aucune
-    /// sauvegarde.
-    ///
-    /// ⚠️ Ces chemins sont relatifs au dossier **`Mods/`** — ils portent le nom
-    /// du mod hôte en tête (`[CP]Cloths and Colors/i18n/fr.json`), là où le
-    /// chemin d'une sauvegarde est relatif à **sa propre racine**
-    /// (`i18n/fr.json`). La comparaison se fait par suffixe de segment, jamais
-    /// par égalité — et **bornée à l'hôte de la sauvegarde** : l'appariement
-    /// tous-hôtes étiquetait à tort 59 fichiers du parc, tous des
-    /// `i18n/*.json` d'auteur (X75). Voir
+    /// Chemins des traductions et greffes posées par **l'app**, par hôte (une
+    /// traduction d'auteur ne protège rien). ⚠️ Relatifs à **`Mods/`**, contre
+    /// une sauvegarde relative à sa racine : comparaison par suffixe,
+    /// **bornée à l'hôte** (X75 : 59 faux). Voir
     /// `MaintenanceInventory.classifyUserFile`.
     private func installedTranslationRelativePaths() -> [String: Set<String>] {
         let registry = InstalledTranslationStore.load()
@@ -7520,9 +7375,7 @@ final class StarHubTHViewModel {
         return paths
     }
 
-    /// La lecture proprement dite. Statique : aucune capture de `self`, donc
-    /// aucune mutation `@Published` hors du fil principal. `nonisolated` (L2) :
-    /// elle ne touche que des fichiers et ses seules entrées sont des valeurs.
+    /// Lecture statique, sans `self` ; `nonisolated` (L2).
     nonisolated private static func readMaintenanceReport(
         installBackups: [ModInstallBackup],
         installIndexWasReadable: Bool,
@@ -7545,10 +7398,7 @@ final class StarHubTHViewModel {
                 root: root,
                 hostTranslationPaths: userTranslationPathsByHost[backup.originalFolderName] ?? [])
             else { continue }
-            // Le nom de session vient du manager : la même règle que celle qui
-            // supprime le dossier horodaté (premier composant sous `backups/`,
-            // suffixe de nommage compris). Une formule locale, même simplifiée,
-            // désynchroniserait l'inventaire de ce qui part vraiment.
+            // Nom de session via le manager : même règle que la suppression.
             let session = ModInstallBackupManager.shared
                 .backupDirectory(of: backup).lastPathComponent
             let entry = MaintenanceInventory.BackupEntry(
@@ -7583,11 +7433,8 @@ final class StarHubTHViewModel {
             missingMods: missingMods)
     }
 
-    /// Taille et fichiers utilisateur d'une sauvegarde, en **une** traversée.
-    /// `nil` quand le dossier n'existe plus. La règle de classification vit
-    /// dans `MaintenanceInventory.classifyUserFile` — appariement **borné à
-    /// l'hôte de la sauvegarde** (X75). `nonisolated` (L2) : marche de
-    /// fichiers pure, appelée depuis le rapport hors de l'acteur principal.
+    /// Taille et fichiers utilisateur en **une** traversée, `nil` si absent.
+    /// Classification bornée à l'hôte (X75). `nonisolated` (L2).
     nonisolated private static func walkBackup(root: URL, hostTranslationPaths: Set<String>)
     -> (Int64, [MaintenanceInventory.UserFile])? {
         let fm = FileManager.default
@@ -7600,9 +7447,8 @@ final class StarHubTHViewModel {
         else { return nil }
         var bytes: Int64 = 0
         var files: [MaintenanceInventory.UserFile] = []
-        // ⚠️ `resolvingSymlinksInPath()` avant tout retrait de préfixe : sur macOS
-        // l'énumérateur rend des chemins résolus (`/private/var…`) même quand la
-        // racine passait par `/var…`.
+        // ⚠️ `resolvingSymlinksInPath()` d'abord : l'énumérateur rend
+        // `/private/var…`.
         let base = root.resolvingSymlinksInPath().path + "/"
         for case let url as URL in walker {
             let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
@@ -7618,10 +7464,8 @@ final class StarHubTHViewModel {
         return (bytes, files)
     }
 
-    /// Ce que le mod porte aujourd'hui, limité aux chemins qui nous intéressent.
-    /// `presentFiles` vaut `nil` quand le dossier du mod n'existe plus — actif ou
-    /// en pause, les deux formes sont cherchées. `nonisolated` (L2) : lecture
-    /// disque pure, appelée depuis le rapport hors de l'acteur principal.
+    /// État actuel du mod, restreint aux chemins utiles ; `nil` si absent
+    /// (actif ou en pause). `nonisolated` (L2).
     nonisolated private static func installedState(of folderName: String, modsRoot: String,
                                        userFiles: [MaintenanceInventory.UserFile])
     -> MaintenanceInventory.InstalledState {
@@ -7635,13 +7479,9 @@ final class StarHubTHViewModel {
         return .init(presentFiles: Set(present.map(\.relativePath)))
     }
 
-    /// Met à la corbeille les sauvegardes que `keepPerMod` écarte, et rend leur
-    /// nombre. Les protégées ne partent jamais — la règle est dans
-    /// `MaintenanceInventory.plan`, pas ici.
-    ///
-    /// **Corbeille, pas suppression** : une action qui retire 723 Mo mérite le
-    /// filet du Finder. L'écran doit dire que l'espace n'est rendu qu'après
-    /// vidage, sinon le chiffre annoncé ment.
+    /// Met à la corbeille les sauvegardes écartées par `keepPerMod` (règle
+    /// dans `MaintenanceInventory.plan`), rend leur nombre. **Corbeille** :
+    /// l'écran dit que l'espace revient après vidage.
     @discardableResult
     func purgeInstallBackups(keepPerMod: Int) -> Int {
         guard let report = maintenanceReport else { return 0 }
@@ -7651,10 +7491,7 @@ final class StarHubTHViewModel {
         guard !plan.doomed.isEmpty else { return 0 }
         let doomedIds = Set(plan.doomed.map(\.id))
         var removed = 0
-        // L'index est la source de vérité : on passe par le manager pour que
-        // l'entrée disparaisse avec le dossier. Le dossier horodaté vient du
-        // manager lui-même — la même règle qui le supprime, et la même clé
-        // (`lastPathComponent`) que l'inventaire a relevée.
+        // Via le manager : l'index est la source de vérité.
         let manager = ModInstallBackupManager.shared
         for backup in manager.loadBackups() {
             let sessionDir = manager.backupDirectory(of: backup)
@@ -7676,12 +7513,8 @@ final class StarHubTHViewModel {
         return removed
     }
 
-    /// Retire les dossiers de session sans index et les clés de préférences sans
-    /// mod. Rend le nombre total d'éléments retirés.
-    ///
-    /// C'est le « nettoyage explicite » que **X25** réclame : un bouton, jamais
-    /// une passe au lancement — là-bas, une absence déciderait seule d'une
-    /// suppression, ici l'utilisateur a vu ce qui part et a cliqué.
+    /// Retire sessions sans index et clés sans mod — le « nettoyage explicite »
+    /// de **X25** (bouton, jamais au lancement).
     @discardableResult
     func cleanStaleMaintenanceEntries() -> Int {
         guard let report = maintenanceReport else { return 0 }
@@ -7718,17 +7551,14 @@ final class StarHubTHViewModel {
         return removed
     }
 
-    /// Le mod n'est plus installé : il n'y a **pas** de dossier où écrire, et en
-    /// fabriquer un reviendrait à le réinstaller. On montre le fichier dans le
-    /// Finder — l'utilisateur en fait ce qu'il veut, et la sauvegarde reste
-    /// protégée tant qu'elle est la seule copie.
+    /// Mod absent : pas de dossier à fabriquer ; montrer le fichier dans le
+    /// Finder.
     func revealProtectedBackup(atPath path: String) {
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
     }
 
-    /// Retire une sauvegarde protégée, à la demande explicite de l'utilisateur.
-    /// Elle passe par la corbeille comme les autres : c'est le filet, et il vaut
-    /// d'autant plus ici que le fichier n'existe nulle part ailleurs.
+    /// Retire une sauvegarde protégée à la demande, par la corbeille (seule
+    /// copie).
     @discardableResult
     func purgeProtectedBackup(session: String) -> Bool {
         let manager = ModInstallBackupManager.shared
@@ -7748,8 +7578,7 @@ final class StarHubTHViewModel {
         return true
     }
 
-    /// Les sauvegardes d'origine par session de l'inventaire — le `Report`
-    /// n'en porte que l'essentiel, la récupération a besoin du reste.
+    /// Sauvegardes d'origine par session (le `Report` n'a que l'essentiel).
     private func maintenanceBackupsBySession() -> [String: ModInstallBackup] {
         let manager = ModInstallBackupManager.shared
         return Dictionary(manager.loadBackups().map {
@@ -7757,10 +7586,8 @@ final class StarHubTHViewModel {
         }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// Les seules copies à remettre en place, par `SoleCopyFile.id` — celles
-    /// dont le mod vit encore. Sauvegardes lues **une** fois pour la liste.
-    /// Absente du résultat quand la sauvegarde ou le dossier du mod a disparu
-    /// depuis l'inventaire : l'écran ne propose alors que le Finder.
+    /// Seules copies remettables (mod encore là), par `SoleCopyFile.id`.
+    /// Absente si sauvegarde ou mod a disparu : Finder seulement.
     func maintenanceRecoverableFiles(_ files: [MaintenanceInventory.SoleCopyFile])
     -> [String: RecoverableFile] {
         let bySession = maintenanceBackupsBySession()
@@ -7782,8 +7609,7 @@ final class StarHubTHViewModel {
         return found
     }
 
-    /// Le chemin du fichier dans la sauvegarde, pour le montrer dans le Finder
-    /// quand le mod n'est plus là pour le recevoir.
+    /// Chemin dans la sauvegarde, pour le Finder.
     func maintenanceProtectedFilePath(session: String, relativePath: String) -> String? {
         guard let backup = maintenanceBackupsBySession()[session] else { return nil }
         return (backup.backupPath as NSString).appendingPathComponent(relativePath)
@@ -7792,7 +7618,5 @@ final class StarHubTHViewModel {
 
 // MARK: - L10nResolver
 //
-// `SaveFarmNameResolver` consomme un `L10nResolver` (protocole Core) pour
-// rester testable sans VM. La conformité vit désormais sur le store du
-// domaine (`LocalizationStore`, qui porte la résolution) — `SavesView`
-// lui passe le store directement.
+// `SaveFarmNameResolver` consomme un `L10nResolver` (Core) ; la
+// conformité vit sur `LocalizationStore`.
