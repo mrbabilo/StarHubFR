@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **La fiche d'un mod montre sa description et son historique Nexus même sans clé API.** Quand la clé manque ou que le quota est atteint, l'app les demande à l'API publique de Nexus au lieu de s'en tenir à la description du manifeste.
 - **« Sauvegardes de ce mod ».** Clic droit sur un mod, ou « … » sur sa fiche : ses sauvegardes d'installation s'ouvrent, filtrées et dépliées, pour revenir à une version d'avant.
 - **⌘K active un profil.** Entrée sur un profil de la palette l'active, avec les mêmes vérifications que le bouton « Activer ».
 - **Entrée valide l'installation** d'une archive, puis referme le bilan.

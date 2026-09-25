@@ -72,8 +72,10 @@ release**, et sur les **100 tags** du premier, **aucun** ne nomme GMCM. Un étag
 `--fetch-changelogs` va chercher les journaux des sources en retard par
 `POST https://api.nexusmods.com/v2/graphql` — `modFiles(modId, gameId: 1303)
 { version date changelogText }` — et les rend au format de l'ancienne v1,
-`{version: [lignes]}`, du plus ancien au plus récent : deux fichiers d'une même
-version au même journal le comptent une fois (règle d'A3-T7), un fichier sans journal ne crée pas d'entrée.
+`{version: [lignes]}`, du plus ancien au plus récent. Un journal identique
+sur plusieurs fichiers d'une même version compte une fois, un journal
+différent ajoute ses lignes neuves (règle d'A3-T7) ; un fichier sans journal
+ne crée pas d'entrée.
 Aucune clé, donc plus de Trousseau ni de `NEXUS_API_KEY` : la v1
 (`changelogs.json`), qui les exigeait, et l'option `--use-keychain` sont
 retirées. ⚠️ Un identifiant inconnu rend une liste **vide**, pas une erreur —

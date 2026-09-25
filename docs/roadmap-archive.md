@@ -3159,6 +3159,31 @@ touchées).
 
 #### A3 — Métadonnées Nexus
 
+- [x] **A3-T7** ✅ *(livré le 2026-09-25)* — **Description et historique de la fiche sans clé Nexus.**
+      La fiche lisait les deux par l'API v1 (`mods/{id}.json`,
+      `changelogs.json`), qui exige la clé : sans clé ou quota épuisé, elle
+      restait sur la description du manifeste. Repli : quand la description v1
+      revient vide, `ModDetailRefresh` passe la main à `NexusSearchClient.
+      modDetailRaw` — **une** requête v2 GraphQL, `mods(filter).description`
+      (la même que la fiche de Découvrir) plus `modFiles { version date
+      changelogText }`, décodée en Core (`NexusModDetailV2`). La clé part si
+      elle existe ; `send(requiresKey:)` n'ouvre l'accès sans clé qu'à la
+      fiche — Découvrir et la recherche gardent l'exigence (décision produit
+      non prise).
+      **Mesuré avant de coder**, contre les 31 fiches du cache v1
+      (`~/Library/Caches/ModDetails`) : descriptions identiques (les 3 écarts
+      sont des fiches modifiées depuis le cache) ; historiques **609 versions
+      sur 609** identiques avec la règle de fusion par fichier. Un premier
+      dédoublonnage ligne à ligne faisait diverger 8 fiches : il supprimait
+      des lignes répétées légitimes (SVE 1.14.14 répète « . »). Même défaut
+      corrigé dans `check_sources.py` (F9). **Écart connu** : la v2 range
+      l'historique par fichier, une version dont le fichier a été supprimé n'y
+      figure pas — 6 versions sur 615 (~1 %). Aucun en-tête de débit sur la
+      v2 (déjà relevé par `NexusSearchClient`).
+      Fixtures : réponses Nexus réelles (ZebrusCore 49246 entière, extrait de
+      SVE 3753). Sabotages : fusion ligne à ligne et repli coupé rougissent
+      chacun deux tests.
+
 - [x] **A3-T5** — **Ce qui est posé se voit, se suit et ne se propose plus.** *Livré le
       2026-08-26, à sa demande, après que la recherche a été éprouvée.
       Quatre demandes, une même racine : le registre ne retenait que les traductions,
