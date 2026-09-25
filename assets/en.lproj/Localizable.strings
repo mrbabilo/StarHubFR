@@ -379,6 +379,7 @@
 "maintenance_archives_purge" = "Empty archives";
 "maintenance_archives_purge_confirm" = "Permanently delete every kept archive? Installed mods are untouched.";
 "maintenance_archives_reinstall" = "Reinstall";
+"maintenance_archives_versions" = "%1$lld versions · %2$@";
 "maintenance_archives_title" = "Nexus archives";
 "maintenance_cancel" = "Cancel";
 "maintenance_cleaned_log" = "%lld stale entry/entries removed";

@@ -96,6 +96,7 @@ let package = Package(
                 "Models/ModTrash.swift",
                 "Models/SettingsSectionOrder.swift",
                 "Models/NexusArchiveStore.swift",
+                "Models/NexusArchiveGroups.swift",
                 "Models/ConfigLabelResolver.swift",
                 "Models/MaintenanceInventory.swift",
                 "Models/MaintenanceState.swift",

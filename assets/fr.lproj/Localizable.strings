@@ -379,6 +379,7 @@
 "maintenance_archives_purge" = "Vider les archives";
 "maintenance_archives_purge_confirm" = "Supprimer définitivement toutes les archives conservées ? Les mods installés ne sont pas touchés.";
 "maintenance_archives_reinstall" = "Réinstaller";
+"maintenance_archives_versions" = "%1$lld versions · %2$@";
 "maintenance_archives_title" = "Archives Nexus";
 "maintenance_cancel" = "Annuler";
 "maintenance_cleaned_log" = "%lld entrée(s) mortes retirées";

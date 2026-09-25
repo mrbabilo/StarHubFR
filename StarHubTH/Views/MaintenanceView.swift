@@ -189,71 +189,12 @@ struct MaintenanceView: View {
             onPurgeEntry: { confirmation = .purgeTrashEntry(event: $0, entry: $1) })
     }
 
-    /// X103-C — les archives Nexus conservées : ce qu'elles pèsent, et de quoi
-    /// réinstaller un mod supprimé sans réseau.
-    ///
-    /// La section se montre **aussi quand elle est vide**, et dit alors deux
-    /// choses différentes selon que la fonction est allumée ou non. Une
-    /// fonction éteinte par défaut qui n'expliquerait nulle part ce qu'elle
-    /// fait ne serait jamais découverte.
-    @ViewBuilder
+    /// X103-C — les archives Nexus, regroupées par mod.
     private var archivesSection: some View {
-        if keepNexusArchives || !vm.nexusArchives.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(localization.L(L10n.Maintenance.archivesTitle))
-                        .font(AppDesign.Font.body(.semibold))
-                    Spacer()
-                    if !vm.nexusArchives.isEmpty {
-                        Text(String(format: localization.L(L10n.Maintenance.archivesCount),
-                                    vm.nexusArchives.count,
-                                    Self.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
-                            .font(AppDesign.Font.footnote)
-                            .foregroundColor(.secondary)
-                        Button(localization.L(L10n.Maintenance.archivesPurge), role: .destructive) {
-                            confirmation = .purgeArchives(only: nil)
-                        }
-                        .controlSize(.small)
-                        .foregroundColor(AppDesign.Color.error)
-                    }
-                }
-
-                if vm.nexusArchives.isEmpty {
-                    Text(localization.L(keepNexusArchives
-                              ? L10n.Maintenance.archivesEmptyOn
-                              : L10n.Maintenance.archivesEmptyOff))
-                        .font(AppDesign.Font.footnote)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    ForEach(vm.nexusArchives) { entry in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.modName)
-                                    .font(AppDesign.Font.caption)
-                                Text("\(entry.version) · \(Self.bytes(entry.byteSize))")
-                                    .font(AppDesign.Font.monoIconXS)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Button(localization.L(L10n.Maintenance.archivesReinstall)) {
-                                vm.reinstallFromArchive(entry)
-                            }
-                            .controlSize(.small)
-                            Button(localization.L(L10n.Maintenance.archivesDelete), role: .destructive) {
-                                confirmation = .purgeArchives(only: entry)
-                            }
-                            .controlSize(.small)
-                            .foregroundColor(AppDesign.Color.error)
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(AppDesignCore.Radius.md)
-                    }
-                }
-            }
-        }
+        MaintenanceArchivesSection(vm: vm, localization: localization,
+                                   keepNexusArchives: keepNexusArchives,
+                                   onPurgeAll: { confirmation = .purgeArchives(only: nil) },
+                                   onDelete: { confirmation = .purgeArchives(only: $0) })
     }
 
     /// Le total et sa décomposition — le chiffre que l'utilisateur est venu voir.

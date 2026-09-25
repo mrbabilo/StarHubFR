@@ -1740,6 +1740,7 @@ enum L10n {
     enum Maintenance {
         // X103-C — archives Nexus conservées
         static let archivesTitle        = "maintenance_archives_title"
+        static let archivesVersions     = "maintenance_archives_versions"
         static let archivesEmptyOff     = "maintenance_archives_empty_off"
         static let archivesEmptyOn      = "maintenance_archives_empty_on"
         static let archivesCount        = "maintenance_archives_count"

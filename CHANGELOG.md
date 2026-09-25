@@ -26,6 +26,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Archives Nexus regroupées par mod** (Entretien) : les versions conservées d'un même mod se rangent sous son nom, la plus récente en tête, avec leur date.
 - **La taille du texte s'applique partout.** Les libellés qui gardaient une taille fixe (fiche mod, installation, recherche guidée, sauvegardes d'installation, santé SMAPI…) suivent désormais le cran choisi dans Réglages › Affichage.
 - **Réglages réorganisés.** Trois onglets (Jeu, Mods & contenu, À propos) au lieu d'une longue page ; chaque réglage affiche son explication sous son titre ; la clé Nexus passe en tête, et « ajouter une clé API » depuis Découvrir y mène directement.
 - **Les actions ponctuelles quittent les Réglages** : dossier et zip des parties dans Sauvegardes du jeu ; « Vider les mods désactivés » (avec confirmation) et zip du dossier Mods dans Entretien.
@@ -34,6 +35,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **L'onglet Dépendances d'une fiche ne répète plus les dépendances partagées.** Chacune n'apparaît qu'une fois, au niveau le plus proche du mod ; sur un parc réel, une fiche affichait 1 873 lignes pour 125 dépendances.
 - **La confirmation de suppression d'un mod ne parle plus de suppression définitive** : le mod part dans la corbeille des mods (Entretien), d'où il se restaure. Les boutons « Remettre » de la corbeille deviennent « Restaurer ».
 - **Supprimer un mod ne fait plus apparaître d'erreur dans SMAPI.** La corbeille quitte le dossier Mods pour `_StarHubFR_Corbeille`, à côté ; les anciennes y sont déplacées. Le badge de la Quarantaine compte à nouveau ses fichiers (il affichait toujours 0).
 - **Les mods déjà remplacés ne sont plus signalés cassés.** smapi.io juge un mod par son identifiant : quand la version installée est la version non officielle recommandée (ou plus récente), ou le mod de remplacement proposé, l'alerte se tait — 7 faux signalements sur 9 sur un parc réel.
