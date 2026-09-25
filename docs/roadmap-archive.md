@@ -4699,6 +4699,20 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       barre** : le bandeau d'I-T13 porte déjà ces gestes, juste au-dessus —
       un second exemplaire se disputerait la place.
 
+- [x] **I-T6** ✅ *(livré le 2026-09-25)* — **Navigation au focus.**
+      Mesure à l'écran par l'auteur (« Navigation au clavier » activée) :
+      Tab, Espace, Entrée et Échap marchent sur les écrans, à deux
+      exceptions. Tab tournait dans la barre latérale sans atteindre la
+      page : barre et contenu deviennent des `focusSection()` (`0338c47f`).
+      La liste des mods ne se parcourait pas : ↑ ↓ Début Fin et Entrée
+      (`ModListKeyStep` dans Core, 7 tests ; `ModListView+Keyboard`,
+      `cad7b3aa`). Relevé statique au préalable : deux gestes souris
+      seulement (zone de dépôt, lignes de l'onglet Traduction) devenus des
+      boutons (`abcf1038`) ; restent en geste le nœud de l'arbre des
+      dépendances (il contient des boutons) et l'en-tête d'un pack (sa
+      fiche liste les composants). Flèches gauche/droite en grille : non
+      faites.
+
 - [x] **I-T11** ✅ *(livré le 2026-09-25)* — **Charte de présentation,
       écran par écran.** Six lots, un par écran (barre latérale et accueil,
       liste des mods — ajoutée à la demande de l'auteur —, Mises à jour,
