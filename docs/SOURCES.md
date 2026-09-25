@@ -323,6 +323,7 @@ est permanent, en tête de chaque fichier concerné.**
 | [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) — Nana1873 | — | jetons protégés (3 formes composées reprises), 6 garanties d'écriture | `TranslationTokenCheck`, `TranslationDocument` |
 | [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) — colecrouter | — | référence de l'édition de sauvegardes | `SaveManager` |
 | **Content Patcher** — `ConfigSchema` | — | le schéma des options de config d'un mod ; les libellés, eux, vivent dans le i18n du pack (`config.<clé>.name`) | `ConfigJSONTree`, `ModConfigSchema` |
+| [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) — SinZ | MIT | minuteurs de trame par postfix sur `DebugTimings.Start/Stop{Draw,Update}Timer`, pauses GC par `EventListener` du runtime .NET (`TimingMetrics.cs`, `GcEventListener.cs`) | `companion/StarHubFR.Probe/` (`FrameTimings.cs`, `GcPauses.cs`, licence dans `LICENSE-THIRD-PARTY.md`) |
 
 ⚠️ Le dépôt GitHub de **lzxd** est **archivé** (dernier commit :
 « Migrate off GitHub », 2026-02-09) ; la suite est sur **Codeberg**. Les deux

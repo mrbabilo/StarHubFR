@@ -1,3 +1,5 @@
+// Adapté du mod Profiler — Copyright (c) 2022 SinZ, licence MIT.
+// https://github.com/SinZ163/StardewMods — texte complet : LICENSE-THIRD-PARTY.md
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +35,10 @@ internal static class FrameTimings
     private static readonly List<float> FrameIntervalMs = new(8192);
 
     private static double LastDrawStartMs = -1;
+    private static bool Announced;
+    /// <summary>Un lancement = une session : les lignes de deux lancements ne se mélangent pas.</summary>
+    private static readonly string Session = DateTimeOffset.Now.ToString("o");
+    internal static int LoadedMods;
     private static double WindowStartMs;
     private static int Gen0, Gen1, Gen2;
     private const double WindowMs = 60_000;
@@ -66,6 +72,14 @@ internal static class FrameTimings
     {
         Draw.Stop();
         DrawMs.Add((float)Draw.Elapsed.TotalMilliseconds);
+        if (!Announced)
+        {
+            // Sans cette ligne, des postfix qui ne tirent jamais (méthode
+            // intégrée par le JIT avant le patch) ne laisseraient qu'un
+            // fichier absent.
+            Announced = true;
+            Monitor.Log("Mesure des trames active.", LogLevel.Info);
+        }
         if (Clock.Elapsed.TotalMilliseconds - WindowStartMs >= WindowMs) FlushNow();
     }
 
@@ -78,18 +92,28 @@ internal static class FrameTimings
     }
 
     private record Stat(int Count, double Avg, double P50, double P99, double Max);
-    private record Line(string At, double WallSeconds, double Fps, Stat? FrameInterval, Stat? Draw, Stat? Update,
+    private record Line(string Session, int LoadedMods, string At, double WallSeconds, double Fps, Stat? FrameInterval, Stat? Draw, Stat? Update,
                         long HeapMB, int Gen0, int Gen1, int Gen2, double GcPauseMs, double GcMaxPauseMs,
                         string? Location, int? GameTime, string? Menu);
+
+    /// <summary>Pour la commande console : ce que la minute en cours a déjà vu.</summary>
+    public static string Status() =>
+        $"{FrameIntervalMs.Count} trames, {UpdateMs.Count} mises à jour depuis {(Clock.Elapsed.TotalMilliseconds - WindowStartMs) / 1000:0.0} s.";
 
     public static void FlushNow()
     {
         try
         {
             double wall = (Clock.Elapsed.TotalMilliseconds - WindowStartMs) / 1000;
-            if (wall <= 0 || FrameIntervalMs.Count == 0) { ResetWindow(); return; }
+            if (wall <= 0 || FrameIntervalMs.Count == 0)
+            {
+                Monitor.Log($"Aucune trame mesurée en {wall:0.0} s : les minuteurs du jeu ne sont pas interceptés.", LogLevel.Warn);
+                ResetWindow();
+                return;
+            }
             var (pauseMs, maxPauseMs) = GcPauses.Drain();
             var line = new Line(
+                Session, LoadedMods,
                 DateTimeOffset.Now.ToString("o"),
                 Math.Round(wall, 2),
                 Math.Round(FrameIntervalMs.Count / wall, 1),
@@ -102,6 +126,7 @@ internal static class FrameTimings
                 Game1.activeClickableMenu?.GetType().FullName);
             File.AppendAllText(Path.Combine(ModEntry.OutputDir, "timings.jsonl"),
                 JsonSerializer.Serialize(line) + "\n");
+            Monitor.Log($"Mesures écrites : {FrameIntervalMs.Count} trames en {wall:0.0} s ({line.Fps} FPS).", LogLevel.Trace);
         }
         catch (Exception ex)
         {

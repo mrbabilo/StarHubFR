@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -31,13 +32,18 @@ public sealed class ModEntry : Mod
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules
         // activés à la demande, intégrations posées quand l'autre mod répond).
-        helper.Events.GameLoop.GameLaunched += (_, _) => HarmonyMap.Write(helper, Monitor, "GameLaunched");
+        helper.Events.GameLoop.GameLaunched += (_, _) =>
+        {
+            FrameTimings.LoadedMods = helper.ModRegistry.GetAll().Count();
+            HarmonyMap.Write(helper, Monitor, "GameLaunched");
+        };
         helper.Events.GameLoop.SaveLoaded += (_, _) => HarmonyMap.Write(helper, Monitor, "SaveLoaded");
 
         helper.ConsoleCommands.Add("starhubfr_probe",
             "Écrit la carte Harmony et la minute de mesures en cours.",
             (_, _) =>
             {
+                Monitor.Log(FrameTimings.Status(), LogLevel.Info);
                 HarmonyMap.Write(helper, Monitor, "Console");
                 FrameTimings.FlushNow();
             });

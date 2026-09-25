@@ -1,3 +1,5 @@
+// Adapté du mod Profiler — Copyright (c) 2022 SinZ, licence MIT.
+// https://github.com/SinZ163/StardewMods — texte complet : LICENSE-THIRD-PARTY.md
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
