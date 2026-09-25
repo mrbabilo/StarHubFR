@@ -22,8 +22,9 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Réglages réorganisés.** Un onglet par groupe (Jeu, Mods & contenu, Données & stockage, À propos) au lieu d'une longue page ; chaque réglage affiche son explication sous son titre ; la clé Nexus passe en tête de sa section, et « ajouter une clé API » depuis Découvrir y mène directement. Les actions ponctuelles quittent les Réglages : zip et dossier des parties dans Sauvegardes du jeu, « Vider les mods désactivés » et zip du dossier Mods dans Entretien.
-- **Le journal des modifications passe au pied de la barre latérale**, en bouton entre thème et langue ; il reste dans le menu « Aller » et la palette ⌘K.
+- **Réglages réorganisés.** Trois onglets (Jeu, Mods & contenu, À propos) au lieu d'une longue page ; chaque réglage affiche son explication sous son titre ; la clé Nexus passe en tête, et « ajouter une clé API » depuis Découvrir y mène directement.
+- **Les actions ponctuelles quittent les Réglages** : dossier et zip des parties dans Sauvegardes du jeu ; « Vider les mods désactivés » (avec confirmation) et zip du dossier Mods dans Entretien.
+- **Le journal des modifications passe au pied de la barre latérale**, en icône à côté de celle des raccourcis clavier ; il reste dans le menu « Aller » et la palette ⌘K.
 - **Couleurs d'état harmonisées.** Sur la liste et les cartes, une anomalie grave s'affiche en rouge et un avertissement en orange, comme sur la fiche ; les mises à jour passent en bleu sur la page Mises à jour.
 
 ### Fixed
