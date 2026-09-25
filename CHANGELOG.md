@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **La liste des mods se parcourt au clavier.** Tab passe de la barre latérale à la page ; dans la liste, ↑ ↓ déplacent la sélection (la page suit), Début et Fin vont aux bouts, Entrée ouvre la fiche.
+
 ### Changed
 
 - **Le journal des modifications passe au pied de la barre latérale**, en bouton entre thème et langue ; il reste dans le menu « Aller » et la palette ⌘K.
