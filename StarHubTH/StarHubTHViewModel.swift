@@ -3758,9 +3758,9 @@ final class StarHubTHViewModel {
         startNexusDownload(next)
     }
 
-    /// Shared completion for both Nexus download entry points: hops to main,
-    /// clears the progress flag, and on success stashes the downloaded zip +
-    /// its Nexus source for the install sheet, or surfaces a localized error.
+    /// Shared completion for both download entry points: on main, clears
+    /// progress; success stashes zip + source for the sheet, else a
+    /// localized error.
     private func handleNexusDownloadResult(_ result: Result<NexusDownloadOutcome, NexusDownloadError>,
                                            modId: Int) {
         DispatchQueue.main.async { [weak self] in
@@ -3774,105 +3774,60 @@ final class StarHubTHViewModel {
                                                       plain: L10n.VM.nexusDlCompleted,
                                                       modId: modId))
             case .cancelled:
-                // Annuler son propre téléchargement n'est pas une panne : une
-                // alerte sur un geste volontaire serait du bruit. La ligne de
-                // journal, elle, garde la trace de ce qui n'a pas été installé.
+                // Annulation volontaire : pas d'alerte, une ligne de journal.
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCancelledNamed,
                                                       plain: L10n.VM.nexusDlCancelled,
                                                       modId: modId))
             case .failed(let message):
-                // Résolu avec le bundle **vivant** du ViewModel, qui suit un
-                // changement de langue en session — là où `errorDescription`
-                // passe par `NSLocalizedString`. Même table, deux résolveurs.
+                // Bundle **vivant** : suit un changement de langue en session.
                 let text = message.resolved { self.localization.L($0) }
                 self.showModal(message: text)
                 self.log(text, level: .warning)
             }
-            // Fin d'un téléchargement sans feuille ouverte (échec,
-            // annulation) : le créneau est libre, la file peut reprendre.
-            // Sur succès, `pendingDownloadedZip` est déjà posé et le garde
-            // retient le suivant jusqu'à la fermeture de la feuille.
+            // Fin sans feuille : la file reprend. Sur succès, le garde attend la
+            // fermeture de la feuille.
             self.drainQueuedNexusDownloads()
         }
     }
 
-    /// Relève la progression du téléchargement en cours.
-    ///
-    /// Appelée depuis la file de délégué d'`URLSession`, donc **hors du fil
-    /// principal** : le saut est explicite, sans quoi l'état du store de
-    /// téléchargement serait muté depuis un autre fil.
-    ///
-    /// `expected` vaut `-1` quand le serveur n'annonce pas la taille — le cas
-    /// est fréquent sur un CDN. `DownloadProgress` le traduit en « taille
-    /// inconnue » : ni pourcentage, ni temps restant, seulement le volume et
-    /// le débit, qui sont vrais.
+    /// Progression, appelée **hors du fil principal** (délégué
+    /// `URLSession`) : saut explicite. `expected == -1` (taille inconnue,
+    /// fréquent sur CDN) : volume et débit seulement.
     nonisolated private func noteNexusDownloadProgress(received: Int64, expected: Int64,
                                                        modId: Int) {
-        // Seule la référence du store traverse (écritures toutes sur main) :
-        // le `nonisolated(unsafe)` vit désormais sur la propriété (L2).
+        // Seule la référence traverse ; `nonisolated(unsafe)` sur la propriété.
         nonisolated(unsafe) let store = self.downloadStore
         DispatchQueue.main.async {
             store.noteProgress(received: received, expected: expected, modId: modId)
         }
     }
 
-    /// Remet les quatre témoins du téléchargement au repos.
-    ///
-    /// Une seule fonction pour les quatre : ils étaient déjà remis à zéro à
-    /// trois endroits différents, et le jour où l'un d'eux serait oublié,
-    /// `rejectNexusDownloadIfBusy` condamnerait le bouton pour la session.
+    /// Remet les quatre témoins au repos, en un seul endroit : un oubli
+    /// condamnerait le bouton pour la session.
     @MainActor
     private func clearNexusDownloadState() {
         downloadStore.endDownload()
     }
 
-    /// Annule le téléchargement en cours. Sans effet s'il n'y en a pas.
-    ///
-    /// Ne remet rien à zéro ici : `URLSession` rapportera l'annulation par le
-    /// chemin d'échec habituel, et c'est lui qui doit conclure. Le faire des
-    /// deux côtés rouvrirait la porte à un état remis au repos pendant qu'un
-    /// transfert continue.
+    /// Annule le téléchargement en cours. Ne remet rien à zéro : le chemin
+    /// d'échec de `URLSession` conclut (sinon repos pendant un transfert).
     @MainActor
     func cancelNexusDownload() {
         downloadStore.cancel()
     }
 
-    /// Renders a `NexusDownloadError` through the app's live per-language bundle
-    /// (`localization.L(...)`) rather than `errorDescription`'s `NSLocalizedString`, which
-    /// doesn't follow in-session language switching.
-    /// Rend un `NexusDownloadError` avec le bundle **vivant** de l'app
-    /// (`localization.L`) plutôt qu'avec `errorDescription`, dont le
-    /// `NSLocalizedString` ne suit pas un changement de langue en session.
-    ///
-    /// La table des neuf cas vit dans `NexusDownloadFlow.message(for:)` — elle
-    /// était ici **en double** de celle d'`errorDescription`, deux copies
-    /// d'une même règle. Il n'en reste qu'une, et deux résolveurs.
+    /// Rend un `NexusDownloadError` avec le bundle **vivant**. Table des neuf
+    /// cas dans `NexusDownloadFlow.message(for:)` (une copie, deux résolveurs).
     private func nexusDownloadMessage(_ error: NexusDownloadError) -> String {
         NexusDownloadFlow.message(for: error).resolved { localization.L($0) }
     }
 
-    /// Renders an installation-time error through the app's live per-language
-    /// bundle, for the same reason as `nexusDownloadMessage(_:)` above:
-    /// `errorDescription` goes through `NSLocalizedString`, which doesn't
-    /// follow an in-session language switch.
-    ///
-    /// The two `as?` casts + exhaustive switches are deliberate: adding a case
-    /// to either enum breaks the build here instead of silently falling back
-    /// to an English string. Anything else (FileManager, `DroppedContentRecognizer`)
-    /// keeps its system description, which macOS already localizes.
-    ///
-    /// Note the reasons carried by `.backupFailed` / `.installFailed` are built
-    /// in English inside `ModZipInstaller`: the frame gets translated, the
-    /// embedded technical detail doesn't.
+    /// Install error via the live bundle (same reason as above). Exhaustive
+    /// switches on purpose: a new case breaks the build instead of falling
+    /// back to English. Embedded technical details stay in English.
     func installErrorMessage(_ error: Error) -> String {
-        // **Le détail technique part au journal**, que la modale ne montre pas :
-        // le statut de l'extracteur, son « Illegal byte sequence », le chemin
-        // qu'il n'a pas su créer. Sans cela, un échec d'installation ne laissait
-        // aucune trace consultable — il fallait relancer l'app depuis un
-        // terminal pour voir ce que l'outil avait dit.
-        //
-        // Ici, et non chez les sept appelants : un seul aurait fini par
-        // l'oublier. Cette fonction est appelée une fois par erreur affichée.
+        // **Détail technique au journal** (la modale ne le montre pas), ici et
+        // non chez les sept appelants.
         log(Self.technicalInstallDetail(error), level: .error)
 
         if let error = error as? InstallError {
@@ -3896,64 +3851,39 @@ final class StarHubTHViewModel {
         return error.localizedDescription
     }
 
-    /// Ce qu'on écrit au journal pour une erreur d'installation : la
-    /// description **technique**, en anglais, celle que porte l'erreur
-    /// elle-même. Le message localisé, lui, va à l'utilisateur ; le journal
-    /// sert à comprendre, et à être recopié dans un rapport.
+    /// Journal : description **technique** anglaise, à recopier dans un
+    /// rapport ; le message localisé va à l'utilisateur.
     private static func technicalInstallDetail(_ error: Error) -> String {
         let detail = (error as? LocalizedError)?.errorDescription
             ?? error.localizedDescription
         return "Installation: \(detail)"
     }
 
-    /// Éteint les lignes de mise à jour des mods que l'installation vient de
-    /// poser — eux seuls. À appeler sur le fil principal.
-    ///
-    /// Le retrait se faisait sur l'identifiant Nexus, que le parc réel montre
-    /// non unique : 47 identifiants y sont déclarés par plusieurs `UniqueID`,
-    /// et le 8828 par **trois mods sans rapport** du même auteur (A Cavalcade
-    /// of Kombucha, From Source to Sea, Much Ado About Mushrooms), qui ont
-    /// hérité du même `UpdateKeys`. Installer l'un effaçait la mise à jour des
-    /// deux autres, qui repassaient pour à jour jusqu'à la vérification
-    /// suivante.
-    ///
-    /// Les `UniqueID` viennent de `anchorInstalledMods`, c'est-à-dire des
-    /// manifests réellement écrits : le même constat sert à ancrer et à
-    /// éteindre. Une liste vide n'éteint rien — un manifest illisible ne
-    /// prouve aucune installation, et une ligne conservée à tort coûte moins
-    /// qu'une ligne effacée à tort.
+    /// Éteint les lignes des mods que l'installation vient de poser, eux
+    /// seuls ; sur main. Par `UniqueID` : l'id Nexus n'est pas unique (47
+    /// partagés ; 8828 par trois mods sans rapport). `UniqueID` issus de
+    /// `anchorInstalledMods` ; liste vide n'éteint rien.
     func dismissInstalledUpdates(uniqueIds: [String]) {
         guard !uniqueIds.isEmpty else { return }
         for uniqueId in uniqueIds {
             NexusUpdateChecker.shared.dismissUpdate(uniqueId: uniqueId)
         }
-        // Recalculer plutôt que retirer de la liste affichée : sur un pack, le
-        // retrait d'un composant ne fait pas forcément disparaître la ligne —
-        // elle reste si d'autres composants ont encore une mise à jour, et
-        // c'est la consolidation qui sait le dire.
+        // Recalculer : un pack garde sa ligne si d'autres composants ont une
+        // mise à jour.
         republishUpdatesFromCache()
     }
 
-    /// After a Nexus-sourced install, log the version reconciliation outcome
-    /// for the just-installed mod. Some mod authors forget to bump the manifest
-    /// Version field, so the installed manifest can show an older version than
-    /// what Nexus reports. This method only logs the discrepancy — it no
-    /// longer writes anything to the registry (that write used to feed
-    /// `nexusVersion`, removed 2026-08-12; see `InstalledModRegistry.swift`).
-    ///
-    /// Must run BEFORE `dismissInstalledUpdates` removes the entry (this method
-    /// reads it to extract the version the checker flagged on).
-    /// v1: single-mod installs only (packs are skipped upstream).
+    /// After a Nexus install, logs manifest vs Nexus version (authors forget
+    /// to bump `Version`). Log only; no registry write since 2026-08-12. Must
+    /// run BEFORE `dismissInstalledUpdates`. v1: single-mod installs.
     func reconcileManifestVersion(installedFolderPaths: [String]) {
         guard let source = pendingNexusSource else { return }
-        // Consume the source once: a later manual install in the same still-open
-        // sheet must not reconcile against this download's mod.
+        // Consume once: a later install in the same sheet must not reconcile.
         pendingNexusSource = nil
         guard installedFolderPaths.count == 1, let folderPath = installedFolderPaths.first else {
             return  // pack / ambiguous → abstain (v1)
         }
-        // The update entry the checker computed for this mod (mod version + upload
-        // date). If it isn't flagged, there's nothing to reconcile.
+        // The checker's entry for this mod; nothing flagged, nothing to do.
         let idStr = String(source.modId)
         guard let update = nexusUpdates.first(where: { $0.nexusModId == idStr }),
               !update.latestVersion.isEmpty else { return }
@@ -3966,8 +3896,7 @@ final class StarHubTHViewModel {
         let manifestVersion = (try? String(contentsOfFile: manifestPath, encoding: .utf8))
             .flatMap { ManifestVersionPatcher.extractVersionValue(from: $0) }
 
-        // Log the outcome: either the manifest was already correct, or it
-        // lags behind what Nexus reports.
+        // Log: manifest correct, or lagging behind Nexus.
         if let mv = manifestVersion, NexusUpdateChecker.isNewer(nexusVersion, installed: mv) {
             log(String(format: localization.L(L10n.VM.manifestVersionFixed), folderName, mv, nexusVersion))
         } else if let mv = manifestVersion {
@@ -3983,33 +3912,23 @@ final class StarHubTHViewModel {
     // MARK: - Traductions communautaires (A3-T3)
 
     // MARK: Hub de traduction FR — le store du domaine (cadrage §4,
-    // domaine 6, tranche 1). Le registre et ses règles sont en Core
-    // (`InstalledTranslationRegistry`) ; le store les publie, avec les deux
-    // moitiés de la recherche et les vols mod par mod.
+    // domaine 6, tranche 1). Registre et règles en Core
+    // (`InstalledTranslationRegistry`) ; le store publie.
     let translationHub = TranslationHubStore()
     /// C5-T1 — la recherche des traductions FR sur tout le parc (page « Traductions FR »).
     let translationSweep = FrenchTranslationSweepStore()
 
-    /// Ce qui est posé sur quel mod. Relu au lancement, réécrit à chaque dépôt
-    /// ou retrait — c'est la seule trace : la perdre rendrait toute
+    /// Ce qui est posé sur quel mod — seule trace : la perdre rendrait toute
     /// désinstallation impossible.
     var installedTranslations: InstalledTranslationRegistry { translationHub.installed }
-    /// Les traductions françaises trouvées pour un mod, par `folderName`.
-    /// Vidé à chaque nouvelle recherche : ce n'est pas un cache, c'est le
-    /// résultat de la dernière question posée.
+    /// Traductions FR trouvées par `folderName` : résultat de la dernière
+    /// recherche, pas un cache.
     var translationHits: [String: [NexusModSearch.Hit]] { translationHub.hits }
-    /// Les résultats **correspondant à ce qui est déjà posé**, retirés des
-    /// propositions mais gardés : c'est là que se lit une version plus récente,
-    /// et c'est vers eux que rattache le menu.
+    /// Résultats **déjà posés**, retirés des propositions mais gardés : ils
+    /// portent la version plus récente et le rattachement.
     var translationInstalledHits: [String: [NexusModSearch.Hit]] { translationHub.installedHits }
-    /// Les mods dont une recherche est en cours.
-    ///
-    /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
-    /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
-    /// mod — le bouton restait actif et ne faisait rien.
-    /// Un ensemble, pas un seul nom : la fiche désactive ses boutons **mod par
-    /// mod**, si bien qu'un verrou unique rendait muet le clic sur un second
-    /// mod — le bouton restait actif et ne faisait rien.
+    /// Mods en recherche. Un ensemble : un verrou unique rendait muet le clic
+    /// sur un second mod.
     var searchingTranslations: Set<String> { translationHub.searching }
     /// Les mods dont une traduction s'installe ou se retire.
     var busyTranslations: Set<String> { translationHub.busy }
@@ -4019,25 +3938,14 @@ final class StarHubTHViewModel {
         installedTranslations.translation(forHost: mod.folderName)
     }
 
-    /// La déclaration manuelle d'une traduction sur ce mod (A3-T6).
-    /// Distincte de `translation(for:)` : une déclaration ne porte pas la
-    /// liste des fichiers déposés, juste l'identité Nexus.
+    /// Déclaration manuelle (A3-T6) : identité Nexus seule, sans fichiers.
     func declaredTranslation(for mod: ModItem) -> DeclaredTranslation? {
         installedTranslations.declaredTranslation(forHost: mod.folderName)
     }
 
-    /// `true` quand un fichier `i18n/fr.json` (ou layout B équivalent) est
-    /// présent sur le disque **sans** qu'aucune trace n'en soit gardée —
-    /// ni `InstalledTranslation` (l'app ne l'a pas posé), ni
-    /// `DeclaredTranslation` (l'utilisateur ne l'a pas déclaré).
-    ///
-    /// C'est le signal qui fait apparaître le bandeau « traduction présente,
-    /// origine inconnue » sur la fiche. **Disque seul** : un `i18n/fr.json`
-    /// copié manuellement ne fait pas la différence.
-    ///
-    /// Coût : un `FileManager.fileExists` par appel. Pas de cache : la fiche
-    /// n'est pas un écran appelé en boucle, et un fichier qui apparaît ou
-    /// disparaît veut être vu tout de suite.
+    /// `true` si un `fr.json` (layouts A/B) existe sur disque **sans trace**
+    /// (ni posé, ni déclaré) : bandeau « origine inconnue ». Un
+    /// `fileExists` par appel, sans cache (voulu).
     func hasUndeclaredFrenchTranslation(for mod: ModItem) -> Bool {
         guard installedTranslations.translation(forHost: mod.folderName) == nil,
               installedTranslations.declaredTranslation(forHost: mod.folderName) == nil
@@ -4045,14 +3953,8 @@ final class StarHubTHViewModel {
         return Self.modFolderHasFrenchTranslation(mod: mod, basePath: gameDir)
     }
 
-    /// Le test disque, isolé pour pouvoir être appelé sans traîner le VM.
-    /// `mod` est résolu via son `physicalFolderName` pour respecter le toggle
-    /// point (un mod en pause vit dans `Mods/.X`). `basePath` est le `gameDir`
-    /// côté UI, ou un dossier jetable côté test.
-    ///
-    /// La règle elle-même vit dans `TranslationPresence` (Core, testé) : elle
-    /// était réimplémentée ici, **sans** la règle « la racine gagne » que
-    /// `I18nLocaleResolver` porte déjà.
+    /// Test disque isolé (testable sans VM), par `physicalFolderName`. Règle
+    /// dans `TranslationPresence` (Core), avec « la racine gagne ».
     static func modFolderHasFrenchTranslation(mod: ModItem, basePath: String) -> Bool {
         guard !basePath.isEmpty else { return false }
         let hostURL = URL(fileURLWithPath: basePath, isDirectory: true)
@@ -4061,13 +3963,9 @@ final class StarHubTHViewModel {
         return TranslationPresence.hasFrench(inModDirectory: hostURL)
     }
 
-    /// Enregistre une déclaration manuelle pour ce mod (A3-T6). Le geste
-    /// suffit à faire basculer la fiche du bandeau « origine inconnue » à la
-    /// ligne « traduction présente, déclarée », avec le suivi de version.
-    ///
-    /// `nexusModId <= 0` est rejeté en silence : sans identifiant Nexus,
-    /// la déclaration ne sert qu'à l'utilisateur, pas à l'app — l'avertissement
-    /// resterait juste, mais aucune mise à jour ne pourrait être détectée.
+    /// Déclaration manuelle (A3-T6) : bascule la fiche vers « déclarée », avec
+    /// suivi de version. `nexusModId <= 0` rejeté en silence (aucun suivi
+    /// possible).
     func declareTranslation(modId: Int, name: String, version: String?,
                             updatedAt: Date?, for mod: ModItem) {
         guard modId > 0, !name.isEmpty else { return }
@@ -4083,9 +3981,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Retire une déclaration manuelle. **N'altère pas le disque** : les
-    /// fichiers posés par l'utilisateur restent en place, seul le registre
-    /// perd la ligne. C'est l'utilisateur qui a écrit, c'est lui qui enlève.
+    /// Retire une déclaration. **Disque intact** : l'utilisateur a écrit,
+    /// l'utilisateur enlève.
     func undeclareTranslation(for mod: ModItem) {
         var undeclared = false
         translationHub.mutateInstalled { undeclared = $0.undeclare(forHost: mod.folderName) }
@@ -4097,10 +3994,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// `true` quand une version plus récente que celle en place a été trouvée.
-    ///
-    /// Sur les **dates Nexus**, jamais sur les numéros de version : beaucoup de
-    /// traducteurs reprennent le numéro du mod traduit, ou ne le bougent pas.
+    /// Version plus récente trouvée ? Sur les **dates Nexus**, jamais les
+    /// numéros (souvent recopiés).
     func translationUpdateAvailable(for mod: ModItem) -> NexusModSearch.Hit? {
         guard let installed = translation(for: mod) else { return nil }
         return TranslationPresence.update(
@@ -4109,16 +4004,9 @@ final class StarHubTHViewModel {
             andInstalled: translationInstalledHits[mod.folderName] ?? [])
     }
 
-    /// Cherche sur Nexus la fiche d'un mod qui n'en déclare aucune.
-    ///
-    /// Sans tag : c'est le mod lui-même qu'on cherche, pas ce qui gravite
-    /// autour. Tout le tri est au retour — les traductions écartées, l'auteur
-    /// en indice, rien d'écrit d'autorité.
-    ///
-    /// ⚠️ **Deux mods sur trois ne rendront rien**, et c'est la réponse la plus
-    /// fréquente : mesuré sur les 83 mods du parc encore sans identifiant, 55
-    /// sont introuvables par leur nom. La vue doit le dire, sans quoi le bouton
-    /// passera pour cassé.
+    /// Cherche sur Nexus la fiche d'un mod qui n'en déclare aucune, sans tag.
+    /// ⚠️ **Deux fois sur trois, rien** (55/83 introuvables) : la vue doit le
+    /// dire.
     func searchNexusIdentity(for mod: ModItem) {
         guard !translationHub.isIdentitySearching(mod.folderName) else { return }
         translationHub.setIdentitySearching(true, for: mod.folderName)
@@ -4137,8 +4025,7 @@ final class StarHubTHViewModel {
                             serverTotal: page.totalCount),
                         for: mod.folderName)
                 case .failure(let error):
-                    // Une panne n'est pas une absence : ne rien afficher vaut mieux
-                    // qu'afficher « aucun résultat » pour une requête qui a échoué.
+                    // Panne ≠ absence : rien plutôt que « aucun résultat ».
                     self.translationHub.setIdentitySearch(nil, for: mod.folderName)
                     self.log("Recherche de la fiche Nexus : \(error)", level: .warning)
                     self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
@@ -4152,18 +4039,9 @@ final class StarHubTHViewModel {
         translationHub.setIdentitySearch(nil, for: mod.folderName)
     }
 
-    /// Retient la fiche que l'utilisateur a désignée, et va chercher ce qu'elle
-    /// dit du mod.
-    ///
-    /// Passe par `setCustomNexusModId`, le chemin d'une saisie manuelle : c'en
-    /// est une, faite d'un clic au lieu du clavier. La liste se referme, sans
-    /// quoi elle continuerait de proposer ce qui vient d'être choisi.
-    ///
-    /// `loadModDetail`, pour la même raison que dans `commitDraft` : la
-    /// description et le changelog n'ont été chargés qu'en ouvrant le volet,
-    /// sous l'ancien identifiant (vide — donc texte du manifeste local, sans
-    /// chargement distant). Sans ce rechargement, la fiche nouvellement liée
-    /// resterait muette jusqu'à la prochaine navigation.
+    /// Adopte la fiche désignée via `setCustomNexusModId` (saisie par clic),
+    /// referme la liste, et recharge `loadModDetail` : sinon la fiche liée
+    /// reste muette.
     func adoptNexusIdentity(_ candidate: NexusModSearch.IdentityCandidate, for mod: ModItem) {
         setCustomNexusModId(for: mod, modId: String(candidate.hit.modId))
         dismissIdentityResults(for: mod)
@@ -4172,74 +4050,48 @@ final class StarHubTHViewModel {
         log(String(format: localization.L(L10n.VM.nexusIdLearned), mod.folderName, String(candidate.hit.modId)))
     }
 
-    /// Referme les propositions de traduction d'un mod.
-    ///
-    /// **Ne jette que ce qui est affiché.** `translationInstalledHits` reste :
-    /// il ne se voit pas, mais c'est lui qui porte la pastille « une version
-    /// plus récente existe » sur la ligne en place. Refermer une liste veut
-    /// dire « j'ai fini de chercher », pas « oublie ce que tu as appris ».
+    /// Referme les propositions. **Seulement l'affiché** :
+    /// `translationInstalledHits` porte la pastille « plus récente ».
     func dismissTranslationResults(for mod: ModItem) {
         translationHub.setHits(nil, for: mod.folderName)
     }
 
-    /// Referme les propositions de suppléments d'un mod.
-    ///
-    /// Les greffes du registre continuent de s'afficher : elles ne viennent pas
-    /// de la recherche, elles viennent de ce qui est posé sur le disque.
+    /// Referme les suppléments ; les greffes du registre restent (disque).
     func dismissSupplementResults(for mod: ModItem) {
         translationHub.setSupplementSearch(nil, for: mod.folderName)
     }
 
-    /// Les identifiants Nexus que le parc déclare, pour reconnaître un
-    /// supplément **installé comme un mod à part entière**.
-    ///
-    /// Calculé à la demande : une recherche part sur un clic, pas sur un rendu
-    /// de liste. En faire un index permanent coûterait à chaque scan pour un
-    /// usage rare.
+    /// Ids Nexus du parc, pour reconnaître un supplément installé comme mod.
+    /// À la demande : usage rare.
     private func installedNexusIds() -> Set<Int> {
         Set(allInstalledMods().compactMap { Int(resolvedNexusModId(for: $0)) })
             .union(recentNexusInstalls)
     }
 
-    /// Retire des propositions la traduction déjà en place.
-    ///
-    /// Sur son identifiant Nexus quand il est connu, sur son nom sinon — et le
-    /// nom est le cas courant : sur un compte gratuit tout s'installe à la
-    /// main, donc sans identifiant.
+    /// Retire la traduction déjà en place : par id Nexus, sinon par nom (cas
+    /// courant sur compte gratuit).
     private func withoutInstalledTranslation(_ hits: [NexusModSearch.Hit],
                                              for mod: ModItem) -> [NexusModSearch.Hit] {
         guard let installed = translation(for: mod) else {
             translationHub.setInstalledHits([], for: mod.folderName)
             return hits
         }
-        // **Retirée des propositions, pas jetée.** C'est dans cette moitié que
-        // vit le résultat correspondant à la traduction posée — celui qui dit
-        // qu'une version plus récente existe, et celui vers lequel rattacher.
-        // La jeter faisait disparaître la pastille de mise à jour, qui
-        // fonctionnait avant, et vidait le menu de rattachement de son seul
-        // bon choix.
+        // **Retirée, pas jetée** : cette moitié porte la mise à jour et le seul
+        // bon choix de rattachement.
         let split = NexusModSearch.partition(
             hits,
             installedNexusIds: installed.nexusModId > 0 ? [installed.nexusModId] : [],
             installedTitles: [installed.nexusName])
         translationHub.setInstalledHits(split.installed, for: mod.folderName)
-        // Rattacher sans rien demander quand deux signaux concordent : le titre
-        // et l'identifiant lu dans le nom du fichier téléchargé.
+        // Rattacher sans demander si titre et id du nom de fichier concordent.
         adoptConfirmedNexusId(for: installed, among: split.installed,
                               isTranslation: true, host: mod)
         return split.available
     }
 
-    /// Rattache un dépôt à sa fiche Nexus **quand il n'y a pas de doute**.
-    ///
-    /// Sur un compte gratuit tout s'installe à la main, donc sans identifiant —
-    /// et sans identifiant aucune mise à jour ne peut être vue. Plutôt que de
-    /// demander à l'utilisateur de désigner la fiche, on la reconnaît : le nom
-    /// du fichier téléchargé porte l'identifiant Nexus dans 14 cas sur 15, et
-    /// le titre le confirme. Deux signaux qui concordent, ou rien.
-    ///
-    /// La date retenue reste celle du dépôt : c'est ce qu'on sait vraiment, et
-    /// prendre celle du résultat déclarerait la ligne à jour par construction.
+    /// Rattache un dépôt à sa fiche **sans doute possible** : id dans le nom
+    /// du fichier (14/15) + titre concordant, sinon rien. Date = celle du
+    /// dépôt (celle du résultat déclarerait à jour).
     private func adoptConfirmedNexusId(for entry: InstalledTranslation,
                                        among hits: [NexusModSearch.Hit],
                                        isTranslation: Bool, host: ModItem) {
@@ -4271,11 +4123,8 @@ final class StarHubTHViewModel {
         installedTranslations.addons(forHost: mod.folderName)
     }
 
-    /// Une version plus récente de cette greffe a-t-elle été trouvée ?
-    ///
-    /// Même règle que pour les traductions : sur les **dates Nexus**, et
-    /// seulement quand la greffe porte un identifiant. Une greffe déposée à la
-    /// main n'en a pas — c'est ce que `linkToNexus` répare.
+    /// Greffe plus récente ? Dates Nexus, et seulement avec un id (voir
+    /// `linkToNexus`).
     func addonUpdateAvailable(_ addon: InstalledTranslation,
                               for mod: ModItem) -> NexusModSearch.Hit? {
         let search = translationHub.supplementSearches[mod.folderName]
@@ -4284,21 +4133,12 @@ final class StarHubTHViewModel {
                                           andInstalled: search?.alreadyInstalled ?? [])
     }
 
-    /// Rattache une traduction ou une greffe déposée à la main à sa page Nexus.
-    ///
-    /// **Sans cela, le suivi des mises à jour ne peut jamais se déclencher.**
-    /// Le téléchargement intégré demande un compte premium ; sur un compte
-    /// gratuit, tout passe par la feuille d'installation, donc sans identifiant
-    /// Nexus — et c'est l'identifiant qui dit qu'une version plus récente
-    /// existe. Le lien se fait donc après coup, sur la ligne installée.
+    /// Rattache une traduction ou greffe posée à la main à sa page Nexus :
+    /// **sans id, aucun suivi de mise à jour** (compte gratuit).
     func linkToNexus(_ entry: InstalledTranslation, hit: NexusModSearch.Hit,
                      isTranslation: Bool, for mod: ModItem) {
-        // **La date retenue est celle du dépôt, pas celle du résultat.** Copier
-        // `hit.updatedAt` ferait déclarer la ligne à jour par construction : on
-        // comparerait la date Nexus à elle-même, et aucune mise à jour ne
-        // pourrait jamais apparaître — le défaut qu'on est en train de réparer,
-        // sous une autre forme. Ce qu'on sait vraiment, c'est **quand il l'a
-        // posée** ; tout ce que Nexus a publié depuis est plus récent.
+        // **Date du dépôt, pas du résultat** : `hit.updatedAt` comparerait la
+        // date Nexus à elle-même.
         let linked = InstalledTranslation(
             hostFolderName: entry.hostFolderName, nexusModId: hit.modId, nexusName: hit.name,
             version: hit.version, updatedAt: entry.installedAt, installedAt: entry.installedAt,
@@ -4314,13 +4154,8 @@ final class StarHubTHViewModel {
         if !InstalledTranslationStore.save(installedTranslations) {
             showModal(message: localization.L(L10n.Mods.translationNotTracked))
         }
-        // La liste des propositions perd ce qui vient d'être reconnu — **sans
-        // repartir sur le réseau** : on sait déjà lequel des résultats c'était,
-        // et relancer la recherche ferait tourner un compteur d'API pour
-        // retirer une ligne qu'on tient sous la main.
-        // Le résultat **change de moitié** : il quitte les propositions et
-        // rejoint ce qui est en place. L'y oublier ferait disparaître la mise à
-        // jour qu'il annonce jusqu'à la recherche suivante.
+        // Sans repartir sur le réseau. Le résultat **change de moitié** :
+        // oublié, sa mise à jour disparaîtrait.
         if isTranslation {
             translationHub.setHits(
                 (translationHits[mod.folderName] ?? []).filter { $0.modId != hit.modId },
@@ -4354,25 +4189,17 @@ final class StarHubTHViewModel {
                 showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
         } else {
-            // Même règle que pour une traduction : un retrait à moitié fait
-            // garde sa ligne, seule à porter la liste des fichiers restants.
+            // Retrait partiel : la ligne reste, avec les fichiers restants.
             showModal(message: String(format: localization.L(L10n.Mods.translationRemovePartial),
                                       failures.joined(separator: ", ")))
         }
-        // Une greffe mixte emporte des fichiers de langue : la couverture
-        // française mesurée est périmée, exactement comme après un dépôt ou le
-        // retrait d'une traduction. Appelée depuis un bouton, donc sur le fil
-        // principal.
+        // Greffe mixte : couverture FR périmée. Sur main (bouton).
         MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
         refresh()
     }
 
-    /// Cherche sur Nexus ce qui se greffe sur ce mod : bagages, compatibilités,
-    /// packs de contenu qui le citent.
-    ///
-    /// Même requête que les traductions, sans le tag : le nom du mod suffit,
-    /// `WILDCARD` cherchant une sous-chaîne du titre. Tout le travail est au
-    /// retour — voir `NexusModSearch.supplements(among:excluding:)`.
+    /// Cherche ce qui se greffe sur ce mod (même requête sans tag, `WILDCARD`).
+    /// Tri au retour : `NexusModSearch.supplements(among:excluding:)`.
     func searchSupplements(for mod: ModItem) {
         guard !translationHub.isSupplementsSearching(mod.folderName) else { return }
         translationHub.setSupplementsSearching(true, for: mod.folderName)
@@ -4385,8 +4212,7 @@ final class StarHubTHViewModel {
                 case .success(let page):
                     let found = NexusModSearch.supplements(among: page.hits, excluding: host,
                                                            hostName: mod.name)
-                    // Ce qui est déjà là ne se propose pas : il se **montre**, à
-                    // part, avec ce qu'on peut en faire.
+                    // Déjà là : **montré** à part, pas proposé.
                     let split = NexusModSearch.partition(
                         found,
                         installedNexusIds: self.installedNexusIds(),
@@ -4413,14 +4239,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Cherche sur Nexus les traductions françaises de ce mod.
-    ///
-    /// Le filtre est le **tag** `French` de Nexus, pas le titre : sur 80
-    /// traductions relevées, 77 le portent, et le serveur fait alors le tri.
-    /// Le titre ne sert que de filet pour les trois autres.
-    /// Cherche les traductions françaises d'un mod — le chemin partagé avec
-    /// la page « Traductions FR » (`FrenchTranslationLookup` : lien « requis
-    /// par » puis recherche par nom).
+    /// Cherche les traductions FR d'un mod — chemin partagé avec « Traductions
+    /// FR » (`FrenchTranslationLookup` : « requis par », puis nom).
     func searchTranslations(for mod: ModItem) {
         guard !translationHub.isSearching(mod.folderName) else { return }
         translationHub.setSearching(true, for: mod.folderName)
@@ -4431,14 +4251,11 @@ final class StarHubTHViewModel {
             self.translationHub.setSearching(false, for: mod.folderName)
             switch result {
             case .success(let entry):
-                // La traduction déjà posée n'a rien à faire dans la liste des
-                // propositions : elle a sa propre ligne, qui porte son retrait
-                // et sa mise à jour.
+                // La traduction posée a sa propre ligne.
                 self.translationHub.setHits(self.withoutInstalledTranslation(entry.hits, for: mod),
                                             for: mod.folderName)
             case .failure(let error):
-                // Une panne n'est pas une absence : `[]` ferait afficher
-                // « aucune traduction trouvée » pour une recherche cassée.
+                // Panne ≠ absence : `[]` dirait « aucune traduction ».
                 self.translationHub.setHits(nil, for: mod.folderName)
                 self.log("Recherche de traduction : \(error)", level: .warning)
                 self.showModal(message: self.localization.L(L10n.Mods.translationSearchFailed))
@@ -4446,15 +4263,11 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Télécharge une traduction, la dépose dans le mod, et l'enregistre.
-    ///
-    /// Le dépôt ne crée rien dans `Mods/` : il écrit **dans** un mod existant,
-    /// après avoir mis à l'abri chaque fichier recouvert.
+    /// Télécharge une traduction, la dépose **dans** un mod existant (fichiers
+    /// recouverts mis à l'abri) et l'enregistre.
     func installTranslation(_ hit: NexusModSearch.Hit, into mod: ModItem) {
         guard !translationHub.isBusy(mod.folderName) else { return }
-        // Un seul téléchargement Nexus à la fois, traductions comprises : elles
-        // passent par le même téléchargeur que les mods, et deux en vol se
-        // disputeraient `pendingDownloadedZip`.
+        // Un seul téléchargement à la fois (`pendingDownloadedZip`).
         if rejectNexusDownloadIfBusy() { return }
         translationHub.setBusy(true, for: mod.folderName)
         downloadStore.beginDownload(modId: hit.modId)
@@ -4470,26 +4283,21 @@ final class StarHubTHViewModel {
                 self.clearNexusDownloadState()
                 switch result {
                 case .success(let outcome):
-                    // Le dépôt d'une traduction n'installe pas de mod : les
-                    // faits du fichier résolu (X9) ne le concernent pas, seule
-                    // l'archive compte.
+                    // Pas de faits X9 : seule l'archive compte.
                     self.depositTranslation(archive: outcome.zip, hit: hit, into: mod)
                 case .failure(.cancelled):
                     // Geste volontaire : rien à annoncer.
                     self.translationHub.setBusy(false, for: mod.folderName)
                 case .failure(let error):
                     self.translationHub.setBusy(false, for: mod.folderName)
-                    // Sans lien direct, la voie manuelle reste ouverte : le
-                    // message nomme le bouton qui y mène plutôt que de laisser
-                    // l'utilisateur devant une impasse.
+                    // Sans lien direct, le message nomme la voie manuelle.
                     var hint = ""
                     if case .noDownloadLink = error {
                         hint = "\n\n" + self.localization.L(L10n.Mods.translationManualHint)
                     }
                     self.showModal(message: self.nexusDownloadMessage(error) + hint)
                 }
-                // Une traduction occupait l'unique créneau de téléchargement
-                // : les mods mis en file derrière elle peuvent reprendre.
+                // Créneau libéré : la file reprend.
                 self.drainQueuedNexusDownloads()
             }
         })
@@ -4497,12 +4305,8 @@ final class StarHubTHViewModel {
 
     private func depositTranslation(archive: URL, hit: NexusModSearch.Hit, into mod: ModItem) {
         defer { translationHub.setBusy(false, for: mod.folderName) }
-        // L'archive téléchargée n'a plus d'usage passé ce point : la laisser
-        // derrière nous encombrerait le dossier temporaire d'un fichier dont
-        // plus personne ne connaît le chemin. `discardDownloaded` emporte le
-        // dossier `StarHubFR-download-*` qui l'isolait — un `removeItem` du
-        // seul fichier y laissait un dossier vide par traduction déposée
-        // (X104), là où le flux des mods passe déjà par MainView:onDismiss.
+        // `discardDownloaded` emporte le dossier `StarHubFR-download-*` entier
+        // (X104 : un dossier vide restait par traduction).
         defer { NexusFileDownload.discardDownloaded(at: archive) }
         let installer = ModZipInstaller()
         do {
@@ -4511,9 +4315,7 @@ final class StarHubTHViewModel {
             let paths = ManifestlessArchive.paths(under: extracted)
             let outcome = ManifestlessArchive.classify(
                 paths: paths, installedFolderNames: [mod.folderName])
-            // La traduction vise **ce** mod : quel que soit le nom du dossier
-            // qu'elle porte, c'est lui l'hôte. On ne redemande pas ce que
-            // l'utilisateur vient de désigner en ouvrant cette fiche.
+            // L'hôte est **ce** mod, quel que soit le nom du dossier de l'archive.
             let entries: [ManifestlessArchive.Entry]
             switch outcome {
             case .plan(let plan): entries = plan.entries
@@ -4536,68 +4338,41 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Dépose les fichiers d'un plan dans un mod, puis inscrit au registre ce
-    /// qui doit pouvoir être retiré ensuite.
-    ///
-    /// **L'ordre compte.** La traduction déjà en place n'est rendue qu'une fois
-    /// le plan établi : l'écarter plus tôt ferait perdre une traduction qui
-    /// marchait à la première archive illisible. Elle doit l'être quand même —
-    /// son entrée de registre est le seul pointeur vers les fichiers d'origine
-    /// du mod, et la remplacer sans la défaire les perdrait pour de bon.
-    ///
+    /// Dépose un plan dans un mod et inscrit au registre ce qui devra se
+    /// retirer. **Ordre** : la traduction en place n'est rendue qu'après le
+    /// plan établi, mais elle doit l'être (son entrée est le seul pointeur
+    /// vers les originaux).
     /// - Parameters:
-    ///   - sourceName: le nom sous lequel nommer ce qui est posé — le titre
-    ///     Nexus, ou le nom de l'archive pour un dépôt à la main.
-    ///   - nexus: la fiche Nexus quand il y en a une. Sans elle, la traduction
-    ///     est enregistrée sans identifiant : elle se retire, mais aucune mise
-    ///     à jour ne lui sera proposée.
-    ///   - downloadedModId: l'identifiant de la page dont l'archive vient,
-    ///     quand elle vient d'un téléchargement de l'app (lien `nxm://` ou
-    ///     téléchargement intégré). **Ceinture et bretelles** : le nom du
-    ///     fichier le porte déjà, mais si Nexus ne l'avait pas nommé, ce
-    ///     serait la seule occasion où l'app le connaît — la branche
-    ///     d'installation d'un mod le retient depuis toujours
-    ///     (`ModInstallView`, `recordNexusModId`), celle du dépôt le jetait.
-    /// - Returns: ce qui a été écrit (`nil` si rien ne l'a été), et le message
-    ///   à montrer le cas échéant — un dépôt peut réussir *et* avoir quelque
-    ///   chose à dire.
+    ///   - sourceName: titre Nexus, ou nom de l'archive.
+    ///   - nexus: la fiche ; sans elle, retrait possible mais aucun suivi.
+    ///   - downloadedModId: id de la page d'un téléchargement de l'app —
+    ///     filet si le nom du fichier ne le porte pas.
+    /// - Returns: ce qui a été écrit (`nil` sinon) et un message éventuel.
     func depositIntoMod(plan proposed: ManifestlessArchive.Plan, extractedRoot: URL, host: ModItem,
                         sourceName: String, nexus: NexusModSearch.Hit?,
                         downloadedModId: Int? = nil)
         -> (outcome: ManifestlessInstaller.Outcome?, message: String?) {
-        // Le refus se dit dans les mots de ce qu'on déposait : « la traduction »
-        // n'a pas de sens quand l'utilisateur a glissé un lot de sacs.
+        // Refus dit selon ce qu'on déposait (traduction ou lot).
         let failed = proposed.kind == .translation
             ? localization.L(L10n.Mods.translationInstallFailed) : localization.L(L10n.ModInstall.depositFailed)
         guard let backupRoot = InstalledTranslationStore.backupRoot else {
             return (nil, failed)
         }
-        // Nom **physique** : un mod en pause vit dans un dossier préfixé d'un
-        // point, et le plan ne connaît que le nom logique.
+        // Nom **physique** (mod en pause).
         let hostPath = URL(fileURLWithPath: gameDir)
             .appendingPathComponent("Mods")
             .appendingPathComponent(host.physicalFolderName)
         // Le rangement du mod hôte décide où va un `fr.json` à plat.
         let plan = ManifestlessArchive.adaptingLocaleLayout(proposed, to: .read(modDirectory: hostPath))
 
-        // Ce qu'on remplace, on le rend d'abord. Une greffe n'écarte pas la
-        // traduction du même mod — elles ne déposent pas les mêmes fichiers —
-        // mais elle écarte **la greffe de même identité**, sans quoi redéposer
-        // un lot laisserait derrière lui les fichiers de l'ancienne version.
+        // On rend d'abord ce qu'on remplace : une greffe écarte la greffe de même
+        // identité, pas la traduction.
 
-        // **Ce que le nom du fichier sait de sa provenance.** Un dépôt venu du
-        // glisser-déposer n'a pas de fiche Nexus derrière lui : sans
-        // identifiant, la ligne affiche « aucune vérification de mise à jour »
-        // et attend un rattachement à la main. Or le nom porte l'identifiant
-        // six fois sur dix sur le parc réel. Le navigateur intégré, lui, garde
-        // la main entière : ce qu'il sait vient de Nexus, pas d'une lecture.
+        // Id lu dans le nom du fichier (6/10 sur le parc) pour un
+        // glisser-déposer ; le navigateur intégré garde ce que Nexus sait.
         let now = Date()
-        // **Une seule lecture de l'identité**, pour la sonde de doublon
-        // ci-dessous comme pour la ligne qui entrera au registre : deux
-        // lectures qui divergeraient donneraient une identité au comparateur
-        // et une autre à ce qui est gardé. La règle — fiche Nexus, puis nom du
-        // fichier, puis identifiant du téléchargement ; date du dépôt et non
-        // celle que porte le nom — vit dans `DepositIdentity` (Core, 13 tests).
+        // **Une seule lecture de l'identité**, pour la sonde et le registre. Règle
+        // dans `DepositIdentity` (Core, 13 tests).
         let identity = DepositIdentity.resolve(nexus: nexus, sourceName: sourceName,
                                                downloadedModId: downloadedModId, at: now)
         let entry = identity.entry(hostFolderName: host.folderName, sourceName: sourceName,
@@ -4625,9 +4400,7 @@ final class StarHubTHViewModel {
                                                         hostPath: hostPath, backupRoot: backupRoot)
         } catch ManifestlessInstaller.InstallError
                     .rollBackIncomplete(let reason, let leftBehind) {
-            // Nommer les fichiers restés en l'état est la seule raison d'être de
-            // cette erreur : les fondre dans « installation impossible »
-            // laisserait croire le mod intact alors qu'il ne l'est pas.
+            // Nommer les fichiers restés : sinon le mod paraîtrait intact.
             log("Dépôt sans manifeste, annulation incomplète : \(reason)", level: .error)
             return (nil, String(format: localization.L(L10n.ModInstall.depositRollbackIncomplete),
                                 leftBehind.joined(separator: ", ")))
@@ -4636,26 +4409,14 @@ final class StarHubTHViewModel {
             return (nil, failed)
         }
 
-        // Des fichiers de langue ont pu bouger — une greffe mixte en porte
-        // aussi : la couverture française mesurée est périmée dans tous les
-        // cas. Ici et non chez l'appelant, sinon le dépôt depuis la feuille
-        // d'installation laisserait la liste des mods dire « À traduire » sur
-        // un mod qui vient d'être traduit.
-        //
-        // `invalidateFrenchCoverage` est `@MainActor` ; les deux appelants
-        // écrivent depuis le fil principal. Même geste que `deleteMod`, et pour
-        // la même raison : un `Task` rouvrirait une course entre la purge de
-        // l'index et le rescan qui suit.
+        // Couverture FR périmée dans tous les cas, invalidée ici (sinon « À
+        // traduire » après dépôt depuis la feuille). Synchrone via
+        // `assumeIsolated`, comme `deleteMod` : un `Task` rouvrirait la course
+        // avec le rescan.
         MainActor.assumeIsolated { invalidateFrenchCoverage(for: host.folderName) }
 
-        // **Les greffes entrent au registre elles aussi.** Elles n'y entraient
-        // pas : le message de dépôt devait donc prévenir que leur retrait se
-        // ferait à la main. Elles se retirent maintenant comme une traduction,
-        // depuis la fiche du mod.
-        // Même provenance que la sonde `entry` ci-dessus — c'est **cette
-        // ligne-ci** qui entre au registre, et deux lectures du même nom qui
-        // divergeraient donneraient une identité au comparateur et une autre à
-        // ce qui est gardé.
+        // Les greffes entrent au registre et se retirent comme une traduction.
+        // Même provenance que la sonde `entry` : une seule identité.
         let recorded = identity.entry(hostFolderName: host.folderName, sourceName: sourceName,
                                       installedAt: now, files: written.written,
                                       replacedFiles: written.replaced)
@@ -4667,15 +4428,13 @@ final class StarHubTHViewModel {
             }
         }
         guard InstalledTranslationStore.save(installedTranslations) else {
-            // Les fichiers sont posés mais rien ne les retient : le dire,
-            // sinon la traduction ne pourra plus être retirée.
+            // Fichiers posés mais non retenus : le dire (retrait impossible).
             return (written, localization.L(L10n.Mods.translationNotTracked))
         }
         return (written, nil)
     }
 
-    /// Retire la traduction posée sur ce mod et **rend** ce qu'elle avait
-    /// recouvert.
+    /// Retire la traduction du mod et **rend** ce qu'elle recouvrait.
     func removeTranslation(from mod: ModItem) {
         guard !translationHub.isBusy(mod.folderName),
               let translation = translation(for: mod) else { return }
@@ -4691,15 +4450,11 @@ final class StarHubTHViewModel {
                 showModal(message: localization.L(L10n.Mods.translationRemoveNotTracked))
             }
         } else {
-            // **Un retrait à moitié fait garde son entrée.** Elle porte la liste
-            // des fichiers restants et l'endroit où dorment les originaux du
-            // mod : l'oublier ici rendrait la seconde tentative impossible.
+            // **Retrait partiel : l'entrée reste** (fichiers restants, originaux).
             showModal(message: String(format: localization.L(L10n.Mods.translationRemovePartial),
                                       failures.joined(separator: ", ")))
         }
-        // Des fichiers ont bougé même quand tout n'a pas été retiré : la
-        // couverture française doit être remesurée dans les deux cas.
-        // Appelée depuis un bouton, donc sur le fil principal.
+        // Fichiers bougés : remesurer dans les deux cas. Sur main.
         MainActor.assumeIsolated { invalidateFrenchCoverage(for: mod.folderName) }
         refresh()
     }
