@@ -100,4 +100,7 @@ public enum UDKey {
     /// JSON `GitHubRelease` de la dernière réponse réussie — l'état de
     /// Réglages → À propos en dérive, indépendant du tag acquitté.
     public static let frReleaseLastKnown = "starhubFR.releaseLastKnown"
+    /// Paires de mods de performance écartées (A5-T7), une clé
+    /// `PerformanceOverlap.key` par ligne — distinctes des verdicts de conflits.
+    public static let dismissedPerformanceOverlaps = "starhubFR.dismissedPerformanceOverlaps"
 }

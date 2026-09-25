@@ -1111,6 +1111,7 @@ struct ModDetailView: View {
                 CompatibilityBanner(vm: vm, localization: localization, mod: live)
                 errorHistorySection
                 declaredConflictsSection
+                PerformanceOverlapDetailRows(vm: vm, localization: localization, mod: live)
                 keybindConflictsSection
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
                 // Le hub de traduction : premier niveau seulement, là où il a sens.

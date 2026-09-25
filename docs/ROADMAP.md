@@ -555,7 +555,12 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       `bubuge.*` est à vérifier) ; ne rien affirmer sans l'avoir relu dans le
       C# décompilé d'au moins un cas par mod ciblé. · **M**
 - [ ] **A5-T7** — **Deux mods actifs qui patchent la même méthode du jeu.**
-      Premier cas mesuré : Stardropium × UltraSmooth (7 méthodes). Complet, il
+      Premier cas mesuré : Stardropium × UltraSmooth (7 méthodes en 2.3.6 ;
+      9 en 2.3.7, plus 3 derrière `EnableExperimentalFeatures`).
+      ✅ *Marche 1 livrée le 2026-09-26* : `PerformanceOverlap.catalog`, 6 paires
+      à 2 méthodes ou plus (Radiance compris ; les paires à une méthode écartées
+      comme bruit), fiche du mod + feuille Conflits, hors pastille. Reste la
+      lecture ECMA-335 ci-dessous. Complet, il
       faut lire les tables de métadonnées ECMA-335 (`MemberRef`, `TypeRef`) et
       l'IL autour des appels `Harmony.Patch` — le nom de méthode est une chaîne
       lisible, son type ne l'est pas. **Première marche, moins chère** : une

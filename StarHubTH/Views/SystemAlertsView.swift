@@ -149,8 +149,12 @@ struct SystemAlertsView: View {
                     KeybindReportSection(vm: vm, localization: localization, currentTab: $currentTab)
                         .padding(AppDesign.Spacing.lg)
                 case .modConflicts:
-                    ModConflictSection(vm: vm, localization: localization)
-                        .padding(AppDesign.Spacing.lg)
+                    VStack(spacing: AppDesign.Spacing.lg) {
+                        ModConflictSection(vm: vm, localization: localization)
+                        // A5-T7 — hors pastille : un recouvrement n'est pas un conflit.
+                        PerformanceOverlapSection(vm: vm, localization: localization)
+                    }
+                    .padding(AppDesign.Spacing.lg)
                 case .renameFolder(let name):
                     ModFolderRenameSection(vm: vm, localization: localization, folderName: name) { sheet = nil }
                         .padding(AppDesign.Spacing.lg)

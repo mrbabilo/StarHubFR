@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Mods de performance qui font le même travail.** La fiche d'un mod et la feuille « Conflits entre mods » signalent les paires actives qui patchent les mêmes méthodes du jeu (UltraSmooth, Radiance, Stardropium…), sans compter comme alerte.
+
 ## [1.50.0] - 2026-09-25
 
 ### Added

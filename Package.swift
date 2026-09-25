@@ -63,6 +63,7 @@ let package = Package(
                 "Models/CompatibilityNote.swift",
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",
+                "Models/PerformanceOverlap.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
@@ -689,6 +690,11 @@ let package = Package(
             name: "ModConflictVerdictsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModConflictVerdictsTests"
+        ),
+        .testTarget(
+            name: "PerformanceOverlapTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/PerformanceOverlapTests"
         ),
         .testTarget(
             name: "ModGridCardValuesTests",

@@ -305,6 +305,20 @@ enum L10n {
         static let activationWarning  = "conflicts_activation_warning"
     }
 
+    /// A5-T7 — mods de performance qui patchent les mêmes méthodes.
+    enum PerformanceOverlaps {
+        static let title            = "perf_overlaps_title"
+        static let intro            = "perf_overlaps_intro"
+        static let none             = "perf_overlaps_none"
+        static let methods          = "perf_overlaps_methods"
+        static let conditional      = "perf_overlaps_conditional"
+        static let measured         = "perf_overlaps_measured"
+        static let installedDiffers = "perf_overlaps_installed_differs"
+        static let sameWorkAs       = "perf_overlaps_same_work_as"
+        static let notAConflict     = "perf_overlaps_not_a_conflict"
+        static let restore          = "perf_overlaps_restore"
+    }
+
     // MARK: - Mods
     enum Mods {
         static let apiOffline           = "mods_api_offline"
