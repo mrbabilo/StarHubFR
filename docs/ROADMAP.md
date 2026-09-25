@@ -914,7 +914,16 @@ travail, pas des engagements.
 
 - [ ] **I-T6** — **Navigation au focus des 14 écrans** *(sorti de I-T1 le
       2026-09-09)*. Précédé d'une mesure : lister les écrans où le clavier se
-      perd réellement, avant d'en coder un seul. · **L**
+      perd réellement, avant d'en coder un seul. **Relevé statique du
+      2026-09-25** (absences de mécanisme, pas encore constatées à l'écran) :
+      aucun `.focusSection`, `.defaultFocus`, `.onMoveCommand` ni
+      `.focusable` dans l'app — les flèches ne parcourent ni la liste des
+      mods ni les grilles ; seul ⌘F (champs de recherche), ⌘1…⌘9 et ⌘K sont
+      câblés ; Tab n'atteint les boutons `.plain` qu'avec « Navigation au
+      clavier » activée dans Réglages Système. Deux gestes souris-seulement
+      convertis en boutons (`abcf1038`) ; restent en geste le nœud de l'arbre
+      des dépendances et l'en-tête d'un pack. **Reste** : la mesure à
+      l'écran, écran par écran, avant tout autre code. · **L**
 - [ ] **I-T3** — VoiceOver : labels, traits et ordre de lecture sur chaque
       composant de la bibliothèque, écrans majeurs vérifiés à l'oreille. · **M**
 - [ ] **I-T4** — Réglages d'accessibilité système respectés (réduire les
