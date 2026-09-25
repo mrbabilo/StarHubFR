@@ -702,8 +702,8 @@ final class StarHubTHViewModel {
     /// les seules qui la changent.
     private(set) var hasDeepLKey = KeychainSecret.deepLApiKey.read() != nil
 
-    /// Enregistre la clé du secours. Rend `false` si le trousseau refuse —
-    /// l'appelant ne doit pas annoncer une clé enregistrée qui ne l'est pas.
+    /// Enregistre la clé du secours ; `false` si le trousseau refuse — ne pas
+    /// annoncer une clé non enregistrée.
     @discardableResult
     func setDeepLKey(_ key: String) -> Bool {
         let saved = KeychainSecret.deepLApiKey.write(key)
@@ -716,26 +716,20 @@ final class StarHubTHViewModel {
         hasDeepLKey = false
     }
 
-    /// `true` dès qu'**un** moteur peut traduire — ce qui rend le bouton de
-    /// lot et le bouton « Pré-traduire » visibles (spec §7 : visibles s'il
-    /// reste des clés à traduire et qu'une IA est configurée).
-    ///
-    /// Le secours seul suffit : sur une machine où aucun modèle local ne
-    /// tourne confortablement, c'est la seule voie, et la lui cacher
-    /// reviendrait à ne rien offrir du tout.
+    /// `true` dès qu'**un** moteur peut traduire (boutons lot et
+    /// « Pré-traduire », spec §7). Le secours seul suffit : sans modèle local,
+    /// c'est la seule voie.
     var isTranslationAssistAvailable: Bool {
         isLocalAIConfigured || isFallbackEnabled
     }
 
-    /// La case « secours DeepL ». **Miroir** (voir `localAIEndpoint`) : la
-    /// clé est écrite en `@AppStorage` par `SettingsView`.
+    /// Case « secours DeepL ». **Miroir** (voir `localAIEndpoint`), écrit par
+    /// `SettingsView`.
     private(set) var deepLFallbackEnabled: Bool =
         StarHubTHViewModel.readDeepLFallbackEnabled()
 
-    /// Les lectures des miroirs en **un seul endroit** : les initialisateurs
-    /// des propriétés et `resyncMirroredDefaults()` partagent la même
-    /// transformation, sinon un changement de règle d'un seul côté ferait
-    /// diverger les sessions neuves des sessions resynchronisées.
+    /// Lectures des miroirs en **un seul endroit**, partagées par les
+    /// initialisateurs et `resyncMirroredDefaults()`, sinon elles divergent.
     private static func readLocalAIEndpoint() -> URL? {
         UserDefaults.standard.string(forKey: UDKey.localAIBaseURL)
             .flatMap(LocalLLMEndpoint.validate)
@@ -749,9 +743,8 @@ final class StarHubTHViewModel {
         UserDefaults.standard.bool(forKey: UDKey.deepLFallbackEnabled)
     }
 
-    /// Resynchronise les miroirs des préférences écrites hors du VM
-    /// (`@AppStorage` de `SettingsView`). Sans garde, chaque écriture
-    /// defaults du processus — n'importe laquelle — republierait.
+    /// Resynchronise les miroirs écrits par `SettingsView`. Sans garde, toute
+    /// écriture defaults du processus republierait.
     private func resyncMirroredDefaults() {
         let endpoint = Self.readLocalAIEndpoint()
         if localAIEndpoint != endpoint { localAIEndpoint = endpoint }
@@ -761,27 +754,17 @@ final class StarHubTHViewModel {
         if deepLFallbackEnabled != fallback { deepLFallbackEnabled = fallback }
     }
 
-    /// Le secours part-il vraiment ? Une case cochée sans clé n'envoie rien,
-    /// et une clé sans case non plus : les deux conditions, jamais l'une.
-    /// C'est cette propriété que l'interface interroge.
+    /// Le secours part seulement avec case cochée **et** clé. L'interface lit
+    /// cette propriété.
     var isFallbackEnabled: Bool {
         hasDeepLKey && deepLFallbackEnabled
     }
 
-    /// Propose une traduction par IA locale pour une ligne du diff. Rend la
-    /// proposition, ou `nil` — **rien n'est écrit sur le disque** : le
-    /// brouillon remplit le champ, l'« Enregistrer » explicite reste le seul
-    /// chemin d'écriture, et la voie par clé ne pose jamais le drapeau
-    /// « à relire » (spec §2.4).
-    ///
-    /// Sans IA réglée, la vue n'appelle même pas : elle affiche où aller
-    /// (`isLocalAIConfigured` est son garde-fou). La garde ci-dessous reste
-    /// la ceinture — rendre `nil` plutôt qu'un message trompeur.
-    /// Ce qu'une pré-traduction par clé a donné. Un `String?` suffisait tant
-    /// que l'échec n'avait qu'une cause ; avec un service en ligne il en a
-    /// trois, et le chemin par clé est justement celui où l'on reclique.
-    /// Rendre `nil` pour un quota épuisé condamnait l'utilisateur à retenter
-    /// sans jamais apprendre pourquoi.
+    /// Proposition IA locale pour une ligne du diff, ou `nil` — **rien n'est
+    /// écrit** : seul « Enregistrer » écrit, et la voie par clé ne pose jamais
+    /// « à relire » (spec §2.4). Sans IA, la vue n'appelle pas ; la garde reste.
+    /// Résultat d'une pré-traduction par clé : trois causes d'échec avec un
+    /// service en ligne, et `nil` taisait pourquoi (quota épuisé…).
     enum PreTranslation: Equatable {
         case proposal(String)
         case failed
@@ -798,8 +781,8 @@ final class StarHubTHViewModel {
             source: row.english,
             glossary: glossaryMatches(for: row.english, language: locale),
             sectionLabel: row.section)
-        // Une seule session pour les deux moteurs : éphémère, sans proxy,
-        // redirections refusées — des propriétés qu'on veut aussi côté DeepL.
+        // Une session pour les deux moteurs : éphémère, sans proxy, sans
+        // redirection.
         let session = LocalLLMEndpoint.makeSession()
         defer { session.finishTasksAndInvalidate() }
         let outcome = await TranslationEngine.translate(
@@ -818,8 +801,7 @@ final class StarHubTHViewModel {
     /// Ce qu'a donné la traduction d'une **sélection** de l'anglais.
     enum FragmentTranslation: Equatable {
         case proposal(String)
-        /// La sélection emporte des marques du jeu, nommées pour que
-        /// l'utilisateur sache autour de quoi resélectionner.
+        /// Marques du jeu emportées par la sélection, nommées pour resélectionner.
         case refusedMarkers([String])
         case nothingSelected
         /// Aucun secours en ligne réglé — cette voie n'a pas d'autre moteur.
@@ -828,15 +810,9 @@ final class StarHubTHViewModel {
         case fallbackStopped(BatchReport.FallbackStop)
     }
 
-    /// Traduit un fragment de la source, la phrase entière servant de
-    /// contexte — le canal que le service prévoit pour ça, et qu'il ne
-    /// traduit pas.
-    ///
-    /// **Le service en ligne seulement, pas l'IA locale.** Le prompt local est
-    /// bâti pour une valeur entière et rend volontiers la phrase là où on
-    /// demandait un mot ; le paramètre `context` du service, lui, existe
-    /// exactement pour cet usage. Sans clé, la voie n'est pas offerte plutôt
-    /// que servie par un moteur qui ferait autre chose.
+    /// Traduit un fragment, la phrase entière servant de `context` (non
+    /// traduit). **Service en ligne seulement** : le prompt local rend la
+    /// phrase au lieu du mot. Sans clé, la voie n'est pas offerte.
     @MainActor
     func translateFragment(_ selection: String,
                            inside sentence: String) async -> FragmentTranslation {
@@ -863,10 +839,8 @@ final class StarHubTHViewModel {
 
     // MARK: - Pré-traduction par lot
 
-    /// Les deux types du lot vivent en Core (`TranslationBatchRun`), qui porte
-    /// aussi la comptabilité et les règles d'arrêt. Les alias tiennent les
-    /// vues en place — elles nomment encore `StarHubTHViewModel.BatchReport`
-    /// — et tomberont au découpage des vues (REFACTORING §5, P8).
+    /// Types du lot en Core (`TranslationBatchRun`) ; les alias gardent les
+    /// vues en place.
     typealias BatchProgress = TranslationBatchRun.Progress
     typealias BatchReport = TranslationBatchRun.Report
 
@@ -874,10 +848,9 @@ final class StarHubTHViewModel {
     private(set) var batchReport: BatchReport?
     private var batchTask: Task<Void, Never>?
 
-    /// Lance le lot — **une requête à la fois** : le GPU local est le goulot
-    /// (spec §7). Chaque résultat est persisté immédiatement, avant toute
-    /// navigation (spec §8.4) : annuler ou fermer ne perd rien, relancer
-    /// reprend ce qui reste.
+    /// Lance le lot, **une requête à la fois** (GPU local, spec §7). Chaque
+    /// résultat est persisté aussitôt (spec §8.4) : annuler ne perd rien,
+    /// relancer reprend.
     @MainActor
     func startBatch(mod: ModItem, locale: String, rows: [TranslationCoverage.DiffRow]) {
         guard batchTask == nil else { return }
@@ -890,8 +863,7 @@ final class StarHubTHViewModel {
         batchTask?.cancel()
     }
 
-    /// Les identités des clés « à relire » d'un mod, au format de
-    /// `DiffRow.id` — le badge et le filtre du diff comparent directement.
+    /// Clés « à relire » d'un mod, au format `DiffRow.id`.
     func reviewNeededRowIDs(for mod: ModItem) async -> Set<String> {
         guard let store = TranslationBaseline.defaultDirectory() else { return [] }
         let folder = mod.folderName
@@ -902,10 +874,7 @@ final class StarHubTHViewModel {
 
     // MARK: - Glossaire (réglages)
 
-    /// Le suffixe de fichier du jeu pour une langue cible du hub. Le code du
-    /// paramètre (`fr`) est la langue de l'éditeur ; le suffixe (`fr-FR`)
-    /// est celui des assets localisés du jeu — deux vocabulaires différents,
-    /// la correspondance vit ici.
+    /// Suffixe d'asset du jeu (`fr-FR`) pour une langue du hub (`fr`).
     private static func gameAssetSuffix(for language: String) -> String {
         switch language {
         case "fr": "fr-FR"
@@ -913,10 +882,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Reconstruit le glossaire depuis les sources du jeu installé et
-    /// sauvegarde le cache. Rend le nombre d'entrées ; `nil` quand aucune
-    /// source n'est trouvable — l'appelant le dit plutôt que d'afficher
-    /// « 0 termes » sur un jeu introuvable.
+    /// Reconstruit le glossaire depuis le jeu et sauve le cache. `nil` si
+    /// aucune source : l'appelant le dit plutôt qu'afficher « 0 termes ».
     @MainActor
     @discardableResult
     func rebuildGlossary(language: String = "fr") async -> Int? {
@@ -925,9 +892,8 @@ final class StarHubTHViewModel {
         let (entries, saved, unreadable) = await Task.detached(priority: .utility) {
             guard let kind = GlossarySource.resolve(gameFolder: URL(fileURLWithPath: folder))
             else { return ([GlossaryEntry](), false, [String]()) }
-            // Un asset présent mais illisible amputait le glossaire d'une
-            // table entière en silence : le décompte restait rassurant.
-            // Absent reste normal (spec §5), illisible se nomme.
+            // Asset illisible = table manquante en silence : on le nomme. Absent
+            // reste normal (spec §5).
             var unreadable: [String] = []
             func map(_ asset: String, _ language: String) -> [String: String]? {
                 switch GlossarySource.read(asset: asset, language: language, from: kind) {
@@ -959,15 +925,9 @@ final class StarHubTHViewModel {
         return saved ? entries.count : nil
     }
 
-    /// Reconstruit le glossaire si les assets du jeu ont bougé depuis sa
-    /// construction — une mise à jour de Stardew réécrit `Content/Strings`,
-    /// et sans ça le cache gardait les anciens termes indéfiniment, sauf
-    /// reconstruction à la main. Une fois par lancement : le contrôle
-    /// parcourt les dates du dossier, inutile de le refaire à chaque
-    /// ouverture de l'onglet.
-    ///
-    /// Sans glossaire en cache, rien à faire : c'est « Reconstruire » qui
-    /// pose le premier, pas une mise à jour du jeu.
+    /// Reconstruit le glossaire si `Content/Strings` a bougé (mise à jour du
+    /// jeu), une fois par lancement. Sans glossaire en cache, rien : c'est
+    /// « Reconstruire » qui pose le premier.
     @MainActor
     func refreshGlossaryIfSourcesChanged(language: String = "fr") async {
         guard !checkedGlossaryFreshness else { return }
@@ -987,20 +947,17 @@ final class StarHubTHViewModel {
         await rebuildGlossary(language: language)
     }
 
-    /// La date de construction du glossaire en cache — pour la ligne
-    /// d'information des réglages.
+    /// Date du glossaire en cache, pour les réglages.
     func glossaryBuiltDate(language: String = "fr") -> Date? {
         guard let appSupport = Self.glossaryAppSupport() else { return nil }
         return GlossaryStore.builtDate(language: language, appSupport: appSupport)
     }
 
-    /// Le nombre de drapeaux « à relire » gardés en mémoire avant écriture.
-    /// Un compromis assumé : la borne de ce qu'un arrêt brutal peut perdre,
-    /// et le diviseur du nombre de réécritures du sidecar.
+    /// Drapeaux « à relire » gardés avant écriture : borne la perte d'un arrêt
+    /// brutal, divise les réécritures du sidecar.
     private static let reviewFlagFlushSize = 25
 
-    /// Écrit les drapeaux accumulés et vide la liste. Une lecture et une
-    /// écriture pour tout le paquet ; rien du tout s'il est vide.
+    /// Écrit les drapeaux accumulés et vide la liste (rien si vide).
     @MainActor
     private func flushReviewFlags(_ flags: inout [TranslationBaseline.ReviewFlag],
                                   mod: ModItem) {
@@ -1021,28 +978,21 @@ final class StarHubTHViewModel {
     private func runBatch(mod: ModItem, locale: String,
                           rows: [TranslationCoverage.DiffRow]) async {
         defer { batchTask = nil; batchProgress = nil }
-        // La garde admet le cas « pas d'IA locale, mais un secours réglé » :
-        // sans ça, une machine sans modèle local n'aurait rien du tout.
+        // Admet « pas d'IA locale, secours réglé ».
         var fallbackCredentials = deepLCredentials
         guard isLocalAIConfigured || fallbackCredentials != nil else { return }
-        // Jamais une valeur française existante (spec §8.2) : le planneur ne
-        // retient que ce qui est absent ou vide.
+        // Jamais une valeur FR existante (spec §8.2) : absent ou vide seulement.
         let eligible = TranslationBatchPlanner.eligibleRows(rows)
-        // La comptabilité du lot et ses règles d'arrêt vivent dans
-        // `TranslationBatchRun` (Core, 15 tests) : ici ne restent que le
-        // réseau, l'écriture et les effets publiés.
+        // Comptabilité et arrêts dans `TranslationBatchRun` (Core, 15 tests).
         var run = TranslationBatchRun(hasLocalEngine: isLocalAIConfigured)
         var flags: [TranslationBaseline.ReviewFlag] = []
-        // Une seule session pour tout le lot : `URLSession` retient fortement
-        // son délégué jusqu'à invalidation, une par clé laissait autant de
-        // sessions, de délégués et de pools de connexions vivants.
+        // Une session pour tout le lot : `URLSession` retient son délégué ; une
+        // par clé laissait autant de sessions vivantes.
         let session = LocalLLMEndpoint.makeSession()
         defer { session.finishTasksAndInvalidate() }
         batchProgress = BatchProgress(done: 0, total: eligible.count)
         for (index, row) in eligible.enumerated() {
-            // Le point d'arrêt : la clé en cours est déjà partie, la
-            // suivante ne partira pas — son résultat, s'il arrive, n'est pas
-            // écrit puisque l'écriture suit le retour.
+            // Arrêt : la clé en cours est partie, son résultat ne sera pas écrit.
             if Task.isCancelled { break }
             let matches = glossaryMatches(for: row.english, language: locale)
             let request = LocalLLMClient.Request(
@@ -1054,24 +1004,16 @@ final class StarHubTHViewModel {
 
             var writeSucceeded = false
             if case .translated(let proposal, _) = outcome {
-                // Le chemin d'écriture existant, avec son `.bak` et son gate
-                // de marques — le client n'a déjà rendu que des traductions
-                // sans marque dure manquante, mais le gate reste juge.
-                // Le retrait du drapeau est sauté : la clé n'en a pas (le
-                // planneur ne retient que du vide) et le lot va le poser.
+                // Chemin d'écriture existant (`.bak`, gate de marques) ; le gate reste
+                // juge. Retrait du drapeau sauté : la clé était vide.
                 if case .saved = saveTranslation(mod: mod, locale: locale,
                                                  row: row, value: proposal,
                                                  clearingReviewFlag: false) {
                     writeSucceeded = true
                     flags.append(.init(component: row.component, key: row.key,
                                        source: row.english, target: proposal))
-                    // Le français est déjà sur le disque ; le drapeau suit par
-                    // paquets. Tout garder pour la fin exposerait un arrêt
-                    // brutal — fermeture forcée, panne — à rendre des valeurs
-                    // écrites par la machine sans leur badge, donc présentées
-                    // comme relues. Un paquet borne la perte à 25 clés au lieu
-                    // du lot entier, pour une écriture toutes les 25 au lieu
-                    // d'une par clé.
+                    // Drapeaux par paquets : tout garder pour la fin laisserait un arrêt
+                    // brutal présenter des valeurs machine comme relues. Perte bornée à 25.
                     if flags.count >= Self.reviewFlagFlushSize {
                         flushReviewFlags(&flags, mod: mod)
                     }
@@ -1091,20 +1033,11 @@ final class StarHubTHViewModel {
         log(run.summary(mod: mod.folderName), level: .info)
     }
 
-    /// Enregistre une valeur traduite pour une ligne du diff.
-    ///
-    /// Bloque sur une divergence de tokens **dure**, ni acceptée ni déjà
-    /// déroguée : un token dur perdu casse le mod en jeu, et l'utilisateur
-    /// n'aurait aucun moyen de s'en apercevoir avant de lancer une partie. Les
-    /// divergences souples ne bloquent pas.
-    ///
-    /// La référence anglaise n'est pas écrite ici : `TranslationBaselineRules`
-    /// l'adopte et la réancre au prochain calcul du diff. Un second chemin
-    /// d'écriture vers le même magasin est exactement ce que ce dépôt a déjà
-    /// payé ailleurs.
-    ///
-    /// `@MainActor` explicite : `invalidateFrenchCoverage(for:)` l'exige déjà,
-    /// et cette méthode mute in fine les mêmes `@Published` par son biais.
+    /// Enregistre une valeur traduite. Bloque sur une divergence de tokens
+    /// **dure** non acceptée ni dérogée (un token dur perdu casse le mod en
+    /// jeu) ; les souples passent. La référence anglaise n'est pas écrite ici
+    /// (`TranslationBaselineRules` l'adopte) : pas de second chemin vers le
+    /// magasin. `@MainActor` : requis par `invalidateFrenchCoverage(for:)`.
     @MainActor
     @discardableResult
     func saveTranslation(mod: ModItem, locale: String,
@@ -1115,12 +1048,8 @@ final class StarHubTHViewModel {
         let blocking = TranslationTokenCheck.mismatches(source: row.english, target: value)
             .filter(\.isHard)
 
-        // Un accord déjà donné pour ce couple source/cible exact vaut réponse
-        // — c'est ici, pas côté appelant, que se prend la décision de
-        // bloquer. Le magasin n'est consulté que si un blocage est en jeu :
-        // payer cette lecture disque à chaque enregistrement ordinaire serait
-        // pour rien, la quasi-totalité des sauvegardes n'ayant aucune
-        // divergence dure.
+        // Un accord existant pour ce couple source/cible vaut réponse. Magasin lu
+        // seulement si un blocage est en jeu (rare).
         var waived = false
         var baselineStore: URL?
         var existingBaseline: [String: TranslationBaseline.Entry] = [:]
@@ -1131,8 +1060,7 @@ final class StarHubTHViewModel {
             waived = TranslationWaiver.isAccepted(entry, source: row.english, target: value)
         }
         let accepted = acceptingTokenMismatch || waived
-        // Rendues à l'appelant plutôt qu'écrites : c'est lui qui demandera
-        // confirmation, sauf quand l'accord ci-dessus en tient déjà lieu.
+        // Rendues à l'appelant, qui demandera confirmation.
         if !blocking.isEmpty && !accepted { return .blocked(blocking) }
 
         let modDirectory = URL(fileURLWithPath: (gameDir as NSString)
@@ -1145,10 +1073,8 @@ final class StarHubTHViewModel {
             return .failed(message)
         }
 
-        // Où écrire, et sous quelle clé : `TranslationTarget` décide — layouts
-        // A et B, repli sur la casse déjà présente, refus plutôt que deviner
-        // la section d'un layout B. La règle est éprouvée là-bas (14 tests) ;
-        // ici ne restent que l'écriture, le journal et les effets.
+        // Cible et clé : `TranslationTarget` décide (layouts A/B, casse
+        // existante, refus plutôt que deviner) — 14 tests.
         let target: URL
         let realKey: String
         let sourceText: String
@@ -1175,11 +1101,8 @@ final class StarHubTHViewModel {
             }
             try TranslationFileStore.write(text, to: target)
 
-            // Consigner l'accord, et lui seul — le reste de la référence est
-            // adopté par `TranslationBaselineRules` au prochain calcul du diff :
-            // écrire ici ce qu'il sait déjà poser créerait un second chemin vers
-            // le même magasin. Un accord qui tenait déjà (`waived`) n'est pas
-            // réécrit : rien n'a changé pour lui.
+            // Consigner l'accord seul (le reste est adopté par
+            // `TranslationBaselineRules`) ; un accord déjà tenu n'est pas réécrit.
             if !blocking.isEmpty, accepted, !waived, let store = baselineStore {
                 var baseline = existingBaseline
                 baseline[TranslationBaseline.key(component: row.component, key: row.key)] =
@@ -1187,19 +1110,15 @@ final class StarHubTHViewModel {
                 do {
                     try TranslationBaseline.save(baseline, modFolderName: mod.folderName, in: store)
                 } catch {
-                    // La traduction, elle, est déjà sur le disque : seul
-                    // l'accord de dérogation ne survit pas. Le journaliser
-                    // comme toute autre branche d'échec — un `try?` muet
-                    // l'aurait fait disparaître sans trace.
+                    // Traduction déjà écrite ; seul l'accord est perdu — journalisé, pas de
+                    // `try?` muet.
                     log("Accord de dérogation non enregistré pour \(mod.name) — \(row.key) : \(error)",
                         level: .warning)
                 }
             }
 
-            // Enregistrer la clé (modifiée ou non) retire « à relire »
-            // (spec §7) : quelqu'un vient de la relire. Sans drapeau posé,
-            // la fonction ne réécrit rien — ce coût est une lecture par
-            // enregistrement ordinaire.
+            // Enregistrer retire « à relire » (spec §7). Sans drapeau, rien n'est
+            // réécrit.
             if clearingReviewFlag, let store = TranslationBaseline.defaultDirectory() {
                 do {
                     try TranslationBaseline.clearReviewNeeded(component: row.component,
@@ -1212,21 +1131,13 @@ final class StarHubTHViewModel {
                 }
             }
 
-            // Le fichier vient de changer : sa couverture en cache ne vaut plus
-            // rien. Sans cela le pourcentage affiché reste celui d'avant.
+            // Fichier changé : couverture en cache périmée.
             invalidateFrenchCoverage(for: mod.folderName)
 
-            // Remesurée pour ce seul mod, hors du fil principal : le
-            // rafraîchissement habituel (`recomputeFrenchCoverage`, déclenché
-            // par le `didSet` de `mods`) ne s'applique pas ici — rien ne
-            // republie `mods` — et son propre filtre le manquerait de toute
-            // façon : `mod.languages.contains("fr")` est calé sur la
-            // détection du dernier scan, donc encore faux au moment précis où
-            // l'on vient de poser le tout premier `fr.json` d'un mod. Sans ce
-            // recalcul ciblé, la carte de couverture de la fiche et la
-            // pastille de la liste resteraient vides jusqu'à la fin de la
-            // session — `frenchCoverageDetail(for:)` rend `nil`, et
-            // `ModDetailView` masque toute la section.
+            // Remesure ciblée, hors fil principal : rien ne republie `mods`, et le
+            // filtre `languages.contains("fr")` date du scan (faux au premier
+            // `fr.json`). Sans elle, carte de couverture et pastille restent vides
+            // jusqu'à la fin de la session.
             let root = gameDir
             let folderName = mod.folderName
             let physicalFolderName = mod.physicalFolderName
@@ -1236,10 +1147,7 @@ final class StarHubTHViewModel {
                     .appendingPathComponent(physicalFolderName)
                 guard let coverage = TranslationCoverage.coverage(forModAt: directory,
                                                                    locale: locale) else {
-                    // Sans cette ligne, l'échec du recalcul rendait exactement
-                    // le défaut que ce chemin ferme — carte de couverture vide
-                    // jusqu'à la fin de la session — mais sans rien laisser
-                    // pour le diagnostiquer.
+                    // Sans ce journal, l'échec rendrait le même défaut sans trace.
                     await self?.log("Couverture non recalculée pour \(folderName) : "
                                     + "\(directory.path) illisible", level: .warning)
                     return
@@ -1259,10 +1167,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Ce qu'un export de lot produit : les données prêtes à écrire, ou
-    /// pourquoi il n'y en a pas. Les deux « rien » ne se disent pas de la
-    /// même façon à l'utilisateur — un mod fini et un encodage raté ne
-    /// appellent pas la même suite.
+    /// Résultat d'un export de lot : données, ou pourquoi aucune (mod fini ≠
+    /// encodage raté).
     enum TranslationLotExport: Equatable {
         case nothingToTranslate
         case failed
@@ -1287,29 +1193,12 @@ final class StarHubTHViewModel {
     }
 
 
-    /// Oublie la couverture d'un mod dont les fichiers ont pu changer —
-    /// installation, mise à jour, restauration de sauvegarde. Le prochain
-    /// passage la recalculera. Sans cet appel, un mod mis à jour garderait
-    /// éternellement le pourcentage de sa version précédente — et, sans le
-    /// retrait de `outdatedKeysByMod`, son ancien compte de clés obsolètes,
-    /// sa note sur la fiche et sa place dans le filtre « À revoir » jusqu'à
-    /// ce qu'on rouvre son onglet Traduction.
-    ///
-    /// `@MainActor` explicite comme `reloadOutdatedKeyIndex()` : trois
-    /// `@Published` mutés ici, et rien ne garantirait le fil principal pour
-    /// un futur appelant sans l'annotation.
-    ///
-    /// **La purge de l'index sur disque doit précéder celle en mémoire, et
-    /// s'exécuter de façon synchrone.** Purger seulement `outdatedKeysByMod`
-    /// ne suffit pas : `index.json` garderait l'ancien compte, et le premier
-    /// `reloadOutdatedKeyIndex()` qui suit — au prochain scan, puisque
-    /// `recomputeFrenchCoverage()` en déclenche un à chaque republication de
-    /// `mods` — le relirait et le réinjecterait, ramenant silencieusement la
-    /// note et la place dans le filtre d'un mod pourtant réinstallé. Rendre
-    /// cette écriture asynchrone rouvrirait la même fenêtre : un rechargement
-    /// qui passerait entre les deux compléterait la course. Le fichier ne
-    /// contient que quelques centaines d'entiers — la justesse vaut ici plus
-    /// qu'un hoquet théorique sur le fil principal.
+    /// Oublie la couverture d'un mod dont les fichiers ont pu changer
+    /// (installation, mise à jour, restauration). Sinon il garde pourcentage,
+    /// clés obsolètes et place dans « À revoir » de sa version précédente.
+    /// **Purge disque d'abord, synchrone** : sinon le prochain
+    /// `reloadOutdatedKeyIndex()` relit `index.json` et réinjecte l'ancien
+    /// compte. Quelques centaines d'entiers : la justesse prime.
     @MainActor
     func invalidateFrenchCoverage(for folderName: String) {
         if let store = TranslationBaseline.defaultDirectory() {
@@ -1318,70 +1207,42 @@ final class StarHubTHViewModel {
         frenchCoverageByMod.removeValue(forKey: folderName)
         staleTranslationMods.remove(folderName)
         outdatedKeysByMod.removeValue(forKey: folderName)
-        // Le store des profils est indexé par identifiant, pas par dossier :
-        // sans cette traduction, traduire un mod ne changerait plus jamais le
-        // pourcentage des profils qui le contiennent.
+        // Store des profils indexé par identifiant, pas par dossier.
         if let uniqueId = mods.flattenedMods.first(where: { $0.folderName == folderName })?.uniqueId,
            !uniqueId.isEmpty {
             profileTranslationStore.invalidate(uniqueId: uniqueId)
         }
-        // Les rangées gardées (F7) ne voient pas tout changement : une
-        // correction de même longueur dans la même seconde laisse l'empreinte
-        // intacte. Voir `TranslationDiffCache.removeAll()`.
+        // Rangées gardées (F7) : une correction de même longueur dans la même
+        // seconde garde l'empreinte. Voir `TranslationDiffCache.removeAll()`.
         translationDiffCache.removeAll()
     }
 
     // MARK: - Couverture française d'un profil (B3-T4)
 
     /// Ce que chaque profil affichera en français une fois appliqué.
-    ///
-    /// **Store séparé de `frenchCoverageByMod`, délibérément.** Ce dernier ne
-    /// contient que les mods qui livrent *déjà* du français, et l'absence
-    /// d'entrée y signifie « pas encore mesuré » — c'est le troisième état de
-    /// la pastille de la liste (C1-T2). Or les mods qui font tout l'intérêt de
-    /// cet écran sont ceux qui ont un `default.json` et **aucun** `fr.json` :
-    /// 8, 28 et 15 sur ses trois profils. Les verser dans le cache commun
-    /// ferait surgir une pastille « 0 % » sur autant de lignes de la liste des
-    /// mods, dans un affichage déjà livré.
-    ///
-    /// Le grain diffère aussi : la pastille de la liste mesure un dossier de
-    /// premier niveau **entier**, quand un profil raisonne par composant.
+    /// **Séparé de `frenchCoverageByMod`** : là, absence = « pas mesuré »
+    /// (C1-T2) ; les mods sans `fr.json` (8, 28, 15 par profil) y feraient
+    /// surgir des pastilles « 0 % ». Grain différent : dossier entier contre
+    /// composant.
     // MARK: Couverture par profil — le store du domaine (cadrage §4,
-    // domaine 6, tranche 2). Le verrou de la passe et le cache lu une fois
-    // par session sont les siens.
+    // domaine 6, tranche 2) : verrou de passe et cache de session.
     private let profileTranslationStore = ProfileTranslationStore()
 
     var profileTranslationSummaries: [UUID: ProfileTranslationSummary] { profileTranslationStore.summaries }
 
-    /// Le même travail, gardé **d'une session à l'autre** : sans lui, ouvrir
-    /// la page des profils coûtait 15,7 s d'analyse à chaque lancement, mesuré
-    /// sur le parc réel. Chaque entrée porte l'empreinte des fichiers de
-    /// traduction du mod ; elle n'est réutilisée que si cette empreinte n'a pas
-    /// bougé, et une entrée corrompue ne fait perdre que la mesure.
-    /// Vrai pendant la passe de mesure : la page des profils montre un témoin
-    /// plutôt qu'un pourcentage faux.
+    /// Cache **entre sessions** (sinon 15,7 s à chaque ouverture), validé par
+    /// l'empreinte des fichiers de traduction.
+    /// Vrai pendant la mesure : témoin plutôt que pourcentage faux.
     var isMeasuringProfileTranslation: Bool { profileTranslationStore.isMeasuring }
 
-    /// Mesure ce qui manque, puis republie les résumés.
-    ///
-    /// Appelée à l'affichage de la page des profils, pas au scan : lire les
-    /// fichiers de traduction de 300 à 500 mods n'a pas sa place au lancement,
-    /// et cette page n'est pas celle qu'on ouvre en premier.
-    ///
-    /// Seuls les mods qui **livrent une source** sont ouverts — `languages`
-    /// contient `en` dès qu'un `default.json` existe, et il est déjà connu
-    /// depuis le scan. C'est ce qui rend la passe abordable : sur son parc,
-    /// plus de la moitié des mods n'ont aucun dossier `i18n`.
-    ///
-    /// Et ce qui reste est **mis en cache d'une session à l'autre**, validé par
-    /// l'empreinte des fichiers de traduction : 15,7 s la première fois, 2,6 s
-    /// ensuite — le prix du seul parcours des dossiers.
+    /// Mesure ce qui manque puis republie. À l'affichage de la page, pas au
+    /// scan. Seuls les mods avec `default.json` (`languages` contient `en`).
+    /// Cache entre sessions : 15,7 s puis 2,6 s.
     @MainActor
     func refreshProfileTranslationCoverage() {
         guard !modProfiles.isEmpty, !gameDir.isEmpty else { return }
-        // Une passe à la fois : la page peut réapparaître pendant la mesure —
-        // c'est le verrou du store, plus la `Task` détachée ci-dessous (non
-        // retenue : elle n'a jamais été annulée, le verrou suffit).
+        // Une passe à la fois (verrou du store) ; `Task` non retenue, jamais
+        // annulée.
         guard profileTranslationStore.beginMeasure() else { return }
 
         let installed = mods.flattenedMods
@@ -1408,21 +1269,15 @@ final class StarHubTHViewModel {
             var freshEntries: [String: TranslationCoverageCache.Entry] = [:]
             for target in targets {
                 if Task.isCancelled { break }
-                // Les dossiers sont repérés **une seule fois** : ils servent à
-                // l'empreinte comme à la mesure, et le parcours coûte à lui
-                // seul 2,5 s sur le parc réel.
-                //
-                // `stoppingAtNestedMods` : un mod imbriqué dans un autre est
-                // mesuré pour son propre compte, et ses clés compteraient deux
-                // fois si son hôte les reprenait.
+                // Dossiers repérés **une fois** (empreinte + mesure ; 2,5 s).
+                // `stoppingAtNestedMods` : sinon clés comptées deux fois.
                 let directories = I18nLocaleResolver.i18nDirectories(
                     inModDirectory: modsPath.appendingPathComponent(target.physicalFolder),
                     stoppingAtNestedMods: true)
                 let stamp = TranslationStamp.of(directories: directories)
 
                 if let entry = TranslationCoverageCache.valid(cached[target.id], against: stamp) {
-                    // Rien n'a bougé depuis la dernière mesure : on ne rouvre
-                    // pas les fichiers. C'est tout l'intérêt du cache.
+                    // Rien n'a bougé : fichiers non rouverts.
                     measured[target.id] = TranslationCoverage.Coverage(
                         total: entry.total, translated: entry.translated,
                         missing: [], empty: [], orphan: [], identicalToSource: [])
@@ -1454,8 +1309,7 @@ final class StarHubTHViewModel {
         profileTranslationStore.mergeMeasured(measured, entries: entries)
         profileTranslationStore.endMeasure()
         persistProfileTranslationCache()
-        // Les profils actuels, pas ceux capturés au départ : la page a pu en
-        // voir renommer, dupliquer ou supprimer un pendant la mesure.
+        // Profils actuels : renommés ou supprimés pendant la mesure possibles.
         publishProfileTranslationSummaries(profiles: modProfiles,
                                            installed: mods.flattenedMods)
     }
@@ -1473,9 +1327,7 @@ final class StarHubTHViewModel {
         profileTranslationStore.setSummaries(summaries)
     }
 
-    /// Écrit le cache sur disque, débarrassé des mods désinstallés — sans quoi
-    /// le fichier ne ferait que grossir. Hors du fil principal : l'encodage et
-    /// l'écriture n'ont pas à retenir l'interface.
+    /// Écrit le cache sans les mods désinstallés, hors fil principal.
     @MainActor
     private func persistProfileTranslationCache() {
         guard let url = TranslationCoverageCache.defaultFileURL() else { return }
@@ -1491,9 +1343,8 @@ final class StarHubTHViewModel {
         profileTranslationStore.summary(for: profile.id)
     }
 
-    /// Ouvre la fiche d'un mod **sur son onglet Traduction**, par dossier
-    /// logique. Cherche dans les mods dépliés : un composant de pack se traduit
-    /// comme un autre, et c'est lui que le profil désigne.
+    /// Ouvre la fiche **sur l'onglet Traduction**, par dossier logique, mods
+    /// dépliés compris (composants de pack).
     @MainActor
     func openTranslation(forFolder folderName: String) {
         guard let mod = mods.flattenedMods.first(where: { $0.folderName == folderName })
@@ -1502,15 +1353,9 @@ final class StarHubTHViewModel {
         navigationStore.setViewingModDetail(mod)
     }
 
-    /// Ouvre l'éditeur de configuration d'un mod **depuis un autre onglet**
-    /// (le rapport de raccourcis, sur les Alertes système), par dossier
-    /// logique. La bascule vers « Mods » remet `editingModConfig` à nil
-    /// (piège documenté dans `MainView`) : la demande passe donc par
-    /// `pendingConfigFocus`, reconstitué dans le `onChange` **après** la
-    /// remise à zéro — même patron que `pendingTranslationFocus`. Rend
-    /// `false` sans rien poser quand le mod n'est plus dans le parc : le
-    /// rapport peut être périmé (mod désinstallé depuis le scan), et
-    /// l'appelant n'a alors pas de raison de changer d'onglet.
+    /// Ouvre l'éditeur de config **depuis un autre onglet**, via
+    /// `pendingConfigFocus` (la bascule remet `editingModConfig` à nil, voir
+    /// `MainView`). `false` si le mod n'est plus au parc (rapport périmé).
     @MainActor
     func openModConfig(forFolder folderName: String) -> Bool {
         guard mods.flattenedMods.contains(where: { $0.folderName == folderName })
@@ -1518,96 +1363,46 @@ final class StarHubTHViewModel {
         navigationStore.pendingConfigFocus = folderName
         return true
     }
-    /// Cache for `category(for:)`, invalidated whenever `mods`,
-    /// `nexusCategories`, `nexusCustomCategories`, or `nexusCustomModIds`
-    /// change. Without it, a group's dominant-category scan over its
-    /// children re-ran on every call (badge, filter, `availableCategories`,
-    /// counts) within the same render.
-    ///
-    /// ⚠️ Hors suivi, **et** doublé d'une révision qui, elle, l'est. Le laisser
-    /// suivi coûtait un rendu complet de la liste : `category(for:)` est appelée
-    /// depuis six `body` (`ModListView` balaie tout le parc), et remplir une
-    /// seule entrée manquante depuis la fiche d'un mod réveillait la liste
-    /// entière. Mais l'ignorer *seul* aurait cassé l'épinglage en silence : sur
-    /// un succès de cache, la fonction ne lit rien d'autre, donc vider le
-    /// dictionnaire était l'unique signal de rafraîchissement. D'où la même
-    /// forme que `deltaReadCache` — le cache ne publie plus, la révision publie.
+    /// Cache for `category(for:)` (dominant-category scan per render).
+    /// ⚠️ Hors suivi, **doublé d'une révision suivie** : suivi, il réveillait
+    /// toute la liste (six `body`) ; ignoré seul, l'épinglage cessait de
+    /// rafraîchir. Même forme que `deltaReadCache`.
     @ObservationIgnored
     private var categoryCache: [String: NexusCategory?] = [:]
-    /// La révision **suivie** du cache ci-dessus : le seul signal qui rafraîchit
-    /// les vues quand les catégories changent. Toujours passer par
-    /// `invalidateCategoryCache()`, jamais par `categoryCache.removeAll()` nu.
+    /// Révision **suivie** du cache : passer par `invalidateCategoryCache()`,
+    /// jamais `categoryCache.removeAll()` nu.
     private var categoryCacheRevision = 0
 
-    /// Vide le cache des catégories **et** publie le changement. Les deux vont
-    /// ensemble : le dictionnaire est hors suivi.
+    /// Vide le cache **et** publie.
     private func invalidateCategoryCache() {
         categoryCache.removeAll()
         categoryCacheRevision += 1
     }
 
-    /// Enregistre la dépendance de suivi du cache des catégories.
-    ///
-    /// À appeler au début de **chaque** lecture du cache, succès compris —
-    /// c'est la contrepartie du `@ObservationIgnored` ci-dessus. Sans cet
-    /// appel, une vue servie par le cache n'observe plus rien et cesse de se
-    /// rafraîchir après un épinglage, sans erreur ni plantage.
+    /// Dépendance de suivi, à appeler à **chaque** lecture du cache : sans
+    /// elle, la vue cesse de se rafraîchir sans erreur.
     private func trackCategoryCache() {
         _ = categoryCacheRevision
     }
 
-    /// Top-level enabled mods (packs included as their own header entry).
-    /// Feeds `ModConfigBackupManager`, which resolves each pack's enabled
-    /// children itself — this stays a simple top-level filter.
+    /// Top-level enabled mods (packs as header); fed to `ModConfigBackupManager`.
     var enabledMods: [ModItem] {
         mods.filter { $0.isEnabled }
     }
 
-    /// Le domaine Dépendances (REFACTORING §6) : les index dérivés du parc
-    /// (`DependencyIndex`, Core, testé) reconstruits à chaque scan. Les trois
-    /// propriétés privées d'origine (`installedUniqueIds`, `installedModStates`,
-    /// `installedModsByUniqueId`) vivent dans la struct ; `duplicateIndex`
-    /// reste publié tel quel — c'est lui qui nourrit les anomalies de ligne.
+    /// Index de dépendances (`DependencyIndex`, Core), reconstruits à chaque
+    /// scan ; `duplicateIndex` nourrit les anomalies de ligne.
     private var dependencyIndex = DependencyIndex.empty
-    /// Manifest decode cache, keyed by manifest.json absolute path. Each
-    /// entry stores the file's mtime alongside the decoded JSON so a stale
-    /// cache entry is detected by `stat()` instead of a full re-read + decode.
-    /// Persisted across scans (a rescan with no changes does ~N stats and 0
-    /// decodes) and mutated on the background queue that runs `scanMods()`.
-    /// Le scanner du domaine Scan (REFACTORING §6, tranche 1) : balayage de
-    /// `Mods/`, lecture des manifestes, cache mtime — l'état qui était ici
-    /// (`manifestCache` + son `NSLock`) vit dans l'instance. **Une classe,
-    /// pas une valeur** : deux `scanMods()` concurrents (refresh + chargement
-    /// initial, activation de profil croisant un refresh manuel) doivent
-    /// toucher le même cache, verrouillé dedans — le subscript non protégé
-    /// d'un dictionnaire est un `EXC_BAD_ACCESS` classique sous cette course
-    /// (crash de juillet 2026), et deux copies vaudraient deux caches.
+    /// Scanner (cache mtime des manifestes + verrou dedans). **Une classe** :
+    /// deux `scanMods()` concurrents doivent partager le même cache verrouillé
+    /// (subscript non protégé = `EXC_BAD_ACCESS`, juillet 2026).
     private let scanner = ModScanner()
 
-    /// **Toute écriture dans un `config.json` périme le rapport de
-    /// raccourcis** — la règle, en un seul exemplaire (X66).
-    ///
-    /// Le rapport se lit exclusivement dans ces fichiers, et la signature de
-    /// `scanIfNeeded` ne couvre que `folderName`/`isEnabled` : une écriture
-    /// qui ne touche pas au parc est invisible pour elle. Le rapport et la
-    /// pastille resteraient sur l'état d'avant — le conflit que l'utilisateur
-    /// vient de corriger encore affiché, ou celui que la restauration vient
-    /// d'introduire toujours absent.
-    ///
-    /// La fermeture de l'éditeur de configuration l'avait déjà ; les trois
-    /// autres chemins qui écrivent un `config.json` l'ignoraient : la
-    /// restauration d'une sauvegarde de configurations, la bascule de profil
-    /// (`restoreProfileConfigs`) et la récupération d'un fichier perdu
-    /// (`recoverFile`, partagé avec la reprise d'une sauvegarde protégée).
-    ///
-    /// `scan` et non `scanIfNeeded` : c'est l'entrée sans condition de
-    /// signature, celle du bouton « Relancer l'analyse ». Ses propres gardes
-    /// (`gameDir` vide, lecture détachée hors du fil principal) rendent
-    /// l'appel sûr même quand rien n'a changé, et une demande arrivant
-    /// pendant un scan est désormais rejouée à sa fin plutôt que perdue.
-    ///
-    /// `Task { @MainActor … }` comme le `didSet` de `mods` : cette classe
-    /// n'est pas `@MainActor`, le service l'est.
+    /// **Toute écriture de `config.json` périme le rapport de raccourcis**
+    /// (X66) : `scanIfNeeded` ne voit que `folderName`/`isEnabled`. Appelé par
+    /// l'éditeur, la restauration de configs, `restoreProfileConfigs` et
+    /// `recoverFile`. `scan` (sans condition) : sûr même sans changement, et
+    /// rejoué s'il arrive pendant un scan.
     func rescanKeybindsAfterConfigWrite() {
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -1616,15 +1411,13 @@ final class StarHubTHViewModel {
     }
 
     // MARK: Journal — le store du domaine (cadrage §4, domaine 2). Il porte
-    // les deux sources : les lignes que StarHubFR écrit lui-même et le bloc
-    // relu depuis `SMAPI-latest.txt`. Le plafond mémoire et sa règle de
-    // composition vivent dans `LogBudget` (Core, testé).
+    // les deux sources (lignes de l'app, bloc de `SMAPI-latest.txt`) ;
+    // plafond mémoire dans `LogBudget` (Core).
     private let logStore = LogStore()
 
     var logEntries: [LogEntry] { logStore.entries }
 
-    /// « Vider les journaux » de l'onglet Journaux. Ne retire que les lignes
-    /// de StarHubFR — voir `LogStore.clearApp()`.
+    /// « Vider les journaux » : lignes de StarHubFR seulement.
     func clearAppLog() { logStore.clearApp() }
     let alertStore = AlertStore()
 
@@ -1632,30 +1425,21 @@ final class StarHubTHViewModel {
     var backupToBranch: SaveBackup? = nil
 
     // MARK: Profils — le store du domaine (cadrage §4, domaine 5). Les
-    // décisions d'activation, la capture des configs et la reprise vivent
-    // déjà en Core (`ProfileActivation`, `ProfileConfigCapture`,
-    // `ProfileRecovery`) ; le store n'est que l'état.
+    // décisions en Core (`ProfileActivation`, `ProfileConfigCapture`,
+    // `ProfileRecovery`) ; le store est l'état.
     private let profilesStore = ProfileStore()
 
     var modProfiles: [ModProfile] { profilesStore.profiles }
     var activeProfileId: UUID? { profilesStore.activeProfileId }
 
-    /// True while a profile is being applied to disk (mod folders moving, then
-    /// the rescan). Blocks starting another activation until it finishes, and
-    /// lets the UI disable the Activate/Manage buttons meanwhile.
+    /// True while a profile is applied (moves + rescan); blocks another.
     var isApplyingProfile: Bool { profilesStore.isApplying }
 
-    /// Id of the profile currently being applied, or nil when none is in
-    /// flight. Drives the per-row spinner in ModProfilesView (the Activate
-    /// button of the matching row is replaced by a ProgressView). Cleared
-    /// together with `isApplyingProfile` once the move + rescan completes —
-    /// `ProfileStore.endApplying()`.
+    /// Profile being applied, or nil; drives the row spinner.
     var applyingProfileId: UUID? { profilesStore.applyingId }
 
-    /// Délai anti double-lancement (R2bis) : ponte la fenêtre où le jeu lancé
-    /// n'apparaît pas encore dans `NSWorkspace.runningApplications`. La porte
-    /// se rouvre dès que le jeu y devient visible (`isGameRunning()` appelle
-    /// `noticeGameRunning()`).
+    /// Anti double-lancement (R2bis) : couvre le délai avant que le jeu
+    /// apparaisse dans `runningApplications`.
     private var launchGate = GameLaunchGate()
 
     /// When true, toggling a mod also cascades to its dependencies / dependents.
@@ -1671,29 +1455,13 @@ final class StarHubTHViewModel {
     }
     
     let smapiInstaller = SmapiInstaller()
-    // Rangé sur le ViewModel — pas sur la vue — pour que le rapport survive
-    // au changement d'onglet : `SystemAlertsView` vit dans une chaîne
-    // if/else if de `MainView`, pas dans un `Group` à identité stable, donc
-    // un `@StateObject` posé sur la section serait détruit et recréé à
-    // chaque retour sur l'onglet (constat de revue C4-T2, ronde 1).
-    // `KeybindScanService` porte un `init()` explicite `nonisolated` (même
-    // patron que `BisectionRunner.init(vm:)` juste en dessous), posé du temps
-    // où `StarHubTHViewModel` n'était pas `@MainActor` au niveau de la
-    // classe — la classe du VM l'est depuis la tranche L2 (2026-09-13),
-    // l'appel ci-dessous passe donc aujourd'hui par son isolation, et
-    // l'`init` nonisolé n'est plus ce dont il dépend.
+    // Sur le VM pour survivre au changement d'onglet : `SystemAlertsView`
+    // n'a pas d'identité stable (C4-T2).
     let keybindScanService = KeybindScanService()
 
-    /// Miroir du rapport du scanner de raccourcis. `KeybindScanService` reste
-    /// un `ObservableObject` hors lot (cadrage §3) : sous `@Observable`, une
-    /// lecture de son `report` depuis un corps calculé ne serait pas suivie —
-    /// la fin d'un scan n'invaliderait plus la pastille d'alertes. On
-    /// souscrit à `$report`, pas à `objectWillChange` : le payload est la
-    /// valeur NEUVE (@Published émettra l'ancienne), et la valeur courante est
-    /// re-émise à la souscription — la convergence est structurelle, pas un
-    /// accident de l'ordre des écritures du scanner. `removeDuplicates()` :
-    /// un scan émet plusieurs fois sans toujours changer le rapport.
-    /// (Revue du chantier A, Task 1.)
+    /// Miroir du rapport de `KeybindScanService` (`ObservableObject`) : sous
+    /// `@Observable`, sa lecture ne serait pas suivie. Abonné à `$report`
+    /// (valeur neuve, ré-émise à la souscription) ; `removeDuplicates()`.
     private(set) var keybindReport: KeybindScanner.KeybindReport?
     private var keybindCancellable: AnyCancellable?
     private var defaultsCancellable: AnyCancellable?
