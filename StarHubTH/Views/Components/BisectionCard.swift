@@ -51,7 +51,7 @@ struct BisectionCard: View {
             if runner.isApplying {
                 // Préparation de la recherche (détection des candidats) ou
                 // lancement du jeu : rien à proposer tant que ça tourne.
-                Text(localization.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.launching)).font(AppDesign.Font.caption).foregroundColor(.secondary)
             } else {
                 Text(localization.L(L10n.Bisect.intro)).font(AppDesign.Font.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true) // tronqué en fenêtre étroite sinon
@@ -62,8 +62,8 @@ struct BisectionCard: View {
 
     private func step(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(title)).font(.system(size: 13, weight: .semibold))
-            Text(localization.L(body)).font(.system(size: 12)).foregroundColor(.secondary)
+            Text(localization.L(title)).font(AppDesign.Font.body(.semibold))
+            Text(localization.L(body)).font(AppDesign.Font.caption).foregroundColor(.secondary)
             answerButtons
         }
     }
@@ -83,7 +83,7 @@ struct BisectionCard: View {
                               alignment: .leading, spacing: 2) {
                         ForEach(items.sorted(), id: \.self) { name in
                             Text(name)
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(AppDesign.Font.monoFootnote)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,25 +101,25 @@ struct BisectionCard: View {
                 .buttonStyle(.borderless).controlSize(.small)
             }
         } label: {
-            Text("\(localization.L(title)) (\(items.count))").font(.system(size: 12))
+            Text("\(localization.L(title)) (\(items.count))").font(AppDesign.Font.caption)
         }
     }
 
     private func trial(_ n: Int, _ total: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(String(format: localization.L(L10n.Bisect.stepOf), n, total))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppDesign.Font.body(.semibold))
             ProgressView(value: Double(n), total: Double(total))
             // Mods en pause = candidats (code-mods) moins ceux de l'essai courant.
             // On ne compte pas les mods déjà désactivés avant la recherche.
             Text(String(format: localization.L(L10n.Bisect.pausedCount),
                         max(0, runner.candidateCount - runner.currentFolders.count)))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             // Ce qui est déjà écarté : la seule mesure honnête de l'avancement,
             // et ce qui donne un sens à l'attente entre deux lancements de jeu.
             if !runner.clearedFolders.isEmpty {
                 Text(String(format: localization.L(L10n.Bisect.clearedCount), runner.clearedFolders.count))
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(AppDesign.Font.caption).foregroundColor(.secondary)
             }
             copyableList(L10n.Bisect.showMods, runner.currentFolders, expanded: $showMods)
             if !runner.clearedFolders.isEmpty {
@@ -131,9 +131,9 @@ struct BisectionCard: View {
 
     private func confirming(_ folder: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(L10n.Bisect.confirmTitle)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.confirmTitle)).font(AppDesign.Font.body(.semibold))
             Text(String(format: localization.L(L10n.Bisect.confirmBody), folder))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             answerButtons
         }
     }
@@ -141,19 +141,19 @@ struct BisectionCard: View {
     private var answerButtons: some View {
         VStack(alignment: .leading, spacing: 8) {
             if runner.isApplying {
-                Text(localization.L(L10n.Bisect.launching)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.launching)).font(AppDesign.Font.caption).foregroundColor(.secondary)
             } else {
-                Text(localization.L(L10n.Bisect.waiting)).font(.system(size: 12)).foregroundColor(.secondary)
+                Text(localization.L(L10n.Bisect.waiting)).font(AppDesign.Font.caption).foregroundColor(.secondary)
                 if let hint = logHint {
                     Text(String(format: localization.L(L10n.Bisect.hintFromLog), hint))
-                        .font(.system(size: 11)).foregroundColor(.secondary)
+                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 }
                 if runner.gameStillRunning {
                     Label(localization.L(L10n.Bisect.quitGameFirst), systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12))
+                        .font(AppDesign.Font.caption)
                         .foregroundColor(.orange)
                 }
-                Text(localization.L(L10n.Bisect.question)).font(.system(size: 12, weight: .medium))
+                Text(localization.L(L10n.Bisect.question)).font(AppDesign.Font.caption(.medium))
                 SplitRow { // ~523 pt en FR : repli sur deux lignes à la fenêtre minimale
                     Button(localization.L(L10n.Bisect.answerYes)) { runner.answer(.stillBroken) }
                     Button(localization.L(L10n.Bisect.answerNo)) { runner.answer(.fixed) }
@@ -185,9 +185,9 @@ struct BisectionCard: View {
     /// jeu à la dernière ligne.
     private func inconclusive(_ remaining: [String]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(L10n.Bisect.inconclusiveTitle)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.inconclusiveTitle)).font(AppDesign.Font.body(.semibold))
             Text(localization.L(L10n.Bisect.inconclusiveBody))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             // « Pas de réponse simple » est *le* cas de l'interaction : si le
             // journal accuse un mod que la recherche n'a pas retenu, c'est
             // l'information la plus utile de tout l'écran.
@@ -197,7 +197,7 @@ struct BisectionCard: View {
             })?.name, let first = remaining.first {
                 Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, first),
                       systemImage: "info.circle")
-                    .font(.system(size: 12)).foregroundColor(.orange)
+                    .font(AppDesign.Font.caption).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
                     // une VStack, un Label ne se replie pas de lui-même.
                     .fixedSize(horizontal: false, vertical: true)
@@ -205,9 +205,9 @@ struct BisectionCard: View {
             }
             if !remaining.isEmpty {
                 Text(localization.L(L10n.Bisect.inconclusiveRemaining))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
                 Text(remaining.sorted().joined(separator: "\n"))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(AppDesign.Font.monoFootnote)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -235,13 +235,13 @@ struct BisectionCard: View {
             .first { !$0.name.localizedCaseInsensitiveContains(folder)
                   && !folder.localizedCaseInsensitiveContains($0.name) }?.name
         return VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(L10n.Bisect.concludedTitle)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.concludedTitle)).font(AppDesign.Font.body(.semibold))
             Text(String(format: localization.L(L10n.Bisect.concludedBody), folder))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             if let other = blamedByLog {
                 Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, folder),
                       systemImage: "info.circle")
-                    .font(.system(size: 12)).foregroundColor(.orange)
+                    .font(AppDesign.Font.caption).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
                     // une VStack, un Label ne se replie pas de lui-même.
                     .fixedSize(horizontal: false, vertical: true)
@@ -291,7 +291,7 @@ struct BisectionCard: View {
                     .buttonStyle(.link)
                 }
             }
-            .font(.system(size: 12))
+            .font(AppDesign.Font.caption)
         }
     }
 
@@ -303,7 +303,7 @@ struct BisectionCard: View {
     private var restoreWarning: some View {
         if runner.restoreIncomplete {
             Label(localization.L(L10n.Bisect.restoreIncomplete), systemImage: "exclamationmark.triangle.fill")
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .foregroundColor(.orange)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -318,13 +318,13 @@ struct BisectionCard: View {
     private var logEvidenceView: some View {
         if !runner.logEvidence.isEmpty {
             Text(localization.L(L10n.Bisect.logEvidence))
-                .font(.system(size: 12, weight: .medium))
+                .font(AppDesign.Font.caption(.medium))
             ForEach(runner.logEvidence) { suspect in
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(String(format: localization.L(L10n.Bisect.logSuspectLine),
                                     suspect.name, suspect.whenBroken, suspect.brokenSteps))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(AppDesign.Font.caption(.medium))
                         // Le journal accuse parfois un mod que la recherche n'a
                         // pas retenu : c'est justement celui qu'on veut aller
                         // regarder. Le nom seul ne mène nulle part.
@@ -340,14 +340,14 @@ struct BisectionCard: View {
                         // L'erreur elle-même : un compte ne dit pas ce qui a
                         // mal tourné, et c'est cela qu'on cherche.
                         Text(sample)
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(AppDesign.Font.monoFootnote)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !suspect.appearsOnlyWith.isEmpty {
                         Text(String(format: localization.L(L10n.Bisect.appearsOnlyWith),
                                     suspect.appearsOnlyWith.joined(separator: ", ")))
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.orange)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -361,8 +361,8 @@ struct BisectionCard: View {
 
     private func finished(_ title: String, _ body: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(title)).font(.system(size: 13, weight: .semibold))
-            Text(body).font(.system(size: 12)).foregroundColor(.secondary)
+            Text(localization.L(title)).font(AppDesign.Font.body(.semibold))
+            Text(body).font(AppDesign.Font.caption).foregroundColor(.secondary)
             restoreWarning
             Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
@@ -371,11 +371,11 @@ struct BisectionCard: View {
 
     private func interrupted(_ snapshot: BisectionSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(L10n.Bisect.interruptedTitle)).font(.system(size: 13, weight: .semibold))
+            Text(localization.L(L10n.Bisect.interruptedTitle)).font(AppDesign.Font.body(.semibold))
             Text(String(format: localization.L(L10n.Bisect.interruptedBody),
                         DateFormatter.localizedString(from: snapshot.startedAt,
                                                       dateStyle: .short, timeStyle: .short)))
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(AppDesign.Font.caption).foregroundColor(.secondary)
             Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .buttonStyle(.borderedProminent)
                 .disabled(runner.isApplying)
@@ -387,8 +387,8 @@ struct BisectionCard: View {
     /// réinitialiser l'état quand il n'y a rien à restaurer).
     private var noCandidatesView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localization.L(L10n.Bisect.title)).font(.system(size: 13, weight: .semibold))
-            Text(localization.L(L10n.Bisect.noCandidates)).font(.system(size: 12)).foregroundColor(.secondary)
+            Text(localization.L(L10n.Bisect.title)).font(AppDesign.Font.body(.semibold))
+            Text(localization.L(L10n.Bisect.noCandidates)).font(AppDesign.Font.caption).foregroundColor(.secondary)
             Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
                 .disabled(runner.isApplying)
         }
