@@ -5336,10 +5336,8 @@ final class StarHubTHViewModel {
                 level: .info)
         }
 
-        // Le parc vient de changer : la liste des affirmations en dépend par
-        // ses deux bouts — l'ancre et la version du manifest. Les
-        // avertissements du dump aussi : ils ne portent que sur les mods
-        // réellement installés.
+        // Parc changé : affirmations (ancre, manifest) et avertissements du dump
+        // à recomposer.
         Task { @MainActor [weak self] in
             self?.refreshAffirmedUpdates()
             self?.refreshModWarnings()
@@ -5360,9 +5358,7 @@ final class StarHubTHViewModel {
     
     // MARK: - Saves
 
-    /// fetchSaves() scans the Saves directory and parses every save's XML —
-    /// run off the main thread so it doesn't stall the UI when there are
-    /// many saves.
+    /// Scans and parses every save's XML, off main.
     nonisolated func reloadSaves() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let saves = SaveManager.shared.fetchSaves()
@@ -5372,30 +5368,23 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Whether Stardew Valley itself currently appears to be running.
-    /// Best-effort process-name check (matches the launcher and the SMAPI-
-    /// renamed process) — used to warn before writing save files, since the
-    /// game's own autosave could conflict with an edit/restore made while
-    /// it's open. Not a guarantee: a differently-named build wouldn't match.
+    /// Best-effort check that the game runs (launcher or SMAPI process name),
+    /// to warn before writing saves. A differently-named build won't match.
     func isGameRunning() -> Bool {
         let running = NSWorkspace.shared.runningApplications.contains {
             guard let name = $0.localizedName else { return false }
             return name.caseInsensitiveCompare("Stardew Valley") == .orderedSame
         }
         if running {
-            // Le jeu est visible : le garde système protège désormais seul,
-            // et le délai anti double-lancement ne doit plus retenir un
-            // relancement légitime (crash immédiat, puis nouvelle tentative).
+            // Jeu visible : le garde système suffit, le délai ne doit plus retenir un
+            // relancement légitime.
             launchGate.noticeGameRunning()
         }
         return running
     }
 
-    /// Whether `info`'s save file has been modified on disk since `info` was
-    /// captured (e.g. the game was played while an editor was open on the
-    /// stale snapshot). Callers use this to warn before writing — the editor
-    /// forms don't diff individual fields, so a blind write would silently
-    /// revert any progress made since the snapshot was taken.
+    /// True if the save changed on disk since `info` was captured: forms
+    /// don't diff fields, so a blind write would revert newer progress.
     func isSaveStale(_ info: SaveGameInfo) -> Bool {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: info.fileURL.path),
               let currentModified = attrs[.modificationDate] as? Date else {
@@ -5405,13 +5394,11 @@ final class StarHubTHViewModel {
     }
 
     func editSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) {
-        // Même verrou que `duplicateSave`/`deleteSave` : une réécriture de
-        // sauvegarde est un lecture-modification-écriture entier — deux
-        // opérations qui s'entrelacent valent « dernier gagne », les
-        // changements de l'autre perdus (audit 2026-08-05).
+        // Même verrou que `duplicateSave`/`deleteSave` : deux
+        // lecture-modification-écriture entrelacées perdent des changements
+        // (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
-        // `updateSave` parses and rewrites the full save XML — dispatched
-        // off main so it doesn't block the UI on a large save file.
+        // Full save XML rewrite, off main.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
             DispatchQueue.main.async {
@@ -5431,8 +5418,7 @@ final class StarHubTHViewModel {
         let items = navigationStore.inventoryToEdit
         // Même verrou qu'`editSave` (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
-        // Same rationale as `editSave` — the save file read/write below
-        // must not run on the main thread.
+        // Same as `editSave`: off main.
         DispatchQueue.global(qos: .userInitiated).async {
             let success = SaveManager.shared.updateInventory(info: save, items: items)
             let refetched = success ? SaveManager.shared.fetchInventory(for: save) : nil
@@ -5449,13 +5435,8 @@ final class StarHubTHViewModel {
             }
         }
     }
-    /// Envoie le dossier de sauvegarde à la corbeille.
-    ///
-    /// **Hors du fil principal, obligatoirement** : une sauvegarde de fin de
-    /// partie pèse des dizaines de mégaoctets répartis sur des centaines de
-    /// fichiers, et le déplacement se faisait ici même, fenêtre figée.
-    /// `@MainActor` sur la méthode : seul le corps du `Task.detached` quitte
-    /// le fil principal, les `@Published` touchés après l'`await` y restent.
+    /// Envoie la sauvegarde à la corbeille, **hors fil principal** (dizaines
+    /// de Mo). Seul le `Task.detached` quitte main.
     @MainActor
     func deleteSave(info: SaveGameInfo) async {
         guard savesStore.beginOperation() else { return }
@@ -5464,11 +5445,8 @@ final class StarHubTHViewModel {
         }.value
         savesStore.endOperation()
         if deleted {
-            // Fermer l'éditeur ici, pas côté vue : la suppression est
-            // asynchrone, et un `setEditingSave(nil)` enchaîné après l'appel
-            // fermait la fiche même quand le `guard` ci-dessus avait renvoyé
-            // sans rien supprimer. Ne ferme que la fiche de la sauvegarde
-            // supprimée — on peut en éditer une autre depuis l'arbre.
+            // Fermer l'éditeur ici (suppression asynchrone), et seulement pour la
+            // sauvegarde supprimée.
             if navigationStore.editingSave?.id == info.id { navigationStore.setEditingSave(nil) }
             reloadSaves()
             showModal(message: localization.L(L10n.VM.deleteSaveSuccess))
@@ -5477,9 +5455,7 @@ final class StarHubTHViewModel {
         }
     }
     
-    /// Façades de lecture vers le store du domaine — le suivi d'observation
-    /// les traverse (cadrage §2, cas 1), la composition (filiation, tri,
-    /// filtre par étiquette) est prouvée dans `SavesStoreTests`.
+    /// Façades de lecture ; composition prouvée dans `SavesStoreTests`.
     var savesHierarchy: [SaveNode] { savesStore.hierarchy }
     var availableFilterTags: [String] { savesStore.availableFilterTags }
     
@@ -5488,8 +5464,8 @@ final class StarHubTHViewModel {
         SaveNotesStore.shared.setNote(for: folderName, tag: note.tag, note: note.note, customIconPath: iconPath)
     }
     
-    /// Copie le portrait choisi dans le dossier de données — le chemin d'origine
-    /// disparaîtrait au premier rangement. Nommage : `CustomAvatarStaging` ; panneau : `ImagePicking`.
+    /// Copie le portrait dans le dossier de données (l'original peut
+    /// disparaître). `CustomAvatarStaging` ; panneau `ImagePicking`.
     func selectCustomAvatar(forSave folderName: String, completion: ((String) -> Void)? = nil) {
         guard let chosen = imagePicker.pickImage(title: localization.L(L10n.Saves.avatarPanelTitle)),
               let avatars = AppSupport.avatarsDirectory else { return }
@@ -5498,10 +5474,8 @@ final class StarHubTHViewModel {
         let plan = CustomAvatarStaging.plan(forSave: folderName, source: source, in: avatars,
                                             fileExists: { fm.fileExists(atPath: $0.path) })
         do {
-            // Sans ce retrait, deux images de même nom de fichier faisaient
-            // échouer `copyItem` (`NSFileWriteFileExists`, 516, mesuré) et le
-            // choix du joueur restait sans effet. Le préfixe de destination
-            // porte l'identité de la sauvegarde : le fichier retiré est le sien.
+            // Sans ce retrait, deux images de même nom échouaient (516) ; le préfixe
+            // porte l'identité de la sauvegarde.
             if plan.replacesExisting { try fm.removeItem(at: plan.destination) }
             try fm.copyItem(at: source, to: plan.destination)
         } catch {
@@ -5512,12 +5486,9 @@ final class StarHubTHViewModel {
         completion?(plan.destination.path)
     }
     
-    /// Copie le dossier de sauvegarde puis réécrit les noms dans son XML.
-    /// Même raison qu'`deleteSave` de tourner hors du fil principal — ici
-    /// c'est une copie complète, l'opération la plus lente de l'onglet.
-    /// Rend le succès : la feuille de duplication ne se ferme que sur une
-    /// copie réussie (audit 2026-08-05), l'échec laisse l'utilisateur
-    /// réessayer sous le modal d'erreur.
+    /// Copie la sauvegarde et réécrit les noms, hors fil principal (copie
+    /// complète, la plus lente). Rend le succès : la feuille ne se ferme que
+    /// sur réussite (audit 2026-08-05).
     @MainActor
     func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) async -> Bool {
         guard savesStore.beginOperation() else { return false }
@@ -5540,9 +5511,7 @@ final class StarHubTHViewModel {
 
     // MARK: - Backup Timeline
 
-    /// listBackups scans the backups folder on disk — run off the main
-    /// thread so opening the timeline doesn't stall the UI when there are
-    /// many backups.
+    /// Lists backups off main.
     func listBackups(for info: SaveGameInfo, completion: @escaping @Sendable ([SaveBackup]) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             let backups = SaveManager.shared.listBackups(for: info)
@@ -5552,9 +5521,7 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Copie la sauvegarde entière dans le dossier des backups. C'est la plus
-    /// lourde des écritures de l'onglet ; elle tournait pourtant sur le fil
-    /// principal, bouton « Sauvegarder » compris.
+    /// Copie la sauvegarde entière dans les backups, hors fil principal.
     @MainActor
     func createBackup(info: SaveGameInfo) async -> Bool {
         guard savesStore.beginOperation() else { return false }
@@ -5622,10 +5589,7 @@ final class StarHubTHViewModel {
     }
 
     // MARK: - Backup & Management
-    /// Zips `sourceDir`'s contents to a timestamped file on the Desktop.
-    /// Shared by backupAllSaves/backupAllMods, which differ only in the
-    /// source directory, the output filename prefix, and their localized
-    /// success/error messages.
+    /// Zips `sourceDir` to a timestamped Desktop file (saves and mods).
     private func zipToDesktop(sourceDir: String, filePrefix: String, successKey: String, errorKey: String) {
         let desktopDir = "\(NSHomeDirectory())/Desktop"
         let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
@@ -5633,9 +5597,7 @@ final class StarHubTHViewModel {
             .replacingOccurrences(of: ":", with: "")
         let zipPath = "\(desktopDir)/\(filePrefix)_\(timestamp).zip"
 
-        // Zipping a whole Saves/Mods folder can take a while for large
-        // libraries — run the process and block on its exit off the main
-        // thread so the UI doesn't freeze for the duration.
+        // Zipping can take long: off main.
         DispatchQueue.global(qos: .userInitiated).async {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
@@ -5674,13 +5636,9 @@ final class StarHubTHViewModel {
         zipToDesktop(sourceDir: modsDir, filePrefix: "StardewMods_Backup", successKey: L10n.VM.backupModsSuccess, errorKey: L10n.VM.zipModsError)
     }
     
-    /// Les dossiers que « Vider les mods désactivés » supprimerait, relevés
-    /// **une fois**.
-    ///
-    /// L'écran s'en sert pour chiffrer sa confirmation, puis passe la **même**
-    /// liste à `cleanDisabledMods(targets:)` : ce qui est annoncé est
-    /// exactement ce qui part. Deux relevés à deux instants laisseraient un
-    /// dossier mis en pause entre-temps être supprimé sans avoir été compté.
+    /// Dossiers que « Vider les mods désactivés » supprimerait, relevés **une
+    /// fois** : la confirmation et `cleanDisabledMods(targets:)` voient la
+    /// **même** liste.
     func disabledModTargets() -> [String] {
         guard !gameDir.isEmpty else { return [] }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -5691,19 +5649,16 @@ final class StarHubTHViewModel {
     }
 
     /// Met en corbeille (X103-B) les mods en pause désignés par
-    /// `DisabledModsCleanup` (Core) — en **un** événement, que l'Entretien
-    /// remet ou purge d'un bloc. Sur le parc de référence, 721 dossiers : ce
-    /// geste était le seul à les effacer sans retour. L'espace ne revient
-    /// qu'au vidage de la corbeille.
+    /// `DisabledModsCleanup`, en **un** événement (721 dossiers au parc).
+    /// L'espace ne revient qu'au vidage.
     func cleanDisabledMods(targets: [String]) {
         guard !gameDir.isEmpty else { return }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let result = ModTrash.trash(modsPath: modsPath, stamp: ModTrash.makeStamp(), items: targets.map {
             ModTrash.Item(physical: $0, logicalLeaf: String($0.drop { $0 == "." }))
         })
-        // Pas de `forgetStores` ici, à la différence de `deleteMod` : « Tout
-        // remettre » doit rendre le lot avec ses données (configs par profil,
-        // traductions, identifiants saisis) — choix de l'auteur, 2026-09-24.
+        // Pas de `forgetStores` : « Tout remettre » rend le lot avec ses données
+        // (choix de l'auteur, 2026-09-24).
         let firstError = result.failed.first?.error
 
         let outcome = DisabledModsCleanup.outcome(removed: result.moved.count,
@@ -5734,11 +5689,7 @@ final class StarHubTHViewModel {
     
     // MARK: - Mod Profiles
     func loadProfiles() {
-        // Les mutations se font sur le fil principal — `performInitialLoad`
-        // appelle d'ici son bloc `main.async`. ⚠️ Ce commentaire disait
-        // autrefois que SwiftUI émet un diagnostic sur une écriture hors fil :
-        // sous `@Observable`, plus aucun diagnostic n'est émis — mais l'ordre
-        // des publications reste ce que l'UI suppose.
+        // Sur main (`performInitialLoad`) : l'UI suppose cet ordre.
         if let data = UserDefaults.standard.data(forKey: UDKey.modProfiles),
            let profiles = try? JSONDecoder().decode([ModProfile].self, from: data) {
             self.profilesStore.setProfiles(profiles)
@@ -5754,17 +5705,10 @@ final class StarHubTHViewModel {
         sweepOrphanProfileConfigStores()
     }
 
-    /// Retire les magasins de configs dont plus aucun profil ne réclame la
-    /// propriété (B3-T7).
-    ///
-    /// `deleteProfile` s'en charge désormais au moment du geste ; ce balayage
-    /// est là pour les profils supprimés **avant** cette version, dont le
-    /// magasin serait resté sur le disque à jamais — plus rien ne le lit, rien
-    /// ne le nomme, rien ne l'effaçait.
-    ///
-    /// Le garde-fou vit dans `orphanFileNames` : une liste de profils vide ne
-    /// rend jamais d'orphelin. Des préférences illisibles donnent exactement
-    /// cette liste, et le balayage viderait alors tout le dossier.
+    /// Retire les magasins de configs sans profil propriétaire (B3-T7), pour
+    /// les profils supprimés avant que `deleteProfile` le fasse. Garde-fou
+    /// dans `orphanFileNames` : liste de profils vide (préférences illisibles)
+    /// = aucun orphelin.
     private func sweepOrphanProfileConfigStores() {
         guard let dir = ProfileConfigStore.directoryURL(),
               let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path)
@@ -5791,73 +5735,46 @@ final class StarHubTHViewModel {
         }
     }
     
-    /// The currently-active profile, if any (nil when none is applied).
-    /// Un identifiant orphelin (profil supprimé) ne rend rien.
+    /// Active profile, or nil (an orphaned id yields nothing).
     var activeProfile: ModProfile? { profilesStore.activeProfile }
 
     private static let defaultProfileKey = "defaultProfileId"
 
-    /// L'id du profil par défaut auto-créé (`nil` si aucun n'a été seedé).
-    /// **Miroir** : la seule écriture est le seed du VM
-    /// (`ensureDefaultProfileIfNeeded`), qui met la stockée et `UserDefaults`
-    /// à jour ensemble — c'est pourquoi il ne participe pas à
-    /// `resyncMirroredDefaults()` : aucune écriture extérieure à resuivre.
-    /// La seed lit la constante **statique** : un initialisateur de propriété
-    /// ne peut pas lire un `let` d'instance.
+    /// Profil par défaut auto-créé. **Miroir** écrit seulement par le seed,
+    /// d'où son absence de `resyncMirroredDefaults()`. Seed par la constante
+    /// **statique**.
     private(set) var defaultProfileId: UUID? =
         UserDefaults.standard.string(forKey: StarHubTHViewModel.defaultProfileKey).flatMap(UUID.init(uuidString:))
 
-    /// The default profile is protected from deletion (it's the always-present
-    /// baseline). Everything else about it behaves like a normal profile.
+    /// Protected from deletion; otherwise a normal profile.
     func isDefaultProfile(_ id: UUID) -> Bool { defaultProfileId == id }
 
-    /// Les profils dont la dernière application n'a **pas** abouti : un
-    /// déplacement en échec, ou un mod référencé absent du disque.
-    ///
-    /// Tant qu'un profil y figure, son contenu ne doit pas être réécrit depuis
-    /// le disque — ce que le disque porte est l'accident, pas ce que
-    /// l'utilisateur a demandé. Un profil en sort dès qu'une application
-    /// aboutit, ou que l'utilisateur adopte délibérément l'état du disque
-    /// (bascule d'un mod, suppression) : il n'y a plus alors d'écart en
-    /// suspens. Non persisté : au prochain démarrage, le dossier tenu ouvert
-    /// ne l'est plus, et l'utilisateur réapplique.
+    /// Profils dont la dernière application a échoué : leur contenu ne se
+    /// réécrit pas depuis le disque (l'accident). Sortie à la prochaine
+    /// application réussie ou adoption délibérée. Non persisté.
     private var incompletelyAppliedProfileIds: Set<UUID> = []
 
-    /// R2 — le journal d'une application morte en route (crash, force-quit),
-    /// chargé au lancement et maintenu par écriture/effacement dans
-    /// `applyProfileToFilesystem`. Contrairement au set ci-dessus, il
-    /// **survit** au redémarrage : c'est lui qui empêche l'adoption
-    /// silencieuse de l'état partiel par `syncActiveProfileIds`. Non publié :
-    /// sa présentation passe par `pendingApplyRecovery`, différée à la
-    /// révélation de la fenêtre.
+    /// R2 — journal d'une application interrompue (crash) : **survit** au
+    /// redémarrage et empêche `syncActiveProfileIds` d'adopter l'état
+    /// partiel. Présenté via `pendingApplyRecovery`.
     private(set) var unresolvedApplyJournal: ProfileApplyJournal?
 
-    /// R2 — où vit ce journal sur disque. Relevé **une fois** : les quatre
-    /// points d'appel du ViewModel doivent désigner le même fichier, sans quoi
-    /// un `clear` n'effacerait rien et le garde d'adoption resterait armé sur
-    /// un journal fantôme. Le store, lui, n'a plus de valeur par défaut — c'est
-    /// ce qui garantit qu'aucun test ne peut écrire ici par inadvertance.
+    /// R2 — dossier du journal, relevé **une fois** (quatre appels, un seul
+    /// fichier). Pas de défaut dans le store : aucun test n'écrit ici.
     private let applyJournalDirectory: URL? = AppSupport.directory
 
-    /// R2 — le dialogue de reprise, présenté une fois la fenêtre révélée —
-    /// jamais pendant le splash : un dialogue attaché à une fenêtre hors
-    /// écran ne se présente pas, et le cycle de lancement est un terrain
-    /// documenté comme meurtrier.
+    /// R2 — dialogue de reprise, après révélation de la fenêtre, jamais
+    /// pendant le splash.
     private(set) var pendingApplyRecovery: ProfileApplyJournal?
 
-    /// One-time: on a fresh install, create a starter profile capturing the
-    /// current mod setup so there's always an active profile to work from.
-    /// Guarded by a persisted flag so deleting every profile later never
-    /// re-creates it, and deferred until a scan has actually found mods so the
-    /// snapshot isn't empty.
+    /// One-time starter profile on a fresh install, guarded by a persisted
+    /// flag and deferred until a scan found mods.
     func ensureDefaultProfileIfNeeded() {
         let key = "didSeedDefaultProfile"
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         guard !mods.isEmpty else { return }   // wait for a scan with mods; don't burn the flag yet
         if modProfiles.isEmpty {
-            // Amorçage : ce profil doit décrire l'installation telle qu'elle
-            // est trouvée — c'est la base de référence, et elle est protégée
-            // de la suppression. Vide, elle ne servirait à rien.
+            // Amorçage : décrit l'installation trouvée (base protégée).
             createProfile(name: localization.L(L10n.Profiles.defaultName), seed: .currentlyEnabledMods)
             // Record the seeded profile as the (undeletable) default.
             if let seeded = modProfiles.last {
@@ -5868,17 +5785,15 @@ final class StarHubTHViewModel {
         UserDefaults.standard.set(true, forKey: key)
     }
 
-    /// - Parameter seed: vide, ou l'instantané des mods actifs. Sans valeur
-    ///   par défaut : le choix change ce que l'utilisateur obtient, et chaque
-    ///   appelant doit le trancher explicitement.
+    /// - Parameter seed: vide ou instantané des mods actifs, sans défaut :
+    ///   chaque appelant tranche.
     func createProfile(name: String, seed: ProfileSeed) {
         let made = ProfileFactory.make(name: name,
                                        seed: seed,
                                        enabledMods: mods.flattenedMods.filter(\.isEnabled))
         profilesStore.add(made.profile)
-        // Un instantané peut devenir actif sur-le-champ : il décrit déjà l'état
-        // du disque, aucun dossier à déplacer. Un profil vide, non — voir
-        // `ProfileFactory.make`.
+        // Un instantané peut s'activer tout de suite ; un profil vide, non
+        // (`ProfileFactory.make`).
         if made.activate {
             profilesStore.setActiveProfile(made.profile.id)
         }
@@ -5888,23 +5803,19 @@ final class StarHubTHViewModel {
 
     // MARK: - Récupérer un fichier isolé depuis une sauvegarde (B4-T4)
 
-    /// Ce qu'une mise à jour de mod a emporté et qu'une sauvegarde peut rendre.
-    /// Vide tant que `scanRecoverableFiles()` n'a pas tourné.
+    /// Fichiers qu'une mise à jour a emportés et qu'une sauvegarde peut
+    /// rendre ; vide avant `scanRecoverableFiles()`.
     private(set) var recoverableFiles: [RecoverableFile] = []
     private(set) var isScanningRecoverableFiles = false
 
-    /// Balaye les sauvegardes d'installation à la recherche des fichiers perdus.
-    ///
-    /// En tâche de fond, et jamais automatiquement au démarrage : le balayage
-    /// ouvre et décode plusieurs centaines de fichiers JSON.
+    /// Balaye les sauvegardes d'installation, en fond, jamais au démarrage
+    /// (centaines de JSON).
     func scanRecoverableFiles() {
         guard !isScanningRecoverableFiles else { return }
         isScanningRecoverableFiles = true
         let backups = ModInstallBackupManager.shared.loadBackups()
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        // Le chemin **physique** de chaque mod, résolu depuis le scan : un mod
-        // en pause vit sous `.Nom`, et un enfant de pack sous le dossier de son
-        // pack. `physicalFolderName` porte déjà cette règle.
+        // Chemin **physique** (`physicalFolderName`) : pause et enfants de pack.
         let physicalPaths = Dictionary(
             mods.flattenedMods.map {
                 ($0.folderName, (modsPath as NSString).appendingPathComponent($0.physicalFolderName))
@@ -5924,12 +5835,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les clés de premier niveau d'un fichier JSON, `nil` s'il n'existe pas ou
-    /// ne se décode pas.
-    ///
-    /// Le nettoyage passe par `ManifestJSON.sanitize` : les `config.json` et
-    /// les `i18n/*.json` du parc portent commentaires et virgules traînantes
-    /// comme les manifestes, et un décapage naïf couperait les URL en deux.
+    /// Clés de premier niveau d'un JSON, `nil` si absent ou illisible, via
+    /// `ManifestJSON.sanitize` (un décapage naïf coupe les URL).
     nonisolated private static func topLevelJSONKeys(atPath path: String) -> [String]? {
         guard let data = FileManager.default.contents(atPath: path),
               let raw = String(data: data, encoding: .utf8) else { return nil }
@@ -5937,43 +5844,28 @@ final class StarHubTHViewModel {
         return Array(object.keys)
     }
 
-    /// Réécrit un fichier perdu depuis sa sauvegarde.
-    ///
-    /// Le fichier encore en place — cas des clés perdues — est **sauvegardé
-    /// d'abord** par le système de sauvegardes de configs : on n'écrase jamais
-    /// sans filet ce que l'utilisateur a réglé depuis.
+    /// Réécrit un fichier perdu ; le fichier en place est **sauvegardé
+    /// d'abord**.
     @discardableResult
     func recoverFile(_ file: RecoverableFile) -> Bool {
         let fm = FileManager.default
         do {
             if fm.fileExists(atPath: file.installedPath),
                let mod = mods.flattenedMods.first(where: { $0.folderName == file.folderName }) {
-                // `onlyEnabled: false` : le mod est nommément désigné, le
-                // filtre n'a rien à trancher ici — et sans ça, un mod en pause
-                // faisait **échouer la récupération elle-même** (le filet
-                // levait « aucun mod actif à sauvegarder », capté plus bas, et
-                // le fichier n'était jamais réécrit). 527 des 593 mods à
-                // `config.json` du parc sont en pause.
+                // `onlyEnabled: false` : sinon un mod en pause faisait échouer la
+                // récupération (527/593 mods à `config.json` sont en pause).
                 _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: [mod],
                                                                    onlyEnabled: false)
             }
-            // L'écriture passe par `RecoveredFileWriter` : les dossiers de mods
-            // sont souvent en lecture seule (`unzip`/`unrar` restituent les
-            // modes de l'archive), et une copie directe échoue dessus.
+            // `RecoveredFileWriter` : dossiers de mods souvent en lecture seule.
             try RecoveredFileWriter.write(from: file.backupPath,
                                           to: file.installedPath,
                                           modRoot: file.installedRoot)
             log(String(format: localization.L(L10n.Recovery.recovered), file.relativePath, file.modName))
             recoverableFiles.removeAll { $0.id == file.id }
-            // Le fichier rendu peut être un `config.json` — le cas le plus
-            // courant du parc — comme un `i18n/fr.json`, qui ne concerne pas
-            // les raccourcis. On rescanne sans distinguer : un scan de trop
-            // est sans coût (lecture détachée hors du fil principal), et
-            // trancher sur le nom du fichier serait une règle de plus à tenir
-            // en accord avec celle du scanner (X66).
+            // Rescan sans distinguer le fichier (X66) : un scan de trop est gratuit.
             rescanKeybindsAfterConfigWrite()
-            // Un fichier remis lève peut-être une protection de l'Entretien,
-            // que le segment « Fichiers récupérables » lit aussi (I-T8).
+            // Protection de l'Entretien peut-être levée (I-T8).
             if maintenanceStore.report != nil { buildMaintenanceReport() }
             return true
         } catch {
@@ -5982,22 +5874,15 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Le détail clé à clé entre la traduction d'une sauvegarde et celle du mod
-    /// installé.
-    ///
-    /// C'est ce qui permet de récupérer une traduction **sans écraser** le
-    /// travail fait depuis : une mise à jour rend souvent le fichier à sa
-    /// version anglaise, le traducteur en refait une partie, et le reste dort
-    /// dans la sauvegarde.
+    /// Diff clé à clé entre traduction sauvegardée et installée : récupérer
+    /// **sans écraser** le travail fait depuis.
     func translationDiff(for file: RecoverableFile) -> [TranslationKeyDiff] {
         let backup = Self.parseTranslation(atPath: file.backupPath) ?? [:]
         let installed = Self.parseTranslation(atPath: file.installedPath) ?? [:]
         return TranslationRecoveryDiff.compare(backup: backup, installed: installed)
     }
 
-    /// Lit un fichier de traduction comme le fait l'éditeur : décodage tolérant
-    /// à l'encodage, puis analyse indulgente (commentaires, virgules
-    /// traînantes, clés en double).
+    /// Lecture comme l'éditeur : décodage tolérant, analyse indulgente.
     nonisolated private static func parseTranslation(atPath path: String) -> [String: String]? {
         guard let data = FileManager.default.contents(atPath: path),
               let text = I18nFileDecoder.decode(data)?.text,
@@ -6005,21 +5890,15 @@ final class StarHubTHViewModel {
         return parsed
     }
 
-    /// Réinjecte les clés choisies dans le fichier installé.
-    ///
-    /// Ne réécrit que les clés que l'installé **n'a plus** — `edits(for:)` le
-    /// garantit une dernière fois — et passe par `TranslationDocument`, qui
-    /// conserve l'ordre et la forme du fichier plutôt que de le réécrire à
-    /// plat. Le `.bak` de `TranslationFileStore` reste le filet.
+    /// Réinjecte les clés que l'installé **n'a plus** (`edits(for:)`), via
+    /// `TranslationDocument` (ordre et forme conservés) ; `.bak` en filet.
     @discardableResult
     func recoverTranslationKeys(_ diffs: [TranslationKeyDiff], in file: RecoverableFile) -> Bool {
         let edits = TranslationRecoveryDiff.edits(for: diffs)
         guard !edits.isEmpty else { return false }
 
         let target = URL(fileURLWithPath: file.installedPath)
-        // La source donne le rang des clés neuves. Elle vit dans le même
-        // dossier `i18n` que la cible ; sans elle, `TranslationDocument` ne
-        // sait pas où ranger une clé absente du fichier.
+        // La source donne le rang des clés neuves.
         let i18nDirectory = target.deletingLastPathComponent()
         let sourceFiles = I18nLocaleResolver.files(in: i18nDirectory, locale: "default")
         let sourceFile = sourceFiles.first { $0.lastPathComponent == target.lastPathComponent }
@@ -6040,19 +5919,14 @@ final class StarHubTHViewModel {
             } else {
                 text = try TranslationDocument.create(fromSource: sourceText, translations: edits)
             }
-            // Le dossier du mod est souvent en lecture seule : même remède que
-            // pour la copie d'un fichier entier.
+            // Lecture seule fréquente : même remède.
             try RecoveredFileWriter.withWriteAccess(to: file.installedPath,
                                                     modRoot: file.installedRoot) {
                 try TranslationFileStore.write(text, to: target)
             }
             log(String(format: localization.L(L10n.Recovery.keysRecovered), Int64(edits.count), file.modName))
-            // Une écriture de même taille dans la même seconde laisse
-            // l'empreinte intacte : les rangées gardées (F7) serviraient
-            // l'état d'avant récupération. On ne repasse pas par
-            // `invalidateFrenchCoverage(for:)` — son retrait d'index effacerait
-            // les baselines que le mod conserve — c'est le cache qu'on vide
-            // directement. Voir `TranslationDiffCache.removeAll()`.
+            // Vider le cache F7 directement (même taille, même seconde) ;
+            // `invalidateFrenchCoverage` effacerait les baselines.
             translationDiffCache.removeAll()
             scanRecoverableFiles()
             return true
@@ -6062,13 +5936,8 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Les mods qu'un profil réclame et qui ne sont plus installés, enrichis de
-    /// tout ce que l'app sait encore d'eux.
-    ///
-    /// Trois sources, dans cet ordre : ce que le profil a retenu (le seul qui
-    /// couvre vraiment, depuis le 2026-08-24), le cache des mises à jour Nexus,
-    /// et l'index des sauvegardes — qui donne un nom, et surtout la possibilité
-    /// de restaurer le mod sans réseau.
+    /// Mods réclamés par un profil et absents : ce que le profil a retenu,
+    /// puis cache Nexus, puis index des sauvegardes (restauration hors ligne).
     func missingMods(in profile: ModProfile) -> [MissingProfileMod] {
         var backupNames: [String: String] = [:]
         for backup in ModInstallBackupManager.shared.loadBackups() {
@@ -6087,8 +5956,7 @@ final class StarHubTHViewModel {
                                               nexusHints: hints)
     }
 
-    /// Restaure un mod absent depuis sa sauvegarde la plus récente, s'il en
-    /// existe une. Rend faux quand il n'y en a pas.
+    /// Restaure un mod absent depuis sa dernière sauvegarde ; faux sinon.
     @discardableResult
     func restoreMissingModFromBackup(uniqueId: String) -> Bool {
         let manager = ModInstallBackupManager.shared
@@ -6107,22 +5975,16 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Ajoute un mod installé au profil — le geste de réparation d'une
-    /// dépendance requise que le profil laissait de côté.
-    ///
-    /// Passe par `updateProfile`, donc l'ajout est appliqué au disque
-    /// immédiatement si le profil est actif : c'est bien ce qu'on demande en
-    /// ajoutant une dépendance manquante, que le mod se remette à tourner.
+    /// Ajoute un mod installé au profil (dépendance manquante), appliqué au
+    /// disque si le profil est actif.
     func addModToProfile(id: UUID, uniqueId: String) {
         guard let index = modProfiles.firstIndex(where: { $0.id == id }) else { return }
-        // R2 : le geste « ajouter la dépendance manquante » applique au
-        // disque quand le profil est actif — mêmes gardes que l'activation.
+        // R2 : mêmes gardes que l'activation.
         guard guardProfileApply(for: id, name: modProfiles[index].name) else { return }
         let key = uniqueId.lowercased()
         guard !modProfiles[index].enabledModIds.contains(where: { $0.lowercased() == key }) else { return }
 
-        // Ce qu'on sait du mod entre dans le profil avec lui : c'est tout ce
-        // qui restera le jour où il aura été désinstallé.
+        // Métadonnées retenues : seule trace après désinstallation.
         let added = mods.flattenedMods.first(where: { $0.uniqueId.lowercased() == key })
         if let added {
             profilesStore.mutateProfile(with: id) {
@@ -6132,17 +5994,14 @@ final class StarHubTHViewModel {
         }
         var ids = modProfiles[index].enabledModIds
         ids.append(uniqueId)
-        // Le nom du mod quand on le connaît, son identifiant sinon : un ajout
-        // peut porter sur un mod que le parc n'a plus (dépendance réclamée par
-        // un profil importé), et « ajouté » sans dire quoi n'apprend rien.
+        // Nom si connu, sinon l'identifiant.
         let addedName = added?.name ?? uniqueId
         updateProfile(id: id, newName: modProfiles[index].name, enabledModIds: ids)
         log(String(format: localization.L(L10n.VM.profileModAdded),
                    addedName, modProfiles[index].name, ids.count))
     }
 
-    /// Marque ou démarque un mod comme favori. Persisté aussitôt : c'est un
-    /// geste isolé, il n'a pas d'enregistrement différé où se raccrocher.
+    /// Bascule le favori, persisté aussitôt.
     func toggleFavorite(_ mod: ModItem) {
         if favoriteMods.contains(mod.folderName) {
             favoriteMods.remove(mod.folderName)
@@ -6154,10 +6013,8 @@ final class StarHubTHViewModel {
 
     func isFavorite(_ mod: ModItem) -> Bool { favoriteMods.contains(mod.folderName) }
 
-    /// Marque ou démarque un mod comme « à écarter ». Symétrique de
-    /// `toggleFavorite` : persistance immédiate, même clé logique, même
-    /// idempotence. Le mod reste installé — la marque n'agit que sur
-    /// l'affichage et le filtre.
+    /// Bascule « à écarter », symétrique de `toggleFavorite` ; affichage et
+    /// filtre seulement.
     func toggleBlacklist(_ mod: ModItem) {
         if blacklistedMods.contains(mod.folderName) {
             blacklistedMods.remove(mod.folderName)
@@ -6171,33 +6028,17 @@ final class StarHubTHViewModel {
         blacklistedMods.contains(mod.folderName)
     }
 
-    /// Un mod peut-il porter des configs par profil ?
-    ///
-    /// Un **en-tête de pack** ne le peut pas : il n'a pas de réglages propres,
-    /// ses composants en ont chacun les leurs et se marquent eux-mêmes. Même
-    /// arbitrage que les notes (F4), pour une raison différente — là c'était
-    /// l'absence d'identité, ici l'absence de config.
-    ///
-    /// L'absence d'`UniqueID` n'exclut rien, contrairement aux profils : le
-    /// magasin est indexé par dossier. Un tel mod reste actif dans tous les
-    /// profils, et son config peut légitimement y changer.
+    /// Configs par profil possibles ? Pas pour un **en-tête de pack** (pas de
+    /// réglages propres). Sans `UniqueID`, oui : magasin indexé par dossier.
     func canManageProfileConfig(_ mod: ModItem) -> Bool { !mod.isGroup }
 
     func isProfileConfigManaged(_ mod: ModItem) -> Bool {
         profileManagedConfigMods.contains(mod.folderName)
     }
 
-    /// Pose ou retire la marque. Persisté aussitôt, comme les favoris : c'est
-    /// un geste isolé, il n'a pas d'enregistrement différé où se raccrocher.
-    ///
-    /// **Prend la valeur voulue, ne bascule pas.** Un `Toggle` SwiftUI appelle
-    /// le `set` de sa liaison avec la valeur affichée lors d'un re-rendu ou
-    /// d'une animation ; un setter qui ignorerait son argument pour basculer
-    /// démarquerait alors le mod tout seul, en silence. Même forme que
-    /// `setCustomCategory`, le patron du dépôt pour ce cas.
-    ///
-    /// Retirer la marque **ne détruit rien** : les textes mémorisés restent
-    /// dans les magasins des profils, et remarquer le mod les reprend.
+    /// Pose ou retire la marque, persisté aussitôt. **Prend la valeur, ne
+    /// bascule pas** : un `Toggle` rappelle `set` au re-rendu (patron
+    /// `setCustomCategory`). Retirer ne détruit rien.
     func setProfileConfigManaged(_ mod: ModItem, _ on: Bool) {
         guard canManageProfileConfig(mod) else { return }
         let changed = on
@@ -6207,14 +6048,8 @@ final class StarHubTHViewModel {
         Self.saveProfileManagedConfigMods(profileManagedConfigMods)
     }
 
-    /// Ce que chaque profil a mémorisé pour ce mod, et si cela correspond
-    /// encore au fichier sur disque.
-    ///
-    /// `matchesDisk` est le renseignement qui empêche de croire à une panne :
-    /// après un aller-retour entre deux profils, les deux mémorisent le même
-    /// texte et rien ne diffère tant que le mod n'a pas été réglé dans l'un des
-    /// deux. Comparaison d'octets — le décompte des clés viendra avec l'écran
-    /// de comparaison.
+    /// Ce que chaque profil a mémorisé et si ça correspond au disque
+    /// (`matchesDisk`, comparaison d'octets) : explique l'absence d'écart.
     func profileConfigHolders(for mod: ModItem)
         -> [(profileName: String, capturedAt: Date, bytes: Int, matchesDisk: Bool)] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -6238,20 +6073,14 @@ final class StarHubTHViewModel {
         return ProfileConfigStore.load(from: url)[mod.folderName]?.text
     }
 
-    /// Ce qu'un profil retient, et ce qui n'a plus de dossier installé.
-    ///
-    /// Les orphelins sont **gardés, pas purgés** (spec §6.5) : réinstaller
-    /// le mod doit lui rendre ses réglages. Cette fonction est la seule à
-    /// les nommer — la fiche d'un mod part d'un `ModItem`, qu'un mod
-    /// désinstallé n'a pas.
+    /// Ce qu'un profil retient et ses orphelins, **gardés** (spec §6.5).
+    /// Seule fonction à les nommer.
     func profileConfigSummary(for profile: ModProfile) -> (total: Int, orphans: [String]) {
         guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else {
             return (0, [])
         }
         let entries = ProfileConfigStore.load(from: url)
-        // `folderName` reste logique : un mod en pause porte un point sur le
-        // disque, pas dans son identité — sans quoi mettre un mod en pause
-        // le ferait passer pour désinstallé.
+        // `folderName` logique : une pause ne vaut pas désinstallation.
         let installed = Set(mods.flattenedMods.map(\.folderName))
         let orphans = entries.keys
             .filter { !installed.contains($0) }
@@ -6259,9 +6088,8 @@ final class StarHubTHViewModel {
         return (entries.count, orphans)
     }
 
-    /// Les écarts entre ce que deux profils retiennent de ce mod. `nil` :
-    /// un des deux textes ne se parse pas — l'écran affiche l'explication,
-    /// jamais un diff inventé.
+    /// Écarts entre deux profils ; `nil` si un texte ne se parse pas (pas de
+    /// diff inventé).
     func profileConfigDiffs(mod: ModItem, other: ModProfile) -> [ConfigKeyDiff]? {
         guard let active = profilesStore.activeProfile,
               let textA = profileConfigText(mod: mod, profile: active),
@@ -6271,31 +6099,22 @@ final class StarHubTHViewModel {
         return ConfigJSONDiff.compare(treeA, treeB)
     }
 
-    /// Supprime le `config.json` du mod — pas de « réinitialisation » possible,
-    /// l'app ne connaît pas les valeurs par défaut : elles vivent dans la classe
-    /// C# du mod. SMAPI n'en réécrit un fichier neuf au prochain lancement que
-    /// pour les mods qui appellent `helper.ReadConfig<T>()` ; un mod qui n'en lit
-    /// jamais un n'en récrira jamais un non plus — mesuré sur le parc réel :
-    /// seuls 547 dossiers de mods sur 1015 portent un `config.json`, soit
-    /// environ 46 %.
-    ///
-    /// - Returns: `true` si un fichier a bien été supprimé.
+    /// Supprime le `config.json` (valeurs par défaut inconnues, dans le C#).
+    /// SMAPI n'en réécrit un que pour les mods qui appellent
+    /// `helper.ReadConfig<T>()` (547/1015 en portent un).
+    /// - Returns: `true` si un fichier a été supprimé.
     @discardableResult
     func resetModConfigToDefaults(_ mod: ModItem) -> Bool {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let url = ProfileConfigStore.configURL(modsPath: modsPath,
                                                physicalFolderName: mod.physicalFolderName)
         guard FileManager.default.fileExists(atPath: url.path) else {
-            // Seulement 169 mods sur ~900 portent un config.json, et le bouton
-            // reste actif pour tous les mods non-groupes : sans ce log, un clic
-            // sur un mod qui n'en a pas ne laisse aucune trace nulle part.
+            // Sans ce log, un clic sur un mod sans config ne laisse aucune trace.
             log(String(format: localization.L(L10n.VM.profileConfigResetAbsent), mod.folderName), level: .info)
             return false
         }
-        // Le dossier du mod est souvent en lecture seule (`unzip`/`unrar`
-        // restituent les modes de l'archive — X7). Même remède que
-        // `recoverFile` : ouvrir les droits d'écriture jusqu'à la racine du
-        // mod, jamais au-delà, puis les rendre tels qu'on les a trouvés.
+        // Lecture seule (X7) : droits ouverts jusqu'à la racine du mod, puis
+        // rendus.
         let modRoot = url.deletingLastPathComponent().path
         do {
             try RecoveredFileWriter.withWriteAccess(to: url.path, modRoot: modRoot) {
