@@ -223,7 +223,7 @@ struct ModListView: View {
         if let anomaly = vm.anomaly(for: mod) {
             attributes.append(CardAttribute(id: "anomaly",
                                             systemImage: "exclamationmark.triangle.fill",
-                                            tint: anomaly.severity == .error ? .orange : .yellow,
+                                            tint: anomaly.severity == .error ? AppDesign.Color.error : AppDesign.Color.warning,
                                             help: anomalyReasons(anomaly, vm: vm)))
         }
         if let pending = PendingModUpdates.current(vm).pending(for: mod) { attributes.append(CardAttribute( // I-T13

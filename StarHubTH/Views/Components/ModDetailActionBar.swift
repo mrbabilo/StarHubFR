@@ -57,7 +57,7 @@ struct ModDetailActionBar: View {
             // Favori et « À écarter » : des marques, pas des actions — icônes
             // à bascule, l'état se lit au glyphe plein. `live` pour rester
             // d'accord avec la liste après un aller-retour.
-            markToggle(isOn: vm.isFavorite(live), on: "star.fill", off: "star", tint: .yellow,
+            markToggle(isOn: vm.isFavorite(live), on: "star.fill", off: "star", tint: AppDesign.Color.favorite,
                        label: vm.isFavorite(live) ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd) {
                 vm.toggleFavorite(live)
             }

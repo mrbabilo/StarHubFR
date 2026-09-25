@@ -406,7 +406,7 @@ struct ModListRow: View {
         } label: {
             Image(systemName: on ? "star.fill" : "star")
                 .font(AppDesign.Font.footnote)
-                .foregroundColor(on ? .yellow : .secondary.opacity(isHovered ? 0.6 : 0.25))
+                .foregroundColor(on ? AppDesign.Color.favorite : .secondary.opacity(isHovered ? 0.6 : 0.25))
         }
         .buttonStyle(.plain)
         .pointingHandCursor()
@@ -641,11 +641,11 @@ struct ModListRow: View {
                     .padding(.vertical, AppDesign.Spacing.xs)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color(red: 0.85, green: 0.25, blue: 0.20).opacity(0.08))
+                            .fill(AppDesign.Color.error.opacity(0.08))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 5)
-                            .stroke(Color(red: 0.85, green: 0.25, blue: 0.20).opacity(0.2), lineWidth: 0.5)
+                            .stroke(AppDesign.Color.error.opacity(0.2), lineWidth: 0.5)
                     )
                     .padding(.top, 2)
                 }
@@ -1048,7 +1048,7 @@ private struct AnomalyBadge: View {
     let anomaly: ModAnomaly
     var vm: StarHubTHViewModel
 
-    private var tint: Color { anomaly.severity == .error ? .orange : .yellow }
+    private var tint: Color { anomaly.severity == .error ? AppDesign.Color.error : AppDesign.Color.warning }
 
     var body: some View {
         HStack(spacing: 3) {

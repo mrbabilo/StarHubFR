@@ -171,7 +171,7 @@ struct UpdatesView: View {
                                         Label("\(localization.L(L10n.Updates.latestVersion)) \(update.latestVersion)",
                                               systemImage: "sparkles")
                                             .font(AppDesign.Font.footnote)
-                                            .foregroundColor(.green)
+                                            .foregroundColor(AppDesign.Color.info)
                                         if let uploaded = update.uploadedTime {
                                             Label(vm.formatUploadedDate(uploaded),
                                                   systemImage: "clock.fill")
@@ -412,7 +412,7 @@ struct UpdatesView: View {
                                     // pourquoi est dit une fois, plus bas.
                                     Text(localization.L(L10n.Updates.updateAvailable))
                                         .font(AppDesign.Font.caption)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(AppDesign.Color.info)
                                         .padding(.top, 2)
                                 }
                                 

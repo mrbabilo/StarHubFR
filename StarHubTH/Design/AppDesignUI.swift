@@ -149,6 +149,12 @@ enum AppDesign {
         /// littéral dans la barre latérale et l'accueil (charte, audit UX du
         /// 2026-09-24 §4.2).
         static let quarantine = SwiftUI.Color.purple
+
+        /// L'étoile d'un favori, sur la ligne et dans la barre d'action de la
+        /// fiche. Pas un état : une marque posée par l'utilisateur, d'où un
+        /// jeton à part plutôt que `warning`, dont le jaune d'avant se
+        /// rapprochait.
+        static let favorite = SwiftUI.Color.yellow
     }
 }
 
