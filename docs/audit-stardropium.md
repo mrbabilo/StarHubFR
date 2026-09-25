@@ -115,8 +115,12 @@ chaque OS (`psapi`, `kernel32`, `libSystem.dylib`, `libc`). Bénin.
 
 ## 3. Ce que StarHubFR peut en tirer
 
-Classés par rapport valeur/effort. Aucun n'est engagé : à trancher par
-l'auteur.
+Inscrits à la ROADMAP le 2026-09-25 : idée 1 → **A5-T7**, idée 2 → **A5-T6**
+(mesurée sur tout le parc : 19 mods actifs citent un type interne d'un autre
+mod ; les UniqueID cités, eux, sont des intégrations optionnelles — piste
+écartée), idée 3 → **D2-T5**. L'idée 4 **existe déjà** : la fiche dit « Pas de
+suivi des mises à jour : aucune page Nexus rattachée » et propose de relier le
+mod à sa fiche Nexus.
 
 1. **Signal « mods de performance qui se marchent dessus »** (axe A5, nouvelle
    source de signal, niveau DLL) : lister les cibles Harmony d'un mod par

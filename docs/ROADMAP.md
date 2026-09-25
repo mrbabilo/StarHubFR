@@ -334,7 +334,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **7 items ouverts sur 25** *(recompté le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 27** *(recompté le 2026-09-25 : **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -522,6 +522,51 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       ⚠️ *Deux `EditImage` sur la même cible **se composent** le plus souvent : crier au
       conflit là où Content Patcher compose ferait plus de bruit que de service.*
 
+> 🧪 **Le même axe côté C#, 2026-09-25** — ouvert par l'[audit de
+> Stardropium](audit-stardropium.md) (mod de performances, en pause sur le parc).
+> Content Patcher n'est pas la seule façon de se disputer une ressource : deux
+> mods C# peuvent patcher (Harmony) la **même méthode**, et un mod peut patcher
+> le **code interne** d'un autre sans le déclarer. Mesuré sur le parc :
+>
+> - **Recouvrement Harmony** : Stardropium × UltraSmooth (actif) = **7 méthodes**
+>   (`HoeDirt/Grass/Tree/Bush/FruitTree.draw`, `Game1.getTimeOfDayString`,
+>   `NPC.update`), plus le même réglage du tampon réseau. Relevé dans le C#
+>   décompilé : `ilspycmd` exige .NET, que l'app n'a pas.
+> - **Types internes d'un autre mod** : les chaînes littérales d'une DLL (tas
+>   `#US`, UTF-16) se lisent **sans .NET**. Sur 506 mods C# du parc, **72**
+>   citent un type d'un autre mod du parc (`"ContentPatcher.Framework.PatchManager"`),
+>   dont **19 actifs** — UltraSmooth (SpaceCore, Alternative Textures, UI Info
+>   Suite 2 Alt., Content Patcher), Stardew Loading Optimizer (Content Patcher ×7,
+>   SpaceCore ×3), Better Crafting (SpaceCore)… Rapprochement heuristique :
+>   racine du nom de type = nom de la DLL d'un mod du parc.
+> - ⚠️ **Piste écartée en mesurant** : les **UniqueID** cités dans les chaînes
+>   (`IsLoaded`, `GetApi`) sont des intégrations *optionnelles* — 98 mods actifs
+>   en citent un sans le déclarer. Ce signal-là ne dit rien d'un risque.
+
+- [ ] **A5-T6** — **Dépendances cachées sur le code d'un autre mod.** Lire les
+      chaînes littérales du tas `#US` de chaque `EntryDll` (Swift pur, pas de .NET)
+      et relever celles qui nomment un type interne d'un autre mod du parc. Deux
+      usages : sur la fiche, « touche au code interne de Content Patcher,
+      SpaceCore… » ; et **à la mise à jour** d'un mod ciblé, prévenir que les mods
+      qui le visent peuvent perdre une fonction — Stardropium, par exemple, éteint
+      alors son module sans rien journaliser. La signature de scan inclut la date
+      de la DLL (même raison qu'A5-T4). ⚠️ Avant de coder : mesurer les faux
+      positifs de l'heuristique « racine du nom = nom de DLL » (`Cropgenics` →
+      `bubuge.*` est à vérifier) ; ne rien affirmer sans l'avoir relu dans le
+      C# décompilé d'au moins un cas par mod ciblé. · **M**
+- [ ] **A5-T7** — **Deux mods actifs qui patchent la même méthode du jeu.**
+      Premier cas mesuré : Stardropium × UltraSmooth (7 méthodes). Complet, il
+      faut lire les tables de métadonnées ECMA-335 (`MemberRef`, `TypeRef`) et
+      l'IL autour des appels `Harmony.Patch` — le nom de méthode est une chaîne
+      lisible, son type ne l'est pas. **Première marche, moins chère** : une
+      liste tenue à la main des paires de mods de performance qui se recouvrent
+      (Stardropium, UltraSmooth, Stardew Loading Optimizer, SinZational Speedy
+      Solutions), chaque paire mesurée par décompilation, affichée quand les
+      deux sont **actifs** — comme la liste de compatibilité de smapi.io. ⚠️ Un
+      recouvrement n'est pas un conflit : deux préfixes de culling s'empilent
+      souvent sans dommage ; le message dit « ces deux mods font le même
+      travail », pas « ils sont incompatibles ». · **L** (marche 1 : **S**)
+
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
 écraser.
@@ -583,6 +628,15 @@ le journal réel le 2026-09-04.
 - [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer
       `EnablePerformanceMeasurement` (SLO) ou le benchmark UltraSmooth (F9 par défaut
       ici) le temps d'une session, puis ingérer journal et rapports au retour. · **M**
+- [ ] **D2-T5** — Parser la ligne mémoire quotidienne de **Stardropium**
+      (`[Morning Memory Optimizer (Background)] RAM: <a> MB -> <b> MB (Managed
+      Heap: <c> MB -> <d> MB, <n> cached textures purged/bounded).`, `INFO`, une
+      par jour de jeu) : la courbe mémoire de la session dans la vue D2-T3, sans
+      commande à taper. Plus la ligne `INFO` « Detected low-memory / unified
+      memory device » (bascule seule en profil basse mémoire). Chaînes relevées
+      dans la DLL 0.1.1 ([audit](audit-stardropium.md)). ⚠️ Mod **en pause** sur
+      le parc et bêta du jour : ne rien coder avant qu'il tourne, puis mesurer
+      sur un vrai journal. · **S**
 
 **Risques** : mêmes que D1 — formats de sortie de mods tiers, parseurs tolérants,
 **ne jamais inventer de chiffre**. La ventilation fine « ce mod coûte X ms »
@@ -1501,7 +1555,7 @@ venir), ~~**F5**~~ *(clos le 2026-09-10 : dossier de données, domaine de
 préférences et Trousseau propres au fork — le plan du 2026-08-26 exécuté avec
 re-mesures ; reste X105 pour `Backups/`)*, puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
-~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5), **D1/D2**
+~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5/T6/T7), **D1/D2**
 (Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité — **débloqué**, H est clos),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
