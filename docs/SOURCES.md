@@ -22,7 +22,7 @@ python3 check_sources.py            # relève et compare (sortie 1 s'il y a un �
 python3 check_sources.py --report   # relève et affiche tout, sans juger
 python3 check_sources.py --offline  # seulement les contrôles locaux
 python3 check_sources.py --update   # assume l'état courant comme référence
-python3 check_sources.py --fetch-changelogs --use-keychain   # va LIRE les journaux en retard
+python3 check_sources.py --fetch-changelogs  # va LIRE les journaux en retard (API v2, sans clé)
 python3 check_sources.py --changelog-reviewed mod/x=1.2.3   # note qu'on a lu son journal
 ```
 
@@ -43,10 +43,11 @@ changelog qui porte la conséquence pour notre code — le cas fondateur est MCM
 2.1.0, dont le journal annonçait un `data/mod_history.json` écrit dans le dossier
 du mod, que notre mise à jour supprime (devenu **A1-T7**).
 
-**Aucun script ne peut lire un changelog Nexus** : `urllib` et `curl` — même avec
-un `User-Agent` de navigateur — prennent un **403 Cloudflare**, et l'API v1
-`/mods/{id}/changelogs.json` exige la clé du Trousseau, qu'un script de relevé n'a
-pas à lire. L'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a par
+**La page Nexus n'est pas lisible par un script** : `urllib` et `curl` — même
+avec un `User-Agent` de navigateur — prennent un **403 Cloudflare**, et l'API v1
+`/mods/{id}/changelogs.json` exige la clé du Trousseau. ⚠️ *Le paragraphe
+concluait qu'aucun script ne lit un changelog Nexus ; faux depuis la mesure du
+2026-09-25 : l'API v2 les rend sans clé (voir « La voie qui marche » ci-dessous).* L'ancien endpoint `Core/Libs/Common/Widgets/ModChangeLogs` a par
 ailleurs disparu avec le passage de Nexus à Next.js.
 
 > ⚠️ **Correction du 2026-09-14, le soir même** : une première version de ce
@@ -67,25 +68,17 @@ ailleurs disparu avec le passage de Nexus à Next.js.
 release**, et sur les **100 tags** du premier, **aucun** ne nomme GMCM. Un étage
 « notes de release » ne rendrait rien pour aucune d'elles.
 
-**La voie qui marche : l'API v1.** `--fetch-changelogs` va chercher les journaux
-des sources en retard sur `https://api.nexusmods.com/v1/games/stardewvalley/mods/{id}/changelogs.json`,
-qui rend le même contenu en JSON (`{version: [lignes]}`) en une requête. La clé
-vient de `NEXUS_API_KEY` si elle est dans l'environnement, et du **Trousseau de
-l'application** (`com.mrbabilo.StarHubFR` / `nexusApiKey`, repli sur le service
-d'origine) **seulement si `--use-keychain` est passé** — un script de relevé qui
-ouvre un secret doit le dire sur sa ligne de commande. Sans clé : un message qui
-explique, sortie 2, et rien de cassé.
-
-🔒 **La clé ne peut pas atteindre le dépôt, et ce n'est pas qu'un raisonnement.**
-Elle ne vit que dans une variable locale et dans un **en-tête** HTTP — jamais dans
-l'URL, qui se retrouverait dans un message d'erreur ou un historique de shell — et
-`.sources-baseline.json`, qui est versionné, n'en porte aucune trace. Seule son
-**origine** (« Trousseau », « variable d'environnement ») est affichée. Un garde
-actif masque en outre la clé dans tout message d'erreur rendu par la sonde, au cas
-où une bibliothèque recopierait un jour ses en-têtes dans une exception — **prouvé
-par sabotage le 2026-09-14** : le même message porte la clé sans le garde, et
-`«clé masquée»` avec. Contrôlé enfin sur le dépôt entier — `HEAD`, **tout
-l'historique** (`git log -S`) et l'arbre de travail : absente partout.
+**La voie qui marche : l'API v2, sans clé** *(F9, 2026-09-25)*.
+`--fetch-changelogs` va chercher les journaux des sources en retard par
+`POST https://api.nexusmods.com/v2/graphql` — `modFiles(modId, gameId: 1303)
+{ version date changelogText }` — et les rend au format de l'ancienne v1,
+`{version: [lignes]}`, du plus ancien au plus récent : deux fichiers d'une même
+version fusionnent leurs lignes, un fichier sans journal ne crée pas d'entrée.
+Aucune clé, donc plus de Trousseau ni de `NEXUS_API_KEY` : la v1
+(`changelogs.json`), qui les exigeait, et l'option `--use-keychain` sont
+retirées. ⚠️ Un identifiant inconnu rend une liste **vide**, pas une erreur —
+indiscernable d'un mod sans journal ; les identifiants viennent de nos propres
+entrées, le cas ne se pose qu'à la saisie.
 
 ⚠️ **La commande n'inscrit rien.** Elle affiche ; c'est à la lecture de décider,
 puis `--changelog-reviewed`. Poser le marqueur automatiquement rejouerait
@@ -491,7 +484,8 @@ ici :
 Les changelogs ci-dessous viennent de l'**API Nexus v2 sans clé** :
 `modFiles(modId, gameId: 1303) { version date changelogText }` rend le
 journal de chaque fichier. Le §1 disait qu'aucun script ne lit les
-changelogs Nexus ; c'est faux pour la v2 (mesuré sur les quatre mods).
+changelogs Nexus ; c'est faux pour la v2 (mesuré sur les quatre mods) —
+`--fetch-changelogs` passe par elle depuis F9.
 
 - **Modern Config Menu 2.1.7** — installé sur le parc, **décompilé et
   comparé** à la 2.1.6 du backup d'installation : 7 fichiers d'interface

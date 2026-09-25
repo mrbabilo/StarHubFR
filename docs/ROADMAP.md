@@ -1393,15 +1393,6 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       défaut est dans la façon de le dire, pas dans la détection. Sévérités sans rapport.
       · **XS**
 
-- [ ] **F9** — **`check_sources.py --fetch-changelogs` sans clé.** *(relevé le
-      2026-09-25.)* L'option lit les changelogs par l'API v1 et demande la clé du
-      Trousseau (`--use-keychain`) ; le §1 de `SOURCES.md` en concluait qu'aucun
-      script ne peut lire un changelog Nexus. La v2 GraphQL les rend sans clé
-      (`modFiles.changelogText`, même requête qu'**A3-T7**). Basculer
-      `fetch_changelog` sur la v2, retirer le rappel « aucun script ne lit les
-      changelogs » du relevé, garder `--changelog-reviewed` comme seul geste qui
-      estampille une lecture. · **XS**
-
 - [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
       fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
       aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
@@ -2383,6 +2374,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
+| **F9** | 2026-09-25 | `check_sources.py --fetch-changelogs` lit les changelogs Nexus par l'API v2 GraphQL sans clé (`modFiles.changelogText`) ; `--use-keychain` et la lecture du Trousseau retirés |
 | **F3** | 2026-09-12 | Le lag de frappe venait d'`inferTag` relancé par frappe (~150 regexes sans mémoïsation, ~0,7 s de fil principal par lettre, nommé par capture Instruments) — tag calculé une fois à l'init ; A/B trois témoins : défaut préexistant ; les constats de la passe groupée restent ouverts |
 | **F5-T1** | 2026-09-10 | Données sous `~/Library/Application Support/StarHubFR/` derrière l'accesseur `AppSupport`, migration reprenable déclenchée par `static let` ; `Backups/` reste derrière (X105) |
 | **F5-T2** | 2026-09-10 | Identité `com.mrbabilo.StarHubFR` + schéma `nxm` ; 45 clés UserDefaults recopiées jamais écrasées, Trousseau basculé avec lecture de secours sur l'ancien service |

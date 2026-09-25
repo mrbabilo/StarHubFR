@@ -4814,6 +4814,19 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 #### Axe F — Dette technique (suite)
 
 
+- [x] **F9** ✅ *(livré le 2026-09-25)* — **`check_sources.py --fetch-changelogs` sans clé.**
+      L'option lisait les changelogs par l'API v1 (`changelogs.json`) et demandait
+      la clé du Trousseau (`--use-keychain`) ; `SOURCES.md` §1 en concluait
+      qu'aucun script ne lit un changelog Nexus. Mesuré le jour même : l'API v2
+      GraphQL les rend sans clé (`modFiles(modId, gameId: 1303) { version date
+      changelogText }`). `fetch_changelog` passe par elle et rend le format de la
+      v1, `{version: [lignes]}`, trié par date : deux fichiers d'une même version
+      fusionnent, un fichier sans journal ne crée pas d'entrée. `nexus_api_key`
+      et `--use-keychain` retirés — plus aucun secret lu par le script. Vérifié
+      sur MCM (38 versions), Event Studio (4), SaveSaver (aucune), et en simulant
+      un retard (MCM lu jusqu'à 2.1.5 : 2.1.6 et 2.1.7 affichés). Limite : un
+      identifiant inconnu rend une liste vide, pas une erreur.
+
 - [x] **F3** — **Latence de frappe dans la recherche de la liste des mods.** Rapportée par
       l'auteur le 2026-08-01 : un délai perceptible entre deux lettres, sur sa modlist
       réelle (822 dossiers de premier niveau, 918 manifests).
