@@ -4399,66 +4399,11 @@ final class StarHubTHViewModel {
             + "la ligne reviendra à la prochaine vérification", level: .info)
     }
 
-    /// Pose une ancre `.install` pour chaque mod que l'installation vient de
-    /// poser. C'est le seul moment où l'app sait avec certitude ce qui est sur
-    /// le disque.
-    ///
-    /// - Parameter nexusFacts: X9 — ce que le téléchargement savait du fichier
-    ///   posé (identifiant + date de mise en ligne). Renseigné seulement pour
-    ///   une installation **mono-dossier** : un pack pose plusieurs mods d'une
-    ///   seule archive et v1 s'abstient pour lui, au même périmètre que
-    ///   `reconcileManifestVersion`. Une restauration de backup n'en a pas —
-    ///   l'archive vient du disque local, pas de Nexus.
-    /// - Returns: les `UniqueID` **constatés sur disque** — ceux dont le
-    ///   manifest a pu être lu. Pas « ceux qui ont reçu une ancre » : c'est le
-    ///   constat qui autorise à éteindre une ligne, pas le verdict de la règle
-    ///   d'ancrage, qui peut légitimement s'abstenir. L'appelant s'en sert pour
-    ///   n'éteindre que les lignes des mods qu'il vient de poser — une lecture
-    ///   de manifest, une seule source d'identité.
+    /// Voir `ModVersionAnchorStore.anchorInstalled`.
     @discardableResult
     func anchorInstalledMods(installedFolderPaths: [String],
                              nexusFacts: NexusInstallFacts? = nil) -> [String] {
-        let now = Date()
-        // Des faits qui décriraient plusieurs dossiers n'en décriraient aucun :
-        // une seule archive de pack ne dit rien de la version d'un enfant pris
-        // isolément. On s'abstient, comme partout où l'app ne sait pas.
-        let usableFacts = installedFolderPaths.count == 1 ? nexusFacts : nil
-        var anchored: [String] = []
-        for path in installedFolderPaths {
-            let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
-            // `FileManager.contents` + `String(data:encoding:)` plutôt que
-            // `try? String(contentsOfFile:)` : même échec silencieux sur un
-            // fichier illisible, sans ajouter de `try?` au cliquet des
-            // conventions (§7.1 — déjà à sa base sur ce dépôt).
-            guard let data = FileManager.default.contents(atPath: manifestPath),
-                  let raw = String(data: data, encoding: .utf8),
-                  let manifest = ManifestJSON.decode(raw),
-                  let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String,
-                  !uniqueId.isEmpty,
-                  // `ManifestVersionReader` et non `as? String` : SMAPI accepte
-                  // aussi la forme objet, et l'abandon silencieux sur cette
-                  // forme privait d'ancre le seul chemin où l'app sait avec
-                  // certitude ce qu'elle vient d'écrire.
-                  let version = ManifestVersionReader.version(from: manifest)
-            else { continue }
-            // Sans téléchargement intégré, pas de `files.json` : ni le
-            // `file_id` posé ni sa date de mise en ligne ne sont connus.
-            // Inventer ces valeurs ferait déclencher à tort la règle de
-            // re-publication sur toute page mise à jour après l'installation.
-            // La spec §5.4 le dit : « ailleurs, on ne peut rien dire, et on ne
-            // dit rien. »
-            if let anchor = ModVersionAnchorRules.afterInstall(
-                existing: anchorStore.anchor(for: uniqueId),
-                uniqueId: uniqueId,
-                installedVersion: version,
-                facts: usableFacts,
-                isReferenceFile: true,
-                now: now) {
-                anchorStore.put(anchor)
-            }
-            anchored.append(uniqueId)
-        }
-        return anchored
+        anchorStore.anchorInstalled(folderPaths: installedFolderPaths, nexusFacts: nexusFacts)
     }
 
     /// **L'invariant de la liste des mises à jour** : ce qui est affiché est,

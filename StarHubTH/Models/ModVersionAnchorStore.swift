@@ -66,6 +66,41 @@ public final class ModVersionAnchorStore: @unchecked Sendable {
         mutate { $0 = $0.filter { installed.contains($0.key) } }
     }
 
+    /// Ancre `.install` par dossier posé, lue dans son `manifest.json`.
+    /// - Parameter nexusFacts: X9 — gardés pour un seul dossier ; un pack s'abstient.
+    /// - Returns: `UniqueID` constatés sur disque (manifest lu), pas « ancrés ».
+    @discardableResult
+    public func anchorInstalled(folderPaths: [String],
+                                nexusFacts: NexusInstallFacts? = nil,
+                                now: Date = Date()) -> [String] {
+        let usableFacts = folderPaths.count == 1 ? nexusFacts : nil
+        var anchored: [String] = []
+        for path in folderPaths {
+            let manifestPath = (path as NSString).appendingPathComponent("manifest.json")
+            // Pas de `try?` : cliquet §7.1.
+            guard let data = FileManager.default.contents(atPath: manifestPath),
+                  let raw = String(data: data, encoding: .utf8),
+                  let manifest = ManifestJSON.decode(raw),
+                  let uniqueId = manifest.caseInsensitiveValue(forKey: "UniqueID") as? String,
+                  !uniqueId.isEmpty,
+                  // Forme objet de `Version` comprise.
+                  let version = ManifestVersionReader.version(from: manifest)
+            else { continue }
+            // Sans faits Nexus, on n'en invente pas (spec §5.4).
+            if let anchor = ModVersionAnchorRules.afterInstall(
+                existing: anchor(for: uniqueId),
+                uniqueId: uniqueId,
+                installedVersion: version,
+                facts: usableFacts,
+                isReferenceFile: true,
+                now: now) {
+                put(anchor)
+            }
+            anchored.append(uniqueId)
+        }
+        return anchored
+    }
+
     // MARK: - Migration
 
     /// Retire `nexusVersion` de chaque enregistrement du registre d'install.
