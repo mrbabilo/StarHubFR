@@ -1,27 +1,17 @@
 import SwiftUI
 
-/// Rich detail pane for a single mod: header (artwork, name, version/author,
-/// Nexus link), a settings section (category override + Nexus-id editor), and
-/// Description/Changelog/Dependencies segmented tabs — the last rendering
-/// `DescriptionBlock`s produced by `StarHubTHViewModel.loadModDetail(for:)`.
-/// Lives in the NavigationSplitView detail column (pushed via
-/// `vm.navigationStore.viewingModDetail`, wired in `MainView`) — never a sheet/modal, so it
-/// behaves like any other master-detail drill-down (back chevron pops it).
-///
-/// The caller (`MainView`) applies `.id(mod.folderName)` to this view so a
-/// fresh instance is created whenever the user switches to a different mod:
-/// that resets `selectedTab` and, more importantly, the Nexus-id draft below
-/// so an in-progress edit can never leak onto the wrong mod's folder.
+/// Rich detail pane: header, settings (category + Nexus id), and content
+/// tabs rendering `loadModDetail(for:)`'s blocks. Detail column of the
+/// split view (`navigationStore.viewingModDetail`), never a sheet.
+/// `MainView` applies `.id(mod.folderName)`: a fresh instance per mod, so
+/// tab and drafts never leak onto another mod.
 struct ModDetailView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
-    /// Le rapport de raccourcis vit sur ce service (tâche 9) : il est
-    /// publié de façon asynchrone — le scan part quand le parc est connu
-    /// (tâche 7) — et `keybindScanService` est un `let` du ViewModel, pas
-    /// un `@Published` : sans observation ici, une fiche ouverte avant la
-    /// fin du premier scan resterait muette sur ses conflits pour de bon.
-    /// Même patron que `HomeView` et `MainView`.
+    /// Rapport de raccourcis publié en asynchrone par un `let` du VM : sans
+    /// observation ici, une fiche ouverte avant le premier scan resterait
+    /// muette. Patron de `HomeView`/`MainView`.
     @ObservedObject private var keybindScanService: KeybindScanService
 
     init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem) {
@@ -32,59 +22,46 @@ struct ModDetailView: View {
     }
 
     @State private var selectedTab: DetailTab = .description
-    /// Le mod dont l'activation attend une confirmation : smapi.io le signale
-    /// cassé. Voir `CompatibilityWarning`.
+    /// Activation en attente : smapi.io signale le mod cassé
+    /// (`CompatibilityWarning`).
     @State private var pendingActivation: ModItem?
-    /// Même rôle, source différente : un conflit déclaré ou observé dans le
-    /// journal avec un mod déjà actif (tâche 9). Voir `ConflictActivationGate`.
+    /// Même rôle pour un conflit avec un mod actif (`ConflictActivationGate`).
     @State private var pendingConflict: ConflictActivation?
-    /// L'état du sélecteur « Signaler une incompatibilité… » (tâche 9).
-    /// La cible se porte sur son `folderName`, pas sur le `ModItem` lui-même
-    /// — `Picker(selection:)` demande `Hashable`, qu'`ModItem` ne porte pas
-    /// (seulement `Equatable` : l'ajouter pour ce seul sélecteur aurait
-    /// touché tout ce qui manipule `ModItem` ailleurs dans le dépôt).
+    /// Sélecteur « Signaler une incompatibilité… », ciblé par `folderName`
+    /// (`Picker` exige `Hashable`, qu'`ModItem` ne porte pas).
     @State private var showReportConflict = false
     @State private var reportConflictTargetFolder: String?
     @State private var reportConflictNote: String = ""
 
-    /// Draft text for the Nexus mod id field. Seeded once in `.onAppear` from
-    /// the mod's effective id; safe to seed unconditionally (no "already
-    /// seeded" guard needed) because the `.id(mod.folderName)` at the call
-    /// site gives this view a fresh instance — and therefore a fresh
-    /// `@State` — per mod.
+    /// Nexus id draft, seeded in `.onAppear` without guard (fresh `@State`
+    /// per mod via `.id`).
     @State private var nexusIdDraft: String = ""
-    /// B3-T6 — brouillon de la note libre, au patron du draft Nexus : la vue
-    /// est recréée par mod (`.id(mod.folderName)` côté MainView), un brouillon
-    /// ne peut donc jamais fuir sur le mod voisin.
+    /// B3-T6 — brouillon de note, même patron (pas de fuite entre mods).
     @State private var noteDraft: String = ""
     @FocusState private var noteFocused: Bool
 
-    /// On-demand metadata fetch status (triggered after the user saves a new
-    /// Nexus mod id). `.idle` hides the status row; `.loading` shows a spinner.
+    /// On-demand metadata fetch status after saving a Nexus id.
     @State private var fetchStatus: FetchStatus = .idle
 
     @State private var showDeleteConfirm = false
 
-    /// Une traduction française retrouvée dans une sauvegarde, pour un mod qui
-    /// n'en a plus. Cherché à l'ouverture de la fiche, hors du fil principal.
+    /// Traduction FR retrouvée dans une sauvegarde (mod qui n'en a plus),
+    /// cherchée hors main.
     @State private var backupTranslation: TranslationBackupFinder.Found?
 
-    /// L'anglais de ce mod a-t-il été touché après son français ? Mesuré à
-    /// l'ouverture de la fiche, hors du fil principal.
+    /// Anglais touché après le français ? Mesuré hors main.
     @State private var translationStaleness: TranslationFreshness.Staleness?
 
-    /// Les fichiers de traduction de ce mod que le jeu n'ouvrira jamais — un
-    /// `pt-BR.json` sans `pt.json`, par exemple. Cherché à l'ouverture de la
-    /// fiche, hors du fil principal.
+    /// Fichiers de traduction jamais ouverts par le jeu (`pt-BR.json` sans
+    /// `pt.json`), cherchés hors main.
     @State private var unloadableLocaleFiles: [I18nLocaleResolver.UnloadableLocaleFile] = []
 
-    /// Ce que les profils ont mémorisé pour ce mod. Rempli à l'apparition et
-    /// après chaque geste qui le change — jamais recalculé au rendu.
+    /// Mémorisé par les profils ; rempli à l'apparition et après chaque geste,
+    /// jamais au rendu.
     @State private var configHolders: [(profileName: String, capturedAt: Date,
                                         bytes: Int, matchesDisk: Bool)] = []
 
-    /// Le profil B de la comparaison des configs, quand la sheet est
-    /// ouverte (le profil A est toujours l'actif).
+    /// Profil B de la comparaison (A = l'actif).
     @State private var compareProfile: ModProfile?
 
     enum FetchStatus: Equatable {
@@ -122,11 +99,8 @@ struct ModDetailView: View {
                                         get: { compareProfile != nil },
                                         set: { if !$0 { compareProfile = nil } }))
         }
-        // Pause/reprise renomme le dossier physique du mod (`live`, pas
-        // `mod` — voir `profileConfigSection`), ce qui change le chemin où
-        // `profileConfigHolders(for:)` lit le config.json. `mod.isEnabled`
-        // ne bougerait jamais : c'est une copie figée, elle ne déclencherait
-        // jamais cet `onChange`.
+        // La pause renomme le dossier (`live`, pas `mod` : copie figée qui ne
+        // déclencherait jamais cet `onChange`).
         .onChange(of: live.isEnabled) { _, _ in
             refreshConfigHolders()
         }
@@ -134,8 +108,7 @@ struct ModDetailView: View {
         .onChange(of: noteFocused) { _, focused in
             if !focused { vm.setModNote(noteDraft, for: mod) }
         }
-        // …et à la sortie : un autre mod remplace la vue (`.id(mod.folderName)`)
-        // avant le blur, la note vidée juste avant ne partait pas. Idempotent.
+        // …et à la sortie : remplacée par `.id` avant le blur. Idempotent.
         .onDisappear {
             vm.setModNote(noteDraft, for: mod)
         }
@@ -145,8 +118,7 @@ struct ModDetailView: View {
         .conflictActivationGate(vm: vm, pending: $pendingConflict) { target in
             vm.toggleMod(target)
         }
-        // La confirmation de suppression vivait dans l'ancienne rangée
-        // d'actions ; le geste est dans la barre, la porte reste ici.
+        // Confirmation de suppression (le geste est dans la barre).
         .confirmationDialog(
             String(format: localization.L(L10n.Mods.deleteConfirmTitle), mod.name),
             isPresented: $showDeleteConfirm,
@@ -154,9 +126,7 @@ struct ModDetailView: View {
         ) {
             Button(localization.L(L10n.Mods.deleteMod), role: .destructive) {
                 vm.deleteMod(mod)
-                // Refermer la fiche : le mod qu'elle décrit n'existe plus.
-                // La laisser ouverte afficherait une version, des
-                // dépendances et une description d'un dossier supprimé.
+                // Mod supprimé : refermer la fiche.
                 vm.navigationStore.setViewingModDetail(nil)
             }
             Button(localization.L(L10n.Saves.cancel), role: .cancel) { }
@@ -165,9 +135,7 @@ struct ModDetailView: View {
                  ? localization.L(L10n.Mods.deleteConfirmPack)
                  : localization.L(L10n.Mods.deleteConfirmMessage))
         }
-        // Les chevrons de parcourt, dans la zone de navigation de la fenêtre :
-        // SwiftUI fusionne les ToolbarItems de la hiérarchie — celui du
-        // bouton retour (MainView) et ceux-ci voisinent.
+        // Chevrons dans la zone de navigation ; SwiftUI fusionne les ToolbarItems.
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 pagerControls
@@ -177,14 +145,9 @@ struct ModDetailView: View {
             reportConflictSheet
         }
         .task {
-            // Venu de la couverture française d'un profil : la demande n'était
-            // pas « montre-moi ce mod » mais « traduis-le ». Consommée ici,
-            // avant tout travail asynchrone, et effacée aussitôt pour que le
-            // mod suivant ne s'ouvre pas sur le même onglet.
-            // Demandé par l'appelant qui a ouvert cette fiche (écran
-            // d'alertes) : consommé sans condition de mod — il vient d'être
-            // posé pour CETTE navigation — et effacé aussitôt, pour que la
-            // fiche suivante s'ouvre normalement.
+            // Onglet demandé par l'appelant (couverture FR d'un profil, alertes) :
+            // consommé sans condition et effacé aussitôt, pour que la fiche suivante
+            // s'ouvre normalement.
             if let tab = vm.navigationStore.pendingDetailTab {
                 vm.navigationStore.pendingDetailTab = nil
                 selectedTab = tab
@@ -197,34 +160,24 @@ struct ModDetailView: View {
             }
             translationStaleness = await vm.translationStaleness(for: mod)
             unloadableLocaleFiles = await vm.unloadableLocaleFiles(for: mod)
-            // Seulement quand il y a quelque chose à retrouver : un mod déjà
-            // traduit n'a pas besoin qu'on fouille les sauvegardes.
+            // Seulement si rien de FR : sinon inutile de fouiller.
             guard !mod.languages.contains("fr") else { return }
             backupTranslation = await vm.backupTranslation(for: mod)
         }
     }
 
-    /// The Description / Changelog / Dependencies switcher, pinned under the
-    /// hero (outside the ScrollView) so it stays visible while scrolling.
+    /// Content tab switcher, pinned under the hero.
     private var tabBar: some View {
         Picker("", selection: $selectedTab) {
             Text(localization.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
             Text(localization.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
             Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
                 .tag(DetailTab.dependencies)
-            // L'état du mod — compatibilité, traduction, erreurs, raccourcis,
-            // conflits — se lit groupé dans son onglet, pas empilé au-dessus
-            // de la prose.
+            // État du mod groupé dans son onglet.
             Text(localization.L(L10n.Mods.tabState)).tag(DetailTab.state)
-            // Dernier onglet plutôt qu'une feuille : la barre est déjà
-            // épinglée sous le bandeau, et le diff est une lecture du mod
-            // comme les autres — pas une action modale.
-            // `en` autant que `fr` : un mod qui n'a qu'un `default.json` est
-            // précisément celui qu'il reste à traduire, et c'est lui qui a le
-            // plus besoin de cet onglet. Le réserver aux mods déjà traduits
-            // n'ouvrait l'éditeur que là où le travail était fait.
-            // (`I18nLocaleResolver.languageCodes` rend `default` sous la forme
-            // `en` : la présence de `en` signifie donc « il y a une source ».)
+            // Onglet plutôt que feuille. `en` autant que `fr` : un mod à
+            // `default.json` seul est celui qui reste à traduire
+            // (`languageCodes` rend `default` sous la forme `en`).
             if mod.languages.contains("fr") || mod.languages.contains("en") {
                 Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
             }
@@ -268,8 +221,7 @@ struct ModDetailView: View {
         }
     }
 
-    /// « version · auteur » — l'auteur disparaît s'il est vide ou « Unknown »,
-    /// comme l'ancienne bande d'en-tête.
+    /// « version · auteur », auteur omis si vide ou « Unknown ».
     private var heroSubtitle: String {
         let version = String(format: localization.L(L10n.Mods.versionPrefix), vm.displayVersion(for: mod))
         if !mod.isGroup, !mod.author.isEmpty, mod.author != "Unknown" {
@@ -283,9 +235,8 @@ struct ModDetailView: View {
         return URL(string: extra.pictureUrl)
     }
 
-    /// Hors du strip : catégorie, couverture FR (même pastille que la liste),
-    /// liens Nexus, date d'installation. Un composant y ramène à son pack :
-    /// sans ce retour, sa fiche est un cul-de-sac.
+    /// Catégorie, couverture FR, liens Nexus, date d'installation ; un
+    /// composant ramène à son pack (sinon cul-de-sac).
     @ViewBuilder
     private var fineBand: some View {
         HStack(spacing: AppDesign.Spacing.lg) {
@@ -332,13 +283,9 @@ struct ModDetailView: View {
         }
     }
 
-    /// ‹ › sur le cadrage courant — filtres, tri et recherche respectés,
-    /// l'ordre complet, pas la tranche de page. Éteints quand le mod n'y
-    /// figure pas : composant de pack, mod exclu par le cadrage.
-    ///
-    /// Dans la **barre d'outils de la fenêtre**, à la suite du bouton
-    /// retour : sur le hero, leur blanc mourait sur les captures claires —
-    /// la zone de navigation de la fenêtre est visible sur toute vignette.
+    /// ‹ › sur le cadrage courant (ordre complet, pas la page) ; éteints hors
+    /// cadrage. Dans la **barre de la fenêtre** : sur le hero, invisibles sur
+    /// fond clair.
     private var pagerControls: some View {
         let neighbors = ModDetailPager.neighbors(of: mod.folderName,
                                                  in: vm.modList.displayOrder)
@@ -373,8 +320,7 @@ struct ModDetailView: View {
         .contentShape(.rect)
     }
 
-    /// Ce qui décide avant la prose : version, fraîcheur, poids, langues.
-    /// Rien ne dépend du réseau — les quatre se servent localement.
+    /// Version, fraîcheur, poids, langues — tous locaux.
     private var statStrip: some View {
         StatStrip(items: [
             .init(label: localization.L(L10n.ModInstall.labelVersion),
@@ -388,16 +334,13 @@ struct ModDetailView: View {
                       : mod.languages.map { $0.uppercased() }.joined(separator: " "),
                   help: mod.languages.isEmpty ? nil : mod.languages.joined(separator: " ")),
         ])
-        // Même cadrage que la bande au-dessus : la fiche tient en 700 pt,
-        // les colonnes ne s'étalent pas sur la fenêtre entière (Découvrir
-        // n'a pas le cas — sa feuille a largeur fixe).
+        // Même cadrage que la bande : 700 pt.
         .padding(.horizontal, AppDesign.Spacing.xl)
         .frame(maxWidth: 700, alignment: .leading)
         .frame(maxWidth: .infinity)
     }
 
-    /// Date courte + âge à partir d'un an révolu — le patron de l'ancienne
-    /// colonne, la règle vit en Core (`LastUpdateAge`).
+    /// Date courte + âge au-delà d'un an (`LastUpdateAge`).
     private var updatedLine: String {
         guard let updated = vm.nexusLastUpdated(for: mod) else { return "—" }
         return [updated.formatted(date: .abbreviated, time: .omitted),
@@ -405,34 +348,25 @@ struct ModDetailView: View {
             .joined(separator: " · ")
     }
 
-    /// Whether this mod is a top-level folder rather than one component of a
-    /// pack. Same test as `performToggle`'s seed resolution: `vm.scanStore.mods` holds
-    /// pack headers and standalone mods, never children.
+    /// Top-level folder rather than a pack component (`scanStore.mods` never
+    /// holds children).
     private var isTopLevel: Bool {
         vm.scanStore.mods.contains { $0.folderName == mod.folderName }
     }
 
-    /// L'état courant du mod, relu dans `vm.scanStore.mods` à chaque rendu.
-    ///
-    /// `mod` est une **copie figée** au moment où la fiche a été ouverte
-    /// (`vm.navigationStore.viewingModDetail`), et rien ne la rafraîchit : mettre le mod en
-    /// pause renomme bien le dossier et met à jour `vm.scanStore.mods`, mais la copie
-    /// garde son ancien `isEnabled`. L'interrupteur revenait donc en position
-    /// « activé » dès que la valeur optimiste s'effaçait — l'affichage
-    /// contredisait le disque.
+    /// État courant relu dans `scanStore.mods` : `mod` est une **copie
+    /// figée**, et l'interrupteur contredisait le disque après une pause.
     private var live: ModItem {
         vm.scanStore.mods.first { $0.folderName == mod.folderName } ?? mod
     }
 
-    /// Les racines de l'arbre des dépendances rendu par l'onglet — fusionnées
-    /// pour un pack. Jamais `mod.dependencies.count` : vide pour un en-tête
-    /// de pack alors que l'onglet liste. Calculé une fois par rendu.
+    /// Racines de l'arbre rendu (fusionnées pour un pack), pas
+    /// `mod.dependencies.count` (vide sur un en-tête).
     private var dependencyCount: Int {
         vm.dependencyTree(for: mod).count
     }
 
-    /// The mod's category as a colored chip — the Nexus category when known,
-    /// otherwise the inferred offline type tag (same resolution as the list).
+    /// Category chip: Nexus category, else the inferred offline tag.
     @ViewBuilder
     private var categoryTag: some View {
         if let cat = vm.category(for: mod) {
@@ -456,19 +390,12 @@ struct ModDetailView: View {
         }
     }
 
-    /// « 3,84 Go », et pour un pack « 3,84 Go · Pack, 12 mods ».
-    ///
-    /// Un pack est **un** dossier de premier niveau qui en contient plusieurs :
-    /// le poids mesuré est celui du dossier entier, pas d'un composant. Le dire
-    /// évite qu'on lise 3,84 Go comme le poids d'un seul de ses mods. Les
-    /// composants, eux, n'affichent rien : répéter le chiffre du pack sur
-    /// chacun compterait la même place autant de fois qu'il y a de composants.
+    /// « 3,84 Go », pour un pack « 3,84 Go · Pack, 12 mods » (poids du
+    /// dossier entier) ; rien sur les composants (compté une fois).
     private func sizeText(_ bytes: Int64) -> String {
         let formatted = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
         guard live.isGroup, let count = live.children?.count else { return formatted }
-        // Un « pack » d'un seul mod existe : le scan prend la branche groupe
-        // dès que le manifeste ne siège pas à la racine du dossier de premier
-        // niveau. « Pack, 1 mods » se lirait comme un défaut.
+        // Pack d'un seul mod possible : pas de « Pack, 1 mods ».
         guard count > 1 else { return formatted + " · " + localization.L(L10n.Mods.detailSizePackOne) }
         return formatted + " · " + String(format: localization.L(L10n.Mods.detailSizePack), count)
     }
@@ -495,8 +422,7 @@ struct ModDetailView: View {
                     .font(.headline)
                 VStack(spacing: 6) {
                     ForEach(children) { child in
-                        // Chaque composant ouvre sa fiche : la liste muette
-                        // faisait de la fiche du pack un couloir sans portes.
+                        // Chaque composant ouvre sa fiche.
                         Button {
                             vm.navigationStore.setViewingModDetail(child)
                         } label: {
@@ -530,10 +456,8 @@ struct ModDetailView: View {
 
     // MARK: Settings (category + Nexus id) — migrated from `ModDetailsPopover`
 
-    /// Grouped, boxed section sitting between the header and the read-only
-    /// content tabs: HIG guidance keeps interactive controls (pickers, text
-    /// fields) out of the scrolling Description/Changelog/Dependencies tabs,
-    /// so both editors live here instead, always visible regardless of tab.
+    /// Boxed editors (pickers, text fields) kept out of the scrolling tabs
+    /// (HIG), always visible.
     @ViewBuilder
     private var settingsSection: some View {
         GroupBox {
@@ -550,11 +474,9 @@ struct ModDetailView: View {
         }
     }
 
-    /// B3-T6 — note libre attachée au mod **dans le profil actif** : elle dit
-    /// *pourquoi* (« désactivé en multi car désync ») et change avec le
-    /// profil. L'en-tête d'un pack n'a pas d'identité (F4) — ses composants
-    /// se notent eux-mêmes ; sans profil actif la section reste visible et
-    /// l'explique, plutôt que de disparaître sans dire pourquoi.
+    /// B3-T6 — note libre du mod **dans le profil actif** (le *pourquoi*).
+    /// Un en-tête de pack n'en porte pas (F4) ; sans profil actif, la section
+    /// l'explique au lieu de disparaître.
     @ViewBuilder
     private var noteSection: some View {
         if !mod.isGroup {
@@ -583,13 +505,8 @@ struct ModDetailView: View {
         }
     }
 
-    /// B3-T5 — le `config.json` du mod suit le profil actif : mémorisé quand
-    /// on quitte un profil, réécrit quand on y revient.
-    ///
-    /// L'en-tête d'un pack n'a pas de réglages propres — ses composants ont
-    /// chacun les leurs. La section reste **visible** et l'explique, au patron
-    /// de `noteSection` sans profil actif : disparaître sans dire pourquoi
-    /// laisserait croire à un oubli.
+    /// B3-T5 — `config.json` suivant le profil actif. En-tête de pack : section
+    /// **visible** qui l'explique (patron `noteSection`).
     @ViewBuilder
     private var profileConfigSection: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -602,15 +519,8 @@ struct ModDetailView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                // Le `set` prend sa valeur — il ne bascule pas. SwiftUI
-                // réécrit la valeur affichée au re-rendu, et un setter qui
-                // basculerait démarquerait le mod tout seul.
-                //
-                // `live`, pas `mod` : mettre le mod en pause renomme son
-                // dossier physique (X7 dans `actionRow`), et `resetModConfigToDefaults`
-                // comme `profileConfigHolders(for:)` calculent leur chemin à
-                // partir de `physicalFolderName` — la copie figée viserait un
-                // dossier qui n'existe plus.
+                // Le `set` prend sa valeur, ne bascule pas. `live`, pas `mod` : les
+                // chemins dérivent de `physicalFolderName`.
                 Toggle(localization.L(L10n.Mods.profileConfigEnable), isOn: Binding(
                     get: { vm.isProfileConfigManaged(live) },
                     set: { on in
@@ -629,9 +539,7 @@ struct ModDetailView: View {
                 if vm.isProfileConfigManaged(live) {
                     profileConfigHoldersView
 
-                    // Comparer ce que deux profils retiennent de ce mod —
-                    // l'écran qui rend la divergence lisible (spec §7). Le
-                    // profil actif y est toujours le côté A.
+                    // Comparer deux profils (spec §7) ; A = l'actif.
                     Menu {
                         ForEach(vm.modProfiles.filter { $0.id != vm.activeProfileId }) { profile in
                             Button(profile.name) { compareProfile = profile }
@@ -660,16 +568,9 @@ struct ModDetailView: View {
         }
     }
 
-    /// Ce que chaque profil a mémorisé, et surtout **si cela diffère encore du
-    /// disque**. Après un aller-retour entre deux profils, les deux mémorisent
-    /// le même texte : sans ce renseignement, l'absence d'effet se lirait
-    /// comme une panne.
-    ///
-    /// Lu **une fois** dans `configHolders`, jamais à chaque rendu : chaque
-    /// appel ouvre et décode le fichier de magasin de chaque profil, plus le
-    /// `config.json` du mod. Une propriété calculée le referait à chaque
-    /// redessin — la forme exacte qui a figé la page des journaux et coûté
-    /// 14,8 s au balayage de couverture.
+    /// Ce que chaque profil a mémorisé et **si ça diffère du disque** (sinon
+    /// un aller-retour passe pour une panne). Lu **une fois** dans
+    /// `configHolders` : au rendu, ce serait le gel des journaux.
     @ViewBuilder
     private var profileConfigHoldersView: some View {
         if configHolders.isEmpty {
@@ -679,8 +580,7 @@ struct ModDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
         } else {
             VStack(alignment: .leading, spacing: 3) {
-                // Indexé par rang : rien n'empêche deux profils de porter
-                // le même nom, et un id dupliqué fait taire des lignes.
+                // Par rang : deux profils peuvent porter le même nom.
                 ForEach(Array(configHolders.enumerated()), id: \.offset) { _, holder in
                     HStack(spacing: 6) {
                         Text(holder.profileName)
@@ -718,9 +618,7 @@ struct ModDetailView: View {
         }
     }
 
-    /// Dropdown bound to the mod's own effective category (never the
-    /// pack→child fallback used elsewhere for content resolution). Selecting
-    /// "Automatic" clears any user override; selecting a category pins it.
+    /// Picker on the mod's own category; "Automatic" clears the override.
     private var categoryPicker: some View {
         let overrideId = vm.customCategoryId(for: mod)
         return Picker("", selection: Binding<Int?>(
@@ -737,9 +635,7 @@ struct ModDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Nexus-id editor + fetch status. The header above already renders a
-    /// "View on Nexus" link, so unlike the old popover this section skips the
-    /// open-link button and the raw URL text — it only owns the id itself.
+    /// Nexus id editor + fetch status (the header already links to Nexus).
     private var nexusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(localization.L(L10n.Mods.nexusSection))
@@ -767,17 +663,14 @@ struct ModDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             fetchStatusRow
-            // Uniquement quand rien n'est connu : chercher la fiche d'un mod
-            // qui en déclare déjà une n'a pas d'objet.
+            // Seulement sans fiche connue.
             if vm.resolvedNexusModId(for: mod).isEmpty {
                 NexusIdentitySection(vm: vm, localization: localization, mod: mod)
             }
         }
     }
 
-    /// Compact status row shown below the mod id editor. Reflects the on-demand
-    /// metadata fetch triggered by `commitDraft`: spinner while loading,
-    /// category + latest version on success, or a localized error message.
+    /// Fetch status row: spinner, category + version, or error.
     @ViewBuilder
     private var fetchStatusRow: some View {
         switch fetchStatus {
@@ -828,9 +721,8 @@ struct ModDetailView: View {
         }
     }
 
-    /// A Nexus mod id draft is valid when empty (clears the override) or a
-    /// positive integer. Shared by `isValidDraft` (disables the Save button)
-    /// and `commitDraft` (guards the actual save) so they can't disagree.
+    /// Valid draft: empty (clears) or positive integer; shared by
+    /// `isValidDraft` and `commitDraft`.
     private func isValidNexusIdDraft(_ trimmed: String) -> Bool {
         trimmed.isEmpty || (Int(trimmed).map { $0 > 0 } ?? false)
     }
@@ -840,12 +732,8 @@ struct ModDetailView: View {
     }
 
     private func seedDraft() {
-        // `resolved…`, not `effective…`: a pack header carries no id of its own
-        // (it isn't a mod), so `effectiveNexusModId` returned "" and the field
-        // looked empty even though the pack's children declare an id — which
-        // the rest of this pane happily uses, since the header link and the
-        // description both resolve through the children. The field was the only
-        // place showing nothing.
+        // `resolved…`: a pack header has no own id; the field looked empty while
+        // the rest of the pane used the children's.
         nexusIdDraft = vm.resolvedNexusModId(for: mod)
     }
 
@@ -854,15 +742,10 @@ struct ModDetailView: View {
         guard isValidNexusIdDraft(trimmed) else { return }
         vm.setCustomNexusModId(for: mod, modId: trimmed.isEmpty ? nil : trimmed)
         nexusIdDraft = vm.resolvedNexusModId(for: mod)
-        // The description, changelog and dependency pane all key off the mod
-        // id, but they were only ever loaded when navigating *into* the pane
-        // (`viewingModDetail.didSet`). Entering an id therefore fetched the
-        // metadata below while the description kept showing the local manifest
-        // text — the one thing the user was trying to fix. Reload it here.
+        // Reload the detail: a new id must change the description too.
         vm.loadModDetail(for: mod)
-        // When a mod id is saved, fetch its metadata (category + latest
-        // version) from Nexus so the badge and update detection pick it up
-        // immediately. Clearing the id resets the status to idle.
+        // Fetch metadata for the saved id (badge, update detection); clearing
+        // resets to idle.
         let effectiveId = vm.resolvedNexusModId(for: mod)
         guard !effectiveId.isEmpty else { fetchStatus = .idle; return }
         fetchStatus = .loading
@@ -889,16 +772,14 @@ struct ModDetailView: View {
     private func resetDraft() {
         vm.setCustomNexusModId(for: mod, modId: nil)
         nexusIdDraft = vm.resolvedNexusModId(for: mod)
-        // Same reason as in `commitDraft`: dropping a custom id changes which
-        // Nexus mod this pane describes, so the description has to follow.
+        // Same as `commitDraft`: the description follows the id.
         vm.loadModDetail(for: mod)
         fetchStatus = .idle
     }
 
     // MARK: Dependencies
 
-    /// Transitive dependency tree (see `DependencyTreeView`), replacing SP2's
-    /// flat list. Empty/loaded states are handled inside the tree view.
+    /// Transitive dependency tree (`DependencyTreeView`).
     @ViewBuilder
     private var dependenciesSection: some View {
         DependencyTreeView(vm: vm, localization: localization, mod: mod)
@@ -908,38 +789,22 @@ struct ModDetailView: View {
 
     // MARK: Traduction
 
-    /// Ce que la liste ne peut pas dire, faute de place : **quoi** manque.
-    ///
-    /// Le taux seul ne distingue pas deux situations que le joueur ne vit pas
-    /// de la même façon. Une clé **absente** laisse l'anglais s'afficher et le
-    /// jeu tourne ; une clé **vide** n'affiche rien du tout, en silence. Un mod
-    /// à 98 % dont les 2 % restants sont vides est plus cassé qu'un mod à 60 %.
-    ///
-    /// Masquée quand le mod ne livre pas de français : il n'y a alors rien à
-    /// mesurer, et une section vide serait du bruit.
+    /// **Quoi** manque : une clé **absente** affiche l'anglais, une clé
+    /// **vide** n'affiche rien, en silence — 98 % à vides est pire que 60 %.
+    /// Masquée sans français.
     @ViewBuilder
     private var translationSection: some View {
-        // La section s'affiche aussi pour un mod **sans** français dès qu'une
-        // sauvegarde en contient un, ou qu'un de ses fichiers ne sera jamais
-        // lu par le jeu : c'est précisément le cas où l'utilisateur a quelque
-        // chose à apprendre, français ou pas — un mod purement portugais avec
-        // un `pt-BR.json` mort n'a pas besoin de français pour mériter la note.
+        // Aussi sans français si une sauvegarde en contient un ou qu'un fichier
+        // ne sera jamais lu.
         if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil
             || !unloadableLocaleFiles.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Mods.translationSection))
                     .font(AppDesign.Font.body(.semibold))
 
-                // Un défaut du mod, pas une panne de l'app : le jeu ne charge
-                // que des codes de langue nus, donc un `pt-BR.json` sans
-                // `pt.json` n'est jamais lu — sauf si un autre mod déclare
-                // cette langue via `Data/AdditionalLanguages`, ce qu'aucun mod
-                // du parc ne fait aujourd'hui mais que SMAPI permet.
-                // `fileName` seul ne suffit pas comme identifiant : un mod à
-                // plusieurs dossiers `i18n` peut porter le même nom fautif deux
-                // fois avec un `expectedName` différent (base absente d'un
-                // côté, déjà prise de l'autre) — l'indice de tableau est le
-                // seul identifiant qui ne collisionne jamais ici.
+                // Défaut du mod : le jeu ne charge que des codes nus (sauf
+                // `Data/AdditionalLanguages`). Id par indice : un même nom fautif peut
+                // apparaître deux fois.
                 ForEach(Array(unloadableLocaleFiles.enumerated()), id: \.offset) { _, file in
                     if let expected = file.expectedName {
                         translationNote(String(format: localization.L(L10n.Mods.translationUnloadableExpected),
@@ -960,8 +825,7 @@ struct ModDetailView: View {
                 }
 
                 if let stale = translationStaleness {
-                    // Le fait et ses deux dates, jamais un verdict : l'auteur a
-                    // pu retoucher son fichier sans changer une phrase.
+                    // Le fait et ses deux dates, jamais un verdict.
                     translationNote(
                         stale.note(sourceNewerFormat: localization.L(L10n.Mods.translationSourceNewer),
                                   sameDayFormat: localization.L(L10n.Mods.translationSourceNewerToday),
@@ -984,9 +848,7 @@ struct ModDetailView: View {
                         .font(AppDesign.Font.footnote.monospacedDigit())
                         .foregroundColor(.secondary)
 
-                    // Les vides d'abord : c'est le seul défaut qui casse
-                    // vraiment l'affichage, et il passerait inaperçu derrière un
-                    // pourcentage flatteur.
+                    // Les vides d'abord : seul défaut qui casse l'affichage.
                     if !coverage.empty.isEmpty {
                         translationNote(String(format: localization.L(L10n.Mods.translationEmpty),
                                                coverage.empty.count),
@@ -998,13 +860,9 @@ struct ModDetailView: View {
                                                coverage.missing.count),
                                         icon: "text.badge.minus", color: .secondary)
                     }
-                    // Seulement quand c'est significatif. Une valeur française
-                    // identique à l'anglaise est le plus souvent légitime — un
-                    // nom propre, un nombre — et la note s'afficherait sur 228
-                    // des 424 mods traduits du parc, soit plus d'un sur deux :
-                    // une note qui apparaît partout n'informe plus. Au-delà d'un
-                    // cinquième des clés, en revanche, elle trahit une
-                    // traduction recopiée : 12 mods, et ceux-là méritent l'œil.
+                    // Seulement au-delà d'un cinquième de clés identiques à l'anglais
+                    // (sinon la note toucherait 228/424 mods ; ici 12, traductions
+                    // recopiées).
                     if coverage.total > 0,
                        Double(coverage.identicalToSource.count) / Double(coverage.total) > 0.2 {
                         translationNote(String(format: localization.L(L10n.Mods.translationIdentical),
@@ -1017,8 +875,7 @@ struct ModDetailView: View {
                                         icon: "questionmark.circle", color: .secondary)
                     }
                 } else if mod.languages.contains("fr") {
-                    // Le calcul se fait en tâche de fond : le dire plutôt que
-                    // de laisser un blanc qu'on prendrait pour une erreur.
+                    // Calcul en cours : le dire.
                     Text(localization.L(L10n.Mods.translationPending))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
@@ -1039,9 +896,7 @@ struct ModDetailView: View {
         }
     }
 
-    /// Errors and warnings this mod logged, per version — so a version can be
-    /// compared against the one before it. Hidden entirely when the mod has
-    /// never logged anything, which is the normal case.
+    /// Per-version errors and warnings; hidden when never logged.
     @ViewBuilder
     private var errorHistorySection: some View {
         let records = vm.modErrorHistory.history(for: mod.folderName)
@@ -1059,8 +914,7 @@ struct ModDetailView: View {
                         HStack(spacing: 6) {
                             Text(record.version)
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
-                            // The mod's current version, for context: an old
-                            // version's tally isn't what the player runs today.
+                            // Current version, for context.
                             if record.version == mod.version {
                                 Text(localization.L(L10n.Mods.errorHistoryCurrent))
                                     .font(AppDesign.Font.iconXXS(.medium))
@@ -1103,19 +957,9 @@ struct ModDetailView: View {
 
     // MARK: Raccourcis (C4-T2/T9)
 
-    /// Ce que **ce** mod subit en raccourcis, lu dans le rapport global du
-    /// service de scan — le pendant fiche du rapport des Alertes système.
-    ///
-    /// Muette deux fois, par décision du brief : pas de rapport ⇒ rien
-    /// (affirmer « aucun conflit » sans mesure serait mensonger ; le scan
-    /// part quand le parc est connu, le cas est rare), et mod sans conflit
-    /// ⇒ rien non plus (une ligne verte sur 900 fiches est du bruit —
-    /// l'inverse du rapport global, où le vert répond à une question
-    /// posée).
-    ///
-    /// En lecture seule : agir sur un conflit passe par le bouton
-    /// « Réglages du mod » de `actionRow` (le chemin ouvert en tâche 8,
-    /// même onglet) — la zone n'en ouvre pas un deuxième.
+    /// Raccourcis de **ce** mod, lus dans le rapport global. Muette sans
+    /// rapport (« aucun conflit » sans mesure mentirait) et sans conflit
+    /// (bruit). Lecture seule : agir passe par « Réglages du mod ».
     @ViewBuilder
     private var keybindConflictsSection: some View {
         if let conflicts = keybindScanService.report?.conflicts(affecting: mod.folderName),
@@ -1133,8 +977,7 @@ struct ModDetailView: View {
                             Text(collision.combo.display)
                                 .font(AppDesign.Font.body(.medium))
                             ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
-                                // Hors de l'interpolation : une fermeture
-                                // multiligne dans `\(...)` ne compile pas.
+                                // Hors interpolation (closure multiligne ne compile pas).
                                 let paths = use.keyPaths
                                     .map { $0.joined(separator: ".") }
                                     .joined(separator: ", ")
@@ -1147,18 +990,14 @@ struct ModDetailView: View {
                 }
 
                 if !conflicts.gameConflicts.isEmpty {
-                    // La réserve reste visible : c'est elle qui évite la
-                    // fausse alerte chez qui a remappé ses touches (même
-                    // raison que dans le rapport global).
+                    // Réserve visible : évite la fausse alerte chez qui a remappé.
                     Text(localization.L(L10n.Keybinds.gameCaveat))
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     Text(String(format: localization.L(L10n.Keybinds.gameHeader),
                                 conflicts.gameConflicts.count))
                         .font(AppDesign.Font.caption(.semibold))
                     ForEach(conflicts.gameConflicts, id: \.control.name) { conflict in
-                        // Même règle que chaque ligne de la zone : bornée à
-                        // une ligne, tronquée au milieu — la fenêtre peut
-                        // être étroite (ronde finale de revue).
+                        // Une ligne, tronquée au milieu (fenêtre étroite).
                         HStack(spacing: AppDesign.Spacing.xs) {
                             Text(conflict.control.buttons.joined(separator: " / "))
                                 .font(AppDesign.Font.body(.medium))
@@ -1176,20 +1015,10 @@ struct ModDetailView: View {
 
     // MARK: Incompatibilités (tâche 9)
 
-    /// Les incompatibilités que l'utilisateur a **déclarées** entre ce mod et
-    /// un autre, avec de quoi les écarter sans changer d'écran.
-    ///
-    /// Pendant fiche du rapport global (`ModConflictSection`, tâche 8) —
-    /// même principe que `keybindConflictsSection` juste au-dessus : donner
-    /// un retour visible **ici**, sur l'écran où « Signaler » vient d'être
-    /// cliqué. Sans lui, la seule confirmation serait de naviguer vers
-    /// Alertes système — l'erreur qu'une fonctionnalité qui ne montre rien à
-    /// l'endroit où on vient d'agir a déjà coûté deux fois dans ce dépôt.
-    ///
-    /// Ne montre que les paires **déclarées** : les conflits observés dans
-    /// le journal ont leur propre écran d'écarte (`ModConflictSection`), et
-    /// les dupliquer ici referait diverger la même correspondance conflit ↔
-    /// paire que `vm.conflictPair(for:)` centralise déjà.
+    /// Incompatibilités **déclarées** avec ce mod, écartables ici : retour
+    /// visible là où « Signaler » vient d'être cliqué. Les observées ont leur
+    /// écran (`ModConflictSection`) ; correspondance centralisée dans
+    /// `vm.conflictPair(for:)`.
     @ViewBuilder
     private var declaredConflictsSection: some View {
         let pairs = vm.modConflictVerdicts.declared.filter { $0.contains(mod.folderName) }
@@ -1219,21 +1048,16 @@ struct ModDetailView: View {
         }
     }
 
-    /// Les mods candidats du sélecteur « Signaler » : le parc, aplati (un
-    /// composant de pack a sa propre entrée, comme dans `ModConflictSection`
-    /// et `conflictFolderNames`), moins ce mod lui-même — se signaler soi-même
-    /// produirait une paire `(X, X)`, la même clé qu'un `withinOnePack` du
-    /// journal, ce qui collision­nerait avec un cas déjà modélisé.
+    /// Candidats : parc aplati, moins ce mod (une paire `(X, X)` collisionne
+    /// avec `withinOnePack`).
     private var reportConflictCandidates: [ModItem] {
         vm.scanStore.mods.flattenedMods
             .filter { $0.folderName != mod.folderName }
             .alphabeticalListOrder
     }
 
-    /// Le sélecteur « Signaler une incompatibilité… » : un mod installé, une
-    /// note facultative. `reportConflictTarget` est réinitialisé à
-    /// l'ouverture (voir le bouton) — jamais de brouillon fuyant d'un mod à
-    /// l'autre, même patron que `nexusIdDraft`/`noteDraft`.
+    /// Sélecteur « Signaler » ; cible réinitialisée à l'ouverture (patron des
+    /// brouillons).
     private var reportConflictSheet: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Conflicts.reportButton))
@@ -1276,8 +1100,7 @@ struct ModDetailView: View {
         case .changelog:
             blocksView(isChangelog: true)
         case .state:
-            // L'état du mod se lit groupé : ce qui dit s'il va bien, pas ce
-            // que l'auteur en raconte. Sections déplacées telles quelles.
+            // État du mod groupé ; sections déplacées telles quelles.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 // A2-T7 — au-dessus de tout : seul à parler de code hostile.
                 MaliciousModBanner(vm: vm, localization: localization, mod: live)
@@ -1296,16 +1119,13 @@ struct ModDetailView: View {
                 if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
             }
         case .description:
-            // Description tab: pack contents (for a pack) + the settings
-            // (which holds the Nexus-id editor) + the rendered description.
+            // Description tab: pack contents + settings + description.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 if mod.isGroup { packContentsSection }
                 settingsSection
-                // C2-T4 — ce que la dernière mise à jour a changé aux clés.
-                // La fiche vit déjà sur l'onglet Mods : les gestes passent
-                // par des closures directes, pas par les canaux
-                // `pending…Focus` (consommés seulement par un CHANGEMENT
-                // d'onglet dans MainView).
+                // C2-T4 — changements de clés de la dernière mise à jour ; closures
+                // directes (les canaux `pending…Focus` ne servent qu'au changement
+                // d'onglet).
                 ModUpdateDeltaSection(vm: vm, localization: localization, mod: mod,
                                       onOpenConfig: { vm.navigationStore.setEditingModConfig(mod) },
                                       onOpenTranslation: {
@@ -1327,11 +1147,7 @@ struct ModDetailView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 160)
                 } else {
-                    // Content genuinely absent (not loading): the mod has no
-                    // description / no changelog for this version. Connectivity
-                    // isn't tracked here, so a neutral per-tab message is more
-                    // honest than an "offline" claim that would also fire for a
-                    // perfectly online mod that simply ships no changelog.
+                    // Genuinely absent content: neutral per-tab message, not "offline".
                     ContentUnavailableView(
                         localization.L(isChangelog ? L10n.Mods.detailNoChangelog : L10n.Mods.detailNoDescription),
                         systemImage: "doc.plaintext"
@@ -1345,16 +1161,9 @@ struct ModDetailView: View {
                     }
                     DescriptionBlocksView(blocks: blocks, vm: vm, localization: localization)
 
-                    // **Ce que l'auteur dit de la compatibilité.** Mesuré sur 200
-                    // fiches : 30 % en ouvrent une section, longue de 359
-                    // caractères en médiane et 614 au maximum — d'où l'absence de
-                    // repli, qui serait une cérémonie pour un paragraphe court.
-                    // On affiche sa phrase, on n'en déduit aucune paire.
-                    //
-                    // Réservé à l'onglet Description : `blocks` porte le
-                    // changelog quand `isChangelog` est vrai, et un titre
-                    // « Compatibility » y désignerait une note de version, pas
-                    // la déclaration de l'auteur sur la fiche.
+                    // **Ce que l'auteur dit de la compatibilité** (30 % des fiches, médiane
+                    // 359 caractères : pas de repli). Onglet Description seulement : dans le
+                    // changelog, ce serait une note de version.
                     if !isChangelog, let note = CompatibilityNote.find(in: blocks) {
                         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                             Text(localization.L(L10n.Mods.compatibilityNote))
@@ -1375,9 +1184,7 @@ struct ModDetailView: View {
         }
     }
 
-    /// Discreet indicator shown above the content when it was served from
-    /// cache/local fallback and a background refresh is in flight (or failed
-    /// and was dropped in favor of keeping the last-known-good content).
+    /// Indicator for cached/fallback content while a refresh runs (or failed).
     private var stalenessHint: some View {
         Label(localization.L(L10n.Mods.detailCached), systemImage: "arrow.triangle.2.circlepath")
             .font(.caption)
@@ -1385,13 +1192,3 @@ struct ModDetailView: View {
     }
 }
 
-/// La barre de progression de la traduction.
-///
-/// Sa place est ici et non dans la liste : la ligne de liste porte déjà le
-/// globe, les langues et deux dates, là où la fiche a l'espace. La barre donne
-/// la comparaison instantanée, le nombre juste à côté donne la précision —
-/// deux rôles, deux éléments.
-///
-/// Le remplissage n'est jamais nul quand une seule clé est traduite : une barre
-/// vide sur un travail commencé le nierait. Symétriquement, seul un travail
-/// terminé remplit toute la largeur.

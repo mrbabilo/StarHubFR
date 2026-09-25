@@ -1,8 +1,11 @@
 import SwiftUI
 
-// Les sections de la fiche mod — P8, geste B (cadrage 2026-09-14) :
-// types inchangés, déplacés du fichier de `ModDetailView`, `private`
-// levé car instanciés par le body qui reste dans l'autre fichier.
+// Sections de la fiche mod (P8, 2026-09-14), déplacées de
+// `ModDetailView` ; `private` levé.
+
+/// Barre de progression de la traduction, sur la fiche (la ligne de liste
+/// n'a pas la place). Jamais vide dès une clé traduite ; pleine seulement
+/// quand tout l'est.
 struct TranslationProgressBar: View {
     let percent: Int
 
@@ -30,22 +33,11 @@ struct TranslationProgressBar: View {
 
 // MARK: - Suppléments d'un mod (A3-T4)
 
-/// Ce qui se greffe sur un mod installé : bagages `ItemBags`, correctifs de
-/// compatibilité, packs de contenu qui le citent.
-///
-/// **Ce que cette section ne peut pas faire, et le dit.** Nexus n'a pas de
-/// notion de « supplément » : la recherche rend les mods dont le **titre**
-/// contient celui-ci, et rien de plus. Deux mesures cadrent l'affichage :
-/// - les résultats sont noyés de traductions — 8 des 26 premiers sur
-///   « Sword and Sorcery » —, écartées par leur tag `Translation` ;
-/// - un nom générique ramasse tout : « Content Patcher » rend **428**
-///   résultats, dont 45 sur 50 ne sont pas des traductions. La liste est
-///   plafonnée et le total annoncé, faute de quoi une poignée passerait pour
-///   une exhaustivité.
-///
-/// Aucun bouton d'installation : le dépôt d'une archive sans manifeste
-/// (**A1-T3**) s'en charge, et un compte gratuit ne peut de toute façon pas
-/// télécharger depuis l'API. Le bouton mène à la page Nexus.
+/// Ce qui se greffe sur un mod (`ItemBags`, correctifs, packs qui le
+/// citent). Nexus ne connaît que les **titres** qui contiennent celui-ci :
+/// traductions écartées par tag, liste plafonnée **et total annoncé**
+/// (« Content Patcher » : 428). Pas d'installation ici (A1-T3) : le bouton
+/// mène à Nexus.
 struct SupplementSection: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -96,17 +88,14 @@ struct SupplementSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            // Ce que le mod porte déjà, avant toute recherche : le registre le
-            // sait sans avoir à interroger Nexus.
+            // Ce que le registre connaît déjà, sans Nexus.
             let installed = vm.addons(for: mod)
             if !installed.isEmpty || !(search?.alreadyInstalled.isEmpty ?? true) {
                 Text(localization.L(L10n.Mods.installedSection))
                     .font(.system(size: 11, weight: .semibold))
                 ForEach(installed, id: \.nexusName) { addon in installedRow(addon) }
-                // Reconnus dans les résultats **et absents du registre** :
-                // ceux-là seuls sont installés comme mods à part entière. Sans
-                // ce tri, une greffe posée à la main s'affichait deux fois,
-                // dont une sous une étiquette fausse.
+                // Reconnus **et absents du registre** : sinon une greffe s'affichait
+                // deux fois.
                 ForEach((search?.alreadyInstalled ?? []).filter { hit in
                     !installed.contains { known in
                         known.nexusModId == hit.modId
@@ -114,12 +103,9 @@ struct SupplementSection: View {
                     }
                 }) { hit in asModRow(hit) }
             }
-            // Rien tant qu'on n'a pas cherché : une liste vide affichée d'emblée
-            // se lirait comme « aucun supplément n'existe », ce qu'on ne sait pas.
+            // Rien avant la recherche : vide se lirait « aucun supplément ».
             if !isSearching, let search {
-                // Les deux moitiés vides, pas seulement les propositions : sinon
-                // « rien trouvé » s'affichait juste sous la liste de ce qui
-                // venait d'être trouvé, et reconnu comme déjà installé.
+                // Les deux moitiés vides : sinon « rien trouvé » sous ce qui était trouvé.
                 if search.hits.isEmpty, search.alreadyInstalled.isEmpty {
                     Text(localization.L(L10n.Mods.supplementNone))
                         .font(.system(size: 11))
@@ -135,8 +121,7 @@ struct SupplementSection: View {
                             .foregroundColor(.secondary)
                     }
                     ForEach(search.hits.prefix(6)) { hit in candidate(hit) }
-                    // La réserve reste sous les yeux : ce sont des titres qui
-                    // citent ce mod, pas des suppléments établis.
+                    // Réserve visible : titres qui citent le mod, pas suppléments établis.
                     Text(localization.L(L10n.Mods.supplementHint))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
@@ -147,8 +132,7 @@ struct SupplementSection: View {
         .padding(.top, 4)
     }
 
-    /// Une greffe posée par la feuille d'installation : le registre la connaît,
-    /// donc elle se retire — et se rattache à Nexus pour être suivie.
+    /// Greffe posée par la feuille : retirable et rattachable à Nexus.
     @ViewBuilder
     private func installedRow(_ addon: InstalledTranslation) -> some View {
         HStack(spacing: 8) {
@@ -194,9 +178,7 @@ struct SupplementSection: View {
         .padding(.vertical, 2)
     }
 
-    /// Un supplément installé **comme un mod à part entière** : il vit dans
-    /// `Mods/` avec son manifeste, se met à jour comme les autres, et n'a rien
-    /// à faire dans le registre des greffes.
+    /// Supplément installé **comme mod** : hors registre des greffes.
     @ViewBuilder
     private func asModRow(_ hit: NexusModSearch.Hit) -> some View {
         HStack(spacing: 8) {
@@ -250,14 +232,9 @@ struct SupplementSection: View {
 
 // MARK: - Traduction française (A3-T3)
 
-/// Chercher, poser, suivre et retirer une traduction communautaire.
-///
-/// Une traduction n'est pas un mod : ce sont des fichiers déposés **dans** le
-/// mod traduit. Elle n'apparaît donc nulle part ailleurs dans l'app, et c'est
-/// ici — sur la fiche du mod concerné — qu'elle a un sens.
-///
-/// Absente des composants de pack : c'est le dossier de premier niveau qu'on
-/// traduit, comme c'est lui qu'on met en pause ou qu'on sauvegarde.
+/// Chercher, poser, suivre et retirer une traduction communautaire —
+/// fichiers déposés **dans** le mod, d'où sa place sur la fiche. Absente
+/// des composants de pack : on traduit le dossier de premier niveau.
 struct TranslationSection: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -269,9 +246,7 @@ struct TranslationSection: View {
     private var isSearching: Bool { vm.searchingTranslations.contains(mod.folderName) }
     private var isBusy: Bool { vm.busyTranslations.contains(mod.folderName) }
     private var update: NexusModSearch.Hit? { vm.translationUpdateAvailable(for: mod) }
-    /// A3-T6 — traduction sur disque mais inconnue du registre. Le bandeau
-    /// n'apparaît **que** quand `installed` est `nil` : une traduction déjà
-    /// suivie par l'app n'a rien à déclarer.
+    /// A3-T6 — bandeau seulement si `installed` est `nil`.
     private var showUndeclaredBanner: Bool {
         installed == nil && vm.hasUndeclaredFrenchTranslation(for: mod)
     }
@@ -287,9 +262,7 @@ struct TranslationSection: View {
                 undeclaredBanner
             }
             searchRow
-            // Rien tant qu'on n'a pas cherché : une liste vide affichée
-            // d'emblée se lirait comme « aucune traduction n'existe », ce qu'on
-            // ne sait pas encore.
+            // Rien avant la recherche : vide se lirait « aucune traduction ».
             if !isSearching, vm.translationHits[mod.folderName] != nil {
                 if hits.isEmpty {
                     Text(localization.L(L10n.Mods.translationNoneFound))
@@ -306,10 +279,8 @@ struct TranslationSection: View {
         }
     }
 
-    /// Variante « déclarée à la main ». Pas d'install, pas de fichiers
-    /// connus : un clic sur « Retirer » n'enlève rien du disque, il retire
-    /// juste la ligne du registre (et le bandeau « origine inconnue »
-    /// réapparaît). L'UI le dit.
+    /// Variante déclarée : « Retirer » n'enlève que la ligne du registre
+    /// (l'UI le dit).
     @ViewBuilder
     private func declaredInPlace(_ declared: DeclaredTranslation) -> some View {
         HStack(spacing: 6) {
@@ -334,13 +305,8 @@ struct TranslationSection: View {
         }
     }
 
-    /// Bandeau « traduction présente, origine inconnue ». Deux sorties :
-    /// **recherche Nexus** (bouton à gauche, qui remplit la même barre que
-    /// `searchRow`), et **déclaration manuelle** (à droite, qui ouvre la
-    /// sheet). Aucune ne s'inscrit d'office — `birthtime` et `mtime` mentent
-    /// sur un dossier copié ou restauré, et deviner une provenance dans un
-    /// registre qui sert justement à ne pas deviner vaudrait moins que pas
-    /// de provenance du tout.
+    /// Bandeau « origine inconnue » : recherche Nexus ou déclaration manuelle.
+    /// Rien d'office : `birthtime`/`mtime` mentent sur un dossier copié.
     @ViewBuilder
     private var undeclaredBanner: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -375,9 +341,7 @@ struct TranslationSection: View {
         .cornerRadius(AppDesignCore.Radius.sm)
     }
 
-    /// Sheet de déclaration manuelle : `nexusModId` + nom + version (option).
-    /// La date Nexus reste à `nil` : on ne la demande pas à l'utilisateur, et
-    /// une recherche dédiée peut la remplir après coup.
+    /// Déclaration manuelle : id, nom, version ; date Nexus laissée `nil`.
     @State private var declareModId: String = ""
     @State private var declareName: String = ""
     @State private var declareVersion: String = ""
@@ -456,17 +420,14 @@ struct TranslationSection: View {
                 .disabled(isBusy)
                 .font(.system(size: 11))
         }
-        // **Sans page Nexus rattachée, aucune mise à jour ne peut être vue.**
-        // C'est le cas courant : sur un compte gratuit tout s'installe à la
-        // main, donc sans identifiant. Le rattachement se fait donc ici, après
-        // coup, en désignant l'entrée correspondante parmi les résultats.
+        // **Sans page Nexus, aucune mise à jour visible** (compte gratuit) :
+        // rattachement ici, parmi les résultats.
         if installed.nexusModId == 0 {
             HStack(spacing: 6) {
                 Text(localization.L(L10n.Mods.noUpdateCheck))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
-                // Les deux moitiés : le bon candidat est celui que le filtre a
-                // retiré des propositions, et le menu serait vide sans lui.
+                // Les deux moitiés : le bon candidat a été retiré des propositions.
                 let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + hits
                 if !candidates.isEmpty {
                     Menu(localization.L(L10n.Mods.linkToNexus)) {
@@ -496,14 +457,11 @@ struct TranslationSection: View {
                       systemImage: "globe.badge.chevron.backward")
                     .font(.system(size: 11))
             }
-            // `.bordered` et non `.borderless` : les résultats en dessous
-            // portent des boutons encadrés, et l'action qui les fait
-            // apparaître ne doit pas ressembler à du texte.
+            // `.bordered` : l'action ne doit pas ressembler à du texte.
             .buttonStyle(.bordered)
             .controlSize(.small)
             .disabled(isSearching || isBusy || !vm.hasNexusApiKey)
-            // **Dire pourquoi il est gris.** Un bouton désactivé et muet laisse
-            // chercher la panne du mauvais côté.
+            // **Dire pourquoi il est gris.**
             .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.translationSearch)
                                     : localization.L(L10n.Mods.nexusNoApiKey))
             .pointingHandCursor()
@@ -515,8 +473,7 @@ struct TranslationSection: View {
             } else if isBusy {
                 ProgressView().controlSize(.small)
             } else if vm.translationHits[mod.folderName] != nil {
-                // Une liste de propositions se referme : elle a fait son
-                // office, et la fiche a d'autres choses à montrer.
+                // La liste se referme, son office fait.
                 Button {
                     vm.dismissTranslationResults(for: mod)
                 } label: {
@@ -528,9 +485,8 @@ struct TranslationSection: View {
                 .iconHelp(localization.L(L10n.Mods.searchClose))
                 .pointingHandCursor()
             } else if !vm.hasNexusApiKey {
-                // Écrit, pas seulement en infobulle : AppKit ne garantit pas
-                // l'infobulle d'un contrôle désactivé, et c'est précisément
-                // quand il est gris qu'il faut dire pourquoi.
+                // Écrit, pas seulement en infobulle (non garantie sur un contrôle
+                // désactivé).
                 Text(localization.L(L10n.Mods.nexusNoApiKey))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
@@ -540,11 +496,8 @@ struct TranslationSection: View {
         }
     }
 
-    /// Une traduction proposée : son titre, son auteur, sa date, et le geste.
-    ///
-    /// La date est celle de Nexus, la même qui décide qu'une mise à jour
-    /// existe — les numéros de version ne servent à rien ici, beaucoup de
-    /// traducteurs reprennent celui du mod traduit.
+    /// Traduction proposée : titre, auteur, date Nexus (celle qui décide des
+    /// mises à jour ; les numéros ne servent à rien).
     @ViewBuilder
     private func candidate(_ hit: NexusModSearch.Hit) -> some View {
         HStack(spacing: 8) {
@@ -559,11 +512,8 @@ struct TranslationSection: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            // Même paire de boutons que les mises à jour de mods : le
-            // téléchargement direct, qui demande un compte Premium, et la
-            // sortie vers Nexus. Elle ouvre l'onglet **Files**, où vit le
-            // téléchargement gratuit par gestionnaire de mods — la page
-            // d'accueil du mod, elle, ne le porte pas.
+            // Même paire que les mises à jour : direct (Premium) et Nexus, onglet
+            // **Files** (téléchargement gratuit par gestionnaire).
             Button {
                 if let url = URL(string:
                     "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
@@ -583,9 +533,7 @@ struct TranslationSection: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            // Même règle que la page des mises à jour : sans compte premium,
-            // l'API refuse le lien direct, et c'est le bouton Nexus qui prend
-            // le relais.
+            // Sans Premium, lien direct refusé : le bouton Nexus relaie.
             .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
             .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
         }
@@ -594,19 +542,10 @@ struct TranslationSection: View {
 }
 
 
-/// Retrouver la fiche Nexus d'un mod qui n'en déclare aucune.
-///
-/// **Ce que la mesure impose à cet écran.** Sur les 83 mods du parc encore sans
-/// identifiant, la recherche par nom a été réellement exécutée le 2026-08-26 :
-/// 55 ne rendent rien, 23 rendent des candidats — dont 61 % de traductions,
-/// écartées en amont — et 18 n'en ont plus qu'un seul. Deux mods sur trois
-/// verront donc « aucun résultat », et c'est une réponse, pas une panne : elle
-/// est écrite en toutes lettres, sans quoi le bouton passerait pour cassé.
-///
-/// **Rien n'est relié d'autorité**, même quand un seul candidat subsiste et que
-/// l'auteur concorde : deux des 18 candidats uniques mesurés portaient un auteur
-/// sans rapport. Chaque ligne offre d'abord d'ouvrir la fiche — vérifier avant
-/// de désigner — et l'adoption reste un geste.
+/// Retrouver la fiche Nexus d'un mod sans id (83 mesurés le 2026-08-26 :
+/// 55 sans résultat) : « aucun résultat » est une réponse, écrite en
+/// toutes lettres. **Rien relié d'autorité** (2 candidats uniques sur 18
+/// d'un auteur sans rapport) : ouvrir la fiche d'abord, adopter ensuite.
 struct NexusIdentitySection: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -653,8 +592,7 @@ struct NexusIdentitySection: View {
                     .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
-                    // Écrit, pas seulement en infobulle : AppKit ne garantit
-                    // pas l'infobulle d'un contrôle désactivé.
+                    // Écrit, pas seulement en infobulle.
                     Text(localization.L(L10n.Mods.nexusNoApiKey))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
@@ -662,10 +600,8 @@ struct NexusIdentitySection: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            // Dit **avant** le clic, pas après : mesuré, les 20 composants de
-            // pack sans identifiant n'ont rendu aucun résultat. Le bouton reste
-            // ouvert — un composant peut avoir sa propre page — mais on annonce
-            // où chercher pour de bon.
+            // Dit **avant** le clic : les 20 composants de pack sans id n'ont rien
+            // rendu ; on annonce où chercher.
             if mod.isPackComponent, !packName.isEmpty {
                 Text(String(format: localization.L(L10n.Mods.nexusIdentityComponent), packName))
                     .font(.system(size: 10))
