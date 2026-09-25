@@ -226,15 +226,15 @@ final class StarHubTHViewModel {
         modDetailState?.stopLoading(ifShowing: modId)
     }
 
-    /// Description (`mods/{id}.json`) + full changelog (`changelogs.json`) via
-    /// the existing Nexus client. `nil` if the description fails, so the
-    /// fallback stays; an empty changelog is fine.
+    /// Description + full changelog: v1, then v2 without key (A3-T7). `nil`
+    /// if both fail, so the local fallback stays. Rule in Core, tested.
     private func fetchModDetailRemote(modId: Int, completion: @escaping (ModDetailRaw?) -> Void) {
-        // Règle de composition en Core, testée.
         ModDetailRefresh.fetch(
             modId: modId,
             fetchDescription: { NexusUpdateChecker.shared.fetchRawDescription(modId: $0, completion: $1) },
             fetchChangelogs: { NexusUpdateChecker.shared.fetchChangelogs(modId: $0, completion: $1) },
+            fallback: { id, done in NexusSearchClient.modDetailRaw(modId: id) {
+                if case .success(let raw) = $0 { done(raw) } else { done(nil) } } },
             completion: completion)
     }
     /// `{ nexusModId: categoryId }`, persisted so the category filter works

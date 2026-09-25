@@ -11,15 +11,20 @@ import Foundation
 /// invalide le tout (le repli cache/local de l'appelant reste intact
 /// plutôt que d'être écrasé par du blanc), un changelog vide est
 /// acceptable — vit ici, testée.
+///
+/// A3-T7 : une description v1 vide (pas de clé, quota épuisé, panne) passe
+/// la main au repli v2 (`NexusModDetailV2`, sans clé), qui rend les deux
+/// d'un coup ; `nil` du repli garde la règle — rien n'écrase le local.
 enum ModDetailRefresh {
 
     static func fetch(modId: Int,
                       fetchDescription: @escaping (Int, @escaping (String) -> Void) -> Void,
                       fetchChangelogs: @escaping (Int, @escaping (String) -> Void) -> Void,
+                      fallback: @escaping (Int, @escaping (ModDetailRaw?) -> Void) -> Void = { $1(nil) },
                       completion: @escaping (ModDetailRaw?) -> Void) {
         fetchDescription(modId) { description in
             guard !description.isEmpty else {
-                completion(nil)
+                fallback(modId, completion)
                 return
             }
             fetchChangelogs(modId) { changelog in

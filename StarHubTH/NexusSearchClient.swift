@@ -78,16 +78,26 @@ enum NexusSearchClient {
              completion: completion)
     }
 
+    /// A3-T7 — description et historique de la fiche, **sans clé exigée**
+    /// (repli de la v1). La clé part si elle existe, comme ailleurs.
+    static func modDetailRaw(modId: Int,
+                             completion: @escaping @Sendable (Result<ModDetailRaw, SearchError>) -> Void) {
+        send(body: NexusModDetailV2.body(modId: modId, gameId: NexusRequestBuilder.gameId),
+             requiresKey: false, decode: NexusModDetailV2.decode, completion: completion)
+    }
+
     /// L'entonnoir commun : clé, requête, quota, 429, 200-avec-`errors`.
     /// Une seule copie pour la recherche, le listing et la fiche — pas de
-    /// variantes qui divergent.
-    private static func send<T: Sendable>(body: Data?,
+    /// variantes qui divergent. `requiresKey: false` n'est ouvert qu'à la
+    /// fiche (A3-T7) : Découvrir et la recherche gardent l'exigence.
+    private static func send<T: Sendable>(body: Data?, requiresKey: Bool = true,
                                 decode: @escaping @Sendable (Data) -> Result<T, NexusModSearch.Failure>,
                                 completion: @escaping @Sendable (Result<T, SearchError>) -> Void) {
         func finish(_ result: Result<T, SearchError>) {
             DispatchQueue.main.async { completion(result) }
         }
-        guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
+        let apiKey = NexusUpdateChecker.shared.apiKey().flatMap { $0.isEmpty ? nil : $0 }
+        guard apiKey != nil || !requiresKey else {
             finish(.failure(.noApiKey)); return
         }
         guard let body,

@@ -76,7 +76,9 @@ enum NexusRequestBuilder {
     /// fichier : un second jeu d'en-têtes ferait voir deux clients à Nexus.
     static let graphQLTimeout: TimeInterval = 20
 
-    static func makeGraphQLRequest(body: Data, apiKey: String) -> URLRequest? {
+    /// `apiKey: nil` : requête sans clé (A3-T7, la v2 rend la fiche sans
+    /// elle) — l'en-tête `apikey` est omis, les autres restent.
+    static func makeGraphQLRequest(body: Data, apiKey: String?) -> URLRequest? {
         guard let url = URL(string: graphQLURL) else { return nil }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -87,7 +89,7 @@ enum NexusRequestBuilder {
         // vingt pour un mod, restait alors figée plus d'une minute sur un seul
         // mod (« La requête a expiré », 60,2 s).
         req.timeoutInterval = graphQLTimeout
-        req.setValue(apiKey, forHTTPHeaderField: "apikey")
+        if let apiKey { req.setValue(apiKey, forHTTPHeaderField: "apikey") }
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         req.setValue(appName, forHTTPHeaderField: "Application-Name")
         req.setValue(appVersion, forHTTPHeaderField: "Application-Version")
