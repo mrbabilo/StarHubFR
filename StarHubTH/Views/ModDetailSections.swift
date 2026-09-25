@@ -56,7 +56,7 @@ struct SupplementSection: View {
                 } label: {
                     Label(localization.L(L10n.Mods.searchShortSupplement),
                           systemImage: "puzzlepiece.extension")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -67,14 +67,14 @@ struct SupplementSection: View {
                 if isSearching {
                     ProgressView().controlSize(.small)
                     Text(localization.L(L10n.Mods.supplementSearching))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 } else if search != nil {
                     Button {
                         vm.dismissSupplementResults(for: mod)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
@@ -82,7 +82,7 @@ struct SupplementSection: View {
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     Text(localization.L(L10n.Mods.nexusNoApiKey))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -92,7 +92,7 @@ struct SupplementSection: View {
             let installed = vm.addons(for: mod)
             if !installed.isEmpty || !(search?.alreadyInstalled.isEmpty ?? true) {
                 Text(localization.L(L10n.Mods.installedSection))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppDesign.Font.footnote(.semibold))
                 ForEach(installed, id: \.nexusName) { addon in installedRow(addon) }
                 // Reconnus **et absents du registre** : sinon une greffe s'affichait
                 // deux fois.
@@ -108,22 +108,22 @@ struct SupplementSection: View {
                 // Les deux moitiés vides : sinon « rien trouvé » sous ce qui était trouvé.
                 if search.hits.isEmpty, search.alreadyInstalled.isEmpty {
                     Text(localization.L(L10n.Mods.supplementNone))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 } else {
                     Text(String(format: localization.L(L10n.Mods.supplementFound), search.hits.count))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                     if search.isCapped {
                         Text(String(format: localization.L(L10n.Mods.supplementCapped),
                                     search.serverTotal, search.received))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
                     ForEach(search.hits.prefix(6)) { hit in candidate(hit) }
                     // Réserve visible : titres qui citent le mod, pas suppléments établis.
                     Text(localization.L(L10n.Mods.supplementHint))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -137,23 +137,23 @@ struct SupplementSection: View {
     private func installedRow(_ addon: InstalledTranslation) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(AppDesign.Color.installed)
             VStack(alignment: .leading, spacing: 1) {
                 Text(addon.nexusName)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppDesign.Font.footnote(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if addon.nexusModId == 0 {
                     Text(localization.L(L10n.Mods.noUpdateCheck))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                 }
             }
             Spacer()
             if vm.addonUpdateAvailable(addon, for: mod) != nil {
                 Text(localization.L(L10n.Mods.translationUpdateAvailable))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppDesign.Font.iconXS(.semibold))
                     .foregroundColor(.orange)
             }
             let linkable = (search.map { $0.alreadyInstalled + $0.hits }) ?? []
@@ -167,13 +167,13 @@ struct SupplementSection: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .help(localization.L(L10n.Mods.linkToNexusHint))
             }
             Button(localization.L(L10n.Mods.addonRemove), role: .destructive) { vm.removeAddon(addon, from: mod) }
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
         }
         .padding(.vertical, 2)
     }
@@ -183,15 +183,15 @@ struct SupplementSection: View {
     private func asModRow(_ hit: NexusModSearch.Hit) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(AppDesign.Color.installed)
             VStack(alignment: .leading, spacing: 1) {
                 Text(hit.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppDesign.Font.footnote(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(localization.L(L10n.Mods.supplementAsMod))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
             Spacer()
@@ -204,12 +204,12 @@ struct SupplementSection: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(hit.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppDesign.Font.footnote(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
             Spacer()
@@ -220,7 +220,7 @@ struct SupplementSection: View {
                 }
             } label: {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -266,7 +266,7 @@ struct TranslationSection: View {
             if !isSearching, vm.translationHits[mod.folderName] != nil {
                 if hits.isEmpty {
                     Text(localization.L(L10n.Mods.translationNoneFound))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 } else {
                     ForEach(hits.prefix(4)) { hit in candidate(hit) }
@@ -285,12 +285,12 @@ struct TranslationSection: View {
     private func declaredInPlace(_ declared: DeclaredTranslation) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "person.crop.rectangle.badge.checkmark")
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(.blue)
             Text(localization.L(L10n.Mods.translationDeclared))
-                .font(.system(size: 12, weight: .medium))
+                .font(AppDesign.Font.caption(.medium))
             Text(declared.nexusName)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -300,7 +300,7 @@ struct TranslationSection: View {
             }
             .buttonStyle(.borderless)
             .foregroundColor(.red)
-            .font(.system(size: 11))
+            .font(AppDesign.Font.footnote)
             .help(localization.L(L10n.Mods.translationUndeclareHint))
         }
     }
@@ -312,13 +312,13 @@ struct TranslationSection: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "questionmark.circle")
                 .foregroundColor(.orange)
-                .font(.system(size: 12))
+                .font(AppDesign.Font.caption)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 4) {
                 Text(localization.L(L10n.Mods.translationUndeclared))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppDesign.Font.caption(.medium))
                 Text(localization.L(L10n.Mods.translationUndeclaredHint))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
@@ -350,9 +350,9 @@ struct TranslationSection: View {
     private var declareSheet: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Mods.translationDeclareTitle))
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: AppDesign.Font.scaled(15), weight: .bold))
             Text(localization.L(L10n.Mods.translationDeclareExplainer))
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             TextField(localization.L(L10n.Mods.translationDeclareNexusId), text: $declareModId)
@@ -390,18 +390,18 @@ struct TranslationSection: View {
     private func inPlace(_ installed: InstalledTranslation) -> some View {
         SplitRow(spacing: 6) { // ~720 pt en FR avec une mise à jour : repli sous 512
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 10))
+                .font(AppDesign.Font.iconXS)
                 .foregroundColor(AppDesign.Color.installed)
             Text(localization.L(L10n.Mods.translationInPlace))
-                .font(.system(size: 12, weight: .medium))
+                .font(AppDesign.Font.caption(.medium))
             Text(installed.nexusName)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             if update != nil {
                 Text(localization.L(L10n.Mods.translationUpdateAvailable))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppDesign.Font.iconXS(.semibold))
                     .foregroundColor(.orange)
             }
         } trailing: {
@@ -418,14 +418,14 @@ struct TranslationSection: View {
                 .buttonStyle(.borderless)
                 .foregroundColor(.red)
                 .disabled(isBusy)
-                .font(.system(size: 11))
+                .font(AppDesign.Font.footnote)
         }
         // **Sans page Nexus, aucune mise à jour visible** (compte gratuit) :
         // rattachement ici, parmi les résultats.
         if installed.nexusModId == 0 {
             HStack(spacing: 6) {
                 Text(localization.L(L10n.Mods.noUpdateCheck))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                 // Les deux moitiés : le bon candidat a été retiré des propositions.
                 let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + hits
@@ -440,7 +440,7 @@ struct TranslationSection: View {
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .help(localization.L(L10n.Mods.linkToNexusHint))
                 }
             }
@@ -455,7 +455,7 @@ struct TranslationSection: View {
             } label: {
                 Label(localization.L(L10n.Mods.searchShortTranslation),
                       systemImage: "globe.badge.chevron.backward")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             // `.bordered` : l'action ne doit pas ressembler à du texte.
             .buttonStyle(.bordered)
@@ -468,7 +468,7 @@ struct TranslationSection: View {
             if isSearching {
                 ProgressView().controlSize(.small)
                 Text(localization.L(L10n.Mods.translationSearching))
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
             } else if isBusy {
                 ProgressView().controlSize(.small)
@@ -478,7 +478,7 @@ struct TranslationSection: View {
                     vm.dismissTranslationResults(for: mod)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -488,7 +488,7 @@ struct TranslationSection: View {
                 // Écrit, pas seulement en infobulle (non garantie sur un contrôle
                 // désactivé).
                 Text(localization.L(L10n.Mods.nexusNoApiKey))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -503,12 +503,12 @@ struct TranslationSection: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(hit.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppDesign.Font.footnote(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
             }
             Spacer()
@@ -521,7 +521,7 @@ struct TranslationSection: View {
                 }
             } label: {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -567,7 +567,7 @@ struct NexusIdentitySection: View {
                     vm.searchNexusIdentity(for: mod)
                 } label: {
                     Label(localization.L(L10n.Mods.nexusIdentityShort), systemImage: "magnifyingglass")
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -578,14 +578,14 @@ struct NexusIdentitySection: View {
                 if isSearching {
                     ProgressView().controlSize(.small)
                     Text(localization.L(L10n.Mods.supplementSearching))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 } else if search != nil {
                     Button {
                         vm.dismissIdentityResults(for: mod)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
@@ -594,7 +594,7 @@ struct NexusIdentitySection: View {
                 } else if !vm.hasNexusApiKey {
                     // Écrit, pas seulement en infobulle.
                     Text(localization.L(L10n.Mods.nexusNoApiKey))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -604,30 +604,30 @@ struct NexusIdentitySection: View {
             // rendu ; on annonce où chercher.
             if mod.isPackComponent, !packName.isEmpty {
                 Text(String(format: localization.L(L10n.Mods.nexusIdentityComponent), packName))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !isSearching, let search {
                 if search.candidates.isEmpty {
                     Text(localization.L(L10n.Mods.nexusIdentityNone))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(String(format: localization.L(L10n.Mods.nexusIdentityFound),
                                 search.candidates.count))
-                        .font(.system(size: 11))
+                        .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                     if search.isCapped {
                         Text(String(format: localization.L(L10n.Mods.supplementCapped),
                                     search.serverTotal, search.received))
-                            .font(.system(size: 10))
+                            .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
                     }
                     ForEach(search.candidates.prefix(6)) { candidate in row(candidate) }
                     Text(localization.L(L10n.Mods.nexusIdentityHint))
-                        .font(.system(size: 10))
+                        .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -642,12 +642,12 @@ struct NexusIdentitySection: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(candidate.hit.name)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppDesign.Font.footnote(.medium))
                         .lineLimit(1)
                         .truncationMode(.middle)
                     if candidate.authorMatches {
                         Text(localization.L(L10n.Mods.nexusIdentitySameAuthor))
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(AppDesign.Font.iconXXS(.semibold))
                             .foregroundColor(.green)
                             .lineLimit(1)
                             .fixedSize()
@@ -657,7 +657,7 @@ struct NexusIdentitySection: View {
                             candidate.hit.updatedAt.map {
                                 $0.formatted(date: .abbreviated, time: .omitted)
                             } ?? "—"))
-                    .font(.system(size: 10))
+                    .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
@@ -670,7 +670,7 @@ struct NexusIdentitySection: View {
                 }
             } label: {
                 Image(systemName: "arrow.up.right.square")
-                    .font(.system(size: 11))
+                    .font(AppDesign.Font.footnote)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
