@@ -137,6 +137,18 @@ pause »**, y compris les résidus du système. C'est ce qui a fait afficher un
 [`OSJunk.swift`](../StarHubTH/Models/OSJunk.swift) — une seule, justement pour
 que ce défaut ne revienne pas par duplication.
 
+### Corbeille et quarantaine — deux choses, deux endroits, à côté de `Mods/`
+
+- **Corbeille** (l'utilisateur supprime un mod) :
+  `<jeu>/_StarHubFR_Corbeille/_Trash_<horodatage>/`, chaque événement porte le
+  marqueur `.starhubfr-user-trash`. Remise en pause, purge sous confirmation
+  (`Models/ModTrash.swift`).
+- **Quarantaine** (le réparateur écarte du junk) : `<jeu>/_Trash_<horodatage>/`,
+  sans marqueur (`ModFolderRepairer.swift`).
+- **Jamais la corbeille dans `Mods/`** : SMAPI lisait chaque événement comme un
+  mod sans manifeste (X115). **Jamais le préfixe `_Trash_` pour son parent** :
+  « Vider la quarantaine » envoie au Mac tout `_Trash_*` du dossier du jeu.
+
 ## 4. Nexus Mods
 
 - **API REST v1** (`https://api.nexusmods.com/v1`) — informations de mod, listes
