@@ -732,6 +732,21 @@ SLO est actif et ce que la dernière session a mesuré.
       (`AccessPath`) plus la valeur courante. Restent pour la suite : pics avec
       contexte à seuil **relatif**, horloge des 10 minutes, changements de lieu,
       en-tête matériel (fréquence, VSync, pas fixe). · **M**
+      *Première session v0.3 (2026-09-26, 02:33–02:42, Profiler en pause,
+      aucune erreur imputable à la sonde) :* **Stardew Gallery** a gelé le jeu
+      **8,6 s** dans un seul `UpdateTicked` et alloué **1,2 Go** à l'ouverture
+      de son menu (scan de 2 727 fichiers d'événements, « 6359 ms » dans son
+      journal) ; en régime continu, les événements de tous les mods coûtent
+      **4,4 ms par trame** — Content Patcher (changements de lieu), Cropgenics,
+      Teleshopping (~280 ms à chaque invalidation d'assets), UI Info Suite 2 ;
+      plus gros allocateurs AutoForager (455 Mo/min), Teleshopping, Content
+      Patcher. La mise à jour d'une trame en coûte ~15 : **les deux tiers
+      restent hors des événements** (patches Harmony, jeu, SMAPI) → D4-T5.
+      GMCM : 170 mods, 4 252 options dont 276 bornées ; témoin UltraSmooth
+      **8/8 exact** (min, max, pas). Rapprochement option → clé de
+      `config.json` : 1 079 sur 3 423 — l'aide d'intégration de Pathoschild
+      (84 mods) enveloppe l'accès dans un délégué capturé, suivi depuis la
+      v0.3.2.
 - [ ] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
       méthodes de préfixe/postfixe elles-mêmes, par propriétaire — un mod qui agit par
       patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût

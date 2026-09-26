@@ -113,7 +113,7 @@ internal static class GmcmExport
             Str(Prop("Maximum")),
             Str(Prop("Interval")),
             choices,
-            getter is null ? new List<string>() : AccessPath(getter.Method));
+            getter is null ? new List<string>() : AccessPath(getter, 0));
     }
 
     private static string? Safe(Func<string?> f)
@@ -127,9 +127,19 @@ internal static class GmcmExport
     /// de l'IL (appels et lectures de champ), suffisante pour ces lambdas de
     /// quelques instructions ; les noms générés par le compilateur sont omis.
     /// </summary>
-    private static List<string> AccessPath(MethodInfo method)
+    /// <remarks>
+    /// Les aides d'intégration courantes enveloppent l'accès réel : celle de
+    /// Pathoschild (84 mods du parc, 2 094 options) passe `() => get(GetConfig())`,
+    /// où `get` est un délégué capturé. Un champ de la fermeture qui porte un
+    /// délégué est donc suivi ; un champ qui porte une `PropertyInfo` ou une
+    /// chaîne donne son nom ou sa valeur (clés de dictionnaire, réflexion).
+    /// </remarks>
+    private static List<string> AccessPath(Delegate getter, int depth)
     {
         var path = new List<string>();
+        if (depth > 3) return path;
+        MethodInfo method = getter.Method;
+        object? target = getter.Target;
         try
         {
             byte[]? il = method.GetMethodBody()?.GetILAsByteArray();
@@ -147,14 +157,33 @@ internal static class GmcmExport
                 try
                 {
                     MemberInfo? member = module.ResolveMember(token, typeArgs, null);
+                    i += 4;
+                    // Un champ de la fermeture : sa valeur dit plus que son nom.
+                    if (member is FieldInfo field && target is not null
+                        && field.DeclaringType?.IsAssignableFrom(target.GetType()) == true)
+                    {
+                        object? captured = null;
+                        try { captured = field.GetValue(target); } catch { }
+                        switch (captured)
+                        {
+                            case Delegate inner:
+                                path.AddRange(AccessPath(inner, depth + 1));
+                                continue;
+                            case MemberInfo info:
+                                path.Add(info.Name);
+                                continue;
+                            case string text:
+                                path.Add(text);
+                                continue;
+                        }
+                    }
                     string? name = member switch
                     {
                         MethodInfo m when m.Name.StartsWith("get_") => m.Name[4..],
                         FieldInfo f => f.Name,
                         _ => null
                     };
-                    if (name is not null && !name.StartsWith("<")) path.Add(name);
-                    i += 4;
+                    if (name is not null && !name.StartsWith("<") && !name.StartsWith("CS$")) path.Add(name);
                 }
                 catch
                 {
