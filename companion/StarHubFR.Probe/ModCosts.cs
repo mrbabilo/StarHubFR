@@ -56,8 +56,6 @@ internal static class ModCosts
     private static int[] Calls = new int[256];
     private static long[] MaxTicks = new long[256];
 
-    private static PropertyInfo? ManifestProperty;
-    private static PropertyInfo? EventNameProperty;
     public static bool Active { get; private set; }
 
     public static void Initialize(Harmony harmony, IMonitor monitor)
@@ -121,21 +119,52 @@ internal static class ModCosts
             Monitor.Log($"Raise sans Push/TryPop reconnus ({pushes}/{pops}) : coût par mod partiel.", LogLevel.Warn);
     }
 
+    /// <summary>
+    /// Appelé **avant** le `try` de `Raise` : une exception ici sortirait de
+    /// SMAPI et priverait les gestionnaires suivants de l'événement. Rien ne
+    /// doit lever, et la profondeur ne bouge qu'une fois l'emplacement obtenu.
+    /// </summary>
     public static void Begin(object mod, object managedEvent)
     {
-        if (Environment.CurrentManagedThreadId != MainThreadId) return;
-        if (Depth >= MaxDepth) { Depth++; return; }
-        int d = Depth++;
-        StackSlot[d] = SlotFor(mod, managedEvent);
-        StackChildTicks[d] = 0;
-        StackChildAlloc[d] = 0;
-        StackAlloc[d] = GC.GetAllocatedBytesForCurrentThread();
-        StackStart[d] = Stopwatch.GetTimestamp();
+        try
+        {
+            if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
+            if (Depth >= MaxDepth) { Depth++; return; }
+            int slot = SlotFor(mod, managedEvent);
+            int d = Depth++;
+            StackSlot[d] = slot;
+            StackChildTicks[d] = 0;
+            StackChildAlloc[d] = 0;
+            StackAlloc[d] = GC.GetAllocatedBytesForCurrentThread();
+            StackStart[d] = Stopwatch.GetTimestamp();
+        }
+        catch
+        {
+            Unbalanced = true;
+        }
     }
+
+    /// <summary>
+    /// Un `Begin` qui a échoué n'a pas empilé : le `End` correspondant ne doit
+    /// rien dépiler. Plutôt que de deviner lequel, la mesure s'arrête.
+    /// </summary>
+    private static bool Unbalanced;
 
     public static void End()
     {
-        if (Environment.CurrentManagedThreadId != MainThreadId) return;
+        if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
+        try
+        {
+            EndCore();
+        }
+        catch
+        {
+            Unbalanced = true;
+        }
+    }
+
+    private static void EndCore()
+    {
         long now = Stopwatch.GetTimestamp();
         long allocNow = GC.GetAllocatedBytesForCurrentThread();
         if (Depth == 0) return;
@@ -161,10 +190,11 @@ internal static class ModCosts
     {
         if (Slots.TryGetValue((mod, managedEvent), out int slot)) return slot;
         slot = SlotMod.Count;
-        ManifestProperty ??= mod.GetType().GetProperty("Manifest");
-        EventNameProperty ??= managedEvent.GetType().GetProperty("EventName");
-        string id = (ManifestProperty?.GetValue(mod) as IManifest)?.UniqueID ?? mod.ToString() ?? "?";
-        string name = EventNameProperty?.GetValue(managedEvent) as string ?? "?";
+        // Chaque événement est un type générique fermé distinct : la propriété
+        // se résout sur le type reçu, jamais sur un type mis en cache.
+        string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
+                    ?? mod.ToString() ?? "?";
+        string name = managedEvent.GetType().GetProperty("EventName")?.GetValue(managedEvent) as string ?? "?";
         SlotMod.Add(id);
         SlotEvent.Add(name);
         Slots[(mod, managedEvent)] = slot;
@@ -185,6 +215,7 @@ internal static class ModCosts
     /// <summary>Le relevé de la fenêtre, trié par temps propre, puis remise à zéro.</summary>
     public static List<ModCost> Drain(double wallSeconds)
     {
+        if (Unbalanced) Monitor.Log("Coût par mod interrompu : une mesure a échoué, les chiffres s'arrêtent là.", LogLevel.Warn);
         double msPerTick = 1000.0 / Stopwatch.Frequency;
         var byMod = new Dictionary<string, List<int>>();
         for (int i = 0; i < SlotMod.Count; i++)
