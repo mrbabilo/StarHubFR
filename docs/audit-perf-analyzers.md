@@ -22,6 +22,8 @@
 ## 1. Le constat qui recale tout : ils se mesurent, ils n'attribuent pas
 
 - **UltraSmooth ne patche rien chez les autres.**
+  *(Vrai en 2.1.3 ; faux en 2.3.7, qui patche Content Patcher, Alternative
+  Textures, SpaceCore, Radiance… — voir [`audit-ultrasmooth-2.3.7.md`](audit-ultrasmooth-2.3.7.md) §3.)*
   `ProfilerEngine.ApplyPatches(Harmony)` est **vide**. `ModAnalyzer` — le
   moteur derrière `us_analyze` — n'enregistre que les sections internes du
   mod (`"Update Loop"`, `"Game Save Serialization"`,
