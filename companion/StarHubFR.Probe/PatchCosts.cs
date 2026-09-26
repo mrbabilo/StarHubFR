@@ -235,7 +235,7 @@ internal static class PatchCosts
         }
         else
         {
-            ModCosts.Abandon();
+            ModCosts.Abandon($"transpileur : aucun emplacement pour {original.DeclaringType?.FullName}.{original.Name}");
         }
         foreach (CodeInstruction instruction in instructions) yield return instruction;
     }
@@ -255,9 +255,9 @@ internal static class PatchCosts
             }
             ModCosts.PushPatch(slot);
         }
-        catch
+        catch (Exception ex)
         {
-            ModCosts.Abandon();
+            ModCosts.Abandon($"enveloppe : {ex.GetType().Name} {ex.Message}");
         }
     }
 
@@ -267,9 +267,9 @@ internal static class PatchCosts
         {
             if (ModCosts.OnMainThread) ModCosts.PopPatchTop();
         }
-        catch
+        catch (Exception ex)
         {
-            ModCosts.Abandon();
+            ModCosts.Abandon($"enveloppe : {ex.GetType().Name} {ex.Message}");
         }
     }
 

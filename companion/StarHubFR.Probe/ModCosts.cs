@@ -137,9 +137,9 @@ internal static class ModCosts
             if (Depth >= MaxDepth) { Depth++; return; }
             PushCore(SlotFor(mod, managedEvent));
         }
-        catch
+        catch (Exception ex)
         {
-            Unbalanced = true;
+            Fail($"Begin a levé {ex.GetType().Name} : {ex.Message}");
         }
     }
 
@@ -167,9 +167,9 @@ internal static class ModCosts
             if (Depth >= MaxDepth) { Depth++; return; }
             PushCore(slot);
         }
-        catch
+        catch (Exception ex)
         {
-            Unbalanced = true;
+            Fail($"PushPatch a levé {ex.GetType().Name} : {ex.Message}");
         }
     }
 
@@ -185,16 +185,21 @@ internal static class ModCosts
         if (Unbalanced) return;
         try
         {
-            if (Depth == 0 || (Depth <= MaxDepth && !SlotIsPatch[StackSlot[Depth - 1]]))
+            if (Depth == 0)
             {
-                Unbalanced = true;
+                Fail("sortie de patch sur une pile vide");
+                return;
+            }
+            if (Depth <= MaxDepth && !SlotIsPatch[StackSlot[Depth - 1]])
+            {
+                Fail("sortie de patch, mais le sommet de la pile est un événement");
                 return;
             }
             EndCore();
         }
-        catch
+        catch (Exception ex)
         {
-            Unbalanced = true;
+            Fail($"PopPatchTop a levé {ex.GetType().Name} : {ex.Message}");
         }
     }
 
@@ -209,9 +214,40 @@ internal static class ModCosts
     /// rien dépiler. Plutôt que de deviner lequel, la mesure s'arrête.
     /// </summary>
     private static bool Unbalanced;
+    private static bool InterruptLogged;
 
     /// <summary>Pour une enveloppe qui a échoué hors de la pile : la mesure s'arrête.</summary>
-    public static void Abandon() => Unbalanced = true;
+    public static void Abandon(string reason) => Fail(reason);
+
+    /// <summary>
+    /// La première cause d'arrêt, avec l'état de la pile et la pile d'appels :
+    /// sans elle, « une mesure a échoué » ne se diagnostique pas (session
+    /// v0.4.3, arrêt pendant le chargement de la sauvegarde). Rien d'alloué
+    /// tant que tout va bien.
+    /// </summary>
+    public static string? InterruptReason { get; private set; }
+
+    private static void Fail(string reason)
+    {
+        if (Unbalanced) return;
+        Unbalanced = true;
+        try
+        {
+            var frames = new System.Text.StringBuilder();
+            frames.AppendLine($"Cause : {reason}");
+            frames.AppendLine($"Fil {Environment.CurrentManagedThreadId} (jeu : {MainThreadId}), profondeur {Depth}");
+            for (int d = Math.Min(Depth, MaxDepth) - 1, shown = 0; d >= 0 && shown < 8; d--, shown++)
+                frames.AppendLine($"  [{d}] {SlotMod[StackSlot[d]]} — {SlotEvent[StackSlot[d]]}");
+            frames.AppendLine("Pile d'appels :");
+            frames.AppendLine(Environment.StackTrace);
+            InterruptReason = reason;
+            System.IO.File.WriteAllText(System.IO.Path.Combine(ModEntry.OutputDir, "interruption.txt"), frames.ToString());
+        }
+        catch
+        {
+            InterruptReason ??= reason;
+        }
+    }
 
     /// <summary>Vrai dès qu'une mesure a échoué : les minutes suivantes sont vides, pas calmes.</summary>
     public static bool Interrupted => Unbalanced;
@@ -229,11 +265,18 @@ internal static class ModCosts
         if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
         try
         {
+            // Un patch resté ouvert sous un gestionnaire : son temps serait
+            // versé à l'événement. Même règle que PopPatchTop, dans l'autre sens.
+            if (Depth > 0 && Depth <= MaxDepth && SlotIsPatch[StackSlot[Depth - 1]])
+            {
+                Fail("fin d'événement, mais le sommet de la pile est un patch");
+                return;
+            }
             EndCore();
         }
-        catch
+        catch (Exception ex)
         {
-            Unbalanced = true;
+            Fail($"End a levé {ex.GetType().Name} : {ex.Message}");
         }
     }
 
@@ -300,7 +343,11 @@ internal static class ModCosts
     /// <summary>Le relevé de la fenêtre, trié par temps propre, puis remise à zéro.</summary>
     public static List<ModCost> Drain(double wallSeconds)
     {
-        if (Unbalanced) Monitor.Log("Coût par mod interrompu : une mesure a échoué, les chiffres s'arrêtent là.", LogLevel.Warn);
+        if (Unbalanced && !InterruptLogged)
+        {
+            InterruptLogged = true;
+            Monitor.Log($"Coût par mod interrompu ({InterruptReason}) : les chiffres s'arrêtent là. Détail : interruption.txt", LogLevel.Warn);
+        }
         double msPerTick = 1000.0 / Stopwatch.Frequency;
         var byMod = new Dictionary<string, List<int>>();
         for (int i = 0; i < SlotMod.Count; i++)

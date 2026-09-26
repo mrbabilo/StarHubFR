@@ -791,6 +791,12 @@ SLO est actif et ce que la dernière session a mesuré.
       Plus gros appelants : Stardropium (`Bush.getBoundingBox`,
       `Game1._UpdateLocation`, 3 M/min chacun), PassableCrops, UltraSmooth
       (`Character.Update`, 2,7 M/min).
+      *Session v0.4.3 (12:46–12:54) :* enveloppe à **22,6 ns mesurés, 0 octet,
+      112 ns de surcoût complet** par appel (≈ 3 s/min aux 27,7 M appels) ;
+      mais la mesure s'arrête pendant le chargement de la sauvegarde, cause
+      non écrite. v0.4.4 écrit la première cause, la pile de mesure et la
+      pile d'appels dans `interruption.txt`, et contrôle aussi la fin
+      d'événement (patch resté ouvert dessous).
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
