@@ -64,6 +64,8 @@ let package = Package(
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",
                 "Models/PerformanceOverlap.swift",
+                "Models/ProbeJSON.swift",
+                "Models/ProbeSessions.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
@@ -696,6 +698,12 @@ let package = Package(
             name: "PerformanceOverlapTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/PerformanceOverlapTests"
+        ),
+        .testTarget(
+            name: "ProbeFilesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProbeFilesTests",
+            exclude: ["Fixtures", "make_fixtures.py"]
         ),
         .testTarget(
             name: "ModGridCardValuesTests",
