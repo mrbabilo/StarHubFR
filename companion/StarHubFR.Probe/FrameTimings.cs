@@ -199,6 +199,13 @@ internal static class FrameTimings
                 Game1.activeClickableMenu?.GetType().FullName);
             File.AppendAllText(Path.Combine(ModEntry.OutputDir, "timings.jsonl"),
                 JsonSerializer.Serialize(line) + "\n");
+            if (ModCosts.Active)
+            {
+                var costs = ModCosts.Drain(wall);
+                File.AppendAllText(Path.Combine(ModEntry.OutputDir, "mod-costs.jsonl"),
+                    JsonSerializer.Serialize(new { Session, line.At, line.WallSeconds, Frames = FrameIntervalMs.Count,
+                                                   Updates = UpdateMs.Count, line.Location, line.InactiveTicks, Mods = costs }) + "\n");
+            }
             Monitor.Log($"Mesures écrites : {FrameIntervalMs.Count} trames en {wall:0.0} s ({line.Fps} FPS).", LogLevel.Trace);
         }
         catch (Exception ex)

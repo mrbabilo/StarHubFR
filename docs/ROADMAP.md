@@ -718,16 +718,34 @@ SLO est actif et ce que la dernière session a mesuré.
 > Construit sur la machine qui a le jeu (`ModBuildConfig` lit ses DLL) : la
 > CI ne le construit pas.
 
-- [ ] **D4-T1** — Sonde v0.3 : (a) temps de **chaque gestionnaire d'événement de chaque
-      mod**, sans seuil, cumulé par seconde de jeu — technique de
-      `ManagedEventPatches.cs` de Profiler (MIT) ; c'est la réponse à « qui pèse
-      dans les 8,8 ms de mise à jour » ; (b) pics avec contexte (heure, lieu,
-      menu, météo), seuil **relatif** à la trame médiane ; (c) durée de l'horloge
-      des 10 minutes et des changements de lieu ; (d) en-tête de session :
-      fréquence de l'écran, VSync, pas fixe, mods de perf actifs. Limite à
-      dire : un mod qui agit par patch Harmony reste compté dans le temps du
-      jeu. · **M**
-- [ ] **D4-T2** — L'app lit `harmony-map.json` et `timings.jsonl` : modèles Core testés
+> **Objectif fixé par l'auteur (2026-09-26)** : la sonde doit **identifier les mods
+> lents et gourmands en mémoire, ceux qui dégradent les FPS**, et **lire les bornes
+> min-max des options de config** des mods.
+
+- [ ] **D4-T1** — Sonde v0.3 *(code écrit le 2026-09-26, à valider en jeu)* : (a) coût de
+      **chaque gestionnaire d'événement de chaque mod**, sans seuil — temps **propre**
+      (enfants soustraits) et **octets alloués**, par mod et par événement, une ligne
+      par minute dans `mod-costs.jsonl` ; transpileur sur `ManagedEvent<T>.Raise`
+      (idée de Profiler, MIT), sans allocation par appel, fil du jeu seulement ;
+      (b) **options GMCM** avec min, max, pas et choix, dans `gmcm-options.json`,
+      la clé de `config.json` retrouvée dans l'IL du délégué de lecture
+      (`AccessPath`) plus la valeur courante. Restent pour la suite : pics avec
+      contexte à seuil **relatif**, horloge des 10 minutes, changements de lieu,
+      en-tête matériel (fréquence, VSync, pas fixe). · **M**
+- [ ] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
+      méthodes de préfixe/postfixe elles-mêmes, par propriétaire — un mod qui agit par
+      patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût
+      d'observation à mesurer d'abord : certains préfixes tirent des milliers de fois
+      par trame (`Tree.draw`). Les transpileurs restent invisibles. · **M**
+- [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
+      de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
+      D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
+- [ ] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
+      nombres bornés, liste pour les choix — lève le « ne pas porter : le curseur »
+      de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
+      `AccessPath` et valeur courante, à mesurer sur le parc (combien d'options se
+      rapprochent sans ambiguïté). · **M**
+- [ ] **D4-T2** — L'app lit `harmony-map.json`, `timings.jsonl` et `mod-costs.jsonl` : modèles Core testés
       sur les vrais fichiers de la session du 2026-09-26, sessions séparées par
       leur identifiant, ticks sans focus signalés (une minute sans focus ne décrit
       pas le jeu). Alimente A5-T7 (marche 2), D1-T3, D2-T3. · **M**
@@ -742,9 +760,9 @@ SLO est actif et ce que la dernière session a mesuré.
 **Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
 l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
 le dépôt.
-**Critère de succès** : « ces trois mods coûtent X ms par mise à jour » et « ces deux
-mods patchent la même méthode », lus sur le parc réel, sans décompiler ni lire un
-journal.
+**Critère de succès** : « ces trois mods coûtent X ms par seconde de jeu et allouent
+Y Mo », « ces deux mods patchent la même méthode », « cette option va de 1 à 20 » —
+lus sur le parc réel, sans décompiler ni lire un journal.
 
 ---
 

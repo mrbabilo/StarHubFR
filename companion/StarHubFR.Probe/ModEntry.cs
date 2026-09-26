@@ -15,6 +15,8 @@ namespace StarHubFR.Probe;
 /// Sortie : ~/.config/StardewValley/ModData/mrbabilo.StarHubFR.Probe/
 ///  - harmony-map.json   la carte des patches, réécrite à chaque étape
 ///  - timings.jsonl      une ligne par minute de jeu réelle
+///  - mod-costs.jsonl    une ligne par minute : temps et allocations par mod
+///  - gmcm-options.json  les options déclarées à GMCM, bornes comprises
 /// </summary>
 public sealed class ModEntry : Mod
 {
@@ -27,6 +29,7 @@ public sealed class ModEntry : Mod
 
         var harmony = new Harmony(ModManifest.UniqueID);
         FrameTimings.Initialize(harmony, Monitor);
+        ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
@@ -37,7 +40,13 @@ public sealed class ModEntry : Mod
             FrameTimings.LoadedMods = helper.ModRegistry.GetAll().Count();
             HarmonyMap.Write(helper, Monitor, "GameLaunched");
         };
-        helper.Events.GameLoop.SaveLoaded += (_, _) => HarmonyMap.Write(helper, Monitor, "SaveLoaded");
+        helper.Events.GameLoop.SaveLoaded += (_, _) =>
+        {
+            HarmonyMap.Write(helper, Monitor, "SaveLoaded");
+            // Les mods s'inscrivent à GMCM pendant GameLaunched : au
+            // chargement de la sauvegarde, le registre est complet.
+            GmcmExport.Write(helper, Monitor);
+        };
 
         helper.ConsoleCommands.Add("starhubfr_probe",
             "Écrit la carte Harmony et la minute de mesures en cours.",
@@ -45,6 +54,7 @@ public sealed class ModEntry : Mod
             {
                 Monitor.Log(FrameTimings.Status(), LogLevel.Info);
                 HarmonyMap.Write(helper, Monitor, "Console");
+                GmcmExport.Write(helper, Monitor);
                 FrameTimings.FlushNow();
             });
     }
