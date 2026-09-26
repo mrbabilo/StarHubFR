@@ -42,6 +42,8 @@ public sealed class ModEntry : Mod
         {
             PatchCosts.Initialize(helper, Monitor, ModManifest.UniqueID);
             helper.Events.GameLoop.UpdateTicked += (_, _) => PatchBreaker.Poll();
+            helper.Events.GameLoop.DayEnding += (_, _) => PatchBreaker.CalmMoment();
+            helper.Events.GameLoop.ReturnedToTitle += (_, _) => PatchBreaker.CalmMoment();
         }
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis

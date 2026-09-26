@@ -42,6 +42,9 @@ internal static class FrameTimings
     private static readonly Stopwatch PartWatch = new();
     private static readonly Stopwatch PresentWatch = new();
     private static double TickUpdateMs, TickDrawMs, TickPresentMs;
+    private static double TickStartMs;
+    /// <summary>Le postfix de `Game.Tick` a tiré : c'est lui qui ferme les fenêtres.</summary>
+    private static bool TickSeen;
     private static int TickUpdates;
     private static readonly List<float> TickMs = new(8192);
     private static readonly List<float> OuterUpdateMs = new(8192);
@@ -115,13 +118,16 @@ internal static class FrameTimings
             ResetWindow();
             return;
         }
-        if (Clock.Elapsed.TotalMilliseconds - WindowStartMs >= WindowMs) FlushNow();
+        // Repli seulement : sans postfix de `Game.Tick` (JIT), rien d'autre
+        // ne fermerait la fenêtre.
+        if (!TickSeen && Clock.Elapsed.TotalMilliseconds - WindowStartMs >= WindowMs) FlushNow();
     }
 
     private static void TickStart()
     {
         TickUpdateMs = TickDrawMs = TickPresentMs = 0;
         TickUpdates = 0;
+        TickStartMs = Clock.Elapsed.TotalMilliseconds;
         TickWatch.Restart();
     }
 
@@ -143,15 +149,25 @@ internal static class FrameTimings
     {
         double total = TickWatch.Elapsed.TotalMilliseconds;
         if (!Announced) return;
-        TickMs.Add((float)total);
-        OuterUpdateMs.Add((float)TickUpdateMs);
-        OuterDrawMs.Add((float)TickDrawMs);
-        PresentMs.Add((float)TickPresentMs);
-        WaitMs.Add((float)Math.Max(0, total - TickUpdateMs - TickDrawMs));
+        TickSeen = true;
+        // Une fenêtre refermée **pendant** ce tick (retour au titre, commande,
+        // première trame) : seule la part d'après lui revient. Sans ce partage,
+        // le tick de 100 s du chargement (2026-09-26, 16:40) était compté en
+        // entier dans la minute suivante — 159 s de travail pour 60 s.
+        double now = Clock.Elapsed.TotalMilliseconds;
+        double share = TickStartMs >= WindowStartMs || total <= 0 ? 1 : Math.Clamp((now - WindowStartMs) / total, 0, 1);
+        TickMs.Add((float)(total * share));
+        OuterUpdateMs.Add((float)(TickUpdateMs * share));
+        OuterDrawMs.Add((float)(TickDrawMs * share));
+        PresentMs.Add((float)(TickPresentMs * share));
+        WaitMs.Add((float)(Math.Max(0, total - TickUpdateMs - TickDrawMs) * share));
         UpdatesPerTick.Add(TickUpdates);
         // Fenêtre sans focus : MonoGame dort 20 ms par tick (InactiveSleepTime)
         // — taper dans la console SMAPI suffit.
         if (!__instance.IsActive) InactiveTicks++;
+        // La fenêtre se ferme entre deux ticks, jamais au milieu : un tick
+        // appartient à une seule minute, et la durée de la minute le contient.
+        if (now - WindowStartMs >= WindowMs) FlushNow();
     }
 
     private static void StartUpdate() => Update.Restart();

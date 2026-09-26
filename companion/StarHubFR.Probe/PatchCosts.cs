@@ -60,6 +60,13 @@ internal static class PatchCosts
 
     public static bool Active { get; private set; }
 
+    /// <summary>
+    /// Enveloppes en veille : entrée et sortie reviennent aussitôt. Posé entre
+    /// deux ticks (<see cref="PatchBreaker"/>), quand aucun patch enveloppé
+    /// n'est ouvert sur le fil du jeu — la pile reste appariée.
+    /// </summary>
+    private static volatile bool Paused;
+
     public static void Initialize(IModHelper helper, IMonitor monitor, string probeId)
     {
         Helper = helper;
@@ -336,8 +343,22 @@ internal static class PatchCosts
     /// jeu. Un cadre déjà entré garde l'ancien code, donc son `finally` : la
     /// pile reste appariée, et la mesure des événements continue.
     /// </summary>
+    /// <summary>
+    /// Arrête la mesure sans retirer les enveloppes : le retrait de 1 700
+    /// enveloppes a figé le jeu 4,1 s en pleine partie (session v0.4.7). Il
+    /// attend un moment où un gel ne se voit pas (<see cref="Disarm"/>).
+    /// </summary>
+    public static void Pause(string reason)
+    {
+        Paused = true;
+        Active = false;
+        Stages.Add($"en veille : {reason}");
+        WriteReport();
+    }
+
     public static string Disarm(string reason)
     {
+        Paused = true;
         Active = false;
         string outcome;
         try
@@ -451,6 +472,7 @@ internal static class PatchCosts
     /// </summary>
     public static void Enter(int slot)
     {
+        if (Paused) return;
         try
         {
             if (!ModCosts.OnMainThread)
@@ -468,6 +490,7 @@ internal static class PatchCosts
 
     public static void Exit(int slot)
     {
+        if (Paused) return;
         try
         {
             if (ModCosts.OnMainThread) ModCosts.PopPatch(slot);

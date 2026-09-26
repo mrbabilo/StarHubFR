@@ -827,6 +827,20 @@ SLO est actif et ce que la dernière session a mesuré.
       terminal** (`ConsoleVolume.cs`, devant `Console.Out`/`Error` — SMAPI 4.5
       n'y met aucun intercepteur), > 8 M caractères en 10 s ; la dernière ligne
       écrite va dans `disjoncteur.txt`.
+      *Session v0.4.7 (16:34–16:48) :* **première mesure complète** — 1 700
+      enveloppes, 0 échec, biais 40 ns, coupure à l'échéance. Sur 300 s de jeu
+      (ms de calcul par seconde) : Stardropium **45** en patches (un appel à
+      1,9 s), UltraSmooth 16, PassableCrops 15, SpaceCore 9 ; en événements
+      Cropgenics 17, AutoForager 16 (pics 3,7 s), World Navigator 14,5. Fil
+      du jeu saturé (~59,5 s de travail par minute, 12–39 FPS) ; patches 5–8 s
+      et événements 2–9 s par minute. Deux défauts corrigés en v0.4.8 : le
+      retrait à l'échéance figeait le jeu **4,1 s** (désormais veille, retrait
+      en fin de journée ou au retour au titre ; les urgences retirent
+      toujours aussitôt) ; une minute affichait **159 s de travail pour 60 s**
+      (le tick de 100 s du chargement, commencé dans la fenêtre précédente,
+      comptait en entier dans la suivante — les fenêtres se ferment désormais
+      entre deux ticks, et un tick coupé par une fermeture forcée n'apporte que
+      sa part).
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**

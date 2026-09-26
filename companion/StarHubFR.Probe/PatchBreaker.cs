@@ -33,10 +33,17 @@ namespace StarHubFR.Probe;
 ///   voient pas : le journal SMAPI de la session v0.4.5 n'a pas été écrit, le
 ///   déversement ne passait donc peut-être pas par des exceptions.
 ///
-/// Il retire alors toutes les enveloppes au tick suivant, sur le fil du jeu,
-/// écrit la cause, l'étape et l'exception **du déclencheur qui a sauté** dans
-/// `disjoncteur.txt`, et le dit une fois.
-/// Un déclenchement à tort ne coûte que la mesure des patches.
+/// Les trois premiers sont des **urgences** : toutes les enveloppes sont
+/// retirées au tick suivant, sur le fil du jeu. Les deux derniers ne sont
+/// dangereux pour rien : la mesure s'arrête (enveloppes en veille,
+/// <see cref="PatchCosts.Pause"/>) et le retrait attend la fin de la journée ou
+/// le retour au titre (<see cref="CalmMoment"/>) — retirer 1 700 enveloppes a
+/// figé le jeu 4,1 s en pleine partie (session v0.4.7). Une urgence survenue
+/// pendant la veille retire tout aussitôt.
+///
+/// Cause, étape et exception **du déclencheur qui a sauté** vont dans
+/// `disjoncteur.txt`, et une ligne au journal. Un déclenchement à tort ne coûte
+/// que la mesure des patches.
 /// </summary>
 internal static class PatchBreaker
 {
@@ -53,7 +60,10 @@ internal static class PatchBreaker
     private static Exception? FirstSeen;
     /// <summary>La preuve du déclencheur qui a sauté, pas d'un autre.</summary>
     private static Exception? Evidence;
-    private static string? Reason;
+    /// <summary>Cause urgente, posée depuis n'importe quel fil.</summary>
+    private static string? Urgent;
+    /// <summary>Cause sans danger, fil du jeu seulement.</summary>
+    private static string? Calm;
     private static readonly Stopwatch SinceArming = new();
     private static readonly Stopwatch SinceStage = new();
     private static readonly Stopwatch SinceSaveLoaded = new();
@@ -79,7 +89,7 @@ internal static class PatchBreaker
     /// <summary>Tout fil, chaque exception du processus : rien d'alloué hors déclenchement.</summary>
     private static void OnException(object? sender, FirstChanceExceptionEventArgs e)
     {
-        if (InHandler || Volatile.Read(ref Reason) is not null) return;
+        if (InHandler || Volatile.Read(ref Urgent) is not null) return;
         InHandler = true;
         try
         {
@@ -111,7 +121,7 @@ internal static class PatchBreaker
 
     private static void Trip(string reason, Exception? evidence)
     {
-        if (Interlocked.CompareExchange(ref Reason, reason, null) is null)
+        if (Interlocked.CompareExchange(ref Urgent, reason, null) is null)
             Volatile.Write(ref Evidence, evidence);
     }
 
@@ -128,14 +138,25 @@ internal static class PatchBreaker
         if (stage == "SaveLoaded" && !SinceSaveLoaded.IsRunning) SinceSaveLoaded.Start();
     }
 
-    /// <summary>Fil du jeu, à chaque tick : retire les enveloppes si le disjoncteur a sauté.</summary>
+    /// <summary>Fil du jeu, à chaque tick, entre deux ticks : aucun patch enveloppé n'y est ouvert.</summary>
     public static void Poll()
     {
-        if (!Armed) return;
-        if (ModCosts.Interrupted && Volatile.Read(ref Reason) is null)
-            Trip($"mesure interrompue ({ModCosts.InterruptReason})", null);
-        if (SinceSaveLoaded.Elapsed >= AfterSaveLoaded || SinceArming.Elapsed >= AfterArming)
-            Trip("échéance de la mesure atteinte", null);
+        if (!Armed || Handled != 0) return;
+        if (Calm is null)
+        {
+            if (ModCosts.Interrupted)
+                Calm = $"mesure interrompue ({ModCosts.InterruptReason})";
+            else if (SinceSaveLoaded.Elapsed >= AfterSaveLoaded || SinceArming.Elapsed >= AfterArming)
+                Calm = "échéance de la mesure atteinte";
+            if (Calm is not null)
+            {
+                PatchCosts.Pause(Calm);
+                const string outcome = "mesure arrêtée, enveloppes en veille jusqu'à la fin de la journée ou au retour au titre";
+                WriteFile(Calm, outcome, null);
+                Monitor.Log($"Coût des patches : {Calm}, {outcome}.", LogLevel.Info);
+            }
+        }
+
         long written = ConsoleVolume.Written - WindowStartChars;
         if (written > ConsoleLimit)
             Trip($"{written / 1_000_000} millions de caractères vers le terminal en moins de {ConsoleWindow.TotalSeconds:0} s", null);
@@ -144,26 +165,42 @@ internal static class PatchBreaker
             WindowStartChars = ConsoleVolume.Written;
             SinceWindow.Restart();
         }
-        string? reason = Volatile.Read(ref Reason);
-        if (reason is null || Interlocked.Exchange(ref Handled, 1) == 1) return;
 
+        string? urgent = Volatile.Read(ref Urgent);
+        if (urgent is not null) Finish(urgent, LogLevel.Warn);
+    }
+
+    /// <summary>Fin de journée, retour au titre : un gel ne s'y voit pas.</summary>
+    public static void CalmMoment()
+    {
+        if (Armed && Handled == 0 && Calm is not null) Finish(Calm, LogLevel.Info);
+    }
+
+    private static void Finish(string reason, LogLevel level)
+    {
+        if (Interlocked.Exchange(ref Handled, 1) == 1) return;
         AppDomain.CurrentDomain.FirstChanceException -= OnException;
         var watch = Stopwatch.StartNew();
         string outcome = PatchCosts.Disarm(reason);
         watch.Stop();
+        WriteFile(reason, $"{outcome} ({watch.ElapsedMilliseconds} ms)", Volatile.Read(ref Evidence));
+        Monitor.Log($"Coût des patches coupé : {reason}. {outcome}. Détail : disjoncteur.txt", level);
+    }
+
+    private static void WriteFile(string reason, string outcome, Exception? evidence)
+    {
         try
         {
             File.WriteAllText(Path.Combine(ModEntry.OutputDir, "disjoncteur.txt"),
-                $"Cause : {reason}\n{outcome} ({watch.ElapsedMilliseconds} ms)\n"
+                $"Cause : {reason}\n{outcome}\n"
                 + $"Étape : {Stage}, depuis {SinceStage.Elapsed.TotalSeconds:0} s ; armé depuis {SinceArming.Elapsed.TotalSeconds:0} s\n\n"
                 + $"Dernière ligne vers le terminal :\n{Excerpt(ConsoleVolume.Last)}\n\n"
-                + $"Exception du déclencheur :\n{Volatile.Read(ref Evidence)?.ToString() ?? "(aucune)"}\n");
+                + $"Exception du déclencheur :\n{evidence?.ToString() ?? "(aucune)"}\n");
         }
         catch
         {
-            // Disque plein possible : le message ci-dessous suffit.
+            // Disque plein possible : la ligne du journal suffit.
         }
-        Monitor.Log($"Coût des patches coupé : {reason}. {outcome}. Détail : disjoncteur.txt", LogLevel.Warn);
     }
 
     private static string Excerpt(string? line) =>
