@@ -756,7 +756,11 @@ SLO est actif et ce que la dernière session a mesuré.
       exporte les chaînes de la fermeture (`ClosureStrings`) ; les délégués
       liés au runtime (`FieldInfo.GetValue`, BinningSkill) ne produisent plus
       de chemin parasite. Restent AutoForager (557, options générées par
-      liste) et ConvenientInventory (modèle ≠ JSON). Témoin de coût en régime
+      liste) et ConvenientInventory (modèle ≠ JSON). **Mesuré sur la session
+      v0.4.2 : 3 198 sur 3 984 (80 %)** — 1 369 par chemin, 1 829 par chaîne
+      capturée, **aucune ambiguïté** (une seule chaîne désigne une clé), valeur
+      courante identique pour 1 862 sur 1 938. Base suffisante pour D4-T7.
+      Témoin de coût en régime
       continu : événements = 6 à 8 s sur 59 s de travail de trame par minute
       (la première ligne d'une session inclut le chargement, hors trames).
 - [ ] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
