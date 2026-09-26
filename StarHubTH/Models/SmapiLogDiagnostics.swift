@@ -155,7 +155,10 @@ public struct SmapiDiagnostics: Sendable {
     public static func parse(logContent: String,
                              onProgress: ((Double) -> Void)? = nil) -> SmapiDiagnostics {
         var d = SmapiDiagnostics()
-        let lines = logContent.components(separatedBy: .newlines)
+        // ⚠️ Journal en CRLF : découpé tel quel, `\r` et `\n` séparément, une
+        // ligne vide suivait chaque ligne et refermait les groupes — 1 mod
+        // « Patched game code » affiché pour 102, un seul « Broken mods ».
+        let lines = logContent.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines)
         // Un rapport tous les 4 096 lignes : assez fin pour que la barre avance
         // sans à-coups sur 239 237 lignes (≈ 58 rapports), assez rare pour que
         // le compte ne coûte rien face au travail par ligne.
@@ -568,7 +571,13 @@ public struct SmapiDiagnostics: Sendable {
                     "failed to parse field",
                     "bad value:",
                     "couldn't parse",
-                    "invalid value for"])
+                    "invalid value for"]),
+        // Valeur inconnue dans les données d'un AUTRE mod (38 ERROR de Fish
+        // Helper UI chez l'auteur). « unknown … » exigé : « Exception caught
+        // when parsing save » reste une vraie erreur.
+        .init(kind: .modContentParse,
+              any: ["unknown season", "unknown weather", "unknown location"],
+              all: ["when parsing"])
     ]
 
     /// The mod name written before `marker` in a message body

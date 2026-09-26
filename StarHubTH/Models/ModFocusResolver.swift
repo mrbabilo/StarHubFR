@@ -34,6 +34,10 @@ public enum ModFocusResolver {
 
         let all = mods.flattenedMods + mods
         return all.first { $0.name == needle }
+            // Puis le nom tel que SMAPI l'écrit (crochets en parenthèses) —
+            // APRÈS le nom exact : « (TTG) Wallet Tools » est un vrai nom de
+            // manifeste, et doit gagner sur un « [TTG] Wallet Tools » voisin.
+            ?? all.first { loggedForm(of: $0.name) == needle }
             // Puis le dossier d'un ENFANT de pack (H-T6c). Un conflit du
             // journal porte un `folderName` issu de `conflictFolderNames`,
             // qui cherche dans `flattenedMods` : ce dossier peut être celui
@@ -42,5 +46,17 @@ public enum ModFocusResolver {
             // correspondance partielle floue, par un dossier exact.
             ?? all.first { $0.folderName == needle }
             ?? all.first { $0.name.localizedCaseInsensitiveContains(needle) }
+    }
+
+    /// Le nom d'un mod tel que SMAPI l'écrit dans son journal : les crochets y
+    /// deviennent des parenthèses, en-tête de ligne comme listes de section
+    /// (`[C#] Sunberry Village` → `(C#) Sunberry Village`). Relevé sur le
+    /// journal de l'auteur ; 42 manifestes du parc portent un crochet, et
+    /// aucun rapprochement par nom ne les retrouvait — ni l'ouverture depuis la
+    /// carte, ni l'historique d'erreurs, ni la recherche guidée.
+    public static func loggedForm(of manifestName: String) -> String {
+        manifestName
+            .replacingOccurrences(of: "[", with: "(")
+            .replacingOccurrences(of: "]", with: ")")
     }
 }

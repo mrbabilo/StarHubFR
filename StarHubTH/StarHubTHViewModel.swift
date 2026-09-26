@@ -2607,9 +2607,9 @@ final class StarHubTHViewModel {
     /// recherche guidée l'utilise aussi.
     func resolveModFolder(forLoggedName name: String) -> ModItem? {
         let all = mods.flattenedMods
-        // Égalité exacte (insensible à la casse) d'abord.
-        if let exact = all.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
-            return exact
+        // Nom exact (casse ignorée), puis tel que SMAPI l'écrit ([X] → (X)) : l'exact prime.
+        for form in [{ $0 }, ModFocusResolver.loggedForm(of:)] as [(String) -> String] {
+            if let hit = all.first(where: { form($0.name).caseInsensitiveCompare(name) == .orderedSame }) { return hit }
         }
         // Repli : le plus court des noms contenant — « FarmExpansion » est
         // sûrement un autre mod que « Farm ».

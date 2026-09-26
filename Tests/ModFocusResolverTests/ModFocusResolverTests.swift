@@ -100,4 +100,20 @@ struct ModFocusResolverTests {
                        children: [mod("Le mauvais", folder: "Ambigu")])
         #expect(ModFocusResolver.resolve("Ambigu", in: [target, pack])?.name == "Le bon")
     }
+
+    @Test func aBracketedManifestNameIsFoundByTheNameSmapiLogs() {
+        // SMAPI écrit « [C#] Sunberry Village » « (C#) Sunberry Village » —
+        // en-tête de ligne comme liste de section. 42 manifestes du parc.
+        let mods = [mod("[C#] Sunberry Village", folder: "Sunberry Village")]
+        #expect(ModFocusResolver.resolve("(C#) Sunberry Village", in: mods)?.name
+                == "[C#] Sunberry Village")
+    }
+
+    @Test func aManifestNameWithRealParenthesesWinsOverTheLoggedForm() {
+        // « (TTG) Wallet Tools » est un VRAI nom du parc : il doit gagner sur
+        // un voisin à crochets dont la forme journalisée est identique.
+        let mods = [mod("[TTG] Wallet Tools", folder: "A"),
+                    mod("(TTG) Wallet Tools", folder: "B")]
+        #expect(ModFocusResolver.resolve("(TTG) Wallet Tools", in: mods)?.folderName == "B")
+    }
 }

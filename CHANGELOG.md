@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **La carte de santé SMAPI liste tous les mods de chaque section.** « Patched game code » ou « Broken mods » s'arrêtaient au premier mod. Un mod au nom entre crochets ([C#], [CP]…) s'ouvre depuis la carte et reçoit son historique d'erreurs. Fish Helper UI n'est plus désigné comme mod en erreur.
 - **La recherche des mods garde le focus pendant la frappe.** Quand la fenêtre était juste assez étroite pour que l'en-tête passe sur deux lignes, taper pouvait faire sauter le focus hors du champ. Même correctif dans Découvrir et la vue d'ensemble des raccourcis.
 
 ## [1.50.0] - 2026-09-25

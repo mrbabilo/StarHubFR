@@ -334,3 +334,57 @@ import Testing
     #expect(withReporter.smapiVersion == without.smapiVersion)
     #expect(without.smapiVersion == "4.1.10")
 }
+
+/// Le journal réel de SMAPI est en CRLF, avec quelques lignes LF (les traces
+/// multilignes). Découpé au `\r` comme au `\n`, il intercalait une ligne vide
+/// après chaque ligne, et la ligne vide referme un groupe : « Patched game
+/// code » tombait à 1 mod pour 102, « Broken mods » à 1 quel qu'en soit le
+/// nombre. Vraies lignes du journal de l'auteur, jointes comme sur le disque.
+@Test func crlfLineEndingsKeepEveryWarningGroupEntry() {
+    let lines = [
+        "[12:58:37 ERROR SMAPI]    Broken mods",
+        "[12:58:37 ERROR SMAPI]    --------------------------------------------------",
+        "[12:58:37 ERROR SMAPI]       These mods may not work correctly.",
+        "",
+        "[12:58:37 ERROR SMAPI]       - Mod A",
+        "[12:58:37 ERROR SMAPI]       - Mod B",
+        "",
+        "[12:58:37 INFO  SMAPI]    Patched game code",
+        "[12:58:37 INFO  SMAPI]    --------------------------------------------------",
+        "[12:58:37 INFO  SMAPI]       These mods directly change the game code.",
+        "",
+        "[12:58:37 INFO  SMAPI]       - (C#) Sunberry Village",
+        "[12:58:37 INFO  SMAPI]       - (dll) The Forgotten Caverns",
+        "[12:58:37 INFO  SMAPI]       - (JP98) Better Inventory",
+        "",
+        "[12:58:37 TRACE SMAPI]    Direct console access",
+    ]
+    // Une ligne LF au milieu, comme dans le vrai fichier (413 sur 20 862).
+    let log = lines[..<13].joined(separator: "\r\n") + "\n"
+        + lines[13...].joined(separator: "\r\n")
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.brokenMods == ["Mod A", "Mod B"])
+    #expect(d.patchedMods == ["(C#) Sunberry Village", "(dll) The Forgotten Caverns",
+                              "(JP98) Better Inventory"])
+    #expect(d.problemCount == 2)
+}
+
+/// Un mod qui lit les conditions d'autres mods et bute sur une valeur inconnue
+/// ne casse rien : vraie ligne de Fish Helper UI (38 dans le journal de
+/// l'auteur, qui en faisaient le « pire mod » de la carte).
+@Test func anUnknownValueWhileParsingAnotherModsDataIsBenign() {
+    let log = "[13:02:44 ERROR Fish Helper UI] Unknown Season caught when parsing: LOCATION_SEASON Target spring summer fall winter, Cropgenics_SAKURA_BASS_AVAILABLE, Split: Target"
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.topErrorMods.isEmpty)
+    #expect(d.benignNotices.first?.kind == .modContentParse)
+    #expect(d.benignNotices.first?.mod == "Fish Helper UI")
+}
+
+/// Contre-épreuve : une exception attrapée pendant une lecture reste une vraie
+/// erreur — la règle exige une valeur « unknown … », pas le seul « parsing ».
+@Test func anExceptionCaughtWhileParsingStaysAnError() {
+    let log = "[13:02:44 ERROR Some Mod] Exception caught when parsing save data: NullReferenceException"
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.benignNotices.isEmpty)
+    #expect(d.topErrorMods.first?.name == "Some Mod")
+}
