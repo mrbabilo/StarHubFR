@@ -30,7 +30,8 @@ namespace StarHubFR.Probe;
 ///   déversement ne passait donc peut-être pas par des exceptions.
 ///
 /// Il retire alors toutes les enveloppes au tick suivant, sur le fil du jeu,
-/// écrit la première exception vue dans `disjoncteur.txt` et le dit une fois.
+/// écrit la cause, l'étape et l'exception **du déclencheur qui a sauté** dans
+/// `disjoncteur.txt`, et le dit une fois.
 /// Un déclenchement à tort ne coûte que la mesure des patches.
 /// </summary>
 internal static class PatchBreaker
