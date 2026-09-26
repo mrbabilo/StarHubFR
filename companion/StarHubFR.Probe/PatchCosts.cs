@@ -60,6 +60,9 @@ internal static class PatchCosts
 
     public static bool Active { get; private set; }
 
+    /// <summary>Relevé de l'état Harmony propre à la pose (<see cref="PatchState"/>).</summary>
+    private static readonly PatchState Scanned = new();
+
     /// <summary>
     /// Enveloppes en veille : entrée et sortie reviennent aussitôt. Posé entre
     /// deux ticks (<see cref="PatchBreaker"/>), quand aucun patch enveloppé
@@ -283,13 +286,18 @@ internal static class PatchCosts
         PatchBreaker.StageReached(stage);
         var watch = Stopwatch.StartNew();
         var patching = new Stopwatch();
+        int scanned = 0;
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
         // MonoMod lève et rattrape des milliers d'exceptions en posant les
         // enveloppes : le disjoncteur ne les regarde pas, ni n'en paie le prix.
         PatchBreaker.Wrapping = true;
         try
         {
-            foreach (MethodBase target in Harmony.GetAllPatchedMethods().ToList())
+            // Seulement ce qui a changé depuis la dernière pose : le parcours
+            // complet coûtait 460 ms chaque matin pour rien de neuf.
+            List<MethodBase> targets = Scanned.Changed(out _) ?? Harmony.GetAllPatchedMethods().ToList();
+            scanned = targets.Count;
+            foreach (MethodBase target in targets)
             {
                 Patches? info = Harmony.GetPatchInfo(target);
                 if (info is null) continue;
@@ -332,6 +340,10 @@ internal static class PatchCosts
                     }
                 }
             }
+            // Après notre propre pose, et seulement si le parcours est allé au
+            // bout : nos enveloppes ne se relisent pas, un parcours interrompu
+            // se reprend à l'étape suivante.
+            Scanned.Commit();
         }
         catch (Exception ex)
         {
@@ -344,7 +356,7 @@ internal static class PatchCosts
         watch.Stop();
         // Parcours et pose séparés : DayStarted a pris 485 ms pour une seule
         // enveloppe (session v0.4.8), sans dire lequel des deux coûtait.
-        string timing = $"{watch.ElapsedMilliseconds} ms dont {patching.ElapsedMilliseconds} ms de pose";
+        string timing = $"{watch.ElapsedMilliseconds} ms dont {patching.ElapsedMilliseconds} ms de pose, {scanned} méthodes relues";
         Stages.Add($"{stage} : +{Wrapped.Count - wrappedBefore} enveloppés, +{Failures.Count - failedBefore} échecs, {timing}");
         Monitor.Log($"Coût des patches ({stage}) : {Wrapped.Count - wrappedBefore} méthodes enveloppées en {timing}, "
                     + $"{Failures.Count - failedBefore} échecs.", LogLevel.Info);

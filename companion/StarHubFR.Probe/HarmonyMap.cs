@@ -22,34 +22,43 @@ internal static class HarmonyMap
     private record Map(string Stage, string CapturedAt, string SmapiVersion, string GameVersion,
                        List<LoadedMod> Mods, List<MethodEntry> Methods);
 
-    public static void Write(IModHelper helper, IMonitor monitor, string stage)
+    /// <summary>Entrée par méthode patchée, null quand elle ne porte que nos enveloppes.</summary>
+    private static readonly Dictionary<MethodBase, MethodEntry?> Entries = new();
+    private static readonly PatchState State = new();
+    private static bool Written;
+
+    /// <summary>
+    /// Ne relit que les méthodes dont les patches ont changé (<see cref="PatchState"/>)
+    /// et n'écrit rien si aucune n'a changé, sauf <paramref name="force"/>
+    /// (commande console). Le champ `Stage` garde alors l'étape de la dernière
+    /// écriture.
+    /// </summary>
+    public static void Write(IModHelper helper, IMonitor monitor, string stage, bool force = false)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             string? NameOf(string owner) => helper.ModRegistry.Get(owner)?.Manifest.Name;
 
-            var methods = new List<MethodEntry>();
-            foreach (MethodBase method in Harmony.GetAllPatchedMethods())
+            List<MethodBase>? changed = State.Changed(out List<MethodBase> removed);
+            string path = Path.Combine(ModEntry.OutputDir, "harmony-map.json");
+            if (changed is null)
             {
-                Patches? info = Harmony.GetPatchInfo(method);
-                if (info is null) continue;
-                var patches = new List<PatchEntry>();
-                void Add(string kind, IEnumerable<Patch> list)
-                {
-                    // Nos enveloppes de mesure (D4-T5) ne sont pas des patches du parc.
-                    foreach (Patch p in list.Where(p => p.owner != PatchCosts.WrapperId))
-                        patches.Add(new PatchEntry(kind, p.owner, NameOf(p.owner), p.priority,
-                            $"{p.PatchMethod.DeclaringType?.FullName}.{p.PatchMethod.Name}"));
-                }
-                Add("prefix", info.Prefixes);
-                Add("postfix", info.Postfixes);
-                Add("transpiler", info.Transpilers);
-                Add("finalizer", info.Finalizers);
-                if (patches.Count == 0) continue;
-                methods.Add(new MethodEntry(Describe(method),
-                    method.DeclaringType?.Assembly.GetName().Name ?? "?", patches));
+                Entries.Clear();
+                changed = Harmony.GetAllPatchedMethods().ToList();
             }
+            else if (changed.Count == 0 && removed.Count == 0 && Written && !force)
+            {
+                State.Commit();
+                monitor.Log($"Carte Harmony ({stage}) inchangée, {watch.ElapsedMilliseconds} ms.", LogLevel.Trace);
+                return;
+            }
+            foreach (MethodBase method in removed) Entries.Remove(method);
+            foreach (MethodBase method in changed)
+                Entries[method] = Build(method, NameOf);
+            State.Commit();
+
+            var methods = Entries.Values.OfType<MethodEntry>().ToList();
             methods.Sort((a, b) => string.CompareOrdinal(a.Method, b.Method));
 
             var mods = helper.ModRegistry.GetAll()
@@ -59,14 +68,35 @@ internal static class HarmonyMap
 
             var map = new Map(stage, DateTimeOffset.Now.ToString("o"),
                 Constants.ApiVersion.ToString(), StardewValley.Game1.version, mods, methods);
-            string path = Path.Combine(ModEntry.OutputDir, "harmony-map.json");
             File.WriteAllText(path, JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true }));
-            monitor.Log($"Carte Harmony ({stage}) : {methods.Count} méthodes patchées, {mods.Count} mods, {watch.ElapsedMilliseconds} ms → {path}", LogLevel.Info);
+            Written = true;
+            monitor.Log($"Carte Harmony ({stage}) : {methods.Count} méthodes patchées, {mods.Count} mods, "
+                        + $"{changed.Count} relues, {watch.ElapsedMilliseconds} ms → {path}", LogLevel.Info);
         }
         catch (Exception ex)
         {
             monitor.Log($"Carte Harmony ({stage}) impossible : {ex}", LogLevel.Warn);
         }
+    }
+
+    private static MethodEntry? Build(MethodBase method, Func<string, string?> nameOf)
+    {
+        Patches? info = Harmony.GetPatchInfo(method);
+        if (info is null) return null;
+        var patches = new List<PatchEntry>();
+        void Add(string kind, IEnumerable<Patch> list)
+        {
+            // Nos enveloppes de mesure (D4-T5) ne sont pas des patches du parc.
+            foreach (Patch p in list.Where(p => p.owner != PatchCosts.WrapperId))
+                patches.Add(new PatchEntry(kind, p.owner, nameOf(p.owner), p.priority,
+                    $"{p.PatchMethod.DeclaringType?.FullName}.{p.PatchMethod.Name}"));
+        }
+        Add("prefix", info.Prefixes);
+        Add("postfix", info.Postfixes);
+        Add("transpiler", info.Transpilers);
+        Add("finalizer", info.Finalizers);
+        if (patches.Count == 0) return null;
+        return new MethodEntry(Describe(method), method.DeclaringType?.Assembly.GetName().Name ?? "?", patches);
     }
 
     /// <summary>`Type.Méthode(TypeParam, …)` : la signature distingue les surcharges.</summary>
