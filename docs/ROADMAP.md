@@ -819,6 +819,14 @@ SLO est actif et ce que la dernière session a mesuré.
       autres ne verrait. Au déclenchement : `UnpatchAll(WrapperId)` au tick
       suivant, cause + étape + exception dans `disjoncteur.txt`, une ligne au
       journal. Ne couvre pas un échec avant le premier tick.
+      *Session v0.4.6 (16:17) :* disjoncteur **à tort** 82 s après l'armement,
+      au chargement — 1 000 `ArgumentException` par seconde que MonoMod lève et
+      rattrape lui-même en posant des patches (`GetMethodHandle`, « Type must
+      derive from Delegate »). Aucun déversement, 1 550 enveloppes retirées en
+      3,5 s. v0.4.7 : ce déclencheur remplacé par le **volume vers le
+      terminal** (`ConsoleVolume.cs`, devant `Console.Out`/`Error` — SMAPI 4.5
+      n'y met aucun intercepteur), > 8 M caractères en 10 s ; la dernière ligne
+      écrite va dans `disjoncteur.txt`.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**

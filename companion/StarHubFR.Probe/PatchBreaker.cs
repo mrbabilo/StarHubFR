@@ -20,8 +20,12 @@ namespace StarHubFR.Probe;
 ///   légitime dans un jeu qui tournait sans l'enveloppe ;
 /// - la 100ᵉ exception levée **dans** une méthode enveloppée (son nom porte
 ///   <see cref="PatchCosts.WrapperId"/>) ;
-/// - 1 000 exceptions en une seconde, d'où qu'elles viennent : une exception
-///   levée plus bas qu'un patch enveloppé ne porte pas notre nom ;
+/// - plus de 8 millions de caractères vers le terminal en 10 secondes
+///   (<see cref="ConsoleVolume"/>), quelle qu'en soit la cause — le symptôme de
+///   la v0.4.5. La v0.4.6 comptait 1 000 exceptions par seconde : elle a sauté
+///   à tort au chargement, sur les `ArgumentException` que MonoMod lève et
+///   rattrape lui-même en posant des patches (« Type must derive from
+///   Delegate », `GetMethodHandle`) ; une exception rattrapée n'écrit rien ;
 /// - une mesure interrompue (<see cref="ModCosts.Interrupted"/>) : les
 ///   enveloppes coûtent alors sans plus rien mesurer ;
 /// - l'échéance : 5 minutes après le chargement de la sauvegarde, 15 après
@@ -37,14 +41,15 @@ namespace StarHubFR.Probe;
 internal static class PatchBreaker
 {
     private const int WrappedExceptionLimit = 100;
-    private const int BurstLimit = 1_000;
+    private const long ConsoleLimit = 8_000_000;
+    private static readonly TimeSpan ConsoleWindow = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan AfterSaveLoaded = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan AfterArming = TimeSpan.FromMinutes(15);
 
     private static IMonitor Monitor = null!;
     private static int WrappedExceptions;
-    private static long BurstStart;
-    private static int BurstCount;
+    private static readonly Stopwatch SinceWindow = new();
+    private static long WindowStartChars;
     private static Exception? FirstSeen;
     /// <summary>La preuve du déclencheur qui a sauté, pas d'un autre.</summary>
     private static Exception? Evidence;
@@ -65,7 +70,9 @@ internal static class PatchBreaker
         Armed = true;
         Monitor = monitor;
         SinceArming.Start();
-        BurstStart = Stopwatch.GetTimestamp();
+        ConsoleVolume.Install();
+        WindowStartChars = ConsoleVolume.Written;
+        SinceWindow.Start();
         AppDomain.CurrentDomain.FirstChanceException += OnException;
     }
 
@@ -80,19 +87,6 @@ internal static class PatchBreaker
             if (ex is InvalidProgramException)
             {
                 Trip($"IL refusé par le JIT : {ex.Message}", ex);
-                return;
-            }
-
-            long now = Stopwatch.GetTimestamp();
-            long start = Interlocked.Read(ref BurstStart);
-            if (now - start > Stopwatch.Frequency)
-            {
-                Interlocked.Exchange(ref BurstStart, now);
-                Interlocked.Exchange(ref BurstCount, 0);
-            }
-            if (Interlocked.Increment(ref BurstCount) >= BurstLimit)
-            {
-                Trip($"{BurstLimit} exceptions en moins d'une seconde", ex);
                 return;
             }
 
@@ -142,6 +136,14 @@ internal static class PatchBreaker
             Trip($"mesure interrompue ({ModCosts.InterruptReason})", null);
         if (SinceSaveLoaded.Elapsed >= AfterSaveLoaded || SinceArming.Elapsed >= AfterArming)
             Trip("échéance de la mesure atteinte", null);
+        long written = ConsoleVolume.Written - WindowStartChars;
+        if (written > ConsoleLimit)
+            Trip($"{written / 1_000_000} millions de caractères vers le terminal en moins de {ConsoleWindow.TotalSeconds:0} s", null);
+        if (SinceWindow.Elapsed >= ConsoleWindow)
+        {
+            WindowStartChars = ConsoleVolume.Written;
+            SinceWindow.Restart();
+        }
         string? reason = Volatile.Read(ref Reason);
         if (reason is null || Interlocked.Exchange(ref Handled, 1) == 1) return;
 
@@ -154,6 +156,7 @@ internal static class PatchBreaker
             File.WriteAllText(Path.Combine(ModEntry.OutputDir, "disjoncteur.txt"),
                 $"Cause : {reason}\n{outcome} ({watch.ElapsedMilliseconds} ms)\n"
                 + $"Étape : {Stage}, depuis {SinceStage.Elapsed.TotalSeconds:0} s ; armé depuis {SinceArming.Elapsed.TotalSeconds:0} s\n\n"
+                + $"Dernière ligne vers le terminal :\n{Excerpt(ConsoleVolume.Last)}\n\n"
                 + $"Exception du déclencheur :\n{Volatile.Read(ref Evidence)?.ToString() ?? "(aucune)"}\n");
         }
         catch
@@ -162,4 +165,7 @@ internal static class PatchBreaker
         }
         Monitor.Log($"Coût des patches coupé : {reason}. {outcome}. Détail : disjoncteur.txt", LogLevel.Warn);
     }
+
+    private static string Excerpt(string? line) =>
+        line is null ? "(aucune)" : line.Length <= 2_000 ? line : line[..2_000] + "…";
 }
