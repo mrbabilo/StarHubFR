@@ -17,6 +17,8 @@ namespace StarHubFR.Probe;
 ///  - timings.jsonl      une ligne par minute de jeu réelle
 ///  - mod-costs.jsonl    une ligne par minute : temps et allocations par mod
 ///  - gmcm-options.json  les options déclarées à GMCM, bornes comprises
+///  - patch-wraps.json   (option MeasureHarmonyPatches) ce que la mesure des
+///                       patches couvre et ne couvre pas
 /// </summary>
 public sealed class ModEntry : Mod
 {
@@ -27,10 +29,13 @@ public sealed class ModEntry : Mod
         OutputDir = Path.Combine(Constants.DataPath, "ModData", ModManifest.UniqueID);
         Directory.CreateDirectory(OutputDir);
 
+        var config = helper.ReadConfig<ModConfig>();
         var harmony = new Harmony(ModManifest.UniqueID);
         FrameTimings.Initialize(harmony, Monitor);
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
+        if (config.MeasureHarmonyPatches)
+            PatchCosts.Initialize(helper, Monitor, ModManifest.UniqueID);
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules
@@ -39,10 +44,12 @@ public sealed class ModEntry : Mod
         {
             FrameTimings.LoadedMods = helper.ModRegistry.GetAll().Count();
             HarmonyMap.Write(helper, Monitor, "GameLaunched");
+            PatchCosts.WrapNew("GameLaunched");
         };
         helper.Events.GameLoop.SaveLoaded += (_, _) =>
         {
             HarmonyMap.Write(helper, Monitor, "SaveLoaded");
+            PatchCosts.WrapNew("SaveLoaded");
             // Les mods s'inscrivent à GMCM pendant GameLaunched : au
             // chargement de la sauvegarde, le registre est complet.
             GmcmExport.Write(helper, Monitor);
@@ -52,7 +59,11 @@ public sealed class ModEntry : Mod
         // titre et à la fermeture du jeu ; la carte se relève chaque matin,
         // pour les patches posés après le chargement (DLX.Bundles, 2026-09-26).
         helper.Events.GameLoop.ReturnedToTitle += (_, _) => FrameTimings.FlushNow();
-        helper.Events.GameLoop.DayStarted += (_, _) => HarmonyMap.Write(helper, Monitor, "DayStarted");
+        helper.Events.GameLoop.DayStarted += (_, _) =>
+        {
+            HarmonyMap.Write(helper, Monitor, "DayStarted");
+            PatchCosts.WrapNew("DayStarted");
+        };
         AppDomain.CurrentDomain.ProcessExit += (_, _) => FrameTimings.FlushNow();
 
         // Facultatif : forcer l'écriture sans attendre la minute.

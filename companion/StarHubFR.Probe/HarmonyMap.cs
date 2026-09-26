@@ -36,7 +36,8 @@ internal static class HarmonyMap
                 var patches = new List<PatchEntry>();
                 void Add(string kind, IEnumerable<Patch> list)
                 {
-                    foreach (Patch p in list)
+                    // Nos enveloppes de mesure (D4-T5) ne sont pas des patches du parc.
+                    foreach (Patch p in list.Where(p => p.owner != PatchCosts.WrapperId))
                         patches.Add(new PatchEntry(kind, p.owner, NameOf(p.owner), p.priority,
                             $"{p.PatchMethod.DeclaringType?.FullName}.{p.PatchMethod.Name}"));
                 }
@@ -44,6 +45,7 @@ internal static class HarmonyMap
                 Add("postfix", info.Postfixes);
                 Add("transpiler", info.Transpilers);
                 Add("finalizer", info.Finalizers);
+                if (patches.Count == 0) continue;
                 methods.Add(new MethodEntry(Describe(method),
                     method.DeclaringType?.Assembly.GetName().Name ?? "?", patches));
             }

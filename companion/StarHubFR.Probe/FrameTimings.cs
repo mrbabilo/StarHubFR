@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using HarmonyLib;
 using StardewModdingAPI;
@@ -202,9 +203,19 @@ internal static class FrameTimings
             if (ModCosts.Active)
             {
                 var costs = ModCosts.Drain(wall);
+                // Couverture : la part du travail de trame (mises à jour + dessin,
+                // hors Present) que les événements et les patches expliquent.
+                double frameWorkMs = Sum(OuterUpdateMs) + Sum(OuterDrawMs);
+                double patchMs = costs.Sum(c => c.PatchMs);
+                double eventMs = costs.Sum(c => c.SelfMs) - patchMs;
                 File.AppendAllText(Path.Combine(ModEntry.OutputDir, "mod-costs.jsonl"),
                     JsonSerializer.Serialize(new { Session, line.At, line.WallSeconds, Frames = FrameIntervalMs.Count,
-                                                   Updates = UpdateMs.Count, line.Location, line.InactiveTicks, Mods = costs }) + "\n");
+                                                   Updates = UpdateMs.Count, line.Location, line.InactiveTicks,
+                                                   PatchesMeasured = PatchCosts.Active,
+                                                   FrameWorkMs = Math.Round(frameWorkMs, 1),
+                                                   EventMs = Math.Round(eventMs, 1), PatchMs = Math.Round(patchMs, 1),
+                                                   Mods = costs }) + "\n");
+                PatchCosts.WriteReport();
             }
             Monitor.Log($"Mesures écrites : {FrameIntervalMs.Count} trames en {wall:0.0} s ({line.Fps} FPS).", LogLevel.Trace);
         }
@@ -213,6 +224,13 @@ internal static class FrameTimings
             Monitor.Log($"Mesures non écrites : {ex.Message}", LogLevel.Trace);
         }
         ResetWindow();
+    }
+
+    private static double Sum(List<float> values)
+    {
+        double sum = 0;
+        foreach (float v in values) sum += v;
+        return sum;
     }
 
     private static Stat? Summarize(List<float> values)
