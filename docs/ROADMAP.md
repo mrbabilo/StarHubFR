@@ -797,6 +797,17 @@ SLO est actif et ce que la dernière session a mesuré.
       non écrite. v0.4.4 écrit la première cause, la pile de mesure et la
       pile d'appels dans `interruption.txt`, et contrôle aussi la fin
       d'événement (patch resté ouvert dessous).
+      *Session v0.4.4 (12:58–13:02) :* cause trouvée — **Stardropium patche
+      le postfix `CharacterPatch.UpdatePostfix` d'AlternativeTextures et en
+      saute le corps** (un patch de patch : la carte Harmony le montre, à
+      verser au catalogue PerformanceOverlap) ; l'entrée injectée dans le
+      corps sautait avec lui, la sortie par finalizer Harmony passait quand
+      même. v0.4.5 : `Enter(slot)` … `finally { Exit(slot) }` dans le corps
+      (sautés ensemble), sortie strictement appariée, et **autotest** de la
+      réécriture sur des témoins de la sonde (plusieurs `ret`, `try` en tête,
+      `leave` vers le `ret`, boucle en tête, exception) — au moindre écart,
+      aucun patch d'un autre mod n'est enveloppé. Banc hors jeu impossible :
+      le Harmony de SMAPI ne se charge pas hors du jeu.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**

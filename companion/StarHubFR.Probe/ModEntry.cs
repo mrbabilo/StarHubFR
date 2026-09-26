@@ -28,6 +28,8 @@ public sealed class ModEntry : Mod
     {
         OutputDir = Path.Combine(Constants.DataPath, "ModData", ModManifest.UniqueID);
         Directory.CreateDirectory(OutputDir);
+        // La cause d'arrêt décrit une session : celle d'avant ne doit pas passer pour celle-ci.
+        File.Delete(Path.Combine(OutputDir, "interruption.txt"));
 
         var config = helper.ReadConfig<ModConfig>();
         var harmony = new Harmony(ModManifest.UniqueID);

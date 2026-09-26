@@ -174,13 +174,12 @@ internal static class ModCosts
     }
 
     /// <summary>
-    /// Sortie d'une méthode de patch, appelée depuis un finalizer : elle passe
-    /// aussi quand le patch lève. Le finalizer ne connaît pas l'emplacement
-    /// (le lire coûtait une allocation par appel) : le sommet doit au moins
-    /// être un patch — sinon la mesure s'arrête plutôt que d'attribuer du
-    /// temps au mauvais mod.
+    /// Sortie d'une méthode de patch, appelée depuis le `finally` injecté : elle passe
+    /// aussi quand le patch lève. Le sommet doit être
+    /// ce patch — sinon la mesure s'arrête plutôt que d'attribuer du temps au
+    /// mauvais mod.
     /// </summary>
-    public static void PopPatchTop()
+    public static void PopPatch(int slot)
     {
         if (Unbalanced) return;
         try
@@ -190,9 +189,9 @@ internal static class ModCosts
                 Fail("sortie de patch sur une pile vide");
                 return;
             }
-            if (Depth <= MaxDepth && !SlotIsPatch[StackSlot[Depth - 1]])
+            if (Depth <= MaxDepth && StackSlot[Depth - 1] != slot)
             {
-                Fail("sortie de patch, mais le sommet de la pile est un événement");
+                Fail($"sortie du patch {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
                 return;
             }
             EndCore();

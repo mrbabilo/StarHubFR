@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text.Json;
 using HarmonyLib;
 using StardewModdingAPI;
@@ -18,8 +19,8 @@ namespace StarHubFR.Probe;
 /// en v0.3.
 ///
 /// Chaque méthode de patch reçoit à son tour un transpileur de la sonde, qui
-/// pose en tête `Enter(emplacement)` avec l'emplacement en constante, et un
-/// **finalizer** : le finalizer passe même quand le patch lève, la pile de
+/// enveloppe son corps dans `Enter(emplacement)` … `finally { Exit(); }` : la
+/// sortie passe même quand le patch lève, la pile de
 /// <see cref="ModCosts"/> reste équilibrée. Pile partagée avec les
 /// événements : un patch tiré pendant un gestionnaire sort du temps propre de
 /// ce gestionnaire — la somme événements + patches ne compte rien deux fois.
@@ -93,6 +94,110 @@ internal static class PatchCosts
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void CalibrationTarget() { }
 
+    // Témoins de l'autotest : plusieurs `ret`, valeur de retour, boucle,
+    // try/catch interne qui rend depuis le catch, exception qui traverse.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static int WitnessReturns(int x)
+    {
+        if (x < 0) return -1;
+        for (int i = 0; i < 3; i++)
+            if (x == i) return i * 10;
+        try
+        {
+            if (x == 50) throw new ArgumentException("témoin");
+        }
+        catch (ArgumentException)
+        {
+            return 5;
+        }
+        return x + 1;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static string WitnessThrows(bool fail) => fail ? throw new InvalidOperationException("témoin") : "ok";
+
+    private static int WitnessCounter;
+
+    /// <summary>Void, corps qui commence par un `try`, `leave` internes qui visent le `ret` final.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void WitnessVoidTry(int x)
+    {
+        try
+        {
+            if (x == 1) throw new ArgumentException("témoin");
+            WitnessCounter += 1;
+        }
+        catch (ArgumentException)
+        {
+            WitnessCounter += 100;
+        }
+    }
+
+    /// <summary>Boucle `do … while` en tête : saut arrière sur la première instruction.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static int WitnessLoop(int n)
+    {
+        do
+        {
+            n -= 3;
+        } while (n > 0);
+        return n;
+    }
+
+    /// <summary>
+    /// Le transpileur réécrit le corps des patches des autres mods : un IL
+    /// faux y lèverait à chaque appel, en jeu. Avant d'envelopper quoi que ce
+    /// soit, il est éprouvé sur les témoins de la sonde — mêmes résultats,
+    /// entrées et sorties appariées, pile intacte. Au moindre écart, rien
+    /// d'autre n'est enveloppé.
+    /// </summary>
+    private static bool SelfTest()
+    {
+        try
+        {
+            int[] inputs = { -3, 0, 1, 2, 7, 50 };
+            int[] loops = { 7, -2 };
+            int Run()
+            {
+                WitnessCounter = 0;
+                WitnessVoidTry(0);
+                WitnessVoidTry(1);
+                return WitnessCounter;
+            }
+            int[] expected = inputs.Select(WitnessReturns).Concat(loops.Select(WitnessLoop)).Append(Run()).ToArray();
+
+            int slot = ModCosts.RegisterPatchSlot(ProbeId, "autotest");
+            foreach (string name in new[] { nameof(WitnessReturns), nameof(WitnessThrows), nameof(WitnessVoidTry), nameof(WitnessLoop) })
+            {
+                MethodInfo witness = AccessTools.Method(typeof(PatchCosts), name);
+                SlotOf[witness.MethodHandle.Value] = slot;
+                Wrapper.Patch(witness, transpiler: Transpiler);
+            }
+
+            int[] actual = inputs.Select(WitnessReturns).Concat(loops.Select(WitnessLoop)).Append(Run()).ToArray();
+            bool thrown = false;
+            try { WitnessThrows(true); } catch (InvalidOperationException) { thrown = true; }
+            string ok = WitnessThrows(false);
+            var (_, _, calls) = ModCosts.TakeSlot(slot);
+            int expectedCalls = inputs.Length + loops.Length + 2 + 2;
+
+            bool pass = actual.SequenceEqual(expected) && thrown && ok == "ok"
+                        && calls == expectedCalls && !ModCosts.Interrupted;
+            Monitor.Log(pass
+                    ? $"Autotest de l'enveloppe : {calls}/{expectedCalls} appels, résultats identiques."
+                    : $"Autotest de l'enveloppe échoué (résultats {string.Join(",", actual)} pour {string.Join(",", expected)}, "
+                      + $"exception {thrown}, appels {calls}/{expectedCalls}, interrompu {ModCosts.Interrupted}) : "
+                      + "aucun patch ne sera enveloppé.",
+                pass ? LogLevel.Info : LogLevel.Warn);
+            return pass;
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Autotest de l'enveloppe impossible ({ex.GetType().Name} : {ex.Message}) : aucun patch ne sera enveloppé.", LogLevel.Warn);
+            return false;
+        }
+    }
+
     /// <summary>
     /// Deux chiffres sur une méthode vide, 100 000 appels :
     /// - le **biais** : ce que l'enveloppe laisse dans le temps et les octets
@@ -118,7 +223,7 @@ internal static class PatchCosts
 
             int slot = ModCosts.RegisterPatchSlot(ProbeId, "calibration");
             SlotOf[target.MethodHandle.Value] = slot;
-            Wrapper.Patch(target, transpiler: Transpiler, finalizer: Finalizer);
+            Wrapper.Patch(target, transpiler: Transpiler);
             for (int i = 0; i < n; i++) action();
             ModCosts.TakeSlot(slot);
             long wrapped = Stopwatch.GetTimestamp();
@@ -127,7 +232,12 @@ internal static class PatchCosts
 
             var (ticks, alloc, calls) = ModCosts.TakeSlot(slot);
             double nsPerTick = 1e9 / Stopwatch.Frequency;
-            if (calls == n)
+            if (calls != n)
+            {
+                Active = false;
+                Monitor.Log($"Calibration : {calls}/{n} appels vus — aucun patch ne sera enveloppé.", LogLevel.Warn);
+            }
+            else
             {
                 BiasNsPerCall = Math.Round(ticks * nsPerTick / n, 1);
                 BiasBytesPerCall = Math.Round((double)alloc / n, 1);
@@ -138,7 +248,8 @@ internal static class PatchCosts
         }
         catch (Exception ex)
         {
-            Monitor.Log($"Calibration de l'enveloppe impossible : {ex.Message}", LogLevel.Warn);
+            Active = false;
+            Monitor.Log($"Calibration de l'enveloppe impossible ({ex.Message}) : aucun patch ne sera enveloppé.", LogLevel.Warn);
         }
     }
 
@@ -152,7 +263,14 @@ internal static class PatchCosts
         if (Stages.Count == 0)
         {
             MapAssemblies();
-            Calibrate();
+            Active = SelfTest();
+            if (Active) Calibrate();
+            if (!Active)
+            {
+                Stages.Add($"{stage} : enveloppe désactivée (autotest ou calibration)");
+                WriteReport();
+                return;
+            }
         }
         var watch = Stopwatch.StartNew();
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
@@ -188,7 +306,7 @@ internal static class PatchCosts
                             string mod = ModOf(p);
                             int slot = ModCosts.RegisterPatchSlot(mod, label);
                             SlotOf[key] = slot;
-                            Wrapper.Patch(method, transpiler: Transpiler, finalizer: Finalizer);
+                            Wrapper.Patch(method, transpiler: Transpiler);
                             Wrapped.Add((mod, label, slot));
                         }
                         catch (Exception ex)
@@ -214,30 +332,92 @@ internal static class PatchCosts
     private static bool IsOurs(string owner) => owner == ProbeId || owner == WrapperId;
 
     private static readonly HarmonyMethod Transpiler =
-        new(typeof(PatchCosts), nameof(InjectEnter)) { priority = Priority.Last };
-    private static readonly HarmonyMethod Finalizer =
-        new(typeof(PatchCosts), nameof(Exit)) { priority = Priority.Last };
+        new(typeof(PatchCosts), nameof(InjectEnterExit)) { priority = Priority.Last };
 
     /// <summary>
-    /// `Enter(emplacement)` en tête du corps de la méthode de patch,
-    /// l'emplacement résolu ici une fois pour toutes. Les étiquettes restent
-    /// sur la première instruction d'origine : une boucle qui y revient ne
-    /// ré-empile pas. Emplacement introuvable : aucune injection, et la
-    /// mesure s'arrête plutôt que de dépiler le mauvais cadre au finalizer.
+    /// Enveloppe le **corps** de la méthode de patch :
+    /// `Enter(emplacement); try { corps } finally { Exit(); }`, l'emplacement
+    /// en constante. Entrée et sortie vivent dans le corps : si un autre mod
+    /// patche cette méthode de patch et en saute le corps (Stardropium sur le
+    /// postfix `CharacterPatch.UpdatePostfix` d'AlternativeTextures, session
+    /// v0.4.4), les deux sont sautés ensemble. La v0.4.3 sortait par un
+    /// finalizer Harmony, qui passe même corps sauté : pile vide, mesure
+    /// arrêtée au chargement de la sauvegarde.
+    ///
+    /// Chaque `ret` devient `stloc résultat; leave fin` (un `ret` n'existe
+    /// qu'hors des blocs protégés, `leave` y est donc toujours valide) ; les
+    /// préfixes `tail.` sautent, interdits dans un `try`. Les étiquettes
+    /// restent sur la première instruction d'origine : une boucle qui y
+    /// revient ne ré-empile pas.
     /// </summary>
-    private static IEnumerable<CodeInstruction> InjectEnter(IEnumerable<CodeInstruction> instructions, MethodBase original)
+    private static IEnumerable<CodeInstruction> InjectEnterExit(IEnumerable<CodeInstruction> instructions,
+        ILGenerator generator, MethodBase original)
     {
-        if (SlotOf.TryGetValue(original.MethodHandle.Value, out int slot))
-        {
-            yield return new CodeInstruction(System.Reflection.Emit.OpCodes.Ldc_I4, slot);
-            yield return new CodeInstruction(System.Reflection.Emit.OpCodes.Call,
-                AccessTools.Method(typeof(PatchCosts), nameof(Enter)));
-        }
-        else
+        List<CodeInstruction> body = instructions.ToList();
+        if (!SlotOf.TryGetValue(original.MethodHandle.Value, out int slot) || body.Count == 0)
         {
             ModCosts.Abandon($"transpileur : aucun emplacement pour {original.DeclaringType?.FullName}.{original.Name}");
+            return body;
         }
-        foreach (CodeInstruction instruction in instructions) yield return instruction;
+        Type returnType = (original as MethodInfo)?.ReturnType ?? typeof(void);
+        LocalBuilder? result = returnType == typeof(void) ? null : generator.DeclareLocal(returnType);
+        Label done = generator.DefineLabel();
+
+        var output = new List<CodeInstruction>(body.Count + 8)
+        {
+            new(OpCodes.Ldc_I4, slot),
+            new(OpCodes.Call, AccessTools.Method(typeof(PatchCosts), nameof(Enter))),
+        };
+        body[0].blocks.Insert(0, new ExceptionBlock(ExceptionBlockType.BeginExceptionBlock));
+        List<Label> pendingLabels = new();
+        List<ExceptionBlock> pendingBlocks = new();
+        foreach (CodeInstruction instruction in body)
+        {
+            if (instruction.opcode == OpCodes.Tailcall)
+            {
+                // Ses étiquettes et blocs passent à l'instruction suivante.
+                pendingLabels.AddRange(instruction.labels);
+                pendingBlocks.AddRange(instruction.blocks);
+                continue;
+            }
+            if (pendingLabels.Count > 0 || pendingBlocks.Count > 0)
+            {
+                instruction.labels.InsertRange(0, pendingLabels);
+                instruction.blocks.InsertRange(0, pendingBlocks);
+                pendingLabels.Clear();
+                pendingBlocks.Clear();
+            }
+            if (instruction.opcode == OpCodes.Ret)
+            {
+                if (result is not null)
+                {
+                    var store = new CodeInstruction(OpCodes.Stloc, result);
+                    instruction.MoveLabelsTo(store);
+                    instruction.MoveBlocksTo(store);
+                    output.Add(store);
+                    output.Add(new CodeInstruction(OpCodes.Leave, done));
+                }
+                else
+                {
+                    output.Add(new CodeInstruction(OpCodes.Leave, done).WithLabels(instruction.labels).WithBlocks(instruction.blocks));
+                }
+                continue;
+            }
+            output.Add(instruction);
+        }
+        // La sortie connaît aussi son emplacement : le sommet de pile doit être
+        // ce patch-là, pas seulement un patch.
+        var exitSlot = new CodeInstruction(OpCodes.Ldc_I4, slot);
+        exitSlot.blocks.Add(new ExceptionBlock(ExceptionBlockType.BeginFinallyBlock));
+        output.Add(exitSlot);
+        var exit = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PatchCosts), nameof(Exit)));
+        exit.blocks.Add(new ExceptionBlock(ExceptionBlockType.EndExceptionBlock));
+        output.Add(exit);
+        var tail = result is not null ? new CodeInstruction(OpCodes.Ldloc, result) : new CodeInstruction(OpCodes.Nop);
+        tail.labels.Add(done);
+        output.Add(tail);
+        output.Add(new CodeInstruction(OpCodes.Ret));
+        return output;
     }
 
     /// <summary>
@@ -261,11 +441,11 @@ internal static class PatchCosts
         }
     }
 
-    private static void Exit()
+    public static void Exit(int slot)
     {
         try
         {
-            if (ModCosts.OnMainThread) ModCosts.PopPatchTop();
+            if (ModCosts.OnMainThread) ModCosts.PopPatch(slot);
         }
         catch (Exception ex)
         {
@@ -284,7 +464,8 @@ internal static class PatchCosts
     /// </summary>
     public static void WriteReport()
     {
-        if (!Active) return;
+        // Désactivée par l'autotest : le rapport le dit quand même.
+        if (Stages.Count == 0) return;
         try
         {
             var never = Wrapped.Where(w => ModCosts.TotalCalls(w.Slot) == 0)
