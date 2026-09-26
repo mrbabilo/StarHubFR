@@ -776,6 +776,17 @@ SLO est actif et ce que la dernière session a mesuré.
       l'enveloppe), appels hors du fil du jeu, temps d'enveloppe par étape, et le **biais** mesuré de l'enveloppe en ns par appel (à soustraire × appels). Propriétaire Harmony ≠ UniqueID (18 sur le parc) : rattaché par l'assembly du patch.
       Protocole : deux sessions, même sauvegarde et même durée, option éteinte
       puis allumée — l'écart de `timings.jsonl` est le coût d'observation.
+      *Session v0.4.2 allumée (2026-09-26, 12:14–12:26) :* 1 702 méthodes
+      enveloppées (5 s à GameLaunched, ~1 s à chaque DayStarted), 0 échec,
+      46 propriétaires de transpileurs, 928 enveloppes jamais appelées (à
+      trier : menus non ouverts ou JIT). **27,7 millions d'appels de patch par
+      minute** ; l'enveloppe allouait **87 octets par appel**
+      (`__originalMethod`) : 2,8 Go/min, Gen0 × 2,6, FPS 27–33 → 9–12. Chiffres
+      de coût de cette session inutilisables. v0.4.3 : emplacement injecté en
+      constante par transpileur, calibration du surcoût complet et des octets.
+      Plus gros appelants : Stardropium (`Bush.getBoundingBox`,
+      `Game1._UpdateLocation`, 3 M/min chacun), PassableCrops, UltraSmooth
+      (`Character.Update`, 2,7 M/min).
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**

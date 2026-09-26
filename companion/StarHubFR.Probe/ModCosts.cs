@@ -175,15 +175,17 @@ internal static class ModCosts
 
     /// <summary>
     /// Sortie d'une méthode de patch, appelée depuis un finalizer : elle passe
-    /// aussi quand le patch lève. Le sommet de la pile doit être ce patch —
-    /// sinon la mesure s'arrête plutôt que d'attribuer du temps au mauvais mod.
+    /// aussi quand le patch lève. Le finalizer ne connaît pas l'emplacement
+    /// (le lire coûtait une allocation par appel) : le sommet doit au moins
+    /// être un patch — sinon la mesure s'arrête plutôt que d'attribuer du
+    /// temps au mauvais mod.
     /// </summary>
-    public static void PopPatch(int slot)
+    public static void PopPatchTop()
     {
         if (Unbalanced) return;
         try
         {
-            if (Depth == 0 || (Depth <= MaxDepth && StackSlot[Depth - 1] != slot))
+            if (Depth == 0 || (Depth <= MaxDepth && !SlotIsPatch[StackSlot[Depth - 1]]))
             {
                 Unbalanced = true;
                 return;
@@ -215,9 +217,9 @@ internal static class ModCosts
     public static bool Interrupted => Unbalanced;
 
     /// <summary>Lit et vide un emplacement hors du relevé par minute (calibration).</summary>
-    public static (long Ticks, int Calls) TakeSlot(int slot)
+    public static (long Ticks, long Alloc, int Calls) TakeSlot(int slot)
     {
-        var taken = (Ticks[slot], Calls[slot]);
+        var taken = (Ticks[slot], Alloc[slot], Calls[slot]);
         Ticks[slot] = 0; Alloc[slot] = 0; Calls[slot] = 0; MaxTicks[slot] = 0;
         return taken;
     }

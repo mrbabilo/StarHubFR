@@ -17,8 +17,9 @@ namespace StarHubFR.Probe;
 /// événements ; c'est le gros des deux tiers de mise à jour restés invisibles
 /// en v0.3.
 ///
-/// Chaque méthode de patch reçoit à son tour un prefix et un **finalizer** de
-/// la sonde : le finalizer passe même quand le patch lève, la pile de
+/// Chaque méthode de patch reçoit à son tour un transpileur de la sonde, qui
+/// pose en tête `Enter(emplacement)` avec l'emplacement en constante, et un
+/// **finalizer** : le finalizer passe même quand le patch lève, la pile de
 /// <see cref="ModCosts"/> reste équilibrée. Pile partagée avec les
 /// événements : un patch tiré pendant un gestionnaire sort du temps propre de
 /// ce gestionnaire — la somme événements + patches ne compte rien deux fois.
@@ -53,6 +54,8 @@ internal static class PatchCosts
     /// <summary>Assembly → UniqueID : un identifiant Harmony n'est pas toujours celui du mod (18 cas sur le parc).</summary>
     private static Dictionary<Assembly, string> ModOfAssembly = new();
     private static double? BiasNsPerCall;
+    private static double? BiasBytesPerCall;
+    private static double? OverheadNsPerCall;
 
     public static bool Active { get; private set; }
 
@@ -87,31 +90,51 @@ internal static class PatchCosts
         ?? (p.PatchMethod.DeclaringType is { } t && ModOfAssembly.TryGetValue(t.Assembly, out string? id) ? id : null)
         ?? p.owner;
 
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void CalibrationTarget() { }
 
     /// <summary>
-    /// Ce que l'enveloppe ajoute au temps **mesuré** d'un appel : le finalizer
-    /// cherche l'emplacement avant que le chronomètre s'arrête. Sur une méthode
-    /// vide, tout le temps mesuré est ce biais — `Calls × BiasNsPerCall` se
-    /// soustrait à la lecture (D4-T2), décisif pour les patches qui tirent des
-    /// milliers de fois par trame.
+    /// Deux chiffres sur une méthode vide, 100 000 appels :
+    /// - le **biais** : ce que l'enveloppe laisse dans le temps et les octets
+    ///   **mesurés** (entre les deux lectures d'horloge) — `Calls × biais` se
+    ///   soustrait à la lecture (D4-T2) ;
+    /// - le **surcoût complet** par appel, enveloppé moins nu : multiplié par
+    ///   les appels d'une minute, c'est ce que la sonde coûte au jeu.
+    /// La v0.4.2 passait `__originalMethod` : 87 octets alloués par appel,
+    /// 2,8 Go par minute sur le parc, FPS divisés par trois (session du
+    /// 2026-09-26). D'où le transpileur à constante.
     /// </summary>
     private static void Calibrate()
     {
         try
         {
             MethodInfo target = AccessTools.Method(typeof(PatchCosts), nameof(CalibrationTarget));
-            int slot = ModCosts.RegisterPatchSlot(ProbeId, "calibration");
-            SlotOf[target.MethodHandle.Value] = slot;
-            Wrapper.Patch(target,
-                prefix: new HarmonyMethod(typeof(PatchCosts), nameof(Prefix)),
-                finalizer: new HarmonyMethod(typeof(PatchCosts), nameof(Finalizer)));
             var action = (Action)Delegate.CreateDelegate(typeof(Action), target);
             const int n = 100_000;
             for (int i = 0; i < n; i++) action();
-            var (ticks, calls) = ModCosts.TakeSlot(slot);
-            if (calls == n) BiasNsPerCall = Math.Round(ticks * 1e9 / Stopwatch.Frequency / n, 1);
-            Monitor.Log($"Biais de l'enveloppe : {BiasNsPerCall?.ToString() ?? "?"} ns par appel ({calls}/{n} vus).", LogLevel.Info);
+            long bare = Stopwatch.GetTimestamp();
+            for (int i = 0; i < n; i++) action();
+            bare = Stopwatch.GetTimestamp() - bare;
+
+            int slot = ModCosts.RegisterPatchSlot(ProbeId, "calibration");
+            SlotOf[target.MethodHandle.Value] = slot;
+            Wrapper.Patch(target, transpiler: Transpiler, finalizer: Finalizer);
+            for (int i = 0; i < n; i++) action();
+            ModCosts.TakeSlot(slot);
+            long wrapped = Stopwatch.GetTimestamp();
+            for (int i = 0; i < n; i++) action();
+            wrapped = Stopwatch.GetTimestamp() - wrapped;
+
+            var (ticks, alloc, calls) = ModCosts.TakeSlot(slot);
+            double nsPerTick = 1e9 / Stopwatch.Frequency;
+            if (calls == n)
+            {
+                BiasNsPerCall = Math.Round(ticks * nsPerTick / n, 1);
+                BiasBytesPerCall = Math.Round((double)alloc / n, 1);
+                OverheadNsPerCall = Math.Round((wrapped - bare) * nsPerTick / n, 1);
+            }
+            Monitor.Log($"Enveloppe : biais {BiasNsPerCall?.ToString() ?? "?"} ns et {BiasBytesPerCall?.ToString() ?? "?"} octets "
+                        + $"par appel, surcoût complet {OverheadNsPerCall?.ToString() ?? "?"} ns ({calls}/{n} vus).", LogLevel.Info);
         }
         catch (Exception ex)
         {
@@ -133,8 +156,6 @@ internal static class PatchCosts
         }
         var watch = Stopwatch.StartNew();
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
-        var prefix = new HarmonyMethod(typeof(PatchCosts), nameof(Prefix)) { priority = Priority.First };
-        var finalizer = new HarmonyMethod(typeof(PatchCosts), nameof(Finalizer)) { priority = Priority.Last };
         try
         {
             foreach (MethodBase target in Harmony.GetAllPatchedMethods().ToList())
@@ -167,7 +188,7 @@ internal static class PatchCosts
                             string mod = ModOf(p);
                             int slot = ModCosts.RegisterPatchSlot(mod, label);
                             SlotOf[key] = slot;
-                            Wrapper.Patch(method, prefix: prefix, finalizer: finalizer);
+                            Wrapper.Patch(method, transpiler: Transpiler, finalizer: Finalizer);
                             Wrapped.Add((mod, label, slot));
                         }
                         catch (Exception ex)
@@ -192,11 +213,38 @@ internal static class PatchCosts
 
     private static bool IsOurs(string owner) => owner == ProbeId || owner == WrapperId;
 
+    private static readonly HarmonyMethod Transpiler =
+        new(typeof(PatchCosts), nameof(InjectEnter)) { priority = Priority.Last };
+    private static readonly HarmonyMethod Finalizer =
+        new(typeof(PatchCosts), nameof(Exit)) { priority = Priority.Last };
+
+    /// <summary>
+    /// `Enter(emplacement)` en tête du corps de la méthode de patch,
+    /// l'emplacement résolu ici une fois pour toutes. Les étiquettes restent
+    /// sur la première instruction d'origine : une boucle qui y revient ne
+    /// ré-empile pas. Emplacement introuvable : aucune injection, et la
+    /// mesure s'arrête plutôt que de dépiler le mauvais cadre au finalizer.
+    /// </summary>
+    private static IEnumerable<CodeInstruction> InjectEnter(IEnumerable<CodeInstruction> instructions, MethodBase original)
+    {
+        if (SlotOf.TryGetValue(original.MethodHandle.Value, out int slot))
+        {
+            yield return new CodeInstruction(System.Reflection.Emit.OpCodes.Ldc_I4, slot);
+            yield return new CodeInstruction(System.Reflection.Emit.OpCodes.Call,
+                AccessTools.Method(typeof(PatchCosts), nameof(Enter)));
+        }
+        else
+        {
+            ModCosts.Abandon();
+        }
+        foreach (CodeInstruction instruction in instructions) yield return instruction;
+    }
+
     /// <summary>
     /// Enveloppe posée dans le code d'un autre mod : rien ne doit en sortir.
     /// Un échec ici arrête la mesure (<see cref="ModCosts"/>), jamais le patch.
     /// </summary>
-    private static void Prefix(MethodBase __originalMethod)
+    public static void Enter(int slot)
     {
         try
         {
@@ -205,7 +253,7 @@ internal static class PatchCosts
                 System.Threading.Interlocked.Increment(ref OffThreadCalls);
                 return;
             }
-            if (SlotOf.TryGetValue(__originalMethod.MethodHandle.Value, out int slot)) ModCosts.PushPatch(slot);
+            ModCosts.PushPatch(slot);
         }
         catch
         {
@@ -213,12 +261,11 @@ internal static class PatchCosts
         }
     }
 
-    private static void Finalizer(MethodBase __originalMethod)
+    private static void Exit()
     {
         try
         {
-            if (!ModCosts.OnMainThread) return;
-            if (SlotOf.TryGetValue(__originalMethod.MethodHandle.Value, out int slot)) ModCosts.PopPatch(slot);
+            if (ModCosts.OnMainThread) ModCosts.PopPatchTop();
         }
         catch
         {
@@ -226,7 +273,8 @@ internal static class PatchCosts
         }
     }
 
-    private record Report(string WrittenAt, List<string> Stages, double? BiasNsPerCall, int Wrapped, long OffThreadCalls,
+    private record Report(string WrittenAt, List<string> Stages, double? BiasNsPerCall, double? BiasBytesPerCall,
+                          double? OverheadNsPerCall, int Wrapped, long OffThreadCalls,
                           int NeverCalledCount, Dictionary<string, List<string>> NeverCalledByMod,
                           Dictionary<string, int> TranspilersByOwner, List<string> Failures);
 
@@ -243,7 +291,8 @@ internal static class PatchCosts
                 .GroupBy(w => w.Mod)
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.Select(w => w.Label).ToList());
-            var report = new Report(DateTimeOffset.Now.ToString("o"), Stages, BiasNsPerCall, Wrapped.Count,
+            var report = new Report(DateTimeOffset.Now.ToString("o"), Stages, BiasNsPerCall, BiasBytesPerCall,
+                OverheadNsPerCall, Wrapped.Count,
                 System.Threading.Interlocked.Read(ref OffThreadCalls),
                 never.Values.Sum(l => l.Count), never,
                 TranspilersByOwner.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
