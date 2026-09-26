@@ -317,6 +317,8 @@ enum L10n {
         static let sameWorkAs       = "perf_overlaps_same_work_as"
         static let notAConflict     = "perf_overlaps_not_a_conflict"
         static let restore          = "perf_overlaps_restore"
+        static let measuredInGame   = "perf_overlaps_measured_in_game"
+        static let patchesCodeOf    = "perf_overlaps_patches_code_of"
     }
 
     // MARK: - Mods

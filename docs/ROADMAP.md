@@ -554,18 +554,19 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       positifs de l'heuristique « racine du nom = nom de DLL » (`Cropgenics` →
       `bubuge.*` est à vérifier) ; ne rien affirmer sans l'avoir relu dans le
       C# décompilé d'au moins un cas par mod ciblé. · **M**
-- [ ] **A5-T7** — **Deux mods actifs qui patchent la même méthode du jeu.**
+- [x] **A5-T7** — **Deux mods actifs qui patchent la même méthode du jeu.**
       Premier cas mesuré : Stardropium × UltraSmooth (7 méthodes en 2.3.6 ;
       9 en 2.3.7, plus 3 derrière `EnableExperimentalFeatures`).
       ✅ *Marche 1 livrée le 2026-09-26* : `PerformanceOverlap.catalog`, 6 paires
       à 2 méthodes ou plus (Radiance compris ; les paires à une méthode écartées
       comme bruit), fiche du mod + feuille Conflits, hors pastille.
-      **Marche 2 (remplace la lecture ECMA-335)** : lire `harmony-map.json`
-      de la sonde (**D4-T2**) au lieu du catalogue écrit à la main — la carte
-      réelle, mod par mod, après chaque lancement. D'ici là, corriger le
-      catalogue d'après l'essai ci-dessous (SinZ inerte tant que SLO est
-      actif, UltraSmooth × Stardropium à 6, SLO × UltraSmooth à ajouter) ·
-      **S**.
+      ✅ *Marche 2 livrée le 2026-09-26* : la paire vient de `harmony-map.json`
+      quand les deux mods étaient chargés lors de la dernière session de la
+      sonde (méthodes partagées ≥ 2, et patch du code de l'autre dès 1 —
+      Loading Optimizer → `ModEntry.OnGameLaunched` de SinZ), le catalogue
+      décompilé sinon. Sur le parc : Stardropium × UltraSmooth 6 (pas 9),
+      Loading Optimizer × UltraSmooth 2 ajoutée, Loading Optimizer ×
+      Stardropium écartée (rien en commun en jeu).
       🔬 *Essai du mod d'observation `companion/StarHubFR.Probe` (2026-09-26,
       parc réel, UltraSmooth + Stardropium actifs, Radiance en pause) : sa
       carte Harmony recoupe `harmony_summary` de SMAPI à 2 094 couples sur
@@ -588,8 +589,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       deux sont **actifs** — comme la liste de compatibilité de smapi.io. ⚠️ Un
       recouvrement n'est pas un conflit : deux préfixes de culling s'empilent
       souvent sans dommage ; le message dit « ces deux mods font le même
-      travail », pas « ils sont incompatibles ». · **M** (marche 1 livrée,
-      marche 2 : **S** une fois D4-T2 livré)
+      travail », pas « ils sont incompatibles ». · **M** (marches 1 et 2 livrées)
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
@@ -849,10 +849,14 @@ SLO est actif et ce que la dernière session a mesuré.
       de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
       `AccessPath` et valeur courante, à mesurer sur le parc (combien d'options se
       rapprochent sans ambiguïté). · **M**
-- [ ] **D4-T2** — L'app lit `harmony-map.json`, `timings.jsonl` et `mod-costs.jsonl` : modèles Core testés
+- [x] **D4-T2** — L'app lit `harmony-map.json`, `timings.jsonl` et `mod-costs.jsonl` : modèles Core testés
       sur les vrais fichiers de la session du 2026-09-26, sessions séparées par
       leur identifiant, ticks sans focus signalés (une minute sans focus ne décrit
-      pas le jeu). Alimente A5-T7 (marche 2), D1-T3, D2-T3. · **M**
+      pas le jeu). Alimente A5-T7 (marche 2), D1-T3, D2-T3.
+      *Livré le 2026-09-26* : `ProbeSessions`, `ProbeHarmonyMap`, `ProbeFiles`
+      (Core, `Tests/ProbeFilesTests` sur des extraits réels, régénérables par
+      `make_fixtures.py`) ; minute « écran titre » = sans lieu, pas « première
+      minute » (4 contre-exemples réels). Premier consommateur : A5-T7 marche 2. · **M**
 - [ ] **D4-T3** — Distribution : la DLL embarquée dans l'app, installée comme un mod
       **visible et pausable** de la liste, mise à jour avec l'app, jamais activée
       sans l'accord de l'utilisateur. Décision à prendre avec l'auteur : c'est le

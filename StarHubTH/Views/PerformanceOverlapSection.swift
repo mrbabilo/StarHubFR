@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Le catalogue que lisent le panorama et la fiche : mesuré par la sonde
+/// quand sa carte le permet, décompilé sinon (A5-T7, marche 2).
+private func effectivePerformanceCatalog() -> [PerformanceOverlap] {
+    ProbeHarmonyMapCache.shared.performanceCatalog()
+}
+
 /// Panorama des mods de performance qui font en partie le même travail
 /// (A5-T7, marche 1), dans la feuille « Conflits entre mods » des Alertes
 /// système, sous `ModConflictSection`.
@@ -15,7 +21,8 @@ struct PerformanceOverlapSection: View {
     @AppStorage(UDKey.dismissedPerformanceOverlaps) private var dismissedRaw = ""
 
     var body: some View {
-        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods)
+        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods,
+                                                         catalog: effectivePerformanceCatalog())
             .filter(\.bothEnabled)
         let dismissed = PerformanceOverlapDismissals.decode(dismissedRaw)
         let shown = matches.filter { !dismissed.contains($0.overlap.key) }
@@ -84,20 +91,45 @@ struct PerformanceOverlapDetails: View {
     var body: some View {
         let overlap = match.overlap
         VStack(alignment: .leading, spacing: 2) {
-            Text(String(format: localization.L(L10n.PerformanceOverlaps.methods),
-                        overlap.sharedMethods.count, overlap.sharedMethods.joined(separator: ", ")))
-                .lineLimit(3)
+            // Une paire mesurée peut n'avoir que des patches de code : pas de
+            // « 0 méthodes patchées par les deux ».
+            if !overlap.sharedMethods.isEmpty {
+                Text(String(format: localization.L(L10n.PerformanceOverlaps.methods),
+                            overlap.sharedMethods.count, overlap.sharedMethods.joined(separator: ", ")))
+                    .lineLimit(3)
+            }
+            ForEach(overlap.codePatches, id: \.patcher) { patch in
+                Text(String(format: localization.L(L10n.PerformanceOverlaps.patchesCodeOf),
+                            name(of: patch.patcher), name(of: patch.patched),
+                            patch.methods.joined(separator: ", ")))
+                    .lineLimit(3)
+            }
             if let option = overlap.conditionalOption {
                 Text(String(format: localization.L(L10n.PerformanceOverlaps.conditional),
                             overlap.conditionalMethods.count, option))
                     .lineLimit(2)
             }
-            Text(String(format: localization.L(L10n.PerformanceOverlaps.measured), measuredVersions))
+            Text(measuredLine(overlap))
                 .lineLimit(2)
         }
         .font(AppDesign.Font.footnote)
         .foregroundColor(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// « Mesuré sur … » (décompilé) ou « Mesuré en jeu le … sur … » (carte).
+    private func measuredLine(_ overlap: PerformanceOverlap) -> String {
+        guard let at = overlap.measuredAt else {
+            return String(format: localization.L(L10n.PerformanceOverlaps.measured), measuredVersions)
+        }
+        let date = ProbeDate.parse(at)?.formatted(date: .abbreviated, time: .shortened) ?? at
+        return String(format: localization.L(L10n.PerformanceOverlaps.measuredInGame), date, measuredVersions)
+    }
+
+    /// Le nom affiché d'un membre de la paire.
+    private func name(of uniqueId: String) -> String {
+        [match.firstMod, match.secondMod]
+            .first { $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame }?.name ?? uniqueId
     }
 
     /// « UltraSmooth 2.3.7 · Radiance 2.2.1 », suivi d'un avertissement pour
@@ -124,7 +156,8 @@ struct PerformanceOverlapDetailRows: View {
 
     var body: some View {
         let dismissed = PerformanceOverlapDismissals.decode(dismissedRaw)
-        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods)
+        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods,
+                                                         catalog: effectivePerformanceCatalog())
             .filter { match in
                 guard let partner = match.partner(of: mod.folderName) else { return false }
                 return partner.isEnabled && !dismissed.contains(match.overlap.key)
