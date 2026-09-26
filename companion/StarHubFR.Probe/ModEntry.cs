@@ -48,6 +48,14 @@ public sealed class ModEntry : Mod
             GmcmExport.Write(helper, Monitor);
         };
 
+        // Plus rien à taper : la minute entamée s'écrit au retour à l'écran
+        // titre et à la fermeture du jeu ; la carte se relève chaque matin,
+        // pour les patches posés après le chargement (DLX.Bundles, 2026-09-26).
+        helper.Events.GameLoop.ReturnedToTitle += (_, _) => FrameTimings.FlushNow();
+        helper.Events.GameLoop.DayStarted += (_, _) => HarmonyMap.Write(helper, Monitor, "DayStarted");
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => FrameTimings.FlushNow();
+
+        // Facultatif : forcer l'écriture sans attendre la minute.
         helper.ConsoleCommands.Add("starhubfr_probe",
             "Écrit la carte Harmony et la minute de mesures en cours.",
             (_, _) =>
