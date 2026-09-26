@@ -81,6 +81,7 @@ let package = Package(
                 "Models/ModDependencyParser.swift",
                 "Models/DependencyTree.swift",
                 "Models/SmapiLogDiagnostics.swift",
+                "Models/SmapiWarningDigest.swift",
                 "Models/LogNoise.swift",
                 "Models/LogBudget.swift",
                 "Models/SmapiHealthFold.swift",

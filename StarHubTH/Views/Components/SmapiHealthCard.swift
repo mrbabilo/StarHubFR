@@ -33,7 +33,7 @@ struct SmapiHealthCard: View {
     /// chevron, this holds their explicit choice and overrides the default.
     @State private var userCollapsed: Bool? = nil
 
-    private var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
+    var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
 
     private var isExpanded: Bool { userCollapsed ?? (diagnostics.problemCount > 0) }
     private var isHealthy: Bool { diagnostics.problemCount == 0 }
@@ -42,7 +42,7 @@ struct SmapiHealthCard: View {
     /// log, so the expanded body has content to show when the user opens it.
     private var hasDetails: Bool {
         !diagnostics.patchedMods.isEmpty || !diagnostics.saveSerializerMods.isEmpty
-            || !diagnostics.consoleMods.isEmpty || !diagnostics.topErrorMods.isEmpty
+            || !diagnostics.consoleMods.isEmpty || !diagnostics.topErrorMods.isEmpty || !diagnostics.recurringWarnings.isEmpty
             // Un journal sans incident ne dit rien de la compatibilité : les
             // sept mods signalés du parc n'ont **jamais** planté, ils sont en
             // pause. Sans cette ligne, le bloc n'apparaîtrait que les jours où
@@ -244,6 +244,7 @@ struct SmapiHealthCard: View {
                            logHeader: "Direct console access")
             }
             if !diagnostics.topErrorMods.isEmpty { topErrorsBlock }
+            if !diagnostics.recurringWarnings.isEmpty { recurringWarningsBlock }
             if !diagnostics.benignNotices.isEmpty { benignBlock }
         }
     }
@@ -469,7 +470,7 @@ struct SmapiHealthCard: View {
 
     /// The two per-mod actions, grouped so they read as one control rather than
     /// two loose glyphs floating next to the name.
-    private func modActions(_ mod: String) -> some View {
+    func modActions(_ mod: String) -> some View {
         HStack(spacing: 2) {
             actionButton("arrow.right.circle", help: L10n.Logs.healthOpenMod) {
                 NotificationCenter.default.post(name: .jumpToMod, object: mod)

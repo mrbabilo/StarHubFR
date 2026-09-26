@@ -388,3 +388,58 @@ import Testing
     #expect(d.benignNotices.isEmpty)
     #expect(d.topErrorMods.first?.name == "Some Mod")
 }
+
+// MARK: - Avertissements récurrents (vraies lignes du journal de l'auteur)
+
+/// Content Patcher journalise au nom de ses packs : le coupable est le premier
+/// segment du chemin, sous ses deux formes. Et 4 patches répétés ne sont pas
+/// 40 messages.
+@Test func contentPatcherWarningsAreBlamedOnTheirPack() {
+    var lines: [String] = []
+    for _ in 0..<3 {
+        for n in 1...2 {
+            lines.append(#"[12:59:30 WARN  Content Patcher] Can't apply data patch "Shads Context Tags Compatibility > Add Cornucopia More Flowers files > data/tags.json > EditData Data/Objects #\#(n)" to Data/Objects: target not found."#)
+        }
+    }
+    lines.append("[12:59:31 WARN  Content Patcher] Ignored Animal Multiproduce > Farm Animal Rules > Data/camelus_void.json > Remove hair: the When field is invalid.")
+    lines.append("[12:59:31 WARN  Content Patcher] Ignored Animal Multiproduce > Farm Animal Rules > Data/camelus_void.json > Add hair: the When field is invalid.")
+    let d = SmapiDiagnostics.parse(logContent: lines.joined(separator: "\n"))
+    #expect(d.recurringWarnings.map(\.mod) == ["Shads Context Tags Compatibility", "Animal Multiproduce"])
+    #expect(d.recurringWarnings.first?.count == 6)
+    #expect(d.recurringWarnings.first?.distinct == 2)
+    // Information, pas alerte.
+    #expect(d.problemCount == 0)
+}
+
+/// Un message Content Patcher sans chemin lisible reste à Content Patcher :
+/// pas de nom deviné.
+@Test func anUnreadableContentPatcherWarningStaysWithContentPatcher() {
+    let log = """
+    [12:59:30 WARN  Content Patcher] Some token is deprecated > use the new one.
+    [12:59:31 WARN  Content Patcher] Some token is deprecated > use the new one.
+    """
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.recurringWarnings.map(\.mod) == ["Content Patcher"])
+}
+
+/// Ce qui n'entre pas : un WARN bénin (déjà expliqué ailleurs), les encarts de
+/// SMAPI et du jeu, une ligne isolée, et les ERROR (comptées à part).
+@Test func recurringWarningsSkipBenignFrameworkSingleAndErrorLines() {
+    let log = """
+    [12:59:22 WARN  Global Config Settings Rewrite] Couldn't get the StarControl API, If you don't have StarControl installed, you can ignore this warning.
+    [12:59:22 WARN  Global Config Settings Rewrite] Couldn't get the StarControl API, If you don't have StarControl installed, you can ignore this warning.
+    [12:58:37 WARN  SMAPI]    Changed save serializer
+    [12:58:37 WARN  SMAPI]    --------------------------------------------------
+    [13:00:26 WARN  game] Item spawn fields for entry '???' produced a null or empty item ID.
+    [13:00:35 WARN  game] Item spawn fields for entry '???' produced a null or empty item ID.
+    [13:02:45 WARN  Parchment] A Image element sets "IgnoreCursor" alongside HoverFrames.
+    [13:02:05 WARN  SpaceCore] A warp from Forest references Custom_LASV_Umuwi which could not be found.
+    [13:02:07 WARN  SpaceCore] A warp from WizardHouse references Custom_DouglasRoom which could not be found.
+    [13:03:00 ERROR Some Mod] Boom
+    [13:03:01 ERROR Some Mod] Boom
+    """
+    let d = SmapiDiagnostics.parse(logContent: log)
+    #expect(d.recurringWarnings.map(\.mod) == ["SpaceCore"])
+    #expect(d.recurringWarnings.first?.sample.contains("Custom_LASV_Umuwi") == true)
+    #expect(d.topErrorMods.map(\.name) == ["Some Mod"])
+}

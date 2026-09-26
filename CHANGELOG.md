@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Added
 
 - **Mods de performance qui font le même travail.** La fiche d'un mod et la feuille « Conflits entre mods » signalent les paires actives qui patchent les mêmes méthodes (UltraSmooth, Radiance, Stardropium…), sans compter comme alerte.
+- **Avertissements récurrents dans la carte de santé SMAPI.** Les mods dont le même avertissement revient souvent sont listés avec leur nombre de lignes, de messages différents et un exemple. Content Patcher y désigne le pack en cause. Ce n'est pas une alerte : la carte reste verte.
 
 ### Fixed
 

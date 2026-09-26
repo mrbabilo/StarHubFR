@@ -318,6 +318,10 @@
 "logs_health_suggestions_title" = "What you can do";
 "logs_health_title" = "Issues detected";
 "logs_health_top_errors" = "Mods with the most errors";
+"logs_health_warnings" = "Recurring warnings";
+"logs_health_exp_warnings" = "These mods log the same warning again and again. Nothing is blocked: usually a patch or an integration that has no effect. Look here if something is missing in game.";
+"logs_health_warnings_count" = "%lld warnings";
+"logs_health_warnings_distinct" = "%lld different messages";
 "logs_history" = "System Logs";
 "logs_history_subtitle" = "Session history and permission recommendations";
 "logs_logs" = "Diagnostics & Performance";

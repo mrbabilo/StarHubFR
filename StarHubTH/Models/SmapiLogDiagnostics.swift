@@ -121,6 +121,8 @@ public struct SmapiDiagnostics: Sendable {
     public var topErrorMods: [ModCount] = []
     /// Known-harmless errors, explained to the player rather than hidden.
     public var benignNotices: [BenignNotice] = []
+    /// Mods whose WARN lines repeat — information, not in `problemCount`.
+    public var recurringWarnings: [RecurringWarning] = []
 
     public init() {}
 
@@ -131,7 +133,7 @@ public struct SmapiDiagnostics: Sendable {
             && skipped.isEmpty && failed.isEmpty && externalConflicts.isEmpty
             && brokenMods.isEmpty && missingDeps.isEmpty && topErrorMods.isEmpty
             && patchedMods.isEmpty && saveSerializerMods.isEmpty && consoleMods.isEmpty
-            && benignNotices.isEmpty
+            && benignNotices.isEmpty && recurringWarnings.isEmpty
     }
 
     /// Issues to FIX (drive the card's healthy/unhealthy state). Only clear
@@ -169,6 +171,7 @@ public struct SmapiDiagnostics: Sendable {
         var inSkipped = false
         var currentLoadingMod: String?
         var errorCounts: [String: Int] = [:]
+        var warnings = WarningTally()
         var group: WarningGroup? = nil
         var groupEntriesStarted = false
 
@@ -266,9 +269,11 @@ public struct SmapiDiagnostics: Sendable {
                 }
             }
 
-            // Per-mod ERROR counts (context attribution; SMAPI/game excluded).
-            if benign == nil, let mod = errorContextMod(of: raw) {
-                errorCounts[mod, default: 0] += 1
+            // Per-mod ERROR counts and WARN tallies (context attribution;
+            // SMAPI/game excluded), from one split of the header.
+            if benign == nil, let head = header(of: raw), let mod = head.mod {
+                if head.level == "ERROR" { errorCounts[mod, default: 0] += 1 }
+                if head.level == "WARN" { warnings.add(mod: warningMod(context: mod, body: body), body: body) }
             }
 
             // SMAPI warning-group sections (patched / save-serializer / broken /
@@ -329,6 +334,7 @@ public struct SmapiDiagnostics: Sendable {
             }
             .prefix(5)
             .map { ModCount(name: $0.key, count: $0.value) }
+        d.recurringWarnings = warnings.top()
 
         return d
     }
@@ -433,16 +439,6 @@ public struct SmapiDiagnostics: Sendable {
         return name
     }
 
-    /// Same, but only for ERROR lines — used for the per-mod error tally, which
-    /// must not count warnings.
-    private static func errorContextMod(of line: String) -> String? {
-        guard line.hasPrefix("["), let close = line.firstIndex(of: "]") else { return nil }
-        let header = String(line[line.index(after: line.startIndex)..<close])
-        let parts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard parts.count >= 2, parts[1].uppercased() == "ERROR" else { return nil }
-        return contextMod(of: line)
-    }
-
     /// Classifies known-harmless ERROR lines. Returns nil for anything else,
     /// so unknown errors keep their full weight.
     ///
@@ -494,7 +490,7 @@ public struct SmapiDiagnostics: Sendable {
     /// A one-line excerpt of the original message, kept as the notice's
     /// evidence. Stack traces and multi-line details are cut to the first line
     /// so the card stays readable.
-    private static func evidence(from body: String) -> String {
+    static func evidence(from body: String) -> String {
         let firstLine = body
             .components(separatedBy: .newlines)
             .first?

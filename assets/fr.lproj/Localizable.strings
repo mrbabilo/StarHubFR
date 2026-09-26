@@ -318,6 +318,10 @@
 "logs_health_suggestions_title" = "Ce que vous pouvez faire";
 "logs_health_title" = "Problèmes détectés";
 "logs_health_top_errors" = "Mods générant le plus d'erreurs";
+"logs_health_warnings" = "Avertissements récurrents";
+"logs_health_exp_warnings" = "Ces mods répètent le même avertissement. Rien n'est bloqué : le plus souvent, un patch ou une intégration sans effet. À regarder si quelque chose manque en jeu.";
+"logs_health_warnings_count" = "%lld avertissements";
+"logs_health_warnings_distinct" = "%lld messages différents";
 "logs_history" = "Journaux système";
 "logs_history_subtitle" = "Historique de session et recommandations de permissions";
 "logs_logs" = "Diagnostic & Performances";
