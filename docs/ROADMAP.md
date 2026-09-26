@@ -47,7 +47,7 @@ trouve plus ici est livré : le chercher dans l'archive.
 - **Axe C — Traduction FR** *(différenciateur)* : couverture i18n, diff EN/FR, édition
   assistée de `fr.json`, hub multilingue.
 - **Axe B — Ergonomie mods, profils & backups** : rendre exploitable ce qui existe déjà.
-- **Axe D — Performance** : exploitation du log du mod *Profiler*, puis mutualisation.
+- **Axe D — Performance** : exploitation du log du mod *Profiler*, sonde StarHubFR (mod d'observation, essai du 2026-09-26), puis mutualisation.
 - **Axe E — Packs, distribution & pédagogie** : packaging, rapport de modlist, doc, Nexus.
 - **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité,
   réactivité de la liste des mods (**F3**).
@@ -559,8 +559,13 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       9 en 2.3.7, plus 3 derrière `EnableExperimentalFeatures`).
       ✅ *Marche 1 livrée le 2026-09-26* : `PerformanceOverlap.catalog`, 6 paires
       à 2 méthodes ou plus (Radiance compris ; les paires à une méthode écartées
-      comme bruit), fiche du mod + feuille Conflits, hors pastille. Reste la
-      lecture ECMA-335 ci-dessous.
+      comme bruit), fiche du mod + feuille Conflits, hors pastille.
+      **Marche 2 (remplace la lecture ECMA-335)** : lire `harmony-map.json`
+      de la sonde (**D4-T2**) au lieu du catalogue écrit à la main — la carte
+      réelle, mod par mod, après chaque lancement. D'ici là, corriger le
+      catalogue d'après l'essai ci-dessous (SinZ inerte tant que SLO est
+      actif, UltraSmooth × Stardropium à 6, SLO × UltraSmooth à ajouter) ·
+      **S**.
       🔬 *Essai du mod d'observation `companion/StarHubFR.Probe` (2026-09-26,
       parc réel, UltraSmooth + Stardropium actifs, Radiance en pause) : sa
       carte Harmony recoupe `harmony_summary` de SMAPI à 2 094 couples sur
@@ -574,17 +579,17 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       Stardropium, pas 9 ; (3) SLO × UltraSmooth partagent 2 méthodes
       (`ScreenFade.UpdateFadeAlpha`, `LoadGameMenu.SaveFileSlot..ctor`) que le
       seuil « ≥ 2 » aurait dû retenir. La décompilation dit ce qu'un mod
-      **peut** patcher ; seule la carte dit ce qu'il **a** patché.* Complet, il
-      faut lire les tables de métadonnées ECMA-335 (`MemberRef`, `TypeRef`) et
-      l'IL autour des appels `Harmony.Patch` — le nom de méthode est une chaîne
-      lisible, son type ne l'est pas. **Première marche, moins chère** : une
+      **peut** patcher ; seule la carte dit ce qu'il **a** patché.* *(Plan
+      initial, dépassé par la sonde : lire les tables ECMA-335 et l'IL autour
+      des `Harmony.Patch`.)* **Première marche** : une
       liste tenue à la main des paires de mods de performance qui se recouvrent
       (Stardropium, UltraSmooth, Stardew Loading Optimizer, SinZational Speedy
       Solutions), chaque paire mesurée par décompilation, affichée quand les
       deux sont **actifs** — comme la liste de compatibilité de smapi.io. ⚠️ Un
       recouvrement n'est pas un conflit : deux préfixes de culling s'empilent
       souvent sans dommage ; le message dit « ces deux mods font le même
-      travail », pas « ils sont incompatibles ». · **L** (marche 1 : **S**)
+      travail », pas « ils sont incompatibles ». · **M** (marche 1 livrée,
+      marche 2 : **S** une fois D4-T2 livré)
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
@@ -599,10 +604,9 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > Source ajoutée au registre le 2026-09-04 : `SinZ.Profiler` 2.0.0, page et
 > monorepo **surveillés** (`mod/profiler`, `profiler-source`). La chaîne de
 > journal à parser est mesurée dans la DLL : `[BigLoop] In total, it took
-> {0:N}ms handling {1}{2}`. ⚠️ Sur le parc de référence, Profiler est
-> **installé mais en pause** (`.Profiler/`) : sa détection doit regarder les
-> mods en pause, pas seulement les actifs — et son activation n'efface pas
-> l'historique : le dernier journal date d'avant la mise en pause.
+> {0:N}ms handling {1}{2}`. Sur le parc de référence, Profiler a été
+> **réactivé le 2026-09-26** (il était en pause) ; sa détection doit tout de
+> même regarder les mods en pause, pas seulement les actifs.
 
 > *Mesuré le 2026-09-26 sur une vraie session (Profiler activé, lancement
 > + chargement) : `[BigLoop]` n'est que le résumé. Profiler écrit surtout des
@@ -626,8 +630,13 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 - [ ] **D1-T1** — Détecter la présence et l'activation de Profiler ; guidage (installer →
       jouer une session représentative → revenir). · **S**
-- [ ] **D1-T2** — Parser les lignes `[Profiler] [BigLoop] … GameLoop.TimeChanged` : événement,
-      durée totale, détail par mod. Modèle Core testable. · **M**
+- [ ] **D1-T2** — Parser les lignes `[RawLog] {json}` de Profiler (pas `[BigLoop]`, qui
+      n'est qu'un résumé) : temps **propre** par mod et par événement (enfants
+      soustraits), séparé en lancement / chargement / jeu. Modèle Core testable,
+      jeux de test tirés du vrai journal conservé
+      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt`). L'écran dira « au-dessus
+      du seuil de Profiler », jamais « tout le temps du mod » — le coût par tick
+      sous le seuil vient de la sonde (**D4-T1**). · **M**
 - [ ] **D1-T3** — Vue « Impact performances » dans l'onglet Diagnostic : classement des mods
       par temps moyen/max, jointure sur le registre. · **M**
 - [ ] **D1-T4** — Badge d'impact (faible / moyen / élevé) dans la liste et sur la fiche mod,
@@ -652,45 +661,24 @@ le journal réel le 2026-09-04.
       profil, limites de cache, et le triplet configuré/effectif/**raison** de chaque
       optimisation. Modèle Core testable ; échec silencieux si la ligne change de
       forme. · **S**
-- [ ] **D2-T2** — Ingérer les `Mods/*/UltraSmooth_TraceReport_*.txt` : sections
-      balisées (surcharge boucle CPU, délai de présentation GPU, budget de trame
-      16,6 ms), rapprochées du mod et de la session. ⚠️ Les dossiers de mods sont
-      en 0555 par endroits (piège X7) : l'écriture du rapport peut y échouer —
-      l'absence de rapport n'est pas une absence de problème.
-      *UltraSmooth 2.3.6 (décompilé le 2026-09-24) retire son patch
-      `Game1.DrawWorld` ; les cinq sections de `us_trace` sont identiques — le
-      format visé ici ne bouge pas (SOURCES §5).*
-      *UltraSmooth 2.3.7 (décompilé le 2026-09-26) garde `us_trace` et ses
-      sections ; la ligne `Game Time` d'un pic peut finir par ` | Menu: …` et
-      ` | Weather: …`, suffixes que le parseur doit accepter (SOURCES §5).*
-      *Mesuré le 2026-09-26 sur **4 vrais rapports** (session de l'auteur,
-      01:03–01:07). Le rapport ne naît que d'une commande console (`us_diag`,
-      `us_trace`), rien d'automatique ; il est **aussi écrit en entier dans le
-      journal SMAPI** (une entrée INFO `Ultra Smooth` multiligne), donc
-      lisible sans le fichier ni le piège 0555. Il **ne nomme aucun mod** :
-      « rapprochées du mod » est impossible depuis cette source. Pièges de
-      lecture, tous constatés :
-      (1) « Last 60s » et `Duration` sont **3 600 trames ÷ 60**, pas du temps :
-      à 26 FPS la fenêtre couvre ~2 min 20 ;
-      (2) une commande tapée pendant le chargement ne s'exécute qu'à la fin
-      (01:01:34 → rapport à 01:03:10) : `Game Loop Ticks: 0`, CPU 0,00 ms, et
-      le diagnostic « GPU » qui en découle est faux ;
-      (3) `Occurred 0x in session` à côté d'une durée de 28,8 ms : compteur
-      mort ;
-      (4) les « pics » > 25 ms sont, sous VSync 60 Hz, des trames de 3
-      intervalles (~53 ms, huit fois de suite) : la cadence, pas un à-coup ;
-      (5) `Worst Frame Peak` reste à 1 643,72 ms trois rapports d'affilée.
-      Fiable : FPS moyen, 1 % bas, tick CPU moyen, tas géré, GC, lieu et heure
-      de jeu. Lecture utile mesurée : tick CPU 2,6–4,2 ms pour une trame de
-      29–38 ms — **le rendu coûte l'essentiel**, contrairement à la cause
-      « CPU » affichée par le rapport.* · **M**
+- ~~**D2-T2**~~ — ❌ **Abandonné le 2026-09-26 (mesure).** Ingérer les rapports
+      `us_trace`/`us_diag` d'UltraSmooth. Lus sur 5 vrais rapports et confrontés à
+      la sonde (**D4**) : le rapport ne naît que d'une commande console, ne nomme
+      aucun mod, et ses chiffres centraux sont faux ou mal nommés — « Last 60s » =
+      3 600 trames, « CPU Tick » = la logique du jeu seule (0,5 ms quand la mise à
+      jour en coûte 5 à 9), causes du §5 figées, fenêtre sans focus jamais
+      signalée. La sonde donne les mêmes FPS (51,0 contre 51,01 ms sur la même
+      minute) avec un découpage juste. Détail et idées à refaire :
+      [`audit-ultrasmooth-2.3.7.md`](audit-ultrasmooth-2.3.7.md). *(La note du
+      matin qui concluait « le rendu coûte l'essentiel » est fausse — voir D1.)*
 - [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
-      état SLO résolu, derniers rapports UltraSmooth, couverture des menus de config
+      état SLO résolu, dernières sessions de la sonde (**D4-T2**), couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
       par mod. · **M**
-- [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer
-      `EnablePerformanceMeasurement` (SLO) ou le benchmark UltraSmooth (F9 par défaut
-      ici) le temps d'une session, puis ingérer journal et rapports au retour. · **M**
+- [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
+      (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
+      ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth
+      est écarté : deux nombres, dont le temps d'un seul tick.)* · **M**
 - [ ] **D2-T5** — Parser la ligne mémoire quotidienne de **Stardropium**
       (`[Morning Memory Optimizer (Background)] RAM: <a> MB -> <b> MB (Managed
       Heap: <c> MB -> <d> MB, <n> cached textures purged/bounded).`, `INFO`, une
@@ -700,12 +688,63 @@ le journal réel le 2026-09-04.
       dans la DLL 0.1.1 ([audit](audit-stardropium.md)). ⚠️ Mod **en pause** sur
       le parc et bêta du jour : ne rien coder avant qu'il tourne, puis mesurer
       sur un vrai journal. · **S**
+- [ ] **D2-T6** — Vérifier en jeu les deux risques relevés dans UltraSmooth 2.3.7
+      ([audit](audit-ultrasmooth-2.3.7.md) §3), puis les signaler à l'auteur :
+      (1) `DayTransitionOptimizer` saute `GameLocation.DayUpdate` des lieux
+      « vides » — 183 sur 362 dans la sauvegarde de l'auteur, dont `FarmCave` —
+      et la cueillette risque de ne plus repousser : vider un lieu, dormir avec
+      et sans `EnableDayTransitionSlicing`, comparer les sauvegardes ;
+      (2) `QueryCacheManager` identifie l'objet d'une condition par son seul
+      `ItemId` (qualité, quantité, prix confondus dans une trame). Rien à coder
+      chez nous. · **XS**
 
 **Risques** : mêmes que D1 — formats de sortie de mods tiers, parseurs tolérants,
 **ne jamais inventer de chiffre**. La ventilation fine « ce mod coûte X ms »
-n'existe pas dans SMAPI 4.5.2 (scan des DLL) : ne pas la promettre dans l'UI.
+n'existe pas dans SMAPI 4.5.2 (scan des DLL) : ne pas la promettre dans l'UI — sauf via la sonde (**D4-T1**), qui la mesure elle-même.
 **Critère de succès** : sans installer quoi que ce soit de nouveau, l'écran dit si
 SLO est actif et ce que la dernière session a mesuré.
+
+#### D4 — La sonde StarHubFR : un mod d'observation à nous
+
+> *Essai lancé et mesuré le 2026-09-26* (`companion/StarHubFR.Probe`, C#,
+> v0.2) : la décision du 2026-09-14 (« un mod compagnon est un changement de
+> nature de l'application », A1) est rouverte **par l'auteur**. Le mod
+> n'optimise rien, ne touche à aucun autre mod, aucun réseau ; il écrit dans
+> `~/.config/StardewValley/ModData/mrbabilo.StarHubFR.Probe/` la carte
+> Harmony (`harmony-map.json`) et une ligne de mesures par minute réelle
+> (`timings.jsonl`). Code repris : Profiler de SinZ (MIT) pour les minuteurs
+> et les GC ; UltraSmooth : idées seulement (pas de licence). Validé : carte
+> = `harmony_summary` à 2 094/2 095, FPS = UltraSmooth à 0,01 ms près.
+> Construit sur la machine qui a le jeu (`ModBuildConfig` lit ses DLL) : la
+> CI ne le construit pas.
+
+- [ ] **D4-T1** — Sonde v0.3 : (a) temps de **chaque gestionnaire d'événement de chaque
+      mod**, sans seuil, cumulé par seconde de jeu — technique de
+      `ManagedEventPatches.cs` de Profiler (MIT) ; c'est la réponse à « qui pèse
+      dans les 8,8 ms de mise à jour » ; (b) pics avec contexte (heure, lieu,
+      menu, météo), seuil **relatif** à la trame médiane ; (c) durée de l'horloge
+      des 10 minutes et des changements de lieu ; (d) en-tête de session :
+      fréquence de l'écran, VSync, pas fixe, mods de perf actifs. Limite à
+      dire : un mod qui agit par patch Harmony reste compté dans le temps du
+      jeu. · **M**
+- [ ] **D4-T2** — L'app lit `harmony-map.json` et `timings.jsonl` : modèles Core testés
+      sur les vrais fichiers de la session du 2026-09-26, sessions séparées par
+      leur identifiant, ticks sans focus signalés (une minute sans focus ne décrit
+      pas le jeu). Alimente A5-T7 (marche 2), D1-T3, D2-T3. · **M**
+- [ ] **D4-T3** — Distribution : la DLL embarquée dans l'app, installée comme un mod
+      **visible et pausable** de la liste, mise à jour avec l'app, jamais activée
+      sans l'accord de l'utilisateur. Décision à prendre avec l'auteur : c'est le
+      changement de nature écarté le 2026-09-14. · **M**
+- [ ] **D4-T4** — Avant/après : comparer deux sessions de la sonde autour d'une
+      activation de mod (la version tenable de D1-T5, idée reprise d'UltraSmooth
+      mais sur des sessions entières). · **S**
+
+**Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
+l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
+le dépôt.
+**Critère de succès** : « ces trois mods coûtent X ms par mise à jour » et « ces deux
+mods patchent la même méthode », lus sur le parc réel, sans décompiler ni lire un
+journal.
 
 ---
 
