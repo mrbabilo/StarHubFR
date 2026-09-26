@@ -179,3 +179,27 @@ un retiré.
 Conclusion pour le parc inchangée : pause tant qu'UltraSmooth est actif. Pour
 l'essayer, ajouter `EnableItemQueryOptimization` aux clés à couper d'abord,
 le temps de vérifier les boutiques.
+
+## 5. Delta 0.1.3 → 0.1.4-beta *(2026-09-26)*
+
+Décompilé et diffé (446 lignes). Aucune API réseau, processus ou fichier
+nouvelle.
+
+- **Écran noir corrigé en retirant un module.** Le préfixe sur
+  `ContentPatcher.Framework.PatchManager.OnAssetRequested`, qui sautait des
+  demandes d'assets à partir de `PatchesByCurrentTarget`, a disparu : les
+  tuiles noires à 18 h 20 et au réveil venaient de là. Les compteurs du
+  module passent en `Interlocked`.
+- **Nettoyage mémoire du matin retardé de 8 s.** Il tournait déjà hors du
+  fil du jeu (`Task.Run`) ; seule l'attente s'ajoute. `PurgeTextureCaches`
+  ne vide que le cache d'images de Stardropium et, si activé, celui de
+  SpeedySolutions : pas de `Dispose` de texture du jeu depuis ce fil.
+- **Nouveau `QuestJournalOptimizationModule`** : préfixe qui espace
+  `QuestJournal.Menu.CompletionWatcher.OnUpdateTicked`, un autre type
+  interne de mod patché.
+- `FishingRod.distanceToLand` reçoit un préfixe sans allocation.
+- `UpdateKeys` ajoutées (`Nexus:52803`, `GitHub:ArshiaS1381/StardropiumMod`).
+
+Sur le parc, il est désormais actif à côté d'UltraSmooth (sessions sonde du
+2026-09-26) : la conclusion « pause tant qu'UltraSmooth est actif » n'est
+plus appliquée.

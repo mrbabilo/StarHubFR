@@ -551,9 +551,9 @@ SOURCES = [
      "nexusId": 52803, "uniqueId": "Arshia1381.Stardropium",
      "role": "mod de performances (37 modules en 0.1.3, dont 15 patchent des types "
              "internes d'autres mods) ; paru et audité le 2026-09-25, delta "
-             "0.1.3 audité le 2026-09-26, en pause "
-             "sur le parc. SANS UpdateKeys — smapi.io peut rester muet, état "
-             "relevé, pas alerte ; 9 méthodes patchées en commun avec UltraSmooth 2.3.7 "
+             "0.1.3 puis 0.1.4-beta audités le 2026-09-26, actif sur le parc "
+             "à côté d'UltraSmooth. UpdateKeys Nexus + GitHub depuis 0.1.4 ; "
+             "9 méthodes patchées en commun avec UltraSmooth 2.3.7 "
              "(catalogue A5-T7)",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
 
