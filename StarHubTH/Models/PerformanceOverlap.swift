@@ -20,9 +20,23 @@ import Foundation
 public struct PerformanceOverlap: Equatable, Sendable {
     public struct Member: Equatable, Sendable {
         public let uniqueId: String
-        /// La version décompilée : une autre version installée peut avoir
-        /// ajouté ou retiré des patches, l'écran le dit.
+        /// La version décompilée, ou mesurée en jeu (carte de la sonde) : une
+        /// autre version installée peut avoir ajouté ou retiré des patches,
+        /// l'écran le dit.
         public let measuredVersion: String
+        /// Le nom de l'assembly du mod, pour reconnaître dans la carte les
+        /// méthodes qu'un autre mod patche **dans son code**. Relevé dans les
+        /// DLL le 2026-09-26.
+        public var assemblyName: String? = nil
+    }
+
+    /// Un mod qui patche des méthodes déclarées dans le code de l'autre
+    /// (Loading Optimizer → `ModEntry.OnGameLaunched` de SinZ : c'est sa
+    /// neutralisation).
+    public struct CodePatch: Equatable, Sendable {
+        public let patcher: String
+        public let patched: String
+        public let methods: [String]
     }
 
     public let first: Member
@@ -33,6 +47,10 @@ public struct PerformanceOverlap: Equatable, Sendable {
     /// par défaut (`conditionalOption`) : comptées à part, jamais dans le total.
     public let conditionalMethods: [String]
     public let conditionalOption: String?
+    /// Date de capture de la carte de la sonde ; `nil` = paire décompilée.
+    public var measuredAt: String? = nil
+    /// Mesuré en jeu seulement : la carte voit un patch dans le code de l'autre.
+    public var codePatches: [CodePatch] = []
 
     /// Clé stable et sans ordre, en minuscules : SMAPI compare les
     /// identifiants sans la casse.
@@ -53,11 +71,16 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.3.7")
-    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.1.3-beta")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.2.1")
-    private static let speedySolutions = Member(uniqueId: "SinZ.SpeedySolutions", measuredVersion: "1.1.0")
-    private static let loadingOptimizer = Member(uniqueId: "neoiw.StardewLoadingOptimizer", measuredVersion: "1.0.0")
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.3.7",
+                                            assemblyName: "UltraSmooth")
+    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.1.3-beta",
+                                            assemblyName: "Stardropium")
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.2.1",
+                                         assemblyName: "SDV-Radiance")
+    private static let speedySolutions = Member(uniqueId: "SinZ.SpeedySolutions", measuredVersion: "1.1.0",
+                                                assemblyName: "SinZational Speedy Solutions")
+    private static let loadingOptimizer = Member(uniqueId: "neoiw.StardewLoadingOptimizer", measuredVersion: "1.0.0",
+                                                 assemblyName: "StardewLoadingOptimizer")
 
     /// Les paires mesurées. Ajouter une paire = la décompiler d'abord ; le
     /// relevé des sources (`check_sources.py`, les cinq mods y sont suivis)
@@ -115,10 +138,11 @@ public struct PerformanceOverlapMatch: Equatable, Sendable {
         return nil
     }
 
-    /// La version installée diffère de la version décompilée.
+    /// La version installée diffère de la version décompilée ou mesurée —
+    /// en sémantique : la carte écrit `1.3.0` pour un manifeste `1.3`.
     public func isRemeasureNeeded(for mod: ModItem) -> Bool {
         guard let member = overlap.member(mod.uniqueId) else { return false }
-        return member.measuredVersion != mod.version
+        return NexusUpdateChecker.compare(member.measuredVersion, mod.version) != .orderedSame
     }
 }
 
