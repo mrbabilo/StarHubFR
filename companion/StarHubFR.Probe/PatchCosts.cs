@@ -50,6 +50,9 @@ internal static class PatchCosts
     private static readonly List<(string Mod, string Label, int Slot)> Wrapped = new();
     private static readonly List<string> Stages = new();
     private static long OffThreadCalls;
+    /// <summary>Assembly → UniqueID : un identifiant Harmony n'est pas toujours celui du mod (18 cas sur le parc).</summary>
+    private static Dictionary<Assembly, string> ModOfAssembly = new();
+    private static double? BiasNsPerCall;
 
     public static bool Active { get; private set; }
 
@@ -65,12 +68,69 @@ internal static class PatchCosts
     }
 
     /// <summary>
+    /// `IModInfo` n'expose pas l'instance du mod ; son type réel (`ModMetadata`)
+    /// la porte dans `Mod`. Lu par réflexion, une fois, après l'Entry de tous.
+    /// </summary>
+    private static void MapAssemblies()
+    {
+        var map = new Dictionary<Assembly, string>();
+        foreach (IModInfo info in Helper.ModRegistry.GetAll())
+        {
+            if (info.GetType().GetProperty("Mod")?.GetValue(info) is IMod mod)
+                map.TryAdd(mod.GetType().Assembly, info.Manifest.UniqueID);
+        }
+        ModOfAssembly = map;
+    }
+
+    private static string ModOf(Patch p) =>
+        Helper.ModRegistry.Get(p.owner)?.Manifest.UniqueID
+        ?? (p.PatchMethod.DeclaringType is { } t && ModOfAssembly.TryGetValue(t.Assembly, out string? id) ? id : null)
+        ?? p.owner;
+
+    private static void CalibrationTarget() { }
+
+    /// <summary>
+    /// Ce que l'enveloppe ajoute au temps **mesuré** d'un appel : le finalizer
+    /// cherche l'emplacement avant que le chronomètre s'arrête. Sur une méthode
+    /// vide, tout le temps mesuré est ce biais — `Calls × BiasNsPerCall` se
+    /// soustrait à la lecture (D4-T2), décisif pour les patches qui tirent des
+    /// milliers de fois par trame.
+    /// </summary>
+    private static void Calibrate()
+    {
+        try
+        {
+            MethodInfo target = AccessTools.Method(typeof(PatchCosts), nameof(CalibrationTarget));
+            int slot = ModCosts.RegisterPatchSlot(ProbeId, "calibration");
+            SlotOf[target.MethodHandle.Value] = slot;
+            Wrapper.Patch(target,
+                prefix: new HarmonyMethod(typeof(PatchCosts), nameof(Prefix)),
+                finalizer: new HarmonyMethod(typeof(PatchCosts), nameof(Finalizer)));
+            var action = (Action)Delegate.CreateDelegate(typeof(Action), target);
+            const int n = 100_000;
+            for (int i = 0; i < n; i++) action();
+            var (ticks, calls) = ModCosts.TakeSlot(slot);
+            if (calls == n) BiasNsPerCall = Math.Round(ticks * 1e9 / Stopwatch.Frequency / n, 1);
+            Monitor.Log($"Biais de l'enveloppe : {BiasNsPerCall?.ToString() ?? "?"} ns par appel ({calls}/{n} vus).", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Calibration de l'enveloppe impossible : {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    /// <summary>
     /// Enveloppe les méthodes de patch pas encore vues. Rappelé à chaque étape
     /// (GameLaunched, SaveLoaded, DayStarted) : certains mods patchent tard.
     /// </summary>
     public static void WrapNew(string stage)
     {
         if (!Active) return;
+        if (Stages.Count == 0)
+        {
+            MapAssemblies();
+            Calibrate();
+        }
         var watch = Stopwatch.StartNew();
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
         var prefix = new HarmonyMethod(typeof(PatchCosts), nameof(Prefix)) { priority = Priority.First };
@@ -92,24 +152,27 @@ internal static class PatchCosts
                     {
                         MethodInfo method = p.PatchMethod;
                         if (IsOurs(p.owner) || !Seen.Add(method)) continue;
-                        string label = $"Harmony:{kind} {method.DeclaringType?.Name}.{method.Name}";
+                        // Même forme que `Patch` dans harmony-map.json : les deux fichiers se joignent.
+                        string label = $"Harmony:{kind} {method.DeclaringType?.FullName}.{method.Name}";
                         if (method.ContainsGenericParameters || method.DeclaringType?.ContainsGenericParameters == true)
                         {
                             Failures.Add($"{p.owner} {label} : méthode générique");
                             continue;
                         }
+                        IntPtr key = IntPtr.Zero;
                         try
                         {
+                            key = method.MethodHandle.Value;
                             // L'emplacement existe avant le patch : le premier appel le trouve.
-                            string mod = Helper.ModRegistry.Get(p.owner)?.Manifest.UniqueID ?? p.owner;
+                            string mod = ModOf(p);
                             int slot = ModCosts.RegisterPatchSlot(mod, label);
-                            SlotOf[method.MethodHandle.Value] = slot;
+                            SlotOf[key] = slot;
                             Wrapper.Patch(method, prefix: prefix, finalizer: finalizer);
                             Wrapped.Add((mod, label, slot));
                         }
                         catch (Exception ex)
                         {
-                            SlotOf.Remove(method.MethodHandle.Value);
+                            if (key != IntPtr.Zero) SlotOf.Remove(key);
                             Failures.Add($"{p.owner} {label} : {ex.GetType().Name} {ex.Message}");
                         }
                     }
@@ -163,7 +226,7 @@ internal static class PatchCosts
         }
     }
 
-    private record Report(string WrittenAt, List<string> Stages, int Wrapped, long OffThreadCalls,
+    private record Report(string WrittenAt, List<string> Stages, double? BiasNsPerCall, int Wrapped, long OffThreadCalls,
                           int NeverCalledCount, Dictionary<string, List<string>> NeverCalledByMod,
                           Dictionary<string, int> TranspilersByOwner, List<string> Failures);
 
@@ -180,7 +243,7 @@ internal static class PatchCosts
                 .GroupBy(w => w.Mod)
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.Select(w => w.Label).ToList());
-            var report = new Report(DateTimeOffset.Now.ToString("o"), Stages, Wrapped.Count,
+            var report = new Report(DateTimeOffset.Now.ToString("o"), Stages, BiasNsPerCall, Wrapped.Count,
                 System.Threading.Interlocked.Read(ref OffThreadCalls),
                 never.Values.Sum(l => l.Count), never,
                 TranspilersByOwner.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)

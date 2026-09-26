@@ -211,7 +211,7 @@ internal static class FrameTimings
                 File.AppendAllText(Path.Combine(ModEntry.OutputDir, "mod-costs.jsonl"),
                     JsonSerializer.Serialize(new { Session, line.At, line.WallSeconds, Frames = FrameIntervalMs.Count,
                                                    Updates = UpdateMs.Count, line.Location, line.InactiveTicks,
-                                                   PatchesMeasured = PatchCosts.Active,
+                                                   Interrupted = ModCosts.Interrupted, PatchesMeasured = PatchCosts.Active,
                                                    FrameWorkMs = Math.Round(frameWorkMs, 1),
                                                    EventMs = Math.Round(eventMs, 1), PatchMs = Math.Round(patchMs, 1),
                                                    Mods = costs }) + "\n");

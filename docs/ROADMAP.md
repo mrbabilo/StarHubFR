@@ -752,16 +752,16 @@ SLO est actif et ce que la dernière session a mesuré.
       patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût
       d'observation à mesurer d'abord : certains préfixes tirent des milliers de fois
       par trame (`Tree.draw`). Les transpileurs restent invisibles. · **M**
-      *Code écrit le 2026-09-26 (v0.4.0, à valider en jeu)* : option
+      *Code écrit le 2026-09-26 (v0.4.1, à valider en jeu)* : option
       `MeasureHarmonyPatches` de `config.json`, **désactivée par défaut**. Chaque
       méthode de prefix/postfix/finalizer reçoit un prefix et un finalizer de la
       sonde, sur la **même pile** que les événements (un patch tiré dans un
       gestionnaire sort de son temps propre : rien ne compte deux fois).
-      `mod-costs.jsonl` gagne `PatchMs` par mod et `FrameWorkMs`/`EventMs`/`PatchMs`
+      `mod-costs.jsonl` gagne `PatchMs` par mod, `Interrupted`, et `FrameWorkMs`/`EventMs`/`PatchMs`
       par minute (la couverture des deux tiers invisibles) ; `patch-wraps.json`
       écrit les angles morts : transpileurs par propriétaire, méthodes génériques,
       enveloppes **jamais appelées** (JIT qui aurait intégré le patch avant
-      l'enveloppe), appels hors du fil du jeu, temps d'enveloppe par étape.
+      l'enveloppe), appels hors du fil du jeu, temps d'enveloppe par étape, et le **biais** mesuré de l'enveloppe en ns par appel (à soustraire × appels). Propriétaire Harmony ≠ UniqueID (18 sur le parc) : rattaché par l'assembly du patch.
       Protocole : deux sessions, même sauvegarde et même durée, option éteinte
       puis allumée — l'écart de `timings.jsonl` est le coût d'observation.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire

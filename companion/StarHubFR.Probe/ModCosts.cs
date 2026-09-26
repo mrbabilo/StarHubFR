@@ -211,6 +211,17 @@ internal static class ModCosts
     /// <summary>Pour une enveloppe qui a échoué hors de la pile : la mesure s'arrête.</summary>
     public static void Abandon() => Unbalanced = true;
 
+    /// <summary>Vrai dès qu'une mesure a échoué : les minutes suivantes sont vides, pas calmes.</summary>
+    public static bool Interrupted => Unbalanced;
+
+    /// <summary>Lit et vide un emplacement hors du relevé par minute (calibration).</summary>
+    public static (long Ticks, int Calls) TakeSlot(int slot)
+    {
+        var taken = (Ticks[slot], Calls[slot]);
+        Ticks[slot] = 0; Alloc[slot] = 0; Calls[slot] = 0; MaxTicks[slot] = 0;
+        return taken;
+    }
+
     public static void End()
     {
         if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
