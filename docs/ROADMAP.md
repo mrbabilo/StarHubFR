@@ -747,6 +747,18 @@ SLO est actif et ce que la dernière session a mesuré.
       `config.json` : 1 079 sur 3 423 — l'aide d'intégration de Pathoschild
       (84 mods) enveloppe l'accès dans un délégué capturé, suivi depuis la
       v0.3.2.
+      *Session v0.4.1 (2026-09-26, 12:00–12:09, mesure des patches éteinte) :*
+      la v0.3.2 remplit un `AccessPath` pour 4 203 options sur 4 209, mais
+      contrôlé contre les vrais `config.json` (`tools/check_gmcm_paths.py`),
+      **1 313 sur 3 984 seulement** mènent à une clé — pas mieux que la v0.3.
+      Content Patcher (~1 400 options de packs) ne lit jamais la clé dans son
+      délégué : elle est capturée à côté (`name` d'`AddField`) → v0.4.2
+      exporte les chaînes de la fermeture (`ClosureStrings`) ; les délégués
+      liés au runtime (`FieldInfo.GetValue`, BinningSkill) ne produisent plus
+      de chemin parasite. Restent AutoForager (557, options générées par
+      liste) et ConvenientInventory (modèle ≠ JSON). Témoin de coût en régime
+      continu : événements = 6 à 8 s sur 59 s de travail de trame par minute
+      (la première ligne d'une session inclut le chargement, hors trames).
 - [ ] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
       méthodes de préfixe/postfixe elles-mêmes, par propriétaire — un mod qui agit par
       patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût

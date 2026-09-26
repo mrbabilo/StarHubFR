@@ -32,7 +32,7 @@ internal static class GmcmExport
 {
     private record Option(string Kind, string? FieldId, string? Name, string? Tooltip, string? ValueType,
                           string? Value, string? Min, string? Max, string? Interval, List<string>? Choices,
-                          List<string> AccessPath);
+                          List<string> AccessPath, List<string> ClosureStrings);
     private record ModOptions(string UniqueID, string Name, List<Option> Options);
     private record Export(string CapturedAt, string GmcmVersion, List<ModOptions> Mods);
 
@@ -95,6 +95,7 @@ internal static class GmcmExport
         object? Prop(string name) => AccessTools.Property(t, name)?.GetValue(option);
 
         Delegate? getter = AccessTools.Field(t, "GetValue")?.GetValue(option) as Delegate;
+        var closureStrings = new SortedSet<string>(StringComparer.Ordinal);
         string? value = null;
         try { value = Str(getter?.DynamicInvoke()); } catch { }
 
@@ -113,7 +114,8 @@ internal static class GmcmExport
             Str(Prop("Maximum")),
             Str(Prop("Interval")),
             choices,
-            getter is null ? new List<string>() : AccessPath(getter, 0));
+            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
+            closureStrings.ToList());
     }
 
     private static string? Safe(Func<string?> f)
@@ -134,7 +136,30 @@ internal static class GmcmExport
     /// délégué est donc suivi ; un champ qui porte une `PropertyInfo` ou une
     /// chaîne donne son nom ou sa valeur (clés de dictionnaire, réflexion).
     /// </remarks>
-    private static List<string> AccessPath(Delegate getter, int depth)
+    /// <summary>
+    /// Les chaînes capturées par la fermeture du délégué, qu'il les lise ou non.
+    /// Content Patcher enregistre chaque option de ses packs avec
+    /// `get: _ => field.Value…` : la clé de `config.json` est le paramètre
+    /// `name` d'`AddField`, capturé dans la même fermeture pour la description
+    /// mais jamais lu par le délégué (≈ 1 400 options du parc, session
+    /// v0.4.1). Fermetures imbriquées (`CS$&lt;&gt;8__locals`) suivies d'un niveau.
+    /// </summary>
+    private static void CollectClosureStrings(object? target, ISet<string> into, int depth)
+    {
+        if (target is null || depth > 1) return;
+        Type type = target.GetType();
+        if (!type.Name.Contains("DisplayClass")) return;
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            object? value;
+            try { value = field.GetValue(target); } catch { continue; }
+            if (value is string text && text.Length is > 0 and <= 200) into.Add(text);
+            else if (value is not null && value.GetType().Name.Contains("DisplayClass"))
+                CollectClosureStrings(value, into, depth + 1);
+        }
+    }
+
+    private static List<string> AccessPath(Delegate getter, int depth, ISet<string> closureStrings)
     {
         var path = new List<string>();
         if (depth > 3) return path;
@@ -142,6 +167,15 @@ internal static class GmcmExport
         object? target = getter.Target;
         try
         {
+            // Un délégué lié à une méthode du runtime (`FieldInfo.GetValue`…) :
+            // son IL décrit la réflexion, pas le mod — 19 options de BinningSkill
+            // en sortaient `[InvocationFlags, DeclaringType, …]` (session v0.4.1).
+            if (method.DeclaringType?.Assembly == typeof(object).Assembly)
+            {
+                if (target is MemberInfo bound) path.Add(bound.Name);
+                return path;
+            }
+            CollectClosureStrings(target, closureStrings, 0);
             byte[]? il = method.GetMethodBody()?.GetILAsByteArray();
             if (il is null) return path;
             Module module = method.Module;
@@ -167,7 +201,7 @@ internal static class GmcmExport
                         switch (captured)
                         {
                             case Delegate inner:
-                                path.AddRange(AccessPath(inner, depth + 1));
+                                path.AddRange(AccessPath(inner, depth + 1, closureStrings));
                                 continue;
                             case MemberInfo info:
                                 path.Add(info.Name);
