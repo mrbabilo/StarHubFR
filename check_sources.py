@@ -563,6 +563,22 @@ SOURCES = [
              "suivre les commits, pas seulement la version",
      "used_by": "docs/audit-stardropium.md"},
 
+    {"key": "mod/ui-framework", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 52945, "uniqueId": "6135.UIFramework",
+     "role": "bibliothèque de menus en jeu (JSON ou C#), parue le 2026-09-26, "
+             "en pause sur le parc : les packs Content Patcher y construisent "
+             "des pages de réglages qui lient leurs champs à un état "
+             "(`\"Bind\": \"config.volume\"`) — un second front de config, hors "
+             "GMCM (optionnel), que ni le relevé GMCM de la sonde (D4-T7) ni la "
+             "convention config.* ne voient ; à décompiler avant d'en conclure",
+     "used_by": "docs/SOURCES.md §6"},
+
+    {"key": "ui-framework-source", "kind": "repo", "repo": "6135/StardewValleyMods",
+     "role": "sources d'UI Framework (GPL-3.0, dossier StardewUIFramework) et "
+             "de ses exemples ([CP] UI Framework Example) : le schéma JSON des "
+             "menus et du Bind vit là",
+     "used_by": "docs/SOURCES.md §6"},
+
     # — Local —
     {"key": "constantes-figées", "kind": "local", "probe": probe_pinned_constants,
      "role": "les versions et URL codées en dur dans les sources",

@@ -647,6 +647,18 @@ Deux constats de lecture, mesurés :
   GMCM (spacechase0), FasterMenuLoad (ZeroXPatch, entrée `log-doctor`) et
   Profiler (SinZ163, entrée `profiler-source`).
 
+**UI Framework** ([Nexus 52945](https://www.nexusmods.com/stardewvalley/mods/52945),
+`6135.UIFramework`, 1.8.0, paru le 2026-09-26 ; sources
+[6135/StardewValleyMods](https://github.com/6135/StardewValleyMods), GPL-3.0) —
+suivi par `mod/ui-framework` et `ui-framework-source`. Bibliothèque de menus :
+un pack Content Patcher y écrit en JSON une page de réglages complète dont les
+champs se lient à un état (`"Bind": "config.volume"`). Si ces pages remplacent
+l'enregistrement GMCM d'un pack, ses options échappent au relevé
+`gmcm-options.json` de la sonde (D4-T7) comme à la convention `config.*` de
+notre éditeur. Installé **en pause** sur le parc (avec deux exemples) : à
+décompiler, et à mesurer sur un pack réel qui l'exige, avant d'en tirer une
+règle.
+
 ### 6 bis — Les choix que les DLL déclarent par leurs types *(2026-09-15)*
 
 Le lecteur vit désormais **dans l'app** : `DotNetMetadata` +
