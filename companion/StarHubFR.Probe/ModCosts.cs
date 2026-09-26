@@ -154,6 +154,19 @@ internal static class ModCosts
     }
 
     /// <summary>
+    /// Fil du jeu : un cadre de patch est-il ouvert sur la pile ? Mettre les
+    /// enveloppes en veille ou les retirer à ce moment désapparierait sa sortie
+    /// (<see cref="PatchBreaker"/>). Pile débordée : on ne sait pas, donc oui.
+    /// </summary>
+    public static bool PatchOnStack()
+    {
+        if (Depth > MaxDepth) return true;
+        for (int i = 0; i < Depth; i++)
+            if (SlotIsPatch[StackSlot[i]]) return true;
+        return false;
+    }
+
+    /// <summary>
     /// Entrée d'une méthode de patch Harmony (D4-T5). Même pile que les
     /// événements : un patch tiré pendant un gestionnaire sort du temps propre
     /// de ce gestionnaire, et inversement. Fil du jeu seulement, vérifié par

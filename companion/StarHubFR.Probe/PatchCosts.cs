@@ -282,7 +282,11 @@ internal static class PatchCosts
         }
         PatchBreaker.StageReached(stage);
         var watch = Stopwatch.StartNew();
+        var patching = new Stopwatch();
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
+        // MonoMod lève et rattrape des milliers d'exceptions en posant les
+        // enveloppes : le disjoncteur ne les regarde pas, ni n'en paie le prix.
+        PatchBreaker.Wrapping = true;
         try
         {
             foreach (MethodBase target in Harmony.GetAllPatchedMethods().ToList())
@@ -315,7 +319,9 @@ internal static class PatchCosts
                             string mod = ModOf(p);
                             int slot = ModCosts.RegisterPatchSlot(mod, label);
                             SlotOf[key] = slot;
-                            Wrapper.Patch(method, transpiler: Transpiler);
+                            patching.Start();
+                            try { Wrapper.Patch(method, transpiler: Transpiler); }
+                            finally { patching.Stop(); }
                             Wrapped.Add((mod, label, slot));
                         }
                         catch (Exception ex)
@@ -331,18 +337,20 @@ internal static class PatchCosts
         {
             Monitor.Log($"Coût des patches ({stage}) interrompu : {ex}", LogLevel.Warn);
         }
+        finally
+        {
+            PatchBreaker.Wrapping = false;
+        }
         watch.Stop();
-        Stages.Add($"{stage} : +{Wrapped.Count - wrappedBefore} enveloppés, +{Failures.Count - failedBefore} échecs, {watch.ElapsedMilliseconds} ms");
-        Monitor.Log($"Coût des patches ({stage}) : {Wrapped.Count - wrappedBefore} méthodes enveloppées en {watch.ElapsedMilliseconds} ms, "
+        // Parcours et pose séparés : DayStarted a pris 485 ms pour une seule
+        // enveloppe (session v0.4.8), sans dire lequel des deux coûtait.
+        string timing = $"{watch.ElapsedMilliseconds} ms dont {patching.ElapsedMilliseconds} ms de pose";
+        Stages.Add($"{stage} : +{Wrapped.Count - wrappedBefore} enveloppés, +{Failures.Count - failedBefore} échecs, {timing}");
+        Monitor.Log($"Coût des patches ({stage}) : {Wrapped.Count - wrappedBefore} méthodes enveloppées en {timing}, "
                     + $"{Failures.Count - failedBefore} échecs.", LogLevel.Info);
         WriteReport();
     }
 
-    /// <summary>
-    /// Retire toutes les enveloppes (<see cref="PatchBreaker"/>), sur le fil du
-    /// jeu. Un cadre déjà entré garde l'ancien code, donc son `finally` : la
-    /// pile reste appariée, et la mesure des événements continue.
-    /// </summary>
     /// <summary>
     /// Arrête la mesure sans retirer les enveloppes : le retrait de 1 700
     /// enveloppes a figé le jeu 4,1 s en pleine partie (session v0.4.7). Il
@@ -356,6 +364,12 @@ internal static class PatchCosts
         WriteReport();
     }
 
+    /// <summary>
+    /// Retire toutes les enveloppes (<see cref="PatchBreaker"/>), sur le fil du
+    /// jeu, quand aucun cadre de patch n'est ouvert (<see cref="ModCosts.PatchOnStack"/>) :
+    /// `Paused` fait revenir `Exit` aussitôt, un cadre ouvert ne dépilerait
+    /// plus. La mesure des événements continue.
+    /// </summary>
     public static string Disarm(string reason)
     {
         Paused = true;
@@ -504,7 +518,8 @@ internal static class PatchCosts
     private record Report(string WrittenAt, List<string> Stages, double? BiasNsPerCall, double? BiasBytesPerCall,
                           double? OverheadNsPerCall, int Wrapped, long OffThreadCalls,
                           int NeverCalledCount, Dictionary<string, List<string>> NeverCalledByMod,
-                          Dictionary<string, int> TranspilersByOwner, List<string> Failures);
+                          Dictionary<string, int> TranspilersByOwner, List<string> Failures,
+                          string? WrappedExceptionPeak);
 
     /// <summary>
     /// `patch-wraps.json`, réécrit à chaque étape et à chaque minute écrite :
@@ -526,7 +541,7 @@ internal static class PatchCosts
                 never.Values.Sum(l => l.Count), never,
                 TranspilersByOwner.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(kv => kv.Key, kv => kv.Value),
-                Failures);
+                Failures, PatchBreaker.PeakDescription);
             File.WriteAllText(Path.Combine(ModEntry.OutputDir, "patch-wraps.json"),
                 JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         }

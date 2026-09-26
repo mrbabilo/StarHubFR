@@ -24,6 +24,7 @@ internal static class HarmonyMap
 
     public static void Write(IModHelper helper, IMonitor monitor, string stage)
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             string? NameOf(string owner) => helper.ModRegistry.Get(owner)?.Manifest.Name;
@@ -60,7 +61,7 @@ internal static class HarmonyMap
                 Constants.ApiVersion.ToString(), StardewValley.Game1.version, mods, methods);
             string path = Path.Combine(ModEntry.OutputDir, "harmony-map.json");
             File.WriteAllText(path, JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true }));
-            monitor.Log($"Carte Harmony ({stage}) : {methods.Count} méthodes patchées, {mods.Count} mods → {path}", LogLevel.Info);
+            monitor.Log($"Carte Harmony ({stage}) : {methods.Count} méthodes patchées, {mods.Count} mods, {watch.ElapsedMilliseconds} ms → {path}", LogLevel.Info);
         }
         catch (Exception ex)
         {
