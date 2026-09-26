@@ -67,6 +67,8 @@ let package = Package(
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",
                 "Models/ProbeHarmonyMap.swift",
+                "Models/ProbeFiles.swift",
+                "Models/ProbeOverlaps.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
