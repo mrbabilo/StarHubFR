@@ -19,6 +19,7 @@ namespace StarHubFR.Probe;
 ///  - gmcm-options.json  les options déclarées à GMCM, bornes comprises
 ///  - patch-wraps.json   (option MeasureHarmonyPatches) ce que la mesure des
 ///                       patches couvre et ne couvre pas
+///  - disjoncteur.txt    (même option) pourquoi les enveloppes ont été retirées
 /// </summary>
 public sealed class ModEntry : Mod
 {
@@ -30,6 +31,7 @@ public sealed class ModEntry : Mod
         Directory.CreateDirectory(OutputDir);
         // La cause d'arrêt décrit une session : celle d'avant ne doit pas passer pour celle-ci.
         File.Delete(Path.Combine(OutputDir, "interruption.txt"));
+        File.Delete(Path.Combine(OutputDir, "disjoncteur.txt"));
 
         var config = helper.ReadConfig<ModConfig>();
         var harmony = new Harmony(ModManifest.UniqueID);
@@ -37,7 +39,10 @@ public sealed class ModEntry : Mod
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
         if (config.MeasureHarmonyPatches)
+        {
             PatchCosts.Initialize(helper, Monitor, ModManifest.UniqueID);
+            helper.Events.GameLoop.UpdateTicked += (_, _) => PatchBreaker.Poll();
+        }
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules

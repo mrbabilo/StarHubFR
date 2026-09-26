@@ -808,6 +808,17 @@ SLO est actif et ce que la dernière session a mesuré.
       `leave` vers le `ret`, boucle en tête, exception) — au moindre écart,
       aucun patch d'un autre mod n'est enveloppé. Banc hors jeu impossible :
       le Harmony de SMAPI ne se charge pas hors du jeu.
+      *Session v0.4.5 (option allumée) :* ~30 Go déversés dans le terminal de
+      SMAPI, disque plein, 15 Go de swap, **aucun journal SMAPI écrit** — cause
+      inconnue, option remise à `false`. v0.4.6 : **disjoncteur**
+      (`PatchBreaker.cs`) sur les exceptions de première chance — première
+      `InvalidProgramException`, 100 levées dans une méthode enveloppée (son nom
+      porte `WrapperId`, vérifié hors jeu sur une `DynamicMethod`), 1 000 en une
+      seconde d'où qu'elles viennent, mesure interrompue, et **échéance**
+      (5 min après le chargement, 15 après l'armement) pour ce qu'aucun des
+      autres ne verrait. Au déclenchement : `UnpatchAll(WrapperId)` au tick
+      suivant, cause + étape + exception dans `disjoncteur.txt`, une ligne au
+      journal. Ne couvre pas un échec avant le premier tick.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**

@@ -271,7 +271,9 @@ internal static class PatchCosts
                 WriteReport();
                 return;
             }
+            PatchBreaker.Arm(Monitor);
         }
+        PatchBreaker.StageReached(stage);
         var watch = Stopwatch.StartNew();
         int wrappedBefore = Wrapped.Count, failedBefore = Failures.Count;
         try
@@ -327,6 +329,29 @@ internal static class PatchCosts
         Monitor.Log($"Coût des patches ({stage}) : {Wrapped.Count - wrappedBefore} méthodes enveloppées en {watch.ElapsedMilliseconds} ms, "
                     + $"{Failures.Count - failedBefore} échecs.", LogLevel.Info);
         WriteReport();
+    }
+
+    /// <summary>
+    /// Retire toutes les enveloppes (<see cref="PatchBreaker"/>), sur le fil du
+    /// jeu. Un cadre déjà entré garde l'ancien code, donc son `finally` : la
+    /// pile reste appariée, et la mesure des événements continue.
+    /// </summary>
+    public static string Disarm(string reason)
+    {
+        Active = false;
+        string outcome;
+        try
+        {
+            Wrapper.UnpatchAll(WrapperId);
+            outcome = $"{Wrapped.Count} enveloppes retirées";
+        }
+        catch (Exception ex)
+        {
+            outcome = $"retrait impossible ({ex.GetType().Name} : {ex.Message}), relancer le jeu sans l'option";
+        }
+        Stages.Add($"disjoncteur : {reason} — {outcome}");
+        WriteReport();
+        return outcome;
     }
 
     private static bool IsOurs(string owner) => owner == ProbeId || owner == WrapperId;
