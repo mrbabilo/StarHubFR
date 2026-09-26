@@ -66,6 +66,7 @@ let package = Package(
                 "Models/PerformanceOverlap.swift",
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",
+                "Models/ProbeHarmonyMap.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
