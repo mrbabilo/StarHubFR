@@ -613,6 +613,16 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > soustraire les enfants avant d'attribuer. Les mods de contenu Content
 > Patcher y paraissent par patch (`ApplyLoad`/`ApplyEdit`, `Details` = le
 > chemin du patch). C'est la source par mod que D2-T2 ne peut pas donner.*
+>
+> *Sonde v0.2 (`companion/StarHubFR.Probe`, 2026-09-26, parc réel, en ville,
+> ~30 FPS) — la trame découpée par MonoGame : **mise à jour 17,6 ms** (≈ 2
+> mises à jour du jeu par trame, 8,8 ms chacune : le pas fixe à 60 Hz
+> rattrape son retard, attente = 0), **dessin 15,4 ms** dont **affichage
+> (Present, VSync) 10,2 ms** et dessin du jeu 3,7 ms. Le goulot est la mise à
+> jour, mods compris, doublée par le rattrapage — pas le rendu (conclusion
+> de la veille, tirée du rapport UltraSmooth, fausse ; son « CPU Tick
+> 0,5 ms » aussi). La question utile devient : quels mods pèsent dans ces
+> 8,8 ms, sous le seuil où Profiler n'écrit rien.*
 
 - [ ] **D1-T1** — Détecter la présence et l'activation de Profiler ; guidage (installer →
       jouer une session représentative → revenir). · **S**
