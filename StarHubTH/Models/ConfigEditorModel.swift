@@ -236,13 +236,17 @@ public enum ConfigEditorModel {
         /// C4-T14 — le libellé que le mod publie pour chaque entrée d'un menu,
         /// clé en minuscules, restreint aux entrées du menu. Vide hors `.choice`.
         public let choiceLabels: [String: String]
+        /// D4-T7 — bornes que le mod déclare à GMCM, vérifiées sur la copie
+        /// de la capture. Présentes seulement pour `.integer` et `.decimal`.
+        public let bounds: GmcmModOptions.Bounds?
 
         public var id: String { ConfigEditorModel.rowId(of: keyPath) }
 
         public init(keyPath: [String], label: String, description: String?,
                     control: Control, defaultControl: Control?,
                     isOutsideAllowedValues: Bool,
-                    choiceLabels: [String: String] = [:]) {
+                    choiceLabels: [String: String] = [:],
+                    bounds: GmcmModOptions.Bounds? = nil) {
             self.keyPath = keyPath
             self.label = label
             self.description = description
@@ -250,6 +254,7 @@ public enum ConfigEditorModel {
             self.defaultControl = defaultControl
             self.isOutsideAllowedValues = isOutsideAllowedValues
             self.choiceLabels = choiceLabels
+            self.bounds = bounds
         }
 
         /// Le libellé d'une entrée du menu, `nil` quand le mod n'en publie
@@ -308,11 +313,15 @@ public enum ConfigEditorModel {
     /// valeurs d'enum (`tools/gmcm_options.py` → `assets/gmcm-options.json`).
     /// Priorité après le schéma du pack, avant le champ texte ; la valeur
     /// hors liste est gardée et signalée, comme pour un schéma.
+    /// `gmcm` — D4-T7 : ce que le mod déclare à GMCM en jeu (sonde), par
+    /// chemin complet de clé ; `appLanguage` décide qui de l'i18n ou de GMCM
+    /// passe en premier (`gmcmFirst`).
     public static func groups(of tree: ConfigJSONTree.Value,
                               describedBy options: [ConfigSchemaOption],
                               labeledBy labels: [String: ConfigLabelResolver.Labels] = [:],
                               stickyKeybinds: Set<String> = [],
-                              gmcmChoices: [String: [String]] = [:]) -> [Group] {
+                              gmcmChoices: [String: [String]] = [:],
+                              gmcm: GmcmModOptions? = nil, appLanguage: String? = nil) -> [Group] {
         var index: [String: ConfigSchemaOption] = [:]
         for option in options where index[option.token.lowercased()] == nil {
             index[option.token.lowercased()] = option
@@ -335,7 +344,7 @@ public enum ConfigEditorModel {
             guard let row = row(for: leaf, describedBy: option, orLabeledBy: labels,
                                 inCatalog: catalog,
                                 sticky: stickyKeybinds.contains(rowId(of: leaf.keyPath)),
-                                gmcmChoices: gmcmChoices)
+                                gmcmChoices: gmcmChoices, gmcm: gmcm, appLanguage: appLanguage)
             else { continue }
             guard let section = option?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
@@ -353,12 +362,22 @@ public enum ConfigEditorModel {
                             orLabeledBy labels: [String: ConfigLabelResolver.Labels],
                             inCatalog catalog: Set<String>,
                             sticky: Bool,
-                            gmcmChoices: [String: [String]]) -> Row? {
+                            gmcmChoices: [String: [String]],
+                            gmcm: GmcmModOptions?, appLanguage: String?) -> Row? {
         guard var control = control(for: leaf.value) else { return nil }
         var isOutside = false
+        let entry = gmcm?.entry(for: leaf.keyPath)
         if let option, let choice = choiceControl(for: leaf.value, option: option) {
             control = choice.control
             isOutside = choice.isOutside
+        } else if option == nil, case .text = control, let values = entry?.choices,
+                  let current = literalText(of: leaf.value) {
+            // D4-T7 — le menu que le mod montre en jeu, rapproché par le
+            // chemin complet et vérifié sur la copie de la capture. Une
+            // feuille chaîne seulement : un nombre ou un booléen garde son
+            // champ (MS Books `SpawnDensity`, choix `5…25`).
+            control = choiceControlSelecting(current, among: values)
+            isOutside = !values.contains { $0.lowercased() == current.lowercased() }
         } else if option == nil, let values = gmcmChoiceValues(for: leaf.keyPath.last, in: gmcmChoices),
                   let current = literalText(of: leaf.value) {
             // C4-T11 — le menu que la DLL justifie. Le schéma garde la
@@ -390,14 +409,9 @@ public enum ConfigEditorModel {
         // la clé brute.
         let rawKey = leaf.keyPath.last ?? ""
         let resolved = labels[rawKey.lowercased()]
-        let label: String
-        if let name = option?.name {
-            label = name
-        } else if let text = resolved?.text, !text.isEmpty {
-            label = text
-        } else {
-            label = rawKey
-        }
+        let gmcmFirst = Self.gmcmFirst(gmcm, appLanguage: appLanguage)
+        let label = Self.pickText(schema: option?.name, i18n: resolved?.text,
+                                  gmcm: entry?.label, gmcmFirst: gmcmFirst) ?? rawKey
 
         // C4-T14 — mêmes deux sources pour les entrées d'un menu : le pack
         // traduit ses `AllowValues`, un mod C# publie `config.<clé>.<valeur>`.
@@ -409,17 +423,19 @@ public enum ConfigEditorModel {
             let published = option.map(\.valueLabels) ?? resolved?.values ?? [:]
             for value in among {
                 let key = value.lowercased()
-                if let text = published[key] { choiceLabels[key] = text }
+                if let text = published[key] ?? entry?.choiceLabels[key] { choiceLabels[key] = text }
             }
         }
 
         return Row(keyPath: leaf.keyPath,
                    label: label,
-                   description: option?.description ?? resolved?.detail,
+                   description: Self.pickText(schema: option?.description, i18n: resolved?.detail,
+                                              gmcm: entry?.tooltip, gmcmFirst: gmcmFirst),
                    control: control,
                    defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
                    isOutsideAllowedValues: isOutside,
-                   choiceLabels: choiceLabels)
+                   choiceLabels: choiceLabels,
+                   bounds: Self.gmcmBounds(for: control, entry: entry))
     }
 
     /// Le contrôle de capture pour une feuille que la grammaire classe

@@ -70,6 +70,7 @@ let package = Package(
                 "Models/ProbeFiles.swift",
                 "Models/ProbeOverlaps.swift",
                 "Models/GmcmCapture.swift",
+                "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
