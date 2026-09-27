@@ -846,7 +846,10 @@ class ModZipInstaller {
     ///   restait annoncée. Chaque chemin porte l'`id` de sa sélection (voir
     ///   `InstalledModPath`).
     @discardableResult
-    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem]) throws -> [InstalledModPath] {
+    /// `triage` — A1-T11 : le tri par provenance d'une mise à jour. `nil` :
+    /// liste blanche + A1-T7, le comportement d'avant.
+    func install(from tempDir: URL, to modsDisabledPath: String, selections: [InstallSelection], detectedMods: [DetectedMod], gameDir: String, existingMods: [ModItem],
+                 triage: UpdateTriageProvider? = nil) throws -> [InstalledModPath] {
         guard !gameDir.isEmpty else { throw InstallError.gameDirEmpty }
         var installedPaths: [InstalledModPath] = []
         // Sauvegarde produite ? Sinon rien à élaguer.
@@ -912,6 +915,7 @@ class ModZipInstaller {
             var extrasSkipped = 0
             // C2-T4 — delta de clés, branche overwrite seulement.
             var pendingKeyDelta: ModUpdateKeyDelta? = nil
+            var pendingTriage: UpdateFileTriage.Plan? = nil
             // Temp snapshots never leak, even if the iteration throws.
             defer {
                 for (_, tmp) in preservedConfigs {
@@ -953,17 +957,26 @@ class ModZipInstaller {
                         pendingKeyDelta = ModUpdateKeyDelta.compare(
                             old: oldSnapshot, new: newSnapshot,
                             uniqueId: detectedMod.uniqueId, folderName: existing.folderName)
-                        preservedConfigs = snapshotUserConfigs(from: existingFolder)
-                        // A1-T7 — ce que l'archive ne livre pas, le mod l'a écrit ; lu ici ou
-                        // jamais. La liste blanche (et `i18n/en.json`) relève de
-                        // `snapshotUserConfigs` (C2-T4).
                         let existingURL = URL(fileURLWithPath: existingFolder)
-                        let extras = PreservedModData.extraPaths(
-                            installed: PreservedModData.relativeFiles(under: existingURL, using: fm),
-                            shippedByArchive: PreservedModData.relativeFiles(under: sourcePath, using: fm),
-                            alreadyHandled: ModConfigFiles.preservableFiles(under: existingFolder)
-                                .map(\.relativePath))
-                        preservedExtras = PreservedModData.snapshot(extras, from: existingURL, using: fm)
+                        if let plan = triage?.plan(existing, existingURL, sourcePath) {
+                            // A1-T11 — le tri par provenance décide ; remis avec
+                            // l'exigence de la liste blanche, sauf les fichiers locaux
+                            // (réglage A1-T7).
+                            pendingTriage = plan
+                            preservedConfigs = PreservedModData.snapshot(plan.critical, from: existingURL, using: fm)
+                            preservedExtras = PreservedModData.snapshot(plan.local, from: existingURL, using: fm)
+                        } else {
+                            preservedConfigs = snapshotUserConfigs(from: existingFolder)
+                            // A1-T7 — ce que l'archive ne livre pas, le mod l'a écrit ; lu ici ou
+                            // jamais. La liste blanche (et `i18n/en.json`) relève de
+                            // `snapshotUserConfigs` (C2-T4).
+                            let extras = PreservedModData.extraPaths(
+                                installed: PreservedModData.relativeFiles(under: existingURL, using: fm),
+                                shippedByArchive: PreservedModData.relativeFiles(under: sourcePath, using: fm),
+                                alreadyHandled: ModConfigFiles.preservableFiles(under: existingFolder)
+                                    .map(\.relativePath))
+                            preservedExtras = PreservedModData.snapshot(extras, from: existingURL, using: fm)
+                        }
                         try Self.removeItemGrantingWriteAccess(atPath: existingFolder)
                     }
                 case .rename:
@@ -1052,14 +1065,36 @@ class ModZipInstaller {
                 preservedExtras.removeAll()
             }
 
+            // A1-T11 — ce que l'utilisateur avait supprimé ne revient pas. Un
+            // retrait raté laisse le fichier : le bilan ne le compte plus.
+            if let plan = pendingTriage, !plan.respectedDeletions.isEmpty {
+                var kept: [String] = []
+                for relative in plan.respectedDeletions {
+                    do {
+                        try Self.removeItemGrantingWriteAccess(
+                            atPath: (destPath as NSString).appendingPathComponent(relative))
+                        kept.append(relative)
+                    } catch {
+                        continue
+                    }
+                }
+                var report = plan.report
+                report.respectedDeletions = kept
+                pendingTriage = UpdateFileTriage.Plan(
+                    decisions: plan.decisions, respectedDeletions: kept, report: report,
+                    newArchive: plan.newArchive, sourceFileId: plan.sourceFileId)
+            }
+
             // Le mod est entièrement posé : son chemin peut être annoncé.
-            installedPaths.append(InstalledModPath(modId: selection.modId, path: destPath,
+            var installed = InstalledModPath(modId: selection.modId, path: destPath,
                                                    displacedFrom: displacedFrom,
                                                    keyDelta: pendingKeyDelta,
                                                    extrasRestored: extrasRestored,
                                                    extrasRestoredPaths: extrasRestoredPaths,
                                                    extrasFailed: extrasFailed,
-                                                   extrasSkipped: extrasSkipped))
+                                                   extrasSkipped: extrasSkipped)
+            installed.triage = pendingTriage
+            installedPaths.append(installed)
         }
 
         // Rétention par âge **une fois** par installation (index entier) : ici

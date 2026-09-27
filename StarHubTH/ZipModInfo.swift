@@ -328,6 +328,10 @@ struct InstalledModPath: Equatable {
     /// remettre » (le bilan dit où ils sont).
     var extrasRestoredPaths: [String]
     var extrasSkipped: Int
+    /// A1-T11 — le tri par provenance appliqué à cette mise à jour, quand
+    /// l'appelant a fourni un `UpdateTriageProvider`. Porte le bilan et
+    /// l'archive neuve, pour le journal.
+    var triage: UpdateFileTriage.Plan?
 
     init(modId: UUID, path: String, displacedFrom: String? = nil,
          keyDelta: ModUpdateKeyDelta? = nil,
@@ -341,6 +345,7 @@ struct InstalledModPath: Equatable {
         self.extrasRestoredPaths = extrasRestoredPaths
         self.extrasFailed = extrasFailed
         self.extrasSkipped = extrasSkipped
+        self.triage = nil
     }
 }
 
