@@ -147,8 +147,9 @@ public struct GmcmModOptions: Equatable, Sendable {
         self.language = language
         var order: [[String]] = []
         var claims: [[String]: [Claim]] = [:]
+        let leaves = Self.leafIndex(of: snapshot)
         for option in options where option.valueType != nil {
-            guard let (path, leaf) = Self.uniqueLeaf(of: option, in: snapshot),
+            guard let (path, leaf) = Self.uniqueLeaf(of: option, in: leaves),
                   Self.agrees(leaf, option.value) else { continue }
             let key = path.map { $0.lowercased() }
             if claims[key] == nil { order.append(key) }
@@ -181,42 +182,54 @@ public struct GmcmModOptions: Equatable, Sendable {
     /// `AccessPath`, à défaut une chaîne capturée par sa fermeture (clé de
     /// premier niveau). Exactement un candidat, sinon `nil`.
     private static func uniqueLeaf(of option: GmcmCapture.RawOption,
-                                   in snapshot: ConfigJSONTree.Value) -> ([String], ConfigJSONTree.Value)? {
-        var found: [[String]: ([String], ConfigJSONTree.Value)] = [:]
+                                   in leaves: [[String]: Leaf]) -> Leaf? {
+        var found: [[String]: Leaf] = [:]
         let path = option.accessPath ?? []
         for start in path.indices {
             for end in start..<path.count {
-                if let hit = leaf(at: Array(path[start...end]), in: snapshot) {
-                    found[hit.0.map { $0.lowercased() }] = hit
-                }
+                let key = path[start...end].map { $0.lowercased() }
+                if let hit = leaves[key] { found[key] = hit }
             }
         }
         if found.isEmpty {
             for text in option.closureStrings ?? [] {
-                if let hit = leaf(at: [text], in: snapshot) { found[hit.0.map { $0.lowercased() }] = hit }
+                let key = [text.lowercased()]
+                if let hit = leaves[key] { found[key] = hit }
             }
         }
         guard found.count == 1 else { return nil }
         return found.values.first
     }
 
-    /// La feuille au bout du chemin (clés sans la casse), avec le chemin à la
-    /// casse du fichier. Un objet ou un tableau n'est pas une feuille.
-    private static func leaf(at path: [String],
-                             in value: ConfigJSONTree.Value) -> ([String], ConfigJSONTree.Value)? {
-        var node = value
-        var real: [String] = []
-        for key in path {
-            guard case .object(let object) = node,
-                  let actual = object.keys.first(where: { $0.caseInsensitiveCompare(key) == .orderedSame }),
-                  let next = object.members[actual] else { return nil }
-            real.append(actual)
-            node = next
+    /// Une feuille de la copie : son chemin à la casse du fichier, sa valeur.
+    private typealias Leaf = ([String], ConfigJSONTree.Value)
+
+    /// Toutes les feuilles de la copie, par chemin en minuscules — construit
+    /// une fois par mod : chercher chaque sous-chemin de chaque option en
+    /// balayant les clés coûtait ~0,5 s (debug) sur Minecarts (356 options,
+    /// ~350 clés). Un objet ou un tableau n'est pas une feuille, et les
+    /// tableaux ne sont pas parcourus. Deux clés sœurs de même casse
+    /// abaissée : la première du fichier gagne, la seconde n'est jamais
+    /// atteinte.
+    private static func leafIndex(of snapshot: ConfigJSONTree.Value) -> [[String]: Leaf] {
+        var index: [[String]: Leaf] = [:]
+        func walk(_ node: ConfigJSONTree.Value, real: [String], lowered: [String]) {
+            switch node {
+            case .object(let object):
+                var seen: Set<String> = []
+                for key in object.keys {
+                    let low = key.lowercased()
+                    guard seen.insert(low).inserted, let child = object.members[key] else { continue }
+                    walk(child, real: real + [key], lowered: lowered + [low])
+                }
+            case .array:
+                return
+            case .string, .number, .bool, .null:
+                if !lowered.isEmpty { index[lowered] = (real, node) }
+            }
         }
-        switch node {
-        case .object, .array: return nil
-        case .string, .number, .bool, .null: return (real, node)
-        }
+        walk(snapshot, real: [], lowered: [])
+        return index
     }
 
     /// La valeur GMCM égale la valeur copiée : sinon le getter lit autre

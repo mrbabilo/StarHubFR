@@ -178,6 +178,20 @@ struct GmcmCaptureTests {
         #expect(capture.options(forMod: "Other.Mod", installedVersion: "1.0.0") == nil)
     }
 
+    /// Deux clés sœurs qui ne diffèrent que par la casse : la première du
+    /// fichier gagne, comme à la lecture d'un chemin segment par segment —
+    /// la seconde n'est jamais atteinte.
+    @Test func aCaseClashKeepsTheFirstKey() throws {
+        let capture = try synthetic([
+            option(name: "First", value: "1", path: ["FOO", "a"]),
+            option(name: "Second", value: "2", path: ["foo", "B"]),
+        ], snapshot: #"{"Foo": {"A": 1}, "foo": {"B": 2}}"#)
+        let options = try #require(capture.options(forMod: "Test.Mod", installedVersion: "1.0.0"))
+        #expect(options.entry(for: ["Foo", "A"])?.label == "First")
+        #expect(options.entry(for: ["foo", "b"]) == nil)
+        #expect(options.count == 1)
+    }
+
     @Test func anUnreadableCaptureIsNil() {
         #expect(GmcmCapture.decode(Data("{".utf8)) == nil)
         #expect(GmcmCapture.decode(Data()) == nil)

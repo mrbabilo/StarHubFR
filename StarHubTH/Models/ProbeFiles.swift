@@ -101,9 +101,10 @@ public final class ProbeHarmonyMapCache: @unchecked Sendable {
 
 /// La capture GMCM décodée (~3,5 Mo), gardée tant que le fichier ne change
 /// pas : l'éditeur de config l'interroge à chaque ouverture. Décodage mesuré
-/// à ~40 ms sur la capture du parc (170 mods) : fait au premier appel, sur
-/// le fil de l'appelant. Verrou explicite : le module Core compile en mode
-/// Swift 6.
+/// à ~85 ms sur la capture du parc (170 mods, 3,4 Mo, build sans `-O` comme
+/// l'app), plus ≤ 13 ms pour les options d'un mod : sous le seuil de 100 ms
+/// de la spec D4-T7, donc fait au premier appel, sur le fil de l'appelant.
+/// Verrou explicite : le module Core compile en mode Swift 6.
 public final class GmcmCaptureCache: @unchecked Sendable {
     public static let shared = GmcmCaptureCache(files: ProbeFiles())
 
