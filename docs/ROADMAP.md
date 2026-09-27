@@ -844,11 +844,18 @@ SLO est actif et ce que la dernière session a mesuré.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
-- [ ] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
+- [x] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
       nombres bornés, liste pour les choix — lève le « ne pas porter : le curseur »
       de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
       `AccessPath` et valeur courante, à mesurer sur le parc (combien d'options se
-      rapprochent sans ambiguïté). · **M**
+      rapprochent sans ambiguïté).
+      ✅ *Livré le 2026-09-27* : sonde v0.4.11 (copie de `config.json`,
+      version, langue) ; `GmcmCapture` (Core, `Tests/ProbeFilesTests`) —
+      rapprochement vérifié sur la copie (valeur égale), collisions
+      fusionnées, mod ignoré si sa version a changé. Mesuré avant livraison :
+      226 curseurs (43 mods), 49 menus hors packs CP, 1 085 libellés neufs
+      (81 mods) ; 116 options écartées (inversions Mail Services,
+      transformation MS Books). · **M**
 - [x] **D4-T2** — L'app lit `harmony-map.json`, `timings.jsonl` et `mod-costs.jsonl` : modèles Core testés
       sur les vrais fichiers de la session du 2026-09-26, sessions séparées par
       leur identifiant, ticks sans focus signalés (une minute sans focus ne décrit

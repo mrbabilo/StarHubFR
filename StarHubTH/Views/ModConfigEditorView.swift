@@ -30,6 +30,8 @@ struct ModConfigEditorView: View {
     /// C4-T11 — les clés que la DLL du mod déclare à valeurs d'enum
     /// (`assets/gmcm-options.json`), résolues pour CE mod au chargement.
     @State private var gmcmChoices: [String: [String]] = [:]
+    /// D4-T7 — ce que le mod déclare à GMCM en jeu (sonde), `nil` sans capture.
+    @State private var gmcm: GmcmModOptions?
     /// C4-T10 — les rangées que l'utilisateur a capturées dans cette
     /// session : leur `rowId`. Une capture à caractère unique (`A`, `O`) ou
     /// vide (`None`) ne repasse pas la règle R2 du scanner au re-rendu, qui
@@ -281,6 +283,7 @@ struct ModConfigEditorView: View {
         let modFolder = URL(fileURLWithPath: configPath).deletingLastPathComponent()
         gmcmChoices = GmcmLiveOptionsStore.choices(modFolder: modFolder, uniqueId: mod.uniqueId)
             ?? GmcmOptions.bundled?.options(forMod: mod.uniqueId) ?? [:]
+        gmcm = GmcmCaptureCache.shared.options(forMod: mod.uniqueId, installedVersion: mod.version)
         if FileManager.default.fileExists(atPath: configPath) {
             do {
                 let content = try String(contentsOfFile: configPath, encoding: .utf8)
@@ -328,7 +331,8 @@ struct ModConfigEditorView: View {
                                                 describedBy: schemaReading?.options ?? [],
                                                 labeledBy: labelIndex,
                                                 stickyKeybinds: capturedKeybinds,
-                                                gmcmChoices: gmcmChoices)
+                                                gmcmChoices: gmcmChoices,
+                                                gmcm: gmcm, appLanguage: localization.currentLanguage)
     }
 
     /// Lit le `ConfigSchema` du `content.json` voisin, s'il y en a un.
@@ -806,22 +810,38 @@ struct ModConfigEditorView: View {
             .labelsHidden()
 
         case .integer(let value):
-            numberField(value: Binding(
+            ConfigBoundedNumber(bounds: row.bounds, isInteger: true, value: Binding(
                 get: {
-                    guard case .integer(let live) = current(row) else { return value }
-                    return live
+                    guard case .integer(let live) = current(row) else { return Double(value) }
+                    return Double(live)
                 },
-                set: { update(row, to: .integer($0)) }
-            ), step: 1, formatter: Self.integerFormatter)
+                set: { if let snapped = Int(exactly: $0) { update(row, to: .integer(snapped)) } }
+            )) {
+                numberField(value: Binding(
+                    get: {
+                        guard case .integer(let live) = current(row) else { return value }
+                        return live
+                    },
+                    set: { update(row, to: .integer($0)) }
+                ), step: 1, formatter: Self.integerFormatter)
+            }
 
         case .decimal(let value):
-            numberField(value: Binding(
+            ConfigBoundedNumber(bounds: row.bounds, isInteger: false, value: Binding(
                 get: {
                     guard case .decimal(let live) = current(row) else { return value }
                     return live
                 },
                 set: { update(row, to: .decimal($0)) }
-            ), step: 0.5, formatter: Self.decimalFormatter)
+            )) {
+                numberField(value: Binding(
+                    get: {
+                        guard case .decimal(let live) = current(row) else { return value }
+                        return live
+                    },
+                    set: { update(row, to: .decimal($0)) }
+                ), step: 0.5, formatter: Self.decimalFormatter)
+            }
 
         case .text(let value):
             TextField("", text: Binding(

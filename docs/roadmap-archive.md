@@ -250,6 +250,11 @@ valeurs sur tout le parc ne se justifie pas.
 
 ### ⛔️ Ne pas porter : le curseur (slider)
 
+> ✅ *Levé le 2026-09-27 (D4-T7)* : l'échelle vient maintenant de GMCM, relevée
+> en jeu par la sonde (`Minimum`, `Maximum`, `Interval`) et vérifiée sur la copie
+> de `config.json`. Le schéma CP n'a toujours pas de bornes : ses options restent
+> au champ chiffré.
+
 Un curseur a besoin d'une échelle, et nous n'en avons pas :
 `ContentPackConfigSchema` porte `AllowValues`, `Default`, `AllowBlank`,
 `AllowMultiple` — **aucune borne** `min`/`max`. Le curseur n'aurait rien à
