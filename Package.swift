@@ -171,6 +171,7 @@ let package = Package(
                 "Models/AuthorFileIndex.swift",
                 "Models/UpdateFileTriage.swift",
                 "Models/ModHistory.swift",
+                "Models/NexusFileManifestFetcher.swift",
                 "Models/SmapiBlacklist.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",

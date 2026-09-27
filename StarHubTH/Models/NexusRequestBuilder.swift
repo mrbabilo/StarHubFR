@@ -98,6 +98,20 @@ enum NexusRequestBuilder {
         return req
     }
 
+    /// A1-T11 — GET d'un manifeste de fichier (`mod-file-manifests.nexusmods.com`),
+    /// mêmes en-têtes d'identification. Le User-Agent compte : celui de Python
+    /// par défaut reçoit 403, celui-ci 200 (mesuré le 2026-09-27).
+    static func makeManifestRequest(url: URL) -> URLRequest {
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.timeoutInterval = graphQLTimeout
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        req.setValue(appName, forHTTPHeaderField: "Application-Name")
+        req.setValue(appVersion, forHTTPHeaderField: "Application-Version")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        return req
+    }
+
     /// `true` si `modId` est un identifiant Nexus valide (entier strictement
     /// positif). Un modId vient d'un `UpdateKey` de manifest (« nexus:191 »),
     /// source externe non fiable : sans cette garde, interpoler un `modId` comme
