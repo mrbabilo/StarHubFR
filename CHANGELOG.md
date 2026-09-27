@@ -22,7 +22,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- Une mise à jour remettait les fichiers qu'une version précédente livrait et que l'auteur avait retirés (23 assets de Wildroot Chronicles, le code source de FOTP), et figeait les traductions de l'auteur sur une vieille version.
+- **Une mise à jour ne remet plus les fichiers retirés par l'auteur.** Elle remettait ce qu'une version précédente livrait (23 assets de Wildroot Chronicles, le code source de FOTP) et figeait les traductions de l'auteur sur une vieille version.
 - **La carte de santé SMAPI liste tous les mods de chaque section.** « Patched game code » ou « Broken mods » s'arrêtaient au premier mod. Un mod au nom entre crochets ([C#], [CP]…) s'ouvre depuis la carte et reçoit son historique d'erreurs. Fish Helper UI n'est plus désigné comme mod en erreur.
 - **La recherche des mods garde le focus pendant la frappe.** Quand la fenêtre était juste assez étroite pour que l'en-tête passe sur deux lignes, taper pouvait faire sauter le focus hors du champ. Même correctif dans Découvrir et la vue d'ensemble des raccourcis.
 
