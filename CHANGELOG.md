@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.51.0] - 2026-09-28
+
 ### Added
 
 - **Mises à jour qui trient les fichiers par provenance.** Ce que l'auteur a retiré d'un mod disparaît à la mise à jour ; tes ajouts, tes retouches et tes suppressions sont gardés. Chaque installation entre dans un historique visible dans la fiche du mod.
@@ -1602,7 +1604,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.50.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.51.0...HEAD
+[1.51.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.50.0...v1.51.0
 [1.50.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.49.0...v1.50.0
 [1.49.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.48.0...v1.49.0
 [1.48.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.47.0...v1.48.0
