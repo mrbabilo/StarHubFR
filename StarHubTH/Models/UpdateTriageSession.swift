@@ -21,7 +21,11 @@ public enum UpdateTriageSession {
                                 cacheDirectory: URL? = NexusFileManifestFetcher.defaultCacheDirectory(),
                                 transport: @escaping NexusFileManifestFetcher.Transport
                                     = NexusFileManifestFetcher.liveTransport) -> UpdateTriageProvider {
-        let archiveSHA256 = archive.flatMap { sha256(of: $0) }
+        // Lue au premier plan demandé, sur la file de fond de l'installateur —
+        // jamais ici : le fournisseur se construit sur le fil principal, et
+        // une archive pèse jusqu'à des centaines de Mo. Une seule lecture pour
+        // tous les composants d'un pack.
+        let archiveHash = ArchiveHash(archive: archive)
         return UpdateTriageProvider { existing, installedFolder, newSource in
             let installed = ModFolderHasher.listing(of: installedFolder)
             let newArchive = ModFolderHasher.listing(of: newSource)
@@ -41,7 +45,7 @@ public enum UpdateTriageSession {
             for translation in translations.entries(forHost: existing.folderName) {
                 deposits.formUnion(translation.files.map(ModFilePath.key))
             }
-            let sourceFileId = archiveSHA256.flatMap { sha in
+            let sourceFileId = archiveHash.value.flatMap { sha in
                 nexus.files.first { $0.manifest.archiveSHA256 == sha || $0.manifest.repackedSHA256 == sha }?.fileId
             }
             return UpdateFileTriage.plan(
@@ -60,6 +64,28 @@ public enum UpdateTriageSession {
             return try ModFolderHasher.sha256(of: archive)
         } catch {
             return nil
+        }
+    }
+
+    /// L'empreinte d'une archive, calculée une fois, à la première demande.
+    private final class ArchiveHash: @unchecked Sendable {
+        private let lock = NSLock()
+        private let archive: URL?
+        private var computed = false
+        private var sha: String?
+
+        init(archive: URL?) {
+            self.archive = archive
+        }
+
+        var value: String? {
+            lock.withLock {
+                if !computed {
+                    computed = true
+                    sha = archive.flatMap { UpdateTriageSession.sha256(of: $0) }
+                }
+                return sha
+            }
         }
     }
 }

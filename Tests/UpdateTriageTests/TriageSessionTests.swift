@@ -77,6 +77,25 @@ struct TriageSessionTests {
         #expect(!plan.report.nexusIncomplete)
     }
 
+    /// L'archive se lit quand le tri planifie — sur la file de fond de
+    /// l'installateur —, pas quand le fournisseur est construit, sur le fil
+    /// principal : Wildroot pèse 55 Mo, et une installation neuve n'en a pas
+    /// besoin du tout.
+    @Test func theArchiveIsReadWhenPlanningNotWhenBuilding() throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        _ = try write("old", "Installed/a.png")
+        _ = try write("new", "New/a.png")
+        let archive = root.appendingPathComponent("later.zip")
+        let provider = UpdateTriageSession.provider(
+            translations: InstalledTranslationRegistry(), customNexusIds: [:], archive: archive,
+            historyDirectory: nil, cacheDirectory: nil,
+            transport: nexus(manifest: ["Sample/manifest.json": "m"], archiveSHA: try sha("the zip")))
+        try Data("the zip".utf8).write(to: archive)
+        let plan = try #require(provider.plan(mod(), root.appendingPathComponent("Installed"),
+                                              root.appendingPathComponent("New")))
+        #expect(plan.sourceFileId == 77)
+    }
+
     /// Un mod sans id Nexus : aucune requête, le journal local seul.
     @Test func withoutNexusIdNothingIsAsked() throws {
         defer { try? FileManager.default.removeItem(at: root) }
