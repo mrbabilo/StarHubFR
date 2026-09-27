@@ -1,0 +1,68 @@
+{
+ "version": 1,
+ "archive": {
+  "size": 55615445,
+  "hashes": {
+   "SHA1": "be7bb013bb69871d7981451b1077bc38e530de71",
+   "SHA256": "20252d3391e1cdb607b129f9543931180e83c9cbe2a4840d581976b58d5bd137",
+   "SHA512": "fc555e6dcbb2d3f93c8ec238dcdfaed31be658767fa74b5e00cc0a27877f2df91f238d3223062f743a3ac1c68c6b19dafb03a1407d5fe43b883d63ffa0b1ba90",
+   "MD5": "ad8e8cd304933fd59879b805060df270",
+   "CRC32": "4af76d26",
+   "XXH64": "49ea46b69978bb5a",
+   "XXH3_64": "9cc761787c4574ea"
+  }
+ },
+ "repacked": {
+  "size": 55648931,
+  "hashes": {
+   "SHA1": "e5e71badeac12f94df30238df9238c24af5868a8",
+   "SHA256": "09f89d7653f5282f1f3c91e7c4213889c8e886324fecdc80f1650635cc554059",
+   "SHA512": "b57bb6baa52b000dc363a58ab90f134685b646a52d26f1bb64e641129cf95e27cc24a5b825dbfd1a77e1798fa01431071a6dfeb1edf30494439541c37603f628",
+   "MD5": "254dbda670d40e56b1293386b603bba0",
+   "CRC32": "610eaf4d",
+   "XXH64": "f8a3499b4d9c1f87",
+   "XXH3_64": "b892d6804d3b216a"
+  }
+ },
+ "files": [
+  {
+   "file_path": "Cropgenics/Cropgenics.dll",
+   "file_size": 4096512,
+   "file_hashes": {
+    "SHA1": "3ccda12c31bfad038eb79a4cc9070cd8825f98f7",
+    "SHA256": "31d4673c342df23164a5c5b52212caf8e470d19ab1775299a074ac38aa886684",
+    "SHA512": "1e97d93d4bb1666816f5a4028393c8976db0dc3874f1199a39edfcf6fd72b7958bd1985cdc9a61c4877d7691d2183684e0984d666e746917c50e5a38752bc526",
+    "MD5": "2037a1f1d7891b183a43c9ce2837c9f3",
+    "CRC32": "54454f81",
+    "XXH64": "b6b5ac1f5b65c346",
+    "XXH3_64": "020f7da4749ecc97"
+   }
+  },
+  {
+   "file_path": "Cropgenics/assets/Audio/Ambience/farm.ogg",
+   "file_size": 68914,
+   "file_hashes": {
+    "SHA1": "a58752f662861e96eed1ef5093db8434f9995e6d",
+    "SHA256": "1c3ed6a283afe33c27e31e911199217a292346c9a6758647b22a814cf06c488a",
+    "SHA512": "72cc2cce12c1ca50d8e1fb0a3b3d16d705b8b39a26d192e7f0731e3b3b5cd77568804bc0bff94a207b688165a60b086dd8e53a73fecce1ea7ca16a7c9a3e4f26",
+    "MD5": "22c1169da87356f3d504c4ea29e3de67",
+    "CRC32": "c7ff3aec",
+    "XXH64": "55905a6779922bf1",
+    "XXH3_64": "1d3e914db0afb3d6"
+   }
+  },
+  {
+   "file_path": "Cropgenics/assets/Audio/Ambience/fire.ogg",
+   "file_size": 95590,
+   "file_hashes": {
+    "SHA1": "6f84ad07c72a9fe53d31dc70652f494b4955f102",
+    "SHA256": "e7c479187a93739c45a80fb17939d8d1ff58ece97854fc7036c2c66020818716",
+    "SHA512": "a73187e79d56ba5db5fdf448fa48eb206834397eb794cc52b06ef9baa3cd1e6b564386b81f364ba245db40f1b1fc79e2095962704dbf6bf89ed49894a12702d4",
+    "MD5": "2e5d960d0eeb2a6e795b3675d9db8932",
+    "CRC32": "b0732892",
+    "XXH64": "b6c03e8b4e91dc56",
+    "XXH3_64": "75c886d7de1d2c9a"
+   }
+  }
+ ]
+}

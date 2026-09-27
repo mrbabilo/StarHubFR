@@ -166,6 +166,8 @@ let package = Package(
                 "Models/SaveTree.swift",
                 "Models/OSJunk.swift",
                 "Models/PreservedModData.swift",
+                "Models/ModFileFingerprint.swift",
+                "Models/NexusFileManifest.swift",
                 "Models/SmapiBlacklist.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
@@ -317,6 +319,12 @@ let package = Package(
             name: "PreservedModDataTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/PreservedModDataTests"
+        ),
+        .testTarget(
+            name: "UpdateTriageTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/UpdateTriageTests",
+            exclude: ["Fixtures", "make_triage_fixtures.py"]
         ),
         .testTarget(
             name: "LocalizationStoreTests",
