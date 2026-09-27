@@ -170,6 +170,7 @@ let package = Package(
                 "Models/NexusFileManifest.swift",
                 "Models/AuthorFileIndex.swift",
                 "Models/UpdateFileTriage.swift",
+                "Models/ModHistory.swift",
                 "Models/SmapiBlacklist.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
