@@ -5008,7 +5008,8 @@ final class StarHubTHViewModel {
         lastInstallPreserved = paths.map {
             PreservedDataOutcome(modFolder: ($0.path as NSString).lastPathComponent,
                                  restored: $0.extrasRestored, failed: $0.extrasFailed,
-                                 paths: $0.extrasRestoredPaths, skipped: $0.extrasSkipped)
+                                 paths: $0.extrasRestoredPaths, skipped: $0.extrasSkipped,
+                                 triage: $0.triage?.report)
         }.filter { !$0.isSilent }
         for outcome in lastInstallPreserved {
             for m in PreservedModData.messages(restored: outcome.restored,

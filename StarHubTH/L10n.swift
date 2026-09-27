@@ -1508,6 +1508,7 @@ enum L10n {
         static let dataRestoredRow     = "install_report_data_restored_row"
         static let dataFailedRow       = "install_report_data_failed_row"
         static let dataSkippedRow      = "install_report_data_skipped_row"
+        static let summaryGhosts       = "install_report_summary_ghosts"
         static let done           = "install_report_done"
         static let nextArchive    = "install_report_next_archive"
     }

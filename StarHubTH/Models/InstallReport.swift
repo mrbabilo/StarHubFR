@@ -20,20 +20,25 @@ public struct PreservedDataOutcome: Equatable, Sendable {
     /// L'option de non-remise (réglage global) : fichiers préservés puis
     /// laissés dans la sauvegarde d'installation, par choix de l'utilisateur.
     public let skipped: Int
+    /// A1-T11 — le tri par provenance de cette mise à jour, `nil` sans tri.
+    public let triage: UpdateTriageReport?
 
     public init(modFolder: String, restored: Int, failed: [String],
-                paths: [String] = [], skipped: Int = 0) {
+                paths: [String] = [], skipped: Int = 0, triage: UpdateTriageReport? = nil) {
         self.modFolder = modFolder
         self.restored = restored
         self.failed = failed
         self.paths = paths
         self.skipped = skipped
+        self.triage = triage
     }
 
     /// Rien à dire quand rien n'a été touché — le bilan ne doit pas bavarder
     /// sur une installation ordinaire. Des données **non remises par choix**
     /// ne sont pas muettes : l'utilisateur doit savoir où elles dorment.
-    public var isSilent: Bool { restored == 0 && failed.isEmpty && skipped == 0 }
+    public var isSilent: Bool {
+        restored == 0 && failed.isEmpty && skipped == 0 && (triage?.isSilent ?? true)
+    }
 }
 
 public struct InstallReport: Equatable, Sendable {
@@ -71,16 +76,19 @@ public struct InstallReportSummary: Equatable, Sendable {
     /// premier, et c'est lui qui appelle une action.
     public let dataRestored: Int
     public let dataFailed: Int
+    /// A1-T11 — fichiers d'anciennes versions retirés par le tri.
+    public let ghostsRemoved: Int
 
     public init(modsUpdated: Int, translationTodo: Int,
                 configChanges: Int, renamesSuggested: Int,
-                dataRestored: Int = 0, dataFailed: Int = 0) {
+                dataRestored: Int = 0, dataFailed: Int = 0, ghostsRemoved: Int = 0) {
         self.modsUpdated = modsUpdated
         self.translationTodo = translationTodo
         self.configChanges = configChanges
         self.renamesSuggested = renamesSuggested
         self.dataRestored = dataRestored
         self.dataFailed = dataFailed
+        self.ghostsRemoved = ghostsRemoved
     }
 
     public static func of(_ deltas: [ModUpdateKeyDelta],
@@ -99,7 +107,8 @@ public struct InstallReportSummary: Equatable, Sendable {
             modsUpdated: mods, translationTodo: todo,
             configChanges: config, renamesSuggested: renames,
             dataRestored: preserved.reduce(0) { $0 + $1.restored },
-            dataFailed: preserved.reduce(0) { $0 + $1.failed.count })
+            dataFailed: preserved.reduce(0) { $0 + $1.failed.count },
+            ghostsRemoved: preserved.reduce(0) { $0 + ($1.triage?.removedGhosts.count ?? 0) })
     }
 }
 

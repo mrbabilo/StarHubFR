@@ -133,6 +133,11 @@ private struct ReportContent: View {
             parts.append(String(format: localization.L(L10n.InstallReport.summaryDataFailed),
                                 summary.dataFailed))
         }
+        // A1-T11 — ce que la mise à jour a retiré des anciennes versions.
+        if summary.ghostsRemoved > 0 {
+            parts.append(String(format: localization.L(L10n.InstallReport.summaryGhosts),
+                                summary.ghostsRemoved))
+        }
         return parts
     }
 
@@ -263,6 +268,14 @@ private struct PreservedRow: View {
                     }
                     Spacer()
                 }
+            }
+            // A1-T11 — ce que le tri par provenance a fait des fichiers du mod.
+            if let triage = outcome.triage, !triage.isSilent {
+                Text(outcome.modFolder)
+                    .font(AppDesign.Font.caption(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                UpdateTriageRows(localization: localization, report: triage)
             }
         }
     }
