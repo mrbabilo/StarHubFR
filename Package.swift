@@ -168,6 +168,8 @@ let package = Package(
                 "Models/PreservedModData.swift",
                 "Models/ModFileFingerprint.swift",
                 "Models/NexusFileManifest.swift",
+                "Models/AuthorFileIndex.swift",
+                "Models/UpdateFileTriage.swift",
                 "Models/SmapiBlacklist.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
