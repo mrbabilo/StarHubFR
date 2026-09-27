@@ -1855,4 +1855,34 @@ enum L10n {
         static let sectionSaves         = "palette_section_saves"
     }
 
+    // A1-T11 — tri par provenance à la mise à jour, et journal des mods.
+    enum UpdateTriage {
+        static let ghosts                 = "update_triage_ghosts"
+        static let retouches              = "update_triage_retouches"
+        static let authorChanged          = "update_triage_author_changed"
+        static let content                = "update_triage_content"
+        static let structural             = "update_triage_structural"
+        static let unverified             = "update_triage_unverified"
+        static let unverifiedTranslations = "update_triage_unverified_translations"
+        static let deposits               = "update_triage_deposits"
+        static let nowShips               = "update_triage_now_ships"
+        static let deletions              = "update_triage_deletions"
+        static let nexusIncomplete        = "update_triage_nexus_incomplete"
+        static let moreFiles              = "update_triage_more_files"
+    }
+
+    enum ModHistory {
+        static let title            = "mod_history_title"
+        static let empty            = "mod_history_empty"
+        static let kindInstall      = "mod_history_kind_install"
+        static let kindUpdate       = "mod_history_kind_update"
+        static let kindAddition     = "mod_history_kind_addition"
+        static let kindCleanup      = "mod_history_kind_cleanup"
+        static let fileCount        = "mod_history_file_count"
+        static let nexusFile        = "mod_history_nexus_file"
+        static let writeFailed      = "mod_history_write_failed"
+        static let originalsFailed  = "mod_history_originals_failed"
+        static let registryNotSaved = "mod_history_registry_not_saved"
+    }
+
 }

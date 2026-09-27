@@ -706,6 +706,7 @@ struct ModInstallView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var installed = 0
             let outcome: DroppedInstallOutcome
+            var historyFailed = false
             do {
                 // Sauvegarder l'hôte avant d'écraser (sac retouché à la main), une fois
                 // pour le lot. `try`, pas `try?` : un échec de sauvegarde arrête
@@ -724,11 +725,19 @@ struct ModInstallView: View {
                                                          hostRoot: hostRoot)
                     installed += 1
                 }
+                // A1-T11 — le dépôt entre au journal de l'hôte (règle 2 du tri).
+                historyFailed = !ModHistoryRecorder.recordAddition(
+                    host: proposal.host, hostRoot: hostRoot,
+                    files: proposal.files.map(\.destination),
+                    source: proposal.files.map(\.source.lastPathComponent).joined(separator: ", "),
+                    historyDirectory: ModHistoryFile.defaultDirectory())
                 outcome = .done(installed: installed)
             } catch {
                 // Lot interrompu : dire le compte de fichiers déjà posés.
                 outcome = .failed(error: error, installed: installed)
             }
+            // Copie figée : la file principale ne lit pas un `var` de la file de fond.
+            let historyFailedNow = historyFailed
             DispatchQueue.main.async {
                 self.isInstalling = false
                 if let tempDir = self.tempDir {
@@ -737,6 +746,10 @@ struct ModInstallView: View {
                 }
                 switch outcome {
                 case .done:
+                    if historyFailedNow {
+                        self.vm.log(String(format: self.localization.L(L10n.ModHistory.writeFailed),
+                                           proposal.host.uniqueId), level: .warning)
+                    }
                     // Pas de `scanMods()` : aucun dossier de mod n'a bougé.
                     self.recoveryAckMessage = proposal.files.count == 1
                         ? String(format: self.localization.L(L10n.ModInstall.droppedDone),
@@ -794,6 +807,11 @@ struct ModInstallView: View {
         // Captured before dispatching — see analyzeZip's identical comment.
         let gameDir = vm.gameDir
         let existingMods = vm.scanStore.mods
+        // A1-T11 — pris ici, sur le fil principal : le tri tourne au fond, un mod
+        // à la fois, pendant l'installation.
+        let triage = makeTriageProvider(archive: analyzedURL)
+        let translations = vm.installedTranslations
+        let archive = analyzedURL
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
@@ -806,7 +824,7 @@ struct ModInstallView: View {
                     selections: selections,
                     detectedMods: info.detectedMods,
                     gameDir: gameDir,
-                    existingMods: existingMods
+                    existingMods: existingMods, triage: triage
                 )
 
                 // Chemins comptés (ancre, réconciliation, enregistrement), règle
@@ -815,6 +833,16 @@ struct ModInstallView: View {
                     written: written,
                     selections: selections,
                     detectedMods: info.detectedMods)
+                // A1-T11 — journal et originaux de traduction, tant que l'archive
+                // extraite existe encore.
+                let historyFailures = ModHistoryRecorder.recordInstall(
+                    written: written, accountedPaths: installedFolderPaths,
+                    detectedMods: info.detectedMods, existingMods: existingMods,
+                    tempDir: tempDir, archive: archive,
+                    historyDirectory: ModHistoryFile.defaultDirectory())
+                let rebase = TranslationOriginalsRebase.afterInstall(
+                    written: written, detectedMods: info.detectedMods,
+                    existingMods: existingMods, translations: translations, tempDir: tempDir)
 
                 DispatchQueue.main.async {
                     self.isInstalling = false
@@ -822,6 +850,7 @@ struct ModInstallView: View {
                     self.tempDir = nil
                     // C2-T4 — delta persisté avant l'écran de succès.
                     self.vm.persistUpdateKeyDeltas(written)
+                    self.finishTriage(historyFailures: historyFailures, rebase: rebase)
                     self.zipModInfo = nil
                     // Couverture en cache périmée pour ces mods.
                     for mod in modsBeingInstalled {

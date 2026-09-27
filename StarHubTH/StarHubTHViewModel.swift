@@ -4426,6 +4426,13 @@ final class StarHubTHViewModel {
             } else {
                 $0.recordAddon(recorded)
             }
+        // A1-T11 — le dépôt entre aussi au journal de l'hôte.
+        if !ModHistoryRecorder.recordAddition(host: host, hostRoot: hostPath,
+                                              files: written.written.map { hostPath.appendingPathComponent($0) },
+                                              source: sourceName,
+                                              historyDirectory: ModHistoryFile.defaultDirectory()) {
+            log(String(format: localization.L(L10n.ModHistory.writeFailed), host.uniqueId), level: .warning)
+        }
         }
         guard InstalledTranslationStore.save(installedTranslations) else {
             // Fichiers posés mais non retenus : le dire (retrait impossible).
