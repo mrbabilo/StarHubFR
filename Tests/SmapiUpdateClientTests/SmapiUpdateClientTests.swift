@@ -16,7 +16,15 @@ import Testing
 /// `.serialized` : le protocole d'URL simulé porte son script en statique, et
 /// Swift Testing exécute les tests d'une suite en parallèle par défaut — deux
 /// tests concurrents se voleraient leurs réponses.
-@Suite(.serialized)
+///
+/// Tests `async`, jamais d'attente bloquante : le client tourne dans un `Task`
+/// puis rend sur le fil principal. Un test qui bloquait un thread du pool
+/// coopératif sur un sémaphore attendait un travail qui a besoin de ce même
+/// pool — trois threads sur la CI (macos-15), des milliers de tests en file :
+/// la complétion arrivait en 4 s sur une passe verte, puis plus du tout en
+/// 20 s, et le déballage forcé tuait tout le processus de test (2026-09-27).
+/// `.timeLimit` borne une complétion perdue sans rien tuer d'autre.
+@Suite(.serialized, .timeLimit(.minutes(1)))
 struct SmapiUpdateClientTests {
 
     // MARK: - Réseau simulé
@@ -84,22 +92,14 @@ struct SmapiUpdateClientTests {
     }
 
     private func fetch(_ client: SmapiUpdateClient,
-                       entries: [SmapiUpdateRequest.Entry])
+                       entries: [SmapiUpdateRequest.Entry]) async
         -> Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure> {
-        // `fetch` rend sur le fil principal ; les tests tournent hors de lui.
-        let box = Box()
-        let done = DispatchSemaphore(value: 0)
-        client.fetch(entries: entries, gameVersion: "1.6.15") { result in
-            box.value = result
-            done.signal()
+        // `fetch` rend sur le fil principal ; on l'attend sans tenir de thread.
+        await withCheckedContinuation { continuation in
+            client.fetch(entries: entries, gameVersion: "1.6.15") { result in
+                continuation.resume(returning: result)
+            }
         }
-        _ = done.wait(timeout: .now() + 20)
-        return box.value!
-    }
-
-    private final class Box {
-        nonisolated(unsafe) var value: Result<SmapiUpdateClient.Outcome,
-                                              SmapiUpdateClient.Failure>?
     }
 
     /// Sonde avec borne — jamais un sommeil nu : on attend une condition,
@@ -108,23 +108,23 @@ struct SmapiUpdateClientTests {
     /// évaluation (constaté le 2026-09-13 — la sonde brûlait son timeout
     /// sur une condition déjà fausse tandis que le code, lui, répondait).
     private func waitUntil(_ condition: @autoclosure () -> Bool,
-                           timeout: TimeInterval, step: UInt32 = 10_000) -> Bool {
+                           timeout: TimeInterval) async throws -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while !condition() {
             if Date() >= deadline { return false }
-            usleep(step)
+            try await Task.sleep(for: .milliseconds(10))
         }
         return true
     }
 
     // MARK: - Ce que la passe a couvert
 
-    @Test func aCompletePassSaysSo() {
+    @Test func aCompletePassSaysSo() async {
         let all = entries(300)          // deux lots de 150
         let first = Array(all[..<150])
         let second = Array(all[150...])
         let c = client(script: [(200, body(for: first)), (200, body(for: second))])
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("passe complète attendue en succès"); return
         }
         #expect(outcome.isComplete)
@@ -133,7 +133,7 @@ struct SmapiUpdateClientTests {
         #expect(outcome.mods.count == 300)
     }
 
-    @Test func aFailedBatchMakesThePassPartial() {
+    @Test func aFailedBatchMakesThePassPartial() async {
         // Le cas vécu : le premier lot répond, le second tombe en 503 — et sa
         // seconde chance aussi (le script épuisé rend 500 à toute requête
         // suivante). Les lots suivants partent (X47), échouent de même, et la
@@ -141,7 +141,7 @@ struct SmapiUpdateClientTests {
         let all = entries(450)          // trois lots
         let first = Array(all[..<150])
         let c = client(script: [(200, body(for: first)), (503, Data())])
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("les 150 verdicts obtenus doivent être rendus"); return
         }
         #expect(outcome.mods.count == 150)
@@ -150,11 +150,11 @@ struct SmapiUpdateClientTests {
         #expect(!outcome.isComplete)     // c'est ce qui manquait à l'appelant
     }
 
-    @Test func aFirstBatchFailureIsStillAnError() {
+    @Test func aFirstBatchFailureIsStillAnError() async {
         // Rien n'a abouti : l'appelant doit voir l'échec, pas une passe vide.
         let all = entries(300)
         let c = client(script: [(503, Data())])
-        guard case .failure(let failure) = fetch(c, entries: all) else {
+        guard case .failure(let failure) = await fetch(c, entries: all) else {
             Issue.record("échec attendu quand aucun lot n'aboutit"); return
         }
         guard case .http(let code) = failure else {
@@ -179,12 +179,12 @@ struct SmapiUpdateClientTests {
     /// Les trois champs connus pour vider un lot sont filtrés avant l'envoi
     /// (`isExpressibleVersion`, `sanitizedGameVersion`, `apiVersion` figée) —
     /// le filet reste pour le manifeste tiers qu'on ne contrôle pas.
-    @Test func anExhaustedResplitBudgetDoesNotPassForACompleteCheck() {
+    @Test func anExhaustedResplitBudgetDoesNotPassForACompleteCheck() async {
         // Tout revient vide : le re-découpage descend jusqu'à épuiser son
         // budget bien avant d'avoir isolé les 150 entrées du premier lot.
         let all = entries(300)          // deux lots
         let c = client(script: Array(repeating: (200, Data("[]".utf8)), count: 200))
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("ce qui a été isolé doit être rendu, pas perdu"); return
         }
         #expect(!outcome.isComplete,
@@ -197,10 +197,10 @@ struct SmapiUpdateClientTests {
                 "les entrées isolées avant l'épuisement doivent être rendues")
     }
 
-    @Test func anEmptyParkIsACompletePass() {
+    @Test func anEmptyParkIsACompletePass() async {
         // Zéro mod à vérifier n'est pas une passe amputée : rien à réessayer.
         let c = client(script: [])
-        guard case .success(let outcome) = fetch(c, entries: []) else {
+        guard case .success(let outcome) = await fetch(c, entries: []) else {
             Issue.record("succès attendu"); return
         }
         #expect(outcome.isComplete)
@@ -219,7 +219,7 @@ struct SmapiUpdateClientTests {
     /// **une** seconde chance en fin de passe, après un retrait. Une seule :
     /// réessayer indéfiniment cognerait l'API publique gratuite que le code
     /// s'interdit déjà de paralléliser.
-    @Test func aTransientFailureIsRetriedOnceAndThePassRecovers() {
+    @Test func aTransientFailureIsRetriedOnceAndThePassRecovers() async {
         // Le lot 2 répond 503 ; le lot 3 part quand même ; le re-tri du lot 2
         // réussit. La passe redevient **complète** — c'est la récupération
         // que X47 achète.
@@ -232,7 +232,7 @@ struct SmapiUpdateClientTests {
                                 (200, body(for: third)),
                                 (200, body(for: second))],
                        )
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("succès attendu — la passe a récupéré"); return
         }
         #expect(outcome.isComplete)
@@ -240,7 +240,7 @@ struct SmapiUpdateClientTests {
         #expect(outcome.mods.count == 450)
     }
 
-    @Test func aLotThatFailsItsRetryLeavesThePassPartialAndNamesTheCause() {
+    @Test func aLotThatFailsItsRetryLeavesThePassPartialAndNamesTheCause() async {
         // Même scénario, mais le lot 2 échoue aussi à sa seconde chance : la
         // passe est amputée — et dit **pourquoi**, ce qu'un compte de lots
         // seul ne disait pas.
@@ -252,7 +252,7 @@ struct SmapiUpdateClientTests {
                                 (200, body(for: third)),
                                 (503, Data())],               // le lot 2, retenté
                        )
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("les 300 verdicts obtenus doivent être rendus"); return
         }
         #expect(!outcome.isComplete)
@@ -264,7 +264,7 @@ struct SmapiUpdateClientTests {
         }
     }
 
-    @Test func aDecodingFailureIsNotRetried() {
+    @Test func aDecodingFailureIsNotRetried() async {
         // Une erreur de décodage est déterministe : les mêmes octets
         // reviendront. La retenter dépenserait une requête contre une API
         // publique gratuite pour n'apprendre rien de nouveau — on note
@@ -276,7 +276,7 @@ struct SmapiUpdateClientTests {
                                 (200, Data("pas du JSON".utf8)),   // lot 2 : décodage
                                 (200, body(for: third))],
                        )
-        guard case .success(let outcome) = fetch(c, entries: all) else {
+        guard case .success(let outcome) = await fetch(c, entries: all) else {
             Issue.record("les 300 verdicts obtenus doivent être rendus"); return
         }
         #expect(!outcome.isComplete)
@@ -293,7 +293,7 @@ struct SmapiUpdateClientTests {
     /// (30 en production) ; les tests le court-circuitent à 0 mais valident
     /// que **le 429 arme bien le mur** (les requêtes suivantes voient
     /// l'effet dans le timing d'envoi).
-    @Test func aRateLimitedBatchArmsTheBackoff() {
+    @Test func aRateLimitedBatchArmsTheBackoff() async {
         let all = entries(300)
         let first = Array(all[..<150])
         let c = client(script: [(429, Data()),
@@ -303,7 +303,7 @@ struct SmapiUpdateClientTests {
         // lot 2 = 200, lot 3 = 200 (la seconde chance). Avec
         // `rateLimitPause: 0`, l'attente est nulle et le test reste
         // déterministe ; ce qui compte est que les 3 requêtes partent.
-        guard case .success = fetch(c, entries: all) else {
+        guard case .success = await fetch(c, entries: all) else {
             Issue.record("les 150 verdicts du lot 2 doivent être rendus"); return
         }
         #expect(StubProtocol.received == 3)
@@ -323,7 +323,7 @@ struct SmapiUpdateClientTests {
     /// passe de tête ne peut rien envoyer de plus — toute requête qui
     /// pointerait pendant la fenêtre d'observation ne peut venir que d'une
     /// seconde passe partie en parallèle, c'est-à-dire du défaut.
-    @Test func anOverlappingCallWaitsItsTurnAndTheSlotIsReturned() {
+    @Test func anOverlappingCallWaitsItsTurnAndTheSlotIsReturned() async throws {
         let all = entries(300)          // deux lots de 150
         let first = Array(all[..<150])
         let second = Array(all[150...])
@@ -332,15 +332,14 @@ struct SmapiUpdateClientTests {
         defer { StubProtocol.firstRequestGate = nil }
         let c = client(script: [(200, body(for: first)), (200, body(for: second))])
 
-        let headBox = Box()
-        let tailBox = Box()
-        let headDone = DispatchSemaphore(value: 0)
-        let tailDone = DispatchSemaphore(value: 0)
-        c.fetch(entries: all, gameVersion: "1.6.15") { headBox.value = $0; headDone.signal() }
-        c.fetch(entries: all, gameVersion: "1.6.15") { tailBox.value = $0; tailDone.signal() }
+        typealias Completion = Result<SmapiUpdateClient.Outcome, SmapiUpdateClient.Failure>
+        let (headStream, headDone) = AsyncStream.makeStream(of: Completion.self)
+        let (tailStream, tailDone) = AsyncStream.makeStream(of: Completion.self)
+        c.fetch(entries: all, gameVersion: "1.6.15") { headDone.yield($0); headDone.finish() }
+        c.fetch(entries: all, gameVersion: "1.6.15") { tailDone.yield($0); tailDone.finish() }
 
         // La passe de tête est bien engagée — et bloquée à dessein.
-        let engaged = waitUntil(StubProtocol.received == 1, timeout: 5)
+        let engaged = try await waitUntil(StubProtocol.received == 1, timeout: 5)
         #expect(engaged, "la passe de tête doit engager sa première requête")
         // Fenêtre d'observation : 0,3 s où la passe de tête, bloquée, ne peut
         // rien envoyer de plus. Toute requête de plus pendant la fenêtre vient
@@ -349,15 +348,16 @@ struct SmapiUpdateClientTests {
         let windowEnd = Date().addingTimeInterval(0.3)
         while Date() < windowEnd {
             if StubProtocol.received != 1 { quietWindow = false; break }
-            usleep(10_000)
+            try await Task.sleep(for: .milliseconds(10))
         }
         #expect(quietWindow,
                 "aucune requête ne doit partir pendant que la passe de tête est en vol")
         gate.signal()
 
         // La passe de tête, intacte : ses deux lots, ses 300 verdicts.
-        #expect(headDone.wait(timeout: .now() + 10) == .success)
-        guard case .success(let head)? = headBox.value else {
+        var headResults = headStream.makeAsyncIterator()
+        let headResult = await headResults.next()
+        guard case .success(let head)? = headResult else {
             Issue.record("la passe de tête doit réussir en entier"); return
         }
         #expect(head.isComplete)
@@ -366,9 +366,11 @@ struct SmapiUpdateClientTests {
         // Le second appel rend SA complétion — jamais perdue : sa re-passe,
         // sérialisée après la première, a tourné jusqu'au bout (le script
         // épuisé lui rend des 500 ; son verdict exact n'est pas ce que le
-        // test épingle — ce qui compte est qu'elle a tourné et rendu).
-        #expect(tailDone.wait(timeout: .now() + 10) == .success,
-                "la complétion du second appel ne doit jamais se perdre")
+        // test épingle — ce qui compte est qu'elle a tourné et rendu). Une
+        // complétion perdue pend ici jusqu'au `.timeLimit` de la suite.
+        var tailResults = tailStream.makeAsyncIterator()
+        let tailResult = await tailResults.next()
+        #expect(tailResult != nil, "la complétion du second appel ne doit jamais se perdre")
         // La re-passe de queue a bien tourné : au moins ses deux lots en
         // plus des deux de la tête. (Le compte exact dépend de la politique
         // de retrait X47 — deux 500 transitoires repartent une fois chacun,
