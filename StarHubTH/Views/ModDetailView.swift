@@ -1118,6 +1118,9 @@ struct ModDetailView: View {
                 if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
                 translationSection
                 if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
+                // A1-T11 — un composant de pack a son propre journal ; l'en-tête
+                // d'un pack n'a pas d'UniqueID.
+                if !live.uniqueId.isEmpty { ModHistorySection(localization: localization, mod: live) }
             }
         case .description:
             // Description tab: pack contents + settings + description.
