@@ -91,6 +91,30 @@ public struct GmcmModOptions: Equatable, Sendable {
         }
 
         public func contains(_ value: Double) -> Bool { value >= min && value <= max }
+
+        /// La valeur que le curseur écrit : ramenée sur la grille du pas
+        /// depuis `min`, puis au nombre de décimales du pas (sans pas : 1 pour
+        /// un entier, 2 décimales sinon), puis dans les bornes. Sans cet
+        /// arrondi, un pas de 0,05 écrit `0.15000000000000002`.
+        public func snapped(_ value: Double, integer: Bool) -> Double {
+            let step = self.step ?? (integer ? 1 : nil)
+            var result = Swift.min(Swift.max(value, min), max)
+            if let step {
+                result = min + ((result - min) / step).rounded() * step
+            }
+            let decimals = integer ? 0 : (step.map(Self.decimals(of:)) ?? 2)
+            let scale = pow(10, Double(decimals))
+            result = (result * scale).rounded() / scale
+            return Swift.min(Swift.max(result, min), max)
+        }
+
+        /// Décimales du pas tel que `String` l'écrit : `0.05` → 2, `512.0` → 0.
+        private static func decimals(of step: Double) -> Int {
+            let text = String(step)
+            guard !text.contains("e"), let dot = text.firstIndex(of: ".") else { return 10 }
+            let fraction = text[text.index(after: dot)...]
+            return fraction == "0" ? 0 : fraction.count
+        }
     }
 
     public struct Entry: Equatable, Sendable {
