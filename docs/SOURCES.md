@@ -260,6 +260,32 @@ v1 **ne sait pas chercher** : la recherche passe par GraphQL (§2.4).
 | **Traductions d'un mod** | `modRequirements { modsRequiringThisMod(count:, offset:) { totalCount nodes { modId modName notes } } }` : les fiches qui déclarent le mod comme prérequis — les traductions en font partie, **sans champ de langue** (la langue se lit dans `modName`). La section « Translations » de la page web (langue → fiche) **n'est pas exposée** par le schéma (38 champs de `Mod`, aucun). Mesuré sur le parc : 176 mods traduisibles sans `fr.json`, 94 avec un id Nexus (87 distincts) ; **10** ont une traduction FR requérante, **toutes justes** ; la recherche nom + tag `French` en rend 11 dont **4 fausses**, et ses 7 justes sont déjà dans les 10. SVE (3753) : 756 requérants, 3 des 5 traductions FR de la page y figurent. ⚠️ **Le lien ne dit pas « traduction de ce mod »** : relu par l'app (Swift, API réelle), SVE rend 8 traductions FR liées dont 4 traduisent un **autre** mod qui requiert SVE, et le tag `French` seul fait passer pour traductions des mods écrits en français (3 requérants de T's Core). Règle livrée : tags `French`+`Translation` ou titre, puis « confirmée » seulement si le titre nomme le mod — sur le parc, 9 traductions liées, 8 confirmées. Les **packs** (17 candidats) n'ont jamais d'id Nexus au manifeste de tête : pour eux, recherche par nom seule |
 | **Sonde** | aucune |
 
+### 2.4 bis Nexus Mods — manifestes de fichiers *(A1-T11, 2026-09-27)*
+
+| | |
+|---|---|
+| **Liste** | `modFiles(modId:, gameId: 1303) { fileId version uri date }` (GraphQL v2, **sans clé**) |
+| **Format récent** | `https://mod-file-manifests.nexusmods.com/<uri>` quand l'`uri` est en `xx/yy/zz/<uuid>` — chemins **et SHA-256** de chaque fichier, empreinte de l'archive et de sa version reconditionnée |
+| **Format ancien** | `https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/<modId>/<uri encodée>.json` quand l'`uri` est le nom du fichier stocké — arbre de **chemins seuls**, tailles arrondies (`578.6 kB`, unité non prouvée). Très vieux fichiers : 404 HTML |
+| **Rôle** | la mise à jour reconnaît les fichiers qu'un auteur a retirés (identiques à une ancienne version) ; le nettoyage (plan 2) lit aussi l'ancien format |
+| **Code** | `StarHubTH/Models/NexusFileManifestFetcher.swift`, `NexusFileManifest.swift`, `NexusRequestBuilder.makeManifestRequest` |
+| **Relevé** | `nexus/manifestes-fichiers` dans `check_sources.py` |
+
+Mesuré le 2026-09-27 :
+
+- manifeste Wildroot 1.4.2 (fichier 184199) contre l'archive réelle : 289
+  fichiers des deux côtés, **0 empreinte différente** ; l'empreinte de
+  l'archive gardée dans `NexusArchives/` est celle du manifeste ;
+- sur 60 mods du parc tirés au hasard (761 avec un id Nexus), **version
+  installée** : 27 % au format récent, 67 % à l'ancien, 7 % introuvables en
+  chaînes (`1.1` contre `1.1.0` — `NexusUpdateChecker.compare` les retrouve) ;
+  42 pages sur 60 n'ont aucun fichier récent ;
+- ⚠️ **User-Agent** : celui de Python par défaut reçoit 403, celui de l'app
+  et de `check_sources.py` 200 ;
+- ⚠️ l'`uri` ancienne porte espaces et parenthèses : **l'encoder**. Un `curl`
+  non encodé échoue avant connexion (`000`) — pris un moment pour un blocage
+  du CDN, c'était le script.
+
 ### 2.5 DeepL — traduction de secours
 
 | | |

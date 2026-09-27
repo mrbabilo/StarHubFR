@@ -305,6 +305,37 @@ def probe_smapi_blacklist(spec):
             "noms_surveilles": sorted(e.get("Name", "") for e in loose)}
 
 
+def probe_nexus_file_manifests(spec):
+    """A1-T11 — les manifestes de fichiers Nexus que lit la mise à jour.
+
+    Format récent (`mod-file-manifests.nexusmods.com/<uri>`) : chemin et
+    SHA-256 de chaque fichier, empreinte de l'archive. Format ancien
+    (`file-metadata.nexusmods.com/…/<nom encodé>.json`) : l'arbre des chemins
+    seuls, lu par le nettoyage (plan 2). Un champ renommé chez Nexus rendrait
+    des manifestes lisibles mais sans empreinte : tout deviendrait « gardé »
+    en silence — c'est ce que cette sonde attrape.
+    """
+    status, body = _get(spec["url"])
+    doc = json.loads(body)
+    files = doc.get("files", [])
+    legacy_status, legacy_body = _get(spec["legacy_url"])
+    legacy = json.loads(legacy_body)
+
+    def children(node):
+        for child in node.get("children", []):
+            yield child
+            yield from children(child)
+
+    return {"http": status,
+            "fichiers": len(files),
+            "champs_fichier": sorted({k for f in files for k in f}),
+            "empreintes_fichiers": sum(1 for f in files
+                                       if (f.get("file_hashes") or {}).get("SHA256")),
+            "empreinte_archive": bool(((doc.get("archive") or {}).get("hashes") or {}).get("SHA256")),
+            "http_ancien": legacy_status,
+            "champs_ancien": sorted({k for c in children(legacy) for k in c})}
+
+
 def _strip_jsonc(raw):
     """Retire commentaires et virgules traînantes, **sans toucher aux chaînes**.
 
@@ -400,6 +431,16 @@ SOURCES = [
      "used_by": "StarHubTH/Models/SmapiBlacklist.swift",
      "note": "un écart ici n'est pas une régression mais une nouvelle menace : "
              "une entrée de plus veut dire un mod piégé de plus, à croiser au parc"},
+
+    {"key": "nexus/manifestes-fichiers", "kind": "contract", "probe": probe_nexus_file_manifests,
+     "url": "https://mod-file-manifests.nexusmods.com/2f/0b/09/2f0b092f-2356-40ca-9fa0-de6a44e27c00",
+     "legacy_url": "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/5382/"
+                   "ItemBags%203.1.0%20%28PC%29-5382-3-1-0-1746473523.zip.json",
+     "role": "A1-T11 — ce que chaque fichier Nexus contient (chemins, SHA-256) : "
+             "la mise à jour y reconnaît les fichiers qu'un auteur a retirés",
+     "used_by": "StarHubTH/Models/NexusFileManifestFetcher.swift",
+     "note": "témoins : Wildroot Chronicles 1.4.2 (fichier 184199, format récent) "
+             "et ItemBags 3.1.0 (format ancien, chemins seuls)"},
 
     {"key": "nexus/api-v1", "kind": "http",
      "url": "https://api.nexusmods.com/v1/games/stardewvalley.json",

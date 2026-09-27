@@ -1307,7 +1307,7 @@
 "settings_keep_nexus_archives" = "Keep downloaded archives";
 "settings_keep_nexus_archives_hint" = "After a successful install, keep the file Nexus served so the mod can be reinstalled without downloading it again — offline, and at that exact version. Archives are listed and removed in Maintenance. Nothing is kept retroactively: only installs made after you turn this on.";
 "settings_restore_mod_data" = "Put mod data back after updates";
-"settings_restore_mod_data_hint" = "After an update, files the mod wrote while playing (a ‹save›_SaveData.save and its like) are put back into the updated mod. Off: they stay in the install backup, listed in the report, recoverable from Maintenance.";
+"settings_restore_mod_data_hint" = "\"After an update, files the author never shipped — those the mod writes while playing (a ‹save›_SaveData.save and its like) and those you added — are put back into the updated mod. Off: they stay in the install backup, listed in the report, recoverable from Maintenance. Your edits and translations are always kept.\"";
 "settings_language_english" = "English";
 "settings_language_french" = "French";
 "settings_launch_options" = "Launch Options";

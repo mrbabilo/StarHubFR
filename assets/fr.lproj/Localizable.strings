@@ -1307,7 +1307,7 @@
 "settings_keep_nexus_archives" = "Garder les archives téléchargées";
 "settings_keep_nexus_archives_hint" = "Après une installation réussie, garder le fichier servi par Nexus pour réinstaller le mod sans le retélécharger — hors ligne, et dans cette version exacte. Les archives se voient et se suppriment dans Entretien. Rien n'est gardé rétroactivement : seules les installations faites après l'activation le seront.";
 "settings_restore_mod_data" = "Remettre les données des mods après une mise à jour";
-"settings_restore_mod_data_hint" = "Après une mise à jour, les fichiers que le mod a écrits en jouant (un ‹sauvegarde›_SaveData.save et ses semblables) sont remis dans le mod mis à jour. Désactivé : ils restent dans la sauvegarde d'installation, listés dans le bilan, récupérables depuis Entretien.";
+"settings_restore_mod_data_hint" = "\"Après une mise à jour, les fichiers que l'auteur n'a jamais livrés — ceux que le mod écrit en jouant (un ‹sauvegarde›_SaveData.save et ses semblables) et ceux que tu as ajoutés — sont remis dans le mod mis à jour. Désactivé : ils restent dans la sauvegarde d'installation, listés dans le bilan, récupérables depuis Entretien. Tes retouches et tes traductions sont toujours gardées.\"";
 "settings_language_english" = "Anglais";
 "settings_language_french" = "Français";
 "settings_launch_options" = "Options de lancement";
