@@ -32,9 +32,9 @@ internal static class GmcmExport
 {
     private record Option(string Kind, string? FieldId, string? Name, string? Tooltip, string? ValueType,
                           string? Value, string? Min, string? Max, string? Interval, List<string>? Choices,
-                          List<string> AccessPath, List<string> ClosureStrings);
-    private record ModOptions(string UniqueID, string Name, List<Option> Options);
-    private record Export(string CapturedAt, string GmcmVersion, List<ModOptions> Mods);
+                          List<string>? ChoiceLabels, List<string> AccessPath, List<string> ClosureStrings);
+    private record ModOptions(string UniqueID, string Name, string Version, string? ConfigSnapshot, List<Option> Options);
+    private record Export(string CapturedAt, string GmcmVersion, string Language, List<ModOptions> Mods);
 
     public static void Write(IModHelper helper, IMonitor monitor)
     {
@@ -64,10 +64,12 @@ internal static class GmcmExport
                     optionCount++;
                     if (read.Min is not null || read.Max is not null) bounded++;
                 }
-                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, options));
+                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(),
+                                        ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
             }
             string gmcmVersion = helper.ModRegistry.Get("spacechase0.GenericModConfigMenu")?.Manifest.Version.ToString() ?? "?";
-            var export = new Export(DateTimeOffset.Now.ToString("o"), gmcmVersion, mods);
+            var export = new Export(DateTimeOffset.Now.ToString("o"), gmcmVersion,
+                                    StardewValley.LocalizedContentManager.CurrentLanguageCode.ToString(), mods);
             string path = Path.Combine(ModEntry.OutputDir, "gmcm-options.json");
             File.WriteAllText(path, JsonSerializer.Serialize(export, new JsonSerializerOptions { WriteIndented = true }));
             monitor.Log($"Options GMCM : {mods.Count} mods, {optionCount} options dont {bounded} bornées → {path}", LogLevel.Info);
@@ -75,6 +77,36 @@ internal static class GmcmExport
         catch (Exception ex)
         {
             monitor.Log($"Options GMCM impossibles à lire : {ex}", LogLevel.Warn);
+        }
+    }
+
+    /// <summary>
+    /// Le `config.json` du mod tel qu'il est à l'instant de la capture. L'app y
+    /// vérifie que chaque option GMCM lit bien la clé qu'elle lui attribue
+    /// (valeur égale), sans dépendre des éditions faites depuis (D4-T7).
+    /// `DirectoryPath` est public sur `ModMetadata`, l'implémentation interne
+    /// de l'`IModInfo` que rend SMAPI.
+    /// </summary>
+    private static string? ConfigSnapshot(IModHelper helper, string uniqueId, IMonitor monitor)
+    {
+        try
+        {
+            object? info = helper.ModRegistry.Get(uniqueId);
+            string? directory = info is null
+                ? null
+                : AccessTools.Property(info.GetType(), "DirectoryPath")?.GetValue(info) as string;
+            if (directory is null)
+            {
+                monitor.Log($"Options GMCM : dossier de {uniqueId} introuvable, pas de copie de config.json.", LogLevel.Trace);
+                return null;
+            }
+            string path = Path.Combine(directory, "config.json");
+            return File.Exists(path) ? File.ReadAllText(path) : null;
+        }
+        catch (Exception ex)
+        {
+            monitor.Log($"Options GMCM : config.json de {uniqueId} illisible ({ex.Message}).", LogLevel.Trace);
+            return null;
         }
     }
 
@@ -103,6 +135,18 @@ internal static class GmcmExport
         if (Prop("Choices") is IEnumerable list)
             choices = list.Cast<object>().Select(c => Str(c) ?? "").ToList();
 
+        // Le texte que GMCM montre pour chaque valeur (`FormatChoice`, GMCM
+        // 1.16.0) : `both` s'affiche « Both ». Même ordre que `Choices`.
+        List<string>? choiceLabels = null;
+        if (choices is not null && Prop("FormatChoice") is Func<string, string> format)
+        {
+            choiceLabels = choices.Select(choice =>
+            {
+                try { return format(choice) ?? choice; }
+                catch { return choice; }
+            }).ToList();
+        }
+
         return new Option(
             kind,
             Prop("FieldId") as string,
@@ -114,6 +158,7 @@ internal static class GmcmExport
             Str(Prop("Maximum")),
             Str(Prop("Interval")),
             choices,
+            choiceLabels,
             getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
             closureStrings.ToList());
     }

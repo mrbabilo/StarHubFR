@@ -73,7 +73,14 @@ public sealed class ModEntry : Mod
             HarmonyMap.Write(helper, Monitor, "DayStarted");
             PatchCosts.WrapNew("DayStarted");
         };
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => FrameTimings.FlushNow();
+        // SMAPI ferme son journal dans son propre ProcessExit, appelé avant le
+        // nôtre : les fichiers de mesures sont déjà écrits, seul le
+        // `Monitor.Log` qui suit lève (« Critical app domain exception »).
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try { FrameTimings.FlushNow(); }
+            catch (ObjectDisposedException) { }
+        };
 
         // Facultatif : forcer l'écriture sans attendre la minute.
         helper.ConsoleCommands.Add("starhubfr_probe",
