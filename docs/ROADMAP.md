@@ -881,8 +881,16 @@ SLO est actif et ce que la dernière session a mesuré.
       processus — corrigé en v0.4.13 (relevé final synchrone), validé en jeu le
       2026-09-28 : réglage changé à 19:24:56, relevé de fermeture à 19:25:09,
       `ChangedAt` = mtime exact, contrôleur OK.
-      Restent le Core (segments, comparaison, analyse) et
-      l'onglet Performances (graphiques, aide à la décision).
+      ✅ Plan 3 : le Core — `ProbeInventory`, `ProbeSegments` (coupure au
+      `ChangedAt`, minutes mixtes écartées), `ProbeComparableMinutes` (gardes,
+      « même lieu d'abord »), `ProbeComparison` (médianes, quartiles, verdicts,
+      plafond de synchro), `ProbeSessionsIndex` (index sans décodage, cache par
+      taille+date), `ProbeInventoryDiff` + `ProbeCosts`, `ProbeMeasurements`,
+      `ProbeAnalysis` (règles explicables, recommandations réversibles). Écart à
+      la spec §3d : la part indirecte ramène le coût direct (ms/s) en ms par tick
+      (÷ 60) avant de le soustraire du travail de trame — la spec soustrayait
+      deux unités différentes.
+      Reste l'onglet Performances (plan 4 : graphiques, branches vers les gestes).
 
 **Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
 l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
