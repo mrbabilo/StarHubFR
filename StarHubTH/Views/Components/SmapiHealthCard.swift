@@ -29,13 +29,13 @@ struct SmapiHealthCard: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
-    /// nil = follow the default (collapsed when healthy). Once the user taps the
-    /// chevron, this holds their explicit choice and overrides the default.
+    /// nil = dépliée, même sur un journal sain : la carte a son onglet (D4-T4,
+    /// demande de l'auteur du 2026-09-28). Le chevron garde le choix contraire.
     @State private var userCollapsed: Bool? = nil
 
     var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
 
-    private var isExpanded: Bool { userCollapsed ?? (diagnostics.problemCount > 0) }
+    private var isExpanded: Bool { userCollapsed ?? true }
     private var isHealthy: Bool { diagnostics.problemCount == 0 }
 
     /// Advisory info (risk categories, per-mod errors) exists even on a healthy
