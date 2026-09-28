@@ -1674,5 +1674,7 @@
   "perf_overlaps_not_a_conflict": "Pas une incompatibilité : ces patches s'empilent souvent sans dommage. Si quelque chose cloche, mettez l'un des deux en pause.",
   "perf_overlaps_restore": "Réafficher",
   "perf_overlaps_measured_in_game": "Mesuré en jeu le %1$@ sur %2$@",
-  "perf_overlaps_patches_code_of": "%1$@ patche le code de %2$@ : %3$@"
+  "perf_overlaps_patches_code_of": "%1$@ patche le code de %2$@ : %3$@",
+  "conflicts_known_badge": "Incompatibilité connue",
+  "conflicts_known_probe_profiler": "Les deux chronomètrent les mêmes points de la trame : chacun ajoute son coût à ce que l'autre mesure, et les temps relevés sont gonflés. Mettez Profiler en pause pendant les mesures de la sonde."
 }

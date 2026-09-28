@@ -1015,13 +1015,13 @@ struct ModDetailView: View {
 
     // MARK: Incompatibilités (tâche 9)
 
-    /// Incompatibilités **déclarées** avec ce mod, écartables ici : retour
+    /// Incompatibilités **déclarées ou connues** avec ce mod, écartables ici : retour
     /// visible là où « Signaler » vient d'être cliqué. Les observées ont leur
     /// écran (`ModConflictSection`) ; correspondance centralisée dans
     /// `vm.conflictPair(for:)`.
     @ViewBuilder
     private var declaredConflictsSection: some View {
-        let pairs = vm.modConflictVerdicts.declared.filter { $0.contains(mod.folderName) }
+        let pairs = vm.modConflictVerdicts.reportedPairs(involving: mod.folderName, installed: vm.scanStore.mods)
         if !pairs.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Conflicts.title))

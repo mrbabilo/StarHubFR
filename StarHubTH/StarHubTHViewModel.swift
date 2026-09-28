@@ -340,8 +340,8 @@ final class StarHubTHViewModel {
     @MainActor
     var healthIssues: [HealthIssue] {
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
-        let candidates = modConflictVerdicts.declared
-            + contentPatcherConflicts.compactMap(conflictPair)
+        let candidates = modConflictVerdicts.candidates(
+            observed: contentPatcherConflicts.compactMap(conflictPair), installed: mods)
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
                                                     activeFolders: activeFolders)
         // Seul le VM connaît `[ModItem]` ; la règle (repli sur le dossier) est
@@ -2883,7 +2883,8 @@ final class StarHubTHViewModel {
         // composants dans `activating`.
         let activating = Set([mod.folderName] + (mod.children ?? []).map(\.folderName))
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
-        let candidates = modConflictVerdicts.declared + contentPatcherConflicts.compactMap(conflictPair)
+        let candidates = modConflictVerdicts.candidates(
+            observed: contentPatcherConflicts.compactMap(conflictPair), installed: mods)
         guard let otherFolder = modConflictVerdicts.activationConflict(
             activating: activating, candidates: candidates, activeFolders: activeFolders
         ) else { return nil }

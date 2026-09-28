@@ -74,6 +74,25 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         pairs(declared: true)
     }
 
+    /// Toutes les paires à juger : déclarées, observées (journal SMAPI) et
+    /// connues d'avance (`KnownIncompatibilities`), sans doublon. Le filtrage
+    /// (actifs, écartées) reste celui de `liveConflicts`.
+    public func candidates(observed: [ModConflictPair], installed: [ModItem]) -> [ModConflictPair] {
+        var seen = Set<ModConflictPair>()
+        return (declared + observed + KnownIncompatibilities.pairs(in: installed)).filter { seen.insert($0).inserted }
+    }
+
+    /// Les paires connues d'avance à montrer comme telles : ni déclarées
+    /// (elles ont leur ligne « Signalé par vous »), ni écartées.
+    public func knownPairs(installed: [ModItem]) -> [ModConflictPair] {
+        KnownIncompatibilities.pairs(in: installed).filter { verdict(for: $0) == nil }
+    }
+
+    /// Ce que la fiche d'un mod liste : ses paires déclarées et connues.
+    public func reportedPairs(involving folderName: String, installed: [ModItem]) -> [ModConflictPair] {
+        (declared + knownPairs(installed: installed)).filter { $0.contains(folderName) }
+    }
+
     public var dismissed: [ModConflictPair] {
         pairs(declared: false)
     }

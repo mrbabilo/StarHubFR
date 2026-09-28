@@ -1674,5 +1674,7 @@
   "perf_overlaps_not_a_conflict": "Not an incompatibility: these patches often stack harmlessly. If something looks wrong, pause one of the two.",
   "perf_overlaps_restore": "Show again",
   "perf_overlaps_measured_in_game": "Measured in game on %1$@ with %2$@",
-  "perf_overlaps_patches_code_of": "%1$@ patches the code of %2$@: %3$@"
+  "perf_overlaps_patches_code_of": "%1$@ patches the code of %2$@: %3$@",
+  "conflicts_known_badge": "Known incompatibility",
+  "conflicts_known_probe_profiler": "Both time the same frame hooks: each adds its own cost to what the other measures, and the recorded frame times are inflated. Pause Profiler while the probe measures."
 }

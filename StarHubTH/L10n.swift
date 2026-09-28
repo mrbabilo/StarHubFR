@@ -280,6 +280,7 @@ enum L10n {
         static let asset          = "conflicts_asset"
         static let withinOne      = "conflicts_within_one"
         static let declaredByYou  = "conflicts_declared_by_you"
+        static let knownBadge     = "conflicts_known_badge"
         static let dismissedCount = "conflicts_dismissed_count"
         static let orphans        = "conflicts_orphans"
         static let bothActive     = "conflicts_both_active"

@@ -198,6 +198,9 @@ struct ModConflictSection: View {
     private var betweenPacksConflicts: [LoadConflict] { liveConflicts(kind: .betweenPacks) }
     private var withinOnePackConflicts: [LoadConflict] { liveConflicts(kind: .withinOnePack) }
     private var declaredPairs: [ModConflictPair] { vm.modConflictVerdicts.declared }
+    /// Tenues par l'app (`KnownIncompatibilities`) : badge et raison à part,
+    /// jamais « Signalé par vous ».
+    private var knownPairs: [ModConflictPair] { vm.modConflictVerdicts.knownPairs(installed: installedMods) }
 
     /// Le libellé du badge « actifs », ou `nil` si au moins un pack cité
     /// n'est pas installé et activé aujourd'hui. Deux libellés distincts
@@ -235,7 +238,8 @@ struct ModConflictSection: View {
         // journal était réellement silencieux (vert légitime) ; s'il ne
         // l'est pas, tout ce qu'il contenait a été écarté par choix — un
         // fait différent, avec son propre libellé neutre.
-        if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty {
+        if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty
+            && knownPairs.isEmpty {
             if vm.smapiLogDate == nil {
                 statusRow(icon: "info.circle", color: .secondary,
                           text: localization.L(L10n.Conflicts.noLogRead))
@@ -256,6 +260,9 @@ struct ModConflictSection: View {
                 }
                 ForEach(declaredPairs, id: \.self) { p in
                     declaredRow(p)
+                }
+                ForEach(knownPairs, id: \.self) { p in
+                    knownRow(p)
                 }
             }
         }
@@ -359,6 +366,24 @@ struct ModConflictSection: View {
             badge(localization.L(L10n.Conflicts.declaredByYou))
             Spacer(minLength: AppDesign.Spacing.sm)
             dismissButton(for: pair)
+        }
+    }
+
+    private func knownRow(_ pair: ModConflictPair) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: AppDesign.Spacing.xs) {
+                Text("· \(displayName(pair.first)) × \(displayName(pair.second))")
+                    .font(AppDesign.Font.body(.medium))
+                    .lineLimit(1).truncationMode(.middle)
+                badge(localization.L(L10n.Conflicts.knownBadge))
+                Spacer(minLength: AppDesign.Spacing.sm)
+                dismissButton(for: pair)
+            }
+            if let key = KnownIncompatibilities.reasonKey(for: pair, in: installedMods) {
+                Text(localization.L(key))
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

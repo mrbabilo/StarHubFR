@@ -63,6 +63,7 @@ let package = Package(
                 "Models/CompatibilityNote.swift",
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",
+                "Models/KnownIncompatibilities.swift",
                 "Models/PerformanceOverlap.swift",
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",
