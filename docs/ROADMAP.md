@@ -878,7 +878,9 @@ SLO est actif et ce que la dernière session a mesuré.
       construite le 2026-09-28 ; lancement validé en jeu (289 mods, 174 config.json,
       contenus cohérents). La validation du réglage changé a révélé une perte : le
       dernier relevé, `Task.Run` dans `ProcessExit`, était tué par la fin du
-      processus — corrigé en v0.4.13 (relevé final synchrone), à revalider en jeu.
+      processus — corrigé en v0.4.13 (relevé final synchrone), validé en jeu le
+      2026-09-28 : réglage changé à 19:24:56, relevé de fermeture à 19:25:09,
+      `ChangedAt` = mtime exact, contrôleur OK.
       Restent le Core (segments, comparaison, analyse) et
       l'onglet Performances (graphiques, aide à la décision).
 
