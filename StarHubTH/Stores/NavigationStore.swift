@@ -91,6 +91,38 @@ final class NavigationStore {
     /// `pendingConfigFocus`.
     var pendingLogFocus: String?
 
+    /// D4-T4 §3a — l'en-tête d'un bloc SMAPI (« Changed save serializer »…)
+    /// que le journal doit montrer tel quel. Posé par la carte Santé, consommé
+    /// par `LogsView` à son apparition (patron `pendingLogFocus`) : la carte et
+    /// le journal ne sont plus dans le même onglet, une notification postée
+    /// vers le journal non affiché serait perdue.
+    var pendingLogSection: String?
+
+    /// ⌘F depuis un autre onglet de « Diagnostic & Performances » : le journal
+    /// prend le focus de sa recherche, puis remet ceci à `false`.
+    var pendingLogSearchFocus = false
+
+    /// Le journal filtré sur `search` (un mod, une ligne) : onglet Journal,
+    /// intention, page. Même forme qu'`openBackups(for:)`.
+    func openLog(search: String) {
+        diagnosticsSegment = .journal
+        pendingLogFocus = search
+        requestTab(.logs)
+    }
+
+    /// Le bloc SMAPI d'en-tête `section`, tel qu'écrit dans le journal.
+    func openLog(section: String) {
+        diagnosticsSegment = .journal
+        pendingLogSection = section
+        requestTab(.logs)
+    }
+
+    /// ⌘F sur l'onglet Santé : on est déjà sur la page, seul l'onglet change.
+    func focusLogSearch() {
+        diagnosticsSegment = .journal
+        pendingLogSearchFocus = true
+    }
+
     /// I-T5 — « Sauvegardes de ce mod » : le dossier logique dont la page
     /// Sauvegardes doit s'ouvrir filtrée et dépliée. Consommé par
     /// `ModInstallBackupsView` à son apparition (patron `pendingLogFocus`).
@@ -221,6 +253,12 @@ final class NavigationStore {
     /// Hors de la règle de `TabChangePlan` : rien ne le remet à zéro.
     var backupsSegment: BackupsSegment = .install
 
+    /// L'onglet affiché par « Diagnostic & Performances » (D4-T4 §3a). Santé
+    /// d'abord : c'est le résumé qu'on vient chercher. Vit ici pour survivre
+    /// au changement de page, hors de la règle de `TabChangePlan`, comme
+    /// `backupsSegment`.
+    var diagnosticsSegment: DiagnosticsSegment = .health
+
     /// L'écran d'aide des raccourcis clavier, ouvert par l'icône du pied de
     /// la barre latérale ou par ⌘/ (menu Aide). Ici et non en `@State` de
     /// MainView : le menu vit dans la scène App et ne peut écrire que les
@@ -256,4 +294,10 @@ final class NavigationStore {
 /// Les trois segments de la page « Sauvegardes des mods » (I-T8).
 enum BackupsSegment: CaseIterable, Sendable {
     case install, config, files
+}
+
+/// Les onglets de « Diagnostic & Performances » (D4-T4 §3a). « Performances »
+/// arrive avec l'avant / après (plan 4) : pas d'onglet vide avant.
+enum DiagnosticsSegment: CaseIterable, Sendable {
+    case health, journal
 }

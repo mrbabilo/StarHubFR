@@ -67,6 +67,47 @@ import Foundation
         #expect(s.pendingTabRequest == .backups)
     }
 
+    /// D4-T4 §3a : la page s'ouvre sur Santé ; l'onglet choisi n'est remis à
+    /// zéro par personne (même règle que `backupsSegment`).
+    @Test func diagnosticsSOuvreSurSante() {
+        let s = NavigationStore()
+        #expect(s.diagnosticsSegment == .health)
+        s.diagnosticsSegment = .journal
+        #expect(s.diagnosticsSegment == .journal)
+    }
+
+    /// Le lien « voir dans le journal » (carte Santé, alertes système) vise un
+    /// journal qui n'est pas affiché : l'onglet ET l'intention doivent être
+    /// posés, sinon il atterrirait sur Santé, sans filtre.
+    @Test func openLogSearchPoseOngletEtIntention() {
+        let s = NavigationStore()
+        #expect(s.diagnosticsSegment == .health)
+        s.openLog(search: "SpaceCore")
+        #expect(s.diagnosticsSegment == .journal)
+        #expect(s.pendingLogFocus == "SpaceCore")
+        #expect(s.pendingLogSection == nil)
+        #expect(s.pendingTabRequest == .logs)
+    }
+
+    @Test func openLogSectionPoseOngletEtIntention() {
+        let s = NavigationStore()
+        s.openLog(section: "Changed save serializer")
+        #expect(s.diagnosticsSegment == .journal)
+        #expect(s.pendingLogSection == "Changed save serializer")
+        #expect(s.pendingLogFocus == nil)
+        #expect(s.pendingTabRequest == .logs)
+    }
+
+    /// ⌘F sur Santé : bascule sur Journal et demande le focus. Pas de
+    /// changement de page : on y est déjà.
+    @Test func focusLogSearchPoseOngletEtIntention() {
+        let s = NavigationStore()
+        s.focusLogSearch()
+        #expect(s.diagnosticsSegment == .journal)
+        #expect(s.pendingLogSearchFocus)
+        #expect(s.pendingTabRequest == nil)
+    }
+
     /// Les deux canaux sont **distincts** : poser l'un ne déborde pas sur
     /// l'autre — une requête d'onglet qui atterrirait dans le canal du bilan
     /// (ou l'inverse) ferait ouvrir une fiche au retour d'un bilan.
