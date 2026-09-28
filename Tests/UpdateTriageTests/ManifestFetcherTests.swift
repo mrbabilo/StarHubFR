@@ -119,6 +119,61 @@ struct ManifestFetcherTests {
         #expect(nexus.requested.isEmpty)
     }
 
+    // MARK: - Format ancien (nettoyage, A1-T11 plan 2)
+
+    private func legacyTree(_ paths: [String]) -> Fetcher.Response {
+        let files = paths.map { #"{"path":"\#($0)","name":"x","type":"file","size":"1 kB"}"# }
+        return .init(body: Data(#"{"children":[\#(files.joined(separator: ","))]}"#.utf8), status: 200)
+    }
+
+    private func fetchLegacy(_ nexus: FakeNexus, cache: URL?, now: Date = Date()) -> Fetcher.Outcome {
+        Fetcher.fetch(modId: 123, cacheDirectory: cache, deadline: now.addingTimeInterval(20), now: now,
+                      transport: { nexus.respond($0) }, includeLegacy: true)
+    }
+
+    @Test func theOldFormatIsReadOnlyWhenAsked() throws {
+        let nexus = FakeNexus(manifests: ["000000000001": manifest("Mod/a.png", "AA"),
+                                          "000000000002": manifest("Mod/a.png", "BB"),
+                                          "zip.json": legacyTree(["Mod/manifest.json", "Mod/old.png"])])
+        let outcome = fetchLegacy(nexus, cache: nil)
+        #expect(outcome.files.map(\.fileId) == [11, 10])
+        #expect(outcome.legacy.map(\.fileId) == [9])
+        #expect(outcome.legacy.first?.version == "0.9.0")
+        #expect(outcome.legacy.first?.manifest.paths == ["Mod/manifest.json", "Mod/old.png"])
+        #expect(!outcome.incomplete)
+        #expect(nexus.requested.contains {
+            $0 == "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/123/Old%20Mod%200.9-123-0-9-1580000000.zip.json"
+        })
+    }
+
+    @Test func theLegacyNameIsFullyEncoded() {
+        let url = Fetcher.legacyManifestURL(modId: 5382, uri: "ItemBags 3.1.0 (PC)-5382-3-1-0-1746473523.zip")
+        #expect(url?.absoluteString
+            == "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/5382/ItemBags%203.1.0%20%28PC%29-5382-3-1-0-1746473523.zip.json")
+        #expect(Fetcher.legacyManifestURL(modId: 1, uri: "") == nil)
+    }
+
+    @Test func aLegacy404IsCachedAndAnUnreadableOneIsNot() throws {
+        let cache = try tempDirectory()
+        defer { try? FileManager.default.removeItem(at: cache) }
+        let missing = FakeNexus(manifests: ["000000000001": manifest("Mod/a.png", "AA"),
+                                            "000000000002": manifest("Mod/a.png", "BB"),
+                                            "zip.json": .init(body: Data("{}".utf8), status: 404)])
+        #expect(!fetchLegacy(missing, cache: cache).incomplete)
+        let again = FakeNexus(manifests: missing.manifests)
+        _ = fetchLegacy(again, cache: cache)
+        #expect(!again.requested.contains { $0.hasSuffix("zip.json") })   // 404 cru (fichier de 2020)
+
+        let cache2 = try tempDirectory()
+        defer { try? FileManager.default.removeItem(at: cache2) }
+        let html = FakeNexus(manifests: ["000000000001": manifest("Mod/a.png", "AA"),
+                                         "000000000002": manifest("Mod/a.png", "BB"),
+                                         "zip.json": .init(body: Data("<html>".utf8), status: 200)])
+        #expect(fetchLegacy(html, cache: cache2).incomplete)
+        let files = try FileManager.default.contentsOfDirectory(atPath: cache2.path)
+        #expect(!files.contains { $0.hasPrefix("legacy_") })
+    }
+
     @Test func theFormatIsReadInTheUri() {
         #expect(Fetcher.ModFile(fileId: 1, version: "1", uri: "2f/0b/09/2f0b092f-2356-40ca-9fa0-de6a44e27c00", date: nil).isRecentFormat)
         #expect(!Fetcher.ModFile(fileId: 1, version: "1", uri: "ItemBags 3.1.0 (PC)-5382-3-1-0-1746473523.zip", date: nil).isRecentFormat)

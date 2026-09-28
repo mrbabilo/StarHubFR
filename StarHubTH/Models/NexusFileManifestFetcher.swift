@@ -4,9 +4,10 @@ import Foundation
 /// format récent** : la liste par `modFiles` (GraphQL v2, sans clé), puis
 /// chaque manifeste sur `mod-file-manifests.nexusmods.com`.
 ///
-/// Les fichiers au format ancien (`uri` = nom du fichier stocké, 67 % des
-/// versions installées sur le parc) ne sont **pas** demandés : leurs
-/// manifestes n'ont pas d'empreinte et ne décident jamais d'un retrait.
+/// Les fichiers au format ancien (`uri` = nom du fichier stocké, chemins
+/// seuls) ne sont demandés qu'avec `includeLegacy` — le nettoyage (A1-T11
+/// plan 2). Une mise à jour ne les lit jamais : sans empreinte, ils ne
+/// décident pas d'un retrait.
 ///
 /// Appelé depuis la file de fond de l'installation : rien ici n'est
 /// `@MainActor` (le mode Swift 6 arrête l'app au lancement quand une méthode
@@ -46,11 +47,22 @@ public enum NexusFileManifestFetcher {
 
     public typealias Transport = @Sendable (URLRequest) -> Response
 
+    /// Un fichier Nexus au **format ancien** (chemins seuls) — lu pour le
+    /// nettoyage seulement, jamais pour une mise à jour.
+    public struct LegacyFile: Sendable {
+        public let fileId: Int
+        public let version: String
+        public let manifest: NexusLegacyFileManifest
+    }
+
     public struct Outcome: Sendable {
         public let files: [AuthorFileIndex.NexusFile]
         /// Au moins un manifeste n'a pas pu être lu (réseau, délai) : le tri
         /// garde alors ce qu'il ne peut pas expliquer, et le bilan le dit.
         public let incomplete: Bool
+        /// Format ancien, du plus récent au plus ancien — vide sans
+        /// `includeLegacy`.
+        public var legacy: [LegacyFile] = []
     }
 
     /// Délai par mod, et plafond de requêtes simultanées. Les mods d'une
@@ -93,6 +105,18 @@ public enum NexusFileManifestFetcher {
         URL(string: "https://mod-file-manifests.nexusmods.com/" + uri)
     }
 
+    /// `file-metadata.nexusmods.com/…/<modId>/<uri encodée>.json`. L'`uri`
+    /// ancienne porte espaces et parenthèses (`ItemBags 3.1.0 (PC)-5382-….zip`) :
+    /// tout est encodé sauf les non réservés — un nom non encodé échoue avant
+    /// même la connexion (spec, « Deux formats »).
+    static func legacyManifestURL(modId: Int, uri: String) -> URL? {
+        guard !uri.isEmpty else { return nil }
+        let unreserved = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        guard let encoded = uri.addingPercentEncoding(withAllowedCharacters: unreserved) else { return nil }
+        return URL(string: "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/"
+                   + "\(NexusRequestBuilder.gameId)/\(modId)/\(encoded).json")
+    }
+
     static func cacheName(uri: String) -> String {
         uri.replacingOccurrences(of: "/", with: "_")
     }
@@ -103,7 +127,8 @@ public enum NexusFileManifestFetcher {
     /// (page HTML) ne remplace rien.
     public static func fetch(modId: Int, cacheDirectory: URL?, deadline: Date,
                              now: Date = Date(),
-                             transport: @escaping Transport = liveTransport) -> Outcome {
+                             transport: @escaping Transport = liveTransport,
+                             includeLegacy: Bool = false) -> Outcome {
         guard now < deadline,
               let body = modFilesBody(modId: modId),
               let request = NexusRequestBuilder.makeGraphQLRequest(body: body, apiKey: nil)
@@ -113,6 +138,10 @@ public enum NexusFileManifestFetcher {
             return Outcome(files: [], incomplete: true)
         }
         let recent = files.filter(\.isRecentFormat).sorted { $0.fileId > $1.fileId }
+        let legacy = includeLegacy
+            ? files.filter { !$0.isRecentFormat && !$0.uri.isEmpty }.sorted { $0.fileId > $1.fileId }
+            : []
+        let jobs = recent.map { (file: $0, isLegacy: false) } + legacy.map { (file: $0, isLegacy: true) }
         let collector = Collector()
         // L'appelant travaille lui-même : chaque itération prend le fichier
         // suivant jusqu'à épuisement, et celles qu'aucun autre thread n'a
@@ -122,58 +151,77 @@ public enum NexusFileManifestFetcher {
         // attendaient, et aucune opération n'était jamais planifiée
         // (piles `sample` du run 36404006604, 2026-09-28).
         let next = NextIndex()
-        DispatchQueue.concurrentPerform(iterations: min(maxConcurrent, recent.count)) { _ in
-            while let index = next.take(below: recent.count) {
-                let file = recent[index]
-                switch manifest(for: file, cacheDirectory: cacheDirectory, deadline: deadline,
-                                now: now, transport: transport) {
-                case .found(let manifest):
-                    collector.add(.init(fileId: file.fileId, version: file.version, manifest: manifest))
-                case .none:
-                    break
-                case .failed:
-                    collector.miss()
+        DispatchQueue.concurrentPerform(iterations: min(maxConcurrent, jobs.count)) { _ in
+            while let index = next.take(below: jobs.count) {
+                let file = jobs[index].file
+                if jobs[index].isLegacy {
+                    switch read(cacheName: "legacy_" + cacheName(uri: file.uri),
+                                url: legacyManifestURL(modId: modId, uri: file.uri),
+                                fileDate: file.date, cacheDirectory: cacheDirectory,
+                                deadline: deadline, now: now, transport: transport,
+                                decode: NexusLegacyFileManifest.decode) {
+                    case .found(let manifest):
+                        collector.addLegacy(.init(fileId: file.fileId, version: file.version, manifest: manifest))
+                    case .none:
+                        break
+                    case .failed:
+                        collector.miss()
+                    }
+                } else {
+                    switch read(cacheName: cacheName(uri: file.uri), url: manifestURL(uri: file.uri),
+                                fileDate: file.date, cacheDirectory: cacheDirectory,
+                                deadline: deadline, now: now, transport: transport,
+                                decode: NexusFileManifest.decode) {
+                    case .found(let manifest):
+                        collector.add(.init(fileId: file.fileId, version: file.version, manifest: manifest))
+                    case .none:
+                        break
+                    case .failed:
+                        collector.miss()
+                    }
                 }
             }
         }
-        let (found, missed) = collector.result
-        return Outcome(files: found.sorted { $0.fileId > $1.fileId }, incomplete: missed)
+        let result = collector.result
+        return Outcome(files: result.found.sorted { $0.fileId > $1.fileId }, incomplete: result.missed,
+                       legacy: result.legacy.sorted { $0.fileId > $1.fileId })
     }
 
-    private enum Read {
-        case found(NexusFileManifest)
+    private enum Read<Value> {
+        case found(Value)
         /// Pas de manifeste chez Nexus (404) : rien à apprendre.
         case none
-        /// Pas de réponse, ou délai dépassé.
+        /// Pas de réponse, illisible, ou délai dépassé.
         case failed
     }
 
-    private static func manifest(for file: ModFile, cacheDirectory: URL?, deadline: Date,
-                                 now: Date, transport: Transport) -> Read {
+    /// Un manifeste, du cache ou du réseau. Le cache n'est écrit **qu'une fois
+    /// décodé** — un 200 illisible (page HTML) ne remplace rien — et un 404
+    /// laisse une marque `.missing`, crue selon `trustsMissingMarker`.
+    private static func read<Value>(cacheName: String, url: URL?, fileDate: Int?, cacheDirectory: URL?,
+                                    deadline: Date, now: Date, transport: Transport,
+                                    decode: (Data) -> Value?) -> Read<Value> {
         let fm = FileManager.default
-        let cached = cacheDirectory?.appendingPathComponent(cacheName(uri: file.uri) + ".json")
-        let missing = cacheDirectory?.appendingPathComponent(cacheName(uri: file.uri) + ".missing")
-        if let cached, let data = fm.contents(atPath: cached.path),
-           let manifest = NexusFileManifest.decode(data) {
-            return .found(manifest)
+        let cached = cacheDirectory?.appendingPathComponent(cacheName + ".json")
+        let missing = cacheDirectory?.appendingPathComponent(cacheName + ".missing")
+        if let cached, let data = fm.contents(atPath: cached.path), let value = decode(data) {
+            return .found(value)
         }
-        if let missing, trustsMissingMarker(at: missing, fileDate: file.date, now: now) {
+        if let missing, trustsMissingMarker(at: missing, fileDate: fileDate, now: now) {
             return .none
         }
         let remaining = deadline.timeIntervalSince(Date())
-        guard remaining > 0, let url = manifestURL(uri: file.uri) else { return .failed }
+        guard remaining > 0, let url else { return .failed }
         var request = NexusRequestBuilder.makeManifestRequest(url: url)
         request.timeoutInterval = min(remaining, perModTimeout)
         let response = transport(request)
         switch response.status {
         case 200:
-            guard let data = response.body, let manifest = NexusFileManifest.decode(data) else {
-                return .failed
-            }
+            guard let data = response.body, let value = decode(data) else { return .failed }
             if let cached, let directory = cacheDirectory {
                 write(data, to: cached, in: directory)
             }
-            return .found(manifest)
+            return .found(value)
         case 404:
             if let missing, let directory = cacheDirectory {
                 write(Data(), to: missing, in: directory)
@@ -237,11 +285,15 @@ public enum NexusFileManifestFetcher {
     private final class Collector: @unchecked Sendable {
         private let lock = NSLock()
         private var found: [AuthorFileIndex.NexusFile] = []
+        private var legacy: [LegacyFile] = []
         private var missed = false
 
         func add(_ file: AuthorFileIndex.NexusFile) { lock.withLock { found.append(file) } }
+        func addLegacy(_ file: LegacyFile) { lock.withLock { legacy.append(file) } }
         func miss() { lock.withLock { missed = true } }
-        var result: ([AuthorFileIndex.NexusFile], Bool) { lock.withLock { (found, missed) } }
+        var result: (found: [AuthorFileIndex.NexusFile], legacy: [LegacyFile], missed: Bool) {
+            lock.withLock { (found, legacy, missed) }
+        }
     }
 
     private final class ResponseBox: @unchecked Sendable {
