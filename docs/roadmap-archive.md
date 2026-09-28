@@ -4117,6 +4117,23 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T11** — ✅ **Livré le 2026-09-28.** **Une mise à jour ressuscitait les fichiers que
+      l'auteur avait retirés.** *(mesuré le 2026-09-27)* La règle d'A1-T7 (« absent de l'archive
+      neuve ⇒ donnée locale ») remettait 23 assets de Wildroot Chronicles identiques à sa 1.3.5 et
+      47 fichiers de FOTP (code source, seconde DLL) ; la liste blanche figeait `i18n/zh.json` de
+      l'auteur. **Partie 1 (2026-09-27)** : tri par provenance à la mise à jour (journal local +
+      manifestes Nexus au format récent), journal par `UniqueID` dans la fiche. **Partie 2
+      (2026-09-28)** : « Nettoyer les anciens fichiers… » dans la fiche, pour les fantômes déjà
+      présents — « identiques » (octets d'un fichier d'auteur, cochés) ou « probables » (chemin d'un
+      dépôt antérieur au format ancien, décochés), sauvegarde `beforeCleanup`, rehachage avant
+      retrait, dossier parent en 0555 ouvert. Mesures à ne pas refaire : référence de la version
+      installée sur 1 004 mods Nexus — 37 % format récent, 58 % ancien seulement, 4 % version
+      introuvable, 1 % manifeste en 404. « Antérieur » se lit au `fileId` (ordre de dépôt), jamais
+      à l'étiquette : Wildroot étiquette « 14 » des fichiers d'avant sa 1.4.1. Au format ancien,
+      `manifest.json` ne compte pas dans la concordance (il concorde avec toute racine). Sur les cas
+      réels : Wildroot 25 fantômes identiques, FOTP 0 (sa 3.4.19 livre elle-même le code source),
+      ItemBags aucun sac proposé. Spec `docs/superpowers/specs/2026-09-27-a1-t11-update-triage-design.md`.
+
 - [x] **A1-T10** — ✅ **Livré le 2026-09-24.** **Le nettoyage guidé d'une sauvegarde : écrit, jamais
       automatique.** *(même audit, 2026-09-23 ; **livrée** le 2026-09-24 :
       une seule catégorie — les clés `smapi/mod-data` des mods disparus, la

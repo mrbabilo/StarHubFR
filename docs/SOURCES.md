@@ -266,7 +266,7 @@ v1 **ne sait pas chercher** : la recherche passe par GraphQL (§2.4).
 |---|---|
 | **Liste** | `modFiles(modId:, gameId: 1303) { fileId version uri date }` (GraphQL v2, **sans clé**) |
 | **Format récent** | `https://mod-file-manifests.nexusmods.com/<uri>` quand l'`uri` est en `xx/yy/zz/<uuid>` — chemins **et SHA-256** de chaque fichier, empreinte de l'archive et de sa version reconditionnée |
-| **Format ancien** | `https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/<modId>/<uri encodée>.json` quand l'`uri` est le nom du fichier stocké — arbre de **chemins seuls**, tailles arrondies (`578.6 kB`, unité non prouvée). Très vieux fichiers : 404 HTML |
+| **Format ancien** | `https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/1303/<modId>/<uri encodée>.json` quand l'`uri` est le nom du fichier stocké — arbre de **chemins seuls**, tailles arrondies (`578.6 kB`, unité non prouvée). Très vieux fichiers : 404 HTML. Lu par l'app depuis A1-T11 plan 2, **seulement** pour « Nettoyer les anciens fichiers » (`includeLegacy`), jamais pendant une mise à jour ; mesure du 2026-09-28 : seule référence de la version installée pour 58 % des mods Nexus du parc (585 sur 1 004) |
 | **Rôle** | la mise à jour reconnaît les fichiers qu'un auteur a retirés (identiques à une ancienne version) ; le nettoyage (plan 2) lit aussi l'ancien format |
 | **Code** | `StarHubTH/Models/NexusFileManifestFetcher.swift`, `NexusFileManifest.swift`, `NexusRequestBuilder.makeManifestRequest` |
 | **Relevé** | `nexus/manifestes-fichiers` dans `check_sources.py` |

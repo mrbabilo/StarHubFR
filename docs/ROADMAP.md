@@ -334,7 +334,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **10 items ouverts sur 29** *(le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 29** *(le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -403,23 +403,6 @@ backup se retrouve en moins de dix secondes.
   - *(`SMAPI_MODS_PATH` / `--mods-path`, qu'ils utilisent pour lancer, reste **écarté** —
     décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
     2026-09-14 pour que personne ne la re-dérive.)*
-
-- [ ] **A1-T11** — **Une mise à jour ressuscitait les fichiers que l'auteur avait retirés.**
-      *(mesuré le 2026-09-27)* La règle d'A1-T7 (« absent de l'archive neuve ⇒ donnée
-      locale ») remettait 23 assets de Wildroot Chronicles identiques à sa 1.3.5, reportés
-      de version en version, et 47 fichiers de FOTP (son code source, une seconde DLL) ;
-      la liste blanche figeait `i18n/zh.json` **de l'auteur** sur une vieille version.
-      ✅ *Partie 1 livrée le 2026-09-27* : tri par provenance (journal local + manifestes
-      Nexus au format récent, `mod-file-manifests.nexusmods.com`) — retiré seulement ce
-      qui est identique à une version de l'auteur ; retouches, fichiers locaux et
-      traductions gardés ; `manifest.json` et code toujours neufs ; suppressions
-      respectées quand le journal les connaît. Journal local par `UniqueID`, visible dans
-      la fiche (« Historique des mises à jour »). Spec
-      `docs/superpowers/specs/2026-09-27-a1-t11-update-triage-design.md` (poste local).
-      **Reste (plan 2)** : l'action « Nettoyer les fichiers d'anciennes versions » pour les
-      fantômes déjà présents, avec la lecture des manifestes au format ancien (chemins
-      seuls, 67 % des versions installées du parc) — fantômes « probables », décochés par
-      défaut. · **M**
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
 

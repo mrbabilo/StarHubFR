@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Nettoyer les anciens fichiers d'un mod.** Dans sa fiche, l'historique propose de retirer ce que d'anciennes versions ont laissé : coché quand c'est identique à un fichier de l'auteur, décoché quand ce n'est que probable. Le dossier est sauvegardé d'abord.
+
 ## [1.51.0] - 2026-09-28
 
 ### Added
