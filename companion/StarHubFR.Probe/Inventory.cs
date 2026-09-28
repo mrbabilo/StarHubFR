@@ -53,6 +53,11 @@ internal static class Inventory
     /// </summary>
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static IMonitor? Monitor;
+    /// <summary>
+    /// Début du relevé précédent (UTC) : borne basse de `ChangedAt`. Un
+    /// changement vu maintenant a eu lieu après que ce relevé a lu les dates.
+    /// </summary>
+    private static DateTime LastScanUtc;
 
     private static string InventoryPath => Path.Combine(ModEntry.OutputDir, "inventory.jsonl");
     private static string ContentDir => Path.Combine(ModEntry.OutputDir, "configs");
@@ -77,19 +82,25 @@ internal static class Inventory
             Gate.Wait();
             try
             {
+                LastScanUtc = DateTime.UtcNow;
                 RemoveOrphanTemps();
                 var lines = new List<object>();
                 foreach (var mod in mods)
                 {
                     string? path = mod.Directory is null ? null : Path.Combine(mod.Directory, "config.json");
-                    (DateTime? stamp, string? sha) = path is null ? ((DateTime?)null, (string?)null) : Read(path);
+                    Observation seen = path is null ? new Observation(ReadKind.Absent) : Observe(path);
+                    string? sha = seen.Kind == ReadKind.Present ? seen.Sha : null;
                     if (path is not null)
-                        WatchedConfigs.Add(new Watched(mod.Id, path, stamp, sha));
+                        WatchedConfigs.Add(new Watched(mod.Id, path, seen.Kind == ReadKind.Present ? seen.Stamp : null, sha));
                     lines.Add(new { mod.Id, mod.Version, Config = sha });
                 }
                 Append(new { Session = session, At = Now(), Kind = "launch", Probe = probeVersion,
                              Smapi = smapi, Game = game, Mods = lines });
                 Log($"Inventaire : {lines.Count} mods, {WatchedConfigs.Count(w => w.Sha is not null)} config.json.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Inventaire du lancement abandonné : {ex}");
             }
             finally
             {
@@ -104,11 +115,16 @@ internal static class Inventory
     /// </summary>
     private static void RemoveOrphanTemps()
     {
-        if (!Directory.Exists(ContentDir)) return;
-        foreach (string temp in Directory.EnumerateFiles(ContentDir, "*.tmp-*"))
+        try
         {
-            try { File.Delete(temp); }
-            catch (IOException) { }
+            if (!Directory.Exists(ContentDir)) return;
+            foreach (string temp in Directory.EnumerateFiles(ContentDir, "*.tmp-*"))
+                File.Delete(temp);
+        }
+        catch (Exception ex)
+        {
+            // Du déchet qui reste : jamais une raison de perdre la ligne `launch`.
+            Log($"Inventaire : temporaires non enlevés ({ex.Message}).");
         }
     }
 
@@ -127,29 +143,42 @@ internal static class Inventory
             try
             {
                 if (WatchedConfigs.Count == 0) return;
+                DateTime notBefore = LastScanUtc;
+                LastScanUtc = DateTime.UtcNow;
                 var changed = new Dictionary<string, string?>();
                 DateTime? latest = null;
                 foreach (var watched in WatchedConfigs)
                 {
-                    DateTime? stamp = File.Exists(watched.Path) ? File.GetLastWriteTimeUtc(watched.Path) : null;
-                    if (stamp == watched.Stamp) continue;
-                    (DateTime? readStamp, string? sha) = Read(watched.Path);
-                    watched.Stamp = readStamp;
-                    if (sha == watched.Sha) continue;
-                    watched.Sha = sha;
-                    changed[watched.Id] = sha;
-                    if (readStamp is { } s && (latest is null || s > latest)) latest = s;
+                    Observation seen;
+                    try
+                    {
+                        DateTime? stamp = File.Exists(watched.Path) ? File.GetLastWriteTimeUtc(watched.Path) : null;
+                        if (stamp == watched.Stamp) continue;
+                        seen = Observe(watched.Path);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Un mod qui lève ne prive pas les suivants de leur relevé.
+                        Log($"Inventaire : {watched.Path} non relevé ({ex.Message}).");
+                        seen = new Observation(ReadKind.Error);
+                    }
+                    if (!InventoryRules.Apply(ref watched.Stamp, ref watched.Sha, seen)) continue;
+                    changed[watched.Id] = watched.Sha;
+                    if (seen.Stamp is { } s && (latest is null || s > latest)) latest = s;
                 }
                 if (changed.Count == 0) return;
                 // `ChangedAt` : quand le fichier a changé, pas quand on l'a vu.
                 // C'est lui qui coupe la session côté app — la minute du
                 // changement, pas celle du relevé.
-                string changedAt = latest is { } l
-                    ? new DateTimeOffset(l, TimeSpan.Zero).ToLocalTime().ToString("o")
-                    : Now();
-                Append(new { Session = session, At = Now(), ChangedAt = changedAt,
+                DateTime changedAt = InventoryRules.ChangedAt(latest, notBefore, DateTime.UtcNow);
+                Append(new { Session = session, At = Now(),
+                             ChangedAt = new DateTimeOffset(changedAt, TimeSpan.Zero).ToLocalTime().ToString("o"),
                              Kind = "configChanged", Configs = changed });
                 Log($"Inventaire : réglage changé ({string.Join(", ", changed.Keys)}).");
+            }
+            catch (Exception ex)
+            {
+                Log($"Inventaire : relevé de la minute abandonné ({ex.Message}).");
             }
             finally
             {
@@ -159,26 +188,42 @@ internal static class Inventory
     }
 
     /// <summary>
-    /// Date et empreinte d'un `config.json`, contenu rangé au passage. Absent :
-    /// (null, null). Illisible : (null, null) aussi — la date n'est pas retenue,
-    /// la minute suivante réessaiera.
+    /// Ce qu'on voit d'un `config.json`, contenu rangé au passage. Absent : la
+    /// date du dossier, quand la suppression a eu lieu. Illisible : une erreur,
+    /// jamais une absence — la minute suivante réessaiera.
     /// </summary>
-    private static (DateTime? Stamp, string? Sha) Read(string path)
+    private static Observation Observe(string path)
     {
+        byte[] bytes;
+        DateTime stamp;
         try
         {
-            if (!File.Exists(path)) return (null, null);
-            DateTime stamp = File.GetLastWriteTimeUtc(path);
-            byte[] bytes = File.ReadAllBytes(path);
-            string sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-            StoreContent(sha, bytes);
-            return (stamp, sha);
+            if (!File.Exists(path))
+            {
+                string? dir = Path.GetDirectoryName(path);
+                return new Observation(ReadKind.Absent,
+                    dir is not null && Directory.Exists(dir) ? Directory.GetLastWriteTimeUtc(dir) : null);
+            }
+            stamp = File.GetLastWriteTimeUtc(path);
+            bytes = File.ReadAllBytes(path);
         }
         catch (Exception ex)
         {
             Log($"Inventaire : {path} illisible ({ex.Message}).");
-            return (null, null);
+            return new Observation(ReadKind.Error);
         }
+        string sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        try
+        {
+            StoreContent(sha, bytes);
+        }
+        catch (Exception ex)
+        {
+            // Le réglage a bien été lu : son empreinte vaut, seul le contenu
+            // manque (le contrôleur le signale). Ne pas l'effacer pour ça.
+            Log($"Inventaire : contenu de {path} non rangé ({ex.Message}).");
+        }
+        return new Observation(ReadKind.Present, stamp, sha);
     }
 
     /// <summary>
