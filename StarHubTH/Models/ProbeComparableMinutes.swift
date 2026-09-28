@@ -12,10 +12,31 @@ public struct ProbeComparableMinute: Equatable, Sendable {
     public let patchesMeasured: Bool?
 }
 
+/// Une minute écartée et la première garde qui l'a écartée.
+public struct ProbeExcludedMinute: Equatable, Sendable {
+    public let minute: ProbeMinute
+    public let reason: ProbeExclusionReason
+}
+
 public struct ProbeComparableResult: Equatable, Sendable {
     public let kept: [ProbeComparableMinute]
     /// Première garde en échec, une seule par minute : les comptes s'additionnent.
     public let exclusions: [ProbeExclusionReason: Int]
+    /// Les mêmes, minute par minute, dans l'ordre chronologique (chronologie).
+    public let excluded: [ProbeExcludedMinute]
+
+    /// La part de ces verdicts qui tombe dans `minutes` (un segment, une
+    /// mesure) : mêmes gardes, recomptées. Les gardes tournent une fois par
+    /// session — couper d'abord ferait passer la première minute de chaque
+    /// segment pour un chargement.
+    public func restricted(to minutes: [ProbeMinute]) -> ProbeComparableResult {
+        let wanted = Set(minutes.map(\.at))
+        let excludedHere = excluded.filter { wanted.contains($0.minute.at) }
+        var counts: [ProbeExclusionReason: Int] = [:]
+        for item in excludedHere { counts[item.reason, default: 0] += 1 }
+        return ProbeComparableResult(kept: kept.filter { wanted.contains($0.minute.at) },
+                                     exclusions: counts, excluded: excludedHere)
+    }
 }
 
 public enum ProbeComparableMinutes {
@@ -37,6 +58,7 @@ public enum ProbeComparableMinutes {
             ProbeDate.parse(cost.at).map { (cost, $0) }
         }
         var kept: [ProbeComparableMinute] = []
+        var excluded: [ProbeExcludedMinute] = []
         var exclusions: [ProbeExclusionReason: Int] = [:]
         var previousGameTime: Int?
         var previousInGame = false
@@ -65,12 +87,13 @@ public enum ProbeComparableMinutes {
 
             if let reason {
                 exclusions[reason, default: 0] += 1
+                excluded.append(ProbeExcludedMinute(minute: minute, reason: reason))
             } else {
                 kept.append(ProbeComparableMinute(
                     minute: minute, patchesMeasured: nearestCost(to: at, in: datedCosts)?.patchesMeasured))
             }
         }
-        return ProbeComparableResult(kept: kept, exclusions: exclusions)
+        return ProbeComparableResult(kept: kept, exclusions: exclusions, excluded: excluded)
     }
 
     /// « Même lieu d'abord » : ≥ 5 minutes gardées de chaque côté dans des

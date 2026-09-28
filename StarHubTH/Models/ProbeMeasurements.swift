@@ -28,8 +28,9 @@ public enum ProbeMeasurementsFile {
 
     static let fileName = "ProbeMeasurements.json"
 
+    /// `Application Support/StarHubFR/` (spec « Mesure propre »).
     public static func defaultDirectory() -> URL? {
-        AppSupport.directory?.appendingPathComponent("Probe", isDirectory: true)
+        AppSupport.directory
     }
 
     static func url(_ directory: URL) -> URL { directory.appendingPathComponent(fileName) }

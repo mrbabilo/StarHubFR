@@ -120,4 +120,31 @@ struct ProbeComparableMinutesTests {
         #expect(!flagged.restricted)
         #expect(flagged.a.count == 6 && flagged.b.count == 2)
     }
+
+    /// La chronologie montre **chaque** minute écartée à sa place, avec sa
+    /// raison : les comptes seuls ne disent pas quand.
+    @Test func excludedMinutesKeepTheirReasonAndOrder() {
+        let result = ProbeComparableMinutes.filter(
+            [minute(at: "10:00", inactive: 5), minute(at: "10:01", menuShare: 0.62),
+             minute(at: "10:02", location: nil), minute(at: "10:03"), minute(at: "10:04")],
+            costs: [])
+        #expect(result.excluded.map(\.reason) == [.unfocused, .menuOpen, .title, .firstAfterTitle])
+        #expect(result.excluded.map { String($0.minute.at.dropFirst(11).prefix(5)) }
+                == ["10:00", "10:01", "10:02", "10:03"])
+        #expect(result.excluded.count == result.exclusions.values.reduce(0, +))
+    }
+
+    /// Les gardes tournent **une fois par session** : un segment qui commence
+    /// après une coupure n'a pas de « première minute en partie » à lui. Sa
+    /// part se prend dans le filtrage de la session (sinon sa première minute
+    /// passait pour un chargement).
+    @Test func restrictingKeepsTheSessionWideVerdicts() {
+        let minutes = [minute(at: "10:00"), minute(at: "10:01"), minute(at: "10:02"), minute(at: "10:03")]
+        let whole = ProbeComparableMinutes.filter(minutes, costs: [])
+        let tail = whole.restricted(to: Array(minutes[2...]))
+        #expect(tail.kept.map(\.minute) == Array(minutes[2...]))
+        #expect(tail.excluded.isEmpty && tail.exclusions.isEmpty)
+        let head = whole.restricted(to: Array(minutes[..<2]))
+        #expect(head.exclusions == [.firstAfterTitle: 1] && head.kept.count == 1)
+    }
 }
