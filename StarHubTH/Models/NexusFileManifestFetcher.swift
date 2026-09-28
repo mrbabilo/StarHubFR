@@ -114,10 +114,17 @@ public enum NexusFileManifestFetcher {
         }
         let recent = files.filter(\.isRecentFormat).sorted { $0.fileId > $1.fileId }
         let collector = Collector()
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = maxConcurrent
-        for file in recent {
-            queue.addOperation {
+        // L'appelant travaille lui-même : chaque itération prend le fichier
+        // suivant jusqu'à épuisement, et celles qu'aucun autre thread n'a
+        // prises tournent sur l'appelant. Une `OperationQueue` attendue par
+        // `waitUntilAllOperationsAreFinished` gelait tout le processus de
+        // test sur la CI (3 cœurs) : trois threads du pool coopératif y
+        // attendaient, et aucune opération n'était jamais planifiée
+        // (piles `sample` du run 36404006604, 2026-09-28).
+        let next = NextIndex()
+        DispatchQueue.concurrentPerform(iterations: min(maxConcurrent, recent.count)) { _ in
+            while let index = next.take(below: recent.count) {
+                let file = recent[index]
                 switch manifest(for: file, cacheDirectory: cacheDirectory, deadline: deadline,
                                 now: now, transport: transport) {
                 case .found(let manifest):
@@ -129,7 +136,6 @@ public enum NexusFileManifestFetcher {
                 }
             }
         }
-        queue.waitUntilAllOperationsAreFinished()
         let (found, missed) = collector.result
         return Outcome(files: found.sorted { $0.fileId > $1.fileId }, incomplete: missed)
     }
@@ -212,6 +218,20 @@ public enum NexusFileManifestFetcher {
         }.resume()
         done.wait()
         return box.value
+    }
+
+    /// L'index du prochain fichier à lire, partagé par les itérations.
+    private final class NextIndex: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+
+        func take(below count: Int) -> Int? {
+            lock.withLock {
+                guard value < count else { return nil }
+                defer { value += 1 }
+                return value
+            }
+        }
     }
 
     private final class Collector: @unchecked Sendable {
