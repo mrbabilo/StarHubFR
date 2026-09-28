@@ -236,6 +236,29 @@ du code :
 ⚠️ **Jamais de suppression automatique.** L'`UniqueID` est déclaratif — un mod
 peut usurper celui d'un autre. On avertit, l'utilisateur agit.
 
+⚠️ **Format en transition (SMAPI `d6f868e`, 2026-09-28).** SMAPI a retiré
+`SMAPI.blacklist.json` de son dépôt : smapi.io le **génère** désormais à partir
+d'une liste interne (`Pathoschild/StardewMalwareScanner.Data`,
+`data/malware-blacklist.json`, branche `nightly` — dépôt **privé**, 404 pour
+nous) par `MalwareBlacklistConverter`. Le document public garde ses deux
+sections, mais la forme générée permet ce que notre décodeur ne lit pas :
+
+- une entrée `Blacklist` **sans `Id`**, reconnue par la seule empreinte MD5 du
+  DLL d'entrée (`EntryDllHash`) — SMAPI (`ModBlacklist.CheckMod`) la vérifie
+  contre **tout** mod ; `SmapiBlacklist.decode` l'écarte en silence (garde
+  `Id` non vide) ;
+- une entrée `Id` + `EntryDllHash` : SMAPI exige **les deux** ; nous
+  condamnerions sur l'`Id` seul (plus large, acceptable pour un avertissement) ;
+- une entrée `LooseFileBlacklist` par **extension** seule (`".scr"`) ou nom
+  seul : SMAPI teste chaque champ présent ; nous exigeons `Name` **et** `Hash`
+  et l'écartons en silence.
+
+Relevé le 2026-09-29 : la ressource servie est encore l'ancien JSONC commenté
+(18 `Id`, aucun `EntryDllHash` ni `Extension`) — le convertisseur n'est pas
+déployé. Aucun des 18 `Id` n'est au parc. **À faire avant le déploiement** :
+lire les entrées sans `Id` et les fichiers par extension (**X116**), sinon
+une entrée par empreinte passera inaperçue sans erreur.
+
 ### 2.3 Nexus Mods — API v1 (REST)
 
 | | |
@@ -550,6 +573,50 @@ changelogs Nexus ; c'est faux pour la v2 (mesuré sur les quatre mods) —
   chinoise). Rien pour nous.
 
 ---
+
+### Relevé du 2026-09-29 — six mods, SMAPI, la liste noire
+
+Changelogs lus par `--fetch-changelogs` ; les quatre DLL fermées **décompilées
+et comparées** à la version précédente du backup d'installation. Aucune
+nouvelle surface réseau, process, chargement de code ni suppression de
+fichier dans les cinq DLL (motif `HttpClient|Process.Start|Assembly.Load|
+DllImport|File.Delete…` compté avant/après) ; seul ajout : Modern Config Menu
+lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
+`ANDROID_DATA`, `SteamDeck`) pour détecter la plateforme.
+
+- **UltraSmooth 2.3.8 → 2.3.9** — 3 fichiers (`ProfilerEngine`,
+  `HighFpsPacingEngine`, `DialoguePacingEngine`), 70 cibles Harmony avant et
+  après. **Touche D4-T4** : en mode `Enhanced60` sur un écran ≤ 60 Hz, il passe
+  le jeu en **pas variable** (`IsFixedTimeStep = false`) ; au-delà de 60 Hz il
+  garde le pas fixe à 60. En pas variable, les ticks SMAPI suivent les trames :
+  la conversion ms/s → ms par tick de `ProbeAnalysis` (÷ 60) n'est exacte
+  qu'à 60 ticks/s — la cadence mesurée (`Tick.Count / WallSeconds`) serait
+  juste (**X117**). Nouvelle ligne de journal : `UltraSmooth: 60 FPS Enhanced mode active
+  on <Hz>Hz display (…)`. i18n inchangé (230 `config.*`, 113 sans `fr`).
+- **Modern Config Menu 2.1.8 → 2.2.1** — 13 fichiers d'interface, deux neufs
+  (`VirtualKeyboardMode`, `ModernVirtualKeyboardModal`). Deux réglages neufs
+  dans son `config.json` : `VirtualKeyboard` (Auto/Always/Never) et
+  `FullscreenMode`. i18n 187 → 196 clés, 16 sans `fr`.
+- **Radiance 2.2.2 → 2.2.3** — 18 fichiers, trois neufs (`ArtReloads`,
+  `BoundTargets`, `SettingsLog`). **Ligne de journal à parser (D2)** :
+  `settings (<moment>): <N> changed from default: clé:valeur, …`, au niveau
+  **Trace** (fichier journal seulement), au chargement d'une partie et à la
+  fermeture de ses réglages — l'état de Radiance derrière un journal envoyé.
+  i18n 1 105 → 1 109 (554 → 556 `config.*`), 133 sans `fr`.
+- **Stardropium 0.1.4-beta → 0.1.5-Alpha-Hotfix1** — module
+  `WaterTileOptimization` retiré (patch de `GameLocation.isWaterTile`), et le
+  patch de l'interne Content Patcher `ContextualState.MergeFrom` supprimé
+  (48 → 47 cibles). Ni l'un ni l'autre ne figure au catalogue A5-T7 : rien à
+  corriger.
+- **Event Studio rc.3 → rc.4** — pas de backup de la rc.3 (installée hors
+  app) : audit de la rc.4 seule, **aucune** occurrence du motif. Changelog :
+  alignement des sprites HD dans l'éditeur.
+- **UI Framework 1.8.0 → 1.8.1** — source ouverte, 6 commits : `MenuHost`
+  libère ses menus quand un autre mod ouvre le sien par-dessus ; le manifeste
+  porte enfin `UpdateKeys: ["Nexus:52945"]` (smapi.io et notre vérificateur
+  le suivent désormais).
+- **SMAPI `f090df0 → d6f868e`** — un commit : migration de la liste noire
+  (voir §2.2 bis).
 
 ### Outils de traduction de mods *(2026-09-24)*
 

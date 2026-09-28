@@ -83,7 +83,24 @@ les chantiers, **§7** pour la dette technique.
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
 Les X1–X115 vivent à l'archive, indexés au §11 (X115, le dernier, y est parti
-le 2026-09-25). **Aucun correctif ouvert.**
+le 2026-09-25).
+
+- [ ] **X116** — La liste noire des mods malveillants change de forme côté
+      smapi.io (SMAPI `d6f868e`, 2026-09-28 : générée depuis une liste interne
+      privée). La forme générée admet des entrées **sans `Id`**, reconnues par
+      l'empreinte MD5 du DLL d'entrée (`EntryDllHash`), et des fichiers piégés
+      reconnus par **extension** seule ; `SmapiBlacklist.decode` écarte les
+      deux **en silence** (garde `Id` non vide, `Name` + `Hash` exigés). Pas
+      encore déployé le 2026-09-29 (le document servi est l'ancien JSONC, 18
+      `Id`). À corriger avant : décoder `EntryDllHash` et `Extension`. Une
+      entrée par empreinte oblige à hacher le DLL d'entrée de chaque mod à
+      code : coût à mesurer sur le parc (966 mods), avec cache par taille +
+      date comme `GmcmLiveOptionsStore`. Détail : `docs/SOURCES.md` §2.2 bis. · **S**
+- [ ] **X117** — `ProbeAnalysis` ramène le coût direct (ms/s) en ms par tick
+      en divisant par 60. UltraSmooth 2.3.9 met le jeu en pas variable
+      (`Enhanced60` sur écran ≤ 60 Hz) : les ticks suivent alors les trames et
+      la cadence n'est plus 60. Prendre la cadence mesurée de chaque côté
+      (`Tick.Count / WallSeconds`, déjà dans `ProbeMinute`). · **XS**
 
 ---
 
