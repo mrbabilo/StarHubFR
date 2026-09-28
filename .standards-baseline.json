@@ -1,7 +1,7 @@
 {
   "abbreviation_vm": 1447,
   "bare_L_calls": 5,
-  "dispatch_queue": 128,
+  "dispatch_queue": 129,
   "file:StarHubTH/BisectionRunner.swift": 457,
   "file:StarHubTH/L10n.swift": 1889,
   "file:StarHubTH/ModConfigBackupManager.swift": 576,
