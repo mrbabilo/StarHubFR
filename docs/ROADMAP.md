@@ -871,6 +871,11 @@ SLO est actif et ce que la dernière session a mesuré.
 - [ ] **D4-T4** — Avant/après : comparer deux sessions de la sonde autour d'une
       activation de mod (la version tenable de D1-T5, idée reprise d'UltraSmooth
       mais sur des sessions entières). · **S**
+      *En cours (2026-09-28)* : spec `docs/superpowers/specs/2026-09-28-d4-t4-before-after-design.md`
+      (poste local), quatre plans. ✅ Plan 1 : page « Diagnostic & Performances » en onglets
+      Santé · Journal, sans perte (onglets gardés montés, bandeau Santé dans le Journal).
+      Restent la sonde v0.4.12 (inventaire), le Core (segments, comparaison, analyse) et
+      l'onglet Performances (graphiques, aide à la décision).
 
 **Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
 l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
