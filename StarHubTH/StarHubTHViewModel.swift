@@ -1607,6 +1607,7 @@ final class StarHubTHViewModel {
     /// A2-T7 — récupère la liste noire SMAPI et la croise au parc. Un échec
     /// **n'efface pas** ce qu'on savait.
     func refreshMaliciousMods() {
+        let modsRoot = URL(fileURLWithPath: (gameDir as NSString).appendingPathComponent("Mods"))
         SmapiBlacklist.fetch(
             onEvent: { [weak self] message in self?.log(message, level: .info) },
             completion: { [weak self] result in
@@ -1615,17 +1616,14 @@ final class StarHubTHViewModel {
                     let uniqueIds = SmapiBlacklist.uniqueIds(
                         ofTopLevel: self.mods.map(\.uniqueId),
                         children: self.mods.map { ($0.children ?? []).map(\.uniqueId) })
-                    let hits = SmapiBlacklist.matches(uniqueIds: uniqueIds, in: dump)
-                    self.maliciousMods = hits
-                    if hits.isEmpty {
-                        self.log("Liste noire SMAPI : aucun mod malveillant sur "
-                                 + "\(uniqueIds.count) identifiants installés", level: .info)
-                    } else {
-                        // `error` : seule ligne qui parle de code hostile.
-                        self.log("Liste noire SMAPI : \(hits.count) mod(s) malveillant(s) "
-                                 + "installé(s) — " + hits.keys.sorted().joined(separator: ", "),
-                                 level: .error)
-                    }
+                    // X116 : identifiants, DLL d'entrée et fichiers piégés —
+                    // le disque se lit hors du fil principal.
+                    let outcome = await Task.detached {
+                        SmapiBlacklistScan.run(dump: dump, uniqueIds: uniqueIds, modsRoot: modsRoot)
+                    }.value
+                    self.maliciousMods = outcome.matches
+                    // `error` : seule ligne qui parle de code hostile.
+                    self.log(outcome.summary, level: outcome.matches.isEmpty ? .info : .error)
                 }
             })
     }

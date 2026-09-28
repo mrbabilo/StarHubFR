@@ -132,10 +132,12 @@ import Testing
 
     // MARK: - Fichier piégé : le nom trie, l'empreinte tranche
 
-    @Test("La grille de tri ne retient que les noms surveillés")
-    func watchedNamesAreLowercased() throws {
+    @Test("La grille de tri compare le nom sans la casse")
+    func screeningIgnoresCase() throws {
         let dump = try #require(SmapiBlacklist.decode(realShaped))
-        #expect(SmapiBlacklist.watchedFileNames(in: dump) == ["auto_alchemistry.bat"])
+        let entry = try #require(dump.looseFiles.first)
+        #expect(entry.screens(fileName: "auto_ALCHEMISTRY.bat"))
+        #expect(!entry.screens(fileName: "readme.txt"))
     }
 
     /// Le fichier réel de la source : ce contenu produit exactement le MD5

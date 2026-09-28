@@ -189,6 +189,7 @@ let package = Package(
                 "Models/ModHistoryRecorder.swift",
                 "Models/TranslationOriginalsRebase.swift",
                 "Models/SmapiBlacklist.swift",
+                "Models/SmapiBlacklistScan.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",

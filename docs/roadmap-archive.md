@@ -3701,6 +3701,41 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X117** ✅ *(livré le 2026-09-29)* — **La part indirecte supposait 60 ticks par seconde.**
+      `ProbeAnalysis` divisait le coût direct (ms/s) par 60 pour le comparer
+      au travail de trame (ms par tick). UltraSmooth 2.3.9 met le jeu en pas
+      variable (`Enhanced60` sur écran ≤ 60 Hz) ; et même en pas fixe, la
+      session réelle du 2026-09-28 tourne à 35,6 puis 49,5 appels à `Update`
+      par seconde (2 137 et 2 971 en une minute). `ProbeComparison` expose la
+      cadence mesurée de chaque côté (`updatesPerSecond`, `Update.Count /
+      WallSeconds`), et chaque côté se convertit à la sienne ; 60 reste le
+      défaut des lignes sans relevé. Test : 12 ms/s à 30 ticks/s pèsent
+      0,4 ms, la part indirecte d'un écart de 1 ms tombe à 0,6.
+
+- [x] **X116** ✅ *(livré le 2026-09-29)* — **La liste noire des mods malveillants change de forme ; ses fichiers piégés n'étaient jamais vérifiés.**
+      SMAPI `d6f868e` (2026-09-28) génère `SMAPI.blacklist.json` depuis une
+      liste privée (`Pathoschild/StardewMalwareScanner.Data`). La forme
+      générée admet des entrées sans `Id` (empreinte MD5 du DLL d'entrée),
+      `Id` + empreinte (reupload piégé d'un mod légitime : l'`Id` seul
+      condamnerait le vrai), et des fichiers par nom, extension ou empreinte.
+      `SmapiBlacklist.decode` écartait tout ce qui n'avait pas d'`Id`, ou pas
+      `Name` + `Hash`, **en silence**. En creusant : `watchedFileNames` et
+      `looseFileVerdict` n'avaient **aucun appelant** depuis A2-T7
+      (`5a7ce5ee`) — le fichier `Auto_Alchemistry.bat` surveillé depuis
+      septembre n'a jamais été cherché (3ᵉ fonction non branchée, cf. mémoire).
+      Correctif : décodage de chaque champ, règles de `ModBlacklist.CheckMod` /
+      `CheckLooseFile` (chaque champ présent doit correspondre), et
+      `SmapiBlacklistScan` (Core) qui trouve les mods comme SMAPI (packs, mods
+      en pause, sans `__MACOSX`), hache le DLL d'entrée des seuls mods visés
+      et cherche les fichiers par nom/extension avant de hacher. Les entrées
+      de fichier par empreinte **seule** (SMAPI hache chaque fichier) sont
+      comptées et dites au journal, pas vérifiées. Mesuré sur le parc
+      (disque externe, 1 132 mods dont 508 à DLL) : 1,3 s de découverte,
+      4,9 s de parcours des fichiers, +4 s de hachage quand une entrée par
+      empreinte existe — une fois par lancement, hors du fil principal.
+      Piste : réutiliser le scan de l'app et un cache d'empreintes par
+      taille + date pour ne relire que ce qui a changé.
+
 - [x] **X115** ✅ *(livré le 2026-09-25)* — **Chaque événement de corbeille était un « mod ignoré » pour SMAPI.**
       Décompilé (`SMAPI.Toolkit.dll`, `ModScanner`) : SMAPI n'ignore que les
       dossiers pointés ; `Mods/_Trash_*` portait le marqueur

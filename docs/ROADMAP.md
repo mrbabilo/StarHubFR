@@ -82,25 +82,8 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X115 vivent à l'archive, indexés au §11 (X115, le dernier, y est parti
-le 2026-09-25).
-
-- [ ] **X116** — La liste noire des mods malveillants change de forme côté
-      smapi.io (SMAPI `d6f868e`, 2026-09-28 : générée depuis une liste interne
-      privée). La forme générée admet des entrées **sans `Id`**, reconnues par
-      l'empreinte MD5 du DLL d'entrée (`EntryDllHash`), et des fichiers piégés
-      reconnus par **extension** seule ; `SmapiBlacklist.decode` écarte les
-      deux **en silence** (garde `Id` non vide, `Name` + `Hash` exigés). Pas
-      encore déployé le 2026-09-29 (le document servi est l'ancien JSONC, 18
-      `Id`). À corriger avant : décoder `EntryDllHash` et `Extension`. Une
-      entrée par empreinte oblige à hacher le DLL d'entrée de chaque mod à
-      code : coût à mesurer sur le parc (966 mods), avec cache par taille +
-      date comme `GmcmLiveOptionsStore`. Détail : `docs/SOURCES.md` §2.2 bis. · **S**
-- [ ] **X117** — `ProbeAnalysis` ramène le coût direct (ms/s) en ms par tick
-      en divisant par 60. UltraSmooth 2.3.9 met le jeu en pas variable
-      (`Enhanced60` sur écran ≤ 60 Hz) : les ticks suivent alors les trames et
-      la cadence n'est plus 60. Prendre la cadence mesurée de chaque côté
-      (`Tick.Count / WallSeconds`, déjà dans `ProbeMinute`). · **XS**
+Les X1–X117 vivent à l'archive, indexés au §11 (X116 et X117, les derniers,
+y sont partis le 2026-09-29). **Aucun correctif ouvert.**
 
 ---
 
@@ -2475,6 +2458,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X117** | 2026-09-29 | `ProbeAnalysis` ramenait le coût direct en ms par tick à 60 ticks/s : la cadence mesurée de chaque côté (`Update.Count / WallSeconds`) la remplace — 35 à 50 ticks/s sur le parc réel, pas variable sous UltraSmooth 2.3.9 |
+| **X116** | 2026-09-29 | La liste noire générée par smapi.io (SMAPI `d6f868e`) admet des entrées par empreinte du DLL d'entrée et des fichiers par extension, que le décodeur écartait en silence ; les fichiers piégés n'étaient jamais vérifiés (fonctions sans appelant depuis A2-T7). `SmapiBlacklistScan` croise le disque selon les règles de SMAPI |
 | **X115** | 2026-09-25 | Chaque événement de corbeille `Mods/_Trash_*` était un « Skipped mods » `ERROR` de SMAPI à chaque lancement : la corbeille vit sous `<jeu>/_StarHubFR_Corbeille/`, les anciens événements marqués migrent. Au passage, le badge X114 lisait `Mods/` où le réparateur n'écrit jamais : toujours 0 |
 | **X112** | 2026-09-24 | « Vider les mods désactivés » effaçait ~720 dossiers sans retour, hors corbeille : `ModTrash.trash` met le lot en un événement (partagé avec `deleteMod`), « Tout remettre » le rend avec ses données |
 | **X111** | 2026-09-24 | Après « Effacer », chaque ligne du journal de l'app jetait la tête du bloc SMAPI (ses `ERROR` de démarrage) : `LogBudget.appending` jette l'entrée de l'app la plus ancienne, sinon le bruit SMAPI |

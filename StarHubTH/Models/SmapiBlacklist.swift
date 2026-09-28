@@ -30,37 +30,62 @@ public enum SmapiBlacklist {
     /// qu'il est piégé. Une entrée neuve doit atteindre l'utilisateur vite.
     public static let cacheTTL: TimeInterval = 60 * 60
 
-    /// Un mod bloqué, par son `UniqueID`.
+    /// Un mod bloqué. Chaque champ présent doit correspondre, un champ absent
+    /// ne filtre rien (`ModBlacklist.CheckMod` de SMAPI) : l'`Id` seul, l'`Id`
+    /// **et** l'empreinte du DLL d'entrée (un reupload piégé d'un mod
+    /// légitime : l'`Id` seul condamnerait le vrai), ou l'empreinte seule —
+    /// formes générées par smapi.io depuis SMAPI `d6f868e` (X116).
     public struct Entry: Equatable, Sendable {
-        public let id: String
+        public let id: String?
+        /// MD5 du DLL d'entrée (`EntryDll` du manifeste), tel que publié.
+        public let entryDllHash: String?
         /// Le message de SMAPI, en anglais dans la source. Il dit quoi faire —
         /// supprimer le mod **et** lancer une analyse antivirus — donc on le
         /// montre tel quel plutôt que de le résumer.
         public let message: String
 
-        public init(id: String, message: String) {
+        public init(id: String?, entryDllHash: String? = nil, message: String) {
             self.id = id
+            self.entryDllHash = entryDllHash
             self.message = message
         }
     }
 
-    /// Un fichier piégé, reconnu par son nom **et** son empreinte.
+    /// Un fichier piégé, reconnu par son nom, son extension et/ou son
+    /// empreinte : chaque champ présent doit correspondre
+    /// (`ModBlacklist.CheckLooseFile` de SMAPI).
     ///
     /// La source le dit : « If any file in a folder matches an entry, the
-    /// entire folder is considered malicious. » Le nom seul ne suffit donc pas
-    /// à condamner — c'est l'empreinte qui tranche.
+    /// entire folder is considered malicious. » Quand l'entrée porte une
+    /// empreinte, le nom seul ne condamne pas — c'est elle qui tranche.
     public struct LooseFile: Equatable, Sendable {
-        public let name: String
+        public let name: String?
+        /// Avec son point (`.scr`), comme `Path.GetExtension`.
+        public let `extension`: String?
         /// MD5, tel que publié. Choisi par la source, pas par nous : on
         /// compare ce qu'elle donne. MD5 est cassé pour la signature, pas pour
         /// reconnaître un fichier connu.
-        public let hash: String
+        public let hash: String?
         public let message: String
 
-        public init(name: String, hash: String, message: String) {
+        public init(name: String?, extension: String? = nil, hash: String?, message: String) {
             self.name = name
+            self.extension = `extension`
             self.hash = hash
             self.message = message
+        }
+
+        /// Nom et extension correspondent (sans la casse) : le fichier passe
+        /// la grille, reste l'empreinte s'il y en a une. `false` pour une
+        /// entrée sans nom ni extension — elle ne se juge qu'en hachant tout.
+        public func screens(fileName: String) -> Bool {
+            guard name != nil || `extension` != nil else { return false }
+            if let name, name.lowercased() != fileName.lowercased() { return false }
+            if let ext = `extension` {
+                let own = (fileName as NSString).pathExtension
+                guard !own.isEmpty, ("." + own).lowercased() == ext.lowercased() else { return false }
+            }
+            return true
         }
     }
 
@@ -93,17 +118,21 @@ public enum SmapiBlacklist {
               let root = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
         else { return nil }
 
+        // Un champ vide vaut absent ; une entrée sans aucun champ bloquerait
+        // tout — SMAPI la refuse (`MalwareBlacklistConverter`), nous aussi.
+        func field(_ dict: [String: Any], _ key: String) -> String? {
+            let value = (dict[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return value?.isEmpty == false ? value : nil
+        }
         let entries = (root["Blacklist"] as? [[String: Any]] ?? []).compactMap { dict -> Entry? in
-            guard let id = (dict["Id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !id.isEmpty else { return nil }
-            return Entry(id: id, message: (dict["Message"] as? String) ?? "")
+            let id = field(dict, "Id"), hash = field(dict, "EntryDllHash")
+            guard id != nil || hash != nil else { return nil }
+            return Entry(id: id, entryDllHash: hash, message: (dict["Message"] as? String) ?? "")
         }
         let loose = (root["LooseFileBlacklist"] as? [[String: Any]] ?? []).compactMap { dict -> LooseFile? in
-            guard let name = (dict["Name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !name.isEmpty,
-                  let hash = (dict["Hash"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !hash.isEmpty else { return nil }
-            return LooseFile(name: name, hash: hash,
+            let name = field(dict, "Name"), ext = field(dict, "Extension"), hash = field(dict, "Hash")
+            guard name != nil || ext != nil || hash != nil else { return nil }
+            return LooseFile(name: name, extension: ext, hash: hash,
                              message: (dict["Message"] as? String) ?? "")
         }
         // Un document où les deux sections manquent n'est pas un dump vide :
@@ -127,8 +156,12 @@ public enum SmapiBlacklist {
     /// moins aussi large que celle qu'elle relaie.
     public static func matches(uniqueIds: [String], in dump: Dump) -> [String: Entry] {
         guard !dump.entries.isEmpty else { return [:] }
+        // Seules les entrées à `Id` sans empreinte se jugent sur l'`Id` : les
+        // autres attendent le DLL (`SmapiBlacklistScan`).
         var byLowerId: [String: Entry] = [:]
-        for entry in dump.entries { byLowerId[entry.id.lowercased()] = entry }
+        for entry in dump.entries where entry.entryDllHash == nil {
+            if let id = entry.id { byLowerId[id.lowercased()] = entry }
+        }
         var out: [String: Entry] = [:]
         for uid in uniqueIds {
             let key = uid.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -138,27 +171,13 @@ public enum SmapiBlacklist {
         return out
     }
 
-    /// Les noms de fichiers à surveiller, en minuscules.
-    ///
-    /// Sert de **grille de tri** avant tout calcul d'empreinte : le parc compte
-    /// des centaines de milliers de fichiers, en hacher ne serait-ce qu'une
-    /// fraction serait hors de question. Un seul nom est surveillé aujourd'hui
-    /// (`Auto_Alchemistry.bat`), et le parc de référence n'en porte aucun — ni
-    /// même un seul `.bat`.
-    public static func watchedFileNames(in dump: Dump) -> Set<String> {
-        Set(dump.looseFiles.map { $0.name.lowercased() })
-    }
-
-    /// Le verdict sur un fichier dont le **nom** a déjà passé la grille.
-    ///
-    /// Rend l'entrée seulement si l'empreinte correspond aussi : un fichier qui
-    /// porte le nom sans le contenu est innocent, et le condamner sur son nom
-    /// accuserait à tort.
+    /// Le verdict sur un fichier : chaque champ présent de l'entrée doit
+    /// correspondre, l'empreinte comprise. Un fichier qui porte le nom sans le
+    /// contenu est innocent, et le condamner sur son nom accuserait à tort.
     public static func looseFileVerdict(name: String, contents: Data, in dump: Dump) -> LooseFile? {
-        let lower = name.lowercased()
         let digest = Insecure.MD5.hash(data: contents).map { String(format: "%02x", $0) }.joined()
         return dump.looseFiles.first {
-            $0.name.lowercased() == lower && $0.hash.lowercased() == digest
+            $0.screens(fileName: name) && ($0.hash.map { $0.lowercased() == digest } ?? true)
         }
     }
 

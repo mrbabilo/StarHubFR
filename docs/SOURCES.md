@@ -255,9 +255,10 @@ sections, mais la forme générée permet ce que notre décodeur ne lit pas :
 
 Relevé le 2026-09-29 : la ressource servie est encore l'ancien JSONC commenté
 (18 `Id`, aucun `EntryDllHash` ni `Extension`) — le convertisseur n'est pas
-déployé. Aucun des 18 `Id` n'est au parc. **À faire avant le déploiement** :
-lire les entrées sans `Id` et les fichiers par extension (**X116**), sinon
-une entrée par empreinte passera inaperçue sans erreur.
+déployé. Aucun des 18 `Id` n'est au parc. **Lu depuis X116 (2026-09-29)** :
+chaque champ est décodé et jugé selon les règles de SMAPI
+(`SmapiBlacklistScan`) ; seules les entrées de fichier par empreinte seule
+restent non vérifiées — comptées et dites au journal.
 
 ### 2.3 Nexus Mods — API v1 (REST)
 
