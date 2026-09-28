@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Extrait les fixtures de ProbeFilesTests des vrais fichiers de la sonde.
 
-Rejouable : `python3 Tests/ProbeFilesTests/make_fixtures.py [dossier_sonde] [sortie]`.
+Rejouable : `python3 Tests/ProbeFilesTests/make_fixtures.py [dossier_sonde] [sortie] [--harmony-map]`.
 Rien n'est écrit à la main : les lignes et les méthodes viennent telles quelles
 des fichiers produits par companion/StarHubFR.Probe ; seuls les tableaux `Mods`
 de mod-costs.jsonl sont réduits (une ligne réelle pèse ~44 Ko).
 """
 import json, os, sys
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser(
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+SRC = ARGS[0] if ARGS else os.path.expanduser(
     "~/.config/StardewValley/ModData/mrbabilo.StarHubFR.Probe")
-OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "Fixtures")
+OUT = ARGS[1] if len(ARGS) > 1 else os.path.join(os.path.dirname(__file__), "Fixtures")
 os.makedirs(OUT, exist_ok=True)
 
 PERF = {"palmhacker13.ultrasmooth", "arshia1381.stardropium", "phuicmt.sdvradiance",
@@ -18,8 +19,10 @@ PERF = {"palmhacker13.ultrasmooth", "arshia1381.stardropium", "phuicmt.sdvradian
 PERF_ASM = {"UltraSmooth", "Stardropium", "SDV-Radiance", "SinZational Speedy Solutions",
             "StardewLoadingOptimizer"}
 EXTRA_OWNERS = {"Cropgenics.cjb-compat", "MiniMonoModHotfix", "mrbabilo.StarHubFR.Probe.PatchCosts"}
-TIMING_SESSIONS = ("2026-09-26T01:38", "2026-09-26T01:53", "2026-09-26T20:30")
-COST_SESSIONS = ("2026-09-26T02:33", "2026-09-26T20:30")
+TIMING_SESSIONS = ("2026-09-26T01:38", "2026-09-26T01:53", "2026-09-26T20:30",
+                   "2026-09-28T18:56", "2026-09-28T19:21")
+COST_SESSIONS = ("2026-09-26T02:33", "2026-09-26T20:30", "2026-09-28T18:56")
+INVENTORY_SESSIONS = ("2026-09-28T18:56", "2026-09-28T19:21")
 COST_MODS = PERF | {"pathoschild.contentpatcher", "mrbabilo.starhubfr.probe"}
 
 # Carte : méthodes touchant un mod de performance, plus quelques propriétaires secondaires.
@@ -28,7 +31,11 @@ kept = [me for me in m["Methods"]
         if me["DeclaringAssembly"] in PERF_ASM
         or any(p["Owner"].lower() in PERF or p["Owner"] in EXTRA_OWNERS for p in me["Patches"])]
 m["Methods"] = kept
-json.dump(m, open(os.path.join(OUT, "harmony-map.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+# La carte des patchs est figée au 2026-09-26 : les mods de performance ont
+# quitté le parc depuis, une carte régénérée n'aurait plus aucun chevauchement
+# à tester. `--harmony-map` la réécrit exprès.
+if "--harmony-map" in sys.argv:
+    json.dump(m, open(os.path.join(OUT, "harmony-map.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 def pick(name, sessions, shrink=None):
     lines = [l.rstrip("\n") for l in open(os.path.join(SRC, name), encoding="utf-8")]
@@ -46,6 +53,7 @@ def shrink_costs(line):
 
 t = pick("timings.jsonl", TIMING_SESSIONS)
 c = pick("mod-costs.jsonl", COST_SESSIONS, shrink_costs)
+pick("inventory.jsonl", INVENTORY_SESSIONS)
 
 # Ce que les tests attendent : à comparer aux valeurs écrites dans le plan.
 def short(s):

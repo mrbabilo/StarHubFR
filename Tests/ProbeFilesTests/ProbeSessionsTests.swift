@@ -8,14 +8,28 @@ struct ProbeSessionsTests {
                              costs: try Fixture.data("mod-costs.jsonl"))
     }
 
-    /// Les deux fichiers se rejoignent par l'identifiant de session : trois
-    /// sessions côté trames, deux côté coûts, une en commun (20:30).
+    /// Les deux fichiers se rejoignent par l'identifiant de session : cinq
+    /// sessions côté trames, trois côté coûts, deux en commun (20:30, 18:56).
     @Test func sessionsAreSeparatedByTheirIdentifierAndSortedByDate() throws {
         let result = try sessions()
+        // Tri par date de démarrage : le 26 à 20:30 précède le 28.
         #expect(result.sessions.map { String($0.id.prefix(16)) }
-                == ["2026-09-26T01:38", "2026-09-26T01:53", "2026-09-26T02:33", "2026-09-26T20:30"])
-        #expect(result.sessions.map(\.minutes.count) == [8, 11, 0, 8])
-        #expect(result.sessions.map(\.costs.count) == [0, 0, 6, 8])
+                == ["2026-09-26T01:38", "2026-09-26T01:53", "2026-09-26T02:33",
+                    "2026-09-26T20:30", "2026-09-28T18:56", "2026-09-28T19:21"])
+        #expect(result.sessions.map(\.minutes.count) == [8, 11, 0, 8, 5, 3])
+        #expect(result.sessions.map(\.costs.count) == [0, 0, 6, 8, 5, 0])
+    }
+
+    /// Les lignes 0.4.12+ portent `MenuTicks` — **toutes**, écran titre
+    /// compris (442/444 à 18:59:31) ; les anciennes non.
+    @Test func menuShareComesFromMenuTicksAndTicks() throws {
+        let result = try sessions()
+        let recent = try #require(result.sessions.first { $0.id.hasPrefix("2026-09-28T18:56") })
+        let shares = recent.minutes.compactMap(\.menuShare)
+        #expect(shares.count == 5)
+        #expect(abs(shares[0] - 442.0 / 444.0) < 0.001)
+        let old = result.sessions[0]
+        #expect(old.minutes.allSatisfy { $0.menuShare == nil && $0.menuTicks == nil })
     }
 
     /// La dernière ligne de chaque fichier est une ligne réelle coupée net :

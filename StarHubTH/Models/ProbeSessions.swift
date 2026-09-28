@@ -22,6 +22,20 @@ public struct ProbeMinute: Decodable, Equatable, Sendable {
     public let frameInterval: Stats
     public let heapMB: Double?
     public let loadedMods: Int?
+    /// Ticks de la minute avec un menu ouvert (sonde ≥ 0.4.12).
+    public let menuTicks: Int?
+    /// Heure du jeu en fin de minute (`Game1.timeOfDay`), sonde ≥ 0.4.12.
+    public let gameTime: Int?
+    public let tick: Stats?
+    public let update: Stats?
+    public let draw: Stats?
+
+    /// Part de la minute passée un menu ouvert. `nil` pour les lignes des
+    /// sondes < 0.4.12 (champ absent) ou sans tick.
+    public var menuShare: Double? {
+        guard let menuTicks, let count = tick?.count, count > 0 else { return nil }
+        return Double(menuTicks) / Double(count)
+    }
 
     /// Fenêtre sans focus : MonoGame dort 20 ms par tick, la minute ne décrit
     /// pas le jeu.

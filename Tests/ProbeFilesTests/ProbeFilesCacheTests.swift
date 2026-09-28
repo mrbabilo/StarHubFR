@@ -32,7 +32,7 @@ struct ProbeFilesCacheTests {
         }
         let files = ProbeFiles(directory: directory)
         #expect(files.harmonyMap()?.mods.count == 291)
-        #expect(files.sessions().sessions.count == 4)
+        #expect(files.sessions().sessions.count == 6)
     }
 
     /// Une nouvelle session réécrit la carte pendant que l'app tourne : relue.
