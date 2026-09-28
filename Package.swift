@@ -69,6 +69,7 @@ let package = Package(
                 "Models/ProbeHarmonyMap.swift",
                 "Models/ProbeFiles.swift",
                 "Models/ProbeInventory.swift",
+                "Models/ProbeSegments.swift",
                 "Models/ProbeOverlaps.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
