@@ -175,6 +175,7 @@ let package = Package(
                 "Models/ModHistory.swift",
                 "Models/NexusFileManifestFetcher.swift",
                 "Models/UpdateTriageSession.swift",
+                "Models/LegacyCleanupSession.swift",
                 "Models/ModHistoryRecorder.swift",
                 "Models/TranslationOriginalsRebase.swift",
                 "Models/SmapiBlacklist.swift",

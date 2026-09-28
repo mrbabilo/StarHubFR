@@ -8,6 +8,9 @@ public enum BackupReason: String, Codable, Sendable {
     /// it — registered as its own backup (rather than discarded) so
     /// restoring is itself undoable.
     case beforeRestore
+    /// A1-T11 plan 2 — le dossier tel qu'avant « Nettoyer les anciens
+    /// fichiers » : les fichiers retirés s'y retrouvent.
+    case beforeCleanup
 }
 
 /// Metadata about a mod extracted from manifest.json
