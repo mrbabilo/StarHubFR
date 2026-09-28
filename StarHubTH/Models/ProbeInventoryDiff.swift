@@ -70,9 +70,11 @@ public enum ProbeInventoryDiffRule {
 
     /// L'empreinte vient d'un fichier : hexadécimale ou rien, jamais un chemin.
     private static func tree(_ sha: String?, in directory: URL) -> ConfigJSONTree.Value? {
+        // Contenu absent : cas prévu (la sonde ne les range pas tous).
         guard let sha, !sha.isEmpty, sha.allSatisfy(\.isHexDigit),
-              let text = try? String(contentsOf: directory.appendingPathComponent("\(sha).json"),
-                                     encoding: .utf8)
+              let data = FileManager.default.contents(
+                  atPath: directory.appendingPathComponent("\(sha).json").path),
+              let text = String(data: data, encoding: .utf8)
         else { return nil }
         return ConfigJSONTree.parse(text)
     }

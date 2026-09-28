@@ -70,7 +70,13 @@ public final class ProbeSessionsIndex: @unchecked Sendable {
         // non : l'identifiant indexé doit être celui du décodage complet, sinon
         // `wanted` ne reconnaît aucune ligne. Chemin rapide sans barre oblique.
         guard raw.contains(UInt8(ascii: "\\")) else { return String(decoding: raw, as: UTF8.self) }
-        return try? JSONDecoder().decode(String.self, from: Data("\"".utf8) + raw + Data("\"".utf8))
+        do {
+            return try JSONDecoder().decode(String.self, from: Data("\"".utf8) + raw + Data("\"".utf8))
+        } catch {
+            // Échappement coupé net : pas de session reconnaissable, la ligne
+            // reste décodée pour être comptée illisible.
+            return nil
+        }
     }
 
     private static func select(_ file: IndexedFile, keeping wanted: Set<String>?) -> Data {
