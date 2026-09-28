@@ -52,6 +52,9 @@ public struct ProbeComparison: Equatable, Sendable {
     public let workP50: ProbeMeasureComparison
     public let fps: ProbeMeasureComparison
     public let heap: ProbeMeasureComparison
+    /// Cadence des ticks (appels à `Update` par seconde) : 60 en pas fixe,
+    /// celle des trames en pas variable (UltraSmooth 2.3.9, X117).
+    public let updatesPerSecond: ProbeMeasureComparison
     /// Plafond de synchro verticale des deux côtés : le verdict de tête
     /// passe au travail de trame.
     public let vsyncLimited: Bool
@@ -67,6 +70,7 @@ public struct ProbeComparison: Equatable, Sendable {
         let work = compare(a.compactMap(workP50(of:)), b.compactMap(workP50(of:)))
         let fps = compare(a.map(\.minute.fps), b.map(\.minute.fps))
         let heap = compare(a.compactMap(\.minute.heapMB), b.compactMap(\.minute.heapMB))
+        let updatesPerSecond = compare(a.compactMap(updatesPerSecond(of:)), b.compactMap(updatesPerSecond(of:)))
 
         // Plafond de synchro des deux côtés, pas forcément le même : le jeu
         // plafonne à 60 i/s, UltraSmooth le débride jusqu'à la fréquence de
@@ -81,7 +85,8 @@ public struct ProbeComparison: Equatable, Sendable {
         let patchesMismatch = Set(a.compactMap(\.patchesMeasured)) != Set(b.compactMap(\.patchesMeasured))
         let verdict = patchesMismatch ? .notEnoughData : (vsyncLimited ? work.verdict : frameP50.verdict)
         return ProbeComparison(frameP50: frameP50, frameP99: frameP99, workP50: work,
-                               fps: fps, heap: heap, vsyncLimited: vsyncLimited,
+                               fps: fps, heap: heap, updatesPerSecond: updatesPerSecond,
+                               vsyncLimited: vsyncLimited,
                                patchesMismatch: patchesMismatch, verdict: verdict)
     }
 
@@ -117,6 +122,11 @@ public struct ProbeComparison: Equatable, Sendable {
 
     static func isAtRefreshCeiling(_ frameMs: Double) -> Bool {
         refreshRates.contains { abs(frameMs - 1000 / $0) <= 0.02 * (1000 / $0) }
+    }
+
+    private static func updatesPerSecond(of item: ProbeComparableMinute) -> Double? {
+        guard let count = item.minute.update?.count, item.minute.wallSeconds > 0 else { return nil }
+        return Double(count) / item.minute.wallSeconds
     }
 
     private static func workP50(of item: ProbeComparableMinute) -> Double? {

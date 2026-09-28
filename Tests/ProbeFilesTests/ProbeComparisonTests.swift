@@ -94,4 +94,12 @@ struct ProbeComparisonTests {
         #expect(!ProbeComparison.compare(side(30), side(36)).vsyncLimited)
         #expect(!ProbeComparison.compare(side(12), side(16.6)).vsyncLimited)      // un seul côté
     }
+
+    /// La cadence des ticks de chaque côté : `Update.Count / WallSeconds`
+    /// (la fixture de test porte 60 appels en 60 s).
+    @Test func updatesPerSecondComeFromTheUpdateCount() {
+        let result = ProbeComparison.compare(side(30), side(36))
+        #expect(result.updatesPerSecond.a.median == 1)
+        #expect(result.updatesPerSecond.b.count == 5)
+    }
 }

@@ -12,16 +12,21 @@ struct ProbeAnalysisTests {
         locationsRestricted: Bool = true,
         measurement: ProbeMeasurement? = nil,
         patchesMismatch: Bool = false, dominantLocation: String? = nil,
-        workVerdict: ProbeMeasureComparison.Verdict = .noise
+        workVerdict: ProbeMeasureComparison.Verdict = .noise,
+        updatesPerSecond: (a: Double, b: Double)? = nil
     ) -> ProbeAnalysisInput {
         let a = ProbeSideSummary(count: keptA, median: 30, q1: 29, q3: 31)
         let b = ProbeSideSummary(count: keptB, median: 33, q1: 32, q3: 34)
         func measure(_ verdict: ProbeMeasureComparison.Verdict) -> ProbeMeasureComparison {
             ProbeMeasureComparison(a: a, b: b, verdict: verdict)
         }
+        let rates = ProbeMeasureComparison(
+            a: ProbeSideSummary(count: keptA, median: updatesPerSecond?.a, q1: nil, q3: nil),
+            b: ProbeSideSummary(count: keptB, median: updatesPerSecond?.b, q1: nil, q3: nil),
+            verdict: .noise)
         let comparison = ProbeComparison(
             frameP50: measure(verdict), frameP99: measure(.noise), workP50: measure(workVerdict),
-            fps: measure(.noise), heap: measure(.noise), vsyncLimited: false,
+            fps: measure(.noise), heap: measure(.noise), updatesPerSecond: rates, vsyncLimited: false,
             patchesMismatch: patchesMismatch, verdict: verdict)
         return ProbeAnalysisInput(comparison: comparison, diff: diff, costDeltas: costs,
                                   exclusionsA: [:], exclusionsB: [:],
@@ -218,5 +223,17 @@ struct ProbeAnalysisTests {
                 .evidence.contains(.frameWorkUnchanged))
         #expect(!ProbeAnalysis.analyze(input(verdict: .noise, workVerdict: .noise))
                 .evidence.contains(.frameWorkUnchanged))
+    }
+
+    /// X117 — la cadence mesurée, pas 60 : en pas variable (UltraSmooth 2.3.9)
+    /// les ticks suivent les trames. À 30 ticks/s, 12 ms/s pèsent 0,4 ms par
+    /// tick : la part indirecte d'un écart de 1 ms tombe à 0,6.
+    @Test func directCostUsesTheMeasuredTickRate() {
+        let result = ProbeAnalysis.analyze(input(
+            diff: added("Mod.A"),
+            costs: [ProbeCostDelta(modId: "Mod.A", msPerSecondA: nil, msPerSecondB: 12, presence: .added)],
+            workVerdict: .netChange(delta: 1, percent: 11.1),
+            updatesPerSecond: (a: 30, b: 30)))
+        #expect(result.evidence.contains(.indirectShare(0.6)))
     }
 }

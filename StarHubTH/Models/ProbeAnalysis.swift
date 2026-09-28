@@ -75,9 +75,10 @@ public struct ProbeAnalysisResult: Equatable, Sendable {
 /// Règles explicables et déterministes (spec §3d) : mêmes données, même
 /// réponse. Fonction pure.
 public enum ProbeAnalysis {
-    /// Cadence fixe des ticks SMAPI : convertit un coût en ms par seconde
-    /// dans l'unité du travail de trame (ms par tick).
-    static let ticksPerSecond = 60.0
+    /// Cadence des ticks en pas fixe, le défaut du jeu : sert quand la sonde
+    /// n'a pas relevé `Update` (lignes anciennes). En pas variable (UltraSmooth
+    /// 2.3.9) la cadence mesurée de chaque côté la remplace (X117).
+    static let fixedTicksPerSecond = 60.0
     /// Minutes comparables de chaque côté pour une confiance élevée.
     static let enoughMinutes = 15
 
@@ -147,7 +148,15 @@ public enum ProbeAnalysis {
         // (patches Harmony, mémoire, GC) : retour au protocole.
         var indirectDominant = false
         if case .netChange(let workDelta, _) = input.comparison.workP50.verdict, workDelta != 0 {
-            let directPerTick = direct.reduce(0.0) { $0 + $1.delta } / ticksPerSecond
+            // Chaque côté ramené en ms par tick à **sa** cadence : un mod
+            // à 12 ms/s coûte 0,2 ms par tick à 60 ticks/s, 0,4 à 30.
+            let rateA = input.comparison.updatesPerSecond.a.median.flatMap { $0 > 0 ? $0 : nil }
+                ?? fixedTicksPerSecond
+            let rateB = input.comparison.updatesPerSecond.b.median.flatMap { $0 > 0 ? $0 : nil }
+                ?? fixedTicksPerSecond
+            let directPerTick = direct.reduce(0.0) {
+                $0 + ($1.msPerSecondB ?? 0) / rateB - ($1.msPerSecondA ?? 0) / rateA
+            }
             let indirect = workDelta - directPerTick
             if abs(indirect) > abs(workDelta) / 2 {
                 evidence.append(.indirectShare((indirect / workDelta * 100).rounded() / 100))
