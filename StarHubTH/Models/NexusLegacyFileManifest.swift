@@ -17,6 +17,10 @@ public struct NexusLegacyFileManifest: Equatable, Sendable {
         self.paths = paths
     }
 
+    /// Des chemins que presque toute racine livre : sans empreinte, ils ne
+    /// prouvent pas qu'une archive est celle de ce mod.
+    static let everyRootHasThem: Set<String> = ["manifest.json", "content.json", "i18n/default.json"]
+
     private struct Node: Decodable {
         let path: String?
         let type: String?
@@ -50,7 +54,9 @@ public struct NexusLegacyFileManifest: Equatable, Sendable {
     ///
     /// `manifest.json` ne compte pas dans la concordance : sans empreinte, il
     /// concorde avec **toute** racine, et l'archive d'un autre composant du
-    /// pack passerait pour une version de ce mod.
+    /// pack passerait pour une version de ce mod. Même chose pour
+    /// `content.json` et `i18n/default.json`, présents dans presque tout pack
+    /// Content Patcher.
     ///
     /// `nil` sans racine à `manifest.json` (un optionnel posé par-dessus le
     /// mod n'est pas une version d'auteur), sans concordance, ou à égalité.
@@ -70,7 +76,7 @@ public struct NexusLegacyFileManifest: Equatable, Sendable {
         var tie = false
         for root in roots {
             let mapped = Set(keys.filter { $0.hasPrefix(root) }.map { String($0.dropFirst(root.count)) })
-            let score = mapped.intersection(installed).subtracting(["manifest.json"]).count
+            let score = mapped.intersection(installed).subtracting(Self.everyRootHasThem).count
             if score > (best?.score ?? 0) {
                 best = (score, mapped)
                 tie = false

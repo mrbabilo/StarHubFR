@@ -23,6 +23,7 @@ struct ModCleanupSheet: View {
 
     @State private var phase: Phase = .analyzing
     @State private var selection: Set<String> = []
+    @State private var gameRunningAtConfirm = false
 
     /// Un autre dossier porte le même `UniqueID` (Swim installé deux fois) :
     /// leur journal commun ne sert ni de référence ni de destination.
@@ -182,6 +183,12 @@ struct ModCleanupSheet: View {
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if gameRunningAtConfirm {
+                    Text(localization.L(L10n.ModCleanup.gameRunning))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(AppDesign.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         HStack {
@@ -223,11 +230,10 @@ struct ModCleanupSheet: View {
     }
 
     private func apply() {
-        // Le jeu a pu démarrer depuis l'ouverture de la feuille.
-        guard !viewModel.isGameRunning() else {
-            phase = .finished(localization.L(L10n.ModCleanup.gameRunning))
-            return
-        }
+        // Le jeu a pu démarrer depuis l'ouverture de la feuille : la liste et
+        // la sélection restent, il suffit de fermer le jeu et de confirmer.
+        gameRunningAtConfirm = viewModel.isGameRunning()
+        guard !gameRunningAtConfirm else { return }
         let chosen = selected
         let mod = mod
         let gameDir = viewModel.gameDir

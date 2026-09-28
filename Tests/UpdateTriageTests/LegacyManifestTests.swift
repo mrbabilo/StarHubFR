@@ -59,6 +59,15 @@ struct LegacyManifestTests {
         #expect(other.paths(matching: ["manifest.json", "mine.png"]) == nil)
     }
 
+    @Test func aRootMatchedOnlyByContentPatcherBoilerplateIsNotThisMod() {
+        // content.json et i18n/default.json sont dans presque tout pack Content
+        // Patcher : un composant voisin ne concorde pas par eux.
+        let other = manifest(["Other/manifest.json", "Other/content.json", "Other/i18n/default.json",
+                              "Other/assets/x.png"])
+        #expect(other.paths(matching: ["manifest.json", "content.json", "i18n/default.json", "mine.png"]) == nil)
+        #expect(other.paths(matching: ["manifest.json", "content.json", "assets/x.png"]) != nil)
+    }
+
     @Test func pathsCompareWithoutCase() {
         let m = manifest(["Mod/Manifest.json", "Mod/Assets/Old.PNG"])
         #expect(m.paths(matching: ["manifest.json", "assets/old.png"]) == ["manifest.json", "assets/old.png"])

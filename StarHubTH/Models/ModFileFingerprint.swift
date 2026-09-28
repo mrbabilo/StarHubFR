@@ -21,12 +21,18 @@ public enum ModFilePath {
 
     /// Un fichier de traduction autre que la langue de l'auteur :
     /// `i18n/fr.json`, `Sub/i18n/zh.json` — jamais `default.json` ni
-    /// `en.json`, que l'auteur écrit (C2-T4). Prend une clé (`key(_:)`).
+    /// `en.json`, que l'auteur écrit (C2-T4). Forme dossier de SMAPI 4 aussi :
+    /// `i18n/fr/gui.json`, jamais `i18n/default/…` ni `i18n/en/…` (la règle
+    /// d'`I18nLocaleResolver`). Prend une clé (`key(_:)`).
     public static func isTranslation(_ key: String) -> Bool {
         let parts = key.split(separator: "/")
-        guard parts.count >= 2, parts[parts.count - 2] == "i18n",
-              let name = parts.last, name.hasSuffix(".json") else { return false }
-        return name != "default.json" && name != "en.json"
+        guard parts.count >= 2, let name = parts.last, name.hasSuffix(".json") else { return false }
+        if parts[parts.count - 2] == "i18n" {
+            return name != "default.json" && name != "en.json"
+        }
+        guard parts.count >= 3, parts[parts.count - 3] == "i18n" else { return false }
+        let locale = parts[parts.count - 2]
+        return locale != "default" && locale != "en"
     }
 
     /// Du code : une retouche n'y est jamais gardée (règle 5), l'ancien code

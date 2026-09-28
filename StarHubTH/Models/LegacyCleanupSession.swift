@@ -140,25 +140,36 @@ public enum LegacyCleanupSession {
         }
     }
 
-    /// `removeItemGrantingWriteAccess` n'ouvre que le fichier : dans un
-    /// dossier en 0555 (cas réel du parc), c'est le **dossier** qu'il faut
-    /// ouvrir pour y effacer une entrée.
-    private static func removeGrantingParentWriteAccess(_ file: URL) throws {
+    /// `removeItemGrantingWriteAccess` n'ouvre que l'élément : dans un
+    /// dossier en 0555 (cas réel du parc), c'est le **dossier parent** qu'il
+    /// faut ouvrir pour y effacer une entrée. Ses droits d'origine lui sont
+    /// rendus ensuite, retrait réussi ou non : l'ouverture ne sert qu'au
+    /// retrait. Vaut pour un fichier comme pour un dossier vidé.
+    private static func removeGrantingParentWriteAccess(_ item: URL) throws {
         do {
-            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: file.path)
+            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: item.path)
         } catch {
-            let parent = file.deletingLastPathComponent().path
+            let parent = item.deletingLastPathComponent().path
             let fm = FileManager.default
             guard let mode = (try fm.attributesOfItem(atPath: parent))[.posixPermissions] as? NSNumber
             else { throw error }
             try fm.setAttributes([.posixPermissions: NSNumber(value: mode.uint16Value | 0o700)],
                                  ofItemAtPath: parent)
-            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: file.path)
+            defer {
+                do {
+                    try fm.setAttributes([.posixPermissions: mode], ofItemAtPath: parent)
+                } catch {
+                    // Droits non rendus : le dossier reste ouvert en écriture,
+                    // comme après une installation — le mod n'en souffre pas.
+                }
+            }
+            try ModZipInstaller.removeItemGrantingWriteAccess(atPath: item.path)
         }
     }
 
     /// Les dossiers vidés par le retrait (`obj/Debug/` de FOTP), jusqu'au
-    /// dossier du mod exclu. Un `.DS_Store` seul compte pour vide.
+    /// dossier du mod exclu. Un `.DS_Store` seul compte pour vide. Un parent
+    /// en 0555 est ouvert le temps du retrait, comme pour un fichier.
     private static func pruneEmptyDirectories(from starts: Set<URL>, upTo root: URL) {
         let fm = FileManager.default
         for start in starts.sorted(by: { $0.path.count > $1.path.count }) {
@@ -172,7 +183,7 @@ public enum LegacyCleanupSession {
                 }
                 guard names.allSatisfy({ $0 == ".DS_Store" }) else { break }
                 do {
-                    try ModZipInstaller.removeItemGrantingWriteAccess(atPath: directory.path)
+                    try removeGrantingParentWriteAccess(directory)
                 } catch {
                     break
                 }

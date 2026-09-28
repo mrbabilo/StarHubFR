@@ -30,6 +30,12 @@ struct FingerprintTests {
         #expect(!ModFilePath.isTranslation("i18n/default.json"))
         #expect(!ModFilePath.isTranslation("i18n/en.json"))
         #expect(!ModFilePath.isTranslation("fr.json"))
+        // Forme dossier de SMAPI 4 : une locale est un sous-dossier d'i18n.
+        #expect(ModFilePath.isTranslation("i18n/fr/gui.json"))
+        #expect(ModFilePath.isTranslation("[cp] x/i18n/zh/items.json"))
+        #expect(!ModFilePath.isTranslation("i18n/default/gui.json"))
+        #expect(!ModFilePath.isTranslation("i18n/en/gui.json"))
+        #expect(!ModFilePath.isTranslation("i18n/fr/readme.txt"))
         #expect(ModFilePath.isCode("bin/release/net6.0/fotp.dll"))
         #expect(!ModFilePath.isCode("assets/dll.png"))
     }

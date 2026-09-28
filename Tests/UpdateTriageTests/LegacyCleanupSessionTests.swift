@@ -183,6 +183,55 @@ struct LegacyCleanupSessionTests {
                                                     backupManager: manager(), historyDirectory: nil)
         #expect(result.removed.map(\.path) == ["locked/ghost.png"])
         #expect(!FileManager.default.fileExists(atPath: locked + "/ghost.png"))
+        // Le dossier retrouve ses droits : l'ouverture ne sert qu'au retrait.
+        #expect(try mode(of: locked) == 0o555)
+    }
+
+    private func mode(of path: String) throws -> Int {
+        let attributes = try FileManager.default.attributesOfItem(atPath: path)
+        return ((attributes[.posixPermissions] as? NSNumber)?.intValue ?? 0) & 0o777
+    }
+
+    @Test func aFolderEmptiedInsideAReadOnlyFolderIsPruned() throws {
+        defer {
+            ModZipInstaller.grantOwnerWriteAccess(in: root)
+            try? FileManager.default.removeItem(at: root)
+        }
+        try write("m", "Game/Mods/SampleMod/manifest.json")
+        try write("old", "Game/Mods/SampleMod/locked/sub/ghost.png")
+        try write("keep", "Game/Mods/SampleMod/locked/keep.png")
+        let locked = root.appendingPathComponent("Game/Mods/SampleMod/locked").path
+        let ghost = try candidate("locked/sub/ghost.png")
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: locked)
+        let result = try LegacyCleanupSession.apply([ghost], mod: mod(), gameDir: gameDir,
+                                                    backupManager: manager(), historyDirectory: nil)
+        #expect(result.removed.map(\.path) == ["locked/sub/ghost.png"])
+        #expect(!FileManager.default.fileExists(atPath: locked + "/sub"))
+        #expect(try mode(of: locked) == 0o555)
+    }
+
+    private func component(enabled: Bool) -> ModItem {
+        ModItem(uniqueId: "a.component", name: "Comp", folderName: "Pack/Comp", version: "1.0.0",
+                author: "A", description: "", nexusUrl: "", nexusModId: "", isEnabled: enabled,
+                dependencies: [], children: nil, isGroup: false)
+    }
+
+    @Test(arguments: [true, false])
+    func aPackComponentIsCleanedInItsOwnFolder(enabled: Bool) throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = enabled ? "Pack/Comp" : ".Pack/Comp"
+        try write("m", "Game/Mods/\(folder)/manifest.json")
+        try write("old", "Game/Mods/\(folder)/old.png")
+        try write("sibling", "Game/Mods/\(enabled ? "Pack" : ".Pack")/Other/old.png")
+        let backups = manager()
+        let result = try LegacyCleanupSession.apply([try candidate("old.png", in: folder)],
+                                                    mod: component(enabled: enabled), gameDir: gameDir,
+                                                    backupManager: backups, historyDirectory: nil)
+        #expect(result.removed.map(\.path) == ["old.png"])
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("Game/Mods/\(folder)/old.png").path))
+        #expect(FileManager.default.fileExists(
+            atPath: root.appendingPathComponent("Game/Mods/\(enabled ? "Pack" : ".Pack")/Other/old.png").path))
+        #expect(backups.loadBackups().count == 1)
     }
 
     @Test func aPausedModIsCleanedInItsRealFolder() throws {

@@ -16,6 +16,10 @@ where the exact log format was verified.
 
 - **Nettoyer les anciens fichiers d'un mod.** Dans sa fiche, l'historique propose de retirer ce que d'anciennes versions ont laissé : coché quand c'est identique à un fichier de l'auteur, décoché quand ce n'est que probable. Le dossier est sauvegardé d'abord.
 
+### Fixed
+
+- **Une mise à jour garde tes traductions rangées en dossier.** Un `i18n/fr/gui.json` (forme de SMAPI 4) était remplacé par la version de l'auteur quand l'historique ne permettait pas de trancher ; il est désormais gardé, comme un `i18n/fr.json`.
+
 ## [1.51.0] - 2026-09-28
 
 ### Added

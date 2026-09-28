@@ -86,6 +86,14 @@ struct TriageTests {
         #expect(result.decisions["i18n/fr.json"] == .keepUnverifiedTranslation)
     }
 
+    @Test func withoutReferenceAFolderFormTranslationIsKeptToo() {
+        // SMAPI 4 : `i18n/fr/gui.json`. Remplacée jusqu'ici, comme un asset.
+        let result = plan(installed: ["i18n/fr/gui.json": "mine", "i18n/default/gui.json": "old"],
+                          new: ["i18n/fr/gui.json": "author", "i18n/default/gui.json": "new"], versions: [])
+        #expect(result.decisions["i18n/fr/gui.json"] == .keepUnverifiedTranslation)
+        #expect(result.decisions["i18n/default/gui.json"] == .replaceUnverified)
+    }
+
     @Test func manifestAndCodeAlwaysTakeTheNewVersion() {
         let result = plan(installed: ["manifest.json": "mine", "Mod.dll": "mine", "content.json": "mine"],
                           new: ["manifest.json": "v2", "Mod.dll": "v2", "content.json": "v2"],
