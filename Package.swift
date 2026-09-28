@@ -171,6 +171,7 @@ let package = Package(
                 "Models/NexusLegacyFileManifest.swift",
                 "Models/AuthorFileIndex.swift",
                 "Models/UpdateFileTriage.swift",
+                "Models/LegacyFileCleanup.swift",
                 "Models/ModHistory.swift",
                 "Models/NexusFileManifestFetcher.swift",
                 "Models/UpdateTriageSession.swift",
