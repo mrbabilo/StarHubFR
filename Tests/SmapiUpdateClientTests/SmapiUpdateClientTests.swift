@@ -18,12 +18,13 @@ import Testing
 /// tests concurrents se voleraient leurs réponses.
 ///
 /// Tests `async`, jamais d'attente bloquante : le client tourne dans un `Task`
-/// puis rend sur le fil principal. Un test qui bloquait un thread du pool
-/// coopératif sur un sémaphore attendait un travail qui a besoin de ce même
-/// pool — trois threads sur la CI (macos-15), des milliers de tests en file :
-/// la complétion arrivait en 4 s sur une passe verte, puis plus du tout en
-/// 20 s, et le déballage forcé tuait tout le processus de test (2026-09-27).
-/// `.timeLimit` borne une complétion perdue sans rien tuer d'autre.
+/// puis rend sur le fil principal, et un test qui tient un thread du pool
+/// coopératif en attendant ce travail en prive tout le processus — trois
+/// threads seulement sur la CI (macos-15).
+///
+/// `.timeLimit` signale une complétion perdue, il ne débloque pas le test : une
+/// continuation jamais reprise n'est pas interrompue par l'annulation, et le
+/// processus reste suspendu après le signalement (vérifié le 2026-09-28).
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct SmapiUpdateClientTests {
 
