@@ -24,6 +24,14 @@ struct ModCleanupSheet: View {
     @State private var phase: Phase = .analyzing
     @State private var selection: Set<String> = []
 
+    /// Un autre dossier porte le même `UniqueID` (Swim installé deux fois) :
+    /// leur journal commun ne sert ni de référence ni de destination.
+    private var uniqueIdIsShared: Bool {
+        viewModel.mods.flattenedMods.filter {
+            $0.uniqueId.caseInsensitiveCompare(mod.uniqueId) == .orderedSame
+        }.count > 1
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(String(format: localization.L(L10n.ModCleanup.title), mod.name))
@@ -78,7 +86,12 @@ struct ModCleanupSheet: View {
         let probable = plan.candidates.filter { $0.certainty == .pathOnly }
         return ScrollView {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-                if plan.nexusIncomplete {
+                if !plan.preselectsIdentical {
+                    Text(localization.L(L10n.ModCleanup.unverified))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(AppDesign.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if plan.nexusIncomplete {
                     Text(localization.L(L10n.ModCleanup.nexusIncomplete))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.warning)
@@ -192,15 +205,17 @@ struct ModCleanupSheet: View {
         let gameDir = viewModel.gameDir
         let translations = viewModel.installedTranslations
         let customIds = viewModel.nexusCustomModIds
+        let shared = uniqueIdIsShared
         DispatchQueue.global(qos: .userInitiated).async {
             let outcome = LegacyCleanupSession.analyze(mod: mod, gameDir: gameDir, translations: translations,
-                                                       customNexusIds: customIds)
+                                                       customNexusIds: customIds, uniqueIdIsShared: shared)
             DispatchQueue.main.async {
                 switch outcome {
                 case .noReference:
                     phase = .noReference
                 case .plan(let plan):
-                    selection = Set(plan.candidates.filter { $0.certainty == .identical }.map(\.path))
+                    selection = plan.preselectsIdentical
+                        ? Set(plan.candidates.filter { $0.certainty == .identical }.map(\.path)) : []
                     phase = .ready(plan)
                 }
             }
@@ -216,11 +231,13 @@ struct ModCleanupSheet: View {
         let chosen = selected
         let mod = mod
         let gameDir = viewModel.gameDir
+        let shared = uniqueIdIsShared
         phase = .applying
         DispatchQueue.global(qos: .userInitiated).async {
             let outcome: Result<LegacyCleanupSession.ApplyResult, Error>
             do {
-                outcome = .success(try LegacyCleanupSession.apply(chosen, mod: mod, gameDir: gameDir))
+                outcome = .success(try LegacyCleanupSession.apply(chosen, mod: mod, gameDir: gameDir,
+                                                                  recordInHistory: !shared))
             } catch {
                 outcome = .failure(error)
             }

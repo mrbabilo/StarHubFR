@@ -63,6 +63,10 @@ public enum NexusFileManifestFetcher {
         /// Format ancien, du plus récent au plus ancien — vide sans
         /// `includeLegacy`.
         public var legacy: [LegacyFile] = []
+        /// Tous les fichiers de la page (`modFiles`), lus ou non : le
+        /// nettoyage vérifie que la référence couvre chaque fichier de la
+        /// version installée.
+        public var listed: [ModFile] = []
     }
 
     /// Délai par mod, et plafond de requêtes simultanées. Les mods d'une
@@ -184,7 +188,7 @@ public enum NexusFileManifestFetcher {
         }
         let result = collector.result
         return Outcome(files: result.found.sorted { $0.fileId > $1.fileId }, incomplete: result.missed,
-                       legacy: result.legacy.sorted { $0.fileId > $1.fileId })
+                       legacy: result.legacy.sorted { $0.fileId > $1.fileId }, listed: files)
     }
 
     private enum Read<Value> {

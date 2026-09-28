@@ -69,6 +69,12 @@ public enum LegacyFileCleanup {
         public let reference: ReferenceSource
         /// La lecture Nexus n'a pas abouti : la liste peut être plus courte.
         public let nexusIncomplete: Bool
+        /// Les fantômes identiques sont cochés d'office. `false` quand la
+        /// référence Nexus est peut-être partielle — un fichier de la version
+        /// installée non lu (réseau, 404, archive non rattachée) ferait passer
+        /// ses fichiers pour des fantômes : la liste est alors **plus longue**,
+        /// et rien n'est coché.
+        public let preselectsIdentical: Bool
     }
 
     public enum Outcome: Equatable, Sendable {
@@ -82,36 +88,50 @@ public enum LegacyFileCleanup {
     ///   - legacy: Nexus au format ancien, déjà ramené au dossier.
     ///   - installedVersion: la `Version` du `manifest.json` installé.
     ///   - deposits: clés des fichiers déposés par l'app (jamais proposés).
+    ///   - installedVersionFileIds: les fichiers Nexus de la version installée
+    ///     listés par `modFiles` ; la référence Nexus est complète seulement
+    ///     si chacun y a contribué.
     public static func plan(installed: ModFolderHasher.Listing, index: AuthorFileIndex,
                             legacy: [LegacyVersion], installedVersion: String,
-                            deposits: Set<String>, nexusIncomplete: Bool) -> Outcome {
+                            deposits: Set<String>, nexusIncomplete: Bool,
+                            installedVersionFileIds: Set<Int> = []) -> Outcome {
         func isInstalledVersion(_ version: String) -> Bool {
             NexusUpdateChecker.compare(version, installedVersion) == .orderedSame
         }
-        let referenceKeys: Set<String>
+        // Tout ce que la version installée livre, sous les deux formats : un
+        // fichier au format ancien de cette version élargit la référence.
+        let sameLegacy = legacy.filter { isInstalledVersion($0.version) }
+        let sameRecentIds = index.versions.compactMap { version -> Int? in
+            guard case .nexus(let fileId) = version.source, isInstalledVersion(version.version) else { return nil }
+            return fileId
+        }
+        var referenceKeys: Set<String>
         let source: ReferenceSource
         /// Dépôts Nexus antérieurs à la référence : `fileId` strictement plus petit.
         let bound: Int
         if let reference = index.reference(installedVersion: installedVersion) {
             referenceKeys = Set(reference.files.keys)
             source = reference.isLocal ? .localHistory : .nexusRecent
-            bound = reference.isLocal ? .max : index.versions.compactMap { version -> Int? in
-                guard case .nexus(let fileId) = version.source, isInstalledVersion(version.version) else { return nil }
-                return fileId
-            }.max() ?? 0
+            bound = reference.isLocal ? .max : (sameRecentIds + sameLegacy.map(\.fileId)).max() ?? 0
         } else {
-            let same = legacy.filter { isInstalledVersion($0.version) }
-            guard let newest = same.map(\.fileId).max() else { return .noReference }
-            referenceKeys = same.reduce(into: Set<String>()) { $0.formUnion($1.paths) }
+            guard let newest = sameLegacy.map(\.fileId).max() else { return .noReference }
+            referenceKeys = []
             source = .nexusLegacy
             bound = newest
         }
+        for version in sameLegacy { referenceKeys.formUnion(version.paths) }
+        let covered = Set(sameRecentIds + sameLegacy.map(\.fileId))
+        let preselects = source == .localHistory
+            || (!nexusIncomplete && installedVersionFileIds.isSubset(of: covered))
 
         var earlierShas: [String: Set<String>] = [:]
         for version in index.versions {
             switch version.source {
             case .localHistory: break
-            case .nexus(let fileId): guard fileId < bound else { continue }
+            // Une variante de la version installée n'est pas « antérieure »,
+            // même sous une référence locale sans borne.
+            case .nexus(let fileId):
+                guard fileId < bound, !isInstalledVersion(version.version) else { continue }
             }
             for (key, sha) in version.files { earlierShas[key, default: []].insert(sha) }
         }
@@ -139,7 +159,8 @@ public enum LegacyFileCleanup {
                                         sha256: sha, certainty: certainty))
         }
         return .plan(Plan(candidates: candidates.sorted { $0.path < $1.path },
-                          reference: source, nexusIncomplete: nexusIncomplete))
+                          reference: source, nexusIncomplete: nexusIncomplete,
+                          preselectsIdentical: preselects))
     }
 
     /// Les sous-dossiers qui portent leur propre `manifest.json` : d'autres

@@ -176,6 +176,64 @@ struct LegacyFileCleanupTests {
         #expect(result.candidates.map(\.path) == ["Assets/Old.PNG"])
     }
 
+    // MARK: - Revue globale (I1, I2)
+
+    private func run(installed: [String: String], versions: [AuthorFileIndex.Version],
+                     legacy: [Cleanup.LegacyVersion] = [], installedVersionFileIds: Set<Int>,
+                     nexusIncomplete: Bool = false) throws -> Cleanup.Plan {
+        try plan(Cleanup.plan(installed: .init(hashes: installed), index: AuthorFileIndex(versions: versions),
+                              legacy: legacy, installedVersion: "1.4.0", deposits: [],
+                              nexusIncomplete: nexusIncomplete, installedVersionFileIds: installedVersionFileIds))
+    }
+
+    @Test func aPartialNexusReferenceChecksNothing() throws {
+        // Deux fichiers principaux en 1.4.0 (Wildroot) ; le manifeste du second
+        // (21) n'a pas été lu : x.png, qu'il livre, passerait pour un fantôme.
+        let versions = [author(["manifest.json": "m"], "1.4.0", 20), author(["x.png": "x"], "1.3.0", 10)]
+        let partial = try run(installed: ["manifest.json": "m", "x.png": "x"], versions: versions,
+                              installedVersionFileIds: [20, 21])
+        #expect(partial.candidates.map(\.path) == ["x.png"])
+        #expect(!partial.preselectsIdentical)
+        let complete = try run(installed: ["manifest.json": "m", "x.png": "x"], versions: versions,
+                               installedVersionFileIds: [20])
+        #expect(complete.preselectsIdentical)
+    }
+
+    @Test func anIncompleteNexusReadChecksNothingUnlessTheReferenceIsLocal() throws {
+        let nexusRef = try run(installed: ["manifest.json": "m", "x.png": "x"],
+                               versions: [author(["manifest.json": "m"], "1.4.0", 20),
+                                          author(["x.png": "x"], "1.3.0", 10)],
+                               installedVersionFileIds: [20], nexusIncomplete: true)
+        #expect(!nexusRef.preselectsIdentical)
+        let local = AuthorFileIndex.Version(source: .localHistory, version: "1.4.0", files: ["manifest.json": "m"])
+        let localRef = try run(installed: ["manifest.json": "m", "x.png": "x"],
+                               versions: [local, author(["x.png": "x"], "1.3.0", 10)],
+                               installedVersionFileIds: [20], nexusIncomplete: true)
+        #expect(localRef.reference == .localHistory)
+        #expect(localRef.preselectsIdentical)
+    }
+
+    @Test func aVariantOfTheInstalledVersionIsNotEarlier() throws {
+        // Installé par l'app en variante Lite 1.4.0 ; l'utilisateur a ajouté un
+        // fichier de la variante Full 1.4.0 : ce n'est pas un fantôme.
+        let local = AuthorFileIndex.Version(source: .localHistory, version: "1.4.0",
+                                            files: ["manifest.json": "m", "a.png": "a"])
+        let result = try run(installed: ["manifest.json": "m", "a.png": "a", "extra.png": "e"],
+                             versions: [local, author(["manifest.json": "m", "extra.png": "e"], "1.4.0", 50)],
+                             installedVersionFileIds: [50])
+        #expect(result.candidates.isEmpty)
+    }
+
+    @Test func anOldFormatFileOfTheInstalledVersionJoinsTheReference() throws {
+        let result = try run(installed: ["manifest.json": "m", "keep.png": "k"],
+                             versions: [author(["manifest.json": "m"], "1.4.0", 20),
+                                        author(["keep.png": "k"], "1.3.0", 10)],
+                             legacy: [.init(fileId: 21, version: "1.4.0", paths: ["keep.png"])],
+                             installedVersionFileIds: [20, 21])
+        #expect(result.candidates.isEmpty)
+        #expect(result.preselectsIdentical)
+    }
+
     @Test func candidatesCarryTheirSize() throws {
         let outcome = Cleanup.plan(installed: .init(hashes: ["manifest.json": "m", "old.png": "o"],
                                                     sizes: ["old.png": 4_096]),

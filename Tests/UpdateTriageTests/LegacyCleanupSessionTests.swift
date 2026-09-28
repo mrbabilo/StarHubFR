@@ -97,6 +97,36 @@ struct LegacyCleanupSessionTests {
         #expect(asked.count == 0)
     }
 
+    @Test func aSharedUniqueIdIgnoresTheJournalAndDoesNotWriteIt() throws {
+        // Swim installé deux fois : le journal de l'autre copie ne décrit pas
+        // ce dossier (même abstention que `ModHistoryRecorder.recordInstall`).
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write("m", "Game/Mods/SampleMod/manifest.json")
+        try write("old", "Game/Mods/SampleMod/old.png")
+        let history = root.appendingPathComponent("History")
+        try ModHistoryFile.append(.init(date: Date(), kind: .install, fromVersion: nil, toVersion: "1.0.0",
+                                        archiveSHA256: nil, nexusFileId: nil, source: nil,
+                                        files: [.init(path: "manifest.json", size: 1, sha256: try sha("m"))],
+                                        report: nil),
+                                  uniqueId: "a.sample", directory: history)
+        let alone = LegacyCleanupSession.analyze(
+            mod: mod(nexusId: ""), gameDir: gameDir, translations: InstalledTranslationRegistry(byHost: [:]),
+            customNexusIds: [:], historyDirectory: history, cacheDirectory: nil)
+        guard case .plan(let plan) = alone else { Issue.record("référence locale attendue"); return }
+        #expect(plan.reference == .localHistory)
+        let shared = LegacyCleanupSession.analyze(
+            mod: mod(nexusId: ""), gameDir: gameDir, translations: InstalledTranslationRegistry(byHost: [:]),
+            customNexusIds: [:], uniqueIdIsShared: true, historyDirectory: history, cacheDirectory: nil)
+        #expect(shared == .noReference)
+
+        let before = ModHistoryFile.history(uniqueId: "a.sample", directory: history).entries.count
+        let result = try LegacyCleanupSession.apply([try candidate("old.png")], mod: mod(), gameDir: gameDir,
+                                                    backupManager: manager(), historyDirectory: history,
+                                                    recordInHistory: false)
+        #expect(result.removed.map(\.path) == ["old.png"])
+        #expect(ModHistoryFile.history(uniqueId: "a.sample", directory: history).entries.count == before)
+    }
+
     private final class Box: @unchecked Sendable {
         private let lock = NSLock()
         private var value = 0

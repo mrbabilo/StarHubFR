@@ -23,6 +23,7 @@ public enum LegacyCleanupSession {
     public static func analyze(mod: ModItem, gameDir: String,
                                translations: InstalledTranslationRegistry,
                                customNexusIds: [String: String],
+                               uniqueIdIsShared: Bool = false,
                                historyDirectory: URL? = ModHistoryFile.defaultDirectory(),
                                cacheDirectory: URL? = NexusFileManifestFetcher.defaultCacheDirectory(),
                                now: Date = Date(),
@@ -31,6 +32,10 @@ public enum LegacyCleanupSession {
         let listing = ModFolderHasher.listing(of: modFolder(for: mod, gameDir: gameDir))
         let installedKeys = listing.byKey
         let history = ModHistoryFile.history(uniqueId: mod.uniqueId, directory: historyDirectory)
+        // Un autre dossier porte le même `UniqueID` (Swim installé deux fois) :
+        // le journal commun ne décrit pas celui-ci — même abstention que
+        // `ModHistoryRecorder.recordInstall`. Ses dépôts restent exclus.
+        let localVersions = uniqueIdIsShared ? [] : history.authorVersions
 
         var nexus = NexusFileManifestFetcher.Outcome(files: [], incomplete: false)
         let nexusId = NexusModIdentity.effectiveId(for: mod, customIds: customNexusIds)
@@ -53,10 +58,13 @@ public enum LegacyCleanupSession {
         }
         return LegacyFileCleanup.plan(
             installed: listing,
-            index: AuthorFileIndex.build(localVersions: history.authorVersions,
+            index: AuthorFileIndex.build(localVersions: localVersions,
                                          nexus: nexus.files, installed: installedKeys),
             legacy: legacy, installedVersion: mod.version,
-            deposits: deposits, nexusIncomplete: nexus.incomplete)
+            deposits: deposits, nexusIncomplete: nexus.incomplete,
+            installedVersionFileIds: Set(nexus.listed.filter {
+                NexusUpdateChecker.compare($0.version, mod.version) == .orderedSame
+            }.map(\.fileId)))
     }
 
     public struct ApplyResult: Equatable, Sendable {
@@ -82,6 +90,7 @@ public enum LegacyCleanupSession {
     public static func apply(_ candidates: [LegacyFileCleanup.Candidate], mod: ModItem, gameDir: String,
                              backupManager: ModInstallBackupManager = .shared,
                              historyDirectory: URL? = ModHistoryFile.defaultDirectory(),
+                             recordInHistory: Bool = true,
                              now: Date = Date()) throws -> ApplyResult {
         guard !candidates.isEmpty else { return ApplyResult(removed: [], failed: [], historyWritten: true) }
         do {
@@ -110,7 +119,7 @@ public enum LegacyCleanupSession {
         pruneEmptyDirectories(from: parents, upTo: folder)
 
         var historyWritten = true
-        if !removed.isEmpty {
+        if recordInHistory, !removed.isEmpty {
             let entry = ModHistory.Entry(date: now, kind: .cleanup, fromVersion: nil, toVersion: mod.version,
                                          archiveSHA256: nil, nexusFileId: nil, source: nil,
                                          files: removed, report: nil)

@@ -257,6 +257,7 @@
 "mod_cleanup_no_reference" = "La version %@ n'est ni au journal ni sur Nexus : on ne sait pas ce qu'elle livre, rien n'est proposé.";
 "mod_cleanup_nothing" = "Aucun fichier d'ancienne version dans ce dossier.";
 "mod_cleanup_nexus_incomplete" = "Historique Nexus incomplet (réseau) : la liste peut être plus courte.";
+"mod_cleanup_unverified" = "Une partie de ce que livre la version installée n'a pas pu être lue sur Nexus (réseau, manifeste absent) : rien n'est coché d'avance, vérifiez chaque fichier.";
 "mod_cleanup_identical" = "Identiques à une ancienne version (%d)";
 "mod_cleanup_identical_hint" = "Mêmes octets qu'un fichier de l'auteur, absent de la version installée.";
 "mod_cleanup_probable" = "Probablement d'anciennes versions (%d)";

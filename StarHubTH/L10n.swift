@@ -1898,6 +1898,7 @@ enum L10n {
         static let noReference       = "mod_cleanup_no_reference"
         static let nothing           = "mod_cleanup_nothing"
         static let nexusIncomplete   = "mod_cleanup_nexus_incomplete"
+        static let unverified        = "mod_cleanup_unverified"
         static let identical         = "mod_cleanup_identical"
         static let identicalHint     = "mod_cleanup_identical_hint"
         static let probable          = "mod_cleanup_probable"

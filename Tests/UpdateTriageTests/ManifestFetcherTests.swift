@@ -138,6 +138,7 @@ struct ManifestFetcherTests {
         let outcome = fetchLegacy(nexus, cache: nil)
         #expect(outcome.files.map(\.fileId) == [11, 10])
         #expect(outcome.legacy.map(\.fileId) == [9])
+        #expect(outcome.listed.map(\.fileId).sorted() == [9, 10, 11])
         #expect(outcome.legacy.first?.version == "0.9.0")
         #expect(outcome.legacy.first?.manifest.paths == ["Mod/manifest.json", "Mod/old.png"])
         #expect(!outcome.incomplete)

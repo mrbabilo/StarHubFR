@@ -257,6 +257,7 @@
   "mod_cleanup_no_reference": "Version %@ is neither in the history nor on Nexus: what it ships is unknown, so nothing is proposed.",
   "mod_cleanup_nothing": "No files from older versions in this folder.",
   "mod_cleanup_nexus_incomplete": "Nexus history incomplete (network): the list may be shorter.",
+  "mod_cleanup_unverified": "Part of what the installed version ships could not be read from Nexus (network, missing manifest): nothing is checked in advance, review each file.",
   "mod_cleanup_identical": "Identical to an older version (%d)",
   "mod_cleanup_identical_hint": "Same bytes as an author's file, not in the installed version.",
   "mod_cleanup_probable": "Probably from older versions (%d)",
