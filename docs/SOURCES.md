@@ -258,7 +258,9 @@ Relevé le 2026-09-29 : la ressource servie est encore l'ancien JSONC commenté
 déployé. Aucun des 18 `Id` n'est au parc. **Lu depuis X116 (2026-09-29)** :
 chaque champ est décodé et jugé selon les règles de SMAPI
 (`SmapiBlacklistScan`) ; seules les entrées de fichier par empreinte seule
-restent non vérifiées — comptées et dites au journal.
+restent non vérifiées — comptées et dites au journal. Depuis X118, seuls
+les mods changés depuis leur dernière vérification se relisent (registre
+`smapi-blacklist-scan.json`, relecture complète si la liste change).
 
 ### 2.3 Nexus Mods — API v1 (REST)
 

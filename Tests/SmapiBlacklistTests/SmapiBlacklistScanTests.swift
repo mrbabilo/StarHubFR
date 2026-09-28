@@ -136,4 +136,70 @@ import Testing
             """.utf8)))
         #expect(SmapiBlacklistScan.scan(try library(), dump: dump).matches.isEmpty)
     }
+
+    // MARK: - X118 : le registre des mods déjà vérifiés
+
+    private var registry: URL { root.appendingPathComponent("_registre", isDirectory: true) }
+
+    /// Deuxième passage, rien n'a bougé : seuls les mods signalés se relisent
+    /// (jamais inscrits propres), les propres attendent leur changement.
+    @Test("Un mod propre et inchangé ne se relit pas")
+    func unchangedCleanModsAreSkipped() throws {
+        let dump = try #require(SmapiBlacklist.decode(generated))
+        _ = try library()
+        let first = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry)
+        let second = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry)
+        #expect(first.checked == 4)
+        #expect(second.checked == 2)
+        #expect(second.matches == first.matches)
+    }
+
+    /// Le DLL remplacé (mise à jour, reupload) change l'empreinte du mod.
+    @Test("Un DLL qui change fait relire son mod")
+    func changedDllIsRechecked() throws {
+        let dump = try #require(SmapiBlacklist.decode(generated))
+        _ = try library()
+        _ = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry)
+        try "evil".write(to: root.appendingPathComponent("Legit/Legit.dll"), atomically: true, encoding: .utf8)
+        let again = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry)
+        #expect(again.checked == 3)
+    }
+
+    /// Une liste qui change (une entrée neuve), ou un registre de plus de
+    /// 24 h, relit tout : une entrée neuve peut viser un mod déjà « propre ».
+    @Test("Une liste neuve ou un registre vieux de 24 h relit tout")
+    func newListOrOldRegistryRechecksEverything() throws {
+        let dump = try #require(SmapiBlacklist.decode(generated))
+        _ = try library()
+        let now = Date()
+        _ = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry, now: now)
+        let grown = SmapiBlacklist.Dump(
+            entries: dump.entries + [SmapiBlacklist.Entry(id: "New.One", message: "m")],
+            looseFiles: dump.looseFiles)
+        #expect(SmapiBlacklistScan.run(dump: grown, uniqueIds: [], modsRoot: root,
+                                       registryDirectory: registry, now: now).checked == 4)
+        #expect(SmapiBlacklistScan.run(dump: grown, uniqueIds: [], modsRoot: root, registryDirectory: registry,
+                                       now: now.addingTimeInterval(25 * 3600)).checked == 4)
+    }
+
+    /// Sans dossier de données : tout se relit, rien ne s'écrit.
+    @Test("Sans dossier de registre, tout se relit à chaque fois")
+    func noRegistryDirectoryMeansFullScan() throws {
+        let dump = try #require(SmapiBlacklist.decode(generated))
+        _ = try library()
+        _ = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: nil)
+        #expect(SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: nil).checked == 4)
+    }
+
+    /// Un DLL d'entrée absent (manifeste qui en nomme un introuvable) : pas
+    /// d'empreinte, donc jamais inscrit propre — relu à chaque passage.
+    @Test("Un mod sans empreinte lisible se relit toujours")
+    func unstampableModIsAlwaysRechecked() throws {
+        let dump = try #require(SmapiBlacklist.decode(generated))
+        _ = try library()
+        try mod("Broken", id: "Some.Broken", entryDll: "Missing.dll")
+        _ = SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root, registryDirectory: registry)
+        #expect(SmapiBlacklistScan.run(dump: dump, uniqueIds: [], modsRoot: root,
+                                       registryDirectory: registry).checked == 3)
+    }
 }

@@ -3701,6 +3701,25 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X118** ✅ *(livré le 2026-09-29)* — **Le croisement au disque relisait tout le parc à chaque lancement.**
+      Demandé par l'auteur (« pourquoi ne pas comparer avec un registre des
+      mods ? »). `SmapiBlacklistScan.Registry` (`smapi-blacklist-scan.json`
+      dans le dossier de données) retient, pour l'empreinte de **la** liste en
+      vigueur (champs qui jugent seulement, message exclu), les mods vérifiés
+      propres et leur empreinte : taille + date du dossier, du manifeste et du
+      DLL d'entrée. Seuls les mods changés se relisent ; un mod signalé ou sans
+      empreinte lisible se relit toujours ; une liste neuve ou un registre de
+      plus de 24 h relit tout (un fichier ajouté en profondeur ne change aucune
+      des trois dates). Mesuré sur le parc (1 132 mods, disque externe) :
+      9,3 s au premier passage, 1,2 puis 0,9 s ensuite, 0 mod relu ; registre
+      de 186 Ko. **Écarté** : partir de la liste des mods de l'app plutôt que
+      du disque — le chemin réel d'un composant de pack en pause se
+      reconstruit mal depuis `ModItem`, et un chemin faux ferait sauter le mod
+      en silence ; la découverte (1,3 s, surtout de l'E/S) reste celle de
+      SMAPI, sur le disque. Piège attrapé en relecture : `stamps` en
+      `[String: String?]` rendait un `String??` — un dossier illisible jamais
+      vérifié passait pour « inchangé » ; test dédié.
+
 - [x] **X117** ✅ *(livré le 2026-09-29)* — **La part indirecte supposait 60 ticks par seconde.**
       `ProbeAnalysis` divisait le coût direct (ms/s) par 60 pour le comparer
       au travail de trame (ms par tick). UltraSmooth 2.3.9 met le jeu en pas
@@ -3733,8 +3752,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       (disque externe, 1 132 mods dont 508 à DLL) : 1,3 s de découverte,
       4,9 s de parcours des fichiers, +4 s de hachage quand une entrée par
       empreinte existe — une fois par lancement, hors du fil principal.
-      Piste : réutiliser le scan de l'app et un cache d'empreintes par
-      taille + date pour ne relire que ce qui a changé.
+      Suite : **X118** (registre des mods vérifiés).
 
 - [x] **X115** ✅ *(livré le 2026-09-25)* — **Chaque événement de corbeille était un « mod ignoré » pour SMAPI.**
       Décompilé (`SMAPI.Toolkit.dll`, `ModScanner`) : SMAPI n'ignore que les

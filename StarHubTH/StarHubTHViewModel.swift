@@ -1616,10 +1616,11 @@ final class StarHubTHViewModel {
                     let uniqueIds = SmapiBlacklist.uniqueIds(
                         ofTopLevel: self.mods.map(\.uniqueId),
                         children: self.mods.map { ($0.children ?? []).map(\.uniqueId) })
-                    // X116 : identifiants, DLL d'entrée et fichiers piégés —
-                    // le disque se lit hors du fil principal.
+                    // X116 : identifiants, DLL d'entrée et fichiers piégés, hors du fil
+                    // principal ; X118 : seuls les mods changés depuis se relisent.
                     let outcome = await Task.detached {
-                        SmapiBlacklistScan.run(dump: dump, uniqueIds: uniqueIds, modsRoot: modsRoot)
+                        SmapiBlacklistScan.run(dump: dump, uniqueIds: uniqueIds, modsRoot: modsRoot,
+                                               registryDirectory: AppSupport.directory)
                     }.value
                     self.maliciousMods = outcome.matches
                     // `error` : seule ligne qui parle de code hostile.
