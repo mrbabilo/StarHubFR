@@ -17,6 +17,8 @@ public struct ProbeFiles: Sendable {
 
     public var harmonyMapURL: URL { directory.appendingPathComponent("harmony-map.json") }
     public var gmcmOptionsURL: URL { directory.appendingPathComponent("gmcm-options.json") }
+    public var timingsURL: URL { directory.appendingPathComponent("timings.jsonl") }
+    public var costsURL: URL { directory.appendingPathComponent("mod-costs.jsonl") }
     public var inventoryURL: URL { directory.appendingPathComponent("inventory.jsonl") }
     public var configsDirectory: URL { directory.appendingPathComponent("configs", isDirectory: true) }
 

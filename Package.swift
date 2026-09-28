@@ -72,6 +72,7 @@ let package = Package(
                 "Models/ProbeSegments.swift",
                 "Models/ProbeComparableMinutes.swift",
                 "Models/ProbeComparison.swift",
+                "Models/ProbeSessionsIndex.swift",
                 "Models/ProbeOverlaps.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
