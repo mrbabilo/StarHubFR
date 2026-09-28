@@ -3,15 +3,24 @@ import SwiftUI
 /// A1-T11 — le journal local du mod dans sa fiche : chaque installation, mise
 /// à jour, ajout et nettoyage, du plus récent au plus ancien. Lu hors du fil
 /// principal (jusqu'à ~0,7 Mo par entrée sur les plus gros mods du parc).
+///
+/// A1-T11 plan 2 — porte aussi « Nettoyer les anciens fichiers… ».
 struct ModHistorySection: View {
     @ObservedObject var localization: LocalizationStore
+    let viewModel: StarHubTHViewModel
     let mod: ModItem
     @State private var history: ModHistory?
+    @State private var cleaning = false
+    /// Le jeu tournait au clic : la raison s'écrit sous le bouton.
+    @State private var gameWasRunning = false
+    /// Relit le journal après un nettoyage : l'entrée « nettoyage » s'affiche.
+    @State private var reload = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(localization.L(L10n.ModHistory.title))
                 .font(AppDesign.Font.footnote(.semibold))
+            cleanupAction
             if let history {
                 if history.entries.isEmpty {
                     Text(localization.L(L10n.ModHistory.empty))
@@ -25,11 +34,47 @@ struct ModHistorySection: View {
                 }
             }
         }
-        .task(id: mod.uniqueId) {
+        .task(id: "\(mod.uniqueId)#\(reload)") {
             let uniqueId = mod.uniqueId
             history = await Task.detached(priority: .utility) {
                 ModHistoryFile.history(uniqueId: uniqueId, directory: ModHistoryFile.defaultDirectory())
             }.value
+        }
+        .sheet(isPresented: $cleaning, onDismiss: { reload += 1 }) {
+            ModCleanupSheet(localization: localization, viewModel: viewModel, mod: mod)
+        }
+    }
+
+    /// Rien à comparer hors ligne : ni identifiant Nexus ni installation au
+    /// journal. Écrit sous le bouton — une infobulle ne s'affiche pas sur un
+    /// bouton désactivé. Le jeu, lui, se vérifie au clic : `isGameRunning()`
+    /// modifie l'état du ViewModel et ne se lit pas pendant le rendu.
+    private var nothingToCompare: Bool {
+        let nexusId = NexusModIdentity.effectiveId(for: mod, customIds: viewModel.nexusCustomModIds)
+        let hasInstallInHistory = !(history?.authorVersions.isEmpty ?? true)
+        return !NexusRequestBuilder.isValidModId(nexusId) && !hasInstallInHistory
+    }
+
+    private var cleanupAction: some View {
+        let blocked = nothingToCompare
+        return VStack(alignment: .leading, spacing: 2) {
+            Button {
+                gameWasRunning = viewModel.isGameRunning()
+                if !gameWasRunning { cleaning = true }
+            } label: {
+                Label(localization.L(L10n.ModCleanup.button), systemImage: "wand.and.stars")
+                    .font(AppDesign.Font.footnote)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .disabled(blocked || history == nil)
+            .help(localization.L(L10n.ModCleanup.help))
+            if blocked || gameWasRunning {
+                Text(localization.L(blocked ? L10n.ModCleanup.nothingToCompare : L10n.ModCleanup.gameRunning))
+                    .font(AppDesign.Font.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

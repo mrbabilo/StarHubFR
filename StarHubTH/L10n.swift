@@ -1584,6 +1584,7 @@ enum L10n {
         static let backupReasonInstall  = "mod_install_backup_reason_install"
         static let backupReasonUpdate   = "mod_install_backup_reason_update"
         static let backupReasonRestore  = "mod_install_backup_reason_restore"
+        static let backupReasonCleanup  = "mod_install_backup_reason_cleanup"
         static let retentionPolicy     = "mod_install_retention_policy"
         static let invalidZipStructure  = "mod_install_invalid_structure"
         static let archiveContains      = "mod_install_archive_contains"
@@ -1884,6 +1885,32 @@ enum L10n {
         static let writeFailed      = "mod_history_write_failed"
         static let originalsFailed  = "mod_history_originals_failed"
         static let registryNotSaved = "mod_history_registry_not_saved"
+    }
+
+    enum ModCleanup {
+        static let button            = "mod_cleanup_button"
+        static let help              = "mod_cleanup_help"
+        static let gameRunning       = "mod_cleanup_game_running"
+        static let nothingToCompare  = "mod_cleanup_nothing_to_compare"
+        static let title             = "mod_cleanup_title"
+        static let analyzing         = "mod_cleanup_analyzing"
+        static let applying          = "mod_cleanup_applying"
+        static let noReference       = "mod_cleanup_no_reference"
+        static let nothing           = "mod_cleanup_nothing"
+        static let nexusIncomplete   = "mod_cleanup_nexus_incomplete"
+        static let identical         = "mod_cleanup_identical"
+        static let identicalHint     = "mod_cleanup_identical_hint"
+        static let probable          = "mod_cleanup_probable"
+        static let probableHint      = "mod_cleanup_probable_hint"
+        static let selection         = "mod_cleanup_selection"
+        static let backupNote        = "mod_cleanup_backup_note"
+        static let confirm           = "mod_cleanup_confirm"
+        static let cancel            = "mod_cleanup_cancel"
+        static let close             = "mod_cleanup_close"
+        static let done              = "mod_cleanup_done"
+        static let partial           = "mod_cleanup_partial"
+        static let backupFailed      = "mod_cleanup_backup_failed"
+        static let logDone           = "mod_cleanup_log_done"
     }
 
 }

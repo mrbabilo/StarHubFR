@@ -193,6 +193,7 @@ struct ModInstallBackupsView: View {
         case .beforeInstall: return localization.L(L10n.ModInstall.backupReasonInstall)
         case .beforeUpdate: return localization.L(L10n.ModInstall.backupReasonUpdate)
         case .beforeRestore: return localization.L(L10n.ModInstall.backupReasonRestore)
+        case .beforeCleanup: return localization.L(L10n.ModInstall.backupReasonCleanup)
         }
     }
 
@@ -473,6 +474,7 @@ struct ModInstallBackupsView: View {
         case .beforeInstall: return "plus.circle"
         case .beforeUpdate: return "arrow.up.circle"
         case .beforeRestore: return "arrow.uturn.backward.circle"
+        case .beforeCleanup: return "wand.and.stars"
         }
     }
 
