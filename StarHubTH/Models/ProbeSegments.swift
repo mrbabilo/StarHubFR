@@ -12,6 +12,9 @@ public struct ProbeSegment: Equatable, Sendable {
     /// Inventaire résolu (launch + changements appliqués). `nil` : session
     /// sans inventaire (sonde < 0.4.12) — affichable, jamais source de diff.
     public let inventory: [String: ProbeInventoryEntry]?
+    /// Peut être vide : le premier segment d'une session inventoriée est
+    /// toujours rendu, même quand toutes les minutes suivent la coupure
+    /// (horloge disque décalée).
     public let minutes: [ProbeMinute]
 }
 

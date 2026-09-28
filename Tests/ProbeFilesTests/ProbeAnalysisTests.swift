@@ -187,4 +187,36 @@ struct ProbeAnalysisTests {
         #expect(ProbeAnalysis.analyze(input(verdict: .netChange(delta: 1, percent: 4.9), diff: updated))
                 .recommendation == .keep)
     }
+
+    /// Une mesure propre ne vaut confiance élevée qu'avec 5 minutes de chaque
+    /// côté : sinon « confiance élevée » s'afficherait à côté de « on ne peut
+    /// pas conclure ».
+    @Test func cleanMeasurementNeedsFiveMinutesEachSide() {
+        let clean = ProbeMeasurement(name: "m", start: .now, end: nil)
+        #expect(ProbeAnalysis.analyze(input(verdict: .notEnoughData, keptA: 3, keptB: 7,
+                                            measurement: clean)).confidence == .low)
+    }
+
+    /// Les raisons d'exclusion entrent en preuve dès qu'une minute a été écartée.
+    @Test func exclusionsBecomeEvidence() {
+        let base = input()
+        let withExclusions = ProbeAnalysisInput(
+            comparison: base.comparison, diff: base.diff, costDeltas: [],
+            exclusionsA: [.menuOpen: 3], exclusionsB: [:], locationsRestricted: true,
+            measurement: nil, dominantLocation: nil)
+        #expect(ProbeAnalysis.analyze(withExclusions).evidence
+                .contains(.excludedMinutes(a: [.menuOpen: 3], b: [:])))
+        #expect(!ProbeAnalysis.analyze(base).evidence
+                .contains { if case .excludedMinutes = $0 { true } else { false } })
+    }
+
+    /// Trame nettement plus lente, travail de trame inchangé : le temps passe
+    /// hors Update/Draw (GC, synchro) — dit en preuve.
+    @Test func frameChangeWithoutWorkChangeIsFlagged() {
+        #expect(ProbeAnalysis.analyze(input(workVerdict: .noise)).evidence.contains(.frameWorkUnchanged))
+        #expect(!ProbeAnalysis.analyze(input(workVerdict: .netChange(delta: 3, percent: 10)))
+                .evidence.contains(.frameWorkUnchanged))
+        #expect(!ProbeAnalysis.analyze(input(verdict: .noise, workVerdict: .noise))
+                .evidence.contains(.frameWorkUnchanged))
+    }
 }

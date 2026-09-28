@@ -2,7 +2,7 @@ import Foundation
 
 /// Pourquoi une minute n'entre pas dans la comparaison avant/après (spec §2).
 public enum ProbeExclusionReason: String, Equatable, Sendable {
-    case unfocused, title, menuOpen, night, firstAfterTitle, patchesMismatch
+    case unfocused, title, menuOpen, night, firstAfterTitle
 }
 
 public struct ProbeComparableMinute: Equatable, Sendable {
@@ -23,7 +23,7 @@ public enum ProbeComparableMinutes {
     /// échec compte, une seule par minute (les comptes s'additionnent au
     /// total des minutes écartées). Une sonde < 0.4.12 (`menuShare` nil) passe
     /// la garde menu : son instantané `Menu == null` jouait ce rôle. La garde
-    /// croisée des patches (`patchesMismatch`) appartient à `ProbeComparison` :
+    /// croisée des patches appartient à `ProbeComparison.patchesMismatch` :
     /// ici on attache l'état apparié.
     ///
     /// `costs` : les lignes de coûts **de la même session**

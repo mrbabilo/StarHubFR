@@ -5,7 +5,9 @@ public struct ProbeModChange: Equatable, Sendable {
     public enum Kind: Equatable, Sendable {
         case added
         case removed
-        case versionChanged(from: String, to: String)
+        /// `configChanged` : le réglage a changé aussi — un seul changement
+        /// (un seul mod), mais le réglage n'est pas perdu.
+        case versionChanged(from: String, to: String, configChanged: Bool = false)
         case configChanged(oldSha: String?, newSha: String?)
     }
     public let modId: String
@@ -36,7 +38,8 @@ public enum ProbeInventoryDiffRule {
             }
             if entryA.version != entryB.version {
                 changes.append(ProbeModChange(modId: entryB.modId,
-                                              kind: .versionChanged(from: entryA.version, to: entryB.version)))
+                                              kind: .versionChanged(from: entryA.version, to: entryB.version,
+                                                                    configChanged: entryA.configSha != entryB.configSha)))
             } else if entryA.configSha != entryB.configSha {
                 changes.append(ProbeModChange(modId: entryB.modId,
                                               kind: .configChanged(oldSha: entryA.configSha,

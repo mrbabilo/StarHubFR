@@ -48,7 +48,12 @@ public struct ProbeAnalysisResult: Equatable, Sendable {
         case indirectShare(Double)
         case probeChanged
         case envelopesAsymmetric
+        /// Mesure propre, au moins 5 minutes de chaque côté.
         case cleanMeasurement
+        /// Minutes écartées, par raison, de chaque côté.
+        case excludedMinutes(a: [ProbeExclusionReason: Int], b: [ProbeExclusionReason: Int])
+        /// Trame nettement changée, travail de trame inchangé.
+        case frameWorkUnchanged
     }
     /// Une action principale, toujours réversible (jamais de suppression).
     public enum Recommendation: Equatable, Sendable {
@@ -95,7 +100,7 @@ public enum ProbeAnalysis {
             .comparableMinutes(a: countA, b: countB, sameLocations: input.locationsRestricted)
         ]
         var confidence: ProbeAnalysisResult.Confidence
-        if input.measurement != nil {
+        if input.measurement != nil && countA >= 5 && countB >= 5 {
             confidence = .high
             evidence.append(.cleanMeasurement)
         } else if countA >= enoughMinutes && countB >= enoughMinutes && input.locationsRestricted {
@@ -104,6 +109,9 @@ public enum ProbeAnalysis {
             confidence = .medium
         } else {
             confidence = .low
+        }
+        if !input.exclusionsA.isEmpty || !input.exclusionsB.isEmpty {
+            evidence.append(.excludedMinutes(a: input.exclusionsA, b: input.exclusionsB))
         }
         let changes = input.diff.changes
         if input.diff.probeChanged {
@@ -145,6 +153,16 @@ public enum ProbeAnalysis {
                 evidence.append(.indirectShare((indirect / workDelta * 100).rounded() / 100))
                 indirectDominant = true
             }
+        }
+
+        // Trame nettement changée, travail de trame inchangé : le temps passe
+        // hors Update/Draw (GC, synchro), là où ni les événements ni les
+        // patches des mods ne tournent. Dit en preuve ; la recommandation
+        // reste un geste réversible qui le vérifiera.
+        if !input.comparison.vsyncLimited,
+           case .netChange(_, let percent) = input.comparison.frameP50.verdict, abs(percent) >= 5,
+           input.comparison.workP50.verdict == .noise {
+            evidence.append(.frameWorkUnchanged)
         }
 
         // 4. Recommandation.

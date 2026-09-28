@@ -85,4 +85,13 @@ struct ProbeComparisonTests {
         #expect(result.vsyncLimited)
         #expect(result.verdict == .netChange(delta: 3, percent: 33.3))
     }
+
+    /// Plafond à toute fréquence d'écran usuelle (UltraSmooth débride le jeu
+    /// au-delà de 60 i/s), et des deux côtés même à des plafonds différents.
+    @Test func vsyncCeilingAtAnyRefreshRate() {
+        #expect(ProbeComparison.compare(side(6.9), side(7.0)).vsyncLimited)       // 144 Hz
+        #expect(ProbeComparison.compare(side(16.6), side(6.95)).vsyncLimited)     // 60 → 144 Hz
+        #expect(!ProbeComparison.compare(side(30), side(36)).vsyncLimited)
+        #expect(!ProbeComparison.compare(side(12), side(16.6)).vsyncLimited)      // un seul côté
+    }
 }

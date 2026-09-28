@@ -26,6 +26,10 @@ public final class ProbeSessionsIndex: @unchecked Sendable {
     private var loaded = false
     private var timings = IndexedFile()
     private var costs = IndexedFile()
+    /// Le dernier résultat rendu : le décodage d'un gros `mod-costs.jsonl`
+    /// coûte ~0,8 s (mesuré le 2026-09-28, 8,5 Mo), une vue le redemande à
+    /// chaque rendu. Vidé dès qu'un des deux fichiers change.
+    private var lastResult: (wanted: Set<String>?, sessions: ProbeSessions)?
 
     public init(files: ProbeFiles) {
         self.files = files
@@ -36,13 +40,22 @@ public final class ProbeSessionsIndex: @unchecked Sendable {
         lock.withLock {
             let timingsStamp = ProbeFileStamp.of(files.timingsURL)
             let costsStamp = ProbeFileStamp.of(files.costsURL)
-            if !loaded || timingsStamp != timings.stamp { timings = Self.load(files.timingsURL, timingsStamp) }
-            if !loaded || costsStamp != costs.stamp { costs = Self.load(files.costsURL, costsStamp) }
+            if !loaded || timingsStamp != timings.stamp {
+                timings = Self.load(files.timingsURL, timingsStamp)
+                lastResult = nil
+            }
+            if !loaded || costsStamp != costs.stamp {
+                costs = Self.load(files.costsURL, costsStamp)
+                lastResult = nil
+            }
             loaded = true
+            if let lastResult, lastResult.wanted == wanted { return lastResult.sessions }
             let minutes = ProbeJSON.lines(ProbeMinute.self, from: Self.select(timings, keeping: wanted))
             let costLines = ProbeJSON.lines(ProbeModCostMinute.self, from: Self.select(costs, keeping: wanted))
-            return ProbeSessions.group(minutes: minutes.records, costs: costLines.records,
-                                       unreadableLines: minutes.unreadable + costLines.unreadable)
+            let result = ProbeSessions.group(minutes: minutes.records, costs: costLines.records,
+                                             unreadableLines: minutes.unreadable + costLines.unreadable)
+            lastResult = (wanted, result)
+            return result
         }
     }
 

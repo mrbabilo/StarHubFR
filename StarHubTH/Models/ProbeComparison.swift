@@ -68,11 +68,12 @@ public struct ProbeComparison: Equatable, Sendable {
         let fps = compare(a.map(\.minute.fps), b.map(\.minute.fps))
         let heap = compare(a.compactMap(\.minute.heapMB), b.compactMap(\.minute.heapMB))
 
-        // Plafond de synchro (mesuré 2026-09-28 : le jeu n'y est pas calé à
-        // 100 %, mais certains réglages y mènent). ± 0,3 ms autour de 16,7.
-        let ceiling = 16.4...17.0
-        let vsyncLimited = frameP50.a.median.map(ceiling.contains) == true
-            && frameP50.b.median.map(ceiling.contains) == true
+        // Plafond de synchro des deux côtés, pas forcément le même : le jeu
+        // plafonne à 60 i/s, UltraSmooth le débride jusqu'à la fréquence de
+        // l'écran. Un côté plafonné ne peut plus descendre : la trame ne
+        // mesure plus le travail.
+        let vsyncLimited = frameP50.a.median.map(isAtRefreshCeiling) == true
+            && frameP50.b.median.map(isAtRefreshCeiling) == true
 
         // Garde « même état de la mesure des patches des deux côtés » : deux
         // inconnus (`nil` partout) s'accordent ; un seul côté renseigné ne
@@ -108,6 +109,14 @@ public struct ProbeComparison: Equatable, Sendable {
             verdict = .noise
         }
         return ProbeMeasureComparison(a: summaryA, b: summaryB, verdict: verdict)
+    }
+
+    /// Fréquences d'écran usuelles ; ± 2 % autour de l'intervalle de trame
+    /// (± 0,3 ms à 60 Hz).
+    static let refreshRates: [Double] = [60, 75, 90, 100, 120, 144, 165, 240]
+
+    static func isAtRefreshCeiling(_ frameMs: Double) -> Bool {
+        refreshRates.contains { abs(frameMs - 1000 / $0) <= 0.02 * (1000 / $0) }
     }
 
     private static func workP50(of item: ProbeComparableMinute) -> Double? {

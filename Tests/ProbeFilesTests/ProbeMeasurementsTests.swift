@@ -74,4 +74,14 @@ struct ProbeMeasurementsTests {
         #expect(result.minutes.count == 5)
         #expect(result.crossedChangeAt == nil)
     }
+
+    /// La session en cours n'a pas fini d'écrire : sa mesure ouverte reste
+    /// ouverte.
+    @Test func openMeasurementOfTheRunningSessionStaysOpen() throws {
+        let all = try sessions()
+        let session = try #require(all.sessions.first { $0.id.hasPrefix("2026-09-28T18:56") })
+        let open = ProbeMeasurement(name: "en cours", start: try #require(session.startedAt), end: nil)
+        let result = ProbeMeasurementsLogic.closeOpen([open], sessions: all, runningSession: session.id)
+        #expect(result.first?.end == nil)
+    }
 }

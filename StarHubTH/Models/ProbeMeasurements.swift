@@ -74,18 +74,21 @@ public struct ProbeMeasurementSegment: Equatable, Sendable {
 
 public enum ProbeMeasurementsLogic {
     /// Une mesure jamais terminée se clôt à la dernière minute de sa session
-    /// (la première session dont le dernier relevé suit le début).
+    /// (la première session dont le dernier relevé suit le début). Celle de
+    /// `runningSession` (la partie en cours, qui écrit encore) reste ouverte.
     public static func closeOpen(_ measurements: [ProbeMeasurement],
-                                 sessions: ProbeSessions) -> [ProbeMeasurement] {
-        let lastMinutes = sessions.sessions.compactMap { session in
-            session.minutes.compactMap { ProbeDate.parse($0.at) }.max()
+                                 sessions: ProbeSessions,
+                                 runningSession: String? = nil) -> [ProbeMeasurement] {
+        let lastMinutes = sessions.sessions.compactMap { session -> (id: String, last: Date)? in
+            session.minutes.compactMap { ProbeDate.parse($0.at) }.max().map { (session.id, $0) }
         }
         return measurements.map { measurement in
             guard measurement.end == nil,
-                  let closing = lastMinutes.filter({ $0 >= measurement.start }).min()
+                  let closing = lastMinutes.filter({ $0.last >= measurement.start }).min(by: { $0.last < $1.last }),
+                  closing.id != runningSession
             else { return measurement }
             var closed = measurement
-            closed.end = closing
+            closed.end = closing.last
             return closed
         }
     }

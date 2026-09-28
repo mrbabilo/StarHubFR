@@ -102,4 +102,26 @@ struct ProbeDiffAndCostsTests {
         #expect(deltas.map(\.delta) == [3.0, 0.5, -0.5, 0])
         #expect(deltas.map(\.presence) == [.added, .both, .removed, .both])
     }
+
+    /// Version et réglage changés ensemble : un seul changement (un seul mod),
+    /// mais le réglage n'est pas perdu.
+    @Test func versionAndConfigChangedTogetherKeepBoth() {
+        let a = launch([entry("Mod.A", version: "1.0", sha: "aa")])
+        let b = launch([entry("Mod.A", version: "1.1", sha: "bb")])
+        #expect(ProbeInventoryDiffRule.between(a, b).changes == [
+            ProbeModChange(modId: "Mod.A", kind: .versionChanged(from: "1.0", to: "1.1", configChanged: true))])
+    }
+
+    /// Deux minutes à moins de 30 s l'une de l'autre visent la même ligne :
+    /// elle ne compte qu'une fois, la seconde minute prend la suivante
+    /// (sinon Mod.A vaudrait 1,0 au lieu de 2,0).
+    @Test func aCostLineIsPairedOnce() throws {
+        let minutes = [guardMinute(at: "T10:00:00.0000000+02:00"),
+                       guardMinute(at: "T10:00:15.0000000+02:00")]
+        let later = guardMinute(at: "T10:00:40.0000000+02:00")
+        let costs = [cost(minute: minutes[0], mods: [("Mod.A", 1.0)]),
+                     cost(minute: later, mods: [("Mod.A", 3.0)])]
+        let perMod = ProbeCosts.perMod(minutes, costs: costs)
+        #expect(abs(try #require(perMod["Mod.A"]) - 2.0) < 0.001)
+    }
 }

@@ -29,12 +29,17 @@ public enum ProbeCosts {
         let dated = costs.compactMap { line in ProbeDate.parse(line.at).map { (line, $0) } }
         var selfMs: [String: Double] = [:]
         var seconds = 0.0
+        // Une ligne ne s'apparie qu'une fois : deux minutes proches la
+        // compteraient deux fois.
+        var used = Set<Int>()
         for item in side {
             guard let at = ProbeDate.parse(item.minute.at),
-                  let line = dated
-                      .filter({ abs($0.1.timeIntervalSince(at)) < 30 })
-                      .min(by: { abs($0.1.timeIntervalSince(at)) < abs($1.1.timeIntervalSince(at)) })?.0
+                  let index = dated.indices
+                      .filter({ !used.contains($0) && abs(dated[$0].1.timeIntervalSince(at)) < 30 })
+                      .min(by: { abs(dated[$0].1.timeIntervalSince(at)) < abs(dated[$1].1.timeIntervalSince(at)) })
             else { continue }
+            used.insert(index)
+            let line = dated[index].0
             seconds += line.wallSeconds
             for mod in line.mods {
                 selfMs[mod.mod, default: 0] += mod.selfMs
