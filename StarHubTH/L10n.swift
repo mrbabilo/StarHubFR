@@ -830,6 +830,8 @@ enum L10n {
         static let stripProblems     = "logs_strip_problems"
         static let stripNoLog        = "logs_strip_no_log"
         static let stripBisection    = "logs_strip_bisection"
+        static let stripBisectionInterrupted = "logs_strip_bisection_interrupted"
+        static let stripBisectionResult = "logs_strip_bisection_result"
         static let stripOpenHealth   = "logs_strip_open_health"
         static let developer            = "logs_developer"
         static let filterAll            = "logs_filter_all"

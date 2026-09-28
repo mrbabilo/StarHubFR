@@ -115,6 +115,7 @@ let package = Package(
                 "Models/ManifestJSON.swift",
                 "Models/BisectionEvidence.swift",
                 "Models/BisectionSession.swift",
+                "Models/DiagnosticsStripStatus.swift",
                 "Models/BisectionSnapshot.swift",
                 "Models/ModFocusResolver.swift",
                 "Models/TabChangePlan.swift",

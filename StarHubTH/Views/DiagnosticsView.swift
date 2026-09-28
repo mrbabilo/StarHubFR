@@ -56,11 +56,15 @@ struct DiagnosticsView: View {
 
     /// Un onglet non affiché : invisible, sans clic ni raccourci (un bouton
     /// désactivé ne déclenche pas son `keyboardShortcut` — ⌘F n'a donc
-    /// qu'un liage actif), hors de VoiceOver. Son état survit.
+    /// qu'un liage actif), hors de VoiceOver. Son état survit. L'onglet
+    /// affiché passe **au-dessus** (`zIndex`) : les vues AppKit du journal
+    /// caché (défilement, texte sélectionnable qui impose le curseur I-beam)
+    /// ne doivent pas s'interposer devant Santé.
     private func tab<Content: View>(_ value: DiagnosticsSegment,
                                     @ViewBuilder content: () -> Content) -> some View {
         let shown = viewModel.navigationStore.diagnosticsSegment == value
         return content()
+            .zIndex(shown ? 1 : 0)
             .opacity(shown ? 1 : 0)
             .allowsHitTesting(shown)
             .disabled(!shown)
