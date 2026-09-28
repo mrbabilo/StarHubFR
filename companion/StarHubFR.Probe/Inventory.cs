@@ -137,54 +137,68 @@ internal static class Inventory
         // `WatchedConfigs` n'est lu et écrit que sous `Gate`, dans la tâche de
         // fond : la liste peut être en train de se remplir (lancement).
         if (!Gate.Wait(0)) return;
-        string session = FrameTimings.Session;
-        Task.Run(() =>
+        Task.Run(Scan);
+    }
+
+    /// <summary>
+    /// À la fermeture du jeu : le même relevé, mais synchrone — un `Task.Run`
+    /// lancé dans `ProcessExit` ne survit pas à la fin du processus (le
+    /// 2026-09-28, les réglages changés dans la dernière minute étaient perdus).
+    /// </summary>
+    public static void FlushSync()
+    {
+        Gate.Wait();
+        Scan();
+    }
+
+    /// <summary>Le relevé lui-même ; appelé avec `Gate` tenu, le rend.</summary>
+    private static void Scan()
+    {
+        try
         {
-            try
+            string session = FrameTimings.Session;
+            if (WatchedConfigs.Count == 0) return;
+            DateTime notBefore = LastScanUtc;
+            LastScanUtc = DateTime.UtcNow;
+            var changed = new Dictionary<string, string?>();
+            DateTime? latest = null;
+            foreach (var watched in WatchedConfigs)
             {
-                if (WatchedConfigs.Count == 0) return;
-                DateTime notBefore = LastScanUtc;
-                LastScanUtc = DateTime.UtcNow;
-                var changed = new Dictionary<string, string?>();
-                DateTime? latest = null;
-                foreach (var watched in WatchedConfigs)
+                Observation seen;
+                try
                 {
-                    Observation seen;
-                    try
-                    {
-                        DateTime? stamp = File.Exists(watched.Path) ? File.GetLastWriteTimeUtc(watched.Path) : null;
-                        if (stamp == watched.Stamp) continue;
-                        seen = Observe(watched.Path);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Un mod qui lève ne prive pas les suivants de leur relevé.
-                        Log($"Inventaire : {watched.Path} non relevé ({ex.Message}).");
-                        seen = new Observation(ReadKind.Error);
-                    }
-                    if (!InventoryRules.Apply(ref watched.Stamp, ref watched.Sha, seen)) continue;
-                    changed[watched.Id] = watched.Sha;
-                    if (seen.Stamp is { } s && (latest is null || s > latest)) latest = s;
+                    DateTime? stamp = File.Exists(watched.Path) ? File.GetLastWriteTimeUtc(watched.Path) : null;
+                    if (stamp == watched.Stamp) continue;
+                    seen = Observe(watched.Path);
                 }
-                if (changed.Count == 0) return;
-                // `ChangedAt` : quand le fichier a changé, pas quand on l'a vu.
-                // C'est lui qui coupe la session côté app — la minute du
-                // changement, pas celle du relevé.
-                DateTime changedAt = InventoryRules.ChangedAt(latest, notBefore, DateTime.UtcNow);
-                Append(new { Session = session, At = Now(),
-                             ChangedAt = new DateTimeOffset(changedAt, TimeSpan.Zero).ToLocalTime().ToString("o"),
-                             Kind = "configChanged", Configs = changed });
-                Log($"Inventaire : réglage changé ({string.Join(", ", changed.Keys)}).");
+                catch (Exception ex)
+                {
+                    // Un mod qui lève ne prive pas les suivants de leur relevé.
+                    Log($"Inventaire : {watched.Path} non relevé ({ex.Message}).");
+                    seen = new Observation(ReadKind.Error);
+                }
+                if (!InventoryRules.Apply(ref watched.Stamp, ref watched.Sha, seen)) continue;
+                changed[watched.Id] = watched.Sha;
+                if (seen.Stamp is { } s && (latest is null || s > latest)) latest = s;
             }
-            catch (Exception ex)
-            {
-                Log($"Inventaire : relevé de la minute abandonné ({ex.Message}).");
-            }
-            finally
-            {
-                Gate.Release();
-            }
-        });
+            if (changed.Count == 0) return;
+            // `ChangedAt` : quand le fichier a changé, pas quand on l'a vu.
+            // C'est lui qui coupe la session côté app — la minute du
+            // changement, pas celle du relevé.
+            DateTime changedAt = InventoryRules.ChangedAt(latest, notBefore, DateTime.UtcNow);
+            Append(new { Session = session, At = Now(),
+                         ChangedAt = new DateTimeOffset(changedAt, TimeSpan.Zero).ToLocalTime().ToString("o"),
+                         Kind = "configChanged", Configs = changed });
+            Log($"Inventaire : réglage changé ({string.Join(", ", changed.Keys)}).");
+        }
+        catch (Exception ex)
+        {
+            Log($"Inventaire : relevé de la minute abandonné ({ex.Message}).");
+        }
+        finally
+        {
+            Gate.Release();
+        }
     }
 
     /// <summary>

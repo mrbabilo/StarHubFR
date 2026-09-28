@@ -875,7 +875,10 @@ SLO est actif et ce que la dernière session a mesuré.
       (poste local), quatre plans. ✅ Plan 1 : page « Diagnostic & Performances » en onglets
       Santé · Journal, sans perte (onglets gardés montés, bandeau Santé dans le Journal).
       ✅ Plan 2 : sonde v0.4.12 (inventaire, réglages relevés à la minute, `MenuTicks`),
-      construite le 2026-09-28, validation en jeu à venir.
+      construite le 2026-09-28 ; lancement validé en jeu (289 mods, 174 config.json,
+      contenus cohérents). La validation du réglage changé a révélé une perte : le
+      dernier relevé, `Task.Run` dans `ProcessExit`, était tué par la fin du
+      processus — corrigé en v0.4.13 (relevé final synchrone), à revalider en jeu.
       Restent le Core (segments, comparaison, analyse) et
       l'onglet Performances (graphiques, aide à la décision).
 

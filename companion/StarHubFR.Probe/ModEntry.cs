@@ -82,7 +82,14 @@ public sealed class ModEntry : Mod
         // `Monitor.Log` qui suit lève (« Critical app domain exception »).
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
-            try { FrameTimings.FlushNow(); }
+            try
+            {
+                FrameTimings.FlushNow();
+                // Dernier relevé, synchrone : un Task.Run ici est tué par la
+                // fin du processus (réglages perdus de la dernière minute,
+                // 2026-09-28).
+                Inventory.FlushSync();
+            }
             catch (ObjectDisposedException) { }
         };
 
