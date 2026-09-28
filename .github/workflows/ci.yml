@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -21,10 +22,54 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
-      - name: Run test suite
+      - name: Build tests
         run: |
-          chmod +x run_tests.sh
-          ./run_tests.sh
+          export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+          swift build --build-tests
+
+      # Diagnostic du gel (2026-09-28) : si la suite tourne encore après
+      # 4 min (3–4 min pour tout le job d'habitude), échantillonner les piles
+      # du process de test, les imprimer, puis échouer.
+      - name: Run test suite (freeze watchdog)
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+          swift test --skip-build > test.log 2>&1 < /dev/null &
+          pid=$!
+          for i in $(seq 1 48); do
+            sleep 5
+            kill -0 $pid 2>/dev/null || break
+          done
+          if kill -0 $pid 2>/dev/null; then
+            echo "::error::Suite figée après 240 s"
+            echo "=== Dernières lignes de sortie ==="
+            tail -60 test.log
+            echo "=== Process de test ==="
+            ps -axo pid,ppid,%cpu,etime,command | grep -Ei 'xctest|swiftpm-testing|PackageTests' | grep -v grep || true
+            for tp in $(pgrep -f 'xctest|swiftpm-testing-helper|PackageTests'); do
+              echo "=== sample $tp ==="
+              sample $tp 3 -file sample-$tp.txt > /dev/null 2>&1 || true
+              sed -n '/^Call graph:/,/^Total number in stack/p' sample-$tp.txt || true
+            done
+            echo "=== Tests démarrés sans fin ==="
+            python3 - <<'PY'
+          import re
+          st, dn = [], set()
+          for l in open('test.log', errors='replace'):
+              m = re.search(r'Test (.+?) started\.', l)
+              if m: st.append(m.group(1))
+              m = re.search(r'Test (.+?) (passed|failed|skipped|recorded)', l)
+              if m: dn.add(m.group(1))
+          print(len(st), 'démarrés,', len(dn), 'finis')
+          PY
+            pkill -f 'xctest|swiftpm-testing-helper' || true
+            kill $pid || true
+            exit 1
+          fi
+          code=0
+          wait $pid || code=$?
+          tail -5 test.log || true
+          grep -E '✘' test.log | grep -v skipped | head -40 || true
+          exit $code
 
       - name: Check coding standards
         run: python3 check_standards.py
