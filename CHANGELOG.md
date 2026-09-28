@@ -15,13 +15,16 @@ where the exact log format was verified.
 ### Added
 
 - **Nettoyer les anciens fichiers d'un mod.** Dans sa fiche, l'historique propose de retirer ce que d'anciennes versions ont laissé : coché quand c'est identique à un fichier de l'auteur, décoché quand ce n'est que probable. Le dossier est sauvegardé d'abord.
+- **La sonde StarHubFR et Profiler signalés incompatibles.** Actifs ensemble, chacun gonfle les temps que l'autre mesure : une alerte le dit, avec la raison, et l'activation de l'un avertit si l'autre tourne. Écartable comme toute incompatibilité.
 
 ### Changed
 
+- **La vérification anti-malware ne relit que les mods changés.** Au lancement, seuls les mods modifiés depuis leur dernière vérification sont relus : 9 s sur un parc de 1 100 mods la première fois, moins d'1 s ensuite. Tout est relu quand la liste change ou chaque jour.
 - **« Diagnostic & Performances » en onglets.** La santé SMAPI et la recherche guidée ont leur onglet, ouvert par défaut ; le journal a le sien, en pleine hauteur, avec l'état SMAPI en bandeau. Les liens « voir dans le journal » y mènent filtrés, et changer d'onglet ne perd ni filtre ni recherche.
 
 ### Fixed
 
+- **La liste des mods malveillants de SMAPI est vérifiée en entier.** Les fichiers piégés n'étaient jamais cherchés, et les entrées reconnues par l'empreinte du DLL étaient ignorées. Un mod légitime qui partage l'identifiant d'un reupload piégé n'est plus signalé.
 - **Une mise à jour garde tes traductions rangées en dossier.** Un `i18n/fr/gui.json` (forme de SMAPI 4) était remplacé par la version de l'auteur quand l'historique ne permettait pas de trancher ; il est désormais gardé, comme un `i18n/fr.json`.
 
 ## [1.51.0] - 2026-09-28
