@@ -84,17 +84,12 @@ internal static class GmcmExport
     /// Le `config.json` du mod tel qu'il est à l'instant de la capture. L'app y
     /// vérifie que chaque option GMCM lit bien la clé qu'elle lui attribue
     /// (valeur égale), sans dépendre des éditions faites depuis (D4-T7).
-    /// `DirectoryPath` est public sur `ModMetadata`, l'implémentation interne
-    /// de l'`IModInfo` que rend SMAPI.
     /// </summary>
     private static string? ConfigSnapshot(IModHelper helper, string uniqueId, IMonitor monitor)
     {
         try
         {
-            object? info = helper.ModRegistry.Get(uniqueId);
-            string? directory = info is null
-                ? null
-                : AccessTools.Property(info.GetType(), "DirectoryPath")?.GetValue(info) as string;
+            string? directory = ModDirectory.Of(helper.ModRegistry.Get(uniqueId));
             if (directory is null)
             {
                 monitor.Log($"Options GMCM : dossier de {uniqueId} introuvable, pas de copie de config.json.", LogLevel.Trace);

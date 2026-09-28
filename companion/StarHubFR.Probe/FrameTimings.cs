@@ -53,11 +53,17 @@ internal static class FrameTimings
     private static readonly List<float> WaitMs = new(8192);
     private static readonly List<float> UpdatesPerTick = new(8192);
     private static int InactiveTicks;
+    /// <summary>
+    /// Ticks de la minute avec un menu ouvert (D4-T4). `Menu` est un
+    /// instantané pris à l'écriture de la ligne : une minute passée dans
+    /// l'inventaire, refermé juste avant, paraissait sans menu.
+    /// </summary>
+    private static int MenuTicks;
 
     private static double LastDrawStartMs = -1;
     private static bool Announced;
-    /// <summary>Un lancement = une session : les lignes de deux lancements ne se mélangent pas.</summary>
-    private static readonly string Session = DateTimeOffset.Now.ToString("o");
+    /// <summary>Un lancement = une session : les lignes de deux lancements ne se mélangent pas. Partagée avec l'inventaire.</summary>
+    internal static readonly string Session = DateTimeOffset.Now.ToString("o");
     internal static int LoadedMods;
     private static double WindowStartMs;
     private static int Gen0, Gen1, Gen2;
@@ -165,6 +171,7 @@ internal static class FrameTimings
         // Fenêtre sans focus : MonoGame dort 20 ms par tick (InactiveSleepTime)
         // — taper dans la console SMAPI suffit.
         if (!__instance.IsActive) InactiveTicks++;
+        if (Game1.activeClickableMenu is not null) MenuTicks++;
         // La fenêtre se ferme entre deux ticks, jamais au milieu : un tick
         // appartient à une seule minute, et la durée de la minute le contient.
         if (now - WindowStartMs >= WindowMs) FlushNow();
@@ -180,7 +187,7 @@ internal static class FrameTimings
 
     private record Stat(int Count, double Avg, double P50, double P99, double Max);
     private record Line(string Session, int LoadedMods, string At, double WallSeconds, double Fps, Stat? FrameInterval, Stat? Draw, Stat? Update,
-                        Stat? Tick, Stat? OuterUpdate, Stat? OuterDraw, Stat? Present, Stat? Wait, Stat? UpdatesPerTick, int InactiveTicks,
+                        Stat? Tick, Stat? OuterUpdate, Stat? OuterDraw, Stat? Present, Stat? Wait, Stat? UpdatesPerTick, int InactiveTicks, int MenuTicks,
                         long HeapMB, int Gen0, int Gen1, int Gen2, double BlockingGcMs, double BlockingGcMaxMs, double BackgroundGcMs,
                         string? Location, int? GameTime, string? Menu);
 
@@ -207,7 +214,7 @@ internal static class FrameTimings
                 Math.Round(FrameIntervalMs.Count / wall, 1),
                 Summarize(FrameIntervalMs), Summarize(DrawMs), Summarize(UpdateMs),
                 Summarize(TickMs), Summarize(OuterUpdateMs), Summarize(OuterDrawMs), Summarize(PresentMs),
-                Summarize(WaitMs), Summarize(UpdatesPerTick), InactiveTicks,
+                Summarize(WaitMs), Summarize(UpdatesPerTick), InactiveTicks, MenuTicks,
                 GC.GetTotalMemory(false) / (1024 * 1024),
                 GC.CollectionCount(0) - Gen0, GC.CollectionCount(1) - Gen1, GC.CollectionCount(2) - Gen2,
                 Math.Round(pauseMs, 2), Math.Round(maxPauseMs, 2), Math.Round(backgroundMs, 2),
@@ -239,6 +246,8 @@ internal static class FrameTimings
         {
             Monitor.Log($"Mesures non écrites : {ex.Message}", LogLevel.Trace);
         }
+        // D4-T4 — les réglages se relèvent à chaque minute, en tâche de fond.
+        Inventory.CheckNow();
         ResetWindow();
     }
 
@@ -269,6 +278,7 @@ internal static class FrameTimings
         TickMs.Clear(); OuterUpdateMs.Clear(); OuterDrawMs.Clear();
         PresentMs.Clear(); WaitMs.Clear(); UpdatesPerTick.Clear();
         InactiveTicks = 0;
+        MenuTicks = 0;
         WindowStartMs = Clock.Elapsed.TotalMilliseconds;
         Gen0 = GC.CollectionCount(0);
         Gen1 = GC.CollectionCount(1);

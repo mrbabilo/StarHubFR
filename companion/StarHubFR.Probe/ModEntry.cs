@@ -15,6 +15,9 @@ namespace StarHubFR.Probe;
 /// Sortie : ~/.config/StardewValley/ModData/mrbabilo.StarHubFR.Probe/
 ///  - harmony-map.json   la carte des patches, réécrite à chaque étape
 ///  - timings.jsonl      une ligne par minute de jeu réelle
+///  - inventory.jsonl    mods chargés (version, empreinte du config.json) au
+///                       lancement, puis chaque réglage changé en partie
+///  - configs/           le contenu de chaque config.json, par empreinte
 ///  - mod-costs.jsonl    une ligne par minute : temps et allocations par mod
 ///  - gmcm-options.json  les options déclarées à GMCM, bornes comprises
 ///  - patch-wraps.json   (option MeasureHarmonyPatches) ce que la mesure des
@@ -52,6 +55,7 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.GameLaunched += (_, _) =>
         {
             FrameTimings.LoadedMods = helper.ModRegistry.GetAll().Count();
+            Inventory.WriteLaunch(helper, Monitor, ModManifest.Version.ToString());
             HarmonyMap.Write(helper, Monitor, "GameLaunched");
             PatchCosts.WrapNew("GameLaunched");
         };
