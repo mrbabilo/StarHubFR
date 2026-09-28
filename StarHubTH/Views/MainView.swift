@@ -171,7 +171,7 @@ struct MainView: View {
                     case .settings:
                         SettingsView(vm: vm, localization: localization)
                     case .logs:
-                        LogsView(vm: vm, localization: localization)
+                        DiagnosticsView(viewModel: vm, localization: localization)
                     case .appChangelog:
                         AppChangelogView(vm: vm, localization: localization)
                     case .home:

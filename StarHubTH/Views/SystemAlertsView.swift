@@ -246,8 +246,9 @@ struct SystemAlertsView: View {
             vm.navigationStore.pendingDetailTab = .state
             currentTab = .mods
         case .openLogs(let searchText):
-            vm.navigationStore.pendingLogFocus = searchText
-            currentTab = .logs
+            // Onglet Journal, filtre et page d'un coup (D4-T4 §3a) : sans le
+            // segment, la page s'ouvrirait sur Santé, sans filtre visible.
+            vm.navigationStore.openLog(search: searchText)
         case .revealInFinder(let paths):
             // Les deux dossiers sélectionnés **ensemble** : c'est ce qui montre
             // lequel porte le point de tête, donc lequel est en pause. Ouvrir

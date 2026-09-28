@@ -50,16 +50,16 @@ struct SmapiHealthCard: View {
             || !vm.compatibilityFlaggedMods.isEmpty
     }
 
-    /// Height of the window the card sits in, measured by `LogsView`. The card
-    /// can't measure it itself: inside a VStack a GeometryReader only sees the
-    /// height the card was already given, which would make the sizing circular.
+    /// Hauteur que la carte peut occuper **en entier**, mesurée par
+    /// `DiagnosticsHealthView` (dans une VStack, un GeometryReader ne voit que
+    /// la hauteur déjà donnée). D4-T4 §3a : la carte a son onglet, elle ne
+    /// partage plus la hauteur avec le journal (ancien budget des deux tiers).
     var availableHeight: CGFloat = 600
 
     var body: some View {
-        // Two thirds of the window is the target for the *whole* card, so the
-        // header, its counts strip and the surrounding padding come out of that
-        // budget rather than adding to it.
-        card(maxBodyHeight: availableHeight * 0.66 - Self.headerAllowance)
+        // Le budget couvre la carte **entière** : l'en-tête, son bandeau de
+        // compteurs et les marges en sortent au lieu de s'y ajouter.
+        card(maxBodyHeight: availableHeight - Self.headerAllowance)
     }
 
     /// Rough height of the header block plus the card's outer padding, subtracted
@@ -406,7 +406,7 @@ struct SmapiHealthCard: View {
                         // list of affected mods, beyond the few shown here.
                         if let logHeader {
                             Button {
-                                NotificationCenter.default.post(name: .showLogSection, object: logHeader)
+                                vm.navigationStore.openLog(section: logHeader)
                             } label: {
                                 Image(systemName: "list.bullet.rectangle")
                                     .font(AppDesign.Font.footnote)
@@ -476,7 +476,7 @@ struct SmapiHealthCard: View {
                 NotificationCenter.default.post(name: .jumpToMod, object: mod)
             }
             actionButton("text.magnifyingglass", help: L10n.Logs.healthShowInLog) {
-                NotificationCenter.default.post(name: .filterLogsToMod, object: mod)
+                vm.navigationStore.openLog(search: mod)
             }
         }
     }

@@ -4,7 +4,7 @@ struct LogsView: View {
     /// ⌘F amène ici (voir `SearchFieldShortcut`).
     @FocusState private var searchFocused: Bool
 
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     // Source tabs: nil = All, .app = StarHubFR, .smapi = SMAPI
@@ -21,20 +21,8 @@ struct LogsView: View {
     /// When set, the list shows only this SMAPI warning-group block (header +
     /// the mods it lists), as written in the log.
     @State private var sectionHeader: String? = nil
-    /// Height of the Logs view, so the health card can cap its expanded body to
-    /// a fraction of the window instead of a fixed guess.
-    @State private var viewHeight: CGFloat = 600
-    /// Combined height of the fixed bars around the list (source+level filters,
-    /// toolbar, status bar and their dividers).
-    private static let fixedChromeHeight: CGFloat = 120
     /// Ids of the per-mod sections currently expanded.
     @State private var expandedMods: Set<String> = []
-    /// Hauteur réellement occupée par la carte de recherche guidée. Mesurée
-    /// plutôt qu'estimée : elle passe d'un bouton (~90 pt) à un écran d'étape
-    /// avec liste dépliée. Sans la retrancher du budget, la carte de santé
-    /// réclamait les deux tiers d'une place déjà entamée, et la somme chassait
-    /// la liste des journaux — jusqu'à emporter le chevron de repli hors écran.
-    @State private var bisectionCardHeight: CGFloat = 0
 
     /// Single-pass derivation of everything the Logs UI needs from the raw
     /// entries: the filtered list (source + level + search) for the `List`,
@@ -74,7 +62,7 @@ struct LogsView: View {
         // so it's located by span in the SMAPI entries rather than by matching
         // each line — the separator and blurb have nothing in common to match.
         if let header = sectionHeader {
-            let smapi = vm.logEntries.filter { $0.source == .smapi }
+            let smapi = viewModel.logEntries.filter { $0.source == .smapi }
             let block = LogNoise.warningGroupRange(
                 messages: smapi.map { $0.message }, header: header
             ).map { Array(smapi[$0]) } ?? []
@@ -88,7 +76,7 @@ struct LogsView: View {
         let source = selectedSource
         let level = selectedLevel
         let search = searchText
-        for entry in vm.logEntries {
+        for entry in viewModel.logEntries {
             guard source == nil || entry.source == source else { continue }
             sourceTotal += 1
             counts[entry.level, default: 0] += 1
@@ -253,7 +241,7 @@ struct LogsView: View {
 
                 // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
                 Button {
-                    vm.loadSmapiLog()
+                    viewModel.loadSmapiLog()
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .foregroundColor(.secondary)
@@ -299,31 +287,6 @@ struct LogsView: View {
             }
 
             // ── Entries ──────────────────────────────────────────────
-            // SMAPI health card - shown on All + SMAPI tabs only
-            if selectedSource != .app, let diag = vm.smapiDiagnostics, !diag.isEmpty {
-                // The card's share is of the space it actually competes for:
-                // the filter bars, toolbar and status bar are fixed chrome, so
-                // they're taken out before splitting with the log list.
-                SmapiHealthCard(vm: vm, localization: localization,
-                                availableHeight: max(240, viewHeight - Self.fixedChromeHeight - bisectionCardHeight))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                Divider()
-            }
-
-            // Recherche guidée du mod responsable. Présente sur les onglets
-            // liés au jeu (All/SMAPI), masquée sur les logs StarHubFR (.app).
-            if selectedSource != .app {
-                BisectionCard(vm: vm, localization: localization)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(GeometryReader { proxy in
-                        Color.clear.onAppear { bisectionCardHeight = proxy.size.height }
-                            .onChange(of: proxy.size.height) { _, h in bisectionCardHeight = h }
-                    })
-                Divider()
-            }
-
             if views.filtered.isEmpty {
                 // Deux vides très différents, qui ne se lèvent pas pareil : un
                 // filtre qui exclut tout part d'un geste, une absence réelle de
@@ -362,7 +325,7 @@ struct LogsView: View {
                             }
                         }
                     }
-                    .onChange(of: vm.logEntries.count) { _, _ in
+                    .onChange(of: viewModel.logEntries.count) { _, _ in
                         // Pointless when grouped: the list is no longer
                         // chronological, so the newest line isn't at the bottom.
                         if autoScroll, !groupByMod, let last = logViews.filtered.last {
@@ -376,7 +339,7 @@ struct LogsView: View {
 
             // ── Status bar ───────────────────────────────────────────
             HStack {
-                Text(String(format: localization.L(L10n.Logs.entryCount), views.filtered.count, vm.logEntries.count))
+                Text(String(format: localization.L(L10n.Logs.entryCount), views.filtered.count, viewModel.logEntries.count))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -386,23 +349,13 @@ struct LogsView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .background(Color(nsColor: .controlBackgroundColor))
-        // Measured here rather than inside the card: within a VStack a
-        // GeometryReader only reports the height its content already claimed,
-        // so the card can't size itself against the window from the inside.
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear { viewHeight = proxy.size.height }
-                    .onChange(of: proxy.size.height) { _, new in viewHeight = new }
-            }
-        )
         .confirmationDialog(localization.L(L10n.Logs.clearConfirmTitle),
                             isPresented: $showClearConfirm,
                             titleVisibility: .visible) {
             // macOS auto-appends a localized Cancel button since none here has
             // role .cancel. Only app entries are wiped; SMAPI entries are kept.
             Button(localization.L(L10n.Logs.clearLogs), role: .destructive) {
-                vm.clearAppLog()
+                viewModel.clearAppLog()
             }
         } message: {
             Text(localization.L(L10n.Logs.clearConfirmMessage))
@@ -412,49 +365,65 @@ struct LogsView: View {
             // de l'onglet que le log SMAPI se rafraîchit. Sans cela, le `if isEmpty`
             // sautait le rechargement après le premier affichage → log périmé
             // en revenant sur l'onglet.
-            vm.loadSmapiLog()
+            viewModel.loadSmapiLog()
         }
         .onDisappear {
-            vm.stopSmapiLogWatcher()
+            viewModel.stopSmapiLogWatcher()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .filterLogsToMod)) { note in
-            guard let mod = note.object as? String else { return }
-            // Show every level from every source so the mod's lines can't be
-            // filtered out by whatever the user had selected.
-            sectionHeader = nil
-            selectedSource = nil
-            selectedLevel = nil
-            searchText = mod
-        }
-        // `vm.navigationStore.pendingLogFocus` (H-T6b, posé par `SystemAlertsView`) may arrive
+        // `viewModel.navigationStore.pendingLogFocus` (H-T6b, posé par `SystemAlertsView`) may arrive
         // before this view exists — the tab switch that carries it creates
         // this view fresh. Same fix, same reason as
         // `pendingModFocus`/`consumePendingModFocus()` in `ModListView`: read
         // on appear as well as while already on screen.
         .onAppear { consumePendingLogFocus() }
-        .onChange(of: vm.navigationStore.pendingLogFocus) { _, _ in consumePendingLogFocus() }
-        .onReceive(NotificationCenter.default.publisher(for: .showLogSection)) { note in
-            guard let header = note.object as? String else { return }
-            searchText = ""
-            selectedLevel = nil
-            groupByMod = false
-            sectionHeader = header
+        .onChange(of: viewModel.navigationStore.pendingLogFocus) { _, _ in consumePendingLogFocus() }
+        // D4-T4 §3a — la carte Santé est dans un autre onglet : ses liens
+        // passent par `NavigationStore` (une notification vers ce journal non
+        // affiché serait perdue). Lus à l'apparition ET pendant l'affichage.
+        .onAppear { consumePendingLogSection(); consumePendingLogSearchFocus() }
+        .onChange(of: viewModel.navigationStore.pendingLogSection) { _, _ in consumePendingLogSection() }
+        .onChange(of: viewModel.navigationStore.pendingLogSearchFocus) { _, _ in consumePendingLogSearchFocus() }
+        // Onglet quitté : le champ caché ne doit pas garder le focus clavier,
+        // sinon la frappe irait dans une recherche invisible.
+        .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
+            if segment != .journal { searchFocused = false }
         }
     }
 
     // MARK: - Helpers
 
     /// Scopes the search to the log line/mod the user asked to jump to (from
-    /// `SystemAlertsView`), then clears the request so it fires once. Same
-    /// reset as `.filterLogsToMod` above — every level, every source — so the
-    /// target line can't be hidden by whatever filter was active before.
+    /// `SystemAlertsView` or the health card, via `NavigationStore.openLog`),
+    /// then clears the request so it fires once. Every level, every source —
+    /// so the target line can't be hidden by whatever filter was active before.
     private func consumePendingLogFocus() {
-        guard let focus = vm.navigationStore.pendingLogFocus else { return }
+        guard let focus = viewModel.navigationStore.pendingLogFocus else { return }
         sectionHeader = nil
         selectedSource = nil
         selectedLevel = nil
         searchText = focus
-        vm.navigationStore.pendingLogFocus = nil
+        viewModel.navigationStore.pendingLogFocus = nil
+    }
+
+    /// Le bloc SMAPI demandé depuis la carte Santé, tel qu'écrit dans le
+    /// journal. Remplace une notification, perdue vers un onglet caché.
+    private func consumePendingLogSection() {
+        guard let header = viewModel.navigationStore.pendingLogSection else { return }
+        searchText = ""
+        selectedLevel = nil
+        groupByMod = false
+        sectionHeader = header
+        viewModel.navigationStore.pendingLogSection = nil
+    }
+
+    /// ⌘F pressé sur l'onglet Santé : le champ prend le focus une fois
+    /// l'onglet réactivé (il était désactivé tant que caché).
+    private func consumePendingLogSearchFocus() {
+        guard viewModel.navigationStore.pendingLogSearchFocus else { return }
+        viewModel.navigationStore.pendingLogSearchFocus = false
+        // Un tour plus tard : le champ doit d'abord être réactivé par le
+        // rendu qui affiche l'onglet. `Task` et non `DispatchQueue` (cliquet).
+        Task { @MainActor in searchFocused = true }
     }
 
     /// The chronological stream: single entries plus folded families.
@@ -463,13 +432,13 @@ struct LogsView: View {
         ForEach(rows) { row in
             switch row {
             case .single(let entry):
-                LogEntryRow(entry: entry, vm: vm, localization: localization)
+                LogEntryRow(entry: entry, viewModel: viewModel, localization: localization)
                     .id(entry.id)
             case .group(let id, let entries):
                 LogGroupRow(
                     entries: entries,
                     isExpanded: expandedGroups.contains(id),
-                    vm: vm,
+                    viewModel: viewModel,
                     localization: localization,
                     toggle: { toggle(id, in: &expandedGroups) }
                 )
@@ -597,7 +566,7 @@ struct LogsView: View {
 struct LogGroupRow: View {
     let entries: [LogEntry]
     let isExpanded: Bool
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let toggle: () -> Void
 
@@ -646,7 +615,7 @@ struct LogGroupRow: View {
 
             if isExpanded {
                 ForEach(entries) { entry in
-                    LogEntryRow(entry: entry, vm: vm, localization: localization)
+                    LogEntryRow(entry: entry, viewModel: viewModel, localization: localization)
                         .padding(.leading, 16)
                 }
             }
@@ -657,7 +626,7 @@ struct LogGroupRow: View {
 // MARK: - Log Entry Row
 struct LogEntryRow: View {
     let entry: LogEntry
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var isHovered = false
 
@@ -739,10 +708,4 @@ struct LogEntryRow: View {
 // MARK: - Notification for mod jump
 extension Notification.Name {
     static let jumpToMod = Notification.Name("StarHubTH.jumpToMod")
-    /// Posted with a mod name to scope the Logs view to that mod's entries —
-    /// lets the health card send the player straight to the underlying lines.
-    static let filterLogsToMod = Notification.Name("StarHubTH.filterLogsToMod")
-    /// Posted with a SMAPI warning-group header ("Changed save serializer", …)
-    /// to show that block of the log verbatim, listing every affected mod.
-    static let showLogSection = Notification.Name("StarHubTH.showLogSection")
 }

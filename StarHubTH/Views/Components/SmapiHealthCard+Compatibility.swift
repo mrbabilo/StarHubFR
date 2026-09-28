@@ -112,7 +112,7 @@ extension SmapiHealthCard {
                 .iconHelp(link.label)
             }
             actionButton("text.magnifyingglass", help: L10n.Logs.healthShowInLog) {
-                NotificationCenter.default.post(name: .filterLogsToMod, object: name)
+                vm.navigationStore.openLog(search: name)
             }
         }
     }
