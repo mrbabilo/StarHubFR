@@ -168,6 +168,7 @@ let package = Package(
                 "Models/PreservedModData.swift",
                 "Models/ModFileFingerprint.swift",
                 "Models/NexusFileManifest.swift",
+                "Models/NexusLegacyFileManifest.swift",
                 "Models/AuthorFileIndex.swift",
                 "Models/UpdateFileTriage.swift",
                 "Models/ModHistory.swift",
