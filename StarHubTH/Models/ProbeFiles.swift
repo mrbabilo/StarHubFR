@@ -17,6 +17,8 @@ public struct ProbeFiles: Sendable {
 
     public var harmonyMapURL: URL { directory.appendingPathComponent("harmony-map.json") }
     public var gmcmOptionsURL: URL { directory.appendingPathComponent("gmcm-options.json") }
+    public var inventoryURL: URL { directory.appendingPathComponent("inventory.jsonl") }
+    public var configsDirectory: URL { directory.appendingPathComponent("configs", isDirectory: true) }
 
     public func harmonyMap() -> ProbeHarmonyMap? {
         contents("harmony-map.json").flatMap(ProbeHarmonyMap.decode)
@@ -28,6 +30,11 @@ public struct ProbeFiles: Sendable {
 
     public func sessions() -> ProbeSessions {
         ProbeSessions.decode(timings: contents("timings.jsonl"), costs: contents("mod-costs.jsonl"))
+    }
+
+    public func inventory() -> (launches: [ProbeInventoryLaunch],
+                                changes: [ProbeInventoryChange], unreadable: Int)? {
+        contents("inventory.jsonl").map(ProbeInventory.decode)
     }
 
     private func contents(_ name: String) -> Data? {
