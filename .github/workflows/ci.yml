@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: macos-15
+    # Un gel de la suite tournait 6 h (limite GitHub) : 3–4 min d'habitude.
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
