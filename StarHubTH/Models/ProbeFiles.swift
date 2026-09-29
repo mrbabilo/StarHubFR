@@ -22,6 +22,17 @@ public struct ProbeFiles: Sendable {
     public var inventoryURL: URL { directory.appendingPathComponent("inventory.jsonl") }
     public var configsDirectory: URL { directory.appendingPathComponent("configs", isDirectory: true) }
 
+    /// D5-A — écrit par l'app, lu par la sonde.
+    public var guidedPlanURL: URL { directory.appendingPathComponent("guided-plan.json") }
+    /// D5-A — écrit par la sonde, lu par l'app.
+    public var guidedMeasurementsURL: URL { directory.appendingPathComponent("guided-measurements.jsonl") }
+
+    public func guidedPlan() -> GuidedPlan? { GuidedPlan.load(from: guidedPlanURL) }
+
+    public func guidedMeasurements() -> (measurements: [ProbeMeasurement], unreadable: Int) {
+        contents("guided-measurements.jsonl").map(GuidedMeasurementsFile.decode) ?? ([], 0)
+    }
+
     public func harmonyMap() -> ProbeHarmonyMap? {
         contents("harmony-map.json").flatMap(ProbeHarmonyMap.decode)
     }

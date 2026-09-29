@@ -77,6 +77,8 @@ let package = Package(
                 "Models/ProbeInventoryDiff.swift",
                 "Models/ProbeCosts.swift",
                 "Models/ProbeMeasurements.swift",
+                "Models/GuidedPlan.swift",
+                "Models/GuidedMeasurements.swift",
                 "Models/ProbeAnalysis.swift",
                 "Models/ProbePerformance.swift",
                 "Models/ProbeComparisonChart.swift",

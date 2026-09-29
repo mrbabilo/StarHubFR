@@ -1,69 +1,39 @@
 import Foundation
 
-/// Une mesure propre : une fenêtre nommée, posée à la main par l'auteur.
-public struct ProbeMeasurement: Codable, Equatable, Identifiable, Sendable {
+/// Une mesure guidée (D5-A) : écrite par la sonde dans
+/// `guided-measurements.jsonl`, avec les minutes qu'elle a gardées.
+public struct ProbeMeasurement: Equatable, Identifiable, Sendable {
+    public enum Outcome: String, Sendable { case stable, noisy, abandoned }
+    public enum Role: String, Codable, Sendable { case before, after }
+
     public var id: UUID
     public var name: String
     public var start: Date
-    /// `nil` : mesure en cours (ou jamais terminée, voir `closeOpen`).
     public var end: Date?
+    /// Les minutes gardées par la sonde. La fenêtre `start…end` contient aussi
+    /// des minutes que la sonde a écartées (autre lieu, minute partielle…) et
+    /// que les gardes de l'app garderaient : seules celles-ci comptent.
+    public var keptAt: Set<Date>?
+    public var outcome: Outcome?
+    public var role: Role?
+    public var pairedWith: UUID?
+    public var location: String?
 
-    public init(id: UUID = UUID(), name: String, start: Date, end: Date?) {
+    public init(id: UUID = UUID(), name: String, start: Date, end: Date?, keptAt: Set<Date>? = nil,
+                outcome: Outcome? = nil, role: Role? = nil, pairedWith: UUID? = nil, location: String? = nil) {
         self.id = id
         self.name = name
         self.start = start
         self.end = end
-    }
-}
-
-/// `ProbeMeasurements.json`. `directory: nil` : aucun dossier (rien à lire,
-/// rien à écrire) ; l'app passe `defaultDirectory()`, les tests un dossier
-/// temporaire — jamais le vrai Application Support.
-public enum ProbeMeasurementsFile {
-    public enum Loaded: Equatable, Sendable {
-        case missing
-        case unreadable
-        case measurements([ProbeMeasurement])
+        self.keptAt = keptAt
+        self.outcome = outcome
+        self.role = role
+        self.pairedWith = pairedWith
+        self.location = location
     }
 
-    static let fileName = "ProbeMeasurements.json"
-
-    /// `Application Support/StarHubFR/` (spec « Mesure propre »).
-    public static func defaultDirectory() -> URL? {
-        AppSupport.directory
-    }
-
-    static func url(_ directory: URL) -> URL { directory.appendingPathComponent(fileName) }
-
-    public static func load(directory: URL?) -> Loaded {
-        guard let directory,
-              let data = FileManager.default.contents(atPath: url(directory).path)
-        else { return .missing }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        do { return .measurements(try decoder.decode([ProbeMeasurement].self, from: data)) }
-        catch { return .unreadable }
-    }
-
-    /// Écriture atomique ; un fichier illisible est mis de côté
-    /// (`ProbeMeasurements.unreadable-<date>.json`), jamais écrasé — même
-    /// règle que `ModHistoryFile`. Dates à la seconde (`.iso8601`).
-    public static func save(_ measurements: [ProbeMeasurement], directory: URL?,
-                            now: Date = Date()) throws {
-        guard let directory else { return }
-        let fm = FileManager.default
-        try fm.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destination = url(directory)
-        if case .unreadable = load(directory: directory) {
-            let stamp = Int(now.timeIntervalSince1970)
-            try fm.moveItem(at: destination,
-                            to: directory.appendingPathComponent("ProbeMeasurements.unreadable-\(stamp).json"))
-        }
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try encoder.encode(measurements).write(to: destination, options: .atomic)
-    }
+    /// Close par la sonde (`stable` ou `noisy`) : le plan peut être effacé.
+    public var isFinished: Bool { outcome == .stable || outcome == .noisy }
 }
 
 public struct ProbeMeasurementSegment: Equatable, Sendable {

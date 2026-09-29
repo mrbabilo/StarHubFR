@@ -14,8 +14,7 @@ import Foundation
                 try Fixture.data(name).write(to: probe.appendingPathComponent(name))
             }
         }
-        return ProbePerformanceStore(files: ProbeFiles(directory: probe),
-                                     measurementsDirectory: root.appendingPathComponent("data"))
+        return ProbePerformanceStore(files: ProbeFiles(directory: probe))
     }
 
     @Test func loadsSidesAndTheDefaultPair() async throws {
@@ -34,7 +33,7 @@ import Foundation
         let s = try store(withFixtures: false)
         await s.reload()
         #expect(s.status == .noProbe)
-        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("data").path))
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("probe/guided-plan.json").path))
     }
 
     @Test func selectingAnotherPairRebuildsTheReport() async throws {
@@ -80,20 +79,5 @@ import Foundation
         #expect(pair != nil)
         await s.configDiffsLoaded()
         #expect(s.configDiffs["spacechase0.GenericModConfigMenu"]?.map(\.path) == ["a"])
-    }
-
-    /// Démarrer exige le jeu lancé ; terminer, non (Review Focus 4).
-    @Test func measurementNeedsTheGameToStartButNotToStop() async throws {
-        let s = try store()
-        await s.reload()
-        #expect(!s.startMeasurement(name: "essai", gameRunning: false))
-        #expect(s.openMeasurement == nil)
-        #expect(s.startMeasurement(name: "essai", gameRunning: true))
-        #expect(s.openMeasurement?.name == "essai")
-        s.stopMeasurement()
-        #expect(s.openMeasurement == nil)
-        let reread = ProbeMeasurementsFile.load(directory: root.appendingPathComponent("data"))
-        guard case .measurements(let saved) = reread else { Issue.record("illisible"); return }
-        #expect(saved.count == 1 && saved[0].end != nil)
     }
 }

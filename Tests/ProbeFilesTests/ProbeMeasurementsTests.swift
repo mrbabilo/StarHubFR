@@ -3,8 +3,6 @@ import Foundation
 @testable import StarHubTHCore
 
 struct ProbeMeasurementsTests {
-    private let directory = FileManager.default.temporaryDirectory
-        .appendingPathComponent("probe-measurements-\(UUID().uuidString)", isDirectory: true)
 
     private func sessions() throws -> ProbeSessions {
         ProbeSessions.decode(timings: try Fixture.data("timings.jsonl"), costs: nil)
@@ -14,29 +12,6 @@ struct ProbeMeasurementsTests {
         let session = try #require(try sessions().sessions.first { $0.id.hasPrefix(prefix) })
         let inv = ProbeInventory.decode(try Fixture.data("inventory.jsonl"))
         return (session, ProbeSegments.split(session, launches: inv.launches, changes: inv.changes).segments)
-    }
-
-    @Test func saveAndLoadRoundTrip() throws {
-        let measurements = [ProbeMeasurement(name: "Avant UltraSmooth",
-                                             start: Date(timeIntervalSince1970: 1_700_000_000),
-                                             end: Date(timeIntervalSince1970: 1_700_000_600))]
-        try ProbeMeasurementsFile.save(measurements, directory: directory)
-        #expect(ProbeMeasurementsFile.load(directory: directory) == .measurements(measurements))
-        #expect(ProbeMeasurementsFile.load(directory: directory.appendingPathComponent("absent")) == .missing)
-        #expect(ProbeMeasurementsFile.load(directory: nil) == .missing)
-    }
-
-    /// Un fichier illisible n'est jamais écrasé : mis de côté (motif ModHistory).
-    @Test func unreadableFileIsSetAsideNotOverwritten() throws {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try Data("ceci n'est pas du json".utf8)
-            .write(to: directory.appendingPathComponent("ProbeMeasurements.json"))
-        #expect(ProbeMeasurementsFile.load(directory: directory) == .unreadable)
-        try ProbeMeasurementsFile.save([], directory: directory)
-        #expect(ProbeMeasurementsFile.load(directory: directory) == .measurements([]))
-        let aside = try FileManager.default.contentsOfDirectory(atPath: directory.path)
-            .filter { $0.hasPrefix("ProbeMeasurements.unreadable-") }
-        #expect(aside.count == 1)
     }
 
     /// Une mesure ouverte se clôt à la dernière minute de sa session.

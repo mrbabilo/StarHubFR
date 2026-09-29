@@ -25,13 +25,10 @@ final class ProbePerformanceStore {
     @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
     @ObservationIgnored private var configDiffsChanges: [ProbeModChange]?
     @ObservationIgnored private let index: ProbeSessionsIndex
-    @ObservationIgnored private let measurementsDirectory: URL?
 
-    init(files: ProbeFiles = ProbeFiles(),
-         measurementsDirectory: URL? = ProbeMeasurementsFile.defaultDirectory()) {
+    init(files: ProbeFiles = ProbeFiles()) {
         self.files = files
         self.index = ProbeSessionsIndex(files: files)
-        self.measurementsDirectory = measurementsDirectory
     }
 
     var openMeasurement: ProbeMeasurement? { measurements.last { $0.end == nil } }
@@ -41,14 +38,12 @@ final class ProbePerformanceStore {
         // Première lecture seulement : une relecture garde l'écran affiché
         // (retour dans l'app, changement de segment) au lieu de le vider.
         if status == .idle { status = .loading }
-        let index = index, files = files, directory = measurementsDirectory
+        let index = index, files = files
         let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
             let sessions = index.sessions(keeping: nil)
             let inventory = files.inventory()
-            var measurements: [ProbeMeasurement] = []
-            if case .measurements(let saved) = ProbeMeasurementsFile.load(directory: directory) {
-                measurements = saved
-            }
+            // Transitoire (D5-A tâche 6) : les mesures guidées arrivent en tâche 9.
+            let measurements: [ProbeMeasurement] = []
             // Une mesure jamais terminée se lit close à sa dernière minute ;
             // le fichier la garde ouverte (« Terminer » reste possible).
             let closed = ProbeMeasurementsLogic.closeOpen(measurements, sessions: sessions)
@@ -95,7 +90,6 @@ final class ProbePerformanceStore {
         guard gameRunning, openMeasurement == nil else { return false }
         measurements.append(ProbeMeasurement(name: name, start: now, end: nil))
         pendingMeasurementName = nil
-        persist(now: now)
         return true
     }
 
@@ -103,7 +97,6 @@ final class ProbePerformanceStore {
     func stopMeasurement(now: Date = Date()) {
         guard let index = measurements.lastIndex(where: { $0.end == nil }) else { return }
         measurements[index].end = now
-        persist(now: now)
     }
 
     // MARK: — Privé
@@ -132,14 +125,6 @@ final class ProbePerformanceStore {
             }.value
             guard !Task.isCancelled else { return }
             self?.configDiffs = diffs
-        }
-    }
-
-    private func persist(now: Date) {
-        do {
-            try ProbeMeasurementsFile.save(measurements, directory: measurementsDirectory, now: now)
-        } catch {
-            // L'état en mémoire reste juste ; le prochain enregistrement réessaiera.
         }
     }
 }
