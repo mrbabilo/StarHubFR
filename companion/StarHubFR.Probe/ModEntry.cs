@@ -23,6 +23,8 @@ namespace StarHubFR.Probe;
 ///  - patch-wraps.json   (option MeasureHarmonyPatches) ce que la mesure des
 ///                       patches couvre et ne couvre pas
 ///  - disjoncteur.txt    (même option) pourquoi les enveloppes ont été retirées
+///  - guided-measurements.jsonl  (D5-A) une ligne par mesure guidée close ;
+///                       le plan, guided-plan.json, est écrit et effacé par l'app
 /// </summary>
 public sealed class ModEntry : Mod
 {
@@ -41,7 +43,14 @@ public sealed class ModEntry : Mod
         FrameTimings.Initialize(harmony, Monitor);
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
-        if (config.MeasureHarmonyPatches)
+        Guided.Initialize(Monitor, ModManifest.Version.ToString());
+        // D5-A : un plan en attente désarme la mesure des patches pour la
+        // session — le disjoncteur la coupe 5 min après le chargement, et une
+        // mesure à cheval mélangerait deux états que l'app refuse de comparer.
+        bool guidedPending = Guided.PlanPending();
+        if (config.MeasureHarmonyPatches && guidedPending)
+            Monitor.Log("Mesure guidée en attente : la mesure des patches n'est pas armée pour cette session.", LogLevel.Info);
+        if (config.MeasureHarmonyPatches && !guidedPending)
         {
             PatchCosts.Initialize(helper, Monitor, ModManifest.UniqueID);
             helper.Events.GameLoop.UpdateTicked += (_, _) => PatchBreaker.Poll();
@@ -61,6 +70,7 @@ public sealed class ModEntry : Mod
         };
         helper.Events.GameLoop.SaveLoaded += (_, _) =>
         {
+            Guided.RefreshPlan();
             HarmonyMap.Write(helper, Monitor, "SaveLoaded");
             PatchCosts.WrapNew("SaveLoaded");
             // Les mods s'inscrivent à GMCM pendant GameLaunched : au
@@ -71,7 +81,11 @@ public sealed class ModEntry : Mod
         // Plus rien à taper : la minute entamée s'écrit au retour à l'écran
         // titre et à la fermeture du jeu ; la carte se relève chaque matin,
         // pour les patches posés après le chargement (DLX.Bundles, 2026-09-26).
-        helper.Events.GameLoop.ReturnedToTitle += (_, _) => FrameTimings.FlushNow();
+        helper.Events.GameLoop.ReturnedToTitle += (_, _) =>
+        {
+            FrameTimings.FlushNow();
+            Guided.Abandon();
+        };
         helper.Events.GameLoop.DayStarted += (_, _) =>
         {
             HarmonyMap.Write(helper, Monitor, "DayStarted");
@@ -82,6 +96,8 @@ public sealed class ModEntry : Mod
         // `Monitor.Log` qui suit lève (« Critical app domain exception »).
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
+            // La ligne guidée d'abord, dans son propre try, sans journal.
+            Guided.AbandonAtExit();
             try
             {
                 FrameTimings.FlushNow();

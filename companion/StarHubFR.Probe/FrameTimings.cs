@@ -62,6 +62,8 @@ internal static class FrameTimings
 
     private static double LastDrawStartMs = -1;
     private static bool Announced;
+    /// <summary>Le postfix de `Game.Tick` tire (sans lui, aucun tick compté : le guidage est refusé).</summary>
+    internal static bool TicksCounted => TickSeen;
     /// <summary>Un lancement = une session : les lignes de deux lancements ne se mélangent pas. Partagée avec l'inventaire.</summary>
     internal static readonly string Session = DateTimeOffset.Now.ToString("o");
     internal static int LoadedMods;
@@ -172,6 +174,7 @@ internal static class FrameTimings
         // — taper dans la console SMAPI suffit.
         if (!__instance.IsActive) InactiveTicks++;
         if (Game1.activeClickableMenu is not null) MenuTicks++;
+        Guided.OnTick();
         // La fenêtre se ferme entre deux ticks, jamais au milieu : un tick
         // appartient à une seule minute, et la durée de la minute le contient.
         if (now - WindowStartMs >= WindowMs) FlushNow();
@@ -197,6 +200,7 @@ internal static class FrameTimings
 
     public static void FlushNow()
     {
+        MinuteFacts? written = null;
         try
         {
             double wall = (Clock.Elapsed.TotalMilliseconds - WindowStartMs) / 1000;
@@ -204,6 +208,7 @@ internal static class FrameTimings
             {
                 Monitor.Log($"Aucune trame mesurée en {wall:0.0} s : les minuteurs du jeu ne sont pas interceptés.", LogLevel.Warn);
                 ResetWindow();
+                Guided.CloseWindow(null);
                 return;
             }
             var (pauseMs, maxPauseMs, backgroundMs) = GcPauses.Drain();
@@ -223,6 +228,10 @@ internal static class FrameTimings
                 Game1.activeClickableMenu?.GetType().FullName);
             File.AppendAllText(Path.Combine(ModEntry.OutputDir, "timings.jsonl"),
                 JsonSerializer.Serialize(line) + "\n");
+            // La ligne est écrite : la mesure guidée la juge sur ces mêmes chiffres.
+            written = new MinuteFacts(line.At, line.WallSeconds, line.InactiveTicks, line.Location, line.MenuTicks,
+                line.Tick?.Count, line.GameTime, line.FrameInterval?.P50,
+                line.Update is { } update && line.Draw is { } draw ? update.P50 + draw.P50 : null);
             if (ModCosts.Active)
             {
                 var costs = ModCosts.Drain(wall);
@@ -246,6 +255,7 @@ internal static class FrameTimings
         {
             Monitor.Log($"Mesures non écrites : {ex.Message}", LogLevel.Trace);
         }
+        Guided.CloseWindow(written);
         // D4-T4 — les réglages se relèvent à chaque minute, en tâche de fond.
         Inventory.CheckNow();
         ResetWindow();

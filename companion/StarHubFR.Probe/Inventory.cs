@@ -189,6 +189,7 @@ internal static class Inventory
             Append(new { Session = session, At = Now(),
                          ChangedAt = new DateTimeOffset(changedAt, TimeSpan.Zero).ToLocalTime().ToString("o"),
                          Kind = "configChanged", Configs = changed });
+            Guided.NoteConfigChanged();
             Log($"Inventaire : réglage changé ({string.Join(", ", changed.Keys)}).");
         }
         catch (Exception ex)
