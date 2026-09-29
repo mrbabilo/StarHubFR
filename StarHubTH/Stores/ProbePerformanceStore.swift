@@ -46,19 +46,30 @@ final class ProbePerformanceStore {
             let inventory = files.inventory()
             let guided = files.guidedMeasurements()
             var plan = files.guidedPlan()
-            // Seule écrivaine du plan : l'effacer dès que sa mesure est close.
+            // Mesure close : le plan est à effacer — sur le fil principal,
+            // là où passent toutes les écritures du plan (pas de course avec
+            // une préparation).
+            var finished: UUID?
             if let current = plan, guided.measurements.contains(where: { $0.id == current.id && $0.isFinished }) {
-                GuidedPlan.remove(at: files.guidedPlanURL, ifId: current.id)
+                finished = current.id
                 plan = nil
             }
             let sides = ProbePerformance.sides(sessions: sessions, launches: inventory?.launches ?? [],
                                                changes: inventory?.changes ?? [],
                                                measurements: guided.measurements)
-            return Loaded(sides: sides, measurements: guided.measurements, plan: plan,
+            return Loaded(sides: sides, measurements: guided.measurements, plan: plan, finishedPlan: finished,
                           unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable,
                           hasProbe: !sessions.sessions.isEmpty || inventory != nil)
         }.value
         sides = loaded.sides
+        if let finished = loaded.finishedPlan {
+            do {
+                try GuidedPlan.remove(at: files.guidedPlanURL, ifId: finished)
+            } catch {
+                // Plan resté sur disque : la prochaine relecture le verra clos
+                // et réessaiera ; rien à montrer.
+            }
+        }
         measurements = loaded.measurements
         plan = loaded.plan
         unreadableLines = loaded.unreadable
@@ -100,9 +111,10 @@ final class ProbePerformanceStore {
         return plan
     }
 
-    /// Efface le plan en attente ; la sonde s'arrête à la minute suivante, sans ligne.
-    func abandonPlan() {
-        if let plan { GuidedPlan.remove(at: files.guidedPlanURL, ifId: plan.id) }
+    /// Efface le plan en attente ; la sonde s'arrête à la minute suivante, sans
+    /// ligne. Un échec lève et garde le plan affiché : il est toujours sur disque.
+    func abandonPlan() throws {
+        if let plan { try GuidedPlan.remove(at: files.guidedPlanURL, ifId: plan.id) }
         plan = nil
     }
 
@@ -112,6 +124,7 @@ final class ProbePerformanceStore {
         let sides: [ProbeSide]
         let measurements: [ProbeMeasurement]
         let plan: GuidedPlan?
+        let finishedPlan: UUID?
         let unreadable: Int
         let hasProbe: Bool
     }

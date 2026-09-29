@@ -43,4 +43,28 @@ struct GuidedProtocolTests {
         #expect(!GuidedProtocol.supportsGuidance("0.4.99"))
         #expect(!GuidedProtocol.supportsGuidance("abc"))
     }
+
+    private func side(_ locations: [String?]) throws -> ProbeSide {
+        let kept = try locations.enumerated().map { index, location -> ProbeComparableMinute in
+            let place = location.map { "\"\($0)\"" } ?? "null"
+            let json = """
+            {"Session":"s","At":"2026-09-29T10:\(String(format: "%02d", index)):00+02:00","WallSeconds":60,"Fps":30,
+             "FrameInterval":{"Count":45,"Avg":30,"P50":30,"P99":50,"Max":60},"Location":\(place)}
+            """
+            return ProbeComparableMinute(
+                minute: try ProbeJSON.decoder().decode(ProbeMinute.self, from: Data(json.utf8)),
+                patchesMeasured: nil)
+        }
+        return ProbeSide(id: "s", kind: .segment, session: "s", start: nil, end: nil, minutes: kept.map(\.minute),
+                         costs: [], inventory: nil,
+                         comparable: ProbeComparableResult(kept: kept, exclusions: [:], excluded: []))
+    }
+
+    /// Le lieu où le côté a le plus de minutes ; égalité → l'ordre
+    /// alphabétique, pour un résultat stable d'une relecture à l'autre.
+    @Test func dominantLocationBreaksTiesAlphabetically() throws {
+        #expect(GuidedProtocol.dominantLocation(of: try side(["Town", "Farm", "Town", "Farm", nil])) == "Farm")
+        #expect(GuidedProtocol.dominantLocation(of: try side(["Farm", "Town", "Town"])) == "Town")
+        #expect(GuidedProtocol.dominantLocation(of: try side([nil])) == nil)
+    }
 }

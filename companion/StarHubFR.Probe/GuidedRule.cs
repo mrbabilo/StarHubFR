@@ -76,6 +76,8 @@ public sealed class GuidedRule
 
     public string Target { get; }
     public IReadOnlyList<string> KeptAt => kept.Select(k => k.At).ToList();
+    /// <summary>Le compte seul, sans liste : le bandeau le lit à chaque trame.</summary>
+    public int KeptCount => kept.Count;
     public IReadOnlyList<(string At, MinuteReason Reason)> Excluded => excluded;
     public GuidedOutcome Outcome { get; private set; } = GuidedOutcome.Running;
     /// <summary>La dernière minute a remis le décompte à zéro (réglage changé).</summary>

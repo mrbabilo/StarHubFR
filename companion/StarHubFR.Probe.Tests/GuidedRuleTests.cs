@@ -55,6 +55,7 @@ public class GuidedRuleTests
         // Une garde commune passe telle quelle.
         Assert.Equal(MinuteReason.MenuOpen, rule.Add(Minute(4), MinuteReason.MenuOpen));
         Assert.Equal(new[] { "2026-09-29T10:03:00.0000000+02:00" }, rule.KeptAt);
+        Assert.Equal(1, rule.KeptCount);
         Assert.Equal(4, rule.Excluded.Count);
     }
 

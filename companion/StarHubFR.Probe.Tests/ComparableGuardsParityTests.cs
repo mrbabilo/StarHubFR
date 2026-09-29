@@ -48,7 +48,10 @@ public class ComparableGuardsParityTests
             foreach (var (_, facts) in minutes.OrderBy(m => m.When))
             {
                 var reason = GuidedRule.ReasonName(guards.Classify(facts));
-                Assert.Equal(expected[(session, facts.At)], reason);
+                // Une minute absente de la référence : la fixture et la référence ont divergé.
+                Assert.True(expected.TryGetValue((session, facts.At), out var want),
+                            $"minute absente de comparable-reasons.json : {session} {facts.At}");
+                Assert.True(want == reason, $"{session} {facts.At} : app « {want} », sonde « {reason} »");
                 compared++;
             }
         }

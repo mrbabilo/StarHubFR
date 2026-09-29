@@ -53,13 +53,12 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
     }
 
     /// Efface le plan **s'il est encore celui-là** : un plan préparé entre la
-    /// lecture et l'effacement survit.
-    public static func remove(at url: URL, ifId id: UUID) {
+    /// lecture et l'effacement survit. Toutes les écritures de l'app passent
+    /// par le store, sur le fil principal : lecture et effacement ne se
+    /// croisent jamais avec une préparation. Un échec d'effacement lève —
+    /// l'écran ne doit pas dire « rien en attente » avec le plan sur disque.
+    public static func remove(at url: URL, ifId id: UUID) throws {
         guard load(from: url)?.id == id else { return }
-        do {
-            try FileManager.default.removeItem(at: url)
-        } catch {
-            // Déjà absent (effacé entre la lecture et ici) : rien à effacer.
-        }
+        try FileManager.default.removeItem(at: url)
     }
 }

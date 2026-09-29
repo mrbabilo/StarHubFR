@@ -18,14 +18,14 @@ public enum GuidedMeasurementsFile {
     }
 
     public static func decode(_ data: Data) -> (measurements: [ProbeMeasurement], unreadable: Int) {
-        let (lines, unreadable) = ProbeJSON.lines(Line.self, from: data)
+        var (lines, unreadable) = ProbeJSON.lines(Line.self, from: data)
         var byId: [UUID: ProbeMeasurement] = [:]
         var order: [UUID] = []
-        var skipped = 0
         for line in lines {
-            guard let id = UUID(uuidString: line.planId),
-                  let outcome = ProbeMeasurement.Outcome(rawValue: line.outcome)
-            else { skipped += 1; continue }
+            // Identifiant abîmé : ligne illisible. Issue inconnue : ligne d'une
+            // sonde plus récente, ignorée sans la compter « illisible ».
+            guard let id = UUID(uuidString: line.planId) else { unreadable += 1; continue }
+            guard let outcome = ProbeMeasurement.Outcome(rawValue: line.outcome) else { continue }
             let kept = Set((line.keptAt ?? []).compactMap(ProbeDate.parse))
             // Abandonnée sans minute gardée : rien à montrer, pas une erreur.
             guard let start = line.start.flatMap(ProbeDate.parse) ?? kept.min() else { continue }
@@ -37,6 +37,6 @@ public enum GuidedMeasurementsFile {
             if byId[id] == nil { order.append(id) }
             byId[id] = measurement
         }
-        return (order.compactMap { byId[$0] }, unreadable + skipped)
+        return (order.compactMap { byId[$0] }, unreadable)
     }
 }

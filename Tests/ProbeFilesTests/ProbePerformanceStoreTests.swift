@@ -88,7 +88,7 @@ import Foundation
         let plan = try s.prepare(GuidedPlanDraft(name: "m", role: .before, location: "Farm", pairedWith: nil))
         #expect(GuidedPlan.load(from: probe.appendingPathComponent("guided-plan.json")) == plan)
         #expect(s.protocolState == .planPending(plan))
-        s.abandonPlan()
+        try s.abandonPlan()
         #expect(GuidedPlan.load(from: probe.appendingPathComponent("guided-plan.json")) == nil)
         #expect(s.protocolState == .idle)
     }

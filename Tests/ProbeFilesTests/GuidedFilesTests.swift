@@ -28,9 +28,9 @@ struct GuidedFilesTests {
         let url = directory.appendingPathComponent("guided-plan.json")
         let old = plan(), newer = plan()
         try newer.write(to: url)
-        GuidedPlan.remove(at: url, ifId: old.id)
+        try GuidedPlan.remove(at: url, ifId: old.id)
         #expect(GuidedPlan.load(from: url) == newer)
-        GuidedPlan.remove(at: url, ifId: newer.id)
+        try GuidedPlan.remove(at: url, ifId: newer.id)
         #expect(GuidedPlan.load(from: url) == nil)
         #expect(GuidedPlan.load(from: directory.appendingPathComponent("absent.json")) == nil)
     }
@@ -67,5 +67,26 @@ struct GuidedFilesTests {
         #expect(m.id == a && m.outcome == .stable && m.role == .before && m.location == "Farm")
         #expect(m.keptAt == [try #require(ProbeDate.parse("2026-09-29T10:01:00.1234567+02:00"))])
         #expect(m.start == m.end)
+    }
+
+    /// Une ligne d'une sonde plus récente (issue inconnue) n'est pas une
+    /// ligne abîmée : ignorée, pas comptée « illisible ».
+    @Test func unknownOutcomeIsSkippedNotCountedUnreadable() {
+        let at = "2026-09-29T10:01:00.1234567+02:00"
+        let result = GuidedMeasurementsFile.decode(Data(line(UUID(), outcome: "paused", kept: [at]).utf8))
+        #expect(result.measurements.isEmpty)
+        #expect(result.unreadable == 0)
+    }
+
+    /// Un effacement qui échoue se dit : « Abandonner » ne passe pas en
+    /// silence à « rien en attente » quand le plan est toujours sur disque.
+    @Test func removeFailureThrows() throws {
+        let url = directory.appendingPathComponent("guided-plan.json")
+        let written = plan()
+        try written.write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path) }
+        #expect(throws: (any Error).self) { try GuidedPlan.remove(at: url, ifId: written.id) }
+        #expect(GuidedPlan.load(from: url) == written)
     }
 }

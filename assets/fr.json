@@ -1802,6 +1802,7 @@
   "perf_guided_paused": "La sonde StarHubFR est en pause : réactive-la pour mesurer.",
   "perf_guided_outdated": "Ta sonde (%@) ne sait pas guider une mesure : installe la version 0.5.0 ou plus récente.",
   "perf_guided_write_failed": "Mesure non préparée : %@",
+  "perf_guided_abandon_failed": "Mesure non abandonnée : %@",
   "perf_rec_rerun_guided": "Lance une mesure guidée : elle s'arrête d'elle-même quand c'est assez.",
   "perf_evidence_noisy": "Mesure guidée bruitée d'un côté : confiance plafonnée à moyenne",
   "perf_location_farm": "Ferme",

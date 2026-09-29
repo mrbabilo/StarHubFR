@@ -1802,6 +1802,7 @@
 "perf_guided_paused" = "The StarHubFR probe is paused: re-enable it to measure.";
 "perf_guided_outdated" = "Your probe (%@) can't guide a measurement: install version 0.5.0 or later.";
 "perf_guided_write_failed" = "Measurement not prepared: %@";
+"perf_guided_abandon_failed" = "Measurement not discarded: %@";
 "perf_rec_rerun_guided" = "Run a guided measurement: it stops by itself once it has enough.";
 "perf_evidence_noisy" = "Noisy guided measurement on one side: confidence capped at medium";
 "perf_location_farm" = "Farm";

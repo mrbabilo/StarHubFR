@@ -9,21 +9,29 @@ struct PerformanceGuidedBar: View {
     @State private var draft: GuidedPlanDraft?
     @State private var message: String?
 
-    private var readiness: GuidedReadiness {
-        let probe = viewModel.scanStore.mods.flattenedMods.first {
+    /// `nil` tant que le scan n'a pas fini : « sonde non installée » serait
+    /// faux pendant qu'il court.
+    private var readiness: GuidedReadiness? {
+        let scan = viewModel.scanStore
+        let probe = scan.mods.flattenedMods.first {
             $0.uniqueId.caseInsensitiveCompare(GuidedProtocol.probeId) == .orderedSame
         }
+        if probe == nil && (scan.scanProgress != nil || scan.mods.isEmpty) { return nil }
         return GuidedProtocol.readiness(probeVersion: probe?.version, isEnabled: probe?.isEnabled ?? false)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+            // Un plan en attente reste visible et abandonnable, sonde prête
+            // ou non : sinon il resterait sur disque, hors d'atteinte.
+            if case .planPending(let plan) = store.protocolState { pending(plan) }
             switch readiness {
             case .missing: note(localization.L(L10n.Performance.guidedMissing))
             case .paused: note(localization.L(L10n.Performance.guidedPaused))
             case .outdated(let version):
                 note(String(format: localization.L(L10n.Performance.guidedOutdated), version))
             case .ready: ready
+            case nil: EmptyView()
             }
             if let message { note(message) }
         }
@@ -38,14 +46,8 @@ struct PerformanceGuidedBar: View {
     @ViewBuilder
     private var ready: some View {
         switch store.protocolState {
-        case .planPending(let plan):
-            SplitRow {
-                Text(String(format: localization.L(L10n.Performance.guidedPending), plan.name,
-                            placeName(plan.location)))
-                    .font(AppDesign.Font.footnote)
-            } trailing: {
-                Button(localization.L(L10n.Performance.guidedAbandon)) { store.abandonPlan() }
-            }
+        case .planPending:
+            EmptyView()   // affiché au-dessus, quel que soit l'état de la sonde
         case .beforeDone(let before):
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(format: localization.L(L10n.Performance.guidedBeforeDone),
@@ -64,6 +66,27 @@ struct PerformanceGuidedBar: View {
                                         location: GuidedProtocol.fallbackLocation, pairedWith: nil)
             }
         }
+    }
+
+    @ViewBuilder
+    private func pending(_ plan: GuidedPlan) -> some View {
+        SplitRow {
+            Text(String(format: localization.L(L10n.Performance.guidedPending), plan.name,
+                        placeName(plan.location)))
+                .font(AppDesign.Font.footnote)
+        } trailing: {
+            Button(localization.L(L10n.Performance.guidedAbandon)) {
+                do {
+                    try store.abandonPlan()
+                    message = nil
+                } catch {
+                    message = String(format: localization.L(L10n.Performance.guidedAbandonFailed),
+                                     error.localizedDescription)
+                }
+            }
+        }
+        // Profil Vanilla : le jeu partirait sans SMAPI, le plan attendrait en vain.
+        if launchProfile == "Vanilla" { note(localization.L(L10n.Performance.guidedVanilla)) }
     }
 
     private var launchProfile: String {
@@ -155,7 +178,7 @@ struct PerformanceGuidedSheet: View {
     private func confirm(launch: Bool) {
         var final = draft
         final.name = final.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if final.name.isEmpty { final.name = draft.location }
+        if final.name.isEmpty { final.name = Self.placeName(draft.location, localization: localization) }
         onConfirm(final, launch)
         dismiss()
     }
