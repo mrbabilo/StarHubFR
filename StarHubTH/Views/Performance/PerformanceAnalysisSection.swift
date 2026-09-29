@@ -11,18 +11,18 @@ struct PerformanceAnalysisSection: View {
     @State private var pending: PendingAction?
     @State private var message: String?
 
-    /// Un geste en attente de confirmation. `pause` et `revertConfig` portent,
-    /// pour « Isoler », le nom de la mesure à préparer une fois le changement
-    /// défait.
+    /// Un geste en attente de confirmation. `pause` et `revertConfig`
+    /// portent, pour « Isoler », la mesure à préparer une fois le changement
+    /// défait (D5-A : un plan, plus un nom).
     private enum PendingAction: Identifiable {
-        case pause(ModItem, thenMeasure: String?), backups(ModItem),
-             revertConfig(ModItem, sha: String, thenMeasure: String?), prepare(String)
+        case pause(ModItem, thenMeasure: GuidedPlanDraft?), backups(ModItem),
+             revertConfig(ModItem, sha: String, thenMeasure: GuidedPlanDraft?), prepare(GuidedPlanDraft)
         var id: String {
             switch self {
             case .pause(let m, _): return "pause|\(m.folderName)"
             case .backups(let m): return "backups|\(m.folderName)"
             case .revertConfig(let m, let sha, _): return "config|\(m.folderName)|\(sha)"
-            case .prepare(let name): return "prepare|\(name)"
+            case .prepare(let draft): return "prepare|\(draft.name)"
             }
         }
     }
@@ -48,6 +48,11 @@ struct PerformanceAnalysisSection: View {
             get: { pending != nil }, set: { if !$0 { pending = nil } })) {
             Button(localization.L(L10n.Performance.confirmAction)) { if let pending { perform(pending) } }
             Button(localization.L(L10n.Performance.confirmCancel), role: .cancel) {}
+        } message: {
+            // Préparer une mesure remplace celle qui attend (spec D5-A).
+            if let waiting = store.plan, pending.map(preparesMeasure) == true {
+                Text(String(format: localization.L(L10n.Performance.guidedReplace), waiting.name))
+            }
         }
     }
 
@@ -91,6 +96,7 @@ struct PerformanceAnalysisSection: View {
         case .excludedMinutes(let a, let b):
             return String(format: localization.L(L10n.Performance.evidenceExcluded), counts(a), counts(b))
         case .frameWorkUnchanged: return localization.L(L10n.Performance.evidenceFrameWork)
+        case .noisyMeasurement: return localization.L(L10n.Performance.evidenceNoisy)
         }
     }
 
@@ -144,11 +150,18 @@ struct PerformanceAnalysisSection: View {
                 isolateRow(change, mods: mods)
             }
         case .rerunCleanMeasurement(let location, let missing):
+            // Paire guidée : ne plus chiffrer les minutes manquantes, la mesure
+            // guidée s'arrête d'elle-même.
+            let guided = report.before.measurement != nil || report.after.measurement != nil
             let where_ = location.map { "\($0) : " } ?? ""
             action(localization.L(L10n.Performance.recRerun),
-                   detail: String(format: localization.L(L10n.Performance.recRerunDetail), where_, missing),
+                   detail: guided ? localization.L(L10n.Performance.recRerunGuided)
+                                  : String(format: localization.L(L10n.Performance.recRerunDetail), where_, missing),
                    button: L10n.Performance.actionPrepareMeasure,
-                   gesture: .prepare(localization.L(L10n.Performance.recRerun) + (location.map { " — \($0)" } ?? "")))
+                   gesture: .prepare(GuidedPlanDraft(name: localization.L(L10n.Performance.recRerun),
+                                                     role: .before,
+                                                     location: GuidedProtocol.safeLocation(location),
+                                                     pairedWith: nil)))
         }
     }
 
@@ -176,15 +189,15 @@ struct PerformanceAnalysisSection: View {
             let measureName = String(format: localization.L(L10n.Performance.isolateConfigMeasureName),
                                      name(change.modId))
             return action("· " + name(change.modId), button: L10n.Performance.actionRevertConfig,
-                          gesture: revertGesture(modId: change.modId, mods: mods, thenMeasure: measureName))
+                          gesture: revertGesture(modId: change.modId, mods: mods, thenMeasure: afterDraft(measureName)))
         }
         let measureName = String(format: localization.L(L10n.Performance.isolateMeasureName), name(change.modId))
         return action("· " + name(change.modId), button: L10n.Performance.actionPause,
                       gesture: ProbePerformanceActions.target(modId: change.modId, in: mods)
-                          .map { PendingAction.pause($0, thenMeasure: measureName) })
+                          .map { PendingAction.pause($0, thenMeasure: afterDraft(measureName)) })
     }
 
-    private func revertGesture(modId: String, mods: [ModItem], thenMeasure: String? = nil) -> PendingAction? {
+    private func revertGesture(modId: String, mods: [ModItem], thenMeasure: GuidedPlanDraft? = nil) -> PendingAction? {
         guard let change = report.diff?.changes.first(where: {
                   $0.modId.caseInsensitiveCompare(modId) == .orderedSame }),
               case .configChanged(let old?, _) = change.kind,
@@ -199,20 +212,19 @@ struct PerformanceAnalysisSection: View {
         case .pause(let m, _): label = "\(localization.L(L10n.Performance.actionPause)) — \(m.name)"
         case .backups(let m): label = "\(localization.L(L10n.Performance.actionBackups)) — \(m.name)"
         case .revertConfig(let m, _, _): label = "\(localization.L(L10n.Performance.actionRevertConfig)) — \(m.name)"
-        case .prepare(let name): label = "\(localization.L(L10n.Performance.actionPrepareMeasure)) — \(name)"
+        case .prepare(let draft): label = "\(localization.L(L10n.Performance.actionPrepareMeasure)) — \(draft.name)"
         }
         return String(format: localization.L(L10n.Performance.confirmTitle), label)
     }
 
     /// Jeu vérifié **au clic** : pause et réglage refusés jeu lancé ; la
-    /// préparation d'une mesure ne touche à rien (elle remplit le nom, la
-    /// mesure démarre jeu lancé depuis l'en-tête).
+    /// préparation d'une mesure ne touche à rien d'autre que le plan (D5-A :
+    /// la sonde la mène en jeu).
     private func perform(_ gesture: PendingAction) {
         pending = nil
         switch gesture {
-        case .prepare(let name):
-            store.pendingMeasurementName = name
-            message = nil
+        case .prepare(let draft):
+            prepareMeasure(draft)
             return
         case .backups(let mod):
             viewModel.navigationStore.openBackups(for: mod.folderName)
@@ -227,7 +239,7 @@ struct PerformanceAnalysisSection: View {
         switch gesture {
         case .pause(let mod, let thenMeasure):
             if mod.isEnabled { viewModel.toggleMod(mod) }
-            if let thenMeasure { store.pendingMeasurementName = thenMeasure }
+            if let thenMeasure { prepareMeasure(thenMeasure) }
             message = nil
         case .revertConfig(let mod, let sha, let thenMeasure):
             let outcome = ProbePerformanceActions.revertConfig(
@@ -235,7 +247,7 @@ struct PerformanceAnalysisSection: View {
                 gameRunning: false, backups: ModConfigBackupManager.shared)
             switch outcome {
             case .reverted:
-                if let thenMeasure { store.pendingMeasurementName = thenMeasure }
+                if let thenMeasure { prepareMeasure(thenMeasure) }
                 message = localization.L(L10n.Performance.revertDone)
             case .gameRunning: message = localization.L(L10n.Performance.gameRunning)
             case .contentMissing: message = localization.L(L10n.Performance.revertMissing)
@@ -245,6 +257,30 @@ struct PerformanceAnalysisSection: View {
             }
         case .prepare, .backups:
             break
+        }
+    }
+
+    /// Une mesure « après » comparée au côté que le geste modifie : le côté
+    /// « après » de la paire affichée.
+    private func afterDraft(_ name: String) -> GuidedPlanDraft {
+        GuidedPlanDraft(name: name, role: .after, location: GuidedProtocol.gestureLocation(for: report.after),
+                        pairedWith: report.after.measurement?.id)
+    }
+
+    private func preparesMeasure(_ gesture: PendingAction) -> Bool {
+        switch gesture {
+        case .prepare: return true
+        case .pause(_, let then), .revertConfig(_, _, let then): return then != nil
+        case .backups: return false
+        }
+    }
+
+    private func prepareMeasure(_ draft: GuidedPlanDraft) {
+        do {
+            try store.prepare(draft)
+            message = nil
+        } catch {
+            message = String(format: localization.L(L10n.Performance.guidedWriteFailed), error.localizedDescription)
         }
     }
 

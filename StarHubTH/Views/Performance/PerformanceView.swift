@@ -11,7 +11,8 @@ struct PerformanceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                PerformanceHeader(viewModel: viewModel, localization: localization, store: store)
+                PerformanceHeader(localization: localization, store: store)
+                PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
                 content
             }
             .padding(AppDesign.Spacing.lg)

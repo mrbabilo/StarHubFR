@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// Bandeau de tête (spec §3c.1) : trois tuiles et le verdict, puis la mesure
-/// propre — démarrée jeu lancé seulement, vérifié au clic.
+/// Bandeau de tête (spec §3c.1) : trois tuiles et le verdict. La mesure
+/// guidée vit dans `PerformanceGuidedBar` (D5-A).
 struct PerformanceHeader: View {
-    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
-    @State private var needsGame = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -19,7 +17,6 @@ struct PerformanceHeader: View {
                 }
                 verdict(report.comparison.verdict)
             }
-            measurement
         }
     }
 
@@ -53,41 +50,6 @@ struct PerformanceHeader: View {
         return Label(localization.L(key), systemImage: icon)
             .font(AppDesign.Font.body(.medium))
             .foregroundColor(color)
-    }
-
-    @ViewBuilder
-    private var measurement: some View {
-        if let open = store.openMeasurement {
-            SplitRow {
-                Text(String(format: localization.L(L10n.Performance.measureRunning), open.name,
-                            open.start.formatted(date: .omitted, time: .shortened)))
-                    .font(AppDesign.Font.footnote)
-            } trailing: {
-                Button(localization.L(L10n.Performance.measureStop)) {
-                    store.stopMeasurement()
-                    Task { await store.reload() }
-                }
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 2) {
-                Button(localization.L(L10n.Performance.measureStart)) {
-                    // Jeu vérifié au clic, jamais au rendu.
-                    let running = viewModel.isGameRunning()
-                    needsGame = !running
-                    let name = store.pendingMeasurementName
-                        ?? String(format: localization.L(L10n.Performance.measureDefaultName),
-                                  Date().formatted(date: .abbreviated, time: .shortened))
-                    store.startMeasurement(name: name, gameRunning: running)
-                }
-                if let pending = store.pendingMeasurementName {
-                    Text(pending).font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                }
-                if needsGame {
-                    Text(localization.L(L10n.Performance.measureNeedsGame))
-                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                }
-            }
-        }
     }
 
     private func number(_ value: Double?) -> String {

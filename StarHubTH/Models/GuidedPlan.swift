@@ -33,7 +33,12 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
         guard let data = FileManager.default.contents(atPath: url.path) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(GuidedPlan.self, from: data)
+        do {
+            return try decoder.decode(GuidedPlan.self, from: data)
+        } catch {
+            // Plan illisible : pas de plan. La sonde l'ignore aussi (spec D5-A).
+            return nil
+        }
     }
 
     /// Écriture atomique (fichier temporaire puis renommage) : la sonde ne lit
@@ -51,6 +56,10 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
     /// lecture et l'effacement survit.
     public static func remove(at url: URL, ifId id: UUID) {
         guard load(from: url)?.id == id else { return }
-        try? FileManager.default.removeItem(at: url)
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            // Déjà absent (effacé entre la lecture et ici) : rien à effacer.
+        }
     }
 }
