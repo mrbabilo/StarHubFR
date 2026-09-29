@@ -27,9 +27,10 @@ struct PerformanceSmoothnessSection: View {
             Text(localization.L(L10n.Performance.sectionTimeline)).font(AppDesign.Font.headline(.semibold))
             timeline(.before, data: timelineData)
             timeline(.after, data: timelineData)
-            if let hoveredMark {
-                Text(markText(hoveredMark)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
-            }
+            // Ligne réservée, une seule : le survol ne pousse pas « Coût par mod ».
+            Text(hoveredMark.map(markText) ?? " ")
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .lineLimit(1).truncationMode(.tail)
         }
     }
 
@@ -91,6 +92,7 @@ struct PerformanceSmoothnessSection: View {
             .accessibilityChartDescriptor(DistributionDescriptor(points: data.points, title: label(measure)))
             Text(hovered.map(tooltip) ?? " ")   // réserve la ligne : pas de saut de mise en page
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .lineLimit(1).truncationMode(.tail)
         }
     }
 
