@@ -85,6 +85,7 @@ struct DiagnosticsView: View {
         switch value {
         case .health:  return localization.L(L10n.Logs.segmentHealth)
         case .journal: return localization.L(L10n.Logs.segmentJournal)
+        case .performance: return localization.L(L10n.Logs.segmentPerformance)
         }
     }
 }

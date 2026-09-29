@@ -163,6 +163,26 @@ enum AppDesign {
         /// rapprochait.
         static let favorite = SwiftUI.Color.yellow
     }
+
+    // MARK: - Chart (D4-T4 §3c)
+    /// Deux états d'un même élément, une teinte en deux nuances : « avant »
+    /// recule, « après » ressort. Rampe validée par `validate_palette.js
+    /// --ordinal` le 2026-09-28 (clair : 2,11:1 pour le plus pâle sur
+    /// #ffffff ; sombre : 2,52:1 sur #1e1e1e). Réservé aux séries des
+    /// graphiques de l'onglet Performances ; les verdicts gardent leurs
+    /// couleurs d'état.
+    enum Chart {
+        static let before = dynamic(light: (0x86, 0xb6, 0xef), dark: (0x1c, 0x5c, 0xab))
+        static let after  = dynamic(light: (0x1c, 0x5c, 0xab), dark: (0x6d, 0xa7, 0xec))
+
+        private static func dynamic(light: (Int, Int, Int), dark: (Int, Int, Int)) -> SwiftUI.Color {
+            SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in
+                let rgb = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+                return NSColor(srgbRed: CGFloat(rgb.0) / 255, green: CGFloat(rgb.1) / 255,
+                               blue: CGFloat(rgb.2) / 255, alpha: 1)
+            })
+        }
+    }
 }
 
 

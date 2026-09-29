@@ -282,4 +282,15 @@ import Foundation
             goldenWalnuts: 0, qiGems: 0, clubCoins: 0, totalMoneyEarned: 0,
             year: 2, season: 1, day: 3, whichFarm: 0)
     }
+
+    /// D4-T4 plan 4 — « la fiche du mod » depuis l'onglet Performances : la
+    /// demande traverse le changement d'onglet (patron B3-T4).
+    @Test func openModDetailPosesTheFocusAndRequestsTheModsTab() {
+        let s = NavigationStore()
+        s.openModDetail(folderName: "UltraSmooth")
+        #expect(s.pendingModDetailFocus == "UltraSmooth")
+        #expect(s.pendingDetailTab == .state)
+        #expect(s.pendingTabRequest == .mods)
+        #expect(DiagnosticsSegment.allCases == [.health, .journal, .performance])
+    }
 }

@@ -135,6 +135,15 @@ final class NavigationStore {
         requestTab(.backups)
     }
 
+    /// La fiche d'un mod, onglet État, depuis une page qui ne peut pas écrire
+    /// `currentTab` (onglet Performances) : l'intention traverse le
+    /// changement d'onglet et `MainView` la consomme (patron B3-T4).
+    func openModDetail(folderName: String) {
+        pendingModDetailFocus = folderName
+        pendingDetailTab = .state
+        requestTab(.mods)
+    }
+
     /// « Voir la fiche » depuis la fenêtre de bilan. La fenêtre ne peut
     /// pas lire `currentTab` (`@State` de MainView) — la décision se prend
     /// donc LÀ où vit l'état : MainView consomme ce canal et choisit la
@@ -299,5 +308,5 @@ enum BackupsSegment: CaseIterable, Sendable {
 /// Les onglets de « Diagnostic & Performances » (D4-T4 §3a). « Performances »
 /// arrive avec l'avant / après (plan 4) : pas d'onglet vide avant.
 enum DiagnosticsSegment: CaseIterable, Sendable {
-    case health, journal
+    case health, journal, performance
 }
