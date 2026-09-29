@@ -79,6 +79,7 @@ let package = Package(
                 "Models/ProbeMeasurements.swift",
                 "Models/GuidedPlan.swift",
                 "Models/GuidedMeasurements.swift",
+                "Models/GuidedProtocol.swift",
                 "Models/ProbeAnalysis.swift",
                 "Models/ProbePerformance.swift",
                 "Models/ProbeComparisonChart.swift",
