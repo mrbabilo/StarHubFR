@@ -90,11 +90,14 @@ délai, fondus accélérés) est du confort, pas de la fluidité.
 
 ## 2. Constats sur les options
 
-- **« Activer le Profilateur » n'est pas le profileur.** Dans le `fr.json` de
-  l'auteur du parc (produit par le hub de traduction le 2026-09-08), la clé
+- **« Activer le Profilateur » n'est pas le profileur.** Dans le `fr.json` du
+  parc (daté du 2026-09-08, d'origine inconnue : absent du registre des
+  traductions installées, rien ne montre qu'il vienne du hub), la clé
   `config.enableSkipIntro` — « Fast Startup (Skip Intro) » — est traduite
-  « Activer le Profilateur » ; la référence `TranslationBaselines` montre la
-  bonne source et une cible fausse, `reviewNeeded: false`. L'option décochée
+  « Activer le Profilateur ». La référence `TranslationBaselines` n'en dit que
+  ceci : la cible était déjà fausse le jour où l'app l'a vue (voir
+  [`audit-traductions-fr-parc.md`](audit-traductions-fr-parc.md)). Retraduit
+  en entier le 2026-09-29 (230 clés). L'option décochée
   est « passer l'intro ». Le vrai profileur (section « Profiler & Overlay »,
   `EnableRenderTelemetry`, `ShowOverlay`) est **activé**. Le `fr.json` a aussi
   58 clés dont l'anglais a changé, 113 clés non traduites, 100 orphelines.
