@@ -922,7 +922,7 @@ lus sur le parc réel, sans décompiler ni lire un journal.
 > Farmer's Notebook) — 11 minutes sur 17 dans un menu, 5 à 8 lieux par
 > session, bouton « Démarrer » jamais utilisé : verdict « bruit » partout.
 
-- [ ] **D5-A** — **Mesure guidée en jeu.** Un clic dans l'onglet Performances
+- [x] **D5-A** — **Mesure guidée en jeu.** Un clic dans l'onglet Performances
       écrit un plan dans le dossier de la sonde ; en jeu, la sonde (v0.5.0)
       affiche un bandeau (lieu à garder, minutes gardées, pause « menu
       ouvert »…), s'arrête seule quand la mesure est stable et l'écrit ; l'app
@@ -944,9 +944,13 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       gestes de l'analyse qui préparent un plan, mesures manuelles retirées ;
       plafonds de synchro élargis à 2, 3, 4 périodes de 60 Hz (33 des 86
       minutes gardées du parc étaient à 33,3 ms, jugées sur la trame).
-      **Reste** : installer la sonde 0.5.0, une paire guidée réelle et une
-      paire A/A (qui doit rendre « aucune différence ») ; relever
-      `WorkIqrShare` des mesures stables pour réviser le seuil de 10 %.
+      ✅ *Validé en jeu le 2026-09-29* (sonde 0.5.0 → 0.5.2) : paire réelle
+      UltraSmooth retiré → « plus rapide », travail −6,7 %, confiance élevée ;
+      paire **A/A** (rien changé) → « pas de différence mesurable », confiance
+      élevée, « garder ». Quatre mesures `stable` à 5 minutes gardées, IQR du
+      travail 0,28 % à 9,65 % : le seuil de 10 % tient. Leçon de l'A/A : les
+      quartiles du travail y sont **disjoints** (14,52 contre 14,24 ms) — seul
+      le garde-fou des 5 % évite un faux « plus rapide » ; ne jamais l'assouplir.
 - [ ] **D5-B** — **Temps de chargement** : lancement (processus → écran
       titre) et chargement de sauvegarde (clic → première trame jouable),
       mesurés par la sonde et comparés avant/après. Contribution par mod :
