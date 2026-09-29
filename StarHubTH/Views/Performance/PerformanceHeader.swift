@@ -10,19 +10,24 @@ struct PerformanceHeader: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             if let report = store.report {
                 WrapHStack(spacing: AppDesign.Spacing.md) {
-                    tile(L10n.Performance.tileFrame, report.comparison.frameP50, unit: "ms")
-                    tile(L10n.Performance.tileP99, report.comparison.frameP99, unit: "ms")
+                    tile(L10n.Performance.tileFrame, report.comparison.frameP50, unit: "ms",
+                         help: L10n.Performance.tileHelpFrame)
+                    tile(L10n.Performance.tileP99, report.comparison.frameP99, unit: "ms",
+                         help: L10n.Performance.tileHelpP99)
                     tile(L10n.Performance.tileHeap, report.comparison.heap,
-                         unit: localization.L(L10n.Performance.unitMB))
+                         unit: localization.L(L10n.Performance.unitMB), help: L10n.Performance.tileHelpHeap)
                 }
+                Text(localization.L(L10n.Performance.tileLegend))
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 verdict(report.comparison.verdict)
             }
         }
     }
 
-    private func tile(_ key: String, _ measure: ProbeMeasureComparison, unit: String) -> some View {
+    private func tile(_ key: String, _ measure: ProbeMeasureComparison, unit: String, help: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(localization.L(key)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .help(localization.L(help))
             Text("\(number(measure.a.median)) → \(number(measure.b.median)) \(unit)")
                 .font(AppDesign.Font.body(.semibold)).monospacedDigit()
             if case .netChange(_, let percent) = measure.verdict {

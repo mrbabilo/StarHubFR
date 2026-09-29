@@ -32,6 +32,10 @@ struct PerformanceAnalysisSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.Performance.sectionAnalysis)).font(AppDesign.Font.headline(.semibold))
+            Text(String(format: localization.L(L10n.Performance.analysisPair),
+                        sideTitle(report.before), sideTitle(report.after)))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .lineLimit(2)
             Text(conclusion).font(AppDesign.Font.body(.semibold))
             Text(confidence).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             recommendation
@@ -60,12 +64,52 @@ struct PerformanceAnalysisSection: View {
 
     private var conclusion: String {
         let percent: (Double) -> String = { $0.formatted(.number.precision(.fractionLength(1))) }
+        // Le changement unique est nommé, avec son sens (« plus rapide sans X ») :
+        // un novice doit savoir qui agit et dans quel sens.
+        if let change = onlyChange, let phrase = changePhrase(change) {
+            switch analysis.direction {
+            case .faster(let p):
+                return String(format: localization.L(L10n.Performance.conclusionFasterNamed), phrase, percent(p))
+            case .slower(let p):
+                return String(format: localization.L(L10n.Performance.conclusionSlowerNamed), phrase, percent(p))
+            case .noDifference:
+                return String(format: localization.L(L10n.Performance.conclusionNoneNamed), phrase)
+            case .inconclusive: break
+            }
+        }
         switch analysis.direction {
         case .slower(let p): return String(format: localization.L(L10n.Performance.conclusionSlower), percent(p))
         case .faster(let p): return String(format: localization.L(L10n.Performance.conclusionFaster), percent(p))
         case .noDifference: return localization.L(L10n.Performance.conclusionNone)
         case .inconclusive: return localization.L(L10n.Performance.conclusionInconclusive)
         }
+    }
+
+    /// Le seul changement entre les deux moments, s'il est unique.
+    private var onlyChange: ProbeModChange? {
+        guard let changes = report.diff?.changes, changes.count == 1 else { return nil }
+        return changes.first
+    }
+
+    /// « sans UltraSmooth », « avec le réglage actuel de X »… : le nom, puis
+    /// la direction de la phrase, première lettre en capitale.
+    private func changePhrase(_ change: ProbeModChange) -> String? {
+        let key: String
+        switch change.kind {
+        case .added: key = L10n.Performance.phraseAdded
+        case .removed: key = L10n.Performance.phraseRemoved
+        case .versionChanged: key = L10n.Performance.phraseVersion
+        case .configChanged: key = L10n.Performance.phraseConfig
+        }
+        let formatted = String(format: localization.L(key), name(change.modId))
+        return formatted.prefix(1).uppercased() + formatted.dropFirst()
+    }
+
+    /// Le nom court d'un côté : le nom de la mesure guidée, sinon la date.
+    private func sideTitle(_ side: ProbeSide) -> String {
+        if let measurement = side.measurement { return measurement.name }
+        guard let start = side.start else { return "—" }
+        return start.formatted(date: .abbreviated, time: .shortened)
     }
 
     private var confidence: String {
@@ -154,9 +198,12 @@ struct PerformanceAnalysisSection: View {
             // guidée s'arrête d'elle-même.
             let guided = report.before.measurement != nil || report.after.measurement != nil
             let where_ = location.map { "\($0) : " } ?? ""
+            // La raison du « refaire » : part indirecte dominante, ou paire guidée.
+            let indirectDominant = analysis.evidence.contains { if case .indirectShare = $0 { return true } else { return false } }
             action(localization.L(L10n.Performance.recRerun),
-                   detail: guided ? localization.L(L10n.Performance.recRerunGuided)
-                                  : String(format: localization.L(L10n.Performance.recRerunDetail), where_, missing),
+                   detail: indirectDominant ? localization.L(L10n.Performance.recRerunIndirect)
+                       : guided ? localization.L(L10n.Performance.recRerunGuided)
+                       : String(format: localization.L(L10n.Performance.recRerunDetail), where_, missing),
                    button: L10n.Performance.actionPrepareMeasure,
                    gesture: .prepare(GuidedPlanDraft(name: localization.L(L10n.Performance.recRerun),
                                                      role: .before,
