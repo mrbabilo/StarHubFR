@@ -680,6 +680,73 @@ Profiler et la sonde s'excluent dans une même session (incompatibilité connue,
   qu'à partir de 0,1 ms (`LoggerDurationInnerThreshold`). En chargement, où
   les gros appels dominent, l'écart est faible ; en jeu, il est complet.
 
+### Deux mods de temps de chargement décompilés — FastLoads 1.0.3 et Loading Optimizer 1.0.0 *(2026-09-29)*
+
+Contribution au chantier **D5-B** : ce que deux mods dédiés au temps de
+chargement font au jeu, et ce qu'on en retient pour nos mesures.
+
+**FastLoads** (spajus, 1.0.3, [Nexus 19454](https://www.nexusmods.com/stardewvalley/mods/19454)
+· `spajus.fastloads` · [source](https://github.com/spajus/stardew-valley-fast-loads),
+dernier commit 2023-12) : 242 lignes, trois patches Harmony sur `NPC`.
+`populateRoutesFromLocationToLocationList` est hashé dans un `HashSet<long>`
+au postfix ; `doesRoutesListContain` est **remplacé** par un test O(1) sur ce
+hash (l'original scannait la liste complète avec une égalité profonde par
+candidat) ; `exploreWarpPoints` est **remplacé** par une reprise qui
+dédoublonne au fil de l'eau. Preuve historique que le chargement d'une partie
+passait un temps considérable à recalculer les routes de PNJ — et l'étiquette
+Nexus « Broken in Version 1.6 » avec le mot de l'auteur (« le problème semble
+corrigé dans le jeu ») disent que **1.6 a corrigé ce coût**. Le jeu du parc est
+en 1.6.15 : **à ne jamais installer** — ses deux remplacements complets de
+méthodes privées divergeraient du jeu. Sa valeur pour nous : D5-B ne doit pas
+chercher ce coût sur 1.6, et son option `DetectCollisions` documente le risque
+d'un index par hash (une collision rend une route fausse en silence). Aucune
+clé `config.*` (libellés GMCM bruts).
+
+**Stardew Loading Optimizer** (neoiw, 1.0.0 — décompilé depuis le parc,
+`.StardewLoadingOptimizer/`, où il est **en pause**) : ~20 600 lignes
+décompilées, dix services. Sur 1.6.15 :
+- `SaveFileSlot` ctor postfix : `ActivateDelay = 0` — supprime le délai
+  artificiel du menu de chargement de sauvegarde (−2,17 s revendiqués par le
+  README) ; la chaîne de `SaveGame.Load` reste au jeu ;
+- `TMXFormat.Load(Stream)` prefix/postfix : cache disque **des maps
+  compilées** (`map-cache-v2`), clé `Longueur + LastWriteTime` du `.tmx`
+  source, et réparation `UpdateDisplaySize` après un hit ;
+- `ModContentManager.LoadRawImageData` (méthode interne de SMAPI) : cache
+  des **images décodées** (BGRA) avec budget mémoire (384 Mo par défaut),
+  décodage sur thread d'arrière-plan, jointure runtime bornée à 500 ms ;
+- prélecture de fichiers (`.tmx/.tbin/.png/.json`) en arrière-plan après
+  `SaveLoaded`, 24 Mo/s plafonnée à 256 Mo — **cache OS**, le jeu n'est pas
+  modifié ;
+- tilesheets différées pendant `loadForNewGame`, réchauffées 3 s plus tard ;
+- SpaceCore : initialisation des sérialiseurs **parallélisée** + fast-path qui
+  **réécrit en IL** les appels `DeserializeProxy<T>` de SpaceCore quand le
+  sidecar (`spacecore-serialization.json`) confirme « aucune donnée custom » —
+  le patch le plus fragile du mod : il dépend des internes d'un mod mis à
+  jour souvent, et touche la lecture des sauvegardes (même famille de risque
+  que le préchauffage SpaceCore d'UltraSmooth qui figeait l'enregistrement
+  des types) ;
+- warps accélérés (`ScreenFade.UpdateFadeAlpha`, multiplicateur 6,5×) ;
+- **son propre profilé de chargement** : `NativeTimingProbe` instrumente
+  ~30 méthodes natives (`SaveGame.Load`, `TryReadSaveFile`,
+  `loadDataToFarmer`, `loadDataToLocations`, `GameLocation.loadMap`,
+  `resetForPlayerEntry`, `WarpPathfindingCache.PopulateCache`,
+  `Map.LoadTileSheets`, portées de Content Patcher…) + `ExitDiagnostics`
+  à la sortie. **Désactivés par défaut** (`EnableDetailedDiagnostics=false`,
+  réglage du parc). D5-B peut les activer comme contre-point d'une session ;
+  leur liste de phases est une carte des étapes de chargement qui recoupe
+  les jalons de Profiler ;
+- `PrepareToUninstall=true` : retire tous ses patches et arrête ses workers —
+  la propreté de désinstallation que le chantier D2 demande ;
+- journal : une ligne `[OPTIMIZER CONFIG]` exhaustive au lancement, puis des
+  statuts `[MAP CACHE STATUS]`, `[IMAGE CACHE STATUS]`, `[PREFETCH STATUS]`,
+  `[SAVE PREFETCH …]`, `[NATIVE PHASE]`… à parser (chantier D2).
+
+Risques notés à la lecture : ses caches se réparent en silence
+(`[MAP CACHE DISPLAY REPAIR]`, `[IMAGE CACHE PRESSURE]` — les mêmes
+« pertes silencieuses contre on gagne quoi » que notre A1-T8/T9 traitent
+côté app) ; le parc le garde **en pause** — les mesures D5-B décrivent le
+parc sans lui.
+
 ### Outils de traduction de mods *(2026-09-24)*
 
 Relevés à la demande de l'utilisateur, pour le hub FR :
@@ -779,17 +846,19 @@ statique peut exister, et pourquoi elle survit aux remplacements de front.
 | [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 2.1.0 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI. Sa 2.1.0 (changelog lu le 2026-09-10) écrit `data/mod_history.json` **dans son propre dossier** ; or notre mise à jour (`.overwriteWithBackup`) supprime le dossier avant réextraction, snapshot limité à `config.json` + `i18n/*.json` — ce fichier meurt. Regénérable (le mod redécouvre au lancement suivant), et l'ancien dossier entier reste dans la sauvegarde `beforeUpdate` : aucun changement de code, mais la **classe** « mod qui garde des données runtime dans son dossier » est à surveiller — un mod dont la donnée ne serait pas regénérable perdrait sur toute mise à jour StarHubFR. Journaux lus jusqu'à **2.1.6** (2026-09-23) : sa **2.1.3 rend les boutons souris M4/M5/M3 bindables** dans tous les champs raccourcis — les configs du parc vont porter des `MouseX1`/`MouseX2`/`MouseMiddle`, jetons que notre `SButtonTable` porte déjà (KeybindGrammar.swift) ; la 2.1.4 importe en plus les enregistrements GMCM **retardés** (Automate), que notre lecture statique des DLL voit de toute façon sans besoin de règle |
 | [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) — palmhacker13, 2.1.3 | `palmhacker13.UltraSmooth` · Nexus 50971 · dépend de MCM · **installé sur le parc** | **le corpus de test de l'éditeur** : 115 clés `config.*` (41 `.name`, 41 `.tooltip`, 11 `.button`, 16 de section, 4 `.choice`) plus une clé maison `.gmcmGuide` ; porte aussi un `i18n/th.json` (hub thaï). Perf : `us_analyze` est un **profil de soi** (top 5 de ses propres moteurs) ; l'outil profond est la boîte noire **`us_trace`** (60 s, rapport au journal SMAPI **et** fichier dans le dossier du mod) — aucun patch Harmony chez les autres mods. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md) |
 | [**Faster Menu Load**](https://www.nexusmods.com/stardewvalley/mods/41564) — ZeroXPatch, 1.5.0 | `ZeroXPatch.FasterMenuLoad` · Nexus 41564 | même auteur que le SMAPILogDoctor crédité §3 ; une des 13 dépendances du SLO ; **seul des cinq non installé** sur le parc |
-| [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`) |
+| [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`). Sa 1.0.0 **décompilée le 2026-09-29** (analyse complète §5) : les 13 dépendances sont désormais `IsRequired: false` — le constat « manifeste intégriste » ci-dessous ne vaut plus que pour la 0.5.x auditée ; **en pause sur le parc** |
 | [**SinZational Speedy Solutions**](https://www.nexusmods.com/stardewvalley/mods/37301) — SinZ, 1.1.0 | `SinZ.SpeedySolutions` · Nexus 37301 · **installé sur le parc** | membre de deux paires du catalogue des recouvrements de perf (A5-T7, `PerformanceOverlap.swift`) : `ModContentManager.LoadRawImageData` avec Loading Optimizer et Stardropium, `TMXFormat.Load` avec Loading Optimizer ; Stardropium patche aussi son propre postfix |
 | [**Profiler**](https://www.nexusmods.com/stardewvalley/mods/12135) — SinZ, 2.0.0 | `SinZ.Profiler` · Nexus 12135 · [source](https://github.com/SinZ163/StardewMods/tree/main/Profiler) (monorepo SinZ163, **surveillé**) | **la télémétrie que le chantier D1 parse** : `[BigLoop] In total, it took {0:N}ms handling …` (chaîne mesurée dans la DLL). Ses packs de contenu étendent le profilage **par déclaration** (`{Type: "Duration", TargetType, TargetMethod}`). **Installé sur le parc mais en pause** (`.Profiler/`) — sa détection doit regarder les mods en pause, pas seulement les actifs. **Déclaré incompatible avec la sonde StarHubFR** (2026-09-29, `KnownIncompatibilities`) : les deux posent les mêmes minuteurs, actifs ensemble chacun gonfle ce que l'autre mesure — alerte quand les deux sont actifs, écartable. Le zip 2.0.0 de `mods tests/` embarque le `Profiler.pdb` : les symboles de débogage sont là si le format de log doit être vérifié plus finement |
 | [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) — phuicmt, 1.7.6 | `phuicmt.SDVRadiance` · Nexus 49397 · `GitHub:PHUICMT/SDV-Radiance` · dépendance GMCM optionnelle · **installé sur le parc** | suite graphique lourde (bloom, color grading, sun shafts, ombres directionnelles, reflets) ; son diagnostic perf est **`FrameCost`** : 14 parties de rendu mesurées CPU **et** GPU (requêtes timer OpenGL), 6 frames les plus longues découpées `ours / not ours` avec deltas GC et `arrival+N` ; **`radiance_report`** écrit `~/Documents/Radiance-Dumps/radiance-report.txt`. Aucune attribution aux autres mods — « not ours » reste un lot. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md). Nexus **2.3.x** (journal lu le 2026-09-23, le parc reste en 2.2.5) : vague de stabilité dont la **2.3.4** — son pré-warm des sérialiseurs SpaceCore **figeait l'initialisation avant l'enregistrement des types custom des mods**, crash de sauvegarde « type not expected » au coucher : exactement la classe de types C# orphelins des **A1-T8/T9**, provoquée par un mod du parc ; la 2.3.5 retire le LOD herbe expérimental et désactive sa télémétrie de rendu par défaut |
 
 Deux constats de lecture, mesurés :
 
-- **Le manifeste du SLO contredit son README** : les 13 dépendances y sont
-  toutes **requises** (`IsOptional` absent de chacune), alors que le README
-  présente Content Patcher, SpaceCore et GMCM comme « optional integrations,
-  not required dependencies ». SMAPI applique le manifeste — c'est lui qui
+- **Le manifeste du SLO contredit son README** (constat du 2026-09-04, sur
+  la 0.5.x) : les 13 dépendances y étaient toutes **requises** (`IsOptional`
+  absent de chacune), alors que le README présente Content Patcher, SpaceCore
+  et GMCM comme « optional integrations, not required dependencies ». **Sa
+  1.0.0 a corrigé** : les 13 sont désormais `IsRequired: false` (manifeste
+  décompilé le 2026-09-29). SMAPI applique le manifeste — c'est lui qui
   fait foi sur le disque.
 - Cinq des six sont **installés sur le parc** (tous sauf Faster Menu Load ;
   Profiler y est **en pause**) : leurs mises à jour relèvent donc du

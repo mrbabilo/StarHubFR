@@ -537,7 +537,19 @@ SOURCES = [
     {"key": "mod/profiler", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 12135, "uniqueId": "SinZ.Profiler",
      "role": "la télémétrie que le chantier D1 parse ([BigLoop]) ; installé mais en pause sur le parc",
-     "used_by": "chantier D1 (ROADMAP), docs/SOURCES.md §6"},
+     "used_by": "chantier D1 (ROADMAP), docs/SOURCES.md §5, §6"},
+
+    {"key": "mod/fast-loads", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 19454, "uniqueId": "spajus.fastloads",
+     "role": "cache de hachage des routes de PNJ (2023) — le coût de chargement "
+             "que le jeu a corrigé en 1.6 ; étiqueté « Broken in Version 1.6 » "
+             "sur Nexus, jamais installé sur le parc",
+     "used_by": "docs/SOURCES.md §5"},
+
+    {"key": "fastloads-source", "kind": "repo", "repo": "spajus/stardew-valley-fast-loads",
+     "role": "source du mod FastLoads — figée en 2023-12 ; un nouveau commit "
+             "signifierait une reprise (port 1.6+) à réévaluer",
+     "used_by": "docs/SOURCES.md §5"},
 
     {"key": "profiler-source", "kind": "repo", "repo": "SinZ163/StardewMods",
      "role": "source du mod Profiler — le format de journal que D1-T2 doit parser",

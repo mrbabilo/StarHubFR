@@ -49,6 +49,13 @@
     "smapi_defaultGameVersion": "1.6.15",
     "smapi_endpoint": "https://smapi.io/api/v3.0/mods"
   },
+  "fastloads-source": {
+    "archived": false,
+    "default_branch": "master",
+    "last_commit": "3d0d533",
+    "last_commit_at": "2023-12-10T08:49:37Z",
+    "pushed_at": "2024-04-01T07:52:31Z"
+  },
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
@@ -86,6 +93,12 @@
     "gitHubRepo": null,
     "name": null,
     "version": "1.0.0-rc.4"
+  },
+  "mod/fast-loads": {
+    "changelog_reviewed": "1.0.3",
+    "gitHubRepo": "spajus/stardew-valley-fast-loads",
+    "name": "Fast Loads",
+    "version": "1.0.3"
   },
   "mod/faster-menu-load": {
     "changelog_reviewed": "1.5.0",
