@@ -42,8 +42,8 @@ struct PerformanceView: View {
             if let report = store.report {
                 PerformanceChangesSection(viewModel: viewModel, localization: localization,
                                           report: report, configsDirectory: store.configsDirectory)
-                // Tâche 8 : PerformanceSmoothnessSection(localization: localization, report: report)
-                // Tâche 8 : PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
+                PerformanceSmoothnessSection(localization: localization, report: report)
+                PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
                 // Tâche 9 : PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
                 //                                      store: store, report: report)
             }
