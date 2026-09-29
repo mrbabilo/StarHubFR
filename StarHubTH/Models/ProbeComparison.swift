@@ -120,8 +120,13 @@ public struct ProbeComparison: Equatable, Sendable {
     /// (± 0,3 ms à 60 Hz).
     static let refreshRates: [Double] = [60, 75, 90, 100, 120, 144, 165, 240]
 
+    /// Plafond de synchro : la période d'une fréquence usuelle (± 2 %), ou
+    /// 2, 3 ou 4 périodes à 60 Hz — une trame manquée vaut deux périodes, pas
+    /// un peu plus. Les multiples des autres fréquences sont écartés : leur
+    /// union couvrirait la moitié des valeurs entre 10 et 70 ms.
     static func isAtRefreshCeiling(_ frameMs: Double) -> Bool {
-        refreshRates.contains { abs(frameMs - 1000 / $0) <= 0.02 * (1000 / $0) }
+        let periods = refreshRates.map { 1000 / $0 } + (2...4).map { Double($0) * 1000 / 60 }
+        return periods.contains { abs(frameMs - $0) <= 0.02 * $0 }
     }
 
     private static func updatesPerSecond(of item: ProbeComparableMinute) -> Double? {

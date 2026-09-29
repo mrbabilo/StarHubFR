@@ -72,6 +72,21 @@ struct ProbeComparisonTests {
 
     /// Plafond de synchro : les deux médianes à 16,7 ms ± 0,3 → le verdict de
     /// tête passe au travail de trame (Update.P50 + Draw.P50 = 9 ms ici).
+    /// Une trame manquée vaut deux périodes : 33,3 ms (2 × 1000/60) est un
+    /// plafond — 33 des 86 minutes gardées du parc y sont. Sans lui, une
+    /// paire plafonnée se jugeait sur la trame, qui ne bouge pas.
+    @Test func sixtyHertzMultiplesAreCeilings() {
+        for frame in [33.33, 50.0, 66.67, 32.8, 33.9] {
+            #expect(ProbeComparison.isAtRefreshCeiling(frame), "\(frame)")
+        }
+        // Pas de multiples des autres fréquences : 26,7 (2 × 75 Hz), 30 (3 × 100 Hz).
+        for frame in [26.67, 30.0, 36.3, 48.25, 45.0] {
+            #expect(!ProbeComparison.isAtRefreshCeiling(frame), "\(frame)")
+        }
+        // Le plafond simple de chaque fréquence reste reconnu.
+        #expect(ProbeComparison.isAtRefreshCeiling(1000 / 144))
+    }
+
     @Test func vsyncCeilingSwitchesToFrameWork() {
         let result = ProbeComparison.compare(side(16.5), side(16.9))
         // Travail de trame identique des deux côtés : bruit, pas un écart de trame.
