@@ -44,6 +44,7 @@ public sealed class ModEntry : Mod
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
         Guided.Initialize(Monitor, ModManifest.Version.ToString());
+        GuidedBanner.Initialize(helper);
         // D5-A : un plan en attente désarme la mesure des patches pour la
         // session — le disjoncteur la coupe 5 min après le chargement, et une
         // mesure à cheval mélangerait deux états que l'app refuse de comparer.

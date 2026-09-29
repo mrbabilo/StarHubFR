@@ -1,0 +1,14 @@
+{
+  "banner.title": "Measurement “{{name}}”",
+  "state.starting": "starting…",
+  "state.counting": "stay at {{place}} — {{count}} min kept",
+  "state.elsewhere": "paused: go back to {{place}}",
+  "state.menu": "menu open: the minute only counts if it closes quickly",
+  "state.night": "paused: new day",
+  "state.config": "a setting changed: starting over",
+  "state.patches": "paused: patch measurement running (probe option)",
+  "state.stable": "measurement done ({{count}} min): you can quit or keep playing",
+  "state.noisy": "measurement done, but noisy: play less varied next time",
+  "refused.splitscreen": "guided measurement unavailable: split screen",
+  "refused.noticks": "guided measurement unavailable: the game's timers aren't intercepted"
+}

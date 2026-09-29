@@ -20,4 +20,9 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
   </ItemGroup>
 
+  <!-- D5-A : textes du bandeau, lus par SMAPI dans le dossier du mod. -->
+  <ItemGroup>
+    <None Include="i18n/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
