@@ -14,17 +14,6 @@ struct ProbeMeasurementsTests {
         return (session, ProbeSegments.split(session, launches: inv.launches, changes: inv.changes).segments)
     }
 
-    /// Une mesure ouverte se clôt à la dernière minute de sa session.
-    @Test func openMeasurementClosesAtLastMinute() throws {
-        let all = try sessions()
-        let session = try #require(all.sessions.first { $0.id.hasPrefix("2026-09-28T18:56") })
-        let lastAt = session.minutes.compactMap { ProbeDate.parse($0.at) }.max()
-        let open = ProbeMeasurement(name: "en cours", start: try #require(session.startedAt), end: nil)
-        let closed = ProbeMeasurementsLogic.closeOpen([open], sessions: all)
-        #expect(closed.first?.end != nil)
-        #expect(closed.first?.end == lastAt)
-    }
-
     /// La fenêtre coupe : minutes dedans, la coupure signalée, les minutes
     /// d'après exclues.
     @Test func windowExcludesMinutesAfterCrossedChange() throws {
@@ -50,13 +39,14 @@ struct ProbeMeasurementsTests {
         #expect(result.crossedChangeAt == nil)
     }
 
-    /// La session en cours n'a pas fini d'écrire : sa mesure ouverte reste
-    /// ouverte.
-    @Test func openMeasurementOfTheRunningSessionStaysOpen() throws {
-        let all = try sessions()
-        let session = try #require(all.sessions.first { $0.id.hasPrefix("2026-09-28T18:56") })
-        let open = ProbeMeasurement(name: "en cours", start: try #require(session.startedAt), end: nil)
-        let result = ProbeMeasurementsLogic.closeOpen([open], sessions: all, runningSession: session.id)
-        #expect(result.first?.end == nil)
+    /// La fenêtre ne garde que les minutes de `keptAt` : la sonde a écarté
+    /// les autres (autre lieu, minute partielle), l'app les garderait.
+    @Test func windowKeepsOnlyTheProbeKeptMinutes() throws {
+        let (session, segments) = try segments("2026-09-28T18:56")
+        let dates = session.minutes.compactMap { ProbeDate.parse($0.at) }.sorted()
+        let measurement = ProbeMeasurement(name: "guidée", start: dates[0], end: dates[4],
+                                           keptAt: [dates[1], dates[3]], outcome: .stable)
+        let result = ProbeMeasurementsLogic.segment(measurement, segments: segments)
+        #expect(result.minutes.compactMap { ProbeDate.parse($0.at) } == [dates[1], dates[3]])
     }
 }

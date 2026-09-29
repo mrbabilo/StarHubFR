@@ -96,4 +96,57 @@ struct ProbePerformanceTests {
         #expect(side.minutes.count == 2)
         #expect(side.inventory?.count == 289)
     }
+
+    private func guided(_ side: ProbeSide, outcome: ProbeMeasurement.Outcome, role: ProbeMeasurement.Role,
+                        pairedWith: UUID? = nil, id: UUID = UUID()) -> ProbeMeasurement {
+        let kept = Set(side.minutes.compactMap { ProbeDate.parse($0.at) })
+        return ProbeMeasurement(id: id, name: "\(role)", start: kept.min()!, end: kept.max(), keptAt: kept,
+                                outcome: outcome, role: role, pairedWith: pairedWith, location: "Farm")
+    }
+
+    /// La paire par défaut suit `PairedWith`, quel que soit l'ordre des rôles ;
+    /// une mesure abandonnée n'est pas un côté.
+    @Test func defaultPairFollowsPairedWith() throws {
+        let plain = try sides()
+        let before = guided(plain[0], outcome: .stable, role: .before)
+        let after = guided(plain[2], outcome: .stable, role: .after, pairedWith: before.id)
+        let dropped = guided(plain[1], outcome: .abandoned, role: .before)
+        let all = try sides(measurements: [before, after, dropped])
+        #expect(!all.contains { $0.measurement?.id == dropped.id })
+        let pair = try #require(ProbePerformance.defaultPair(all))
+        #expect(pair.before.measurement?.id == before.id && pair.after.measurement?.id == after.id)
+    }
+
+    /// Review Focus 4 — la mesure désignée a disparu : règle actuelle.
+    @Test func orphanPairedWithFallsBackToTheUsualPair() throws {
+        let plain = try sides()
+        let orphan = guided(plain[2], outcome: .stable, role: .after, pairedWith: UUID())
+        let all = try sides(measurements: [orphan])
+        // Pas de paire guidée possible : la règle actuelle répond, sans planter.
+        let pair = try #require(ProbePerformance.defaultPair(all))
+        #expect(pair.before.id != pair.after.id)
+    }
+
+    /// Review Focus 1 — une minute de `keptAt` absente des segments (minute
+    /// mixte d'une coupure) : le côté existe avec les autres minutes.
+    @Test func keptMinuteMissingFromSegmentsIsTolerated() throws {
+        let plain = try sides()
+        var m = guided(plain[2], outcome: .stable, role: .before)
+        m.keptAt?.insert(Date(timeIntervalSince1970: 0))
+        let all = try sides(measurements: [m])
+        let side = try #require(all.first { $0.measurement?.id == m.id })
+        #expect(side.minutes.count == plain[2].minutes.count)
+    }
+
+    /// Mesure propre seulement si les deux côtés sont guidés et stables ; un
+    /// côté bruité le dit. (La fixture n'a aucun côté à 5 minutes gardées :
+    /// tester la règle, pas la preuve, qui exige 5 minutes de chaque côté.)
+    @Test func guidedStatusNeedsTwoStableSides() {
+        func m(_ outcome: ProbeMeasurement.Outcome) -> ProbeMeasurement {
+            ProbeMeasurement(name: "m", start: .now, end: nil, outcome: outcome)
+        }
+        #expect(ProbePerformance.guidedStatus(m(.stable), m(.stable)) == (clean: true, noisy: false))
+        #expect(ProbePerformance.guidedStatus(m(.stable), m(.noisy)) == (clean: false, noisy: true))
+        #expect(ProbePerformance.guidedStatus(nil, m(.stable)) == (clean: false, noisy: false))
+    }
 }

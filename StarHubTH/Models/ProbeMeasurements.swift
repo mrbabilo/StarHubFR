@@ -44,26 +44,6 @@ public struct ProbeMeasurementSegment: Equatable, Sendable {
 }
 
 public enum ProbeMeasurementsLogic {
-    /// Une mesure jamais terminée se clôt à la dernière minute de sa session
-    /// (la première session dont le dernier relevé suit le début). Celle de
-    /// `runningSession` (la partie en cours, qui écrit encore) reste ouverte.
-    public static func closeOpen(_ measurements: [ProbeMeasurement],
-                                 sessions: ProbeSessions,
-                                 runningSession: String? = nil) -> [ProbeMeasurement] {
-        let lastMinutes = sessions.sessions.compactMap { session -> (id: String, last: Date)? in
-            session.minutes.compactMap { ProbeDate.parse($0.at) }.max().map { (session.id, $0) }
-        }
-        return measurements.map { measurement in
-            guard measurement.end == nil,
-                  let closing = lastMinutes.filter({ $0.last >= measurement.start }).min(by: { $0.last < $1.last }),
-                  closing.id != runningSession
-            else { return measurement }
-            var closed = measurement
-            closed.end = closing.last
-            return closed
-        }
-    }
-
     /// La mesure comme fenêtre sur les segments d'une session : ses minutes
     /// sont celles dont la fin tombe dans `[start, end]`, jusqu'à la première
     /// coupure traversée — les minutes d'après mélangent les deux états (spec
@@ -76,7 +56,10 @@ public enum ProbeMeasurementsLogic {
         var minutes: [ProbeMinute] = []
         var crossed: Date?
         for (index, segment) in segments.enumerated() {
-            minutes += segment.minutes.filter { ProbeDate.parse($0.at).map(inWindow) == true }
+            minutes += segment.minutes.filter { minute in
+                guard let date = ProbeDate.parse(minute.at), inWindow(date) else { return false }
+                return measurement.keptAt.map { $0.contains(date) } ?? true
+            }
             // Le dernier segment finit à la dernière minute, pas à une
             // coupure : seules les fins des autres referment la mesure.
             if index < segments.count - 1, let cut = segment.end,

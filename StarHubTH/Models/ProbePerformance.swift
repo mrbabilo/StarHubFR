@@ -70,7 +70,8 @@ public enum ProbePerformance {
                                 start: segment.start, end: segment.end,
                                 minutes: segment.minutes, inventory: segment.inventory))
             }
-            for measurement in measurements {
+            // Une mesure abandonnée n'est pas un côté (D5-A).
+            for measurement in measurements where measurement.outcome != .abandoned {
                 let window = ProbeMeasurementsLogic.segment(measurement, segments: segments)
                 guard let first = window.minutes.first else { continue }
                 // L'inventaire : celui du segment qui porte la première minute.
@@ -90,6 +91,13 @@ public enum ProbePerformance {
     /// connue : les deux derniers côtés. Moins de deux : `nil`.
     public static func defaultPair(_ sides: [ProbeSide]) -> (before: ProbeSide, after: ProbeSide)? {
         guard sides.count >= 2 else { return nil }
+        // Paire guidée d'abord : la dernière mesure qui en désigne une autre
+        // encore là (`PairedWith`) — le rôle ne sert qu'à l'affichage.
+        for after in sides.reversed() {
+            guard let target = after.measurement?.pairedWith,
+                  let before = sides.first(where: { $0.measurement?.id == target }) else { continue }
+            return (before, after)
+        }
         for afterIndex in sides.indices.reversed() {
             let after = sides[afterIndex]
             guard let afterInventory = after.inventory else { continue }
@@ -100,6 +108,13 @@ public enum ProbePerformance {
             }
         }
         return (sides[sides.count - 2], sides[sides.count - 1])
+    }
+
+    /// Mesure propre : deux mesures guidées stables (D5-A). Un côté bruité
+    /// plafonne la confiance à « moyenne ».
+    static func guidedStatus(_ a: ProbeMeasurement?, _ b: ProbeMeasurement?) -> (clean: Bool, noisy: Bool) {
+        (clean: a?.outcome == .stable && b?.outcome == .stable,
+         noisy: a?.outcome == .noisy || b?.outcome == .noisy)
     }
 
     public static func report(before: ProbeSide, after: ProbeSide) -> ProbePerformanceReport {
@@ -118,14 +133,15 @@ public enum ProbePerformance {
         let costDeltas = costsA.isEmpty || costsB.isEmpty ? [] : ProbeCosts.delta(costsA, costsB)
         let dominant = dominantLocation(shared.a + shared.b)
         // Mesure propre « des deux côtés » (spec §3d) : sinon aucune.
-        let measurement = before.measurement != nil ? after.measurement : nil
+        let guided = guidedStatus(before.measurement, after.measurement)
+        let measurement = guided.clean ? after.measurement : nil
         let analysis = ProbeAnalysis.analyze(ProbeAnalysisInput(
             comparison: comparison,
             diff: diff ?? ProbeInventoryDiff(probeChanged: false, changes: []),
             costDeltas: costDeltas,
             exclusionsA: before.comparable.exclusions, exclusionsB: after.comparable.exclusions,
             locationsRestricted: shared.restricted, measurement: measurement,
-            dominantLocation: dominant))
+            dominantLocation: dominant, noisyMeasurement: guided.noisy))
         return ProbePerformanceReport(before: before, after: after, keptBefore: shared.a,
                                       keptAfter: shared.b, locationsRestricted: shared.restricted,
                                       comparison: comparison, diff: diff, costDeltas: costDeltas,

@@ -44,11 +44,8 @@ final class ProbePerformanceStore {
             let inventory = files.inventory()
             // Transitoire (D5-A tâche 6) : les mesures guidées arrivent en tâche 9.
             let measurements: [ProbeMeasurement] = []
-            // Une mesure jamais terminée se lit close à sa dernière minute ;
-            // le fichier la garde ouverte (« Terminer » reste possible).
-            let closed = ProbeMeasurementsLogic.closeOpen(measurements, sessions: sessions)
             let sides = ProbePerformance.sides(sessions: sessions, launches: inventory?.launches ?? [],
-                                               changes: inventory?.changes ?? [], measurements: closed)
+                                               changes: inventory?.changes ?? [], measurements: measurements)
             return Loaded(sides: sides, measurements: measurements,
                           unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0),
                           hasProbe: !sessions.sessions.isEmpty || inventory != nil)

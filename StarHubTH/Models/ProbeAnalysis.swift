@@ -13,12 +13,14 @@ public struct ProbeAnalysisInput: Sendable {
     /// Lieu où il y a le plus de minutes gardées (calcul de l'appelant) :
     /// le protocole de « refaire une mesure propre » le nomme.
     public let dominantLocation: String?
+    /// Un côté est une mesure guidée bruitée : confiance plafonnée à « moyenne » (D5-A).
+    public let noisyMeasurement: Bool
 
     public init(comparison: ProbeComparison, diff: ProbeInventoryDiff,
                 costDeltas: [ProbeCostDelta],
                 exclusionsA: [ProbeExclusionReason: Int], exclusionsB: [ProbeExclusionReason: Int],
                 locationsRestricted: Bool, measurement: ProbeMeasurement?,
-                dominantLocation: String?) {
+                dominantLocation: String?, noisyMeasurement: Bool = false) {
         self.comparison = comparison
         self.diff = diff
         self.costDeltas = costDeltas
@@ -27,6 +29,7 @@ public struct ProbeAnalysisInput: Sendable {
         self.locationsRestricted = locationsRestricted
         self.measurement = measurement
         self.dominantLocation = dominantLocation
+        self.noisyMeasurement = noisyMeasurement
     }
 }
 
@@ -50,6 +53,8 @@ public struct ProbeAnalysisResult: Equatable, Sendable {
         case envelopesAsymmetric
         /// Mesure propre, au moins 5 minutes de chaque côté.
         case cleanMeasurement
+        /// Un côté est une mesure guidée bruitée (D5-A).
+        case noisyMeasurement
         /// Minutes écartées, par raison, de chaque côté.
         case excludedMinutes(a: [ProbeExclusionReason: Int], b: [ProbeExclusionReason: Int])
         /// Trame nettement changée, travail de trame inchangé.
@@ -110,6 +115,10 @@ public enum ProbeAnalysis {
             confidence = .medium
         } else {
             confidence = .low
+        }
+        if input.noisyMeasurement && confidence == .high {
+            confidence = .medium
+            evidence.append(.noisyMeasurement)
         }
         if !input.exclusionsA.isEmpty || !input.exclusionsB.isEmpty {
             evidence.append(.excludedMinutes(a: input.exclusionsA, b: input.exclusionsB))

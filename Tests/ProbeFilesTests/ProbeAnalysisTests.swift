@@ -13,7 +13,8 @@ struct ProbeAnalysisTests {
         measurement: ProbeMeasurement? = nil,
         patchesMismatch: Bool = false, dominantLocation: String? = nil,
         workVerdict: ProbeMeasureComparison.Verdict = .noise,
-        updatesPerSecond: (a: Double, b: Double)? = nil
+        updatesPerSecond: (a: Double, b: Double)? = nil,
+        noisyMeasurement: Bool = false
     ) -> ProbeAnalysisInput {
         let a = ProbeSideSummary(count: keptA, median: 30, q1: 29, q3: 31)
         let b = ProbeSideSummary(count: keptB, median: 33, q1: 32, q3: 34)
@@ -31,7 +32,8 @@ struct ProbeAnalysisTests {
         return ProbeAnalysisInput(comparison: comparison, diff: diff, costDeltas: costs,
                                   exclusionsA: [:], exclusionsB: [:],
                                   locationsRestricted: locationsRestricted,
-                                  measurement: measurement, dominantLocation: dominantLocation)
+                                  measurement: measurement, dominantLocation: dominantLocation,
+                                  noisyMeasurement: noisyMeasurement)
     }
 
     private func diff(_ changes: ProbeModChange...) -> ProbeInventoryDiff {
@@ -243,5 +245,14 @@ struct ProbeAnalysisTests {
             workVerdict: .netChange(delta: 1, percent: 11.1),
             updatesPerSecond: (a: 30, b: 30)))
         #expect(result.evidence.contains(.indirectShare(0.6)))
+    }
+
+    /// Un côté bruité plafonne à « moyenne », même à 15 minutes au même lieu.
+    @Test func noisyGuidedSideCapsConfidenceAtMedium() {
+        let result = ProbeAnalysis.analyze(input(keptA: 15, keptB: 15, locationsRestricted: true,
+                                                 noisyMeasurement: true))
+        #expect(result.confidence == .medium)
+        #expect(result.evidence.contains(.noisyMeasurement))
+        #expect(ProbeAnalysis.analyze(input(keptA: 15, keptB: 15)).confidence == .high)
     }
 }
