@@ -932,6 +932,21 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       40–71 % même sur 21 minutes. Remplace les boutons « Démarrer /
       Terminer » de D4-T4. Spec `docs/superpowers/specs/2026-09-29-d5-a-guided-measurement-design.md`
       (poste local), relue par agent. · **L**
+      *Livré en code le 2026-09-29, à valider en jeu* : sonde **0.5.0**
+      (`Guided.cs`, `GuidedRule.cs`, `GuidedBanner.cs`, textes fr/en ; mesure
+      des patches désarmée quand un plan attend) ; gardes guidées `patchesMeasured`,
+      `partial` (< 45 s), `otherLocation` (ticks au lieu, hors cinématique),
+      `configChanged` (décompte remis à zéro) ; parité app ↔ sonde par un
+      fichier de référence commun (`Tests/ProbeFilesTests/Fixtures/comparable-reasons.json`,
+      tests Swift et `dotnet test companion/StarHubFR.Probe.Tests`, premier
+      projet de tests C# du dépôt) ; côté app, `GuidedPlan`,
+      `GuidedMeasurementsFile`, `GuidedProtocol`, barre et feuille de l'onglet,
+      gestes de l'analyse qui préparent un plan, mesures manuelles retirées ;
+      plafonds de synchro élargis à 2, 3, 4 périodes de 60 Hz (33 des 86
+      minutes gardées du parc étaient à 33,3 ms, jugées sur la trame).
+      **Reste** : installer la sonde 0.5.0, une paire guidée réelle et une
+      paire A/A (qui doit rendre « aucune différence ») ; relever
+      `WorkIqrShare` des mesures stables pour réviser le seuil de 10 %.
 - [ ] **D5-B** — **Temps de chargement** : lancement (processus → écran
       titre) et chargement de sauvegarde (clic → première trame jouable),
       mesurés par la sonde et comparés avant/après. Contribution par mod :

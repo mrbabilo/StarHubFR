@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Added
 
 - **Onglet « Performances » : avant / après.** Choisissez deux moments mesurés par la sonde : ce qui a changé, la fluidité minute par minute, le coût de chaque mod, et une analyse qui propose un geste réversible — mettre en pause, revenir à une version ou à un réglage d'avant.
+- **Mesure guidée.** Un clic prépare la mesure ; en jeu, la sonde (0.5.0) te dit où rester et s'arrête seule quand la mesure est stable — 5 à 15 minutes. L'onglet compare « avant » et « après » au même lieu, sans compter pour toi.
 - **Nettoyer les anciens fichiers d'un mod.** Dans sa fiche, l'historique propose de retirer ce que d'anciennes versions ont laissé : coché quand c'est identique à un fichier de l'auteur, décoché quand ce n'est que probable. Le dossier est sauvegardé d'abord.
 - **La sonde StarHubFR et Profiler signalés incompatibles.** Actifs ensemble, chacun gonfle les temps que l'autre mesure : une alerte le dit, avec la raison, et l'activation de l'un avertit si l'autre tourne. Écartable comme toute incompatibilité.
 
@@ -27,6 +28,7 @@ where the exact log format was verified.
 
 - **La liste des mods malveillants de SMAPI est vérifiée en entier.** Les fichiers piégés n'étaient jamais cherchés, et les entrées reconnues par l'empreinte du DLL étaient ignorées. Un mod légitime qui partage l'identifiant d'un reupload piégé n'est plus signalé.
 - **Une mise à jour garde tes traductions rangées en dossier.** Un `i18n/fr/gui.json` (forme de SMAPI 4) était remplacé par la version de l'auteur quand l'historique ne permettait pas de trancher ; il est désormais gardé, comme un `i18n/fr.json`.
+- **30 images/s reconnu comme plafond.** Une paire bloquée à 33,3 ms se juge désormais sur le travail de chaque trame : un mod qui allège le jeu n'est plus annoncé « sans effet ».
 
 ## [1.51.0] - 2026-09-28
 
