@@ -50,3 +50,22 @@ texture existe, et ne pas remettre `loadedTexture` à vide à chaque mise à jou
 2. **FTM `MonsterLimitPerLocation` 50 → 15** : ~1 500 → ~450 monstres mis à
    jour ; moins de monstres dans les zones dangereuses (SVE Highlands…).
 3. **UltraSmooth en pause** : voir son audit (56 FPS contre 18).
+
+## 5. Mesuré (paire guidée 20:42 → 21:40, Ferme, deux côtés `stable`)
+
+UltraSmooth en pause des deux côtés ; appliqués entre les deux : Alternative
+Textures en pause (A) et FTM `MonsterLimitPerLocation` 50 → 15 (B). Heures de
+jeu comparables (7 h 30–13 h contre 8 h–13 h 30).
+
+| | Avant | Après | Écart |
+|---|---|---|---|
+| Mise à jour (`Update` p50) | 11,0 ms | 9,4 ms | −15 % |
+| Dessin (`OuterDraw` p50) | 4,8 ms | 3,9 ms | −19 % |
+| Travail par image (update + draw) | 13,9 ms | 12,4 ms | −11 % |
+| `Present` | 1,4 ms | 0,6 ms | |
+| FPS moyens | 55,9 | 58,0 | plafonné à 60 |
+| Tas | ~4 000 Mo | ~3 925 Mo | −75 Mo |
+
+Le jeu étant plafonné par la synchro, le gain est de la **marge** : 2,8 → 4,3 ms
+libres par image de 16,7 ms. A et B appliqués ensemble : leur part respective
+n'est pas séparée.
