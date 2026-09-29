@@ -50,7 +50,7 @@ struct PerformanceChangesSection: View {
                     .lineLimit(1).truncationMode(.middle)
                     .help(change.modId)
             } trailing: {
-                Text(kindLabel(change.kind)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                badge(change.kind)
             }
             if let keys = configDiffs[change.modId] {
                 ForEach(keys) { key in
@@ -61,6 +61,20 @@ struct PerformanceChangesSection: View {
                 }
             }
         }
+    }
+
+    /// Une teinte par nature de changement, hors vert et orange (réservés à
+    /// « mieux » et « moins bien ») ; le glyphe la double.
+    private func badge(_ kind: ProbeModChange.Kind) -> some View {
+        let (icon, tint): (String, Color) = {
+            switch kind {
+            case .added: return ("plus.circle.fill", AppDesign.Color.info)
+            case .removed: return ("minus.circle.fill", .secondary)
+            case .versionChanged: return ("arrow.triangle.2.circlepath", .indigo)
+            case .configChanged: return ("slider.horizontal.3", .teal)
+            }
+        }()
+        return PerformanceBadge(label: kindLabel(kind), systemImage: icon, tint: tint)
     }
 
     private func kindLabel(_ kind: ProbeModChange.Kind) -> String {

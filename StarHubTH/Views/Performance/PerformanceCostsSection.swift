@@ -37,10 +37,11 @@ struct PerformanceCostsSection: View {
         return Chart {
             ForEach(rows) { row in
                 if let a = row.before, let b = row.after {
+                    // Le trait prend le sens de l'écart (vert : le mod coûte moins).
                     RuleMark(xStart: .value("ms/s", a), xEnd: .value("ms/s", b),
                              y: .value("Mod", row.modId))
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                        .foregroundStyle(.secondary)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
+                        .foregroundStyle(ProbeTrend.ofCost(row.delta).tint)
                 }
                 if let a = row.before {
                     PointMark(x: .value("ms/s", a), y: .value("Mod", row.modId))
@@ -83,7 +84,11 @@ struct PerformanceCostsSection: View {
             .buttonStyle(.link)
             .help(row.modId)
         } trailing: {
-            Text(values(row)).font(AppDesign.Font.footnote).foregroundColor(.secondary).monospacedDigit()
+            if row.before != nil, row.after != nil {
+                PerformanceDelta(text: values(row), delta: row.delta, trend: ProbeTrend.ofCost(row.delta))
+            } else {
+                Text(values(row)).font(AppDesign.Font.footnote).foregroundColor(.secondary).monospacedDigit()
+            }
         }
     }
 

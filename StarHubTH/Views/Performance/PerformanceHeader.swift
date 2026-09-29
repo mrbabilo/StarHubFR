@@ -10,6 +10,7 @@ struct PerformanceHeader: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             if let report = store.report {
                 WrapHStack(spacing: AppDesign.Spacing.md) {
+                    // Trois temps ou tailles : moins, c'est mieux.
                     tile(L10n.Performance.tileFrame, report.comparison.frameP50, unit: "ms",
                          help: L10n.Performance.tileHelpFrame)
                     tile(L10n.Performance.tileP99, report.comparison.frameP99, unit: "ms",
@@ -25,18 +26,21 @@ struct PerformanceHeader: View {
     }
 
     private func tile(_ key: String, _ measure: ProbeMeasureComparison, unit: String, help: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let trend = ProbeTrend.of(measure.verdict, lowerIsBetter: true)
+        return VStack(alignment: .leading, spacing: 2) {
             Text(localization.L(key)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .help(localization.L(help))
             Text("\(number(measure.a.median)) → \(number(measure.b.median)) \(unit)")
                 .font(AppDesign.Font.body(.semibold)).monospacedDigit()
-            if case .netChange(_, let percent) = measure.verdict {
-                Text(String(format: "%+.1f %%", percent))
-                    .font(AppDesign.Font.footnote).foregroundColor(.secondary).monospacedDigit()
+            if case .netChange(let delta, let percent) = measure.verdict {
+                PerformanceDelta(text: String(format: "%+.1f %%", percent), delta: delta, trend: trend)
             }
         }
         .padding(AppDesign.Spacing.sm)
         .background(RoundedRectangle(cornerRadius: AppDesign.Radius.md).fill(AppDesign.Color.controlBg))
+        // Liseré de la couleur du sens, seulement pour un écart net.
+        .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.md)
+            .stroke(trend == .neutral ? .clear : trend.tint.opacity(0.6), lineWidth: 1.5))
     }
 
     private func verdict(_ verdict: ProbeMeasureComparison.Verdict) -> some View {
@@ -53,8 +57,11 @@ struct PerformanceHeader: View {
             }
         }()
         return Label(localization.L(key), systemImage: icon)
-            .font(AppDesign.Font.body(.medium))
+            .font(AppDesign.Font.body(.semibold))
             .foregroundColor(color)
+            .padding(.horizontal, AppDesign.Spacing.sm).padding(.vertical, AppDesign.Spacing.xs)
+            .background(color.opacity(AppDesign.Opacity.light),
+                        in: RoundedRectangle(cornerRadius: AppDesign.Radius.sm))
     }
 
     private func number(_ value: Double?) -> String {

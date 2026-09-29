@@ -46,12 +46,18 @@ struct PerformanceView: View {
         case .ready:
             selectors
             if let report = store.report {
-                PerformanceChangesSection(viewModel: viewModel, localization: localization,
-                                          report: report, configDiffs: store.configDiffs)
-                PerformanceSmoothnessSection(localization: localization, report: report)
-                PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
-                PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
-                                           store: store, report: report)
+                PerformanceCard {
+                    PerformanceChangesSection(viewModel: viewModel, localization: localization,
+                                              report: report, configDiffs: store.configDiffs)
+                }
+                PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }
+                PerformanceCard {
+                    PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
+                }
+                PerformanceCard {
+                    PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
+                                               store: store, report: report)
+                }
             }
             if store.unreadableLines > 0 {
                 Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))

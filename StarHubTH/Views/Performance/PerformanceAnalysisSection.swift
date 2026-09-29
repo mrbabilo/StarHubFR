@@ -36,9 +36,15 @@ struct PerformanceAnalysisSection: View {
                         sideTitle(report.before), sideTitle(report.after)))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .lineLimit(2)
-            Text(conclusion).font(AppDesign.Font.body(.semibold))
-            Text(confidence).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            conclusionLabel
+            confidenceBadge
             recommendation
+                .padding(AppDesign.Spacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppDesign.Color.accent.opacity(AppDesign.Opacity.subtle),
+                            in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
+                .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.md)
+                    .stroke(AppDesign.Color.accent.opacity(AppDesign.Opacity.medium), lineWidth: 1))
             ForEach(Array(analysis.evidence.enumerated()), id: \.offset) { _, evidence in
                 Text("· " + line(evidence)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
@@ -110,6 +116,33 @@ struct PerformanceAnalysisSection: View {
         if let measurement = side.measurement { return measurement.name }
         guard let start = side.start else { return "—" }
         return start.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    /// Même glyphe et même teinte que le verdict de tête : ils viennent du
+    /// même verdict (`ProbeAnalysis`, étape 1).
+    private var conclusionLabel: some View {
+        let (icon, tint): (String, Color) = {
+            switch analysis.direction {
+            case .faster: return ("hare", AppDesign.Color.success)
+            case .slower: return ("tortoise", AppDesign.Color.warning)
+            case .noDifference: return ("equal", .primary)
+            case .inconclusive: return ("questionmark", .primary)
+            }
+        }()
+        return Label(conclusion, systemImage: icon)
+            .font(AppDesign.Font.body(.semibold)).foregroundColor(tint)
+    }
+
+    private var confidenceBadge: some View {
+        let (icon, tint): (String, Color) = {
+            switch analysis.confidence {
+            // Pas de vert : il dit « mieux », pas « sûr ».
+            case .high: return ("checkmark.seal.fill", AppDesign.Color.accent)
+            case .medium: return ("circle.lefthalf.filled", .secondary)
+            case .low: return ("exclamationmark.circle", .secondary)
+            }
+        }()
+        return PerformanceBadge(label: confidence, systemImage: icon, tint: tint)
     }
 
     private var confidence: String {

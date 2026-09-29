@@ -86,6 +86,8 @@ public enum ProbeAnalysis {
     static let fixedTicksPerSecond = 60.0
     /// Minutes comparables de chaque côté pour une confiance élevée.
     static let enoughMinutes = 15
+    /// Variation de coût d'un mod (ms/s) au-delà de laquelle elle compte.
+    public static let directCostThreshold = 0.05
 
     public static func analyze(_ input: ProbeAnalysisInput) -> ProbeAnalysisResult {
         // 1. Conclusion — la mesure de tête a déjà tranché (travail de trame
@@ -147,7 +149,7 @@ public enum ProbeAnalysis {
         let direct = input.costDeltas
             .filter { changed.contains($0.modId.lowercased()) }
             .sorted { abs($0.delta) > abs($1.delta) }
-        for delta in direct where abs(delta.delta) > 0.05 {
+        for delta in direct where abs(delta.delta) > directCostThreshold {
             evidence.append(.directCost(modId: delta.modId, deltaMsPerSecond: delta.delta))
         }
 

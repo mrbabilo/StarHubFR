@@ -127,16 +127,25 @@ struct PerformanceSmoothnessSection: View {
                 Text(localization.L(L10n.Performance.colMinutes))
             }
             .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-            tableRow(.before, m.a)
-            tableRow(.after, m.b)
+            tableRow(.before, m.a, verdict: nil)
+            tableRow(.after, m.b, verdict: m.verdict)
         }
         .monospacedDigit()
     }
 
-    private func tableRow(_ side: ProbeChartSide, _ summary: ProbeSideSummary) -> some View {
-        GridRow {
-            Text(sideName(side))
-            Text("\(number(summary.median)) \(unit(measure))")
+    /// La médiane « après » prend flèche et couleur du sens quand l'écart est net.
+    private func tableRow(_ side: ProbeChartSide, _ summary: ProbeSideSummary,
+                          verdict: ProbeMeasureComparison.Verdict?) -> some View {
+        let median = "\(number(summary.median)) \(unit(measure))"
+        return GridRow {
+            HStack(spacing: AppDesign.Spacing.xs) { PerformanceSideDot(side: side); Text(sideName(side)) }
+            if let verdict, case .netChange(let delta, _) = verdict {
+                PerformanceDelta(text: median, delta: delta,
+                                 trend: ProbeTrend.of(verdict, lowerIsBetter: measure.lowerIsBetter),
+                                 font: AppDesign.Font.body(.semibold))
+            } else {
+                Text(median)
+            }
             Text("\(number(summary.q1)) – \(number(summary.q3)) \(unit(measure))")
             Text("\(summary.count)")
         }
@@ -189,7 +198,10 @@ struct PerformanceSmoothnessSection: View {
         let color = side == .before ? AppDesign.Chart.before : AppDesign.Chart.after
         let selected = marks.first { selectedAt != nil && $0.id == "\(side.rawValue)|\(selectedAt ?? "")" }
         return VStack(alignment: .leading, spacing: 2) {
-            Text(sideName(side)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            HStack(spacing: AppDesign.Spacing.xs) {
+                PerformanceSideDot(side: side)
+                Text(sideName(side)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            }
             Chart {
                 ForEach(kept) { mark in
                     LineMark(x: .value("Minute", mark.minutesFromStart), y: .value("ms", mark.value ?? 0))

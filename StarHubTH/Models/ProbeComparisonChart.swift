@@ -4,7 +4,31 @@ public enum ProbeChartSide: String, CaseIterable, Sendable { case before, after 
 
 /// Les mesures du sélecteur de « Fluidité » : une seule à la fois, jamais
 /// deux échelles sur un graphique (spec §3c).
-public enum ProbeChartMeasure: String, CaseIterable, Sendable { case frameP50, frameP99, work, fps }
+public enum ProbeChartMeasure: String, CaseIterable, Sendable {
+    case frameP50, frameP99, work, fps
+
+    /// Les temps baissent quand le jeu va mieux ; les FPS montent.
+    public var lowerIsBetter: Bool { self != .fps }
+}
+
+/// Le sens d'un écart pour le joueur, que l'écran met en couleur. Seul un
+/// écart net (`.netChange`, seuil de 5 % et quartiles disjoints) ou un coût
+/// au-delà du seuil de l'analyse prend un sens : le bruit reste neutre.
+public enum ProbeTrend: Equatable, Sendable {
+    case better, worse, neutral
+
+    public static func of(_ verdict: ProbeMeasureComparison.Verdict, lowerIsBetter: Bool) -> ProbeTrend {
+        guard case .netChange(let delta, _) = verdict, delta != 0 else { return .neutral }
+        return (delta < 0) == lowerIsBetter ? .better : .worse
+    }
+
+    /// Un coût par mod (ms/s) : moins, c'est mieux ; sous le seuil de
+    /// l'analyse, rien à signaler.
+    public static func ofCost(_ delta: Double) -> ProbeTrend {
+        guard abs(delta) > ProbeAnalysis.directCostThreshold else { return .neutral }
+        return delta < 0 ? .better : .worse
+    }
+}
 
 public struct ProbeChartPoint: Identifiable, Equatable, Sendable {
     public let id: String

@@ -63,4 +63,26 @@ struct ProbeComparisonChartTests {
         #expect(ProbeComparisonChart.value(of: minute, .work) == 9)
         #expect(ProbeComparisonChart.value(of: minute, .fps) == 42)
     }
+
+    /// Le sens de la couleur : un temps qui monte est pire, des FPS qui
+    /// montent sont mieux ; le bruit et le manque de données restent neutres.
+    @Test func trendFollowsTheDirectionOfEachMeasure() {
+        let up = ProbeMeasureComparison.Verdict.netChange(delta: 2, percent: 10)
+        let down = ProbeMeasureComparison.Verdict.netChange(delta: -2, percent: -10)
+        #expect(ProbeTrend.of(up, lowerIsBetter: ProbeChartMeasure.frameP50.lowerIsBetter) == .worse)
+        #expect(ProbeTrend.of(down, lowerIsBetter: ProbeChartMeasure.frameP50.lowerIsBetter) == .better)
+        #expect(ProbeTrend.of(up, lowerIsBetter: ProbeChartMeasure.fps.lowerIsBetter) == .better)
+        #expect(ProbeTrend.of(down, lowerIsBetter: ProbeChartMeasure.fps.lowerIsBetter) == .worse)
+        #expect(ProbeTrend.of(.noise, lowerIsBetter: true) == .neutral)
+        #expect(ProbeTrend.of(.notEnoughData, lowerIsBetter: false) == .neutral)
+    }
+
+    /// Coût par mod : sous le seuil de l'analyse, une oscillation n'est pas
+    /// un constat.
+    @Test func costTrendIgnoresWobblesBelowTheAnalysisThreshold() {
+        #expect(ProbeTrend.ofCost(0.01) == .neutral)
+        #expect(ProbeTrend.ofCost(-0.05) == .neutral)
+        #expect(ProbeTrend.ofCost(0.3) == .worse)
+        #expect(ProbeTrend.ofCost(-0.3) == .better)
+    }
 }
