@@ -795,6 +795,33 @@ Risques notés à la lecture : ses caches se réparent en silence
 côté app) ; le parc le garde **en pause** — les mesures D5-B décrivent le
 parc sans lui.
 
+### Les outils de profilage .NET hors jeu *(2026-09-29)*
+
+Complément des mods profilés ci-dessus — ce que l'écosystème .NET/macOS
+apporte, et ses pièges :
+
+- **`dotnet-counters monitor`** (`--name "Stardew Valley"`) : taux
+  d'allocation et GC en direct. Le complément du **D5-C** — `GcEventListener`
+  de la sonde voit les pauses, pas les taux ;
+- **`dotnet-trace collect`** : call stacks managés, convertibles en
+  `speedscope` (`--format speedscope`). Profile `--profile gc-collect` pour
+  savoir qui alloue ;
+- **Piège du nom de processus** : sur macOS, ce n'est pas
+  `StardewModdingAPI` mais **« Stardew Valley »** — le binaire secondaire
+  est rattaché au bundle par LaunchServices (sonde du 2026-09-24) ;
+- **Piège de contamination** : tout outil attaché (EventPipe, Instruments)
+  ajoute une surcharge supérieure au seuil de 5 % du verdict — **jamais
+  pendant une mesure guidée** D5-A/D5-B. Diagnostic et mesure comparative
+  vivent dans des sessions séparées ;
+- **Instruments** (Xcode) : le seul outil qui descend sous le .NET —
+  Time Profiler / CPU Counters / Metal pour le moteur natif (cas
+  UltraSmooth, goulot GPU) ; trames JIT CoreCLR mélangées, aucune
+  attribution par mod ;
+- **samply** : équivalent zéro-config pour **l'app StarHubFR elle-même**
+  (Swift natif, symboles complets) ;
+- **Tracy** : exige d'instrumenter le code source du jeu — impossible, jeu
+  fermé. **dotTrace** : payant, aucun besoin propre.
+
 ### Outils de traduction de mods *(2026-09-24)*
 
 Relevés à la demande de l'utilisateur, pour le hub FR :
