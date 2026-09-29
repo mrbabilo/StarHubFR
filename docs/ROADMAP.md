@@ -634,7 +634,10 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
       n'est qu'un résumé) : temps **propre** par mod et par événement (enfants
       soustraits), séparé en lancement / chargement / jeu. Modèle Core testable,
       jeux de test tirés du vrai journal conservé
-      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt`). L'écran dira « au-dessus
+      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt` — ⚠️ **absent du disque**
+      le 2026-09-29 : refaire une session Profiler seul avant de coder ; forme
+      des lignes `[RawLog]` relevée dans la visionneuse de SinZ, voir
+      `docs/SOURCES.md` §5). L'écran dira « au-dessus
       du seuil de Profiler », jamais « tout le temps du mod » — le coût par tick
       sous le seuil vient de la sonde (**D4-T1**). · **M**
 - [ ] **D1-T3** — Vue « Impact performances » dans l'onglet Diagnostic : classement des mods
@@ -907,6 +910,40 @@ le dépôt.
 **Critère de succès** : « ces trois mods coûtent X ms par seconde de jeu et allouent
 Y Mo », « ces deux mods patchent la même méthode », « cette option va de 1 à 20 » —
 lus sur le parc réel, sans décompiler ni lire un journal.
+
+#### D5 — Mesurer sans effort, chargements, score par mod
+
+> *Demande de l'auteur (2026-09-29)* : « une aide à la mesure durant le jeu
+> (guidage par écrans, durée des mesures, actions à effectuer) », mesurer le
+> temps de chargement du jeu et des sauvegardes, un score par mod (mémoire,
+> ticks, FPS). Trois sous-projets, dans cet ordre — A rend fiables les mesures
+> que B et C exploitent. Critère posé : **facile d'utilisation**.
+> *Constat qui motive A* : les deux sessions du 2026-09-29 matin (réglage de
+> Farmer's Notebook) — 11 minutes sur 17 dans un menu, 5 à 8 lieux par
+> session, bouton « Démarrer » jamais utilisé : verdict « bruit » partout.
+
+- [ ] **D5-A** — **Mesure guidée en jeu.** Un clic dans l'onglet Performances
+      écrit un plan dans le dossier de la sonde ; en jeu, la sonde (v0.5.0)
+      affiche un bandeau (lieu à garder, minutes gardées, pause « menu
+      ouvert »…), s'arrête seule quand la mesure est stable et l'écrit ; l'app
+      la lit et propose l'étape « après », au même lieu. Durée **adaptative**
+      (≥ 5 minutes gardées, arrêt à IQR ≤ 10 % de la médiane, plafond 15) —
+      mesuré : au même lieu l'IQR tombe à 3 %, en changeant de lieu il reste à
+      40–71 % même sur 21 minutes. Remplace les boutons « Démarrer /
+      Terminer » de D4-T4. Spec `docs/superpowers/specs/2026-09-29-d5-a-guided-measurement-design.md`
+      (poste local), relue par agent. · **L**
+- [ ] **D5-B** — **Temps de chargement** : lancement (processus → écran
+      titre) et chargement de sauvegarde (clic → première trame jouable),
+      mesurés par la sonde et comparés avant/après. Contribution par mod :
+      événements `GameLaunched`/`SaveLoaded` vus par la sonde ; l'`Entry` des
+      mods chargés avant elle lui échappe — Profiler le donnerait peut-être
+      (sa visionneuse, `docs/SOURCES.md` §5), à vérifier sur une session
+      Profiler seul. · **M**
+- [ ] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
+      par seconde en événements et patches, pics, allocations), puis de la
+      mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
+      directement à un mod — il se déduit du temps de calcul rapporté à la
+      trame. Reprend **D1-T3** (classement) et **D1-T4** (badge). · **M**
 
 ---
 

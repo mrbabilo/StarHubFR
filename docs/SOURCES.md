@@ -621,6 +621,36 @@ lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
 - **SMAPI `f090df0 → d6f868e`** — un commit : migration de la liste noire
   (voir §2.2 bis).
 
+### La visionneuse de Profiler — `stardew.361zn.is` *(2026-09-29)*
+
+« Stardew Utilities », de SinZ (l'auteur de **Profiler**) : une application
+React **entièrement locale**. On glisse un journal SMAPI sur la page, elle le
+lit dans le navigateur (`File.stream()`), sans rien envoyer. Aucune API, aucun
+paramètre d'URL pour lui passer un journal : **inexploitable comme service**
+par l'app — au mieux un lien « ouvrir l'analyseur » et le journal montré dans
+le Finder, à glisser à la main.
+
+Ce que son code (`js/main.js`, relu le 2026-09-29) établit :
+- elle garde les messages `ModName === "Profiler"`, niveau **TRACE**, qui
+  commencent par `[RawLog] ` ; le reste de la ligne est un JSON :
+  `OccuredAt`, `Metadata { Type: "Duration", ModId, EventType, Details,
+  Duration, InnerDetails[] }` — `InnerDetails` porte les appels imbriqués,
+  même forme, récursive. C'est la forme que **D1-T2** doit parser ;
+- elle lit aussi le format JSON des journaux partagés par smapi.io (le
+  fichier commence par `{"IsValid":true`) ;
+- trois onglets : « Log Viewer », « Profiler Analysis (Column Chart) » (barres
+  imbriquées sur l'axe du temps), « Log Graphs » annoncé, pas livré.
+
+Pour nous : **pas une source de la mesure guidée** (sous-projet D5-A) —
+Profiler et la sonde s'excluent dans une même session (incompatibilité connue,
+`KnownIncompatibilities`), et la sonde mesure déjà le coût par mod et par
+événement, sans le seuil de Profiler. **Piste pour D5-B** (temps de
+chargement) : si Profiler chronomètre l'`Entry` de chaque mod, il donne ce que
+la sonde ne voit pas (les mods chargés avant elle) — à vérifier sur une session
+Profiler seul, sonde en pause. Le journal Profiler du 2026-09-26 cité par
+D1-T2 (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt`) **n'est plus sur le
+disque** (constaté le 2026-09-29) : cette session est à refaire de toute façon.
+
 ### Outils de traduction de mods *(2026-09-24)*
 
 Relevés à la demande de l'utilisateur, pour le hub FR :
