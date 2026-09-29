@@ -652,12 +652,33 @@ Ce que son code (`js/main.js`, relu le 2026-09-29) établit :
 Pour nous : **pas une source de la mesure guidée** (sous-projet D5-A) —
 Profiler et la sonde s'excluent dans une même session (incompatibilité connue,
 `KnownIncompatibilities`), et la sonde mesure déjà le coût par mod et par
-événement, sans le seuil de Profiler. **Piste pour D5-B** (temps de
-chargement) : si Profiler chronomètre l'`Entry` de chaque mod, il donne ce que
-la sonde ne voit pas (les mods chargés avant elle) — à vérifier sur une session
-Profiler seul, sonde en pause. Le journal Profiler du 2026-09-26 cité par
-D1-T2 (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt`) **n'est plus sur le
-disque** (constaté le 2026-09-29) : cette session est à refaire de toute façon.
+événement, sans le seuil de Profiler.
+
+**Session Profiler seul du 2026-09-29 (22:49, sonde en pause, 140 mods +
+146 packs)** — journal conservé sous
+`~/Library/Application Support/StarHubFR/ProfilerLogs/SMAPI-profiler-seul-2026-09-29.txt`
+(celui du 2026-09-26 cité par D1-T2 a disparu du disque). Ce qu'elle établit :
+- Profiler **ne chronomètre pas l'`Entry`** des mods : son `Init` arrive à la
+  fin de la phase « Launching mods » (22:49:31 → 22:49:53, 22 s d'`Entry`
+  cumulés), qu'il ne voit donc pas. Cette phase ne se lit qu'en bloc, à la
+  seconde, par les horodatages SMAPI ;
+- il pose des jalons de phase en `INFO` : `[t ms][Fast|Slow] Game Launched`,
+  `LoadStageChanged A -> B` (None → SaveParsed → … → Ready), `Save Loaded`,
+  `Day Started`, `Warped` — `Fast` au début des gestionnaires, `Slow` après
+  le dernier ;
+- ses `[RawLog]` imbriquent, sous les événements SMAPI, des nœuds
+  `ApplyLoad` / `ApplyEdit` attribués **au pack de contenu** (`ModId` du
+  pack, pas `Pathoschild.ContentPatcher`) : 5 727 nœuds sur la session. Le
+  coût par pack pendant un chargement est donc lisible ;
+- chiffres (temps propre, enfants soustraits) : lancement 51,7 s de
+  gestionnaires, dont **Content Patcher 30,8 s** (27,3 s sur son premier
+  `UpdateTicked`, qui ne se ventile pas par pack) ; chargement de sauvegarde
+  63,0 s, dont **AutoForager 10,6 s** (≈ 1,1 s à chaque `Content.AssetReady`,
+  9 fois), SVE 7,4 s en `ApplyLoad`, FTM 3,0 s au `DayStarted`. Ce sont des
+  **minorants** : `config.json` de Profiler ne journalise un appel de tête
+  qu'à partir de 5 ms (`LoggerDurationOuterThreshold`) et un appel imbriqué
+  qu'à partir de 0,1 ms (`LoggerDurationInnerThreshold`). En chargement, où
+  les gros appels dominent, l'écart est faible ; en jeu, il est complet.
 
 ### Outils de traduction de mods *(2026-09-24)*
 

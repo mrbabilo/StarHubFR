@@ -634,8 +634,9 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
       n'est qu'un résumé) : temps **propre** par mod et par événement (enfants
       soustraits), séparé en lancement / chargement / jeu. Modèle Core testable,
       jeux de test tirés du vrai journal conservé
-      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt` — ⚠️ **absent du disque**
-      le 2026-09-29 : refaire une session Profiler seul avant de coder ; forme
+      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt` absent du disque ;
+      remplacé par la session Profiler seul du 2026-09-29, conservée sous
+      `~/Library/Application Support/StarHubFR/ProfilerLogs/` ; forme
       des lignes `[RawLog]` relevée dans la visionneuse de SinZ, voir
       `docs/SOURCES.md` §5). L'écran dira « au-dessus
       du seuil de Profiler », jamais « tout le temps du mod » — le coût par tick
@@ -958,6 +959,14 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       mods chargés avant elle lui échappe — Profiler le donnerait peut-être
       (sa visionneuse, `docs/SOURCES.md` §5), à vérifier sur une session
       Profiler seul. · **M**
+      *Vérifié le 2026-09-29* : Profiler **ne voit pas l'`Entry`** (22 s en
+      bloc, lisibles seulement à la seconde dans le journal SMAPI). Il donne en
+      revanche les jalons de phase (`LoadStageChanged`, `Save Loaded`,
+      `Day Started`) et le temps propre **par mod et par pack de contenu**
+      (`ApplyLoad`/`ApplyEdit`) dans chaque phase. Sur le parc : lancement
+      ≈ 1 min 50, dont 30,8 s pour Content Patcher ; chargement de sauvegarde
+      ≈ 1 min 30, dont 10,6 s pour AutoForager. D5-B et **D1-T2** lisent donc
+      le même journal. Détail et chiffres : `docs/SOURCES.md` §5.
 - [ ] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
       par seconde en événements et patches, pics, allocations), puis de la
       mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
