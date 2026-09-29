@@ -66,6 +66,7 @@ struct PerformanceSmoothnessSection: View {
                                         sideName(.after): AppDesign.Chart.after])
             .chartLegend(position: .top, alignment: .leading)
             .chartYScale(domain: -0.6...1.6)
+            .chartXAxisLabel(unit(measure), alignment: .trailing)
             .chartYAxis {
                 AxisMarks(values: [0, 1]) { value in
                     AxisValueLabel {
@@ -89,7 +90,8 @@ struct PerformanceSmoothnessSection: View {
                 }
             }
             .frame(height: 140)
-            .accessibilityChartDescriptor(DistributionDescriptor(points: data.points, title: label(measure)))
+            .accessibilityChartDescriptor(DistributionDescriptor(points: data.points, title: label(measure),
+                                                                 unit: unit(measure)))
             Text(hovered.map(tooltip) ?? " ")   // réserve la ligne : pas de saut de mise en page
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.tail)
@@ -101,7 +103,7 @@ struct PerformanceSmoothnessSection: View {
 
     private func tooltip(_ point: ProbeChartPoint) -> String {
         let time = ProbeDate.parse(point.at)?.formatted(date: .omitted, time: .shortened) ?? point.at
-        return "\(sideName(point.side)) · \(time) · \(point.location ?? "—") · \(number(point.value))"
+        return "\(sideName(point.side)) · \(time) · \(point.location ?? "—") · \(number(point.value)) \(unit(measure))"
     }
 
     // MARK: Tableau et notes
@@ -134,8 +136,8 @@ struct PerformanceSmoothnessSection: View {
     private func tableRow(_ side: ProbeChartSide, _ summary: ProbeSideSummary) -> some View {
         GridRow {
             Text(sideName(side))
-            Text(number(summary.median))
-            Text("\(number(summary.q1)) – \(number(summary.q3))")
+            Text("\(number(summary.median)) \(unit(measure))")
+            Text("\(number(summary.q1)) – \(number(summary.q3)) \(unit(measure))")
             Text("\(summary.count)")
         }
     }
@@ -210,6 +212,8 @@ struct PerformanceSmoothnessSection: View {
                 }
             }
             .chartYScale(domain: 0...top)   // même échelle aux deux graphiques
+            .chartXAxisLabel("min", alignment: .trailing)
+            .chartYAxisLabel("ms")
             .chartOverlay { proxy in
                 ChartHover(proxy: proxy) { local in
                     guard let x: Double = proxy.value(atX: local.x) else { hoveredMark = nil; return }
@@ -247,6 +251,9 @@ struct PerformanceSmoothnessSection: View {
         case .fps: return localization.L(L10n.Performance.measureFps)
         }
     }
+
+    /// Unité de la mesure : identique en français et en anglais.
+    private func unit(_ measure: ProbeChartMeasure) -> String { measure == .fps ? "FPS" : "ms" }
 
     private func reasonName(_ reason: ProbeExclusionReason) -> String {
         switch reason {
@@ -290,12 +297,13 @@ struct ChartHover: View {
 private struct DistributionDescriptor: AXChartDescriptorRepresentable {
     let points: [ProbeChartPoint]
     let title: String
+    let unit: String
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let values = points.map(\.value)
         let x = AXNumericDataAxisDescriptor(title: title, range: (values.min() ?? 0)...(values.max() ?? 1),
-                                            gridlinePositions: []) {
-            $0.formatted(.number.precision(.fractionLength(1)))
+                                            gridlinePositions: []) { [unit] in
+            "\($0.formatted(.number.precision(.fractionLength(1)))) \(unit)"
         }
         let y = AXNumericDataAxisDescriptor(title: "", range: 0...1, gridlinePositions: []) {
             $0 >= 0.5 ? ProbeChartSide.before.rawValue : ProbeChartSide.after.rawValue

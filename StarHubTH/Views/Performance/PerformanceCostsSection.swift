@@ -54,6 +54,7 @@ struct PerformanceCostsSection: View {
         }
         .chartForegroundStyleScale([before: AppDesign.Chart.before, after: AppDesign.Chart.after])
         .chartLegend(position: .top, alignment: .leading)
+        .chartXAxisLabel("ms/s", alignment: .trailing)
         .chartYAxis {
             AxisMarks { value in
                 AxisValueLabel {
