@@ -110,8 +110,12 @@ public enum ProbePerformance {
             guard let a = before.inventory, let b = after.inventory else { return nil }
             return ProbeInventoryDiffRule.between(launch(before, a), launch(after, b))
         }()
-        let costDeltas = ProbeCosts.delta(ProbeCosts.perMod(shared.a, costs: before.costs),
-                                          ProbeCosts.perMod(shared.b, costs: after.costs))
+        // Un côté sans coût mesuré (aucune minute comparable, ou aucune ligne
+        // de coût) ne dit rien : comparé à lui, chaque mod de l'autre côté
+        // passerait pour « nouveau » avec tout son coût en delta.
+        let costsA = ProbeCosts.perMod(shared.a, costs: before.costs)
+        let costsB = ProbeCosts.perMod(shared.b, costs: after.costs)
+        let costDeltas = costsA.isEmpty || costsB.isEmpty ? [] : ProbeCosts.delta(costsA, costsB)
         let dominant = dominantLocation(shared.a + shared.b)
         // Mesure propre « des deux côtés » (spec §3d) : sinon aucune.
         let measurement = before.measurement != nil ? after.measurement : nil

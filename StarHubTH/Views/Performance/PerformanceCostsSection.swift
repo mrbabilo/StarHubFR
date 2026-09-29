@@ -18,6 +18,9 @@ struct PerformanceCostsSection: View {
                 chart(data.rows)
                 Text(hovered.map { "\(name($0.modId)) · \(values($0))" } ?? " ")
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            } else {
+                // Un côté sans coût mesuré : le dire, jamais un titre seul.
+                Text(localization.L(L10n.Performance.verdictNotEnough)).foregroundColor(.secondary)
             }
             ForEach(data.rows) { row in tableRow(row) }
             if data.others > 0 {

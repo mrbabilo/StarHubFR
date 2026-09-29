@@ -46,6 +46,19 @@ struct ProbePerformanceTests {
         #expect(report.diff?.changes.map(\.modId) == ["spacechase0.GenericModConfigMenu"])
     }
 
+    /// Un côté sans minute comparable n'a aucun coût mesuré : pas de delta,
+    /// jamais chaque mod de l'autre côté présenté en « nouveau » (parc réel,
+    /// 2026-09-29 : UltraSmooth « nouveau +51 ms/s » pour un réglage changé).
+    @Test func noCostDeltaWhenOneSideHasNoComparableMinute() throws {
+        let all = try sides()
+        let empty = try #require(all.first { $0.comparable.kept.isEmpty })
+        let measured = try #require(all.first {
+            !ProbeCosts.perMod($0.comparable.kept, costs: $0.costs).isEmpty })
+        let report = ProbePerformance.report(before: empty, after: measured)
+        #expect(report.keptBefore.isEmpty && !report.keptAfter.isEmpty)
+        #expect(report.costDeltas.isEmpty)
+    }
+
     /// Un segment qui commence après une coupure garde les verdicts de la
     /// session : sa première minute n'est pas un « chargement ».
     @Test func aSegmentAfterACutIsNotALoadingStart() throws {

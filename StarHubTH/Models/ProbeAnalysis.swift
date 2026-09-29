@@ -145,9 +145,11 @@ public enum ProbeAnalysis {
         // Part indirecte = variation du travail de trame − somme des
         // variations directes, les deux en ms par tick. Au-delà de la moitié
         // de l'écart, la cause n'est pas dans les événements des mods
-        // (patches Harmony, mémoire, GC) : retour au protocole.
+        // (patches Harmony, mémoire, GC) : retour au protocole. Sans coûts
+        // mesurés des deux côtés (`costDeltas` vide), rien ne se répartit.
         var indirectDominant = false
-        if case .netChange(let workDelta, _) = input.comparison.workP50.verdict, workDelta != 0 {
+        if !input.costDeltas.isEmpty,
+           case .netChange(let workDelta, _) = input.comparison.workP50.verdict, workDelta != 0 {
             // Chaque côté ramené en ms par tick à **sa** cadence : un mod
             // à 12 ms/s coûte 0,2 ms par tick à 60 ticks/s, 0,4 à 30.
             let rateA = input.comparison.updatesPerSecond.a.median.flatMap { $0 > 0 ? $0 : nil }

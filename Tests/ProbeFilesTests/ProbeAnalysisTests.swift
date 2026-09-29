@@ -173,6 +173,14 @@ struct ProbeAnalysisTests {
         #expect(result.recommendation == .rerunCleanMeasurement(location: "Farm", missingMinutes: 0))
     }
 
+    /// Coûts non mesurés d'un côté (`costDeltas` vide) : aucune part
+    /// indirecte inventée — tout l'écart n'est pas « hors des mods ».
+    @Test func noIndirectShareWithoutMeasuredCosts() {
+        let result = ProbeAnalysis.analyze(input(
+            diff: added("Mod.A"), costs: [], workVerdict: .netChange(delta: 1, percent: 11.1)))
+        #expect(!result.evidence.contains { if case .indirectShare = $0 { true } else { false } })
+    }
+
     /// Borne : une part indirecte d'exactement la moitié n'est pas dominante
     /// (30 ms/s = 0,5 ms par tick, pour 1 ms d'écart de travail).
     @Test func indirectShareAtHalfIsNotDominant() {
