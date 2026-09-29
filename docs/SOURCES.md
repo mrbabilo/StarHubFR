@@ -720,7 +720,9 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   La session du 2026-09-29, 140 mods + 146 packs :
   `Launching mods` 22 s (l'`Entry`, invisible de Profiler — son `Init`
   tombe à la toute fin) ; `Game Launched` 4,6 s de gestionnaires ;
-  clic → `SaveParsed` 87 s (comprend le temps humain dans le menu) ;
+  clic → `SaveParsed` **≈ 11 s** (clic à 22:51:12, `gameMode` passé à
+  `loadingMode (6)` puis `getLoadEnumerator` ; les 87 s entre `Game Launched`
+  et `SaveParsed` comptent le temps passé au menu) ;
   `SaveParsed → SaveAddedLocations` **41,5 s** (le plus gros bloc natif) ;
   `→ SaveLoadedLocations` 12,1 s (les `ApplyLoad` de Content Patcher) ;
   `Loaded → Ready` 3,0 s ; `Save Loaded` 152,7 s après le lancement des
