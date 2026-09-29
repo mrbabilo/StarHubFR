@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// L'état de l'onglet Performances (D4-T4 §3b). Les fichiers de la sonde pèsent
+/// L'état de l'onglet Performances (D4-T4 §3b) et de la mesure guidée (D5-A). Les fichiers de la sonde pèsent
 /// plusieurs Mo : lus hors du fil principal (`Task.detached`), une passe,
 /// avec le cache par taille + date de `ProbeSessionsIndex`. Possédé par la
 /// vue (`@State` de `DiagnosticsView`), jamais par le ViewModel (F1-T2).
@@ -15,11 +15,13 @@ final class ProbePerformanceStore {
     private(set) var report: ProbePerformanceReport?
     private(set) var beforeId: String?
     private(set) var afterId: String?
+    /// Mesures guidées lues dans `guided-measurements.jsonl` (D5-A).
     private(set) var measurements: [ProbeMeasurement] = []
+    /// Plan en attente dans `guided-plan.json` ; l'app est seule à l'effacer.
+    private(set) var plan: GuidedPlan?
     private(set) var unreadableLines = 0
     /// Diffs clé par clé des réglages modifiés de la paire affichée, par `modId`.
     private(set) var configDiffs: [String: [ConfigKeyDiff]] = [:]
-    var pendingMeasurementName: String?
 
     @ObservationIgnored private let files: ProbeFiles
     @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
@@ -31,8 +33,8 @@ final class ProbePerformanceStore {
         self.index = ProbeSessionsIndex(files: files)
     }
 
-    var openMeasurement: ProbeMeasurement? { measurements.last { $0.end == nil } }
     var configsDirectory: URL { files.configsDirectory }
+    var protocolState: GuidedProtocolState { GuidedProtocol.state(plan: plan, measurements: measurements) }
 
     func reload() async {
         // Première lecture seulement : une relecture garde l'écran affiché
@@ -42,16 +44,23 @@ final class ProbePerformanceStore {
         let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
             let sessions = index.sessions(keeping: nil)
             let inventory = files.inventory()
-            // Transitoire (D5-A tâche 6) : les mesures guidées arrivent en tâche 9.
-            let measurements: [ProbeMeasurement] = []
+            let guided = files.guidedMeasurements()
+            var plan = files.guidedPlan()
+            // Seule écrivaine du plan : l'effacer dès que sa mesure est close.
+            if let current = plan, guided.measurements.contains(where: { $0.id == current.id && $0.isFinished }) {
+                GuidedPlan.remove(at: files.guidedPlanURL, ifId: current.id)
+                plan = nil
+            }
             let sides = ProbePerformance.sides(sessions: sessions, launches: inventory?.launches ?? [],
-                                               changes: inventory?.changes ?? [], measurements: measurements)
-            return Loaded(sides: sides, measurements: measurements,
-                          unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0),
+                                               changes: inventory?.changes ?? [],
+                                               measurements: guided.measurements)
+            return Loaded(sides: sides, measurements: guided.measurements, plan: plan,
+                          unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable,
                           hasProbe: !sessions.sessions.isEmpty || inventory != nil)
         }.value
         sides = loaded.sides
         measurements = loaded.measurements
+        plan = loaded.plan
         unreadableLines = loaded.unreadable
         guard loaded.hasProbe else { status = .noProbe; report = nil; return }
         guard sides.count >= 2 else { status = .needTwo; report = nil; return }
@@ -80,20 +89,21 @@ final class ProbePerformanceStore {
     /// Attendu par les tests : la lecture des diffs de la paire courante.
     func configDiffsLoaded() async { await configDiffsTask?.value }
 
-    /// Jeu lancé seulement, vérifié par l'appelant au clic. Une mesure déjà
-    /// ouverte n'en ouvre pas une seconde.
+    /// Écrit le plan (atomique) ; remplace un plan en attente — la vue a
+    /// déjà demandé confirmation.
     @discardableResult
-    func startMeasurement(name: String, gameRunning: Bool, now: Date = Date()) -> Bool {
-        guard gameRunning, openMeasurement == nil else { return false }
-        measurements.append(ProbeMeasurement(name: name, start: now, end: nil))
-        pendingMeasurementName = nil
-        return true
+    func prepare(_ draft: GuidedPlanDraft, now: Date = Date()) throws -> GuidedPlan {
+        let plan = GuidedPlan(id: UUID(), name: draft.name, role: draft.role, location: draft.location,
+                              pairedWith: draft.pairedWith, createdAt: now)
+        try plan.write(to: files.guidedPlanURL)
+        self.plan = plan
+        return plan
     }
 
-    /// Possible jeu fermé (spec « Mesure propre »).
-    func stopMeasurement(now: Date = Date()) {
-        guard let index = measurements.lastIndex(where: { $0.end == nil }) else { return }
-        measurements[index].end = now
+    /// Efface le plan en attente ; la sonde s'arrête à la minute suivante, sans ligne.
+    func abandonPlan() {
+        if let plan { GuidedPlan.remove(at: files.guidedPlanURL, ifId: plan.id) }
+        plan = nil
     }
 
     // MARK: — Privé
@@ -101,6 +111,7 @@ final class ProbePerformanceStore {
     private struct Loaded: Sendable {
         let sides: [ProbeSide]
         let measurements: [ProbeMeasurement]
+        let plan: GuidedPlan?
         let unreadable: Int
         let hasProbe: Bool
     }

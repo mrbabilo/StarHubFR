@@ -19,7 +19,9 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
         self.role = role
         self.location = location
         self.pairedWith = pairedWith
-        self.createdAt = createdAt
+        // À la seconde : `.iso8601` n'écrit pas les fractions, le plan relu
+        // doit égaler le plan écrit.
+        self.createdAt = Date(timeIntervalSince1970: createdAt.timeIntervalSince1970.rounded(.down))
     }
 
     enum CodingKeys: String, CodingKey {

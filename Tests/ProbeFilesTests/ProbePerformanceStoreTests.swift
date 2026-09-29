@@ -80,4 +80,40 @@ import Foundation
         await s.configDiffsLoaded()
         #expect(s.configDiffs["spacechase0.GenericModConfigMenu"]?.map(\.path) == ["a"])
     }
+
+    private var probe: URL { root.appendingPathComponent("probe", isDirectory: true) }
+
+    @Test func prepareWritesThePlanAndAbandonRemovesIt() async throws {
+        let s = try store()
+        let plan = try s.prepare(GuidedPlanDraft(name: "m", role: .before, location: "Farm", pairedWith: nil))
+        #expect(GuidedPlan.load(from: probe.appendingPathComponent("guided-plan.json")) == plan)
+        #expect(s.protocolState == .planPending(plan))
+        s.abandonPlan()
+        #expect(GuidedPlan.load(from: probe.appendingPathComponent("guided-plan.json")) == nil)
+        #expect(s.protocolState == .idle)
+    }
+
+    /// Une mesure close relue : l'app efface son plan (seule écrivaine) et la
+    /// mesure devient un côté, restreint à ses minutes gardées.
+    @Test func finishedMeasurementClearsItsPlanAndBecomesASide() async throws {
+        let s = try store()
+        await s.reload()
+        let target = try #require(s.sides.first { $0.minutes.count >= 4 })
+        let plan = try s.prepare(GuidedPlanDraft(name: "m", role: .before, location: "Farm", pairedWith: nil))
+        let kept = target.minutes.prefix(3).map(\.at)
+        let line = """
+        {"Version":1,"PlanId":"\(plan.id.uuidString)","Name":"m","Role":"before","PairedWith":null,\
+        "Session":"\(target.session)","Location":"Farm","Start":"\(kept.first!)","End":"\(kept.last!)",\
+        "KeptAt":[\(kept.map { "\"\($0)\"" }.joined(separator: ","))],"Excluded":[],"Outcome":"stable",\
+        "FrameIqrShare":0.02,"WorkIqrShare":0.02,"GameTimeFrom":600,"GameTimeTo":620,"Probe":"0.5.0"}
+        """
+        try (line + "\n").write(to: probe.appendingPathComponent("guided-measurements.jsonl"),
+                                atomically: true, encoding: .utf8)
+        await s.reload()
+        #expect(s.plan == nil)
+        #expect(GuidedPlan.load(from: probe.appendingPathComponent("guided-plan.json")) == nil)
+        let side = try #require(s.sides.first { $0.measurement?.id == plan.id })
+        #expect(side.minutes.count == 3)
+        if case .beforeDone(let m) = s.protocolState { #expect(m.id == plan.id) } else { Issue.record("état") }
+    }
 }
