@@ -73,6 +73,21 @@ de `DoDraw` restent inexpliquées par les patches — probable saturation GPU
 - **Alternative Textures** paie un suffixe sur chacune de ces mises à jour
   (`MonsterPatch.UpdatePostfix`) : **5,2 ms par image**, sans UltraSmooth.
 
+### Test des réglages (paire guidée 19:32 → 20:14, Ferme, deux côtés `stable`)
+
+Désactivés : `EnableMonsterLod`, `EnableMachineOptimizer`,
+`EnableNpcPathfindingLod`, `ShowOverlay`, `EnableRenderTelemetry`,
+`EnableDensityHeatmap`, `EnableHalfResLightMap` (config relue après la
+session : tenue). Résultat : 17,1 → 18,0 FPS, toujours 3 mises à jour par
+image, `OuterDraw` 16,5 → 15,7 ms, `Present` 11,7 → 12,2 ms. **La spirale
+reste.** Le goulot n'est pas dans les optimiseurs côté mise à jour mais dans
+le dessin : `DoDraw` ~16 ms (≈ 5 sans le mod) et `Present` ~12 ms (≈ 1 sans) —
+signature d'un **GPU saturé** par UltraSmooth, ses préfixes de dessin étant
+négligeables côté processeur. Conclusion pratique sur ce poste et ce parc :
+**UltraSmooth en pause (≈ 56 FPS) vaut mieux qu'aucun réglage (≈ 18 FPS)**.
+Ce qu'il apporte en échange (intro passée, chargement de sauvegarde sans
+délai, fondus accélérés) est du confort, pas de la fluidité.
+
 ## 2. Constats sur les options
 
 - **« Activer le Profilateur » n'est pas le profileur.** Dans le `fr.json` de
