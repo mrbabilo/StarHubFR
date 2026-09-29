@@ -44,8 +44,8 @@ struct PerformanceView: View {
                                           report: report, configsDirectory: store.configsDirectory)
                 PerformanceSmoothnessSection(localization: localization, report: report)
                 PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
-                // Tâche 9 : PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
-                //                                      store: store, report: report)
+                PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
+                                           store: store, report: report)
             }
             if store.unreadableLines > 0 {
                 Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))

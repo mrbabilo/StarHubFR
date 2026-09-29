@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// La page « Diagnostic & Performances » (D4-T4 §3a) : Santé · Journal,
+/// La page « Diagnostic & Performances » (D4-T4 §3a) : Santé · Journal ·
+/// Performances (plan 4),
 /// ouverte sur Santé. Le segment vit dans `NavigationStore` pour survivre au
 /// changement de page, comme dans `BackupsView` (I-T8).
 ///
@@ -17,6 +18,9 @@ import SwiftUI
 struct DiagnosticsView: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// L'onglet Performances (D4-T4 plan 4) : possédé ici, jamais par le
+    /// ViewModel ; l'onglet reste monté, la paire choisie survit.
+    @State private var performance = ProbePerformanceStore()
 
     private var segment: Binding<DiagnosticsSegment> {
         Binding(get: { viewModel.navigationStore.diagnosticsSegment },
@@ -48,6 +52,9 @@ struct DiagnosticsView: View {
                         Divider()
                         LogsView(viewModel: viewModel, localization: localization)
                     }
+                }
+                tab(.performance) {
+                    PerformanceView(viewModel: viewModel, localization: localization, store: performance)
                 }
             }
         }

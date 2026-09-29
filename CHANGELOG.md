@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Onglet « Performances » : avant / après.** Choisissez deux moments mesurés par la sonde : ce qui a changé, la fluidité minute par minute, le coût de chaque mod, et une analyse qui propose un geste réversible — mettre en pause, revenir à une version ou à un réglage d'avant.
 - **Nettoyer les anciens fichiers d'un mod.** Dans sa fiche, l'historique propose de retirer ce que d'anciennes versions ont laissé : coché quand c'est identique à un fichier de l'auteur, décoché quand ce n'est que probable. Le dossier est sauvegardé d'abord.
 - **La sonde StarHubFR et Profiler signalés incompatibles.** Actifs ensemble, chacun gonfle les temps que l'autre mesure : une alerte le dit, avec la raison, et l'activation de l'un avertit si l'autre tourne. Écartable comme toute incompatibilité.
 

@@ -890,7 +890,16 @@ SLO est actif et ce que la dernière session a mesuré.
       la spec §3d : la part indirecte ramène le coût direct (ms/s) en ms par tick
       (÷ 60) avant de le soustraire du travail de trame — la spec soustrayait
       deux unités différentes.
-      Reste l'onglet Performances (plan 4 : graphiques, branches vers les gestes).
+      ✅ Plan 4 : l'onglet « Performances » — deux moments au choix (segments ou
+      mesures propres), ce qui a changé (diff de réglages clé par clé), tuiles et
+      verdict, distribution des minutes et chronologie (Swift Charts, tableau
+      sous chaque graphique), coût par mod en haltères, analyse et gestes
+      réversibles (pause, sauvegardes, réglage d'avant sous garde, mesure
+      préparée). Les gardes tournent une fois par session (un segment après
+      une coupure n'a pas de « chargement » à lui). Reste la vérification à
+      l'écran par l'auteur : clair et sombre, 560 pt, une paire « dans le
+      bruit » et une « écart net » — il faut d'abord une session propre (≥ 15
+      minutes en partie de chaque côté, sans menu, même lieu).
 
 **Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
 l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
