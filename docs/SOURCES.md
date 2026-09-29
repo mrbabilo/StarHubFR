@@ -596,6 +596,14 @@ lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
   qu'à 60 ticks/s — la cadence mesurée (`Tick.Count / WallSeconds`) serait
   juste (**X117**). Nouvelle ligne de journal : `UltraSmooth: 60 FPS Enhanced mode active
   on <Hz>Hz display (…)`. i18n inchangé (230 `config.*`, 113 sans `fr`).
+- **UltraSmooth 2.3.9 → 2.4.0** *(2026-09-29)* — 5 fichiers (`HighFpsPacingEngine`,
+  `DialoguePacingEngine`, `MinigamePacingEngine`, `ProjectileOptimizer`,
+  `UiOverlaySmoother`) : le temps fixe de 16,6667 ms des mises à jour cadencées
+  devient `GetPacedGameTime(time)`, actif seulement en pas variable. `ModConfig`
+  inchangé ; surfaces réseau / processus / chargement de code / suppression
+  identiques. Pourquoi il fait chuter les FPS du parc (spirale de rattrapage,
+  ~15 ms ajoutées au dessin) et l'option « Profilateur » mal traduite :
+  [`audit-ultrasmooth-2.4.0.md`](audit-ultrasmooth-2.4.0.md).
 - **Modern Config Menu 2.1.8 → 2.2.1** — 13 fichiers d'interface, deux neufs
   (`VirtualKeyboardMode`, `ModernVirtualKeyboardModal`). Deux réglages neufs
   dans son `config.json` : `VirtualKeyboard` (Auto/Always/Never) et
