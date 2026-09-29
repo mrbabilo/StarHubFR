@@ -321,6 +321,7 @@ let package = Package(
                 "Stores/SaveFingerprintScanCache.swift",
                 "Stores/SaveAbsentModsStore.swift",
                 "Stores/SaveCleanupStore.swift",
+                "Stores/ProbePerformanceStore.swift",
                 "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
