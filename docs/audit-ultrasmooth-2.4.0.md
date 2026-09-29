@@ -42,6 +42,37 @@ mesures guidées ne comptent pas (patches désarmés). **À confirmer** par une
 session non guidée, `MeasureHarmonyPatches` armé (`PatchMs` par propriétaire
 dans `mod-costs.jsonl`).
 
+### Mesuré ensuite : ses patches (session 19:50, non guidée, patches armés)
+
+5 minutes à la Ferme, UltraSmooth 2.4.0 actif, 3 mises à jour par image, ~17
+FPS. Aucun transpileur d'UltraSmooth (`patch-wraps.json`) : tout son coût est
+dans les préfixes mesurés. Biais de l'enveloppe : 36,3 ns par appel.
+
+| Méthode patchée | Appels / min | Coût / image |
+|---|---|---|
+| `MonsterLodOptimizer.Monster_Update_Prefix` (`EnableMonsterLod`) | 4,69 M | **3,19 ms** |
+| `HighFpsPacingEngine.Character_Update_Prefix` | 9,76 M | 1,03 ms |
+| `MachineOptimizer.UpdateWhenCurrentLocation_Prefix` (`EnableMachineOptimizer`) | 3,70 M | 0,95 ms |
+| `NpcPathfindingLodOptimizer.Npc_Update_Prefix` (`EnableNpcPathfindingLod`) | 0,99 M | 0,65 ms |
+| `HighFpsPacingEngine.Object_UpdateWhenCurrentLocation_Prefix` | 3,70 M | 0,39 ms |
+
+Total ~69,6 ms/s, dont ~15 ms/s de biais : **~5,2 ms réels par image**, côté
+mise à jour — multipliés par 3 à 5 par la spirale. Ses « optimiseurs » (LOD
+des monstres, des machines, des PNJ) coûtent plus qu'ils n'économisent sur ce
+parc. Ses préfixes de dessin, eux, sont négligeables (≤ 0,13 ms) : les ~12 ms
+de `DoDraw` restent inexpliquées par les patches — probable saturation GPU
+(`Present` 11 ms), à départager par les paires guidées des groupes de réglages.
+
+**Deux constats hors UltraSmooth, sur la même session** :
+- `Monster.update` est appelé **4,7 à 4,9 M fois par minute** (~1 500 monstres
+  par mise à jour), partout (Ferme, Plage, Ville), et **croît dans la session**
+  (1,9 M → 4,9 M en 4 minutes ; ~1,2 M les sessions du 26/09). Des monstres
+  s'accumulent dans un lieu mis à jour en permanence ; aucun n'est dans la
+  sauvegarde (le jeu ne les enregistre pas). Le mod qui les fait naître reste à
+  trouver.
+- **Alternative Textures** paie un suffixe sur chacune de ces mises à jour
+  (`MonsterPatch.UpdatePostfix`) : **5,2 ms par image**, sans UltraSmooth.
+
 ## 2. Constats sur les options
 
 - **« Activer le Profilateur » n'est pas le profileur.** Dans le `fr.json` de
