@@ -637,8 +637,8 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
       (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt` absent du disque ;
       remplacé par la session Profiler seul du 2026-09-29, conservée sous
       `~/Library/Application Support/StarHubFR/ProfilerLogs/` ; forme
-      des lignes `[RawLog]` relevée dans la visionneuse de SinZ, voir
-      `docs/SOURCES.md` §5). L'écran dira « au-dessus
+      des lignes `[RawLog]` confirmée dans le code source (§5 de
+      `docs/SOURCES.md`)). L'écran dira « au-dessus
       du seuil de Profiler », jamais « tout le temps du mod » — le coût par tick
       sous le seuil vient de la sonde (**D4-T1**). · **M**
 - [ ] **D1-T3** — Vue « Impact performances » dans l'onglet Diagnostic : classement des mods

@@ -680,6 +680,54 @@ Profiler et la sonde s'excluent dans une même session (incompatibilité connue,
   qu'à partir de 0,1 ms (`LoggerDurationInnerThreshold`). En chargement, où
   les gros appels dominent, l'écart est faible ; en jeu, il est complet.
 
+**Le code source de Profiler** (SinZ163/StardewMods relu le 2026-09-29 ;
+installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
+
+- **Instrumentation** : un transpileur Harmony sur
+  `ManagedEvent<TimeChangedEventArgs>.Raise` (les deux surcharges) — et c'est
+  tout. Comme le corps générique de `Raise` est **partagé par le JIT** entre
+  toutes les instanciations (types référence), ce patch unique chronomètre
+  **tous** les événements SMAPI : chaque gestionnaire est enveloppé
+  `Stopwatch` au `Push`/`TryPop` de la pile de `ProfilerAPI`, `ModId` vient
+  du `SourceMod` du délégué. Élégant et fragile : si SMAPI déplace ou
+  spécialise `Raise`, toute la mesure disparaît en silence ;
+- **Écriture** : au `Pop` d'un événement racine, ligne TRACE
+  `[RawLog] {OccuredAt, Metadata}` si la durée ≥ 5 ms ; sinon rejetée. Les
+  enfants s'accrochent au `InnerDetails` du parent s'ils durent ≥ 0,1 ms
+  (le flag `important` des événements `Trace` force l'écriture). Racine
+  rejetée = **toute sa descendance perdue** : un appel englobant court
+  masque des enfants qu'il contient ;
+- **Seuils de lecture** (`[BigLoop]` n'est qu'un résumé) :
+  `EventThreshold` 10 ms → ligne DEBUG par gestionnaire ;
+  `BigLoopThreshold` 100 ms → résumé `[BigLoop]` ;
+  `LoggerDuration*Threshold` → ce qui entre dans les `[RawLog]`.
+  La **2.0.0 installée n'a aucun garde-fou de désynchronisation** (la pile
+  qui déraille corrompt le nesting en silence ; le drain d'erreur
+  « desync » n'existe qu'à partir de 2.1-alpha3) ni de flush de fin de
+  session (les `Push` restés ouverts à la sortie sont perdus) — la session
+  du 2026-09-29 ne montre aucune trace de déraillement ;
+- **La 3.0-alpha5 ajoute** `TimingMetrics` (postfixes sur
+  `DebugTimings.Start/Stop{Draw,Update}Timer` → `[RawMetrics]`
+  `DrawTime`/`UpdateTime` par trame, `ModId` « Stardew Valley ») et
+  `GcEventListener` (`EventListener` .NET sur le mot-clé GC → pauses en
+  `[RawWaterfall]`, `ModId` « $CLR ») — les deux fonctions dont la sonde
+  s'est inspirée (§3) et qui motivent l'incompatibilité déclarée avec elle.
+  Ne pas mettre à jour Profiler pour D5-B : la 2.0.0 suffit et n'entre pas
+  en collision avec la sonde ;
+- **Jalons de phase** (`PlayerLogger`, double abonnement priorité
+  max/min → paires `INFO [t][Fast]` / `[t][Slow]`) : `Game Launched`,
+  `LoadStageChanged A -> B`, `Save Loaded`, `Day Started`, `Warped A -> B`.
+  La session du 2026-09-29, 140 mods + 146 packs :
+  `Launching mods` 22 s (l'`Entry`, invisible de Profiler — son `Init`
+  tombe à la toute fin) ; `Game Launched` 4,6 s de gestionnaires ;
+  clic → `SaveParsed` 87 s (comprend le temps humain dans le menu) ;
+  `SaveParsed → SaveAddedLocations` **41,5 s** (le plus gros bloc natif) ;
+  `→ SaveLoadedLocations` 12,1 s (les `ApplyLoad` de Content Patcher) ;
+  `Loaded → Ready` 3,0 s ; `Save Loaded` 152,7 s après le lancement des
+  gestionnaires ; `Day Started` +10,4 s ; premier warp
+  FarmHouse → Farm +18,6 s. Ces spans sont la cible de D5-B : les
+  reproduire sans Profiler, avec la sonde et les horodatages SMAPI.
+
 ### Deux mods de temps de chargement décompilés — FastLoads 1.0.3 et Loading Optimizer 1.0.0 *(2026-09-29)*
 
 Contribution au chantier **D5-B** : ce que deux mods dédiés au temps de
@@ -848,7 +896,7 @@ statique peut exister, et pourquoi elle survit aux remplacements de front.
 | [**Faster Menu Load**](https://www.nexusmods.com/stardewvalley/mods/41564) — ZeroXPatch, 1.5.0 | `ZeroXPatch.FasterMenuLoad` · Nexus 41564 | même auteur que le SMAPILogDoctor crédité §3 ; une des 13 dépendances du SLO ; **seul des cinq non installé** sur le parc |
 | [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`). Sa 1.0.0 **décompilée le 2026-09-29** (analyse complète §5) : les 13 dépendances sont désormais `IsRequired: false` — le constat « manifeste intégriste » ci-dessous ne vaut plus que pour la 0.5.x auditée ; **en pause sur le parc** |
 | [**SinZational Speedy Solutions**](https://www.nexusmods.com/stardewvalley/mods/37301) — SinZ, 1.1.0 | `SinZ.SpeedySolutions` · Nexus 37301 · **installé sur le parc** | membre de deux paires du catalogue des recouvrements de perf (A5-T7, `PerformanceOverlap.swift`) : `ModContentManager.LoadRawImageData` avec Loading Optimizer et Stardropium, `TMXFormat.Load` avec Loading Optimizer ; Stardropium patche aussi son propre postfix |
-| [**Profiler**](https://www.nexusmods.com/stardewvalley/mods/12135) — SinZ, 2.0.0 | `SinZ.Profiler` · Nexus 12135 · [source](https://github.com/SinZ163/StardewMods/tree/main/Profiler) (monorepo SinZ163, **surveillé**) | **la télémétrie que le chantier D1 parse** : `[BigLoop] In total, it took {0:N}ms handling …` (chaîne mesurée dans la DLL). Ses packs de contenu étendent le profilage **par déclaration** (`{Type: "Duration", TargetType, TargetMethod}`). **Installé sur le parc mais en pause** (`.Profiler/`) — sa détection doit regarder les mods en pause, pas seulement les actifs. **Déclaré incompatible avec la sonde StarHubFR** (2026-09-29, `KnownIncompatibilities`) : les deux posent les mêmes minuteurs, actifs ensemble chacun gonfle ce que l'autre mesure — alerte quand les deux sont actifs, écartable. Le zip 2.0.0 de `mods tests/` embarque le `Profiler.pdb` : les symboles de débogage sont là si le format de log doit être vérifié plus finement |
+| [**Profiler**](https://www.nexusmods.com/stardewvalley/mods/12135) — SinZ, 2.0.0 | `SinZ.Profiler` · Nexus 12135 · [source](https://github.com/SinZ163/StardewMods/tree/main/Profiler) (monorepo SinZ163, **surveillé**) | **la télémétrie que le chantier D1 parse** : `[BigLoop] In total, it took {0:N}ms handling …` (chaîne mesurée dans la DLL). Ses packs de contenu étendent le profilage **par déclaration** (`{Type: "Duration", TargetType, TargetMethod}`). **Installé sur le parc mais en pause** (`.Profiler/`) — sa détection doit regarder les mods en pause, pas seulement les actifs. **Déclaré incompatible avec la sonde StarHubFR** (2026-09-29, `KnownIncompatibilities`) : les deux posent les mêmes minuteurs, actifs ensemble chacun gonfle ce que l'autre mesure — alerte quand les deux sont actifs, écartable. Le zip 2.0.0 de `mods tests/` embarque le `Profiler.pdb` : les symboles de débogage sont là si le format de log doit être vérifié plus finement. **Code relu le 2026-09-29 (§5)** : mécanique du transpileur, seuils, ce que la 3.0-alpha5 ajoute (et qu'il ne faut pas installer) |
 | [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) — phuicmt, 1.7.6 | `phuicmt.SDVRadiance` · Nexus 49397 · `GitHub:PHUICMT/SDV-Radiance` · dépendance GMCM optionnelle · **installé sur le parc** | suite graphique lourde (bloom, color grading, sun shafts, ombres directionnelles, reflets) ; son diagnostic perf est **`FrameCost`** : 14 parties de rendu mesurées CPU **et** GPU (requêtes timer OpenGL), 6 frames les plus longues découpées `ours / not ours` avec deltas GC et `arrival+N` ; **`radiance_report`** écrit `~/Documents/Radiance-Dumps/radiance-report.txt`. Aucune attribution aux autres mods — « not ours » reste un lot. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md). Nexus **2.3.x** (journal lu le 2026-09-23, le parc reste en 2.2.5) : vague de stabilité dont la **2.3.4** — son pré-warm des sérialiseurs SpaceCore **figeait l'initialisation avant l'enregistrement des types custom des mods**, crash de sauvegarde « type not expected » au coucher : exactement la classe de types C# orphelins des **A1-T8/T9**, provoquée par un mod du parc ; la 2.3.5 retire le LOD herbe expérimental et désactive sa télémétrie de rendu par défaut |
 
 Deux constats de lecture, mesurés :
