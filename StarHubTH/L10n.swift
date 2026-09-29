@@ -908,6 +908,7 @@ enum L10n {
         static let revertChanged = "perf_revert_changed"
         static let revertFailed = "perf_revert_failed"
         static let isolateMeasureName = "perf_isolate_measure_name"
+        static let isolateConfigMeasureName = "perf_isolate_config_measure_name"
     }
 
     // MARK: - Logs

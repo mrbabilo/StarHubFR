@@ -1773,6 +1773,7 @@
   "perf_revert_changed": "config.json changed meanwhile: nothing was written.",
   "perf_revert_failed": "Failed: %@",
   "perf_isolate_measure_name": "Without %@",
+  "perf_isolate_config_measure_name": "Previous setting of %@",
   "perf_tile_p99": "Stutters (P99)",
   "perf_measure_p99": "P99"
 }

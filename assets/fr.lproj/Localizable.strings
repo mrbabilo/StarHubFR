@@ -1773,5 +1773,6 @@
 "perf_revert_changed" = "config.json a changé entre-temps : rien n'a été écrit.";
 "perf_revert_failed" = "Échec : %@";
 "perf_isolate_measure_name" = "Sans %@";
+"perf_isolate_config_measure_name" = "Réglage d'avant de %@";
 "perf_tile_p99" = "Saccades (P99)";
 "perf_measure_p99" = "P99";

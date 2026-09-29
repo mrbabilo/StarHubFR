@@ -24,6 +24,11 @@ struct PerformanceView: View {
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
             if segment == .performance { Task { await store.reload() } }
         }
+        // Le jeu se joue app en arrière-plan, onglet ouvert : relire au retour
+        // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await store.reload() } }
+        }
     }
 
     @ViewBuilder
@@ -41,7 +46,7 @@ struct PerformanceView: View {
             selectors
             if let report = store.report {
                 PerformanceChangesSection(viewModel: viewModel, localization: localization,
-                                          report: report, configsDirectory: store.configsDirectory)
+                                          report: report, configDiffs: store.configDiffs)
                 PerformanceSmoothnessSection(localization: localization, report: report)
                 PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
                 PerformanceAnalysisSection(viewModel: viewModel, localization: localization,

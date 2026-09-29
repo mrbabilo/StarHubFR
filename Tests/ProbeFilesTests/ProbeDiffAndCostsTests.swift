@@ -60,6 +60,24 @@ struct ProbeDiffAndCostsTests {
                                                   configsDirectory: directory.appendingPathComponent("x")) == nil)
     }
 
+    /// Une passe par paire : réglages modifiés seuls, contenus absents omis.
+    @Test func configDiffsKeepsOnlyReadableConfigChanges() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("probe-diffs-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try "{\"a\":1}".write(to: directory.appendingPathComponent("aa.json"), atomically: true, encoding: .utf8)
+        try "{\"a\":2}".write(to: directory.appendingPathComponent("dd.json"), atomically: true, encoding: .utf8)
+        let changes = [
+            ProbeModChange(modId: "Mod.A", kind: .configChanged(oldSha: "aa", newSha: "dd")),
+            ProbeModChange(modId: "Mod.B", kind: .configChanged(oldSha: "aa", newSha: "ff")),
+            ProbeModChange(modId: "Mod.C", kind: .added),
+            ProbeModChange(modId: "Mod.D", kind: .versionChanged(from: "1", to: "2", configChanged: true)),
+        ]
+        let diffs = ProbeInventoryDiffRule.configDiffs(of: changes, configsDirectory: directory)
+        #expect(Array(diffs.keys) == ["Mod.A"])
+        #expect(diffs["Mod.A"]?.map(\.path) == ["a"])
+    }
+
     private func cost(minute: ProbeComparableMinute, mods: [(String, Double)]) -> ProbeModCostMinute {
         let modsJSON = mods.map { "{\"Mod\":\"\($0.0)\",\"SelfMs\":\($0.1 * 60),\"MsPerSecond\":\($0.1),\"MaxMs\":\($0.1 * 2),\"AllocKB\":0,\"Calls\":1,\"Events\":[]}" }
         let json = """

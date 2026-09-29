@@ -11,16 +11,17 @@ struct PerformanceAnalysisSection: View {
     @State private var pending: PendingAction?
     @State private var message: String?
 
-    /// Un geste en attente de confirmation. `pause` porte, pour « Isoler »,
-    /// le nom de la mesure à préparer ensuite (« Mettre en pause et mesurer »).
+    /// Un geste en attente de confirmation. `pause` et `revertConfig` portent,
+    /// pour « Isoler », le nom de la mesure à préparer une fois le changement
+    /// défait.
     private enum PendingAction: Identifiable {
-        case pause(ModItem, thenMeasure: String?), backups(ModItem), revertConfig(ModItem, sha: String),
-             prepare(String)
+        case pause(ModItem, thenMeasure: String?), backups(ModItem),
+             revertConfig(ModItem, sha: String, thenMeasure: String?), prepare(String)
         var id: String {
             switch self {
             case .pause(let m, _): return "pause|\(m.folderName)"
             case .backups(let m): return "backups|\(m.folderName)"
-            case .revertConfig(let m, let sha): return "config|\(m.folderName)|\(sha)"
+            case .revertConfig(let m, let sha, _): return "config|\(m.folderName)|\(sha)"
             case .prepare(let name): return "prepare|\(name)"
             }
         }
@@ -171,22 +172,25 @@ struct PerformanceAnalysisSection: View {
     /// d'avant) puis préparer une mesure à son nom — elle démarre jeu lancé,
     /// depuis l'en-tête.
     private func isolateRow(_ change: ProbeModChange, mods: [ModItem]) -> some View {
+        if case .configChanged = change.kind {
+            let measureName = String(format: localization.L(L10n.Performance.isolateConfigMeasureName),
+                                     name(change.modId))
+            return action("· " + name(change.modId), button: L10n.Performance.actionRevertConfig,
+                          gesture: revertGesture(modId: change.modId, mods: mods, thenMeasure: measureName))
+        }
         let measureName = String(format: localization.L(L10n.Performance.isolateMeasureName), name(change.modId))
-        let gesture: PendingAction? = {
-            if case .configChanged = change.kind { return revertGesture(modId: change.modId, mods: mods) }
-            return ProbePerformanceActions.target(modId: change.modId, in: mods)
-                .map { PendingAction.pause($0, thenMeasure: measureName) }
-        }()
-        return action("· " + name(change.modId), button: L10n.Performance.actionPause, gesture: gesture)
+        return action("· " + name(change.modId), button: L10n.Performance.actionPause,
+                      gesture: ProbePerformanceActions.target(modId: change.modId, in: mods)
+                          .map { PendingAction.pause($0, thenMeasure: measureName) })
     }
 
-    private func revertGesture(modId: String, mods: [ModItem]) -> PendingAction? {
+    private func revertGesture(modId: String, mods: [ModItem], thenMeasure: String? = nil) -> PendingAction? {
         guard let change = report.diff?.changes.first(where: {
                   $0.modId.caseInsensitiveCompare(modId) == .orderedSame }),
               case .configChanged(let old?, _) = change.kind,
               let mod = ProbePerformanceActions.target(modId: modId, in: mods)
         else { return nil }
-        return .revertConfig(mod, sha: old)
+        return .revertConfig(mod, sha: old, thenMeasure: thenMeasure)
     }
 
     private func confirmTitle(_ gesture: PendingAction) -> String {
@@ -194,7 +198,7 @@ struct PerformanceAnalysisSection: View {
         switch gesture {
         case .pause(let m, _): label = "\(localization.L(L10n.Performance.actionPause)) — \(m.name)"
         case .backups(let m): label = "\(localization.L(L10n.Performance.actionBackups)) — \(m.name)"
-        case .revertConfig(let m, _): label = "\(localization.L(L10n.Performance.actionRevertConfig)) — \(m.name)"
+        case .revertConfig(let m, _, _): label = "\(localization.L(L10n.Performance.actionRevertConfig)) — \(m.name)"
         case .prepare(let name): label = "\(localization.L(L10n.Performance.actionPrepareMeasure)) — \(name)"
         }
         return String(format: localization.L(L10n.Performance.confirmTitle), label)
@@ -225,12 +229,14 @@ struct PerformanceAnalysisSection: View {
             if mod.isEnabled { viewModel.toggleMod(mod) }
             if let thenMeasure { store.pendingMeasurementName = thenMeasure }
             message = nil
-        case .revertConfig(let mod, let sha):
+        case .revertConfig(let mod, let sha, let thenMeasure):
             let outcome = ProbePerformanceActions.revertConfig(
                 of: mod, toSha: sha, configsDirectory: store.configsDirectory, gameDir: viewModel.gameDir,
                 gameRunning: false, backups: ModConfigBackupManager.shared)
             switch outcome {
-            case .reverted: message = localization.L(L10n.Performance.revertDone)
+            case .reverted:
+                if let thenMeasure { store.pendingMeasurementName = thenMeasure }
+                message = localization.L(L10n.Performance.revertDone)
             case .gameRunning: message = localization.L(L10n.Performance.gameRunning)
             case .contentMissing: message = localization.L(L10n.Performance.revertMissing)
             case .changedOnDisk: message = localization.L(L10n.Performance.revertChanged)

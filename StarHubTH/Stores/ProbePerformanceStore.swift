@@ -17,9 +17,13 @@ final class ProbePerformanceStore {
     private(set) var afterId: String?
     private(set) var measurements: [ProbeMeasurement] = []
     private(set) var unreadableLines = 0
+    /// Diffs clé par clé des réglages modifiés de la paire affichée, par `modId`.
+    private(set) var configDiffs: [String: [ConfigKeyDiff]] = [:]
     var pendingMeasurementName: String?
 
     @ObservationIgnored private let files: ProbeFiles
+    @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
+    @ObservationIgnored private var configDiffsChanges: [ProbeModChange]?
     @ObservationIgnored private let index: ProbeSessionsIndex
     @ObservationIgnored private let measurementsDirectory: URL?
 
@@ -34,7 +38,9 @@ final class ProbePerformanceStore {
     var configsDirectory: URL { files.configsDirectory }
 
     func reload() async {
-        status = .loading
+        // Première lecture seulement : une relecture garde l'écran affiché
+        // (retour dans l'app, changement de segment) au lieu de le vider.
+        if status == .idle { status = .loading }
         let index = index, files = files, directory = measurementsDirectory
         let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
             let sessions = index.sessions(keeping: nil)
@@ -74,9 +80,13 @@ final class ProbePerformanceStore {
         afterId = after
         guard let a = sides.first(where: { $0.id == before }),
               let b = sides.first(where: { $0.id == after }), a.id != b.id
-        else { report = nil; return }
+        else { report = nil; loadConfigDiffs(nil); return }
         report = ProbePerformance.report(before: a, after: b)
+        loadConfigDiffs(report?.diff?.changes)
     }
+
+    /// Attendu par les tests : la lecture des diffs de la paire courante.
+    func configDiffsLoaded() async { await configDiffsTask?.value }
 
     /// Jeu lancé seulement, vérifié par l'appelant au clic. Une mesure déjà
     /// ouverte n'en ouvre pas une seconde.
@@ -103,6 +113,26 @@ final class ProbePerformanceStore {
         let measurements: [ProbeMeasurement]
         let unreadable: Int
         let hasProbe: Bool
+    }
+
+    /// Les contenus de réglages se lisent sur disque : hors du fil principal,
+    /// une fois par paire. Une paire changée entre-temps annule la lecture
+    /// précédente — ses diffs ne s'affichent jamais sous l'autre paire. Mêmes
+    /// changements qu'avant (relecture) : rien à relire.
+    private func loadConfigDiffs(_ changes: [ProbeModChange]?) {
+        guard changes != configDiffsChanges else { return }
+        configDiffsChanges = changes
+        configDiffsTask?.cancel()
+        configDiffs = [:]
+        guard let changes, !changes.isEmpty else { configDiffsTask = nil; return }
+        let directory = files.configsDirectory
+        configDiffsTask = Task { [weak self] in
+            let diffs = await Task.detached(priority: .userInitiated) {
+                ProbeInventoryDiffRule.configDiffs(of: changes, configsDirectory: directory)
+            }.value
+            guard !Task.isCancelled else { return }
+            self?.configDiffs = diffs
+        }
     }
 
     private func persist(now: Date) {

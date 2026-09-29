@@ -65,6 +65,22 @@ public enum ProbeInventoryDiffRule {
         return ConfigJSONDiff.compare(oldTree, newTree)
     }
 
+    /// Les diffs clé par clé de tous les réglages modifiés d'une paire, par
+    /// `modId` — lus une fois par paire (hors du fil principal), jamais au
+    /// rendu. Absents de la table : contenus non rangés par la sonde.
+    public static func configDiffs(of changes: [ProbeModChange],
+                                   configsDirectory: URL) -> [String: [ConfigKeyDiff]] {
+        var out: [String: [ConfigKeyDiff]] = [:]
+        for change in changes {
+            guard case .configChanged(let old, let new) = change.kind,
+                  let keys = configDiff(modId: change.modId, oldSha: old, newSha: new,
+                                        configsDirectory: configsDirectory)
+            else { continue }
+            out[change.modId] = keys
+        }
+        return out
+    }
+
     // MARK: — Privé
 
     private static func lowercasedIndex(_ launch: ProbeInventoryLaunch) -> [String: ProbeInventoryEntry] {

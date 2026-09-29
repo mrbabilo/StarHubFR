@@ -8,7 +8,8 @@ struct PerformanceChangesSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let report: ProbePerformanceReport
-    let configsDirectory: URL
+    /// Lus par le store une fois par paire, jamais au rendu.
+    let configDiffs: [String: [ConfigKeyDiff]]
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -51,9 +52,7 @@ struct PerformanceChangesSection: View {
             } trailing: {
                 Text(kindLabel(change.kind)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
-            if case .configChanged(let old, let new) = change.kind,
-               let keys = ProbeInventoryDiffRule.configDiff(modId: change.modId, oldSha: old, newSha: new,
-                                                            configsDirectory: configsDirectory) {
+            if let keys = configDiffs[change.modId] {
                 ForEach(keys) { key in
                     Text(String(format: localization.L(L10n.Performance.changeConfigKey),
                                 key.path, key.valueA ?? "—", key.valueB ?? "—"))
