@@ -36,7 +36,7 @@ internal static class GuidedBanner
     {
         count = Guided.Rule?.KeptAt.Count ?? 0;
         place = Guided.Active?.Location ?? "";
-        if (Guided.Active is null) return State.Hidden;
+        if (Guided.Active is null || !Guided.WindowActive) return State.Hidden;
         if (Guided.RefusedKey is not null) return State.Refused;
         if (Guided.Rule is { } rule && rule.Outcome != GuidedOutcome.Running)
         {

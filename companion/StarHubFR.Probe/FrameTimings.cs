@@ -174,7 +174,7 @@ internal static class FrameTimings
         // — taper dans la console SMAPI suffit.
         if (!__instance.IsActive) InactiveTicks++;
         if (Game1.activeClickableMenu is not null) MenuTicks++;
-        Guided.OnTick();
+        Guided.OnTick(__instance.IsActive);
         // La fenêtre se ferme entre deux ticks, jamais au milieu : un tick
         // appartient à une seule minute, et la durée de la minute le contient.
         if (now - WindowStartMs >= WindowMs) FlushNow();

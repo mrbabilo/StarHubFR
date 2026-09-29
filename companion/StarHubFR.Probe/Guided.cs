@@ -43,6 +43,8 @@ internal static class Guided
     internal static DateTime? FinishedAtUtc { get; private set; }
     internal static string? RefusedKey { get; private set; }
     internal static int StateVersion { get; private set; }
+    /// <summary>La fenêtre du jeu a le focus : sans lui, rien ne se dessine et les minutes sont écartées.</summary>
+    internal static bool WindowActive { get; private set; } = true;
 
     public static void Initialize(IMonitor monitor, string probeVersion)
     {
@@ -57,8 +59,9 @@ internal static class Guided
     public static void NoteConfigChanged() => Interlocked.Exchange(ref configChanged, 1);
 
     /// <summary>À chaque tick (postfix de `Game.Tick`), fil du jeu.</summary>
-    public static void OnTick()
+    public static void OnTick(bool windowActive)
     {
+        WindowActive = windowActive;
         if (PatchCosts.Active) patchesSeen = true;
         if (Rule is { Outcome: GuidedOutcome.Running } rule && Context.IsWorldReady && !Game1.eventUp
             && Game1.currentLocation?.NameOrUniqueName == rule.Target)
@@ -82,7 +85,8 @@ internal static class Guided
             bool changed = Interlocked.Exchange(ref configChanged, 0) == 1;
             if (Rule is { Outcome: GuidedOutcome.Running } rule)
             {
-                if (!FrameTimings.TicksCounted) Refuse("refused.noticks");
+                if (RefusedKey is not null) { /* refusé (écran partagé) : aucune minute ne compte */ }
+                else if (!FrameTimings.TicksCounted) Refuse("refused.noticks");
                 else
                 {
                     LastReason = rule.Add(facts with { TargetTicks = ticks, PatchesActive = patches, ConfigChanged = changed }, guard);
