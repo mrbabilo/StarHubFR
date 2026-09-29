@@ -40,3 +40,22 @@ question ni réponse `$q`/`$r`** touchée.
   les réponses et leurs suites sont décalées, le dialogue s'affiche faux.
 - La référence du premier jour signalait bien plus (1 458) : Ridgeside, SVE,
   East Scarp y figuraient, mais leurs fichiers actuels sont propres.
+
+## Corrigé le 2026-09-29
+
+Aucune traduction plus récente n'existe sur Nexus (« Wildroot Chronicles - FR »
+50708 reste en 1.2.6.2 ; « Cape Stardew FR » 23854 date de juin 2024).
+Corrections faites sur disque, chaque `fr.json` sauvegardé
+(`fr.json.bak-2026-09-29`), écriture clé par clé dans le fichier brut :
+
+- **258 portraits** réalignés sur l'anglais, même position (Wildroot 254,
+  Annetta 4) ;
+- **74 coupures** `#$e#` → `#$b#` réalignées (Wildroot) ;
+- **102 clés retraduites** (Wildroot 57, Cape Stardew 45), codes identiques à
+  l'anglais et dans le même ordre, dont la question rapide `$y` d'Annetta ;
+- référence `TranslationBaselines` des 434 clés mise à jour (sauvegardée).
+
+Résultat : **0 code divergent** sur Wildroot et Cape Stardew. Restent non
+traduites 2 551 clés de Wildroot et 170 de Cape Stardew — travail du hub.
+Piège du crible : un `%` en tête n'est pas toujours la narration — `%kid2`,
+`%pet`, `%farm` sont des noms.
