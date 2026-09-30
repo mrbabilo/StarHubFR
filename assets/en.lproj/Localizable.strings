@@ -1888,6 +1888,7 @@
 "bench_ref_probe_too_old" = "The installed probe (%@) is too old: 0.7.0 or later is required.";
 "bench_ref_probe_in_b" = "Side B would turn off the probe: nothing would be measured.";
 "bench_ref_dependents" = "Other mods require this one: %@.";
+"bench_ref_duplicates" = "Two folders share the same id (%@): resolve the duplicate before measuring.";
 "bench_ref_unknown_mod" = "This mod is no longer installed.";
 "bench_ref_busy" = "Wait for the current operation to finish (game running, bisection, guided measurement, profile or toggle).";
 "bench_ref_vanilla" = "The launch setting is \"Vanilla\": without SMAPI the probe does not run.";

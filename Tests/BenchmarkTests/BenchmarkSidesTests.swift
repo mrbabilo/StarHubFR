@@ -63,6 +63,20 @@ import Testing
         #expect(BenchmarkSides.refusal(.pauseMod(folderName: "Framework"), mods: [probe, framework]) == nil)
     }
 
+    /// Relecture finale : la bascule voyage par UniqueID ; un doublon installé
+    /// (cas réel — Swim ×2) partirait avec l'original et ne reviendrait pas.
+    @Test func aDuplicatedUniqueIdRefusesTheSeries() {
+        let probe = mod("Probe", id: "mrbabilo.StarHubFR.Probe", version: "0.7.0")
+        let swim = mod("Swim", id: "Swim")
+        let twin = mod("Swim Twin", id: "Swim")   // même identifiant, dossier distinct
+        let cp = mod("CP", id: "Pathoschild.ContentPatcher")
+        #expect(BenchmarkSides.refusal(.sameState, mods: [probe, cp, swim, twin])
+                == .duplicateIds(["Swim", "Swim Twin"]))
+        #expect(BenchmarkSides.refusal(.sameState, mods: [probe, cp, swim]) == nil)
+        #expect(BenchmarkSides.duplicateIdFolders([probe, cp]).isEmpty)
+        #expect(BenchmarkSides.duplicateIdFolders([probe, swim, twin]) == ["Swim", "Swim Twin"])
+    }
+
     @Test func cacheWarningNamesSpeedySolutionsWhenItChangesSide() {
         let mods = [mod("Speedy", id: "SinZ.SpeedySolutions"), mod("CP", id: "Pathoschild.ContentPatcher")]
         #expect(BenchmarkSides.cacheWarning(foldersA: ["Speedy", "CP"], foldersB: ["CP"], mods: mods) == ["Speedy"])

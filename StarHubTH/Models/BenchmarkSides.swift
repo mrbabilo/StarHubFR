@@ -14,6 +14,7 @@ public enum BenchmarkRefusal: Equatable, Sendable {
     case probeTooOld(String)
     case probeInSideB
     case dependents([String])
+    case duplicateIds([String])
     case unknownMod
 }
 
@@ -49,6 +50,8 @@ public enum BenchmarkSides {
             head.isEnabled && head.components.contains { isProbe($0.uniqueId) }
         }) else { return .probeMissing }
         guard ProbeLoadRecords.version(probe.version, atLeast: [0, 7, 0]) else { return .probeTooOld(probe.version) }
+        let duplicates = duplicateIdFolders(mods)
+        if !duplicates.isEmpty { return .duplicateIds(duplicates) }
         switch sideB {
         case .sameState:
             return nil
@@ -77,5 +80,20 @@ public enum BenchmarkSides {
 
     private static func isProbe(_ id: String) -> Bool {
         id.caseInsensitiveCompare(probeId) == .orderedSame
+    }
+
+    /// Dossiers activés qui partagent un `UniqueID` non vide avec un autre —
+    /// le renommage point voyage par identifiant, pas par dossier : un doublon
+    /// partirait avec l'original et ne reviendrait pas à la restauration.
+    public static func duplicateIdFolders(_ mods: [ModItem]) -> [String] {
+        var byId: [String: [String]] = [:]
+        for mod in mods where mod.isEnabled {
+            for component in mod.components where !component.uniqueId.isEmpty {
+                byId[component.uniqueId.lowercased(), default: []].append(mod.folderName)
+            }
+        }
+        return byId.filter { $0.value.count > 1 }
+            .flatMap(\.value)
+            .sorted()
     }
 }

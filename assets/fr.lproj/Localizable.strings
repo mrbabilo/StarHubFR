@@ -1888,6 +1888,7 @@
 "bench_ref_probe_too_old" = "La sonde installée (%@) est trop ancienne : il faut la 0.7.0 ou plus.";
 "bench_ref_probe_in_b" = "Le côté B couperait la sonde : rien ne serait mesuré.";
 "bench_ref_dependents" = "D'autres mods exigent celui-ci : %@.";
+"bench_ref_duplicates" = "Deux dossiers partagent le même identifiant (%@) : résous ce doublon avant de mesurer.";
 "bench_ref_unknown_mod" = "Ce mod n'est plus dans le parc.";
 "bench_ref_busy" = "Attends la fin de l'opération en cours (jeu lancé, bissection, mesure guidée, profil ou bascule).";
 "bench_ref_vanilla" = "Le réglage de lancement est « Vanilla » : sans SMAPI, la sonde ne tourne pas.";

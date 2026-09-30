@@ -847,6 +847,7 @@ enum L10n {
         static let refProbeTooOld     = "bench_ref_probe_too_old"
         static let refProbeInB        = "bench_ref_probe_in_b"
         static let refDependents      = "bench_ref_dependents"
+        static let refDuplicates      = "bench_ref_duplicates"
         static let refUnknownMod      = "bench_ref_unknown_mod"
         static let refBusy            = "bench_ref_busy"
         static let refVanilla         = "bench_ref_vanilla"

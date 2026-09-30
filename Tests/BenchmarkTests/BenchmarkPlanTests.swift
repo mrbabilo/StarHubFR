@@ -30,6 +30,10 @@ import Testing
     }
 
     @Test func planFileRoundTripsWithPascalCaseKeysAndNoFractions() throws {
+        // Relecture finale : la fenêtre de détournement d'un lancement manuel
+        // reste courte — le plan est écrit juste avant le lancement du jeu,
+        // que la sonde lit à sa propre Entry (~1 min).
+        #expect(BenchmarkPlanFile.lifetime == 300)
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appendingPathComponent("benchmark-plan.json")

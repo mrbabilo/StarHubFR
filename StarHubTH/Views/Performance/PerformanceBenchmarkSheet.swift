@@ -44,6 +44,8 @@ struct PerformanceBenchmarkSheet: View {
             return localization.L(L10n.Benchmark.refProbeInB)
         case .dependents(let names):
             return String(format: localization.L(L10n.Benchmark.refDependents), names.joined(separator: ", "))
+        case .duplicateIds(let folders):
+            return String(format: localization.L(L10n.Benchmark.refDuplicates), folders.joined(separator: ", "))
         case .unknownMod:
             return localization.L(L10n.Benchmark.refUnknownMod)
         }

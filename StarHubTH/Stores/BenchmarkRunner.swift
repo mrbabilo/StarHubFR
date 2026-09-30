@@ -143,6 +143,10 @@ final class BenchmarkRunner {
             await finish(.failed(.copy), snapshot: nil)
             return
         }
+        // Relecture finale : aucun profil actif pendant la série — l'état B ne
+        // doit jamais pouvoir être « adopté » dans un profil (l'instantané
+        // porte l'id, la restauration le remet).
+        viewModel.restoreActiveProfileAfterBenchmark(nil)
 
         runs = BenchmarkSequence.runs(perSide: setup.perSide, sameState: setup.sideB == .sameState)
         for (index, run) in runs.enumerated() {
@@ -151,7 +155,15 @@ final class BenchmarkRunner {
                 return
             }
             phase = .running(index: index)
+            let target = Set(run.side.isA ? foldersA : foldersB)
             guard await apply(run.side.isA ? foldersA : foldersB) else {
+                await finish(.failed(.apply), snapshot: snapshot)
+                return
+            }
+            // La bascule voyage par UniqueID : vérifier le disque, pas faire
+            // confiance au mouvement (un doublon manqué vaudrait B = A en silence).
+            guard Set(viewModel.mods.filter(\.isEnabled).map(\.folderName)) == target else {
+                viewModel.log("Benchmark : l'état appliqué diffère de la cible.", level: .error)
                 await finish(.failed(.apply), snapshot: snapshot)
                 return
             }
@@ -172,6 +184,10 @@ final class BenchmarkRunner {
                 await finish(.failed(failure), snapshot: snapshot)
                 return
             }
+            // Le plan a servi (lu à l'Entry de la sonde) : le retirer tout de
+            // suite — un lancement manuel lancé dans la foulée ne doit pas
+            // pouvoir être détourné.
+            removePlan()
             guard BenchmarkVerdict.hasCompleteSave(files.loads().records, runId: run.id) else {
                 await finish(.failed(.noLine), snapshot: snapshot)
                 return

@@ -6352,7 +6352,9 @@ final class StarHubTHViewModel {
     var isBenchmarkActive: Bool { _benchmark?.isActive ?? false }
 
     func refuseDuringBenchmark() -> Bool {
-        guard isBenchmarkActive else { return false }
+        // Une série interrompue (instantané restant) réserve le parc autant
+        // qu'une série active : toute bascule l'écraserait sans filet.
+        guard isBenchmarkActive || _benchmark?.interrupted != nil else { return false }
         showModal(message: localization.L(L10n.Benchmark.locked))
         return true
     }
@@ -7158,6 +7160,7 @@ final class StarHubTHViewModel {
     }
 
     func deleteMod(_ mod: ModItem) {
+        if refuseDuringBenchmark() { return }
         guard !gameDir.isEmpty else {
             showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return

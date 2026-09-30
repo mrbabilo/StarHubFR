@@ -92,8 +92,11 @@ final class ProbePerformanceStore {
         loads = ProbeLoadRecords.manual(loaded.loads)
         lastLaunch = loads.last { $0.kind == .launch }.map(ProbeLoadBreakdown.of)
         lastSave = loads.last { $0.kind == .save }.map(ProbeLoadBreakdown.of)
-        coldRecordIds = Set(loads.filter {
-            ProbeLoadComparison.isCold($0, among: loads, coldBefore: loaded.coldBefore) }.map(\.id))
+        // Le froid se juge sur tous les lancements : si une chauffe de
+        // benchmark était le premier lancement après le démarrage du Mac,
+        // le filtrer d'abord ferait passer le lancement manuel suivant pour froid.
+        coldRecordIds = Set(loaded.loads.filter {
+            ProbeLoadComparison.isCold($0, among: loaded.loads, coldBefore: loaded.coldBefore) }.map(\.id))
         launchComparison = ProbeLoadComparison.compare(loads, kind: .launch, launches: loaded.launches,
                                                        changes: loaded.changes, coldBefore: loaded.coldBefore)
         saveComparison = ProbeLoadComparison.compare(loads, kind: .save, launches: loaded.launches,

@@ -39,8 +39,10 @@ public enum BenchmarkSequence {
 /// `benchmark-plan.json` : écrit **et effacé** par l'app seule ; la sonde le
 /// lit (`System.Text.Json`, clés PascalCase) et l'ignore une fois expiré.
 public struct BenchmarkPlanFile: Codable, Equatable, Sendable {
-    /// Un plan oublié par une app tuée ne doit détourner aucun lancement manuel.
-    public static let lifetime: TimeInterval = 600
+    /// Un plan oublié par une app tuée ne doit détourner aucun lancement
+    /// manuel. La sonde le lit à sa propre Entry (~1 min après le lancement) :
+    /// 5 min couvrent large et bornent la fenêtre de détournement.
+    public static let lifetime: TimeInterval = 300
 
     public var version: Int
     public var runId: String
