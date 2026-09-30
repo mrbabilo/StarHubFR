@@ -743,6 +743,28 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   `HeuristicModsRunningCode.Push`/`TryPop`, comme `ManagedEvent.Raise`. La
   boucle d'`Entry` de `SCore` aussi, mais la sonde n'y a pas accès (elle
   patche pendant sa propre `Entry`). Garde : `AssetHook`.
+  **Corrigé en 0.6.2** : transpiler ces deux méthodes **génériques** n'a
+  rien attribué (deux sessions, zéro rappel) — Harmony ne détourne que
+  l'instanciation `<object>`, les appels réels passent par le corps
+  partagé. La sonde postfixe désormais `SCore.RequestAssetOperations`
+  (non générique) et enveloppe les délégués `GetData`/`ApplyEdit` des
+  opérations neuves de chaque requête. Validé en jeu le 2026-09-30 :
+  ≈ 8 600 rappels vus par session, aucun hors du fil du jeu.
+
+**Benchmark automatique (sonde 0.7.0)** *(2026-09-30)* :
+- `benchmark-plan.json` (`Version`, `RunId`, `SaveName`, `ExpiresAt`),
+  écrit **et effacé** par l'app seule ; la sonde ignore un plan illisible,
+  d'une autre version ou expiré (10 min) — un lancement manuel n'est jamais
+  détourné. Lignes `loads.jsonl` marquées `BenchmarkRun`.
+- Chargement : `SaveGame.Load(slot)` puis `Game1.exitActiveMenu()` = le
+  corps de `LoadGameMenu.SaveFileSlot.Activate` (1.6.15 décompilé). Sortie :
+  `Game1.quit = true`, lu par `Game1._update`.
+- Piège : `_update` rend la main **avant** `if (quit) Exit()` et avant
+  l'avance du chargement quand la fenêtre est inactive et
+  `options.pauseWhenOutOfFocus` vrai (défaut). La sonde le réaffirme à
+  faux à chaque tick sous plan ; rien n'est persisté (`SaveGame` écrit
+  `default_options` depuis les options de la sauvegarde, et une affectation
+  directe ne marque pas `optionsDirty`).
 - Jeu 1.6.15 : `SaveGame.Load(string)` public static pose
   `Game1.currentLoader = getLoadEnumerator(filename)` — c'est `S0`.
 

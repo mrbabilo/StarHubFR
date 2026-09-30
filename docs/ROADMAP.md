@@ -977,6 +977,12 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       premier lancement depuis `kern.boottime`, +98 % mesuré, éjection du
       volume sans effet) ; carte « Chargements » (tuiles, frise, top 5,
       verdict, geste pause gardé). Tâche 13 = validation en jeu. · **M**
+      *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
+      `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
+      comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
+      par côté ; le 2,2 % sans sonde ne valait pas avec elle : 8,9 %) ;
+      **benchmark automatique** (sonde 0.7.0, chauffes + A/B alternés, copie
+      de sauvegarde, restauration) livré en code, à valider en jeu.
 - [ ] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
       par seconde en événements et patches, pics, allocations), puis de la
       mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
