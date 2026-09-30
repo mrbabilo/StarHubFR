@@ -149,6 +149,12 @@ final class BenchmarkRunner {
         viewModel.restoreActiveProfileAfterBenchmark(nil)
 
         runs = BenchmarkSequence.runs(perSide: setup.perSide, sameState: setup.sideB == .sameState)
+        // Dernier état appliqué **et** relu sur le disque. Le premier lancement
+        // applique toujours (sa relecture confronte le parc en mémoire au
+        // disque) ; ensuite, un état inchangé ne bouge rien : le relire à
+        // nouveau coûterait un scan complet du parc par lancement (« Aucun
+        // changement », chauffes). Pendant la série, seul le jeu tourne.
+        var applied: Set<String>?
         for (index, run) in runs.enumerated() {
             if stopRequested {
                 await finish(.failed(.stopped), snapshot: snapshot)
@@ -156,16 +162,19 @@ final class BenchmarkRunner {
             }
             phase = .running(index: index)
             let target = Set(run.side.isA ? foldersA : foldersB)
-            guard await apply(run.side.isA ? foldersA : foldersB) else {
-                await finish(.failed(.apply), snapshot: snapshot)
-                return
-            }
-            // La bascule voyage par UniqueID : vérifier le disque, pas faire
-            // confiance au mouvement (un doublon manqué vaudrait B = A en silence).
-            guard Set(viewModel.mods.filter(\.isEnabled).map(\.folderName)) == target else {
-                viewModel.log("Benchmark : l'état appliqué diffère de la cible.", level: .error)
-                await finish(.failed(.apply), snapshot: snapshot)
-                return
+            if target != applied {
+                guard await apply(run.side.isA ? foldersA : foldersB) else {
+                    await finish(.failed(.apply), snapshot: snapshot)
+                    return
+                }
+                // La bascule voyage par UniqueID : vérifier le disque, pas faire
+                // confiance au mouvement (un doublon manqué vaudrait B = A en silence).
+                guard Set(viewModel.mods.filter(\.isEnabled).map(\.folderName)) == target else {
+                    viewModel.log("Benchmark : l'état appliqué diffère de la cible.", level: .error)
+                    await finish(.failed(.apply), snapshot: snapshot)
+                    return
+                }
+                applied = target
             }
             let plan = BenchmarkPlanFile(runId: run.id, saveName: run.side.isA ? copyA : copyB,
                                          expiresAt: Date().addingTimeInterval(BenchmarkPlanFile.lifetime))
