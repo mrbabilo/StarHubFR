@@ -48,6 +48,9 @@ public sealed class LoadRecordBuilder
 
     public LoadKind Kind => kind;
 
+    /// <summary>Benchmark automatique : identifiant du lancement sous plan, sinon null.</summary>
+    public string? BenchmarkRun { get; set; }
+
     /// <summary>Un jalon atteint, avec ce qui a coûté depuis le précédent.</summary>
     public void Mark(string name, double ms, IReadOnlyList<CostLine> costsSincePrevious)
     {
@@ -87,5 +90,6 @@ public sealed class LoadRecordBuilder
         Phases = phases,
         Final = final,
         Health = health,
+        BenchmarkRun,
     });
 }

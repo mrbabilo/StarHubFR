@@ -25,6 +25,18 @@ public class LoadRecordTests
     }
 
     [Fact]
+    public void BenchmarkRunIsWrittenWhenSetAndNullOtherwise()
+    {
+        var plain = Launch();
+        using (var doc = JsonDocument.Parse(plain.ToJsonLine()))
+            Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("BenchmarkRun").ValueKind);
+        var marked = Launch();
+        marked.BenchmarkRun = "r7";
+        using (var doc = JsonDocument.Parse(marked.ToJsonLine()))
+            Assert.Equal("r7", doc.RootElement.GetProperty("BenchmarkRun").GetString());
+    }
+
+    [Fact]
     public void AbandonMidLoadIsIncomplete()
     {
         var b = new LoadRecordBuilder(LoadKind.Save, "s", "a", "0.6.0", "TestOK_444827372", 33_922_308, false, false);
@@ -139,6 +151,12 @@ public class LoadRecordTests
         saveB.SetSaveDate("spring 22 Y1");
         saveB.SetHealth("ok", "ok", "ok", 0);
         lines.Add(saveB.ToJsonLine());
+        var bench = new LoadRecordBuilder(LoadKind.Save, sessionB, "2026-09-30T21:10:00.0000000+02:00", "0.7.0",
+                                          "TestOK_444827372_bench", 33_922_310, false, false);
+        for (int i = 0; i < atB.Length; i++) bench.Mark($"S{i}", atB[i], None);
+        bench.SetHealth("ok", "ok", "ok", 0);
+        bench.BenchmarkRun = "run-3";
+        lines.Add(bench.ToJsonLine());
         lines.Add("{\"Kind\":\"save\",\"Session\":\"2026-09-30T22");
 
         string target = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
