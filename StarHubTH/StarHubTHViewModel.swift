@@ -2208,6 +2208,7 @@ final class StarHubTHViewModel {
     // `pendingToggles`/`isToggling`.
     @MainActor
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
+        if refuseDuringBenchmark() { completion?(); return }
         // Refused during a bulk toggle (concurrent moves could lose a mod), and
         // during a « Tout désactiver » estimate (it would overwrite the pending
         // suspension).
@@ -2396,26 +2397,31 @@ final class StarHubTHViewModel {
     ///
     /// - Parameter honoringCloseAfterLaunch: the guided search passes `false`
     ///   so the app keeps running between its steps.
-    func launchGame(honoringCloseAfterLaunch: Bool = true) {
+    /// Rend vrai si un lancement est parti. `fromBenchmark` : refus sans modale
+    /// (la série tourne sans présence) ; sinon un benchmark en cours refuse
+    /// le lancement manuel.
+    @discardableResult
+    func launchGame(honoringCloseAfterLaunch: Bool = true, fromBenchmark: Bool = false) -> Bool {
+        if !fromBenchmark, refuseDuringBenchmark() { return false }
         guard !gameDir.isEmpty else {
-            showModal(message: localization.L(L10n.Settings.gameDirNotSet))
-            return
+            if !fromBenchmark { showModal(message: localization.L(L10n.Settings.gameDirNotSet)) }
+            return false
         }
         // Couche 1 : jeu déjà lancé — refus (deux processus corrompraient les
         // sauvegardes). Rouvre aussi le gate.
         guard !isGameRunning() else {
             let message = self.localization.L(L10n.VM.launchRefusedRunning)
             log(message, level: .warning)
-            showModal(message: message)
-            return
+            if !fromBenchmark { showModal(message: message) }
+            return false
         }
         // Couche 2 : fenêtre aveugle avant `runningApplications` ; le délai
         // retient un double-clic.
         guard launchGate.admit() else {
             let message = self.localization.L(L10n.VM.launchRefusedRecent)
             log(message, level: .warning)
-            showModal(message: message)
-            return
+            if !fromBenchmark { showModal(message: message) }
+            return false
         }
 
         let profile = UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
@@ -2434,9 +2440,11 @@ final class StarHubTHViewModel {
                 try process.run()
                 log(localization.L(L10n.VM.launchVanillaSuccess))
                 if closeAfter { NSApplication.shared.terminate(nil) }
+                return true
             } catch {
                 log(String(format: localization.L(L10n.VM.launchVanillaError), error.localizedDescription))
-                showModal(message: localization.L(L10n.VM.cannotStartVanilla))
+                if !fromBenchmark { showModal(message: localization.L(L10n.VM.cannotStartVanilla)) }
+                return false
             }
         } else {
             log(localization.L(L10n.VM.launchingSmapi))
@@ -2448,7 +2456,7 @@ final class StarHubTHViewModel {
                 log(localization.L(L10n.VM.launchSteamSuccess))
                 startSmapiLogWatcher()
                 if closeAfter { NSApplication.shared.terminate(nil) }
-                return
+                return true
             }
 
             // Direct/GOG: run SMAPI's launcher in place (it replaced `StardewValley`)
@@ -2464,7 +2472,7 @@ final class StarHubTHViewModel {
                     log(localization.L(L10n.VM.launchDirectSuccess))
                     startSmapiLogWatcher()
                     if closeAfter { NSApplication.shared.terminate(nil) }
-                    return
+                    return true
                 } catch {
                     log(String(format: localization.L(L10n.VM.launchVanillaError), error.localizedDescription))
                 }
@@ -2489,9 +2497,11 @@ final class StarHubTHViewModel {
                 log(localization.L(L10n.VM.launchDirectSuccess))
                 startSmapiLogWatcher()
                 if closeAfter { NSApplication.shared.terminate(nil) }
+                return true
             } else {
                 log(localization.L(L10n.VM.cannotStartDirect))
-                showModal(message: localization.L(L10n.VM.cannotStartGame))
+                if !fromBenchmark { showModal(message: localization.L(L10n.VM.cannotStartGame)) }
+                return false
             }
         }
     }
@@ -6326,6 +6336,45 @@ final class StarHubTHViewModel {
         return created
     }
 
+    // MARK: - Benchmark automatique des chargements
+
+    @ObservationIgnored
+    private var _benchmark: BenchmarkRunner?
+    var benchmark: BenchmarkRunner {
+        if let _benchmark { return _benchmark }
+        let created = BenchmarkRunner(viewModel: self)
+        _benchmark = created
+        return created
+    }
+
+    /// Un benchmark bascule des mods et lance le jeu seul : tout geste manuel
+    /// sur le parc ou le jeu est refusé pendant la série.
+    var isBenchmarkActive: Bool { _benchmark?.isActive ?? false }
+
+    func refuseDuringBenchmark() -> Bool {
+        guard isBenchmarkActive else { return false }
+        showModal(message: localization.L(L10n.Benchmark.locked))
+        return true
+    }
+
+    /// Profil ordinaire, non activé : le benchmark l'applique puis restaure.
+    /// Un profil du même nom est réutilisé plutôt que dupliqué.
+    func createMinimalBenchmarkProfile() -> UUID {
+        let name = localization.L(L10n.Benchmark.minimalProfileName)
+        if let existing = modProfiles.first(where: { $0.name == name }) { return existing.id }
+        let profile = ModProfile(name: name, enabledModIds: BenchmarkSides.minimalProfileIds)
+        profilesStore.add(profile)
+        saveProfiles()
+        return profile.id
+    }
+
+    /// Fin de benchmark, plantage compris : le profil actif d'origine revient
+    /// explicitement (l'instantané le porte), sans rien déplacer.
+    func restoreActiveProfileAfterBenchmark(_ id: UUID?) {
+        profilesStore.setActiveProfile(id)
+        saveProfiles()
+    }
+
     /// Active exactement ces dossiers, met les autres en pause, rescane
     /// (bissection). `activeProfileId` neutralisé : sinon
     /// `syncActiveProfileIds` écraserait le profil de l'utilisateur.
@@ -6595,6 +6644,7 @@ final class StarHubTHViewModel {
     }
 
     func applyProfile(id: UUID?, fingerprintChecked: Bool = false) {
+        if refuseDuringBenchmark() { return }
         // Aiguillage dans `ProfileActivation` (Core, 16 tests).
         // ⚠️ `isGameRunning()` **en closure** : il informe le garde anti
         // double-lancement ; un test épingle cette paresse.
@@ -6933,6 +6983,7 @@ final class StarHubTHViewModel {
     /// after every move; timestamps only for moved mods.
     @MainActor
     func toggleAllMods(enable: Bool, fingerprintChecked: Bool = false) {
+        if refuseDuringBenchmark() { return }
         // No re-entry (same paths), and not while unit toggles are queued: the
         // guard prevents the collision the disk checks would only contain.
         guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
