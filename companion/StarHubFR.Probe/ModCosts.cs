@@ -51,6 +51,8 @@ internal static class ModCosts
     private static readonly List<string> SlotEvent = new();
     /// <summary>Vrai pour un emplacement de patch Harmony (D4-T5), faux pour un événement.</summary>
     private static readonly List<bool> SlotIsPatch = new();
+    /// <summary>`event` (gestionnaire), `patch`, `asset` (rappel LoadFrom/Edit) ou `pack` (section Content Patcher).</summary>
+    private static readonly List<string> SlotKind = new();
 
     public static bool Active { get; private set; }
 
@@ -79,6 +81,23 @@ internal static class ModCosts
             }
             Active = patched > 0;
             monitor.Log($"Coût par mod : {patched} méthode(s) Raise instrumentée(s).", LogLevel.Trace);
+
+            // D5-B : les rappels d'assets (LoadFrom/Edit) sont entourés du même
+            // couple Push/TryPop dans GameContentManager (SMAPI 4.5.2 décompilé).
+            Type? content = AccessTools.TypeByName("StardewModdingAPI.Framework.ContentManagers.GameContentManager");
+            int assetPatched = 0;
+            foreach (var (name, label) in new[] { ("ApplyLoader", "AssetLoad"), ("ApplyEditors", "AssetEdit") })
+            {
+                MethodInfo? method = content is null ? null : AccessTools.Method(content, name);
+                if (method is null || !method.IsGenericMethodDefinition) continue;
+                // Instanciation sur un type référence : code partagé par tous les assets.
+                MethodInfo closedMethod = method.MakeGenericMethod(typeof(object));
+                CurrentAssetLabel = label;
+                harmony.Patch(closedMethod, transpiler: new HarmonyMethod(typeof(ModCosts), nameof(AssetTranspiler)));
+                assetPatched++;
+            }
+            AssetHookPatched = assetPatched == 2 && AssetTranspilerMatched == 2;
+            monitor.Log($"Rappels d'assets : {assetPatched} méthode(s), {AssetTranspilerMatched} reconnue(s).", LogLevel.Trace);
         }
         catch (Exception ex)
         {
@@ -117,6 +136,50 @@ internal static class ModCosts
             Monitor.Log($"Raise sans Push/TryPop reconnus ({pushes}/{pops}) : coût par mod partiel.", LogLevel.Warn);
     }
 
+    private static string CurrentAssetLabel = "";
+    private static int AssetTranspilerMatched;
+    private static bool AssetHookPatched;
+    public static string AssetHook { get; private set; } = "missing";
+    public static int AssetCallsSeen { get; private set; }
+
+    /// <summary>
+    /// Même idée que <see cref="Transpiler"/>, pour `ApplyLoader`/`ApplyEditors`
+    /// de SMAPI, qui entourent chaque rappel `LoadFrom`/`Edit` du même couple
+    /// `HeuristicModsRunningCode.Push`/`TryPop` (SMAPI 4.5.2 décompilé le
+    /// 2026-09-29). Le libellé est posé en constante dans l'IL ; Harmony
+    /// transpile dans `Patch`, en synchrone, avant le patch suivant.
+    /// </summary>
+    private static IEnumerable<CodeInstruction> AssetTranspiler(IEnumerable<CodeInstruction> instructions)
+    {
+        MethodInfo begin = AccessTools.Method(typeof(ModCosts), nameof(BeginLabeled));
+        MethodInfo end = AccessTools.Method(typeof(ModCosts), nameof(End));
+        string label = CurrentAssetLabel;
+        int pushes = 0, pops = 0;
+        foreach (CodeInstruction instruction in instructions)
+        {
+            bool isPush = instruction.operand is MethodInfo { Name: "Push" } m1
+                          && m1.DeclaringType?.Name.StartsWith("Stack") == true;
+            bool isPop = instruction.operand is MethodInfo { Name: "TryPop" } m2
+                         && m2.DeclaringType?.Name.StartsWith("Stack") == true;
+            if (isPush)
+            {
+                // Pile : [pile, mod] → [pile, mod, mod, libellé, this].
+                yield return new CodeInstruction(OpCodes.Dup);
+                yield return new CodeInstruction(OpCodes.Ldstr, label);
+                yield return new CodeInstruction(OpCodes.Call, begin);
+                pushes++;
+            }
+            yield return instruction;
+            if (isPop)
+            {
+                yield return new CodeInstruction(OpCodes.Call, end);
+                pops++;
+            }
+        }
+        if (pushes == 1 && pops == 1) AssetTranspilerMatched++;
+        else Monitor.Log($"{label} sans Push/TryPop reconnus ({pushes}/{pops}) : rappels d'assets non mesurés.", LogLevel.Warn);
+    }
+
     /// <summary>
     /// Appelé **avant** le `try` de `Raise` : une exception ici sortirait de
     /// SMAPI et priverait les gestionnaires suivants de l'événement. Rien ne
@@ -133,6 +196,92 @@ internal static class ModCosts
         {
             Fail($"Begin a levé {ex.GetType().Name} : {ex.Message}");
         }
+    }
+
+    private static readonly Dictionary<(string Pack, string Event), int> SectionSlots = new();
+
+    /// <summary>Rappel d'asset (`GameContentManager`) : même pile, emplacement « phase seulement ».</summary>
+    public static void BeginLabeled(object mod, string label)
+    {
+        try
+        {
+            if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
+            if (!Slots.TryGetValue((mod, label), out int slot))
+            {
+                string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
+                            ?? mod.ToString() ?? "?";
+                slot = AddSlot(id, label, isPatch: false, phaseOnly: true, kind: "asset");
+                Slots[(mod, label)] = slot;
+            }
+            PushCore(slot);
+        }
+        catch (Exception ex)
+        {
+            Fail($"BeginLabeled a levé {ex.GetType().Name} : {ex.Message}");
+        }
+    }
+
+    public static int SectionSlot(string packId, string eventType)
+    {
+        if (SectionSlots.TryGetValue((packId, eventType), out int slot)) return slot;
+        slot = AddSlot(packId, eventType, isPatch: false, phaseOnly: true, kind: "pack");
+        SectionSlots[(packId, eventType)] = slot;
+        return slot;
+    }
+
+    /// <summary>Section de pack Content Patcher. Fil du jeu seulement, vérifié par l'appelant.</summary>
+    public static void PushSection(int slot)
+    {
+        if (Unbalanced) return;
+        try { PushCore(slot); }
+        catch (Exception ex) { Fail($"PushSection a levé {ex.GetType().Name} : {ex.Message}"); }
+    }
+
+    public static void PopSection(int slot)
+    {
+        if (Unbalanced) return;
+        try
+        {
+            if (Stack.Depth == 0)
+            {
+                Fail("sortie de section sur une pile vide");
+                return;
+            }
+            if (Stack.Depth <= CostStack.MaxDepth && Stack.TopSlot != slot)
+            {
+                Fail($"sortie de la section {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
+                return;
+            }
+            EndCore();
+        }
+        catch (Exception ex) { Fail($"PopSection a levé {ex.GetType().Name} : {ex.Message}"); }
+    }
+
+    /// <summary>D5-B : vrai pendant une fenêtre de chargement ; la fermer vide la phase.</summary>
+    public static bool PhaseOpen
+    {
+        get => Stack.PhaseOpen;
+        set { Stack.PhaseOpen = value; if (!value) Stack.ClearPhase(); }
+    }
+
+    /// <summary>Ce qui a coûté depuis le jalon précédent, puis remise à zéro de la phase.</summary>
+    public static List<CostLine> TakePhase(string selfId)
+    {
+        double msPerTick = 1000.0 / Stopwatch.Frequency;
+        var lines = new List<CostLine>();
+        for (int i = 0; i < Stack.SlotCount; i++)
+        {
+            if (Stack.PhaseCalls[i] == 0) continue;
+            if (string.Equals(SlotMod[i], selfId, StringComparison.OrdinalIgnoreCase)) continue;
+            lines.Add(new CostLine(SlotMod[i], SlotKind[i], SlotEvent[i],
+                Math.Round(Stack.PhaseTicks[i] * msPerTick, 2),
+                Math.Round(Stack.PhaseAlloc[i] / 1_048_576.0, 2), Stack.PhaseCalls[i]));
+            if (SlotKind[i] == "asset") AssetCallsSeen += Stack.PhaseCalls[i];
+        }
+        lines.Sort((a, b) => b.Ms.CompareTo(a.Ms));
+        Stack.ClearPhase();
+        if (AssetHookPatched && AssetCallsSeen > 0) AssetHook = "ok";
+        return lines;
     }
 
     private static void PushCore(int slot) =>
@@ -261,11 +410,11 @@ internal static class ModCosts
         if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
         try
         {
-            // Un patch resté ouvert sous un gestionnaire : son temps serait
-            // versé à l'événement. Même règle que PopPatchTop, dans l'autre sens.
-            if (Stack.TopSlot >= 0 && SlotIsPatch[Stack.TopSlot])
+            // Un patch ou une section resté ouvert sous un gestionnaire : son
+            // temps serait versé à l'événement. Même règle que PopPatch, dans l'autre sens.
+            if (Stack.TopSlot >= 0 && SlotKind[Stack.TopSlot] is "patch" or "pack")
             {
-                Fail("fin d'événement, mais le sommet de la pile est un patch");
+                Fail($"fin d'événement, mais le sommet de la pile est un {SlotKind[Stack.TopSlot]}");
                 return;
             }
             EndCore();
@@ -292,12 +441,13 @@ internal static class ModCosts
         return slot;
     }
 
-    private static int AddSlot(string mod, string label, bool isPatch, bool phaseOnly = false)
+    private static int AddSlot(string mod, string label, bool isPatch, bool phaseOnly = false, string kind = "event")
     {
         int slot = SlotMod.Count;
         SlotMod.Add(mod);
         SlotEvent.Add(label);
         SlotIsPatch.Add(isPatch);
+        SlotKind.Add(isPatch ? "patch" : kind);
         Stack.AddSlot(phaseOnly);
         return slot;
     }
