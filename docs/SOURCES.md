@@ -730,6 +730,22 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   FarmHouse → Farm +18,6 s. Ces spans sont la cible de D5-B : les
   reproduire sans Profiler, avec la sonde et les horodatages SMAPI.
 
+**Deux coutures qu'utilise la sonde 0.6.0 (D5-B)** *(2026-09-30)* :
+- Content Patcher 2.9.1 : `PatchManager.ApplyLoad<T>`/`ApplyEdits<T>`
+  enveloppent chaque patch dans `Profiler?.RecordSection(packId,
+  "ApplyLoad"|"ApplyEdit", path)` ; le champ `private readonly
+  ProfilerIntegration? Profiler` est null sans `SinZ.Profiler`. La sonde le
+  pose pendant les chargements et répond à `RecordSection`. Si Content
+  Patcher renomme ce champ ou cette méthode : `PackSeam: missing` dans
+  `loads.jsonl`, dit à l'écran.
+- SMAPI 4.5.2 : `GameContentManager.ApplyLoader<T>`/`ApplyEditors<T>`
+  entourent chaque rappel `LoadFrom`/`Edit` d'un
+  `HeuristicModsRunningCode.Push`/`TryPop`, comme `ManagedEvent.Raise`. La
+  boucle d'`Entry` de `SCore` aussi, mais la sonde n'y a pas accès (elle
+  patche pendant sa propre `Entry`). Garde : `AssetHook`.
+- Jeu 1.6.15 : `SaveGame.Load(string)` public static pose
+  `Game1.currentLoader = getLoadEnumerator(filename)` — c'est `S0`.
+
 ### Deux mods de temps de chargement décompilés — FastLoads 1.0.3 et Loading Optimizer 1.0.0 *(2026-09-29)*
 
 Contribution au chantier **D5-B** : ce que deux mods dédiés au temps de

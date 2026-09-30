@@ -967,6 +967,16 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       ≈ 1 min 50, dont 30,8 s pour Content Patcher ; chargement de sauvegarde
       ≈ 1 min 30, dont 10,6 s pour AutoForager. D5-B et **D1-T2** lisent donc
       le même journal. Détail et chiffres : `docs/SOURCES.md` §5.
+      *Livré en code le 2026-09-30, à valider en jeu* : sonde **0.6.0**
+      (`loads.jsonl` : jalons `L0`–`L4` et `S0`–`S9`, total comparé arrêté à
+      `S9`, `S10` affiché seul ; `CostStack` minute/phase — `mod-costs.jsonl`
+      inchangé ; couture Content Patcher `Profiler?.RecordSection` armée
+      pendant les fenêtres ; rappels d'assets `ApplyLoader`/`ApplyEditors`) ;
+      Core (`ProbeLoadRecord`, `ProbeLoadBreakdown`, `ProbeLoadComparison` —
+      bruit A/A mesuré 2,2 % le 2026-09-30, seuil = plancher 5 % ; froid =
+      premier lancement depuis `kern.boottime`, +98 % mesuré, éjection du
+      volume sans effet) ; carte « Chargements » (tuiles, frise, top 5,
+      verdict, geste pause gardé). Tâche 13 = validation en jeu. · **M**
 - [ ] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
       par seconde en événements et patches, pics, allocations), puis de la
       mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
