@@ -29,11 +29,14 @@ import Testing
     static let withoutAF = [("X", "1.0")]
 
     @Test func pausedModGivesFaster() throws {
-        let records = [Self.record("a", at: 0, total: 90_000), Self.record("b", at: 60, total: 78_000)]
-        let launches = [Self.launch("a", at: -1, mods: Self.withAF), Self.launch("b", at: 59, mods: Self.withoutAF)]
+        // Deux sessions de chaque côté : le bruit se mesure dans la comparaison (option 4).
+        let records = [Self.record("a", at: 0, total: 90_000), Self.record("a2", at: 30, total: 91_000),
+                       Self.record("b", at: 60, total: 78_000), Self.record("b2", at: 90, total: 78_500)]
+        let launches = [Self.launch("a", at: -1, mods: Self.withAF), Self.launch("a2", at: 29, mods: Self.withAF),
+                        Self.launch("b", at: 59, mods: Self.withoutAF), Self.launch("b2", at: 89, mods: Self.withoutAF)]
         let r = try #require(ProbeLoadComparison.compare(records, kind: .save, launches: launches, changes: [], coldBefore: nil))
         guard case .faster(let s, _) = r.verdict else { Issue.record("\(r.verdict)"); return }
-        #expect(abs(s - 12) < 0.01)
+        #expect(abs(s - 12.25) < 0.01)
         #expect(r.diff.changes.map(\.modId) == ["Pathoschild.AutoForager"])
     }
 
@@ -113,20 +116,46 @@ import Testing
         #expect(r.diff.changes.count == 1)
     }
 
-    @Test func verdictZones() {
-        let t = ProbeLoadComparison.thresholdPercent, n = ProbeLoadComparison.noiseMaxPercent
-        #expect(ProbeLoadComparison.verdict(before: [100_000], after: [100_000 * (1 - (t + 0.5) / 100)]).isFaster)
-        #expect(ProbeLoadComparison.verdict(before: [100_000], after: [100_000 * (1 + n / 200)]) == .noDifference)
-        if t > n + 0.2 {
-            let mid = (t + n) / 2
-            #expect(ProbeLoadComparison.verdict(before: [100_000], after: [100_000 * (1 - mid / 100)])
-                    == .grayZone(beforeCount: 1, afterCount: 1))
-        }
+    /// Option 4 (2026-09-30) : le bruit se mesure dans la comparaison même,
+    /// sur la dispersion de chaque côté — trois sessions 0.6.2 sur le parc de
+    /// 286 mods ont donné 89,6/83,0/82,3 s, soit 8,9 %.
+    @Test func noiseIsTheWidestSpreadOfEitherSide() {
+        #expect(ProbeLoadComparison.observedNoisePercent(before: [100, 102], after: [80, 100]) == 25)
+        #expect(ProbeLoadComparison.observedNoisePercent(before: [82_300, 89_600, 83_000], after: [80_000, 80_000]) != nil)
+        #expect(ProbeLoadComparison.observedNoisePercent(before: [100], after: [90, 90]) == 0)
+        #expect(ProbeLoadComparison.observedNoisePercent(before: [100], after: [90]) == nil)
     }
 
-    @Test func thresholdNeverBelowFivePercent() {
-        #expect(ProbeLoadComparison.thresholdPercent >= 5)
-        #expect(ProbeLoadComparison.thresholdPercent == 5)   // mesuré 2026-09-30 : bruit 2,2 % → 2 × 2,2 < 5
+    @Test func thresholdIsTwiceTheNoiseWithAFivePercentFloor() {
+        #expect(ProbeLoadComparison.thresholdPercent(noise: 1) == 5)
+        #expect(ProbeLoadComparison.thresholdPercent(noise: 2.5) == 5)
+        #expect(abs(ProbeLoadComparison.thresholdPercent(noise: 8.9) - 17.8) < 1e-9)
+    }
+
+    @Test func quietSidesDecideAtFivePercent() {
+        // Bruit 1 % : seuil 5 %.
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [94_000, 94_500]).isFaster)
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [100_500, 101_000]) == .noDifference)
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [97_000, 97_500])
+                == .grayZone(beforeCount: 2, afterCount: 2))
+    }
+
+    @Test func noisySidesWidenTheThreshold() {
+        // Les trois sessions réelles d'un côté : 8,9 % de bruit, seuil 17,8 %.
+        // Un gain de 10 % n'est plus tranché ; un gain de 25 % l'est.
+        let before = [89_600.0, 83_000, 82_300]
+        #expect(ProbeLoadComparison.verdict(before: before, after: [74_700, 74_900])
+                == .grayZone(beforeCount: 3, afterCount: 2))
+        #expect(ProbeLoadComparison.verdict(before: before, after: [62_000, 62_500]).isFaster)
+    }
+
+    @Test func aSingleSessionOnEitherSideNeverDecides() {
+        #expect(ProbeLoadComparison.verdict(before: [100_000], after: [50_000, 50_100])
+                == .grayZone(beforeCount: 1, afterCount: 2))
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 100_100], after: [50_000])
+                == .grayZone(beforeCount: 2, afterCount: 1))
+        #expect(ProbeLoadComparison.verdict(before: [100_000], after: [100_000])
+                == .grayZone(beforeCount: 1, afterCount: 1))
     }
 
     @Test func verdictDecidedFlags() {

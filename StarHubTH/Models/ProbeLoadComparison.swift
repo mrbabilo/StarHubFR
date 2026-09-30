@@ -18,7 +18,7 @@ public enum ProbeLoadVerdict: Equatable, Sendable {
     case faster(seconds: Double, percent: Double)
     case slower(seconds: Double, percent: Double)
     case noDifference
-    /// Écart entre le bruit A/A et le seuil.
+    /// Écart entre le bruit observé et le seuil, ou un côté à une seule session.
     case grayZone(beforeCount: Int, afterCount: Int)
 
     /// Verdict tranché : l'écran suffixe « indicatif » quand faux.
@@ -59,13 +59,24 @@ public struct ProbeLoadComparisonResult: Equatable, Sendable {
 }
 
 public enum ProbeLoadComparison {
-    /// Mesuré en tâche 0, le 2026-09-30, sur quatre journaux SMAPI (parc
-    /// inchangé) : chaudes 47/46/46 s au lancement (écart 2,2 %), 53/54/54 s
-    /// au chargement (1,9 %). Le maximum retenu : 2,2 %.
-    public static let noiseMaxPercent: Double = 2.2
-    /// max(5 %, 2 × 2,2 %) : le plancher de 5 % tient (leçon de l'A/A D5-A :
+    /// Option 4 (2026-09-30) : pas de constante de bruit. La tâche 0 avait
+    /// mesuré 2,2 % **sans** la sonde ; trois sessions 0.6.2 sur le parc de
+    /// 286 mods ont donné 8,9 % au lancement et 5,3 % au chargement, surtout
+    /// par la première session de la série. Le bruit dépend du parc, du disque
+    /// et du jour : chaque comparaison le mesure sur ses propres sessions —
+    /// le plus grand écart (max − min) / min d'un côté ou de l'autre. Nil
+    /// quand aucun côté n'a deux sessions.
+    public static func observedNoisePercent(before: [Double], after: [Double]) -> Double? {
+        let spreads = [before, after].compactMap { side -> Double? in
+            guard side.count >= 2, let low = side.min(), let high = side.max(), low > 0 else { return nil }
+            return (high - low) / low * 100
+        }
+        return spreads.max()
+    }
+
+    /// max(5 %, 2 × bruit) : le plancher de 5 % tient (leçon de l'A/A D5-A :
     /// jamais assoupli).
-    public static var thresholdPercent: Double { max(5, 2 * noiseMaxPercent) }
+    public static func thresholdPercent(noise: Double) -> Double { max(5, 2 * noise) }
 
     /// Froid (tâche 0) : la première session après le démarrage du Mac a
     /// mesuré +98 % au lancement et +17 % au chargement — largement au-dessus
@@ -156,20 +167,25 @@ public enum ProbeLoadComparison {
             exclusions: exclusions)
     }
 
-    /// Verdict sur les médianes, en millisecondes : tranché au-delà du seuil,
-    /// « pas de différence » sous le bruit A/A, zone grise entre les deux.
+    /// Verdict sur les médianes, en millisecondes. Tranché seulement avec au
+    /// moins deux sessions de chaque côté (sans quoi le bruit est inconnu) et
+    /// au-delà du seuil ; « pas de différence » sous le bruit observé ; zone
+    /// grise sinon.
     public static func verdict(before: [Double], after: [Double]) -> ProbeLoadVerdict {
         guard let beforeMs = median(before), let afterMs = median(after), beforeMs > 0 else {
             return .noDifference
         }
+        let gray = ProbeLoadVerdict.grayZone(beforeCount: before.count, afterCount: after.count)
+        guard before.count >= 2, after.count >= 2,
+              let noise = observedNoisePercent(before: before, after: after) else { return gray }
         let percent = (afterMs - beforeMs) / beforeMs * 100
-        if abs(percent) > thresholdPercent {
+        if abs(percent) > thresholdPercent(noise: noise) {
             let seconds = abs(beforeMs - afterMs) / 1000
             return percent < 0 ? .faster(seconds: seconds, percent: abs(percent))
                                : .slower(seconds: seconds, percent: percent)
         }
-        if abs(percent) <= noiseMaxPercent { return .noDifference }
-        return .grayZone(beforeCount: before.count, afterCount: after.count)
+        if abs(percent) <= noise { return .noDifference }
+        return gray
     }
 
     // MARK: — Privé

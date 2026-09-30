@@ -209,8 +209,9 @@ struct PerformanceLoadsSection: View {
             return String(format: localization.L(L10n.Performance.loadsSlower), name, Self.duration(seconds * 1000))
         case .noDifference:
             return String(format: localization.L(L10n.Performance.loadsNoDifference), name)
-        case .grayZone(_, let afterCount):
-            let key = afterCount < 2 ? L10n.Performance.loadsGrayIndicative : L10n.Performance.loadsGrayRelaunch
+        case .grayZone(let beforeCount, _):
+            // Un seul point « avant » : seule une nouvelle session sous l'ancien état le complète.
+            let key = beforeCount < 2 ? L10n.Performance.loadsGrayIndicative : L10n.Performance.loadsGrayRelaunch
             return String(format: localization.L(key), name)
         }
     }
