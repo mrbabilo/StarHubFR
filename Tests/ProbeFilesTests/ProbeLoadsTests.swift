@@ -55,3 +55,42 @@ import Testing
         #expect(!ProbeLoadRecords.writesLoads(probeVersion: "bogus"))
     }
 }
+
+extension ProbeLoadsTests {
+    @Test func launchSpansMergeUnventilatedStart() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.fixture().first))
+        #expect(b.spans.map(\.name) == [.smapiAndMods, .gameLaunched, .firstTick])
+        #expect(b.spans[0].ms == 24_800)
+        #expect(b.spans[0].costs.isEmpty)
+        #expect(b.spans.map(\.ms).reduce(0, +) == 57_000)
+    }
+
+    @Test func unattributedIsSpanMinusCosts() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.fixture().first))
+        let launched = try #require(b.spans.first { $0.name == .gameLaunched })
+        #expect(launched.ms == 4_600)
+        #expect(abs(launched.unattributedMs - (4_600 - 812.3 - 120.4)) < 0.01)
+    }
+
+    @Test func packCountsForThePackNotContentPatcher() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.fixture().dropFirst().first))
+        let sve = try #require(b.top.first { $0.mod == "FlashShifter.StardewValleyExpandedCP" })
+        #expect(sve.isPack)
+        #expect(sve.ms == 7_400)
+        #expect(b.top.first?.mod == "Pathoschild.AutoForager")
+        #expect(!b.top.contains { $0.mod == "Pathoschild.ContentPatcher" })
+    }
+
+    @Test func waitingForPlayerIsShownButNeverInTop() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.fixture().dropFirst().first))
+        let wait = try #require(b.spans.last)
+        #expect(wait.name == .waitingForPlayer)
+        #expect(wait.ms == 101_000 - 82_500)
+    }
+
+    @Test func packSeamMissingIsSaid() throws {
+        let line = #"{"Kind":"launch","Session":"s","At":"a","ProbeVersion":"0.6.0","Complete":true,"Reload":false,"SaveName":null,"PatchesMeasured":false,"SaveBytes":null,"SaveDate":null,"Milestones":[],"Phases":[],"Final":null,"Health":{"PackSeam":"missing","AssetHook":"ok","LoadHook":"ok","OffThreadSections":0}}"#
+        let record = try #require(ProbeLoadRecords.decode(Data(line.utf8)).records.first)
+        #expect(ProbeLoadBreakdown.of(record).packSeamMissing)
+    }
+}
