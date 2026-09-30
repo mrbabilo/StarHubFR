@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using StarHubFR.Probe;
 using Xunit;
@@ -77,5 +79,71 @@ public class LoadRecordTests
         Assert.Equal("ok", root.GetProperty("Health").GetProperty("PackSeam").GetString());
         // S10 n'entre pas dans les phases : le total comparé s'arrête à S9.
         Assert.Equal(9, root.GetProperty("Phases").GetArrayLength());
+    }
+
+    [Fact]
+    public void WritesTheSwiftFixture()
+    {
+        const string session = "2026-09-30T20:00:00.0000000+02:00";
+        var lines = new List<string>();
+        var launch = new LoadRecordBuilder(LoadKind.Launch, session, session, "0.6.0", null, null, false, false);
+        launch.Mark("L0", 0, None);
+        launch.Mark("L1", 20_100, None);
+        launch.Mark("L2", 24_800, None);
+        launch.Mark("L3", 29_400, new[] {
+            new CostLine("Pathoschild.ContentPatcher", "event", "GameLoop.GameLaunched", 812.3, 41.2, 1),
+            new CostLine("FlashShifter.StardewValleyExpandedCP", "pack", "ApplyEdit", 120.4, 3.1, 88) });
+        launch.Mark("L4", 57_000, new[] {
+            new CostLine("Pathoschild.ContentPatcher", "event", "GameLoop.UpdateTicked", 27_300, 900, 1) });
+        launch.SetHealth("ok", "ok", "ok", 0);
+        lines.Add(launch.ToJsonLine());
+
+        var save = new LoadRecordBuilder(LoadKind.Save, session, "2026-09-30T20:02:10.0000000+02:00", "0.6.0",
+                                         "TestOK_444827372", 33_922_308, false, false);
+        double[] at = { 0, 11_000, 52_500, 52_800, 64_900, 65_900, 68_900, 71_900, 72_100, 82_500 };
+        for (int i = 0; i < at.Length; i++)
+        {
+            var costs = i == 2
+                ? new[] { new CostLine("Rafseazz.RidgesideVillage", "asset", "AssetEdit", 900, 12, 40),
+                          new CostLine("FlashShifter.StardewValleyExpandedCP", "pack", "ApplyLoad", 7_400, 210, 300) }
+                : i == 6
+                    ? new[] { new CostLine("Pathoschild.AutoForager", "event", "Content.AssetReady", 10_600, 5, 9) }
+                    : None;
+            save.Mark($"S{i}", at[i], costs);
+        }
+        save.SetFinal("S10", 101_000, "LetterViewerMenu");
+        save.SetSaveDate("spring 22 Y1");
+        save.SetHealth("ok", "ok", "ok", 0);
+        lines.Add(save.ToJsonLine());
+
+        var cut = new LoadRecordBuilder(LoadKind.Save, session, "2026-09-30T20:10:00.0000000+02:00", "0.6.0",
+                                        "TestOK_444827372", 33_922_308, true, false);
+        cut.Mark("S0", 0, None);
+        cut.Mark("S1", 10_800, None);
+        lines.Add(cut.ToJsonLine());
+
+        const string sessionB = "2026-09-30T21:00:00.0000000+02:00";
+        var launchB = new LoadRecordBuilder(LoadKind.Launch, sessionB, sessionB, "0.6.0", null, null, false, false);
+        foreach (var (name, ms) in new[] { ("L0", 0.0), ("L1", 20_000.0), ("L2", 24_700.0), ("L3", 29_300.0), ("L4", 56_800.0) })
+            launchB.Mark(name, ms, None);
+        launchB.SetHealth("ok", "ok", "ok", 0);
+        lines.Add(launchB.ToJsonLine());
+
+        var saveB = new LoadRecordBuilder(LoadKind.Save, sessionB, "2026-09-30T21:02:10.0000000+02:00", "0.6.0",
+                                          "TestOK_444827372", 33_922_308, false, false);
+        double[] atB = { 0, 11_000, 52_400, 52_700, 64_800, 65_800, 66_900, 69_900, 70_000, 70_000 };
+        for (int i = 0; i < atB.Length; i++)
+            saveB.Mark($"S{i}", atB[i], i == 2
+                ? new[] { new CostLine("FlashShifter.StardewValleyExpandedCP", "pack", "ApplyLoad", 7_300, 205, 300) }
+                : None);
+        saveB.SetSaveDate("spring 22 Y1");
+        saveB.SetHealth("ok", "ok", "ok", 0);
+        lines.Add(saveB.ToJsonLine());
+        lines.Add("{\"Kind\":\"save\",\"Session\":\"2026-09-30T22");
+
+        string target = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "../../../../../Tests/ProbeFilesTests/Fixtures/loads.jsonl"));
+        File.WriteAllText(target, string.Join("\n", lines) + "\n");
+        Assert.True(File.Exists(target));
     }
 }
