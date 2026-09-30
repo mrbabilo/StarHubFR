@@ -23,6 +23,8 @@ namespace StarHubFR.Probe;
 ///  - patch-wraps.json   (option MeasureHarmonyPatches) ce que la mesure des
 ///                       patches couvre et ne couvre pas
 ///  - disjoncteur.txt    (même option) pourquoi les enveloppes ont été retirées
+///  - loads.jsonl        (D5-B) une ligne par lancement et par chargement de
+///                       sauvegarde : jalons, coût par mod et par pack
 ///  - guided-measurements.jsonl  (D5-A) une ligne par mesure guidée close ;
 ///                       le plan, guided-plan.json, est écrit et effacé par l'app
 /// </summary>
@@ -59,6 +61,11 @@ public sealed class ModEntry : Mod
             helper.Events.GameLoop.ReturnedToTitle += (_, _) => PatchBreaker.CalmMoment();
         }
 
+        // D5-B : après le bloc ci-dessus — l'enregistrement de lancement lit
+        // `PatchCosts.Active`, qui vient d'être fixé.
+        ContentPackSections.Initialize(helper, harmony, Monitor);
+        Loads.Initialize(helper, harmony, Monitor, ModManifest.Version.ToString(), ModManifest.UniqueID);
+
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules
         // activés à la demande, intégrations posées quand l'autre mod répond).
@@ -86,6 +93,7 @@ public sealed class ModEntry : Mod
         {
             FrameTimings.FlushNow();
             Guided.Abandon();
+            Loads.Abandon();
         };
         helper.Events.GameLoop.DayStarted += (_, _) =>
         {
@@ -106,6 +114,7 @@ public sealed class ModEntry : Mod
                 // fin du processus (réglages perdus de la dernière minute,
                 // 2026-09-28).
                 Inventory.FlushSync();
+                Loads.AbandonAtExit();
             }
             catch (ObjectDisposedException) { }
         };
