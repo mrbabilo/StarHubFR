@@ -14,21 +14,26 @@ struct PerformanceView: View {
                 PerformanceHeader(localization: localization, store: store)
                 PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
                 content
+                // D5-B — la carte « Chargements » vit aussi en `.needTwo` :
+                // elle ne dépend pas de la paire de minutes.
+                if store.status == .ready || store.status == .needTwo {
+                    PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }
+                }
             }
             .padding(AppDesign.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .task { if store.status == .idle { await store.reload() } }
+        .task { if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) } }
         // L'onglet reste monté : relire à chaque retour, sinon une session
         // jouée depuis n'apparaît jamais (le cache taille + date de l'index
         // rend la relecture quasi gratuite quand rien n'a bougé).
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
-            if segment == .performance { Task { await store.reload() } }
+            if segment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
         }
         // Le jeu se joue app en arrière-plan, onglet ouvert : relire au retour
         // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await store.reload() } }
+            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
         }
     }
 

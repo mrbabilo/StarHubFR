@@ -22,6 +22,16 @@ final class ProbePerformanceStore {
     private(set) var unreadableLines = 0
     /// Diffs clé par clé des réglages modifiés de la paire affichée, par `modId`.
     private(set) var configDiffs: [String: [ConfigKeyDiff]] = [:]
+    /// D5-B — les chargements lus dans `loads.jsonl`, la carte et le verdict.
+    private(set) var loads: [ProbeLoadRecord] = []
+    private(set) var lastLaunch: ProbeLoadBreakdown?
+    private(set) var lastSave: ProbeLoadBreakdown?
+    private(set) var launchComparison: ProbeLoadComparisonResult?
+    private(set) var saveComparison: ProbeLoadComparisonResult?
+    /// Enregistrements « cache froid » (premier lancement depuis le démarrage).
+    private(set) var coldRecordIds: Set<String> = []
+    /// Vrai si la sonde installée écrit `loads.jsonl` (0.6.0+).
+    private(set) var probeWritesLoads = false
 
     @ObservationIgnored private let files: ProbeFiles
     @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
@@ -36,7 +46,7 @@ final class ProbePerformanceStore {
     var configsDirectory: URL { files.configsDirectory }
     var protocolState: GuidedProtocolState { GuidedProtocol.state(plan: plan, measurements: measurements) }
 
-    func reload() async {
+    func reload(gameDir: String? = nil) async {
         // Première lecture seulement : une relecture garde l'écran affiché
         // (retour dans l'app, changement de segment) au lieu de le vider.
         if status == .idle { status = .loading }
@@ -45,6 +55,7 @@ final class ProbePerformanceStore {
             let sessions = index.sessions(keeping: nil)
             let inventory = files.inventory()
             let guided = files.guidedMeasurements()
+            let loads = files.loads()
             var plan = files.guidedPlan()
             // Mesure close : le plan est à effacer — sur le fil principal,
             // là où passent toutes les écritures du plan (pas de course avec
@@ -58,8 +69,12 @@ final class ProbePerformanceStore {
                                                changes: inventory?.changes ?? [],
                                                measurements: guided.measurements)
             return Loaded(sides: sides, measurements: guided.measurements, plan: plan, finishedPlan: finished,
-                          unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable,
-                          hasProbe: !sessions.sessions.isEmpty || inventory != nil)
+                          unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable
+                                      + loads.unreadable,
+                          hasProbe: !sessions.sessions.isEmpty || inventory != nil || !loads.records.isEmpty,
+                          loads: loads.records,
+                          launches: inventory?.launches ?? [], changes: inventory?.changes ?? [],
+                          coldBefore: ProbeColdDisk.cutoff(gameDir: gameDir))
         }.value
         sides = loaded.sides
         if let finished = loaded.finishedPlan {
@@ -73,6 +88,17 @@ final class ProbePerformanceStore {
         measurements = loaded.measurements
         plan = loaded.plan
         unreadableLines = loaded.unreadable
+        // La carte « Chargements » vit aussi en `.needTwo` : avant les gardes.
+        loads = loaded.loads
+        lastLaunch = loads.last { $0.kind == .launch }.map(ProbeLoadBreakdown.of)
+        lastSave = loads.last { $0.kind == .save }.map(ProbeLoadBreakdown.of)
+        coldRecordIds = Set(loads.filter {
+            ProbeLoadComparison.isCold($0, among: loads, coldBefore: loaded.coldBefore) }.map(\.id))
+        launchComparison = ProbeLoadComparison.compare(loads, kind: .launch, launches: loaded.launches,
+                                                       changes: loaded.changes, coldBefore: loaded.coldBefore)
+        saveComparison = ProbeLoadComparison.compare(loads, kind: .save, launches: loaded.launches,
+                                                     changes: loaded.changes, coldBefore: loaded.coldBefore)
+        probeWritesLoads = ProbeLoadRecords.writesLoads(probeVersion: loaded.launches.last?.probe)
         guard loaded.hasProbe else { status = .noProbe; report = nil; return }
         guard sides.count >= 2 else { status = .needTwo; report = nil; return }
         // Garder la paire choisie si elle existe encore, sinon la paire par défaut.
@@ -127,6 +153,10 @@ final class ProbePerformanceStore {
         let finishedPlan: UUID?
         let unreadable: Int
         let hasProbe: Bool
+        let loads: [ProbeLoadRecord]
+        let launches: [ProbeInventoryLaunch]
+        let changes: [ProbeInventoryChange]
+        let coldBefore: Date?
     }
 
     /// Les contenus de réglages se lisent sur disque : hors du fil principal,
