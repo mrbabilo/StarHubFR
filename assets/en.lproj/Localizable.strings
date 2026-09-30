@@ -1855,7 +1855,10 @@
 "bench_locked" = "A benchmark is running: mods and the game are reserved until the series ends.";
 "bench_open" = "Benchmark…";
 "bench_title" = "Load benchmark";
-"bench_intro" = "A is your mods as they are now; B is the change to test. The game launches alternately as A and as B, then the app compares launch and load times.";
+"bench_intro" = "A is the starting state: your current mods or the BENCHMARK profile. B is the change to test. The game launches alternately as A and as B, then the app compares launch and load times. At the end, your mods are put back as they were.";
+"bench_state_a" = "Starting state (A)";
+"bench_state_a_parc" = "Your current mods";
+"bench_state_a_benchmark" = "BENCHMARK profile";
 "bench_run_a" = "state A";
 "bench_run_b" = "state B";
 "bench_run_warmup" = "warm-up (not counted)";

@@ -14,6 +14,10 @@ struct PerformanceBenchmarkSheet: View {
     @State private var perSide = BenchmarkSequence.defaultPerSide
     @State private var saveA: String = ""
     @State private var saveB: String = ""
+    /// État A : le parc actuel, ou le profil « BENCHMARK » que la série
+    /// active pour A (le parc revient à la fin).
+    @State private var baseIsBenchmark = false
+    @State private var benchmarkProfileId: UUID?
 
     private static let parcKey = "parc"
 
@@ -26,6 +30,14 @@ struct PerformanceBenchmarkSheet: View {
         }
     }
 
+    /// Profil supprimé entre-temps : liste vide, la sonde manque, refusé.
+    private var baseIds: [String]? {
+        guard baseIsBenchmark else { return nil }
+        return viewModel.modProfiles.first { $0.id == benchmarkProfileId }?.enabledModIds ?? []
+    }
+
+    private var stateA: [ModItem] { BenchmarkSides.stateA(viewModel.mods, baseProfileIds: baseIds) }
+
     private func save(_ folder: String) -> SaveGameInfo? { viewModel.saves.first { $0.folderName == folder } }
 
     private var refusal: String? {
@@ -33,7 +45,7 @@ struct PerformanceBenchmarkSheet: View {
         guard let sideB, save(saveA) != nil, kind == .same || save(saveB) != nil else {
             return localization.L(L10n.Benchmark.refSaveMissing)
         }
-        switch BenchmarkSides.refusal(sideB, mods: viewModel.mods) {
+        switch BenchmarkSides.refusal(sideB, mods: viewModel.mods, baseProfileIds: baseIds) {
         case nil:
             return nil
         case .probeMissing:
@@ -53,9 +65,10 @@ struct PerformanceBenchmarkSheet: View {
 
     private var cacheMods: [String] {
         guard let sideB else { return [] }
-        let a = BenchmarkSides.foldersA(viewModel.mods)
-        let b = BenchmarkSides.foldersB(sideB, foldersA: a, mods: viewModel.mods)
-        return BenchmarkSides.cacheWarning(foldersA: a, foldersB: b, mods: viewModel.mods)
+        let view = stateA
+        let a = BenchmarkSides.foldersA(view)
+        let b = BenchmarkSides.foldersB(sideB, foldersA: a, mods: view)
+        return BenchmarkSides.cacheWarning(foldersA: a, foldersB: b, mods: view)
     }
 
     /// Les frères d'un composant de pack partent avec lui (le point vit sur
@@ -79,6 +92,10 @@ struct PerformanceBenchmarkSheet: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Benchmark.title)).font(AppDesign.Font.headline(.semibold))
             note(localization.L(L10n.Benchmark.intro))
+            Picker(localization.L(L10n.Benchmark.stateA), selection: $baseIsBenchmark) {
+                Text(localization.L(L10n.Benchmark.stateAParc)).tag(false)
+                Text(localization.L(L10n.Benchmark.stateABenchmark)).tag(true)
+            }
             Picker(localization.L(L10n.Benchmark.sideB), selection: $kind) {
                 Text(localization.L(L10n.Benchmark.sideSame)).tag(Kind.same)
                 Text(localization.L(L10n.Benchmark.sidePause)).tag(Kind.pause)
@@ -87,7 +104,7 @@ struct PerformanceBenchmarkSheet: View {
             if kind == .pause {
                 Picker(localization.L(L10n.Benchmark.sidePause), selection: $pauseFolder) {
                     Text("—").tag("")
-                    ForEach(viewModel.mods.filter(\.isEnabled)) { Text($0.name).tag($0.folderName) }
+                    ForEach(stateA.filter(\.isEnabled)) { Text($0.name).tag($0.folderName) }
                 }
                 if !siblings.isEmpty {
                     note(String(format: localization.L(L10n.Benchmark.siblings), siblings.joined(separator: ", ")))
@@ -135,9 +152,11 @@ struct PerformanceBenchmarkSheet: View {
             // apparaître : la liste se relit à l'ouverture (hors du fil
             // principal), `onChange` reprend le choix quand elle arrive.
             viewModel.reloadSaves()
-            _ = viewModel.ensureBenchmarkProfile()
+            benchmarkProfileId = viewModel.ensureBenchmarkProfile()
             pickDefaultSaveA()
         }
+        // Le mod à mettre en pause se choisit parmi ceux de A.
+        .onChange(of: baseIsBenchmark) { _, _ in pauseFolder = "" }
         .onChange(of: viewModel.saves) { _, _ in if save(saveA) == nil { pickDefaultSaveA() } }
         .onChange(of: profileId) { _, _ in if let key = sideBKey { saveB = remembered(key) ?? saveB } }
     }
@@ -174,7 +193,7 @@ struct PerformanceBenchmarkSheet: View {
         let b = kind == .same ? a : (save(saveB) ?? a)
         remember(a.folderName, for: Self.parcKey)
         if kind == .profile, let key = sideBKey { remember(b.folderName, for: key) }
-        viewModel.benchmark.start(BenchmarkSetup(sideB: sideB, perSide: perSide, saveA: a, saveB: b))
+        viewModel.benchmark.start(BenchmarkSetup(sideB: sideB, perSide: perSide, saveA: a, saveB: b, baseProfileIds: baseIds))
         isPresented = false
     }
 }

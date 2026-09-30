@@ -48,7 +48,37 @@ public enum BenchmarkSides {
         }
     }
 
-    public static func refusal(_ sideB: BenchmarkSideB, mods: [ModItem]) -> BenchmarkRefusal? {
+    /// Le parc vu dans l'état A. `baseProfileIds` : un profil de base
+    /// (« BENCHMARK ») que la série active pour A — `nil`, le parc tel quel.
+    /// Un dossier y est actif si l'un de ses composants est dans le profil
+    /// (règle de `foldersB(.profile)`) ; les composants d'un pack suivent sa tête.
+    public static func stateA(_ mods: [ModItem], baseProfileIds: [String]?) -> [ModItem] {
+        guard let baseProfileIds else { return mods }
+        let wanted = Set(baseProfileIds.map { $0.lowercased() })
+        return mods.map { mod in
+            var item = mod
+            item.isEnabled = mod.components.contains { wanted.contains($0.uniqueId.lowercased()) }
+            item.children = mod.children?.map { child in
+                var copy = child
+                copy.isEnabled = item.isEnabled
+                return copy
+            }
+            return item
+        }
+    }
+
+    /// Jugé sur l'état A. Avec un profil de base, les doublons du parc réel
+    /// comptent aussi : la restauration finale le rebascule en entier.
+    public static func refusal(_ sideB: BenchmarkSideB, mods: [ModItem],
+                               baseProfileIds: [String]? = nil) -> BenchmarkRefusal? {
+        if baseProfileIds != nil {
+            let duplicates = duplicateIdFolders(mods)
+            if !duplicates.isEmpty { return .duplicateIds(duplicates) }
+        }
+        return refusalInState(sideB, mods: stateA(mods, baseProfileIds: baseProfileIds))
+    }
+
+    private static func refusalInState(_ sideB: BenchmarkSideB, mods: [ModItem]) -> BenchmarkRefusal? {
         guard let probe = mods.first(where: { head in
             head.isEnabled && head.components.contains { isProbe($0.uniqueId) }
         }) else { return .probeMissing }

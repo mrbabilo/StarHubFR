@@ -6,6 +6,8 @@ struct BenchmarkSetup: Equatable {
     var perSide: Int
     var saveA: SaveGameInfo
     var saveB: SaveGameInfo
+    /// Profil de base activé pour A (`BenchmarkSides.stateA`) ; `nil` : le parc tel quel.
+    var baseProfileIds: [String]? = nil
 }
 
 enum BenchmarkFailure: Equatable {
@@ -114,8 +116,12 @@ final class BenchmarkRunner {
 
     private func run(_ setup: BenchmarkSetup) async {
         let mods = viewModel.mods
-        let foldersA = BenchmarkSides.foldersA(mods)
-        let foldersB = BenchmarkSides.foldersB(setup.sideB, foldersA: foldersA, mods: mods)
+        // L'instantané garde le parc **réel** : avec un profil de base, A n'est
+        // pas l'état d'origine, et c'est l'origine que la fin remet.
+        let original = BenchmarkSides.foldersA(mods)
+        let stateA = BenchmarkSides.stateA(mods, baseProfileIds: setup.baseProfileIds)
+        let foldersA = BenchmarkSides.foldersA(stateA)
+        let foldersB = BenchmarkSides.foldersB(setup.sideB, foldersA: foldersA, mods: stateA)
         let sameSave = setup.saveA.folderName == setup.saveB.folderName
         let originals = [setup.saveA, setup.saveB].compactMap { SaveFileStamp.read($0.fileURL) }
 
@@ -135,7 +141,7 @@ final class BenchmarkRunner {
             copyB = made
         }
         let copyPaths = Array(Set([copyA, copyB])).map { savesDir.appendingPathComponent($0).path }
-        let snapshot = BenchmarkSnapshot(enabledFolders: foldersA, activeProfileId: viewModel.activeProfileId,
+        let snapshot = BenchmarkSnapshot(enabledFolders: original, activeProfileId: viewModel.activeProfileId,
                                          saveCopies: copyPaths, originals: originals, startedAt: Date())
         // Sans filet de restauration, rien ne bascule.
         guard BenchmarkSnapshotStore.save(snapshot, in: directory) else {

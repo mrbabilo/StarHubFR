@@ -83,6 +83,43 @@ import Testing
         #expect(BenchmarkSides.cacheWarning(foldersA: ["Speedy", "CP"], foldersB: ["Speedy"], mods: mods).isEmpty)
     }
 
+    /// État A = un profil de base (« BENCHMARK ») : le parc vu comme si ce
+    /// profil était actif — même règle que `foldersB(.profile)`, un pack est
+    /// actif si l'un de ses composants est dans le profil.
+    @Test func stateAFromABaseProfile() {
+        let probe = mod("Probe", id: "mrbabilo.StarHubFR.Probe", version: "0.7.0")
+        let skip = mod("Skip", id: "Pathoschild.SkipIntro", enabled: false)
+        let cp = mod("CP", id: "Pathoschild.ContentPatcher")
+        let pack = group("Pack", [mod("Pack Core", id: "X.Core", enabled: false), mod("Pack CP", id: "X.CP", enabled: false)])
+        let mods = [probe, skip, cp, pack]
+        #expect(BenchmarkSides.stateA(mods, baseProfileIds: nil) == mods)
+        let view = BenchmarkSides.stateA(mods, baseProfileIds: ["mrbabilo.starhubfr.probe", "PATHOSCHILD.SKIPINTRO", "X.CP"])
+        #expect(BenchmarkSides.foldersA(view) == ["Probe", "Skip", "Pack"])
+        #expect(view.first { $0.folderName == "Pack" }?.children?.allSatisfy(\.isEnabled) == true)
+        // B se calcule depuis A : mettre en pause un mod du profil de base.
+        #expect(BenchmarkSides.foldersB(.pauseMod(folderName: "Skip"), foldersA: BenchmarkSides.foldersA(view), mods: view)
+                == ["Probe", "Pack"])
+    }
+
+    /// Les refus jugent l'état A, pas le parc actif : un profil de base sans
+    /// la sonde ne mesurerait rien. Les doublons du parc réel comptent quand
+    /// même — la restauration le rebascule en entier.
+    @Test func refusalsJudgeTheBaseProfile() {
+        let probe = mod("Probe", id: "mrbabilo.StarHubFR.Probe", version: "0.7.0")
+        let cp = mod("CP", id: "Pathoschild.ContentPatcher")
+        let swim = mod("Swim", id: "Swim")
+        let twin = mod("Swim Twin", id: "Swim")
+        #expect(BenchmarkSides.refusal(.sameState, mods: [probe, cp], baseProfileIds: ["Pathoschild.ContentPatcher"])
+                == .probeMissing)
+        #expect(BenchmarkSides.refusal(.sameState, mods: [probe, cp], baseProfileIds: [BenchmarkSides.probeId]) == nil)
+        #expect(BenchmarkSides.refusal(.sameState, mods: [probe, cp, swim, twin], baseProfileIds: [BenchmarkSides.probeId])
+                == .duplicateIds(["Swim", "Swim Twin"]))
+        // Un mod en pause dans le parc, actif dans le profil : sa pause en B est jugée sur A.
+        let off = mod("Off", id: "Z.Off", enabled: false)
+        #expect(BenchmarkSides.refusal(.pauseMod(folderName: "Off"), mods: [probe, off],
+                                       baseProfileIds: [BenchmarkSides.probeId, "Z.Off"]) == nil)
+    }
+
     @Test func probeVersionFloor() {
         #expect(ProbeLoadRecords.version("0.7.0", atLeast: [0, 7, 0]))
         #expect(ProbeLoadRecords.version("0.10.1", atLeast: [0, 7, 0]))
