@@ -891,7 +891,8 @@ public final class SaveManager: @unchecked Sendable {
     /// Copies a save or backup folder into "<baseName>_<suffix>" (+ "_2"…),
     /// renames the inner file and patches the name fields (duplicateSave,
     /// branchFromBackup).
-    private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> Bool {
+    /// Rend le nom du dossier créé (celui que le jeu charge), ou nil en échec.
+    private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> String? {
         // Invalidation ici, pas chez un seul des deux appelants.
         invalidateParseCache()
         let fm = FileManager.default
@@ -920,19 +921,28 @@ public final class SaveManager: @unchecked Sendable {
             // Modify name and farm name inside XML files
             try modifyInternalSaveNames(in: newFolderPath, newSaveName: newSaveName, newPlayerName: newPlayerName, newFarmName: newFarmName)
 
-            return true
+            return newSaveName
         } catch {
             // Clone partiel retiré plutôt qu'une réussite sur un dossier cassé.
             try? fm.removeItem(at: newFolderPath)
             print("Failed to \(context): \(error)")
-            return false
+            return nil
         }
     }
 
     public func duplicateSave(info: SaveGameInfo, newName: String, newFarm: String) -> Bool {
         let folderPath = info.fileURL.deletingLastPathComponent()
         let saveName = folderPath.lastPathComponent
-        return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save")
+        return cloneSaveFolder(sourceFolder: folderPath, baseName: saveName, suffix: "copy", newPlayerName: newName, newFarmName: newFarm, context: "duplicate save") != nil
+    }
+
+    /// Benchmark automatique : le jeu ne charge qu'une copie, jamais l'original.
+    /// Rend le nom du dossier copié (celui que `SaveGame.Load` attend).
+    public func cloneForBenchmark(info: SaveGameInfo) -> String? {
+        let folderPath = info.fileURL.deletingLastPathComponent()
+        return cloneSaveFolder(sourceFolder: folderPath, baseName: folderPath.lastPathComponent,
+                               suffix: "bench", newPlayerName: info.playerName,
+                               newFarmName: info.farmName, context: "benchmark copy")
     }
 
     // MARK: - Backup Timeline
@@ -942,7 +952,7 @@ public final class SaveManager: @unchecked Sendable {
         // Nom d'origine complet (« Farm.1 ») : l'ancien `split(".")` coupait au
         // point et Stardew ignorait la branche.
         let originalSaveName = backup.saveFolder
-        return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup")
+        return cloneSaveFolder(sourceFolder: backupFolderPath, baseName: originalSaveName, suffix: "branch", newPlayerName: newName, newFarmName: newFarm, context: "branch backup") != nil
     }
 
     /// List all `.backup_*` sibling folders for a given save

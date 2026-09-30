@@ -115,6 +115,18 @@ struct TestEnvironment {
         #expect(save.playerName == "TestPlayer")
     }
 
+    @Test func cloneForBenchmarkReturnsTheLoadableFolderName() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let info = try env.makeSave(named: "Farm_123", content: "<SaveGame><name>Farm_123</name></SaveGame>")
+        let name = try #require(SaveManager.shared.cloneForBenchmark(info: info))
+        #expect(name == "Farm_123_bench")
+        let file = env.savesDir.appendingPathComponent(name).appendingPathComponent(name)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+        // Un second clone ne réécrit pas le premier.
+        #expect(SaveManager.shared.cloneForBenchmark(info: info) == "Farm_123_bench_1")
+    }
+
     @Test func branchFromBackupKeepsDotsInSaveName() throws {
         // Une partie dont le nom contient un point (« Farm.1 ») : l'ancien
         // `split(".")[0]` la réduisait à « Farm », le fichier interne n'était

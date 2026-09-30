@@ -130,18 +130,23 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
 }
 
 public enum ProbeLoadRecords {
-    /// Vrai si une sonde de cette version écrit `loads.jsonl` (0.6.0 et plus).
-    public static func writesLoads(probeVersion: String?) -> Bool {
-        guard let probeVersion else { return false }
-        let parts = probeVersion.split(separator: ".").compactMap { Int($0) }
-        guard parts.count == probeVersion.split(separator: ".").count, !parts.isEmpty else { return false }
-        let floor = [0, 6, 0]
+    /// Vrai si `version` (chiffres séparés par des points, rien d'autre) vaut au moins `floor`.
+    public static func version(_ version: String?, atLeast floor: [Int]) -> Bool {
+        guard let version else { return false }
+        let raw = version.split(separator: ".")
+        let parts = raw.compactMap { Int($0) }
+        guard parts.count == raw.count, !parts.isEmpty else { return false }
         for i in 0..<max(parts.count, floor.count) {
             let p = i < parts.count ? parts[i] : 0
             let f = i < floor.count ? floor[i] : 0
             if p != f { return p > f }
         }
         return true
+    }
+
+    /// Vrai si une sonde de cette version écrit `loads.jsonl` (0.6.0 et plus).
+    public static func writesLoads(probeVersion: String?) -> Bool {
+        version(probeVersion, atLeast: [0, 6, 0])
     }
 
     /// Les lignes des sessions ordinaires : un benchmark a son propre verdict,
