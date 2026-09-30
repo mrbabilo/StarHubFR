@@ -117,3 +117,34 @@ import Foundation
         if case .beforeDone(let m) = s.protocolState { #expect(m.id == plan.id) } else { Issue.record("état") }
     }
 }
+
+extension ProbePerformanceStoreTests {
+    /// Deux sessions 0.6.0 : AutoForager présent (A), puis absent (B).
+    private static let inventoryAB = """
+    {"Session":"2026-09-30T20:00:00.0000000\\u002B02:00","At":"2026-09-30T20:00:20.0000000\\u002B02:00","Kind":"launch","Probe":"0.6.0","Smapi":"4.5.2","Game":"1.6.15","Mods":[{"Id":"Pathoschild.AutoForager","Version":"1.0.0","Config":null},{"Id":"mrbabilo.StarHubFR.Probe","Version":"0.6.0","Config":null}]}
+    {"Session":"2026-09-30T21:00:00.0000000\\u002B02:00","At":"2026-09-30T21:00:20.0000000\\u002B02:00","Kind":"launch","Probe":"0.6.0","Smapi":"4.5.2","Game":"1.6.15","Mods":[{"Id":"mrbabilo.StarHubFR.Probe","Version":"0.6.0","Config":null}]}
+
+    """
+
+    @Test func loadsAreReadWithTheirComparison() async throws {
+        let probe = root.appendingPathComponent("probe", isDirectory: true)
+        try FileManager.default.createDirectory(at: probe, withIntermediateDirectories: true)
+        try Self.inventoryAB.write(to: probe.appendingPathComponent("inventory.jsonl"), atomically: true, encoding: .utf8)
+        try Fixture.data("loads.jsonl").write(to: probe.appendingPathComponent("loads.jsonl"))
+        let s = ProbePerformanceStore(files: ProbeFiles(directory: probe))
+        await s.reload()
+        #expect(s.probeWritesLoads)
+        #expect(s.lastSave?.record.session == "2026-09-30T21:00:00.0000000+02:00")
+        let comparison = try #require(s.saveComparison)
+        #expect(comparison.diff.changes.map(\.modId) == ["Pathoschild.AutoForager"])
+        #expect(s.unreadableLines >= 1)   // la ligne tronquée de la fixture
+    }
+
+    @Test func olderProbeShowsNoLoadsAndKeepsTheTab() async throws {
+        let s = try store()   // fixtures 0.4.x, sans loads.jsonl
+        await s.reload()
+        #expect(s.loads.isEmpty)
+        #expect(!s.probeWritesLoads)
+        #expect(s.status == .ready)
+    }
+}

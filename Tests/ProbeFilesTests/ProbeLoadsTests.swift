@@ -9,8 +9,29 @@ import Testing
 
     @Test func truncatedLineIsCounted() throws {
         let result = ProbeLoadRecords.decode(try Fixture.data("loads.jsonl"))
-        #expect(result.records.count == 5)
+        #expect(result.records.count == 6)
         #expect(result.unreadable == 1)
+    }
+
+    @Test func benchmarkRunIsDecodedAndOptional() throws {
+        let records = try Self.fixture()
+        let marked = records.filter { (record: ProbeLoadRecord) -> Bool in record.benchmarkRun != nil }
+        #expect(marked.count == 1)
+        #expect(marked.first?.benchmarkRun == "run-3")
+        #expect(marked.first?.saveName == "TestOK_444827372_bench")
+        // Une ligne 0.6.x sans le champ reste lisible.
+        let old = #"{"Kind":"launch","Session":"s","At":"2026-09-30T20:00:00+02:00","ProbeVersion":"0.6.2","Complete":true,"Reload":false,"SaveName":null,"PatchesMeasured":false,"SaveBytes":null,"SaveDate":null,"Milestones":[],"Phases":[],"Final":null,"Health":{"PackSeam":"ok","AssetHook":"ok","LoadHook":"ok","OffThreadSections":0}}"#
+        let decoded = ProbeLoadRecords.decode(Data(old.utf8)).records
+        #expect(decoded.count == 1)
+        #expect(decoded.first?.benchmarkRun == nil)
+    }
+
+    /// Review Focus 4 : chauffes et lancements de benchmark n'entrent pas dans le compare de la carte.
+    @Test func manualDropsBenchmarkLines() throws {
+        let records = try Self.fixture()
+        let manual = ProbeLoadRecords.manual(records)
+        #expect(manual.count == records.count - 1)
+        #expect(manual.allSatisfy { (record: ProbeLoadRecord) -> Bool in record.benchmarkRun == nil })
     }
 
     @Test func launchDecodesWithEscapedSession() throws {

@@ -89,7 +89,7 @@ final class ProbePerformanceStore {
         plan = loaded.plan
         unreadableLines = loaded.unreadable
         // La carte « Chargements » vit aussi en `.needTwo` : avant les gardes.
-        loads = loaded.loads
+        loads = ProbeLoadRecords.manual(loaded.loads)
         lastLaunch = loads.last { $0.kind == .launch }.map(ProbeLoadBreakdown.of)
         lastSave = loads.last { $0.kind == .save }.map(ProbeLoadBreakdown.of)
         coldRecordIds = Set(loads.filter {

@@ -98,6 +98,8 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
     public let phases: [ProbeLoadPhase]
     public let final: Final?
     public let health: Health
+    /// Benchmark automatique : identifiant du lancement sous plan, sinon nil.
+    public let benchmarkRun: String?
     /// Total comparé : dernier jalon de phase (`L4` ou `S9`) — `S10` attend un
     /// humain et n'entre jamais dans une comparaison.
     public let totalMs: Double
@@ -105,7 +107,7 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
     public init(kind: Kind, session: String, atText: String, at: Date?, probeVersion: String,
                 complete: Bool, reload: Bool, saveName: String?, patchesMeasured: Bool,
                 saveBytes: Int64?, saveDate: String?, milestones: [ProbeLoadMilestone],
-                phases: [ProbeLoadPhase], final: Final?, health: Health) {
+                phases: [ProbeLoadPhase], final: Final?, health: Health, benchmarkRun: String? = nil) {
         self.kind = kind
         self.session = session
         self.atText = atText
@@ -121,6 +123,7 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
         self.phases = phases
         self.final = final
         self.health = health
+        self.benchmarkRun = benchmarkRun
         self.totalMs = milestones.last { $0.name == "L4" || $0.name == "S9" }?.ms
             ?? milestones.last?.ms ?? 0
     }
@@ -139,6 +142,12 @@ public enum ProbeLoadRecords {
             if p != f { return p > f }
         }
         return true
+    }
+
+    /// Les lignes des sessions ordinaires : un benchmark a son propre verdict,
+    /// ses chauffes et ses lancements n'entrent pas dans la carte.
+    public static func manual(_ records: [ProbeLoadRecord]) -> [ProbeLoadRecord] {
+        records.filter { $0.benchmarkRun == nil }
     }
 
     public static func decode(_ data: Data) -> (records: [ProbeLoadRecord], unreadable: Int) {
@@ -165,6 +174,7 @@ public enum ProbeLoadRecords {
         var phases: [DecodedPhase]
         var final: DecodedFinal?
         var health: DecodedHealth
+        var benchmarkRun: String?
 
         struct DecodedMilestone: Decodable {
             var name: String
@@ -221,6 +231,7 @@ public enum ProbeLoadRecords {
             final: line.final.map { ProbeLoadRecord.Final(name: $0.name, ms: $0.ms, menu: $0.menu) },
             health: ProbeLoadRecord.Health(packSeam: line.health.packSeam, assetHook: line.health.assetHook,
                                            loadHook: line.health.loadHook,
-                                           offThreadSections: line.health.offThreadSections))
+                                           offThreadSections: line.health.offThreadSections),
+            benchmarkRun: line.benchmarkRun)
     }
 }
