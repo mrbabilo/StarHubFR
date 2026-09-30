@@ -181,6 +181,7 @@ internal static class Loads
         if (record is null) return;
         record.SetHealth(ContentPackSections.Health, ModCosts.AssetHook,
             LoadHookPatched ? "ok" : "missing", ContentPackSections.OffThreadSections);
+        if (log) Monitor.Log($"Chargement écrit : {ModCosts.AssetDiagnostic}.", LogLevel.Trace);
         try
         {
             File.AppendAllText(OutputPath, record.ToJsonLine() + "\n");

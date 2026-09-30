@@ -82,28 +82,37 @@ internal static class ModCosts
             Active = patched > 0;
             monitor.Log($"Coût par mod : {patched} méthode(s) Raise instrumentée(s).", LogLevel.Trace);
 
-            // D5-B : les rappels d'assets (LoadFrom/Edit) sont entourés du même
-            // couple Push/TryPop dans GameContentManager (SMAPI 4.5.2 décompilé).
-            Type? content = AccessTools.TypeByName("StardewModdingAPI.Framework.ContentManagers.GameContentManager");
-            int assetPatched = 0;
-            foreach (var (name, label) in new[] { ("ApplyLoader", "AssetLoad"), ("ApplyEditors", "AssetEdit") })
+            // D5-B : les rappels d'assets (LoadFrom/Edit). 0.6.0 transpilait
+            // `ApplyLoader<T>`/`ApplyEditors<T>` et n'a vu aucun rappel (sessions
+            // du 2026-09-30). Hypothèse, non vérifiée hors jeu (Harmony x64
+            // seulement) et que le diagnostic 0.6.2 doit trancher : pour une
+            // méthode **générique**, Harmony ne détourne que le stub `<object>`
+            // et les vrais appels passent par le corps partagé — `Raise`,
+            // méthode simple d'un type générique, marche. On accroche donc `SCore.RequestAssetOperations`,
+            // non générique, qui rend les opérations fraîches de chaque requête
+            // (SMAPI 4.5.2 décompilé), et on enveloppe leurs délégués.
+            Type? score = AccessTools.TypeByName("StardewModdingAPI.Framework.SCore");
+            MethodInfo? request = score is null ? null : AccessTools.Method(score, "RequestAssetOperations");
+            Type? group = AccessTools.TypeByName("StardewModdingAPI.Framework.Content.AssetOperationGroup");
+            Type? loadOp = AccessTools.TypeByName("StardewModdingAPI.Framework.Content.AssetLoadOperation");
+            Type? editOp = AccessTools.TypeByName("StardewModdingAPI.Framework.Content.AssetEditOperation");
+            GroupLoads = group?.GetProperty("LoadOperations");
+            GroupEdits = group?.GetProperty("EditOperations");
+            LoadMod = loadOp?.GetProperty("Mod");
+            LoadGetData = loadOp is null ? null : AccessTools.Field(loadOp, "<GetData>k__BackingField");
+            EditMod = editOp?.GetProperty("Mod");
+            EditApply = editOp is null ? null : AccessTools.Field(editOp, "<ApplyEdit>k__BackingField");
+            if (request is not null && GroupLoads is not null && GroupEdits is not null && LoadMod is not null
+                && LoadGetData?.FieldType == typeof(Func<IAssetInfo, object>)
+                && EditMod is not null && EditApply?.FieldType == typeof(Action<IAssetData>))
             {
-                MethodInfo? method = content is null ? null : AccessTools.Method(content, name);
-                if (method is null || !method.IsGenericMethodDefinition) continue;
-                // Instanciation sur un type référence : code partagé par tous les assets.
-                MethodInfo closedMethod = method.MakeGenericMethod(typeof(object));
-                CurrentAssetLabel = label;
-                harmony.Patch(closedMethod, transpiler: new HarmonyMethod(typeof(ModCosts), nameof(AssetTranspiler)));
-                assetPatched++;
-                // Session 0.6.0 : patchs posés mais aucun rappel attribué —
-                // le corps partagé existait déjà JITé avant l'Entry (SMAPI
-                // charge des assets à son propre démarrage), contrairement à
-                // `Raise`. Le détour atteint-il le chemin exécuté ?
-                var info = Harmony.GetPatchInfo(closedMethod);
-                monitor.Log($"{label} : {info?.Owners?.Count ?? -1} patch(s) posé(s).", LogLevel.Trace);
+                harmony.Patch(request, postfix: new HarmonyMethod(typeof(ModCosts), nameof(WrapAssetOperations)));
+                AssetHookPatched = true;
             }
-            AssetHookPatched = assetPatched == 2 && AssetTranspilerMatched == 2;
-            monitor.Log($"Rappels d'assets : {assetPatched} méthode(s), {AssetTranspilerMatched} reconnue(s).", LogLevel.Trace);
+            monitor.Log(AssetHookPatched
+                ? "Rappels d'assets : RequestAssetOperations accroché."
+                : "Rappels d'assets non mesurés : RequestAssetOperations ou ses opérations introuvables dans SMAPI.",
+                AssetHookPatched ? LogLevel.Trace : LogLevel.Warn);
         }
         catch (Exception ex)
         {
@@ -142,48 +151,60 @@ internal static class ModCosts
             Monitor.Log($"Raise sans Push/TryPop reconnus ({pushes}/{pops}) : coût par mod partiel.", LogLevel.Warn);
     }
 
-    private static string CurrentAssetLabel = "";
-    private static int AssetTranspilerMatched;
     private static bool AssetHookPatched;
+    private static PropertyInfo? GroupLoads, GroupEdits, LoadMod, EditMod;
+    private static FieldInfo? LoadGetData, EditApply;
+    /// <summary>Diagnostic D5-B, cumulé depuis le lancement : opérations enveloppées, rappels vus, rappels hors du fil du jeu.</summary>
+    private static int AssetOpsWrapped, AssetBegins, AssetOffThread;
+    public static string AssetDiagnostic =>
+        $"depuis le lancement, {AssetOpsWrapped} opération(s) d'asset enveloppée(s), {AssetBegins} rappel(s) vu(s) dont {AssetOffThread} hors du fil du jeu";
     public static string AssetHook { get; private set; } = "missing";
     public static int AssetCallsSeen { get; private set; }
 
     /// <summary>
-    /// Même idée que <see cref="Transpiler"/>, pour `ApplyLoader`/`ApplyEditors`
-    /// de SMAPI, qui entourent chaque rappel `LoadFrom`/`Edit` du même couple
-    /// `HeuristicModsRunningCode.Push`/`TryPop` (SMAPI 4.5.2 décompilé le
-    /// 2026-09-29). Le libellé est posé en constante dans l'IL ; Harmony
-    /// transpile dans `Patch`, en synchrone, avant le patch suivant.
+    /// Postfix de `SCore.RequestAssetOperations` : chaque `GetData`/`ApplyEdit`
+    /// rendu est remplacé par une enveloppe qui mesure le rappel sous son mod.
+    /// Les opérations sont neuves à chaque requête (`LoadFrom`/`Edit` les
+    /// créent) et SMAPI ne fait qu'invoquer ces délégués : les réécrire en
+    /// place ne change rien d'autre. Le `finally` garde la pile équilibrée si
+    /// le rappel lève (SMAPI rattrape l'exception plus haut).
     /// </summary>
-    private static IEnumerable<CodeInstruction> AssetTranspiler(IEnumerable<CodeInstruction> instructions)
+    private static void WrapAssetOperations(object? __result)
     {
-        MethodInfo begin = AccessTools.Method(typeof(ModCosts), nameof(BeginLabeled));
-        MethodInfo end = AccessTools.Method(typeof(ModCosts), nameof(End));
-        string label = CurrentAssetLabel;
-        int pushes = 0, pops = 0;
-        foreach (CodeInstruction instruction in instructions)
+        if (__result is null || Unbalanced) return;
+        try
         {
-            bool isPush = instruction.operand is MethodInfo { Name: "Push" } m1
-                          && m1.DeclaringType?.Name.StartsWith("Stack") == true;
-            bool isPop = instruction.operand is MethodInfo { Name: "TryPop" } m2
-                         && m2.DeclaringType?.Name.StartsWith("Stack") == true;
-            if (isPush)
-            {
-                // Pile : [pile, mod] → [pile, mod, mod, libellé, this].
-                yield return new CodeInstruction(OpCodes.Dup);
-                yield return new CodeInstruction(OpCodes.Ldstr, label);
-                yield return new CodeInstruction(OpCodes.Call, begin);
-                pushes++;
-            }
-            yield return instruction;
-            if (isPop)
-            {
-                yield return new CodeInstruction(OpCodes.Call, end);
-                pops++;
-            }
+            if (GroupLoads!.GetValue(__result) is System.Collections.IList loads)
+                foreach (object op in loads)
+                {
+                    if (LoadGetData!.GetValue(op) is not Func<IAssetInfo, object> load || LoadMod!.GetValue(op) is not { } mod)
+                        continue;
+                    LoadGetData.SetValue(op, (Func<IAssetInfo, object>)(info =>
+                    {
+                        BeginLabeled(mod, "AssetLoad");
+                        try { return load(info); }
+                        finally { End(); }
+                    }));
+                    AssetOpsWrapped++;
+                }
+            if (GroupEdits!.GetValue(__result) is System.Collections.IList edits)
+                foreach (object op in edits)
+                {
+                    if (EditApply!.GetValue(op) is not Action<IAssetData> apply || EditMod!.GetValue(op) is not { } mod)
+                        continue;
+                    EditApply.SetValue(op, (Action<IAssetData>)(asset =>
+                    {
+                        BeginLabeled(mod, "AssetEdit");
+                        try { apply(asset); }
+                        finally { End(); }
+                    }));
+                    AssetOpsWrapped++;
+                }
         }
-        if (pushes == 1 && pops == 1) AssetTranspilerMatched++;
-        else Monitor.Log($"{label} sans Push/TryPop reconnus ({pushes}/{pops}) : rappels d'assets non mesurés.", LogLevel.Warn);
+        catch (Exception ex)
+        {
+            Fail($"WrapAssetOperations a levé {ex.GetType().Name} : {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -206,17 +227,14 @@ internal static class ModCosts
 
     private static readonly Dictionary<(string Pack, string Event), int> SectionSlots = new();
 
-    /// <summary>Rappel d'asset (`GameContentManager`) : même pile, emplacement « phase seulement ».</summary>
-    private static int AssetBegins;
-
+    /// <summary>Rappel d'asset (`GetData`/`ApplyEdit` enveloppé) : même pile, emplacement « phase seulement ».</summary>
     public static void BeginLabeled(object mod, string label)
     {
         try
         {
-            if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
             AssetBegins++;
-            if (AssetBegins == 1)
-                Monitor.Log("Premier rappel d'asset attribué par le transpileur.", LogLevel.Trace);
+            if (Environment.CurrentManagedThreadId != MainThreadId) AssetOffThread++;
+            if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
             if (!Slots.TryGetValue((mod, label), out int slot))
             {
                 string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
