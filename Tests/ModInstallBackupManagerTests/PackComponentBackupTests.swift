@@ -212,7 +212,12 @@ import Testing
         // compagnon du même mois est là parce que la rétention garde la plus
         // récente de chaque mois au-delà de 30 jours — sans lui, l'unique
         // ancienne serait protégée à ce titre et le ménage n'essaierait rien.
-        let yearAgo = Date().addingTimeInterval(-365 * 24 * 3600)
+        // Ancrée au 15 à midi : « une heure plus tard » reste dans le même
+        // mois quelle que soit l'heure du test (lancé à 23 h 40 UTC un 30,
+        // l'ancien calcul mettait le compagnon en octobre).
+        let now = Calendar.current.dateComponents([.year, .month], from: Date())
+        let yearAgo = try #require(Calendar.current.date(from: DateComponents(
+            year: (now.year ?? 2000) - 1, month: now.month, day: 15, hour: 12)))
         let old = ModInstallBackup(timestamp: yearAgo,
                                    originalFolderName: "ReadOnlyMod",
                                    backupPath: fresh.backupPath,
