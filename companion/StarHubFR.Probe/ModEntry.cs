@@ -47,13 +47,20 @@ public sealed class ModEntry : Mod
         GcPauses.Start(Monitor);
         Guided.Initialize(Monitor, ModManifest.Version.ToString());
         GuidedBanner.Initialize(helper);
+        // Avant Loads.Initialize : l'enregistrement de lancement lit Benchmark.RunId.
+        Benchmark.Initialize(helper, Monitor);
         // D5-A : un plan en attente désarme la mesure des patches pour la
         // session — le disjoncteur la coupe 5 min après le chargement, et une
         // mesure à cheval mélangerait deux états que l'app refuse de comparer.
         bool guidedPending = Guided.PlanPending();
+        bool benchmarkPending = Benchmark.Pending;
         if (config.MeasureHarmonyPatches && guidedPending)
             Monitor.Log("Mesure guidée en attente : la mesure des patches n'est pas armée pour cette session.", LogLevel.Info);
-        if (config.MeasureHarmonyPatches && !guidedPending)
+        // Benchmark : la mesure des patches pèserait différemment d'un côté à
+        // l'autre (parc contre profil minimal) — désarmée sous plan.
+        if (config.MeasureHarmonyPatches && benchmarkPending)
+            Monitor.Log("Benchmark : la mesure des patches n'est pas armée pour cette session.", LogLevel.Info);
+        if (config.MeasureHarmonyPatches && !guidedPending && !benchmarkPending)
         {
             PatchCosts.Initialize(helper, Monitor, ModManifest.UniqueID);
             helper.Events.GameLoop.UpdateTicked += (_, _) => PatchBreaker.Poll();

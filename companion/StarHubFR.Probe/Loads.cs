@@ -45,6 +45,7 @@ internal static class Loads
 
         Current = new LoadRecordBuilder(LoadKind.Launch, FrameTimings.Session,
             new DateTimeOffset(start).ToString("o"), probeVersion, null, null, false, PatchCosts.Active);
+        Current.BenchmarkRun = Benchmark.RunId;
         Current.Mark("L0", 0, Array.Empty<CostLine>());
         Current.Mark("L1", LaunchOffsetMs, Array.Empty<CostLine>());
         Open();
@@ -65,6 +66,10 @@ internal static class Loads
     }
 
     private static double Now => LaunchOffsetMs + Clock.Elapsed.TotalMilliseconds;
+    internal static double NowMs => Now;
+
+    /// <summary>Benchmark : la ligne part sans attendre S10 (hors du total comparé).</summary>
+    public static void FlushNow() => Write();
 
     private static void Open() { ModCosts.PhaseOpen = true; ContentPackSections.Arm(true); }
 
@@ -89,6 +94,7 @@ internal static class Loads
         if (Current is { Kind: LoadKind.Launch } && Game1.activeClickableMenu is TitleMenu)
         {
             Mark("L4", Now);
+            Benchmark.MarkL4(Now);
             Write();
             return;
         }
@@ -116,6 +122,7 @@ internal static class Loads
             SaveStartMs = Now;
             Current = new LoadRecordBuilder(LoadKind.Save, FrameTimings.Session, DateTimeOffset.Now.ToString("o"),
                 ProbeVersion, filename, bytes, Reloaded, PatchCosts.Active);
+            Current.BenchmarkRun = Benchmark.RunId;
             Reloaded = true;
             Open();
             ModCosts.TakePhase(SelfId);   // rien du menu titre ne compte pour S0 → S1
@@ -155,6 +162,7 @@ internal static class Loads
     {
         if (Current is not { Kind: LoadKind.Save }) return;
         Mark("S9", Now - SaveStartMs);
+        Benchmark.MarkS9(Now);   // horloge de Loads.NowMs, pas l'écart depuis S0
         PendingFinal = Current;
         Current = null;
         Close();
