@@ -6359,11 +6359,11 @@ final class StarHubTHViewModel {
         return true
     }
 
-    /// Profil ordinaire, non activé : le benchmark l'applique puis restaure.
-    /// Un profil du même nom est réutilisé plutôt que dupliqué.
-    func createMinimalBenchmarkProfile() -> UUID {
-        let name = localization.L(L10n.Benchmark.minimalProfileName)
-        if let existing = modProfiles.first(where: { $0.name == name }) { return existing.id }
+    /// Profil ordinaire, non activé, créé à l'ouverture du benchmark s'il manque.
+    /// Un profil du même nom est repris tel quel, jamais dupliqué ni réécrit.
+    func ensureBenchmarkProfile() -> UUID {
+        let name = BenchmarkSides.minimalProfileName
+        if let existing = modProfiles.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) { return existing.id }
         let profile = ModProfile(name: name, enabledModIds: BenchmarkSides.minimalProfileIds)
         profilesStore.add(profile)
         saveProfiles()

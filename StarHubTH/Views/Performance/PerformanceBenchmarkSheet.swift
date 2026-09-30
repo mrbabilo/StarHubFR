@@ -99,8 +99,8 @@ struct PerformanceBenchmarkSheet: View {
                         Text("—").tag(UUID?.none)
                         ForEach(viewModel.modProfiles) { Text($0.name).tag(UUID?.some($0.id)) }
                     }
-                    Button(localization.L(L10n.Benchmark.createMinimal)) {
-                        profileId = viewModel.createMinimalBenchmarkProfile()
+                    Button(localization.L(L10n.Benchmark.useMinimal)) {
+                        profileId = viewModel.ensureBenchmarkProfile()
                     }
                 }
             }
@@ -135,6 +135,7 @@ struct PerformanceBenchmarkSheet: View {
             // apparaître : la liste se relit à l'ouverture (hors du fil
             // principal), `onChange` reprend le choix quand elle arrive.
             viewModel.reloadSaves()
+            _ = viewModel.ensureBenchmarkProfile()
             pickDefaultSaveA()
         }
         .onChange(of: viewModel.saves) { _, _ in if save(saveA) == nil { pickDefaultSaveA() } }

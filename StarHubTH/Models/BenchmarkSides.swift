@@ -20,6 +20,9 @@ public enum BenchmarkRefusal: Equatable, Sendable {
 
 public enum BenchmarkSides {
     public static let probeId = "mrbabilo.StarHubFR.Probe"
+    /// Nom fixe, identique en anglais et en français : le profil se retrouve
+    /// par ce nom (celui de l'utilisateur, s'il en a déjà fait un, est repris tel quel).
+    public static let minimalProfileName = "BENCHMARK"
     public static let minimalProfileIds = [probeId, "SMAPI.ConsoleCommands", "SMAPI.SaveBackup",
                                            "Pathoschild.SkipIntro"]
     /// Mods à cache disque connu : les basculer fait payer la reconstruction à

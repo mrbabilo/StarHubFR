@@ -812,7 +812,6 @@ enum L10n {
     /// D4-T4 plan 4 — l'onglet Performances.
     enum Benchmark {
         static let locked             = "bench_locked"
-        static let minimalProfileName = "bench_minimal_profile_name"
         static let open               = "bench_open"
         static let title              = "bench_title"
         static let intro              = "bench_intro"
@@ -827,7 +826,7 @@ enum L10n {
         static let saveA              = "bench_save_a"
         static let saveB              = "bench_save_b"
         static let duration           = "bench_duration"
-        static let createMinimal      = "bench_create_minimal"
+        static let useMinimal         = "bench_use_minimal"
         static let start              = "bench_start"
         static let stop               = "bench_stop"
         static let cancel             = "bench_cancel"
