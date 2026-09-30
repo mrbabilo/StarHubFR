@@ -22,6 +22,29 @@ struct ProbePerformanceTests {
         #expect(all.filter { $0.inventory == nil }.count == 3)
     }
 
+    /// Une session de benchmark n'est pas un côté : sa minute unique est
+    /// toujours écartée (première en partie), et la paire par défaut la
+    /// choisirait contre la dernière session manuelle. La ligne `loads` garde
+    /// l'échappement réel de la sonde (`+`) : l'appariement se fait sur
+    /// les identifiants décodés.
+    @Test func benchmarkSessionsAreNotSides() throws {
+        let line = #"{"Kind":"launch","Session":"2026-09-28T19:21:10.7621750+02:00","At":"2026-09-28T19:21:00.0000000+02:00","ProbeVersion":"0.7.0","Complete":true,"Reload":false,"SaveName":null,"PatchesMeasured":false,"SaveBytes":null,"SaveDate":null,"Milestones":[],"Phases":[],"Final":null,"Health":{"PackSeam":"ok","AssetHook":"ok","LoadHook":"ok","OffThreadSections":0},"BenchmarkRun":"run-1"}"#
+        let manual = #"{"Kind":"launch","Session":"2026-09-28T18:56:39.7835810+02:00","At":"2026-09-28T18:56:00.0000000+02:00","ProbeVersion":"0.7.0","Complete":true,"Reload":false,"SaveName":null,"PatchesMeasured":false,"SaveBytes":null,"SaveDate":null,"Milestones":[],"Phases":[],"Final":null,"Health":{"PackSeam":"ok","AssetHook":"ok","LoadHook":"ok","OffThreadSections":0}}"#
+        let records = ProbeLoadRecords.decode(Data((line + "\n" + manual).utf8)).records
+        #expect(records.count == 2)
+        let excluded = ProbeLoadRecords.benchmarkSessions(records)
+        #expect(excluded == ["2026-09-28T19:21:10.7621750+02:00"])
+
+        let sessions = ProbeSessions.decode(timings: try Fixture.data("timings.jsonl"),
+                                            costs: try Fixture.data("mod-costs.jsonl"))
+        let inventory = ProbeInventory.decode(try Fixture.data("inventory.jsonl"))
+        let all = ProbePerformance.sides(sessions: sessions, launches: inventory.launches,
+                                         changes: inventory.changes, measurements: [],
+                                         excludingSessions: excluded)
+        #expect(all.map { String($0.session.prefix(16)) }
+                == ["2026-09-26T01:38", "2026-09-26T01:53", "2026-09-26T20:30", "2026-09-28T18:56"])
+    }
+
     /// Paire par défaut : les deux derniers côtés dont l'inventaire diffère
     /// — ici les deux segments de 19:21, séparés par le réglage GMCM.
     @Test func defaultPairIsTheLastInventoryChange() throws {

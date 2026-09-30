@@ -67,7 +67,8 @@ final class ProbePerformanceStore {
             }
             let sides = ProbePerformance.sides(sessions: sessions, launches: inventory?.launches ?? [],
                                                changes: inventory?.changes ?? [],
-                                               measurements: guided.measurements)
+                                               measurements: guided.measurements,
+                                               excludingSessions: ProbeLoadRecords.benchmarkSessions(loads.records))
             return Loaded(sides: sides, measurements: guided.measurements, plan: plan, finishedPlan: finished,
                           unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable
                                       + loads.unreadable,

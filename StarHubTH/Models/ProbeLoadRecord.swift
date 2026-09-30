@@ -155,6 +155,12 @@ public enum ProbeLoadRecords {
         records.filter { $0.benchmarkRun == nil }
     }
 
+    /// Les sessions lancées par un benchmark : `timings.jsonl` ne les marque
+    /// pas, `loads.jsonl` si — la carte minutes les écarte par cet identifiant.
+    public static func benchmarkSessions(_ records: [ProbeLoadRecord]) -> Set<String> {
+        Set(records.filter { $0.benchmarkRun != nil }.map(\.session))
+    }
+
     public static func decode(_ data: Data) -> (records: [ProbeLoadRecord], unreadable: Int) {
         let (lines, unreadable) = ProbeJSON.lines(DecodedLine.self, from: data)
         return (lines.compactMap(convert), unreadable)

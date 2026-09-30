@@ -48,12 +48,15 @@ public struct ProbePerformanceReport: Equatable, Sendable {
 public enum ProbePerformance {
     /// Les côtés de toutes les sessions, du plus ancien au plus récent :
     /// chaque segment qui a des minutes, puis chaque mesure propre dans la
-    /// session qui la contient.
+    /// session qui la contient. `excludingSessions` : les sessions de
+    /// benchmark (`ProbeLoadRecords.benchmarkSessions`), qui ont leur propre
+    /// verdict — leur minute unique n'est jamais comparable.
     public static func sides(sessions: ProbeSessions, launches: [ProbeInventoryLaunch],
                              changes: [ProbeInventoryChange],
-                             measurements: [ProbeMeasurement]) -> [ProbeSide] {
+                             measurements: [ProbeMeasurement],
+                             excludingSessions: Set<String> = []) -> [ProbeSide] {
         var out: [ProbeSide] = []
-        for session in sessions.sessions {
+        for session in sessions.sessions where !excludingSessions.contains(session.id) {
             let segments = ProbeSegments.split(session, launches: launches, changes: changes).segments
             // Les gardes tournent une fois sur la session : couper d'abord
             // ferait passer la première minute de chaque segment pour un
