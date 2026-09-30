@@ -13,6 +13,39 @@ public enum ProbePerformanceActions {
         return mods.first { matches($0) || ($0.children ?? []).contains(where: matches) }
     }
 
+    public struct ProbePauseBlockers: Equatable, Sendable {
+        /// Mods actifs qui exigent celui-ci : non vide = pas de geste.
+        public let dependents: [String]
+        /// Frères du pack de tête, mis en pause avec lui.
+        public let siblings: [String]
+
+        public init(dependents: [String], siblings: [String]) {
+            self.dependents = dependents
+            self.siblings = siblings
+        }
+    }
+
+    /// D5-B — ce qui empêche ou accompagne la mise en pause d'un mod lourd :
+    /// les mods actifs qui l'exigent (pas de geste : couper Content Patcher
+    /// couperait ses packs), et les frères du pack de tête qui partent avec
+    /// lui (le point vit sur l'entrée de tête).
+    public static func pauseBlockers(modId: String, in mods: [ModItem]) -> ProbePauseBlockers {
+        let key = modId.lowercased()
+        let head = target(modId: modId, in: mods)
+        let headIds = Set((head.map { [$0] + ($0.children ?? []) } ?? []).map { $0.uniqueId.lowercased() })
+        var dependents: [String] = []
+        for mod in mods.flatMap({ $0.isGroup ? ($0.children ?? []) : [$0] }) where mod.isEnabled {
+            guard !headIds.contains(mod.uniqueId.lowercased()) else { continue }
+            if mod.dependencies.contains(where: { $0.isRequired && $0.uniqueId.lowercased() == key }) {
+                dependents.append(mod.name)
+            }
+        }
+        let siblings = (head?.children ?? [])
+            .filter { $0.uniqueId.lowercased() != key }
+            .map(\.name)
+        return ProbePauseBlockers(dependents: dependents.sorted(), siblings: siblings)
+    }
+
     public enum RevertOutcome: Equatable, Sendable {
         case reverted
         case gameRunning

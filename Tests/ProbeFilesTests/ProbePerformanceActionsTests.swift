@@ -12,6 +12,42 @@ struct ProbePerformanceActionsTests {
         return item
     }
 
+    private func pack(_ folder: String, id: String, requires: String, enabled: Bool = true) -> ModItem {
+        ModItem(uniqueId: id, name: folder, folderName: folder, version: "1.0",
+                author: "", description: "", nexusUrl: "", nexusModId: "",
+                isEnabled: enabled, dependencies: [ModDependency(uniqueId: requires, isRequired: true)], languages: [])
+    }
+    private var contentPatcher: ModItem { mod("ContentPatcher", id: "Pathoschild.ContentPatcher") }
+    private var svePack: ModItem { pack("SVE CP", id: "FlashShifter.StardewValleyExpandedCP", requires: "Pathoschild.ContentPatcher") }
+    private var ridgesideGroup: ModItem {
+        var group = mod("RidgesideVillage", id: "", children: [
+            mod("Ridgeside Village", id: "Rafseazz.RidgesideVillage"),
+            mod("Ridgeside Village (CP)", id: "Rafseazz.RSVCP"),
+            mod("Ridgeside Village (TMXL)", id: "Rafseazz.RSVTMXL"),
+        ])
+        group.isGroup = true
+        return group
+    }
+
+    /// D5-B — pas de mise en pause d'un mod dont d'autres dépendent ; les
+    /// frères du pack de tête partent avec lui.
+    @Test func frameworkWithDependentsHasNoGesture() {
+        let blockers = ProbePerformanceActions.pauseBlockers(modId: "Pathoschild.ContentPatcher", in: [contentPatcher, svePack])
+        #expect(blockers.dependents == [svePack.name])
+    }
+
+    @Test func packComponentNamesItsSiblings() {
+        let blockers = ProbePerformanceActions.pauseBlockers(modId: "Rafseazz.RSVCP", in: [ridgesideGroup])
+        #expect(blockers.dependents.isEmpty)
+        #expect(blockers.siblings == ["Ridgeside Village", "Ridgeside Village (TMXL)"])
+    }
+
+    @Test func disabledDependentDoesNotBlock() {
+        let paused = pack("SVE CP", id: "FlashShifter.StardewValleyExpandedCP",
+                          requires: "Pathoschild.ContentPatcher", enabled: false)
+        #expect(ProbePerformanceActions.pauseBlockers(modId: "Pathoschild.ContentPatcher", in: [contentPatcher, paused]).dependents.isEmpty)
+    }
+
     /// Review Focus 5 — un composant vise son pack (le point de pause vit sur
     /// l'entrée de tête) ; un mod absent ne vise rien.
     @Test func targetIsTheTopLevelEntry() {
