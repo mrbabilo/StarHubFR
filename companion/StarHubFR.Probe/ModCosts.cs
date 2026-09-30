@@ -99,8 +99,8 @@ internal static class ModCosts
                 // le corps partagé existait déjà JITé avant l'Entry (SMAPI
                 // charge des assets à son propre démarrage), contrairement à
                 // `Raise`. Le détour atteint-il le chemin exécuté ?
-                var info = harmony.GetPatchInfo(closedMethod);
-                monitor.Log($"{label} : {info?.Owners?.Count() ?? -1} patch(s) posé(s).", LogLevel.Trace);
+                var info = Harmony.GetPatchInfo(closedMethod);
+                monitor.Log($"{label} : {info?.Owners?.Count ?? -1} patch(s) posé(s).", LogLevel.Trace);
             }
             AssetHookPatched = assetPatched == 2 && AssetTranspilerMatched == 2;
             monitor.Log($"Rappels d'assets : {assetPatched} méthode(s), {AssetTranspilerMatched} reconnue(s).", LogLevel.Trace);
