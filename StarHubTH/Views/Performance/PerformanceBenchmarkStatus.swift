@@ -28,7 +28,7 @@ struct PerformanceBenchmarkStatus: View {
             case .running(let index):
                 HStack {
                     Text(String(format: localization.L(L10n.Benchmark.progress), index + 1, runner.runs.count,
-                                runner.runs[index].side.isA ? "A" : "B"))
+                                localization.L(runKey(runner.runs[index].side))))
                     Spacer()
                     Button(localization.L(L10n.Benchmark.stop)) { runner.stop() }
                 }
@@ -85,6 +85,15 @@ struct PerformanceBenchmarkStatus: View {
     private func percent(_ value: Double?) -> String {
         guard let value, let text = Self.percentFormatter.string(from: NSNumber(value: value)) else { return "—" }
         return "\(text) %"
+    }
+
+    /// Une chauffe se dit comme telle : sans quoi elle passe pour une mesure A.
+    private func runKey(_ side: BenchmarkSide) -> String {
+        switch side {
+        case .warmupA, .warmupB: return L10n.Benchmark.runWarmup
+        case .a: return L10n.Benchmark.runA
+        case .b: return L10n.Benchmark.runB
+        }
     }
 
     private func key(_ failure: BenchmarkFailure) -> String {

@@ -228,6 +228,7 @@ final class BenchmarkRunner {
         while true {
             guard await sleep(seconds: Self.pollSeconds) else { return .stopped }
             let running = viewModel.isGameRunning()
+            if running && !seen { bringGameToFront() }
             if running { seen = true }
             if seen && !running { return nil }
             let elapsed = Date().timeIntervalSince(start)
@@ -243,6 +244,14 @@ final class BenchmarkRunner {
         NSWorkspace.shared.runningApplications.filter {
             $0.localizedName?.caseInsensitiveCompare("Stardew Valley") == .orderedSame
         }
+    }
+
+    /// Le jeu part d'un `Process` bash : sans ce geste, StarHubFR garde le
+    /// premier plan. Activation coopérative (macOS 14) : céder, puis demander.
+    private func bringGameToFront() {
+        guard let game = gameProcesses().first else { return }
+        NSApp.yieldActivation(to: game)
+        game.activate()
     }
 
     private func terminateGame() async {

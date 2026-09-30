@@ -78,6 +78,7 @@ struct PerformanceBenchmarkSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Benchmark.title)).font(AppDesign.Font.headline(.semibold))
+            note(localization.L(L10n.Benchmark.intro))
             Picker(localization.L(L10n.Benchmark.sideB), selection: $kind) {
                 Text(localization.L(L10n.Benchmark.sideSame)).tag(Kind.same)
                 Text(localization.L(L10n.Benchmark.sidePause)).tag(Kind.pause)
@@ -129,7 +130,14 @@ struct PerformanceBenchmarkSheet: View {
         }
         .padding(AppDesign.Spacing.lg)
         .frame(minWidth: 420)
-        .onAppear { saveA = remembered(Self.parcKey) ?? viewModel.saves.first?.folderName ?? "" }
+        .onAppear {
+            // Une sauvegarde créée en jeu depuis la dernière lecture doit
+            // apparaître : la liste se relit à l'ouverture (hors du fil
+            // principal), `onChange` reprend le choix quand elle arrive.
+            viewModel.reloadSaves()
+            pickDefaultSaveA()
+        }
+        .onChange(of: viewModel.saves) { _, _ in if save(saveA) == nil { pickDefaultSaveA() } }
         .onChange(of: profileId) { _, _ in if let key = sideBKey { saveB = remembered(key) ?? saveB } }
     }
 
@@ -143,6 +151,10 @@ struct PerformanceBenchmarkSheet: View {
     private func note(_ text: String) -> some View {
         Text(text).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func pickDefaultSaveA() {
+        saveA = remembered(Self.parcKey) ?? viewModel.saves.first?.folderName ?? ""
     }
 
     private func remembered(_ key: String) -> String? {
