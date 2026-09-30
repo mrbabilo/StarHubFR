@@ -95,6 +95,12 @@ internal static class ModCosts
                 CurrentAssetLabel = label;
                 harmony.Patch(closedMethod, transpiler: new HarmonyMethod(typeof(ModCosts), nameof(AssetTranspiler)));
                 assetPatched++;
+                // Session 0.6.0 : patchs posés mais aucun rappel attribué —
+                // le corps partagé existait déjà JITé avant l'Entry (SMAPI
+                // charge des assets à son propre démarrage), contrairement à
+                // `Raise`. Le détour atteint-il le chemin exécuté ?
+                var info = harmony.GetPatchInfo(closedMethod);
+                monitor.Log($"{label} : {info?.Owners?.Count() ?? -1} patch(s) posé(s).", LogLevel.Trace);
             }
             AssetHookPatched = assetPatched == 2 && AssetTranspilerMatched == 2;
             monitor.Log($"Rappels d'assets : {assetPatched} méthode(s), {AssetTranspilerMatched} reconnue(s).", LogLevel.Trace);
@@ -201,11 +207,16 @@ internal static class ModCosts
     private static readonly Dictionary<(string Pack, string Event), int> SectionSlots = new();
 
     /// <summary>Rappel d'asset (`GameContentManager`) : même pile, emplacement « phase seulement ».</summary>
+    private static int AssetBegins;
+
     public static void BeginLabeled(object mod, string label)
     {
         try
         {
             if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
+            AssetBegins++;
+            if (AssetBegins == 1)
+                Monitor.Log("Premier rappel d'asset attribué par le transpileur.", LogLevel.Trace);
             if (!Slots.TryGetValue((mod, label), out int slot))
             {
                 string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
