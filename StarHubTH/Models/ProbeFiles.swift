@@ -27,6 +27,8 @@ public struct ProbeFiles: Sendable {
 
     /// D5-A — écrit par l'app, lu par la sonde.
     public var guidedPlanURL: URL { directory.appendingPathComponent("guided-plan.json") }
+    /// Benchmark automatique : écrit et effacé par l'app seule.
+    public var benchmarkPlanURL: URL { directory.appendingPathComponent("benchmark-plan.json") }
     /// D5-A — écrit par la sonde, lu par l'app.
     public var guidedMeasurementsURL: URL { directory.appendingPathComponent("guided-measurements.jsonl") }
 

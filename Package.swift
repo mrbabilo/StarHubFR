@@ -78,6 +78,10 @@ let package = Package(
                 "Models/ProbeCosts.swift",
                 "Models/ProbeMeasurements.swift",
                 "Models/GuidedPlan.swift",
+                "Models/BenchmarkPlan.swift",
+                "Models/BenchmarkSnapshot.swift",
+                "Models/BenchmarkVerdict.swift",
+                "Models/BenchmarkSides.swift",
                 "Models/GuidedMeasurements.swift",
                 "Models/GuidedProtocol.swift",
                 "Models/ProbeAnalysis.swift",
@@ -743,6 +747,11 @@ let package = Package(
             name: "PerformanceOverlapTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/PerformanceOverlapTests"
+        ),
+        .testTarget(
+            name: "BenchmarkTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BenchmarkTests"
         ),
         .testTarget(
             name: "ProbeFilesTests",
