@@ -27,18 +27,16 @@ namespace StarHubFR.Probe;
 /// Mémoire : `GC.GetAllocatedBytesForCurrentThread` compte ce que le
 /// gestionnaire alloue — la pression qui déclenche les GC, donc les à-coups.
 /// Ce n'est pas la mémoire que le mod **retient**.
+///
+/// L'arithmétique de la pile et les compteurs vivent dans <see cref="CostStack"/>
+/// (testée hors jeu) ; ici ne restent que l'accroche Harmony, les
+/// emplacements nommés et le relevé par minute.
 /// </summary>
 internal static class ModCosts
 {
     private static IMonitor Monitor = null!;
 
-    private const int MaxDepth = 64;
-    private static readonly int[] StackSlot = new int[MaxDepth];
-    private static readonly long[] StackStart = new long[MaxDepth];
-    private static readonly long[] StackAlloc = new long[MaxDepth];
-    private static readonly long[] StackChildTicks = new long[MaxDepth];
-    private static readonly long[] StackChildAlloc = new long[MaxDepth];
-    private static int Depth;
+    private static readonly CostStack Stack = new();
     /// <summary>
     /// La pile de mesure est statique : un événement déclenché depuis un autre
     /// fil (chargement de contenu en arrière-plan) la corromprait. Seul le fil
@@ -53,11 +51,6 @@ internal static class ModCosts
     private static readonly List<string> SlotEvent = new();
     /// <summary>Vrai pour un emplacement de patch Harmony (D4-T5), faux pour un événement.</summary>
     private static readonly List<bool> SlotIsPatch = new();
-    private static long[] Ticks = new long[256];
-    private static long[] Alloc = new long[256];
-    private static int[] Calls = new int[256];
-    private static long[] MaxTicks = new long[256];
-    private static int[] CumulativeCalls = new int[256];
 
     public static bool Active { get; private set; }
 
@@ -134,7 +127,6 @@ internal static class ModCosts
         try
         {
             if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
-            if (Depth >= MaxDepth) { Depth++; return; }
             PushCore(SlotFor(mod, managedEvent));
         }
         catch (Exception ex)
@@ -143,15 +135,8 @@ internal static class ModCosts
         }
     }
 
-    private static void PushCore(int slot)
-    {
-        int d = Depth++;
-        StackSlot[d] = slot;
-        StackChildTicks[d] = 0;
-        StackChildAlloc[d] = 0;
-        StackAlloc[d] = GC.GetAllocatedBytesForCurrentThread();
-        StackStart[d] = Stopwatch.GetTimestamp();
-    }
+    private static void PushCore(int slot) =>
+        Stack.Push(slot, Stopwatch.GetTimestamp(), GC.GetAllocatedBytesForCurrentThread());
 
     /// <summary>
     /// Fil du jeu : un cadre de patch est-il ouvert sur la pile ? Mettre les
@@ -160,9 +145,9 @@ internal static class ModCosts
     /// </summary>
     public static bool PatchOnStack()
     {
-        if (Depth > MaxDepth) return true;
-        for (int i = 0; i < Depth; i++)
-            if (SlotIsPatch[StackSlot[i]]) return true;
+        if (Stack.Depth > CostStack.MaxDepth) return true;
+        for (int i = 0; i < Stack.Depth; i++)
+            if (SlotIsPatch[Stack.SlotAt(i)]) return true;
         return false;
     }
 
@@ -177,7 +162,6 @@ internal static class ModCosts
         if (Unbalanced) return;
         try
         {
-            if (Depth >= MaxDepth) { Depth++; return; }
             PushCore(slot);
         }
         catch (Exception ex)
@@ -197,12 +181,12 @@ internal static class ModCosts
         if (Unbalanced) return;
         try
         {
-            if (Depth == 0)
+            if (Stack.Depth == 0)
             {
                 Fail("sortie de patch sur une pile vide");
                 return;
             }
-            if (Depth <= MaxDepth && StackSlot[Depth - 1] != slot)
+            if (Stack.Depth <= CostStack.MaxDepth && Stack.TopSlot != slot)
             {
                 Fail($"sortie du patch {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
                 return;
@@ -219,7 +203,7 @@ internal static class ModCosts
     public static int RegisterPatchSlot(string mod, string label) => AddSlot(mod, label, isPatch: true);
 
     /// <summary>Appels depuis l'enveloppe, jamais remis à zéro : révèle les patches posés mais jamais appelés.</summary>
-    public static int TotalCalls(int slot) => slot < CumulativeCalls.Length ? CumulativeCalls[slot] : 0;
+    public static int TotalCalls(int slot) => slot < Stack.CumulativeCalls.Length ? Stack.CumulativeCalls[slot] : 0;
 
     /// <summary>
     /// Un `Begin` qui a échoué n'a pas empilé : le `End` correspondant ne doit
@@ -247,9 +231,9 @@ internal static class ModCosts
         {
             var frames = new System.Text.StringBuilder();
             frames.AppendLine($"Cause : {reason}");
-            frames.AppendLine($"Fil {Environment.CurrentManagedThreadId} (jeu : {MainThreadId}), profondeur {Depth}");
-            for (int d = Math.Min(Depth, MaxDepth) - 1, shown = 0; d >= 0 && shown < 8; d--, shown++)
-                frames.AppendLine($"  [{d}] {SlotMod[StackSlot[d]]} — {SlotEvent[StackSlot[d]]}");
+            frames.AppendLine($"Fil {Environment.CurrentManagedThreadId} (jeu : {MainThreadId}), profondeur {Stack.Depth}");
+            for (int d = Math.Min(Stack.Depth, CostStack.MaxDepth) - 1, shown = 0; d >= 0 && shown < 8; d--, shown++)
+                frames.AppendLine($"  [{d}] {SlotMod[Stack.SlotAt(d)]} — {SlotEvent[Stack.SlotAt(d)]}");
             frames.AppendLine("Pile d'appels :");
             frames.AppendLine(Environment.StackTrace);
             InterruptReason = reason;
@@ -267,8 +251,8 @@ internal static class ModCosts
     /// <summary>Lit et vide un emplacement hors du relevé par minute (calibration).</summary>
     public static (long Ticks, long Alloc, int Calls) TakeSlot(int slot)
     {
-        var taken = (Ticks[slot], Alloc[slot], Calls[slot]);
-        Ticks[slot] = 0; Alloc[slot] = 0; Calls[slot] = 0; MaxTicks[slot] = 0;
+        var taken = (Stack.Ticks[slot], Stack.Alloc[slot], Stack.Calls[slot]);
+        Stack.Ticks[slot] = 0; Stack.Alloc[slot] = 0; Stack.Calls[slot] = 0; Stack.MaxTicks[slot] = 0;
         return taken;
     }
 
@@ -279,7 +263,7 @@ internal static class ModCosts
         {
             // Un patch resté ouvert sous un gestionnaire : son temps serait
             // versé à l'événement. Même règle que PopPatchTop, dans l'autre sens.
-            if (Depth > 0 && Depth <= MaxDepth && SlotIsPatch[StackSlot[Depth - 1]])
+            if (Stack.TopSlot >= 0 && SlotIsPatch[Stack.TopSlot])
             {
                 Fail("fin d'événement, mais le sommet de la pile est un patch");
                 return;
@@ -292,29 +276,8 @@ internal static class ModCosts
         }
     }
 
-    private static void EndCore()
-    {
-        long now = Stopwatch.GetTimestamp();
-        long allocNow = GC.GetAllocatedBytesForCurrentThread();
-        if (Depth == 0) return;
-        int d = --Depth;
-        if (d >= MaxDepth) return;
-        long total = now - StackStart[d];
-        long totalAlloc = allocNow - StackAlloc[d];
-        long self = Math.Max(0, total - StackChildTicks[d]);
-        long selfAlloc = Math.Max(0, totalAlloc - StackChildAlloc[d]);
-        int slot = StackSlot[d];
-        Ticks[slot] += self;
-        Alloc[slot] += selfAlloc;
-        Calls[slot]++;
-        CumulativeCalls[slot]++;
-        if (self > MaxTicks[slot]) MaxTicks[slot] = self;
-        if (d > 0)
-        {
-            StackChildTicks[d - 1] += total;
-            StackChildAlloc[d - 1] += totalAlloc;
-        }
-    }
+    private static void EndCore() =>
+        Stack.Pop(Stopwatch.GetTimestamp(), GC.GetAllocatedBytesForCurrentThread());
 
     private static int SlotFor(object mod, object managedEvent)
     {
@@ -329,21 +292,13 @@ internal static class ModCosts
         return slot;
     }
 
-    private static int AddSlot(string mod, string label, bool isPatch)
+    private static int AddSlot(string mod, string label, bool isPatch, bool phaseOnly = false)
     {
         int slot = SlotMod.Count;
         SlotMod.Add(mod);
         SlotEvent.Add(label);
         SlotIsPatch.Add(isPatch);
-        if (slot >= Ticks.Length)
-        {
-            int size = Math.Max(Ticks.Length * 2, slot + 1);
-            Array.Resize(ref Ticks, size);
-            Array.Resize(ref Alloc, size);
-            Array.Resize(ref Calls, size);
-            Array.Resize(ref MaxTicks, size);
-            Array.Resize(ref CumulativeCalls, size);
-        }
+        Stack.AddSlot(phaseOnly);
         return slot;
     }
 
@@ -364,7 +319,7 @@ internal static class ModCosts
         var byMod = new Dictionary<string, List<int>>();
         for (int i = 0; i < SlotMod.Count; i++)
         {
-            if (Calls[i] == 0) continue;
+            if (Stack.Calls[i] == 0) continue;
             if (!byMod.TryGetValue(SlotMod[i], out var list)) byMod[SlotMod[i]] = list = new List<int>();
             list.Add(i);
         }
@@ -376,11 +331,11 @@ internal static class ModCosts
             var events = new List<EventCost>();
             foreach (int i in slots)
             {
-                ticks += Ticks[i]; alloc += Alloc[i]; calls += Calls[i];
-                if (SlotIsPatch[i]) patchTicks += Ticks[i];
-                if (MaxTicks[i] > max) max = MaxTicks[i];
-                events.Add(new EventCost(SlotEvent[i], Math.Round(Ticks[i] * msPerTick, 2),
-                    Math.Round(MaxTicks[i] * msPerTick, 2), Alloc[i] / 1024, Calls[i]));
+                ticks += Stack.Ticks[i]; alloc += Stack.Alloc[i]; calls += Stack.Calls[i];
+                if (SlotIsPatch[i]) patchTicks += Stack.Ticks[i];
+                if (Stack.MaxTicks[i] > max) max = Stack.MaxTicks[i];
+                events.Add(new EventCost(SlotEvent[i], Math.Round(Stack.Ticks[i] * msPerTick, 2),
+                    Math.Round(Stack.MaxTicks[i] * msPerTick, 2), Stack.Alloc[i] / 1024, Stack.Calls[i]));
             }
             events.Sort((a, b) => b.SelfMs.CompareTo(a.SelfMs));
             double selfMs = ticks * msPerTick;
@@ -388,7 +343,7 @@ internal static class ModCosts
                 Math.Round(max * msPerTick, 2), alloc / 1024, calls, events));
         }
         result.Sort((a, b) => b.SelfMs.CompareTo(a.SelfMs));
-        Array.Clear(Ticks); Array.Clear(Alloc); Array.Clear(Calls); Array.Clear(MaxTicks);
+        Stack.ClearMinute();
         return result;
     }
 

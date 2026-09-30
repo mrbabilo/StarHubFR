@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="../StarHubFR.Probe/GuidedRule.cs" Link="GuidedRule.cs" />
     <Compile Include="../StarHubFR.Probe/LoadRecord.cs" Link="LoadRecord.cs" />
+    <Compile Include="../StarHubFR.Probe/CostStack.cs" Link="CostStack.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
