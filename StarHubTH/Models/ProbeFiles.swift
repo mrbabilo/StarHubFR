@@ -20,6 +20,9 @@ public struct ProbeFiles: Sendable {
     public var timingsURL: URL { directory.appendingPathComponent("timings.jsonl") }
     public var costsURL: URL { directory.appendingPathComponent("mod-costs.jsonl") }
     public var inventoryURL: URL { directory.appendingPathComponent("inventory.jsonl") }
+
+    /// D5-B — écrit par la sonde, une ligne par chargement.
+    public var loadsURL: URL { directory.appendingPathComponent("loads.jsonl") }
     public var configsDirectory: URL { directory.appendingPathComponent("configs", isDirectory: true) }
 
     /// D5-A — écrit par l'app, lu par la sonde.
@@ -48,6 +51,10 @@ public struct ProbeFiles: Sendable {
     public func inventory() -> (launches: [ProbeInventoryLaunch],
                                 changes: [ProbeInventoryChange], unreadable: Int)? {
         contents("inventory.jsonl").map(ProbeInventory.decode)
+    }
+
+    public func loads() -> (records: [ProbeLoadRecord], unreadable: Int) {
+        contents("loads.jsonl").map(ProbeLoadRecords.decode) ?? ([], 0)
     }
 
     private func contents(_ name: String) -> Data? {
