@@ -21,6 +21,9 @@ public enum UDKey {
     public static let launchProfile = "launchProfile"
     /// Whether to quit StarHubTH right after launching the game.
     public static let closeAfterLaunch = "closeAfterLaunch"
+    /// Benchmark : sauvegarde choisie par côté — `"parc"` pour l'état actuel,
+    /// l'UUID d'un profil sinon — dictionnaire `[String: String]` vers le dossier.
+    public static let benchmarkSaveByProfile = "benchmarkSaveByProfile"
     /// JSON-encoded list of `ModProfile` (named mod enable/disable sets).
     public static let modProfiles = "modProfiles"
     /// UUID string of the currently active `ModProfile`, or `nil` for the

@@ -154,6 +154,8 @@ struct StarHubTHApp: App {
                     // Une recherche laissée en plan (app quittée ou plantée en
                     // cours de bissection) ? Le signaler dès le démarrage.
                     vm.bisection.checkForInterruptedSession()
+                    // Benchmark laissé en plan : plan effacé, restauration proposée.
+                    vm.benchmark.checkForInterruptedSession()
                     // Raise the splash now. The main window was already
                     // intercepted in `applicationWillFinishLaunching`, so it
                     // never reached the screen — no need to defer this.

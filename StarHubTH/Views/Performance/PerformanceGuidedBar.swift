@@ -59,12 +59,14 @@ struct PerformanceGuidedBar: View {
                                             location: GuidedProtocol.safeLocation(before.location),
                                             pairedWith: before.id)
                 }
+                .disabled(viewModel.isBenchmarkActive)
             }
         case .idle:
             Button(localization.L(L10n.Performance.guidedButton)) {
                 draft = GuidedPlanDraft(name: defaultName(), role: .before,
                                         location: GuidedProtocol.fallbackLocation, pairedWith: nil)
             }
+            .disabled(viewModel.isBenchmarkActive)
         }
     }
 

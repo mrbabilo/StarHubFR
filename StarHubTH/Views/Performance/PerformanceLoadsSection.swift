@@ -11,6 +11,7 @@ struct PerformanceLoadsSection: View {
     var store: ProbePerformanceStore
     @State private var pendingPause: PendingPause?
     @State private var message: String?
+    @State private var showBenchmark = false
 
     private struct PendingPause: Identifiable {
         let mod: ModItem
@@ -22,7 +23,13 @@ struct PerformanceLoadsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            header
+            HStack {
+                header
+                Spacer()
+                Button(localization.L(L10n.Benchmark.open)) { showBenchmark = true }
+                    .disabled(viewModel.benchmark.isActive)
+            }
+            PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
             if !store.probeWritesLoads {
                 note(localization.L(L10n.Performance.loadsUpdateProbe))
             } else if store.loads.isEmpty {
@@ -38,6 +45,9 @@ struct PerformanceLoadsSection: View {
                 if let b = store.lastSave { breakdown(b) }
             }
             if let message { note(message) }
+        }
+        .sheet(isPresented: $showBenchmark) {
+            PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
         }
         .confirmationDialog(confirmTitle,
                             isPresented: Binding(get: { pendingPause != nil },

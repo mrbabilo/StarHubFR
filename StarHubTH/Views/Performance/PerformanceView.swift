@@ -18,6 +18,9 @@ struct PerformanceView: View {
                 // elle ne dépend pas de la paire de minutes.
                 if store.status == .ready || store.status == .needTwo {
                     PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }
+                } else if viewModel.benchmark.interrupted != nil {
+                    // Benchmark interrompu : la reprise reste visible hors de la carte.
+                    PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
             }
             .padding(AppDesign.Spacing.lg)
