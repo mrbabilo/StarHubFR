@@ -87,6 +87,7 @@ let package = Package(
                 "Models/ProbeOverlaps.swift",
                 "Models/ProbeLoadRecord.swift",
                 "Models/ProbeLoadBreakdown.swift",
+                "Models/ProbeLoadComparison.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",

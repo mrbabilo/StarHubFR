@@ -84,6 +84,22 @@ public enum ProbeSegments {
         return ProbeSegmentsResult(segments: segments, mixedMinutes: mixed)
     }
 
+    /// L'inventaire d'une session à un instant : le lancement, plus chaque
+    /// `configChanged` antérieur à `upTo` (D5-B : l'état au clic sur la
+    /// sauvegarde). Même application que les coupures de `split`.
+    public static func resolvedInventory(launch: ProbeInventoryLaunch,
+                                         changes: [ProbeInventoryChange],
+                                         upTo: Date) -> ProbeInventoryLaunch {
+        let sessionChanges = changes.filter { $0.session == launch.session }
+        let cuts = Set(sessionChanges.compactMap { $0.changedAt ?? $0.at }.filter { $0 < upTo })
+        var inventory: [String: ProbeInventoryEntry]? = launch.byModId
+        for cut in cuts.sorted() {
+            inventory = applyCut(inventory, changes: sessionChanges, at: cut)
+        }
+        let mods = (inventory ?? [:]).values.sorted { $0.modId < $1.modId }
+        return ProbeInventoryLaunch(session: launch.session, at: launch.at, probe: launch.probe, mods: mods)
+    }
+
     // MARK: — Privé
 
     /// Applique sur l'inventaire résolu les changements dont la coupure est

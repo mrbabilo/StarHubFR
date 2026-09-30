@@ -6,6 +6,12 @@ public struct ProbeInventoryEntry: Equatable, Sendable {
     public let modId: String
     public let version: String
     public let configSha: String?
+
+    public init(modId: String, version: String, configSha: String?) {
+        self.modId = modId
+        self.version = version
+        self.configSha = configSha
+    }
 }
 
 /// Une ligne `launch` : l'inventaire du parc au démarrage d'une session.
@@ -18,6 +24,13 @@ public struct ProbeInventoryLaunch: Equatable, Sendable {
     public var byModId: [String: ProbeInventoryEntry] {
         Dictionary(mods.map { ($0.modId, $0) }, uniquingKeysWith: { first, _ in first })
     }
+
+    public init(session: String, at: Date?, probe: String?, mods: [ProbeInventoryEntry]) {
+        self.session = session
+        self.at = at
+        self.probe = probe
+        self.mods = mods
+    }
 }
 
 /// Une ligne `configChanged` : des réglages ont changé pendant la session.
@@ -29,6 +42,13 @@ public struct ProbeInventoryChange: Equatable, Sendable {
     public let changedAt: Date?
     /// modId → nouvelle empreinte (`nil` = config supprimé).
     public let configs: [String: String?]
+
+    public init(session: String, at: Date?, changedAt: Date?, configs: [String: String?]) {
+        self.session = session
+        self.at = at
+        self.changedAt = changedAt
+        self.configs = configs
+    }
 }
 
 /// `{Id: "sha"}` : la valeur peut être `null` (config supprimé), ce que
