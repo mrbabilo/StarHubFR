@@ -1029,9 +1029,15 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       code sur le parc : 113 classés (6 élevés — CP 43, Cropgenics 35,
       QuestJournal 22, UIInfoSuite2Alt 21, MMAP 20, SpaceCore 17 — 23
       moyens, 84 faibles), 172 négligeables : les classes de la spec. Reste : courbe de note par date (dès qu'un
-      mod a ≥ 3 versions mesurées), badge de liste (D1-T4), seuils à
-      re-mesurer au premier chargement de sauvegarde en 0.9.0, validation à
+      mod a ≥ 3 versions mesurées), badge de liste (D1-T4), validation à
       l'écran.
+      *2026-10-01, axe Sauvegarde* : premier chargement en 0.9.0 (219 mods,
+      70 s attribuées sur 86 s) ; seuils **re-mesurés et gardés** (15 / 5) :
+      142 classés, 8 élevés (5,6 %), 37 moyens (26 %) — mêmes proportions
+      qu'avant l'axe (p75 5 → 6, p95 17). Ce que l'axe révèle : AutoForager
+      10,7 s au chargement (15 %), SinZational Speedy Solutions 17 % — coût
+      **attribué**, pas effet net (un mod de performances peut faire gagner
+      ailleurs plus qu'il ne coûte ici : seul un A/B le dit).
 
 ---
 
