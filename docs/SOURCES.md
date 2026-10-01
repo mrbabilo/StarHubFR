@@ -665,6 +665,38 @@ lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
 - **SMAPI `f090df0 → d6f868e`** — un commit : migration de la liste noire
   (voir §2.2 bis).
 
+### Relevé du 2026-10-01 — trois mods, deux dépôts
+
+Les trois DLL ont été décompilées et comparées à la version précédente du
+backup d'installation. Aucune nouvelle surface réseau, processus, chargement
+de code ni suppression de fichier (motif compté avant/après).
+
+- **UltraSmooth 2.4.0 → 2.4.1** — 11 fichiers neufs, `Experimental.Pathfinding`
+  retiré, 14 réglages neufs. **Défaut grave, actif par défaut** :
+  `EnableParallelDayUpdate` lance `GameLocation.DayUpdate` sur plusieurs fils.
+  Le corps propre de `Town`, `Forest`, `Beach`, `Farm`… s'exécute alors deux
+  fois par nuit (la rénovation de Pam arrive deux fois plus vite,
+  `VisitsUntilY1Guarantee` est décrémenté deux fois dans la sauvegarde).
+  Jamais exécuté sur le parc : le mod est en pause. Avant de le réactiver :
+  `"EnableParallelDayUpdate": false`. Catalogue A5-T7 : `LightSource.Draw`
+  est une 13ᵉ méthode commune avec Stardropium. `findPathForNPCSchedules`
+  dépend maintenant d'`EnableRouteCache`, plus d'`EnableExperimentalFeatures`.
+  Détail, autres optimiseurs (préchauffage de saison hors du fil du jeu,
+  hibernation d'Automate) : [`audit-ultrasmooth-2.4.1.md`](audit-ultrasmooth-2.4.1.md).
+- **Modern Config Menu 2.2.4 → 2.2.5** — 9 fichiers, aucun neuf.
+  Le bouton `[+]` écrit des raccourcis alternatifs séparés par une virgule
+  (`F8, ControllerBack`) : `KeybindParser` les lit déjà (test `"F8, K"`).
+  Réglage neuf `UseVanillaFont`. i18n 198 → 201 clés, 21 sans `fr`.
+- **Keybind Radar 1.0.1 → 1.0.2** — sans changelog sur Nexus. Un fichier :
+  le bouton d'ouverture de GMCM est grisé sur l'écran titre (clé i18n
+  `gmcm.open.button.title-unavailable`).
+- **i18n-translator `8322bac → 1f1a622`** — un commit : liste des modèles
+  ChatGPT dans les réglages. Jetons protégés et garanties d'écriture
+  inchangés.
+- **UI Framework (source) `57b4888 → 432fb6a`** — `UIFrameworkDesigner`, un
+  éditeur web de menus avec générateur de métadonnées : une future source du
+  schéma `Bind`. Rien ne change dans le `Bind` de `StardewUIFramework/Data`.
+
 ### La visionneuse de Profiler — `stardew.361zn.is` *(2026-09-29)*
 
 « Stardew Utilities », de SinZ (l'auteur de **Profiler**) : une application

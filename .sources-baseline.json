@@ -68,11 +68,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "b7a674a",
-    "last_commit_at": "2026-10-01T07:06:11Z",
-    "pushed_at": "2026-10-01T07:06:14Z",
-    "release": "v1.51.0",
-    "released_at": "2026-09-28T10:06:33Z"
+    "last_commit": "bf7a7ab",
+    "last_commit_at": "2026-10-01T21:13:33Z",
+    "pushed_at": "2026-10-01T21:29:31Z",
+    "release": "v1.52.0",
+    "released_at": "2026-10-01T15:57:02Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -84,9 +84,9 @@
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "8322bac",
-    "last_commit_at": "2026-10-01T10:06:45Z",
-    "pushed_at": "2026-10-01T10:16:06Z",
+    "last_commit": "1f1a622",
+    "last_commit_at": "2026-10-01T21:13:04Z",
+    "pushed_at": "2026-10-01T21:42:25Z",
     "release": "v2.2.0",
     "released_at": "2026-10-01T10:16:11Z"
   },
@@ -122,7 +122,7 @@
     "version": "1.16.0"
   },
   "mod/keybind-radar": {
-    "changelog_reviewed": "1.0.1",
+    "changelog_reviewed": "1.0.2",
     "gitHubRepo": null,
     "name": null,
     "version": "1.0.2"
@@ -134,10 +134,10 @@
     "version": "1.0.0"
   },
   "mod/modern-config-menu": {
-    "changelog_reviewed": "2.2.4",
+    "changelog_reviewed": "2.2.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.4"
+    "version": "2.2.5"
   },
   "mod/profiler": {
     "changelog_reviewed": "2.0.0",
@@ -187,10 +187,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.0",
+    "changelog_reviewed": "2.4.1",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.0"
+    "version": "2.4.1"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -290,9 +290,9 @@
   "ui-framework-source": {
     "archived": false,
     "default_branch": "master",
-    "last_commit": "57b4888",
-    "last_commit_at": "2026-09-27T13:25:24Z",
-    "pushed_at": "2026-09-29T11:48:34Z",
+    "last_commit": "432fb6a",
+    "last_commit_at": "2026-10-01T15:26:21Z",
+    "pushed_at": "2026-10-01T21:38:49Z",
     "release": "UIFramework/v1.8.3",
     "released_at": "2026-09-29T11:48:35Z"
   }
