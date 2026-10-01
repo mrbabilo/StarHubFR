@@ -848,6 +848,27 @@ SLO est actif et ce que la dernière session a mesuré.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
+- [ ] **D4-T8** — **Mémoire du processus** dans chaque minute de `timings.jsonl` :
+      mémoire physique (`Environment.WorkingSet`), pic
+      (`Process.PeakWorkingSet64`) et mémoire réservée par .NET
+      (`GC.GetGCMemoryInfo().TotalCommittedBytes`). La sonde ne relève
+      aujourd'hui que le tas (`HeapMB`) : textures, MonoGame et bibliothèques
+      natives lui échappent, alors que c'est ce qui gonfle un parc de 280 mods.
+      Courbe de mémoire dans l'onglet Performances ; préalable au volet mémoire
+      de **D5-C**. Idée tirée de `perf_memory` de Stardropium (audit 2026-10-01),
+      implémentée sans en dépendre. · **S**
+- [ ] **D4-T9** — **Charge de la scène** par minute, relevée par la sonde **sans
+      patch de dessin** (comptage des collections en mémoire au moment d'écrire
+      la ligne, ≈ µs/minute — compter à chaque dessin, comme Stardropium,
+      fausserait le temps de trame mesuré) : PNJ, animaux, meubles, objets
+      posés, éléments de terrain, gros éléments (rochers, souches), lumières
+      actives, sprites temporaires, débris du lieu courant ; nombre de lieux
+      actifs. L'onglet Performances dit alors **ce qui explique** une minute
+      lente (« 312 meubles, 48 lumières »), et la comparaison avant/après
+      distingue un mod coûteux d'une scène plus chargée. Les 53 compteurs de
+      `TelemetryMetrics` de Stardropium ont servi d'inventaire ; seule leur
+      moitié « dessinés » décrit la scène, l'autre mesure ses propres
+      économies. · **M**
 - [x] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
       nombres bornés, liste pour les choix — lève le « ne pas porter : le curseur »
       de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
