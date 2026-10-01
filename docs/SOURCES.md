@@ -423,6 +423,7 @@ deux qui valaient instruction. Ne pas trier ces 204 commits sur leur libellé.
 | Projet | Nature | Ce qu'on en a tiré |
 |---|---|---|
 | [**Stardrop**](https://github.com/Floogen/Stardrop) — Floogen | C# / Avalonia, 269 ★, **très actif** | `docs/audit-stardrop.md` (2026-07-31) : smapi.io en direct plutôt que le dump, configs par profil, notes, `UpdateCautionMessage`. **Ne pas porter** SimpleObscure ni les jonctions de dossiers |
+| [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) — MLD210 ([source](https://github.com/MLD-yu/JuniGrid)) | C# + interface WebView2, Windows seul, EN/ZH ; dépôt créé le 2026-09-02, v1.2.4 sur Nexus le 2026-10-01, 3 ★, **très actif** | relevé du 2026-10-01 ci-dessous — rien de repris |
 | [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) | officiel, Rust/C# | documentation du protocole `nxm://` et des collections |
 | [node-nexus-api](https://github.com/Nexus-Mods/node-nexus-api) | client officiel Node | forme des réponses de l'API v1 |
 | [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) — Wooa | mod SMAPI en jeu (`wooa.KeybindRadar`), 2026-09-22 | radar de raccourcis & conflits — recouvre l'axe C4. Décompilé : [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md) — notre `KeybindScanner` est plus riche (118 raccourcis sans indice de nom que son heuristique rate) |
@@ -454,6 +455,24 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
    localisé, réparation de téléchargements de **collections** (caractères
    invalides) et de la colonne Enabled — UI de grille et collections ; rien à
    porter chez nous.
+
+### JuniGrid — relevé du 2026-10-01
+
+Lu depuis la description Nexus (API GraphQL v2, `legacyMods`, sans clé) et
+les métadonnées du dépôt ; **code non audité**. Ce qui touche nos axes :
+
+| JuniGrid | Chez nous |
+|---|---|
+| Connexion Nexus par **OAuth** (application enregistrée) : aucune clé API à coller | clé API personnelle (`NexusAccountStore`). Piste ouverte, pas une dette : l'OAuth exige d'enregistrer l'app auprès de Nexus |
+| Mise à jour jugée contre le **fichier installé** (file ID + version), pas le seul manifeste | aligné — manifestes de fichiers et triage (A1-T11, §2.4 bis) |
+| Statut « plus maintenu » avec lien vers la **vraie** version de remplacement, silence si on l'a déjà | aligné — `unofficialUpdate` (X56) et `CompatibilityResolution` (le verdict smapi.io ignore la version installée) |
+| Avis dédié pour une dépendance **installée mais désactivée** | aligné — `ModDependencyStatus`, `ModAnomaly` |
+| Traductions en **surcouche** : chaque fichier remplacé sauvegardé, bascule et restauration fichier par fichier | voisin — hub FR en place avec fichier compagnon (C3) ; la restauration **par fichier** est à comparer avant tout portage |
+| Installation de SMAPI depuis Nexus, **boîte de commandes** vers la console du jeu en cours | installateur SMAPI oui ; envoi de commandes console, non |
+| Outils de portraits (packs saisonniers) | hors périmètre |
+
+Embarque DepotDownloader (GPL v2), WebView2, XNA 4.0 redistribuable et le
+runtime .NET : rien de cela ne nous concerne (macOS, pas de Steam en direct).
 
 ### Deux mods qui recouvrent nos axes — Keybind Radar et SaveSaver *(2026-09-23)*
 

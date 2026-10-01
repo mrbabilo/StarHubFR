@@ -480,6 +480,11 @@ SOURCES = [
      "role": "gestionnaire concurrent (C#/Avalonia) — audité pour ses idées",
      "used_by": "docs/audit-stardrop.md"},
 
+    {"key": "JuniGrid", "kind": "repo", "repo": "MLD-yu/JuniGrid",
+     "role": "gestionnaire concurrent (C#/WebView2, Windows, Nexus mod 53227) — "
+             "relevé pour ses idées, rien de repris",
+     "used_by": "docs/SOURCES.md §5"},
+
     {"key": "i18n-translator", "kind": "repo", "repo": "Nana1873/stardew-i18n-translator",
      "role": "référence du hub de traduction : jetons protégés, garanties d'écriture",
      "used_by": "docs/ (spec du hub FR), TranslationTokenCheck, TranslationDocument"},
