@@ -6,6 +6,9 @@ import SwiftUI
 /// `MainView` applies `.id(mod.folderName)`: a fresh instance per mod, so
 /// tab and drafts never leak onto another mod.
 struct ModDetailView: View {
+    /// La visibilité des colonnes de la fenêtre : le mode focus replie la
+    /// barre latérale. Passé par `MainView`, propriétaire du `NavigationSplitView`.
+    @Binding var sidebarVisibility: NavigationSplitViewVisibility
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
@@ -14,14 +17,19 @@ struct ModDetailView: View {
     /// muette. Patron de `HomeView`/`MainView`.
     @ObservedObject private var keybindScanService: KeybindScanService
 
-    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem,
+         sidebarVisibility: Binding<NavigationSplitViewVisibility>? = nil) {
         self.localization = localization
         self.vm = vm
         self.mod = mod
         self.keybindScanService = vm.keybindScanService
+        self._sidebarVisibility = sidebarVisibility ?? .constant(.all)
     }
 
     @State private var selectedTab: DetailTab = .description
+    /// Mode focus de l'éditeur de traduction : bandeaux masqués, largeur
+    /// pleine, barre latérale repliée. Sortie : Échap ou le même bouton.
+    @State private var focusMode = false
     /// Activation en attente : smapi.io signale le mod cassé
     /// (`CompatibilityWarning`).
     @State private var pendingActivation: ModItem?
@@ -72,18 +80,26 @@ struct ModDetailView: View {
         case failed(String)
     }
 
+    /// En focus : l'éditeur de traduction. Ailleurs, la fiche complète.
+    private var isTranslating: Bool { selectedTab == .translation }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Hero, état (I-T14), mise à jour (I-T13), onglets épinglés ; le contenu défile.
-            heroBanner
-            if selectedTab != .state, let anomaly = vm.anomaly(for: live) {
-                ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .state }
+            // Hero, état (I-T14), mise à jour (I-T13), onglets épinglés ; le
+            // contenu défile. Le mode focus masque les bandeaux : la fiche
+            // reste à un geste (Échap ou le bouton), tout ce qu'ils disent
+            // est dans l'onglet État.
+            if !(focusMode && isTranslating) {
+                heroBanner
+                if selectedTab != .state, let anomaly = vm.anomaly(for: live) {
+                    ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .state }
+                }
+                if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             }
-            if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             tabBar
             ScrollView {
                 content
-                    .frame(maxWidth: 700, alignment: .leading)
+                    .frame(maxWidth: (focusMode && isTranslating) ? .infinity : 700, alignment: .leading)
                     .padding(AppDesign.Spacing.xl)
                     .frame(maxWidth: .infinity)
             }
@@ -92,6 +108,11 @@ struct ModDetailView: View {
             seedDraft()
             noteDraft = vm.modNote(for: mod) ?? ""
             refreshConfigHolders()
+        }
+        .onDisappear {
+            // Une fiche quittée en focus ne laisse pas la barre latérale
+            // repliée pour la fiche suivante.
+            if focusMode { sidebarVisibility = .all; focusMode = false }
         }
         .sheet(item: $compareProfile) { profile in
             ProfileConfigCompareView(vm: vm, localization: localization, mod: live, other: profile,
@@ -142,7 +163,9 @@ struct ModDetailView: View {
             }
         }
         .sheet(isPresented: $showReportConflict) {
-            reportConflictSheet
+            ReportConflictSheet(vm: vm, localization: localization, modFolderName: mod.folderName,
+                                target: $reportConflictTargetFolder, note: $reportConflictNote,
+                                close: { showReportConflict = false })
         }
         .task {
             // Onglet demandé par l'appelant (couverture FR d'un profil, alertes) :
@@ -190,6 +213,13 @@ struct ModDetailView: View {
         .frame(maxWidth: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) { Divider() }
+        .overlay(alignment: .trailing) {
+            if isTranslating {
+                TranslationFocusControls(focusMode: $focusMode,
+                                         sidebarVisibility: $sidebarVisibility,
+                                         localization: localization)
+            }
+        }
     }
 
     // MARK: Hero (bandeau image) + bande fine + chiffres clés — le motif
@@ -1051,44 +1081,6 @@ struct ModDetailView: View {
 
     /// Candidats : parc aplati, moins ce mod (une paire `(X, X)` collisionne
     /// avec `withinOnePack`).
-    private var reportConflictCandidates: [ModItem] {
-        vm.scanStore.mods.flattenedMods
-            .filter { $0.folderName != mod.folderName }
-            .alphabeticalListOrder
-    }
-
-    /// Sélecteur « Signaler » ; cible réinitialisée à l'ouverture (patron des
-    /// brouillons).
-    private var reportConflictSheet: some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            Text(localization.L(L10n.Conflicts.reportButton))
-                .font(.system(size: AppDesign.Font.scaled(15), weight: .bold))
-            Picker(localization.L(L10n.Conflicts.pickMod), selection: $reportConflictTargetFolder) {
-                Text("").tag(String?.none)
-                ForEach(reportConflictCandidates, id: \.folderName) { candidate in
-                    Text(candidate.name).tag(String?.some(candidate.folderName))
-                }
-            }
-            TextField(localization.L(L10n.Conflicts.notePlaceholder), text: $reportConflictNote)
-                .textFieldStyle(.roundedBorder)
-            HStack {
-                Spacer()
-                Button(localization.L(L10n.Saves.cancel)) { showReportConflict = false }
-                Button(localization.L(L10n.Conflicts.reportConfirm)) {
-                    if let targetFolder = reportConflictTargetFolder {
-                        vm.declareConflict(ModConflictPair(mod.folderName, targetFolder),
-                                           note: reportConflictNote)
-                    }
-                    showReportConflict = false
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(reportConflictTargetFolder == nil)
-            }
-        }
-        .padding(20)
-        .frame(width: 380)
-    }
-
     // MARK: Tab content
 
     @ViewBuilder

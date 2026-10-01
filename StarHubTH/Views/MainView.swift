@@ -142,7 +142,8 @@ struct MainView: View {
                             // pour ce que l'écran ne sait pas rendre.
                             ModConfigEditorView(vm: vm, localization: localization, mod: mod)
                         } else if let mod = vm.navigationStore.viewingModDetail {
-                            ModDetailView(vm: vm, localization: localization, mod: mod)
+                            ModDetailView(vm: vm, localization: localization, mod: mod,
+                                          sidebarVisibility: $columnVisibility)
                                 .id(mod.folderName)
                         } else {
                             ModListView(vm: vm, localization: localization, currentTab: $currentTab)
@@ -269,9 +270,14 @@ struct MainView: View {
                 .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
     }
 
+    /// La visibilité des colonnes du `NavigationSplitView` : le mode focus
+    /// de l'éditeur de traduction replie la barre latérale, tout retour
+    /// d'écran la remet.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
     var body: some View {
         ZStack {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 // Largeur figée : repliable, jamais redimensionnée au séparateur.
                 sidebarColumn
                     .navigationSplitViewColumnWidth(240)
