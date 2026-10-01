@@ -20,6 +20,8 @@ struct MainView: View {
     @State private var tabHistory: [SidebarDestination] = [.home]
     @State private var forwardHistory: [SidebarDestination] = []
     @State private var isNavigatingBackOrForward = false
+    /// Fiche/config ouverte par un saut d'onglet : le retour ramène à cet onglet, pas à la liste.
+    @State private var detailOpenedByJump = false
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
@@ -109,6 +111,7 @@ struct MainView: View {
             if plan.clearsConfigFocus { vm.navigationStore.pendingConfigFocus = nil }
             if plan.clearsModDetailFocus { vm.navigationStore.pendingModDetailFocus = nil }
             if plan.clearsPendingDetailTab { vm.navigationStore.pendingDetailTab = nil }
+            detailOpenedByJump = plan.openModDetail != nil || plan.openModConfig != nil
             // Conditionnel : les cinq `nil` sont déjà passés, et une
             // affectation `nil` de plus rejouerait deux `didSet`.
             if let detail = plan.openModDetail { vm.navigationStore.setViewingModDetail(detail) }
@@ -179,6 +182,15 @@ struct MainView: View {
                     }
     }
 
+    private func goBackInHistory() {
+        detailOpenedByJump = false
+        guard tabHistory.count > 1 else { return }
+        isNavigatingBackOrForward = true
+        let current = tabHistory.removeLast()
+        forwardHistory.append(current)
+        currentTab = tabHistory.last ?? .home
+    }
+
     /// Les boutons d'historique (retour/avant). Extraits du `body` le
     /// 2026-09-10 avec `destinationView` pour la même raison : saturation
     /// du type-checker.
@@ -191,13 +203,12 @@ struct MainView: View {
                             vm.navigationStore.viewingSaveTimeline = nil
                         } else if vm.navigationStore.editingModConfig != nil {
                             vm.navigationStore.setEditingModConfig(nil)
+                            if detailOpenedByJump, vm.navigationStore.viewingModDetail == nil { goBackInHistory() }
                         } else if vm.navigationStore.viewingModDetail != nil {
                             vm.navigationStore.setViewingModDetail(nil)
-                        } else if tabHistory.count > 1 {
-                            isNavigatingBackOrForward = true
-                            let current = tabHistory.removeLast()
-                            forwardHistory.append(current)
-                            currentTab = tabHistory.last ?? .home
+                            if detailOpenedByJump { goBackInHistory() }
+                        } else {
+                            goBackInHistory()
                         }
                     }) {
                         Image(systemName: "chevron.left")
@@ -276,6 +287,10 @@ struct MainView: View {
             }
             .navigationTitle(navigationTitleText)
             .onChange(of: currentTab) { _, _ in handleTabChange() }
+            // Fermées autrement : le saut est consommé.
+            .onChange(of: vm.navigationStore.viewingModDetail == nil && vm.navigationStore.editingModConfig == nil) { _, closed in
+                if closed { detailOpenedByJump = false }
+            }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }
             .frame(minWidth: 560, minHeight: 400).focusSection()
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
