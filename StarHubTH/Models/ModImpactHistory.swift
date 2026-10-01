@@ -14,6 +14,9 @@ public struct ModImpactHistory: Codable, Equatable, Sendable {
     public private(set) var samples: [String: [ModImpactSample]] = [:]
     /// Le coût de la sonde en jeu à la dernière source qui l'a mesuré.
     public private(set) var probeMsPerFrame: Double?
+    /// Mods vus seulement sous le plancher (échantillons non gardés), à leur
+    /// dernière date : « négligeable » n'est pas « jamais mesuré ».
+    public private(set) var negligibleSeen: [String: Date] = [:]
 
     public init() {}
 
@@ -24,8 +27,12 @@ public struct ModImpactHistory: Codable, Equatable, Sendable {
         guard integrated[source.id] == nil else { return false }
         integrated[source.id] = source.date
         if let probe = source.probeMsPerFrame { probeMsPerFrame = probe }
-        for (modId, sample) in source.samples where !sample.isNegligible {
+        for (modId, sample) in source.samples {
             let key = modId.lowercased()
+            guard !sample.isNegligible else {
+                negligibleSeen[key] = max(negligibleSeen[key] ?? sample.date, sample.date)
+                continue
+            }
             var list = samples[key, default: []]
             list.append(sample)
             list.sort { $0.date < $1.date }

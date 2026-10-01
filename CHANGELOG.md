@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Impact de chaque mod.** Sur la fiche, une étoile à cinq axes (calcul par trame, plus long blocage, lancement, chargement de sauvegarde, allocations), une note /100 et ce que la pause rendrait ; l'historique garde la note de chaque version. Dans l'onglet Performances, le classement « Impact par mod ».
+
 ### Changed
 
 - **Sonde en tête bien visible.** La carte « Chargements » affiche l'état de la sonde en tête dans un encadré coloré : active, effet au prochain lancement, en pause, ou non appliquée, avec le geste qui va avec (réessayer, retirer).

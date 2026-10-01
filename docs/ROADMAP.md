@@ -1017,6 +1017,18 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
       directement à un mod — il se déduit du temps de calcul rapporté à la
       trame. Reprend **D1-T3** (classement) et **D1-T4** (badge). · **M**
+      *Livré en code le 2026-10-01* : `ModImpactSources` / `ModImpactHistory` /
+      `ModImpact` (Core, `Tests/ProbeFilesTests`) — échantillons par source
+      (segment ≥ 5 min, lancement sonde en tête, sauvegarde 0.9.0), historique
+      persistant intégré une fois par source (`ModImpactHistory.json`, 360 Ko
+      sur le parc), note /100 = Σ poids × √médiane des parts, **par version** ;
+      fiche (étoile, note, versions, gain si pause) et carte « Impact par
+      mod ». Mesuré par le code sur le parc : 115 classés (7 élevés — CP 43,
+      Cropgenics 35, QuestJournal 22, UIInfoSuite2Alt 21, MMAP 20… — 35
+      moyens), 170 négligeables. Reste : courbe de note par date (dès qu'un
+      mod a ≥ 3 versions mesurées), badge de liste (D1-T4), seuils à
+      re-mesurer au premier chargement de sauvegarde en 0.9.0, validation à
+      l'écran.
 
 ---
 

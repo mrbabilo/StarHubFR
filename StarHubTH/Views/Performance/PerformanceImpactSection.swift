@@ -93,9 +93,8 @@ struct PerformanceImpactSection: View {
     }
 
     private var footer: some View {
-        let measured = store.entries.filter { $0.isEnabled && $0.shown != nil }
-        let negligible = measured.filter { $0.shown?.isNegligible == true }.count
-        let unmeasured = store.entries.filter { $0.isEnabled && $0.shown == nil }.count
+        let negligible = store.entries.filter { $0.isEnabled && $0.isNegligible }.count
+        let unmeasured = store.entries.filter { $0.isEnabled && $0.shown == nil && !$0.isNegligible }.count
         return VStack(alignment: .leading, spacing: 2) {
             Text(String(format: localization.L(L10n.Performance.impactCardFooter), negligible, unmeasured))
             if let probe = store.probeMsPerFrame {

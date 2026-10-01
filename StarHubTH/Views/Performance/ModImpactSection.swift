@@ -69,6 +69,8 @@ struct ModImpactSection: View {
         case .ready:
             if let entry = store.entry(for: mod), let shown = entry.shown {
                 measured(entry, shown)
+            } else if store.entry(for: mod)?.isNegligible == true {
+                StateCard(icon: "leaf", text: localization.L(L10n.Performance.impactNegligible), actionTitle: nil) {}
             } else {
                 StateCard(icon: "hourglass", text: localization.L(L10n.Performance.impactEmptyMod), actionTitle: nil) {}
             }
@@ -179,7 +181,7 @@ struct ModImpactSection: View {
                     .foregroundStyle(delta <= 0 ? AppDesign.Color.success : AppDesign.Color.warning)
             }
             .font(AppDesign.Font.footnote(.semibold))
-        } else if entry.versions.count > 1 {
+        } else if entry.comparableVersionCount > 1 {
             note(localization.L(L10n.Performance.impactEvolutionFew))
         }
     }

@@ -33,6 +33,8 @@ struct ModImpactHistoryTests {
             .with(spike: 0.001, alloc: 0.0001)]))
         #expect(h.samples["mod.tiny"] == nil)
         #expect(h.integrated["seg#0"] != nil)
+        // Vu, mais négligeable : jamais confondu avec « jamais mesuré ».
+        #expect(h.negligibleSeen["mod.tiny"] == Date(timeIntervalSince1970: 86_400))
     }
 
     @Test func eachVersionAndKindKeepsItsThirtyNewest() {

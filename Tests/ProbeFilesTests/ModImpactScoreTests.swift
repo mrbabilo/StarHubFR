@@ -97,4 +97,27 @@ struct ModImpactScoreTests {
         #expect(ModImpact.ranking(entries).map(\.modId) == ["Mod.High", "Mod.Low"])
         #expect(entries.first { $0.modId == "Mod.Never" }?.shown == nil)
     }
+
+    /// Un mod vu seulement sous le plancher est « négligeable », pas « jamais
+    /// mesuré » (parc réel du 2026-10-01 : 170 mods dits non mesurés).
+    @Test func aModSeenOnlyUnderTheFloorIsNegligibleNotUnmeasured() throws {
+        var h = ModImpactHistory()
+        h.integrate(source("a", day: 1, ["Mod.Tiny": inGame("a", day: 1, version: "1", fps: 0.0001, spike: 0.001, alloc: 0.0001)]))
+        let entries = ModImpact.entries(history: h, mods: [mod("Mod.Tiny", version: "1"), mod("Mod.Never", version: "1")])
+        let tiny = try #require(entries.first { $0.modId == "Mod.Tiny" })
+        #expect(tiny.shown == nil && tiny.isNegligible)
+        #expect(entries.first { $0.modId == "Mod.Never" }?.isNegligible == false)
+        #expect(ModImpact.ranking(entries).isEmpty)
+    }
+
+    /// « version inconnue » (segment sans inventaire) n'est pas une version à
+    /// comparer : un mod mesuré en 1.0 et sans inventaire n'a qu'une version.
+    @Test func unknownVersionIsNotAComparableVersion() throws {
+        var h = ModImpactHistory()
+        h.integrate(source("a", day: 1, ["Mod.A": inGame("a", day: 1, version: nil, fps: 0.2, spike: 0.2, alloc: 0.2)]))
+        h.integrate(source("b", day: 2, ["Mod.A": inGame("b", day: 2, version: "1.0", fps: 0.2, spike: 0.2, alloc: 0.2)]))
+        let entry = try #require(ModImpact.entries(history: h, mods: [mod("Mod.A", version: "1.0")]).first)
+        #expect(entry.versions.count == 2)
+        #expect(entry.comparableVersionCount == 1)
+    }
 }

@@ -40,6 +40,15 @@ public struct ModImpactEntry: Equatable, Sendable, Identifiable {
     public let isEnabled: Bool
     /// La plus récente (dernière mesure) d'abord.
     public let versions: [ModImpactVersionStats]
+    /// Vu dans une source, mais toujours sous le plancher.
+    public let seenNegligible: Bool
+
+    /// Mesuré et négligeable — distinct de « jamais mesuré » (`shown == nil`
+    /// et faux).
+    public var isNegligible: Bool { shown?.isNegligible ?? seenNegligible }
+    /// Versions connues ; « version inconnue » (segment sans inventaire) ne se
+    /// compare à rien.
+    public var comparableVersionCount: Int { versions.filter { $0.version != nil }.count }
 
     public var current: ModImpactVersionStats? { versions.first { $0.version == installedVersion } }
     /// La version installée si mesurée, sinon la dernière connue.
@@ -120,7 +129,8 @@ public enum ModImpact {
             .map { item in
                 ModImpactEntry(id: item.folderName, modId: item.uniqueId, name: item.name,
                                installedVersion: item.version, isEnabled: item.isEnabled,
-                               versions: versionStats(history.samples[item.uniqueId.lowercased()] ?? []))
+                               versions: versionStats(history.samples[item.uniqueId.lowercased()] ?? []),
+                               seenNegligible: history.negligibleSeen[item.uniqueId.lowercased()] != nil)
             }
     }
 
