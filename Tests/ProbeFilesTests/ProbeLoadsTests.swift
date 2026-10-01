@@ -237,4 +237,15 @@ extension ProbeLoadsTests {
         let launched = try #require(ProbeLoadBreakdown.of(headless).spans.first { $0.name == .gameLaunched })
         #expect(launched.startMs == nil)
     }
+
+    /// D5-C — la note par mod a besoin de tous les mods, pas des cinq premiers.
+    @Test func breakdownKeepsEveryModAndTopIsItsHead() throws {
+        let records = ProbeLoadRecords.decode(try Fixture.data("loads-load.jsonl")).records
+        let launch = try #require(records.first { $0.kind == .launch && $0.probeLoadsFirst == true })
+        let b = ProbeLoadBreakdown.of(launch)
+        let expected = Set(launch.phases.flatMap(\.costs).map(\.mod))
+        #expect(Set(b.mods.map(\.mod)) == expected)
+        #expect(b.top == Array(b.mods.prefix(5)))
+        #expect(b.mods.map(\.ms) == b.mods.map(\.ms).sorted(by: >))
+    }
 }

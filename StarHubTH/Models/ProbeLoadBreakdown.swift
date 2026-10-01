@@ -79,6 +79,9 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
     public let spans: [ProbeLoadSpan]
     /// Cinq au plus, hors `waitingForPlayer`.
     public let top: [ProbeLoadModTotal]
+    /// D5-C — tous les mods et packs, triés par coût décroissant (`top` en
+    /// est la tête).
+    public let mods: [ProbeLoadModTotal]
     public let packSeamMissing: Bool
     public let assetHookMissing: Bool
     /// Sonde 0.8.0 : durée de la boucle de démarrage des mods (lancement).
@@ -139,13 +142,13 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
                 byMod[cost.mod] = entry
             }
         }
-        let top = byMod
+        // Départage par identifiant : un ordre stable d'une lecture à l'autre.
+        let mods = byMod
             .map { ProbeLoadModTotal(mod: $0.key, ms: $0.value.ms, isPack: $0.value.isPack,
                                      entryMs: $0.value.entryMs, loadMs: $0.value.loadMs) }
-            .sorted { $0.ms > $1.ms }
-            .prefix(5)
+            .sorted { $0.ms != $1.ms ? $0.ms > $1.ms : $0.mod < $1.mod }
 
-        return ProbeLoadBreakdown(record: record, spans: spans, top: Array(top),
+        return ProbeLoadBreakdown(record: record, spans: spans, top: Array(mods.prefix(5)), mods: mods,
                                   packSeamMissing: record.health.packSeam == "missing",
                                   assetHookMissing: record.health.assetHook == "missing",
                                   entryLoopMs: record.entryLoopMs,
