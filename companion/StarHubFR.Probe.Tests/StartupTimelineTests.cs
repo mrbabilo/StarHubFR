@@ -101,4 +101,42 @@ public class StartupTimelineTests
         t.EntryEnded("C", 70, 0);
         Assert.Equal(new[] { ("A", 10.0), ("C", 60.0) }, t.TakeCosts("self").Select(c => (c.Mod, c.Ms)));
     }
+
+    [Fact]
+    public void LoadsBecomeLoadCostsWithTheirOwnDuration()
+    {
+        var t = Make();
+        t.LoadEnded("A", startTicks: 100, endTicks: 140, ok: true);
+        t.LoadEnded("B", 150, 400, ok: true);
+        var costs = t.TakeCosts("self");
+        Assert.Equal(new[] { ("A", 40.0, "load"), ("B", 250.0, "load") }, costs.Select(c => (c.Mod, c.Ms, c.Kind)));
+        Assert.All(costs, c => Assert.Equal("Load", c.Label));
+        Assert.Equal(300.0, t.LoadLoopMs);
+        Assert.Equal(2, t.LoadsSeen);
+    }
+
+    /// Review Focus 3 : un échec garde son coût, nommé, mais ne couvre rien.
+    [Fact]
+    public void AFailedLoadIsNamedAndNotCovered()
+    {
+        var t = Make();
+        t.LoadEnded("Broken", 0, 5, ok: false);
+        var cost = Assert.Single(t.TakeCosts("self"));
+        Assert.Equal(("Broken", "Load (\u00e9chec)", 5.0), (cost.Mod, cost.Label, cost.Ms));
+        Assert.Equal(0, t.LoadsSeen);
+        Assert.Equal(5.0, t.LoadLoopMs);
+    }
+
+    [Fact]
+    public void LoadsComeBeforeEntriesAndTheProbeIsLeftOut()
+    {
+        var t = Make();
+        t.LoadEnded("mrbabilo.StarHubFR.Probe", 0, 50, ok: true);
+        t.LoadEnded("A", 50, 60, ok: true);
+        t.LoopStarted(100, 0);
+        t.EntryEnded("A", 130, 0);
+        var costs = t.TakeCosts("mrbabilo.StarHubFR.Probe");
+        Assert.Equal(new[] { "load", "entry" }, costs.Select(c => c.Kind));
+        Assert.Equal(2, t.LoadsSeen);   // la couverture compte tout ce qui a été vu
+    }
 }

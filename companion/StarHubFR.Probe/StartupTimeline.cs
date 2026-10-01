@@ -16,7 +16,9 @@ public sealed class StartupTimeline
 {
     private readonly double msPerTick;
     private readonly List<(string Mod, double Exclusive, double Nested)> pending = new();
+    private readonly List<(string Mod, double Ms, bool Ok)> loads = new();
     private long loopStart = -1, previous, previousAttributed;
+    private long firstLoadStart = -1;
 
     public StartupTimeline(long ticksPerSecond) => msPerTick = 1000.0 / ticksPerSecond;
 
@@ -24,6 +26,25 @@ public sealed class StartupTimeline
     public double? LoopMs { get; private set; }
 
     public int Recorded { get; private set; }
+
+    /// <summary>Début du premier chargement vu → fin du dernier ; null sans chargement vu.</summary>
+    public double? LoadLoopMs { get; private set; }
+
+    /// <summary>Chargements réussis vus : la couverture de la boucle de chargement.</summary>
+    public int LoadsSeen { get; private set; }
+
+    /// <summary>
+    /// `SCore.TryLoadMod` (boucle de chargement : manifeste, DLL, réécriture,
+    /// instance). La phase n'est pas ouverte pendant cette boucle : rien n'est
+    /// imbriqué à retirer, le coût est la durée elle-même.
+    /// </summary>
+    public void LoadEnded(string? modId, long startTicks, long endTicks, bool ok)
+    {
+        if (firstLoadStart < 0) firstLoadStart = startTicks;
+        loads.Add((string.IsNullOrEmpty(modId) ? "?" : modId, Math.Max(0, (endTicks - startTicks) * msPerTick), ok));
+        LoadLoopMs = (endTicks - firstLoadStart) * msPerTick;
+        if (ok) LoadsSeen++;
+    }
 
     /// <summary>Premier appel seulement : un `reload_i18n` en partie n'est pas un départ.</summary>
     public void LoopStarted(long now, long attributedTicks)
@@ -49,6 +70,12 @@ public sealed class StartupTimeline
     public List<CostLine> TakeCosts(string selfId)
     {
         var lines = new List<CostLine>();
+        foreach (var (mod, ms, ok) in loads)
+        {
+            if (string.Equals(mod, selfId, StringComparison.OrdinalIgnoreCase)) continue;
+            lines.Add(new CostLine(mod, "load", ok ? "Load" : "Load (échec)", Math.Round(ms, 2), 0, 1));
+        }
+        loads.Clear();
         foreach (var (mod, exclusive, nested) in pending)
         {
             if (string.Equals(mod, selfId, StringComparison.OrdinalIgnoreCase)) continue;
