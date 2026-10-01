@@ -337,6 +337,7 @@ let package = Package(
                 "Stores/SaveAbsentModsStore.swift",
                 "Stores/SaveCleanupStore.swift",
                 "Stores/ProbePerformanceStore.swift",
+                "Stores/ModImpactStore.swift",
                 "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]

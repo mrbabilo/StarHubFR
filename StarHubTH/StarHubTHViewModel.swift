@@ -182,6 +182,7 @@ final class StarHubTHViewModel {
     // lourd vit dans `ModScanner` (cache mtime + verrou) ; ce store porte
     // l'état publié. Poser le parc prévient les trois consommateurs de l'init.
     let scanStore = ScanStore()
+    let modImpactStore = ModImpactStore()   // D5-C — le calcul vit dans le Core (`ModImpact`)
 
     var isDownloadingFromNexus: Bool { downloadStore.isDownloading }
     /// Nexus mod id being downloaded, or nil. Drives the Updates row spinner.
