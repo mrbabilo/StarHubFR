@@ -1825,6 +1825,12 @@
 "perf_loads_entry_part" = "including %@ at startup";
 "perf_loads_entry_note" = "Mod startup: %@. The first mod to use a SMAPI feature pays for warming it up: this cost depends on startup order.";
 "perf_loads_entry_hook_missing" = "Mod startup not measured with this SMAPI version.";
+"perf_loads_load_part" = "loading %@ · startup %@";
+"perf_loads_load_note" = "Mod loading: %@ (%d of %d seen).";
+"perf_loads_probe_not_first" = "The probe isn't loaded first: mods loaded before it have no loading cost, and their startup includes other mods' work.";
+"perf_loads_probe_first_action" = "Load the probe first";
+"perf_loads_probe_first_confirm" = "StarHubFR will add the probe to ModsToLoadEarly in smapi-internal/config.user.json (a copy is kept), and remove it whenever the probe is paused. Nothing else in the mod order changes.";
+"perf_loads_probe_first_undo" = "Stop loading the probe first";
 "perf_loads_cp_preparing" = "Content Patcher prepares its packs (not split)";
 "perf_loads_pack_seam_missing" = "Per-pack split unavailable (Content Patcher %@).";
 "perf_loads_asset_hook_missing" = "Asset callbacks not measured with this SMAPI version.";

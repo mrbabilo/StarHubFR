@@ -1825,6 +1825,12 @@
 "perf_loads_entry_part" = "dont %@ au démarrage";
 "perf_loads_entry_note" = "Démarrage des mods : %@. Le premier mod à utiliser une fonction de SMAPI paie sa mise en route : ce coût dépend de l'ordre de démarrage.";
 "perf_loads_entry_hook_missing" = "Démarrage des mods non mesuré avec cette version de SMAPI.";
+"perf_loads_load_part" = "chargement %@ · démarrage %@";
+"perf_loads_load_note" = "Chargement des mods : %@ (%d sur %d vus).";
+"perf_loads_probe_not_first" = "La sonde n'est pas chargée en premier : le chargement des mods d'avant elle n'est pas mesuré, et leur démarrage inclut le travail d'autres mods.";
+"perf_loads_probe_first_action" = "Charger la sonde en premier";
+"perf_loads_probe_first_confirm" = "StarHubFR ajoutera la sonde à ModsToLoadEarly dans smapi-internal/config.user.json (une copie est gardée), et l'en retirera quand la sonde est en pause. Rien d'autre ne change dans l'ordre des mods.";
+"perf_loads_probe_first_undo" = "Ne plus charger la sonde en premier";
 "perf_loads_cp_preparing" = "Content Patcher prépare ses packs (non ventilé)";
 "perf_loads_pack_seam_missing" = "Ventilation par pack indisponible (Content Patcher %@).";
 "perf_loads_asset_hook_missing" = "Rappels d'assets non mesurés avec cette version de SMAPI.";

@@ -10,6 +10,7 @@ struct PerformanceLoadsSection: View {
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
     @State private var pendingPause: PendingPause?
+    @State private var confirmProbeFirst = false
     @State private var message: String?
     @State private var showBenchmark = false
 
@@ -48,6 +49,14 @@ struct PerformanceLoadsSection: View {
         }
         .sheet(isPresented: $showBenchmark) {
             PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
+        }
+        .confirmationDialog(localization.L(L10n.Performance.loadsProbeFirstAction), isPresented: $confirmProbeFirst) {
+            Button(localization.L(L10n.Performance.loadsProbeFirstAction)) {
+                setProbeFirstConsent(true)
+                ProbeLoadOrder.sync(gameDir: viewModel.gameDir, consent: true, probeActive: true)
+            }
+        } message: {
+            Text(localization.L(L10n.Performance.loadsProbeFirstConfirm))
         }
         .confirmationDialog(confirmTitle,
                             isPresented: Binding(get: { pendingPause != nil },
@@ -159,6 +168,24 @@ struct PerformanceLoadsSection: View {
                 if let loop = b.entryLoopMs {
                     note(String(format: localization.L(L10n.Performance.loadsEntryNote), Self.duration(loop)))
                 }
+                if let loadLoop = b.loadLoopMs, let coverage = b.loadCoverage {
+                    note(String(format: localization.L(L10n.Performance.loadsLoadNote),
+                                Self.duration(loadLoop), coverage.seen, coverage.total))
+                }
+                if b.probeLoadsFirst == false {
+                    note(localization.L(L10n.Performance.loadsProbeNotFirst))
+                    if probeFirstConsent != true {
+                        Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirmProbeFirst = true }
+                            .controlSize(.small)
+                    }
+                }
+                if probeFirstConsent == true {
+                    Button(localization.L(L10n.Performance.loadsProbeFirstUndo)) {
+                        setProbeFirstConsent(false)
+                        ProbeLoadOrder.sync(gameDir: viewModel.gameDir, consent: false, probeActive: true)
+                    }
+                    .controlSize(.small)
+                }
             }
             if b.packSeamMissing {
                 let version = ProbePerformanceActions.target(modId: Self.contentPatcherId, in: viewModel.mods)?.version ?? "?"
@@ -170,6 +197,15 @@ struct PerformanceLoadsSection: View {
                 note(localization.L(L10n.Performance.loadsLoadHookMissing))
             }
         }
+    }
+
+    private var probeFirstConsent: Bool? {
+        UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool
+    }
+
+    private func setProbeFirstConsent(_ value: Bool?) {
+        if let value { UserDefaults.standard.set(value, forKey: UDKey.probeLoadEarlyConsent) }
+        else { UserDefaults.standard.removeObject(forKey: UDKey.probeLoadEarlyConsent) }
     }
 
     private func topRow(_ total: ProbeLoadModTotal, launch: Bool, firstTickLabel: [ProbeLoadCost]?) -> some View {
@@ -187,7 +223,11 @@ struct PerformanceLoadsSection: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(isCp ? localization.L(L10n.Performance.loadsCpPreparing) : displayName(total.mod))
                         .lineLimit(2).multilineTextAlignment(.leading)
-                    if total.entryMs >= 1 {
+                    if total.loadMs >= 1 {
+                        Text(String(format: localization.L(L10n.Performance.loadsLoadPart),
+                                    Self.duration(total.loadMs), Self.duration(total.entryMs)))
+                            .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                    } else if total.entryMs >= 1 {
                         Text(String(format: localization.L(L10n.Performance.loadsEntryPart), Self.duration(total.entryMs)))
                             .font(AppDesign.Font.caption).foregroundColor(.secondary)
                     }

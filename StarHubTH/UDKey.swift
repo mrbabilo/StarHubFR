@@ -24,6 +24,9 @@ public enum UDKey {
     /// Benchmark : sauvegarde choisie par côté — `"parc"` pour l'état actuel,
     /// l'UUID d'un profil sinon — dictionnaire `[String: String]` vers le dossier.
     public static let benchmarkSaveByProfile = "benchmarkSaveByProfile"
+    /// Sonde en tête (`ModsToLoadEarly`) : absent = jamais demandé ; `true` = synchroniser ;
+    /// `false` = refusé ou retiré, ne plus proposer.
+    public static let probeLoadEarlyConsent = "probeLoadEarlyConsent"
     /// JSON-encoded list of `ModProfile` (named mod enable/disable sets).
     public static let modProfiles = "modProfiles"
     /// UUID string of the currently active `ModProfile`, or `nil` for the

@@ -2407,6 +2407,7 @@ final class StarHubTHViewModel {
             if !fromBenchmark { showModal(message: localization.L(L10n.Settings.gameDirNotSet)) }
             return false
         }
+        ProbeLoadOrder.sync(gameDir: gameDir, consent: UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool, probeActive: mods.contains { $0.isEnabled && $0.components.contains { $0.uniqueId.caseInsensitiveCompare(BenchmarkSides.probeId) == .orderedSame } })
         // Couche 1 : jeu déjà lancé — refus (deux processus corrompraient les
         // sauvegardes). Rouvre aussi le gate.
         guard !isGameRunning() else {
