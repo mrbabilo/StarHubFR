@@ -151,8 +151,11 @@ extension ProbeLoadsTests {
     }
 
     /// Review Focus 5 : une ligne 0.7.x n'a ni les champs ni l'alerte.
+    /// Une vraie ligne 0.7.x n'a **pas** les clés (la fixture régénérée par
+    /// le producteur 0.8.0 les porte à null) : ligne écrite telle quelle.
     @Test func anOlderProbeLineHasNoStartupFieldsAndNoAlert() throws {
-        let launch = try #require(try Self.fixture().first)
+        let line = #"{"Kind":"launch","Session":"s","At":"2026-10-01T10:00:00+02:00","ProbeVersion":"0.7.0","Complete":true,"Reload":false,"SaveName":null,"PatchesMeasured":false,"SaveBytes":null,"SaveDate":null,"Milestones":[{"Name":"L4","Ms":13000}],"Phases":[],"Final":null,"Health":{"PackSeam":"ok","AssetHook":"ok","LoadHook":"ok","OffThreadSections":0}}"#
+        let launch = try #require(ProbeLoadRecords.decode(Data(line.utf8)).records.first)
         #expect(launch.entryLoopMs == nil)
         #expect(launch.health.entryHook == nil)
         #expect(!ProbeLoadBreakdown.of(launch).entryHookMissing)

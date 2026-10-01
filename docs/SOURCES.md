@@ -750,7 +750,14 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   sur 140 mods de code. Le jeu fixe `TieredCompilation: false`
   (`StardewModdingAPI.runtimeconfig.json`) : une petite méthode intégrée
   avant la sonde ne tirerait jamais — d'où ces deux accroches, pas
-  `ModRegistry.Add`. Garde : `EntryHook`.
+  `ModRegistry.Add`. Garde : `EntryHook`. **Deux limites de l'étape 1** :
+  (1) un mod qui démarre **avant** la sonde a un coût `entry` **inclusif** —
+  `ModCosts` n'est pas encore armé, les gestionnaires d'autres mods qui
+  tournent pendant son `Entry` (un `AssetRequested` de Content Patcher, par
+  exemple) lui sont imputés ; corrigé par l'étape 2 (sonde en tête,
+  `ModsToLoadEarly`). (2) Le démarrage de la sonde elle-même est compté dans
+  `EntryLoopMs` mais n'a pas de ligne : la somme des `entry` + coûts
+  attribués reste en dessous de la boucle d'au moins ce temps-là.
   **Corrigé en 0.6.2** : transpiler ces deux méthodes **génériques** n'a
   rien attribué (deux sessions, zéro rappel) — Harmony ne détourne que
   l'instanciation `<object>`, les appels réels passent par le corps
