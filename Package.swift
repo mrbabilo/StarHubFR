@@ -94,6 +94,7 @@ let package = Package(
                 "Models/ProbeLoadOrder.swift",
                 "Models/ProbeLoadBreakdown.swift",
                 "Models/ProbeLoadComparison.swift",
+                "Models/ModImpactSample.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",
@@ -759,7 +760,7 @@ let package = Package(
             name: "ProbeFilesTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ProbeFilesTests",
-            exclude: ["Fixtures", "make_fixtures.py", "make_gmcm_fixture.py"]
+            exclude: ["Fixtures", "make_fixtures.py", "make_gmcm_fixture.py", "make_impact_fixture.py"]
         ),
         .testTarget(
             name: "ModGridCardValuesTests",
