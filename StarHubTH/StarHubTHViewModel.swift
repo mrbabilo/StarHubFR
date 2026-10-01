@@ -2459,14 +2459,15 @@ final class StarHubTHViewModel {
                 return true
             }
 
-            // Direct/GOG: run SMAPI's launcher in place (it replaced `StardewValley`)
-            // via bash, avoiding the code signature SMAPI invalidates.
+            // Direct/GOG: SMAPI's launcher in place via bash (SMAPI invalidates the signature).
+            // Benchmark: no Terminal (SMAPI_NO_TERMINAL) — StarHubFR stays active, yields focus.
             let smapiLauncher = (gameDir as NSString).appendingPathComponent("StardewValley")
             if FileManager.default.fileExists(atPath: smapiLauncher) {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: "/bin/bash")
                 process.arguments = [smapiLauncher]
                 process.currentDirectoryURL = URL(fileURLWithPath: gameDir)
+                if fromBenchmark { process.environment = ProcessInfo.processInfo.environment.merging(["SMAPI_NO_TERMINAL": "true"]) { $1 } }
                 do {
                     try process.run()
                     log(localization.L(L10n.VM.launchDirectSuccess))
