@@ -1591,6 +1591,7 @@
   "frtr_cancel": "Arrêter",
   "frtr_progress": "Recherche %1$lld / %2$lld — %3$@",
   "frtr_summary": "%1$lld mods couverts · %2$lld avec une traduction à installer · %3$lld sans résultat",
+  "frtr_chart_label": "Mods traduisibles par statut de traduction",
   "frtr_checked_at": "Résultat le plus ancien : %@",
   "frtr_never": "La recherche couvre %lld mods : 2 requêtes Nexus pour la plupart, une vingtaine pour les plus gros (SVE). Elle ne part que sur un clic.",
   "frtr_stop_nokey": "Ajoutez votre clé d'API Nexus dans les Réglages pour lancer la recherche.",

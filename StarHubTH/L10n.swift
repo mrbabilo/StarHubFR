@@ -1542,6 +1542,7 @@ enum L10n {
         static let cancel           = "frtr_cancel"
         static let progress         = "frtr_progress"
         static let summary          = "frtr_summary"
+        static let chartLabel           = "frtr_chart_label"
         static let checkedAt        = "frtr_checked_at"
         static let never            = "frtr_never"
         static let stopNoKey        = "frtr_stop_nokey"

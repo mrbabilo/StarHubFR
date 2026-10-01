@@ -25,6 +25,8 @@ struct FrenchTranslationsView: View {
     /// détail (`MainView` remet ses états à `nil`).
     @State private var mergeStore = TranslationLotMergeStore()
     @State private var showArbitration = false
+    /// Section demandée par la légende de l'anneau : ouverte puis atteinte.
+    @State private var revealKey: String?
 
     /// Une ligne : le mod, son statut, et le `ModItem` vivant pour agir.
     private struct Row: Identifiable {
@@ -62,11 +64,25 @@ struct FrenchTranslationsView: View {
                     .padding(.top, AppDesign.Spacing.sm)
             }
             Divider()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-                    sections(all)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    let groups = self.groups(all)
+                    LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                        if !all.isEmpty {
+                            FrenchTranslationsOverview(
+                                slices: groups.map { .init(key: $0.key, count: $0.rows.count) },
+                                L: localization.L,
+                                select: { key in
+                                    revealKey = key
+                                    withMotion { proxy.scrollTo(key, anchor: .top) }
+                                })
+                        }
+                        ForEach(groups, id: \.key) { group in
+                            section(group.key, group.rows, open: group.open)
+                        }
+                    }
+                    .padding(AppDesign.Spacing.lg)
                 }
-                .padding(AppDesign.Spacing.lg)
             }
         }
         .sheet(isPresented: $showArbitration) {
@@ -88,10 +104,8 @@ struct FrenchTranslationsView: View {
     @ViewBuilder
     private func header(_ all: [Row]) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            HStack {
-                Text(localization.L(L10n.FrTranslations.title))
-                    .font(.system(size: AppDesign.Font.scaled(20), weight: .bold))
-                Spacer()
+            PageHeader(icon: "character.bubble.fill",
+                       title: localization.L(L10n.FrTranslations.title)) {
                 if store.isRunning {
                     Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
                         .controlSize(.small)
@@ -130,7 +144,7 @@ struct FrenchTranslationsView: View {
             if let reason = store.stopReason {
                 Label(stopText(reason), systemImage: "exclamationmark.triangle.fill")
                     .font(AppDesign.Font.footnote)
-                    .foregroundColor(reason == .cancelled ? .secondary : .orange)
+                    .foregroundColor(reason == .cancelled ? .secondary : AppDesign.Color.warning)
             }
         }
     }
@@ -153,29 +167,26 @@ struct FrenchTranslationsView: View {
 
     // MARK: - Sections
 
-    @ViewBuilder
-    private func sections(_ all: [Row]) -> some View {
-        let updates = all.filter { if case .updateAvailable = $0.status { return true }; return false }
-        let available = all.filter { if case .available = $0.status { return true }; return false }
-        let installed = all.filter { $0.status == .installed }
-        let unverified = all.filter { $0.status == .installedUnverified }
-        let failed = all.filter { $0.status == .failed }
-        let none = all.filter { $0.status == .nothingFound }
-        let notSearched = all.filter { $0.status == .notSearched }
-        section(L10n.FrTranslations.sectionUpdates, updates, open: true)
-        section(L10n.FrTranslations.sectionAvailable, available, open: true)
-        section(L10n.FrTranslations.sectionFailed, failed, open: true)
-        section(L10n.FrTranslations.sectionUnverified, unverified, open: false)
-        section(L10n.FrTranslations.sectionInstalled, installed, open: false)
-        section(L10n.FrTranslations.sectionNone, none, open: false)
-        section(L10n.FrTranslations.sectionNotSearched, notSearched, open: false)
+    /// Les statuts dans l'ordre de gravité puis d'action : ce qui demande
+    /// un geste d'abord, ce qui est réglé ensuite.
+    private func groups(_ all: [Row]) -> [(key: String, rows: [Row], open: Bool)] {
+        [
+            (L10n.FrTranslations.sectionUpdates, all.filter { if case .updateAvailable = $0.status { return true }; return false }, true),
+            (L10n.FrTranslations.sectionAvailable, all.filter { if case .available = $0.status { return true }; return false }, true),
+            (L10n.FrTranslations.sectionFailed, all.filter { $0.status == .failed }, true),
+            (L10n.FrTranslations.sectionUnverified, all.filter { $0.status == .installedUnverified }, false),
+            (L10n.FrTranslations.sectionInstalled, all.filter { $0.status == .installed }, false),
+            (L10n.FrTranslations.sectionNone, all.filter { $0.status == .nothingFound }, false),
+            (L10n.FrTranslations.sectionNotSearched, all.filter { $0.status == .notSearched }, false),
+        ]
     }
 
     @ViewBuilder
     private func section(_ key: String, _ rows: [Row], open: Bool) -> some View {
         if !rows.isEmpty {
             FrenchTranslationSection(title: String(format: localization.L(key), rows.count),
-                                     startsOpen: open) {
+                                     style: FrenchTranslationsOverview.style(for: key),
+                                     startsOpen: open, reveal: revealKey == key) {
                 ForEach(rows) { row in
                     FrenchTranslationRow(vm: vm, localization: localization, mod: row.mod,
                                          candidate: row.candidate, status: row.status,
@@ -183,6 +194,7 @@ struct FrenchTranslationsView: View {
                                          openMod: { openMod(row.mod) })
                 }
             }
+            .id(key)
         }
     }
 
@@ -199,7 +211,10 @@ struct FrenchTranslationsView: View {
 /// section garde le sien.
 private struct FrenchTranslationSection<Content: View>: View {
     let title: String
+    let style: (color: Color, icon: String)
     let startsOpen: Bool
+    /// Vrai quand la légende de l'anneau désigne cette section : elle s'ouvre.
+    let reveal: Bool
     @ViewBuilder let content: () -> Content
     @State private var isOpen: Bool?
 
@@ -208,7 +223,14 @@ private struct FrenchTranslationSection<Content: View>: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) { content() }
                 .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(title).font(AppDesign.Font.body(.semibold))
+            Label {
+                Text(title).font(AppDesign.Font.body(.semibold))
+            } icon: {
+                Image(systemName: style.icon).foregroundStyle(style.color)
+            }
+        }
+        .onChange(of: reveal) { _, now in
+            if now { withMotion { isOpen = true } }
         }
     }
 }
@@ -248,9 +270,7 @@ private struct FrenchTranslationRow: View {
                 EmptyView()
             }
         }
-        .padding(AppDesign.Spacing.sm)
-        .background(Color.primary.opacity(0.03))
-        .cornerRadius(8)
+        .cardSurface(padding: AppDesign.Spacing.sm)
     }
 
     private func confidence(_ hit: NexusModSearch.Hit) -> FrenchTranslationSweep.Confidence {
@@ -273,11 +293,11 @@ private struct FrenchTranslationRow: View {
             EmptyView()
         case .linkedOnly:
             Text(localization.L(L10n.FrTranslations.linkedOnly))
-                .font(AppDesign.Font.iconXS).foregroundColor(.orange)
+                .font(AppDesign.Font.iconXS).foregroundColor(AppDesign.Color.warning)
                 .help(localization.L(L10n.FrTranslations.linkedOnlyHelp))
         case .nameOnly:
             Text(localization.L(L10n.FrTranslations.byName))
-                .font(AppDesign.Font.iconXS).foregroundColor(.orange)
+                .font(AppDesign.Font.iconXS).foregroundColor(AppDesign.Color.warning)
                 .help(localization.L(L10n.FrTranslations.byNameHelp))
         }
     }

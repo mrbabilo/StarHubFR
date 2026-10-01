@@ -1591,6 +1591,7 @@
   "frtr_cancel": "Stop",
   "frtr_progress": "Searching %1$lld / %2$lld — %3$@",
   "frtr_summary": "%1$lld mods covered · %2$lld with a French translation to install · %3$lld without result",
+  "frtr_chart_label": "Translatable mods by translation status",
   "frtr_checked_at": "Oldest result: %@",
   "frtr_never": "The search covers %lld mods: 2 requests for most of them, around twenty for the biggest (SVE). It only runs when you click.",
   "frtr_stop_nokey": "Add your Nexus API key in Settings to search.",
