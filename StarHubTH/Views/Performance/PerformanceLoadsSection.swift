@@ -33,6 +33,7 @@ struct PerformanceLoadsSection: View {
                 header
                 Spacer()
                 Button(localization.L(L10n.Benchmark.open)) { showBenchmark = true }
+                    .clickableCursor()
                     .disabled(viewModel.benchmark.isActive)
             }
             note(localization.L(L10n.Performance.loadsSubtitle))

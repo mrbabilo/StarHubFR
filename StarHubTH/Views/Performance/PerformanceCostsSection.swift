@@ -81,7 +81,7 @@ struct PerformanceCostsSection: View {
             Button { open(row.modId) } label: {
                 Text(name(row.modId)).lineLimit(1).truncationMode(.middle)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.hoverLink)
             .help(row.modId)
         } trailing: {
             if row.before != nil, row.after != nil {

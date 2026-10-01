@@ -43,6 +43,7 @@ struct PerformanceLoadsProbeFirst: View {
                        text: L10n.Performance.loadsProbeNotFirst) {
                     Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirm = true }
                         .buttonStyle(.borderedProminent)
+                        .clickableCursor()
                 }
             }
         case .declined:
@@ -56,7 +57,7 @@ struct PerformanceLoadsProbeFirst: View {
         case .notApplied:
             banner(icon: "exclamationmark.triangle.fill", color: AppDesign.Color.warning,
                    text: L10n.Performance.loadsProbeFirstFailed) {
-                Button(localization.L(L10n.Performance.loadsProbeFirstRetry)) { sync(consent) }
+                Button(localization.L(L10n.Performance.loadsProbeFirstRetry)) { sync(consent) }.clickableCursor()
                 undo
             }
         case .probePaused:
@@ -69,7 +70,7 @@ struct PerformanceLoadsProbeFirst: View {
     }
 
     private var undo: some View {
-        Button(localization.L(L10n.Performance.loadsProbeFirstUndo)) { setConsent(false) }
+        Button(localization.L(L10n.Performance.loadsProbeFirstUndo)) { setConsent(false) }.clickableCursor()
     }
 
     /// Texte au-dessus des gestes : tient à 560 pt, libellé FR le plus long compris.

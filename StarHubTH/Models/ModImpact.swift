@@ -13,6 +13,8 @@ public struct ModImpactVersionStats: Equatable, Sendable {
     public let ranges: [ModImpactAxis: ClosedRange<Double>]
     public let sourceCount: Int
     public let inGameSources: Int
+    public let launchSources: Int
+    public let saveSources: Int
     public let patchedSources: Int
     public let first: Date
     public let last: Date
@@ -135,6 +137,7 @@ public enum ModImpact {
             return ModImpactVersionStats(
                 version: version, shares: shares, ranges: ranges,
                 sourceCount: Set(list.map(\.sourceId)).count, inGameSources: inGame.count,
+                launchSources: launches.count, saveSources: saves.count,
                 patchedSources: inGame.filter { $0.patchesMeasured == true }.count,
                 first: first, last: last,
                 msPerFrame: median(inGame.compactMap(\.msPerFrame)),

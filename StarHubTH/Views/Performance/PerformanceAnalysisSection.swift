@@ -252,7 +252,7 @@ struct PerformanceAnalysisSection: View {
                 Text(title).font(AppDesign.Font.body(.medium))
             } trailing: {
                 if let gesture {
-                    Button(localization.L(button)) { pending = gesture }
+                    Button(localization.L(button)) { pending = gesture }.clickableCursor()
                 }
             }
             if let detail {

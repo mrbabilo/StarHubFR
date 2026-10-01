@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Statistiques à jour dès que le jeu est quitté.** L'impact par mod et l'onglet Performances intègrent la session close sans attendre un retour dans l'app.
+- **Liens et boutons de l'onglet Performances reconnaissables.** Main au survol, liens soulignés au survol et atténués au clic, rien sur un bouton désactivé.
 - **Sonde en tête bien visible.** La carte « Chargements » affiche l'état de la sonde en tête dans un encadré coloré : active, effet au prochain lancement, en pause, ou non appliquée, avec le geste qui va avec (réessayer, retirer).
 
 ### Fixed

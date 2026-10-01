@@ -119,6 +119,7 @@ struct PerformanceBenchmarkSheet: View {
                     Button(localization.L(L10n.Benchmark.useMinimal)) {
                         profileId = viewModel.ensureBenchmarkProfile()
                     }
+                    .clickableCursor()
                 }
             }
             Stepper(String(format: localization.L(L10n.Benchmark.perSide), perSide), value: $perSide,
@@ -139,8 +140,9 @@ struct PerformanceBenchmarkSheet: View {
             }
             HStack {
                 Spacer()
-                Button(localization.L(L10n.Benchmark.cancel)) { isPresented = false }
+                Button(localization.L(L10n.Benchmark.cancel)) { isPresented = false }.clickableCursor()
                 Button(localization.L(L10n.Benchmark.start)) { start() }
+                    .clickableCursor()
                     .disabled(refusal != nil)
                     .keyboardShortcut(.defaultAction)
             }

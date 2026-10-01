@@ -97,6 +97,7 @@ let package = Package(
                 "Models/ModImpactSample.swift",
                 "Models/ModImpactHistory.swift",
                 "Models/ModImpact.swift",
+                "Models/ModImpactFormat.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",

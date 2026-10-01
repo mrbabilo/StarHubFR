@@ -9,6 +9,7 @@ struct PerformanceImpactSection: View {
     @State private var showAll = false
 
     private var store: ModImpactStore { viewModel.modImpactStore }
+    private var language: String { localization.currentLanguage }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
@@ -29,7 +30,7 @@ struct PerformanceImpactSection: View {
                 list
             }
         }
-        .task { await reload() }
+        .task { if store.status == .idle { await reload() } }
         // L'onglet reste monté : relire au retour dans l'app seulement s'il est
         // affiché (patron `PerformanceView`).
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -54,7 +55,7 @@ struct PerformanceImpactSection: View {
                                : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) {
                     showAll.toggle()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.hoverLink)
             }
         }
         footer
@@ -71,7 +72,7 @@ struct PerformanceImpactSection: View {
                 // `ModFocusResolver` le retrouve (H-T6c), et c'est sa fiche —
                 // pas celle du pack, sans UniqueID — qui porte l'impact.
                 Button(entry.name) { viewModel.navigationStore.openModDetail(folderName: entry.id) }
-                    .buttonStyle(.link)
+                    .buttonStyle(.hoverLink)
                 .lineLimit(2).multilineTextAlignment(.leading)
                 if entry.current == nil, let stats {
                     Text(String(format: localization.L(L10n.Performance.impactLastKnown),
@@ -81,12 +82,17 @@ struct PerformanceImpactSection: View {
             }
             Spacer(minLength: AppDesign.Spacing.sm)
             if let delta = entry.evolution {
-                Image(systemName: delta <= 0 ? "arrow.down.right" : "arrow.up.right")
-                    .foregroundStyle(delta <= 0 ? AppDesign.Color.success : AppDesign.Color.warning)
+                let icon = ModImpactFormat.evolutionIcon(delta)
+                let text = ModImpactFormat.evolutionText(delta, previous: entry.previousVersion?.version,
+                                                         localization: localization)
+                Image(systemName: icon.name)
+                    .foregroundStyle(icon.color)
                     .frame(width: 18, height: 18).contentShape(.rect)
-                    .help(ModImpactFormat.score(delta))
+                    .help(text)
+                    .accessibilityLabel(text)
             }
-            ModImpactBadge(localization: localization, impactClass: stats?.impactClass, score: stats?.score)
+            ModImpactBadge(localization: localization, impactClass: stats?.impactClass, score: stats?.score,
+                           dimmed: entry.current == nil)
         }
     }
 
@@ -97,7 +103,7 @@ struct PerformanceImpactSection: View {
             Text(String(format: localization.L(L10n.Performance.impactCardFooter), negligible, unmeasured))
             if let probe = store.probeMsPerFrame {
                 Text(String(format: localization.L(L10n.Performance.impactProbeCost),
-                            ModImpactFormat.number(probe, digits: 2)))
+                            ModImpactFormat.number(probe, digits: 2, language: language)))
             }
             if store.lastSave == nil { Text(localization.L(L10n.Performance.impactSaveMissing)) }
         }

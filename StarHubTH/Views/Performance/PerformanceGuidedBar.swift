@@ -59,6 +59,7 @@ struct PerformanceGuidedBar: View {
                                             location: GuidedProtocol.safeLocation(before.location),
                                             pairedWith: before.id)
                 }
+                .clickableCursor()
                 .disabled(viewModel.isBenchmarkActive)
             }
         case .idle:
@@ -66,6 +67,7 @@ struct PerformanceGuidedBar: View {
                 draft = GuidedPlanDraft(name: defaultName(), role: .before,
                                         location: GuidedProtocol.fallbackLocation, pairedWith: nil)
             }
+            .clickableCursor()
             .disabled(viewModel.isBenchmarkActive)
         }
     }
@@ -86,6 +88,7 @@ struct PerformanceGuidedBar: View {
                                      error.localizedDescription)
                 }
             }
+            .clickableCursor()
         }
         // Profil Vanilla : le jeu partirait sans SMAPI, le plan attendrait en vain.
         if launchProfile == "Vanilla" { note(localization.L(L10n.Performance.guidedVanilla)) }

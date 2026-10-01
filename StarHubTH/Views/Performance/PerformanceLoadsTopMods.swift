@@ -49,7 +49,7 @@ struct PerformanceLoadsTopMods: View {
                     .lineLimit(3).multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.hoverLink)
             .disabled(head == nil)
             .frame(width: Self.nameWidth, alignment: .leading)
             bar(total).frame(height: 10)
@@ -79,6 +79,7 @@ struct PerformanceLoadsTopMods: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.borderless)
+            .clickableCursor()
             .help(localization.L(L10n.Performance.actionPause))
             .accessibilityLabel(localization.L(L10n.Performance.actionPause))
         } else {

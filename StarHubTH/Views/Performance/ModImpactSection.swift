@@ -6,6 +6,8 @@ struct ModImpactBadge: View {
     @ObservedObject var localization: LocalizationStore
     let impactClass: ModImpactClass?
     let score: Double?
+    /// Note d'une autre version que l'installée (spec §3.3) : en gris.
+    var dimmed = false
 
     var body: some View {
         if let impactClass, let score {
@@ -18,30 +20,40 @@ struct ModImpactBadge: View {
                 Text("\(localization.L(key)) · \(String(format: localization.L(L10n.Performance.impactScore), ModImpactFormat.score(score)))")
                     .monospacedDigit()
             } icon: {
-                Image(systemName: icon).foregroundStyle(color)
+                Image(systemName: icon).foregroundStyle(dimmed ? Color.secondary : color)
             }
             .font(AppDesign.Font.footnote(.semibold))
+            .foregroundStyle(dimmed ? .secondary : .primary)
         }
     }
 }
 
-/// Formats partagés par la fiche et la carte (virgule décimale en français :
-/// patron `PerformanceLoadsSection.duration`).
-enum ModImpactFormat {
-    static func score(_ value: Double) -> String { String(Int(value.rounded())) }
-    static func number(_ value: Double, digits: Int = 1) -> String {
-        String(format: "%.\(digits)f", value).replacingOccurrences(of: ".", with: ",")
-    }
-    static func percent(_ share: Double) -> String {
-        share < 0.01 ? "\(number(share * 100, digits: 2)) %" : "\(number(share * 100)) %"
-    }
+/// Les libellés localisés de l'impact ; les nombres viennent de
+/// `ModImpactFormat` (Core, testé), dans la langue de l'interface.
+extension ModImpactFormat {
     /// « v1.2 », ou « version inconnue » (segment sans inventaire) — le « v »
     /// ne vit pas dans les gabarits, sinon « vversion inconnue ».
     static func version(_ version: String?, localization: LocalizationStore) -> String {
         version.map { "v" + $0 } ?? localization.L(L10n.Performance.impactVersionUnknown)
     }
-    static func date(_ date: Date?) -> String? {
-        date.map { $0.formatted(.dateTime.day().month(.twoDigits)) }
+
+    /// « ↓ 8 depuis v1.1 (plus léger) », « Inchangée depuis v1.1 » — la fiche
+    /// et le libellé VoiceOver de la flèche du classement.
+    static func evolutionText(_ delta: Double, previous: String?, localization: LocalizationStore) -> String {
+        let since = version(previous, localization: localization)
+        switch evolution(delta) {
+        case .stable: return String(format: localization.L(L10n.Performance.impactEvolutionStable), since)
+        case .gain: return String(format: localization.L(L10n.Performance.impactEvolutionGain), score(abs(delta)), since)
+        case .loss: return String(format: localization.L(L10n.Performance.impactEvolutionLoss), score(abs(delta)), since)
+        }
+    }
+
+    static func evolutionIcon(_ delta: Double) -> (name: String, color: Color) {
+        switch evolution(delta) {
+        case .stable: ("equal", .secondary)
+        case .gain: ("arrow.down.right", AppDesign.Color.success)
+        case .loss: ("arrow.up.right", AppDesign.Color.warning)
+        }
     }
 }
 
@@ -53,13 +65,20 @@ struct ModImpactSection: View {
     let mod: ModItem
 
     private var store: ModImpactStore { viewModel.modImpactStore }
+    private var language: String { localization.currentLanguage }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.Performance.impactTitle)).font(AppDesign.Font.headline(.semibold))
             content
         }
-        .task { await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir) }
+        // Première lecture seulement : la fermeture du jeu relit pour tous
+        // (`GameExitRefresh`), une fiche ouverte ne relit plus 18 Mo.
+        .task {
+            if store.status == .idle {
+                await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir)
+            }
+        }
     }
 
     @ViewBuilder
@@ -98,7 +117,8 @@ struct ModImpactSection: View {
                                detail: { axisDetail($0, shown) })
             } trailing: {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                    ModImpactBadge(localization: localization, impactClass: shown.impactClass, score: shown.score)
+                    ModImpactBadge(localization: localization, impactClass: shown.impactClass, score: shown.score,
+                                   dimmed: entry.current == nil)
                     if isPartial(shown) { note(localization.L(L10n.Performance.impactPartial)) }
                     if let gain = gainText(shown) {
                         Text(gain).font(AppDesign.Font.body).fixedSize(horizontal: false, vertical: true)
@@ -133,8 +153,9 @@ struct ModImpactSection: View {
         guard let share = stats.shares[axis] else {
             return String(format: localization.L(L10n.Performance.impactUnmeasuredAxis), axisLabel(axis))
         }
-        let n = axis == .launch || axis == .save ? stats.sourceCount - stats.inGameSources : stats.inGameSources
-        return String(format: localization.L(L10n.Performance.impactAxisDetail), axisLabel(axis), ModImpactFormat.percent(share), n)
+        let n = axis == .launch ? stats.launchSources : axis == .save ? stats.saveSources : stats.inGameSources
+        return String(format: localization.L(L10n.Performance.impactAxisDetail), axisLabel(axis),
+                      ModImpactFormat.percent(share, language: language), n)
     }
 
     /// « partielle » : un axe manque à ce mod alors qu'un autre mod l'a.
@@ -146,17 +167,19 @@ struct ModImpactSection: View {
     private func gainText(_ s: ModImpactVersionStats) -> String? {
         var parts: [String] = []
         if let frame = s.msPerFrame {
-            parts.append(String(format: localization.L(L10n.Performance.impactGainFrame), ModImpactFormat.number(frame, digits: 2),
-                                ModImpactFormat.percent(s.frameWorkShare ?? 0)))
+            let ms = ModImpactFormat.number(frame, digits: 2, language: language)
+            parts.append(s.frameWorkShare.map {
+                String(format: localization.L(L10n.Performance.impactGainFrame), ms, ModImpactFormat.percent($0, language: language))
+            } ?? String(format: localization.L(L10n.Performance.impactGainFrameOnly), ms))
         }
         if let ms = s.launchMs {
-            parts.append(String(format: localization.L(L10n.Performance.impactGainLaunch), PerformanceLoadsSection.duration(ms)))
+            parts.append(String(format: localization.L(L10n.Performance.impactGainLaunch), ModImpactFormat.duration(ms, language: language)))
         }
         if let ms = s.saveMs {
-            parts.append(String(format: localization.L(L10n.Performance.impactGainSave), PerformanceLoadsSection.duration(ms)))
+            parts.append(String(format: localization.L(L10n.Performance.impactGainSave), ModImpactFormat.duration(ms, language: language)))
         }
         if let mb = s.allocMBPerMinute {
-            parts.append(String(format: localization.L(L10n.Performance.impactGainAlloc), ModImpactFormat.number(mb)))
+            parts.append(String(format: localization.L(L10n.Performance.impactGainAlloc), ModImpactFormat.number(mb, language: language)))
         }
         return parts.isEmpty ? nil : String(format: localization.L(L10n.Performance.impactGain), parts.joined(separator: " · "))
     }
@@ -165,7 +188,8 @@ struct ModImpactSection: View {
     private var blockersText: some View {
         let blockers = ProbePerformanceActions.pauseBlockers(modId: mod.uniqueId, in: viewModel.mods)
         if !blockers.dependents.isEmpty {
-            note(String(format: localization.L(L10n.Performance.impactDependents), blockers.dependents.count))
+            note(blockers.dependents.count == 1 ? localization.L(L10n.Performance.impactDependentsOne)
+                 : String(format: localization.L(L10n.Performance.impactDependents), blockers.dependents.count))
                 .help(blockers.dependents.joined(separator: ", "))
         }
         if !blockers.siblings.isEmpty {
@@ -178,13 +202,11 @@ struct ModImpactSection: View {
     @ViewBuilder
     private func evolution(_ entry: ModImpactEntry) -> some View {
         if let delta = entry.evolution, let previousVersion = entry.previousVersion {
-            let previous = ModImpactFormat.version(previousVersion.version, localization: localization)
-            let key = delta <= 0 ? L10n.Performance.impactEvolutionGain : L10n.Performance.impactEvolutionLoss
+            let icon = ModImpactFormat.evolutionIcon(delta)
             Label {
-                Text(String(format: localization.L(key), ModImpactFormat.score(abs(delta)), previous))
+                Text(ModImpactFormat.evolutionText(delta, previous: previousVersion.version, localization: localization))
             } icon: {
-                Image(systemName: delta <= 0 ? "arrow.down.right" : "arrow.up.right")
-                    .foregroundStyle(delta <= 0 ? AppDesign.Color.success : AppDesign.Color.warning)
+                Image(systemName: icon.name).foregroundStyle(icon.color)
             }
             .font(AppDesign.Font.footnote(.semibold))
         } else if entry.comparableVersionCount > 1 {

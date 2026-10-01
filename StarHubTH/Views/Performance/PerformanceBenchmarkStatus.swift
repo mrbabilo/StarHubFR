@@ -18,7 +18,7 @@ struct PerformanceBenchmarkStatus: View {
         VStack(alignment: .leading, spacing: 4) {
             if runner.interrupted != nil, !runner.isActive {
                 Text(localization.L(L10n.Benchmark.interrupted)).fixedSize(horizontal: false, vertical: true)
-                Button(localization.L(L10n.Benchmark.restore)) { runner.restoreInterrupted() }
+                Button(localization.L(L10n.Benchmark.restore)) { runner.restoreInterrupted() }.clickableCursor()
             }
             switch runner.phase {
             case .idle:
@@ -30,7 +30,7 @@ struct PerformanceBenchmarkStatus: View {
                     Text(String(format: localization.L(L10n.Benchmark.progress), index + 1, runner.runs.count,
                                 localization.L(runKey(runner.runs[index].side))))
                     Spacer()
-                    Button(localization.L(L10n.Benchmark.stop)) { runner.stop() }
+                    Button(localization.L(L10n.Benchmark.stop)) { runner.stop() }.clickableCursor()
                 }
             case .restoring:
                 Text(localization.L(L10n.Benchmark.restoring))

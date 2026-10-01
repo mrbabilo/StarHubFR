@@ -5393,8 +5393,7 @@ final class StarHubTHViewModel {
     /// to warn before writing saves. A differently-named build won't match.
     func isGameRunning() -> Bool {
         let running = NSWorkspace.shared.runningApplications.contains {
-            guard let name = $0.localizedName else { return false }
-            return name.caseInsensitiveCompare("Stardew Valley") == .orderedSame
+            GameProcess.isGame(localizedName: $0.localizedName)
         }
         if running {
             // Jeu visible : le garde système suffit, le délai ne doit plus retenir un

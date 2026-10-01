@@ -330,6 +330,7 @@ struct MainView: View {
         .frame(minWidth: 820, minHeight: 520)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, Locale(identifier: localization.currentLanguage))
+        .refreshesStatsWhenGameQuits(vm)
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in
             if let modName = notification.object as? String {
                 vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)?.folderName

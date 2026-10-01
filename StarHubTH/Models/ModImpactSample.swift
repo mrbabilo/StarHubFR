@@ -96,6 +96,12 @@ public enum ModImpactSources {
                                probeMsPerFrame: probe.flatMap { costs.fps > 0 ? $0.msPerSecond / costs.fps : nil })
     }
 
+    /// La session la plus récente **en date** : au passage à l'heure d'hiver,
+    /// l'ordre des chaînes ISO ne suit plus celui des instants.
+    public static func latestSession(_ ids: [String]) -> String? {
+        ids.max { (ProbeDate.parse($0) ?? .distantPast) < (ProbeDate.parse($1) ?? .distantPast) }
+    }
+
     /// Froid = premier lancement après **un** des démarrages connus.
     /// `ProbeLoadComparison.isCold` ne voit que le démarrage courant : le
     /// premier lancement d'un démarrage passé y redevient « chaud ».

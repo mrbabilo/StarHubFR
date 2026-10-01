@@ -153,4 +153,29 @@ struct ModImpactScoreTests {
         #expect(abs(try #require(after.evolution) + 10.5) < 1e-9)   // contre 1.0, pas contre l'inconnue
         #expect(after.previousVersion?.version == "1.0")
     }
+
+    /// Revue mineure : n par axe — lancements et sauvegardes comptés à part.
+    @Test func versionStatsCountSourcesPerKind() throws {
+        let samples = [inGame("a", day: 1, version: "1", fps: 0.1, spike: 0.1, alloc: 0.1),
+                       launch("l1", day: 1, version: "1", share: 0.01, ms: 10),
+                       launch("l2", day: 2, version: "1", share: 0.01, ms: 10)]
+        let stats = try #require(ModImpact.versionStats(samples).first)
+        #expect(stats.inGameSources == 1 && stats.launchSources == 2 && stats.saveSources == 0)
+    }
+
+    /// La partie en cours est la plus récente **en date** : au passage à
+    /// l'heure d'hiver, « …02:10+01:00 » suit « …02:30+02:00 » alors que la
+    /// chaîne la classe avant.
+    @Test func theOpenSessionIsTheLatestByDateNotByString() {
+        let before = "2026-10-25T02:30:00.0000000+02:00"   // 00:30 UTC
+        let after = "2026-10-25T02:10:00.0000000+01:00"    // 01:10 UTC
+        #expect(ModImpactSources.latestSession([before, after]) == after)
+    }
+
+    @Test func gameProcessNameMatchesWithoutCase() {
+        #expect(GameProcess.isGame(localizedName: "Stardew Valley"))
+        #expect(GameProcess.isGame(localizedName: "stardew valley"))
+        #expect(!GameProcess.isGame(localizedName: "Stardew Valley Launcher"))
+        #expect(!GameProcess.isGame(localizedName: nil))
+    }
 }
