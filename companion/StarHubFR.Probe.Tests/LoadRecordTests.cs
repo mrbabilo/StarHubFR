@@ -164,4 +164,65 @@ public class LoadRecordTests
         File.WriteAllText(target, string.Join("\n", lines) + "\n");
         Assert.True(File.Exists(target));
     }
+
+    [Fact]
+    public void EntryLoopAndHookAreWritten()
+    {
+        var b = new LoadRecordBuilder(LoadKind.Launch, "s", "s", "0.8.0", null, null, false, false);
+        b.Mark("L0", 0, None);
+        b.EntryLoopMs = 20_577.04;
+        b.SetHealth("ok", "ok", "ok", 0, entryHook: "ok");
+        var json = JsonDocument.Parse(b.ToJsonLine()).RootElement;
+        Assert.Equal(20_577.0, json.GetProperty("EntryLoopMs").GetDouble());
+        Assert.Equal("ok", json.GetProperty("Health").GetProperty("EntryHook").GetString());
+    }
+
+    [Fact]
+    public void WithoutTimelineTheFieldsStayNull()
+    {
+        var b = new LoadRecordBuilder(LoadKind.Launch, "s", "s", "0.8.0", null, null, false, false);
+        b.SetHealth("ok", "ok", "ok", 0);
+        var json = JsonDocument.Parse(b.ToJsonLine()).RootElement;
+        Assert.Equal(JsonValueKind.Null, json.GetProperty("EntryLoopMs").ValueKind);
+        Assert.Equal(JsonValueKind.Null, json.GetProperty("Health").GetProperty("EntryHook").ValueKind);
+    }
+
+    /// Fixture Swift du démarrage, écrite par le producteur (StartupTimeline +
+    /// LoadRecordBuilder), jamais à la main.
+    [Fact]
+    public void WritesTheEntryFixture()
+    {
+        const string session = "2026-10-01T11:16:00.0000000+02:00";
+        var timeline = new StartupTimeline(ticksPerSecond: 1000);
+        timeline.LoopStarted(0, 0);
+        timeline.EntryEnded("Pathoschild.ContentPatcher", 300, 0);        // avant la sonde
+        timeline.EntryEnded("spacechase0.SpaceCore", 2_313, 0);
+        var beforeProbe = timeline.TakeCosts("mrbabilo.StarHubFR.Probe");
+        timeline.EntryEnded("mrbabilo.StarHubFR.Probe", 2_600, 0);         // exclue
+        timeline.EntryEnded("Cropgenics", 5_683, 0);
+        timeline.EntryEnded("Nature.1011108", 7_500, 160);                 // 160 ms d'un autre mod dedans
+        var afterProbe = timeline.TakeCosts("mrbabilo.StarHubFR.Probe");
+
+        var launch = new LoadRecordBuilder(LoadKind.Launch, session, session, "0.8.0", null, null, false, false);
+        launch.Mark("L0", 0, None);
+        launch.Mark("L1", 30_000, beforeProbe);
+        var l2 = new List<CostLine>(afterProbe)
+            { new("Pathoschild.ContentPatcher", "event", "Content.AssetRequested", 160, 2, 12) };
+        launch.Mark("L2", 35_000, l2);
+        launch.Mark("L3", 36_000, None);
+        launch.Mark("L4", 60_000, None);
+        launch.EntryLoopMs = timeline.LoopMs;
+        launch.SetHealth("ok", "ok", "ok", 0, entryHook: "ok");
+
+        var old = new LoadRecordBuilder(LoadKind.Launch, "2026-10-01T11:30:00.0000000+02:00",
+                                        "2026-10-01T11:30:00.0000000+02:00", "0.8.0", null, null, false, false);
+        foreach (var (name, ms) in new[] { ("L0", 0.0), ("L1", 30_000.0), ("L2", 35_000.0), ("L3", 36_000.0), ("L4", 60_000.0) })
+            old.Mark(name, ms, None);
+        old.SetHealth("ok", "ok", "ok", 0, entryHook: "missing");   // 0.8.0 qui n'a pas vu l'accroche tirer
+
+        string target = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "../../../../../Tests/ProbeFilesTests/Fixtures/loads-entry.jsonl"));
+        File.WriteAllText(target, launch.ToJsonLine() + "\n" + old.ToJsonLine() + "\n");
+        Assert.True(File.Exists(target));
+    }
 }

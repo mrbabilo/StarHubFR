@@ -36,7 +36,7 @@ public sealed class LoadRecordBuilder
     private readonly List<object> phases = new();
     private object? final;
     private string? saveDate;
-    private object health = new { PackSeam = "missing", AssetHook = "missing", LoadHook = "missing", OffThreadSections = 0 };
+    private object health = new { PackSeam = "missing", AssetHook = "missing", LoadHook = "missing", OffThreadSections = 0, EntryHook = (string?)null };
 
     public LoadRecordBuilder(LoadKind kind, string session, string at, string probeVersion,
                              string? saveName, long? saveBytes, bool reload, bool patchesMeasured)
@@ -50,6 +50,9 @@ public sealed class LoadRecordBuilder
 
     /// <summary>Benchmark automatique : identifiant du lancement sous plan, sinon null.</summary>
     public string? BenchmarkRun { get; set; }
+
+    /// <summary>Lancement : durée de la boucle de démarrage des mods (`StartupTimeline.LoopMs`), sinon null.</summary>
+    public double? EntryLoopMs { get; set; }
 
     /// <summary>Un jalon atteint, avec ce qui a coûté depuis le précédent.</summary>
     public void Mark(string name, double ms, IReadOnlyList<CostLine> costsSincePrevious)
@@ -67,8 +70,11 @@ public sealed class LoadRecordBuilder
 
     public void SetSaveDate(string date) => saveDate = date;
 
-    public void SetHealth(string packSeam, string assetHook, string loadHook, int offThreadSections) =>
-        health = new { PackSeam = packSeam, AssetHook = assetHook, LoadHook = loadHook, OffThreadSections = offThreadSections };
+    /// <summary>`entryHook` null : producteur qui ne connaît pas l'accroche du démarrage (sans avis, jamais « missing »).</summary>
+    public void SetHealth(string packSeam, string assetHook, string loadHook, int offThreadSections,
+                          string? entryHook = null) =>
+        health = new { PackSeam = packSeam, AssetHook = assetHook, LoadHook = loadHook,
+                       OffThreadSections = offThreadSections, EntryHook = entryHook };
 
     /// <summary>Tous les jalons attendus, dans l'ordre, chacun une fois.</summary>
     public bool Complete =>
@@ -91,5 +97,6 @@ public sealed class LoadRecordBuilder
         Final = final,
         Health = health,
         BenchmarkRun,
+        EntryLoopMs = EntryLoopMs is { } loop ? Math.Round(loop, 1) : (double?)null,
     });
 }
