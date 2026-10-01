@@ -75,9 +75,13 @@ public enum ProbeLoadComparison {
         return spreads.max()
     }
 
-    /// max(5 %, 2 × bruit) : le plancher de 5 % tient (leçon de l'A/A D5-A :
-    /// jamais assoupli).
-    public static func thresholdPercent(noise: Double) -> Double { max(5, 2 * noise) }
+    /// max(3 %, 2 × bruit). Plancher abaissé de 5 à 3 % le 2026-10-01 : deux
+    /// A/B d'un mod isolé (−3 et −4 %) restaient gris. 3 % reste au-dessus des
+    /// deux faux écarts mesurés sans rien changer — 2,2 % (A/A des chargements
+    /// sans sonde) et 1,97 % (A/A de D5-A, quartiles disjoints) — et ne
+    /// descend pas plus bas pour cette raison. Une série dispersée est tenue
+    /// par 2 × bruit, pas par le plancher.
+    public static func thresholdPercent(noise: Double) -> Double { max(3, 2 * noise) }
 
     /// Froid (tâche 0) : la première session après le démarrage du Mac a
     /// mesuré +98 % au lancement et +17 % au chargement — largement au-dessus
@@ -270,7 +274,7 @@ public enum ProbeLoadComparison {
 public enum ProbeColdDisk {
     /// Tâche 0 (2026-09-30) : la première session après le démarrage a mesuré
     /// +98 % au lancement, +17 % au chargement — largement au-dessus du seuil
-    /// de 5 % : la détection vaut la peine.
+    /// de 3 % : la détection vaut la peine.
     static let matters = true
 
     /// L'instant avant lequel un lancement est « froid ». La date de naissance

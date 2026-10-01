@@ -126,17 +126,24 @@ import Testing
         #expect(ProbeLoadComparison.observedNoisePercent(before: [100], after: [90]) == nil)
     }
 
-    @Test func thresholdIsTwiceTheNoiseWithAFivePercentFloor() {
-        #expect(ProbeLoadComparison.thresholdPercent(noise: 1) == 5)
+    @Test func thresholdIsTwiceTheNoiseWithAThreePercentFloor() {
+        #expect(ProbeLoadComparison.thresholdPercent(noise: 1) == 3)
+        #expect(ProbeLoadComparison.thresholdPercent(noise: 1.4) == 3)
         #expect(ProbeLoadComparison.thresholdPercent(noise: 2.5) == 5)
         #expect(abs(ProbeLoadComparison.thresholdPercent(noise: 8.9) - 17.8) < 1e-9)
     }
 
-    @Test func quietSidesDecideAtFivePercent() {
-        // Bruit 1 % : seuil 5 %.
-        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [94_000, 94_500]).isFaster)
+    @Test func quietSidesDecideAtThreePercent() {
+        // Bruit 1 % : seuil 3 % — les A/B à −3/−4 % du 2026-10-01 se tranchent.
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [97_000, 97_500]).isFaster)
         #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [100_500, 101_000]) == .noDifference)
-        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [97_000, 97_500])
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 101_000], after: [98_500, 99_000])
+                == .grayZone(beforeCount: 2, afterCount: 2))
+    }
+
+    @Test func aDispersedSeriesStillWithholdsFourPercent() {
+        // Bruit 2,5 % : seuil 5 %, un gain de 4 % reste gris.
+        #expect(ProbeLoadComparison.verdict(before: [100_000, 102_500], after: [97_000, 97_400])
                 == .grayZone(beforeCount: 2, afterCount: 2))
     }
 

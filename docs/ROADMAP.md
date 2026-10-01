@@ -994,7 +994,7 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       inchangé ; couture Content Patcher `Profiler?.RecordSection` armée
       pendant les fenêtres ; rappels d'assets `ApplyLoader`/`ApplyEditors`) ;
       Core (`ProbeLoadRecord`, `ProbeLoadBreakdown`, `ProbeLoadComparison` —
-      bruit A/A mesuré 2,2 % le 2026-09-30, seuil = plancher 5 % ; froid =
+      bruit A/A mesuré 2,2 % le 2026-09-30, seuil = max(3 %, 2 × bruit) — plancher abaissé de 5 à 3 % le 2026-10-01, deux A/B à −3/−4 % restant gris ; froid =
       premier lancement depuis `kern.boottime`, +98 % mesuré, éjection du
       volume sans effet) ; carte « Chargements » (tuiles, frise, top 5,
       verdict, geste pause gardé). Tâche 13 = validation en jeu. · **M**
