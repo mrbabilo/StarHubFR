@@ -11,7 +11,6 @@ struct PerformanceLoadsSection: View {
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
     @State private var pendingPause: PendingPause?
-    @State private var confirmProbeFirst = false
     /// Reflète le consentement (`nil` = jamais demandé) pour re-rendre la
     /// carte quand il change — `UserDefaults` seul ne déclenche rien.
     @State private var consentShown: Bool?
@@ -47,7 +46,8 @@ struct PerformanceLoadsSection: View {
                     if let b = store.lastLaunch { tile(L10n.Performance.loadsLaunch, b, store.launchComparison) }
                     if let b = store.lastSave { tile(L10n.Performance.loadsSave, b, store.saveComparison) }
                 }
-                probeFirstPrompt
+                PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,
+                                           consent: $consentShown)
                 detail
                 quality
             }
@@ -57,14 +57,6 @@ struct PerformanceLoadsSection: View {
             PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
         }
         .onAppear { consentShown = UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool }
-        .confirmationDialog(localization.L(L10n.Performance.loadsProbeFirstAction), isPresented: $confirmProbeFirst) {
-            Button(localization.L(L10n.Performance.loadsProbeFirstAction)) {
-                setProbeFirstConsent(true)
-                ProbeLoadOrder.sync(gameDir: viewModel.gameDir, consent: true, probeActive: true)
-            }
-        } message: {
-            Text(localization.L(L10n.Performance.loadsProbeFirstConfirm))
-        }
         .confirmationDialog(confirmTitle,
                             isPresented: Binding(get: { pendingPause != nil },
                                                  set: { if !$0 { pendingPause = nil } }),
@@ -102,19 +94,6 @@ struct PerformanceLoadsSection: View {
                                 isCold: store.coldRecordIds.contains(b.record.id), displayName: displayName)
     }
 
-    /// Hors du repli : sans la sonde en tête, les chiffres du démarrage sont
-    /// faux. `nil` seul — un refus (`false`) n'est jamais relancé.
-    @ViewBuilder
-    private var probeFirstPrompt: some View {
-        if store.lastLaunch?.probeLoadsFirst == false, probeFirstConsent == nil {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                note(localization.L(L10n.Performance.loadsProbeNotFirst))
-                Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirmProbeFirst = true }
-                    .controlSize(.small)
-            }
-        }
-    }
-
     /// Le détail du type choisi ; sans sélecteur quand un seul existe, sinon
     /// un choix mémorisé « Sauvegarde » afficherait une carte vide.
     @ViewBuilder
@@ -146,17 +125,10 @@ struct PerformanceLoadsSection: View {
     @ViewBuilder
     private var quality: some View {
         let notes = qualityNotes
-        if !notes.isEmpty || probeFirstConsent == true {
+        if !notes.isEmpty {
             DisclosureGroup(isExpanded: $qualityExpanded) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                     ForEach(notes, id: \.self) { note($0) }
-                    if probeFirstConsent == true {
-                        Button(localization.L(L10n.Performance.loadsProbeFirstUndo)) {
-                            setProbeFirstConsent(false)
-                            ProbeLoadOrder.sync(gameDir: viewModel.gameDir, consent: false, probeActive: true)
-                        }
-                        .controlSize(.small)
-                    }
                 }
                 .padding(.top, AppDesign.Spacing.xs)
             } label: {
@@ -189,8 +161,8 @@ struct PerformanceLoadsSection: View {
                 notes.append(String(format: localization.L(L10n.Performance.loadsLoadNote),
                                     Self.duration(loadLoop), coverage.seen, coverage.total))
             }
-            // Refusé : le prompt ne revient pas, le constat reste ici.
-            if b.probeLoadsFirst == false, probeFirstConsent != nil {
+            // Refusé : l'offre ne revient pas, le constat reste ici.
+            if b.probeLoadsFirst == false, consentShown == false {
                 notes.append(localization.L(L10n.Performance.loadsProbeNotFirst))
             }
             if b.packSeamMissing {
@@ -206,15 +178,6 @@ struct PerformanceLoadsSection: View {
         // Une même accroche absente des deux côtés ne se dit qu'une fois.
         var seen = Set<String>()
         return notes.filter { seen.insert($0).inserted }
-    }
-
-    /// Le consentement vu par la carte ; la vérité reste dans `UserDefaults`.
-    private var probeFirstConsent: Bool? { consentShown }
-
-    private func setProbeFirstConsent(_ value: Bool?) {
-        if let value { UserDefaults.standard.set(value, forKey: UDKey.probeLoadEarlyConsent) }
-        else { UserDefaults.standard.removeObject(forKey: UDKey.probeLoadEarlyConsent) }
-        consentShown = value
     }
 
     // MARK: — Textes

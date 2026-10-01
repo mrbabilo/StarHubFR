@@ -1831,6 +1831,12 @@
 "perf_loads_probe_first_action" = "Load the probe first";
 "perf_loads_probe_first_confirm" = "StarHubFR will add the probe to ModsToLoadEarly in smapi-internal/config.user.json (a copy is kept), and remove it whenever the probe is paused. Nothing else in the mod order changes.";
 "perf_loads_probe_first_undo" = "Stop loading the probe first";
+"perf_loads_probe_first_active" = "Probe loaded first: every mod's loading and startup are measured.";
+"perf_loads_probe_first_pending" = "Probe set to load first: takes effect the next time the game launches.";
+"perf_loads_probe_first_failed" = "Probe not loaded first: StarHubFR couldn't edit smapi-internal/config.user.json (unreadable file, unusual ModsToLoadEarly list, or no write access).";
+"perf_loads_probe_first_paused" = "Probe paused: removed from ModsToLoadEarly, it returns there when you reactivate it.";
+"perf_loads_probe_first_no_smapi" = "SMAPI not found in the game folder: the probe can't be set to load first.";
+"perf_loads_probe_first_retry" = "Retry";
 "perf_loads_cp_preparing" = "Content Patcher prepares its packs (not split)";
 "perf_loads_pack_seam_missing" = "Per-pack split unavailable (Content Patcher %@).";
 "perf_loads_asset_hook_missing" = "Asset callbacks not measured with this SMAPI version.";

@@ -12,6 +12,14 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Sonde en tête bien visible.** La carte « Chargements » affiche l'état de la sonde en tête dans un encadré coloré : active, effet au prochain lancement, en pause, ou non appliquée, avec le geste qui va avec (réessayer, retirer).
+
+### Fixed
+
+- **`config.user.json` de SMAPI jamais écrasé.** Un fichier illisible était réécrit sans copie quand la sonde passait en tête ; il reste désormais intact, et l'échec s'affiche au lieu de passer sous silence.
+
 ## [1.52.0] - 2026-10-01
 
 ### Added
