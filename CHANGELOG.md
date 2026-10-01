@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Démarrage de chaque mod mesuré.** La carte « Chargements » montre ce que chaque mod coûte au démarrage du jeu (`Entry`), sans série A/B, et la durée totale de ce démarrage (sonde 0.8.0).
 - **Onglet « Performances » : avant / après.** Choisissez deux moments mesurés par la sonde : ce qui a changé, la fluidité minute par minute, le coût de chaque mod, et une analyse qui propose un geste réversible — mettre en pause, revenir à une version ou à un réglage d'avant.
 - **Performances lisibles d'un coup d'œil.** Vert quand c'est mieux, orange quand c'est moins bien, toujours avec une flèche ; un écart dans le bruit reste gris. Les graphiques portent leurs unités (ms, FPS, min, ms/s), les sections sont encadrées, les changements en pastilles.
 - **Temps de chargement.** La carte « Chargements » donne la durée du lancement et du chargement de sauvegarde, les mods et packs les plus lourds, et un verdict avant/après un changement (sonde 0.6.2). Le seuil se règle sur la dispersion des sessions comparées : il faut au moins deux sessions de chaque côté pour trancher.

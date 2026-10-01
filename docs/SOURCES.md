@@ -740,9 +740,17 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   `loads.jsonl`, dit à l'écran.
 - SMAPI 4.5.2 : `GameContentManager.ApplyLoader<T>`/`ApplyEditors<T>`
   entourent chaque rappel `LoadFrom`/`Edit` d'un
-  `HeuristicModsRunningCode.Push`/`TryPop`, comme `ManagedEvent.Raise`. La
-  boucle d'`Entry` de `SCore` aussi, mais la sonde n'y a pas accès (elle
-  patche pendant sa propre `Entry`). Garde : `AssetHook`.
+  `HeuristicModsRunningCode.Push`/`TryPop`, comme `ManagedEvent.Raise`.
+  Garde : `AssetHook`.
+  La boucle d'`Entry` de `SCore.LoadMods` : **sonde 0.8.0** — postfix posés
+  dans le **constructeur** du mod (créé pendant la boucle de chargement,
+  avant toute la boucle de démarrage) sur `SCore.ReloadTranslations
+  (IEnumerable<IModMetadata>)` (départ) et `ModMetadata.SetApi` (fin de
+  `Entry` + `GetApi` de chaque mod). Porte du 2026-10-01 : 1 et 140 appels
+  sur 140 mods de code. Le jeu fixe `TieredCompilation: false`
+  (`StardewModdingAPI.runtimeconfig.json`) : une petite méthode intégrée
+  avant la sonde ne tirerait jamais — d'où ces deux accroches, pas
+  `ModRegistry.Add`. Garde : `EntryHook`.
   **Corrigé en 0.6.2** : transpiler ces deux méthodes **génériques** n'a
   rien attribué (deux sessions, zéro rappel) — Harmony ne détourne que
   l'instanciation `<object>`, les appels réels passent par le corps

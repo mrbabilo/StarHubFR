@@ -451,8 +451,11 @@ SOURCES = [
 
     # — Dépôts dont on suit les versions —
     {"key": "SMAPI", "kind": "repo", "repo": "Pathoschild/SMAPI",
-     "role": "le format du journal, le schéma de manifeste, l'installateur téléchargé",
-     "used_by": "SmapiInstaller.swift, SmapiLogParser.swift, SmapiDiagnostics.swift"},
+     "role": "le format du journal, le schéma de manifeste, l'installateur téléchargé, "
+             "et les accroches internes de la sonde (SCore.RequestAssetOperations, "
+             "SCore.ReloadTranslations, ModMetadata.SetApi)",
+     "used_by": "SmapiInstaller.swift, SmapiLogParser.swift, SmapiDiagnostics.swift, "
+                "companion/StarHubFR.Probe (ModCosts.cs, StartupHooks.cs)"},
 
     {"key": "compat-list", "kind": "repo", "repo": "Pathoschild/SmapiCompatibilityList",
      "role": "le dépôt derrière le dump ci-dessus",
