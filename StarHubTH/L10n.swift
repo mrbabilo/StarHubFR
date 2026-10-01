@@ -1210,6 +1210,13 @@ enum L10n {
         static let severityCritical     = "health_severity_critical"
         static let severityWarning      = "health_severity_warning"
         static let severityInfo         = "health_severity_info"
+        /// Tuiles de synthèse en tête des Alertes système (audit UX 2026-10-02).
+        static let tileCritical         = "health_tile_critical"
+        static let tileWarning          = "health_tile_warning"
+        static let tileInfo             = "health_tile_info"
+        static let tileFilterHint       = "health_tile_filter_hint"
+        static let allClearHint         = "health_all_clear_hint"
+        static let distributionLabel    = "health_distribution_label"
         /// Pied de l'écran d'alertes (tâche 7) : « N problèmes · M critiques »
         /// — le total est `healthIssues.count`, jamais un autre calcul.
         static let problemCount         = "health_problem_count"

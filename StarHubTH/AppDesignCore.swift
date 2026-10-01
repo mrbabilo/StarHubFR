@@ -90,6 +90,9 @@ public enum AppDesignCore {
         /// Typé explicitement : sans annotation Swift infère `Int`, que
         /// `.shadow(color:radius:y:)` refuse.
         public static let badge: (radius: CGFloat, y: CGFloat) = (3, 1)
+        /// Décolle une carte du fond de page (`cardSurface()`) : assez pour
+        /// lire le relief, pas assez pour faire flotter la carte.
+        public static let card: (radius: CGFloat, y: CGFloat, opacity: Double) = (6, 2, 0.08)
     }
 
     // MARK: - Icon (tailles de glyphe)

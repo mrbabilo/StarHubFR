@@ -45,14 +45,17 @@ struct SystemAlertsView: View {
     /// son rôle (« qu'est-ce qui casse, emmène-moi là »), les panoramas
     /// répondent à l'autre question (« montre-moi tout »).
     @State private var sheet: SystemAlertsSheet?
+    /// Filtre posé par une tuile de gravité ; `nil` = tout.
+    @State private var severityFilter: HealthIssue.Severity?
 
     var body: some View {
         // Capturée UNE fois par rendu (revue globale, bloquant 7) :
         // `vm.healthIssues` est une propriété CALCULÉE qui retrie et
         // reconstruit un `Set` sur le parc entier (~966 mods chez l'auteur)
-        // — la lire 4 fois (isEmpty, ForEach, footer, filtre critiques)
-        // referait ce travail 4 fois par rendu SwiftUI, fréquent.
+        // — la relire à chaque usage (vide, liste, tuiles, sous-titre)
+        // referait ce travail plusieurs fois par rendu SwiftUI, fréquent.
         let issues = vm.healthIssues
+        let shown = severityFilter.map { f in issues.filter { $0.severity == f } } ?? issues
         VStack(alignment: .leading, spacing: 0) {
             header(issues)
             Divider()
@@ -61,18 +64,21 @@ struct SystemAlertsView: View {
                 emptyState
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        // Identité dérivée du contenu : `HealthIssue.id` est
-                        // stable par construction (tâches 1-3) — jamais
-                        // `id: \.self` ni l'index sur cette liste.
-                        ForEach(issues) { issue in
-                            row(for: issue)
-                            Divider()
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                        summary(issues)
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            // Identité dérivée du contenu : `HealthIssue.id` est
+                            // stable par construction (tâches 1-3) — jamais
+                            // `id: \.self` ni l'index sur cette liste.
+                            ForEach(shown) { issue in
+                                row(for: issue)
+                                if issue.id != shown.last?.id { Divider() }
+                            }
                         }
+                        .cardSurface(padding: 0)
                     }
-                    .padding(.horizontal, AppDesign.Spacing.lg)
+                    .padding(AppDesign.Spacing.lg)
                 }
-                footer(for: issues)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -86,13 +92,17 @@ struct SystemAlertsView: View {
     // MARK: - Header
 
     private func header(_ issues: [HealthIssue]) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            Text(localization.L(L10n.Main.systemAlerts))
-                .font(AppDesign.Font.viewTitle)
-            Spacer()
-            // Comptes dérivés de la liste DÉJÀ capturée, jamais de
-            // `vm.activeConflictCount` : celui-ci relit `vm.healthIssues`,
-            // propriété calculée qui retrie le parc entier (~966 mods).
+        let worst = issues.map(\.severity).max()
+        // Le sous-titre compte `actionableCount` — une notice `.info` ne
+        // compte jamais comme problème (revue globale, bloquant 1 : 7 notices
+        // bénignes sur un parc sain annonçaient « 7 problèmes »).
+        return PageHeader(icon: worst == nil ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
+                          title: localization.L(L10n.Main.systemAlerts),
+                          subtitle: issues.isEmpty ? nil
+                              : String(format: localization.L(L10n.Health.problemCount),
+                                       Int64(issues.actionableCount),
+                                       Int64(issues.filter { $0.severity == .critical }.count)),
+                          tint: tint(for: worst)) {
             panoramaButton(localization.L(L10n.Keybinds.title), icon: "keyboard",
                            count: issues.count { $0.source == .keybind }) { sheet = .keybindReport }
             panoramaButton(localization.L(L10n.Conflicts.title), icon: "arrow.triangle.merge",
@@ -104,6 +114,47 @@ struct SystemAlertsView: View {
         .background(AppDesign.Color.windowBg)
     }
 
+    /// La couleur d'une gravité — vert quand il n'y a rien : un état réussi,
+    /// pas une absence d'information. Toujours doublée d'un glyphe ou d'un mot.
+    private func tint(for severity: HealthIssue.Severity?) -> Color {
+        switch severity {
+        case .critical: return AppDesign.Color.error
+        case .warning: return AppDesign.Color.warning
+        case .info: return AppDesign.Color.info
+        case nil: return AppDesign.Color.success
+        }
+    }
+
+    /// Trois tuiles qui filtrent la liste, puis la barre de répartition : ce
+    /// qui est cassé se voit avant de lire une ligne.
+    private func summary(_ issues: [HealthIssue]) -> some View {
+        let counts = Dictionary(grouping: issues, by: \.severity).mapValues(\.count)
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            WrapHStack(spacing: AppDesign.Spacing.sm, lineSpacing: AppDesign.Spacing.sm) {
+                severityTile(.critical, icon: "exclamationmark.octagon.fill",
+                             label: L10n.Health.tileCritical, count: counts[.critical] ?? 0)
+                severityTile(.warning, icon: "exclamationmark.triangle.fill",
+                             label: L10n.Health.tileWarning, count: counts[.warning] ?? 0)
+                severityTile(.info, icon: "info.circle.fill",
+                             label: L10n.Health.tileInfo, count: counts[.info] ?? 0)
+            }
+            SeverityBar(segments: [HealthIssue.Severity.critical, .warning, .info].map {
+                SeverityBar.Segment(count: counts[$0] ?? 0, color: tint(for: $0))
+            })
+            .accessibilityLabel(localization.L(L10n.Health.distributionLabel))
+        }
+    }
+
+    private func severityTile(_ severity: HealthIssue.Severity, icon: String,
+                              label: String, count: Int) -> some View {
+        MetricTile(icon: icon, value: count, label: localization.L(label),
+                   tint: tint(for: severity), isSelected: severityFilter == severity,
+                   help: localization.L(L10n.Health.tileFilterHint)) {
+            withMotion(.snappy) { severityFilter = severityFilter == severity ? nil : severity }
+        }
+        .disabled(count == 0 && severityFilter != severity)
+    }
+
     /// Bouton de barre d'outils ouvrant l'un des deux panoramas — même style
     /// que `recheckLogButton`, pour que les trois lisent comme un seul groupe
     /// d'actions plutôt que deux styles différents côte à côte.
@@ -112,27 +163,19 @@ struct SystemAlertsView: View {
         Button(action: action) {
             HStack(spacing: AppDesign.Spacing.xs) {
                 Label(label, systemImage: icon)
-                // Capsule cachée à zéro, bouton toujours visible — même règle
-                // que `SidebarItem` : la destination existe même quand elle
-                // ne compte rien, et un panorama vide reste consultable.
                 if count > 0 {
                     Text("\(count)")
                         .font(AppDesign.Font.footnote(.bold))
+                        .monospacedDigit()
                         .foregroundColor(.white)
                         .frame(minWidth: 16, minHeight: 16)
                         .padding(.horizontal, 4)
-                        .background(AppDesign.Color.primary)
-                        .clipShape(Capsule())
+                        .background(AppDesign.Color.accent, in: Capsule())
                 }
             }
-            .font(AppDesign.Font.caption(.medium))
-            .foregroundColor(AppDesign.Color.primary)
-            .padding(.horizontal, AppDesign.Spacing.md)
-            .padding(.vertical, AppDesign.Spacing.xs)
-            .background(AppDesign.Color.primary.opacity(AppDesign.Opacity.light))
-            .cornerRadius(AppDesign.Radius.sm)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.bordered)
+        .controlSize(.small)
         .pointingHandCursor()
     }
 
@@ -180,6 +223,11 @@ struct SystemAlertsView: View {
 
     private func row(for issue: HealthIssue) -> some View {
         HStack(spacing: AppDesign.Spacing.md) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(tint(for: issue.severity))
+                .frame(width: 3)
+                .padding(.vertical, 2)
+                .accessibilityHidden(true)
             // Cas courant de `SeverityBadge` : le libellé est résolu depuis
             // la gravité elle-même (voir doc de tête du composant) — ce n'est
             // pas le cas « libellé différent » de son second initialiseur.
@@ -211,12 +259,13 @@ struct SystemAlertsView: View {
                 Button(actionLabel(for: action)) { perform(action) }
                     .lineLimit(1)
                     .fixedSize()
-                    .buttonStyle(.plain)
-                    .foregroundColor(AppDesign.Color.accent)
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
                     .pointingHandCursor()
             }
         }
         .padding(.vertical, AppDesign.Spacing.sm)
+        .padding(.trailing, AppDesign.Spacing.md)
     }
 
     /// Le libellé doit dire OÙ le bouton mène : l'ancien `openTab(String)`
@@ -260,42 +309,25 @@ struct SystemAlertsView: View {
         }
     }
 
-    // MARK: - Footer
+    // MARK: - État vide
 
-    /// Pied honnête : le total est `issues.actionableCount` — critique +
-    /// avertissement, jamais `.count` brut (revue globale, bloquant 1). Une
-    /// notice `.info` reste visible dans la liste au-dessus mais ne compte
-    /// pas ici : sinon 7 notices bénignes sur un parc sain (0 échec, 0
-    /// conflit, mesuré sur le journal réel de l'auteur) annonceraient
-    /// « 7 problèmes » en pied de page. Les critiques restent un filtrage
-    /// direct sur la gravité.
-    private func footer(for issues: [HealthIssue]) -> some View {
-        Text(String(format: localization.L(L10n.Health.problemCount),
-                    Int64(issues.actionableCount),
-                    Int64(issues.filter { $0.severity == .critical }.count)))
-            .font(AppDesign.Font.footnote)
-            .foregroundColor(AppDesign.Color.secondary)
-            .padding(AppDesign.Spacing.md)
-    }
-
-    // MARK: - Empty state
-
-    /// État vide conservé dans son esprit d'origine : coche verte, message
-    /// rassurant. Le journal date de la dernière partie — pas de bouton
+    /// État vide : bouclier vert qui s'installe, message rassurant, et ce qui
+    /// a été vérifié. Le journal date de la dernière partie — pas de bouton
     /// dédié ici, le « Revérifier » de l'en-tête couvre déjà ce cas.
     private var emptyState: some View {
-        VStack {
+        VStack(spacing: AppDesign.Spacing.md) {
             Spacer()
-            HStack(spacing: AppDesign.Spacing.md) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(AppDesign.Color.success)
-                    .font(.system(size: AppDesign.Font.scaled(28)))
-                Text(localization.L(L10n.Updates.noAlerts))
-                    .font(AppDesign.Font.headline)
-                    .foregroundColor(AppDesign.Color.secondary)
-            }
+            AllClearGlyph()
+            Text(localization.L(L10n.Updates.noAlerts))
+                .font(AppDesign.Font.headline(.semibold))
+            Text(localization.L(L10n.Health.allClearHint))
+                .font(AppDesign.Font.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
             Spacer()
         }
+        .padding(AppDesign.Spacing.lg)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -306,19 +338,62 @@ struct SystemAlertsView: View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Button(action: { vm.refreshSmapiLog() }) {
                 Label(localization.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
-                    .font(AppDesign.Font.caption(.medium))
-                    .foregroundColor(AppDesign.Color.primary)
-                    .padding(.horizontal, AppDesign.Spacing.md)
-                    .padding(.vertical, AppDesign.Spacing.xs)
-                    .background(AppDesign.Color.primary.opacity(AppDesign.Opacity.light))
-                    .cornerRadius(AppDesign.Radius.sm)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .pointingHandCursor()
             .disabled(vm.isRefreshingSmapiLog)
             if vm.isRefreshingSmapiLog {
                 ProgressView().controlSize(.small)
             }
         }
+    }
+}
+
+/// La barre de répartition : un segment par gravité, proportionnel. Les
+/// tuiles au-dessus portent les chiffres ; la barre donne la proportion.
+private struct SeverityBar: View {
+    struct Segment: Equatable {
+        let count: Int
+        let color: Color
+    }
+    let segments: [Segment]
+
+    var body: some View {
+        let total = max(segments.reduce(0) { $0 + $1.count }, 1)
+        let visible = segments.filter { $0.count > 0 }
+        GeometryReader { geo in
+            let gaps = CGFloat(max(visible.count - 1, 0)) * 2
+            HStack(spacing: 2) {
+                ForEach(Array(visible.enumerated()), id: \.offset) { _, seg in
+                    Capsule()
+                        .fill(seg.color.gradient)
+                        .frame(width: max(6, (geo.size.width - gaps) * CGFloat(seg.count) / CGFloat(total)))
+                }
+            }
+        }
+        .frame(height: 6)
+        .animation(Motion.animation(.smooth), value: segments.map(\.count))
+    }
+}
+
+/// Le glyphe de l'état « rien à signaler », qui s'installe en douceur à
+/// l'arrivée (aucune animation sous « Réduire les animations »).
+private struct AllClearGlyph: View {
+    @State private var shown = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(AppDesign.Color.success.opacity(AppDesign.Opacity.light))
+                .frame(width: 96, height: 96)
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: AppDesign.Font.scaled(44)))
+                .foregroundStyle(AppDesign.Color.success.gradient)
+        }
+        .scaleEffect(shown ? 1 : 0.85)
+        .opacity(shown ? 1 : 0)
+        .onAppear { withMotion(.spring(duration: 0.5, bounce: 0.3)) { shown = true } }
+        .accessibilityHidden(true)
     }
 }
