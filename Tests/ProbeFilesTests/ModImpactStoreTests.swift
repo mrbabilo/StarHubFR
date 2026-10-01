@@ -39,8 +39,11 @@ import Testing
     @Test func theOpenSessionIsNotIntegratedWhileTheGameRuns() async throws {
         let s = try store(withLoads: false)
         await s.reload(mods: mods, gameRunning: true, gameDir: nil)
-        // La seule session est la dernière : rien d'intégré, donc rien d'écrit.
-        #expect(ModImpactHistory.load(from: historyURL) == .absent)
+        // La seule session est la dernière : aucun segment intégré (le fichier
+        // peut exister pour retenir le démarrage du Mac).
+        if case .loaded(let h) = ModImpactHistory.load(from: historyURL) {
+            #expect(!h.integrated.keys.contains { $0.contains("#") })
+        }
         await s.reload(mods: mods, gameRunning: false, gameDir: nil)
         guard case .loaded(let after) = ModImpactHistory.load(from: historyURL) else {
             Issue.record("historique absent"); return

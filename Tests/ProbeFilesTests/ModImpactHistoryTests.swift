@@ -27,14 +27,39 @@ struct ModImpactHistoryTests {
         #expect(h.probeMsPerFrame == 0.3)
     }
 
-    @Test func negligibleSamplesAreDroppedButTheSourceIsMarked() {
+    /// Revue finale C1 : jeter les échantillons sous le plancher biaisait la
+    /// médiane vers le haut (un mod lourd 1 session sur 3 prenait la note de
+    /// cette seule session). Ils sont gardés.
+    @Test func negligibleSamplesAreKeptSoTheMedianStaysHonest() throws {
         var h = ModImpactHistory()
-        h.integrate(source("seg#0", day: 1, ["Mod.Tiny": sample("seg#0", day: 1, fps: 0.0001)
-            .with(spike: 0.001, alloc: 0.0001)]))
-        #expect(h.samples["mod.tiny"] == nil)
-        #expect(h.integrated["seg#0"] != nil)
-        // Vu, mais négligeable : jamais confondu avec « jamais mesuré ».
-        #expect(h.negligibleSeen["mod.tiny"] == Date(timeIntervalSince1970: 86_400))
+        h.integrate(source("s0", day: 1, ["Mod.A": sample("s0", day: 1, fps: 0.0001).with(spike: 0.001, alloc: 0.0001)]))
+        h.integrate(source("s1", day: 2, ["Mod.A": sample("s1", day: 2, fps: 0.0001).with(spike: 0.001, alloc: 0.0001)]))
+        h.integrate(source("s2", day: 3, ["Mod.A": sample("s2", day: 3, fps: 0.25)]))
+        #expect(h.samples["mod.a"]?.count == 3)
+        let stats = try #require(ModImpact.versionStats(h.samples["mod.a"] ?? []).first)
+        #expect(stats.shares[.fps] == 0.0001)
+        #expect(stats.sourceCount == 3)
+    }
+
+    /// Revue finale I6 : un champ absent (historique d'une version antérieure,
+    /// ou champ futur ajouté) ne rend jamais l'historique « illisible ».
+    @Test func missingOrUnknownFieldsStillDecode() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("impact-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data("{\"integrated\":{},\"futureField\":1}".utf8).write(to: url)
+        #expect(ModImpactHistory.load(from: url) == .loaded(ModImpactHistory()))
+        try Data("{}".utf8).write(to: url)
+        #expect(ModImpactHistory.load(from: url) == .loaded(ModImpactHistory()))
+    }
+
+    /// Revue finale C2 : les démarrages vus sont retenus, sans doublon.
+    @Test func bootsAreRememberedOnce() {
+        var h = ModImpactHistory()
+        let boot = Date(timeIntervalSince1970: 1_000)
+        h.noteBoot(boot)
+        h.noteBoot(boot)
+        h.noteBoot(Date(timeIntervalSince1970: 2_000))
+        #expect(h.boots == [boot, Date(timeIntervalSince1970: 2_000)])
     }
 
     @Test func eachVersionAndKindKeepsItsThirtyNewest() {

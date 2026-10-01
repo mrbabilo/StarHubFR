@@ -96,12 +96,21 @@ public enum ModImpactSources {
                                probeMsPerFrame: probe.flatMap { costs.fps > 0 ? $0.msPerSecond / costs.fps : nil })
     }
 
-    /// Un lancement ou un chargement de sauvegarde : complet, chaud, sonde
+    /// Froid = premier lancement après **un** des démarrages connus.
+    /// `ProbeLoadComparison.isCold` ne voit que le démarrage courant : le
+    /// premier lancement d'un démarrage passé y redevient « chaud ».
+    public static func isCold(_ record: ProbeLoadRecord, among records: [ProbeLoadRecord], boots: [Date]) -> Bool {
+        boots.contains { ProbeLoadComparison.isCold(record, among: records, coldBefore: $0) }
+    }
+
+    /// Un lancement ou un chargement de sauvegarde hors benchmark : complet, chaud, sonde
     /// ≥ 0.9.0 ; un lancement exige la sonde en tête (sinon le chargement des
     /// mods d'avant elle manque).
     public static func load(_ record: ProbeLoadRecord, launches: [ProbeInventoryLaunch],
                             isCold: Bool) -> ModImpactSource? {
-        guard record.complete, !isCold, let date = record.at,
+        // Un benchmark tourne sur un parc réduit : ses parts ne disent rien du
+        // parc réel (ses sessions en jeu sont déjà écartées).
+        guard record.benchmarkRun == nil, record.complete, !isCold, let date = record.at,
               ProbeLoadRecords.version(record.probeVersion, atLeast: minimumProbe) else { return nil }
         if record.kind == .launch, record.probeLoadsFirst != true { return nil }
         let kind: ModImpactSample.Kind = record.kind == .launch ? .launch : .save

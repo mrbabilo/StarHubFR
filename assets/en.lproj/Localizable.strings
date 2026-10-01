@@ -1857,12 +1857,12 @@
 "perf_impact_gain_alloc" = "−%@ MB/min allocated";
 "perf_impact_dependents" = "%d active mods need it and would stop loading too.";
 "perf_impact_siblings" = "Pauses with its pack: %@";
-"perf_impact_version_row" = "v%@ · %@ · %d sessions · %@ → %@";
+"perf_impact_version_row" = "%@ · %@ · %d sessions · %@ → %@";
 "perf_impact_version_unknown" = "unknown version";
-"perf_impact_evolution_gain" = "↓ %@ since v%@ (lighter)";
-"perf_impact_evolution_loss" = "↑ +%@ since v%@ (heavier)";
+"perf_impact_evolution_gain" = "↓ %@ since %@ (lighter)";
+"perf_impact_evolution_loss" = "↑ +%@ since %@ (heavier)";
 "perf_impact_evolution_few" = "Too few measurements to compare versions (3 per version).";
-"perf_impact_not_measured_version" = "Not measured yet in v%@ — v%@ shown.";
+"perf_impact_not_measured_version" = "Not measured yet in %@ — %@ shown.";
 "perf_impact_relative" = "Shares of the whole mod list on the day of each measurement.";
 "perf_impact_patches" = "Harmony patches measured in %d of %d sessions: mods that patch may be under-counted.";
 "perf_impact_sources" = "Last measured: in game %@ · launch %@ · save %@";
@@ -1878,7 +1878,7 @@
 "perf_impact_show_less" = "Show top 10";
 "perf_impact_card_footer" = "%d negligible, %d not measured.";
 "perf_impact_probe_cost" = "The probe itself costs %@ ms per frame (not ranked).";
-"perf_impact_last_known" = "last known: v%@";
+"perf_impact_last_known" = "last known: %@";
 "perf_impact_save_missing" = "Save loading not measured yet: load a save with probe 0.9.0.";
 "perf_loads_cp_preparing" = "Content Patcher prepares its packs (not split)";
 "perf_loads_pack_seam_missing" = "Per-pack split unavailable (Content Patcher %@).";

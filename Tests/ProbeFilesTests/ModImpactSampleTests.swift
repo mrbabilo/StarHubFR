@@ -69,4 +69,29 @@ struct ModImpactSampleTests {
         #expect(!s(fps: nil, spike: nil, alloc: nil, load: 0.001).isNegligible)       // au plancher : compte
         #expect(s(fps: nil, spike: nil, alloc: nil, load: nil).isNegligible)
     }
+
+    /// Revue finale C2 : `isCold` ne voit que le démarrage courant ; le premier
+    /// lancement après un démarrage plus ancien redevenait « chaud » au
+    /// redémarrage suivant et entrait dans l'historique (+98 % mesuré).
+    @Test func aLaunchFirstAfterAnyKnownBootIsCold() throws {
+        let records = ProbeLoadRecords.decode(try Fixture.data("loads-load.jsonl")).records
+        let first = try #require(records.compactMap { r in r.at.map { (r, $0) } }.min { $0.1 < $1.1 })
+        let earlierBoot = first.1.addingTimeInterval(-60)
+        let laterBoot = first.1.addingTimeInterval(86_400 * 365)
+        #expect(!ModImpactSources.isCold(first.0, among: records, boots: [laterBoot]))   // le bug : seul le dernier démarrage
+        #expect(ModImpactSources.isCold(first.0, among: records, boots: [earlierBoot, laterBoot]))
+        #expect(!ModImpactSources.isCold(first.0, among: records, boots: []))
+    }
+
+    /// Un lancement de benchmark tourne sur un parc réduit (profil BENCHMARK) :
+    /// ses parts ne disent rien du parc réel. Écarté, comme ses sessions en jeu
+    /// (`ProbeLoadRecords.benchmarkSessions`).
+    @Test func benchmarkLaunchesAreNotSources() throws {
+        let line = try #require(String(data: try Fixture.data("loads-load.jsonl"), encoding: .utf8)?
+            .split(separator: "\n").first.map(String.init))
+        let bench = line.replacingOccurrences(of: "\"BenchmarkRun\":null", with: "\"BenchmarkRun\":\"run-1\"")
+        let record = try #require(ProbeLoadRecords.decode(Data(bench.utf8)).records.first)
+        #expect(record.benchmarkRun == "run-1")
+        #expect(ModImpactSources.load(record, launches: [], isCold: false) == nil)
+    }
 }

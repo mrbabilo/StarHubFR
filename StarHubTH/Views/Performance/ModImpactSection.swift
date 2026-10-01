@@ -35,6 +35,11 @@ enum ModImpactFormat {
     static func percent(_ share: Double) -> String {
         share < 0.01 ? "\(number(share * 100, digits: 2)) %" : "\(number(share * 100)) %"
     }
+    /// « v1.2 », ou « version inconnue » (segment sans inventaire) — le « v »
+    /// ne vit pas dans les gabarits, sinon « vversion inconnue ».
+    static func version(_ version: String?, localization: LocalizationStore) -> String {
+        version.map { "v" + $0 } ?? localization.L(L10n.Performance.impactVersionUnknown)
+    }
     static func date(_ date: Date?) -> String? {
         date.map { $0.formatted(.dateTime.day().month(.twoDigits)) }
     }
@@ -80,8 +85,10 @@ struct ModImpactSection: View {
     @ViewBuilder
     private func measured(_ entry: ModImpactEntry, _ shown: ModImpactVersionStats) -> some View {
         if !entry.isEnabled { note(localization.L(L10n.Performance.impactPaused)) }
-        if entry.current == nil, let version = shown.version {
-            note(String(format: localization.L(L10n.Performance.impactNotMeasuredVersion), entry.installedVersion, version))
+        if entry.current == nil {
+            note(String(format: localization.L(L10n.Performance.impactNotMeasuredVersion),
+                        ModImpactFormat.version(entry.installedVersion, localization: localization),
+                        ModImpactFormat.version(shown.version, localization: localization)))
         }
         if shown.isNegligible {
             StateCard(icon: "leaf", text: localization.L(L10n.Performance.impactNegligible), actionTitle: nil) {}
@@ -170,9 +177,8 @@ struct ModImpactSection: View {
     /// l'orange ne portent jamais de texte).
     @ViewBuilder
     private func evolution(_ entry: ModImpactEntry) -> some View {
-        if let delta = entry.evolution, let current = entry.current,
-           let index = entry.versions.firstIndex(of: current), index + 1 < entry.versions.count {
-            let previous = entry.versions[index + 1].version ?? localization.L(L10n.Performance.impactVersionUnknown)
+        if let delta = entry.evolution, let previousVersion = entry.previousVersion {
+            let previous = ModImpactFormat.version(previousVersion.version, localization: localization)
             let key = delta <= 0 ? L10n.Performance.impactEvolutionGain : L10n.Performance.impactEvolutionLoss
             Label {
                 Text(String(format: localization.L(key), ModImpactFormat.score(abs(delta)), previous))
@@ -192,7 +198,7 @@ struct ModImpactSection: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(entry.versions, id: \.version) { v in
                     Text(String(format: localization.L(L10n.Performance.impactVersionRow),
-                                v.version ?? localization.L(L10n.Performance.impactVersionUnknown),
+                                ModImpactFormat.version(v.version, localization: localization),
                                 v.isNegligible ? "—" : String(format: localization.L(L10n.Performance.impactScore),
                                                               ModImpactFormat.score(v.score)),
                                 v.sourceCount, ModImpactFormat.date(v.first) ?? "", ModImpactFormat.date(v.last) ?? ""))

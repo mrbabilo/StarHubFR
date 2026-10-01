@@ -98,14 +98,14 @@ struct ModImpactScoreTests {
         #expect(entries.first { $0.modId == "Mod.Never" }?.shown == nil)
     }
 
-    /// Un mod vu seulement sous le plancher est « négligeable », pas « jamais
-    /// mesuré » (parc réel du 2026-10-01 : 170 mods dits non mesurés).
+    /// Un mod mesuré seulement sous le plancher est « négligeable », pas
+    /// « jamais mesuré » (parc réel du 2026-10-01 : 170 mods dits non mesurés).
     @Test func aModSeenOnlyUnderTheFloorIsNegligibleNotUnmeasured() throws {
         var h = ModImpactHistory()
         h.integrate(source("a", day: 1, ["Mod.Tiny": inGame("a", day: 1, version: "1", fps: 0.0001, spike: 0.001, alloc: 0.0001)]))
         let entries = ModImpact.entries(history: h, mods: [mod("Mod.Tiny", version: "1"), mod("Mod.Never", version: "1")])
         let tiny = try #require(entries.first { $0.modId == "Mod.Tiny" })
-        #expect(tiny.shown == nil && tiny.isNegligible)
+        #expect(tiny.shown != nil && tiny.isNegligible)
         #expect(entries.first { $0.modId == "Mod.Never" }?.isNegligible == false)
         #expect(ModImpact.ranking(entries).isEmpty)
     }
@@ -119,5 +119,38 @@ struct ModImpactScoreTests {
         let entry = try #require(ModImpact.entries(history: h, mods: [mod("Mod.A", version: "1.0")]).first)
         #expect(entry.versions.count == 2)
         #expect(entry.comparableVersionCount == 1)
+    }
+
+    /// Revue finale I3 : le manifeste dit « 7.4 », l'inventaire de la sonde
+    /// (normalisé par SMAPI) « 7.4.0 » — même version (12 mods du parc).
+    @Test func installedVersionMatchesSemantically() throws {
+        var h = ModImpactHistory()
+        h.integrate(source("a", day: 1, ["Mod.A": inGame("a", day: 1, version: "7.4.0", fps: 0.2, spike: 0.2, alloc: 0.2)]))
+        let entry = try #require(ModImpact.entries(history: h, mods: [mod("Mod.A", version: "7.4")]).first)
+        #expect(entry.current?.version == "7.4.0")
+        #expect(ModImpact.sameVersion("1.0-beta", "1.0.0-BETA"))
+        #expect(!ModImpact.sameVersion("1.0", "1.0.1"))
+        #expect(!ModImpact.sameVersion("1.0", "1.0-beta"))
+        #expect(!ModImpact.sameVersion(nil, "1.0"))
+    }
+
+    /// Revue finale I4 : « version inconnue » n'est ni la note affichée faute
+    /// de mieux, ni la version précédente d'une évolution.
+    @Test func unknownVersionNeverStandsInForAKnownOne() throws {
+        var h = ModImpactHistory()
+        var day = 0.0
+        func add(_ v: String?, fps: Double) {
+            day += 1
+            h.integrate(source("s\(day)", day: day, ["Mod.A": inGame("s\(day)", day: day, version: v, fps: fps, spike: 0, alloc: 0)]))
+        }
+        for _ in 0..<3 { add("1.0", fps: 0.25) }
+        for _ in 0..<3 { add(nil, fps: 0.01) }
+        let before = try #require(ModImpact.entries(history: h, mods: [mod("Mod.A", version: "1.1")]).first)
+        #expect(before.current == nil)
+        #expect(before.shown?.version == "1.0")              // pas la version inconnue, plus récente
+        for _ in 0..<3 { add("1.1", fps: 0.04) }
+        let after = try #require(ModImpact.entries(history: h, mods: [mod("Mod.A", version: "1.1")]).first)
+        #expect(abs(try #require(after.evolution) + 10.5) < 1e-9)   // contre 1.0, pas contre l'inconnue
+        #expect(after.previousVersion?.version == "1.0")
     }
 }

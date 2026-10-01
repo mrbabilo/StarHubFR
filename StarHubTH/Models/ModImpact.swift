@@ -40,26 +40,35 @@ public struct ModImpactEntry: Equatable, Sendable, Identifiable {
     public let isEnabled: Bool
     /// La plus récente (dernière mesure) d'abord.
     public let versions: [ModImpactVersionStats]
-    /// Vu dans une source, mais toujours sous le plancher.
-    public let seenNegligible: Bool
 
-    /// Mesuré et négligeable — distinct de « jamais mesuré » (`shown == nil`
-    /// et faux).
-    public var isNegligible: Bool { shown?.isNegligible ?? seenNegligible }
+    /// Mesuré et négligeable — distinct de « jamais mesuré » (`shown == nil`).
+    public var isNegligible: Bool { shown?.isNegligible ?? false }
     /// Versions connues ; « version inconnue » (segment sans inventaire) ne se
     /// compare à rien.
     public var comparableVersionCount: Int { versions.filter { $0.version != nil }.count }
 
-    public var current: ModImpactVersionStats? { versions.first { $0.version == installedVersion } }
-    /// La version installée si mesurée, sinon la dernière connue.
-    public var shown: ModImpactVersionStats? { current ?? versions.first }
+    /// Le manifeste (« 7.4 ») et l'inventaire de la sonde (« 7.4.0 ») ne
+    /// s'écrivent pas pareil : comparaison sémantique.
+    public var current: ModImpactVersionStats? {
+        versions.first { ModImpact.sameVersion($0.version, installedVersion) }
+    }
+    /// La version installée si mesurée, sinon la dernière version **connue**,
+    /// et seulement à défaut « version inconnue ».
+    public var shown: ModImpactVersionStats? {
+        current ?? versions.first { $0.version != nil } ?? versions.first
+    }
+
+    /// La version connue mesurée juste avant l'installée.
+    public var previousVersion: ModImpactVersionStats? {
+        guard let current, let index = versions.firstIndex(of: current) else { return nil }
+        return versions[(index + 1)...].first { $0.version != nil }
+    }
 
     /// Note de la version installée moins celle de la précédente mesurée ;
     /// négatif = gain. Nil sans `minimumSourcesForEvolution` des deux côtés.
     public var evolution: Double? {
-        guard let current, let index = versions.firstIndex(of: current), index + 1 < versions.count else { return nil }
-        let previous = versions[index + 1]
-        guard current.sourceCount >= ModImpact.minimumSourcesForEvolution,
+        guard let current, let previous = previousVersion,
+              current.sourceCount >= ModImpact.minimumSourcesForEvolution,
               previous.sourceCount >= ModImpact.minimumSourcesForEvolution else { return nil }
         return current.score - previous.score
     }
@@ -79,6 +88,21 @@ public enum ModImpact {
 
     public static func impactClass(score: Double) -> ModImpactClass {
         score >= highThreshold ? .high : score >= mediumThreshold ? .medium : .low
+    }
+
+    /// Même version au sens SemVer : numéros complétés par des zéros
+    /// (« 7.4 » = « 7.4.0 »), suffixes égaux sans casse.
+    public static func sameVersion(_ a: String?, _ b: String?) -> Bool {
+        guard let a, let b else { return false }
+        func split(_ v: String) -> ([Int], String) {
+            let parts = v.trimmingCharacters(in: .whitespaces).split(separator: "-", maxSplits: 1).map(String.init)
+            return ((parts.first ?? "").split(separator: ".").map { Int($0) ?? 0 },
+                    parts.count > 1 ? parts[1].lowercased() : "")
+        }
+        let (x, sx) = split(a), (y, sy) = split(b)
+        guard sx == sy else { return false }
+        for i in 0..<max(x.count, y.count) where (i < x.count ? x[i] : 0) != (i < y.count ? y[i] : 0) { return false }
+        return true
     }
 
     public static func median(_ values: [Double]) -> Double? {
@@ -129,8 +153,7 @@ public enum ModImpact {
             .map { item in
                 ModImpactEntry(id: item.folderName, modId: item.uniqueId, name: item.name,
                                installedVersion: item.version, isEnabled: item.isEnabled,
-                               versions: versionStats(history.samples[item.uniqueId.lowercased()] ?? []),
-                               seenNegligible: history.negligibleSeen[item.uniqueId.lowercased()] != nil)
+                               versions: versionStats(history.samples[item.uniqueId.lowercased()] ?? []))
             }
     }
 

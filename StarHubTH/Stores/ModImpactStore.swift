@@ -64,11 +64,12 @@ final class ModImpactStore {
                                                excludingSessions: ProbeLoadRecords.benchmarkSessions(loads))
             let openSession = gameRunning ? sessions.sessions.map(\.id).max() : nil
             var changed = false
+            if let coldBefore, !history.boots.contains(coldBefore) { history.noteBoot(coldBefore); changed = true }
             for side in sides where side.session != openSession {
                 if let source = ModImpactSources.inGame(side) { changed = history.integrate(source) || changed }
             }
             for record in loads {
-                let cold = ProbeLoadComparison.isCold(record, among: loads, coldBefore: coldBefore)
+                let cold = ModImpactSources.isCold(record, among: loads, boots: history.boots)
                 if let source = ModImpactSources.load(record, launches: inventory?.launches ?? [], isCold: cold) {
                     changed = history.integrate(source) || changed
                 }

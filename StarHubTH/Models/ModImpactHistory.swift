@@ -14,14 +14,36 @@ public struct ModImpactHistory: Codable, Equatable, Sendable {
     public private(set) var samples: [String: [ModImpactSample]] = [:]
     /// Le coût de la sonde en jeu à la dernière source qui l'a mesuré.
     public private(set) var probeMsPerFrame: Double?
-    /// Mods vus seulement sous le plancher (échantillons non gardés), à leur
-    /// dernière date : « négligeable » n'est pas « jamais mesuré ».
-    public private(set) var negligibleSeen: [String: Date] = [:]
+    /// Démarrages du Mac vus par l'app (`kern.boottime`) : le premier
+    /// lancement après **chacun** est froid, pas seulement après le dernier.
+    public private(set) var boots: [Date] = []
+    /// Forme du fichier ; les champs absents prennent leur valeur par défaut.
+    public private(set) var schema = 1
 
     public init() {}
 
-    /// Faux si la source était déjà là. Les échantillons négligeables ne sont
-    /// pas gardés ; la source est marquée quand même.
+    private enum CodingKeys: String, CodingKey { case schema, integrated, samples, probeMsPerFrame, boots }
+
+    /// Tolérant : un champ absent (fichier d'une version antérieure) ou
+    /// inconnu (version future) ne rend jamais l'historique illisible — un
+    /// historique illisible n'est plus jamais réécrit.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        schema = try c.decodeIfPresent(Int.self, forKey: .schema) ?? 1
+        integrated = try c.decodeIfPresent([String: Date].self, forKey: .integrated) ?? [:]
+        samples = try c.decodeIfPresent([String: [ModImpactSample]].self, forKey: .samples) ?? [:]
+        probeMsPerFrame = try c.decodeIfPresent(Double.self, forKey: .probeMsPerFrame)
+        boots = try c.decodeIfPresent([Date].self, forKey: .boots) ?? []
+    }
+
+    public mutating func noteBoot(_ boot: Date) {
+        guard !boots.contains(boot) else { return }
+        boots.append(boot)
+        boots.sort()
+    }
+
+    /// Faux si la source était déjà là. Les échantillons négligeables sont
+    /// gardés : les jeter tirait la médiane vers le haut (revue finale C1).
     @discardableResult
     public mutating func integrate(_ source: ModImpactSource) -> Bool {
         guard integrated[source.id] == nil else { return false }
@@ -29,10 +51,6 @@ public struct ModImpactHistory: Codable, Equatable, Sendable {
         if let probe = source.probeMsPerFrame { probeMsPerFrame = probe }
         for (modId, sample) in source.samples {
             let key = modId.lowercased()
-            guard !sample.isNegligible else {
-                negligibleSeen[key] = max(negligibleSeen[key] ?? sample.date, sample.date)
-                continue
-            }
             var list = samples[key, default: []]
             list.append(sample)
             list.sort { $0.date < $1.date }

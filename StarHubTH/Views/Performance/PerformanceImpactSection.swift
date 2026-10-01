@@ -62,22 +62,20 @@ struct PerformanceImpactSection: View {
 
     private func row(_ entry: ModImpactEntry) -> some View {
         let stats = entry.shown
-        // Un composant de pack s'ouvre par son entrée de tête (patron
-        // `PerformanceLoadsTopMods`).
-        let head = ProbePerformanceActions.target(modId: entry.modId, in: viewModel.mods)
         return HStack(alignment: .center, spacing: AppDesign.Spacing.sm) {
             ModImpactRadar(shares: stats?.shares ?? [:], size: 24, showsLabels: false,
                            label: { $0.rawValue }, detail: { $0.rawValue })
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Button(entry.name) {
-                    if let head { viewModel.navigationStore.openModDetail(folderName: head.folderName) }
-                }
-                .buttonStyle(.link)
-                .disabled(head == nil)
+                // Le dossier du mod lui-même, composant de pack compris :
+                // `ModFocusResolver` le retrouve (H-T6c), et c'est sa fiche —
+                // pas celle du pack, sans UniqueID — qui porte l'impact.
+                Button(entry.name) { viewModel.navigationStore.openModDetail(folderName: entry.id) }
+                    .buttonStyle(.link)
                 .lineLimit(2).multilineTextAlignment(.leading)
-                if entry.current == nil, let version = stats?.version {
-                    Text(String(format: localization.L(L10n.Performance.impactLastKnown), version))
+                if entry.current == nil, let stats {
+                    Text(String(format: localization.L(L10n.Performance.impactLastKnown),
+                                ModImpactFormat.version(stats.version, localization: localization)))
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 }
             }

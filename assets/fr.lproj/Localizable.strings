@@ -1857,12 +1857,12 @@
 "perf_impact_gain_alloc" = "−%@ Mo/min alloués";
 "perf_impact_dependents" = "%d mods actifs en dépendent et cesseraient aussi de charger.";
 "perf_impact_siblings" = "Part avec son pack : %@";
-"perf_impact_version_row" = "v%@ · %@ · %d sessions · %@ → %@";
+"perf_impact_version_row" = "%@ · %@ · %d sessions · %@ → %@";
 "perf_impact_version_unknown" = "version inconnue";
-"perf_impact_evolution_gain" = "↓ %@ depuis v%@ (plus léger)";
-"perf_impact_evolution_loss" = "↑ +%@ depuis v%@ (plus lourd)";
+"perf_impact_evolution_gain" = "↓ %@ depuis %@ (plus léger)";
+"perf_impact_evolution_loss" = "↑ +%@ depuis %@ (plus lourd)";
 "perf_impact_evolution_few" = "Trop peu de mesures pour comparer les versions (3 par version).";
-"perf_impact_not_measured_version" = "Pas encore mesurée en v%@ — v%@ affichée.";
+"perf_impact_not_measured_version" = "Pas encore mesurée en %@ — %@ affichée.";
 "perf_impact_relative" = "Parts de tout le parc le jour de chaque mesure.";
 "perf_impact_patches" = "Patches Harmony mesurés dans %d sessions sur %d : les mods qui patchent peuvent être minorés.";
 "perf_impact_sources" = "Dernières mesures : en jeu %@ · lancement %@ · sauvegarde %@";
@@ -1878,7 +1878,7 @@
 "perf_impact_show_less" = "Afficher les 10 premiers";
 "perf_impact_card_footer" = "%d négligeables, %d non mesurés.";
 "perf_impact_probe_cost" = "La sonde elle-même coûte %@ ms par trame (non classée).";
-"perf_impact_last_known" = "dernière connue : v%@";
+"perf_impact_last_known" = "dernière connue : %@";
 "perf_impact_save_missing" = "Chargement de sauvegarde pas encore mesuré : charge une partie avec la sonde 0.9.0.";
 "perf_loads_cp_preparing" = "Content Patcher prépare ses packs (non ventilé)";
 "perf_loads_pack_seam_missing" = "Ventilation par pack indisponible (Content Patcher %@).";
