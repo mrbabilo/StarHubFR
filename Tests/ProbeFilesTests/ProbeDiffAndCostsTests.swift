@@ -142,4 +142,40 @@ struct ProbeDiffAndCostsTests {
         let perMod = ProbeCosts.perMod(minutes, costs: costs)
         #expect(abs(try #require(perMod["Mod.A"]) - 2.0) < 0.001)
     }
+
+    private func costLine(minute: ProbeComparableMinute, frames: Int, frameWorkMs: Double, patches: Bool,
+                          mods: [(id: String, msPerSecond: Double, maxMs: Double, allocKB: Double)]) -> ProbeModCostMinute {
+        let modsJSON = mods.map {
+            "{\"Mod\":\"\($0.id)\",\"SelfMs\":\($0.msPerSecond * 60),\"MsPerSecond\":\($0.msPerSecond),\"MaxMs\":\($0.maxMs),\"AllocKB\":\($0.allocKB),\"Calls\":1,\"Events\":[]}"
+        }
+        let json = """
+        {"Session":"\(minute.minute.session)","At":"\(minute.minute.at)","WallSeconds":60,"Frames":\(frames),
+         "FrameWorkMs":\(frameWorkMs),"Location":"Farm","PatchesMeasured":\(patches),"Mods":[\(modsJSON.joined(separator: ","))]}
+        """
+        return try! ProbeJSON.decoder().decode(ProbeModCostMinute.self, from: Data(json.utf8))
+    }
+
+    /// D5-C — ms/s, pic maximal, Mo/min, FPS et patches sur les minutes appariées.
+    @Test func segmentCostsAggregateEveryAxis() throws {
+        let minutes = [guardMinute(at: "T10:00:00.0000000+02:00"), guardMinute(at: "T10:01:00.0000000+02:00")]
+        let costs = [
+            costLine(minute: minutes[0], frames: 1800, frameWorkMs: 30_000, patches: true,
+                     mods: [("Mod.A", 2.0, 10, 61_440), ("Mod.B", 1.0, 5, 0)]),
+            costLine(minute: minutes[1], frames: 1200, frameWorkMs: 30_000, patches: false,
+                     mods: [("Mod.A", 4.0, 30, 0)]),
+        ]
+        let s = ProbeCosts.segmentCosts(minutes, costs: costs)
+        #expect(s.seconds == 120)
+        #expect(s.frames == 3000)
+        #expect(abs(s.fps - 25) < 0.001)
+        #expect(s.frameWorkMs == 60_000)
+        #expect(s.lines == 2 && s.patchesMeasuredLines == 1)
+        let a = try #require(s.mods["Mod.A"])
+        #expect(abs(a.msPerSecond - 3.0) < 0.001)          // (120 + 240) / 120
+        #expect(a.maxMs == 30)                              // le plus grand des deux
+        #expect(abs(a.allocMBPerMinute - 30) < 0.001)       // 61 440 Ko = 60 Mo sur 2 min
+        #expect(abs(try #require(s.mods["Mod.B"]).msPerSecond - 0.5) < 0.001)
+        // perMod reste la projection ms/s.
+        #expect(ProbeCosts.perMod(minutes, costs: costs) == s.mods.mapValues(\.msPerSecond))
+    }
 }
