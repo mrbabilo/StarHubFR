@@ -2,9 +2,11 @@ import Foundation
 
 /// Un coût dans une phase de chargement : un gestionnaire d'événement (`event`),
 /// un rappel d'asset (`asset`), une section de pack Content Patcher (`pack`)
-/// ou un patch Harmony (`patch`), en temps propre.
+/// un patch Harmony (`patch`) ou le démarrage d'un mod (`entry`, sonde 0.8.0 :
+/// `Entry` + `GetApi`, moins ce que la sonde attribue ailleurs pendant ce
+/// temps), en temps propre.
 public struct ProbeLoadCost: Equatable, Sendable {
-    public enum Kind: String, Sendable { case event, asset, pack, patch }
+    public enum Kind: String, Sendable { case event, asset, pack, patch, entry }
     public let mod: String
     public let kind: Kind
     public let label: String
@@ -61,12 +63,16 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
         public let assetHook: String
         public let loadHook: String
         public let offThreadSections: Int
+        /// Sonde 0.8.0 : accroche du démarrage des mods ; nil avant.
+        public let entryHook: String?
 
-        public init(packSeam: String, assetHook: String, loadHook: String, offThreadSections: Int) {
+        public init(packSeam: String, assetHook: String, loadHook: String, offThreadSections: Int,
+                    entryHook: String? = nil) {
             self.packSeam = packSeam
             self.assetHook = assetHook
             self.loadHook = loadHook
             self.offThreadSections = offThreadSections
+            self.entryHook = entryHook
         }
     }
 
@@ -100,6 +106,8 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
     public let health: Health
     /// Benchmark automatique : identifiant du lancement sous plan, sinon nil.
     public let benchmarkRun: String?
+    /// Sonde 0.8.0, lancement : durée de la boucle de démarrage des mods.
+    public let entryLoopMs: Double?
     /// Total comparé : dernier jalon de phase (`L4` ou `S9`) — `S10` attend un
     /// humain et n'entre jamais dans une comparaison.
     public let totalMs: Double
@@ -107,7 +115,8 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
     public init(kind: Kind, session: String, atText: String, at: Date?, probeVersion: String,
                 complete: Bool, reload: Bool, saveName: String?, patchesMeasured: Bool,
                 saveBytes: Int64?, saveDate: String?, milestones: [ProbeLoadMilestone],
-                phases: [ProbeLoadPhase], final: Final?, health: Health, benchmarkRun: String? = nil) {
+                phases: [ProbeLoadPhase], final: Final?, health: Health, benchmarkRun: String? = nil,
+                entryLoopMs: Double? = nil) {
         self.kind = kind
         self.session = session
         self.atText = atText
@@ -124,6 +133,7 @@ public struct ProbeLoadRecord: Equatable, Sendable, Identifiable {
         self.final = final
         self.health = health
         self.benchmarkRun = benchmarkRun
+        self.entryLoopMs = entryLoopMs
         self.totalMs = milestones.last { $0.name == "L4" || $0.name == "S9" }?.ms
             ?? milestones.last?.ms ?? 0
     }
@@ -186,6 +196,7 @@ public enum ProbeLoadRecords {
         var final: DecodedFinal?
         var health: DecodedHealth
         var benchmarkRun: String?
+        var entryLoopMs: Double?
 
         struct DecodedMilestone: Decodable {
             var name: String
@@ -219,6 +230,7 @@ public enum ProbeLoadRecords {
             var assetHook: String
             var loadHook: String
             var offThreadSections: Int
+            var entryHook: String?
         }
     }
 
@@ -242,7 +254,8 @@ public enum ProbeLoadRecords {
             final: line.final.map { ProbeLoadRecord.Final(name: $0.name, ms: $0.ms, menu: $0.menu) },
             health: ProbeLoadRecord.Health(packSeam: line.health.packSeam, assetHook: line.health.assetHook,
                                            loadHook: line.health.loadHook,
-                                           offThreadSections: line.health.offThreadSections),
-            benchmarkRun: line.benchmarkRun)
+                                           offThreadSections: line.health.offThreadSections,
+                                           entryHook: line.health.entryHook),
+            benchmarkRun: line.benchmarkRun, entryLoopMs: line.entryLoopMs)
     }
 }

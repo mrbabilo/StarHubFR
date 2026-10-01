@@ -114,4 +114,47 @@ extension ProbeLoadsTests {
         let record = try #require(ProbeLoadRecords.decode(Data(line.utf8)).records.first)
         #expect(ProbeLoadBreakdown.of(record).packSeamMissing)
     }
+
+    static func entryFixture() throws -> [ProbeLoadRecord] {
+        ProbeLoadRecords.decode(try Fixture.data("loads-entry.jsonl")).records
+    }
+
+    /// Sonde 0.8.0 : les coûts de démarrage sont décodés, la sonde n'y figure pas.
+    @Test func entryCostsAreDecoded() throws {
+        let launch = try #require(try Self.entryFixture().first)
+        let entries = launch.phases.flatMap(\.costs).filter { $0.kind == .entry }
+        #expect(Set(entries.map(\.mod)) == ["Pathoschild.ContentPatcher", "spacechase0.SpaceCore",
+                                            "Cropgenics", "Nature.1011108"])
+        #expect(launch.entryLoopMs == 7500)
+        #expect(launch.health.entryHook == "ok")
+        // Avant la sonde en L0→L1, après elle en L1→L2.
+        #expect(launch.phases.first { $0.from == "L0" }?.costs.map(\.mod).contains("spacechase0.SpaceCore") == true)
+        #expect(launch.phases.first { $0.from == "L1" }?.costs.map(\.mod).contains("Cropgenics") == true)
+    }
+
+    @Test func topSplitsTheStartupPartOut() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.entryFixture().first))
+        #expect(b.top.first?.mod == "Cropgenics")
+        #expect(b.top.first?.entryMs == 3083)
+        // Content Patcher : 300 de démarrage + 160 d'événement, pas de double compte.
+        let cp = try #require(b.top.first { $0.mod == "Pathoschild.ContentPatcher" })
+        #expect(cp.ms == 460)
+        #expect(cp.entryMs == 300)
+        #expect(b.entryLoopMs == 7500)
+        #expect(!b.entryHookMissing)
+    }
+
+    @Test func aLaunchWithoutStartupHooksSaysSo() throws {
+        let b = ProbeLoadBreakdown.of(try Self.entryFixture()[1])
+        #expect(b.entryHookMissing)
+        #expect(b.entryLoopMs == nil)
+    }
+
+    /// Review Focus 5 : une ligne 0.7.x n'a ni les champs ni l'alerte.
+    @Test func anOlderProbeLineHasNoStartupFieldsAndNoAlert() throws {
+        let launch = try #require(try Self.fixture().first)
+        #expect(launch.entryLoopMs == nil)
+        #expect(launch.health.entryHook == nil)
+        #expect(!ProbeLoadBreakdown.of(launch).entryHookMissing)
+    }
 }

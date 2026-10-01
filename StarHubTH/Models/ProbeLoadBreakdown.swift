@@ -43,11 +43,14 @@ public struct ProbeLoadModTotal: Equatable, Sendable, Identifiable {
     public let mod: String
     public let ms: Double
     public let isPack: Bool
+    /// Dont démarrage (`entry`, sonde 0.8.0).
+    public let entryMs: Double
 
-    public init(mod: String, ms: Double, isPack: Bool) {
+    public init(mod: String, ms: Double, isPack: Bool, entryMs: Double = 0) {
         self.mod = mod
         self.ms = ms
         self.isPack = isPack
+        self.entryMs = entryMs
     }
 }
 
@@ -61,6 +64,10 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
     public let top: [ProbeLoadModTotal]
     public let packSeamMissing: Bool
     public let assetHookMissing: Bool
+    /// Sonde 0.8.0 : durée de la boucle de démarrage des mods (lancement).
+    public let entryLoopMs: Double?
+    /// Lancement d'une sonde qui a l'accroche mais ne l'a pas vue tirer.
+    public let entryHookMissing: Bool
 
     /// Couples `(from, to)` connus. Un couple inconnu (jalon d'une sonde
     /// future) est ignoré.
@@ -95,22 +102,25 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
                                        attributedMs: 0, costs: []))
         }
 
-        var byMod: [String: (ms: Double, isPack: Bool)] = [:]
+        var byMod: [String: (ms: Double, entryMs: Double, isPack: Bool)] = [:]
         for span in spans where span.name != .waitingForPlayer {
             for cost in span.costs {
-                var entry = byMod[cost.mod] ?? (0, false)
+                var entry = byMod[cost.mod] ?? (0, 0, false)
                 entry.ms += cost.ms
+                if cost.kind == .entry { entry.entryMs += cost.ms }
                 entry.isPack = entry.isPack || cost.kind == .pack
                 byMod[cost.mod] = entry
             }
         }
         let top = byMod
-            .map { ProbeLoadModTotal(mod: $0.key, ms: $0.value.ms, isPack: $0.value.isPack) }
+            .map { ProbeLoadModTotal(mod: $0.key, ms: $0.value.ms, isPack: $0.value.isPack, entryMs: $0.value.entryMs) }
             .sorted { $0.ms > $1.ms }
             .prefix(5)
 
         return ProbeLoadBreakdown(record: record, spans: spans, top: Array(top),
                                   packSeamMissing: record.health.packSeam == "missing",
-                                  assetHookMissing: record.health.assetHook == "missing")
+                                  assetHookMissing: record.health.assetHook == "missing",
+                                  entryLoopMs: record.entryLoopMs,
+                                  entryHookMissing: record.kind == .launch && record.health.entryHook == "missing")
     }
 }
