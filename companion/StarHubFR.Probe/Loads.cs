@@ -47,6 +47,7 @@ internal static class Loads
             new DateTimeOffset(start).ToString("o"), probeVersion, null, null, false, PatchCosts.Active);
         Current.BenchmarkRun = Benchmark.RunId;
         Current.Mark("L0", 0, Array.Empty<CostLine>());
+        StartupHooks.NoteRegistry(helper, selfId);
         // Mods démarrés avant la sonde : leur Entry a eu lieu pendant L0 → L1.
         Current.Mark("L1", LaunchOffsetMs, StartupHooks.Timeline.TakeCosts(selfId));
         Open();
@@ -196,8 +197,16 @@ internal static class Loads
         Close();
         if (record is null) return;
         record.SetHealth(ContentPackSections.Health, ModCosts.AssetHook,
-            LoadHookPatched ? "ok" : "missing", ContentPackSections.OffThreadSections, StartupHooks.HealthNow);
-        if (record.Kind == LoadKind.Launch) record.EntryLoopMs = StartupHooks.Timeline.LoopMs;
+            LoadHookPatched ? "ok" : "missing", ContentPackSections.OffThreadSections,
+            StartupHooks.HealthNow, StartupHooks.LoadHealthNow);
+        if (record.Kind == LoadKind.Launch)
+        {
+            record.EntryLoopMs = StartupHooks.Timeline.LoopMs;
+            record.LoadLoopMs = StartupHooks.Timeline.LoadLoopMs;
+            record.LoadCoveredMods = StartupHooks.Timeline.LoadsSeen;
+            record.LoadTotalMods = StartupHooks.RegistryCount;
+            record.ProbeLoadsFirst = StartupHooks.ProbeLoadsFirst;
+        }
         if (log) Monitor.Log($"Chargement écrit : {ModCosts.AssetDiagnostic}.", LogLevel.Trace);
         try
         {
