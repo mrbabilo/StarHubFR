@@ -17,6 +17,7 @@
     <Compile Include="../StarHubFR.Probe/LoadRecord.cs" Link="LoadRecord.cs" />
     <Compile Include="../StarHubFR.Probe/CostStack.cs" Link="CostStack.cs" />
     <Compile Include="../StarHubFR.Probe/BenchmarkRule.cs" Link="BenchmarkRule.cs" />
+    <Compile Include="../StarHubFR.Probe/StartupTimeline.cs" Link="StartupTimeline.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
