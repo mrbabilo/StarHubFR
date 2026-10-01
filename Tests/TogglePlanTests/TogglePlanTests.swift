@@ -52,13 +52,38 @@ import Testing
 
     // MARK: - État visé
 
-    /// L'état visé se re-dérive de l'instantané, pas du `mod` capturé :
-    /// un appel empilé peut décrire un mod déjà basculé entre-temps.
-    @Test func targetStateDerivesFromSnapshot() {
+    /// L'état visé est l'intention du clic, lue sur le `mod` capturé à
+    /// l'empilement : l'utilisateur a vu ce mod en pause et l'active.
+    @Test func targetStateIsTheClickIntent() {
+        let captured = mod("Cheats", id: "cjb.cheats", enabled: true, folderName: "CheatsMenu")
+        let plan = TogglePlan.make(mod: captured, mods: [captured], chain: false)
+        #expect(plan.targetState == false)
+        #expect(plan.folders == ["CheatsMenu"])
+    }
+
+    /// Un appel empilé qui décrit un mod déjà basculé entre-temps ne fait
+    /// rien. L'ancienne règle inversait l'état **actuel** : le second clic
+    /// défaisait le premier.
+    @Test func queuedRequestAlreadySatisfiedDoesNothing() {
         let captured = mod("Cheats", id: "cjb.cheats", enabled: false, folderName: "CheatsMenu")
         let snapshot = [mod("Cheats", id: "cjb.cheats", enabled: true, folderName: "CheatsMenu")]
-        let plan = TogglePlan.make(mod: captured, mods: snapshot, chain: false)
-        #expect(plan.targetState == false)
+        let plan = TogglePlan.make(mod: captured, mods: snapshot, chain: true)
+        #expect(plan.targetState == true)
+        #expect(plan.folders.isEmpty)
+    }
+
+    /// Le cas signalé : désactiver Lib met App en pause par le chaînage ;
+    /// le clic « désactiver App » déjà empilé ne doit pas réactiver App,
+    /// ni Lib par la chaîne d'activation.
+    @Test func queuedDisableOfChainPausedDependentDoesNotReenable() {
+        let lib = mod("Lib", id: "lib.core", enabled: true, folderName: "Lib")
+        let app = mod("App", id: "app.main", enabled: true, deps: [dep("lib.core")], folderName: "App")
+        let first = TogglePlan.make(mod: lib, mods: [lib, app], chain: true)
+        #expect(first.folders == ["Lib", "App"])
+        let after = TogglePlan.flipped([lib, app], folders: first.folders, target: first.targetState)
+        let second = TogglePlan.make(mod: app, mods: after, chain: true)
+        #expect(second.targetState == false)
+        #expect(second.folders.isEmpty)
     }
 
     // MARK: - Chaînage

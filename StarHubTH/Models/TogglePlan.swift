@@ -18,7 +18,8 @@ struct TogglePlan: Equatable {
     let seedFolder: String
     /// `true` = activer, `false` = mettre en pause.
     let targetState: Bool
-    /// Les dossiers à basculer, amorce comprise.
+    /// Les dossiers à basculer, amorce comprise ; vide si l'amorce est déjà
+    /// dans l'état visé.
     let folders: Set<String>
 
     /// Construit le plan. `chain` bas la bascule d'un seul dossier ; `chain`
@@ -36,12 +37,18 @@ struct TogglePlan: Equatable {
             return topLevelFolder(for: mod.uniqueId, in: mods) ?? mod.folderName
         }()
 
-        // Re-dériver de l'instantané plutôt que de faire confiance à
-        // `mod.isEnabled` — `mod` a été capturé par valeur à l'empilement
-        // (voir `toggleMod`) : quand un appel empilé s'exécute enfin,
-        // `mods` peut déjà refléter la bascule d'un appel antérieur.
+        // L'état visé est l'intention du clic : `mod` a été capturé par
+        // valeur à l'empilement (voir `toggleMod`), tel que l'utilisateur
+        // l'a vu. Quand l'appel s'exécute enfin, `mods` peut déjà refléter
+        // une bascule antérieure — typiquement la chaîne d'un autre mod. Le
+        // mod déjà dans l'état visé ne bouge plus. Inverser l'état *actuel*
+        // (règle d'avant) défaisait cette bascule et réactivait toute la
+        // chaîne de dépendances.
+        let targetState = !mod.isEnabled
         let currentIsEnabled = mods.first(where: { $0.folderName == seedFolder })?.isEnabled ?? mod.isEnabled
-        let targetState = !currentIsEnabled
+        guard currentIsEnabled != targetState else {
+            return TogglePlan(seedFolder: seedFolder, targetState: targetState, folders: [])
+        }
 
         var folders: Set<String> = [seedFolder]
         if chain {

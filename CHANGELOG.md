@@ -25,6 +25,8 @@ where the exact log format was verified.
 ### Fixed
 
 - **`config.user.json` de SMAPI jamais écrasé.** Un fichier illisible était réécrit sans copie quand la sonde passait en tête ; il reste désormais intact, et l'échec s'affiche au lieu de passer sous silence.
+- **Désactivations enchaînées respectées.** Désactiver plusieurs mods à la suite ne réactive plus un mod déjà mis en pause par ses dépendances, ni ces dépendances avec lui.
+- **Barre latérale à largeur fixe.** Elle se replie toujours, mais ne se redimensionne plus à la souris.
 
 ## [1.52.0] - 2026-10-01
 
