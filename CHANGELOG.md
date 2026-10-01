@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.52.0] - 2026-10-01
+
 ### Added
 
 - **Chargement de chaque mod mesuré.** La carte « Chargements » sépare le chargement (DLL) et le démarrage de chaque mod ; sur votre accord, la sonde se charge en premier pour tout voir (sonde 0.9.0).
@@ -1628,7 +1630,8 @@ where the exact log format was verified.
 - Added translation for **Wear More Rings** (v7.9) by bcmpinc.
 - Added translation for **World Navigator** (v1.4.2) by pneuma163.
 
-[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.51.0...HEAD
+[Unreleased]: https://github.com/mrbabilo/StarHubFR/compare/v1.52.0...HEAD
+[1.52.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.51.0...v1.52.0
 [1.51.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.50.0...v1.51.0
 [1.50.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.49.0...v1.50.0
 [1.49.0]: https://github.com/mrbabilo/StarHubFR/compare/v1.48.0...v1.49.0
