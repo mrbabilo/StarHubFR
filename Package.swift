@@ -95,6 +95,7 @@ let package = Package(
                 "Models/ProbeLoadBreakdown.swift",
                 "Models/ProbeLoadComparison.swift",
                 "Models/ModImpactSample.swift",
+                "Models/ModImpactHistory.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",
