@@ -678,9 +678,11 @@ de code ni suppression de fichier (motif compté avant/après).
   fois par nuit (la rénovation de Pam arrive deux fois plus vite,
   `VisitsUntilY1Guarantee` est décrémenté deux fois dans la sauvegarde).
   Jamais exécuté sur le parc : le mod est en pause. Avant de le réactiver :
-  `"EnableParallelDayUpdate": false`. Catalogue A5-T7 : `LightSource.Draw`
-  est une 13ᵉ méthode commune avec Stardropium. `findPathForNPCSchedules`
-  dépend maintenant d'`EnableRouteCache`, plus d'`EnableExperimentalFeatures`.
+  `"EnableParallelDayUpdate": false` (clé écrite dans le `config.json` du parc
+  le 2026-10-01, sauvegarde `config.json.bak-2026-10-01`). Catalogue A5-T7
+  mis à jour : `LightSource.Draw` et `findPathForNPCSchedules` (patch
+  toujours posé, `EnableRouteCache` vrai par défaut) passent dans les
+  méthodes communes avec Stardropium, mesurées sur 2.4.1 et 0.2.0-beta.
   Détail, autres optimiseurs (préchauffage de saison hors du fil du jeu,
   hibernation d'Automate) : [`audit-ultrasmooth-2.4.1.md`](audit-ultrasmooth-2.4.1.md).
 - **Modern Config Menu 2.2.4 → 2.2.5** — 9 fichiers, aucun neuf.

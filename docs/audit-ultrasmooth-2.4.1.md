@@ -101,5 +101,12 @@ Ajoutées : 11, dont `LightSource.Draw`, `GameLocation.drawLightGlows`,
 - **Radiance 2.2.3** : les 6 méthodes communes sont inchangées, aucune des 11
   nouvelles n'est commune.
 
-`PerformanceOverlap.catalog` (mesuré sur 2.3.7) n'est pas modifié par ce
-relevé : la condition par paire n'a qu'une option, et la 2.4.1 en demande deux.
+`PerformanceOverlap.catalog` est mis à jour le même jour. Pas besoin d'une
+condition par méthode : le patch de route est toujours posé, et les deux
+options valent `true` par défaut des deux côtés (`EnableRouteCache` et
+`EnableLightCulling` chez UltraSmooth, `EnableScheduleOptimization` et
+`EnableLightCulling` chez Stardropium). `findPathForNPCSchedules` et
+`LightSource.Draw` passent donc dans les méthodes communes (11). Versions
+mesurées : UltraSmooth 2.4.1, Stardropium 0.2.0-beta. Les trois autres paires
+de Stardropium (Radiance, SinZ, Loading Optimizer) ont été revérifiées sur la
+0.2.0-beta.

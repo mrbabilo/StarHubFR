@@ -9,7 +9,8 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd, 2026-09-26) : une méthode compte quand les deux DLL posent un
+/// (ilspycmd, 2026-09-26 ; UltraSmooth 2.4.1 et Stardropium 0.2.0-beta
+/// re-mesurés le 2026-10-01) : une méthode compte quand les deux DLL posent un
 /// `harmony.Patch` dessus. La comparaison porte sur `Type.méthode` sans les
 /// surcharges — « même nom de méthode », pas forcément même signature. Les
 /// paires à une seule méthode (`ScreenFade.UpdateFadeAlpha`,
@@ -71,9 +72,9 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.3.7",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.1",
                                             assemblyName: "UltraSmooth")
-    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.1.3-beta",
+    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.0-beta",
                                             assemblyName: "Stardropium")
     private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.2.1",
                                          assemblyName: "SDV-Radiance")
@@ -88,11 +89,13 @@ extension PerformanceOverlap {
     public static let catalog: [PerformanceOverlap] = [
         PerformanceOverlap(
             first: stardropium, second: ultraSmooth,
+            // UltraSmooth 2.4.1 : `findPathForNPCSchedules` quitte les
+            // conditionnelles (patch toujours posé, `EnableRouteCache` vrai par
+            // défaut) ; `LightSource.Draw` est neuve (`EnableLightCulling`).
             sharedMethods: ["Bush.draw", "FarmAnimal.draw", "FruitTree.draw", "Furniture.draw",
-                            "Game1.getTimeOfDayString", "Grass.draw", "HoeDirt.draw", "NPC.update",
-                            "Tree.draw"],
-            conditionalMethods: ["GameLocation.passTimeForObjects", "GameLocation.timeUpdate",
-                                 "PathFindController.findPathForNPCSchedules"],
+                            "Game1.getTimeOfDayString", "Grass.draw", "HoeDirt.draw", "LightSource.Draw",
+                            "NPC.update", "PathFindController.findPathForNPCSchedules", "Tree.draw"],
+            conditionalMethods: ["GameLocation.passTimeForObjects", "GameLocation.timeUpdate"],
             conditionalOption: "EnableExperimentalFeatures"),
         PerformanceOverlap(
             first: radiance, second: ultraSmooth,
