@@ -201,3 +201,40 @@ extension ProbeLoadsTests {
         #expect(ProbeLoadBreakdown.of(launch).loadCoverage == nil)
     }
 }
+
+extension ProbeLoadsTests {
+    @Test func spansStartAtTheirMilestone() throws {
+        let launch = ProbeLoadBreakdown.of(try #require(try Self.fixture().first))
+        #expect(launch.spans.map(\.startMs) == [0, 24_800, 29_400])
+        let save = ProbeLoadBreakdown.of(try #require(try Self.fixture().dropFirst().first))
+        #expect(save.spans.first?.startMs == 0)
+        #expect(save.spans.last?.name == .waitingForPlayer)
+        #expect(save.spans.last?.startMs == 82_500)
+    }
+
+    /// Une phase absente laisse un trou : les étapes suivantes restent à
+    /// leur jalon, jamais décalées par une somme cumulée.
+    @Test func aMissingPhaseLeavesAGapNotAShift() throws {
+        let r = try #require(try Self.fixture().dropFirst().first)
+        let gapped = ProbeLoadRecord(
+            kind: r.kind, session: r.session, atText: r.atText, at: r.at, probeVersion: r.probeVersion,
+            complete: false, reload: r.reload, saveName: r.saveName, patchesMeasured: r.patchesMeasured,
+            saveBytes: r.saveBytes, saveDate: r.saveDate, milestones: r.milestones,
+            phases: r.phases.filter { $0.from != "S1" }, final: r.final, health: r.health)
+        let b = ProbeLoadBreakdown.of(gapped)
+        let basic = try #require(b.spans.first { $0.name == .basicInfo })
+        #expect(basic.startMs == 52_500)
+    }
+
+    /// Sans le jalon de départ, la position est inconnue : pas de barre.
+    @Test func aSpanWithoutItsStartMilestoneHasNoPosition() throws {
+        let r = try #require(try Self.fixture().first)
+        let headless = ProbeLoadRecord(
+            kind: r.kind, session: r.session, atText: r.atText, at: r.at, probeVersion: r.probeVersion,
+            complete: r.complete, reload: r.reload, saveName: r.saveName, patchesMeasured: r.patchesMeasured,
+            saveBytes: r.saveBytes, saveDate: r.saveDate, milestones: r.milestones.filter { $0.name != "L2" },
+            phases: r.phases, final: r.final, health: r.health)
+        let launched = try #require(ProbeLoadBreakdown.of(headless).spans.first { $0.name == .gameLaunched })
+        #expect(launched.startMs == nil)
+    }
+}

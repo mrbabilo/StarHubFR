@@ -25,12 +25,17 @@ public struct ProbeLoadSpan: Equatable, Sendable, Identifiable {
     public let ms: Double
     public let attributedMs: Double
     public let costs: [ProbeLoadCost]
+    /// Début de l'étape, lu sur le jalon de départ (jamais une somme
+    /// cumulée : une phase absente laisse un trou, pas un décalage). Nil
+    /// sans ce jalon.
+    public let startMs: Double?
 
-    public init(name: Name, ms: Double, attributedMs: Double, costs: [ProbeLoadCost]) {
+    public init(name: Name, ms: Double, attributedMs: Double, costs: [ProbeLoadCost], startMs: Double? = nil) {
         self.name = name
         self.ms = ms
         self.attributedMs = attributedMs
         self.costs = costs
+        self.startMs = startMs
     }
 
     public var unattributedMs: Double { max(0, ms - attributedMs) }
@@ -100,24 +105,27 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
 
     public static func of(_ record: ProbeLoadRecord) -> ProbeLoadBreakdown {
         var spans: [ProbeLoadSpan] = []
+        func start(_ milestone: String) -> Double? { record.milestones.first { $0.name == milestone }?.ms }
         if record.kind == .launch {
             // L0→L1 et L1→L2 : SMAPI et l'Entry des mods, non ventilés.
             let head = record.phases.filter { $0.from == "L0" || $0.from == "L1" }
             spans.append(ProbeLoadSpan(name: .smapiAndMods, ms: head.reduce(0) { $0 + $1.ms },
                                        attributedMs: head.reduce(0) { $0 + $1.costs.map(\.ms).reduce(0, +) },
-                                       costs: head.flatMap(\.costs).sorted { $0.ms > $1.ms }))
+                                       costs: head.flatMap(\.costs).sorted { $0.ms > $1.ms },
+                                       startMs: start("L0")))
         }
         let names = record.kind == .launch ? launchNames : saveNames
         for phase in record.phases {
             guard let name = names["\(phase.from)>\(phase.to)"] else { continue }
             let costs = phase.costs.sorted { $0.ms > $1.ms }
             spans.append(ProbeLoadSpan(name: name, ms: phase.ms,
-                                       attributedMs: costs.map(\.ms).reduce(0, +), costs: costs))
+                                       attributedMs: costs.map(\.ms).reduce(0, +), costs: costs,
+                                       startMs: start(phase.from)))
         }
         if let final = record.final {
             spans.append(ProbeLoadSpan(name: .waitingForPlayer,
                                        ms: max(0, final.ms - record.totalMs),
-                                       attributedMs: 0, costs: []))
+                                       attributedMs: 0, costs: [], startMs: record.totalMs))
         }
 
         var byMod: [String: (ms: Double, entryMs: Double, loadMs: Double, isPack: Bool)] = [:]

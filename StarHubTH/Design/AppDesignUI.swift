@@ -174,6 +174,14 @@ enum AppDesign {
     enum Chart {
         static let before = dynamic(light: (0x86, 0xb6, 0xef), dark: (0x1c, 0x5c, 0xab))
         static let after  = dynamic(light: (0x1c, 0x5c, 0xab), dark: (0x6d, 0xa7, 0xec))
+        /// Parts d'un même total (carte « Chargements » : étapes, coût d'un
+        /// mod), du plus marqué au plus effacé. Violet pour ne pas se lire
+        /// « avant/après » à côté du nuage de points bleu. Rampe validée par
+        /// `validate_palette.js --ordinal` le 2026-10-01 (clair : 2,41:1 pour
+        /// le plus pâle sur #ffffff ; sombre : 2,72:1 sur #1e1e1e).
+        static let partStrong = dynamic(light: (0x3b, 0x2e, 0x96), dark: (0xc4, 0xbd, 0xf5))
+        static let partMid    = dynamic(light: (0x6f, 0x62, 0xd0), dark: (0x90, 0x85, 0xe9))
+        static let partLight  = dynamic(light: (0xa7, 0x9e, 0xe8), dark: (0x5d, 0x50, 0xc6))
 
         private static func dynamic(light: (Int, Int, Int), dark: (Int, Int, Int)) -> SwiftUI.Color {
             SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in

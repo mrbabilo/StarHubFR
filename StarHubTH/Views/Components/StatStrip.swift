@@ -46,7 +46,7 @@ struct StatStrip: View {
 /// de surcharge `help(_:)` optionnelle, et une infobulle vide sur une
 /// colonne sans `help` serait un parasite de survol.
 @MainActor
-private extension View {
+extension View {
     @ViewBuilder
     func helpIfPresent(_ text: String?) -> some View {
         if let text { help(text) } else { self }

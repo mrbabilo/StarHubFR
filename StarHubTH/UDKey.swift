@@ -27,6 +27,8 @@ public enum UDKey {
     /// Sonde en tête (`ModsToLoadEarly`) : absent = jamais demandé ; `true` = synchroniser ;
     /// `false` = refusé ou retiré, ne plus proposer.
     public static let probeLoadEarlyConsent = "probeLoadEarlyConsent"
+    /// Carte « Chargements » : détail affiché, `ProbeLoadRecord.Kind.rawValue`.
+    public static let performanceLoadsDetail = "performanceLoadsDetail"
     /// JSON-encoded list of `ModProfile` (named mod enable/disable sets).
     public static let modProfiles = "modProfiles"
     /// UUID string of the currently active `ModProfile`, or `nil` for the

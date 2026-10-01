@@ -11,17 +11,21 @@ struct PerformanceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                PerformanceHeader(localization: localization, store: store)
-                PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
-                content
-                // D5-B — la carte « Chargements » vit aussi en `.needTwo` :
-                // elle ne dépend pas de la paire de minutes.
+                // D5-B — la carte « Chargements » en tête : sa comparaison est
+                // automatique et ne dépend pas des sélecteurs Avant/Après plus
+                // bas. Elle vit aussi en `.needTwo` (pas de paire de minutes).
                 if store.status == .ready || store.status == .needTwo {
                     PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }
                 } else if viewModel.benchmark.interrupted != nil {
                     // Benchmark interrompu : la reprise reste visible hors de la carte.
                     PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
+                // En-tête, mesure guidée et sélecteurs forment un bloc : les
+                // tuiles de trame lisent la paire choisie (`store.report`).
+                inGameTitle
+                PerformanceHeader(localization: localization, store: store)
+                PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
+                content
             }
             .padding(AppDesign.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,6 +41,15 @@ struct PerformanceView: View {
         // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
+        }
+    }
+
+    private var inGameTitle: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(localization.L(L10n.Performance.inGameTitle)).font(AppDesign.Font.headline(.semibold))
+            Text(localization.L(L10n.Performance.inGameSubtitle))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
