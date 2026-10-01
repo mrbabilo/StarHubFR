@@ -43,30 +43,44 @@ struct InitialsAvatar: View {
 struct StandardSection<Content: View>: View {
     let title: String
     let footer: String?
+    /// Glyphe en tuile devant le titre, à la manière des Réglages Système ;
+    /// la section devient alors une carte en relief (`cardSurface`).
+    let icon: (name: String, tint: Color)?
     let content: Content
 
-    init(title: String, footer: String? = nil, @ViewBuilder content: () -> Content) {
+    init(title: String, icon: (name: String, tint: Color)? = nil, footer: String? = nil,
+         @ViewBuilder content: () -> Content) {
         self.title = title
         self.footer = footer
+        self.icon = icon
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             if !title.isEmpty {
-                Text(verbatim: title)
-                    .font(AppDesign.Font.body(.bold))
-                    .foregroundColor(.primary)
-                    .accessibilityAddTraits(.isHeader) // rotor VoiceOver : navigation par titres (I-T3)
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    if let icon { IconTile(icon: icon.name, tint: icon.tint, size: 22) }
+                    Text(verbatim: title)
+                        .font(AppDesign.Font.body(.bold))
+                        .foregroundColor(.primary)
+                        .accessibilityAddTraits(.isHeader) // rotor VoiceOver : navigation par titres (I-T3)
+                }
             }
 
-            VStack(spacing: 0) {
-                content
+            if icon != nil {
+                VStack(spacing: 0) { content }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .cardSurface(padding: AppDesign.Spacing.lg)
+            } else {
+                VStack(spacing: 0) {
+                    content
+                }
+                .padding(AppDesign.Spacing.lg)
+                .background(Color.clear)
+                .cornerRadius(AppDesign.Radius.section)
+                .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section).stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
             }
-            .padding(AppDesign.Spacing.lg)
-            .background(Color.clear)
-            .cornerRadius(AppDesign.Radius.section)
-            .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section).stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
 
             if let footerText = footer, !footerText.isEmpty {
                 Text(verbatim: footerText)

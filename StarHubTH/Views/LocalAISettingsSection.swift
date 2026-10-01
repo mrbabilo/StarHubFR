@@ -50,7 +50,7 @@ struct LocalAISettingsSection: View {
     var body: some View {
         VStack(spacing: 32) {
             StandardSection(
-                title: localization.L(L10n.Settings.localAITitle),
+                title: localization.L(L10n.Settings.localAITitle), icon: ("sparkles", .purple),
                 // « Rien n'est envoyé ailleurs que sur votre serveur local »
                 // devient faux dès que le secours est actif : la phrase de
                 // confidentialité passe alors au bloc qui en est la cause.
@@ -158,7 +158,7 @@ struct LocalAISettingsSection: View {
 
             fallbackSection
 
-            StandardSection(title: localization.L(L10n.Settings.glossaryTitle)) {
+            StandardSection(title: localization.L(L10n.Settings.glossaryTitle), icon: ("character.book.closed.fill", .brown)) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         if let count = glossaryCount, let date = glossaryDate {
@@ -229,7 +229,7 @@ struct LocalAISettingsSection: View {
     }
 
     private var fallbackSection: some View {
-        StandardSection(title: localization.L(L10n.Settings.fallbackTitle),
+        StandardSection(title: localization.L(L10n.Settings.fallbackTitle), icon: ("arrow.triangle.branch", .gray),
                         footer: fallbackPrivacy) {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {

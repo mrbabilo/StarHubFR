@@ -6,7 +6,7 @@ struct TextScaleSettingsSection: View {
     @AppStorage(TextScale.defaultsKey) private var textScale = TextScale.normal.rawValue
 
     var body: some View {
-        StandardSection(title: localization.L(L10n.Settings.display),
+        StandardSection(title: localization.L(L10n.Settings.display), icon: ("textformat.size", .pink),
                         footer: localization.L(L10n.Settings.footerDisplay)) {
             HStack {
                 Text(localization.L(L10n.Settings.textSize))

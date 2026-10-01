@@ -36,15 +36,20 @@ struct SettingsView: View {
         // `sectionView` reste exhaustif — jamais de `default:`.
         let group = vm.navigationStore.settingsGroup
         return VStack(spacing: 0) {
-            Picker(localization.L(L10n.Settings.settings),
-                   selection: Bindable(vm.navigationStore).settingsGroup) {
-                ForEach(SettingsSectionOrder.groups, id: \.self) { g in
-                    Text(localization.L(titleKey(for: g))).tag(g)
+            PageHeader(icon: "gearshape.fill", title: localization.L(L10n.Settings.settings),
+                       subtitle: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
+                       tint: .gray) {
+                Picker(localization.L(L10n.Settings.settings),
+                       selection: Bindable(vm.navigationStore).settingsGroup) {
+                    ForEach(SettingsSectionOrder.groups, id: \.self) { g in
+                        Text(localization.L(titleKey(for: g))).tag(g)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
+            .padding(.horizontal, AppDesign.Spacing.xl)
             .padding(.vertical, AppDesign.Spacing.md)
             Divider()
             ScrollViewReader { proxy in
@@ -57,11 +62,6 @@ struct SettingsView: View {
                             // État de mise à jour — dérivé de la dernière réponse
                             // réussie (releaseLastKnown), PAS du tag acquitté.
                             releaseStatusRow
-                            Text(String(format: localization.L(L10n.Settings.appVersion),
-                                        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"))
-                                .font(AppDesign.Font.footnote)
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity)
                         }
                     }
                     .padding(40)
@@ -153,7 +153,7 @@ struct SettingsView: View {
     private var nexusSection: some View {
         // ── Nexus Mods ──
         StandardSection(
-            title: localization.L(L10n.Settings.nexusMods),
+            title: localization.L(L10n.Settings.nexusMods), icon: ("globe", .orange),
             footer: localization.L(L10n.Settings.nexusApiKeyHint)
         ) {
             VStack(alignment: .leading, spacing: 16) {
@@ -232,7 +232,7 @@ struct SettingsView: View {
 
                 SettingsRow(title: localization.L(L10n.Settings.nexusAutoCheck), hint: localization.L(L10n.Settings.nexusAutoCheckHint)) {
                     Toggle(localization.L(L10n.Settings.nexusAutoCheck), isOn: $autoCheckNexusUpdates)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
                 }
@@ -243,7 +243,7 @@ struct SettingsView: View {
                 // poids et sa purge, eux, sont à l'écran Entretien.
                 SettingsRow(title: localization.L(L10n.Settings.keepNexusArchives), hint: localization.L(L10n.Settings.keepNexusArchivesHint)) {
                     Toggle(localization.L(L10n.Settings.keepNexusArchives), isOn: $keepNexusArchives)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
                 }
@@ -255,7 +255,7 @@ struct SettingsView: View {
                 // `PreservedModData.shouldRestore`, jamais `bool` nu.
                 SettingsRow(title: localization.L(L10n.Settings.restoreModData), hint: localization.L(L10n.Settings.restoreModDataHint)) {
                     Toggle(localization.L(L10n.Settings.restoreModData), isOn: $restoreModData)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
                 }
@@ -274,7 +274,7 @@ struct SettingsView: View {
     private var launchSection: some View {
         // ── Launch Options ──
         StandardSection(
-            title: localization.L(L10n.Settings.launchOptions),
+            title: localization.L(L10n.Settings.launchOptions), icon: ("play.fill", .green),
             footer: localization.L(L10n.Settings.footerLaunch)
         ) {
             VStack(alignment: .leading, spacing: 16) {
@@ -291,7 +291,7 @@ struct SettingsView: View {
                 
                 SettingsRow(title: localization.L(L10n.Settings.closeLauncher), hint: localization.L(L10n.Settings.hintSaveResources)) {
                     Toggle(localization.L(L10n.Settings.closeLauncher), isOn: $closeAfterLaunch)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
                 }
@@ -305,13 +305,13 @@ struct SettingsView: View {
         // (App theme and language now live as toggles at the bottom of
         // the sidebar; this section keeps the developer-logs setting.)
         StandardSection(
-            title: localization.L(L10n.Settings.developer),
+            title: localization.L(L10n.Settings.developer), icon: ("hammer.fill", .gray),
             footer: localization.L(L10n.Settings.footerAppearance)
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 SettingsRow(title: localization.L(L10n.Settings.showDevLogs), hint: localization.L(L10n.Settings.hintDevLogs)) {
                     Toggle(localization.L(L10n.Settings.showDevLogs), isOn: $showDeveloperLogs)
-                        .toggleStyle(SwitchToggleStyle(tint: .blue))
+                        .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
                 }
@@ -323,14 +323,14 @@ struct SettingsView: View {
     private var modBehaviorSection: some View {
         // ── Mod Behavior ──
         StandardSection(
-            title: localization.L(L10n.Settings.modBehavior)
+            title: localization.L(L10n.Settings.modBehavior), icon: ("link", .teal)
         ) {
             SettingsRow(title: localization.L(L10n.Settings.chainToggle), hint: localization.L(L10n.Settings.chainToggleHint)) {
                 Toggle(localization.L(L10n.Settings.chainToggle), isOn: Binding(
                     get: { vm.chainToggleDependencies },
                     set: { vm.chainToggleDependencies = $0 }
                 ))
-                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .toggleStyle(.switch)
                 .controlSize(.small)
                 .labelsHidden()
             }
@@ -340,7 +340,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var appInfoSection: some View {
         // ── App ──
-        StandardSection(title: localization.L(L10n.Home.appInfo)) {
+        StandardSection(title: localization.L(L10n.Home.appInfo), icon: ("info.circle.fill", .blue)) {
             StandardRow(title: LocalizedStringKey(localization.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
         }
     }
@@ -348,7 +348,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var gameFolderSection: some View {
         // Folder Settings
-        StandardSection(title: localization.L(L10n.Home.gameFolder)) {
+        StandardSection(title: localization.L(L10n.Home.gameFolder), icon: ("folder.fill", .blue)) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(localization.L(L10n.Home.gamePath))
@@ -374,7 +374,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var smapiSection: some View {
         // SMAPI Settings
-        StandardSection(title: localization.L(L10n.Home.smapiManager)) {
+        StandardSection(title: localization.L(L10n.Home.smapiManager), icon: ("shippingbox.fill", .indigo)) {
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -421,7 +421,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var coreExtensionsSection: some View {
         // ── CORE EXTENSIONS SECTION ──
-        StandardSection(title: localization.L(L10n.Home.coreExtensions)) {
+        StandardSection(title: localization.L(L10n.Home.coreExtensions), icon: ("puzzlepiece.extension.fill", .purple)) {
             VStack(spacing: 0) {
                 let core = vm.coreExtensionsSnapshot
                 CoreModRow(vm: vm, localization: localization, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
