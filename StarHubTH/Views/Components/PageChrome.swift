@@ -131,3 +131,25 @@ struct MetricTile: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// Un anneau de progression : la part faite d'un tout (couverture FR d'un
+/// profil, d'un parc). Décoratif — le pourcentage voisin le dit en clair.
+struct CoverageRing: View {
+    let fraction: Double
+    var tint: Color = AppDesign.Color.accent
+    var size: CGFloat = 14
+    var lineWidth: CGFloat = 2.5
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color.primary.opacity(AppDesign.Opacity.medium), lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: min(max(fraction, 0), 1))
+                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(Motion.animation(.smooth), value: fraction)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}

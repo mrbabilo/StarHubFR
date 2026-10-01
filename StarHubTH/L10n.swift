@@ -1586,6 +1586,8 @@ enum L10n {
         static let addProfile           = "profiles_add_profile"
         static let noProfiles           = "profiles_no_profiles"
         static let active               = "profiles_active"
+        static let headerSummary        = "profiles_header_summary"
+        static let headerNoneActive     = "profiles_header_none_active"
         static let deleteNote           = "profiles_delete_note"
         static let newProfileNote       = "profiles_new_profile_note"
         static let createNewProfile     = "profiles_create_new_profile"

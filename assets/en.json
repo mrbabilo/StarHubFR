@@ -1038,6 +1038,8 @@
   "palette_section_saves": "Saves",
   "profiles_activate": "Activate",
   "profiles_active": "Active",
+  "profiles_header_summary": "%1$lld profile(s) · active: %2$@",
+  "profiles_header_none_active": "%lld profile(s)",
   "profiles_active_label": "Profile: %@",
   "profiles_add_profile": "Add Profile…",
   "profiles_add_to_profile": "Add to the profile",

@@ -140,23 +140,19 @@ struct ModProfilesView: View {
     }
 
     var body: some View {
-        // Patron page de liste du dépôt (CLAUDE.md « UI »), calé sur le
-        // pilote Mods : toolbar fixe au-dessus d'une liste qui scrolle,
-        // fond `controlBackgroundColor` — plus de conteneur à bordure ni de
-        // titre de page, l'identité de la page vient de la sidebar.
+        // Patron page de liste du dépôt (CLAUDE.md « UI ») : en-tête fixe
+        // au-dessus d'une liste qui défile. Le titre de page, retiré en
+        // septembre, revient avec l'en-tête commun des pages (audit UX
+        // 2026-10-02) : il porte désormais le profil actif.
         VStack(spacing: 0) {
-            // ── Toolbar fixe ────────────────────────────────────────────
-            // Rien à filtrer sur cette page (un seul segment) : l'action
-            // primaire « Ajouter » occupe seule la rangée, à droite.
-            HStack {
-                Spacer()
+            PageHeader(icon: "person.2.fill", title: localization.L(L10n.Profiles.title),
+                       subtitle: headerSummary) {
                 Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                     .buttonStyle(.borderedProminent)
                     .pointingHandCursor()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 12)
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.md)
             .background(Color(nsColor: .controlBackgroundColor))
 
             Divider()
@@ -165,9 +161,7 @@ struct ModProfilesView: View {
             ScrollView(showsIndicators: false) {
                 if vm.modProfiles.isEmpty {
                     VStack(spacing: AppDesign.Spacing.lg) {
-                        Image(systemName: "person.2.slash")
-                            .font(AppDesign.Font.emptyScopeGlyph)
-                            .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
+                        IconTile(icon: "person.2.slash", tint: AppDesign.Color.accent, size: 64)
                         Text(localization.L(L10n.Profiles.noProfiles))
                             .font(AppDesign.Font.body)
                             .foregroundColor(.secondary)
@@ -180,8 +174,8 @@ struct ModProfilesView: View {
                 } else {
                     let flattened = vm.scanStore.mods.flattenedMods
                     let installedIds = vm.scanStore.mods.allUniqueIds
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(vm.modProfiles.enumerated()), id: \.element.id) { index, profile in
+                    LazyVStack(spacing: AppDesign.Spacing.sm) {
+                        ForEach(vm.modProfiles) { profile in
                             // Compte brut, hissé hors de l'initialiseur le
                             // 2026-09-10 : les littéraux [:] dans une longue
                             // liste d'arguments saturaient le type-checker
@@ -193,11 +187,12 @@ struct ModProfilesView: View {
                                 installedUniqueIds: installedIds,
                                 backupNames: [:],
                                 nexusHints: [:]).count
+                            let isActive = vm.activeProfileId == profile.id
                             self.profileRow(profile, issueCount: issueCount, flattened: flattened)
-
-                            if index < vm.modProfiles.count - 1 {
-                                Divider().padding(.leading, 64)
-                            }
+                                .cardSurface(padding: 0)
+                                .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.lg, style: .continuous)
+                                    .stroke(AppDesign.Color.accent, lineWidth: isActive ? 1.5 : 0))
+                                .animation(Motion.animation(.snappy), value: isActive)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -514,7 +509,7 @@ struct ProfileRow: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help(localization.L(L10n.Profiles.rename))
+            .help(localization.L(L10n.Mods.moreActions))
         }
         .padding(.vertical, AppDesign.Spacing.md)
         .padding(.horizontal, AppDesign.Spacing.lg)
@@ -617,7 +612,8 @@ struct ProfileRow: View {
         if let summary = translation, !summary.isEmpty {
             Button(action: onShowMissing) {
                 HStack(spacing: 4) {
-                    Image(systemName: "globe")
+                    CoverageRing(fraction: Double(summary.displayPercent) / 100,
+                                 tint: summary.pending.isEmpty ? AppDesign.Color.success : AppDesign.Color.accent)
                     Text(summary.pending.isEmpty
                          ? String(format: localization.L(L10n.Profiles.frBadgeDone), summary.displayPercent)
                          : String(format: localization.L(L10n.Profiles.frBadge),
