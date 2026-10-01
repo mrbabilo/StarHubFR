@@ -770,10 +770,18 @@ installé : **2.0.0**, dépôt : 3.0-alpha5 du 2025-09-30) :
   (1) un mod qui démarre **avant** la sonde a un coût `entry` **inclusif** —
   `ModCosts` n'est pas encore armé, les gestionnaires d'autres mods qui
   tournent pendant son `Entry` (un `AssetRequested` de Content Patcher, par
-  exemple) lui sont imputés ; corrigé par l'étape 2 (sonde en tête,
-  `ModsToLoadEarly`). (2) Le démarrage de la sonde elle-même est compté dans
-  `EntryLoopMs` mais n'a pas de ligne : la somme des `entry` + coûts
+  exemple) lui sont imputés ; **levée quand la sonde est chargée en premier**
+  (consentement, étape 2). (2) Le démarrage de la sonde elle-même est compté
+  dans `EntryLoopMs` mais n'a pas de ligne : la somme des `entry` + coûts
   attribués reste en dessous de la boucle d'au moins ce temps-là.
+  **Sonde 0.9.0** : prefix/postfix sur `SCore.TryLoadMod` (durée directe,
+  `__result == false` = échec nommé « Load (échec) ») ; position lue dans
+  `ModRegistry.GetAll()` (ordre de chargement) → `ProbeLoadsFirst`.
+  `smapi-internal/config.user.json` : `ModsToLoadEarly` fusionné par
+  `JsonConvert.PopulateObject` ; identifiant listé mais absent → WARN SMAPI à
+  chaque lancement (`SCore.cs:401`) — l'app le retire quand la sonde est en
+  pause, et n'écrit jamais sans consentement (copie
+  `config.user.json.starhubfr.bak`). Garde : `ModLoadHook`.
   **Corrigé en 0.6.2** : transpiler ces deux méthodes **génériques** n'a
   rien attribué (deux sessions, zéro rappel) — Harmony ne détourne que
   l'instanciation `<object>`, les appels réels passent par le corps

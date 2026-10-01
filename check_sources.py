@@ -453,7 +453,8 @@ SOURCES = [
     {"key": "SMAPI", "kind": "repo", "repo": "Pathoschild/SMAPI",
      "role": "le format du journal, le schéma de manifeste, l'installateur téléchargé, "
              "et les accroches internes de la sonde (SCore.RequestAssetOperations, "
-             "SCore.ReloadTranslations, ModMetadata.SetApi)",
+             "SCore.ReloadTranslations, ModMetadata.SetApi, SCore.TryLoadMod), "
+             "et le format de config.user.json (ModsToLoadEarly)",
      "used_by": "SmapiInstaller.swift, SmapiLogParser.swift, SmapiDiagnostics.swift, "
                 "companion/StarHubFR.Probe (ModCosts.cs, StartupHooks.cs)"},
 
