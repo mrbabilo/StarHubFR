@@ -12,6 +12,10 @@
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-0288D1?logo=swift&logoColor=white" alt="SwiftUI"></a>
   <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
   <a href="#"><img src="https://img.shields.io/badge/Platform-macOS%2014%2B-000000?logo=apple&logoColor=white" alt="macOS"></a>
+  <a href="https://github.com/mrbabilo/StarHubFR/releases/latest"><img src="https://img.shields.io/github/v/release/mrbabilo/StarHubFR?label=Version&color=2ea44f" alt="Version"></a>
+  <a href="https://www.stardewvalley.net"><img src="https://img.shields.io/badge/Stardew%20Valley-1.6-5BA04E" alt="Stardew Valley 1.6"></a>
+  <a href="https://smapi.io"><img src="https://img.shields.io/badge/SMAPI-4.x-6A5ACD" alt="SMAPI 4.x"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Languages-FR%20%7C%20EN-0055A4" alt="Languages FR and EN"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License"></a>
   <a href="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml"><img src="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -43,6 +47,7 @@
     *   See what your mods left behind: pausing a mod does not remove its objects, buildings and data from a save. Before pausing, the app counts what stays, save by save; and a save's page names the paused mods that left content in it, each one leading to its mod page. A **Clean up…** button removes a save's data left by mods you no longer have, key by key, after a safety backup.
 *   **Developer Logs**: Monitor SMAPI output in real time directly within the app. Filter by source (StarHubFR/SMAPI) and by level with counts, search, and copy lines that keep their origin and the mod they came from.
 *   **SMAPI Diagnostics**: A health card at the top of the logs turns `SMAPI-latest.txt` into a readable diagnosis — SMAPI and game versions, loaded mods and content packs, skipped or failed mods **with the reason**, missing dependencies, mods that change game code or your saves, and the mods logging the most errors. A **keybind report** lists every key binding of your active mods (all, bound, conflicting, unassigned), searchable by mod, setting or key, with each mod's config one click away. It leads with **"What you can do"**: actionable advice in plain language instead of jargon. An **"Errors you can ignore"** section recognizes common false alarms (GOG Galaxy sign-in, an unavailable optional integration, a missing companion mod, a mod failing to read its own data), names the mod involved, quotes the original message, and offers a button that jumps straight to its lines in the log — and they no longer count against the mod. A badge flags a stale log, and a button reveals it in Finder. Repetitive lines fold into one expandable row, entries can be grouped per mod (most problematic first), and each mod keeps a per-version history of the errors it logged, shown on its detail page — so you can tell whether a new version behaves worse than the one before.
+*   **Performance**: The StarHubFR probe, a small SMAPI mod installed at your request, measures the game while you play, and the *Performance* tab compares two moments. **Load times** — launch and save loading, compared automatically with your setup's previous state (faster, slower, or uncertain, in color), with stages on a timeline and the heaviest mods split into loading and startup. A **benchmark** button runs game launches on its own, alternating the starting state and the change to test, then puts your setup back. **In-game smoothness** — frame time, stutters and memory, minute by minute, between two sessions you pick, with each mod's cost and what changed in between. A **guided measurement** tells you where to stand and stops once the reading is stable. The analysis proposes a reversible action (pause a mod, roll back a version or a setting), refused while the game runs. A difference is only called beyond the noise measured across your own sessions — at least two per side; within the noise it stays gray.
 *   **In-App Changelog Viewer**: The two latest versions, right from the app's sidebar; the full history stays in [`CHANGELOG.md`](CHANGELOG.md).
 *   **Bilingual Support**: Switch the app language instantly between French and English.
 *   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
@@ -147,6 +152,13 @@ StarHubFR builds on other people's work. The full map — APIs queried, files re
 *   [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher) by **Pathoschild** — its `ConfigSchema` describes a pack's config options, and its i18n files provide the labels the editor shows.
 *   **Newtonsoft.Json** (MIT), as shipped with the game — run as an oracle to measure what SMAPI really accepts in a `config.json` or a translation file.
 *   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) by **colecrouter** — reference for reading and editing saves.
+
+**Performance**
+
+*   [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) by **SinZ** (MIT) — the probe reuses its frame timers and its reading of .NET garbage-collection pauses; its [Stardew Utilities](https://stardew.361zn.is) viewer guided how we read loading stages.
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** — its sources gave the measuring points for each mod's loading and startup, and the `ModsToLoadEarly` setting that lets the probe load first.
+*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) by **spajus** and **Stardew Loading Optimizer** by **neoiw** — two loading-time mods, decompiled and studied to learn what they change in the game, and so what our measurements must see.
+*   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — `ilspycmd` decompiles updated mods so their changes can be audited.
 
 **Inspirations**
 

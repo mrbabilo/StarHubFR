@@ -12,6 +12,10 @@
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-0288D1?logo=swift&logoColor=white" alt="SwiftUI"></a>
   <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
   <a href="#"><img src="https://img.shields.io/badge/Plateforme-macOS%2014%2B-000000?logo=apple&logoColor=white" alt="macOS"></a>
+  <a href="https://github.com/mrbabilo/StarHubFR/releases/latest"><img src="https://img.shields.io/github/v/release/mrbabilo/StarHubFR?label=Version&color=2ea44f" alt="Version"></a>
+  <a href="https://www.stardewvalley.net"><img src="https://img.shields.io/badge/Stardew%20Valley-1.6-5BA04E" alt="Stardew Valley 1.6"></a>
+  <a href="https://smapi.io"><img src="https://img.shields.io/badge/SMAPI-4.x-6A5ACD" alt="SMAPI 4.x"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Langues-FR%20%7C%20EN-0055A4" alt="Langues FR et EN"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Licence-MIT-yellow" alt="MIT License"></a>
   <a href="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml"><img src="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -45,6 +49,17 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Suivi des erreurs par version** — chaque mod garde l'historique des erreurs et avertissements qu'il a journalisés, **version par version**, consultable depuis sa fiche : de quoi savoir si une nouvelle version se comporte moins bien que la précédente.
 *   **Tous vos raccourcis clavier, et leurs conflits** — le rapport liste chaque raccourci de vos mods actifs (tous, liés, en conflit, non assignés), cherchable par mod, réglage ou touche, avec la config de chaque mod à un clic. Dans l'éditeur de config, une touche capturée dit tout de suite si un autre mod la porte déjà.
 *   **Recherche du mod responsable** — quand le jeu plante sans que le journal désigne personne, StarHubFR met vos mods en pause par moitiés et vous pose une seule question à chaque étape. Une dizaine d'essais suffisent, même avec des centaines de mods. Rien n'est supprimé, tout se remet en un clic.
+
+### ⏱️ Performances — mesurer l'effet d'un mod
+
+La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu pendant que vous jouez. L'onglet *Performances* compare deux moments et dit ce qui a changé.
+
+*   **Temps de chargement** — la durée du lancement et du chargement de sauvegarde, comparée automatiquement à l'état précédent de votre parc : plus rapide, plus lent ou écart incertain, en couleur. Les étapes s'affichent en chronologie, et les mods qui pèsent le plus séparent chargement et démarrage.
+*   **Benchmark** — un bouton enchaîne seul des lancements du jeu en alternant l'état de départ et le changement à tester, puis remet votre parc comme avant.
+*   **Fluidité en jeu** — temps d'affichage d'une image, saccades et mémoire, minute par minute, entre deux sessions que vous choisissez ; avec le coût de chaque mod et ce qui a changé entre les deux (mods, versions, réglages).
+*   **Mesure guidée** — en jeu, la sonde vous dit où rester et s'arrête seule quand la mesure est stable.
+*   **Un geste proposé** — mettre un mod en pause, revenir à une version ou à un réglage d'avant : toujours réversible, refusé si le jeu tourne.
+*   **Pas de verdict au hasard** — un écart ne se tranche qu'au-delà du bruit mesuré entre vos propres sessions, avec au moins deux sessions de chaque côté ; dans le bruit, il reste gris.
 
 ### 📦 Installation et organisation des mods
 
@@ -221,6 +236,13 @@ StarHubFR s'appuie sur le travail d'autres projets. La carte complète — API i
 *   [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher) par **Pathoschild** — son `ConfigSchema` décrit les options de configuration d'un pack, et ses fichiers i18n en donnent les libellés affichés par l'éditeur.
 *   **Newtonsoft.Json** (MIT), tel qu'embarqué par le jeu — exécuté comme oracle pour mesurer ce que SMAPI accepte vraiment dans un `config.json` ou un fichier de traduction.
 *   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) par **colecrouter** — référence pour la lecture et l'édition des sauvegardes.
+
+**Performances**
+
+*   [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) par **SinZ** (MIT) — la sonde reprend ses minuteurs de trame et sa lecture des pauses du ramasse-miettes .NET ; sa visionneuse [Stardew Utilities](https://stardew.361zn.is) a guidé la lecture des étapes de chargement.
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI) par **Pathoschild** — ses sources ont donné les points de mesure du chargement et du démarrage de chaque mod, et le réglage `ModsToLoadEarly` qui permet à la sonde de se charger en premier.
+*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) par **spajus** et **Stardew Loading Optimizer** par **neoiw** — deux mods de temps de chargement, décompilés et étudiés pour savoir ce qu'ils changent au jeu, et donc ce que nos mesures doivent voir.
+*   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — `ilspycmd` décompile les mods mis à jour pour en auditer les changements.
 
 **Inspirations**
 

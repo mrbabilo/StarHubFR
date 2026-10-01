@@ -31,6 +31,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Le retour depuis une fiche ramène d'où vous venez.** Ouverte depuis Performances, Mises à jour ou les alertes, une fiche se fermait sur la liste des mods ; le retour ramène maintenant à l'onglet d'origine, en un clic.
 - **La liste des mods malveillants de SMAPI est vérifiée en entier.** Les fichiers piégés n'étaient jamais cherchés, et les entrées reconnues par l'empreinte du DLL étaient ignorées. Un mod légitime qui partage l'identifiant d'un reupload piégé n'est plus signalé.
 - **Une mise à jour garde tes traductions rangées en dossier.** Un `i18n/fr/gui.json` (forme de SMAPI 4) était remplacé par la version de l'auteur quand l'historique ne permettait pas de trancher ; il est désormais gardé, comme un `i18n/fr.json`.
 - **30 images/s reconnu comme plafond.** Une paire bloquée à 33,3 ms se juge désormais sur le travail de chaque trame : un mod qui allège le jeu n'est plus annoncé « sans effet ».
