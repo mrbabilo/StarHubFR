@@ -164,4 +164,20 @@ import Testing
         #expect(!ProbeLoadVerdict.noDifference.isDecided)
         #expect(!ProbeLoadVerdict.grayZone(beforeCount: 1, afterCount: 1).isDecided)
     }
+
+    /// La position de la sonde (étape 2) : deux places, pas de comparaison —
+    /// et le motif frappe avant « sans inventaire » (fixtures qui n'en ont pas).
+    @Test func aDifferentProbePositionIsExcluded() throws {
+        let records = ProbeLoadRecords.decode(try Fixture.data("loads-load.jsonl")).records
+        // Inventaire pour chaque session : sans lui, la référence elle-même
+        // compte un noInventory et masquerait l'ordre des motifs.
+        let launches = records.map { record in
+            ProbeInventoryLaunch(session: record.session, at: record.at, probe: record.probeVersion,
+                                 mods: [ProbeInventoryEntry(modId: "X", version: "1", configSha: nil)])
+        }
+        let exclusions = ProbeLoadComparison.exclusions(records, kind: .launch, launches: launches,
+                                                        changes: [], coldBefore: nil)
+        #expect(exclusions[.probePosition, default: 0] >= 1)
+        #expect(exclusions[.noInventory, default: 0] == 0)   // le motif frappe avant
+    }
 }

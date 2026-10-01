@@ -11,6 +11,7 @@ public enum ProbeLoadExclusion: Hashable, Sendable {
     case saveSize
     case reloadDiffers
     case patchesDiffer
+    case probePosition
     case noInventory
 }
 
@@ -100,7 +101,7 @@ public enum ProbeLoadComparison {
 
     /// Les motifs d'exclusion, candidat par candidat, contre la référence.
     /// Ordre du premier motif qui s'applique : incomplete, coldDisk, olderProbe,
-    /// otherSave, saveSize, reloadDiffers, patchesDiffer, noInventory.
+    /// otherSave, saveSize, reloadDiffers, patchesDiffer, probePosition, noInventory.
     public static func exclusions(_ records: [ProbeLoadRecord], kind: ProbeLoadRecord.Kind,
                                   launches: [ProbeInventoryLaunch], changes: [ProbeInventoryChange],
                                   coldBefore: Date?) -> [ProbeLoadExclusion: Int] {
@@ -211,6 +212,9 @@ public enum ProbeLoadComparison {
         }
         if record.reload != reference.reload { return .reloadDiffers }
         if record.patchesMeasured != reference.patchesMeasured { return .patchesDiffer }
+        // Sonde en tête (ModsToLoadEarly) : L1 passe du milieu au début de la
+        // boucle de démarrage, les phases changent de sens.
+        if record.probeLoadsFirst != reference.probeLoadsFirst { return .probePosition }
         if state(of: record, launches: launches, changes: changes) == nil { return .noInventory }
         return nil
     }
