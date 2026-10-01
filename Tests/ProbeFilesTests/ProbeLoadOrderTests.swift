@@ -85,4 +85,16 @@ struct ProbeLoadOrderTests {
         #expect(s(true, false, false, true) == .probePaused)
         #expect(s(true, true, nil, true) == .smapiMissing)
     }
+
+    /// Sonde en pause (retirée au lancement), puis réactivée dans la liste :
+    /// la carte réconcilie au lieu d'annoncer un échec d'écriture.
+    @Test func reactivatingThePausedProbeIsPendingNotAFailure() throws {
+        let dir = try makeGameDir(config: Data("{}".utf8))
+        defer { try? FileManager.default.removeItem(at: dir) }
+        _ = ProbeLoadOrder.reconcile(gameDir: dir.path, consent: true, probeActive: true)
+        #expect(ProbeLoadOrder.sync(gameDir: dir.path, consent: true, probeActive: false) == .written)   // lancement, sonde en pause
+        let listed = ProbeLoadOrder.reconcile(gameDir: dir.path, consent: true, probeActive: true)        // réactivée, carte affichée
+        #expect(listed == true)
+        #expect(ProbeLoadOrder.status(consent: true, probeActive: true, listed: listed, lastLaunchFirst: false) == .pending)
+    }
 }

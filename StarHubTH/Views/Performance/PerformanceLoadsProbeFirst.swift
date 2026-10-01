@@ -11,8 +11,8 @@ struct PerformanceLoadsProbeFirst: View {
     var store: ProbePerformanceStore
     /// `nil` = jamais demandé ; la vérité reste dans `UserDefaults`.
     @Binding var consent: Bool?
-    /// Relu à l'apparition, après chaque écriture et à chaque nouveau
-    /// lancement — jamais dans `body`.
+    /// Réconcilié puis relu à l'apparition, après chaque geste et à chaque
+    /// nouveau lancement — jamais dans `body`.
     @State private var listed: Bool?
     @State private var confirm = false
 
@@ -106,11 +106,8 @@ struct PerformanceLoadsProbeFirst: View {
     }
 
     private func sync(_ value: Bool?) {
-        ProbeLoadOrder.sync(gameDir: viewModel.gameDir, consent: value, probeActive: probeActive)
-        refresh()
+        listed = ProbeLoadOrder.reconcile(gameDir: viewModel.gameDir, consent: value, probeActive: probeActive)
     }
 
-    private func refresh() {
-        listed = ProbeLoadOrder.listed(gameDir: viewModel.gameDir)
-    }
+    private func refresh() { sync(consent) }
 }

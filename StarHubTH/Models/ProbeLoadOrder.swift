@@ -56,6 +56,15 @@ public enum ProbeLoadOrder {
         return SmapiUserConfig.listsLoadEarly(try? String(contentsOf: url, encoding: .utf8), modId: BenchmarkSides.probeId)
     }
 
+    /// À l'affichage : remet le fichier d'accord avec l'avis déjà donné (même
+    /// geste que `launchGame`, sans effet s'il l'est déjà), puis le relit.
+    /// Sans ça, réactiver la sonde en pause montrait `.notApplied` — un faux
+    /// échec — jusqu'au prochain lancement. `nil` : pas de `smapi-internal`.
+    public static func reconcile(gameDir: String, consent: Bool?, probeActive: Bool) -> Bool? {
+        sync(gameDir: gameDir, consent: consent, probeActive: probeActive)
+        return listed(gameDir: gameDir)
+    }
+
     public static func status(consent: Bool?, probeActive: Bool, listed: Bool?, lastLaunchFirst: Bool?) -> Status {
         guard let consent else { return .notAsked }
         guard consent else { return .declined }
