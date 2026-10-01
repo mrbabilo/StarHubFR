@@ -156,12 +156,16 @@ struct PerformanceLoadsSection: View {
                     topRow(total, launch: b.record.kind == .launch,
                            firstTickLabel: b.spans.first { $0.name == .firstTick }?.costs)
                 }
+                if let loop = b.entryLoopMs {
+                    note(String(format: localization.L(L10n.Performance.loadsEntryNote), Self.duration(loop)))
+                }
             }
             if b.packSeamMissing {
                 let version = ProbePerformanceActions.target(modId: Self.contentPatcherId, in: viewModel.mods)?.version ?? "?"
                 note(String(format: localization.L(L10n.Performance.loadsPackSeamMissing), version))
             }
             if b.assetHookMissing { note(localization.L(L10n.Performance.loadsAssetHookMissing)) }
+            if b.entryHookMissing { note(localization.L(L10n.Performance.loadsEntryHookMissing)) }
             if b.record.kind == .launch, b.record.health.loadHook == "missing" {
                 note(localization.L(L10n.Performance.loadsLoadHookMissing))
             }
@@ -180,8 +184,14 @@ struct PerformanceLoadsSection: View {
             Button {
                 if let head { viewModel.navigationStore.openModDetail(folderName: head.folderName) }
             } label: {
-                Text(isCp ? localization.L(L10n.Performance.loadsCpPreparing) : displayName(total.mod))
-                    .lineLimit(2).multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(isCp ? localization.L(L10n.Performance.loadsCpPreparing) : displayName(total.mod))
+                        .lineLimit(2).multilineTextAlignment(.leading)
+                    if total.entryMs >= 1 {
+                        Text(String(format: localization.L(L10n.Performance.loadsEntryPart), Self.duration(total.entryMs)))
+                            .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                    }
+                }
             }
             .buttonStyle(.link)
             .disabled(head == nil)
