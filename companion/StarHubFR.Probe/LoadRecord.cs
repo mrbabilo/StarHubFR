@@ -36,7 +36,7 @@ public sealed class LoadRecordBuilder
     private readonly List<object> phases = new();
     private object? final;
     private string? saveDate;
-    private object health = new { PackSeam = "missing", AssetHook = "missing", LoadHook = "missing", OffThreadSections = 0, EntryHook = (string?)null };
+    private object health = new { PackSeam = "missing", AssetHook = "missing", LoadHook = "missing", OffThreadSections = 0, EntryHook = (string?)null, ModLoadHook = (string?)null };
 
     public LoadRecordBuilder(LoadKind kind, string session, string at, string probeVersion,
                              string? saveName, long? saveBytes, bool reload, bool patchesMeasured)
@@ -53,6 +53,14 @@ public sealed class LoadRecordBuilder
 
     /// <summary>Lancement : durée de la boucle de démarrage des mods (`StartupTimeline.LoopMs`), sinon null.</summary>
     public double? EntryLoopMs { get; set; }
+    /// <summary>Lancement : début du premier chargement vu → fin du dernier (`StartupTimeline.LoadLoopMs`).</summary>
+    public double? LoadLoopMs { get; set; }
+    /// <summary>Chargements réussis vus par la sonde (ceux d'après elle).</summary>
+    public int? LoadCoveredMods { get; set; }
+    /// <summary>Mods et packs du registre de SMAPI, sonde comprise.</summary>
+    public int? LoadTotalMods { get; set; }
+    /// <summary>La sonde est la première du registre (`ModsToLoadEarly`) : la boucle de chargement est vue en entier.</summary>
+    public bool? ProbeLoadsFirst { get; set; }
 
     /// <summary>Un jalon atteint, avec ce qui a coûté depuis le précédent.</summary>
     public void Mark(string name, double ms, IReadOnlyList<CostLine> costsSincePrevious)
@@ -72,9 +80,9 @@ public sealed class LoadRecordBuilder
 
     /// <summary>`entryHook` null : producteur qui ne connaît pas l'accroche du démarrage (sans avis, jamais « missing »).</summary>
     public void SetHealth(string packSeam, string assetHook, string loadHook, int offThreadSections,
-                          string? entryHook = null) =>
+                          string? entryHook = null, string? modLoadHook = null) =>
         health = new { PackSeam = packSeam, AssetHook = assetHook, LoadHook = loadHook,
-                       OffThreadSections = offThreadSections, EntryHook = entryHook };
+                       OffThreadSections = offThreadSections, EntryHook = entryHook, ModLoadHook = modLoadHook };
 
     /// <summary>Tous les jalons attendus, dans l'ordre, chacun une fois.</summary>
     public bool Complete =>
@@ -98,5 +106,9 @@ public sealed class LoadRecordBuilder
         Health = health,
         BenchmarkRun,
         EntryLoopMs = EntryLoopMs is { } loop ? Math.Round(loop, 1) : (double?)null,
+        LoadLoopMs = LoadLoopMs is { } loadLoop ? Math.Round(loadLoop, 1) : (double?)null,
+        LoadCoveredMods,
+        LoadTotalMods,
+        ProbeLoadsFirst,
     });
 }

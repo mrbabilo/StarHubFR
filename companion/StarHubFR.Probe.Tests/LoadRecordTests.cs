@@ -225,4 +225,57 @@ public class LoadRecordTests
         File.WriteAllText(target, launch.ToJsonLine() + "\n" + old.ToJsonLine() + "\n");
         Assert.True(File.Exists(target));
     }
+
+    [Fact]
+    public void LoadFieldsAreWrittenAndNullByDefault()
+    {
+        var b = new LoadRecordBuilder(LoadKind.Launch, "s", "s", "0.9.0", null, null, false, false);
+        b.SetHealth("ok", "ok", "ok", 0);
+        var empty = JsonDocument.Parse(b.ToJsonLine()).RootElement;
+        foreach (var key in new[] { "LoadLoopMs", "LoadCoveredMods", "LoadTotalMods", "ProbeLoadsFirst" })
+            Assert.Equal(JsonValueKind.Null, empty.GetProperty(key).ValueKind);
+        Assert.Equal(JsonValueKind.Null, empty.GetProperty("Health").GetProperty("ModLoadHook").ValueKind);
+
+        b.LoadLoopMs = 11_204.06; b.LoadCoveredMods = 285; b.LoadTotalMods = 286; b.ProbeLoadsFirst = true;
+        b.SetHealth("ok", "ok", "ok", 0, entryHook: "ok", modLoadHook: "ok");
+        var json = JsonDocument.Parse(b.ToJsonLine()).RootElement;
+        Assert.Equal(11_204.1, json.GetProperty("LoadLoopMs").GetDouble());
+        Assert.Equal(285, json.GetProperty("LoadCoveredMods").GetInt32());
+        Assert.True(json.GetProperty("ProbeLoadsFirst").GetBoolean());
+        Assert.Equal("ok", json.GetProperty("Health").GetProperty("ModLoadHook").GetString());
+    }
+
+    /// Fixture Swift de l’étape 2, écrite par le producteur.
+    [Fact]
+    public void WritesTheLoadFixture()
+    {
+        const string first = "2026-10-01T13:00:00.0000000+02:00", mid = "2026-10-01T13:10:00.0000000+02:00";
+        var lines = new List<string>();
+        foreach (var (session, probeFirst) in new[] { (first, true), (mid, false) })
+        {
+            var timeline = new StartupTimeline(ticksPerSecond: 1000);
+            if (!probeFirst) timeline.LoadEnded("Pathoschild.ContentPatcher", 0, 300, ok: true);
+            timeline.LoadEnded("Cropgenics", 300, 1_700, ok: true);
+            timeline.LoadEnded("ZoeyHoshi.AT_ForageCrops", 1_700, 1_701, ok: false);
+            timeline.LoopStarted(5_000, 0);
+            timeline.EntryEnded("Cropgenics", 8_000, 0);
+            var launch = new LoadRecordBuilder(LoadKind.Launch, session, session, "0.9.0", null, null, false, false);
+            launch.Mark("L0", 0, None);
+            launch.Mark("L1", 30_000, timeline.TakeCosts("mrbabilo.StarHubFR.Probe"));
+            launch.Mark("L2", 35_000, None);
+            launch.Mark("L3", 36_000, None);
+            launch.Mark("L4", 60_000, None);
+            launch.EntryLoopMs = timeline.LoopMs;
+            launch.LoadLoopMs = timeline.LoadLoopMs;
+            launch.LoadCoveredMods = timeline.LoadsSeen;
+            launch.LoadTotalMods = probeFirst ? 3 : 4;
+            launch.ProbeLoadsFirst = probeFirst;
+            launch.SetHealth("ok", "ok", "ok", 0, entryHook: "ok", modLoadHook: "ok");
+            lines.Add(launch.ToJsonLine());
+        }
+        string target = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "../../../../../Tests/ProbeFilesTests/Fixtures/loads-load.jsonl"));
+        File.WriteAllText(target, string.Join("\n", lines) + "\n");
+        Assert.True(File.Exists(target));
+    }
 }
