@@ -47,7 +47,8 @@ internal static class Loads
             new DateTimeOffset(start).ToString("o"), probeVersion, null, null, false, PatchCosts.Active);
         Current.BenchmarkRun = Benchmark.RunId;
         Current.Mark("L0", 0, Array.Empty<CostLine>());
-        Current.Mark("L1", LaunchOffsetMs, Array.Empty<CostLine>());
+        // Mods démarrés avant la sonde : leur Entry a eu lieu pendant L0 → L1.
+        Current.Mark("L1", LaunchOffsetMs, StartupHooks.Timeline.TakeCosts(selfId));
         Open();
 
         MethodInfo? load = AccessTools.Method(typeof(SaveGame), nameof(SaveGame.Load), new[] { typeof(string) });
@@ -83,7 +84,14 @@ internal static class Loads
     private static void Mark(string name, double ms) => Current?.Mark(name, ms, ModCosts.TakePhase(SelfId));
 
     [EventPriority((EventPriority)int.MaxValue)]
-    private static void OnGameLaunchedFirst(object? sender, GameLaunchedEventArgs e) => Mark("L2", Now);
+    private static void OnGameLaunchedFirst(object? sender, GameLaunchedEventArgs e)
+    {
+        if (Current is null) return;
+        // La sonde et les mods démarrés après elle : L1 → L2.
+        var costs = ModCosts.TakePhase(SelfId);
+        costs.AddRange(StartupHooks.Timeline.TakeCosts(SelfId));
+        Current.Mark("L2", Now, costs);
+    }
 
     [EventPriority((EventPriority)int.MinValue)]
     private static void OnGameLaunchedLast(object? sender, GameLaunchedEventArgs e) => Mark("L3", Now);
@@ -188,7 +196,8 @@ internal static class Loads
         Close();
         if (record is null) return;
         record.SetHealth(ContentPackSections.Health, ModCosts.AssetHook,
-            LoadHookPatched ? "ok" : "missing", ContentPackSections.OffThreadSections);
+            LoadHookPatched ? "ok" : "missing", ContentPackSections.OffThreadSections, StartupHooks.HealthNow);
+        if (record.Kind == LoadKind.Launch) record.EntryLoopMs = StartupHooks.Timeline.LoopMs;
         if (log) Monitor.Log($"Chargement écrit : {ModCosts.AssetDiagnostic}.", LogLevel.Trace);
         try
         {

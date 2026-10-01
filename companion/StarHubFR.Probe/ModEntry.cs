@@ -32,6 +32,13 @@ public sealed class ModEntry : Mod
 {
     internal static string OutputDir = "";
 
+    /// <summary>
+    /// SMAPI crée l'instance pendant sa boucle de chargement, avant toute la
+    /// boucle de démarrage : seul endroit d'où le démarrage de **tous** les
+    /// mods se voit. `Monitor` n'existe pas encore — l'échec se journalise à `Entry`.
+    /// </summary>
+    public ModEntry() => StartupHooks.Arm();
+
     public override void Entry(IModHelper helper)
     {
         OutputDir = Path.Combine(Constants.DataPath, "ModData", ModManifest.UniqueID);
@@ -42,6 +49,8 @@ public sealed class ModEntry : Mod
 
         var config = helper.ReadConfig<ModConfig>();
         var harmony = new Harmony(ModManifest.UniqueID);
+        if (StartupHooks.ArmError is { } armError)
+            Monitor.Log($"Démarrage des mods non mesuré : {armError}.", LogLevel.Trace);
         FrameTimings.Initialize(harmony, Monitor);
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
