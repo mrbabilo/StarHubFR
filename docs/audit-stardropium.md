@@ -203,3 +203,59 @@ nouvelle.
 Sur le parc, il est désormais actif à côté d'UltraSmooth (sessions sonde du
 2026-09-26) : la conclusion « pause tant qu'UltraSmooth est actif » n'est
 plus appliquée.
+
+## 6. Delta 0.1.5-Alpha-Hotfix1 → 0.2.0-beta *(2026-10-01)*
+
+Décompilé et diffé (archives `NexusArchives`, 965 lignes hors `//IL_`) ; la DLL
+installée sur le parc (en pause) est identique à l'archive 0.2.0-beta. Aucune
+API réseau, processus, fichier ou chargement de code nouvelle. Le journal
+Nexus ne décrit pas la 0.2.0.
+
+**Réglages** : 7 options neuves, **toutes actives par défaut**
+(`EnableTenMinuteObjectPassTimeOptimization`,
+`EnableCharacterDistanceMathOptimization`, `EnableDistanceToLandOptimization`,
+`EnableBuildingCollisionFastReject`, `EnableFurnitureCollisionFastReject`,
+`EnableNpcBuildingCollisionOptimization`, `EnableSpaceCoreSaveFastTraversal`) ;
+`EnableDynamicReflectionsRenderTargetCulling` passe à **désactivé** par
+défaut ; `DiagnosticsIntervalSeconds` 15 → 40. Le `config.json` du parc
+(55 clés, 26/09) ne les porte pas : les défauts s'appliquent.
+
+**Sauvegarde — sûr** :
+- `SaveStreamOptimization` : le flux factice qui remplaçait la **deuxième**
+  `new MemoryStream(1024)` de `SaveGame.getSaveEnumerator` disparaît. Vérifié
+  dans le jeu (1.6.15) : cette allocation n'est jamais utilisée — le
+  remplacement de la 0.1.x était donc sans effet. Le transpileur garde
+  désormais les étiquettes de l'instruction remplacée (une étiquette perdue
+  pouvait casser un saut) et reconnaît toutes les formes de `ldc.i4 1024`. Le
+  flux réutilisé (8 Mo) a un `Dispose` neutre, `Reset()` remet la longueur à
+  zéro avant chaque sauvegarde, et il est libéré au retour au titre.
+- `SpaceCoreSaveOptimization` : voies rapides pour un nœud à **un** ou **deux**
+  enfants, dans l'ordre inverse du parcours général — chemins et ordre des
+  nœuds retirés identiques. Corrige au passage la 0.1.5, qui lisait
+  `pathStack[0]` sur une pile vide (nœud de mod directement sous la racine).
+
+**Jeu — équivalent au vanilla, sauf un cas** :
+- `passTimeForObjects` réécrit : un `Object` exact sans `heldObject` n'est plus
+  passé à `minutesElapsed` hors de `(BC)29`, `(BC)96`, `(BC)141`, `(BC)83` —
+  exactement les seuls cas où le vanilla agit sans `heldObject`. **Mais** un
+  mod qui patche `Object.minutesElapsed` n'est plus appelé pour ces objets.
+  Sur le parc (`harmony-map.json` du 2026-10-01) : **Sword and Sorcery 2.3.10**
+  (`ObjectWallOfForceExpirePatch`) fait expirer `DN.SnS_WallOfForce` dans ce
+  postfix → le mur de force **ne disparaît plus**. ExtraAnimalConfig 1.9.14
+  exige un `heldObject` : non touché.
+- `NPC.shouldCollideWithBuildingLayer` (voie rapide hors `FarmHouse` avec
+  programme) = `Character.shouldCollideWithBuildingLayer` du vanilla, puisque
+  la branche « marié » exige `Schedule == null` ou `FarmHouse`. Équivalent.
+- `Building.intersects` : rejet au-delà de 3 cases de l'emprise
+  (`tilesWide`/`tilesHigh`) ; meubles : vraie intersection de `boundingBox`
+  au lieu d'une fenêtre de cases. `Utility.isThereAFarmerOrCharacterWithinDistance`
+  réécrit en distance euclidienne (même règle).
+- `FishingRod.distanceToLand` : corrige la 0.1.x, qui testait l'eau sur la
+  case d'origine au lieu de la case voisine.
+- Caméra : se coupe seule si `xzqute.SmoothCamera` ou
+  `Spiderbuttons.SmoothCamera` est chargé ; CustomCompanions reconnu sous ses
+  deux identifiants.
+
+**Verdict** : réactivable **à condition** de poser
+`EnableTenMinuteObjectPassTimeOptimization: false` tant que Sword and Sorcery
+est actif. Les deux modules de sauvegarde sont plus sûrs qu'en 0.1.5.

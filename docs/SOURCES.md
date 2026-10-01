@@ -608,6 +608,15 @@ lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
   (`VirtualKeyboardMode`, `ModernVirtualKeyboardModal`). Deux réglages neufs
   dans son `config.json` : `VirtualKeyboard` (Auto/Always/Never) et
   `FullscreenMode`. i18n 187 → 196 clés, 16 sans `fr`.
+- **Modern Config Menu 2.2.1 → 2.2.4** *(2026-10-01, décompilé et diffé, 795 lignes)* —
+  10 fichiers, aucun neuf ; aucune API réseau, processus, fichier ou
+  chargement de code nouvelle. **Raccourcis** : le format écrit ne change pas
+  (`KeybindList` de SMAPI), mais un modificateur n'est plus validé seul — MCM
+  écrit désormais de vraies combinaisons (`LeftControl + R`), que
+  `KeybindGrammar` lit déjà (tests `LeftControl + F8`/`+ H`). Retour arrière
+  touche par touche (Retour/Suppr). Redirection GMCM en priorité 800
+  (`OpenListMenu`/`OpenModMenu`). Réglage neuf `SeamlessTouchNavigation`
+  (défaut `false`, tactile seulement). i18n de l'archive 196 → 198 clés.
 - **Radiance 2.2.2 → 2.2.3** — 18 fichiers, trois neufs (`ArtReloads`,
   `BoundTargets`, `SettingsLog`). **Ligne de journal à parser (D2)** :
   `settings (<moment>): <N> changed from default: clé:valeur, …`, au niveau
@@ -619,6 +628,13 @@ lit quatre variables d'environnement (`CINDERBOX`, `ANDROID_ROOT`,
   patch de l'interne Content Patcher `ContextualState.MergeFrom` supprimé
   (48 → 47 cibles). Ni l'un ni l'autre ne figure au catalogue A5-T7 : rien à
   corriger.
+- **Stardropium 0.1.5-Alpha-Hotfix1 → 0.2.0-beta** *(2026-10-01)* — détail et
+  verdict : [`audit-stardropium.md`](audit-stardropium.md) § 6. **Défaut sur le
+  parc** : la réécriture de `GameLocation.passTimeForObjects` (active par
+  défaut) n'appelle plus `minutesElapsed` sur un objet simple sans
+  `heldObject` hors de 4 identifiants vanilla — le postfix de Sword and
+  Sorcery qui fait expirer `DN.SnS_WallOfForce` ne tourne plus.
+  Avant de réactiver : `EnableTenMinuteObjectPassTimeOptimization: false`.
 - **Event Studio rc.3 → rc.4** — pas de backup de la rc.3 (installée hors
   app) : audit de la rc.4 seule, **aucune** occurrence du motif. Changelog :
   alignement des sprites HD dans l'éditeur.
