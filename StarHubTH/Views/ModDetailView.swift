@@ -199,7 +199,8 @@ struct ModDetailView: View {
         VStack(spacing: 0) {
             HeroHeader(title: mod.name,
                        subtitle: heroSubtitle,
-                       imageURL: heroPictureURL) {
+                       imageURL: heroPictureURL,
+                       closeHelp: localization.L(L10n.Main.close)) {
                 vm.navigationStore.setViewingModDetail(nil)
             }
             fineBand

@@ -272,7 +272,9 @@ struct MainView: View {
     var body: some View {
         ZStack {
             NavigationSplitView {
+                // Largeur figée : repliable, jamais redimensionnée au séparateur.
                 sidebarColumn
+                    .navigationSplitViewColumnWidth(240)
 
         } detail: {
             // ── CONTENT AREA ─────────────────────────────────────────

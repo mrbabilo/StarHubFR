@@ -15,6 +15,8 @@ struct HeroHeader: View {
     let title: String
     let subtitle: String
     let imageURL: URL?
+    /// Infobulle et libellé VoiceOver du bouton de fermeture.
+    let closeHelp: String
     let onClose: () -> Void
 
     var body: some View {
@@ -52,6 +54,7 @@ struct HeroHeader: View {
                         .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
                 }
                 .buttonStyle(.plain)
+                .iconHelp(closeHelp)
                 .padding(AppDesign.Spacing.sm)
             }
     }

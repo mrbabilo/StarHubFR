@@ -397,7 +397,8 @@ struct DiscoveryDetailSheet: View {
     private var hero: some View {
         HeroHeader(title: row.hit.name,
                    subtitle: row.hit.uploader,
-                   imageURL: row.hit.thumbnailUrl.flatMap { URL(string: $0) }) {
+                   imageURL: row.hit.thumbnailUrl.flatMap { URL(string: $0) },
+                   closeHelp: localization.L(L10n.Main.close)) {
             dismiss()
         }
     }
