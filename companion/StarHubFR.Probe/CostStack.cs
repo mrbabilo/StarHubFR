@@ -33,6 +33,13 @@ public sealed class CostStack
     public long[] PhaseTicks = new long[256], PhaseAlloc = new long[256];
     public int[] PhaseCalls = new int[256];
 
+    /// <summary>
+    /// Temps total des cadres **racines** refermés pendant une phase ouverte,
+    /// jamais remis à zéro : la différence entre deux lectures = ce que la
+    /// sonde a attribué entre-temps (démarrage des mods, coût exclusif).
+    /// </summary>
+    public long PhaseRootTicks { get; private set; }
+
     public bool PhaseOpen { get; set; }
     public int Depth { get; private set; }
     public int SlotCount => phaseOnly.Count;
@@ -92,6 +99,7 @@ public sealed class CostStack
             PhaseAlloc[slot] += Math.Max(0, totalAlloc - childPhaseAlloc[d]);
             PhaseCalls[slot]++;
         }
+        if (PhaseOpen && d == 0) PhaseRootTicks += total;
         if (d > 0)
         {
             childMinuteTicks[d - 1] += transparent ? childMinuteTicks[d] : total;

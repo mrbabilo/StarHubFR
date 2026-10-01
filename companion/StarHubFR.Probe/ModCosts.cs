@@ -293,6 +293,9 @@ internal static class ModCosts
         set { Stack.PhaseOpen = value; if (!value) Stack.ClearPhase(); }
     }
 
+    /// <summary>Compteur monotone de <see cref="CostStack.PhaseRootTicks"/> (ticks `Stopwatch`).</summary>
+    public static long AttributedTicks => Stack.PhaseRootTicks;
+
     /// <summary>Ce qui a coûté depuis le jalon précédent, puis remise à zéro de la phase.</summary>
     public static List<CostLine> TakePhase(string selfId)
     {

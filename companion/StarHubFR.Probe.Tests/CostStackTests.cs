@@ -96,4 +96,31 @@ public class CostStackTests
         s.Pop(5, 0);
         Assert.Equal(5, s.Ticks[last]);          // 299 est impair : emplacement ordinaire
     }
+
+    [Fact]
+    public void RootFramesFeedAMonotonicCounterWhilePhaseIsOpen()
+    {
+        var s = new CostStack { PhaseOpen = true };
+        int evt = s.AddSlot(false), child = s.AddSlot(false);
+        s.Push(evt, 0, 0);
+        s.Push(child, 10, 0);
+        s.Pop(40, 0);            // enfant : ne compte pas en plus (déjà dans le parent)
+        s.Pop(100, 0);           // racine : 100
+        Assert.Equal(100, s.PhaseRootTicks);
+        s.ClearPhase();          // un jalon vide la phase, jamais le compteur
+        Assert.Equal(100, s.PhaseRootTicks);
+        s.Push(evt, 200, 0);
+        s.Pop(250, 0);
+        Assert.Equal(150, s.PhaseRootTicks);
+    }
+
+    [Fact]
+    public void ClosedPhaseDoesNotFeedTheCounter()
+    {
+        var s = new CostStack();   // PhaseOpen == false
+        int evt = s.AddSlot(false);
+        s.Push(evt, 0, 0);
+        s.Pop(100, 0);
+        Assert.Equal(0, s.PhaseRootTicks);
+    }
 }
