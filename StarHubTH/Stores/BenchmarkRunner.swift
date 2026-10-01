@@ -54,6 +54,9 @@ final class BenchmarkRunner {
     static let pollSeconds: UInt64 = 5
     static let neverStartedSeconds: TimeInterval = 90
     static let maxRunSeconds: TimeInterval = 480
+    /// Au-delà, l'utilisateur a pu passer à une autre app exprès : on ne
+    /// reprend plus le premier plan.
+    static let focusRetrySeconds: TimeInterval = 60
     /// Restauration : attendre la fermeture d'un jeu apparu en retard.
     static let restoreWaitSeconds: TimeInterval = 60
 
@@ -240,11 +243,19 @@ final class BenchmarkRunner {
     private func waitForGame() async -> BenchmarkFailure? {
         let start = Date()
         var seen = false
+        var seenAt = Date()
+        var focused = false
         while true {
             guard await sleep(seconds: Self.pollSeconds) else { return .stopped }
             let running = viewModel.isGameRunning()
-            if running && !seen { bringGameToFront() }
+            if running && !seen { seenAt = Date() }
             if running { seen = true }
+            // Une activation unique se perd au premier lancement (jeu à froid,
+            // vu avant d'avoir fini de démarrer) : redemander à chaque
+            // sondage jusqu'à ce qu'il soit devant.
+            if running, !focused, Date().timeIntervalSince(seenAt) < Self.focusRetrySeconds {
+                focused = bringGameToFront()
+            }
             if seen && !running { return nil }
             let elapsed = Date().timeIntervalSince(start)
             if !seen && elapsed > Self.neverStartedSeconds { return .neverStarted }
@@ -263,10 +274,13 @@ final class BenchmarkRunner {
 
     /// Le jeu part d'un `Process` bash : sans ce geste, StarHubFR garde le
     /// premier plan. Activation coopérative (macOS 14) : céder, puis demander.
-    private func bringGameToFront() {
-        guard let game = gameProcesses().first else { return }
+    /// Vrai quand le jeu est déjà devant (plus rien à faire).
+    private func bringGameToFront() -> Bool {
+        guard let game = gameProcesses().first else { return false }
+        if game.isActive { return true }
         NSApp.yieldActivation(to: game)
         game.activate()
+        return false
     }
 
     private func terminateGame() async {
