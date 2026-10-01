@@ -12,8 +12,12 @@ struct ShortcutsHelpView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Label(localization.L(L10n.Shortcuts.title), systemImage: "keyboard")
-                    .font(AppDesign.Font.headline(.semibold))
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    IconTile(icon: "keyboard", tint: .gray, size: 28)
+                    Text(localization.L(L10n.Shortcuts.title))
+                        .font(AppDesign.Font.headline(.semibold))
+                        .accessibilityAddTraits(.isHeader)
+                }
                 Spacer()
                 Button(localization.L(L10n.Main.close)) { dismiss() }
                     .keyboardShortcut(.cancelAction)
@@ -26,14 +30,18 @@ struct ShortcutsHelpView: View {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     ForEach(KeyboardShortcutCatalog.groups()) { group in
                         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                            Text(localization.L(group.titleKey))
+                            Label(localization.L(group.titleKey), systemImage: Self.icon(for: group.titleKey))
                                 .font(AppDesign.Font.caption(.semibold))
                                 .foregroundStyle(.secondary)
                                 .textCase(.uppercase)
                                 .accessibilityAddTraits(.isHeader)
-                            ForEach(group.entries) { entry in
-                                row(entry)
+                            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                                ForEach(group.entries) { entry in
+                                    row(entry)
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .cardSurface()
                         }
                     }
                 }
@@ -66,13 +74,27 @@ struct ShortcutsHelpView: View {
         .accessibilityValue(entry.keys.filter { $0 != ShortcutEntry.or }.joined(separator: " "))
     }
 
+    /// Une touche en relief : face claire, tranche plus sombre dessous.
     private func keycap(_ key: String) -> some View {
         Text(key)
             .font(AppDesign.Font.caption(.medium).monospaced())
             .frame(minWidth: 20)
             .padding(.horizontal, AppDesign.Spacing.xs)
             .padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.08)))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.primary.opacity(0.15), lineWidth: 0.5))
+            .background(RoundedRectangle(cornerRadius: 4).fill(AppDesign.Color.controlBg))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.primary.opacity(AppDesign.Opacity.strong), lineWidth: 0.5))
+            .shadow(color: .black.opacity(AppDesign.Opacity.strong), radius: 0, y: 1)
+    }
+
+    /// Le glyphe d'un groupe de raccourcis.
+    private static func icon(for titleKey: String) -> String {
+        switch titleKey {
+        case L10n.Shortcuts.groupScreens:    return "sidebar.left"
+        case L10n.Shortcuts.groupNavigation: return "arrow.triangle.turn.up.right.diamond"
+        case L10n.Shortcuts.groupModList:    return "list.bullet"
+        case L10n.Shortcuts.groupPalette:    return "command"
+        case L10n.Shortcuts.groupDialogs:    return "macwindow"
+        default:                             return "app"
+        }
     }
 }

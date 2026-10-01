@@ -64,6 +64,7 @@ public enum KeyboardShortcutCatalog {
                 ShortcutEntry(["⎋"], L10n.Shortcuts.cancel),
             ]),
             ShortcutGroup(titleKey: L10n.Shortcuts.groupApp, entries: [
+                ShortcutEntry(["⌘", ","], L10n.Settings.settings),
                 ShortcutEntry(["⌘", "H"], L10n.Shortcuts.hide),
                 ShortcutEntry(["⌘", "M"], L10n.Shortcuts.minimize),
                 ShortcutEntry(["⌘", "Q"], L10n.Shortcuts.quit),

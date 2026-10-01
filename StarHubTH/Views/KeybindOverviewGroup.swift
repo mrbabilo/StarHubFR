@@ -100,7 +100,7 @@ struct KeybindOverviewGroup: View {
                 if binding.hasConflict {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppDesign.Color.warning)
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                         .help(localization.L(L10n.Keybinds.conflictHelp))

@@ -89,23 +89,19 @@ struct KeybindReportSection: View {
     }
 
     private var header: some View {
-        HStack {
-            Image(systemName: "keyboard")
+        HStack(spacing: AppDesign.Spacing.sm) {
+            IconTile(icon: "keyboard", tint: AppDesign.Color.accent, size: 28)
             Text(localization.L(L10n.Keybinds.title))
                 .font(AppDesign.Font.rowTitle(.bold))
                 .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: AppDesign.Spacing.sm)
             Button(action: { service.scan(mods: vm.scanStore.mods, gameDir: vm.gameDir) }) {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
-                    .font(AppDesign.Font.caption(.medium))
-                    .foregroundColor(.primary)
                     .lineLimit(1)
-                    .padding(.horizontal, AppDesign.Spacing.md)
-                    .padding(.vertical, AppDesign.Spacing.xs)
-                    .background(Color.primary.opacity(0.1))
-                    .cornerRadius(6)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .pointingHandCursor()
             .disabled(service.isScanning || vm.gameDir.isEmpty)
             .layoutPriority(1)
@@ -140,9 +136,10 @@ struct KeybindReportSection: View {
             // contredit.
             if report.problemCount == 0 && report.unrecognized.isEmpty
                 && report.subsetOverlaps.isEmpty {
-                statusRow(icon: "checkmark.circle.fill", color: .green,
+                statusRow(icon: "checkmark.circle.fill", color: AppDesign.Color.success,
                           text: localization.L(L10n.Keybinds.empty))
             } else {
+                KeybindSummaryTiles(report: report, L: localization.L)
                 if !report.collisions.isEmpty {
                     collisionsGroup(report.collisions, key: "collisions",
                                     header: L10n.Keybinds.collisionsHeader)
