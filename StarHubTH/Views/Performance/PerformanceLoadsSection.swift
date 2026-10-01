@@ -11,6 +11,9 @@ struct PerformanceLoadsSection: View {
     var store: ProbePerformanceStore
     @State private var pendingPause: PendingPause?
     @State private var confirmProbeFirst = false
+    /// Reflète le consentement (`nil` = jamais demandé) pour re-rendre la
+    /// carte quand il change — `UserDefaults` seul ne déclenche rien.
+    @State private var consentShown: Bool?
     @State private var message: String?
     @State private var showBenchmark = false
 
@@ -50,6 +53,7 @@ struct PerformanceLoadsSection: View {
         .sheet(isPresented: $showBenchmark) {
             PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
         }
+        .onAppear { consentShown = UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool }
         .confirmationDialog(localization.L(L10n.Performance.loadsProbeFirstAction), isPresented: $confirmProbeFirst) {
             Button(localization.L(L10n.Performance.loadsProbeFirstAction)) {
                 setProbeFirstConsent(true)
@@ -174,7 +178,8 @@ struct PerformanceLoadsSection: View {
                 }
                 if b.probeLoadsFirst == false {
                     note(localization.L(L10n.Performance.loadsProbeNotFirst))
-                    if probeFirstConsent != true {
+                    // `nil` seul : un refus (`false`) n'est jamais relancé.
+                    if probeFirstConsent == nil {
                         Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirmProbeFirst = true }
                             .controlSize(.small)
                     }
@@ -199,13 +204,13 @@ struct PerformanceLoadsSection: View {
         }
     }
 
-    private var probeFirstConsent: Bool? {
-        UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool
-    }
+    /// Le consentement vu par la carte ; la vérité reste dans `UserDefaults`.
+    private var probeFirstConsent: Bool? { consentShown }
 
     private func setProbeFirstConsent(_ value: Bool?) {
         if let value { UserDefaults.standard.set(value, forKey: UDKey.probeLoadEarlyConsent) }
         else { UserDefaults.standard.removeObject(forKey: UDKey.probeLoadEarlyConsent) }
+        consentShown = value
     }
 
     private func topRow(_ total: ProbeLoadModTotal, launch: Bool, firstTickLabel: [ProbeLoadCost]?) -> some View {

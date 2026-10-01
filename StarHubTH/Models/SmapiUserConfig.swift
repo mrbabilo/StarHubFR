@@ -26,7 +26,10 @@ public enum SmapiUserConfig {
         guard listed != present else { return nil }
 
         let out: String
-        if let list = loadEarly(in: raw) {
+        if hasLoadEarlyKey(raw) {
+            // La clé existe : une liste non parsable (entrée exotique) refuse
+            // l'écriture au lieu d'insérer un doublon ou de perdre des entrées.
+            guard let list = loadEarly(in: raw) else { return nil }
             var ids = list.ids
             if present {
                 ids.append(modId)
@@ -49,19 +52,26 @@ public enum SmapiUserConfig {
 
     // MARK: — Privé
 
-    /// La liste et l'intervalle de son contenu (entre `[` et `]`). Limites
-    /// assumées : les identifiants de mods ne portent ni `,` ni `]` ni
-    /// guillemet échappé — un fichier exotique est traité comme illisible
-    /// (aucune écriture) plutôt que corrompu.
+    /// La clé existe-t-elle, quelle que soit sa casse (celle de Newtonsoft) ?
+    private static func hasLoadEarlyKey(_ text: String) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: "\"\(key)\"\\s*:", options: [.caseInsensitive]) else { return false }
+        return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+
+    /// La liste et l'intervalle de son contenu (entre `[` et `]`), ou nil si
+    /// une entrée n'est pas une chaîne quotée — l'appelant refuse alors
+    /// d'écrire plutôt que de perdre l'entrée de l'auteur. Limites assumées :
+    /// les identifiants de mods ne portent ni `,` ni `]` ni guillemet échappé.
     private static func loadEarly(in text: String) -> (ids: [String], contents: Range<String.Index>)? {
         let pattern = "\"\(key)\"\\s*:\\s*\\[([^\\]]*)\\]"
-        guard let regex = try? NSRegularExpression(pattern: pattern),
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let inner = Range(match.range(at: 1), in: text) else { return nil }
-        let ids = text[inner].split(separator: ",").compactMap { part -> String? in
+        var ids: [String] = []
+        for part in text[inner].split(separator: ",") {
             let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
             guard trimmed.count >= 2, trimmed.hasPrefix("\""), trimmed.hasSuffix("\"") else { return nil }
-            return String(trimmed.dropFirst().dropLast())
+            ids.append(String(trimmed.dropFirst().dropLast()))
         }
         return (ids, inner)
     }

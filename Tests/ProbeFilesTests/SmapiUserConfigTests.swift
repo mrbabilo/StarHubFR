@@ -59,4 +59,27 @@ struct SmapiUserConfigTests {
         let back = try #require(SmapiUserConfig.settingLoadEarly(out, modId: probe, present: false))
         #expect(back.contains("\"ModsToLoadEarly\": []"))
     }
+
+    /// Relecture : une entrée non parsable dans la liste de l'auteur fait
+    /// refuser l'écriture — jamais une suppression en silence.
+    @Test func anUnparsableListEntryRefusesTheWrite() {
+        let mixed = "{ \"ModsToLoadEarly\": [\"Author.First\", 42] }"
+        #expect(SmapiUserConfig.settingLoadEarly(mixed, modId: probe, present: true) == nil)
+        #expect(SmapiUserConfig.settingLoadEarly(mixed, modId: probe, present: false) == nil)
+    }
+
+    /// Relecture : la clé écrite dans une casse différente est trouvée —
+    /// Newtonsoft est insensible à la casse, une insertion ferait un doublon
+    /// dont la clé de l'auteur resterait gagnante.
+    @Test func theKeyIsFoundWhateverItsCase() throws {
+        let odd = "{ \"modstoloadearly\": [\"Author.First\"] }"
+        let added = try #require(SmapiUserConfig.settingLoadEarly(odd, modId: probe, present: true))
+        #expect(added.lowercased().contains("\"mrbabilo.starhubfr.probe\""))
+        // Pas de doublon : une seule occurrence de la clé.
+        #expect(added.lowercased().components(separatedBy: "modstoloadearly").count == 2)
+        #expect(SmapiUserConfig.listsLoadEarly(added, modId: probe))
+        let removed = try #require(SmapiUserConfig.settingLoadEarly(added, modId: probe, present: false))
+        #expect(removed.contains("\"Author.First\""))
+        #expect(!SmapiUserConfig.listsLoadEarly(removed, modId: probe))
+    }
 }

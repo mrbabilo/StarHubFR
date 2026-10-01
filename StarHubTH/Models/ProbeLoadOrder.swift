@@ -15,8 +15,8 @@ public enum ProbeLoadOrder {
         URL(fileURLWithPath: gameDir).appendingPathComponent("smapi-internal/config.user.json")
     }
 
-    /// Vrai si le fichier a été écrit. Copie `config.user.starhubfr.bak` avant
-    /// la première écriture ; un fichier illisible n'est jamais touché.
+    /// Vrai si le fichier a été écrit. Copie `config.user.json.starhubfr.bak`
+    /// avant la première écriture ; un fichier illisible n'est jamais touché.
     @discardableResult
     public static func sync(gameDir: String, consent: Bool?, probeActive: Bool) -> Bool {
         guard !gameDir.isEmpty, let present = wanted(consent: consent, probeActive: probeActive) else { return false }
