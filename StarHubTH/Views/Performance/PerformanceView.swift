@@ -20,6 +20,7 @@ struct PerformanceView: View {
                     // Benchmark interrompu : la reprise reste visible hors de la carte.
                     PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
+                PerformanceCard { PerformanceImpactSection(viewModel: viewModel, localization: localization) }
                 // En-tête, mesure guidée et sélecteurs forment un bloc : les
                 // tuiles de trame lisent la paire choisie (`store.report`).
                 inGameTitle

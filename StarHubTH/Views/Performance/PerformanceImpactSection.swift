@@ -1,0 +1,110 @@
+import SwiftUI
+
+/// D5-C — le classement « Impact par mod » : dix premiers, puis tout. Chaque
+/// ligne ouvre la fiche (retour en un clic, `detailOpenedByJump`). Ne calcule
+/// rien : tout vient de `ModImpactStore`.
+struct PerformanceImpactSection: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+    @State private var showAll = false
+
+    private var store: ModImpactStore { viewModel.modImpactStore }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            Text(localization.L(L10n.Performance.impactCardTitle)).font(AppDesign.Font.headline(.semibold))
+            Text(localization.L(L10n.Performance.impactCardSubtitle))
+                .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            switch store.status {
+            case .idle, .loading:
+                ProgressView().controlSize(.small)
+            case .noProbe:
+                StateCard(icon: "gauge.with.dots.needle.0percent",
+                          text: localization.L(L10n.Performance.impactEmptyProbe), actionTitle: nil) {}
+            case .unreadableHistory:
+                StateCard(icon: "exclamationmark.triangle",
+                          text: localization.L(L10n.Performance.impactUnreadable), actionTitle: nil) {}
+            case .ready:
+                list
+            }
+        }
+        .task { await reload() }
+        // L'onglet reste monté : relire au retour dans l'app seulement s'il est
+        // affiché (patron `PerformanceView`).
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await reload() } }
+        }
+    }
+
+    private func reload() async {
+        await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir)
+    }
+
+    @ViewBuilder
+    private var list: some View {
+        let ranked = store.ranking
+        let shown = showAll ? ranked : Array(ranked.prefix(10))
+        if ranked.isEmpty {
+            StateCard(icon: "hourglass", text: localization.L(L10n.Performance.impactEmptyMod), actionTitle: nil) {}
+        } else {
+            ForEach(shown) { entry in row(entry) }
+            if ranked.count > 10 {
+                Button(showAll ? localization.L(L10n.Performance.impactShowLess)
+                               : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) {
+                    showAll.toggle()
+                }
+                .buttonStyle(.link)
+            }
+        }
+        footer
+    }
+
+    private func row(_ entry: ModImpactEntry) -> some View {
+        let stats = entry.shown
+        // Un composant de pack s'ouvre par son entrée de tête (patron
+        // `PerformanceLoadsTopMods`).
+        let head = ProbePerformanceActions.target(modId: entry.modId, in: viewModel.mods)
+        return HStack(alignment: .center, spacing: AppDesign.Spacing.sm) {
+            ModImpactRadar(shares: stats?.shares ?? [:], size: 24, showsLabels: false,
+                           label: { $0.rawValue }, detail: { $0.rawValue })
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Button(entry.name) {
+                    if let head { viewModel.navigationStore.openModDetail(folderName: head.folderName) }
+                }
+                .buttonStyle(.link)
+                .disabled(head == nil)
+                .lineLimit(2).multilineTextAlignment(.leading)
+                if entry.current == nil, let version = stats?.version {
+                    Text(String(format: localization.L(L10n.Performance.impactLastKnown), version))
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: AppDesign.Spacing.sm)
+            if let delta = entry.evolution {
+                Image(systemName: delta <= 0 ? "arrow.down.right" : "arrow.up.right")
+                    .foregroundStyle(delta <= 0 ? AppDesign.Color.success : AppDesign.Color.warning)
+                    .frame(width: 18, height: 18).contentShape(.rect)
+                    .help(ModImpactFormat.score(delta))
+            }
+            ModImpactBadge(localization: localization, impactClass: stats?.impactClass, score: stats?.score)
+        }
+    }
+
+    private var footer: some View {
+        let measured = store.entries.filter { $0.isEnabled && $0.shown != nil }
+        let negligible = measured.filter { $0.shown?.isNegligible == true }.count
+        let unmeasured = store.entries.filter { $0.isEnabled && $0.shown == nil }.count
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(String(format: localization.L(L10n.Performance.impactCardFooter), negligible, unmeasured))
+            if let probe = store.probeMsPerFrame {
+                Text(String(format: localization.L(L10n.Performance.impactProbeCost),
+                            ModImpactFormat.number(probe, digits: 2)))
+            }
+            if store.lastSave == nil { Text(localization.L(L10n.Performance.impactSaveMissing)) }
+        }
+        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
