@@ -423,7 +423,7 @@ deux qui valaient instruction. Ne pas trier ces 204 commits sur leur libellé.
 | Projet | Nature | Ce qu'on en a tiré |
 |---|---|---|
 | [**Stardrop**](https://github.com/Floogen/Stardrop) — Floogen | C# / Avalonia, 269 ★, **très actif** | `docs/audit-stardrop.md` (2026-07-31) : smapi.io en direct plutôt que le dump, configs par profil, notes, `UpdateCautionMessage`. **Ne pas porter** SimpleObscure ni les jonctions de dossiers |
-| [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) — MLD210 ([source](https://github.com/MLD-yu/JuniGrid)) | C# + interface WebView2, Windows seul, EN/ZH ; dépôt créé le 2026-09-02, v1.2.4 sur Nexus le 2026-10-01, 3 ★, **très actif** | relevé du 2026-10-01 ci-dessous — rien de repris |
+| [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) — MLD210 ([source](https://github.com/MLD-yu/JuniGrid)) | C# + interface WebView2, Windows seul, EN/ZH ; dépôt créé le 2026-09-02, v1.2.4 sur Nexus le 2026-10-01, 3 ★, **très actif** | [`audit-junigrid.md`](audit-junigrid.md) (2026-10-01) : **OAuth Nexus exigé pour une app publique** (politique API), reprise des téléchargements, étiquette neutre pour un remplacement déjà fait. **Ne pas porter** la réécriture du `Version` des manifestes ni le « zip présent = installé » |
 | [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) | officiel, Rust/C# | documentation du protocole `nxm://` et des collections |
 | [node-nexus-api](https://github.com/Nexus-Mods/node-nexus-api) | client officiel Node | forme des réponses de l'API v1 |
 | [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) — Wooa | mod SMAPI en jeu (`wooa.KeybindRadar`), 2026-09-22 | radar de raccourcis & conflits — recouvre l'axe C4. Décompilé : [`audit-keybind-radar-savesaver.md`](audit-keybind-radar-savesaver.md) — notre `KeybindScanner` est plus riche (118 raccourcis sans indice de nom que son heuristique rate) |
@@ -459,7 +459,8 @@ et sorti `v1.10.0-beta.2`. Les changements qui touchent nos zones :
 ### JuniGrid — relevé du 2026-10-01
 
 Lu depuis la description Nexus (API GraphQL v2, `legacyMods`, sans clé) et
-les métadonnées du dépôt ; **code non audité**. Ce qui touche nos axes :
+les métadonnées du dépôt ; **code audité le même jour** :
+[`audit-junigrid.md`](audit-junigrid.md). Ce qui touche nos axes :
 
 | JuniGrid | Chez nous |
 |---|---|
