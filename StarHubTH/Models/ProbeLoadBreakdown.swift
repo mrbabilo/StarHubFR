@@ -36,6 +36,15 @@ public struct ProbeLoadSpan: Equatable, Sendable, Identifiable {
     public var unattributedMs: Double { max(0, ms - attributedMs) }
 }
 
+/// Combien de chargements de mods la sonde a vus, sur combien à voir
+/// (registre moins la sonde). `nil` avant la sonde 0.9.0.
+public struct LoadCoverage: Equatable, Sendable {
+    public let seen: Int
+    public let total: Int
+
+    public init(seen: Int, total: Int) { self.seen = seen; self.total = total }
+}
+
 /// Le total d'un mod sur tous les spans comparés d'un chargement. Un coût de
 /// pack compte pour son pack, jamais pour Content Patcher.
 public struct ProbeLoadModTotal: Equatable, Sendable, Identifiable {
@@ -45,12 +54,15 @@ public struct ProbeLoadModTotal: Equatable, Sendable, Identifiable {
     public let isPack: Bool
     /// Dont démarrage (`entry`, sonde 0.8.0).
     public let entryMs: Double
+    /// Dont chargement (`load`, sonde 0.9.0).
+    public let loadMs: Double
 
-    public init(mod: String, ms: Double, isPack: Bool, entryMs: Double = 0) {
+    public init(mod: String, ms: Double, isPack: Bool, entryMs: Double = 0, loadMs: Double = 0) {
         self.mod = mod
         self.ms = ms
         self.isPack = isPack
         self.entryMs = entryMs
+        self.loadMs = loadMs
     }
 }
 
@@ -68,6 +80,12 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
     public let entryLoopMs: Double?
     /// Lancement d'une sonde qui a l'accroche mais ne l'a pas vue tirer.
     public let entryHookMissing: Bool
+    /// Sonde 0.9.0 : durée de la boucle de chargement des mods (lancement).
+    public let loadLoopMs: Double?
+    /// Combien de chargements vus sur combien à voir ; nil avant 0.9.0.
+    public let loadCoverage: LoadCoverage?
+    /// La sonde est la première du registre de SMAPI ; nil avant 0.9.0.
+    public let probeLoadsFirst: Bool?
 
     /// Couples `(from, to)` connus. Un couple inconnu (jalon d'une sonde
     /// future) est ignoré.
@@ -102,18 +120,20 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
                                        attributedMs: 0, costs: []))
         }
 
-        var byMod: [String: (ms: Double, entryMs: Double, isPack: Bool)] = [:]
+        var byMod: [String: (ms: Double, entryMs: Double, loadMs: Double, isPack: Bool)] = [:]
         for span in spans where span.name != .waitingForPlayer {
             for cost in span.costs {
-                var entry = byMod[cost.mod] ?? (0, 0, false)
+                var entry = byMod[cost.mod] ?? (0, 0, 0, false)
                 entry.ms += cost.ms
                 if cost.kind == .entry { entry.entryMs += cost.ms }
+                if cost.kind == .load { entry.loadMs += cost.ms }
                 entry.isPack = entry.isPack || cost.kind == .pack
                 byMod[cost.mod] = entry
             }
         }
         let top = byMod
-            .map { ProbeLoadModTotal(mod: $0.key, ms: $0.value.ms, isPack: $0.value.isPack, entryMs: $0.value.entryMs) }
+            .map { ProbeLoadModTotal(mod: $0.key, ms: $0.value.ms, isPack: $0.value.isPack,
+                                     entryMs: $0.value.entryMs, loadMs: $0.value.loadMs) }
             .sorted { $0.ms > $1.ms }
             .prefix(5)
 
@@ -121,6 +141,10 @@ public struct ProbeLoadBreakdown: Equatable, Sendable {
                                   packSeamMissing: record.health.packSeam == "missing",
                                   assetHookMissing: record.health.assetHook == "missing",
                                   entryLoopMs: record.entryLoopMs,
-                                  entryHookMissing: record.kind == .launch && record.health.entryHook == "missing")
+                                  entryHookMissing: record.kind == .launch && record.health.entryHook == "missing",
+                                  loadLoopMs: record.loadLoopMs,
+                                  loadCoverage: record.loadCoveredMods.flatMap { seen in
+                                      record.loadTotalMods.map { LoadCoverage(seen: seen, total: max(0, $0 - 1)) } },
+                                  probeLoadsFirst: record.probeLoadsFirst)
     }
 }

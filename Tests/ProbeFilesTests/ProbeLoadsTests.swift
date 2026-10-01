@@ -160,4 +160,44 @@ extension ProbeLoadsTests {
         #expect(launch.health.entryHook == nil)
         #expect(!ProbeLoadBreakdown.of(launch).entryHookMissing)
     }
+
+    static func loadFixture() throws -> [ProbeLoadRecord] {
+        ProbeLoadRecords.decode(try Fixture.data("loads-load.jsonl")).records
+    }
+
+    @Test func loadCostsAndFieldsAreDecoded() throws {
+        let first = try #require(try Self.loadFixture().first)
+        let loads = first.phases.flatMap(\.costs).filter { $0.kind == .load }
+        #expect(Set(loads.map(\.mod)) == ["Cropgenics", "ZoeyHoshi.AT_ForageCrops"])
+        #expect(loads.first { $0.mod == "ZoeyHoshi.AT_ForageCrops" }?.label == "Load (\u{e9}chec)")
+        #expect(first.probeLoadsFirst == true)
+        #expect(first.loadCoveredMods == 1)
+        #expect(first.loadTotalMods == 3)
+        #expect(first.health.modLoadHook == "ok")
+    }
+
+    @Test func topSplitsLoadingFromStartup() throws {
+        let b = ProbeLoadBreakdown.of(try #require(try Self.loadFixture().first))
+        let crop = try #require(b.top.first { $0.mod == "Cropgenics" })
+        #expect(crop.loadMs == 1400)
+        #expect(crop.entryMs == 3000)
+        #expect(crop.ms == 4400)
+        #expect(b.loadCoverage?.seen == 1)
+        #expect(b.loadCoverage?.total == 2)
+        #expect(b.probeLoadsFirst == true)
+    }
+
+    /// Review Focus 4 : sonde au milieu → couverture partielle lisible.
+    @Test func aProbeLoadedMidListSaysSo() throws {
+        let b = ProbeLoadBreakdown.of(try Self.loadFixture()[1])
+        #expect(b.probeLoadsFirst == false)
+        #expect(b.loadCoverage?.seen == 2)
+        #expect(b.loadCoverage?.total == 3)
+    }
+
+    @Test func anOlderLineHasNoLoadFields() throws {
+        let launch = try #require(try Self.entryFixture().first)
+        #expect(launch.probeLoadsFirst == nil)
+        #expect(ProbeLoadBreakdown.of(launch).loadCoverage == nil)
+    }
 }
