@@ -81,6 +81,14 @@ public enum KeybindDevicePlacement {
     /// Un nom porte-t-il un conflit avéré ?
     public static func hasConflict(_ name: String,
                                    in index: [String: [KeybindScanner.SettingBinding]]) -> Bool {
-        index[name]?.contains(where: \.hasConflict) ?? false
+        conflict(name, in: index) != nil
+    }
+
+    /// Le conflit le plus grave posé sur ce nom — il décide de la couleur
+    /// de la touche, avec la même règle que la liste.
+    public static func conflict(_ name: String,
+                                in index: [String: [KeybindScanner.SettingBinding]])
+        -> KeybindScanner.ConflictKind? {
+        index[name]?.compactMap(\.conflict).max()
     }
 }

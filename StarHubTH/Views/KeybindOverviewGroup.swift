@@ -98,9 +98,9 @@ struct KeybindOverviewGroup: View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Group {
                 if binding.hasConflict {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    Image(systemName: KeybindConflictStyle.glyph)
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(AppDesign.Color.warning)
+                        .foregroundColor(KeybindConflictStyle.color(binding.conflict))
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                         .help(localization.L(L10n.Keybinds.conflictHelp))

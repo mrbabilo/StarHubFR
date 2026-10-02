@@ -269,14 +269,14 @@ struct KeybindSurfaceButton<Content: View>: View {
     @State private var showing = false
 
     private var bindings: [KeybindScanner.SettingBinding] { name.flatMap { index[$0] } ?? [] }
-    private var conflict: Bool { name.map { KeybindDevicePlacement.hasConflict($0, in: index) } ?? false }
+    private var kind: KeybindScanner.ConflictKind? { name.flatMap { KeybindDevicePlacement.conflict($0, in: index) } }
+    private var conflict: Bool { kind != nil }
 
     var body: some View {
         let used = !bindings.isEmpty
-        let fill: Color = conflict ? AppDesign.Color.error.opacity(0.16)
-            : used ? AppDesign.Color.accent.opacity(0.16) : AppDesign.Color.controlBg
-        let edge: Color = conflict ? AppDesign.Color.error : used ? AppDesign.Color.accent
-            : Color.secondary.opacity(0.35)
+        let tint = KeybindConflictStyle.color(kind)
+        let fill: Color = used ? tint.opacity(0.16) : AppDesign.Color.controlBg
+        let edge: Color = used ? tint : Color.secondary.opacity(0.35)
         let content = label()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(shape.fill(fill))
@@ -286,11 +286,11 @@ struct KeybindSurfaceButton<Content: View>: View {
             .overlay(alignment: .bottomTrailing) {
                 if used {
                     HStack(spacing: 1) {
-                        if conflict { Image(systemName: "exclamationmark.triangle.fill") }
+                        if conflict { Image(systemName: KeybindConflictStyle.glyph) }
                         Text("\(bindings.count)")
                     }
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(conflict ? AppDesign.Color.error : AppDesign.Color.accent)
+                    .foregroundColor(tint)
                     .padding(2)
                 }
             }
@@ -318,8 +318,8 @@ struct KeybindSurfaceButton<Content: View>: View {
             HStack {
                 Text(name ?? "").font(AppDesign.Font.body(.semibold))
                 if conflict {
-                    SwiftUI.Label(localization.L(L10n.Keybinds.keyboardConflict), systemImage: "exclamationmark.triangle.fill")
-                        .font(AppDesign.Font.caption).foregroundColor(AppDesign.Color.error)
+                    SwiftUI.Label(localization.L(L10n.Keybinds.keyboardConflict), systemImage: KeybindConflictStyle.glyph)
+                        .font(AppDesign.Font.caption).foregroundColor(KeybindConflictStyle.color(kind))
                 }
             }
             ForEach(bindings) { setting in
@@ -332,8 +332,8 @@ struct KeybindSurfaceButton<Content: View>: View {
                     }
                     Spacer(minLength: AppDesign.Spacing.md)
                     if setting.hasConflict {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppDesign.Color.error)
+                        Image(systemName: KeybindConflictStyle.glyph)
+                            .foregroundColor(KeybindConflictStyle.color(setting.conflict))
                             .accessibilityLabel(localization.L(L10n.Keybinds.keyboardConflict))
                     }
                     KeybindConfigButton(localization: localization) {

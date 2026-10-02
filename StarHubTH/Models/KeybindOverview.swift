@@ -26,20 +26,40 @@ extension KeybindScanner {
         /// Les combinaisons **qui lient** : `None` retiré. Vide = réglage
         /// non assigné.
         public let combos: [KeybindCombo]
-        /// En collision (clavier ou manette) avec un autre mod actif, ou sur
-        /// un contrôle du jeu. Même périmètre que `problemCount` : ni les
-        /// co-déclenchements ni le latent, qui ne sont pas des problèmes
-        /// avérés (C4-T7).
-        public let hasConflict: Bool
+        /// Le conflit avéré que porte ce réglage, `nil` s'il n'en porte pas.
+        /// Même périmètre que `problemCount` : ni les co-déclenchements ni le
+        /// latent, qui ne sont pas des problèmes avérés (C4-T7).
+        public let conflict: ConflictKind?
 
+        /// En collision avec un autre mod actif, ou sur un contrôle du jeu.
+        public var hasConflict: Bool { conflict != nil }
         public var id: ID { ID(modID: modID, keyPath: keyPath) }
         public var isUnassigned: Bool { combos.isEmpty }
 
         public init(modID: String, modName: String, keyPath: [String],
-                    combos: [KeybindCombo], hasConflict: Bool) {
+                    combos: [KeybindCombo], conflict: ConflictKind?) {
             self.modID = modID; self.modName = modName; self.keyPath = keyPath
-            self.combos = combos; self.hasConflict = hasConflict
+            self.combos = combos; self.conflict = conflict
         }
+
+        /// Raccourci des tests et des appelants qui ne distinguent pas :
+        /// `true` vaut une collision entre mods, le cas le plus grave.
+        public init(modID: String, modName: String, keyPath: [String],
+                    combos: [KeybindCombo], hasConflict: Bool) {
+            self.init(modID: modID, modName: modName, keyPath: keyPath,
+                      combos: combos, conflict: hasConflict ? .mods : nil)
+        }
+    }
+
+    /// Les deux sortes de conflit avéré, par gravité. **Une seule règle de
+    /// couleur pour tout l'écran** (refonte du 2026-10-02) : la collision
+    /// entre mods actifs casse un raccourci à coup sûr — rouge ; le conflit
+    /// avec un contrôle du jeu dépend des touches du joueur (réserve du
+    /// remappage) — orange. Comparable : `max` donne le plus grave.
+    public enum ConflictKind: Int, Comparable, Sendable {
+        case game = 0
+        case mods = 1
+        public static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
     }
 
     public enum OverviewFilter: String, CaseIterable, Sendable {
@@ -62,15 +82,21 @@ extension KeybindScanner {
         _ settings: [(modID: String, modName: String, keyPath: [String], combos: [KeybindCombo])],
         collisions: [KeybindCollision], gameConflicts: [GameControlConflict]
     ) -> [SettingBinding] {
-        var conflicting = Set<SettingBinding.ID>()
-        for use in collisions.flatMap(\.uses) + gameConflicts.flatMap(\.uses) {
-            conflicting.insert(.init(modID: use.modID, keyPath: use.keyPath))
+        // La collision entre mods l'emporte sur le conflit jeu : `max`.
+        var conflicting: [SettingBinding.ID: ConflictKind] = [:]
+        func note(_ uses: [ModUse], _ kind: ConflictKind) {
+            for use in uses {
+                let id = SettingBinding.ID(modID: use.modID, keyPath: use.keyPath)
+                conflicting[id] = max(conflicting[id] ?? kind, kind)
+            }
         }
+        note(gameConflicts.flatMap(\.uses), .game)
+        note(collisions.flatMap(\.uses), .mods)
         return settings
             .map { s in
                 SettingBinding(modID: s.modID, modName: s.modName, keyPath: s.keyPath,
                                combos: s.combos,
-                               hasConflict: conflicting.contains(.init(modID: s.modID, keyPath: s.keyPath)))
+                               conflict: conflicting[.init(modID: s.modID, keyPath: s.keyPath)])
             }
             // Départage par `modID` : le nom seul n'ordonne pas totalement
             // (homonymes), et le tri de Swift n'est pas stable.

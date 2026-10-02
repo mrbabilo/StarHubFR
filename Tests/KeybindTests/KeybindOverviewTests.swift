@@ -73,4 +73,15 @@ struct KeybindOverviewTests {
         #expect(KeybindScanner.overview(s, filter: .all, query: " f7 ").count == 2)     // touche
         #expect(KeybindScanner.overview(s, filter: .unassigned, query: "f7").isEmpty)
     }
+
+    /// Une collision entre mods et un conflit jeu sur le même réglage : la
+    /// collision l'emporte (rouge). Le conflit jeu seul reste orange.
+    @Test func conflictKindKeepsTheWorst() {
+        let r = KeybindScanner.report(mods: [
+            mod("a", "Alpha", [("Hotkey", .string("F8")), ("WalkKey", .string("W"))]),
+            mod("b", "Beta", [("Shortcut", .string("F8"))]),
+        ])
+        #expect(r.settings.first { $0.keyPath == ["Hotkey"] }?.conflict == .mods)
+        #expect(r.settings.first { $0.keyPath == ["WalkKey"] }?.conflict == .game)
+    }
 }
