@@ -160,7 +160,7 @@ struct LogsView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppDesign.Spacing.xl)
             .padding(.vertical, 8)
             .background(Color(nsColor: .windowBackgroundColor))
 
@@ -261,7 +261,7 @@ struct LogsView: View {
                 }
                 .font(AppDesign.Font.caption)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppDesign.Spacing.xl)
             .padding(.vertical, 6)
             .background(Color(nsColor: .windowBackgroundColor))
 
@@ -280,7 +280,7 @@ struct LogsView: View {
                     Button(localization.L(L10n.Logs.backToAllLogs)) { sectionHeader = nil }
                         .font(AppDesign.Font.footnote)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, 6)
                 .background(Color.accentColor.opacity(0.08))
                 Divider()

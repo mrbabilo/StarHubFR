@@ -2052,5 +2052,14 @@
   "logs_header_log_date": "journal du %@",
   "updates_header_pending": "%lld mise(s) à jour en attente",
   "updates_header_up_to_date": "Aucune mise à jour en attente",
-  "discovery_header_subtitle": "Les nouveautés et les mods populaires de Nexus, prêts à installer."
+  "discovery_header_subtitle": "Les nouveautés et les mods populaires de Nexus, prêts à installer.",
+  "main_changelog_installed": "Version installée : %@",
+  "main_changelog_unreleased": "En développement",
+  "main_changelog_added": "Ajouté",
+  "main_changelog_changed": "Modifié",
+  "main_changelog_fixed": "Corrigé",
+  "main_changelog_removed": "Retiré",
+  "saves_timeline_title": "Sauvegardes de %@",
+  "saves_timeline_subtitle": "%lld sauvegarde(s) · %@",
+  "settings_config_header_subtitle": "config.json · %@"
 }

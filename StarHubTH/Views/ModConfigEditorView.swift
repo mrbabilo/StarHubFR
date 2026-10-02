@@ -116,8 +116,13 @@ struct ModConfigEditorView: View {
         return root.children
     }
     
+    /// La tuile des sections d'options : chaque section devient une carte.
+    private static let sectionIcon = (name: "slider.horizontal.3", tint: AppDesign.Color.accent)
+
     var body: some View {
         VStack(spacing: 0) {
+            ConfigEditorHeader(mod: mod, localization: localization, selectedTab: $selectedTab)
+            Divider()
             // Évalué **dans** le `body`, jamais mis en cache dans un `@State`
             // posé à l'ouverture : le jeu peut être lancé pendant que
             // l'éditeur est ouvert, et un instantané ne le verrait jamais.
@@ -162,7 +167,7 @@ struct ModConfigEditorView: View {
                                 // et un rang réutiliserait la vue d'une
                                 // section pour une autre.
                                 ForEach(filtered, id: \.section) { group in
-                                    StandardSection(title: sectionTitle(of: group, among: filtered)) {
+                                    StandardSection(title: sectionTitle(of: group, among: filtered), icon: Self.sectionIcon) {
                                         rowList(group.rows)
                                     }
                                 }
@@ -172,13 +177,13 @@ struct ModConfigEditorView: View {
                                 let rootGroups = tree.filter { $0.row == nil }
 
                                 if !rootLeaves.isEmpty {
-                                    StandardSection(title: localization.L(L10n.Settings.settings)) {
+                                    StandardSection(title: localization.L(L10n.Settings.settings), icon: Self.sectionIcon) {
                                         rowList(rootLeaves.compactMap(\.row))
                                     }
                                 }
 
                                 ForEach(rootGroups) { groupNode in
-                                    StandardSection(title: groupNode.title) {
+                                    StandardSection(title: groupNode.title, icon: Self.sectionIcon) {
                                         renderNodeChildren(nodes: groupNode.children)
                                     }
                                 }
@@ -189,7 +194,8 @@ struct ModConfigEditorView: View {
                 }
             } else {
                 VStack {
-                    StandardSection(title: localization.L(L10n.Settings.configRawJson)) {
+                    StandardSection(title: localization.L(L10n.Settings.configRawJson),
+                                    icon: ("curlybraces", AppDesign.Color.secondary)) {
                         CodeEditorView(text: $configText)
                             .padding(8)
                             .background(Color(nsColor: .textBackgroundColor))
@@ -246,17 +252,7 @@ struct ModConfigEditorView: View {
             .padding(.vertical, 12)
         }
         .searchable(text: $searchText, prompt: Text(localization.L(L10n.Settings.configSearchPlaceholder)))
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("", selection: $selectedTab) {
-                    Text(localization.L(L10n.Settings.configVisualEditor)).tag(0)
-                    Text(localization.L(L10n.Settings.configCodeEditor)).tag(1)
-                }
-                .pickerStyle(.segmented)
-            }
-        }
-        .toolbarBackground(.hidden, for: .automatic)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         .onAppear(perform: loadConfig)
         .alert(localization.L(blockedWrite == .unverifiable
                     ? L10n.Settings.configRecheckFailedTitle

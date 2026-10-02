@@ -2052,5 +2052,14 @@
   "logs_header_log_date": "log of %@",
   "updates_header_pending": "%lld update(s) waiting",
   "updates_header_up_to_date": "No update waiting",
-  "discovery_header_subtitle": "What's new and popular on Nexus, ready to install."
+  "discovery_header_subtitle": "What's new and popular on Nexus, ready to install.",
+  "main_changelog_installed": "Installed version: %@",
+  "main_changelog_unreleased": "In development",
+  "main_changelog_added": "Added",
+  "main_changelog_changed": "Changed",
+  "main_changelog_fixed": "Fixed",
+  "main_changelog_removed": "Removed",
+  "saves_timeline_title": "%@'s backups",
+  "saves_timeline_subtitle": "%lld backup(s) · %@",
+  "settings_config_header_subtitle": "config.json · %@"
 }

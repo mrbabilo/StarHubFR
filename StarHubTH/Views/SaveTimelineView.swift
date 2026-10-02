@@ -27,71 +27,54 @@ struct SaveTimelineView: View {
     
     @State private var backups: [SaveBackup] = []
     @State private var confirmation: SaveTimelineConfirmation?
-    @State private var isHoveredReturn = false
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
+            // En-tête commun des pages (audit UX 2026-10-02) : retour, la
+            // partie et son nombre de sauvegardes, le geste qui en ajoute une.
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                 Button(action: { vm.navigationStore.viewingSaveTimeline = nil }) {
-                    HStack(spacing: AppDesign.Spacing.xs) {
-                        Image(systemName: "chevron.left")
-                            .font(AppDesign.Font.rowTitle(.bold))
-                        Text(localization.L(L10n.Saves.saves))
-                    }
-                    .foregroundColor(isHoveredReturn ? AppDesign.Color.accent : .secondary)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(isHoveredReturn ? Color.accentColor.opacity(AppDesign.Opacity.light) : Color.clear)
-                    .cornerRadius(AppDesign.Radius.md)
+                    Label(localization.L(L10n.Saves.saves), systemImage: "chevron.left")
                 }
-                .buttonStyle(PlainButtonStyle())
-                .onHover { isHoveredReturn = $0 }
-
-                Spacer()
-
-                Text(save.playerName)
-                    .font(AppDesign.Font.headline)
-                    .foregroundColor(.primary)
-
-                Spacer()
-                // Backup Button
-                Button(action: {
-                    Task {
-                        if await vm.createBackup(info: save) {
-                            loadBackups()
-                        }
-                    }
-                }) {
-                    HStack(spacing: AppDesign.Spacing.xs) {
-                        if vm.isSaveOperationRunning {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                        Text(localization.L(L10n.Saves.backupLabel))
-                    }
-                    .font(AppDesign.Font.caption(.medium))
-                }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
+                .controlSize(.small)
                 .pointingHandCursor()
-                .foregroundColor(AppDesign.Color.accent)
-                .padding(.trailing, 8)
-                .disabled(vm.isSaveOperationRunning)
+                PageHeader(icon: "clock.arrow.circlepath",
+                           title: String(format: localization.L(L10n.Saves.timelineTitle), save.playerName),
+                           subtitle: String(format: localization.L(L10n.Saves.timelineSubtitle),
+                                            Int64(backups.count), save.farmName)) {
+                    Button(action: {
+                        Task {
+                            if await vm.createBackup(info: save) {
+                                loadBackups()
+                            }
+                        }
+                    }) {
+                        HStack(spacing: AppDesign.Spacing.xs) {
+                            if vm.isSaveOperationRunning {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "plus.circle.fill")
+                            }
+                            Text(localization.L(L10n.Saves.backupLabel))
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .pointingHandCursor()
+                    .disabled(vm.isSaveOperationRunning)
+                }
             }
-            .padding()
-            .background(Color(nsColor: .windowBackgroundColor))
-            
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.md)
+
             Divider()
             
             // Content
             if backups.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
-                    Image(systemName: "clock.badge.xmark")
-                        .font(.system(size: AppDesign.Font.scaled(40)))
-                        .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
+                    IconTile(icon: "clock.badge.xmark", tint: AppDesign.Color.accent, size: 64)
                     Text(localization.L(L10n.Saves.noBackups))
                         .multilineTextAlignment(.center)
                         .font(AppDesign.Font.rowTitle)
@@ -120,11 +103,12 @@ struct SaveTimelineView: View {
                             )
                         }
                     }
-                    .padding(20)
+                    .cardSurface(padding: AppDesign.Spacing.lg)
+                    .padding(AppDesign.Spacing.xl)
                 }
             }
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         .onAppear {
             loadBackups()
         }

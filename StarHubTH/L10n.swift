@@ -6,6 +6,13 @@ enum L10n {
 
     // MARK: - Main
     enum Main {
+        /// Page « Journal des modifications » (audit UX 2026-10-02).
+        static let changelogInstalled   = "main_changelog_installed"
+        static let changelogUnreleased  = "main_changelog_unreleased"
+        static let changelogAdded       = "main_changelog_added"
+        static let changelogChanged     = "main_changelog_changed"
+        static let changelogFixed       = "main_changelog_fixed"
+        static let changelogRemoved     = "main_changelog_removed"
         static let sidebarModsWeight          = "sidebar_mods_weight"
         static let sidebarModsWeightMeasuring = "sidebar_mods_weight_measuring"
         static let sidebarDiskFree            = "sidebar_disk_free"
@@ -125,6 +132,8 @@ enum L10n {
 
     // MARK: - Saves
     enum Saves {
+        static let timelineTitle        = "saves_timeline_title"
+        static let timelineSubtitle     = "saves_timeline_subtitle"
         /// En-tête de page : nombre de parties, dernière jouée.
         static let headerSummary        = "saves_header_summary"
         static let noSaves              = "saves_no_saves"
@@ -1301,6 +1310,7 @@ enum L10n {
 
     // MARK: - Settings
     enum Settings {
+        static let configHeaderSubtitle = "settings_config_header_subtitle"
         static let display = "settings_display"
         static let textSize = "settings_text_size"
         static let textSizeNormal = "settings_text_size_normal"

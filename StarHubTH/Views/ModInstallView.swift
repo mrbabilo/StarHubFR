@@ -91,11 +91,8 @@ struct ModInstallView: View {
             if recoveryAckMessage != nil {
                 recoveryAckView
             } else {
-                // Header
-                HStack {
-                    Text(localization.L(L10n.ModInstall.title))
-                        .font(AppDesign.Font.viewTitle)
-                    Spacer()
+                // En-tête commun des pages (audit UX 2026-10-02).
+                PageHeader(icon: "square.and.arrow.down.fill", title: localization.L(L10n.ModInstall.title)) {
                     Button {
                         isPresented = false
                     } label: {
