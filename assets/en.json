@@ -2028,12 +2028,18 @@
   "mod_health_hint_loading": "Readable manifest, required dependencies present and enabled, a single installed copy.",
   "mod_health_hint_compat_unknown": "smapi.io doesn't know this mod: its compatibility can't be checked.",
   "mod_health_hint_log": "Errors and warnings found in SMAPI logs for the installed version.",
-  "mod_health_hint_keybinds_unknown": "No keyboard shortcut scan has been run yet.",
+  "mod_health_hint_keybinds_unknown": "No keyboard shortcut scan yet: open System Alerts › Keyboard shortcuts.",
   "mod_health_hint_overlap": "Another enabled mod does the same work: not a conflict, work done twice.",
   "mod_health_hint_nexus_na": "This mod has no known Nexus page.",
   "mod_compat_card_title": "Compatibility",
   "mod_compat_smapi_ok": "smapi.io: compatible with the current game",
   "mod_compat_smapi_unknown": "Unknown to smapi.io — check what the author says.",
   "mod_compat_smapi_unknown_no_note": "Unknown to smapi.io, and the description says nothing about it.",
-  "mod_compat_see_health": "See Health"
+  "mod_compat_see_health": "See Health",
+  "health_tab_alerts": "Alerts",
+  "saves_header_summary": "%lld farms · last played: %@ (%@)",
+  "quarantine_tile_quarantined": "Quarantined",
+  "quarantine_tile_duplicates": "Duplicates",
+  "quarantine_tile_review": "To review",
+  "quarantine_tile_hint": "Jump to this section of the report."
 }

@@ -57,9 +57,7 @@ struct PerformanceOverlapSection: View {
                 .foregroundColor(.secondary)
             }
         }
-        .padding(AppDesign.Spacing.lg)
-        .background(Color.primary.opacity(0.03))
-        .cornerRadius(10)
+        .cardSurface(padding: AppDesign.Spacing.lg)
     }
 
     private func row(_ match: PerformanceOverlapMatch) -> some View {

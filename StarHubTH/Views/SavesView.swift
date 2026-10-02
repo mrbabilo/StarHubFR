@@ -18,21 +18,17 @@ struct SavesView: View {
     }
 
     var body: some View {
-        // Patron page de liste du dépôt, calé sur le pilote Mods : toolbar
-        // fixe en deux rangées (primaire : recherche + disposition ;
-        // secondaire : tri et filtre en chips), contenu qui scrolle, footer
-        // fixe portant le compte honnête.
+        // Patron page de liste du dépôt : en-tête fixe en deux rangées
+        // (en-tête de page + actions ; recherche, tri et filtre en chips),
+        // contenu qui défile, pied fixe portant le compte honnête.
         VStack(spacing: 0) {
-            // ── Toolbar fixe ────────────────────────────────────────────
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                // Rangée primaire : recherche à la frappe + disposition +
-                // rechargement. La barre système `.searchable` est partie :
-                // un geste, une place (P3).
-                HStack {
-                    searchField
-
-                    Spacer()
-
+            // ── En-tête fixe ────────────────────────────────────────────
+            // En-tête commun des pages (audit UX 2026-10-02) : la tuile de la
+            // barre latérale, le titre, ce qui existe ; disposition,
+            // rechargement et données à droite.
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                PageHeader(icon: "folder.fill", title: localization.L(L10n.Saves.saves),
+                           subtitle: headerSummary) {
                     Picker(localization.L(L10n.Saves.listViewHint), selection: $vm.saveViewMode) {
                         Image(systemName: "list.bullet")
                             .tag(SaveViewMode.list)
@@ -55,9 +51,15 @@ struct SavesView: View {
                     SavesDataActions(vm: vm, localization: localization) // sorti des Réglages
                 }
 
-                // Rangée secondaire : tri et filtre par tag, en chips au
-                // motif Mods — un bloc « affiner la liste ».
+                // Rangée « affiner la liste » : recherche à la frappe, tri et
+                // filtre par tag en chips au motif Mods. La barre système
+                // `.searchable` est partie : un geste, une place (P3).
                 HStack(spacing: AppDesign.Spacing.sm) {
+                    searchField
+
+                    Divider()
+                        .frame(height: 16)
+
                     sortMenu
 
                     Divider()
@@ -68,10 +70,9 @@ struct SavesView: View {
                     Spacer()
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 12)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.md)
+            .background(AppDesign.Color.windowBg)
 
             Divider()
 
@@ -79,9 +80,7 @@ struct SavesView: View {
             if vm.saves.isEmpty {
                 VStack(spacing: AppDesign.Spacing.lg) {
                     Spacer()
-                    Image(systemName: "cloud.bolt")
-                        .font(AppDesign.Font.emptyScopeGlyph)
-                        .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
+                    IconTile(icon: "folder.badge.questionmark", tint: AppDesign.Color.accent, size: 64)
                     Text(localization.L(L10n.Saves.noSaves))
                         .multilineTextAlignment(.center)
                         .font(AppDesign.Font.body)
@@ -96,6 +95,8 @@ struct SavesView: View {
                 // récupération vivent dans le footer fixe ci-dessous, plus
                 // dans un header/footer de Section.
                 ScrollView(showsIndicators: false) {
+                    // La liste en une carte : les lignes et leurs branches de
+                    // sauvegardes de secours restent paresseuses.
                     LazyVStack(spacing: 0) {
                         if searchText.isEmpty {
                             SaveTreeListView(vm: vm, localization: localization, nodes: vm.savesHierarchy, depth: 0)
@@ -108,8 +109,9 @@ struct SavesView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, AppDesign.Spacing.lg)
+                    .cardSurface(padding: AppDesign.Spacing.sm)
+                    .padding(.horizontal, AppDesign.Spacing.xl)
+                    .padding(.vertical, AppDesign.Spacing.lg)
                 }
             }
 
@@ -128,15 +130,24 @@ struct SavesView: View {
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, 10)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(AppDesign.Color.windowBg)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         .sheet(item: $vm.saveToDuplicate) { save in
             DuplicateSaveSheet(vm: vm, localization: localization, save: save)
         }
+    }
+
+    /// « 4 parties · dernière jouée : Zofia (Ferme Lune) » — ce qui existe et
+    /// ce qu'on reprendra, avant la liste.
+    private var headerSummary: String? {
+        let farms = vm.savesHierarchy.map(\.info)
+        guard let last = farms.max(by: { $0.lastModified < $1.lastModified }) else { return nil }
+        return String(format: localization.L(L10n.Saves.headerSummary),
+                      Int64(farms.count), last.playerName, last.farmName)
     }
 
     /// L'effectif affiché par le mode courant : la hiérarchie complète, ou

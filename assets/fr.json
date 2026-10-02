@@ -2028,12 +2028,18 @@
   "mod_health_hint_loading": "Manifeste lisible, dépendances requises présentes et actives, une seule copie installée.",
   "mod_health_hint_compat_unknown": "smapi.io ne connaît pas ce mod : sa compatibilité ne peut pas être vérifiée.",
   "mod_health_hint_log": "Erreurs et avertissements relevés dans les journaux SMAPI pour la version installée.",
-  "mod_health_hint_keybinds_unknown": "Aucune analyse des raccourcis clavier n'a encore été lancée.",
+  "mod_health_hint_keybinds_unknown": "Aucune analyse des raccourcis clavier : ouvrez Alertes système › Raccourcis clavier.",
   "mod_health_hint_overlap": "Un autre mod actif fait le même travail : pas un conflit, du travail fait deux fois.",
   "mod_health_hint_nexus_na": "Ce mod n'a pas de page Nexus connue.",
   "mod_compat_card_title": "Compatibilité",
   "mod_compat_smapi_ok": "smapi.io : compatible avec le jeu actuel",
   "mod_compat_smapi_unknown": "Inconnu de smapi.io — voir ce qu'en dit l'auteur.",
   "mod_compat_smapi_unknown_no_note": "Inconnu de smapi.io, et la description n'en dit rien.",
-  "mod_compat_see_health": "Voir Santé"
+  "mod_compat_see_health": "Voir Santé",
+  "health_tab_alerts": "Alertes",
+  "saves_header_summary": "%lld parties · dernière jouée : %@ (%@)",
+  "quarantine_tile_quarantined": "Mis à l'écart",
+  "quarantine_tile_duplicates": "Doublons",
+  "quarantine_tile_review": "À voir",
+  "quarantine_tile_hint": "Aller à cette section du rapport."
 }

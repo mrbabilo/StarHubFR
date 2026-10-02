@@ -72,9 +72,7 @@ struct KeybindReportSection: View {
                 content(report)
             }
         }
-        .padding(AppDesign.Spacing.lg)
-        .background(Color.primary.opacity(0.03))
-        .cornerRadius(10)
+        .cardSurface(padding: AppDesign.Spacing.lg)
         .onAppear {
             // Le rapport publié survit au changement d'onglet (le service
             // vit sur le ViewModel), mais un rapport qui ne bougerait plus
@@ -88,13 +86,10 @@ struct KeybindReportSection: View {
         }
     }
 
+    /// Le titre est celui de l'onglet des Alertes système : la section ne
+    /// le répète pas, elle garde son action.
     private var header: some View {
         HStack(spacing: AppDesign.Spacing.sm) {
-            IconTile(icon: "keyboard", tint: AppDesign.Color.accent, size: 28)
-            Text(localization.L(L10n.Keybinds.title))
-                .font(AppDesign.Font.rowTitle(.bold))
-                .lineLimit(1)
-                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: AppDesign.Spacing.sm)
             Button(action: { service.scan(mods: vm.scanStore.mods, gameDir: vm.gameDir) }) {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")

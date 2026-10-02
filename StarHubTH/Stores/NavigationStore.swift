@@ -268,6 +268,11 @@ final class NavigationStore {
     /// `backupsSegment`.
     var diagnosticsSegment: DiagnosticsSegment = .health
 
+    /// L'onglet affiché par « Alertes système » : la liste triée, le rapport
+    /// des raccourcis, le panorama des conflits (autrefois deux feuilles).
+    /// Même règle que `backupsSegment`.
+    var alertsSegment: AlertsSegment = .alerts
+
     /// L'écran d'aide des raccourcis clavier, ouvert par l'icône du pied de
     /// la barre latérale ou par ⌘/ (menu Aide). Ici et non en `@State` de
     /// MainView : le menu vit dans la scène App et ne peut écrire que les
@@ -298,6 +303,11 @@ final class NavigationStore {
             self.inventoryToEdit = items
         }
     }
+}
+
+/// Les trois onglets de la page « Alertes système ».
+enum AlertsSegment: CaseIterable, Sendable {
+    case alerts, keybinds, conflicts
 }
 
 /// Les trois segments de la page « Sauvegardes des mods » (I-T8).

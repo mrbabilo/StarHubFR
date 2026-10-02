@@ -122,23 +122,14 @@ struct ModConflictSection: View {
             header
             content
         }
-        .padding(AppDesign.Spacing.lg)
-        .background(Color.primary.opacity(0.03))
-        .cornerRadius(10)
+        .cardSurface(padding: AppDesign.Spacing.lg)
     }
 
+    /// Le titre est celui de l'onglet des Alertes système : la section ne
+    /// le répète pas. La couleur sémantique vit sur la ligne de statut du
+    /// corps.
     private var header: some View {
         HStack {
-            // Glyphe neutre, couleur par défaut : la couleur sémantique
-            // (vert/orange/gris) vit sur la ligne de statut du corps, pas
-            // ici — même patron que `KeybindReportSection.header`, dont le
-            // glyphe `keyboard` ne préjuge pas non plus du contenu
-            // (ronde de correction 1, mineur).
-            Image(systemName: "arrow.triangle.merge")
-            Text(localization.L(L10n.Conflicts.title))
-                .font(AppDesign.Font.rowTitle(.bold))
-                .lineLimit(1)
-            Spacer(minLength: AppDesign.Spacing.sm)
             // Le journal décrit la dernière partie jouée, pas l'état actuel
             // du parc : le dire est une exigence, pas une politesse (brief,
             // point 1). Absent tant qu'aucun journal n'a jamais été lu.
@@ -149,6 +140,7 @@ struct ModConflictSection: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
+            Spacer(minLength: 0)
         }
     }
 

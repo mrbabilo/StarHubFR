@@ -125,6 +125,8 @@ enum L10n {
 
     // MARK: - Saves
     enum Saves {
+        /// En-tête de page : nombre de parties, dernière jouée.
+        static let headerSummary        = "saves_header_summary"
         static let noSaves              = "saves_no_saves"
         static let allSaves             = "saves_all_saves"
         static let autoFetch            = "saves_auto_fetch"
@@ -1235,6 +1237,8 @@ enum L10n {
         static let tileFilterHint       = "health_tile_filter_hint"
         static let allClearHint         = "health_all_clear_hint"
         static let distributionLabel    = "health_distribution_label"
+        /// Onglets de la page (liste · raccourcis · conflits).
+        static let tabAlerts            = "health_tab_alerts"
         /// Pied de l'écran d'alertes (tâche 7) : « N problèmes · M critiques »
         /// — le total est `healthIssues.count`, jamais un autre calcul.
         static let problemCount         = "health_problem_count"
@@ -1267,6 +1271,11 @@ enum L10n {
 
     // MARK: - Quarantine
     enum Quarantine {
+        /// Tuiles du dernier rapport (audit UX 2026-10-02).
+        static let tileQuarantined      = "quarantine_tile_quarantined"
+        static let tileDuplicates       = "quarantine_tile_duplicates"
+        static let tileReview           = "quarantine_tile_review"
+        static let tileHint             = "quarantine_tile_hint"
         static let title                = "quarantine_title"
         static let subtitle             = "quarantine_subtitle"
         static let openFolder           = "quarantine_open_folder"

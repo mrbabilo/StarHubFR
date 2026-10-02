@@ -134,16 +134,12 @@ struct SaveCardView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 8)
-            .background(isHovered ? Color.accentColor.opacity(AppDesign.Opacity.light)
-                                  : Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(AppDesign.Radius.lg)
+            .padding(.vertical, 6)
+            .cardSurface(padding: AppDesign.Spacing.sm)
             .overlay(
-                RoundedRectangle(cornerRadius: AppDesign.Radius.lg)
-                    .stroke(isHovered ? Color.accentColor.opacity(AppDesign.Opacity.medium)
-                                      : Color.secondary.opacity(AppDesign.Opacity.light),
-                            lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppDesign.Radius.lg, style: .continuous)
+                    .stroke(Color.accentColor.opacity(AppDesign.Opacity.medium),
+                            lineWidth: isHovered ? 1.5 : 0)
             )
             // Pas de `scaleEffect` de survol : un mouvement que « réduire les
             // animations » ne coupe pas proprement — cohérent avec les cartes
