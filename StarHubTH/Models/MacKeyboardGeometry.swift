@@ -70,9 +70,12 @@ public enum MacKeyboardGeometry {
 
     private static let functionRow: [Key] = {
         let fCodes: [UInt16] = [0x7A, 0x78, 0x63, 0x76, 0x60, 0x61, 0x62, 0x64, 0x65, 0x6D, 0x67, 0x6F]
-        return [key(0x35, 0, 0, 1.5, label: "esc")]
-            + fCodes.enumerated().map { key($0.element, 0, 1.5 + Double($0.offset), label: "F\($0.offset + 1)") }
-            + [key(nil, 0, 13.5, label: "", glyph: "touchid")]
+        var keys: [Key] = [key(0x35, 0, 0, 1.5, label: "esc")]
+        for (offset, code) in fCodes.enumerated() {
+            keys.append(key(code, 0, 1.5 + Double(offset), label: "F\(offset + 1)"))
+        }
+        keys.append(key(nil, 0, 13.5, label: "", glyph: "touchid"))
+        return keys
     }()
 
     /// Rangée des chiffres, sans la touche de tête : 1…0, puis les deux
@@ -82,29 +85,38 @@ public enum MacKeyboardGeometry {
     private static let homeLetters: [UInt16] = [0x00, 0x01, 0x02, 0x03, 0x05, 0x04, 0x26, 0x28, 0x25, 0x29, 0x27]
     private static let bottomLetters: [UInt16] = [0x06, 0x07, 0x08, 0x09, 0x0B, 0x2D, 0x2E, 0x2B, 0x2F, 0x2C]
 
-    private static let isoMain: [Key] =
-        [key(0x0A, 1, 0)] + run(digitRun, row: 1, from: 1)
-        + [key(0x33, 1, 13, 1.5, label: "delete", glyph: "delete.left")]
-        + [key(0x30, 2, 0, 1.5, label: "tab", glyph: "arrow.right.to.line")]
-        + run(topLetters, row: 2, from: 1.5)
-        + [key(0x24, 2, 13.5, 1, label: "return", glyph: "return", shape: .isoEnter(notch: 0.25))]
-        + [key(0x39, 3, 0, 1.75, label: "verr. maj", glyph: "capslock")]
-        + run(homeLetters + [0x2A], row: 3, from: 1.75)
-        + [key(0x38, 4, 0, 1.25, label: "maj", glyph: "shift"), key(0x32, 4, 1.25)]
-        + run(bottomLetters, row: 4, from: 2.25)
-        + [key(0x3C, 4, 12.25, 2.25, label: "maj", glyph: "shift")]
+    // Rangées construites instruction par instruction : une seule longue
+    // concaténation `+` dépasse le temps de typage de Swift 6.0 (CI).
+    private static let isoMain: [Key] = {
+        var keys: [Key] = [key(0x0A, 1, 0)]
+        keys += run(digitRun, row: 1, from: 1)
+        keys.append(key(0x33, 1, 13, 1.5, label: "delete", glyph: "delete.left"))
+        keys.append(key(0x30, 2, 0, 1.5, label: "tab", glyph: "arrow.right.to.line"))
+        keys += run(topLetters, row: 2, from: 1.5)
+        keys.append(key(0x24, 2, 13.5, 1, label: "return", glyph: "return", shape: .isoEnter(notch: 0.25)))
+        keys.append(key(0x39, 3, 0, 1.75, label: "verr. maj", glyph: "capslock"))
+        keys += run(homeLetters + [0x2A], row: 3, from: 1.75)
+        keys.append(key(0x38, 4, 0, 1.25, label: "maj", glyph: "shift"))
+        keys.append(key(0x32, 4, 1.25))
+        keys += run(bottomLetters, row: 4, from: 2.25)
+        keys.append(key(0x3C, 4, 12.25, 2.25, label: "maj", glyph: "shift"))
+        return keys
+    }()
 
-    private static let ansiMain: [Key] =
-        [key(0x32, 1, 0)] + run(digitRun, row: 1, from: 1)
-        + [key(0x33, 1, 13, 1.5, label: "delete", glyph: "delete.left")]
-        + [key(0x30, 2, 0, 1.5, label: "tab", glyph: "arrow.right.to.line")]
-        + run(topLetters + [0x2A], row: 2, from: 1.5)
-        + [key(0x39, 3, 0, 1.75, label: "verr. maj", glyph: "capslock")]
-        + run(homeLetters, row: 3, from: 1.75)
-        + [key(0x24, 3, 12.75, 1.75, label: "return", glyph: "return")]
-        + [key(0x38, 4, 0, 2.25, label: "maj", glyph: "shift")]
-        + run(bottomLetters, row: 4, from: 2.25)
-        + [key(0x3C, 4, 12.25, 2.25, label: "maj", glyph: "shift")]
+    private static let ansiMain: [Key] = {
+        var keys: [Key] = [key(0x32, 1, 0)]
+        keys += run(digitRun, row: 1, from: 1)
+        keys.append(key(0x33, 1, 13, 1.5, label: "delete", glyph: "delete.left"))
+        keys.append(key(0x30, 2, 0, 1.5, label: "tab", glyph: "arrow.right.to.line"))
+        keys += run(topLetters + [0x2A], row: 2, from: 1.5)
+        keys.append(key(0x39, 3, 0, 1.75, label: "verr. maj", glyph: "capslock"))
+        keys += run(homeLetters, row: 3, from: 1.75)
+        keys.append(key(0x24, 3, 12.75, 1.75, label: "return", glyph: "return"))
+        keys.append(key(0x38, 4, 0, 2.25, label: "maj", glyph: "shift"))
+        keys += run(bottomLetters, row: 4, from: 2.25)
+        keys.append(key(0x3C, 4, 12.25, 2.25, label: "maj", glyph: "shift"))
+        return keys
+    }()
 
     private static let bottomRow: [Key] = [
         key(nil, 5, 0, label: "fn", glyph: "globe"),
