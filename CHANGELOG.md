@@ -20,6 +20,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **L'application cachée dans une archive est nommée.** Une archive comme Stardew Save Launcher (113 Mo) n'installe plus son mod compagnon seul, en silence : StarHubFR refuse et dit que le vrai produit est l'application `.app`, le mod étant inerte sans elle.
 - **Moins de faux conflits de raccourcis.** Une touche de modification que l'on maintient (Ctrl, Maj, Alt) ne compte plus, ni un raccourci qui n'agit qu'avec une touche d'activation non assignée, ni deux raccourcis qui n'agissent jamais au même moment (menu ou mode propre à un mod). Les mods écartés sont nommés.
 - **Rapport de raccourcis repensé.** Rangé par gravité : verdict, ce qui est cassé, à faire, informatif. Les tuiles ouvrent leur groupe ; rouge pour un conflit entre mods, orange avec le jeu ; l'inventaire montre les raccourcis liés par défaut.
 - **Rapport de raccourcis : jusqu'au réglage, et hors de l'app.** L'engrenage d'une ligne ouvre l'éditeur de configuration directement sur la clé visée, surlignée. Un bouton « Exporter » écrit le rapport complet en Markdown daté.

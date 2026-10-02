@@ -2101,3 +2101,5 @@
 "saves_timeline_title" = "%@'s backups";
 "saves_timeline_subtitle" = "%lld backup(s) · %@";
 "settings_config_header_subtitle" = "config.json · %@";
+"mod_install_embedded_app" = "This archive is a macOS application (%@), not a mod for Mods/. The mod it carries (%@) is inert without it.";
+"mod_install_embedded_app_hint" = "Install the .app itself (double-click, like any application); it handles the companion mod.";

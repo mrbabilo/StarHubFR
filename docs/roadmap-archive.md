@@ -54,6 +54,21 @@ relevées via smapi.io**, pas des mises à jour du parc local ; aucun parseur n'
 encore côté StarHubFR pour les formats de `radiance`, donc sa majeure ne casse rien
 aujourd'hui — elle sera à relire quand D2 reprendra.
 
+### A1-T5 — livré le 2026-10-03
+
+`detectZipStructure` classait l'archive du Save Launcher `.singleMod` sur le
+dossier du compagnon : StarHubFR aurait posé le mod seul et jeté l'application
+de 113 Mo sans un mot. Livré : quand le **seul** manifeste de l'archive vit
+dans un bundle macOS (`X.app/Contents/…`), la structure devient
+`.modEmbeddedInAppBundle` et l'analyse rend `.modEmbeddedInApp(appPath:modPath:)`
+— message nommant l'application et le mod inerte, conseil « installez le .app,
+c'est lui qui s'occupe du mod » (`recoveryHintKey`). La garde exige le layout
+réel du bundle (composant `.app` suivi de `Contents`) : un dossier de mod
+nommé `Tractor Mod.app` sans `Contents` reste un mod ordinnaire — cas voisin
+testé. Vérifié sur la vraie archive par probe jetable : statut, `appPath`,
+`extractedTopLevel` corrects. `ZipStructure` et `InstallError` sont sortis
+dans `ModZipStructure.swift` (cliquet).
+
 ## 3 ter. Audit de deux archives du parc de test — 2026-09-14
 
 > Demandé sur deux fichiers de `mods tests/`. Statique uniquement : **rien n'a été

@@ -1997,6 +1997,8 @@ enum L10n {
         static let invalidZipStructure  = "mod_install_invalid_structure"
         static let archiveContains      = "mod_install_archive_contains"
         static let notAModHint          = "mod_install_not_a_mod_hint"
+        static let embeddedApp          = "mod_install_embedded_app"
+        static let embeddedAppHint      = "mod_install_embedded_app_hint"
         static let folderTaken          = "mod_install_folder_taken"
         // Conflit de nom logique : un **autre** mod occupe déjà le nom —
         // la ligne nomme l'occupant, c'est lui qu'un écrasement remplacerait.

@@ -341,7 +341,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **9 items ouverts sur 29** *(le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **8 items ouverts sur 29** *(le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -367,64 +367,13 @@ backup se retrouve en moins de dix secondes.
       `ModFolderTraversal` (Core, 5 tests) ; mesure parc dans l'archive.
 
 
-- [ ] **A1-T5** — **Une archive dont le mod n'est qu'une pièce.** *(trouvé le
-      2026-09-14 en auditant `Stardew Save Launcher` (Nexus 52041) — récit complet
-      dans [`roadmap-archive.md`](roadmap-archive.md) §3 ter.)* L'archive fait
-      **113 Mo** et contient une **application macOS**, plus un mod compagnon de 17 Ko
-      dont le `manifest.json` est le **seul** de l'archive, quatre niveaux plus bas
-      (`…app/Contents/Resources/CompanionMod/`). `detectZipStructure` ne voit qu'un
-      dossier à manifeste, rien au-dessus n'en porte — la règle « un manifeste sous un
-      autre est une dépendance embarquée » ne s'applique pas — et classe donc
-      `.singleMod` sur ce dossier. **StarHubFR poserait le compagnon seul et jetterait
-      l'application en silence.** Le compagnon est **inerte** sans elle : il lit la
-      variable `STARDEW_SAVE_LAUNCHER_REQUEST` que seule l'application pose. Résultat
-      pour l'utilisateur : il croit avoir installé l'outil, et rien ne fonctionne, sans
-      un message.
-      ⚠️ **Le remède n'est pas d'installer le `.app`** — `Mods/` n'est pas un dossier
-      d'applications, et SMAPI ne saurait qu'en faire. C'est de **le dire** : quand
-      l'archive porte, à côté du mod retenu, un `.app` ou un exécutable qu'on écarte,
-      l'écran d'installation doit le nommer et renvoyer à la page Nexus pour la partie
-      qu'on ne sait pas poser. Le cas n'est pas isolé par nature : tout mod livré avec
-      un compagnon de bureau le rejouera.
-      ⚠️ **Ne pas confondre avec A1-T4** : là c'est un `examples/` en trop dans le
-      parc, ici c'est une pièce **manquante** sur le disque. · **M**
-
-  **Trois autres idées relevées dans l'audit de `Stardew Save Launcher` (2026-09-14,
-  celui d'**A1-T6**, livré — récit à l'archive), et ce qu'elles valent :**
-  - **Un verdict « prêt à lancer » avant de lancer** (leur `Ready`/`CanLaunch`/`Errors`).
-    Vérifié : `launchGate` n'est qu'un garde **anti double-lancement**, et le bouton de
-    `HomeView.swift:160` appelle `launchGame()` sans consulter la moindre alerte. La
-    matière existe pourtant déjà (`healthIssues`, `hasDependencyIssue`) : l'item serait
-    d'**afficher le verdict**, pas de le calculer. À rattacher à **A1-T1**.
-  - **Lancer SMAPI dans le Terminal** pour voir le journal défiler en direct (leur
-    `stardew-save-launcher-smapi.command`). Petit, et `launchGame` existe déjà. · **XS**
-  - **Lancer directement sur une sauvegarde choisie** — écarté : leur mécanisme exige un
-    **mod compagnon** que StarHubFR devrait écrire et distribuer. C'est un changement de
-    nature de l'application, pas une fonctionnalité.
-  - *(`SMAPI_MODS_PATH` / `--mods-path`, qu'ils utilisent pour lancer, reste **écarté** —
-    décision du §6, ligne « Activation Stardrop par junctions/symlinks ». Vérifié le
-    2026-09-14 pour que personne ne la re-dérive.)*
-
-#### A2 — Compatibilité SMAPI via l'API smapi.io
-
-> 🔄 **Repositionné après audit Stardop (2026-07-31 — voir `docs/audit-stardrop.md`)** :
-> Stardop interroge l'API live `smapi.io/api/v3.0/mods` (`IncludeExtendedMetadata`) — la
-> source que SMAPI utilise lui-même au démarrage. **Plus riche que le dump statique
-> `mods.jsonc`** : elle remonte en plus la mise à jour *suggérée* et l'URL de mise à jour
-> *non officielle*. `mods.jsonc` devient le **fallback hors-ligne**, plus la source primaire.
-
-> 🧪 **Spike (2026-07-31, modlist réelle ~948 mods)** — la richesse est **confirmée**
-> (`suggestedUpdate` + `metadata{name,nexusID,main,unofficial}`), mais le spike a révélé
-> deux contraintes qui **cadrent l'implémentation** :
-> - **🔴 Rate-limit agressif** : smapi.io répond `[]` **silencieusement** (jamais de 429)
->   au-delà de ~100 mods/min par IP. Un fetch complet au boot est **impraticable** sur une
->   grosse modlist. → cache persistant + update check **incrémental** obligatoires.
-> - **✅ Pas de bug URLSession** (test croisé curl / `URLSession.shared` / session éphémère :
->   tous réagissent **identiquement** au rate-limit, avec le même body et les mêmes headers).
->   L'intuition initiale d'un bug spécifique URLSession était un artefact de tests en rafale
->   (URLSession testée en série, curl intercalé de pauses). → **implémentation Swift native
->   possible, pas de contournement `curl`**. La fenêtre de récupération du rate-limit est en
->   revanche **longue** (> 60 s après saturation), ce qui renforce la nécessité de **A2-T4**.
+- [x] **A1-T5** ✅ *(livré le 2026-10-03, à l'archive)* — le seul
+      manifeste d'une archive qui vit **dans** un bundle `.app`
+      (`X.app/Contents/…`) est reconnu comme tel : refus nommé
+      `.modEmbeddedInApp` (l'application est le produit), jamais le mod seul
+      posé en silence. Un dossier de mod portant le suffixe `.app` **sans**
+      `Contents` reste un mod ordinnaire (test voisin). Vérifié sur la vraie
+      archive (Stardew Save Launcher, 113 Mo, probe jetable).
 
 - [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
       compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
@@ -2724,6 +2673,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
 | **A1-T6** | 2026-09-23 | La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu (objets, bâtiments, données), chaque rangée ouvre la fiche du mod — résolution contre le parc entier, doublon actif ⇒ muet ; absents hors périmètre |
 | **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
+| **A1-T5** | 2026-10-03 | Le mod d'une archive qui vit dans un bundle `.app` (Stardew Save Launcher) n'est plus installé seul en silence : refus nommé, l'application est le produit ; layout `.app`+`Contents` exigé, le cas voisin reste un mod |
 | **A1-T4** | 2026-10-02 | Exemples et gabarits sous un vrai mod ne sont plus listés comme composants : règle de traversal copiée du code SMAPI (`ModFolderTraversal`) ; 15 entrées fantômes mesurées à l'activation simulée |
 | **D1-T1** | 2026-10-02 | Détection de Profiler (Core) et carte de guidage dans l'onglet Performances : absent / en pause / actif |
 | **C4-T17** | 2026-10-03 | Conflits de raccourcis selon le contexte : touche de modification maintenue, réglage inerte, contexte d'écoute relevé dans le code des mods (`assets/keybind-contexts.json`, `KeybindContexts`) ; l'éditeur décide comme le rapport ; parc 38 → 19 (SOURCES §6 ter) |

@@ -22,6 +22,7 @@ let package = Package(
                 "ModInstallBackup.swift",
                 "ModInstallBackupManager.swift",
                 "ModZipInstaller.swift",
+                "ModZipStructure.swift",
                 "ModFolderRepairer.swift",
                 "SaveManager.swift",
                 "Models/SidebarDestination.swift",

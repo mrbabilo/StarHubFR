@@ -847,3 +847,51 @@ struct ZipRecoveryHintTests {
         #expect(ValidationStatus.valid.recoveryHintKey == nil)
     }
 }
+
+// MARK: - A1-T5 : le mod n'est qu'une pièce d'une application macOS
+
+@Suite struct ModZipInstallerEmbeddedAppTests {
+
+    private func makeTempDir() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StarHubTHEmbeddedAppTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    /// `X.app/Contents/Resources/CompanionMod` : le seul manifeste de
+    /// l'archive vit dans l'application — refus nommé, pas « structure
+    /// invalide » muette (cas Stardew Save Launcher, Nexus 52041).
+    @Test func companionModInsideAppBundleIsNamedAsSuch() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try makeModFolder(base: dir, relativePath: "Stardew Save Launcher.app/Contents/Resources/CompanionMod",
+                          uniqueId: "Codex.StardewSaveLauncher.Companion", name: "Save Launcher Companion")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "launcher.zip", existingMods: [])
+
+        guard case .modEmbeddedInApp(let appPath, let modPath) = info.validationStatus else {
+            Issue.record("statut attendu modEmbeddedInApp, reçu \(info.validationStatus)")
+            return
+        }
+        #expect(appPath == "Stardew Save Launcher.app")
+        #expect(modPath == "Stardew Save Launcher.app/Contents/Resources/CompanionMod")
+        #expect(info.detectedMods.isEmpty)
+        #expect(info.extractedTopLevel.contains("Stardew Save Launcher.app/"))
+        #expect(info.validationStatus.recoveryHintKey == L10n.ModInstall.embeddedAppHint)
+    }
+
+    /// Un dossier de mod qui porterait juste le suffixe `.app`, sans
+    /// `Contents`, n'est pas un bundle : il reste un mod ordinnaire.
+    @Test func modFolderNamedAppWithoutContentsStaysAMod() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try makeModFolder(base: dir, relativePath: "Tractor Mod.app",
+                          uniqueId: "x.Tractor", name: "Tractor Mod")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "tractor.zip", existingMods: [])
+
+        #expect(info.isValid)
+        #expect(info.detectedMods.count == 1)
+    }
+}

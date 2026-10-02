@@ -323,7 +323,6 @@
   "keybinds_scanning": "Scanning mods…",
   "keybinds_rescan": "Rescan",
   "keybinds_export": "Export",
-  "keybinds_export_hint": "The report as Markdown, to share or attach to a bug report.",
   "keybinds_search_placeholder": "Search a mod, setting or key",
   "keybinds_subsets_header": "Chord co-triggers (%lld)",
   "keybinds_subsets_hint": "Holding a chord also fires the shorter shortcut it contains — the shorter binding fires first.",
@@ -2101,5 +2100,7 @@
   "main_changelog_removed": "Removed",
   "saves_timeline_title": "%@'s backups",
   "saves_timeline_subtitle": "%lld backup(s) · %@",
-  "settings_config_header_subtitle": "config.json · %@"
+  "settings_config_header_subtitle": "config.json · %@",
+  "mod_install_embedded_app": "This archive is a macOS application (%@), not a mod for Mods/. The mod it carries (%@) is inert without it.",
+  "mod_install_embedded_app_hint": "Install the .app itself (double-click, like any application); it handles the companion mod."
 }

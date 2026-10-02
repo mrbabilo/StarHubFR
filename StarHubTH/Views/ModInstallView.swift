@@ -513,6 +513,10 @@ struct ModInstallView: View {
                                                        info.extractedTopLevel.joined(separator: ", "))
                             }
                             self.showFailure(msg)
+                        case .modEmbeddedInApp(let appPath, let modPath):
+                            self.showFailure(String(
+                                format: self.localization.L(L10n.ModInstall.embeddedApp),
+                                appPath, (modPath as NSString).lastPathComponent))
                         case .oversized:
                             self.showFailure(self.localization.L(L10n.ModInstall.zipOversized))
                         case .tooManyMods:

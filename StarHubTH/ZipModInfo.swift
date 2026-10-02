@@ -140,6 +140,10 @@ enum ValidationStatus {
     /// `.corrupted` : annoncer « archive corrompue » sur un `.7z` parfaitement
     /// sain envoie l'utilisateur chercher un problème qui n'existe pas.
     case unsupportedFormat(String)
+    /// A1-T5 — le mod de l'archive vit **dans** une application macOS
+    /// (`X.app/Contents/…`) : il est inerte sans elle (Stardew Save Launcher,
+    /// Nexus 52041). Installer le mod seul ajouterait un mod mort.
+    case modEmbeddedInApp(appPath: String, modPath: String)
 }
 
 extension ValidationStatus {
@@ -162,6 +166,8 @@ extension ValidationStatus {
             return L10n.ModInstall.recoverZip
         case .invalidStructure:
             return L10n.ModInstall.notAModHint
+        case .modEmbeddedInApp:
+            return L10n.ModInstall.embeddedAppHint
         case .valid, .oversized, .tooManyMods, .unsupportedFormat:
             return nil
         }

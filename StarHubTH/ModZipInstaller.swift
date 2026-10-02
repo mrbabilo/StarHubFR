@@ -335,6 +335,13 @@ class ModZipInstaller {
     /// tests lay out mod folders without a real archive.
     func analyzeExtractedDir(at tempDir: URL, zipName: String, existingMods: [ModItem]) -> ZipModInfo {
         let structure = detectZipStructure(at: tempDir)
+        // A1-T5 — refus nommé : l'application est le produit de l'archive.
+        if case .modEmbeddedInAppBundle(let modPath, let appPath) = structure {
+            return ZipModInfo(zipName: zipName, detectedMods: [],
+                              validationStatus: .modEmbeddedInApp(appPath: appPath, modPath: modPath),
+                              extractedTopLevel: Self.topLevelSummary(of: tempDir),
+                              conflicts: [], estimatedSize: 0)
+        }
         guard case .unrecognized = structure else {
             // proceed with a valid structure (single/multi/flatRoot)
             return buildInfo(from: tempDir, structure: structure, zipName: zipName, existingMods: existingMods, fallbackStatus: .valid)
@@ -451,7 +458,7 @@ class ModZipInstaller {
             // Extension retirée quelle qu'elle soit (sinon « MonMod.7z »).
             scanFolder(at: tempDir, relativePath: "",
                        folderName: Self.strippingArchiveExtension(from: zipName))
-        case .unrecognized:
+        case .unrecognized, .modEmbeddedInAppBundle:
             return nil
         }
 
@@ -473,6 +480,20 @@ class ModZipInstaller {
     }
 
     // MARK: - Structure Detection
+
+    /// Le composant `.app` d'un chemin de bundle macOS — `X.app/Contents/…`
+    /// seulement : un dossier de mod qui porterait juste le suffixe `.app`
+    /// sans `Contents` n'est pas un bundle.
+    static func appBundleComponent(of path: String) -> String? {
+        let components = path.split(separator: "/").map(String.init)
+        for (index, component) in components.enumerated() {
+            guard component.lowercased().hasSuffix(".app"),
+                  index + 1 < components.count,
+                  components[index + 1].lowercased() == "contents" else { continue }
+            return component
+        }
+        return nil
+    }
 
     /// Single shared top-level parent ("Lilybrook"), or nil (root entries,
     /// flat collection, mix).
@@ -525,6 +546,13 @@ class ModZipInstaller {
         // dossier racine → multiMod. 3 : plusieurs à la racine → multiMod.
         let topLevelFolders = Set(manifestFolders.map { $0.split(separator: "/").first.map(String.init) ?? $0 })
         if manifestFolders.count == 1 && topLevelFolders.count == 1 {
+            // A1-T5 — mais dans un bundle `.app` (`X.app/Contents/…`), le
+            // manifeste n'est pas la pièce principale : la règle « un
+            // manifeste sous un autre est une dépendance » ne voit rien
+            // (aucun manifeste au-dessus), il faut le layout du bundle.
+            if let app = Self.appBundleComponent(of: manifestFolders[0]) {
+                return .modEmbeddedInAppBundle(modPath: manifestFolders[0], appPath: app)
+            }
             return .singleMod(folderName: manifestFolders[0])
         } else if manifestFolders.count > 1 {
             return .multiMod(mods: manifestFolders)
@@ -1227,39 +1255,3 @@ class ModZipInstaller {
 }
 
 // MARK: - Supporting Types
-
-enum ZipStructure {
-    case singleMod(folderName: String)
-    case multiMod(mods: [String])
-    case flatRoot
-    case unrecognized
-}
-
-enum InstallError: LocalizedError {
-    case extractionFailed(String)
-    case unsafeContent
-    case gameDirEmpty
-    case backupFailed(String)
-    case installFailed(String)
-    case rarToolMissing
-
-    var errorDescription: String? {
-        switch self {
-        case .extractionFailed(let detail): return "Failed to extract archive file: \(detail)"
-        case .unsafeContent: return "This archive contains unsafe content (symbolic links) and was rejected."
-        case .gameDirEmpty: return "Game directory is not set."
-        case .backupFailed(let reason): return "Backup of the existing mod failed, installation aborted: \(reason)"
-        case .installFailed(let reason): return "Installation failed: \(reason)"
-        case .rarToolMissing: return "RAR extraction requires 'unrar', 'unar', or '7z' (install via Homebrew: brew install unrar)."
-        }
-    }
-
-    /// B2-T4 : commande copiable, alignée sur le message et l'accueil :
-    /// `unar`, un seul conseil.
-    var copyableCommand: String? {
-        switch self {
-        case .rarToolMissing: return "brew install unar"
-        default: return nil
-        }
-    }
-}
