@@ -26,7 +26,10 @@ where the exact log format was verified.
 - **Liens et boutons de l'onglet Performances reconnaissables.** Main au survol, liens soulignés au survol et atténués au clic, rien sur un bouton désactivé.
 - **Sonde en tête bien visible.** La carte « Chargements » affiche l'état de la sonde en tête dans un encadré coloré : active, effet au prochain lancement, en pause, ou non appliquée, avec le geste qui va avec (réessayer, retirer).
 - **Fiche de mod en six onglets.** Aperçu, Santé, Dépendances, Traduction (toujours offert), Historique, Gestion ; les alertes ouvrent désormais la fiche sur Santé.
-- **Alertes système et Profils repensés.** Alertes : tuiles de gravité qui filtrent, barre de répartition, état vide expliqué. Profils : profil actif en en-tête, profils en cartes, couverture FR sur un anneau.
+- **Alertes système en trois onglets.** Alertes, Raccourcis clavier et Conflits entre mods, chacun avec son compte : le rapport des raccourcis et le panorama des conflits ne sont plus des popups. Tuiles de gravité qui filtrent, barre de répartition, état vide expliqué.
+- **Profils repensés.** Profil actif en en-tête, profils en cartes, couverture FR sur un anneau.
+- **Sauvegardes du jeu et Quarantaine repensées.** Parties et dernière jouée en en-tête, liste et grille en cartes ; Quarantaine avec ses gestes en en-tête et des tuiles qui mènent à chaque section du rapport.
+- **Sauvegardes des mods et Entretien repensés.** Un seul en-tête au-dessus des onglets, sauvegardes en cartes ; Entretien avec le total en en-tête et une carte « Stockage » (répartition, purge en un clic).
 - **Traductions FR, Réglages et Raccourcis repensés.** Anneau de répartition par statut qui mène à chaque section ; réglages en cartes à icône, ⌘, pour les ouvrir ; aide des raccourcis en touches en relief, rapport des mods chiffré.
 
 ### Fixed
