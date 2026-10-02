@@ -130,6 +130,7 @@ final class StarHubTHViewModel {
     var isCheckingNexusUpdates: Bool { updateStore.isChecking }
     /// Last error message from a Nexus check (nil = none / not run yet).
     var nexusCheckError: String? { updateStore.checkError }
+    func updateCheckVerdict(pending: Int) -> UpdateCheckVerdict { updateStore.verdict(pending: pending) }
     /// Progress of the in-flight Nexus check. `nil` when idle.
     var nexusCheckProgress: UpdateCheckProgress? { updateStore.progress }
     // MARK: Compte Nexus — le store du domaine (cadrage §4, domaine 7,
@@ -1661,7 +1662,7 @@ final class StarHubTHViewModel {
         guard UpdateCheckPolicy.shouldCheckAfterSelection(
                 gameFolderChanged: gameFolderChanged,
                 autoCheckEnabled: autoCheckNexusUpdates,
-                lastSuccess: NexusUpdateChecker.shared.lastSuccessfulCheck,
+                lastSuccess: updateStore.lastCheckedAt,
                 now: Date(), ttl: 12 * 3600) else {
             log("Vérification des mises à jour sautée : "
                 + (autoCheckNexusUpdates ? "dernière réussie il y a moins de 12 h" : "désactivée dans les Réglages"),
@@ -2807,7 +2808,7 @@ final class StarHubTHViewModel {
                     // 12 h (`UpdateCheckPolicy`) et reporterait ces mods sur le quota Nexus.
                     // Depuis X47 : lot échoué deux fois ou budget de re-découpage épuisé (X64).
                     if isComplete {
-                        NexusUpdateChecker.shared.recordSuccessfulCheck()
+                        self.updateStore.recordCompleteCheck()
                     }
                 case .failed:
                     self.updateStore.setCheckError(composition.checkError)

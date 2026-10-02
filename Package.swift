@@ -161,6 +161,7 @@ let package = Package(
                 "Models/I18nOutline.swift",
                 "Models/UpdateKeyDelta.swift",
                 "Models/UpdateCount.swift",
+                "Models/UpdateCheckVerdict.swift",
                 "Models/PendingModUpdates.swift",
                 "Models/KeyRenameMatcher.swift",
                 "Models/ModUpdateKeyDeltaStore.swift",

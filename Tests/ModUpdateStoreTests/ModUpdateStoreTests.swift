@@ -142,3 +142,39 @@ import Foundation
         #expect(s.isChecking == false)
     }
 }
+
+// MARK: - Ce qu'un zéro permet d'affirmer
+
+extension ModUpdateStoreTests {
+
+    /// Au lancement, la liste des invérifiables est vide parce qu'inconnue :
+    /// le store ne doit pas la prendre pour « aucun ».
+    @Test func aFreshStoreDoesNotKnowItsUnverifiable() {
+        let s = ModUpdateStore()
+        #expect(!s.isUnverifiableKnown)
+    }
+
+    /// Une passe complète publie l'horodatage et rend la liste connue ;
+    /// la passe suivante la remet en question dès son départ.
+    @Test func aCompleteCheckIsKnownUntilTheNextOneStarts() {
+        let s = ModUpdateStore()
+        let at = Date(timeIntervalSince1970: 1_790_940_332)
+        s.beginCheck()
+        s.setUnverifiable([])
+        s.recordCompleteCheck(at: at)
+        #expect(s.lastCheckedAt == at)
+        #expect(s.verdict(pending: 0) == .upToDate(checkedAt: at))
+
+        s.beginCheck()
+        #expect(s.verdict(pending: 0) == .verifiableUpToDate(checkedAt: at))
+    }
+
+    /// Le cas voisin : une passe complète avec des mods sans verdict.
+    @Test func aCompleteCheckWithUnverifiableIsNotUpToDate() {
+        let s = ModUpdateStore()
+        let at = Date(timeIntervalSince1970: 1_790_940_332)
+        s.setUnverifiable([unverifiable("sansCle")])
+        s.recordCompleteCheck(at: at)
+        #expect(s.verdict(pending: 0) == .verifiableUpToDate(checkedAt: at))
+    }
+}

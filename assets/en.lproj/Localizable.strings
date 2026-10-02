@@ -2051,7 +2051,10 @@
 "logs_header_no_log" = "no log read yet";
 "logs_header_log_date" = "log of %@";
 "updates_header_pending" = "%lld update(s) waiting";
-"updates_header_up_to_date" = "No update waiting";
+"updates_header_never_checked" = "No update waiting · never checked";
+"updates_header_up_to_date_checked" = "Everything is up to date · checked %@";
+"updates_header_verifiable_checked" = "All verifiable mods are up to date · checked %@";
+"updates_never_checked" = "No check has completed yet: run one.";
 "discovery_header_subtitle" = "What's new and popular on Nexus, ready to install.";
 "main_changelog_installed" = "Installed version: %@";
 "main_changelog_unreleased" = "In development";

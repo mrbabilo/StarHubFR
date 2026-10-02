@@ -1504,7 +1504,10 @@ enum L10n {
     // MARK: - Updates
     enum Updates {
         static let headerPending        = "updates_header_pending"
-        static let headerUpToDate       = "updates_header_up_to_date"
+        static let headerNeverChecked   = "updates_header_never_checked"
+        static let headerUpToDateChecked = "updates_header_up_to_date_checked"
+        static let headerVerifiableChecked = "updates_header_verifiable_checked"
+        static let neverChecked         = "updates_never_checked"
         static let newUpdate            = "updates_new_update"
         static let allUpToDate          = "updates_all_up_to_date"
         static let updateAvailable      = "updates_update_available"

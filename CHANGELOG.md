@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Mises à jour : un zéro dit d'où il vient.** L'en-tête affiche l'âge de la dernière vérification complète (« vérifié il y a 3 heures »). Il dit « Tout est à jour », en vert, seulement si aucun mod n'est resté sans verdict, et « jamais vérifié » quand aucune passe n'a abouti.
 - **Journal des modifications, éditeur de config et chronologie repensés.** Une carte par version avec ses ajouts, modifications et corrections en pastilles ; l'éditeur de config porte l'en-tête commun et le choix Visuel/Code près du contenu, ses sections en cartes ; la chronologie d'une sauvegarde aussi.
 
 ## [1.53.0] - 2026-10-02

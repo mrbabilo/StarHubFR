@@ -1359,9 +1359,9 @@ se voit et porte son action ; la fréquence décide de la place ; la gravité
 décide de l'ordre) :
 
 **Audit UX du 2026-10-02 → I-T18, livré** (récit et mesures à l'archive) :
-un seul langage visuel sur toutes les pages. Suite possible née de lui :
-**horodater la dernière vérification Nexus**, pour que l'en-tête des Mises à
-jour puisse dire « tout est à jour » sans mentir sur un zéro non mesuré.
+un seul langage visuel sur toutes les pages. Sa suite, **I-T19**, est livrée
+aussi : l'en-tête des Mises à jour dit « tout est à jour » seulement sur un
+zéro mesuré (à l'archive).
 
 Écartées par l'audit, avec leur raison au rapport : centre de santé unique,
 traduction unifiée, Mises à jour dans Découvrir (§6 d'`AGENTS.md`), vues de
@@ -2770,6 +2770,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T1** | 2026-09-09 | ⌘1…⌘9 + menu « Aller » sur `SidebarOrder` (Core, source unique) ; la navigation au focus reste ouverte en **I-T6** |
 | **I-T2** | 2026-09-09 | Palette ⌘K : navigue seulement (jamais d'écriture), recherche sous-séquence sans accents, 4,5 ms par frappe (`CommandPaletteSearch`, 18 tests) |
 | **I-T18** | 2026-10-02 | Audit UX : en-tête commun et cartes sur toutes les pages (`PageChrome`), fiche en six onglets avec relevé Santé (`ModHealthChecklist`), Alertes en onglets, astérisques des descriptions 103 → 8 ; v1.53.0 |
+| **I-T19** | 2026-10-02 | En-tête des Mises à jour : un zéro jamais vérifié ou avec des mods sans verdict ne disait pas d'où il venait ; `UpdateCheckVerdict` (Core) + âge de la dernière passe complète |
 
 **10.3 Veille RimManager — actions livrées**
 

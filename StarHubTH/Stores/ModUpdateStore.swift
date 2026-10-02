@@ -84,6 +84,24 @@ final class ModUpdateStore {
     /// n'est pas un signal de rendu, c'est ce qui retient `endCheck()`.
     @ObservationIgnored private(set) var fallbackInFlight = false
 
+    /// La dernière passe **complète** (toutes sessions) — l'horodatage que
+    /// `NexusUpdateChecker` persiste, rendu observable : lu en direct dans
+    /// `UserDefaults`, l'en-tête ne se redessinerait que par accident.
+    private(set) var lastCheckedAt: Date? = NexusUpdateChecker.shared.lastSuccessfulCheck
+
+    /// Vrai quand `unverifiable` décrit une passe complète de **cette
+    /// session**. Faux au lancement (la liste n'est pas persistée : vide ne
+    /// veut pas dire aucun) et dès qu'une passe repart (une passe amputée la
+    /// réécrirait partiellement).
+    private(set) var isUnverifiableKnown = false
+
+    /// Le verdict d'un compte `pending` — « tout est à jour » ne sort que
+    /// d'ici (`UpdateCheckVerdict`).
+    func verdict(pending: Int) -> UpdateCheckVerdict {
+        .resolve(pending: pending, lastCheckedAt: lastCheckedAt,
+                 unverifiableCount: isUnverifiableKnown ? unverifiable.count : nil)
+    }
+
     // MARK: - Les lignes
 
     /// Les deux moitiés de la partition, **d'un seul geste**.
@@ -119,11 +137,20 @@ final class ModUpdateStore {
     func beginCheck(progress: UpdateCheckProgress? = nil) {
         isChecking = true
         checkError = nil
+        isUnverifiableKnown = false
         self.progress = progress
     }
 
     func setProgress(_ progress: UpdateCheckProgress?) {
         self.progress = progress
+    }
+
+    /// Une passe smapi.io a abouti en entier : horodatage persisté et
+    /// publié, invérifiables désormais connus.
+    func recordCompleteCheck(at date: Date = Date()) {
+        NexusUpdateChecker.shared.recordSuccessfulCheck(at: date)
+        lastCheckedAt = date
+        isUnverifiableKnown = true
     }
 
     func setCheckError(_ message: String?) {

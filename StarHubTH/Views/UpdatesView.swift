@@ -108,25 +108,7 @@ struct UpdatesView: View {
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(AppDesign.Color.error.opacity(0.8))
                         } else if vm.nexusUpdates.isEmpty {
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(AppDesign.Color.success)
-                            // C'était `logs_system_alerts_section` — « Aucune
-                            // alerte système » — sur la page des **mises à jour** :
-                            // le libellé d'une autre page, qui répondait à côté de
-                            // la question posée. Jumeau du défaut corrigé en
-                            // v1.21.0 dans l'autre sens.
-                            //
-                            // Avec des invérifiables en suspens, « tous à jour »
-                            // serait un quitus pour des mods sans verdict : le
-                            // texte ne le dit plus, et le bloc sous la liste
-                            // nomme les concernés.
-                            Text(localization.L(vm.unverifiableMods.isEmpty
-                                      ? L10n.Updates.allUpToDate
-                                      : L10n.Updates.allVerifiedUpToDate))
-                            }
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.secondary)
+                            nexusEmptyState
                         } else {
                             // Summary line + list of available updates.
                             // Plus de note d'ordre : la liste est alphabétique,

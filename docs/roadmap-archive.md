@@ -4911,6 +4911,21 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       `AppDesign.Color.success` (vert système : teinte légèrement plus vive).
 
 
+- [x] **I-T19** ✅ *(livré le 2026-10-02, non vérifié à l'écran)* — **Un
+      zéro de mises à jour dit d'où il vient.** Né d'I-T18 : f37d0278 avait
+      retiré le vert de l'en-tête à zéro, faute de savoir si une vérification
+      avait tourné. L'horodatage existait déjà (`nexusUpdatesLastCheckedAt`,
+      écrit seulement sur une passe smapi.io **complète**) mais n'était lu que
+      par la porte des 12 h. `ModUpdateStore` le publie (`lastCheckedAt`,
+      `recordCompleteCheck`) et la porte des 12 h le lit là. Verdict dans
+      `UpdateCheckVerdict` (Core, 7 tests) : « tout est à jour » exige une
+      passe complète **de cette session** sans invérifiable — la liste des
+      invérifiables n'est pas persistée, vide après relance ne veut pas dire
+      aucun ; sinon « tous les mods vérifiables sont à jour », ou « jamais
+      vérifié ». L'âge (`RelativeDateTimeFormatter`, langue de l'interface)
+      se rafraîchit à la minute. Le corps de la page affichait le même
+      mensonge (coche verte sans vérification) : même verdict.
+
 - [x] **I-T18** ✅ *(livré le 2026-10-02, vérifié à l'écran par l'auteur lot
       par lot ; l'essentiel sorti en **v1.53.0**)* — **Audit UX : un seul
       langage visuel pour toutes les pages.** Rapport local
