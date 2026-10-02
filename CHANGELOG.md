@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.54.0] - 2026-10-02
+
 ### Changed
 
 - **Dépendances manquantes : nommées et installables.** Un bouton de Gestion des mods ouvre le récapitulatif des dépendances requises absentes du disque, avec la page Nexus exacte de chacune (lue dans le dump en cache, sans réseau) et le téléchargement dans l'app sur un compte premium. Une archive téléchargée qui ne porte pas l'identifiant attendu est signalée au lieu d'être installée en silence. L'arbre de dépendances d'une fiche propose la page exacte sur une dépendance absente.
