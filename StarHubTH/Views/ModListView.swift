@@ -57,6 +57,8 @@ struct ModListView: View {
     /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
     /// = disabling — kept as a single optional so the dialog binds cleanly.
     @State private var bulkToggleTarget: Bool? = nil
+    /// Puce de type active sous le cadrage « Problèmes ».
+    @State private var problemKind: ModProblemKind? = nil
 
     /// Scopes the list to the mod the user asked to jump to, clearing anything
     /// that could filter it out, then clears the request so it fires once.
@@ -91,7 +93,10 @@ struct ModListView: View {
     /// computed it once per render don't trigger the search/category/sort
     /// pass again.
     private func displayMods(from filtered: [ModItem]) -> [ModItem] {
-        vm.scopedMods(from: filtered, scope: filters.scope)
+        let scoped = vm.scopedMods(from: filtered, scope: filters.scope)
+        guard filters.scope == .issues, let kind = problemKind else { return scoped }
+        // La puce réduit la liste cadrée, sans recalculer le cadrage.
+        return scoped.filter { problemKinds(of: $0).contains(kind) }
     }
 
     private func totalPages(for mods: [ModItem]) -> Int {
@@ -270,6 +275,7 @@ struct ModListView: View {
         let uncatCount = uncategorizedCount(from: facets.category)
         let tagBuckets = inferredTagBuckets(from: facets.category)
         let translationCounts = frenchTranslationCounts(from: facets.translation)
+        let scoped = vm.scopedMods(from: filtered, scope: filters.scope)
         let display = displayMods(from: filtered)
         let pages = totalPages(for: display)
         let page = effectivePage(totalPages: pages)
@@ -284,6 +290,13 @@ struct ModListView: View {
             listHeader(counts: counts, display: display, categories: categories,
                        uncatCount: uncatCount, tagBuckets: tagBuckets,
                        translationCounts: translationCounts)
+            if filters.scope == .issues, !scoped.isEmpty {
+                ProblemKindChips(counts: problemKindCounts(in: scoped),
+                                 selection: $problemKind, L: localization.L)
+                    .padding(.horizontal, AppDesign.Spacing.xl)
+                    .padding(.vertical, AppDesign.Spacing.xs)
+                    .background(Color(nsColor: .controlBackgroundColor))
+            }
 
             Divider()
 
@@ -394,6 +407,7 @@ struct ModListView: View {
         // dépend d'aucun filtre : la liste a changé de taille sous nos pieds
         // (installation, suppression, activation d'un profil).
         .onChange(of: vm.scanStore.mods.count)    { _, _ in listState.filters.page = 1 }
+        .onChange(of: filters.scope) { _, _ in problemKind = nil }
         // Clicking a mod name in the logs must land on that mod, not on the full
         // list. `selectedModID` alone only tints the row — with filters and
         // pagination the mod may not even be on the visible page — so scope the

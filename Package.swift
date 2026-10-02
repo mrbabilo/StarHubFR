@@ -124,6 +124,7 @@ let package = Package(
                 "Models/ModErrorHistory.swift",
                 "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
+                "Models/ModProblemKinds.swift",
                 "Models/ModCompatibility.swift",
                 "Models/ModCompatibilityStore.swift",
                 "Models/ModPlatformWarnings.swift",
@@ -342,6 +343,11 @@ let package = Package(
                 "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "ModProblemKindsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModProblemKindsTests"
         ),
         .testTarget(
             name: "SmapiBlacklistTests",
