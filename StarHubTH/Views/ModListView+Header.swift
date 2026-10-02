@@ -19,6 +19,13 @@ extension ModListView {
                     translationCounts: [FrenchTranslationScope: Int]) -> some View {
         let noCategory = categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            // En-tête commun des pages (audit UX 2026-10-02) : le poids du
+            // cadrage et le profil appliqué, autrefois en bout de rangée des
+            // puces — pas d'information en plus, une place à eux.
+            PageHeader(icon: "puzzlepiece.extension.fill", title: localization.L(L10n.Mods.mods),
+                       subtitle: scopeWeightText(for: display)) {
+                activeProfileButton
+            }
             // Rangée principale : cadrage (gauche) et action clé (droite), à
             // la même priorité visuelle, au-dessus des filtres secondaires.
             // Trop étroit : la recherche descend sur sa propre ligne. Un
@@ -45,7 +52,7 @@ extension ModListView {
                                 tagBuckets: tagBuckets, noCategory: noCategory,
                                 translationCounts: translationCounts)
                     Spacer()
-                    listMeta(display: display, noCategory: noCategory)
+                    listMeta(noCategory: noCategory)
                 }
                 // Repli : les puces passent à la ligne une à une — une
                 // catégorie longue (« Animaux de compagnie / Chevaux »)
@@ -54,12 +61,12 @@ extension ModListView {
                     filterChips(categories: categories, uncatCount: uncatCount,
                                 tagBuckets: tagBuckets, noCategory: noCategory,
                                 translationCounts: translationCounts)
-                    listMeta(display: display, noCategory: noCategory)
+                    listMeta(noCategory: noCategory)
                 }
             }
         }
         .padding(.horizontal, AppDesign.Spacing.xl)
-        .padding(.top, AppDesign.Spacing.xl)
+        .padding(.top, AppDesign.Spacing.md)
         .padding(.bottom, AppDesign.Spacing.md)
         .background(Color(nsColor: .controlBackgroundColor))
     }
@@ -181,11 +188,7 @@ extension ModListView {
     }
 
     @ViewBuilder
-    private func listMeta(display: [ModItem], noCategory: Bool) -> some View {
-        scopeWeightLabel(for: display)
-            .lineLimit(1)
-            .fixedSize()
-
+    private func listMeta(noCategory: Bool) -> some View {
         if noCategory {
             Text(localization.L(L10n.Mods.categoryFilterEmptyHint))
                 .font(AppDesign.Font.footnote)
@@ -193,9 +196,12 @@ extension ModListView {
                 .lineLimit(1)
                 .help(localization.L(L10n.Mods.categoryFilterEmptyHint))
         }
+    }
 
-        // Le profil appliqué — et le chemin vers la page qui le gère : c'est
-        // là qu'on va quand on le lit ici.
+    /// Le profil appliqué — et le chemin vers la page qui le gère : c'est
+    /// là qu'on va quand on le lit ici.
+    @ViewBuilder
+    private var activeProfileButton: some View {
         if let profile = vm.activeProfile {
             Button {
                 currentTab = .profiles

@@ -42,8 +42,8 @@ struct BisectionCard: View {
                 }
             }
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.04)))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(padding: 14)
     }
 
     private var idle: some View {

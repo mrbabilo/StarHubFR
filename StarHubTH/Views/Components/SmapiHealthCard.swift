@@ -87,16 +87,15 @@ struct SmapiHealthCard: View {
                 .frame(height: max(200, maxBodyHeight))
             }
         }
-        // A distinctly lighter/darker surface than the log list behind it: the
-        // card previously used controlBackgroundColor, the very colour the Logs
-        // view paints itself with, so its edges disappeared.
-        .background(Color(nsColor: .textBackgroundColor))
+        // La surface commune des cartes, liseré à la couleur du verdict : l'état
+        // se lit avant le texte. Découpée d'abord, pour que le bandeau de tête
+        // suive l'arrondi.
+        .clipShape(RoundedRectangle(cornerRadius: AppDesignCore.Radius.lg, style: .continuous))
+        .cardSurface(padding: 0)
         .overlay(
-            RoundedRectangle(cornerRadius: AppDesignCore.Radius.lg)
+            RoundedRectangle(cornerRadius: AppDesignCore.Radius.lg, style: .continuous)
                 .stroke(accent.opacity(AppDesignCore.Opacity.strong), lineWidth: 1)
         )
-        .cornerRadius(AppDesignCore.Radius.lg)
-        .shadow(color: Color.black.opacity(AppDesignCore.Opacity.light), radius: 6, y: 2)
     }
 
     /// Card tint follows the verdict, so the state reads before any text does.

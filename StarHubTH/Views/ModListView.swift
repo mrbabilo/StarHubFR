@@ -602,19 +602,13 @@ struct ModListView: View {
     /// cinq dossiers d'outils déposés là, qui occupent bien la place sans
     /// être des mods. Les deux chiffres répondent à deux questions : ce que
     /// pèse le dossier, et ce que pèse ce qu'on regarde.
-    @ViewBuilder
-    func scopeWeightLabel(for display: [ModItem]) -> some View {
+    ///
+    /// Sous-titre de l'en-tête de page ; `nil` tant qu'aucun poids n'est mesuré.
+    func scopeWeightText(for display: [ModItem]) -> String? {
         let total = display.compactMap { vm.sizeOnDisk(of: $0) }.reduce(Int64(0), +)
-        if total > 0 {
-            HStack(spacing: 3) {
-                Image(systemName: "internaldrive")
-                    .font(AppDesign.Font.iconXXS)
-                Text(String(format: localization.L(L10n.Mods.pageWeight),
-                            ByteCountFormatter.string(fromByteCount: total, countStyle: .file)))
-                    .font(AppDesign.Font.footnote)
-            }
-            .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
-        }
+        guard total > 0 else { return nil }
+        return String(format: localization.L(L10n.Mods.pageWeight),
+                      ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
     }
 
     /// Full-screen overlay shown while a bulk enable/disable-all operation is

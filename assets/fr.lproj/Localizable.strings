@@ -2047,3 +2047,9 @@
 "maintenance_header_total" = "StarHubFR occupe %@ sur ce Mac.";
 "maintenance_free_space_title" = "Libérer de la place";
 "quarantine_subtitle_short" = "Ce que les analyses ont mis à l'écart.";
+"logs_header_no_smapi" = "SMAPI non installé";
+"logs_header_no_log" = "aucun journal lu";
+"logs_header_log_date" = "journal du %@";
+"updates_header_pending" = "%lld mise(s) à jour en attente";
+"updates_header_up_to_date" = "Tout est à jour";
+"discovery_header_subtitle" = "Les nouveautés et les mods populaires de Nexus, prêts à installer.";

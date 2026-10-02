@@ -40,8 +40,7 @@ struct DiagnosticsHealthView: View {
             }
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        // Même fond que la carte avait dans `LogsView`.
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         // Mesurée hors du `ScrollView`, qui offrirait sinon une hauteur infinie.
         .background(GeometryReader { proxy in
             Color.clear.onAppear { viewHeight = proxy.size.height }

@@ -2047,3 +2047,9 @@
 "maintenance_header_total" = "StarHubFR uses %@ on this Mac.";
 "maintenance_free_space_title" = "Free up space";
 "quarantine_subtitle_short" = "What scans have set aside.";
+"logs_header_no_smapi" = "SMAPI not installed";
+"logs_header_no_log" = "no log read yet";
+"logs_header_log_date" = "log of %@";
+"updates_header_pending" = "%lld update(s) waiting";
+"updates_header_up_to_date" = "Everything is up to date";
+"discovery_header_subtitle" = "What's new and popular on Nexus, ready to install.";

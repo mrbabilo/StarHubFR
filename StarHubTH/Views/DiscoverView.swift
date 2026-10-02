@@ -49,21 +49,26 @@ struct DiscoverView: View {
     @State private var jumpTarget: ModCatalog.SectionKind?
 
     private var content: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                toolbar
-                if let error = vm.lastDiscoveryError { discoveryErrorBanner(error) }
-                if let search = vm.discoverySearch {
-                    searchResults(search)
-                } else {
-                    sectionJumpBar
-                    ForEach(ModCatalog.SectionKind.allCases, id: \.self) { kind in
-                        section(kind).id(kind)
+        // En-tête et commandes fixes, sections dessous (`pageHeader`).
+        VStack(spacing: 0) {
+            pageHeader(toolbar: toolbar)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                    if let error = vm.lastDiscoveryError { discoveryErrorBanner(error) }
+                    if let search = vm.discoverySearch {
+                        searchResults(search)
+                    } else {
+                        sectionJumpBar
+                        ForEach(ModCatalog.SectionKind.allCases, id: \.self) { kind in
+                            section(kind).id(kind)
+                        }
                     }
                 }
+                .padding(AppDesign.Spacing.xl)
             }
-            .padding()
         }
+        .background(AppDesign.Color.windowBg)
         .onAppear { vm.loadDiscovery() }
         .sheet(item: $detailRow) { row in
             DiscoveryDetailSheet(vm: vm, localization: localization, row: row)

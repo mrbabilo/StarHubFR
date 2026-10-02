@@ -35,7 +35,8 @@ struct HomeView: View {
     @ViewBuilder
     private var interruptedSearchNotice: some View {
         if let snapshot = bisection.interruptedSnapshot, bisection.state == nil {
-            StandardSection(title: localization.L(L10n.Bisect.interruptedTitle)) {
+            StandardSection(title: localization.L(L10n.Bisect.interruptedTitle),
+                            icon: ("exclamationmark.triangle.fill", AppDesign.Color.warning)) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -180,6 +181,7 @@ struct HomeView: View {
             .font(AppDesign.Font.footnote)
             .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity).cardSurface(padding: AppDesign.Spacing.lg) // StateCard a la sienne
     }
 
     var body: some View {
@@ -211,7 +213,7 @@ struct HomeView: View {
                 Spacer(minLength: 40)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         .onAppear { vm.refresh() }
     }
 }
@@ -241,8 +243,8 @@ private struct AttentionCounterTile: View {
                 Image(systemName: glyph)
                     .font(.system(size: AppDesign.Icon.md))
                     .foregroundStyle(tint ?? Color.secondary)
-                Text("\(value)")
-                    .font(AppDesign.Font.viewTitle)
+                Text("\(value)").font(AppDesign.Font.viewTitle)
+                    .monospacedDigit().contentTransition(.numericText())
                 Text(label)
                     .font(AppDesign.Font.footnote)
                     .foregroundStyle(.secondary)
@@ -253,10 +255,7 @@ private struct AttentionCounterTile: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppDesign.Spacing.md)
-            .background(.background.secondary,
-                        in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
-            .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-                .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+            .cardSurface(padding: 0)
         }
         .buttonStyle(.plain)
         // Un arrêt « Mise à jour des mods, 11 », pas le nom du symbole puis

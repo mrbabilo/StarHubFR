@@ -1131,6 +1131,10 @@ enum L10n {
 
     // MARK: - Logs
     enum Logs {
+        /// En-tête de « Diagnostic & Performances » (audit UX 2026-10-02).
+        static let headerNoSmapi        = "logs_header_no_smapi"
+        static let headerNoLog          = "logs_header_no_log"
+        static let headerLogDate        = "logs_header_log_date"
         static let systemLogs           = "logs_system_logs"
         static let noLogs               = "logs_no_logs"
         static let emptyFilteredTitle   = "logs_empty_filtered_title"
@@ -1489,6 +1493,8 @@ enum L10n {
 
     // MARK: - Updates
     enum Updates {
+        static let headerPending        = "updates_header_pending"
+        static let headerUpToDate       = "updates_header_up_to_date"
         static let newUpdate            = "updates_new_update"
         static let allUpToDate          = "updates_all_up_to_date"
         static let updateAvailable      = "updates_update_available"
@@ -2082,6 +2088,7 @@ enum L10n {
 
     /// Onglet « Découvrir » (axe G).
     enum Discovery {
+        static let headerSubtitle       = "discovery_header_subtitle"
         static let trending          = "discovery_trending"
         static let recent            = "discovery_recent"
         static let french            = "discovery_french"

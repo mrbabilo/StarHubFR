@@ -27,16 +27,14 @@ struct PerformanceSideDot: View {
     }
 }
 
-/// Une section de l'onglet dans son cadre, au trait de `StandardSection`.
+/// Une section de l'onglet dans la surface commune des cartes.
 struct PerformanceCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) { content }
-            .padding(AppDesign.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-                .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+            .cardSurface(padding: AppDesign.Spacing.lg)
     }
 }
 

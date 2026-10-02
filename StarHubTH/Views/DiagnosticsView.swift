@@ -29,6 +29,12 @@ struct DiagnosticsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // En-tête commun des pages (audit UX 2026-10-02) : la version de
+            // SMAPI et l'âge du journal que les trois onglets lisent.
+            PageHeader(icon: "terminal.fill", title: localization.L(L10n.Logs.logs),
+                       subtitle: headerSummary)
+                .padding(.horizontal, AppDesign.Spacing.xl)
+                .padding(.top, AppDesign.Spacing.md)
             Picker("", selection: segment) {
                 ForEach(DiagnosticsSegment.allCases, id: \.self) { value in
                     Text(label(value)).tag(value)
@@ -36,8 +42,8 @@ struct DiagnosticsView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.sm)
             .background(searchShortcutOutsideJournal)
 
             Divider()
@@ -59,6 +65,18 @@ struct DiagnosticsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppDesign.Color.windowBg)
+    }
+
+    /// « SMAPI 4.1.10 · journal du 02/10 15:20 » : ce que les onglets lisent.
+    private var headerSummary: String {
+        let smapi = viewModel.smapiInstalledVersion.map { "SMAPI \($0)" }
+            ?? localization.L(L10n.Logs.headerNoSmapi)
+        guard let date = viewModel.smapiLogDate else {
+            return "\(smapi) · \(localization.L(L10n.Logs.headerNoLog))"
+        }
+        return "\(smapi) · " + String(format: localization.L(L10n.Logs.headerLogDate),
+                                         DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short))
     }
 
     /// Un onglet non affiché : invisible, sans clic ni raccourci (un bouton
