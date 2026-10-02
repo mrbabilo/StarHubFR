@@ -4170,6 +4170,31 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **C4-T15** ✅ *(livré le 2026-10-02)* — **Les raccourcis sur le
+      matériel.** Né d'une maquette HTML validée par l'auteur sur données
+      réelles (clavier MacBook Pro 14" AZERTY, souris, manette, masquables).
+      Le portage garde trois règles. **Le placement est celui de la
+      capture** : chaque touche porte le nom `MacKeyCodeMap.capturedName`
+      (keyCode + caractère de la disposition active, `MacKeyLayout`, sorti
+      de `ModKeybindField` pour être partagé) — la vue et l'éditeur ne
+      peuvent pas diverger. **Le conflit est celui du rapport**
+      (`SettingBinding.hasConflict`) : la maquette comptait « deux mods sur
+      la touche », ce qui mettait en rouge `Q` et `Ctrl + Q` ; les comptes de
+      l'app peuvent donc différer de la maquette. **Rien ne se perd** : les
+      modificateurs d'une combinaison ne prennent pas la touche (Ctrl
+      serait la plus chargée), un réglage réduit à un modificateur va sur
+      lui, une combinaison à plusieurs touches va sur chacune, et ce
+      qu'aucune surface ne porte (`Delete`, `Home` sur un MacBook) s'affiche
+      dans « Sans touche dédiée » — invariant testé. Core :
+      `MacKeyboardGeometry` (ISO avec `kVK_ISO_Section` et Entrée en L, ANSI ;
+      JIS replié sur ANSI) et `KeybindDevicePlacement`, 10 tests. Vue :
+      `KeybindKeyboardView` + `KeybindDeviceSurface` ; conflit doublé d'un
+      glyphe (jamais la couleur seule), touches illisibles par le jeu en
+      pointillés, souris et manette côte à côte ou empilées
+      (`ViewThatFits`), interrupteurs `@AppStorage`. Clic → popover des
+      réglages, engrenage → éditeur sur la clé (C4-T13). Limite dite à
+      l'écran : un clavier externe peut différer du dessin MacBook.
+
 - [x] **C4-T13** ✅ *(complété le 2026-10-02 — l'axe C est clos)* — **Le
       saut au réglage précis et l'export.** Le 2026-09-24 avait livré la vue
       « tous les raccourcis », ses filtres et l'engrenage par ligne ; l'éditeur

@@ -1,57 +1,5 @@
 import SwiftUI
 import AppKit
-import Carbon.HIToolbox
-
-/// Le caractère que la disposition **courante** donne à une touche
-/// (`UCKeyTranslate`, mode display, sans modificateur) — l'entrée de
-/// `MacKeyCodeMap.capturedName` : le jeu lit le libellé, pas la position
-/// (voir `MacKeyCodeMap`). Cache par source de saisie — la disposition ne
-/// change pas à chaque frappe.
-private enum MacKeyLayout {
-    private static let lock = NSLock()
-    private static var sourceID = ""
-    private static var cache: [UInt16: String?] = [:]
-
-    /// Le caractère de la touche, `nil` quand la disposition n'en produit
-    /// pas (F8, flèches) ou ne se lit pas.
-    static func character(for keyCode: UInt16) -> String? {
-        lock.lock(); defer { lock.unlock() }
-        let current = currentSourceID()
-        if current != sourceID { sourceID = current; cache = [:] }
-        if let cached = cache[keyCode] { return cached }
-        let keycap = translate(keyCode: keyCode)
-        cache[keyCode] = keycap
-        return keycap
-    }
-
-    private static func currentSourceID() -> String {
-        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
-              let raw = TISGetInputSourceProperty(source, kTISPropertyInputSourceID as CFString)
-        else { return "" }
-        return Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
-    }
-
-    private static func translate(keyCode: UInt16) -> String? {
-        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
-              let raw = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData as CFString)
-        else { return nil }
-        let layout = Unmanaged<CFData>.fromOpaque(raw).takeUnretainedValue() as Data
-        var deadKeyState: UInt32 = 0
-        var length = 0
-        var units = [UniChar](repeating: 0, count: 16)
-        let status = layout.withUnsafeBytes { raw in
-            units.withUnsafeMutableBufferPointer { buffer in
-                UCKeyTranslate(raw.baseAddress!.assumingMemoryBound(to: UCKeyboardLayout.self),
-                               keyCode, UInt16(kUCKeyActionDisplay), 0,
-                               UInt32(LMGetKbdType()),
-                               OptionBits(kUCKeyTranslateNoDeadKeysBit),
-                               &deadKeyState, buffer.count, &length, buffer.baseAddress!)
-            }
-        }
-        guard status == noErr, length > 0 else { return nil }
-        return String(utf16CodeUnits: units, count: length)
-    }
-}
 
 /// Le contrôle de capture d'un raccourci reconnu (**C4-T10**), en lieu et
 /// place du champ texte libre que rendait l'éditeur pour les 466 feuilles

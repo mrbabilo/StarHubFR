@@ -226,6 +226,9 @@ struct KeybindReportSection: View {
                 .lineLimit(1).truncationMode(.middle)
         }
         if !report.settings.isEmpty {
+            KeybindKeyboardGroup(localization: localization, settings: report.settings,
+                                 isExpanded: expansion("keyboard", defaultOpen: true),
+                                 openConfig: { openConfig($0, $1) })
             // C4-T13 — replié par défaut, en dernier : ce n'est pas un
             // signal, c'est l'inventaire, après les notes qui disent ce que
             // le scan a écarté.
