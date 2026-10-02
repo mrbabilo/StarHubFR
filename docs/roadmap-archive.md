@@ -4170,6 +4170,26 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **C4-T16** ✅ *(livré le 2026-10-02, quatre lots, un commit chacun)* —
+      **L'écran des raccourcis, simplifié.** Audit UX ciblé (table de
+      conservation de 16 fonctionnalités validée par l'auteur avant toute
+      proposition ; aucune ne perd son écran ni son point d'entrée). (1)
+      **Une couleur par sens** : `hasConflict` mêlait collision entre mods et
+      conflit avec un contrôle du jeu — la liste le peignait orange, le
+      clavier rouge ; `SettingBinding.conflict` (`ConflictKind`, la plus
+      grave l'emporte, testé) et `KeybindConflictStyle` partout. (2)
+      **Gravité** : cartes par rôle — verdict, cassé, à faire, informatif,
+      clavier, inventaire, notes d'exclusion en pied ; tuiles muettes à
+      zéro, chacune ouvre et fait défiler son groupe ; glyphe de gravité en
+      tête de groupe ; touche d'une collision en capuchon (`KeybindKeyChip`).
+      Décisions de revue conservées : vert seulement sur un lot compris,
+      réserve du remappage visible groupe replié, notes jamais repliées
+      (compte avant les noms), latentes affichées même au vert. (3)
+      **Inventaire** : filtre « Liés » par défaut (67 des 171 réglages ne
+      lient rien), mod et chemin d'abord, touche en capuchon. (4) **Clavier** :
+      relief de capuchon (ombre de carte des jetons), survol qui soulève la
+      touche, animation unique via `Motion`.
+
 - [x] **C4-T15** ✅ *(livré le 2026-10-02)* — **Les raccourcis sur le
       matériel.** Né d'une maquette HTML validée par l'auteur sur données
       réelles (clavier MacBook Pro 14" AZERTY, souris, manette, masquables).

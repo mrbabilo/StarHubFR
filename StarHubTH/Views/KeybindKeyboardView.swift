@@ -267,6 +267,7 @@ struct KeybindSurfaceButton<Content: View>: View {
     @ViewBuilder let label: () -> Content
 
     @State private var showing = false
+    @State private var hovering = false
 
     private var bindings: [KeybindScanner.SettingBinding] { name.flatMap { index[$0] } ?? [] }
     private var kind: KeybindScanner.ConflictKind? { name.flatMap { KeybindDevicePlacement.conflict($0, in: index) } }
@@ -279,7 +280,10 @@ struct KeybindSurfaceButton<Content: View>: View {
         let edge: Color = used ? tint : Color.secondary.opacity(0.35)
         let content = label()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(shape.fill(fill))
+            // Relief de capuchon : l'ombre de carte des jetons (I-T18).
+            .background(shape.fill(fill)
+                .shadow(color: .black.opacity(AppDesignCore.Shadow.card.opacity * 1.5),
+                        radius: 0.5, y: 1))
             // Pointillés : une touche que le jeu ne lit pas.
             .overlay(shape.stroke(edge, style: StrokeStyle(lineWidth: used ? 1.5 : 0.75,
                                                            dash: name == nil ? [3, 2] : [])))
@@ -298,6 +302,12 @@ struct KeybindSurfaceButton<Content: View>: View {
             Button { showing = true } label: { content.contentShape(shape) }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
+                // Survol : la touche se soulève un peu — une seule animation,
+                // qui respecte « réduire les animations » (`Motion`).
+                .scaleEffect(hovering ? 1.06 : 1)
+                .zIndex(hovering ? 1 : 0)
+                .onHover { hovering = $0 }
+                .animation(Motion.animation(.easeOut(duration: 0.12)), value: hovering)
                 .accessibilityLabel(accessibility)
                 .popover(isPresented: $showing, arrowEdge: .bottom) { popover }
         } else {

@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Rapport de raccourcis repensé.** Rangé par gravité en cartes : verdict, ce qui est cassé, à faire, informatif, puis le clavier et l'inventaire. Les tuiles ouvrent leur groupe ; une seule couleur par sorte de conflit (rouge entre mods, orange avec le jeu) ; touches en capuchon ; l'inventaire montre les raccourcis liés par défaut.
 - **Raccourcis sur le clavier, la souris et la manette.** Le rapport de raccourcis dessine ton clavier de Mac (ISO ou ANSI), la souris et la manette : chaque touche porte les réglages des mods actifs, en rouge si conflit. Un clic liste les réglages et ouvre l'éditeur sur la bonne clé.
 - **Rapport de raccourcis : jusqu'au réglage, et hors de l'app.** L'engrenage d'une ligne ouvre maintenant l'éditeur de configuration directement sur la clé visée — scrollée au centre et surlignée. Un bouton « Exporter » écrit le rapport complet en Markdown daté, prêt à partager.
 - **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
