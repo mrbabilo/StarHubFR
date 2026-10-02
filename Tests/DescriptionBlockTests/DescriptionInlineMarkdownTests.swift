@@ -97,6 +97,12 @@ import Testing
         #expect(String(text.characters) == "\n\nCompatible with 1.6.15+.\n\n")
     }
 
+    /// Le cas voisin : un décor d'auteur n'est pas un délimiteur orphelin.
+    @Test func decorativeRunsAreKept() {
+        let (text, _) = DescriptionInlineMarkdown.parse("Rating: *****\n~~~ Installation ~~~")
+        #expect(String(text.characters) == "Rating: *****\n~~~ Installation ~~~")
+    }
+
     /// Un `*` seul est un renvoi d'auteur, et le code inline reste intact.
     @Test func singleAsteriskAndInlineCodeAreKept() {
         let (text, _) = DescriptionInlineMarkdown.parse("its own category* here, and `a ** b`")
@@ -110,5 +116,19 @@ import Testing
             Issue.record("bloc inattendu : \(blocks)"); return
         }
         #expect(!String(DescriptionInlineMarkdown.parse(markdown).text.characters).contains("*"))
+    }
+
+    /// BinningSkill (14073) et SpaceCore (1348) : l'emphase qui enveloppe un
+    /// titre ne laisse aucun délimiteur autour du bloc titre.
+    @Test func emphasisWrappingAHeadingLeavesNoDelimiter() {
+        for source in ["[i][size=5][size=4]How To Install[/size]\n[/size][/i]Install required mods.",
+                       "[b][size=5]Compatibility[/size][/b]\nCompatible with 1.6.15+."] {
+            let blocks = DescriptionBlockParser.parse(source)
+            #expect(blocks.contains { if case .heading = $0 { return true }; return false })
+            for block in blocks {
+                guard case .text(let markdown) = block else { continue }
+                #expect(!String(DescriptionInlineMarkdown.parse(markdown).text.characters).contains("*"))
+            }
+        }
     }
 }

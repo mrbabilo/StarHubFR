@@ -189,27 +189,21 @@ struct ModDetailView: View {
         }
     }
 
-    /// Content tab switcher, pinned under the hero. Les gestes de traduction
-    /// partagent la rangée (icônes) au lieu de la recouvrir.
+    /// Content tab switcher, pinned under the hero. En Traduction, les gestes
+    /// focus et plein écran partagent la rangée (`SplitRow`) et passent sous
+    /// les onglets quand la place manque, au lieu de les recouvrir.
     private var tabBar: some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            Picker("", selection: $selectedTab) {
-                Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
-                Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
-                Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
-                    .tag(DetailTab.dependencies)
-                // Toujours offerte : un mod sans i18n est précisément celui qui
-                // reste à traduire, et l'éditeur sait afficher un état vide.
-                Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
-                Text(localization.L(L10n.Mods.tabHistory)).tag(DetailTab.history)
-                Text(localization.L(L10n.Mods.tabManagement)).tag(DetailTab.management)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+        Group {
             if isTranslating {
-                TranslationFocusControls(focusMode: $focusMode,
-                                         sidebarVisibility: $sidebarVisibility,
-                                         localization: localization)
+                SplitRow(spacing: AppDesign.Spacing.sm) {
+                    tabPicker
+                } trailing: {
+                    TranslationFocusControls(focusMode: $focusMode,
+                                             sidebarVisibility: $sidebarVisibility,
+                                             localization: localization)
+                }
+            } else {
+                tabPicker
             }
         }
         .frame(maxWidth: 700)
@@ -218,6 +212,22 @@ struct ModDetailView: View {
         .frame(maxWidth: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private var tabPicker: some View {
+        Picker("", selection: $selectedTab) {
+            Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
+            Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
+            Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
+                .tag(DetailTab.dependencies)
+            // Toujours offerte : un mod sans i18n est précisément celui qui
+            // reste à traduire, et l'éditeur sait afficher un état vide.
+            Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
+            Text(localization.L(L10n.Mods.tabHistory)).tag(DetailTab.history)
+            Text(localization.L(L10n.Mods.tabManagement)).tag(DetailTab.management)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
     // MARK: Hero (bandeau image) + bande fine + chiffres clés — le motif

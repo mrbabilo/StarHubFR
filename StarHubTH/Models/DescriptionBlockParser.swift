@@ -174,6 +174,15 @@ enum DescriptionBlockParser {
             with: "", options: .regularExpression)
         // Bare generic close tag (`[/]`), which no whitelist entry covers.
         formatted = formatted.replacingOccurrences(of: "\\[/\\]", with: "", options: .regularExpression)
+        // Après le retrait des balises : un `[/size]` imbriqué laissé entre le
+        // titre et son délimiteur fermant empêcherait l'appariement.
+        // Une emphase qui enveloppe un titre (`[i][size=5]How To Install[/size][/i]`,
+        // `[b][size=5]Compatibility[/size][/b]`) perdrait son contenu quand le
+        // tokeniseur sort le titre en bloc : ses délimiteurs resteraient de part
+        // et d'autre, en clair. Un titre est déjà mis en valeur — elle tombe.
+        formatted = formatted.replacingOccurrences(
+            of: "(?s)(\\*{1,3}|~~)(\\s*)(\\x{0}H[1-3]\\x{0}(?:(?!\\x{0}/H\\x{0}).)*\\x{0}/H\\x{0})(\\s*)\\1",
+            with: "$2$3$4", options: .regularExpression)
 
         // Nesting two emphasising tags (`[size=4][b]Title[/b][/size]`) yields
         // `****Title****`. Collapse the doubled delimiters instead of deleting

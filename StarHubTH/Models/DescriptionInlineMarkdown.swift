@@ -133,12 +133,16 @@ enum DescriptionInlineMarkdown {
         CharacterSet.punctuationCharacters.contains(scalar) || CharacterSet.symbols.contains(scalar)
     }
 
-    /// Retire, hors code inline, les suites de deux `*` ou plus et de deux `~`
-    /// ou plus que le parse a laissées en texte : un délimiteur que CommonMark
-    /// n'a pas su apparier — `[b]` d'auteur refermé trois paragraphes plus loin,
-    /// gras qui commence par un saut de ligne — ne porte plus aucun sens et
-    /// s'afficherait tel quel. Un `*` seul reste : c'est le renvoi de note des
-    /// auteurs (« category* », « *Potentially »).
+    /// Retire, hors code inline, les suites de 2 à 4 `*` et de exactement 2 `~`
+    /// que le parse a laissées en texte : un délimiteur que CommonMark n'a pas
+    /// su apparier — `[b]` d'auteur refermé trois paragraphes plus loin, gras
+    /// qui commence par un saut de ligne, `** Titre**:` d'un changelog — ne
+    /// porte plus aucun sens et s'afficherait tel quel. Mesuré sur les 22 fiches
+    /// du cache le 2026-10-02 : 217 suites retirées, aucune décorative.
+    ///
+    /// Bornes de ce que le parseur émet (`**`, `***`, `****` d'un titre gras,
+    /// `~~`) : un `*` seul est le renvoi de note des auteurs (« category* »),
+    /// et `*****` ou `~~~ Installation ~~~` sont des décors, gardés.
     private static func dropOrphanDelimiters(from text: inout AttributedString) {
         var orphans: [Range<AttributedString.Index>] = []
         var i = text.startIndex
@@ -149,7 +153,8 @@ enum DescriptionInlineMarkdown {
             while j < text.endIndex, text.characters[j] == c { j = text.characters.index(after: j) }
             let length = text.characters.distance(from: i, to: j)
             let inCode = text[i..<j].runs.contains { $0.inlinePresentationIntent?.contains(.code) == true }
-            if length >= 2, !inCode { orphans.append(i..<j) }
+            let isOrphan = c == "*" ? (2...4).contains(length) : length == 2
+            if isOrphan, !inCode { orphans.append(i..<j) }
             i = j
         }
         for range in orphans.reversed() { text.removeSubrange(range) }
