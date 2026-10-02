@@ -48,12 +48,34 @@ public enum KeybindDevicePlacement {
         return out
     }
 
-    /// Les noms qu'aucune surface dessinée ne porte (`Delete`, `Home` sur un
-    /// MacBook, une ponctuation absente de la disposition courante) — ils
-    /// s'affichent à part, jamais perdus.
+    /// Les touches qu'un MacBook n'a pas en propre mais qu'il atteint avec
+    /// fn, et leur geste.
+    public static let fnReachable: [String: String] = [
+        "Delete": "fn ⌫", "Home": "fn ◀", "End": "fn ▶",
+        "PageUp": "fn ▲", "PageDown": "fn ▼",
+    ]
+
+    /// Tout ce que la vue dessine : les touches nommées du clavier courant,
+    /// la souris et la manette.
+    public static func surfaces(keyboard: [String]) -> Set<String> {
+        Set(keyboard + mouseButtons + gamepadButtons)
+    }
+
+    public struct Leftovers: Equatable, Sendable {
+        /// Atteignables avec fn (`Delete`, `Home`…).
+        public let viaFn: [String]
+        /// **Aucune touche** ne les produit sur ce Mac avec cette disposition
+        /// (`RightControl`, `Scroll`, une ponctuation absente) : le réglage
+        /// ne se déclenchera jamais — un avertissement, pas un reste.
+        public let unreachable: [String]
+    }
+
+    /// Ce qu'aucune surface dessinée ne porte, en deux listes — jamais perdu.
     public static func leftovers(of index: [String: [KeybindScanner.SettingBinding]],
-                                 placed: Set<String>) -> [String] {
-        index.keys.filter { !placed.contains($0) }.sorted()
+                                 surfaces: Set<String>) -> Leftovers {
+        let rest = index.keys.filter { !surfaces.contains($0) }.sorted()
+        return Leftovers(viaFn: rest.filter { fnReachable[$0] != nil },
+                         unreachable: rest.filter { fnReachable[$0] == nil })
     }
 
     /// Un nom porte-t-il un conflit avéré ?

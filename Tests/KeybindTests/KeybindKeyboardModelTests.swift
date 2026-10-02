@@ -92,19 +92,22 @@ struct KeybindKeyboardModelTests {
         #expect(KeybindDevicePlacement.hasConflict("G", in: real))
     }
 
-    /// Invariant : tout réglage lié est soit posé sur une surface, soit dans
-    /// les restes — aucun ne disparaît.
+    /// Invariant : tout réglage lié est posé sur une surface, ou dans l'une
+    /// des deux listes de restes — aucun ne disparaît. Composition réelle :
+    /// les surfaces viennent de `surfaces(keyboard:)`.
     @Test func nothingIsLost() {
         let settings = [
             setting("a", "K1", [["Q"]]), setting("b", "K2", [["Delete"]]),
             setting("c", "K3", [["MouseLeft"]]), setting("d", "K4", [["LeftShoulder"]]),
+            setting("e", "K5", [["Scroll"]]),
         ]
         let index = KeybindDevicePlacement.index(settings)
-        let placed: Set<String> = ["Q", "MouseLeft", "LeftShoulder"]
-        let leftovers = KeybindDevicePlacement.leftovers(of: index, placed: placed)
-        #expect(leftovers == ["Delete"])
-        let covered = Set(index.filter { placed.contains($0.key) || leftovers.contains($0.key) }
-            .values.flatMap { $0.map(\.id) })
+        let surfaces = KeybindDevicePlacement.surfaces(keyboard: ["Q", "A"])
+        let rest = KeybindDevicePlacement.leftovers(of: index, surfaces: surfaces)
+        #expect(rest.viaFn == ["Delete"])
+        #expect(rest.unreachable == ["Scroll"])
+        let reachable = surfaces.union(rest.viaFn).union(rest.unreachable)
+        let covered = Set(index.filter { reachable.contains($0.key) }.values.flatMap { $0.map(\.id) })
         #expect(covered == Set(settings.map(\.id)))
     }
 

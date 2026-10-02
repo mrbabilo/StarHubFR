@@ -68,36 +68,49 @@ struct KeybindKeyboardGroup: View {
         }
     }
 
-    /// Ce que ni le clavier, ni la souris, ni la manette ne portent.
+    /// Ce que ni le clavier, ni la souris, ni la manette ne portent : les
+    /// touches atteintes avec fn, puis — en avertissement — celles qu'aucune
+    /// touche de ce Mac ne produit.
     @ViewBuilder
     private func leftovers(_ index: [String: [KeybindScanner.SettingBinding]],
                            keys: [DrawnKey]) -> some View {
-        let placed = Set(keys.compactMap(\.name)
-            + KeybindDevicePlacement.mouseButtons + KeybindDevicePlacement.gamepadButtons)
-        let rest = KeybindDevicePlacement.leftovers(of: index, placed: placed)
-        if !rest.isEmpty {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                Text(localization.L(L10n.Keybinds.keyboardLeftovers))
+        let rest = KeybindDevicePlacement.leftovers(
+            of: index, surfaces: KeybindDevicePlacement.surfaces(keyboard: keys.compactMap(\.name)))
+        if !rest.viaFn.isEmpty {
+            chips(localization.L(L10n.Keybinds.keyboardViaFn), names: rest.viaFn, index: index) {
+                "\($0) (\(KeybindDevicePlacement.fnReachable[$0] ?? ""))"
+            }
+        }
+        if !rest.unreachable.isEmpty {
+            chips(localization.L(L10n.Keybinds.keyboardUnreachable), names: rest.unreachable,
+                  index: index, warning: true) { $0 }
+        }
+    }
+
+    private func chips(_ title: String, names: [String],
+                       index: [String: [KeybindScanner.SettingBinding]],
+                       warning: Bool = false, label: @escaping (String) -> String) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+            if warning {
+                SwiftUI.Label(title, systemImage: "exclamationmark.triangle.fill")
                     .font(AppDesign.Font.caption(.semibold))
-                WrapHStack(spacing: 6, lineSpacing: 6) {
-                    ForEach(rest, id: \.self) { name in
-                        KeybindSurfaceButton(name: name, index: index, localization: localization,
-                                      openConfig: openConfig) {
-                            Text("\(Self.leftoverLabel[name] ?? name) · \(index[name]?.count ?? 0)")
-                                .font(AppDesign.Font.caption)
-                                .padding(.horizontal, 8).padding(.vertical, 4)
-                        }
+                    .foregroundColor(AppDesign.Color.warning)
+            } else {
+                Text(title).font(AppDesign.Font.caption(.semibold))
+            }
+            WrapHStack(spacing: 6, lineSpacing: 6) {
+                ForEach(names, id: \.self) { name in
+                    KeybindSurfaceButton(name: name, index: index, localization: localization,
+                                         openConfig: openConfig) {
+                        Text("\(label(name)) · \(index[name]?.count ?? 0)")
+                            .font(AppDesign.Font.caption)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
                     }
+                    .fixedSize()
                 }
             }
         }
     }
-
-    /// Les touches qu'un MacBook n'a pas en propre, avec leur geste.
-    private static let leftoverLabel: [String: String] = [
-        "Delete": "suppr. (fn ⌫)", "Home": "début (fn ◀)", "End": "fin (fn ▶)",
-        "PageUp": "page ↑ (fn ▲)", "PageDown": "page ↓ (fn ▼)", "Insert": "insert",
-    ]
 }
 
 // MARK: - Une touche dessinée

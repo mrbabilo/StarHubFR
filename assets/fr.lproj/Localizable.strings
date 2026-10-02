@@ -311,10 +311,11 @@
 "keybinds_export" = "Exporter";
 "keybinds_export_hint" = "Le rapport en Markdown, pour le partager ou le joindre à un rapport de bug.";
 "keybinds_keyboard_header" = "Sur le clavier, la souris et la manette";
-"keybinds_keyboard_hint" = "Chaque touche porte les réglages des mods actifs, sous le nom que le jeu lit avec ta disposition. Clique une touche colorée pour voir ses réglages et ouvrir l'éditeur sur la bonne clé.";
+"keybinds_keyboard_hint" = "Chaque touche porte les réglages des mods actifs, sous le nom que le jeu lit avec votre disposition. Cliquez une touche colorée pour voir ses réglages et ouvrir l'éditeur sur la bonne clé.";
 "keybinds_keyboard_mouse" = "Souris";
 "keybinds_keyboard_gamepad" = "Manette";
-"keybinds_keyboard_leftovers" = "Sans touche dédiée";
+"keybinds_keyboard_via_fn" = "Avec la touche fn";
+"keybinds_keyboard_unreachable" = "Aucune touche de ce Mac — ces réglages ne se déclencheront pas";
 "keybinds_keyboard_model_note" = "Dessin d'un clavier de MacBook ; un clavier externe peut différer. En pointillés : touches que le jeu ne lit pas.";
 "keybinds_keyboard_unreadable" = "Le jeu ne lit pas cette touche";
 "keybinds_keyboard_a11y" = "%@ : %lld réglage(s)";
@@ -740,7 +741,7 @@
 "deps_sheet_install_all" = "Tout installer";
 "deps_sheet_open_page" = "Ouvrir la page Nexus";
 "deps_sheet_search" = "Rechercher sur Nexus";
-"deps_sheet_free_hint" = "Sans téléchargement direct sur ce compte : la page Nexus s'ouvre — clique « Mod Manager Download », l'app récupère l'archive.";
+"deps_sheet_free_hint" = "Sans téléchargement direct sur ce compte : la page Nexus s'ouvre — cliquez « Mod Manager Download », l'app récupère l'archive.";
 "deps_sheet_smapi" = "SMAPI s'installe par son installateur (bouton SMAPI de l'app).";
 "deps_sheet_close" = "Fermer";
 "mods_detail_bugs" = "Bugs signalés";
@@ -1733,11 +1734,11 @@
 "perf_loading" = "Lecture des mesures de la sonde…";
 "perf_profiler_title" = "Profiler";
 "perf_profiler_absent" = "Profiler n'est pas installé. C'est lui qui mesure le temps que passe le jeu dans chaque mod.";
-"perf_profiler_absent_hint" = "Installe-le depuis sa page GitHub (bouton ci-dessus), comme n'importe quel mod — le glisser-déposer dans la fenêtre l'installe. Puis joue une session représentative : la charge apparaîtra ici.";
+"perf_profiler_absent_hint" = "Installez-le depuis sa page GitHub (bouton ci-dessus), comme n'importe quel mod — le glisser-déposer dans la fenêtre l'installe. Jouez ensuite une session représentative : la charge apparaîtra ici.";
 "perf_profiler_page" = "Ouvrir la page GitHub";
 "perf_profiler_paused" = "Profiler est installé mais en pause (%@) : le jeu ne le charge pas.";
 "perf_profiler_enable" = "Activer Profiler";
-"perf_profiler_enabled_hint" = "Joue une session représentative (quelques journées en jeu, les moments que tu trouves lents), puis reviens : la session entre dans les sélecteurs Avant/Après de cette page, et le classement « Impact par mod » se remplit.";
+"perf_profiler_enabled_hint" = "Jouez une session représentative (quelques journées en jeu, les moments qui vous semblent lents), puis revenez : la session entre dans les sélecteurs Avant/Après de cette page, et le classement « Impact par mod » se remplit.";
 "perf_profiler_enabled_ok" = "Profiler est actif";
 "perf_unreadable" = "%lld ligne(s) illisible(s) ignorée(s)";
 "perf_inventory_missing" = "Inventaire absent pour un des deux moments : installez la sonde 0.4.12 ou plus récente pour voir ce qui a changé.";
