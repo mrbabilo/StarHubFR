@@ -219,7 +219,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > mérite d'être préservé, c'est l'**ordre des clés**, et `ConfigJSONTree` le fait déjà
 > — voir **C4-T5**.
 
-- [ ] **C4-T13 — Filtres, recherche, saut-au-réglage et export du rapport
+- [x] **C4-T13** ✅ *(livré le 2026-10-02, à l'archive)* — Filtres, recherche, saut-au-réglage et export du rapport
       de raccourcis.** *(les restes C4 notés le 2026-09-15 deviennent un item ;
       le signal de demande est double depuis le 2026-09-23 — Keybind Radar
       n'existe QUE pour ça, et MCM a son `KeybindOverviewModal`.)* Sur
