@@ -14,7 +14,9 @@ extension UpdatesView {
                           subtitle: pending > 0
                               ? String(format: localization.L(L10n.Updates.headerPending), Int64(pending))
                               : localization.L(L10n.Updates.headerUpToDate),
-                          tint: pending > 0 ? AppDesign.Color.info : AppDesign.Color.success)
+                          // Pas de vert à zéro : un 0 vaut aussi pour une
+                          // vérification Nexus jamais lancée — « à jour » mentirait.
+                          tint: pending > 0 ? AppDesign.Color.info : AppDesign.Color.accent)
             .padding(.horizontal, AppDesign.Spacing.xl)
             .padding(.vertical, AppDesign.Spacing.md)
     }

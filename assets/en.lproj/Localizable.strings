@@ -2051,5 +2051,5 @@
 "logs_header_no_log" = "no log read yet";
 "logs_header_log_date" = "log of %@";
 "updates_header_pending" = "%lld update(s) waiting";
-"updates_header_up_to_date" = "Everything is up to date";
+"updates_header_up_to_date" = "No update waiting";
 "discovery_header_subtitle" = "What's new and popular on Nexus, ready to install.";
