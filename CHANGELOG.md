@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Journal des modifications, éditeur de config et chronologie repensés.** Une carte par version avec ses ajouts, modifications et corrections en pastilles ; l'éditeur de config porte l'en-tête commun et le choix Visuel/Code près du contenu, ses sections en cartes ; la chronologie d'une sauvegarde aussi.
+
 ## [1.53.0] - 2026-10-02
 
 ### Added

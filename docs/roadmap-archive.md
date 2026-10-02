@@ -4911,6 +4911,52 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       `AppDesign.Color.success` (vert système : teinte légèrement plus vive).
 
 
+- [x] **I-T18** ✅ *(livré le 2026-10-02, vérifié à l'écran par l'auteur lot
+      par lot ; l'essentiel sorti en **v1.53.0**)* — **Audit UX : un seul
+      langage visuel pour toutes les pages.** Rapport local
+      `docs/superpowers/specs/2026-10-02-audit-ux-5-pages.md` (gitignoré) ;
+      ses décisions sont recopiées ici (§9).
+      - **Socle** : `Views/Components/PageChrome.swift` — `PageHeader` (tuile
+        d'icône de la barre latérale, titre, sous-titre de contexte, actions à
+        droite qui passent dessous en fenêtre étroite via `SplitRow`),
+        `IconTile`, `cardSurface` (fond, liseré, jeton `Shadow.card`),
+        `MetricTile` (chiffre animé, mène à ce qu'il résume), `CoverageRing`.
+        `StandardSection(icon:)` devient une carte ; `PerformanceCard`,
+        `SmapiHealthCard` et `BisectionCard` passent sur `cardSurface`.
+      - **Pages** : Alertes système, Profils, Traductions FR, Réglages (⌘,),
+        aide des Raccourcis, Sauvegardes du jeu, Quarantaine, Sauvegardes des
+        mods, Entretien, Accueil, Gestion des mods, Découvrir, Mise à jour des
+        mods, Diagnostic & Performances, Journal des modifications, éditeur
+        de config, chronologie d'une sauvegarde, feuille d'installation.
+      - **Fiche de mod** en six onglets (`DetailTab` : overview, health,
+        dependencies, translation, history, management) ; Santé s'ouvre sur
+        un relevé (`ModHealthChecklist`, Core, 7 tests, sabotage vérifié) —
+        **non mesuré n'est pas sain** : sans rapport de raccourcis ou pour un
+        mod inconnu de smapi.io, « non vérifié », jamais une coche ; chaque
+        signal lu par l'accesseur de sa section. Aperçu : carte de
+        compatibilité (verdict smapi.io + `CompatibilityNote` de l'auteur).
+      - **Alertes système en trois onglets** (`AlertsSegment`) : le rapport
+        des raccourcis et le panorama des conflits, popups trop chargées,
+        deviennent des onglets ; `switch` et non onglets montés — le rapport
+        lance une analyse à son apparition. L'état vide ne couvre que la liste.
+      - **Descriptions Nexus** : parse Markdown unique avec sentinelles
+        (`DescriptionInlineMarkdown`, Core) — mesuré sur les 22 fiches du
+        cache, **103 marqueurs visibles → 8**, dont 7 voulus par l'auteur.
+        Cause majeure : un span couleur/souligné coupait le gras en deux
+        parses. Délimiteurs orphelins retirés hors code (2 à 4 `*`, `~~`
+        exactement : les décors `*****` restent).
+      - **Écarté, avec raison** : le rendu des lignes du Journal (lecteur
+        paresseux, seules ses marges changent) ; l'éditeur de sauvegarde et le
+        détail Découvrir (déjà bandeau illustré + bande de chiffres).
+      - **Reste ouvert** : l'en-tête des Mises à jour dit « Aucune mise à jour
+        en attente », pas « Tout est à jour » — l'app ne garde **aucun
+        horodatage** de la dernière vérification Nexus, et un zéro peut venir
+        d'une vérification jamais lancée. Poser cet horodatage permettrait
+        le vert honnête. Gestion des mods passe à trois rangées d'en-tête
+        (poids du cadrage et profil déplacés, rien d'ajouté) : validé à
+        l'écran.
+
+
 #### Axe F — Dette technique (suite)
 
 
