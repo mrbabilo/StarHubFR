@@ -15,18 +15,27 @@ where the exact log format was verified.
 ### Added
 
 - **Impact de chaque mod.** Sur la fiche, une étoile à cinq axes (calcul par trame, plus long blocage, lancement, chargement de sauvegarde, allocations), une note /100 et ce que la pause rendrait ; l'historique garde la note de chaque version. Dans l'onglet Performances, le classement « Impact par mod ».
+- **Relevé de santé de chaque mod.** L'onglet Santé de la fiche s'ouvre sur un verdict et huit vérifications (liste noire, chargement, smapi.io, journal, incompatibilités, raccourcis, travail en double, page Nexus) ; « Non vérifié » quand la donnée manque, un clic mène au détail.
+- **Compatibilité en tête de la fiche.** L'onglet Aperçu réunit le verdict de smapi.io et ce que l'auteur dit de la compatibilité dans sa description.
+- **Filtrer les problèmes par type.** En cadrage « Problèmes », des puces chiffrées (erreurs, avertissements, dépendances, sans identifiant, doublons, compatibilité, page Nexus) filtrent la liste.
+- **Espace de traduction maximisé.** Dans l'onglet Traduction, le mode focus masque bandeaux et barre latérale (Échap pour sortir), et un bouton passe en plein écran.
 
 ### Changed
 
 - **Statistiques à jour dès que le jeu est quitté.** L'impact par mod et l'onglet Performances intègrent la session close sans attendre un retour dans l'app.
 - **Liens et boutons de l'onglet Performances reconnaissables.** Main au survol, liens soulignés au survol et atténués au clic, rien sur un bouton désactivé.
 - **Sonde en tête bien visible.** La carte « Chargements » affiche l'état de la sonde en tête dans un encadré coloré : active, effet au prochain lancement, en pause, ou non appliquée, avec le geste qui va avec (réessayer, retirer).
+- **Fiche de mod en six onglets.** Aperçu, Santé, Dépendances, Traduction (toujours offert), Historique, Gestion ; les alertes ouvrent désormais la fiche sur Santé.
+- **Alertes système et Profils repensés.** Alertes : tuiles de gravité qui filtrent, barre de répartition, état vide expliqué. Profils : profil actif en en-tête, profils en cartes, couverture FR sur un anneau.
+- **Traductions FR, Réglages et Raccourcis repensés.** Anneau de répartition par statut qui mène à chaque section ; réglages en cartes à icône, ⌘, pour les ouvrir ; aide des raccourcis en touches en relief, rapport des mods chiffré.
 
 ### Fixed
 
 - **`config.user.json` de SMAPI jamais écrasé.** Un fichier illisible était réécrit sans copie quand la sonde passait en tête ; il reste désormais intact, et l'échec s'affiche au lieu de passer sous silence.
 - **Désactivations enchaînées respectées.** Désactiver plusieurs mods à la suite ne réactive plus un mod déjà mis en pause par ses dépendances, ni ces dépendances avec lui.
 - **Barre latérale à largeur fixe.** Elle se replie toujours, mais ne se redimensionne plus à la souris.
+- **Plus d'astérisques dans les descriptions Nexus.** Un gras traversé par un mot coloré ou souligné, ou un balisage d'auteur mal refermé, affichait ses `**` ; le texte est lu d'un seul tenant, les décors de l'auteur restent.
+- **Infobulle du menu « … » des profils.** Elle disait « Renommer » pour six actions ; elle dit « Plus d'actions ».
 
 ## [1.52.0] - 2026-10-01
 
