@@ -111,80 +111,26 @@ struct MarkdownText: View {
         return resolved ?? .windowBackgroundColor
     }
 
-    /// Découpe le Markdown sur les attributs personnalisés `^[X](shcolor: 'hex')`
-    /// (couleur, contraste-corrigée sur le fond fenêtre) et `^[X](shunderline:
-    /// 'true')` (souligné), puis applique de vrais runs natifs `.foregroundColor`
-    /// / `.underlineStyle` sur chaque portion — la couleur et le souligné
-    /// n'existent pas en Markdown, et Foundation n'attache pas fiablement les
-    /// attributs custom en mode inline, on les applique donc soi-même. Le texte
-    /// hors de ces spans est parsé à l'identique d'avant (un seul segment).
+    /// Parse le Markdown en une passe (`DescriptionInlineMarkdown`, Core), puis
+    /// pose de vrais runs natifs `.foregroundColor` / `.underlineStyle` sur les
+    /// spans `^[X](shcolor: 'hex')` / `^[X](shunderline: 'true')` — la couleur
+    /// et le souligné n'existent pas en Markdown, et Foundation n'attache pas
+    /// fiablement les attributs custom en mode inline. La couleur est corrigée
+    /// en contraste contre le fond de fenêtre.
     static func render(_ s: String) -> AttributedString {
+        var (result, spans) = DescriptionInlineMarkdown.parse(s)
+        guard !spans.isEmpty else { return result }
         let background = resolvedWindowBackground()
-        var result = AttributedString()
-        let ns = s as NSString
-        let pattern = "(?s)\\^\\[(.*?)\\]\\((?:shcolor: '([^']*)'|shunderline: '([^']*)')\\)"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return parseInline(s)
-        }
-        let matches = regex.matches(in: s, range: NSRange(location: 0, length: ns.length))
-        var cursor = 0
-        for m in matches {
-            if m.range.location > cursor {
-                result += parseInline(ns.substring(with: NSRange(location: cursor,
-                                                                  length: m.range.location - cursor)))
-            }
-            let content = ns.substring(with: m.range(at: 1))
-            let hex = m.range(at: 2).location == NSNotFound ? nil : ns.substring(with: m.range(at: 2))
-            let under = m.range(at: 3).location == NSNotFound ? nil : ns.substring(with: m.range(at: 3))
-            var piece = parseInline(content)
-            if let hex, let nsColor = NSColor(hex: hex),
+        for span in spans {
+            if let hex = span.colorHex, let nsColor = NSColor(hex: hex),
                let adjusted = ContrastChecker.adjusted(nsColor, on: background) {
-                piece.foregroundColor = Color(nsColor: adjusted)
+                result[span.range].foregroundColor = Color(nsColor: adjusted)
             }
-            if under != nil {
-                piece.underlineStyle = .single
+            if span.underline {
+                result[span.range].underlineStyle = .single
             }
-            result += piece
-            cursor = m.range.location + m.range.length
-        }
-        if cursor < ns.length {
-            result += parseInline(ns.substring(from: cursor))
         }
         return result
-    }
-
-    /// Parse Markdown inline en préservant les espaces/newlines (le corps d'une
-    /// description s'appuie sur les sauts de ligne) ; dégrade vers le brut plutôt
-    /// que de planter sur du Markdown malformé ou un `%` parasite. Au passage,
-    /// retire toute syntaxe résiduelle d'attribut couleur/souligné qu'un span
-    /// mal formé aurait laissé fuir (couleurs imbriquées, balise vide, span à
-    /// cheval sur un bloc) — voir `scrubResidualColorSyntax`.
-    private static func parseInline(_ s: String) -> AttributedString {
-        let cleaned = scrubResidualColorSyntax(s)
-        return (try? AttributedString(
-            markdown: cleaned,
-            options: .init(
-                interpretedSyntax: .inlineOnlyPreservingWhitespace,
-                failurePolicy: .returnPartiallyParsedIfPossible
-            )
-        )) ?? AttributedString(cleaned)
-    }
-
-    /// Retire toute syntaxe résiduelle d'attribut couleur/souligné (`^[`,
-    /// `](shcolor: '…')`, `^(shcolor: '…')`, `shcolor: '…'`) qu'un span mal formé
-    /// aurait laissé fuir. Les vrais liens Markdown `[texte](https://…)` ne sont
-    /// pas touchés (ils ne contiennent pas `shcolor`). Garantit qu'aucun balisage
-    /// interne ne s'affiche, même quand le parseur a produit un span imparfait.
-    private static func scrubResidualColorSyntax(_ s: String) -> String {
-        var out = s
-        out = out.replacingOccurrences(of: "\\]\\((?:shcolor|shunderline): '[^']*'\\)",
-                                       with: "", options: .regularExpression)
-        out = out.replacingOccurrences(of: "\\^\\((?:shcolor|shunderline): '[^']*'\\)",
-                                       with: "", options: .regularExpression)
-        out = out.replacingOccurrences(of: "\\^\\[", with: "", options: .regularExpression)
-        out = out.replacingOccurrences(of: "(?:shcolor|shunderline): '[^']*'",
-                                       with: "", options: .regularExpression)
-        return out
     }
 
     var body: some View {

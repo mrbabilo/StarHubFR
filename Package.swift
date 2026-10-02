@@ -60,6 +60,7 @@ let package = Package(
                 "Models/ManifestlessInstaller.swift",
                 "Models/ManifestVersionPatcher.swift",
                 "Models/DescriptionBlockParser.swift",
+                "Models/DescriptionInlineMarkdown.swift",
                 "Models/CompatibilityNote.swift",
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",

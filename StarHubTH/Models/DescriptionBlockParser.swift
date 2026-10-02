@@ -123,6 +123,10 @@ enum DescriptionBlockParser {
         }
 
         // 4. BBCode → Markdown
+        // Un `[i]` qui n'enveloppe que de la ponctuation (`mods[i].\n[/i]`,
+        // ArchaeologySkill) donnerait `*.\n*` : illisible pour CommonMark, deux
+        // `*` à l'écran. Pas d'italique sur un point — les balises tombent.
+        formatted = formatted.replacingOccurrences(of: "(?is)\\[i\\]([\\p{P}\\p{S}\\s]*)\\[/i\\]", with: "$1", options: .regularExpression)
         formatted = formatted.replacingOccurrences(of: "(?s)\\[b\\](\\s*)(.*?)(\\s*)\\[/b\\]", with: "$1**$2**$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[i\\](\\s*)(.*?)(\\s*)\\[/i\\]", with: "$1*$2*$3", options: [.regularExpression, .caseInsensitive])
         formatted = formatted.replacingOccurrences(of: "(?s)\\[s\\](\\s*)(.*?)(\\s*)\\[/s\\]", with: "$1~~$2~~$3", options: [.regularExpression, .caseInsensitive])
