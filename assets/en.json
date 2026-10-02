@@ -2051,6 +2051,7 @@
   "logs_header_no_log": "no log read yet",
   "logs_header_log_date": "log of %@",
   "updates_header_pending": "%lld update(s) waiting",
+  "updates_header_pending_checked": "%lld update(s) waiting · checked %@",
   "updates_header_never_checked": "No update waiting · never checked",
   "updates_header_up_to_date_checked": "Everything is up to date · checked %@",
   "updates_header_verifiable_checked": "All verifiable mods are up to date · checked %@",

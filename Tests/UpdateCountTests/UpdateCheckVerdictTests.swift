@@ -10,7 +10,15 @@ import Foundation
 
     @Test func unCompteNonNulResteEnAttente() {
         #expect(UpdateCheckVerdict.resolve(pending: 3, lastCheckedAt: nil,
-                                           unverifiableCount: nil) == .pending(3))
+                                           unverifiableCount: nil)
+                == .pending(3, checkedAt: nil))
+    }
+
+    /// Le cas courant du parc (6 en attente) : l'âge s'affiche aussi.
+    @Test func unCompteNonNulGardeSonHorodatage() {
+        #expect(UpdateCheckVerdict.resolve(pending: 6, lastCheckedAt: checked,
+                                           unverifiableCount: 0)
+                == .pending(6, checkedAt: checked))
     }
 
     /// Le défaut d'origine : zéro sans aucune passe aboutie.

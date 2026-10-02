@@ -1505,6 +1505,7 @@ enum L10n {
     enum Updates {
         static let headerPending        = "updates_header_pending"
         static let headerNeverChecked   = "updates_header_never_checked"
+        static let headerPendingChecked = "updates_header_pending_checked"
         static let headerUpToDateChecked = "updates_header_up_to_date_checked"
         static let headerVerifiableChecked = "updates_header_verifiable_checked"
         static let neverChecked         = "updates_never_checked"

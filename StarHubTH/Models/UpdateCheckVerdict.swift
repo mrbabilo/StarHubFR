@@ -14,11 +14,12 @@ import Foundation
 /// - **tout est à jour** — passe complète **dans cette session**, aucun
 ///   invérifiable.
 ///
-/// L'horodatage accompagne les deux derniers : « à jour » d'il y a trois
+/// L'horodatage accompagne tout verdict mesuré, compte non nul compris
+/// (`nil` tant qu'aucune passe n'a abouti) : « à jour » d'il y a trois
 /// jours n'est pas « à jour » de ce matin, et c'est au lecteur d'en juger —
 /// pas de seuil de péremption inventé ici.
 public enum UpdateCheckVerdict: Equatable, Sendable {
-    case pending(Int)
+    case pending(Int, checkedAt: Date?)
     case upToDate(checkedAt: Date)
     case verifiableUpToDate(checkedAt: Date)
     case neverChecked
@@ -31,7 +32,7 @@ public enum UpdateCheckVerdict: Equatable, Sendable {
     ///     (relance, ou passe en cours qui l'a remis en question).
     public static func resolve(pending: Int, lastCheckedAt: Date?,
                                unverifiableCount: Int?) -> UpdateCheckVerdict {
-        if pending > 0 { return .pending(pending) }
+        if pending > 0 { return .pending(pending, checkedAt: lastCheckedAt) }
         guard let checkedAt = lastCheckedAt else { return .neverChecked }
         return unverifiableCount == 0
             ? .upToDate(checkedAt: checkedAt)

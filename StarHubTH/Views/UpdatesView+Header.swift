@@ -26,7 +26,10 @@ extension UpdatesView {
     private func headerSubtitle(_ verdict: UpdateCheckVerdict, now: Date) -> String {
         let locale = Locale(identifier: localization.currentLanguage)
         switch verdict {
-        case .pending(let count):
+        case .pending(let count, let checkedAt?):
+            return String(format: localization.L(L10n.Updates.headerPendingChecked), Int64(count),
+                          UpdateCheckVerdict.ageText(since: checkedAt, now: now, locale: locale))
+        case .pending(let count, nil):
             return String(format: localization.L(L10n.Updates.headerPending), Int64(count))
         case .upToDate(let checkedAt):
             return String(format: localization.L(L10n.Updates.headerUpToDateChecked),
