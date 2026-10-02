@@ -21,6 +21,7 @@ struct PerformanceView: View {
                     PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
                 PerformanceCard { PerformanceImpactSection(viewModel: viewModel, localization: localization) }
+                PerformanceProfilerSection(viewModel: viewModel, localization: localization)
                 // En-tête, mesure guidée et sélecteurs forment un bloc : les
                 // tuiles de trame lisent la paire choisie (`store.report`).
                 inGameTitle

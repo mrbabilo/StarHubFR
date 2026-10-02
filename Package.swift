@@ -334,6 +334,8 @@ let package = Package(
                 "Models/DetailTab.swift",
                 "Models/TranslationDiffFilter.swift",
                 "Models/ModScanner.swift",
+                "Models/ModFolderTraversal.swift",
+                "Models/ProfilerDetection.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",
@@ -912,6 +914,16 @@ let package = Package(
             name: "SmapiHealthFoldTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiHealthFoldTests"
+        ),
+        .testTarget(
+            name: "ModFolderTraversalTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModFolderTraversalTests"
+        ),
+        .testTarget(
+            name: "ProfilerDetectionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ProfilerDetectionTests"
         ),
         .testTarget(
             name: "MissingDependenciesTests",

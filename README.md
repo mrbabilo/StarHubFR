@@ -23,6 +23,8 @@
 **StarHubFR est un gestionnaire de mods Stardew Valley natif pour macOS, en français.**
 Installez, organisez et dépannez votre collection de mods sans jamais toucher au Finder ni au terminal — même avec plusieurs centaines de mods.
 
+**[Guide utilisateur](GUIDE.md)** — coexistence avec les autres gestionnaires, la convention `X` / `.X` des mods en pause, et la désinstallation propre de StarHubFR.
+
 ## Pourquoi StarHubFR
 
 *   🇫🇷 **Entièrement en français** — interface, messages d'erreur et diagnostics, avec bascule instantanée vers l'anglais.

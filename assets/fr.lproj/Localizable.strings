@@ -1720,6 +1720,14 @@
 "perf_no_probe" = "Aucune donnée de la sonde StarHubFR : installez-la (0.4.12 ou plus récente), puis jouez une session.";
 "perf_need_two" = "Il faut deux sessions de la sonde pour comparer.";
 "perf_loading" = "Lecture des mesures de la sonde…";
+"perf_profiler_title" = "Profiler";
+"perf_profiler_absent" = "Profiler n'est pas installé. C'est lui qui mesure le temps que passe le jeu dans chaque mod.";
+"perf_profiler_absent_hint" = "Installe-le depuis sa page GitHub (bouton ci-dessus), comme n'importe quel mod — le glisser-déposer dans la fenêtre l'installe. Puis joue une session représentative : la charge apparaîtra ici.";
+"perf_profiler_page" = "Ouvrir la page GitHub";
+"perf_profiler_paused" = "Profiler est installé mais en pause (%@) : le jeu ne le charge pas.";
+"perf_profiler_enable" = "Activer Profiler";
+"perf_profiler_enabled_hint" = "Joue une session représentative (quelques journées en jeu, les moments que tu trouves lents), puis reviens : la session entre dans les sélecteurs Avant/Après de cette page, et le classement « Impact par mod » se remplit.";
+"perf_profiler_enabled_ok" = "Profiler est actif";
 "perf_unreadable" = "%lld ligne(s) illisible(s) ignorée(s)";
 "perf_inventory_missing" = "Inventaire absent pour un des deux moments : installez la sonde 0.4.12 ou plus récente pour voir ce qui a changé.";
 "perf_before" = "Avant";

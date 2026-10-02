@@ -4170,6 +4170,46 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T4** ✅ *(livré le 2026-10-02)* — **Un `examples/` n'est pas un
+      composant de mod.** L'oracle demandé par la case a été lu dans le **code**
+      SMAPI (`SMAPI.Toolkit/Framework/ModScanning/ModScanner.cs`, clone du jour) :
+      un dossier est un « dossier de recherche » (on descend) seulement s'il
+      porte au moins un sous-dossier et **aucun fichier pertinent** — README,
+      images et archives ignorés, manifeste compris comme pertinent ; sinon il
+      est lu comme **un** mod, et rien en dessous. Conséquence : `examples/`,
+      `ContentPackTemplate/` et `assets/` sous un vrai mod ne sont **jamais**
+      chargés par SMAPI. Notre balayage listait tout manifeste trouvé en
+      profondeur. Mesuré sur le parc, tous parents activés simulés : **15
+      entrées** que SMAPI n'aurait pas (`BushBloomMod/examples/` ×3,
+      `MakeLove/ContentPackTemplate/`, `TacticalEchoMines/assets/` ×4,
+      `ValleyBonds` ×4, `BetterJunimos` Config Wizard, `Aquatic Sea Fish` ×2)
+      et **zéro** mod que SMAPI verrait et nous pas (la réplique a d'abord
+      accusé deux faux — `Manifest.json` à majuscule, lu par les deux ; un
+      dossier sans manifeste). Livré : `ModFolderTraversal` (Core, 5 tests,
+      règle copiée et commentée), branché dans `ModScanner.scanEntryForMods`.
+      Zéro changement visible aujourd'hui — les 15 parents sont en pause ;
+      l'écart aurait paru à la prochaine activation.
+
+- [x] **D1-T1** ✅ *(livré le 2026-10-02)* — **Profiler : détecté et guidé.**
+      `ProfilerDetection` (Core, 4 tests) lit la liste publiée par le scan —
+      `SinZ.Profiler` (dump Pathoschild, Nexus 12135), casse pliée, composants
+      de packs compris — et rend absent / en pause / actif. Carte
+      `PerformanceProfilerSection` en tête de l'onglet Performances :
+      absent → lien GitHub (l'install passe par le glisser-déposer habituel) ;
+      en pause → bouton « Activer Profiler » (le `toggleMod` du parc, nom
+      relu au clic) ; actif → le guidage demandé (jouer une session
+      représentative, revenir : la session entre dans les sélecteurs
+      Avant/Après). État non mesuré sur le parc au moment du port — Profiler
+      y a vécu une session le 2026-09-29, son état actuel se lit à l'écran.
+
+- [x] **E2-T2** ✅ *(livré le 2026-10-02)* — **Guide utilisateur.**
+      `GUIDE.md` à la racine, relié au README : coexistence avec Vortex,
+      Stardrop et le Nexus Mods App (un seul outil bascule ; une installation
+      vaut pour tous ; le lancement passe par SMAPI), la convention `X` / `.X`
+      (un mod en pause n'est pas un mod supprimé, le Finder cache ces
+      dossiers), et la désinstallation propre (tout réactiver d'abord, sinon
+      les dossiers cachés semblent perdus). Français, comme le README.
+
 - [x] **A1-T1** ✅ *(recadrée et livrée le 2026-10-02)* — **Les dépendances
       manquantes, nommées et installables.** La case demandait « activer toutes
       les dépendances manquantes en un geste, avec récapitulatif » ; la

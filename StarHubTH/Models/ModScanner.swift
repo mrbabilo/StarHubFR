@@ -280,16 +280,12 @@ final class ModScanner: @unchecked Sendable {
             let url = URL(fileURLWithPath: physicalRoot)
             var foundMods: [ModItem] = []
 
-            // Sub-scan with `.skipsHiddenFiles` so nested junk (.DS_Store,
-            // .git/, ._Foo) stays hidden — the dot-prefix classification of
-            // *top-level* entries is handled by the caller, not here.
-            // includingPropertiesForKeys: [] — we only filter by filename
-            // ("manifest.json"), so prefetching isDirectory per file is pure
-            // overhead on a tree with tens of thousands of files.
-            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [], options: [.skipsHiddenFiles]) {
-                for case let fileURL as URL in enumerator {
-                    if fileURL.lastPathComponent.lowercased() == "manifest.json" {
-                        let modFolderURL = fileURL.deletingLastPathComponent()
+            // Traversal SMAPI (A1-T4, `ModFolderTraversal`) : un dossier ne
+            // descend que s'il ne porte aucun fichier pertinent — les
+            // `examples/` et gabarits sous un vrai mod ne sont pas des
+            // composants, SMAPI ne les charge pas.
+            for fileURL in ModFolderTraversal.manifestURLs(under: url, fileManager: fm) {
+                let modFolderURL = fileURL.deletingLastPathComponent()
                         // Chemin relatif canonique : on résout les symlinks des
                         // deux côtés (l'énumérateur macOS rapporte /private/var/…
                         // même si la racine était /var/…) puis on ne retire le
@@ -297,17 +293,15 @@ final class ModScanner: @unchecked Sendable {
                         // url.path) l'amputait à nouveau si la racine réapparaissait
                         // plus loin dans le sous-chemin — jumeau du bug M6 dans
                         // ModFolderRepairer.collectUniqueIds.
-                        let resolvedMod = modFolderURL.resolvingSymlinksInPath().path
-                        let resolvedRoot = url.resolvingSymlinksInPath().path
-                        let rootStd = resolvedRoot.hasSuffix("/") ? resolvedRoot : resolvedRoot + "/"
-                        let relFromTop = (resolvedMod.hasPrefix(rootStd)
-                            ? String(resolvedMod.dropFirst(rootStd.count))
-                            : "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                        let fullRelPath = relFromTop.isEmpty ? topLevelLogicalFolder : "\(topLevelLogicalFolder)/\(relFromTop)"
-                        if let mod = parseModFolder(at: modFolderURL.path, relativePath: fullRelPath, isEnabled: isEnabled) {
-                            foundMods.append(mod)
-                        }
-                    }
+                let resolvedMod = modFolderURL.resolvingSymlinksInPath().path
+                let resolvedRoot = url.resolvingSymlinksInPath().path
+                let rootStd = resolvedRoot.hasSuffix("/") ? resolvedRoot : resolvedRoot + "/"
+                let relFromTop = (resolvedMod.hasPrefix(rootStd)
+                    ? String(resolvedMod.dropFirst(rootStd.count))
+                    : "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                let fullRelPath = relFromTop.isEmpty ? topLevelLogicalFolder : "\(topLevelLogicalFolder)/\(relFromTop)"
+                if let mod = parseModFolder(at: modFolderURL.path, relativePath: fullRelPath, isEnabled: isEnabled) {
+                    foundMods.append(mod)
                 }
             }
 

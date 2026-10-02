@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
+- **Profiler : détecté et guidé.** L'onglet Performances dit où en est le mod Profiler — absent (lien pour l'installer), en pause (bouton pour l'activer) ou actif (comment jouer la session qui remplira l'analyse).
+- **Guide utilisateur.** Coexistence avec les autres gestionnaires, la convention `X` / `.X` des mods en pause, et la désinstallation propre de l'app : `GUIDE.md`, relié au README.
 ## [1.54.0] - 2026-10-02
 
 ### Changed

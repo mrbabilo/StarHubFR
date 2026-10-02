@@ -353,23 +353,11 @@ backup se retrouve en moins de dix secondes.
       sert de référence de comportement, et les messages d'erreur doivent être aussi
       explicites que les siens. · **M** · *mesuré le 2026-10-02 : zéro manifeste
       illisible sur le parc (1 162 lus par le parseur clément) — à l'exemplaire réel*
-- [ ] **A1-T4** — **Un `examples/` n'est pas un composant de mod.** *(relevé le 2026-09-14,
-      veille Stardrop — leur `0ea2dbdf` prend « un dossier qui porte un `manifest.json` »
-      pour un mod et **ne descend pas dessous** ; notre scan, lui, descend exprès, pour
-      trouver les composants d'un pack.)* **Mesuré sur le parc** : sur 1 112 dossiers à
-      manifeste, **14 sont imbriqués sous un autre manifeste**, et une part est de la
-      **documentation livrée par le mod**, pas du contenu actif —
-      `.BushBloomMod/examples/` (3 exemples), `.MakeLove/ContentPackTemplate/`,
-      `.ValleyBonds.IsekaiBonds/character_packs/_ContentPackTemplate`. Ils sont
-      **invisibles aujourd'hui** : leurs quatorze parents sont tous en pause (préfixe
-      point) sur ce parc. Réactiver `BushBloomMod` ferait entrer trois « composants » qui
-      sont des gabarits à copier.
-      ⚠️ **À instruire avant de coder, et l'oracle est SMAPI, pas le bon sens** : si SMAPI
-      charge lui aussi ces manifestes, les montrer est **juste** et les cacher mentirait
-      sur ce qui tourne. La question n'est donc pas « faut-il filtrer » mais « que fait
-      SMAPI d'un manifeste sous `examples/` » — à mesurer en lançant le jeu et en lisant
-      le journal, jamais en lisant un schéma (voir la recette d'oracle du CLAUDE.md).
-      Selon la réponse : filtrer, ou marquer ces entrées sans les retirer. · **S**
+- [x] **A1-T4** ✅ *(livré le 2026-10-02, à l'archive)* — la règle de
+      traversal est copiée du **code** SMAPI (`ModScanner.cs`), l'oracle exigé
+      par la case : un dossier n'est exploré que sans fichier pertinent, donc
+      `examples/` et gabarits sous un vrai mod ne sont jamais chargés.
+      `ModFolderTraversal` (Core, 5 tests) ; mesure parc dans l'archive.
 
 
 - [ ] **A1-T5** — **Une archive dont le mod n'est qu'une pièce.** *(trouvé le
@@ -634,8 +622,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > 0,5 ms » aussi). La question utile devient : quels mods pèsent dans ces
 > 8,8 ms, sous le seuil où Profiler n'écrit rien.*
 
-- [ ] **D1-T1** — Détecter la présence et l'activation de Profiler ; guidage (installer →
-      jouer une session représentative → revenir). · **S**
+- [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session).
 - [ ] **D1-T2** — Parser les lignes `[RawLog] {json}` de Profiler (pas `[BigLoop]`, qui
       n'est qu'un résumé) : temps **propre** par mod et par événement (enfants
       soustraits), séparé en lancement / chargement / jeu. Modèle Core testable,
@@ -1394,8 +1381,7 @@ seul, et VoiceOver restitue chaque écran majeur sans piège.
 
 - [ ] **E2-T1** — Rapport de modlist exportable (Markdown/HTML) : nom, version, source, état,
       couverture FR, anomalies — pensé pour le support et l'usage en cours. · **M**
-- [ ] **E2-T2** — Documentation utilisateur : coexistence avec d'autres gestionnaires,
-      convention `X` / `.X`, réactivation de tous les mods avant désinstallation. · **S**
+- [x] **E2-T2** ✅ *(livré le 2026-10-02)* — `GUIDE.md` (racine, relié au README) : coexistence avec Vortex/Stardrop/Nexus App, convention `X` / `.X`, réactivation avant désinstallation.
 - [ ] **E2-T3** — Captures d'écran, page Nexus, distribution hors App Store (signature,
       notarisation, ou **Sentinel** pour lever la quarantaine côté utilisateur). · **M**
 
@@ -2731,6 +2717,9 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
 | **A1-T6** | 2026-09-23 | La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu (objets, bâtiments, données), chaque rangée ouvre la fiche du mod — résolution contre le parc entier, doublon actif ⇒ muet ; absents hors périmètre |
 | **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
+| **A1-T4** | 2026-10-02 | Exemples et gabarits sous un vrai mod ne sont plus listés comme composants : règle de traversal copiée du code SMAPI (`ModFolderTraversal`) ; 15 entrées fantômes mesurées à l'activation simulée |
+| **D1-T1** | 2026-10-02 | Détection de Profiler (Core) et carte de guidage dans l'onglet Performances : absent / en pause / actif |
+| **E2-T2** | 2026-10-02 | `GUIDE.md` : coexistence des gestionnaires, `X` / `.X`, désinstallation propre |
 | **A1-T1** | 2026-10-02 | Dépendances requises absentes du disque : plan (Core), feuille récapitulative, page Nexus exacte (dump Pathoschild), contrôle d'identifiant de l'archive ; + `"IsRequired"` en texte lu comme SMAPI |
 | **A1-T10** | 2026-09-24 | « Nettoyer… » retire d'une sauvegarde les clés des mods disparus : feuille clé par clé, sous le verrou des saves, backup vérifié seulement s'il y a à retirer, écriture atomique BOM préservé ; item atypique laissé et compté (Zofia : 35 clés, 1,2 s) |
 

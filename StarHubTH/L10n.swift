@@ -908,6 +908,15 @@ enum L10n {
     }
 
     enum Performance {
+        // D1-T1 — détection et guidage de Profiler
+        static let profilerTitle       = "perf_profiler_title"
+        static let profilerAbsent      = "perf_profiler_absent"
+        static let profilerAbsentHint  = "perf_profiler_absent_hint"
+        static let profilerPage        = "perf_profiler_page"
+        static let profilerPaused      = "perf_profiler_paused"
+        static let profilerEnable      = "perf_profiler_enable"
+        static let profilerEnabledHint = "perf_profiler_enabled_hint"
+        static let profilerEnabledOk   = "perf_profiler_enabled_ok"
         static let noProbe = "perf_no_probe"
         static let needTwo = "perf_need_two"
         static let loading = "perf_loading"
