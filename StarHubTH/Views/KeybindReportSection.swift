@@ -56,23 +56,35 @@ struct KeybindReportSection: View {
         Binding(get: { expanded[key] ?? defaultOpen }, set: { expanded[key] = $0 })
     }
 
+    /// Refonte du 2026-10-02 : des cartes par rôle, dans l'ordre de la
+    /// gravité — le verdict, ce qui est cassé, l'outil (clavier),
+    /// l'inventaire, puis ce que l'analyse a écarté. Le `ScrollViewReader`
+    /// vit ici : le `ScrollView` qui défile est celui de `SystemAlertsView`,
+    /// et une tuile ouvre son groupe puis y défile.
     var body: some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-            header
-            if vm.gameDir.isEmpty {
-                statusRow(icon: "exclamationmark.triangle.fill", color: .yellow,
-                          text: localization.L(L10n.Keybinds.noGameDir))
-            } else if service.isScanning {
-                HStack(spacing: AppDesign.Spacing.sm) {
-                    ProgressView().controlSize(.small)
-                    Text(localization.L(L10n.Keybinds.scanning))
-                        .foregroundColor(.secondary)
+        ScrollViewReader { proxy in
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                    header
+                    if vm.gameDir.isEmpty {
+                        statusRow(icon: "exclamationmark.triangle.fill", color: AppDesign.Color.warning,
+                                  text: localization.L(L10n.Keybinds.noGameDir))
+                    } else if service.isScanning {
+                        HStack(spacing: AppDesign.Spacing.sm) {
+                            ProgressView().controlSize(.small)
+                            Text(localization.L(L10n.Keybinds.scanning))
+                                .foregroundColor(.secondary)
+                        }
+                    } else if let report = service.report {
+                        summary(report, proxy: proxy)
+                    }
                 }
-            } else if let report = service.report {
-                content(report)
+                .cardSurface(padding: AppDesign.Spacing.lg)
+                if !vm.gameDir.isEmpty, !service.isScanning, let report = service.report {
+                    sections(report)
+                }
             }
         }
-        .cardSurface(padding: AppDesign.Spacing.lg)
         .onAppear {
             // Le rapport publié survit au changement d'onglet (le service
             // vit sur le ViewModel), mais un rapport qui ne bougerait plus
@@ -112,22 +124,6 @@ struct KeybindReportSection: View {
         }
     }
 
-    /// C4-T13 — le rapport en Markdown daté, là où l'utilisateur le veut :
-    /// panneau d'enregistrement, écriture atomique, échec au journal.
-    private func exportReport(_ report: KeybindScanner.KeybindReport) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.plainText]
-        panel.nameFieldStringValue = "starhubfr-raccourcis-\(DateFormatter.posixStamp()).md"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let text = KeybindReportExport.markdown(report: report, generatedAt: Date())
-        do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
-            vm.log("Rapport de raccourcis exporté : \(url.lastPathComponent)", level: .info)
-        } catch {
-            vm.log("Export du rapport impossible : \(error.localizedDescription)", level: .warning)
-        }
-    }
-
     private func statusRow(icon: String, color: Color, text: String) -> some View {
         HStack(spacing: AppDesign.Spacing.sm) {
             Image(systemName: icon).foregroundColor(color)
@@ -137,42 +133,54 @@ struct KeybindReportSection: View {
 
     // Le type du rapport est imbriqué dans le scanner (constat de T3) :
     // nom qualifié obligatoire hors de Core.
-    @ViewBuilder private func content(_ report: KeybindScanner.KeybindReport) -> some View {
+    /// Le verdict : compteurs, puis le vert — qui n'affirme l'absence de
+    /// conflit que si le lot a été entièrement compris (aucun non reconnu,
+    /// aucun co-déclenchement : ronde de revue 1, constat 2) — ou les
+    /// tuiles, qui mènent chacune à leur groupe.
+    @ViewBuilder private func summary(_ report: KeybindScanner.KeybindReport,
+                                      proxy: ScrollViewProxy) -> some View {
         if report.scannedMods == 0 {
-            // Rapport présent mais rien à en tirer : aucun mod actif ne
-            // porte de config.json. Distinct du vert « aucun conflit » —
-            // là, on n'a rien scanné du tout.
+            // Rien d'analysé : distinct du vert « aucun conflit ».
             statusRow(icon: "info.circle", color: .secondary,
                       text: localization.L(L10n.Keybinds.noModsScanned))
         } else {
             Text(String(format: localization.L(L10n.Keybinds.counters),
                         report.scannedMods, report.keybindCount))
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
-            // Le vert n'affirme l'absence de conflit que si le lot a aussi
-            // été entièrement compris : des raccourcis non reconnus sont
-            // eux aussi un signal, pas un simple à-côté du vert (ronde de
-            // revue 1, constat 2). Les co-déclenchements (C4-T7) sont listés
-            // plus bas : un vert qui les précéderait serait un vert qui
-            // contredit.
             if report.problemCount == 0 && report.unrecognized.isEmpty
                 && report.subsetOverlaps.isEmpty {
                 statusRow(icon: "checkmark.circle.fill", color: AppDesign.Color.success,
                           text: localization.L(L10n.Keybinds.empty))
             } else {
-                KeybindSummaryTiles(report: report, L: localization.L)
+                KeybindSummaryTiles(report: report, L: localization.L) { key in
+                    expanded[key] = true
+                    withAnimation(Motion.animation(.easeInOut(duration: 0.25))) {
+                        proxy.scrollTo(key, anchor: .top)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Les sections sous le verdict, par gravité : cassé (collisions),
+    /// à faire (jeu, non reconnus), information (co-déclenchements,
+    /// latentes — hors de la branche « problèmes » exprès : elles
+    /// s'affichent même quand tout est vert), puis l'outil et l'inventaire.
+    @ViewBuilder private func sections(_ report: KeybindScanner.KeybindReport) -> some View {
+        let problems = !report.collisions.isEmpty || !report.gamepadCollisions.isEmpty
+            || !report.gameConflicts.isEmpty || !report.unrecognized.isEmpty
+            || !report.subsetOverlaps.isEmpty || !report.latentCollisions.isEmpty
+        if report.scannedMods > 0, problems {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                 if !report.collisions.isEmpty {
                     collisionsGroup(report.collisions, key: "collisions",
-                                    header: L10n.Keybinds.collisionsHeader)
+                                    header: L10n.Keybinds.collisionsHeader).id("collisions")
                 }
                 if !report.gamepadCollisions.isEmpty {
-                    // C4-T7 — `LeftStick` partagé par deux frameworks
-                    // ValleyBonds n'est pas une collision clavier : celui qui
-                    // joue au clavier n'y est pas sujet.
+                    // C4-T7 — une collision manette n'est pas une collision
+                    // clavier : qui joue au clavier n'y est pas sujet.
                     collisionsGroup(report.gamepadCollisions, key: "gamepad",
-                                    header: L10n.Keybinds.gamepadHeader)
-                }
-                if !report.subsetOverlaps.isEmpty {
-                    subsetOverlapsGroup(report.subsetOverlaps)
+                                    header: L10n.Keybinds.gamepadHeader).id("gamepad")
                 }
                 if !report.gameConflicts.isEmpty {
                     // La réserve reste visible même groupe replié : c'est
@@ -180,61 +188,43 @@ struct KeybindReportSection: View {
                     // ses touches (ronde de revue 1, constat 3).
                     Text(localization.L(L10n.Keybinds.gameCaveat))
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                    gameConflictsGroup(report.gameConflicts)
+                    gameConflictsGroup(report.gameConflicts).id("game")
                 }
                 if !report.unrecognized.isEmpty {
-                    unrecognizedGroup(report.unrecognized)
+                    unrecognizedGroup(report.unrecognized).id("unrecognized")
+                }
+                if !report.subsetOverlaps.isEmpty {
+                    subsetOverlapsGroup(report.subsetOverlaps)
+                }
+                if !report.latentCollisions.isEmpty {
+                    latentCollisionsGroup(report.latentCollisions)
                 }
             }
-        }
-        if !report.latentCollisions.isEmpty {
-            // C4-T7 — l'angle mort du toggling : activer un mod ne doit pas
-            // faire apparaître une collision que personne n'a annoncée.
-            latentCollisionsGroup(report.latentCollisions)
-        }
-        if report.pausedIgnored > 0 {
-            Text(String(format: localization.L(L10n.Keybinds.pausedNote), report.pausedIgnored))
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-        }
-        if !report.catalogModsIgnored.isEmpty {
-            // Défaut 1 (tâche 6) : une exclusion muette est un mensonge par
-            // omission — ModShortcutReferenceHub pesait 12 des 29
-            // collisions et 9 des 20 conflits jeu avant cette règle.
-            //
-            // Ronde de correction 1 : la chaîne parle du champ (« documentation
-            // de raccourcis »), pas du mod — un mod dont une forme de chemin
-            // est écartée peut très bien garder une vraie collision ailleurs
-            // (le cas réel : `K` entre le Hub et Swim, affiché juste au-dessus
-            // dans le groupe des collisions). Le compte est posé **avant** les
-            // noms : `.truncationMode(.middle)` peut couper les noms si la
-            // liste est longue, mais jamais le nombre en tête de phrase — le
-            // plancher d'information que le brief demandait survit donc à la
-            // troncature.
-            Text(String(format: localization.L(L10n.Keybinds.catalogNote),
-                        report.catalogModsIgnored.count,
-                        report.catalogModsIgnored.joined(separator: ", ")))
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                .lineLimit(1).truncationMode(.middle)
-        }
-        if !report.remapModsIgnored.isEmpty {
-            // C4-T9 — même principe que la note catalogue : une exclusion
-            // muette est un mensonge par omission. Le nom porte la fonction
-            // (« mod de remap »), jamais un UniqueID.
-            Text(String(format: localization.L(L10n.Keybinds.remapNote),
-                        report.remapModsIgnored.joined(separator: ", ")))
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                .lineLimit(1).truncationMode(.middle)
+            .cardSurface(padding: AppDesign.Spacing.lg)
         }
         if !report.settings.isEmpty {
             KeybindKeyboardGroup(localization: localization, settings: report.settings,
                                  isExpanded: expansion("keyboard", defaultOpen: true),
                                  openConfig: { openConfig($0, $1) })
-            // C4-T13 — replié par défaut, en dernier : ce n'est pas un
-            // signal, c'est l'inventaire, après les notes qui disent ce que
-            // le scan a écarté.
+                .cardSurface(padding: AppDesign.Spacing.lg)
+            // C4-T13 — l'inventaire, replié par défaut : ce n'est pas un
+            // signal.
             KeybindOverviewGroup(localization: localization, bindings: report.settings,
                                  isExpanded: expansion("overview", defaultOpen: false),
                                  openConfig: { openConfig($0, $1) })
+                .cardSurface(padding: AppDesign.Spacing.lg)
+        }
+        // Une exclusion muette est un mensonge par omission : les notes
+        // restent visibles, regroupées en pied, compte avant les noms.
+        KeybindExclusionNotes(report: report, localization: localization)
+    }
+
+    /// L'en-tête d'un groupe : glyphe de gravité, couleur du sens, titre.
+    private func groupLabel(_ format: String, _ count: Int, icon: String, tint: Color) -> some View {
+        HStack(spacing: AppDesign.Spacing.sm) {
+            Image(systemName: icon).foregroundColor(tint)
+            Text(String(format: localization.L(format), count))
+                .font(AppDesign.Font.body(.semibold))
         }
     }
 
@@ -286,7 +276,7 @@ struct KeybindReportSection: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(collisions, id: \.combo) { collision in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(collision.combo.display).font(AppDesign.Font.body(.medium))
+                        KeybindKeyChip(text: collision.combo.display)
                         ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -295,8 +285,8 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: localization.L(header), collisions.count))
-                .font(AppDesign.Font.body(.semibold))
+            groupLabel(header, collisions.count, icon: KeybindConflictStyle.glyph,
+                       tint: KeybindConflictStyle.color(.mods))
         }
     }
 
@@ -311,8 +301,11 @@ struct KeybindReportSection: View {
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 ForEach(overlaps, id: \.self) { overlap in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(overlap.subset.display)  ⊂  \(overlap.superset.display)")
-                            .font(AppDesign.Font.body(.medium))
+                        HStack(spacing: AppDesign.Spacing.xs) {
+                            KeybindKeyChip(text: overlap.subset.display)
+                            Text("⊂").foregroundColor(.secondary)
+                            KeybindKeyChip(text: overlap.superset.display)
+                        }
                         ForEach(KeybindScanner.groupedUses(overlap.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -321,8 +314,8 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: localization.L(L10n.Keybinds.subsetsHeader), overlaps.count))
-                .font(AppDesign.Font.body(.semibold))
+            groupLabel(L10n.Keybinds.subsetsHeader, overlaps.count, icon: "info.circle",
+                       tint: AppDesign.Color.info)
         }
     }
 
@@ -335,7 +328,7 @@ struct KeybindReportSection: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 ForEach(collisions, id: \.combo) { collision in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(collision.combo.display).font(AppDesign.Font.body(.medium))
+                        KeybindKeyChip(text: collision.combo.display)
                         ForEach(KeybindScanner.groupedUses(collision.uses)) { use in
                             groupedUseLine(use)
                         }
@@ -344,8 +337,8 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: localization.L(L10n.Keybinds.latentHeader), collisions.count))
-                .font(AppDesign.Font.body(.semibold))
+            groupLabel(L10n.Keybinds.latentHeader, collisions.count, icon: "pause.circle",
+                       tint: .secondary)
         }
     }
 
@@ -386,8 +379,8 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: localization.L(L10n.Keybinds.gameHeader), conflicts.count))
-                .font(AppDesign.Font.body(.semibold))
+            groupLabel(L10n.Keybinds.gameHeader, conflicts.count, icon: KeybindConflictStyle.glyph,
+                       tint: KeybindConflictStyle.color(.game))
         }
     }
 
@@ -406,8 +399,8 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            Text(String(format: localization.L(L10n.Keybinds.unrecognizedHeader), items.count))
-                .font(AppDesign.Font.body(.semibold))
+            groupLabel(L10n.Keybinds.unrecognizedHeader, items.count, icon: "questionmark.circle",
+                       tint: AppDesign.Color.warning)
         }
     }
 }
