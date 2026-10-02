@@ -937,7 +937,7 @@ struct ModConfigEditorView: View {
     private func keybindConflictNote(_ row: ConfigEditorModel.Row) -> String? {
         guard case .keybind(_, let combo) = row.control,
               let report = vm.keybindReport else { return nil }
-        let note = KeybindScanner.annotation(for: combo, ofMod: mod.uniqueId, in: report)
+        let note = KeybindScanner.annotation(for: combo, ofMod: mod.folderName, keyPath: row.keyPath, in: report)
         var parts: [String] = []
         if let gameControl = note.gameControl {
             parts.append(String(format: localization.L(L10n.Settings.configKeybindConflictGame), gameControl))

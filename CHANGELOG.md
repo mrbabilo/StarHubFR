@@ -20,12 +20,14 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Moins de faux conflits de raccourcis.** Une touche de modification que l'on maintient (Ctrl, Maj, Alt) ne compte plus, ni un raccourci qui n'agit qu'avec une touche d'activation non assignée, ni deux raccourcis qui n'agissent jamais au même moment (menu ou mode propre à un mod). Les mods écartés sont nommés.
 - **Rapport de raccourcis repensé.** Rangé par gravité : verdict, ce qui est cassé, à faire, informatif. Les tuiles ouvrent leur groupe ; rouge pour un conflit entre mods, orange avec le jeu ; l'inventaire montre les raccourcis liés par défaut.
 - **Rapport de raccourcis : jusqu'au réglage, et hors de l'app.** L'engrenage d'une ligne ouvre l'éditeur de configuration directement sur la clé visée, surlignée. Un bouton « Exporter » écrit le rapport complet en Markdown daté.
 - **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
 
 ### Fixed
 
+- **Éditeur de configuration : un raccourci ne se signale plus en conflit avec lui-même**, et Global Config Settings Rewrite n'est plus compté en conflit avec les contrôles du jeu qu'il remappe.
 - **Raccourcis capturés sur un clavier AZERTY.** Appuyer sur A enregistrait `Q` : l'app suivait la position d'un clavier américain, alors que le jeu lit la lettre gravée. Les raccourcis capturés avant peuvent être sur la lettre voisine (A↔Q, Z↔W) : recapturez-les.
 
 ## [1.54.0] - 2026-10-02

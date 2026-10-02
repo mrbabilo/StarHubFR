@@ -1139,6 +1139,52 @@ là, il faut décoder l'IL des méthodes d'enregistrement.
 
 ---
 
+### 6 ter — Quand un mod écoute ses touches *(2026-10-03)*
+
+**MCM** (Modern Config Menu, `GetKeybindConflictReason`) et **Keybind Radar**
+comptent un conflit dès que deux réglages portent la même combinaison :
+aucun ne sait qu'un raccourci peut être inactif à certains moments. MCM n'a
+que trois exceptions : une combinaison avec une touche de modification ne
+heurte jamais les contrôles du jeu, les mods de remap sont écartés, et les
+contrôles du jeu sont lus dans `Game1.options` (réglage réel).
+
+Pour savoir quels partages sont sans risque, on a **lu le gestionnaire de
+touches** de chaque mod en conflit sur le parc (DLL installées décompilées
+par `ilspycmd`). Le relevé vit dans `assets/keybind-contexts.json`
+(`KeybindContexts`, Core) : contexte d'écoute (`world`, `ownMenu`,
+`ownMode`, `eventReplay`…), touche d'activation exigée (`requires`), touche
+maintenue (`held`), avec la preuve tirée du code. **Un mod absent vaut
+« partout »** : seul un contexte relevé retire un conflit.
+
+Règles générales, sans table :
+- une touche de modification seule (Ctrl, Maj, Alt, ⌘) **maintenue** ne
+  compte pas : nom de réglage « Modifier » / « ModKey », ou `held` relevé ;
+- dans un menu (ou un rejeu), le jeu n'écoute que ses contrôles de menu
+  (`menuButton`, `cancelButton`) ; dans un mode propre, aucun.
+
+Piège relevé : **Alt n'est pas toujours tenu.** Let's Move It ouvre son
+menu sur Alt droite seul (`ModMenuKey.JustPressed`, aucun menu ouvert) —
+une touche comme une autre. Convenient Inventory (`IsFavoriteItemsHotkeyDown`)
+et UI Info Suite 2 Alternative (`IsDown`) tiennent la leur.
+
+Mesure sur le parc : 38 problèmes avec l'app précédente (`HEAD~1`), 19 après. Restent, probablement
+réels (à confirmer en jeu) : Ctrl + 1 à 7 (Wallet Tools / Sword & Sorcery),
+1-4 de Mailbox Menu, All Chests Menu, Farm Computer Todo contre la barre
+d'objets, G (Fish Helper UI / Stardew Gallery), V et la manette (Convenient
+Chests 2 / Convenient Inventory / Chests Anywhere, tous sur le menu de coffre).
+
+Limite connue : une touche maintenue sort de l'index entier, donc ne heurte
+pas non plus une touche qui part **seule** sur le même bouton (MCM ne l'écarte
+que des contrôles du jeu). Seul cas du parc : les textures de débogage de
+Content Patcher (Ctrl seul), actives avec `EnableDebugFeatures` uniquement.
+Le correctif propre — ne lever la paire que si les deux sont tenues — est
+hors périmètre.
+
+Effet de bord découvert : la liste remap comparait des UniqueID au **dossier**
+du mod et ne s'appliquait jamais dans l'app ; l'éditeur de config passait
+l'UniqueID et se signalait en conflit avec sa propre rangée. Les deux
+passent désormais par l'id du dossier, et l'UniqueID par `ModScan.uniqueId`.
+
 ## 7. Pistes d'intégration ouvertes
 
 Consignées en `docs/ROADMAP.md` §4 (les ouvertes) ou dans

@@ -613,9 +613,13 @@ struct KeybindScannerTests {
         #expect(r.remapModsIgnored == ["GCSR"])
     }
 
+    /// Fixture passée de `LeftShift` à `Tab` le 2026-10-03 : une touche de
+    /// modification maintenue n'est plus un conflit (règle MCM), l'intention
+    /// — un mod ordinaire reste en conflit avec le jeu — demande une vraie
+    /// touche.
     @Test func anOrdinaryModStillCollidesWithTheGame() {
         let plain = KeybindScanner.ModScan(id: "d.Plain", name: "Plain", isActive: true,
-                                           tree: tree(["MoveKey": .string("LeftShift")]))
+                                           tree: tree(["MoveKey": .string("Tab")]))
         let r = KeybindScanner.report(mods: [plain])
         #expect(r.gameConflicts.count == 1)
         #expect(r.remapModsIgnored.isEmpty)

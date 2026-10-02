@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "source": "Lecture du code des DLL installées (ilspycmd), 2026-10-03. Un mod absent vaut « anywhere » : seul un contexte relevé retire un conflit.",
+  "mods": {
+    "moonslime.WizardrySkill": [
+      {
+        "keyPaths": [
+          "Key_Spell1",
+          "Key_Spell2",
+          "Key_Spell3",
+          "Key_Spell4",
+          "Key_Spell5",
+          "Key_SwapSpells"
+        ],
+        "requires": "Key_Cast",
+        "evidence": "OnButtonPressed : sort et échange seulement si CastPressed, posé par Key_Cast pressée."
+      }
+    ],
+    "BambooKat.Stillbloom": [
+      {
+        "keyPaths": [
+          "CameraUpKey",
+          "CameraDownKey",
+          "CameraLeftKey",
+          "CameraRightKey",
+          "ExitKey",
+          "SaveKey",
+          "ResetKey",
+          "UndoMoveKey",
+          "RedoMoveKey",
+          "MultiSelectModifier",
+          "ClearSelectionKey",
+          "HelpKey",
+          "GrabKey"
+        ],
+        "context": "ownMode",
+        "evidence": "Gestionnaire : ces touches seulement `if (editorMode)` ; en mode éditeur, toute autre touche est retenue (Input.Suppress). EditorToggleKey n'en fait pas partie."
+      }
+    ],
+    "Pathoschild.ChestsAnywhere": [
+      {
+        "keyPaths": [
+          "Controls.PrevChest",
+          "Controls.NextChest",
+          "Controls.PrevCategory",
+          "Controls.NextCategory",
+          "Controls.OpenSearchMenu",
+          "Controls.SearchMenuPreviewChest"
+        ],
+        "context": "ownMenu",
+        "evidence": "ReceiveButtonsChanged de la surcouche de son menu (case Element.Menu, CanCloseChest) ; SearchMenuPreviewChest = PreviewKey du menu de recherche."
+      }
+    ],
+    "SKY.FarmOverview": [
+      {
+        "keyPaths": [
+          "ToggleOverviewKey"
+        ],
+        "context": "worldNoEvent",
+        "evidence": "OnButtonPressed : retour si !IsWorldReady ou eventUp, ou si un autre menu est ouvert."
+      },
+      {
+        "keyPaths": [
+          "PauseKey"
+        ],
+        "context": "ownMode",
+        "evidence": "Seulement `if (IsOverviewActive)`."
+      }
+    ],
+    "sjt38.StardewGallery": [
+      {
+        "keyPaths": [
+          "ScreenshotKeys",
+          "ReplaySpeedKeys"
+        ],
+        "context": "eventReplay",
+        "evidence": "ScreenshotKeys sous `playingEvent != null` d'un rejeu actif ; ReplaySpeedKeys sous `replay.IsActive`. GalleryKeys n'a pas de garde."
+      }
+    ],
+    "Nullnnow.MS-Books": [
+      {
+        "keyPaths": [
+          "LightningSpurKey"
+        ],
+        "context": "world",
+        "evidence": "OnButtonPressed : Context.IsPlayerFree && IsWorldReady && !paused."
+      }
+    ],
+    "FawazT.GlobalConfigSettingsRewrite": [
+      {
+        "keyPaths": [
+          "ShiftToolbar",
+          "ChatBox"
+        ],
+        "context": "world",
+        "evidence": "Mod de remap : ces réglages réécrivent toolbarSwap et chatButton du jeu, que Game1 ne lit qu'en jeu, aucun menu ouvert."
+      }
+    ],
+    "gaussfire.ConvenientInventory": [
+      {
+        "keyPaths": [
+          "FavoriteItemsKeyboardHotkey",
+          "TakeAllButOneKeyboardHotkey"
+        ],
+        "held": true,
+        "evidence": "Lues comme touches maintenues (IsFavoriteItemsHotkeyDown, TakeAllButOneHotkeyDown) pendant un clic."
+      }
+    ],
+    "DazUki.UIInfoSuite2Alt": [
+      {
+        "keyPaths": [
+          "AnimalBuildingTooltipKeybind",
+          "ShowOneRange",
+          "ShowAllRange"
+        ],
+        "held": true,
+        "evidence": "ModConfig.<clé>.IsDown() : affichage tant que la touche est tenue."
+      }
+    ],
+    "Pathoschild.ContentPatcher": [
+      {
+        "keyPaths": [
+          "Controls.DebugPrevTexture",
+          "Controls.DebugNextTexture"
+        ],
+        "context": "ownMode",
+        "evidence": "OnButtonsChanged : retour si !EnableDebugFeatures ; ces touches seulement si DebugOverlay.Value != null."
+      }
+    ]
+  }
+}

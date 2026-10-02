@@ -364,6 +364,12 @@ def create_app_bundle():
     if os.path.exists(gmcm_path):
         shutil.copy2(gmcm_path, os.path.join(RESOURCES_DIR, "gmcm-options.json"))
         print("[INFO] Copied gmcm-options.json to App Resources")
+    # 2026-10-03 — quand chaque mod écoute ses touches, relevé dans le code
+    # des DLL (KeybindContexts) : seul un contexte relevé retire un conflit.
+    contexts_path = "assets/keybind-contexts.json"
+    if os.path.exists(contexts_path):
+        shutil.copy2(contexts_path, os.path.join(RESOURCES_DIR, "keybind-contexts.json"))
+        print("[INFO] Copied keybind-contexts.json to App Resources")
 
     for lang in ["en.lproj", "fr.lproj"]:
         lproj_src = os.path.join("assets", lang)

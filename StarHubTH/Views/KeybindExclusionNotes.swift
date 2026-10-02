@@ -35,6 +35,18 @@ struct KeybindExclusionNotes: View {
                               report.catalogModsIgnored.count,
                               report.catalogModsIgnored.joined(separator: ", ")))
         }
+        if !report.modifierMods.isEmpty {
+            out.append(String(format: localization.L(L10n.Keybinds.modifiersNote),
+                              report.modifierMods.joined(separator: ", ")))
+        }
+        if !report.inertMods.isEmpty {
+            out.append(String(format: localization.L(L10n.Keybinds.inertNote),
+                              report.inertMods.joined(separator: ", ")))
+        }
+        if !report.contextResolvedMods.isEmpty {
+            out.append(String(format: localization.L(L10n.Keybinds.contextNote),
+                              report.contextResolvedMods.joined(separator: ", ")))
+        }
         if !report.remapModsIgnored.isEmpty {
             // C4-T9 — le nom porte la fonction (« mod de remap »).
             out.append(String(format: localization.L(L10n.Keybinds.remapNote),

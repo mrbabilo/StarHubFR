@@ -102,10 +102,10 @@ final class KeybindScanService: ObservableObject {
                     // `uniqueId` : 111 mods du parc n'en ont pas, et leurs
                     // chaînes vides fusionneraient en une seule identité.
                     return .init(id: mod.folderName, name: mod.name,
-                                 isActive: mod.isEnabled, tree: tree)
+                                 isActive: mod.isEnabled, tree: tree, uniqueId: mod.uniqueId)
                 }
             }.value
-            self.report = KeybindScanner.report(mods: inputs)
+            self.report = KeybindScanner.report(mods: inputs, contexts: Self.contexts)
             self.isScanning = false
             if let pending = self.pendingRescan {
                 self.pendingRescan = nil
@@ -138,4 +138,21 @@ final class KeybindScanService: ObservableObject {
         }
         return hasher.finalize()
     }
+}
+
+extension KeybindScanService {
+    /// Les contextes d'écoute relevés dans le code des mods
+    /// (`assets/keybind-contexts.json`), chargés une fois. Absent ou
+    /// illisible : table vide — chaque conflit reste compté.
+    nonisolated static let contexts: KeybindContexts = {
+        guard let url = Bundle.main.url(forResource: "keybind-contexts", withExtension: "json") else {
+            return .empty
+        }
+        do {
+            return try KeybindContexts(data: Data(contentsOf: url))
+        } catch {
+            print("Warning: keybind-contexts dataset unreadable: \(error)")
+            return .empty
+        }
+    }()
 }

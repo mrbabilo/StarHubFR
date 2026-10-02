@@ -1,46 +1,5 @@
 import Foundation
 
-/// Les contrôles du jeu et leurs boutons **par défaut**, figés du relevé IL
-/// du constructeur `StardewValley.Options` (tâche 0, step 3). Ce ne sont pas
-/// les contrôles réels de l'utilisateur — la réserve est affichée à l'écran.
-public enum GameControlDefaults {
-    public struct GameControl: Equatable, Sendable {
-        public let name: String
-        public let buttons: [String]
-        public init(name: String, buttons: [String]) { self.name = name; self.buttons = buttons }
-    }
-    /// ── coller le relevé de la tâche 0 (step 3) : un `GameControl` par
-    /// champ `InputButton[]` du constructeur d'`Options`, tous. ──
-    public static let controls: [GameControl] = [
-        GameControl(name: "moveUpButton", buttons: ["W"]),
-        GameControl(name: "moveDownButton", buttons: ["S"]),
-        GameControl(name: "moveLeftButton", buttons: ["A"]),
-        GameControl(name: "moveRightButton", buttons: ["D"]),
-        GameControl(name: "actionButton", buttons: ["X", "MouseRight"]),
-        GameControl(name: "cancelButton", buttons: ["V"]),
-        GameControl(name: "useToolButton", buttons: ["C", "MouseLeft"]),
-        GameControl(name: "menuButton", buttons: ["E", "Escape"]),
-        GameControl(name: "runButton", buttons: ["LeftShift"]),
-        GameControl(name: "chatButton", buttons: ["T", "OemQuestion"]),
-        GameControl(name: "mapButton", buttons: ["M"]),
-        GameControl(name: "journalButton", buttons: ["F"]),
-        GameControl(name: "inventorySlot1", buttons: ["D1"]),
-        GameControl(name: "inventorySlot2", buttons: ["D2"]),
-        GameControl(name: "inventorySlot3", buttons: ["D3"]),
-        GameControl(name: "inventorySlot4", buttons: ["D4"]),
-        GameControl(name: "inventorySlot5", buttons: ["D5"]),
-        GameControl(name: "inventorySlot6", buttons: ["D6"]),
-        GameControl(name: "inventorySlot7", buttons: ["D7"]),
-        GameControl(name: "inventorySlot8", buttons: ["D8"]),
-        GameControl(name: "inventorySlot9", buttons: ["D9"]),
-        GameControl(name: "inventorySlot10", buttons: ["D0"]),
-        GameControl(name: "inventorySlot11", buttons: ["OemMinus"]),
-        GameControl(name: "inventorySlot12", buttons: ["OemPlus"]),
-        GameControl(name: "toolbarSwap", buttons: ["Tab"]),
-        GameControl(name: "emoteButton", buttons: ["Y"]),
-    ]
-}
-
 public enum KeybindScanner {
 
     public struct ModScan: Sendable {
@@ -48,9 +7,19 @@ public enum KeybindScanner {
         public let name: String
         public let isActive: Bool
         public let tree: ConfigJSONTree.Value
-        public init(id: String, name: String, isActive: Bool, tree: ConfigJSONTree.Value) {
+        /// L'`UniqueID` du manifeste : la clé des listes relevées (remap,
+        /// contextes). `id` est le dossier — l'identité de ligne, pas celle
+        /// du mod (2026-10-03 : la liste remap comparait des UniqueID au
+        /// dossier et ne s'appliquait jamais dans l'app).
+        public let uniqueId: String
+        public init(id: String, name: String, isActive: Bool, tree: ConfigJSONTree.Value,
+                    uniqueId: String = "") {
             self.id = id; self.name = name; self.isActive = isActive; self.tree = tree
+            self.uniqueId = uniqueId
         }
+
+        /// La clé des listes relevées : l'UniqueID, ou l'id à défaut.
+        var lookupKey: String { uniqueId.isEmpty ? id : uniqueId }
     }
 
     public enum Decision: Equatable, Sendable {
@@ -202,6 +171,23 @@ public enum KeybindScanner {
         /// C4-T13 — chaque réglage de raccourci des mods actifs, `None`
         /// compris : la vue « tous les raccourcis » (`KeybindOverview.swift`).
         public var settings: [SettingBinding] = []
+        /// 2026-10-03 — les `ModScan.id` des mods de remap (C4-T9), pour
+        /// l'annotation de l'éditeur, qui reçoit un id de dossier.
+        public var remapModIDs: Set<String> = []
+        /// Mods dont un réglage est une touche de modification maintenue,
+        /// laissé hors collisions (partage normal).
+        public var modifierMods: [String] = []
+        /// Mods dont un réglage exige une touche d'activation non assignée :
+        /// inertes, hors collisions.
+        public var inertMods: [String] = []
+        /// Mods dont un conflit a été levé par un contexte relevé (menu
+        /// propre, mode, rejeu).
+        public var contextResolvedMods: [String] = []
+        /// Contexte d'écoute des réglages hors `anywhere`, et réglages inertes
+        /// (clé `KeybindScanner.settingKey`) : l'éditeur décide comme le rapport.
+        public var settingContexts: [String: KeybindContexts.Context] = [:]
+        public var inertSettings: Set<String> = []
+        public var heldSettings: Set<String> = []
 
         /// Problèmes avérés : collisions clavier et manette entre mods actifs
         /// plus conflits avec un contrôle du jeu. Les « non reconnus » n'y
@@ -304,61 +290,6 @@ public enum KeybindScanner {
     /// maximum légitime, 5× sous le catalogue. Aucun `UniqueID` en dur.
     static let catalogThreshold = 8
 
-    /// L'annotation « lié à » d'une rangée raccourci de l'éditeur de
-    /// config (C4-T10 suite — reproduction de l'écran de MCM 2.1.2, qui
-    /// note chaque réglage « Conflicts with {mod} ({réglage}) » ou
-    /// « Conflicts with default game controls »). La nôtre lit le rapport
-    /// déjà calculé : mêmes exclusions (catalogues, remap), même
-    /// normalisation (`KeybindCombo`).
-    public struct KeybindRowAnnotation: Equatable, Sendable {
-        public struct OtherUse: Equatable, Sendable {
-            public let modName: String
-            /// Le chemin du réglage en face, tel que le rapport le porte
-            /// (`["Controls", "SearchMenuPreviewChest"]`) — la clé brute du
-            /// fichier, pas le libellé.
-            public let settingKey: [String]
-            public init(modName: String, settingKey: [String]) {
-                self.modName = modName
-                self.settingKey = settingKey
-            }
-        }
-        /// Le contrôle du jeu visé (`"toolbarSwap"`), quand la combinaison
-        /// est à bouton unique et retombe sur un contrôle par défaut. Un
-        /// mod de remap n'en reçoit pas : poser le contrôle est sa
-        /// fonction (C4-T9).
-        public let gameControl: String?
-        /// Les autres mods dont une liaison porte **exactement** cette
-        /// combinaison (collisions clavier et manette).
-        public let conflicts: [OtherUse]
-        public var isEmpty: Bool { gameControl == nil && conflicts.isEmpty }
-        public init(gameControl: String? = nil, conflicts: [OtherUse] = []) {
-            self.gameControl = gameControl
-            self.conflicts = conflicts
-        }
-    }
-
-    /// L'annotation pour une rangée du mod `modID` portant `combo`.
-    public static func annotation(for combo: KeybindCombo,
-                                  ofMod modID: String,
-                                  in report: KeybindReport) -> KeybindRowAnnotation {
-        var gameControl: String? = nil
-        if combo.buttons.count == 1, let button = combo.buttons.first,
-           !vanillaRemapModIds.contains(modID.lowercased()) {
-            gameControl = GameControlDefaults.controls
-                .first { $0.buttons.contains(button) }?.name
-        }
-        // Toutes les liaisons actives, pas les seules collisions : pour une
-        // valeur du fichier, le résultat est le même (partagée avec un autre
-        // mod = collision) ; pour une touche qu'on vient de capturer (C4-T12),
-        // c'est la seule façon de voir l'unique autre mod qui la porte.
-        // Même tri que les collisions (nom, puis id : homonymes réels).
-        let conflicts = (report.activeUses[combo] ?? [])
-            .filter { $0.modID != modID }
-            .sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) }
-            .map { KeybindRowAnnotation.OtherUse(modName: $0.modName, settingKey: $0.keyPath) }
-        return KeybindRowAnnotation(gameControl: gameControl, conflicts: conflicts)
-    }
-
     /// C4-T9 — les UniqueID des mods dont le **métier** est de réécrire les
     /// réglages du jeu, contrôles compris (le même choix que
     /// `IsVanillaControlRemapMod()` de ModernConfigMenu 2.1.1, qui a relevé
@@ -421,8 +352,18 @@ public enum KeybindScanner {
         return Set(combosByShape.filter { $0.value.count > catalogThreshold }.map(\.key))
     }
 
-    public static func report(mods: [ModScan]) -> KeybindReport {
+    public static func report(mods: [ModScan],
+                              contexts: KeybindContexts = .empty) -> KeybindReport {
         var index: [KeybindCombo: [ModUse]] = [:]          // mods actifs
+        // 2026-10-03 — quand chaque réglage écoute sa touche (`KeybindContexts`),
+        // clé `settingKey` ; absent = `anywhere`. Voir `KeybindScanner+Annotation`.
+        var settingContexts: [String: KeybindContexts.Context] = [:]
+        var inertSettings = Set<String>()
+        var heldSettings = Set<String>()
+        var remapModIDs = Set<String>()
+        var modifierMods: [String] = []
+        var inertMods: [String] = []
+        var contextResolved = Set<String>()
         var pausedIndex: [KeybindCombo: [ModUse]] = [:]    // mods en pause (C4-T7)
         var gameIndex: [String: [ModUse]] = [:]      // nom de contrôle → usages
         var unrecognized: [UnrecognizedKeybind] = []
@@ -458,7 +399,8 @@ public enum KeybindScanner {
             // reconnus » qu'une feuille qui parse — le mod entier, sous cette
             // forme, est déjà déclaré écarté (ronde de correction 1).
             var unrecognizedLeaves: [(keyPath: [String], raw: String)] = []
-            for leaf in ConfigEditorModel.leaves(of: mod.tree) {
+            let leaves = ConfigEditorModel.leaves(of: mod.tree)
+            for leaf in leaves {
                 switch classify(leaf: leaf) {
                 case .keybind(let combos):
                     keybindLeaves.append((leaf.keyPath, combos))
@@ -477,9 +419,10 @@ public enum KeybindScanner {
             }
             // C4-T9 — nommé une fois par mod ; écarté des conflits jeu
             // seulement (le drapeau agit plus bas, par feuille).
-            let isVanillaRemap = vanillaRemapModIds.contains(mod.id.lowercased())
+            let isVanillaRemap = vanillaRemapModIds.contains(mod.lookupKey.lowercased())
             if isVanillaRemap, mod.isActive {
                 remapMods.append(mod.name)
+                remapModIDs.insert(mod.id)
             }
 
             for (keyPath, combos) in keybindLeaves {
@@ -493,9 +436,29 @@ public enum KeybindScanner {
                 if mod.isActive {
                     settings.append((mod.id, mod.name, keyPath, combos.filter { !$0.isEmpty }))
                 }
+                // 2026-10-03 — un réglage qui n'agit qu'avec une touche
+                // d'activation non assignée ne se déclenche jamais : hors
+                // collisions et conflits jeu (reste dans l'inventaire).
+                if contexts.isInert(uniqueId: mod.lookupKey, keyPath: keyPath, leaves: leaves) {
+                    inertSettings.insert(settingKey(mod.id, keyPath))
+                    if mod.isActive, !inertMods.contains(mod.name) { inertMods.append(mod.name) }
+                    continue
+                }
+                let context = contexts.context(uniqueId: mod.lookupKey, keyPath: keyPath)
+                if context != .anywhere { settingContexts[settingKey(mod.id, keyPath)] = context }
+                let declaredHeld = contexts.isHeld(uniqueId: mod.lookupKey, keyPath: keyPath)
+                if declaredHeld { heldSettings.insert(settingKey(mod.id, keyPath)) }
                 // C4-T9 — le remap est écarté des conflits jeu, pas du reste :
                 // ses collisions mod-mod et son compte de liaisons restent.
                 for combo in combos where !combo.isEmpty {
+                    // Une touche de modification **maintenue** (Ctrl, Maj, Alt,
+                    // ⌘ seuls) change le sens d'une autre action : la partager
+                    // est l'usage normal — MCM l'écarte aussi des contrôles du
+                    // jeu. Hors collisions, comptée pour la note.
+                    if isHeldModifier(combo, keyPath: keyPath, declared: declaredHeld) {
+                        if mod.isActive, !modifierMods.contains(mod.name) { modifierMods.append(mod.name) }
+                        continue
+                    }
                     let use = ModUse(modID: mod.id, modName: mod.name, keyPath: keyPath,
                                      isActive: mod.isActive)
                     if mod.isActive {
@@ -504,6 +467,11 @@ public enum KeybindScanner {
                         if !isVanillaRemap, combo.buttons.count == 1, let button = combo.buttons.first {
                             for control in GameControlDefaults.controls
                             where control.buttons.contains(button) {
+                                // Dans un mode, le jeu ne reçoit pas la touche ;
+                                // dans un menu, seuls ses contrôles de menu.
+                                guard context.reaches(control.name) else {
+                                    contextResolved.insert(mod.name); continue
+                                }
                                 add(use, to: &gameIndex[control.name, default: []])
                             }
                         }
@@ -524,8 +492,28 @@ public enum KeybindScanner {
             if !mod.isActive { pausedIgnored += 1 }
         }
 
+        // Ne garde d'un seau que les usages qui croisent, dans le temps, un
+        // usage d'un **autre** mod (`Context.overlaps`) ; un seau réduit à
+        // un seul mod n'est plus une collision — et les mods ainsi dégagés
+        // sont nommés en pied de rapport (une exclusion muette ment).
+        func overlapping(_ uses: [ModUse]) -> [ModUse] {
+            func context(_ use: ModUse) -> KeybindContexts.Context {
+                settingContexts[settingKey(use.modID, use.keyPath)] ?? .anywhere
+            }
+            let kept = uses.filter { use in
+                uses.contains { other in
+                    other.modID != use.modID && context(use).overlaps(context(other))
+                }
+            }
+            if Set(uses.map(\.modID)).count >= 2, Set(kept.map(\.modID)).count < 2 {
+                for use in uses where use.isActive { contextResolved.insert(use.modName) }
+            }
+            return kept
+        }
+
         func bucketCollisions(of buckets: [KeybindCombo: [ModUse]]) -> [KeybindCollision] {
             buckets
+                .mapValues(overlapping)
                 .filter { Set($0.value.map(\.modID)).count >= 2 }
                 // Départage par `modID` (ronde finale) : le sort de Swift n'est
                 // pas garanti stable, et ce parc a de vrais homonymes (Swim
@@ -567,7 +555,7 @@ public enum KeybindScanner {
         let activeCombos = index.keys.filter { !$0.isEmpty }.sorted()
         for (aPosition, a) in activeCombos.enumerated() {
             for b in activeCombos[aPosition...] where a.isStrictSubset(of: b) {
-                let uses = (index[a] ?? []) + (index[b] ?? [])
+                let uses = overlapping((index[a] ?? []) + (index[b] ?? []))
                 guard Set(uses.map(\.modID)).count >= 2 else { continue }
                 subsetOverlaps.append(SubsetOverlap(subset: a, superset: b,
                                                     uses: uses.sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) }))
@@ -602,6 +590,13 @@ public enum KeybindScanner {
                              remapModsIgnored: remapModsIgnored,
                              activeUses: index,
                              settings: markConflicts(settings, collisions: allCollisions,
-                                                     gameConflicts: gameConflicts))
+                                                     gameConflicts: gameConflicts),
+                             remapModIDs: remapModIDs,
+                             modifierMods: modifierMods.sorted(),
+                             inertMods: inertMods.sorted(),
+                             contextResolvedMods: contextResolved.sorted(),
+                             settingContexts: settingContexts,
+                             inertSettings: inertSettings,
+                             heldSettings: heldSettings)
     }
 }
