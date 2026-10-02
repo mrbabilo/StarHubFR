@@ -1367,10 +1367,11 @@ final class StarHubTHViewModel {
     /// `pendingConfigFocus` (la bascule remet `editingModConfig` à nil, voir
     /// `MainView`). `false` si le mod n'est plus au parc (rapport périmé).
     @MainActor
-    func openModConfig(forFolder folderName: String) -> Bool {
+    func openModConfig(forFolder folderName: String, keyPath: [String]? = nil) -> Bool {
         guard mods.flattenedMods.contains(where: { $0.folderName == folderName })
         else { return false }
         navigationStore.pendingConfigFocus = folderName
+        navigationStore.pendingConfigFocusKeyPath = keyPath
         return true
     }
     /// Cache for `category(for:)` (dominant-category scan per render).

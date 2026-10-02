@@ -19,7 +19,7 @@ struct KeybindOverviewGroup: View {
     let bindings: [KeybindScanner.SettingBinding]
     @Binding var isExpanded: Bool
     /// Le geste de l'engrenage, composé par `KeybindReportSection`.
-    let openConfig: (String) -> Void
+    let openConfig: (String, [String]) -> Void
 
     @State private var filter: KeybindScanner.OverviewFilter = .all
     @State private var query = ""
@@ -115,7 +115,7 @@ struct KeybindOverviewGroup: View {
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 0)
-            KeybindConfigButton(localization: localization) { openConfig(binding.modID) }
+            KeybindConfigButton(localization: localization) { openConfig(binding.modID, binding.keyPath) }
         }
     }
 

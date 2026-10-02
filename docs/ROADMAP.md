@@ -158,7 +158,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · livrée par morceaux (**v1.15.0** → **v1.17.0**), **2 items ouverts** *(recompté le 2026-09-24 au soir : **C3-T5** livré (`e417b916`), à l'archive. Plus tôt le même jour : **C5-T1** livré ; **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C4-T13)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **CLOS le 2026-10-02** (C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas) *(recompté le 2026-09-24 au soir : **C3-T5** livré (`e417b916`), à l'archive. Plus tôt le même jour : **C5-T1** livré ; **C6-T1** abandonné sur mesure (source inexistante, voir C6) ; **C4-T12** et **C4-T14** livrés, à l'archive — C4-T14 ajouté le jour même depuis la décompilation de Radiance 2.2.0. Le 2026-09-23 au soir : **C5-T2** livré, à l'archive. Avant : le « 7 » du 2026-09-14 comptait encore **C4-T9** et **C4-T10** comme ouverts, livrés depuis ; 5 réels d'alors. **C4-T12/T13** ajoutés le jour même depuis l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md). Les items livrés (C2-T4, C4-T1→T11) sont à l'archive et au §11 depuis le 2026-09-23. Restent : C3-T2, C4-T13)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -187,6 +187,9 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       (192 dans un seul), noyées dans 4 092 chaînes en dur **déjà françaises** — le
       verdict doit juger la langue, pas seulement l'absence de `{{i18n}}`. Valeur faible
       sur ce parc : à peser avant d'engager.
+      ⚖️ **Pesé le 2026-10-02, non engagé** : 233 chaînes dont 192 dans un
+      seul pack, noyées dans 4 092 déjà françaises ; le hub FR couvre déjà
+      l'édition. À rouvrir sur un parc qui le demande, pas pour lui-même.
 
 
 #### C4 — Éditeur de config lisible
@@ -232,6 +235,10 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       consultatif — si l'utilisateur n'agit jamais depuis ces lignes, les
       filtres sont du vernis. Livrer le premier filtre seul (conflits) et
       mesurer avant le reste. · **M**
+      ✅ **Complété le 2026-10-02, à l'archive** : le saut au réglage
+      **précis** (l'engrenage scrolle l'éditeur sur la clé et la surligne,
+      `pendingConfigFocusKeyPath`) et **l'export** (`KeybindReportExport`,
+      Markdown daté, panneau d'enregistrement). L'axe C est **clos**.
       ✅ **Livré le 2026-09-24 : la vue « tous les raccourcis »** — choix de
       l'utilisateur, le filtre « conflits » seul ne changeait rien (le
       rapport ne montrait déjà que les problèmes). `KeybindReport.settings`
@@ -2719,6 +2726,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
 | **A1-T4** | 2026-10-02 | Exemples et gabarits sous un vrai mod ne sont plus listés comme composants : règle de traversal copiée du code SMAPI (`ModFolderTraversal`) ; 15 entrées fantômes mesurées à l'activation simulée |
 | **D1-T1** | 2026-10-02 | Détection de Profiler (Core) et carte de guidage dans l'onglet Performances : absent / en pause / actif |
+| **C4-T13** | 2026-10-02 | Saut au réglage précis (l'engrenage scrolle l'éditeur sur la clé, surlignée) + export Markdown du rapport (`KeybindReportExport`, Core testé) ; C3-T2 pesé et non engagé — axe C clos |
 | **E2-T2** | 2026-10-02 | `GUIDE.md` : coexistence des gestionnaires, `X` / `.X`, désinstallation propre |
 | **A1-T1** | 2026-10-02 | Dépendances requises absentes du disque : plan (Core), feuille récapitulative, page Nexus exacte (dump Pathoschild), contrôle d'identifiant de l'archive ; + `"IsRequired"` en texte lu comme SMAPI |
 | **A1-T10** | 2026-09-24 | « Nettoyer… » retire d'une sauvegarde les clés des mods disparus : feuille clé par clé, sous le verrou des saves, backup vérifié seulement s'il y a à retirer, écriture atomique BOM préservé ; item atypique laissé et compté (Zofia : 35 clés, 1,2 s) |

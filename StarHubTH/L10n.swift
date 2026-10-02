@@ -101,6 +101,8 @@ enum L10n {
         static let tileGame           = "keybinds_tile_game"
         static let tileUnrecognized   = "keybinds_tile_unrecognized"
         static let rescan             = "keybinds_rescan"
+        static let export             = "keybinds_export"
+        static let exportHint         = "keybinds_export_hint"
         static let collisionsHeader   = "keybinds_collisions_header"
         static let gameHeader         = "keybinds_game_header"
         static let gameCaveat         = "keybinds_game_caveat"

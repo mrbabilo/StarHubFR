@@ -108,7 +108,10 @@ struct MainView: View {
                                configFocus: vm.navigationStore.pendingConfigFocus,
                                modDetailFocus: vm.navigationStore.pendingModDetailFocus),
                 mods: vm.scanStore.mods)
-            if plan.clearsConfigFocus { vm.navigationStore.pendingConfigFocus = nil }
+            if plan.clearsConfigFocus {
+                vm.navigationStore.pendingConfigFocus = nil
+                vm.navigationStore.pendingConfigFocusKeyPath = nil
+            }
             if plan.clearsModDetailFocus { vm.navigationStore.pendingModDetailFocus = nil }
             if plan.clearsPendingDetailTab { vm.navigationStore.pendingDetailTab = nil }
             detailOpenedByJump = plan.openModDetail != nil || plan.openModConfig != nil
@@ -140,7 +143,10 @@ struct MainView: View {
                             // L'onglet visuel par défaut : c'est celui qui montre
                             // les réglages du mod, l'onglet de code étant le repli
                             // pour ce que l'écran ne sait pas rendre.
-                            ModConfigEditorView(vm: vm, localization: localization, mod: mod)
+                            // C4-T13 — le réglage précis demandé par le
+                            // rapport de raccourcis, s'il y en a un.
+                            ModConfigEditorView(vm: vm, localization: localization, mod: mod,
+                                                focusKeyPath: vm.navigationStore.pendingConfigFocusKeyPath)
                         } else if let mod = vm.navigationStore.viewingModDetail {
                             ModDetailView(vm: vm, localization: localization, mod: mod,
                                           sidebarVisibility: $columnVisibility)

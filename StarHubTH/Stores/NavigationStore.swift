@@ -47,6 +47,12 @@ final class NavigationStore {
     /// zéro l'efface aussitôt (même piège que `pendingTranslationFocus`).
     var pendingConfigFocus: String?
 
+    /// Le réglage **précis** que l'éditeur de configuration doit montrer —
+    /// le `keyPath` de la ligne du rapport de raccourcis (C4-T13). Posé avec
+    /// `pendingConfigFocus`, consommé par l'éditeur (scroll + surlignage),
+    /// effacé aux mêmes endroits que lui.
+    var pendingConfigFocusKeyPath: [String]?
+
     /// Le mod dont la **fiche** doit s'ouvrir après un changement d'onglet —
     /// une requête libre (dossier OU nom affiché), résolue via
     /// `ModFocusResolver` au moment de la consommation. Posé par

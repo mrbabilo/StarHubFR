@@ -4170,6 +4170,35 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **C4-T13** ✅ *(complété le 2026-10-02 — l'axe C est clos)* — **Le
+      saut au réglage précis et l'export.** Le 2026-09-24 avait livré la vue
+      « tous les raccourcis », ses filtres et l'engrenage par ligne ; l'éditeur
+      s'ouvrait en haut. Restaient deux gestes. **Le saut précis** : la
+      `keyPath` de la ligne voyage avec le dossier (`pendingConfigFocusKeyPath`,
+      posé et effacé aux mêmes endroits que `pendingConfigFocus`), l'éditeur
+      (`ModConfigEditorView`) retrouve la rangée qui porte exactement ce
+      chemin — casse pliée, segment à segment, le rapport et l'éditeur lisant
+      le même `config.json` — la **scrolle au centre** (`ScrollViewReader`) et
+      la **surligne** trois secondes ; sans correspondance, l'éditeur
+      s'ouvre en haut comme avant, et la demande est consommée quoi qu'il
+      arrive. **L'export** : `KeybindReportExport` (Core, 3 tests) écrit le
+      rapport en Markdown daté — collisions clavier, manette, contrôles du
+      jeu, co-déclenchements, latentes, non reconnus, puis l'inventaire
+      complet en table — les sections vides ne s'écrivent pas (la même
+      honnêteté que l'écran) ; le bouton « Exporter » passe par un panneau
+      d'enregistrement, l'échec va au journal. Fixture notée : une feuille
+      n'entre dans le rapport que si son **nom** parle de key/bind/shortcut
+      (`classify`) — « Silent » n'y entre pas, « SilentKey » si.
+
+- [x] **C3-T2** ✅ *(pesé le 2026-10-02 — non engagé, cas clos sans code)* —
+      **Scan élargi aux assets Content Patcher.** La case portait sa propre
+      mesure : 233 chaînes anglaises en dur dont **192 dans un seul pack**,
+      noyées dans 4 092 chaînes en dur déjà françaises ; le verdict devrait
+      juger la langue, pas l'absence de `{{i18n}}` ; le hub FR couvre déjà
+      l'édition manuelle. La valeur attendue sur ce parc ne paie pas un
+      scanner de taille **L** « suggestions jamais verdict ». À rouvrir sur
+      un parc qui le demande.
+
 - [x] **A1-T4** ✅ *(livré le 2026-10-02)* — **Un `examples/` n'est pas un
       composant de mod.** L'oracle demandé par la case a été lu dans le **code**
       SMAPI (`SMAPI.Toolkit/Framework/ModScanning/ModScanner.cs`, clone du jour) :

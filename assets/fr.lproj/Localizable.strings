@@ -308,6 +308,8 @@
 "keybinds_paused_suffix" = "en pause";
 "keybinds_rescan" = "Relancer l'analyse";
 "keybinds_scanning" = "Analyse des mods…";
+"keybinds_export" = "Exporter";
+"keybinds_export_hint" = "Le rapport en Markdown, pour le partager ou le joindre à un rapport de bug.";
 "keybinds_search_placeholder" = "Chercher un mod, un réglage ou une touche";
 "keybinds_subsets_header" = "Raccourcis co-déclenchés (%lld)";
 "keybinds_subsets_hint" = "Maintenir une combinaison déclenche aussi le raccourci plus court qu'elle contient — le plus court part en premier.";

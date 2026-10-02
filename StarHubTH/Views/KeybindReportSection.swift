@@ -91,6 +91,15 @@ struct KeybindReportSection: View {
     private var header: some View {
         HStack(spacing: AppDesign.Spacing.sm) {
             Spacer(minLength: AppDesign.Spacing.sm)
+            Button(action: { if let report = service.report { exportReport(report) } }) {
+                Label(localization.L(L10n.Keybinds.export), systemImage: "square.and.arrow.up")
+                    .lineLimit(1)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .pointingHandCursor()
+            .disabled(service.report == nil)
+            .help(localization.L(L10n.Keybinds.exportHint))
             Button(action: { service.scan(mods: vm.scanStore.mods, gameDir: vm.gameDir) }) {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
                     .lineLimit(1)
@@ -100,6 +109,22 @@ struct KeybindReportSection: View {
             .pointingHandCursor()
             .disabled(service.isScanning || vm.gameDir.isEmpty)
             .layoutPriority(1)
+        }
+    }
+
+    /// C4-T13 — le rapport en Markdown daté, là où l'utilisateur le veut :
+    /// panneau d'enregistrement, écriture atomique, échec au journal.
+    private func exportReport(_ report: KeybindScanner.KeybindReport) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "starhubfr-raccourcis-\(DateFormatter.posixStamp()).md"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let text = KeybindReportExport.markdown(report: report, generatedAt: Date())
+        do {
+            try text.write(to: url, atomically: true, encoding: .utf8)
+            vm.log("Rapport de raccourcis exporté : \(url.lastPathComponent)", level: .info)
+        } catch {
+            vm.log("Export du rapport impossible : \(error.localizedDescription)", level: .warning)
         }
     }
 
@@ -206,7 +231,7 @@ struct KeybindReportSection: View {
             // le scan a écarté.
             KeybindOverviewGroup(localization: localization, bindings: report.settings,
                                  isExpanded: expansion("overview", defaultOpen: false),
-                                 openConfig: openConfig)
+                                 openConfig: { openConfig($0, $1) })
         }
     }
 
@@ -228,14 +253,16 @@ struct KeybindReportSection: View {
             Text("· \(use.modName)\(use.isActive ? "" : " (\(localization.L(L10n.Keybinds.pausedSuffix)))") (\(use.keyPaths.map { $0.joined(separator: ".") }.joined(separator: ", ")))")
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .lineLimit(1).truncationMode(.middle)
-            configButton(modID: use.modID)
+            configButton(modID: use.modID, keyPath: use.keyPaths.first)
         }
     }
 
     /// Voir `KeybindConfigButton` : partagé avec la vue « tous les
-    /// raccourcis » (C4-T13).
-    private func configButton(modID: String) -> some View {
-        KeybindConfigButton(localization: localization) { openConfig(modID) }
+    /// raccourcis » (C4-T13). La keyPath de la ligne vise le réglage précis
+    /// dans l'éditeur (scroll + surlignage) ; `nil` sur les lignes qui en
+    /// réunissent plusieurs — l'éditeur s'ouvre en haut, comme avant.
+    private func configButton(modID: String, keyPath: [String]? = nil) -> some View {
+        KeybindConfigButton(localization: localization) { openConfig(modID, keyPath) }
     }
 
     /// Le geste « ouvrir la config » d'une ligne. La demande doit traverser
@@ -243,8 +270,8 @@ struct KeybindReportSection: View {
     /// documenté dans `MainView`) : elle passe par
     /// `navigationStore.pendingConfigFocus`, consommé dans le `onChange`
     /// **après** la remise à zéro — même patron que `pendingTranslationFocus`.
-    private func openConfig(_ modID: String) {
-        if vm.openModConfig(forFolder: modID) {
+    private func openConfig(_ modID: String, _ keyPath: [String]?) {
+        if vm.openModConfig(forFolder: modID, keyPath: keyPath) {
             currentTab = .mods
         }
     }

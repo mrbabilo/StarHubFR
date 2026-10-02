@@ -55,6 +55,10 @@ struct ModConfigEditorView: View {
     /// sauvegarde change celui-ci sans rien écrire, et le disque, lui, n'a
     /// pas bougé.
     @State private var loadedFromDisk: String?
+    /// C4-T13 — le réglage que le rapport de raccourcis vise : scrollé au
+    /// centre et surligné quelques secondes, puis l'état retombe.
+    @State private var focusKeyPath: [String]?
+    @State private var highlightedRowId: String?
 
     private var configRows: [ConfigEditorModel.Row] { configGroups.flatMap(\.rows) }
 
@@ -72,11 +76,24 @@ struct ModConfigEditorView: View {
         return (modPath as NSString).appendingPathComponent("content.json")
     }
 
-    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem, initialTab: Int = 0) {
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, mod: ModItem,
+         initialTab: Int = 0, focusKeyPath: [String]? = nil) {
         self.localization = localization
         self.vm = vm
         self.mod = mod
         self._selectedTab = State(initialValue: initialTab)
+        self._focusKeyPath = State(initialValue: focusKeyPath)
+    }
+
+    /// La rangée qui porte exactement ce `keyPath` (casse pliée, segment à
+    /// segment) — le rapport et l'éditeur lisent le même `config.json`.
+    static func row(matching target: [String], in rows: [ConfigEditorModel.Row]) -> ConfigEditorModel.Row? {
+        rows.first { row in
+            row.keyPath.count == target.count
+                && zip(row.keyPath, target).allSatisfy {
+                    $0.compare($1, options: .caseInsensitive) == .orderedSame
+                }
+        }
     }
 
     var configPath: String {
@@ -146,6 +163,7 @@ struct ModConfigEditorView: View {
                         Spacer()
                     }
                 } else {
+                    ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 20) {
                             if schemaReading == .unreadable {
@@ -190,6 +208,11 @@ struct ModConfigEditorView: View {
                             }
                         }
                         .padding(30)
+                    }
+                    .onChange(of: highlightedRowId) { _, id in
+                        guard let id else { return }
+                        withAnimation { proxy.scrollTo(id, anchor: .center) }
+                    }
                     }
                 }
             } else {
@@ -296,6 +319,22 @@ struct ModConfigEditorView: View {
             configText = "{}"
             loadedFromDisk = nil
             parseToVisual()
+        }
+        applyFocusIfNeeded()
+    }
+
+    /// C4-T13 — après le parse : la rangée visée par le rapport de
+    /// raccourcis est surlignée, le scroll la centre, l'état retombe au bout
+    /// de trois secondes. La demande (navigationStore) est consommée ici
+    /// quoi qu'il arrive : elle ne vaut qu'une fois.
+    private func applyFocusIfNeeded() {
+        defer { vm.navigationStore.pendingConfigFocusKeyPath = nil }
+        guard let target = focusKeyPath,
+              let row = Self.row(matching: target, in: configRows) else { return }
+        highlightedRowId = row.id
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            highlightedRowId = nil
         }
     }
     
@@ -657,7 +696,10 @@ struct ModConfigEditorView: View {
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 renderItemRow(row: row)
+                    .id(row.id)
                     .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6)
+                        .fill(AppDesign.Color.accent.opacity(row.id == highlightedRowId ? 0.12 : 0)))
                 if index < rows.count - 1 {
                     Divider()
                 }
@@ -671,7 +713,10 @@ struct ModConfigEditorView: View {
             ForEach(Array(nodes.enumerated()), id: \.element.id) { index, node in
                 if let row = node.row {
                     renderItemRow(row: row)
+                        .id(row.id)
                         .padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6)
+                            .fill(AppDesign.Color.accent.opacity(row.id == highlightedRowId ? 0.12 : 0)))
                     if index < nodes.count - 1 {
                         Divider()
                     }
