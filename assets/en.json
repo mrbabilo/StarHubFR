@@ -110,7 +110,7 @@
   "config_value_outside_list": "not in the mod's list",
   "config_keybind_capture": "Press a key… (Esc to cancel)",
   "config_keybind_clear": "Clear",
-  "config_keybind_change": "Click, then press the new shortcut. In “a · Q”, the lowercase letter is your key, the capital the saved name (US physical positions — game convention).",
+  "config_keybind_change": "Click, then press the new shortcut. The key is saved under the name the game reads on your keyboard; a key the game cannot see (such as ù or ^ on AZERTY) is ignored.",
   "config_keybind_conflict": "Conflicts with %@",
   "config_keybind_conflict_game": "a default game control (%@)",
   "config_keybind_conflict_mod": "%1$@ (%2$@)",

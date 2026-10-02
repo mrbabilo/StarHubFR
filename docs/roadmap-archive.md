@@ -4712,6 +4712,17 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       la gravure coïncide (QWERTY) ou n'apprend rien (`D1` contre `1`,
       touches sans gravure). L'info-bulle dit la convention : minuscule = ta
       touche, majuscule = le nom du fichier.
+      ⚠️ **Corrigé le 2026-10-02 — cette règle était fausse sur Mac.** La
+      citation FNA#121 vaut pour l'ère FNA ; le jeu livré sur Mac embarque
+      MonoGame, qui convertit `Keysym.Sym` (code SDL logique) et ne lit
+      jamais `Scancode` ; la SDL du jeu (2.30.4) rend `q` pour la position US
+      du A sur AZERTY ; en jeu, `Ctrl + Q` d'UI Info Suite 2 répond à la
+      touche **gravée** Q. La capture nomme désormais la touche par son
+      libellé (`MacKeyCodeMap.capturedName`), la rangée des chiffres reste
+      par position (la SDL la force), et une touche que le jeu ne voit pas
+      est refusée. Les raccourcis capturés sur AZERTY avant ce correctif
+      peuvent être sur la lettre voisine (A↔Q, Z↔W, M↔`,`) : une recapture
+      suffit.
       **L'annotation « lié à » livrée le jour même** (reproduction de
       l'affichage de conflits de leur `KeybindOverviewModal` — décompilé) :
       sous une rangée raccourci, « Conflit avec {mod} ({réglage}) » ou

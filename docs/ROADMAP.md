@@ -2726,6 +2726,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
 | **A1-T4** | 2026-10-02 | Exemples et gabarits sous un vrai mod ne sont plus listés comme composants : règle de traversal copiée du code SMAPI (`ModFolderTraversal`) ; 15 entrées fantômes mesurées à l'activation simulée |
 | **D1-T1** | 2026-10-02 | Détection de Profiler (Core) et carte de guidage dans l'onglet Performances : absent / en pause / actif |
+| **C4-T10 (correctif)** | 2026-10-02 | La capture de raccourci nommait la touche par sa position US ; le jeu Mac (MonoGame) lit son libellé — mesuré dans l'IL, la SDL du jeu, et en jeu sur AZERTY. `MacKeyCodeMap.capturedName` + refus des touches que le jeu ne voit pas |
 | **C4-T13** | 2026-10-02 | Saut au réglage précis (l'engrenage scrolle l'éditeur sur la clé, surlignée) + export Markdown du rapport (`KeybindReportExport`, Core testé) ; C3-T2 pesé et non engagé — axe C clos |
 | **E2-T2** | 2026-10-02 | `GUIDE.md` : coexistence des gestionnaires, `X` / `.X`, désinstallation propre |
 | **A1-T1** | 2026-10-02 | Dépendances requises absentes du disque : plan (Core), feuille récapitulative, page Nexus exacte (dump Pathoschild), contrôle d'identifiant de l'archive ; + `"IsRequired"` en texte lu comme SMAPI |

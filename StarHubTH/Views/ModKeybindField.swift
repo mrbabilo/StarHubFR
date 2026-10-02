@@ -2,22 +2,19 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-/// La gravure d'une touche sur le clavier **courant** (`UCKeyTranslate`,
-/// mode display, sans modificateur). Les `SButton` nomment des positions
-/// physiques US — convention du jeu, partagée par SMAPI : le nom `Q`
-/// désigne la touche gravée `a` sur un AZERTY, et c'est bien cette touche
-/// que le mod écoutera. L'éditeur montre donc **les deux** : ta touche
-/// d'abord, le nom enregistré ensuite. Cache par source de saisie — la
-/// disposition ne change pas à chaque rendu.
+/// Le caractère que la disposition **courante** donne à une touche
+/// (`UCKeyTranslate`, mode display, sans modificateur) — l'entrée de
+/// `MacKeyCodeMap.capturedName` : le jeu lit le libellé, pas la position
+/// (voir `MacKeyCodeMap`). Cache par source de saisie — la disposition ne
+/// change pas à chaque frappe.
 private enum MacKeyLayout {
     private static let lock = NSLock()
     private static var sourceID = ""
     private static var cache: [UInt16: String?] = [:]
 
-    /// Le caractère gravé de la touche, `nil` quand la table ne la connaît
-    /// pas (`MouseLeft`, la manette) ou que la disposition n'en produit pas.
-    static func keycap(for name: String) -> String? {
-        guard let keyCode = MacKeyCodeMap.keyCode(for: name) else { return nil }
+    /// Le caractère de la touche, `nil` quand la disposition n'en produit
+    /// pas (F8, flèches) ou ne se lit pas.
+    static func character(for keyCode: UInt16) -> String? {
         lock.lock(); defer { lock.unlock() }
         let current = currentSourceID()
         if current != sourceID { sourceID = current; cache = [:] }
@@ -72,12 +69,13 @@ private enum MacKeyLayout {
 /// premier presserait à moitié chaque combinaison. Ils entrent dans la
 /// combinaison de la touche qui suit.
 ///
-/// L'affichage d'une combinaison à **une** touche grave est bilingue quand
-/// la gravure diffère du nom : « a · Q » — la minuscule est ta touche, la
-/// majuscule le nom enregistré dans le fichier. Traduit depuis la
-/// disposition courante (`MacKeyLayout`), donc vrai aussi à la réouverture,
-/// pas seulement juste après une capture. Les noms sans gravure (`F8`,
-/// `Space`, la manette) et les listes s'affichent tels qu'enregistrés.
+/// La touche pressée est nommée par son **libellé** dans la disposition
+/// courante — c'est ce que le jeu lit (mesuré en jeu sur AZERTY le
+/// 2026-10-02). Une touche que le jeu ne voit pas (`)` `^` `ù` sur un
+/// AZERTY) est refusée : la capture reste armée plutôt que d'écrire un nom
+/// deviné. L'affichage ajoute le caractère quand le nom ne le dit pas
+/// (« , · OemComma ») ; lettres, chiffres et touches nommées s'affichent tels
+/// qu'enregistrés.
 struct ModKeybindField: View {
     @ObservedObject var localization: LocalizationStore
     @Binding var combo: KeybindCombo
@@ -85,16 +83,14 @@ struct ModKeybindField: View {
     @State private var capturing = false
     @State private var monitor: Any?
 
-    /// `(ta touche, le nom enregistré)` quand la gravure courante diffère
-    /// du nom — `nil` quand l'un des deux suffit. Le filtre de
-    /// `keycapHint` écarte ce qui n'apprend rien (QWERTY, `D1` contre `1`).
+    /// `(caractère, nom enregistré)` pour une ponctuation seule — le nom
+    /// `OemComma` ne dit pas « , ». `nil` quand le nom suffit.
     private var layoutHint: (keycap: String, stored: String)? {
         guard !capturing, !combo.isEmpty, combo.buttons.count == 1,
               let stored = combo.buttons.first,
-              let engraved = MacKeyLayout.keycap(for: stored),
-              let keycap = MacKeyCodeMap.keycapHint(physicalName: stored, typedCharacter: engraved)
+              let character = MacKeyCodeMap.displayHint(storedName: stored)
         else { return nil }
-        return (keycap, stored)
+        return (character, stored)
     }
 
     var body: some View {
@@ -171,9 +167,11 @@ struct ModKeybindField: View {
         if mods.contains(.control) { buttons.append(MacKeyCodeMap.modifierNames.control) }
         if mods.contains(.option) { buttons.append(MacKeyCodeMap.modifierNames.alt) }
         if mods.contains(.command) { buttons.append(MacKeyCodeMap.modifierNames.command) }
-        guard let name = MacKeyCodeMap.name(for: event.keyCode),
+        guard let name = MacKeyCodeMap.capturedName(
+                keyCode: event.keyCode,
+                character: MacKeyLayout.character(for: event.keyCode)),
               let next = KeybindCombo(buttons: buttons + [name]) else {
-            // Touche hors table : avalée, la capture reste armée.
+            // Touche que le jeu ne lit pas : avalée, la capture reste armée.
             return nil
         }
         disarm()

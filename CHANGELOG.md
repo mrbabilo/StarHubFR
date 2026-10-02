@@ -18,6 +18,10 @@ where the exact log format was verified.
 - **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
 - **Profiler : détecté et guidé.** L'onglet Performances dit où en est le mod Profiler — absent (lien pour l'installer), en pause (bouton pour l'activer) ou actif (comment jouer la session qui remplira l'analyse).
 - **Guide utilisateur.** Coexistence avec les autres gestionnaires, la convention `X` / `.X` des mods en pause, et la désinstallation propre de l'app : `GUIDE.md`, relié au README.
+### Fixed
+
+- **Raccourcis capturés sur un clavier AZERTY.** Appuyer sur A enregistrait `Q` : l'app suivait la position d'un clavier américain, alors que le jeu lit la lettre gravée. La touche est enregistrée sous son vrai nom ; les raccourcis capturés avant peuvent être sur la lettre voisine (A↔Q, Z↔W).
+
 ## [1.54.0] - 2026-10-02
 
 ### Changed

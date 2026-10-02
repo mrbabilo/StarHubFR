@@ -39,33 +39,68 @@ struct MacKeyCodeMapTests {
         #expect(functionKeys.isSubset(of: names), "une touche F manque : \(functionKeys.subtracting(names))")
     }
 
-    /// La marche arrière de la table : le keyCode d'un nom physique. C'est
-    /// l'entrée que la traduction vers le clavier courant emploie pour
-    /// montrer « ta touche · nom enregistré ». Les noms hors table
-    /// (`MouseLeft`, la manette) n'ont pas de touche à traduire.
-    @Test func keyCodeReverseLookupServesTheLayoutTranslation() {
-        #expect(MacKeyCodeMap.keyCode(for: "A") == 0x00)
-        #expect(MacKeyCodeMap.keyCode(for: "F8") == 0x64)
-        #expect(MacKeyCodeMap.keyCode(for: "MouseLeft") == nil)
+    // MARK: - La capture lit le libellé (corrigé le 2026-10-02)
+    //
+    // Les tests d'avant figeaient « sur AZERTY, presser la touche A
+    // enregistre Q » (règle FNA#121, ère FNA). Inversés : MonoGame lit
+    // `Keysym.Sym`, la SDL du jeu rend le caractère de la disposition, et
+    // en jeu `Ctrl + Q` répond à la touche gravée Q. Fixture : les vrais
+    // caractères d'un AZERTY français, relevés par `UCKeyTranslate`.
+
+    /// La touche gravée A d'un AZERTY (position US du Q, keyCode 0x0C) :
+    /// le jeu la lit `A`, la capture doit écrire `A`.
+    @Test func azertyLetterIsNamedByItsEngraving() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x0C, character: "a") == "A")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x00, character: "q") == "Q")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x0D, character: "z") == "Z")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x29, character: "m") == "M")
     }
 
-    /// C4-T10, suite — l'indice de touche pressée. Les `SButton` nomment des
-    /// **positions physiques US** (convention du jeu, confirmée par le wiki
-    /// Stardew et FNA#121) : sur AZERTY, presser la touche A enregistre `Q`.
-    /// L'indice montre ce que l'utilisateur a réellement tapé — sauf quand
-    /// il n'apprend rien.
-    @Test func keycapHintShowsThePressedCharacterWhenItDiffers() {
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: "a") == "a")
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "D2", typedCharacter: "é") == "é")
+    /// Le cas voisin : sur QWERTY, rien ne change.
+    @Test func qwertyLetterIsUnchanged() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x00, character: "a") == "A")
     }
 
-    @Test func keycapHintStaysSilentWhenItTeachesNothing() {
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: "Q") == nil) // QWERTY
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "D1", typedCharacter: "1") == nil) // D1↔1, évident
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "F8", typedCharacter: "") == nil) // pas de caractère
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "Space", typedCharacter: " ") == nil)
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "Up", typedCharacter: "\u{F702}") == nil) // usage privé
-        #expect(MacKeyCodeMap.keycapHint(physicalName: "Q", typedCharacter: nil) == nil)
+    /// La rangée des chiffres se lit par position, quelle que soit la
+    /// gravure (`&` rend `1` dans la SDL du jeu).
+    @Test func numberRowIsAlwaysADigit() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x12, character: "&") == "D1")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x1D, character: "à") == "D0")
+    }
+
+    /// La ponctuation suit la table de MonoGame, par caractère.
+    @Test func punctuationFollowsTheGameTable() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x2E, character: ",") == "OemComma")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x2B, character: ";") == "OemSemicolon")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x32, character: "<") == "OemBackslash")
+    }
+
+    /// Une touche que le jeu ne voit pas est refusée, sans nom deviné.
+    @Test func keysTheGameCannotReadAreRefused() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x1B, character: ")") == nil)
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x27, character: "ù") == nil)
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x0A, character: "@") == nil)
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x00, character: nil) == nil)
+    }
+
+    /// Les touches sans caractère gardent leur nom, toutes dispositions.
+    @Test func namedKeysIgnoreTheLayout() {
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x64, character: nil) == "F8")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x31, character: " ") == "Space")
+        #expect(MacKeyCodeMap.capturedName(keyCode: 0x7B, character: "\u{F702}") == "Left")
+    }
+
+    @Test func everyPunctuationNameIsARealSButtonName() {
+        for name in MacKeyCodeMap.punctuationByCharacter.values {
+            #expect(SButtonTable.canonicalName(for: name) == name, "« \(name) »")
+        }
+    }
+
+    @Test func displayHintShowsOnlyWhatTheNameHides() {
+        #expect(MacKeyCodeMap.displayHint(storedName: "OemComma") == ",")
+        #expect(MacKeyCodeMap.displayHint(storedName: "Q") == nil)
+        #expect(MacKeyCodeMap.displayHint(storedName: "D1") == nil)
+        #expect(MacKeyCodeMap.displayHint(storedName: "F8") == nil)
     }
 
     /// Les modificateurs que la capture écrit : valeurs exactes, validées

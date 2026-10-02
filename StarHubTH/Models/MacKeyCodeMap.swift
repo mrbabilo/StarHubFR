@@ -1,17 +1,28 @@
 import Foundation
 
-/// Le nom `SButton` canonique d'une touche du clavier macOS (**C4-T10**).
-/// La capture de raccourci reçoit un `NSEvent` dont elle ne connaît que le
-/// `keyCode` ; le mod, lui, attend un nom que le `TryParse` de SMAPI lit.
-/// La table relie les deux, figée sur la disposition ANSI d'`Events.h` —
-/// les valeurs n'existent que dans la mesure où `SButtonTable` les porte,
-/// ce qu'un test garantit : la capture ne peut pas produire une
-/// combinaison que la grammaire refuserait.
+/// Le nom `SButton` d'une touche du clavier macOS (**C4-T10**, corrigé le
+/// 2026-10-02). La capture de raccourci reçoit un `NSEvent` ; le mod attend
+/// un nom que le `TryParse` de SMAPI lit.
 ///
-/// Le choix des touches est volontairement complet sur le matériel et
-/// sobre sur le reste : toutes les lettres, chiffres, F1–F20, flèches,
-/// pavé numérique et touches d'édition ; pas les touches ISO/JIS propres
-/// à d'autres dispositions, ni `fn` (aucune valeur `SButton` ne le porte).
+/// **Le jeu lit le libellé de la touche, pas sa position.** Mesuré le
+/// 2026-10-02 : MonoGame (seul moteur livré sur Mac, aucune FNA dans le
+/// dossier du jeu) convertit `Keysym.Sym` — le code SDL **logique** — et ne
+/// lit jamais `Scancode` ; la SDL du jeu (2.30.4), interrogée sur un AZERTY,
+/// rend `q` pour la position US du A ; et en jeu, `Ctrl + Q` d'UI Info
+/// Suite 2 répond à la touche **gravée** Q. La règle « position US »
+/// d'avant venait de l'ère FNA (FNA#121) et n'est plus vraie.
+///
+/// D'où trois familles :
+/// - **lettres et ponctuation** : nommées par le caractère que la
+///   disposition courante donne à la touche (`capturedName`) ;
+/// - **rangée des chiffres** : toujours `D1`…`D0` par position — la SDL
+///   force ces codes quelle que soit la disposition (mesuré : sur AZERTY
+///   la touche `&` rend `1`) ;
+/// - **touches sans caractère** (F1–F20, flèches, édition, pavé
+///   numérique) : la table par keyCode, indépendante de la disposition.
+///
+/// Les valeurs n'existent que dans la mesure où `SButtonTable` les porte,
+/// ce qu'un test garantit.
 public enum MacKeyCodeMap {
 
     /// keyCode → nom canonique. Deux keyCodes ne portent jamais le même
@@ -71,32 +82,47 @@ public enum MacKeyCodeMap {
         table[keyCode]
     }
 
-    private static let keyCodeByName = Dictionary(
-        table.map { ($0.value, $0.key) },
-        uniquingKeysWith: { first, _ in first })
+    /// La ponctuation que le jeu reconnaît : caractère SDL → nom `SButton`.
+    /// Copie de `KeyboardUtil._map` de `MonoGame.Framework.dll` livré avec
+    /// le jeu (relevé dans l'IL le 2026-10-02), restreint aux caractères
+    /// non alphanumériques. Un caractère absent (`)` `^` `$` `ù` `:` sur un
+    /// AZERTY) **n'a pas d'équivalent** : le jeu ne voit pas cette touche.
+    public static let punctuationByCharacter: [Character: String] = [
+        "'": "OemQuotes", "+": "Add", ",": "OemComma", "-": "OemMinus",
+        ".": "OemPeriod", "/": "OemQuestion", ";": "OemSemicolon",
+        "<": "OemBackslash", "=": "OemPlus", "[": "OemOpenBrackets",
+        "\\": "OemPipe", "]": "OemCloseBrackets", "`": "OemTilde",
+    ]
 
-    /// Le keyCode d'un nom physique, `nil` hors table (`MouseLeft`, la
-    /// manette) — l'entrée qu'emploie la traduction vers le clavier courant
-    /// pour montrer « ta touche · nom enregistré ».
-    public static func keyCode(for name: String) -> UInt16? {
-        keyCodeByName[name]
+    /// Une touche « à caractère » : son nom dépend de la disposition. Les
+    /// chiffres `D1`…`D0` n'en sont pas — la SDL du jeu force la rangée des
+    /// chiffres quelle que soit la gravure (sur AZERTY, `&` rend `1`) : la
+    /// table par keyCode les nomme donc directement.
+    static func isCharacterKey(_ name: String) -> Bool {
+        (name.count == 1 && name.first?.isLetter == true) || name.hasPrefix("Oem")
     }
 
-    /// Le caractère pressé à montrer à côté du nom physique, `nil` quand il
-    /// n'apprend rien. Les `SButton` nomment des **positions physiques US**
-    /// — convention du jeu, partagée par SMAPI (wiki Stardew ; FNA#121 pour
-    /// la mécanique) : sur AZERTY, presser la touche A enregistre `Q`, et
-    /// c'est bien cette touche que le mod écoutera. Écrire le caractère du
-    /// keycap lierait la mauvaise touche ; le montrer à côté du nom évite
-    /// la surprise. Silencieux quand l'indice n'enseigne rien : caractère
-    /// identique (QWERTY), chiffre évident (`D1` contre `1`), pas de
-    /// caractère (F8), ou hors lettres et chiffres (espace, flèches).
-    public static func keycapHint(physicalName: String, typedCharacter: String?) -> String? {
-        guard var text = typedCharacter, let first = text.first else { return nil }
-        guard first.isLetter || first.isNumber else { return nil }
-        let keycap = first.lowercased()
-        guard physicalName.lowercased() != keycap,
-              physicalName != "D" + keycap.uppercased() else { return nil }
-        return String(keycap)
+    /// Le nom que la capture écrit pour une touche pressée.
+    ///
+    /// - Parameters:
+    ///   - keyCode: le keyCode macOS de l'événement.
+    ///   - character: le caractère que la disposition **courante** donne à
+    ///     cette touche, sans modificateur (`UCKeyTranslate`) ; `nil` sans
+    ///     disposition lisible.
+    /// - Returns: le nom `SButton`, ou `nil` quand le jeu ne peut pas lire
+    ///   cette touche — la capture la refuse plutôt que d'écrire un nom
+    ///   deviné.
+    public static func capturedName(keyCode: UInt16, character: String?) -> String? {
+        if let fixed = table[keyCode], !isCharacterKey(fixed) { return fixed }
+        guard let text = character, text.count == 1, let ch = text.first else { return nil }
+        if ch.isASCII, ch.isLetter { return text.uppercased() }
+        return punctuationByCharacter[ch]
+    }
+
+    /// Le caractère à montrer à côté d'un nom enregistré, quand le nom seul
+    /// ne le dit pas : `OemComma` → `,`. `nil` pour une lettre, un chiffre
+    /// ou une touche nommée (`F8`, `Space`) — le nom suffit.
+    public static func displayHint(storedName: String) -> String? {
+        punctuationByCharacter.first { $0.value == storedName }.map { String($0.key) }
     }
 }
