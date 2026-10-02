@@ -21,7 +21,10 @@ struct KeybindOverviewGroup: View {
     /// Le geste de l'engrenage, composé par `KeybindReportSection`.
     let openConfig: (String, [String]) -> Void
 
-    @State private var filter: KeybindScanner.OverviewFilter = .all
+    /// « Liés » par défaut (refonte du 2026-10-02) : sur le parc, 67 des
+    /// 171 réglages ne lient aucune touche et noyaient la liste. Rien n'est
+    /// perdu — « Tous » et « Non assignés » restent à un clic.
+    @State private var filter: KeybindScanner.OverviewFilter = .bound
     @State private var query = ""
 
     var body: some View {
@@ -91,11 +94,11 @@ struct KeybindOverviewGroup: View {
         .frame(minWidth: 160)
     }
 
-    /// Touches, puis mod et réglage. La colonne des touches a une largeur
-    /// fixe pour que les lignes s'alignent ; « LeftControl + LeftShift + F8 »
-    /// y tronque au milieu plutôt que de décaler la suite.
+    /// Mod et réglage d'abord — ce que l'on cherche —, la touche en
+    /// capuchon à droite, l'engrenage au bout. Le glyphe de conflit garde la
+    /// couleur de son sens (`KeybindConflictStyle`).
     private func row(_ binding: KeybindScanner.SettingBinding) -> some View {
-        HStack(spacing: AppDesign.Spacing.xs) {
+        HStack(spacing: AppDesign.Spacing.sm) {
             Group {
                 if binding.hasConflict {
                     Image(systemName: KeybindConflictStyle.glyph)
@@ -109,14 +112,20 @@ struct KeybindOverviewGroup: View {
                     Color.clear.frame(width: 18, height: 18)
                 }
             }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(binding.modName)
+                    .font(AppDesign.Font.caption(.medium))
+                    .lineLimit(1).truncationMode(.tail)
+                Text(binding.keyPath.joined(separator: "."))
+                    .font(AppDesign.Font.monoFootnote).foregroundColor(.secondary)
+                    .lineLimit(1).truncationMode(.middle)
+            }
+            .layoutPriority(1)
+            Spacer(minLength: AppDesign.Spacing.sm)
             keys(binding)
-                .frame(width: 170, alignment: .leading)
-            Text("\(binding.modName) · \(binding.keyPath.joined(separator: "."))")
-                .font(AppDesign.Font.caption).foregroundColor(.secondary)
-                .lineLimit(1).truncationMode(.middle)
-            Spacer(minLength: 0)
             KeybindConfigButton(localization: localization) { openConfig(binding.modID, binding.keyPath) }
         }
+        .padding(.vertical, 3)
     }
 
     @ViewBuilder private func keys(_ binding: KeybindScanner.SettingBinding) -> some View {
@@ -124,9 +133,9 @@ struct KeybindOverviewGroup: View {
             Text(localization.L(L10n.Keybinds.unassignedValue))
                 .font(AppDesign.Font.caption).italic().foregroundColor(.secondary)
         } else {
-            Text(binding.combos.map(\.display).joined(separator: ", "))
-                .font(AppDesign.Font.caption(.medium))
-                .lineLimit(1).truncationMode(.middle)
+            HStack(spacing: 4) {
+                ForEach(binding.combos, id: \.self) { KeybindKeyChip(text: $0.display) }
+            }
         }
     }
 }
