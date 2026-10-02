@@ -32,42 +32,10 @@ struct ModInstallBackupsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    // Le segment Installation de « Sauvegardes des mods »
-                    // (I-T8) : le titre de la page est déjà dans la fenêtre.
-                    Text(localization.L(L10n.Maintenance.installBackups))
-                        .font(.system(size: AppDesign.Font.scaled(18), weight: .semibold))
-                    // Clé dédiée : mettre en minuscules le titre « Gérer les
-                    // sauvegardes » donnait « 12 gérer les sauvegardes ».
-                    Text(String(format: localization.L(L10n.ModInstall.backupsModsCount),
-                                Int64(groups.count), Int64(backups.count)))
-                        .font(AppDesign.Font.footnote)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Button {
-                    loadBackups()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(AppDesign.Font.body)
-                }
-                .buttonStyle(.bordered)
-                .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-
-            Divider()
-
+            // Le titre est celui de la page et du segment (I-T8) : ici, la
+            // recherche, le tri, le compte et le rechargement en une rangée.
             searchAndSortBar
-
-            Divider()
-
-            // Retention policy info banner
             retentionInfoBanner
-
             Divider()
 
             // Content
@@ -199,9 +167,7 @@ struct ModInstallBackupsView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "tray")
-                .font(.system(size: AppDesign.Font.scaled(48)))
-                .foregroundColor(AppDesign.Color.dimmedSecondary(0.4))
+            IconTile(icon: "tray", tint: AppDesign.Color.accent, size: 64)
             Text(localization.L(L10n.ModInstall.noBackups))
                 .font(AppDesign.Font.rowTitle)
                 .foregroundColor(.secondary)
@@ -262,9 +228,26 @@ struct ModInstallBackupsView: View {
             .pickerStyle(.menu)
             .fixedSize()
             .font(AppDesign.Font.caption)
+
+            Spacer(minLength: AppDesign.Spacing.sm)
+            // Clé dédiée : mettre en minuscules le titre « Gérer les
+            // sauvegardes » donnait « 12 gérer les sauvegardes ».
+            Text(String(format: localization.L(L10n.ModInstall.backupsModsCount),
+                        Int64(groups.count), Int64(backups.count)))
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+            Button {
+                loadBackups()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.vertical, AppDesign.Spacing.sm)
     }
 
     private var noMatchState: some View {
@@ -293,12 +276,12 @@ struct ModInstallBackupsView: View {
         return ScrollView {
             // Paresseuse : tout déplier ferait construire des milliers de
             // lignes d'un coup sur un parc réel.
-            LazyVStack(spacing: 8) {
+            LazyVStack(spacing: AppDesign.Spacing.sm) {
                 ForEach(shown) { group in
                     modGroupCard(group, autoExpand: autoExpand)
                 }
             }
-            .padding(20)
+            .padding(AppDesign.Spacing.xl)
         }
     }
 
@@ -319,12 +302,7 @@ struct ModInstallBackupsView: View {
                         .font(AppDesign.Font.iconXS(.semibold))
                         .foregroundColor(.secondary)
                         .frame(width: 12)
-                    ZStack {
-                        Circle().fill(Color.pink.opacity(0.12)).frame(width: 30, height: 30)
-                        Image(systemName: "shippingbox")
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.pink)
-                    }
+                    IconTile(icon: "shippingbox", tint: .pink, size: 30)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.displayName)
                             .font(AppDesign.Font.body(.medium))
@@ -373,10 +351,7 @@ struct ModInstallBackupsView: View {
                 .padding(.bottom, 12)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 8)
-            .fill(Color(nsColor: .controlBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 8)
-            .stroke(Color.secondary.opacity(0.12), lineWidth: 0.5))
+        .cardSurface(padding: 0)
     }
 
     private func backupRow(_ backup: ModInstallBackup) -> some View {
@@ -488,9 +463,8 @@ struct ModInstallBackupsView: View {
                 .foregroundColor(.secondary)
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.bottom, AppDesign.Spacing.sm)
     }
 
     private func loadBackups() {

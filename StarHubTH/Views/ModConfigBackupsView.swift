@@ -39,7 +39,6 @@ struct ModConfigBackupsView: View {
                 list
             }
         }
-        .background(Color(nsColor: .textBackgroundColor))
         .onAppear { reload() }
         // Un seul présentateur pour les trois confirmations — voir
         // `ModConfigBackupsConfirmation`. `presenting:` porte la valeur ;
@@ -83,11 +82,13 @@ struct ModConfigBackupsView: View {
 
     // MARK: - Header
 
+    /// Le titre est celui de la page et du segment : ici, le compte et le
+    /// geste de création.
     private var header: some View {
         HStack {
-            Text(localization.L(L10n.ModConfigBackups.title))
-                .font(.headline)
-                .foregroundColor(.primary)
+            Text(String(format: localization.L(L10n.ModConfigBackups.headerCount), Int64(backups.count)))
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(.secondary)
 
             Spacer()
 
@@ -100,15 +101,14 @@ struct ModConfigBackupsView: View {
                     }
                     Text(localization.L(isBusy ? L10n.ModConfigBackups.creatingBackup : L10n.ModConfigBackups.createBackup))
                 }
-                .font(AppDesign.Font.caption(.medium))
             }
-            .buttonStyle(.plain)
-            .foregroundColor(.accentColor)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
             .disabled(isBusy || createDisabledReason != nil)
             .help(createDisabledReason ?? "")
         }
-        .padding()
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.vertical, AppDesign.Spacing.sm)
     }
 
     // MARK: - Empty state
@@ -116,9 +116,7 @@ struct ModConfigBackupsView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "archivebox")
-                .font(.system(size: AppDesign.Font.scaled(40)))
-                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
+            IconTile(icon: "archivebox", tint: AppDesign.Color.accent, size: 64)
             Text(localization.L(L10n.ModConfigBackups.noBackups))
                 .multilineTextAlignment(.center)
                 .font(AppDesign.Font.rowTitle)
@@ -146,7 +144,7 @@ struct ModConfigBackupsView: View {
                     )
                 }
             }
-            .padding(20)
+            .padding(AppDesign.Spacing.xl)
         }
     }
 
@@ -397,11 +395,6 @@ private struct ModConfigBackupRow: View {
                 .padding(.vertical, 12)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.1), lineWidth: 1)
-        )
+        .cardSurface(padding: 0)
     }
 }

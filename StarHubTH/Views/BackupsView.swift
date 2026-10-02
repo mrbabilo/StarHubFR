@@ -17,6 +17,13 @@ struct BackupsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // En-tête commun des pages (audit UX 2026-10-02) : un seul titre,
+            // ici ; les segments gardent leurs actions, pas un second titre.
+            PageHeader(icon: "arrow.uturn.backward.circle.fill",
+                       title: localization.L(L10n.ModInstall.manageBackups),
+                       subtitle: localization.L(L10n.Backups.pageSubtitle))
+                .padding(.horizontal, AppDesign.Spacing.xl)
+                .padding(.top, AppDesign.Spacing.md)
             Picker("", selection: Binding(get: { vm.navigationStore.backupsSegment },
                                           set: { vm.navigationStore.backupsSegment = $0 })) {
                 ForEach(BackupsSegment.allCases, id: \.self) { segment in
@@ -25,8 +32,8 @@ struct BackupsView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.sm)
 
             Divider()
 
@@ -40,6 +47,7 @@ struct BackupsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppDesign.Color.windowBg)
     }
 
     private func label(_ segment: BackupsSegment) -> String {

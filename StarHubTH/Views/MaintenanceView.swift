@@ -52,10 +52,10 @@ struct MaintenanceView: View {
                             } else {
                                 content(report)
                             }
-                            trashSection
-                            archivesSection
+                            if !vm.trashEvents.isEmpty { trashSection.cardSurface() }
+                            if keepNexusArchives || !vm.nexusArchives.isEmpty { archivesSection.cardSurface() }
                         }
-                        .padding()
+                        .padding(AppDesign.Spacing.xl)
                     }
                 } else {
                     emptyState
@@ -64,7 +64,7 @@ struct MaintenanceView: View {
                 loadingState
             }
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(AppDesign.Color.windowBg)
         // Passe de 0,86 s : au `.onAppear` seulement, sans chevauchement
         // (garde de `buildMaintenanceReport`) ; l'ancien rapport reste affiché.
         .onAppear {
@@ -113,7 +113,7 @@ struct MaintenanceView: View {
             switch pending {
             case .purge(_, let doomed, let freed):
                 Text(String(format: localization.L(L10n.Maintenance.purgeMessage),
-                            doomed, Self.bytes(freed)))
+                            doomed, MaintenanceStorageCard.bytes(freed)))
             case .cleanStale(let orphans, let keys):
                 Text(String(format: localization.L(L10n.Maintenance.cleanMessage),
                             orphans, keys))
@@ -133,12 +133,13 @@ struct MaintenanceView: View {
 
     // MARK: - Sections
 
+    /// En-tête commun des pages (audit UX 2026-10-02) : le total en sous-titre.
     private var header: some View {
-        HStack {
-            Text(localization.L(L10n.Maintenance.title))
-                .font(.headline)
-                .foregroundColor(.primary)
-            Spacer()
+        PageHeader(icon: "internaldrive", title: localization.L(L10n.Maintenance.title),
+                   subtitle: vm.maintenanceReport.map {
+                       String(format: localization.L(L10n.Maintenance.headerTotal),
+                              MaintenanceStorageCard.bytes($0.totalBytes))
+                   }) {
             if vm.isBuildingMaintenanceReport {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
@@ -148,19 +149,20 @@ struct MaintenanceView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.top, AppDesign.Spacing.md)
     }
 
     private func content(_ report: MaintenanceInventory.Report) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            summarySection(report)
-            purgeSection(report)
+            MaintenanceStorageCard(report: report, localization: localization) { keep, doomed, freed in
+                confirmation = .purge(keepPerMod: keep, doomed: doomed, freedBytes: freed)
+            }
             if !report.orphanSessions.isEmpty || !report.stalePreferenceKeys.isEmpty {
                 cleanSection(report)
             }
             if report.protectedCount > 0 {
-                protectedSection(report)
+                protectedSection(report).cardSurface()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -170,9 +172,7 @@ struct MaintenanceView: View {
     /// corbeille peut avoir des choses à dire juste en dessous.
     private var nothingToDoInline: some View {
         VStack(spacing: AppDesign.Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(.system(size: AppDesign.Font.scaled(34)))
-                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
+            IconTile(icon: "sparkles", tint: AppDesign.Color.success, size: 48)
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(AppDesign.Font.rowTitle)
@@ -197,62 +197,6 @@ struct MaintenanceView: View {
                                    onDelete: { confirmation = .purgeArchives(only: $0) })
     }
 
-    /// Le total et sa décomposition — le chiffre que l'utilisateur est venu voir.
-    private func summarySection(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            Text(localization.L(L10n.Maintenance.total))
-                .font(AppDesign.Font.body(.semibold))
-                .foregroundColor(.secondary)
-            Text(Self.bytes(report.totalBytes))
-                .font(.system(size: AppDesign.Font.scaled(28), weight: .bold))
-                .foregroundStyle(.primary)
-            VStack(alignment: .leading, spacing: 3) {
-                row(localization.L(L10n.Maintenance.installBackups),
-                    "\(report.backups.count) · \(Self.bytes(report.backupBytes))")
-                row(localization.L(L10n.Maintenance.configBackups),
-                    "\(report.configBackupCount) · \(Self.bytes(report.configBackupBytes))")
-                if !report.orphanSessions.isEmpty {
-                    row(localization.L(L10n.Maintenance.orphanSessions),
-                        String(report.orphanSessions.count))
-                }
-                if !report.stalePreferenceKeys.isEmpty {
-                    row(localization.L(L10n.Maintenance.staleKeys),
-                        String(report.stalePreferenceKeys.count))
-                }
-            }
-            .font(AppDesign.Font.caption)
-            .foregroundColor(.secondary)
-        }
-    }
-
-    /// Les trois crans. Le gain annoncé vient de `report.freedBytes` — le même
-    /// chemin que la purge : un chiffre qui divergerait de ce qui part serait
-    /// un mensonge.
-    private func purgeSection(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            ForEach([1, 3, 5], id: \.self) { keep in
-                let freed = report.freedBytes(keepPerMod: keep)
-                Button {
-                    let plan = MaintenanceInventory.plan(keepPerMod: keep,
-                                                         entries: report.backups,
-                                                         protections: report.protections)
-                    confirmation = .purge(keepPerMod: keep,
-                                           doomed: plan.doomed.count,
-                                           freedBytes: plan.freedBytes)
-                } label: {
-                    Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
-                                keep, Self.bytes(freed)))
-                        .font(AppDesign.Font.body(.medium))
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(freed <= 0)
-            }
-            Text(localization.L(L10n.Maintenance.trashHint))
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-
     private func cleanSection(_ report: MaintenanceInventory.Report) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Button {
@@ -265,6 +209,8 @@ struct MaintenanceView: View {
             }
             .buttonStyle(.bordered)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
     }
 
     /// Les sauvegardes qui ne partent pas, et pourquoi. La raison distingue
@@ -332,16 +278,7 @@ struct MaintenanceView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(8)
-    }
-
-    private func row(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            Text(value)
-        }
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
     }
 
     // MARK: - États
@@ -361,9 +298,7 @@ struct MaintenanceView: View {
     private var emptyState: some View {
         VStack(spacing: AppDesign.Spacing.lg) {
             Spacer()
-            Image(systemName: "sparkles")
-                .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(AppDesign.Color.dimmedSecondary(0.5))
+            IconTile(icon: "sparkles", tint: AppDesign.Color.success, size: 64)
             Text(localization.L(L10n.Maintenance.nothingToDo))
                 .multilineTextAlignment(.center)
                 .font(AppDesign.Font.rowTitle)
@@ -396,10 +331,6 @@ struct MaintenanceView: View {
                                 files: files,
                                 isGone: report.missingMods.contains(entry.id))
         }
-    }
-
-    private static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
     private var alertTitle: String {

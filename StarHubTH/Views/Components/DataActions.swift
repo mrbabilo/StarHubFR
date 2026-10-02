@@ -60,7 +60,7 @@ struct MaintenanceModActions: View {
         .buttonStyle(.bordered)
         .controlSize(.small)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal)
+        .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.vertical, AppDesign.Spacing.sm)
         // La corbeille des mods est restaurable depuis cet écran même : la
         // confirmation chiffre ce qui part avant le clic.

@@ -793,6 +793,7 @@ enum L10n {
 
     // MARK: - ModConfigBackups
     enum ModConfigBackups {
+        static let headerCount               = "mod_config_backups_header_count"
         static let title                     = "mod_config_backups_title"
         static let createBackup              = "mod_config_backups_create"
         static let creatingBackup            = "mod_config_backups_creating"
@@ -1800,6 +1801,7 @@ enum L10n {
 
     // MARK: - Backups (I-T8) — segments de « Sauvegardes des mods »
     enum Backups {
+        static let pageSubtitle         = "backups_page_subtitle"
         static let segmentInstall = "backups_segment_install"
         static let segmentConfig  = "backups_segment_config"
         static let segmentFiles   = "backups_segment_files"
@@ -2108,6 +2110,9 @@ enum L10n {
     }
 
     enum Maintenance {
+        /// En-tête de page et carte « Stockage » (audit UX 2026-10-02).
+        static let headerTotal          = "maintenance_header_total"
+        static let freeSpaceTitle       = "maintenance_free_space_title"
         // X103-C — archives Nexus conservées
         static let archivesTitle        = "maintenance_archives_title"
         static let archivesVersions     = "maintenance_archives_versions"

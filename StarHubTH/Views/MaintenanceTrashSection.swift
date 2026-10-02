@@ -85,8 +85,7 @@ struct MaintenanceTrashSection: View {
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(8)
+                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
                 }
                 Text(localization.L(L10n.Maintenance.trashHint2))
                     .font(.caption)

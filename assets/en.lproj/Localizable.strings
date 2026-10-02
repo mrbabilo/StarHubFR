@@ -2042,3 +2042,7 @@
 "quarantine_tile_duplicates" = "Duplicates";
 "quarantine_tile_review" = "To review";
 "quarantine_tile_hint" = "Jump to this section of the report.";
+"backups_page_subtitle" = "Bring back a mod, a configuration or a file from before.";
+"mod_config_backups_header_count" = "%lld configuration backups";
+"maintenance_header_total" = "StarHubFR uses %@ on this Mac.";
+"maintenance_free_space_title" = "Free up space";

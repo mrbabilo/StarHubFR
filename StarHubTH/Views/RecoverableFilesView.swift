@@ -27,15 +27,14 @@ struct RecoverableFilesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(localization.L(L10n.Recovery.title))
-                    .font(AppDesign.Font.headline(.semibold))
-                Text(localization.L(L10n.Recovery.note))
-                    .font(AppDesign.Font.footnote)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(20)
+            // Le titre de la page et du segment suffit : reste ce qui le
+            // précise — pourquoi ces fichiers ne vivent plus qu'en sauvegarde.
+            Label(localization.L(L10n.Recovery.note), systemImage: "info.circle.fill")
+                .font(AppDesign.Font.footnote)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, AppDesign.Spacing.xl)
+                .padding(.vertical, AppDesign.Spacing.sm)
 
             Divider()
 
@@ -50,6 +49,8 @@ struct RecoverableFilesView: View {
                 }
             } else {
                 ScrollView {
+                    // Une carte, lignes paresseuses : les seules copies de
+                    // l'Entretien peuvent se compter par dizaines.
                     LazyVStack(spacing: 0) {
                         ForEach(vm.recoverableFiles) { file in
                             row(file)
@@ -66,6 +67,8 @@ struct RecoverableFilesView: View {
                             Divider().padding(.leading, 20)
                         }
                     }
+                    .cardSurface(padding: 0)
+                    .padding(AppDesign.Spacing.xl)
                 }
             }
 

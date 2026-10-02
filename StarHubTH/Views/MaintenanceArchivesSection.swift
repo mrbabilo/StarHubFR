@@ -91,8 +91,7 @@ struct MaintenanceArchivesSection: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(AppDesignCore.Radius.md)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
     }
 
     private static func bytes(_ value: Int64) -> String {
