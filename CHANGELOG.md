@@ -30,6 +30,7 @@ where the exact log format was verified.
 - **Profils repensés.** Profil actif en en-tête, profils en cartes, couverture FR sur un anneau.
 - **Sauvegardes du jeu et Quarantaine repensées.** Parties et dernière jouée en en-tête, liste et grille en cartes ; Quarantaine avec ses gestes en en-tête et des tuiles qui mènent à chaque section du rapport.
 - **Sauvegardes des mods et Entretien repensés.** Un seul en-tête au-dessus des onglets, sauvegardes en cartes ; Entretien avec le total en en-tête et une carte « Stockage » (répartition, purge en un clic).
+- **Accueil, Gestion des mods, Découvrir, Mise à jour des mods et Diagnostic repensés.** En-tête commun sur chaque page (poids du cadrage et profil actif, mises à jour en attente, version de SMAPI et date du journal), cartes sur une surface unique, commandes de Découvrir fixes.
 - **Traductions FR, Réglages et Raccourcis repensés.** Anneau de répartition par statut qui mène à chaque section ; réglages en cartes à icône, ⌘, pour les ouvrir ; aide des raccourcis en touches en relief, rapport des mods chiffré.
 
 ### Fixed
