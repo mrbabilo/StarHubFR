@@ -12,17 +12,21 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Changed
+### Added
 
-- **Rapport de raccourcis repensé.** Rangé par gravité en cartes : verdict, ce qui est cassé, à faire, informatif, puis le clavier et l'inventaire. Les tuiles ouvrent leur groupe ; une seule couleur par sorte de conflit (rouge entre mods, orange avec le jeu) ; touches en capuchon ; l'inventaire montre les raccourcis liés par défaut.
-- **Raccourcis sur le clavier, la souris et la manette.** Le rapport de raccourcis dessine ton clavier de Mac (ISO ou ANSI), la souris et la manette : chaque touche porte les réglages des mods actifs, en rouge si conflit. Un clic liste les réglages et ouvre l'éditeur sur la bonne clé.
-- **Rapport de raccourcis : jusqu'au réglage, et hors de l'app.** L'engrenage d'une ligne ouvre maintenant l'éditeur de configuration directement sur la clé visée — scrollée au centre et surlignée. Un bouton « Exporter » écrit le rapport complet en Markdown daté, prêt à partager.
-- **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
+- **Raccourcis sur le clavier, la souris et la manette.** Le rapport dessine votre clavier de Mac (ISO ou ANSI), la souris et la manette ; chaque touche porte les réglages des mods actifs. Un clic liste les réglages et ouvre l'éditeur sur la bonne clé.
 - **Profiler : détecté et guidé.** L'onglet Performances dit où en est le mod Profiler — absent (lien pour l'installer), en pause (bouton pour l'activer) ou actif (comment jouer la session qui remplira l'analyse).
 - **Guide utilisateur.** Coexistence avec les autres gestionnaires, la convention `X` / `.X` des mods en pause, et la désinstallation propre de l'app : `GUIDE.md`, relié au README.
+
+### Changed
+
+- **Rapport de raccourcis repensé.** Rangé par gravité : verdict, ce qui est cassé, à faire, informatif. Les tuiles ouvrent leur groupe ; rouge pour un conflit entre mods, orange avec le jeu ; l'inventaire montre les raccourcis liés par défaut.
+- **Rapport de raccourcis : jusqu'au réglage, et hors de l'app.** L'engrenage d'une ligne ouvre l'éditeur de configuration directement sur la clé visée, surlignée. Un bouton « Exporter » écrit le rapport complet en Markdown daté.
+- **Exemples et gabarits ne comptent plus comme des mods.** Un `examples/` ou un `ContentPackTemplate/` sous un vrai mod n'est plus listé comme composant : la règle est copiée du code SMAPI, qui ne les charge pas non plus.
+
 ### Fixed
 
-- **Raccourcis capturés sur un clavier AZERTY.** Appuyer sur A enregistrait `Q` : l'app suivait la position d'un clavier américain, alors que le jeu lit la lettre gravée. La touche est enregistrée sous son vrai nom ; les raccourcis capturés avant peuvent être sur la lettre voisine (A↔Q, Z↔W).
+- **Raccourcis capturés sur un clavier AZERTY.** Appuyer sur A enregistrait `Q` : l'app suivait la position d'un clavier américain, alors que le jeu lit la lettre gravée. Les raccourcis capturés avant peuvent être sur la lettre voisine (A↔Q, Z↔W) : recapturez-les.
 
 ## [1.54.0] - 2026-10-02
 
