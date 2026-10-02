@@ -2043,7 +2043,8 @@
   "quarantine_tile_review": "To review",
   "quarantine_tile_hint": "Jump to this section of the report.",
   "backups_page_subtitle": "Bring back a mod, a configuration or a file from before.",
-  "mod_config_backups_header_count": "%lld configuration backups",
+  "mod_config_backups_header_count": "%lld configuration backup(s)",
   "maintenance_header_total": "StarHubFR uses %@ on this Mac.",
-  "maintenance_free_space_title": "Free up space"
+  "maintenance_free_space_title": "Free up space",
+  "quarantine_subtitle_short": "What scans have set aside."
 }

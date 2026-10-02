@@ -1277,6 +1277,7 @@ enum L10n {
         static let tileDuplicates       = "quarantine_tile_duplicates"
         static let tileReview           = "quarantine_tile_review"
         static let tileHint             = "quarantine_tile_hint"
+        static let subtitleShort        = "quarantine_subtitle_short"
         static let title                = "quarantine_title"
         static let subtitle             = "quarantine_subtitle"
         static let openFolder           = "quarantine_open_folder"

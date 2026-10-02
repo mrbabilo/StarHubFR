@@ -21,7 +21,7 @@ struct QuarantineView: View {
             // 500 à la fenêtre minimale : icônes seules (infobulles) quand ça
             // ne tient pas.
             PageHeader(icon: "tray.full.fill", title: localization.L(L10n.Quarantine.title),
-                       subtitle: localization.L(L10n.Quarantine.subtitle)) {
+                       subtitle: localization.L(L10n.Quarantine.subtitleShort)) {
                 AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) { actions(quarantineDir) } }
             }
             .padding(.horizontal, AppDesign.Spacing.xl)
@@ -31,6 +31,12 @@ struct QuarantineView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                        // En entier, jamais tronqué par l'en-tête : c'est la
+                        // promesse que rien n'est supprimé directement.
+                        Label(localization.L(L10n.Quarantine.subtitle), systemImage: "info.circle.fill")
+                            .font(AppDesign.Font.footnote)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         if let result = vm.maintenanceStore.quarantineMessage {
                             Label(result.text, systemImage: result.isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
                                 .font(AppDesign.Font.body)

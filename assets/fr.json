@@ -2043,7 +2043,8 @@
   "quarantine_tile_review": "À voir",
   "quarantine_tile_hint": "Aller à cette section du rapport.",
   "backups_page_subtitle": "Remettre un mod, une configuration ou un fichier d'avant.",
-  "mod_config_backups_header_count": "%lld sauvegardes de configuration",
+  "mod_config_backups_header_count": "%lld sauvegarde(s) de configuration",
   "maintenance_header_total": "StarHubFR occupe %@ sur ce Mac.",
-  "maintenance_free_space_title": "Libérer de la place"
+  "maintenance_free_space_title": "Libérer de la place",
+  "quarantine_subtitle_short": "Ce que les analyses ont mis à l'écart."
 }

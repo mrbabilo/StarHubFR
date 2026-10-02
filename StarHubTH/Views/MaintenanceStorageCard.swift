@@ -79,7 +79,8 @@ struct MaintenanceStorageCard: View {
     private var bar: some View {
         let total = max(report.backupBytes + report.configBackupBytes, 1)
         return GeometryReader { proxy in
-            HStack(spacing: 2) {
+            // L'écart ne sépare que deux segments présents : sinon il déborde.
+            HStack(spacing: report.backupBytes > 0 && report.configBackupBytes > 0 ? 2 : 0) {
                 Self.installTint
                     .frame(width: proxy.size.width * CGFloat(report.backupBytes) / CGFloat(total))
                 Self.configTint

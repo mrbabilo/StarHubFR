@@ -84,7 +84,8 @@ struct HomeView: View {
                     label: label(for: counter.kind),
                     tint: counter.level == .attention ? tint(for: counter.kind) : nil,
                     tab: counter.tab,
-                    currentTab: $currentTab)
+                    currentTab: $currentTab, // alertes : la liste, pas l'onglet mémorisé
+                    onOpen: counter.kind == .alerts ? { vm.navigationStore.alertsSegment = .alerts } : nil)
             }
         }
     }
@@ -232,9 +233,10 @@ private struct AttentionCounterTile: View {
     let tint: Color?
     let tab: SidebarDestination
     @Binding var currentTab: SidebarDestination
+    var onOpen: (() -> Void)? = nil // avant le changement d'onglet (B3-T4)
 
     var body: some View {
-        Button { currentTab = tab } label: {
+        Button { onOpen?(); currentTab = tab } label: {
             VStack(spacing: AppDesign.Spacing.xs) {
                 Image(systemName: glyph)
                     .font(.system(size: AppDesign.Icon.md))
