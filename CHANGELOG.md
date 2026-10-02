@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.53.0] - 2026-10-02
+
 ### Added
 
 - **Impact de chaque mod.** Sur la fiche, une étoile à cinq axes (calcul par trame, plus long blocage, lancement, chargement de sauvegarde, allocations), une note /100 et ce que la pause rendrait ; l'historique garde la note de chaque version. Dans l'onglet Performances, le classement « Impact par mod ».
