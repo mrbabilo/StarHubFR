@@ -90,7 +90,10 @@ struct MaliciousModBanner: View {
 
     /// Le composant porteur : sur un pack, c'est l'enfant qui est signalé, pas
     /// le dossier — même règle que le bandeau de compatibilité.
-    private var hit: (name: String, entry: SmapiBlacklist.Entry)? {
+    private var hit: (name: String, entry: SmapiBlacklist.Entry)? { Self.hit(for: mod, in: vm) }
+
+    /// Aussi lu par le relevé de l'onglet Santé : une seule définition.
+    static func hit(for mod: ModItem, in vm: StarHubTHViewModel) -> (name: String, entry: SmapiBlacklist.Entry)? {
         if let entry = vm.maliciousMods[mod.uniqueId] { return (mod.name, entry) }
         for child in mod.children ?? [] {
             if let entry = vm.maliciousMods[child.uniqueId] { return (child.name, entry) }

@@ -3,8 +3,10 @@ import SwiftUI
 
 /// Les deux gestes de l'espace de traduction, à droite des onglets de la
 /// fiche : replier la chrome (bandeaux + barre latérale), passer en plein
-/// écran. Échap sort du focus — posé sur un bouton qui n'existe qu'en focus,
-/// pour que Échap ne l'entre jamais (audit UX 2026-10-02, 3ᵉ lot).
+/// écran. Icônes seules, titre en infobulle : six onglets FR occupent déjà
+/// la rangée à la largeur minimale. Échap sort du focus — posé sur un bouton
+/// qui n'existe qu'en focus, pour que Échap ne l'entre jamais (audit UX
+/// 2026-10-02, 3ᵉ lot).
 struct TranslationFocusControls: View {
     @Binding var focusMode: Bool
     @Binding var sidebarVisibility: NavigationSplitViewVisibility
@@ -20,8 +22,8 @@ struct TranslationFocusControls: View {
             } label: {
                 Label(localization.L(L10n.Mods.translationFocus),
                       systemImage: focusMode ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                    .help(localization.L(L10n.Mods.translationFocusHint))
             }
+            .help(localization.L(L10n.Mods.translationFocusHint))
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()
@@ -42,13 +44,14 @@ struct TranslationFocusControls: View {
             } label: {
                 Label(localization.L(L10n.Mods.translationFullscreen),
                       systemImage: "arrow.up.left.and.arrow.down.right.circle")
-                    .help(localization.L(L10n.Mods.translationFullscreenHint))
             }
+            .help(localization.L(L10n.Mods.translationFullscreenHint))
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()
         }
-        .padding(.trailing, AppDesign.Spacing.lg)
+        .labelStyle(.iconOnly)
+        .fixedSize()
     }
 
     private func exit() {

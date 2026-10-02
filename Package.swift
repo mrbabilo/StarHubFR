@@ -125,6 +125,7 @@ let package = Package(
                 "Models/ModErrorHistory.swift",
                 "Models/ModErrorHistoryStore.swift",
                 "Models/ModAnomaly.swift",
+                "Models/ModHealthChecklist.swift",
                 "Models/ModProblemKinds.swift",
                 "Models/ModCompatibility.swift",
                 "Models/ModCompatibilityStore.swift",

@@ -154,14 +154,19 @@ struct PerformanceOverlapDetailRows: View {
     let mod: ModItem
     @AppStorage(UDKey.dismissedPerformanceOverlaps) private var dismissedRaw = ""
 
-    var body: some View {
+    /// Les recouvrements montrés pour `mod` : partenaire actif, non écarté. Le
+    /// relevé de l'onglet Santé compte avec la même fonction.
+    static func matches(for mod: ModItem, in mods: [ModItem], dismissedRaw: String) -> [PerformanceOverlapMatch] {
         let dismissed = PerformanceOverlapDismissals.decode(dismissedRaw)
-        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods,
-                                                         catalog: effectivePerformanceCatalog())
+        return PerformanceOverlapResolver.matches(in: mods, catalog: effectivePerformanceCatalog())
             .filter { match in
                 guard let partner = match.partner(of: mod.folderName) else { return false }
                 return partner.isEnabled && !dismissed.contains(match.overlap.key)
             }
+    }
+
+    var body: some View {
+        let matches = Self.matches(for: mod, in: vm.scanStore.mods.flattenedMods, dismissedRaw: dismissedRaw)
         if !matches.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.PerformanceOverlaps.title))
@@ -190,6 +195,8 @@ struct PerformanceOverlapDetailRows: View {
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface()
         }
     }
 }

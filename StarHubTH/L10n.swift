@@ -2212,6 +2212,41 @@ enum L10n {
         static let moreFiles              = "update_triage_more_files"
     }
 
+    /// Relevé de l'onglet Santé de la fiche (audit UX 2026-10-02).
+    enum ModHealth {
+        static let titleOk                = "mod_health_title_ok"
+        static let titleAttention         = "mod_health_title_attention"
+        static let subtitleOk             = "mod_health_subtitle_ok"
+        static let subtitleAttention      = "mod_health_subtitle_attention"
+        static let unmeasuredNote         = "mod_health_unmeasured_note"
+        static let checkSecurity          = "mod_health_check_security"
+        static let checkLoading           = "mod_health_check_loading"
+        static let checkCompatibility     = "mod_health_check_compatibility"
+        static let checkLog               = "mod_health_check_log"
+        static let checkConflicts         = "mod_health_check_conflicts"
+        static let checkKeybinds          = "mod_health_check_keybinds"
+        static let checkOverlap           = "mod_health_check_overlap"
+        static let checkNexus             = "mod_health_check_nexus"
+        static let stateOk                = "mod_health_state_ok"
+        static let stateAttention         = "mod_health_state_attention"
+        static let stateUnmeasured        = "mod_health_state_unmeasured"
+        static let stateNa                = "mod_health_state_na"
+        static let hintSecurity           = "mod_health_hint_security"
+        static let hintLoading            = "mod_health_hint_loading"
+        static let hintCompatUnknown      = "mod_health_hint_compat_unknown"
+        static let hintLog                = "mod_health_hint_log"
+        static let hintKeybindsUnknown    = "mod_health_hint_keybinds_unknown"
+        static let hintOverlap            = "mod_health_hint_overlap"
+        static let hintNexusNa            = "mod_health_hint_nexus_na"
+    }
+    /// Carte de compatibilité de l'onglet Aperçu.
+    enum ModCompat {
+        static let cardTitle              = "mod_compat_card_title"
+        static let smapiOk                = "mod_compat_smapi_ok"
+        static let smapiUnknown           = "mod_compat_smapi_unknown"
+        static let smapiUnknownNoNote     = "mod_compat_smapi_unknown_no_note"
+        static let seeHealth              = "mod_compat_see_health"
+    }
     enum ModHistory {
         static let title            = "mod_history_title"
         static let empty            = "mod_history_empty"

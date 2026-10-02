@@ -189,34 +189,35 @@ struct ModDetailView: View {
         }
     }
 
-    /// Content tab switcher, pinned under the hero.
+    /// Content tab switcher, pinned under the hero. Les gestes de traduction
+    /// partagent la rangée (icônes) au lieu de la recouvrir.
     private var tabBar: some View {
-        Picker("", selection: $selectedTab) {
-            Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
-            Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
-            Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
-                .tag(DetailTab.dependencies)
-            // Toujours offerte : un mod sans i18n est précisément celui qui
-            // reste à traduire, et l'éditeur sait afficher un état vide.
-            Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
-            Text(localization.L(L10n.Mods.tabHistory)).tag(DetailTab.history)
-            Text(localization.L(L10n.Mods.tabManagement)).tag(DetailTab.management)
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .frame(maxWidth: 700)
-        .padding(.horizontal, AppDesign.Spacing.xl)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(alignment: .bottom) { Divider() }
-        .overlay(alignment: .trailing) {
+        HStack(spacing: AppDesign.Spacing.sm) {
+            Picker("", selection: $selectedTab) {
+                Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
+                Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
+                Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
+                    .tag(DetailTab.dependencies)
+                // Toujours offerte : un mod sans i18n est précisément celui qui
+                // reste à traduire, et l'éditeur sait afficher un état vide.
+                Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
+                Text(localization.L(L10n.Mods.tabHistory)).tag(DetailTab.history)
+                Text(localization.L(L10n.Mods.tabManagement)).tag(DetailTab.management)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
             if isTranslating {
                 TranslationFocusControls(focusMode: $focusMode,
                                          sidebarVisibility: $sidebarVisibility,
                                          localization: localization)
             }
         }
+        .frame(maxWidth: 700)
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     // MARK: Hero (bandeau image) + bande fine + chiffres clés — le motif
@@ -980,6 +981,8 @@ struct ModDetailView: View {
                     .cornerRadius(8)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface()
         }
     }
 
@@ -1038,6 +1041,8 @@ struct ModDetailView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface()
         }
     }
 
@@ -1073,12 +1078,16 @@ struct ModDetailView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface()
         }
     }
 
     /// Candidats : parc aplati, moins ce mod (une paire `(X, X)` collisionne
     /// avec `withinOnePack`).
     // MARK: Tab content
+
+    private typealias HealthCheck = ModHealthChecklist.Check
 
     @ViewBuilder
     private var content: some View {
@@ -1103,24 +1112,38 @@ struct ModDetailView: View {
         case .management:
             settingsSection
         case .health:
-            // État du mod groupé ; sections déplacées telles quelles.
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                // A2-T7 — au-dessus de tout : seul à parler de code hostile.
-                MaliciousModBanner(vm: vm, localization: localization, mod: live)
-                if let anomaly = vm.anomaly(for: live) {
-                    ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization, currentFolder: live.folderName) { selectedTab = .dependencies }
+            // Le relevé d'abord, puis le détail par gravité ; chaque ligne à
+            // regarder du relevé défile jusqu'à sa section (même `id`).
+            ScrollViewReader { proxy in
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                    ModHealthSummary(viewModel: vm, localization: localization, mod: mod, live: live) { check in
+                        withMotion(.snappy) { proxy.scrollTo(check, anchor: .top) }
+                    }
+                    // A2-T7 — au-dessus de tout : seul à parler de code hostile.
+                    MaliciousModBanner(vm: vm, localization: localization, mod: live).id(HealthCheck.security)
+                    if let anomaly = vm.anomaly(for: live) {
+                        ModAnomalyCard(anomaly: anomaly, vm: vm, localization: localization, currentFolder: live.folderName) { selectedTab = .dependencies }
+                            .id(HealthCheck.loading)
+                    }
+                    CompatibilityBanner(vm: vm, localization: localization, mod: live).id(HealthCheck.compatibility)
+                    errorHistorySection.id(HealthCheck.log)
+                    declaredConflictsSection.id(HealthCheck.conflicts)
+                    PerformanceOverlapDetailRows(vm: vm, localization: localization, mod: live).id(HealthCheck.performanceOverlap)
+                    keybindConflictsSection.id(HealthCheck.keybinds)
+                    NexusPageBanner(vm: vm, localization: localization, mod: live).id(HealthCheck.nexusPage)
+                    // Mesure, pas alerte : en dernier, toujours présente.
+                    if !live.uniqueId.isEmpty {
+                        ModImpactSection(viewModel: vm, localization: localization, mod: live)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .cardSurface()
+                    }
                 }
-                // I-T16 — par gravité : bloquant, gênant, puis traduction.
-                CompatibilityBanner(vm: vm, localization: localization, mod: live)
-                errorHistorySection
-                declaredConflictsSection
-                PerformanceOverlapDetailRows(vm: vm, localization: localization, mod: live)
-                if !live.uniqueId.isEmpty { ModImpactSection(viewModel: vm, localization: localization, mod: live) }
-                keybindConflictsSection
-                NexusPageBanner(vm: vm, localization: localization, mod: live)
             }
         case .overview:
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                ModCompatibilityCard(viewModel: vm, localization: localization, live: live,
+                                     note: vm.modDetailState.flatMap { CompatibilityNote.find(in: $0.description) },
+                                     onShowHealth: { selectedTab = .health })
                 if mod.isGroup { packContentsSection }
                 // C2-T4 — changements de clés de la dernière mise à jour ; closures
                 // directes (les canaux `pending…Focus` ne servent qu'au changement
@@ -1161,22 +1184,6 @@ struct ModDetailView: View {
                         stalenessHint
                     }
                     DescriptionBlocksView(blocks: blocks, vm: vm, localization: localization)
-
-                    // **Ce que l'auteur dit de la compatibilité** (30 % des fiches, médiane
-                    // 359 caractères : pas de repli). Onglet Description seulement : dans le
-                    // changelog, ce serait une note de version.
-                    if !isChangelog, let note = CompatibilityNote.find(in: blocks) {
-                        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                            Text(localization.L(L10n.Mods.compatibilityNote))
-                                .font(AppDesign.Font.caption(.semibold))
-                                .foregroundColor(.secondary)
-                            DescriptionBlocksView(blocks: note.blocks, vm: vm, localization: localization)
-                        }
-                        .padding(AppDesign.Spacing.md)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.secondary.opacity(0.08)))
-                    }
                 }
             }
         } else {
