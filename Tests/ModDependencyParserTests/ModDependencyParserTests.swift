@@ -32,6 +32,25 @@ struct ModDependencyParserTests {
         #expect(ModDependencyParser.parse(manifest: json)
             == [ModDependency(uniqueId: "Pathoschild.ContentPatcher", isRequired: true)])
     }
+    /// *Vanilla Tweaks - Interface* écrit `"IsRequired": "false"` en texte ;
+    /// SMAPI le lit comme facultatif.
+    @Test func textualFalseIsOptional() {
+        let json: [String: Any] = ["Dependencies": [
+            ["UniqueID": "Dora.VPRUI", "IsRequired": "false"],
+            ["UniqueID": "Sqbr.StarryBlueUI", "IsRequired": "False"],
+            ["UniqueID": "Some.Required", "IsRequired": "true"],
+        ]]
+        #expect(ModDependencyParser.parse(manifest: json) == [
+            ModDependency(uniqueId: "Dora.VPRUI", isRequired: false),
+            ModDependency(uniqueId: "Sqbr.StarryBlueUI", isRequired: false),
+            ModDependency(uniqueId: "Some.Required", isRequired: true),
+        ])
+    }
+    /// Le cas voisin : un texte illisible reste requis, comme une absence.
+    @Test func unreadableTextStaysRequired() {
+        let json: [String: Any] = ["Dependencies": [["UniqueID": "Foo.Bar", "IsRequired": "nope"]]]
+        #expect(ModDependencyParser.parse(manifest: json) == [ModDependency(uniqueId: "Foo.Bar", isRequired: true)])
+    }
     @Test func emptyManifestYieldsNoDependencies() {
         #expect(ModDependencyParser.parse(manifest: [:]) == [])
     }

@@ -31,8 +31,7 @@ enum ModDependencyParser {
         if let deps = json.caseInsensitiveValue(forKey: "Dependencies") as? [[String: Any]] {
             for dep in deps {
                 if let depId = dep.caseInsensitiveValue(forKey: "UniqueID") as? String {
-                    let isReq = dep.caseInsensitiveValue(forKey: "IsRequired") as? Bool ?? true
-                    add(depId, required: isReq)
+                    add(depId, required: isRequired(dep.caseInsensitiveValue(forKey: "IsRequired")))
                 }
             }
         }
@@ -41,5 +40,22 @@ enum ModDependencyParser {
             add(cpfId, required: true)
         }
         return result
+    }
+
+    /// `IsRequired` tel que SMAPI le lit (Newtonsoft) : un booléen, ou un
+    /// texte « true »/« false » quelle que soit la casse. Mesuré sur le parc
+    /// (2026-10-02) : 11 `"false"` en texte, dont 9 dans *Vanilla Tweaks -
+    /// Interface* — lus comme requis, ils affichaient 9 dépendances manquantes
+    /// qu'aucun mod n'exige. Absent ou illisible : requis, le défaut de SMAPI.
+    static func isRequired(_ value: Any?) -> Bool {
+        if let flag = value as? Bool { return flag }
+        if let text = value as? String {
+            switch text.trimmingCharacters(in: .whitespaces).lowercased() {
+            case "false": return false
+            case "true": return true
+            default: break
+            }
+        }
+        return true
     }
 }
