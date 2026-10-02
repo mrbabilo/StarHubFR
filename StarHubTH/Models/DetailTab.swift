@@ -7,5 +7,5 @@ import Foundation
 /// Vit en Core (P8-2) : le store de navigation porte `pendingDetailTab`, et
 /// Core ne peut pas référencer un type de vue.
 public enum DetailTab: Hashable {
-    case description, changelog, dependencies, state, translation
+    case overview, health, dependencies, translation, history, management
 }

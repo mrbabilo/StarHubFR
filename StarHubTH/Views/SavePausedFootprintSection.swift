@@ -101,7 +101,7 @@ struct SavePausedFootprintSection: View {
     /// réactive le mod.
     private func open(_ entry: PausedModFootprint) {
         vm.navigationStore.pendingModDetailFocus = entry.folderName
-        vm.navigationStore.pendingDetailTab = .state
+        vm.navigationStore.pendingDetailTab = .health
         currentTab = .mods
     }
 }

@@ -278,7 +278,7 @@ struct UpdatesView: View {
                                         // fiche du premier venu.
                                         Button {
                                             vm.navigationStore.pendingModDetailFocus = row.folderName
-                                            vm.navigationStore.pendingDetailTab = .state
+                                            vm.navigationStore.pendingDetailTab = .health
                                             currentTab = .mods
                                         } label: {
                                             Text(localization.L(L10n.Updates.affirmedOpenMod))

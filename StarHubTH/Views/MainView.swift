@@ -447,10 +447,10 @@ struct MainView: View {
             if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.scanStore.mods) {
                 vm.navigationStore.setViewingModDetail(target)
-                vm.navigationStore.pendingDetailTab = .state
+                vm.navigationStore.pendingDetailTab = .health
             } else {
                 vm.navigationStore.pendingModDetailFocus = folder
-                vm.navigationStore.pendingDetailTab = .state
+                vm.navigationStore.pendingDetailTab = .health
                 currentTab = .mods
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la

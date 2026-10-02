@@ -140,7 +140,7 @@ final class NavigationStore {
     /// changement d'onglet et `MainView` la consomme (patron B3-T4).
     func openModDetail(folderName: String) {
         pendingModDetailFocus = folderName
-        pendingDetailTab = .state
+        pendingDetailTab = .health
         requestTab(.mods)
     }
 

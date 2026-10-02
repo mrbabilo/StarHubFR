@@ -26,7 +26,7 @@ struct ModDetailView: View {
         self._sidebarVisibility = sidebarVisibility ?? .constant(.all)
     }
 
-    @State private var selectedTab: DetailTab = .description
+    @State private var selectedTab: DetailTab = .overview
     /// Mode focus de l'éditeur de traduction : bandeaux masqués, largeur
     /// pleine, barre latérale repliée. Sortie : Échap ou le même bouton.
     @State private var focusMode = false
@@ -91,8 +91,8 @@ struct ModDetailView: View {
             // est dans l'onglet État.
             if !(focusMode && isTranslating) {
                 heroBanner
-                if selectedTab != .state, let anomaly = vm.anomaly(for: live) {
-                    ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .state }
+                if selectedTab != .health, let anomaly = vm.anomaly(for: live) {
+                    ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .health }
                 }
                 if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             }
@@ -192,18 +192,15 @@ struct ModDetailView: View {
     /// Content tab switcher, pinned under the hero.
     private var tabBar: some View {
         Picker("", selection: $selectedTab) {
-            Text(localization.L(L10n.Mods.detailDescription)).tag(DetailTab.description)
-            Text(localization.L(L10n.Mods.detailChangelog)).tag(DetailTab.changelog)
+            Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
+            Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
             Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
                 .tag(DetailTab.dependencies)
-            // État du mod groupé dans son onglet.
-            Text(localization.L(L10n.Mods.tabState)).tag(DetailTab.state)
-            // Onglet plutôt que feuille. `en` autant que `fr` : un mod à
-            // `default.json` seul est celui qui reste à traduire
-            // (`languageCodes` rend `default` sous la forme `en`).
-            if mod.languages.contains("fr") || mod.languages.contains("en") {
-                Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
-            }
+            // Toujours offerte : un mod sans i18n est précisément celui qui
+            // reste à traduire, et l'éditeur sait afficher un état vide.
+            Text(localization.L(L10n.Mods.diffTab)).tag(DetailTab.translation)
+            Text(localization.L(L10n.Mods.tabHistory)).tag(DetailTab.history)
+            Text(localization.L(L10n.Mods.tabManagement)).tag(DetailTab.management)
         }
         .pickerStyle(.segmented)
         .labelsHidden()
@@ -1087,12 +1084,25 @@ struct ModDetailView: View {
     private var content: some View {
         switch selectedTab {
         case .translation:
-            TranslationDiffView(vm: vm, localization: localization, mod: mod)
+            // Tout le travail de traduction du mod en un onglet : chercher
+            // sur Nexus (premier niveau), fraîcheur et sauvegarde, éditeur.
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
+                translationSection
+                TranslationDiffView(vm: vm, localization: localization, mod: mod)
+            }
         case .dependencies:
             dependenciesSection
-        case .changelog:
-            blocksView(isChangelog: true)
-        case .state:
+        case .history:
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                blocksView(isChangelog: true)
+                // A1-T11 — un composant de pack a son propre journal ; l'en-tête
+                // d'un pack n'a pas d'UniqueID.
+                if !live.uniqueId.isEmpty { ModHistorySection(localization: localization, viewModel: vm, mod: live) }
+            }
+        case .management:
+            settingsSection
+        case .health:
             // État du mod groupé ; sections déplacées telles quelles.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 // A2-T7 — au-dessus de tout : seul à parler de code hostile.
@@ -1108,19 +1118,10 @@ struct ModDetailView: View {
                 if !live.uniqueId.isEmpty { ModImpactSection(viewModel: vm, localization: localization, mod: live) }
                 keybindConflictsSection
                 NexusPageBanner(vm: vm, localization: localization, mod: live)
-                // Le hub de traduction : premier niveau seulement, là où il a sens.
-                if isTopLevel { TranslationSection(vm: vm, localization: localization, mod: live) }
-                translationSection
-                if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
-                // A1-T11 — un composant de pack a son propre journal ; l'en-tête
-                // d'un pack n'a pas d'UniqueID.
-                if !live.uniqueId.isEmpty { ModHistorySection(localization: localization, viewModel: vm, mod: live) }
             }
-        case .description:
-            // Description tab: pack contents + settings + description.
+        case .overview:
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 if mod.isGroup { packContentsSection }
-                settingsSection
                 // C2-T4 — changements de clés de la dernière mise à jour ; closures
                 // directes (les canaux `pending…Focus` ne servent qu'au changement
                 // d'onglet).
@@ -1131,6 +1132,8 @@ struct ModDetailView: View {
                                           selectedTab = .translation
                                       })
                 blocksView(isChangelog: false)
+                // Ce qui se greffe sur le mod : à lire après la description.
+                if isTopLevel { SupplementSection(vm: vm, localization: localization, mod: live) }
             }
         }
     }

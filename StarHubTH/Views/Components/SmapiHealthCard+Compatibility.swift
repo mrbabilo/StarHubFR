@@ -96,7 +96,7 @@ extension SmapiHealthCard {
         HStack(spacing: 2) {
             actionButton("info.circle", help: L10n.Mods.openDetails) {
                 vm.navigationStore.pendingModDetailFocus = folderName
-                vm.navigationStore.pendingDetailTab = .state
+                vm.navigationStore.pendingDetailTab = .health
                 vm.navigationStore.requestTab(.mods)
             }
             if let link = links.first, let url = URL(string: link.url) {

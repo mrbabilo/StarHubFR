@@ -369,7 +369,10 @@ enum L10n {
         static let prevPageHint         = "mods_prev_page_hint"
         static let nextPageHint         = "mods_next_page_hint"
         // Le lot H-T4b — la fiche refondue : onglets, toggle d'état, pager.
-        static let tabState             = "mods_tab_state"
+        static let tabOverview         = "mods_tab_overview"
+        static let tabHealth           = "mods_tab_health"
+        static let tabHistory          = "mods_tab_history"
+        static let tabManagement       = "mods_tab_management"
         static let anomalySeeState      = "mods_anomaly_see_state"
         static let detailEnabled        = "mods_detail_enabled"
         static let revealInFinder       = "mods_reveal_in_finder"
@@ -716,8 +719,6 @@ enum L10n {
         static let spoilerHide          = "mods_spoiler_hide"
         static let mods                 = "mods_mods"
         // Rich detail pane (ModDetailView)
-        static let detailDescription    = "mods_detail_description"
-        static let detailChangelog      = "mods_detail_changelog"
         static let detailNoDescription  = "mods_detail_no_description"
         static let detailNoChangelog    = "mods_detail_no_changelog"
         static let detailCached         = "mods_detail_cached"

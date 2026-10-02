@@ -289,7 +289,7 @@ import Foundation
         let s = NavigationStore()
         s.openModDetail(folderName: "UltraSmooth")
         #expect(s.pendingModDetailFocus == "UltraSmooth")
-        #expect(s.pendingDetailTab == .state)
+        #expect(s.pendingDetailTab == .health)
         #expect(s.pendingTabRequest == .mods)
         #expect(DiagnosticsSegment.allCases == [.health, .journal, .performance])
     }

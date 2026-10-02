@@ -292,7 +292,7 @@ struct SystemAlertsView: View {
         case .openMod(let query):
             vm.navigationStore.pendingModDetailFocus = query
             // Une alerte parle de l'état du mod, pas de sa description.
-            vm.navigationStore.pendingDetailTab = .state
+            vm.navigationStore.pendingDetailTab = .health
             currentTab = .mods
         case .openLogs(let searchText):
             // Onglet Journal, filtre et page d'un coup (D4-T4 §3a) : sans le
