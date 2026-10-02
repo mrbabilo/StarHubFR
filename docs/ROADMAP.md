@@ -339,14 +339,20 @@ backup se retrouve en moins de dix secondes.
 
 #### A1 — Registre robuste
 
-- [ ] **A1-T1** — Action groupée « activer toutes les dépendances manquantes » : l'activation
-      unitaire existe déjà par nœud (`DependencyTreeView.swift:124`, cf. **X3**) ; il manque
-      la résolution transitive en un geste, avec récapitulatif avant application. · **M**
+- [x] **A1-T1** ✅ *(recadrée et livrée le 2026-10-02, à l'archive)* — la
+      moitié « activation en chaîne » existait déjà (`TogglePlan.enableChain`,
+      transitif, réglage `chainToggleDependencies` par défaut) ; le vide réel
+      était la dépendance **absente du disque**. Mesuré sur le parc :
+      **aucune** pour les mods actifs. Livré quand même (les autres
+      utilisateurs) : `MissingDependencies` (Core), feuille récapitulative
+      `MissingDependenciesSheet`, contrôle d'identifiant de l'archive
+      installée. Comparatif des cinq gestionnaires : `docs/audit-gestionnaires.md` §6
 - [ ] **A1-T2** — Détecter un `manifest.json` illisible et proposer la réparation :
       restauration depuis backup, sinon réinstallation Nexus. La validation doit accepter
       ce que SMAPI accepte (JSON5 : commentaires, virgules traînantes) — `smapi.io/json`
       sert de référence de comportement, et les messages d'erreur doivent être aussi
-      explicites que les siens. · **M**
+      explicites que les siens. · **M** · *mesuré le 2026-10-02 : zéro manifeste
+      illisible sur le parc (1 162 lus par le parseur clément) — à l'exemplaire réel*
 - [ ] **A1-T4** — **Un `examples/` n'est pas un composant de mod.** *(relevé le 2026-09-14,
       veille Stardrop — leur `0ea2dbdf` prend « un dossier qui porte un `manifest.json` »
       pour un mod et **ne descend pas dessous** ; notre scan, lui, descend exprès, pour
@@ -2725,6 +2731,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T8** | 2026-09-23 | Mettre en pause chiffre ce que le mod laisse dans les sauvegardes et suspend la bascule derrière l'avertissement (Zofia : 757 objets pour Alchemistry en pause) — lecture seule ; masse et désinstallation restent muettes |
 | **A1-T6** | 2026-09-23 | La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé du contenu (objets, bâtiments, données), chaque rangée ouvre la fiche du mod — résolution contre le parc entier, doublon actif ⇒ muet ; absents hors périmètre |
 | **A1-T9** | 2026-09-23 | La fiche d'une sauvegarde nomme aussi les mods **disparus** du parc qui y ont écrit (clés `smapi/mod-data/<uid>` à uid exact, `legacy-migrated` écarté) ; familles arbres et locations lues ; scan de 37 Mo partagé entre sections |
+| **A1-T1** | 2026-10-02 | Dépendances requises absentes du disque : plan (Core), feuille récapitulative, page Nexus exacte (dump Pathoschild), contrôle d'identifiant de l'archive ; + `"IsRequired"` en texte lu comme SMAPI |
 | **A1-T10** | 2026-09-24 | « Nettoyer… » retire d'une sauvegarde les clés des mods disparus : feuille clé par clé, sous le verrou des saves, backup vérifié seulement s'il y a à retirer, écriture atomique BOM préservé ; item atypique laissé et compté (Zofia : 35 clés, 1,2 s) |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**

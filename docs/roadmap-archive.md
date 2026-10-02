@@ -4170,6 +4170,33 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 
 #### Fiabilité du registre & compatibilité — Axe A (suite)
 
+- [x] **A1-T1** ✅ *(recadrée et livrée le 2026-10-02)* — **Les dépendances
+      manquantes, nommées et installables.** La case demandait « activer toutes
+      les dépendances manquantes en un geste, avec récapitulatif » ; la
+      mesure du parc a séparé deux moitiés : l'activation en chaîne existait
+      déjà (`TogglePlan.enableChain`, transitif, réglage
+      `chainToggleDependencies` actif par défaut), et la dépendance requise
+      **absente du disque** vaut zéro sur les mods actifs du parc (une seule
+      pour un mod en pause : `[QF] Personal Effects` exige
+      `PurrplingCat.QuestFramework`, Nexus 6414). Livré quand même — la
+      fonction sert aux autres utilisateurs : `MissingDependencies` (Core,
+      11 tests) — plan des dépendances requises des mods actifs absentes du
+      parc, regroupées par page Nexus, actions premium/page/recherche, SMAPI
+      écarté, plafond 12 pages ; `DependencyNexusDirectory` lit le dump
+      Pathoschild en cache (annuaire `UniqueID` → identifiant Nexus exact,
+      **hors ligne** — la méthode « chercher le nom sur Nexus » de JuniGrid
+      et son heuristique d'affinité d'auteur ne sont pas nécessaires ici) ;
+      feuille `MissingDependenciesSheet` (le récapitulatif avant
+      application), bouton dans la barre d'actions de Gestion des mods ;
+      l'arbre de dépendances d'une fiche propose la page exacte sur une
+      dépendance absente ; l'archive téléchargée est **contrôlée** — si elle
+      ne porte pas l'identifiant attendu, la feuille d'installation le dit
+      au lieu d'installer en silence. Téléchargement par le pipeline commun
+      (file, `nxm://`, feuille). Correctif livré à l'occasion : un
+      `"IsRequired": "false"` **écrit en texte** (11 cas mesurés, dont 9
+      dans *Vanilla Tweaks - Interface*) était lu comme requis. Comparatif
+      des cinq gestionnaires : `docs/audit-gestionnaires.md` §6.
+
 - [x] **A1-T11** — ✅ **Livré le 2026-09-28.** **Une mise à jour ressuscitait les fichiers que
       l'auteur avait retirés.** *(mesuré le 2026-09-27)* La règle d'A1-T7 (« absent de l'archive
       neuve ⇒ donnée locale ») remettait 23 assets de Wildroot Chronicles identiques à sa 1.3.5 et

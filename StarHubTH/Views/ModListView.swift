@@ -47,6 +47,8 @@ struct ModListView: View {
     /// auparavant), à la demande de l'auteur.
     let pageSize: Int = 12
     @State var showInstallSheet = false
+    /// A1-T1 — récapitulatif des dépendances requises absentes du disque.
+    @State var showMissingDependencies = false
     /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
     /// se parcourent en rangées denses. `@AppStorage` suit le patron de
     /// `discoveryHideInstalled` (`DiscoverView.swift:15`) — c'est une
@@ -421,6 +423,10 @@ struct ModListView: View {
         // pager. Non publié sur ModListState — voir là-bas le pourquoi.
         .onAppear { vm.modList.displayOrder = displayIds }
         .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
+        .sheet(isPresented: $showMissingDependencies) {
+            MissingDependenciesSheet(vm: vm, localization: localization,
+                                     isPresented: $showMissingDependencies)
+        }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, localization: localization, currentTab: $currentTab, isPresented: $showInstallSheet)
         }

@@ -143,6 +143,8 @@ let package = Package(
                 "Models/MaintenanceState.swift",
                 "Models/PathoschildCompatibilityList.swift",
                 "Models/PathoschildNexusIndex.swift",
+                "Models/MissingDependencies.swift",
+                "Extensions/SmapiUniqueId.swift",
                 "Models/ModDuplicateIndex.swift",
                 "Models/ManifestJSON.swift",
                 "Models/BisectionEvidence.swift",
@@ -324,6 +326,7 @@ let package = Package(
                 "Stores/TranslationHubStore.swift",
                 "Stores/ProfileTranslationStore.swift",
                 "Stores/ModUpdateStore.swift",
+                "Stores/MissingDependencyStore.swift",
                 "Stores/NexusAccountStore.swift",
                 "Stores/NexusDownloadStore.swift",
                 "Stores/NavigationStore.swift",
@@ -909,6 +912,11 @@ let package = Package(
             name: "SmapiHealthFoldTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiHealthFoldTests"
+        ),
+        .testTarget(
+            name: "MissingDependenciesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/MissingDependenciesTests"
         ),
         .testTarget(
             name: "UpdateCountTests",

@@ -161,7 +161,18 @@ struct DependencyRowView: View {
         case .missing:
             let modName = node.uniqueId.smapiModName
             let author = node.uniqueId.smapiAuthor
+            // A1-T1 — la page Nexus exacte quand le dump Pathoschild la
+            // connaît : pas de recherche à deviner. La recherche reste le
+            // dernier recours (mod hors dump).
+            let entry = vm.dependencyDirectory.entry(for: node.uniqueId)
             Menu {
+                if let nexusId = entry?.nexusId {
+                    Button {
+                        NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
+                    } label: {
+                        Label(localization.L(L10n.Mods.depsSheetOpenPage), systemImage: "safari")
+                    }
+                }
                 Button {
                     openNexusSearch(for: modName)
                 } label: {
@@ -177,7 +188,8 @@ struct DependencyRowView: View {
                     }
                 }
             } label: {
-                Text(localization.L(L10n.Mods.depSearch))
+                Text(entry?.name ?? localization.L(L10n.Mods.depSearch))
+                    .underline(entry != nil)
             }
             .buttonStyle(.borderless).controlSize(.small)
             .foregroundColor(.accentColor).pointingHandCursor()

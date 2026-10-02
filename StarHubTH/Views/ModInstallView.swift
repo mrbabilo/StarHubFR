@@ -122,7 +122,8 @@ struct ModInstallView: View {
                         tempDir: $tempDir,
                         isInstalling: $isInstalling,
                         onInstall: installSelected,
-                        onCancel: cancelInstall
+                        onCancel: cancelInstall,
+                        expectedDependencyIds: vm.pendingExpectedDependencyIds
                     )
                 }
             }
@@ -143,6 +144,7 @@ struct ModInstallView: View {
                 if let url = files.first {
                     // Drop any pending Nexus source so it can't misapply.
                     self.vm.pendingNexusSource = nil
+                    self.vm.clearPendingDependencyExpectation()
                     self.analyzeZip(url)
                 }
             case .failure:
@@ -348,6 +350,7 @@ struct ModInstallView: View {
             DispatchQueue.main.async {
                 // A dropped zip isn't the Nexus download: clear the pending source.
                 self.vm.pendingNexusSource = nil
+                self.vm.clearPendingDependencyExpectation()
 
                 // Un seul chemin d'échec.
                 guard !urls.isEmpty else {

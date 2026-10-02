@@ -11,6 +11,9 @@ struct InstallPreview: View {
 
     let onInstall: ([InstallSelection]) -> Void
     let onCancel: () -> Void
+    /// A1-T1 — les identifiants qu'une archive téléchargée pour une
+    /// dépendance manquante doit prouver ; `nil` sinon (installation ordinaire).
+    var expectedDependencyIds: [String]? = nil
 
     @State private var selections: [UUID: InstallSelection] = [:]
     @State private var cachedDependencies: [ModDependencyReport] = []
@@ -74,6 +77,19 @@ struct InstallPreview: View {
                     // ce que la mise à jour casse : à lire avant « Installer ».
                     if !updateCautions.isEmpty {
                         updateCautionsSection
+                    }
+
+                    // A1-T1 — l'archive ne porte pas l'identifiant attendu :
+                    // le MAIN le plus récent d'une page n'est pas toujours
+                    // celui qui convient (variantes, fork). On n'installe pas
+                    // en silence — « Installer » reste possible à dessein.
+                    if !expectedMissing.isEmpty {
+                        Label(
+                            String(format: localization.L(L10n.ModInstall.expectedMissing),
+                                   expectedMissing.joined(separator: ", ")),
+                            systemImage: "exclamationmark.triangle.fill")
+                            .font(AppDesign.Font.caption)
+                            .foregroundColor(.orange)
                     }
 
                     ForEach(zipModInfo.detectedMods) { mod in
@@ -273,6 +289,14 @@ struct InstallPreview: View {
     /// des mods **déjà installés** qu'elle remplace (extension Stardrop
     /// `UpdateCautionMessage`, ignorée par SMAPI). Aucun mod du parc de
     /// référence ne l'expose : la bannière ne vivra que par un mod à venir.
+    /// Les identifiants attendus que cette archive ne contient pas (casse
+    /// ignorée) — vide hors téléchargement de dépendance, ou si elle convient.
+    private var expectedMissing: [String] {
+        guard let expectedDependencyIds else { return [] }
+        return MissingDependencies.absent(expected: expectedDependencyIds,
+                                          in: zipModInfo.detectedMods.map(\.uniqueId))
+    }
+
     private var updateCautions: [UpdateCaution.Warning] {
         // `allUniqueIds`, pas `mods.map` : les composants de packs comptent
         // comme installés (même raison qu'aux dépendances), et les

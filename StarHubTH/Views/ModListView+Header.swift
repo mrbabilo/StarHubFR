@@ -143,6 +143,20 @@ extension ModListView {
         bulkToggleMenu(scoped: display)
             .disabled(vm.scanStore.mods.isEmpty || vm.bulkToggleProgress != nil)
 
+        // A1-T1 — une dépendance requise manque : le geste vit dans la
+        // barre d'actions, le récapitulatif s'ouvre en feuille.
+        if !vm.missingDependenciesPlan.isEmpty {
+            Button {
+                showMissingDependencies = true
+            } label: {
+                Label(String(format: localization.L(L10n.Mods.missingDepsButton),
+                             Int64(vm.missingDependenciesPlan.count)),
+                      systemImage: "shippingbox.and.arrow.backward")
+            }
+            .buttonStyle(.bordered)
+            .help(localization.L(L10n.Mods.depsSheetTitle))
+        }
+
         Button {
             showInstallSheet = true
         } label: {

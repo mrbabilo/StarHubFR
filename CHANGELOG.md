@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Dépendances manquantes : nommées et installables.** Un bouton de Gestion des mods ouvre le récapitulatif des dépendances requises absentes du disque, avec la page Nexus exacte de chacune (lue dans le dump en cache, sans réseau) et le téléchargement dans l'app sur un compte premium. Une archive téléchargée qui ne porte pas l'identifiant attendu est signalée au lieu d'être installée en silence. L'arbre de dépendances d'une fiche propose la page exacte sur une dépendance absente.
 - **Mises à jour : un zéro dit d'où il vient.** L'en-tête affiche l'âge de la dernière vérification complète (« vérifié il y a 3 heures »). Il dit « Tout est à jour », en vert, seulement si aucun mod n'est resté sans verdict, et « jamais vérifié » quand aucune passe n'a abouti.
 - **Journal des modifications, éditeur de config et chronologie repensés.** Une carte par version avec ses ajouts, modifications et corrections en pastilles ; l'éditeur de config porte l'en-tête commun et le choix Visuel/Code près du contenu, ses sections en cartes ; la chronologie d'une sauvegarde aussi.
 

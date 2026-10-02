@@ -68,6 +68,9 @@ public enum PathoschildCompatibilityList {
         /// ~4 000 mods là où smapi.io est plus étroit), et **offline** : on
         /// évite une requête Nexus par mod que smapi.io a ignoré.
         public let nexusID: Int?
+        /// Le nom du mod tel que Pathoschild l'écrit — ce qu'on montre d'une
+        /// dépendance absente du disque, faute de manifeste à lire (A1-T1).
+        public let name: String?
         /// Ce que Pathoschild signale du mod **sans le déclarer cassé** :
         /// télémétrie non divulguée, plantages au chargement d'une sauvegarde,
         /// archive à la structure fausse. 24 entrées sur 4 720 en portent un
@@ -107,8 +110,10 @@ public enum PathoschildCompatibilityList {
                     summary: String?,
                     nexusID: Int?,
                     unofficialUpdate: UnofficialUpdate? = nil,
-                    warnings: [String] = []) {
+                    warnings: [String] = [],
+                    name: String? = nil) {
             self.id = id
+            self.name = name
             self.status = status
             self.brokeIn = brokeIn
             self.summary = summary
@@ -504,7 +509,7 @@ public enum PathoschildCompatibilityList {
         return out
     }
 
-    /// Décode une entrée. Les champs inconnus (`name`, `author`, `github`,
+    /// Décode une entrée. Les champs inconnus (`author`, `github`,
     /// `abandonedReason`, `warnings`, `source`, …) sont ignorés — on ne les a
     /// pas déclarés sur `Entry`, `JSONSerialization` ne s'en plaint pas.
     private static func decodeEntry(_ dict: [String: Any]) -> Entry? {
@@ -520,7 +525,8 @@ public enum PathoschildCompatibilityList {
             // pour n'avoir qu'une règle de validation, pas plusieurs.
             nexusID: dict["nexus"] as? Int,
             unofficialUpdate: decodeUnofficialUpdate(dict["unofficialUpdate"]),
-            warnings: (dict["warnings"] as? [Any])?.compactMap { normalized($0 as? String) } ?? []
+            warnings: (dict["warnings"] as? [Any])?.compactMap { normalized($0 as? String) } ?? [],
+            name: normalized(dict["name"] as? String)
         )
     }
 

@@ -277,3 +277,51 @@ contenu. Point à ne pas régresser.
   atomique et non-altération du texte source.
 - **Sur macOS**, ni Vortex ni StarModsManager n'installent SMAPI ; l'un ne
   tourne pas du tout sur la plateforme.
+
+---
+
+## 6. Complément du 2026-10-02 — l'installation des dépendances manquantes (A1-T1)
+
+Relecture des clones du jour (JuniGrid au commit `57b26b5`) sur une question
+que la première passe n'avait pas posée : que propose chaque gestionnaire
+quand une dépendance requise **n'est pas sur le disque** ?
+
+| Gestionnaire | Détection | Ce qu'il propose |
+| --- | --- | --- |
+| Stardrop | manifeste | colonne « dépendances manquantes », chaque nom est un lien vers `smapi.io/mods#Nom` ; sa fenêtre Collections ouvre en lot les pages des mods manquants, sans rien installer |
+| StarModsManager | manifeste | un drapeau, un compteur, les noms en texte ; aucune action |
+| NexusMods.App | manifeste, mods actifs seuls | avertissement « X requiert Y, non installé », nom et lien Nexus venus de smapi.io (`GetModDetails` par UniqueID) ; la marche à suivre reste manuelle |
+| Vortex | champ « Requirements » des pages Nexus, pas le manifeste | un bouton télécharge-installe le fichier principal le plus récent puis active ; la ligne n'apparaît que si le mod requis a **exactement un** fichier principal ; prérequis hors Nexus ignorés ; cache 4 h |
+| JuniGrid | manifeste (requises + `ContentPackFor`) | bandeau « N dépendances manquantes, M mods touchés », bouton « tout installer », confirmation ; détail ci-dessous |
+
+**Ce que JuniGrid fait de bien** (v1.2.0–v1.2.4, `InstallService.cs:548`) :
+l'archive téléchargée est **vérifiée avant installation** — le `UniqueID` de
+son manifeste doit être celui attendu, un mauvais candidat coûte un
+téléchargement, jamais une installation ; la **fermeture transitive** est
+suivie (rescan du disque à chaque tour, plafond 200) ; `SMAPI` n'est jamais
+installé comme un mod ; un **sous-module de pack** (même auteur, préfixe
+d'identifiant) renvoie à la page du pack plutôt que vers une page qui
+n'existe pas ; compte **gratuit** : au premier 403, tout le reste passe en
+« à la main », pages ouvertes en lot (plafond 12) pour un clic « Mod Manager
+Download » ; bilan final en quatre compteurs.
+
+**Son point faible, instructif** : pour associer un `UniqueID` à une page
+Nexus, il **cherche le nom sur Nexus** trié par téléchargements, puis a dû
+ajouter une heuristique d'« affinité d'auteur » — « Miku » pointait d'abord
+vers le skin d'un autre auteur (leur commentaire du 2026-09-26). Nous n'avons
+pas ce problème : le dump Pathoschild en cache donne l'identifiant Nexus
+exact d'un `UniqueID`, **hors ligne** (102 des 245 dépendances requises
+distinctes du parc, mesuré le 2026-10-02).
+
+**Ce que nous en avons livré** (A1-T1, même jour) : `MissingDependencies`
+(Core, testé) — le plan des dépendances requises des mods actifs absentes du
+parc, regroupées par page Nexus ; les actions (téléchargement dans l'app sur
+compte premium, sinon ouverture de l'onglet Fichiers, plafond 12, recherche
+en dernier recours, SMAPI écarté) ; le contrôle `absent(expected:in:)` que
+la feuille d'installation affiche quand l'archive ne porte pas l'identifiant
+attendu. La feuille `MissingDependenciesSheet` est le récapitulatif avant
+application que la case demandait ; l'installation emprunte le pipeline
+commun (file, `nxm://`, feuille), pas une voie parallèle. Le correctif
+porté par la lecture des manifestes de *Vanilla Tweaks - Interface* — un
+`"IsRequired": "false"` **écrit en texte** était lu comme requis — est
+passé avant (voir CHANGELOG).

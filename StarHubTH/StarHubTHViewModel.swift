@@ -137,6 +137,8 @@ final class StarHubTHViewModel {
     // tranche 2). Le Trousseau reste chez `NexusUpdateChecker.shared` ; le
     // store ne retient que « clé acceptée ».
     private let accountStore = NexusAccountStore()
+    /// A1-T1 — l'état du domaine « dépendances manquantes » (F1-T2).
+    private let missingDependencyStore = MissingDependencyStore()
 
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
@@ -162,6 +164,12 @@ final class StarHubTHViewModel {
     }
     /// Set with pendingDownloadedZip for a Nexus download (manifest reconcile).
     var pendingNexusSource: NexusInstallSource?
+    /// A1-T1 — les identifiants attendus de l'archive qui vient d'arriver
+    /// (le store les porte ; la feuille d'installation les lit).
+    var pendingExpectedDependencyIds: [String]? { missingDependencyStore.pendingExpectedIds }
+    /// A1-T1 — l'annuaire `UniqueID` → page Nexus du dump Pathoschild, pour
+    /// l'arbre de dépendances d'une fiche.
+    var dependencyDirectory: DependencyNexusDirectory { missingDependencyStore.directory }
     /// X103-C — archives Nexus ; inerte tant que `keepNexusArchives` est éteint.
     let nexusArchiveStore = NexusArchiveStore(
         root: NexusArchiveStore.defaultRoot(
@@ -2134,6 +2142,47 @@ final class StarHubTHViewModel {
         dependencyIndex.disabled(for: mod)
     }
 
+    // MARK: - A1-T1 · dépendances manquantes
+
+    /// Le plan que le bouton de la liste et la feuille affichent : les
+    /// dépendances requises des mods actifs qu'aucun mod installé — actif
+    /// ou en pause — ne fournit.
+    var missingDependenciesPlan: [MissingDependency] {
+        missingDependencyStore.plan(mods: mods,
+                                    installedIds: dependencyIndex.installedUniqueIds)
+    }
+
+    /// Télécharge une dépendance : enregistre ce que l'archive devra
+    /// prouver, puis emprunte la file commune — le pipeline
+    /// Premium/`nxm://`/feuille est celui d'une mise à jour.
+    func downloadMissingDependency(_ dep: MissingDependency) {
+        guard let nexusId = dep.nexusId else { return }
+        missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: dep.uniqueIds)
+        downloadModFromNexus(nexusId: nexusId)
+    }
+
+    /// Effacé aux mêmes endroits que `pendingNexusSource` : une archive
+    /// déposée ou choisie au fichier n'est pas un téléchargement de dépendance.
+    func clearPendingDependencyExpectation() {
+        missingDependencyStore.clearPendingExpectation()
+    }
+
+    /// Tout installer : téléchargements dans la file commune, pages Nexus
+    /// ouvertes d'un coup (compte gratuit, plafond `pageLimit` compris).
+    func installAllMissingDependencies() {
+        let plan = missingDependenciesPlan
+        for action in MissingDependencies.actions(for: plan,
+                                                  canDownloadInApp: !nexusDirectDownloadUnavailable) {
+            switch action {
+            case .download(let nexusId, let ids):
+                missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: ids)
+                downloadModFromNexus(nexusId: nexusId)
+            case .openPage(let url), .search(let url):
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
     /// Transitive dependency tree; a pack header uses the union of its
     /// children's dependencies. Reads `mods`, so "Enable" re-resolves.
     func dependencyTree(for mod: ModItem) -> [DependencyNode] {
@@ -3184,9 +3233,11 @@ final class StarHubTHViewModel {
                 ?? PathoschildCompatibilityList.cachedAnyAgeNow(),
               let entries = PathoschildCompatibilityList.decode(data) else {
             modWarnings = [:]
+            missingDependencyStore.replaceDirectory(.empty)
             return
         }
         modWarnings = PathoschildCompatibilityList.warnings(for: installed, from: entries)
+        missingDependencyStore.replaceDirectory(DependencyNexusDirectory(entries: entries))
     }
 
     // MARK: - Renommer le dossier d'un mod (X60)
@@ -3784,6 +3835,7 @@ final class StarHubTHViewModel {
             case .installable(let zip, let modId, let facts):
                 self.pendingDownloadedZip = zip
                 self.pendingNexusSource = NexusInstallSource(modId: modId, facts: facts)
+                self.missingDependencyStore.takeExpectation(for: modId)
                 self.log(self.nexusDownloadLogMessage(named: L10n.VM.nexusDlCompletedNamed,
                                                       plain: L10n.VM.nexusDlCompleted,
                                                       modId: modId))
@@ -3894,6 +3946,7 @@ final class StarHubTHViewModel {
         guard let source = pendingNexusSource else { return }
         // Consume once: a later install in the same sheet must not reconcile.
         pendingNexusSource = nil
+        missingDependencyStore.clearPendingExpectation()
         guard installedFolderPaths.count == 1, let folderPath = installedFolderPaths.first else {
             return  // pack / ambiguous → abstain (v1)
         }
