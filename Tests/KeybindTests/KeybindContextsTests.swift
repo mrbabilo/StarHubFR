@@ -81,6 +81,8 @@ struct KeybindContextsTests {
         "Pathoschild.ChestsAnywhere": [.init(keyPaths: ["Controls.PrevChest"], context: .ownMenu)],
         "BambooKat.Stillbloom": [.init(context: .ownMode)],
         "FawazT.GlobalConfigSettingsRewrite": [.init(keyPaths: ["ShiftToolbar"], context: .world)],
+        "aedenthorn.MailboxMenu": [.init(keyPaths: ["ModKey"], enabledBy: "MenuOnMailbox")],
+        "Exblosis.LetsMoveIt": [.init(keyPaths: ["MoveKey"], requires: "ModKey", unless: "MultiSelect")],
     ])
 
     /// Sorts de Wizardry : la touche de lancement vaut `None`, le sort sur
@@ -97,14 +99,17 @@ struct KeybindContextsTests {
         #expect(!r.gameConflicts.isEmpty)
     }
 
-    /// La même touche de lancement assignée : le sort redevient actif.
+    /// La même touche de lancement assignée : le sort redevient actif, et
+    /// se juge Q + 2 (le sort retient le 2 pour le jeu) — plus une collision
+    /// exacte avec le 2 seul d'un autre mod, un co-déclenchement.
     @Test func assignedActivationKeyMakesItLiveAgain() {
         let r = KeybindScanner.report(mods: [
             mod("Wizardry", "moonslime.WizardrySkill",
                 [("Key_Cast", .string("Q")), ("Key_Spell2", .string("D2"))]),
             mod("Chests", "", [("MenuKey", .string("D2"))]),
         ], contexts: contexts)
-        #expect(r.collisions.count == 1)
+        #expect(r.collisions.isEmpty)
+        #expect(r.subsetOverlaps.count == 1)
         #expect(r.inertMods.isEmpty)
     }
 
@@ -184,6 +189,49 @@ struct KeybindContextsTests {
             mod("Stillbloom", "BambooKat.Stillbloom", [("CameraUpKey", .string("Z"))]),
         ], contexts: contexts)
         #expect(r.collisions.isEmpty)
+    }
+
+    // MARK: - Option d'activation et touche à maintenir (2026-10-03)
+
+    /// Mailbox Menu : ModKey n'est lu que si MenuOnMailbox — à false, le 4
+    /// ne heurte ni Farm Computer ni la barre d'objets.
+    @Test func enabledByFalseMakesTheSettingInert() {
+        let mailbox: [(String, ConfigJSONTree.Value)] = [("MenuOnMailbox", .bool(false)), ("ModKey", .string("D4"))]
+        let r = KeybindScanner.report(mods: [
+            mod("Mailbox", "aedenthorn.MailboxMenu", mailbox),
+            mod("Todo", "Seiz.FarmComputerTodo", [("ToggleHudKey", .string("D4"))]),
+        ], contexts: contexts)
+        #expect(r.collisions.isEmpty)
+        #expect(r.inertMods == ["Mailbox"])
+        // Le cas voisin : activée, la touche compte.
+        let on = KeybindScanner.report(mods: [
+            mod("Mailbox", "aedenthorn.MailboxMenu", [("MenuOnMailbox", .bool(true)), ("ModKey", .string("D4"))]),
+            mod("Todo", "Seiz.FarmComputerTodo", [("ToggleHudKey", .string("D4"))]),
+        ], contexts: contexts)
+        #expect(on.collisions.count == 1)
+    }
+
+    /// Let's Move It : le clic droit n'agit qu'Alt tenu, et le mod le
+    /// retient — jugé Alt + clic droit, il ne heurte plus l'action du jeu.
+    @Test func requiresIsJudgedAsAChord() {
+        let lmi: [(String, ConfigJSONTree.Value)] = [
+            ("MultiSelect", .bool(false)), ("ModKey", .string("LeftAlt")), ("MoveKey", .string("MouseRight"))]
+        let r = KeybindScanner.report(mods: [mod("LMI", "Exblosis.LetsMoveIt", lmi)], contexts: contexts)
+        #expect(r.gameConflicts.isEmpty)
+        #expect(r.settingChords.values.first == [KeybindCombo(buttons: ["LeftAlt"])!])
+        let note = KeybindScanner.annotation(for: KeybindCombo(buttons: ["MouseRight"])!, ofMod: "LMI",
+                                             keyPath: ["MoveKey"], in: r)
+        #expect(note.gameControl == nil)
+    }
+
+    /// Avec MultiSelect, le clic n'est plus retenu : la règle s'efface et
+    /// le conflit avec l'action du jeu revient.
+    @Test func unlessCancelsTheRule() {
+        let lmi: [(String, ConfigJSONTree.Value)] = [
+            ("MultiSelect", .bool(true)), ("ModKey", .string("LeftAlt")), ("MoveKey", .string("MouseRight"))]
+        let r = KeybindScanner.report(mods: [mod("LMI", "Exblosis.LetsMoveIt", lmi)], contexts: contexts)
+        #expect(r.gameConflicts.map(\.control.name) == ["actionButton"])
+        #expect(r.settingChords.isEmpty)
     }
 
     // MARK: - L'éditeur décide comme le rapport

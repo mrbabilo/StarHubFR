@@ -65,8 +65,16 @@ public struct KeybindContexts: Sendable, Equatable {
         public let keyPaths: [String]?
         public let context: Context?
         /// Le réglage n'agit qu'en maintenant cette autre touche du même
-        /// fichier : si elle n'est assignée à rien, le réglage est **inerte**.
+        /// fichier : si elle n'est assignée à rien, le réglage est **inerte** ;
+        /// sinon il se juge comme la combinaison des deux (Alt + clic droit
+        /// de Let's Move It) — le mod retient alors la touche pour le jeu.
         public let requires: String?
+        /// Option booléenne du même fichier sans laquelle le réglage n'est
+        /// jamais lu (`MenuOnMailbox` de Mailbox Menu) : à `false`, inerte.
+        public let enabledBy: String?
+        /// Option booléenne qui, à `true`, annule `requires` et `enabledBy`
+        /// (`MultiSelect` de Let's Move It : le clic n'est plus retenu).
+        public let unless: String?
         /// Touche de modification **maintenue** (lue par `IsDown`) dont le
         /// nom ne le dit pas : relevé dans le code.
         public let held: Bool?
@@ -74,8 +82,10 @@ public struct KeybindContexts: Sendable, Equatable {
         public let evidence: String?
 
         public init(keyPaths: [String]? = nil, context: Context? = nil, requires: String? = nil,
+                    enabledBy: String? = nil, unless: String? = nil,
                     held: Bool? = nil, evidence: String? = nil) {
             self.keyPaths = keyPaths; self.context = context; self.requires = requires
+            self.enabledBy = enabledBy; self.unless = unless
             self.held = held; self.evidence = evidence
         }
     }
@@ -111,14 +121,56 @@ public struct KeybindContexts: Sendable, Equatable {
         rule(uniqueId, keyPath)?.context ?? .anywhere
     }
 
-    /// Inerte : la touche d'activation exigée existe dans le fichier et
-    /// n'est assignée à rien (`None`, vide). Absente ou illisible : on ne
-    /// sait pas — pas inerte.
+    /// Inerte : l'option qui l'active est à `false`, ou la touche
+    /// d'activation exigée existe dans le fichier et n'est assignée à rien
+    /// (`None`, vide). Absente ou illisible : on ne sait pas — pas inerte.
     public func isInert(uniqueId: String, keyPath: [String],
                         leaves: [ConfigEditorModel.Leaf]) -> Bool {
-        guard let required = rule(uniqueId, keyPath)?.requires,
-              let leaf = leaves.first(where: { $0.keyPath.joined(separator: ".") == required }),
-              let combos = KeybindParser.parse(leaf.value) else { return false }
+        guard let rule = conditional(uniqueId, keyPath, leaves) else { return false }
+        if let option = rule.enabledBy, Self.bool(option, in: leaves) == false { return true }
+        guard let combos = required(rule, leaves) else { return false }
         return combos.allSatisfy(\.isEmpty)
+    }
+
+    /// La touche à maintenir pour que le réglage agisse, quand elle est
+    /// assignée : le réglage se juge alors en combinaison avec elle.
+    public func chord(uniqueId: String, keyPath: [String],
+                      leaves: [ConfigEditorModel.Leaf]) -> [KeybindCombo] {
+        guard let rule = conditional(uniqueId, keyPath, leaves) else { return [] }
+        return (required(rule, leaves) ?? []).filter { !$0.isEmpty }
+    }
+
+    /// Chaque combinaison du réglage unie à chaque combinaison de l'accord.
+    public static func chorded(_ combos: [KeybindCombo], with chord: [KeybindCombo]) -> [KeybindCombo] {
+        guard !chord.isEmpty else { return combos }
+        return combos.flatMap { combo in
+            combo.isEmpty ? [combo]
+                : chord.compactMap { KeybindCombo(buttons: combo.buttons + $0.buttons) }
+        }
+    }
+
+    /// La règle, sauf si son option `unless` est vraie dans le fichier.
+    private func conditional(_ uniqueId: String, _ keyPath: [String],
+                             _ leaves: [ConfigEditorModel.Leaf]) -> Rule? {
+        guard let rule = rule(uniqueId, keyPath) else { return nil }
+        if let option = rule.unless, Self.bool(option, in: leaves) == true { return nil }
+        return rule
+    }
+
+    private func required(_ rule: Rule, _ leaves: [ConfigEditorModel.Leaf]) -> [KeybindCombo]? {
+        guard let required = rule.requires,
+              let leaf = leaves.first(where: { $0.keyPath.joined(separator: ".") == required })
+        else { return nil }
+        return KeybindParser.parse(leaf.value)
+    }
+
+    /// Une option booléenne du fichier ; `nil` si absente ou d'un autre type.
+    static func bool(_ path: String, in leaves: [ConfigEditorModel.Leaf]) -> Bool? {
+        guard let leaf = leaves.first(where: { $0.keyPath.joined(separator: ".") == path }) else { return nil }
+        switch leaf.value {
+        case .bool(let value): return value
+        case .string(let text): return Bool(text.lowercased())
+        default: return nil
+        }
     }
 }

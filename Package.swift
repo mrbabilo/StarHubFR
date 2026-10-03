@@ -295,6 +295,7 @@ let package = Package(
                 "Models/KeybindScanner+Annotation.swift",
                 "Models/KeybindScanner+Classify.swift",
                 "Models/GameControlDefaults.swift",
+                "Models/GameControlPreferences.swift",
                 "Models/KeybindReportExport.swift",
                 "Models/MacKeyboardGeometry.swift",
                 "Models/KeybindDevicePlacement.swift",

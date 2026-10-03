@@ -1032,7 +1032,7 @@ struct ModDetailView: View {
 
                 if !conflicts.gameConflicts.isEmpty {
                     // Réserve visible : évite la fausse alerte chez qui a remappé.
-                    Text(localization.L(L10n.Keybinds.gameCaveat))
+                    Text(localization.L((keybindScanService.report?.gameControlsSource ?? .defaults).caveatKey))
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     Text(String(format: localization.L(L10n.Keybinds.gameHeader),
                                 conflicts.gameConflicts.count))

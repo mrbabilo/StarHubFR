@@ -302,6 +302,8 @@
 "keybinds_tile_game" = "With the game";
 "keybinds_tile_unrecognized" = "Unreadable";
 "keybinds_game_caveat" = "Compared against default controls — remapped controls are not readable here.";
+"keybinds_game_caveat_last_game" = "Compared against your controls from the last game played (default_options).";
+"keybinds_game_caveat_startup" = "Compared against the controls in startup_preferences — no last-game options found.";
 "keybinds_game_header" = "Conflicts with game controls (%lld)";
 "keybinds_gamepad_header" = "Gamepad conflicts (%lld)";
 "keybinds_latent_header" = "If the paused mods were active (%lld)";

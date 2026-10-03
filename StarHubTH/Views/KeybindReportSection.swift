@@ -186,7 +186,7 @@ struct KeybindReportSection: View {
                     // La réserve reste visible même groupe replié : c'est
                     // elle qui évite la fausse alerte chez qui a remappé
                     // ses touches (ronde de revue 1, constat 3).
-                    Text(localization.L(L10n.Keybinds.gameCaveat))
+                    Text(localization.L(report.gameControlsSource.caveatKey))
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     gameConflictsGroup(report.gameConflicts).id("game")
                 }

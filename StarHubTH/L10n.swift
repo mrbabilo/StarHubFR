@@ -116,6 +116,8 @@ enum L10n {
         static let collisionsHeader   = "keybinds_collisions_header"
         static let gameHeader         = "keybinds_game_header"
         static let gameCaveat         = "keybinds_game_caveat"
+        static let gameCaveatLastGame = "keybinds_game_caveat_last_game"
+        static let gameCaveatStartup  = "keybinds_game_caveat_startup"
         static let unrecognizedHeader = "keybinds_unrecognized_header"
         static let pausedNote         = "keybinds_paused_note"
         static let catalogNote        = "keybinds_catalog_note"

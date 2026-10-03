@@ -77,6 +77,9 @@ final class KeybindScanService: ObservableObject {
         lastScannedSignature = signature(of: candidates, gameDir: gameDir)
 
         Task {
+            let game = await Task.detached(priority: .userInitiated) {
+                GameControlPreferences.load(appDataFolder: GameControlPreferences.appDataFolder)
+            }.value
             let inputs: [KeybindScanner.ModScan] = await Task.detached(priority: .userInitiated) {
                 // Chemin copié de ModConfigEditorView.configPath — une seule
                 // construction pour actifs et en pause (le point est dans
@@ -105,7 +108,10 @@ final class KeybindScanService: ObservableObject {
                                  isActive: mod.isEnabled, tree: tree, uniqueId: mod.uniqueId)
                 }
             }.value
-            self.report = KeybindScanner.report(mods: inputs, contexts: Self.contexts)
+            var report = KeybindScanner.report(mods: inputs, contexts: Self.contexts,
+                                               gameControls: game.controls)
+            report.gameControlsSource = game.source
+            self.report = report
             self.isScanning = false
             if let pending = self.pendingRescan {
                 self.pendingRescan = nil

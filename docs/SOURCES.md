@@ -1180,6 +1180,25 @@ Content Patcher (Ctrl seul), actives avec `EnableDebugFeatures` uniquement.
 Le correctif propre — ne lever la paire que si les deux sont tenues — est
 hors périmètre.
 
+**Les contrôles du jeu réels** (`GameControlPreferences`, 2026-10-03). Relevé
+dans `Stardew Valley.dll` : en solo, une partie chargée pose
+`Game1.options = loaded.options`, puis `SaveDefaultOptions()` les écrit dans
+`~/.config/StardewValley/default_options` — les contrôles de la dernière partie,
+remaps de GCSR compris (il réécrit `Game1.options` au chargement par
+`changeInputListenerValue`, qui remplace l'entrée `[0]` et garde la souris).
+`startup_preferences` porte un `<clientOptions>` qui ne sert qu'au joueur
+invité (`saveClientOptions`) : secours seulement. Forme :
+`<moveUpButton><InputButton><key>Z</key><mouseLeft>false</mouseLeft>…`, `None`
+ne lie rien. Sur le parc : 18 problèmes contre les défauts, 12 contre les
+contrôles réels — GCSR vide la touche de l'outil, de l'action et de la barre
+d'objets, les conflits avec la barre tombent.
+
+Règles à condition (même date) : `enabledBy` (Mailbox Menu : `ModKey` n'est lu
+que sous `MenuOnMailbox`), et `requires` jugé en **combinaison** quand la
+touche exigée est assignée — Let's Move It (Alt + clic droit, bouton retenu par
+`Input.Suppress`), Wizardry (le sort retient sa touche). `unless` annule la
+règle : avec `MultiSelect`, Let's Move It ne retient plus le clic.
+
 **L'outil** : `tools/keybind_contexts.py` (stdlib seule) rejoue le relevé
 hors app. Il préfiltre les mods à touches par une grammaire SButton sur
 `config.json`, décompile l'`EntryDll` du manifeste avec `ilspycmd` (cache

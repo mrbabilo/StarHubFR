@@ -302,6 +302,8 @@
   "keybinds_tile_game": "Avec le jeu",
   "keybinds_tile_unrecognized": "Illisibles",
   "keybinds_game_caveat": "Comparés aux contrôles par défaut — les contrôles remappés ne sont pas lisibles ici.",
+  "keybinds_game_caveat_last_game": "Comparés à vos contrôles de la dernière partie jouée (default_options).",
+  "keybinds_game_caveat_startup": "Comparés aux contrôles de startup_preferences — aucune option de dernière partie trouvée.",
   "keybinds_game_header": "Conflits avec les contrôles du jeu (%lld)",
   "keybinds_gamepad_header": "Conflits manette (%lld)",
   "keybinds_latent_header": "Si les mods en pause étaient actifs (%lld)",

@@ -50,11 +50,14 @@ public extension KeybindScanner {
             return KeybindRowAnnotation()
         }
         let context = report.context(of: modID, keyPath)
+        // Une touche à maintenir : la rangée se juge en combinaison, comme
+        // au rapport (Alt + clic droit ne heurte pas l'action du jeu).
+        let combo = KeybindContexts.chorded([combo], with: report.settingChords[key] ?? []).first ?? combo
         var gameControl: String? = nil
         if combo.buttons.count == 1, let button = combo.buttons.first,
            !report.remapModIDs.contains(modID),
            !vanillaRemapModIds.contains(modID.lowercased()) {
-            gameControl = GameControlDefaults.controls
+            gameControl = report.gameControls
                 .first { $0.buttons.contains(button) && context.reaches($0.name) }?.name
         }
         // Toutes les liaisons actives, pas les seules collisions : pour une

@@ -138,6 +138,25 @@
         "context": "ownMode",
         "evidence": "OnButtonsChanged : retour si !EnableDebugFeatures ; ces touches seulement si DebugOverlay.Value != null."
       }
+    ],
+    "aedenthorn.MailboxMenu": [
+      {
+        "keyPaths": [
+          "ModKey"
+        ],
+        "enabledBy": "MenuOnMailbox",
+        "evidence": "ModKey n'est lu (Input.IsDown) que sous `if (Config.ModEnabled && Config.MenuOnMailbox)`, au clic sur la boîte aux lettres ; MenuKey, lui, ouvre le menu partout."
+      }
+    ],
+    "Exblosis.LetsMoveIt": [
+      {
+        "keyPaths": [
+          "MoveKey"
+        ],
+        "requires": "ModKey",
+        "unless": "MultiSelect",
+        "evidence": "MoveKey.JustPressed : sélection seulement si ModKey.IsDown() (SelectTargetAction, qui retient le bouton par Input.Suppress hors MultiSelect), sinon action sur une sélection déjà faite, bouton retenu aussi. Avec MultiSelect, le clic n'est plus retenu : il atteint le jeu."
+      }
     ]
   }
 }
