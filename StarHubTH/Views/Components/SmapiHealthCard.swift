@@ -31,7 +31,7 @@ struct SmapiHealthCard: View {
 
     /// nil = dépliée, même sur un journal sain : la carte a son onglet (D4-T4,
     /// demande de l'auteur du 2026-09-28). Le chevron garde le choix contraire.
-    @State private var userCollapsed: Bool? = nil
+    @State private var userExpanded: Bool? = nil
     /// Le bloc qu'un compteur vient de demander (comme les tuiles des Alertes
     /// système) : l'identifiant neuf à chaque clic rejoue le défilement.
     @State private var scrollRequest: ScrollRequest?
@@ -43,7 +43,7 @@ struct SmapiHealthCard: View {
 
     var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
 
-    private var isExpanded: Bool { userCollapsed ?? true }
+    private var isExpanded: Bool { userExpanded ?? true }
     private var isHealthy: Bool { diagnostics.problemCount == 0 }
 
     /// Advisory info (risk categories, per-mod errors) exists even on a healthy
@@ -152,7 +152,7 @@ struct SmapiHealthCard: View {
                 .iconHelp(localization.L(L10n.Logs.healthReveal))
 
                 if !isHealthy || hasDetails {
-                    Button { userCollapsed = !isExpanded } label: {
+                    Button { userExpanded = !isExpanded } label: {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(AppDesign.Font.caption(.medium))
                             .foregroundColor(.secondary)
@@ -166,7 +166,7 @@ struct SmapiHealthCard: View {
                 HStack(spacing: AppDesignCore.Spacing.sm) {
                     ForEach(severityCounts, id: \.label) { item in
                         Button {
-                            userCollapsed = false
+                            userExpanded = true
                             scrollRequest = ScrollRequest(anchor: item.anchor)
                         } label: { countChip(item.count, item.label, item.color) }
                         .buttonStyle(.plain)
