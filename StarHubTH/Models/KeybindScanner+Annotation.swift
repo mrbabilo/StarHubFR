@@ -65,7 +65,7 @@ public extension KeybindScanner {
         // mod = collision) ; pour une touche qu'on vient de capturer (C4-T12),
         // c'est la seule façon de voir l'unique autre mod qui la porte.
         // Même tri que les collisions (nom, puis id : homonymes réels).
-        let conflicts = (report.activeUses[combo] ?? [])
+        let conflicts = (report.gamepadOff && combo.isGamepad ? [] : report.activeUses[combo] ?? [])
             .filter { $0.modID != modID && context.overlaps(report.context(of: $0.modID, $0.keyPath)) }
             .sorted { ($0.modName, $0.modID) < ($1.modName, $1.modID) }
             .map { KeybindRowAnnotation.OtherUse(modName: $0.modName, settingKey: $0.keyPath) }

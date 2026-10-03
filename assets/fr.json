@@ -306,6 +306,7 @@
   "keybinds_game_caveat_startup": "Comparés aux contrôles de startup_preferences — aucune option de dernière partie trouvée.",
   "keybinds_game_header": "Conflits avec les contrôles du jeu (%lld)",
   "keybinds_gamepad_header": "Conflits manette (%lld)",
+  "keybinds_gamepad_off_header": "Conflits manette (%lld) — manette désactivée dans le jeu, sans effet",
   "keybinds_latent_header": "Si les mods en pause étaient actifs (%lld)",
   "keybinds_no_game_dir": "Définissez le dossier du jeu pour analyser les conflits de raccourcis.",
   "keybinds_no_mods_scanned": "Aucun mod actif ne propose de config.json à analyser.",

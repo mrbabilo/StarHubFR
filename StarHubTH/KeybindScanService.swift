@@ -109,7 +109,7 @@ final class KeybindScanService: ObservableObject {
                 }
             }.value
             var report = KeybindScanner.report(mods: inputs, contexts: Self.contexts,
-                                               gameControls: game.controls)
+                                               gameControls: game.controls, gamepadOff: game.gamepadOff)
             report.gameControlsSource = game.source
             self.report = report
             self.isScanning = false
@@ -138,6 +138,8 @@ final class KeybindScanService: ObservableObject {
     private func signature(of candidates: [ModItem], gameDir: String) -> Int {
         var hasher = Hasher()
         hasher.combine(gameDir)
+        // Les contrôles du jeu : une partie jouée réécrit default_options.
+        hasher.combine(GameControlPreferences.fileDates(appDataFolder: GameControlPreferences.appDataFolder))
         for mod in candidates {
             hasher.combine(mod.folderName)
             hasher.combine(mod.isEnabled)

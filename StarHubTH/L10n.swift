@@ -130,6 +130,7 @@ enum L10n {
         static let noModsScanned      = "keybinds_no_mods_scanned"
         // C4-T7 — les angles morts devenus visibles.
         static let gamepadHeader      = "keybinds_gamepad_header"
+        static let gamepadOffHeader   = "keybinds_gamepad_off_header"
         static let subsetsHeader      = "keybinds_subsets_header"
         static let subsetsHint        = "keybinds_subsets_hint"
         static let latentHeader       = "keybinds_latent_header"

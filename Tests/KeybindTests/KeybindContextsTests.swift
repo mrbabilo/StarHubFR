@@ -189,6 +189,17 @@ struct KeybindContextsTests {
             mod("Stillbloom", "BambooKat.Stillbloom", [("CameraUpKey", .string("Z"))]),
         ], contexts: contexts)
         #expect(r.collisions.isEmpty)
+
+        // Content Patcher : ses touches de débogage ne sont lues qu'avec
+        // EnableDebugFeatures — désactivé, F3 ne heurte personne.
+        let cp = KeybindScanner.report(mods: [
+            mod("CP", "Pathoschild.ContentPatcher", [
+                ("EnableDebugFeatures", .bool(false)),
+                ("Controls", .object(ConfigJSONTree.Object([("ToggleDebug", .string("F3"))])))]),
+            mod("Other", "", [("MenuKey", .string("F3"))]),
+        ], contexts: contexts)
+        #expect(cp.collisions.isEmpty)
+        #expect(cp.inertMods == ["CP"])
     }
 
     // MARK: - Option d'activation et touche à maintenir (2026-10-03)

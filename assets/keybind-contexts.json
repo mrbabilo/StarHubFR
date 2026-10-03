@@ -136,7 +136,15 @@
           "Controls.DebugNextTexture"
         ],
         "context": "ownMode",
+        "enabledBy": "EnableDebugFeatures",
         "evidence": "OnButtonsChanged : retour si !EnableDebugFeatures ; ces touches seulement si DebugOverlay.Value != null."
+      },
+      {
+        "keyPaths": [
+          "Controls.ToggleDebug"
+        ],
+        "enabledBy": "EnableDebugFeatures",
+        "evidence": "OnButtonsChanged : retour immédiat si !Config.EnableDebugFeatures, avant toute touche."
       }
     ],
     "aedenthorn.MailboxMenu": [

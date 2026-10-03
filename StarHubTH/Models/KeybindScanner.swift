@@ -193,15 +193,15 @@ public enum KeybindScanner {
         public var settingChords: [String: [KeybindCombo]] = [:]
         public var gameControls: [GameControlDefaults.GameControl] = GameControlDefaults.controls
         public var gameControlsSource: GameControlPreferences.Source = .defaults
+        public var gamepadOff = false
 
         /// Problèmes avérés : collisions clavier et manette entre mods actifs
         /// plus conflits avec un contrôle du jeu. Les « non reconnus » n'y
         /// entrent pas — ce sont des valeurs illisibles, pas des problèmes
-        /// avérés (tâche 7, pour la pastille de la barre latérale et de
-        /// l'accueil) ; les co-déclenchements et les collisions latentes non
-        /// plus, délibérément (C4-T7).
+        /// avérés (tâche 7, pastille) ; ni co-déclenchements ni collisions
+        /// latentes (C4-T7) ; ni manette quand le jeu l'a coupée (`gamepadOff`).
         public var problemCount: Int {
-            collisions.count + gamepadCollisions.count + gameConflicts.count
+            collisions.count + (gamepadOff ? 0 : gamepadCollisions.count) + gameConflicts.count
         }
 
         /// Tâche 9 — « ce que ce modID subit » : les collisions et
@@ -224,8 +224,8 @@ public enum KeybindScanner {
     }
 
     public static func report(mods: [ModScan], contexts: KeybindContexts = .empty,
-                              gameControls: [GameControlDefaults.GameControl] = GameControlDefaults.controls)
-        -> KeybindReport {
+                              gameControls: [GameControlDefaults.GameControl] = GameControlDefaults.controls,
+                              gamepadOff: Bool = false) -> KeybindReport {
         var index: [KeybindCombo: [ModUse]] = [:]          // mods actifs
         // 2026-10-03 — quand chaque réglage écoute sa touche (`KeybindContexts`),
         // clé `settingKey` ; absent = `anywhere`. Voir `KeybindScanner+Annotation`.
@@ -401,9 +401,8 @@ public enum KeybindScanner {
         }
 
         let allCollisions = bucketCollisions(of: index)
-        // C4-T7 — la famille manette a sa catégorie : `LeftStick` partagé par
-        // deux frameworks ValleyBonds (mesuré le 2026-09-04) n'est pas une
-        // collision clavier.
+        // C4-T7 — la famille manette a sa catégorie (`LeftStick` de deux
+        // frameworks ValleyBonds, 2026-09-04) : pas une collision clavier.
         let gamepadCollisions = allCollisions.filter { $0.combo.isGamepad }
         let collisions = allCollisions.filter { !$0.combo.isGamepad }
 
@@ -466,7 +465,7 @@ public enum KeybindScanner {
                              catalogModsIgnored: catalogModsIgnored,
                              remapModsIgnored: remapModsIgnored,
                              activeUses: index,
-                             settings: markConflicts(settings, collisions: allCollisions,
+                             settings: markConflicts(settings, collisions: gamepadOff ? collisions : allCollisions,
                                                      gameConflicts: gameConflicts),
                              remapModIDs: remapModIDs,
                              modifierMods: modifierMods.sorted(),
@@ -475,6 +474,6 @@ public enum KeybindScanner {
                              settingContexts: settingContexts,
                              inertSettings: inertSettings,
                              heldSettings: heldSettings, settingChords: settingChords,
-                             gameControls: gameControls)
+                             gameControls: gameControls, gamepadOff: gamepadOff)
     }
 }

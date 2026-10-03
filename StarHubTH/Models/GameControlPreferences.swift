@@ -31,10 +31,7 @@ public enum GameControlPreferences {
     /// de `GameControlDefaults` ; un contrôle absent du fichier garde sa
     /// valeur par défaut. `nil` si le XML ne porte aucun contrôle connu.
     public static func controls(fromXML data: Data) -> [GameControlDefaults.GameControl]? {
-        let reader = Reader(names: Set(GameControlDefaults.controls.map(\.name)))
-        let parser = XMLParser(data: data)
-        parser.delegate = reader
-        guard parser.parse(), !reader.found.isEmpty else { return nil }
+        guard let reader = read(data), !reader.found.isEmpty else { return nil }
         return GameControlDefaults.controls.map { control in
             reader.found[control.name].map { .init(name: control.name, buttons: $0) } ?? control
         }
@@ -45,16 +42,55 @@ public enum GameControlPreferences {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/StardewValley")
     }
 
-    /// `default_options`, puis `startup_preferences`, puis les défauts.
-    public static func load(appDataFolder: URL) -> (controls: [GameControlDefaults.GameControl], source: Source) {
-        for (file, source) in [("default_options", Source.lastGame),
-                               ("startup_preferences", .startupPreferences)] {
-            if let data = FileManager.default.contents(atPath: appDataFolder.appendingPathComponent(file).path),
-               let controls = controls(fromXML: data) {
-                return (controls, source)
-            }
+    /// Le `gamepadMode` de premier niveau (`Auto`, `ForceOn`, `ForceOff`) —
+    /// pas celui de `<clientOptions>`.
+    public static func gamepadMode(fromXML data: Data) -> String? {
+        read(data)?.rootGamepadMode
+    }
+
+    public struct Loaded: Sendable {
+        public let controls: [GameControlDefaults.GameControl]
+        public let source: Source
+        /// La manette coupée (`ForceOff`) : le jeu rend un état vide
+        /// (`GetGamePadState`), et SMAPI lit le sien (`SInputState`, relevé
+        /// le 2026-10-03) — aucun mod ne reçoit de bouton manette.
+        public let gamepadOff: Bool
+    }
+
+    /// Contrôles : `default_options`, puis `startup_preferences`, puis les
+    /// défauts. Manette : le `gamepadMode` de `startup_preferences`, que le
+    /// jeu réapplique à chaque chargement de partie, sinon `default_options`.
+    public static func load(appDataFolder: URL) -> Loaded {
+        func data(_ file: String) -> Data? {
+            FileManager.default.contents(atPath: appDataFolder.appendingPathComponent(file).path)
         }
-        return (GameControlDefaults.controls, .defaults)
+        let lastGame = data("default_options"), startup = data("startup_preferences")
+        let mode = startup.flatMap(gamepadMode(fromXML:)) ?? lastGame.flatMap(gamepadMode(fromXML:))
+        let off = mode == "ForceOff"
+        if let controls = lastGame.flatMap(controls(fromXML:)) {
+            return Loaded(controls: controls, source: .lastGame, gamepadOff: off)
+        }
+        if let controls = startup.flatMap(controls(fromXML:)) {
+            return Loaded(controls: controls, source: .startupPreferences, gamepadOff: off)
+        }
+        return Loaded(controls: GameControlDefaults.controls, source: .defaults, gamepadOff: off)
+    }
+
+    /// Les dates des deux fichiers : une partie jouée les réécrit, le
+    /// rapport doit alors se refaire (`KeybindScanService.scanIfNeeded`).
+    public static func fileDates(appDataFolder: URL) -> [Date?] {
+        ["default_options", "startup_preferences"].map { file in
+            let path = appDataFolder.appendingPathComponent(file).path
+            do { return try FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date }
+            catch { return nil } // absent : pas de contrôles réels, rien à suivre
+        }
+    }
+
+    private static func read(_ data: Data) -> Reader? {
+        let reader = Reader(names: Set(GameControlDefaults.controls.map(\.name)))
+        let parser = XMLParser(data: data)
+        parser.delegate = reader
+        return parser.parse() ? reader : nil
     }
 
     /// Lecteur SAX : le premier élément de chaque contrôle connu, ses
@@ -62,6 +98,8 @@ public enum GameControlPreferences {
     private final class Reader: NSObject, XMLParserDelegate {
         let names: Set<String>
         var found: [String: [String]] = [:]
+        var rootGamepadMode: String?
+        private var depth = 0
         private var current: String?
         private var buttons: [String] = []
         private var text = ""
@@ -71,6 +109,7 @@ public enum GameControlPreferences {
         func parser(_ parser: XMLParser, didStartElement element: String, namespaceURI: String?,
                     qualifiedName: String?, attributes: [String: String] = [:]) {
             text = ""
+            depth += 1
             if current == nil, names.contains(element), found[element] == nil {
                 current = element
                 buttons = []
@@ -83,9 +122,10 @@ public enum GameControlPreferences {
 
         func parser(_ parser: XMLParser, didEndElement element: String, namespaceURI: String?,
                     qualifiedName: String?) {
-            defer { text = "" }
-            guard let control = current else { return }
             let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            defer { text = ""; depth -= 1 }
+            if element == "gamepadMode", depth == 2, rootGamepadMode == nil { rootGamepadMode = value }
+            guard let control = current else { return }
             switch element {
             case "key" where !value.isEmpty && value != "None":
                 buttons.append(value)

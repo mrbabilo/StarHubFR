@@ -66,4 +66,43 @@ struct GameControlPreferencesTests {
         #expect(KeybindScanner.report(mods: [mod]).gameConflicts.map(\.control.name) == ["inventorySlot2"])
         #expect(KeybindScanner.report(mods: [mod], gameControls: controls).gameConflicts.isEmpty)
     }
+
+    /// Le `gamepadMode` de premier niveau, pas celui de `<clientOptions>` :
+    /// le jeu réapplique le premier à chaque chargement.
+    @Test func gamepadModeIsReadAtTheRoot() {
+        let startup = "<StartupPreferences><gamepadMode>ForceOff</gamepadMode>"
+            + "<clientOptions><gamepadMode>Auto</gamepadMode></clientOptions></StartupPreferences>"
+        #expect(GameControlPreferences.gamepadMode(fromXML: Data(startup.utf8)) == "ForceOff")
+        let nested = "<StartupPreferences><clientOptions><gamepadMode>ForceOff</gamepadMode></clientOptions></StartupPreferences>"
+        #expect(GameControlPreferences.gamepadMode(fromXML: Data(nested.utf8)) == nil)
+    }
+
+    /// Manette coupée : les collisions manette restent listées, hors du
+    /// compte de problèmes, du marquage des réglages et de l'éditeur.
+    @Test func aGamepadTurnedOffDoesNotCount() {
+        let mods = ["a", "b"].map { id in
+            KeybindScanner.ModScan(id: id, name: id, isActive: true,
+                                   tree: .object(ConfigJSONTree.Object([("ToggleKey", .string("LeftStick"))])))
+        }
+        let on = KeybindScanner.report(mods: mods)
+        #expect(on.problemCount == 1)
+        let off = KeybindScanner.report(mods: mods, gamepadOff: true)
+        #expect(off.gamepadCollisions.count == 1)
+        #expect(off.problemCount == 0)
+        #expect(off.settings.allSatisfy { $0.conflict == nil })
+        let note = KeybindScanner.annotation(for: KeybindCombo(buttons: ["LeftStick"])!, ofMod: "a",
+                                             keyPath: ["ToggleKey"], in: off)
+        #expect(note.conflicts.isEmpty)
+    }
+
+    /// Une partie jouée réécrit les options : la date change, le rapport
+    /// se refait.
+    @Test func fileDatesFollowTheOptionsFiles() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(GameControlPreferences.fileDates(appDataFolder: dir) == [nil, nil])
+        try Data(lastGame.utf8).write(to: dir.appendingPathComponent("default_options"))
+        #expect(GameControlPreferences.fileDates(appDataFolder: dir).first! != nil)
+    }
 }

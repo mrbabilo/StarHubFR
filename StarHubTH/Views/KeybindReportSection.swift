@@ -177,10 +177,10 @@ struct KeybindReportSection: View {
                                     header: L10n.Keybinds.collisionsHeader).id("collisions")
                 }
                 if !report.gamepadCollisions.isEmpty {
-                    // C4-T7 — une collision manette n'est pas une collision
-                    // clavier : qui joue au clavier n'y est pas sujet.
+                    // C4-T7 — pas une collision clavier ; sans effet si le jeu a coupé la manette.
                     collisionsGroup(report.gamepadCollisions, key: "gamepad",
-                                    header: L10n.Keybinds.gamepadHeader).id("gamepad")
+                                    header: report.gamepadOff ? L10n.Keybinds.gamepadOffHeader
+                                        : L10n.Keybinds.gamepadHeader).id("gamepad")
                 }
                 if !report.gameConflicts.isEmpty {
                     // La réserve reste visible même groupe replié : c'est

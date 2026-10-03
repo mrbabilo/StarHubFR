@@ -306,6 +306,7 @@
 "keybinds_game_caveat_startup" = "Compared against the controls in startup_preferences — no last-game options found.";
 "keybinds_game_header" = "Conflicts with game controls (%lld)";
 "keybinds_gamepad_header" = "Gamepad conflicts (%lld)";
+"keybinds_gamepad_off_header" = "Gamepad conflicts (%lld) — gamepad turned off in the game, no effect";
 "keybinds_latent_header" = "If the paused mods were active (%lld)";
 "keybinds_no_game_dir" = "Set the game folder to scan for keybind conflicts.";
 "keybinds_no_mods_scanned" = "No active mod exposes a config.json to scan.";

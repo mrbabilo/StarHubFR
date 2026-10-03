@@ -20,7 +20,7 @@ struct KeybindSummaryTiles: View {
     private var tiles: [Tile] {
         [Tile(id: "collisions", icon: "keyboard", value: report.collisions.count,
               label: L(L10n.Keybinds.tileCollisions), tint: KeybindConflictStyle.color(.mods)),
-         Tile(id: "gamepad", icon: "gamecontroller.fill", value: report.gamepadCollisions.count,
+         Tile(id: "gamepad", icon: "gamecontroller.fill", value: report.gamepadOff ? 0 : report.gamepadCollisions.count,
               label: L(L10n.Keybinds.tileGamepad), tint: KeybindConflictStyle.color(.mods)),
          Tile(id: "game", icon: KeybindConflictStyle.glyph, value: report.gameConflicts.count,
               label: L(L10n.Keybinds.tileGame), tint: KeybindConflictStyle.color(.game)),
