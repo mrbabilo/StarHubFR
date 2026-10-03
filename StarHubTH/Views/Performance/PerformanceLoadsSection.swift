@@ -159,7 +159,7 @@ struct PerformanceLoadsSection: View {
                 notes.append(String(format: localization.L(L10n.Performance.loadsLoadNote),
                                     Self.duration(loadLoop), coverage.seen, coverage.total))
             }
-            // Refusé : l'offre ne revient pas, le constat reste ici.
+            // Refusé : le constat reste aussi ici ; le geste vit dans la carte « Sonde ».
             if b.probeLoadsFirst == false, consentShown == false {
                 notes.append(localization.L(L10n.Performance.loadsProbeNotFirst))
             }

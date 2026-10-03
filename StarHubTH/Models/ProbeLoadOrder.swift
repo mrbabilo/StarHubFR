@@ -16,7 +16,7 @@ public enum ProbeLoadOrder {
     public enum Status: Equatable, Sendable {
         /// Jamais demandé (`consent == nil`).
         case notAsked
-        /// Refusé : jamais redemandé.
+        /// Refusé : pas en tête ; le geste reste offert, discret.
         case declined
         /// Listée, et le dernier lancement l'a vue en tête.
         case active

@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// Sonde en tête (`ModsToLoadEarly`) : hors du repli, parce que sans elle les
-/// chiffres du démarrage sont faux. Jamais demandé → l'offre ; consenti → une
-/// ligne d'état colorée (icône + texte, jamais la couleur seule) avec son geste.
+/// Sonde en tête (`ModsToLoadEarly`), réglage de la carte « Sonde » : sans
+/// elle les chiffres du démarrage sont faux. **Toujours réversible** — pas
+/// en tête (jamais demandé ou refusé) → le constat et l'offre ; consenti →
+/// une ligne d'état colorée (icône + texte, jamais la couleur seule) avec son
+/// geste. Le refus effaçait le bouton et rendait le choix définitif
+/// (constat de l'auteur, 2026-10-03).
 /// L'état vient du **fichier** relu (`ProbeLoadOrder.status`), pas de la
 /// dernière action de l'app : un lancement par Steam ne passe pas par elle.
 struct PerformanceLoadsProbeFirst: View {
@@ -37,17 +40,15 @@ struct PerformanceLoadsProbeFirst: View {
     @ViewBuilder
     private var content: some View {
         switch status {
-        case .notAsked:
-            if store.lastLaunch?.probeLoadsFirst == false {
-                banner(icon: "arrow.up.to.line", color: AppDesign.Color.accent,
-                       text: L10n.Performance.loadsProbeNotFirst) {
-                    Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirm = true }
-                        .buttonStyle(.borderedProminent)
-                        .clickableCursor()
-                }
+        case .notAsked, .declined:
+            // Jamais demandé : mis en avant ; refusé : discret, mais le geste reste.
+            banner(icon: "arrow.up.to.line",
+                   color: status == .notAsked ? AppDesign.Color.accent : AppDesign.Color.paused,
+                   text: L10n.Performance.loadsProbeNotFirst) {
+                Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirm = true }
+                    .buttonStyle(.borderedProminent)
+                    .clickableCursor()
             }
-        case .declined:
-            EmptyView()   // le constat reste dans « Qualité de la mesure »
         case .active:
             banner(icon: "checkmark.circle.fill", color: AppDesign.Color.success,
                    text: L10n.Performance.loadsProbeFirstActive) { undo }
