@@ -113,8 +113,9 @@ final class StarHubTHViewModel {
     private(set) var maliciousMods: [String: SmapiBlacklist.Entry] = [:]
 
     /// Statuts **tenus à jour** : `anomaly(for:)` tourne deux fois par ligne ;
-    /// reconstruire à chaque appel rendrait la liste quadratique.
-    private var compatibilityStatuses: [String: ModCompatibility.Status] = [:]
+    /// reconstruire à chaque appel rendrait la liste quadratique. Lisible hors
+    /// VM — le rapport de modlist exporte les mêmes verdicts (E2-T1).
+    private(set) var compatibilityStatuses: [String: ModCompatibility.Status] = [:]
     /// Source et date des derniers verdicts affichés : le bandeau de la fiche
     /// distingue cache disque et réponse fraîche (A2-T3).
     public enum CompatibilitySource: Equatable {

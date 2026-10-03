@@ -297,6 +297,7 @@ let package = Package(
                 "Models/GameControlDefaults.swift",
                 "Models/GameControlPreferences.swift",
                 "Models/KeybindReportExport.swift",
+                "Models/ModlistReport.swift",
                 "Models/MacKeyboardGeometry.swift",
                 "Models/KeybindDevicePlacement.swift",
                 "Models/KeybindOverview.swift",
@@ -1023,6 +1024,11 @@ let package = Package(
             name: "ModAnomalyTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModAnomalyTests"
+        ),
+        .testTarget(
+            name: "ModlistReportTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModlistReportTests"
         ),
         .testTarget(
             name: "PathoschildCompatibilityListTests",

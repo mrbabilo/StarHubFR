@@ -37,6 +37,8 @@ struct DiagnosticsHealthView: View {
                         Color.clear.onAppear { bisectionHeight = proxy.size.height }
                             .onChange(of: proxy.size.height) { _, h in bisectionHeight = h }
                     })
+                Divider()
+                ModlistReportSection(vm: viewModel, localization: localization)
             }
             .frame(maxWidth: .infinity, alignment: .top)
         }

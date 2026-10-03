@@ -401,6 +401,9 @@
 "logs_segment_health" = "Health";
 "logs_segment_journal" = "Log";
 "logs_health_empty" = "No SMAPI log read yet: launch the game once with SMAPI and the modlist's health will show here.";
+"health_modlist_report_title" = "Mod list report";
+"health_modlist_report_copy" = "Copy report (Markdown)";
+"health_modlist_report_save" = "Save report (HTML)";
 "logs_strip_healthy" = "SMAPI: no problems";
 "logs_strip_problems" = "SMAPI: %d problem(s)";
 "logs_strip_no_log" = "No SMAPI log read";

@@ -1339,8 +1339,8 @@ seul, et VoiceOver restitue chaque écran majeur sans piège.
 
 #### E2 — Distribution & documentation
 
-- [ ] **E2-T1** — Rapport de modlist exportable (Markdown/HTML) : nom, version, source, état,
-      couverture FR, anomalies — pensé pour le support et l'usage en cours. · **M**
+- [x] **E2-T1** ✅ *(livré le 2026-10-04)* — Rapport de modlist exportable (Markdown/HTML) : nom, version, source, état,
+      couverture FR, anomalies — pensé pour le support et l'usage en cours. Onglet Santé de Diagnostic. · **M**
 - [x] **E2-T2** ✅ *(livré le 2026-10-02)* — `GUIDE.md` (racine, relié au README) : coexistence avec Vortex/Stardrop/Nexus App, convention `X` / `.X`, réactivation avant désinstallation.
 - [ ] **E2-T3** — Captures d'écran, page Nexus, distribution hors App Store (signature,
       notarisation, ou **Sentinel** pour lever la quarantaine côté utilisateur). · **M**
