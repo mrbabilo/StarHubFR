@@ -177,8 +177,8 @@ public enum KeybindScanner {
         /// Mods dont un réglage est une touche de modification maintenue,
         /// laissé hors collisions (partage normal).
         public var modifierMods: [String] = []
-        /// Mods dont un réglage exige une touche d'activation non assignée :
-        /// inertes, hors collisions.
+        /// Mods dont un réglage exige une touche d'activation non assignée,
+        /// ou une option désactivée (`enabledBy`) : inertes, hors collisions.
         public var inertMods: [String] = []
         /// Mods dont un conflit a été levé par un contexte relevé (menu
         /// propre, mode, rejeu).

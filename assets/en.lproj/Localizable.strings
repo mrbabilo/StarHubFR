@@ -292,7 +292,7 @@
 "keybinds_no_match" = "No shortcut matches.";
 "keybinds_remap_note" = "A remap mod (%s) is left out of game conflicts: setting those controls is its job.";
 "keybinds_modifiers_note" = "Held modifier key (Ctrl, Shift, Alt), normal sharing, not conflicts: %@";
-"keybinds_inert_note" = "Inactive because their activation key is unassigned: %@";
+"keybinds_inert_note" = "Inactive because their activation key is unassigned or the option that enables them is off: %@";
 "keybinds_context_note" = "Conflicts lifted by the context read in their code (own menu, mode, replay): %@";
 "keybinds_collisions_header" = "Conflicts between mods (%lld)";
 "keybinds_counters" = "%1$lld mods scanned · %2$lld shortcuts";

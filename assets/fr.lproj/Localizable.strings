@@ -292,7 +292,7 @@
 "keybinds_no_match" = "Aucun raccourci ne correspond.";
 "keybinds_remap_note" = "Un mod de remap (%s) est écarté des conflits avec le jeu : poser ces contrôles est sa fonction.";
 "keybinds_modifiers_note" = "Touche de modification maintenue (Ctrl, Maj, Alt), partage normal, hors conflits : %@";
-"keybinds_inert_note" = "Inactifs faute de touche d'activation assignée : %@";
+"keybinds_inert_note" = "Inactifs faute de touche d'activation assignée, ou option qui les active désactivée : %@";
 "keybinds_context_note" = "Conflits levés par le contexte relevé dans leur code (menu propre, mode, rejeu) : %@";
 "keybinds_collisions_header" = "Conflits entre mods (%lld)";
 "keybinds_counters" = "%1$lld mods scannés · %2$lld raccourcis";
