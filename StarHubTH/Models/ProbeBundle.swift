@@ -57,13 +57,7 @@ public enum ProbeBundle {
     /// n'existe, plutôt que fabriquer un dossier sans manifeste.
     public static func target(modsRoot: URL, presence: ModPresence) -> URL? {
         guard let logical = presence.folderName else { return modsRoot.appendingPathComponent(folderName) }
-        var candidates = [logical, "." + logical]
-        let parts = logical.split(separator: "/", maxSplits: 1)
-        if parts.count == 2 { candidates.append(".\(parts[0])/\(parts[1])") }
-        return candidates.map { modsRoot.appendingPathComponent($0, isDirectory: true) }.first { url in
-            var isDirectory: ObjCBool = false
-            return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-        }
+        return ModFolderPaths.realFolder(modsRoot: modsRoot, logical: logical)
     }
 
     /// Copie le dossier embarqué dans `target` (créé s'il manque) : chaque

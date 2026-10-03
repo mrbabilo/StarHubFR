@@ -224,8 +224,7 @@ class ModZipInstaller {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-l", url.path]
-        // C locale: a French UI ("N fichiers") would return nil and silently
-        // disable the zip-bomb guard.
+        // C locale: a French UI ("N fichiers") would return nil and silently disable the zip-bomb guard.
         process.environment = Self.cLocaleEnvironment
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -1076,9 +1075,10 @@ class ModZipInstaller {
             // compares it to Nexus upload dates, else every reinstall is re-flagged.
             try? fm.setAttributes([.modificationDate: Date()], ofItemAtPath: destPath)
 
-            // Restore preserved configs/translations; failures surface (data loss
-            // otherwise).
+            // Configs/traductions remises (échec = perte : il remonte), puis le choix fr.json (2026-10-03).
+            let restoredFrench = preservedConfigs.keys.filter { $0.lowercased().hasSuffix("i18n/fr.json") }
             try restoreUserConfigs(&preservedConfigs, into: destPath)
+            try TranslationUpdate.apply(selection.translationChoice, relativePaths: restoredFrench, source: sourcePath, destination: URL(fileURLWithPath: destPath), discardedRoot: TranslationUpdate.discardedRoot(backupsDirectory: backupManager.backupsDirectory, folderName: detectedMod.folderName, stamp: timestampStamp))
             // A1-T7 — extras ensuite, **sans lancer** (la sauvegarde a tout) ;
             // échecs au bilan. Réglage « ne pas remettre » : snapshots jetés, bilan
             // `skipped`.

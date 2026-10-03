@@ -2015,6 +2015,10 @@ enum L10n {
         // la ligne nomme l'occupant, c'est lui qu'un écrasement remplacerait.
         static let nameTakenByOtherMod  = "mod_install_name_taken_by_other_mod"
         static let authorRenamedId      = "mod_install_author_renamed_id"
+        static let translationUpdateSummary = "mod_install_translation_update_summary"
+        static let translationKeepLocal = "mod_install_translation_keep_local"
+        static let translationTakeAuthor = "mod_install_translation_take_author"
+        static let translationMerge = "mod_install_translation_merge"
         static let droppedTitle         = "mod_install_dropped_title"
         static let droppedQuestion      = "mod_install_dropped_question"
         static let droppedHostPaused    = "mod_install_dropped_host_paused"

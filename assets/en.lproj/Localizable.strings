@@ -613,6 +613,10 @@
 "mod_install_folder_taken" = "“%1$@” was already another mod's folder — installed as “%2$@” instead.";
 "mod_install_name_taken_by_other_mod" = "Folder name already used by another mod: “%1$@” (installed: v%2$@).";
 "mod_install_author_renamed_id" = "Same mod, its author changed its identifier: “%1$@” (installed: v%2$@) will be updated, settings kept.";
+"mod_install_translation_update_summary" = "The update brings the author's translation: %1$lld keys, %2$lld differing from yours and %3$lld you did not have; %4$lld of yours are not in it.";
+"mod_install_translation_keep_local" = "Keep my translation";
+"mod_install_translation_take_author" = "Take the author's";
+"mod_install_translation_merge" = "Merge: my lines, the author's for the rest";
 "updates_already_installed_renamed" = "v%1$@ is already installed under a new identifier (%2$@): this copy is the old one, pause or delete it.";
 "updates_already_installed_superseded" = "Probably replaced: the suggested page belongs to “%1$@”, already installed at v%2$@.";
 "mod_install_invalid_structure" = "This archive doesn't contain a valid mod structure (missing manifest.json).";

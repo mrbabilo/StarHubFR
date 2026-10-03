@@ -99,7 +99,7 @@ struct InstallPreview: View {
                             onSelectionChange: { newSelection in
                                 selections[mod.id] = newSelection
                             },
-                            existingMods: vm.scanStore.mods,
+                            existingMods: vm.scanStore.mods, tempDir: tempDir,
                             vm: vm,
                             localization: localization
                         )
@@ -401,13 +401,7 @@ struct InstallPreview: View {
 
     private func updateAllSelections(selected: Bool) {
         for mod in zipModInfo.detectedMods {
-            if let existing = selections[mod.id] {
-                selections[mod.id] = InstallSelection(
-                    modId: existing.modId,
-                    selected: selected,
-                    conflictResolution: existing.conflictResolution
-                )
-            }
+            if let existing = selections[mod.id] { selections[mod.id] = existing.with(selected: selected) }
         }
     }
 
@@ -424,12 +418,8 @@ struct InstallPreview: View {
             },
             set: { [self] newValue in
                 guard let mod = zipModInfo.detectedMods.first(where: { $0.folderName == conflict.folderName }) else { return }
-                let current = selections[mod.id]
-                selections[mod.id] = InstallSelection(
-                    modId: mod.id,
-                    selected: current?.selected ?? true,
-                    conflictResolution: newValue
-                )
+                selections[mod.id] = (selections[mod.id] ?? InstallSelection(modId: mod.id, selected: true,
+                                                                            conflictResolution: nil)).with(resolution: newValue)
             }
         )
     }
@@ -608,6 +598,7 @@ struct DetectedModRow: View {
     let selection: InstallSelection?
     let onSelectionChange: (InstallSelection) -> Void
     let existingMods: [ModItem]
+    var tempDir: URL? = nil
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
@@ -618,12 +609,8 @@ struct DetectedModRow: View {
             Toggle(mod.name, isOn: Binding(
                 get: { selection?.selected ?? false },
                 set: { newValue in
-                    let newSelection = InstallSelection(
-                        modId: mod.id,
-                        selected: newValue,
-                        conflictResolution: selection?.conflictResolution
-                    )
-                    onSelectionChange(newSelection)
+                    onSelectionChange((selection ?? InstallSelection(modId: mod.id, selected: newValue,
+                                                                     conflictResolution: nil)).with(selected: newValue))
                 }
             ))
             .toggleStyle(.switch).labelsHidden()
@@ -655,6 +642,8 @@ struct DetectedModRow: View {
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.orange)
                     }
+                    InstallTranslationChoice(mod: mod, existing: existing, tempDir: tempDir, gameDir: vm.gameDir,
+                                             selection: selection, onChange: onSelectionChange, localization: localization)
                 }
 
                 if !mod.dependencies.isEmpty {

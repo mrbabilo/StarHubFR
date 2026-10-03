@@ -141,4 +141,41 @@ import Testing
         #expect(try read("Cfg/config.json", under: env.modsDir).contains("old"),
                 "le config.json doit rester préservé")
     }
+
+    /// 2026-10-03 — « Fusionner » à l'installation réelle : la ligne locale
+    /// reste, la clé neuve traduite par l'auteur entre. « Garder » met la
+    /// copie de l'auteur à l'abri **sous le dossier de test**, jamais dans
+    /// le vrai Application Support.
+    @Test func translationChoiceIsAppliedAfterTheRestore() throws {
+        for choice in [TranslationUpdate.Choice.merge, .keepLocal] {
+            let env = InstallerTestEnv()
+            defer { env.cleanup() }
+            try makeModFolder(base: env.modsDir, relativePath: "SampleMod", uniqueId: "a.sample", name: "Sample")
+            try write(#"{"only.old":"Vieille traduction"}"#, base: env.modsDir, relativePath: "SampleMod/i18n/fr.json")
+            try makeModFolder(base: env.tempExtractDir, relativePath: "SampleMod", uniqueId: "a.sample", name: "Sample")
+            try write(#"{"only.old":"Texte de l'auteur","new.key":"Traduction de l'auteur"}"#,
+                      base: env.tempExtractDir, relativePath: "SampleMod/i18n/fr.json")
+            let existing = ModItem(uniqueId: "a.sample", name: "Sample", folderName: "SampleMod", version: "1.0.0",
+                                   author: "A", description: "", nexusUrl: "", nexusModId: "", isEnabled: true,
+                                   dependencies: [], children: nil, isGroup: false)
+            let mod = DetectedMod(folderName: "SampleMod", relativePath: "SampleMod",
+                                  manifest: parsedManifest(uniqueId: "a.sample", name: "Sample"),
+                                  hasConfigFiles: false, dependencies: [], dependencyDetails: [],
+                                  existingVersion: existing)
+            let selection = InstallSelection(modId: mod.id, selected: true, conflictResolution: .overwriteWithBackup)
+                .with(translation: choice)
+            _ = try ModZipInstaller(backupManager: env.backupManager).install(
+                from: env.tempExtractDir, to: env.modsDisabledDir.path, selections: [selection],
+                detectedMods: [mod], gameDir: env.gameDir, existingMods: [existing])
+            let french = try I18nLenientParser.parse(try read("SampleMod/i18n/fr.json", under: env.modsDir))
+            #expect(french["only.old"] == "Vieille traduction")
+            #expect((french["new.key"] != nil) == (choice == .merge))
+            if choice == .keepLocal {
+                let shelf = env.backupManager.backupsDirectory.deletingLastPathComponent()
+                    .appendingPathComponent("TranslationsDiscarded")
+                #expect(FileManager.default.enumerator(atPath: shelf.path)?.allObjects
+                    .contains { ($0 as? String)?.hasSuffix("SampleMod/i18n/fr.json") == true } == true)
+            }
+        }
+    }
 }

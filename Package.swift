@@ -348,6 +348,8 @@ let package = Package(
                 "Models/ProbeBundle.swift",
                 "Models/AuthorRenamedMod.swift",
                 "Models/UpdateAlreadyInstalled.swift",
+                "Models/ModFolderPaths.swift",
+                "Models/TranslationUpdate.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",

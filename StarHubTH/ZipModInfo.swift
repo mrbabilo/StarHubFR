@@ -376,6 +376,15 @@ struct InstalledModPath: Equatable {
 /// (`snapshotUserConfigs` dans `ModZipInstaller`) est le comportement livré.
 struct InstallSelection {
     let modId: UUID
-    let selected: Bool
-    let conflictResolution: ConflictResolution?
+    var selected: Bool
+    var conflictResolution: ConflictResolution?
+    /// Le `fr.json` de l'auteur contre la traduction locale (2026-10-03) ;
+    /// sans objet hors mise à jour.
+    var translationChoice: TranslationUpdate.Choice = .keepLocal
+
+    /// Copies qui gardent le reste : reconstruire une sélection champ par
+    /// champ perdait ce qu'on ne recopiait pas.
+    func with(selected: Bool) -> InstallSelection { var s = self; s.selected = selected; return s }
+    func with(resolution: ConflictResolution?) -> InstallSelection { var s = self; s.conflictResolution = resolution; return s }
+    func with(translation: TranslationUpdate.Choice) -> InstallSelection { var s = self; s.translationChoice = translation; return s }
 }
