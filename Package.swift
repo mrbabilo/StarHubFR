@@ -344,7 +344,7 @@ let package = Package(
                 "Models/TranslationDiffFilter.swift",
                 "Models/ModScanner.swift",
                 "Models/ModFolderTraversal.swift",
-                "Models/ProfilerDetection.swift",
+                "Models/ModPresence.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",
@@ -930,9 +930,9 @@ let package = Package(
             path: "Tests/ModFolderTraversalTests"
         ),
         .testTarget(
-            name: "ProfilerDetectionTests",
+            name: "ModPresenceTests",
             dependencies: ["StarHubTHCore"],
-            path: "Tests/ProfilerDetectionTests"
+            path: "Tests/ModPresenceTests"
         ),
         .testTarget(
             name: "MissingDependenciesTests",

@@ -590,7 +590,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > 0,5 ms » aussi). La question utile devient : quels mods pèsent dans ces
 > 8,8 ms, sous le seuil où Profiler n'écrit rien.*
 
-- [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session).
+- [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session). *Remplacé le 2026-10-03 par la carte « Sonde » (`ModPresence`) : état et version de la sonde, et conseil de ne pas installer Profiler.*
 - [x] ~~**D1-T2**~~ *(abandonné le 2026-10-03)* — lecteur des `[RawLog]` : écrit, vérifié sur la
       session du 2026-09-29, retiré — la sonde (D4-T1) mesure la même chose sans seuil.
 - [x] ~~**D1-T3**~~ *(remplacé)* — l'impact par mod vit dans la carte « Impact » de l'onglet
