@@ -47,7 +47,7 @@ trouve plus ici est livré : le chercher dans l'archive.
 - **Axe C — Traduction FR** *(différenciateur)* : couverture i18n, diff EN/FR, édition
   assistée de `fr.json`, hub multilingue.
 - **Axe B — Ergonomie mods, profils & backups** : rendre exploitable ce qui existe déjà.
-- **Axe D — Performance** : exploitation du log du mod *Profiler*, sonde StarHubFR (mod d'observation, essai du 2026-09-26), puis mutualisation.
+- **Axe D — Performance** : sonde StarHubFR (mod d'observation, essai du 2026-09-26) — elle remplace le mod *Profiler* (D1 clos le 2026-10-03), puis mutualisation.
 - **Axe E — Packs, distribution & pédagogie** : packaging, rapport de modlist, doc, Nexus.
 - **Axe F — Dette technique** *(transverse)* : découpage du God module, audit perf/sécurité,
   réactivité de la liste des mods (**F3**).
@@ -549,7 +549,19 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ### Performance mesurée — **Axe D** · à faire
 
-#### D1 — Exploitation du log du mod *Profiler* (Nexus 12135)
+#### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
+
+> **Décision de l'auteur (2026-10-03)** : Profiler n'est plus nécessaire. La
+> sonde (D4) reprend son code (MIT) et fait le même travail **sans seuil**,
+> mémoire allouée et phases de chargement comprises (D5-B), comparaison
+> avant/après comprise (D5-C), coût par pack Content Patcher compris (elle
+> arme la couture `Profiler?.RecordSection` de Content Patcher). Les deux
+> s'excluent dans une même session. L'app dit désormais **de ne pas
+> l'installer** (carte « Sonde » de l'onglet Performances, qui remplace la
+> carte Profiler de D1-T1). Un lecteur `[RawLog]` (D1-T2) a été écrit puis
+> retiré le même jour : il ne servait à rien que la sonde ne donne déjà. Ce
+> qui reste utile — la forme des lignes, le piège des enfants, les chiffres
+> de la session du 2026-09-29 — vit au §5 de `docs/SOURCES.md`.
 
 > Source ajoutée au registre le 2026-09-04 : `SinZ.Profiler` 2.0.0, page et
 > monorepo **surveillés** (`mod/profiler`, `profiler-source`). La chaîne de
@@ -579,20 +591,13 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > 8,8 ms, sous le seuil où Profiler n'écrit rien.*
 
 - [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session).
-- [x] **D1-T2** ✅ *(livré le 2026-10-03)* — `ProfilerCosts` (Core) : temps propre par mod
-      et par événement, enfants soustraits, en lancement / chargement / jeu par les
-      jalons de Profiler. Vérifié sur la session du 2026-09-29 : lancement 51,70 s
-      (Content Patcher 30,81 s), chargement 61,39 s (AutoForager 10,56 s), 0 ligne
-      illisible. Aucun écran : c'est **D1-T3** qui l'affichera, « au-dessus du seuil
-      de Profiler ».
-- [ ] **D1-T3** — Vue « Impact performances » dans l'onglet Diagnostic : classement des mods
-      par temps moyen/max, jointure sur le registre. · **M**
-- [ ] **D1-T4** — Badge d'impact (faible / moyen / élevé) dans la liste et sur la fiche mod,
-      avec mention explicite que la mesure est **contextuelle** (dépend de la save, du
-      profil, du moment in-game). · **S**
-- [ ] **D1-T5** — Mesure avant/après à l'activation d'un nouveau mod : comparer deux sessions
-      Profiler et attribuer le delta. · **M** · *c'est la version tenable de la demande
-      « analyse FPS à l'activation de chaque mod » — voir §6.*
+- [x] ~~**D1-T2**~~ *(abandonné le 2026-10-03)* — lecteur des `[RawLog]` : écrit, vérifié sur la
+      session du 2026-09-29, retiré — la sonde (D4-T1) mesure la même chose sans seuil.
+- [x] ~~**D1-T3**~~ *(remplacé)* — l'impact par mod vit dans la carte « Impact » de l'onglet
+      Performances (**D5-C**, sonde).
+- [x] ~~**D1-T4**~~ *(remplacé)* — même source que D1-T3 : **D5-C**.
+- [x] ~~**D1-T5**~~ *(remplacé)* — l'avant/après est la mesure guidée de la sonde (**D5-A**,
+      **D5-C**) et le benchmark de chargement (**D5-B**).
 
 **Risques** : dépendance au format de sortie d'un mod tiers → parseur tolérant, échec
 silencieux plutôt que faux chiffres.
@@ -1380,7 +1385,7 @@ produit. Trois verrous à lever *avant* d'écrire la moindre ligne :
 | Piste | Décision | Raison |
 | :-- | :-- | :-- |
 | Ingestion des données de **Performance HUD** (mod 40509) | **Écarté** | Overlay in-game, aucune sortie structurée parsable — le doc de veille le conclut lui-même. Reste en recommandation documentaire (**D1-T1**). |
-| **Mesure FPS maison** par instrumentation du jeu | **Écarté, reformulé** | Impossible depuis une app externe : SMAPI n'expose ni FPS ni mémoire à un tiers hors du process. Remplacé par **D1-T5** (delta entre deux sessions Profiler), qui répond au même besoin — « quel est l'impact de ce nouveau mod ? » — avec des données réelles. |
+| **Mesure FPS maison** par instrumentation du jeu | **Écarté, reformulé** | Impossible depuis une app externe : SMAPI n'expose ni FPS ni mémoire à un tiers hors du process. Remplacé par la mesure avant/après de la sonde (**D5-A**, **D5-C** ; D1-T5, sur Profiler, est clos), qui répond au même besoin — « quel est l'impact de ce nouveau mod ? » — avec des données réelles. |
 | **xnbcli** / conversion d'assets `.xnb` | **Écarté** | Outillage de moddeur, hors de la promesse « gérer et traduire ses mods ». *Nuance* : la lecture de `Content/Strings/*.xnb` reste pertinente pour le glossaire de **C3-T4**. |
 | **SMAPI-Android-Installer**, moteur de jeu open-source | **Écarté** | Sans rapport avec une app macOS de gestion de mods. |
 | Copier les **profils Stardrop** tels quels | **Écarté** | Le clonage sans dimension FR reproduit un concurrent sans raison d'exister ; **B3-T4** relie au contraire profil, diagnostic et couverture de traduction. |
