@@ -67,8 +67,8 @@ internal static class Loads
         helper.Events.GameLoop.DayStarted += OnDayStartedLast;
     }
 
-    private static double Now => LaunchOffsetMs + Clock.Elapsed.TotalMilliseconds;
-    internal static double NowMs => Now;
+    /// <summary>Millisecondes depuis `L0` (début du processus) : l'horloge unique des jalons.</summary>
+    internal static double Now => LaunchOffsetMs + Clock.Elapsed.TotalMilliseconds;
 
     /// <summary>Benchmark : la ligne part sans attendre S10 (hors du total comparé).</summary>
     public static void FlushNow() => Write();
@@ -171,7 +171,7 @@ internal static class Loads
     {
         if (Current is not { Kind: LoadKind.Save }) return;
         Mark("S9", Now - SaveStartMs);
-        Benchmark.MarkS9(Now);   // horloge de Loads.NowMs, pas l'écart depuis S0
+        Benchmark.MarkS9(Now);   // horloge de Loads.Now, pas l'écart depuis S0
         PendingFinal = Current;
         Current = null;
         Close();

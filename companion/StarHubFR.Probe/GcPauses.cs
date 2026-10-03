@@ -36,7 +36,6 @@ internal sealed class GcPauses : EventListener
         Instance = new GcPauses();
     }
 
-    /// <summary>Le cumul et la plus longue pause depuis le dernier appel.</summary>
     /// <summary>Pauses bloquantes (cumul, max) et durée des GC d'arrière-plan, depuis le dernier appel.</summary>
     public static (double Blocking, double BlockingMax, double Background) Drain()
     {

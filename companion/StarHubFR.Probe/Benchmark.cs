@@ -64,7 +64,7 @@ internal static class Benchmark
     private static void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
         if (Plan is null || Quitting) return;
-        double now = Loads.NowMs;
+        double now = Loads.Now;
         if (BenchmarkRule.ShouldLoad(L4At, now, Game1.activeClickableMenu is TitleMenu, Loaded))
         {
             Loaded = true;

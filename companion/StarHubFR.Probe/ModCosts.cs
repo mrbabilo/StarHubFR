@@ -49,8 +49,6 @@ internal static class ModCosts
         new(new PairComparer());
     private static readonly List<string> SlotMod = new();
     private static readonly List<string> SlotEvent = new();
-    /// <summary>Vrai pour un emplacement de patch Harmony (D4-T5), faux pour un événement.</summary>
-    private static readonly List<bool> SlotIsPatch = new();
     /// <summary>`event` (gestionnaire), `patch`, `asset` (rappel LoadFrom/Edit) ou `pack` (section Content Patcher).</summary>
     private static readonly List<string> SlotKind = new();
 
@@ -82,15 +80,13 @@ internal static class ModCosts
             Active = patched > 0;
             monitor.Log($"Coût par mod : {patched} méthode(s) Raise instrumentée(s).", LogLevel.Trace);
 
-            // D5-B : les rappels d'assets (LoadFrom/Edit). 0.6.0 transpilait
-            // `ApplyLoader<T>`/`ApplyEditors<T>` et n'a vu aucun rappel (sessions
-            // du 2026-09-30). Hypothèse, non vérifiée hors jeu (Harmony x64
-            // seulement) et que le diagnostic 0.6.2 doit trancher : pour une
-            // méthode **générique**, Harmony ne détourne que le stub `<object>`
-            // et les vrais appels passent par le corps partagé — `Raise`,
-            // méthode simple d'un type générique, marche. On accroche donc `SCore.RequestAssetOperations`,
-            // non générique, qui rend les opérations fraîches de chaque requête
-            // (SMAPI 4.5.2 décompilé), et on enveloppe leurs délégués.
+            // D5-B : les rappels d'assets (LoadFrom/Edit). Pour une méthode
+            // **générique**, Harmony ne détourne que le stub `<object>` et les
+            // vrais appels passent par le corps partagé — `Raise`, méthode
+            // simple d'un type générique, marche. On accroche donc
+            // `SCore.RequestAssetOperations`, non générique, qui rend les
+            // opérations fraîches de chaque requête (SMAPI 4.5.2 décompilé),
+            // et on enveloppe leurs délégués.
             Type? score = AccessTools.TypeByName("StardewModdingAPI.Framework.SCore");
             MethodInfo? request = score is null ? null : AccessTools.Method(score, "RequestAssetOperations");
             Type? group = AccessTools.TypeByName("StardewModdingAPI.Framework.Content.AssetOperationGroup");
@@ -241,9 +237,7 @@ internal static class ModCosts
             if (Unbalanced || Environment.CurrentManagedThreadId != MainThreadId) return;
             if (!Slots.TryGetValue((mod, label), out int slot))
             {
-                string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
-                            ?? mod.ToString() ?? "?";
-                slot = AddSlot(id, label, isPatch: false, phaseOnly: true, kind: "asset");
+                slot = AddSlot(ModId(mod), label, isPatch: false, phaseOnly: true, kind: "asset");
                 Slots[(mod, label)] = slot;
             }
             PushCore(slot);
@@ -263,31 +257,51 @@ internal static class ModCosts
     }
 
     /// <summary>Section de pack Content Patcher. Fil du jeu seulement, vérifié par l'appelant.</summary>
-    public static void PushSection(int slot)
+    public static void PushSection(int slot) => Push("Section", slot);
+
+    public static void PopSection(int slot) => Pop("section", slot);
+
+    /// <summary>
+    /// Entrée d'une section de pack ou d'une méthode de patch Harmony (D4-T5) :
+    /// même pile que les événements — ce qui se tire dedans sort du temps
+    /// propre du cadre parent, et inversement. Fil du jeu seulement, vérifié
+    /// par l'appelant.
+    /// </summary>
+    public static void PushPatch(int slot) => Push("Patch", slot);
+
+    private static void Push(string what, int slot)
     {
         if (Unbalanced) return;
         try { PushCore(slot); }
-        catch (Exception ex) { Fail($"PushSection a levé {ex.GetType().Name} : {ex.Message}"); }
+        catch (Exception ex) { Fail($"Push{what} a levé {ex.GetType().Name} : {ex.Message}"); }
     }
 
-    public static void PopSection(int slot)
+    /// <summary>
+    /// Sortie d'une section ou d'un patch, appelée depuis le `Dispose` ou le
+    /// `finally` injecté : elle passe aussi quand le cadre lève. Le sommet doit
+    /// être ce cadre — sinon la mesure s'arrête plutôt que d'attribuer du temps
+    /// au mauvais mod.
+    /// </summary>
+    public static void PopPatch(int slot) => Pop("patch", slot);
+
+    private static void Pop(string what, int slot)
     {
         if (Unbalanced) return;
         try
         {
             if (Stack.Depth == 0)
             {
-                Fail("sortie de section sur une pile vide");
+                Fail($"sortie de {what} sur une pile vide");
                 return;
             }
             if (Stack.Depth <= CostStack.MaxDepth && Stack.TopSlot != slot)
             {
-                Fail($"sortie de la section {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
+                Fail($"sortie de {what} {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
                 return;
             }
             EndCore();
         }
-        catch (Exception ex) { Fail($"PopSection a levé {ex.GetType().Name} : {ex.Message}"); }
+        catch (Exception ex) { Fail($"Pop{what} a levé {ex.GetType().Name} : {ex.Message}"); }
     }
 
     /// <summary>D5-B : vrai pendant une fenêtre de chargement ; la fermer vide la phase.</summary>
@@ -332,56 +346,8 @@ internal static class ModCosts
     {
         if (Stack.Depth > CostStack.MaxDepth) return true;
         for (int i = 0; i < Stack.Depth; i++)
-            if (SlotIsPatch[Stack.SlotAt(i)]) return true;
+            if (SlotKind[Stack.SlotAt(i)] == "patch") return true;
         return false;
-    }
-
-    /// <summary>
-    /// Entrée d'une méthode de patch Harmony (D4-T5). Même pile que les
-    /// événements : un patch tiré pendant un gestionnaire sort du temps propre
-    /// de ce gestionnaire, et inversement. Fil du jeu seulement, vérifié par
-    /// l'appelant.
-    /// </summary>
-    public static void PushPatch(int slot)
-    {
-        if (Unbalanced) return;
-        try
-        {
-            PushCore(slot);
-        }
-        catch (Exception ex)
-        {
-            Fail($"PushPatch a levé {ex.GetType().Name} : {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Sortie d'une méthode de patch, appelée depuis le `finally` injecté : elle passe
-    /// aussi quand le patch lève. Le sommet doit être
-    /// ce patch — sinon la mesure s'arrête plutôt que d'attribuer du temps au
-    /// mauvais mod.
-    /// </summary>
-    public static void PopPatch(int slot)
-    {
-        if (Unbalanced) return;
-        try
-        {
-            if (Stack.Depth == 0)
-            {
-                Fail("sortie de patch sur une pile vide");
-                return;
-            }
-            if (Stack.Depth <= CostStack.MaxDepth && Stack.TopSlot != slot)
-            {
-                Fail($"sortie du patch {SlotEvent[slot]}, mais le sommet de la pile est un autre cadre");
-                return;
-            }
-            EndCore();
-        }
-        catch (Exception ex)
-        {
-            Fail($"PopPatchTop a levé {ex.GetType().Name} : {ex.Message}");
-        }
     }
 
     /// <summary>Un emplacement par méthode de patch, créé sur le fil du jeu au moment de l'enveloppe.</summary>
@@ -464,15 +430,19 @@ internal static class ModCosts
     private static void EndCore() =>
         Stack.Pop(Stopwatch.GetTimestamp(), GC.GetAllocatedBytesForCurrentThread());
 
+    /// <summary>L'identifiant du mod : sa propriété `Manifest` (l'interface `IModInfo` ne
+    /// porte pas l'instance), sinon sa représentation texte.</summary>
+    private static string ModId(object mod) =>
+        (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
+        ?? mod.ToString() ?? "?";
+
     private static int SlotFor(object mod, object managedEvent)
     {
         if (Slots.TryGetValue((mod, managedEvent), out int slot)) return slot;
         // Chaque événement est un type générique fermé distinct : la propriété
         // se résout sur le type reçu, jamais sur un type mis en cache.
-        string id = (mod.GetType().GetProperty("Manifest")?.GetValue(mod) as IManifest)?.UniqueID
-                    ?? mod.ToString() ?? "?";
         string name = managedEvent.GetType().GetProperty("EventName")?.GetValue(managedEvent) as string ?? "?";
-        slot = AddSlot(id, name, isPatch: false);
+        slot = AddSlot(ModId(mod), name, isPatch: false);
         Slots[(mod, managedEvent)] = slot;
         return slot;
     }
@@ -482,7 +452,6 @@ internal static class ModCosts
         int slot = SlotMod.Count;
         SlotMod.Add(mod);
         SlotEvent.Add(label);
-        SlotIsPatch.Add(isPatch);
         SlotKind.Add(isPatch ? "patch" : kind);
         Stack.AddSlot(phaseOnly);
         return slot;
@@ -518,7 +487,7 @@ internal static class ModCosts
             foreach (int i in slots)
             {
                 ticks += Stack.Ticks[i]; alloc += Stack.Alloc[i]; calls += Stack.Calls[i];
-                if (SlotIsPatch[i]) patchTicks += Stack.Ticks[i];
+                if (SlotKind[i] == "patch") patchTicks += Stack.Ticks[i];
                 if (Stack.MaxTicks[i] > max) max = Stack.MaxTicks[i];
                 events.Add(new EventCost(SlotEvent[i], Math.Round(Stack.Ticks[i] * msPerTick, 2),
                     Math.Round(Stack.MaxTicks[i] * msPerTick, 2), Stack.Alloc[i] / 1024, Stack.Calls[i]));

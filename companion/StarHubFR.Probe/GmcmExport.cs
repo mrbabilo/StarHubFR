@@ -180,6 +180,12 @@ internal static class GmcmExport
     /// `() => this.Config.Section.Foo`, `[Config, Section, Foo]`. Lecture naïve
     /// de l'IL (appels et lectures de champ), suffisante pour ces lambdas de
     /// quelques instructions ; les noms générés par le compilateur sont omis.
+    /// Les chaînes capturées par la fermeture vont dans
+    /// <paramref name="closureStrings"/>, qu'elles soient lues ou non :
+    /// Content Patcher enregistre chaque option de ses packs avec
+    /// `get: _ => field.Value…`, la clé de `config.json` est le paramètre
+    /// `name` d'`AddField`, capturé dans la même fermeture pour la description
+    /// mais jamais lu par le délégué (≈ 1 400 options du parc, session v0.4.1).
     /// </summary>
     /// <remarks>
     /// Les aides d'intégration courantes enveloppent l'accès réel : celle de
@@ -187,15 +193,8 @@ internal static class GmcmExport
     /// où `get` est un délégué capturé. Un champ de la fermeture qui porte un
     /// délégué est donc suivi ; un champ qui porte une `PropertyInfo` ou une
     /// chaîne donne son nom ou sa valeur (clés de dictionnaire, réflexion).
+    /// Fermetures imbriquées (`CS$&lt;&gt;8__locals`) suivies d'un niveau.
     /// </remarks>
-    /// <summary>
-    /// Les chaînes capturées par la fermeture du délégué, qu'il les lise ou non.
-    /// Content Patcher enregistre chaque option de ses packs avec
-    /// `get: _ => field.Value…` : la clé de `config.json` est le paramètre
-    /// `name` d'`AddField`, capturé dans la même fermeture pour la description
-    /// mais jamais lu par le délégué (≈ 1 400 options du parc, session
-    /// v0.4.1). Fermetures imbriquées (`CS$&lt;&gt;8__locals`) suivies d'un niveau.
-    /// </summary>
     private static void CollectClosureStrings(object? target, ISet<string> into, int depth)
     {
         if (target is null || depth > 1) return;

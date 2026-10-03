@@ -136,7 +136,7 @@ internal static class Guided
     {
         try
         {
-            if (Rule is { Outcome: GuidedOutcome.Running } rule && rule.KeptAt.Count > 0) WriteLine("abandoned");
+            if (Rule is { Outcome: GuidedOutcome.Running } rule && rule.KeptCount > 0) WriteLine("abandoned");
         }
         catch (Exception) { }
     }
@@ -147,7 +147,7 @@ internal static class Guided
     {
         try
         {
-            if (Rule is { Outcome: GuidedOutcome.Running } rule && rule.KeptAt.Count > 0) WriteLine("abandoned");
+            if (Rule is { Outcome: GuidedOutcome.Running } rule && rule.KeptCount > 0) WriteLine("abandoned");
         }
         catch (Exception ex) { Log($"Mesure abandonnée non écrite : {ex.Message}"); }
         Stop();
