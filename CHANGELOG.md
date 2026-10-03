@@ -10,7 +10,7 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
-## [Unreleased]
+## [1.57.1] - 2026-10-03
 
 ### Changed
 
