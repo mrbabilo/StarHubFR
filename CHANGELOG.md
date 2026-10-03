@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.55.0] - 2026-10-03
+
 ### Added
 
 - **Raccourcis sur le clavier, la souris et la manette.** Le rapport dessine votre clavier de Mac (ISO ou ANSI), la souris et la manette ; chaque touche porte les réglages des mods actifs. Un clic liste les réglages et ouvre l'éditeur sur la bonne clé.
