@@ -32,6 +32,14 @@ public struct ModAnomaly: Equatable {
     public let duplicate: Duplicate?
     /// Ce que smapi.io dit de sa compatibilité, quand il le signale.
     public let compatibility: ModCompatibility.Status?
+    /// L'auteur a changé l'`UniqueID` et les deux copies sont sur le disque
+    /// (`AuthorRenamedMod`) : celle-ci est l'ancienne ou la nouvelle.
+    public let renamed: Renamed?
+
+    public enum Renamed: Equatable, Sendable {
+        case oldCopy(otherFolder: String, otherVersion: String)
+        case newCopy(otherFolder: String, otherVersion: String)
+    }
 
     /// Le même mod dans plusieurs dossiers.
     public enum Duplicate: Equatable {
@@ -58,7 +66,8 @@ public struct ModAnomaly: Equatable {
     public init(severity: Severity, errorCount: Int, warningCount: Int,
                 hasDependencyIssue: Bool, isUnloadable: Bool,
                 duplicate: Duplicate? = nil,
-                compatibility: ModCompatibility.Status? = nil) {
+                compatibility: ModCompatibility.Status? = nil,
+                renamed: Renamed? = nil) {
         self.severity = severity
         self.errorCount = errorCount
         self.warningCount = warningCount
@@ -66,6 +75,7 @@ public struct ModAnomaly: Equatable {
         self.isUnloadable = isUnloadable
         self.duplicate = duplicate
         self.compatibility = compatibility
+        self.renamed = renamed
     }
 
     /// Ce que la pastille affiche : le nombre d'incidents, ou rien quand
@@ -116,6 +126,7 @@ public enum ModAnomalyReport {
         var duplicate: ModAnomaly.Duplicate?
         var compatStatus: ModCompatibility.Status?
         var compatOnActiveMod = false
+        var renamed: ModAnomaly.Renamed?
 
         for subject in subjects {
             let counts = countsForInstalledVersion(of: subject, in: history)
@@ -131,6 +142,7 @@ public enum ModAnomalyReport {
             // doublon actif chasse un dormant, jamais l'inverse — et deux
             // dormants ne se remplacent pas l'un l'autre, sans quoi les
             // dossiers nommés dépendraient de l'ordre des composants.
+            if renamed == nil { renamed = duplicates.renamed(of: subject.uniqueId) }
             if let found = duplicates.duplicate(of: subject.uniqueId),
                duplicate == nil || (found.isActive && duplicate?.isDormant == true) {
                 duplicate = found
@@ -154,14 +166,15 @@ public enum ModAnomalyReport {
         if breaksNow {
             return ModAnomaly(severity: .error, errorCount: errors, warningCount: warnings,
                               hasDependencyIssue: dependency, isUnloadable: unloadable,
-                              duplicate: duplicate, compatibility: compatStatus)
+                              duplicate: duplicate, compatibility: compatStatus, renamed: renamed)
         }
         // Ce qui reste à traiter sans rien casser : un doublon dormant, un mod
-        // cassé qu'on a mis en pause, les avertissements du journal.
-        if warnings > 0 || duplicate != nil || compatStatus != nil {
+        // cassé qu'on a mis en pause, les avertissements du journal, une copie
+        // d'un mod renommé par son auteur.
+        if warnings > 0 || duplicate != nil || compatStatus != nil || renamed != nil {
             return ModAnomaly(severity: .warning, errorCount: 0, warningCount: warnings,
                               hasDependencyIssue: false, isUnloadable: false,
-                              duplicate: duplicate, compatibility: compatStatus)
+                              duplicate: duplicate, compatibility: compatStatus, renamed: renamed)
         }
         return nil
     }

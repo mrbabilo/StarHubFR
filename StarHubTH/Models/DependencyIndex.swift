@@ -53,6 +53,8 @@ struct DependencyIndex {
                 entries.append((m.uniqueId, m.folderName, m.isEnabled))
             }
         }
+        var duplicates = ModDuplicateIndex.build(from: entries)
+        duplicates.renames = AuthorRenamedMod.index(of: mods)
         return DependencyIndex(
             installedUniqueIds: ids,
             installedModStates: states,
@@ -61,7 +63,7 @@ struct DependencyIndex {
             // écrasent silencieusement un sur deux (le dernier gagne), si bien que
             // le seul endroit où l'information existe encore est ici, avant
             // l'aplatissement.
-            duplicateIndex: ModDuplicateIndex.build(from: entries))
+            duplicateIndex: duplicates)
     }
 
     /// Required dependency UniqueIDs absents du parc.

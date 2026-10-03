@@ -828,6 +828,9 @@
 "mods_problem_dependencies" = "Dependencies";
 "mods_problem_unloadable" = "No UniqueID";
 "mods_problem_duplicates" = "Duplicates";
+"mods_problem_renamed" = "Identifier changed";
+"mods_anomaly_renamed_old" = "Old version: the author changed this mod's identifier — the new one, v%1$@, is in “%2$@”.";
+"mods_anomaly_renamed_new" = "New version (identifier changed by its author): the old one, v%1$@, is still in “%2$@”.";
 "mods_problem_compatibility" = "Compatibility";
 "mods_problem_nexus" = "Nexus page";
 "mods_problem_filter_hint" = "Show only mods with this problem type; click again to show all.";

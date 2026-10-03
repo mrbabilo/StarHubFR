@@ -21,6 +21,8 @@ public enum ModProblemKind: String, CaseIterable, Sendable, Hashable {
     case unloadable
     /// Installé plusieurs fois (copie active ou dormante).
     case duplicates
+    /// Ancienne ou nouvelle copie d'un mod dont l'auteur a changé l'identifiant.
+    case renamed
     /// Verdict de compatibilité smapi.io (cassé, abandonné…).
     case compatibility
     /// Page Nexus indisponible ou retirée.
@@ -33,6 +35,7 @@ public enum ModProblemKind: String, CaseIterable, Sendable, Hashable {
         case .dependencies:  return L10nKeys.problemDependencies
         case .unloadable:    return L10nKeys.problemUnloadable
         case .duplicates:    return L10nKeys.problemDuplicates
+        case .renamed:       return L10nKeys.problemRenamed
         case .compatibility: return L10nKeys.problemCompatibility
         case .nexus:         return L10nKeys.problemNexus
         }
@@ -46,6 +49,7 @@ public enum ModProblemKind: String, CaseIterable, Sendable, Hashable {
         static let problemDependencies  = "mods_problem_dependencies"
         static let problemUnloadable    = "mods_problem_unloadable"
         static let problemDuplicates    = "mods_problem_duplicates"
+        static let problemRenamed       = "mods_problem_renamed"
         static let problemCompatibility = "mods_problem_compatibility"
         static let problemNexus         = "mods_problem_nexus"
     }
@@ -63,6 +67,7 @@ public enum ModProblemKinds {
             if a.hasDependencyIssue { kinds.insert(.dependencies) }
             if a.isUnloadable { kinds.insert(.unloadable) }
             if a.duplicate != nil { kinds.insert(.duplicates) }
+            if a.renamed != nil { kinds.insert(.renamed) }
             if a.compatibility != nil { kinds.insert(.compatibility) }
         }
         if hasNexusState { kinds.insert(.nexus) }

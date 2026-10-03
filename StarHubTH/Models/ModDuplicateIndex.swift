@@ -22,6 +22,9 @@ public struct ModDuplicateIndex: Equatable, Sendable {
     public let folders: [String: [String]]
     /// Les mêmes → combien de ces dossiers sont **actifs**.
     public let activeCopies: [String: Int]
+    /// Les copies d'un mod renommé par son auteur (`AuthorRenamedMod.index`),
+    /// par `UniqueID` plié — le même parcours que les doublons.
+    public var renames: [String: ModAnomaly.Renamed] = [:]
 
     public static let empty = ModDuplicateIndex(folders: [:], activeCopies: [:])
 
@@ -52,6 +55,8 @@ public struct ModDuplicateIndex: Equatable, Sendable {
 
     /// Ce qu'il faut signaler pour cet identifiant, `nil` s'il n'est installé
     /// qu'une fois.
+    public func renamed(of uniqueId: String) -> ModAnomaly.Renamed? { renames[uniqueId.lowercased()] }
+
     public func duplicate(of uniqueId: String) -> ModAnomaly.Duplicate? {
         let key = uniqueId.lowercased()
         guard let sharing = folders[key], sharing.count > 1 else { return nil }

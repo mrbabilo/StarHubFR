@@ -491,6 +491,8 @@ enum L10n {
         static let anomalyDuplicateActive   = "mods_anomaly_duplicate_active"
         static let anomalyDuplicateDormant  = "mods_anomaly_duplicate_dormant"
         static let anomalyCompat            = "mods_anomaly_compat"
+        static let anomalyRenamedOld = "mods_anomaly_renamed_old"
+        static let anomalyRenamedNew = "mods_anomaly_renamed_new"
 
         // MARK: Suppléments d'un mod (A3-T4)
         static let supplementSection    = "mods_supplement_section"

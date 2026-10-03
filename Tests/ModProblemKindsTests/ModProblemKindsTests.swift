@@ -47,6 +47,6 @@ import Testing
         for kind in ModProblemKind.allCases {
             #expect(!kind.l10nKey.isEmpty)
         }
-        #expect(ModProblemKind.allCases.count == 7)
+        #expect(ModProblemKind.allCases.count == 8)   // + renamed (2026-10-03)
     }
 }

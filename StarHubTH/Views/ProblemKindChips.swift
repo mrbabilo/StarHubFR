@@ -56,6 +56,7 @@ struct ProblemKindChips: View {
         case .dependencies:  return "link.circle.fill"
         case .unloadable:    return "doc.questionmark.fill"
         case .duplicates:    return "square.on.square"
+        case .renamed:       return "arrow.triangle.2.circlepath"
         case .compatibility: return "wrench.and.screwdriver.fill"
         case .nexus:         return "arrowshape.zigzag.right.fill"
         }
@@ -68,6 +69,7 @@ struct ProblemKindChips: View {
         case .dependencies:  return AppDesign.Color.accent
         case .unloadable:    return AppDesign.Color.paused
         case .duplicates:    return AppDesign.Color.quarantine
+        case .renamed:       return AppDesign.Color.quarantine
         case .compatibility: return AppDesign.Color.info
         case .nexus:         return .secondary
         }

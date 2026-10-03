@@ -55,4 +55,51 @@ import Testing
         #expect(detection.conflicts.first?.conflictType == .nameTakenByOtherMod)
         #expect(detection.existing == nil)
     }
+
+    /// La règle resserrée (2026-10-03) : seul l'auteur change, page Nexus
+    /// numérique — Merchant's Books (`Source`/`Code`) et `Nexus:???` restent dehors.
+    @Test func onlyTheAuthorSegmentMayDiffer() {
+        #expect(!AuthorRenamedMod.isSameMod(installedId: "Juanpa98ar.Source.MerchantsBooks", installedNexusId: "43034",
+                                            incomingId: "Juanpa98ar.Code.MerchantsBooks", incomingNexusId: "43034"))
+        #expect(!AuthorRenamedMod.isSameMod(installedId: "ceruleandeep.qf.personaleffects", installedNexusId: "???",
+                                            incomingId: "other.qf.personaleffects", incomingNexusId: "???"))
+    }
+
+    private func item(_ uid: String, folder: String, version: String, nexus: String,
+                      children: [ModItem]? = nil) -> ModItem {
+        ModItem(uniqueId: uid, name: folder, folderName: folder, version: version,
+                author: "A", description: "", nexusUrl: "", nexusModId: nexus, isEnabled: false,
+                dependencies: [], children: children, isGroup: children != nil)
+    }
+
+    /// L'index du parc : chaque copie sait si elle est l'ancienne ou la
+    /// nouvelle ; deux moitiés d'un même pack ne s'apparient pas ; à
+    /// version égale, rien.
+    @Test func parkIndexNamesOldAndNewCopies() {
+        let mods = [item("ThaleTheGreat.Mapster", folder: "Mapster (ancien identifiant)", version: "1.7.1", nexus: "46311"),
+                    item("ThaleMagnus.Mapster", folder: "Mapster", version: "1.7.2", nexus: "46311"),
+                    item("", folder: "Defense Division", version: "", nexus: "", children: [
+                        item("DLL.DefenseDivision", folder: "Defense Division/Code", version: "1.4.8", nexus: "12079"),
+                        item("DD.DefenseDivision", folder: "Defense Division/Content", version: "1.4.9", nexus: "12079")]),
+                    item("A.Same", folder: "One", version: "1.0", nexus: "7"),
+                    item("B.Same", folder: "Two", version: "1.0", nexus: "7")]
+        let index = AuthorRenamedMod.index(of: mods)
+        #expect(index["thalethegreat.mapster"] == .oldCopy(otherFolder: "Mapster", otherVersion: "1.7.2"))
+        #expect(index["thalemagnus.mapster"] == .newCopy(otherFolder: "Mapster (ancien identifiant)", otherVersion: "1.7.1"))
+        #expect(index["dll.defensedivision"] == nil && index["dd.defensedivision"] == nil)
+        #expect(index["a.same"] == nil)
+    }
+
+    /// Jusqu'à la puce « Identifiant changé » de l'onglet Problèmes.
+    @Test func renamedCopiesBecomeAProblemKind() {
+        let mods = [item("ThaleTheGreat.Mapster", folder: "Old", version: "1.7.1", nexus: "46311"),
+                    item("ThaleMagnus.Mapster", folder: "New", version: "1.7.2", nexus: "46311")]
+        var duplicates = ModDuplicateIndex.empty
+        duplicates.renames = AuthorRenamedMod.index(of: mods)
+        let anomaly = ModAnomalyReport.anomaly(for: mods[0], history: ModErrorHistory(),
+                                               dependencyIssue: { _ in false }, duplicates: duplicates)
+        #expect(anomaly?.severity == .warning)
+        #expect(anomaly?.renamed == .oldCopy(otherFolder: "New", otherVersion: "1.7.2"))
+        #expect(ModProblemKinds.of(anomaly: anomaly, hasNexusState: false) == [.renamed])
+    }
 }
