@@ -108,13 +108,6 @@ final class BenchmarkRunner {
     /// Le lancement en cours finit ; la série s'arrête ensuite et restaure.
     func stop() { stopRequested = true }
 
-    func dismissResult() {
-        switch phase {
-        case .finished, .failed: phase = .idle
-        default: break
-        }
-    }
-
     // MARK: — Série
 
     private func run(_ setup: BenchmarkSetup) async {

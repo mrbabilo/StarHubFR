@@ -612,14 +612,6 @@ final class NexusUpdateChecker: @unchecked Sendable {
         compare(latest, installed) == .orderedDescending
     }
 
-    /// Nexus upload strictly after the local file date; `false` if unknown.
-    static func isNexusUploadNewer(_ nexusUpload: Date?, than installedFileDate: Date?) -> Bool {
-        guard let nexus = nexusUpload, let installed = installedFileDate else {
-            return false
-        }
-        return nexus > installed
-    }
-
     /// Compares "1.4.2", "1.4.10-beta.1": leading `v` stripped, numeric
     /// segments, pre-release lower (semver), `+build` ignored.
     static func compare(_ a: String, _ b: String) -> ComparisonResult {

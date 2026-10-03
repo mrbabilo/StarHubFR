@@ -6201,16 +6201,6 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Aperçu d'un import des favoris, sans rien écrire : combien entrent,
-    /// lesquels ne le peuvent pas.
-    func favoriteImportPreview(profileId: UUID) -> FavoriteResolution.Result {
-        guard let profile = profilesStore.profile(with: profileId) else {
-            return FavoriteResolution.Result(ids: [], unresolved: [])
-        }
-        return FavoriteResolution.profileIds(favorites: favoriteMods, in: mods,
-                                             existing: profile.enabledModIds)
-    }
-
     /// Ajoute tous les favoris à un profil **en une mutation** (une boucle sur
     /// `addModToProfile` réappliquerait le profil au disque à chaque mod).
     /// `modMetadata` renseigné dans la même passe : seule source pour
@@ -6244,16 +6234,6 @@ final class StarHubTHViewModel {
         log(String(format: localization.L(L10n.VM.profileFavoritesImported),
                    importedCount, name, newIds.count))
         return resolution
-    }
-
-    /// Aperçu d'un import des « à écarter », symétrique de
-    /// `favoriteImportPreview`.
-    func blacklistImportPreview(profileId: UUID) -> BlacklistResolution.Result {
-        guard let profile = profilesStore.profile(with: profileId) else {
-            return BlacklistResolution.Result(ids: [], unresolved: [])
-        }
-        return BlacklistResolution.profileIds(blacklist: blacklistedMods, in: mods,
-                                              existing: profile.enabledModIds)
     }
 
     /// Ajoute tous les « à écarter », symétrique d'`importFavorites(into:)`

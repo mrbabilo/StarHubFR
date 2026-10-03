@@ -168,10 +168,6 @@ public enum MissingDependencies {
         URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(nexusId)?tab=files")!
     }
 
-    public static func modPage(nexusId: Int) -> URL {
-        URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(nexusId)")!
-    }
-
     public static func searchPage(for term: String) -> URL? {
         let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? term
         return URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)")

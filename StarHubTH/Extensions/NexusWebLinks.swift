@@ -2,14 +2,14 @@ import AppKit
 
 /// Ouverture des pages de recherche du **site** Nexus Mods — pas l'API :
 /// une dépendance manquante ou un auteur n'a pas de fiche locale, la vue
-/// délègue au navigateur. Une seule copie : l'URL est un contrat que
-/// `check_sources.py` ne couvre pas (pages web, pas API), et trois vues la
-/// portaient chacune en double (passe de simplification 2026-10-03).
+/// délègue au navigateur. Mince wrapper AppKit : les URL elles-mêmes sont
+/// construites par `MissingDependencies` (Core, testé), seul domicile —
+/// avant la passe de simplification 2026-10-03, trois vues portaient une
+/// copie identique et `MissingDependencies` une quatrième.
 enum NexusWebLinks {
     /// Recherche plein texte du site pour un terme donné.
     static func openSearch(for searchTerm: String) {
-        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
-        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
+        if let url = MissingDependencies.searchPage(for: searchTerm) {
             NSWorkspace.shared.open(url)
         }
     }
@@ -18,8 +18,7 @@ enum NexusWebLinks {
     /// qu'une recherche plein texte pour retrouver tous les mods d'un même
     /// auteur.
     static func openAuthorSearch(for author: String) {
-        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
-        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
+        if let url = MissingDependencies.authorPage(for: author) {
             NSWorkspace.shared.open(url)
         }
     }
