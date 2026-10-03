@@ -142,7 +142,7 @@ public sealed class ModEntry : Mod
             {
                 Monitor.Log(FrameTimings.Status(), LogLevel.Info);
                 HarmonyMap.Write(helper, Monitor, "Console", force: true);
-                GmcmExport.Write(helper, Monitor);
+                GmcmExport.Write(helper, Monitor, force: true);
                 FrameTimings.FlushNow();
             });
     }

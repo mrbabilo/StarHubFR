@@ -3716,6 +3716,24 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X119** ✅ *(livré le 2026-10-03, sonde 0.9.1)* — **La santé des accroches confondait la panne et « rien à observer ».**
+      `ContentPackSections.Health` et `ModCosts.AssetHook` rendaient
+      « missing » dès que rien n'avait été vu : un Content Patcher en pause
+      affichait « Ventilation par pack indisponible », une session sans rappel
+      d'assets accusait « Rappels d'assets non mesurés avec cette version de
+      SMAPI » alors que l'accroche était posée. Mesuré : 43/43 enregistrements
+      de benchmark (Content Patcher absent des parcs de 3-5 mods) en
+      `PackSeam: missing`, et 34 sur 43 en `AssetHook: missing` — le journal
+      de la même session disant « RequestAssetOperations accroché ». La règle
+      pure `ProbeHealth` (testée hors jeu) sépare « absent » (CP hors jeu),
+      « idle » (posée, rien vu) et « missing » (la vraie régression) ; l'app
+      ne réagit qu'à « missing », donc sans édition côté Swift. Aucune session
+      manuelle du parc n'était encore touchée (toutes ont Content Patcher) —
+      le défaut s'est vu sur les données, jamais à l'écran. Même livraison :
+      `gmcm-options.json` (4,4 Mo) ne se réécrit plus à chaque chargement de
+      sauvegarde (`GmcmExportRule`, même registre et même langue = sauté ;
+      ~0,8 s de réflexion par chargement rendus à la fenêtre S7→S8, hors
+      attribution).
 - [x] **X118** ✅ *(livré le 2026-09-29)* — **Le croisement au disque relisait tout le parc à chaque lancement.**
       Demandé par l'auteur (« pourquoi ne pas comparer avec un registre des
       mods ? »). `SmapiBlacklistScan.Registry` (`smapi-blacklist-scan.json`

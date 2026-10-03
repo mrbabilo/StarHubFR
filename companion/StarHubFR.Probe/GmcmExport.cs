@@ -36,10 +36,21 @@ internal static class GmcmExport
     private record ModOptions(string UniqueID, string Name, string Version, string? ConfigSnapshot, List<Option> Options);
     private record Export(string CapturedAt, string GmcmVersion, string Language, List<ModOptions> Mods);
 
-    public static void Write(IModHelper helper, IMonitor monitor)
+    /// <summary>Ce que la session a déjà exporté : la règle <see cref="GmcmExportRule"/> compare.</summary>
+    private static int? ExportedMods;
+    private static string? ExportedLanguage;
+
+    public static void Write(IModHelper helper, IMonitor monitor, bool force = false)
     {
         try
         {
+            int registryMods = helper.ModRegistry.GetAll().Count();
+            string language = StardewValley.LocalizedContentManager.CurrentLanguageCode.ToString();
+            if (!GmcmExportRule.ShouldWrite(ExportedMods, ExportedLanguage, registryMods, language, force))
+            {
+                monitor.Log($"Options GMCM : déjà exportées cette session ({registryMods} mods, {language}), réécriture sautée.", LogLevel.Trace);
+                return;
+            }
             Type? modType = AccessTools.TypeByName("GenericModConfigMenu.Mod");
             object? instance = modType is null ? null : AccessTools.Field(modType, "instance")?.GetValue(null);
             object? manager = instance is null ? null : AccessTools.Field(modType, "ConfigManager")?.GetValue(instance);
@@ -68,10 +79,11 @@ internal static class GmcmExport
                                         ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
             }
             string gmcmVersion = helper.ModRegistry.Get("spacechase0.GenericModConfigMenu")?.Manifest.Version.ToString() ?? "?";
-            var export = new Export(DateTimeOffset.Now.ToString("o"), gmcmVersion,
-                                    StardewValley.LocalizedContentManager.CurrentLanguageCode.ToString(), mods);
+            var export = new Export(DateTimeOffset.Now.ToString("o"), gmcmVersion, language, mods);
             string path = Path.Combine(ModEntry.OutputDir, "gmcm-options.json");
             File.WriteAllText(path, JsonSerializer.Serialize(export, new JsonSerializerOptions { WriteIndented = true }));
+            ExportedMods = registryMods;
+            ExportedLanguage = language;
             monitor.Log($"Options GMCM : {mods.Count} mods, {optionCount} options dont {bounded} bornées → {path}", LogLevel.Info);
         }
         catch (Exception ex)

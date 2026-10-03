@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Carte « Chargements » : plus de fausses alertes.** Content Patcher absent ou aucun rappel d'assets vu n'affichent plus « ventilation indisponible » ni « rappels non mesurés avec cette version de SMAPI » ; ces messages ne disent plus que la vraie panne (sonde 0.9.1).
+- **Chargements plus rapides avec la sonde.** `gmcm-options.json` (4,4 Mo) ne se réécrit plus à chaque chargement de sauvegarde : une fois par session de jeu, sauf changement de mods ou de langue (sonde 0.9.1).
+
 ## [1.57.0] - 2026-10-03
 
 ### Added

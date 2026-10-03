@@ -28,9 +28,13 @@ internal static class ContentPackSections
     private static readonly List<(object Manager, object Integration)> Managers = new();
     private static bool Armed;
     private static int SectionsSeen;
+    private static bool ContentPatcherLoaded;
 
     public static int OffThreadSections { get; private set; }
-    public static string Health => Profiler ? "profiler" : Patched && SectionsSeen > 0 ? "ok" : "missing";
+    /// <summary>X119 : « absent » (CP hors jeu) et « idle » (posée, rien vu) ne disent plus « missing ».</summary>
+    public static string Health => ProbeHealth.PackSeam(
+        profiler: Profiler, contentPatcherLoaded: ContentPatcherLoaded,
+        seamPatched: Patched, sectionsSeen: SectionsSeen > 0);
     private static bool Patched, Profiler;
 
     public static void Initialize(IModHelper helper, Harmony harmony, IMonitor monitor)
@@ -39,10 +43,11 @@ internal static class ContentPackSections
         // Les deux mods sont déclarés incompatibles : sans Profiler chargé,
         // la couture est à nous ; avec, on n'y touche pas.
         if (helper.ModRegistry.IsLoaded("SinZ.Profiler")) { Profiler = true; return; }
+        ContentPatcherLoaded = helper.ModRegistry.IsLoaded("Pathoschild.ContentPatcher");
         try
         {
             // `IModInfo` n'expose pas l'instance du mod : l'assembly se trouve par son nom.
-            Assembly? asm = helper.ModRegistry.IsLoaded("Pathoschild.ContentPatcher")
+            Assembly? asm = ContentPatcherLoaded
                 ? Array.Find(AppDomain.CurrentDomain.GetAssemblies(), a => a.GetName().Name == "ContentPatcher")
                 : null;
             Type? manager = asm?.GetType("ContentPatcher.Framework.PatchManager");

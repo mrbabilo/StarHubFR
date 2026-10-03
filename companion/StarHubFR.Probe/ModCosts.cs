@@ -113,6 +113,7 @@ internal static class ModCosts
                 ? "Rappels d'assets : RequestAssetOperations accroché."
                 : "Rappels d'assets non mesurés : RequestAssetOperations ou ses opérations introuvables dans SMAPI.",
                 AssetHookPatched ? LogLevel.Trace : LogLevel.Warn);
+            RefreshAssetHook();
         }
         catch (Exception ex)
         {
@@ -160,6 +161,9 @@ internal static class ModCosts
         $"depuis le lancement, {AssetOpsWrapped} opération(s) d'asset enveloppée(s), {AssetBegins} rappel(s) vu(s) dont {AssetOffThread} hors du fil du jeu";
     public static string AssetHook { get; private set; } = "missing";
     public static int AssetCallsSeen { get; private set; }
+
+    /// <summary>X119 : l'état de l'accroche passe par la règle pure — « missing » ne dit plus « rien vu ».</summary>
+    private static void RefreshAssetHook() => AssetHook = ProbeHealth.AssetHook(AssetHookPatched, AssetCallsSeen);
 
     /// <summary>
     /// Postfix de `SCore.RequestAssetOperations` : chaque `GetData`/`ApplyEdit`
@@ -312,7 +316,7 @@ internal static class ModCosts
         }
         lines.Sort((a, b) => b.Ms.CompareTo(a.Ms));
         Stack.ClearPhase();
-        if (AssetHookPatched && AssetCallsSeen > 0) AssetHook = "ok";
+        RefreshAssetHook();
         return lines;
     }
 
