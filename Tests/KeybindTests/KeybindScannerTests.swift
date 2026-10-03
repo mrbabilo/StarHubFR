@@ -37,6 +37,42 @@ struct KeybindScannerTests {
         }
     }
 
+    /// 2026-10-03 — une lettre seule sous un nom d'action est un raccourci :
+    /// `Controls.Toggle = C` (Chests Anywhere ouvre ses coffres sur C),
+    /// `AccessMenu = E` et `MoveUp = Z` (GCSR réécrit les contrôles du jeu)
+    /// manquaient au clavier. Mesure sur le parc : 18 vrais raccourcis
+    /// rattrapés, aucun faux.
+    @Test func r2SingleLetterUnderActionNameIsKeybind() {
+        for (path, letter) in [(["Controls", "Toggle"], "C"), (["AccessMenu"], "E"),
+                               (["MoveUp"], "Z"), (["Input", "PauseResume"], "P"),
+                               (["CyclePortraitPack"], "P"), (["ActiveAutoFishButton"], "X")] {
+            guard case .keybind = KeybindScanner.classify(leaf: .init(keyPath: path, value: .string(letter))) else {
+                Issue.record("\(path.joined(separator: ".")) = \(letter) : raccourci attendu"); continue
+            }
+        }
+    }
+
+    /// Le cas voisin, qui ne doit PAS changer : le garde numérique tient
+    /// sous un nom d'action (`ButtonOffsetX = 0`, `MoveSpeed = 0` — mesurés),
+    /// les lettres d'une manette XNA (`GamepadSettings.PrimaryAction = A`,
+    /// Item Bags) ne sont pas des touches clavier, et une lettre sous un nom
+    /// sans action reste écartée (`ClothesColorGirl = A`,
+    /// `SecondarySortingPriority = Y`).
+    @Test func r2ActionNameKeepsTheOtherGuards() {
+        let cases: [([String], ConfigJSONTree.Value)] = [
+            (["ButtonOffsetX"], .number("0")), (["MoveSpeed"], .string("0")),
+            (["GamepadSettings", "PrimaryAction"], .string("A")),
+            (["ControllerToggle"], .string("X")),
+            (["ClothesColorGirl"], .string("A")), (["SecondarySortingPriority"], .string("Y")),
+            (["Controls", "EditChest"], .string("None")),
+        ]
+        for (path, value) in cases {
+            if case .keybind = KeybindScanner.classify(leaf: .init(keyPath: path, value: value)) {
+                Issue.record("\(path.joined(separator: ".")) : pas un raccourci")
+            }
+        }
+    }
+
     @Test func r3IntNeedsNameHint() {
         if case .keybind = KeybindScanner.classify(leaf: .init(keyPath: ["Nombre"], value: .number("119"))) {
             Issue.record("un entier sans indice de nom n'est pas un raccourci")

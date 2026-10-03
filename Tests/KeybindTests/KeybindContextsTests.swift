@@ -174,6 +174,16 @@ struct KeybindContextsTests {
             .appendingPathComponent("assets/keybind-contexts.json")
         let contexts = try KeybindContexts(data: Data(contentsOf: url))
         #expect(contexts.context(uniqueId: "BambooKat.Stillbloom", keyPath: ["SaveKey"]) == .ownMode)
+
+        // 2026-10-03 — les déplacements que GCSR réécrit (ZQSD sur le parc)
+        // sont lus en jeu : la caméra de Stillbloom, sur les mêmes touches
+        // mais en mode éditeur, ne les heurte pas. Le Z des deux mods entre
+        // au rapport depuis qu'une lettre seule sous un nom d'action compte.
+        let r = KeybindScanner.report(mods: [
+            mod("GCSR", "FawazT.GlobalConfigSettingsRewrite", [("MoveUp", .string("Z"))]),
+            mod("Stillbloom", "BambooKat.Stillbloom", [("CameraUpKey", .string("Z"))]),
+        ], contexts: contexts)
+        #expect(r.collisions.isEmpty)
     }
 
     // MARK: - L'éditeur décide comme le rapport

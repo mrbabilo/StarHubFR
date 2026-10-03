@@ -218,63 +218,6 @@ public enum KeybindScanner {
         }
     }
 
-    /// R1/R2/R3 — la règle gelée par la mesure (spec §6 + son constat) :
-    /// sans indice de nom, une origine numérique (entier JSON, chaîne
-    /// numérique, liste numérique — le cas CollectionsMod mesuré) n'est
-    /// jamais un raccourci ; un champ nommé illisible n'entre dans
-    /// `unrecognized` qu'avec un jeton reconnaissable.
-    public static func classify(leaf: ConfigEditorModel.Leaf) -> Decision {
-        let hinted = leaf.keyPath.joined(separator: ".").range(
-            of: "key|bind|shortcut", options: [.regularExpression, .caseInsensitive]) != nil
-        let parsed = KeybindParser.parse(leaf.value)
-        if hinted {
-            if let combos = parsed { return .keybind(combos) }
-            return hasRecognizableToken(leaf.value)
-                ? .unrecognized(raw: literal(of: leaf.value)) : .notKeybind
-        }
-        guard let combos = parsed, !isNumericOrigin(leaf.value),
-              combos.contains(where: \.isDistinctive) else { return .notKeybind }
-        return .keybind(combos)
-    }
-
-    /// Origine numérique (règle gelée) : entier JSON, chaîne numérique,
-    /// ou liste dont tous les éléments le sont.
-    static func isNumericOrigin(_ value: ConfigJSONTree.Value) -> Bool {
-        switch value {
-        case .number: return true
-        case .string(let s):
-            return Int(s.trimmingCharacters(in: .whitespacesAndNewlines)) != nil
-        case .array(let items):
-            guard !items.isEmpty else { return true }
-            return items.allSatisfy { isNumericOrigin($0) }
-        default: return false
-        }
-    }
-
-    /// Au moins un jeton reconnaissable : nom `SButton` (casse-insensible)
-    /// ou modificateur nu — les typos que le `TryParse` de SMAPI rejette.
-    static func hasRecognizableToken(_ value: ConfigJSONTree.Value) -> Bool {
-        let texts: [String]
-        switch value {
-        case .string(let s): texts = [s]
-        case .array(let items):
-            texts = items.compactMap { if case .string(let s) = $0 { return s } else { return nil } }
-        default: return false
-        }
-        return texts.contains { text in
-            text.split(whereSeparator: { "+, ".contains($0) }).contains { token in
-                SButtonTable.canonicalName(for: String(token)) != nil
-                    || ["shift", "ctrl", "alt"].contains(token.lowercased())
-            }
-        }
-    }
-
-    static func literal(of value: ConfigJSONTree.Value) -> String {
-        if case .string(let s) = value { return s }
-        if case .number(let lit) = value { return lit }
-        return "?"
-    }
-
     /// R4 — le catalogue (constat utilisateur, tâche 6, mesuré sur
     /// `ModShortcutReferenceHub`, ZeroXPatch) : ce mod *documente* les
     /// raccourcis des autres, il n'en lie aucun. Rien ne distingue son

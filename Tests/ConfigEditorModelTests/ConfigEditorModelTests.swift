@@ -449,7 +449,7 @@ struct ConfigEditorModelTests {
     /// aucun indice de nom (`Automate: Controls.ToggleOverlay`).
     @Test func anUnhintedDistinctiveComboAlsoGetsTheControl() {
         let groups = ConfigEditorModel.groups(
-            of: tree(#"{ "Controls": { "ToggleOverlay": "LeftControl + B" } }"#), describedBy: [])
+            of: tree(#"{ "Display": { "Overlay": "LeftControl + B" } }"#), describedBy: [])
         guard case .keybind(_, let combo) = groups[0].rows[0].control else {
             Issue.record("attendu .keybind")
             return
@@ -488,9 +488,9 @@ struct ConfigEditorModelTests {
     /// contrôle redevenait un champ texte sous les yeux de l'utilisateur.
     /// Une rangée capturée dans la session reste un contrôle de capture.
     @Test func aJustCapturedSingleLetterStaysACaptureControl() {
-        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["Controls", "ToggleOverlay"])]
+        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["Display", "Overlay"])]
         let groups = ConfigEditorModel.groups(
-            of: tree(#"{ "Controls": { "ToggleOverlay": "A" } }"#),
+            of: tree(#"{ "Display": { "Overlay": "A" } }"#),
             describedBy: [], stickyKeybinds: sticky)
         guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
             Issue.record("attendu .keybind, reçu \(groups[0].rows[0].control)")
@@ -501,10 +501,12 @@ struct ConfigEditorModelTests {
     }
 
     /// La même valeur sans capture explicite reste du texte : R2 protège
-    /// l'ouverture, seule la session lève la règle.
+    /// l'ouverture, seule la session lève la règle. Clé **sans nom
+    /// d'action** : sous `ToggleOverlay`, une lettre seule est un raccourci
+    /// depuis le 2026-10-03 (`KeybindScanner.actionNamed`).
     @Test func theSameSingleLetterWithoutStickyStaysText() {
         let groups = ConfigEditorModel.groups(
-            of: tree(#"{ "ToggleOverlay": "A" }"#), describedBy: [])
+            of: tree(#"{ "Overlay": "A" }"#), describedBy: [])
         #expect(groups[0].rows[0].control == .text("A"))
     }
 
@@ -513,8 +515,8 @@ struct ConfigEditorModelTests {
     /// indice de nom** — une clé hintée passe la branche hintée de la
     /// grammaire et n'a jamais eu ce défaut (le sabotage l'a montré).
     @Test func aClearedStickyRowStaysACaptureControl() {
-        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["ToggleOverlay"])]
-        let groups = ConfigEditorModel.groups(of: tree(#"{ "ToggleOverlay": "None" }"#),
+        let sticky: Set<String> = [ConfigEditorModel.rowId(of: ["Overlay"])]
+        let groups = ConfigEditorModel.groups(of: tree(#"{ "Overlay": "None" }"#),
                                               describedBy: [], stickyKeybinds: sticky)
         guard case .keybind(let raw, let combo) = groups[0].rows[0].control else {
             Issue.record("attendu .keybind")

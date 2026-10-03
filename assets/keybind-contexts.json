@@ -94,6 +94,18 @@
         ],
         "context": "world",
         "evidence": "Mod de remap : ces réglages réécrivent toolbarSwap et chatButton du jeu, que Game1 ne lit qu'en jeu, aucun menu ouvert."
+      },
+      {
+        "keyPaths": [
+          "MoveUp",
+          "MoveDown",
+          "MoveLeft",
+          "MoveRight",
+          "AccessMap",
+          "AccessJournal"
+        ],
+        "context": "world",
+        "evidence": "ApplyInputListener → Game1.options.changeInputListenerValue (moveUp…moveRight, map, journal) : des contrôles de déplacement et d'ouverture que le jeu lit en jeu. AccessMenu reste partout (menuButton ferme aussi les menus)."
       }
     ],
     "gaussfire.ConvenientInventory": [

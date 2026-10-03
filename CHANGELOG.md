@@ -29,6 +29,7 @@ where the exact log format was verified.
 ### Fixed
 
 - **Éditeur de configuration : un raccourci ne se signale plus en conflit avec lui-même**, et Global Config Settings Rewrite n'est plus compté en conflit avec les contrôles du jeu qu'il remappe.
+- **Raccourcis d'une seule lettre sous un nom d'action.** `Controls.Toggle = C` (Chests Anywhere) ou les déplacements ZQSD de Global Config Settings Rewrite manquaient au clavier et aux conflits : une lettre seule sous un nom comme Toggle, Move, Access ou Button compte désormais.
 - **Raccourcis capturés sur un clavier AZERTY.** Appuyer sur A enregistrait `Q` : l'app suivait la position d'un clavier américain, alors que le jeu lit la lettre gravée. Les raccourcis capturés avant peuvent être sur la lettre voisine (A↔Q, Z↔W) : recapturez-les.
 
 ## [1.54.0] - 2026-10-02
