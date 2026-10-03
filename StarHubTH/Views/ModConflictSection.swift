@@ -272,13 +272,6 @@ struct ModConflictSection: View {
         }
     }
 
-    private func statusRow(icon: String, color: Color, text: String) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            Image(systemName: icon).foregroundColor(color)
-            Text(text).foregroundColor(.secondary)
-        }
-    }
-
     /// Le bouton « Écarter » d'une ligne de conflit (tâche 9). Jamais posé
     /// sur un `betweenPacks` à plus de deux packs : `pair` y est `nil` — un
     /// clic écrirait un verdict que ce fichier ne sait pas lire (la

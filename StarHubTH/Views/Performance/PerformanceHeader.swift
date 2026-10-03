@@ -65,6 +65,6 @@ struct PerformanceHeader: View {
     }
 
     private func number(_ value: Double?) -> String {
-        value.map { $0.formatted(.number.precision(.fractionLength(1))) } ?? "—"
+        PerformanceFormatting.number(value)
     }
 }

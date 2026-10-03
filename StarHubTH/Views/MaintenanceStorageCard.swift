@@ -23,7 +23,7 @@ struct MaintenanceStorageCard: View {
                     Text(localization.L(L10n.Maintenance.total))
                         .font(AppDesign.Font.caption(.semibold))
                         .foregroundStyle(.secondary)
-                    Text(Self.bytes(report.totalBytes))
+                    Text(SharedFormatters.bytes(report.totalBytes))
                         .font(.system(size: AppDesign.Font.scaled(28), weight: .bold, design: .rounded))
                         .monospacedDigit()
                 }
@@ -31,9 +31,9 @@ struct MaintenanceStorageCard: View {
             if report.backupBytes + report.configBackupBytes > 0 { bar }
             VStack(alignment: .leading, spacing: 3) {
                 row(localization.L(L10n.Maintenance.installBackups),
-                    "\(report.backups.count) · \(Self.bytes(report.backupBytes))", dot: Self.installTint)
+                    "\(report.backups.count) · \(SharedFormatters.bytes(report.backupBytes))", dot: Self.installTint)
                 row(localization.L(L10n.Maintenance.configBackups),
-                    "\(report.configBackupCount) · \(Self.bytes(report.configBackupBytes))", dot: Self.configTint)
+                    "\(report.configBackupCount) · \(SharedFormatters.bytes(report.configBackupBytes))", dot: Self.configTint)
                 if !report.orphanSessions.isEmpty {
                     row(localization.L(L10n.Maintenance.orphanSessions), String(report.orphanSessions.count), dot: nil)
                 }
@@ -58,7 +58,7 @@ struct MaintenanceStorageCard: View {
                         onPurge(keep, plan.doomed.count, plan.freedBytes)
                     } label: {
                         Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
-                                    keep, Self.bytes(freed)))
+                                    keep, SharedFormatters.bytes(freed)))
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
@@ -101,9 +101,5 @@ struct MaintenanceStorageCard: View {
             Spacer()
             Text(value).monospacedDigit()
         }
-    }
-
-    static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 }

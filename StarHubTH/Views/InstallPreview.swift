@@ -529,17 +529,11 @@ struct DependencyRow: View {
     }
 
     private func openNexusSearch(for searchTerm: String) {
-        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
-        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
-            NSWorkspace.shared.open(url)
-        }
+        NexusWebLinks.openSearch(for: searchTerm)
     }
 
     private func openNexusAuthorSearch(for author: String) {
-        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
-        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
-            NSWorkspace.shared.open(url)
-        }
+        NexusWebLinks.openAuthorSearch(for: author)
     }
 }
 

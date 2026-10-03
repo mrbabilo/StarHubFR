@@ -198,20 +198,12 @@ struct DependencyRowView: View {
 
     /// Ouvre la recherche Nexus Mods pour un terme donné (dépendance manquante).
     private func openNexusSearch(for searchTerm: String) {
-        let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
-        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)") {
-            NSWorkspace.shared.open(url)
-        }
+        NexusWebLinks.openSearch(for: searchTerm)
     }
 
-    /// Ouvre la liste des mods d'un auteur sur Nexus Mods. Le filtre `?author=`
-    /// est plus précis qu'une recherche plein texte pour retrouver tous les
-    /// mods d'un même auteur.
+    /// Ouvre la liste des mods d'un auteur sur Nexus Mods.
     private func openNexusAuthorSearch(for author: String) {
-        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
-        if let url = URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)") {
-            NSWorkspace.shared.open(url)
-        }
+        NexusWebLinks.openAuthorSearch(for: author)
     }
 }
 

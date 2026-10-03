@@ -323,22 +323,18 @@ struct NexusDownloadFooter: View {
         var parts: [String] = []
         if let total = progress.totalBytes {
             parts.append(String(format: localization.L(L10n.Downloads.progress),
-                                Self.bytes(progress.bytesReceived), Self.bytes(total)))
+                                SharedFormatters.bytes(progress.bytesReceived), SharedFormatters.bytes(total)))
         } else {
             parts.append(String(format: localization.L(L10n.Downloads.progressUnknownTotal),
-                                Self.bytes(progress.bytesReceived)))
+                                SharedFormatters.bytes(progress.bytesReceived)))
         }
         if let rate = progress.bytesPerSecond {
-            parts.append(String(format: localization.L(L10n.Downloads.rate), Self.bytes(Int64(rate))))
+            parts.append(String(format: localization.L(L10n.Downloads.rate), SharedFormatters.bytes(Int64(rate))))
         }
         if let remaining = progress.estimatedTimeRemaining, remaining > 0 {
             parts.append(String(format: localization.L(L10n.Downloads.eta), Self.duration(remaining)))
         }
         return parts.joined(separator: " · ")
-    }
-
-    private static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 
     /// Une durée courte et lisible : « 45 s », « 2 min ». Le formateur du
@@ -370,7 +366,7 @@ struct ModsWeightFooter: View {
                         .font(AppDesign.Font.iconXXS)
                         .foregroundStyle(.secondary)
                     Text(String(format: localization.L(L10n.Main.sidebarModsWeight),
-                                Self.bytes(sizes.totalBytes)))
+                                SharedFormatters.bytes(sizes.totalBytes)))
                         .font(AppDesign.Font.iconXS(.medium).monospacedDigit())
                         .foregroundStyle(.secondary)
                     if vm.isMeasuringModsFolder {
@@ -392,7 +388,7 @@ struct ModsWeightFooter: View {
                 }
 
                 if let free = sizes.availableBytes {
-                    Text(String(format: localization.L(L10n.Main.sidebarDiskFree), Self.bytes(free)))
+                    Text(String(format: localization.L(L10n.Main.sidebarDiskFree), SharedFormatters.bytes(free)))
                         .font(AppDesign.Font.iconXXS.monospacedDigit())
                         // Orange quand il reste moins que ce que pèsent déjà
                         // les mods : le prochain gros mod ne rentrera pas.
@@ -446,10 +442,10 @@ struct ModsWeightFooter: View {
         HStack(spacing: 5) {
             dot(Self.activeColor)
             Text(String(format: localization.L(L10n.Main.sidebarModsWeightActive),
-                        Self.bytes(sizes.totalBytes - sizes.pausedBytes)))
+                        SharedFormatters.bytes(sizes.totalBytes - sizes.pausedBytes)))
             dot(Self.pausedColor)
             Text(String(format: localization.L(L10n.Main.sidebarModsWeightAsleep),
-                        Self.bytes(sizes.pausedBytes)))
+                        SharedFormatters.bytes(sizes.pausedBytes)))
         }
         .font(AppDesign.Font.iconXXS.monospacedDigit())
         .foregroundStyle(.secondary)
@@ -460,18 +456,14 @@ struct ModsWeightFooter: View {
         Circle().fill(color).frame(width: 5, height: 5)
     }
 
-    static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
-    }
-
     /// Une barre ne se lit pas à voix haute : le lecteur d'écran reçoit les
     /// mêmes chiffres que les lignes de texte.
     static func a11yLabel(_ sizes: ModsFolderSizes, vm: StarHubTHViewModel) -> String {
         let label = String(format: vm.localization.L(L10n.Main.sidebarModsWeightA11y),
-                           bytes(sizes.totalBytes),
-                           bytes(sizes.totalBytes - sizes.pausedBytes),
-                           bytes(sizes.pausedBytes),
-                           sizes.availableBytes.map { bytes($0) } ?? "—")
+                           SharedFormatters.bytes(sizes.totalBytes),
+                           SharedFormatters.bytes(sizes.totalBytes - sizes.pausedBytes),
+                           SharedFormatters.bytes(sizes.pausedBytes),
+                           sizes.availableBytes.map { SharedFormatters.bytes($0) } ?? "—")
         // `children: .ignore` remplace tout ce que contient le pied de barre,
         // y compris l'indicateur de mesure en cours. Sans cet ajout, un lecteur
         // d'écran recevrait des chiffres périmés pendant les secondes qui

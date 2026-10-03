@@ -268,17 +268,11 @@ struct PerformanceSmoothnessSection: View {
     private func unit(_ measure: ProbeChartMeasure) -> String { measure == .fps ? "FPS" : "ms" }
 
     private func reasonName(_ reason: ProbeExclusionReason) -> String {
-        switch reason {
-        case .unfocused: return localization.L(L10n.Performance.reasonUnfocused)
-        case .title: return localization.L(L10n.Performance.reasonTitle)
-        case .menuOpen: return localization.L(L10n.Performance.reasonMenu)
-        case .night: return localization.L(L10n.Performance.reasonNight)
-        case .firstAfterTitle: return localization.L(L10n.Performance.reasonLoading)
-        }
+        PerformanceFormatting.reasonName(reason, localization)
     }
 
     private func number(_ value: Double?) -> String {
-        value.map { $0.formatted(.number.precision(.fractionLength(1))) } ?? "—"
+        PerformanceFormatting.number(value)
     }
 }
 

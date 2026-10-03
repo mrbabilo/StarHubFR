@@ -44,7 +44,7 @@ struct MaintenanceArchivesSection: View {
             if !vm.nexusArchives.isEmpty {
                 Text(String(format: localization.L(L10n.Maintenance.archivesCount),
                             vm.nexusArchives.count,
-                            Self.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
+                            SharedFormatters.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Button(localization.L(L10n.Maintenance.archivesPurge), role: .destructive,
@@ -64,14 +64,14 @@ struct MaintenanceArchivesSection: View {
                 Spacer()
                 if group.entries.count > 1 {
                     Text(String(format: localization.L(L10n.Maintenance.archivesVersions),
-                                Int64(group.entries.count), Self.bytes(group.totalBytes)))
+                                Int64(group.entries.count), SharedFormatters.bytes(group.totalBytes)))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
             }
             ForEach(group.entries) { entry in
                 HStack {
-                    Text("\(entry.version) · \(Self.bytes(entry.byteSize)) · "
+                    Text("\(entry.version) · \(SharedFormatters.bytes(entry.byteSize)) · "
                          + entry.timestamp.formatted(date: .abbreviated, time: .omitted))
                         .font(AppDesign.Font.monoIconXS)
                         .foregroundColor(.secondary)
@@ -92,9 +92,5 @@ struct MaintenanceArchivesSection: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
-    }
-
-    private static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
     }
 }

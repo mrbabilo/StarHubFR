@@ -24,7 +24,6 @@ struct TranslationArbitrationSheet: View {
     @State private var writing = false
 
     private var totalWritable: Int { store.reviews.reduce(0) { $0 + $1.writableCount } }
-    private var totalDivergent: Int { store.reviews.reduce(0) { $0 + $1.divergenceCount } }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

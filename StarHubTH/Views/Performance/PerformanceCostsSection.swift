@@ -107,11 +107,10 @@ struct PerformanceCostsSection: View {
     }
 
     private func name(_ modId: String) -> String {
-        viewModel.scanStore.mods.flattenedMods
-            .first { $0.uniqueId.caseInsensitiveCompare(modId) == .orderedSame }?.name ?? modId
+        PerformanceFormatting.modName(modId, viewModel: viewModel)
     }
 
     private func number(_ value: Double?) -> String {
-        value.map { $0.formatted(.number.precision(.fractionLength(2))) } ?? "—"
+        PerformanceFormatting.number(value, fraction: 2)
     }
 }

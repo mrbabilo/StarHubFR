@@ -155,25 +155,12 @@ struct ProfileConfigCompareView: View {
                 .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
-                labelled(activeName, diff.valueA ?? "", color: .primary)
-                labelled(other.name, diff.valueB ?? "", color: .secondary)
+                labelledValue(activeName, diff.valueA ?? "", color: .primary)
+                labelledValue(other.name, diff.valueB ?? "", color: .secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
-    }
-
-    private func labelled(_ label: String, _ value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(AppDesign.Font.iconXXS(.semibold))
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(AppDesign.Font.caption)
-                .foregroundColor(color)
-                .textSelection(.enabled)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

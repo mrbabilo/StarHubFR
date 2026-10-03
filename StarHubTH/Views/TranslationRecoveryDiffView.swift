@@ -153,26 +153,13 @@ struct TranslationRecoveryDiffView: View {
                 .font(AppDesign.Font.monoIconXS)
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
-                labelled(localization.L(L10n.Recovery.inBackup), diff.backupValue ?? "", color: .secondary)
-                labelled(localization.L(L10n.Recovery.installed), diff.installedValue ?? "", color: .primary)
+                labelledValue(localization.L(L10n.Recovery.inBackup), diff.backupValue ?? "", color: .secondary)
+                labelledValue(localization.L(L10n.Recovery.installed), diff.installedValue ?? "", color: .primary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
-    }
-
-    private func labelled(_ label: String, _ value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(AppDesign.Font.iconXXS(.semibold))
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(AppDesign.Font.caption)
-                .foregroundColor(color)
-                .textSelection(.enabled)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func readOnlyRow(key: String, value: String) -> some View {

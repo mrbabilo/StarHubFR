@@ -151,3 +151,37 @@ struct InfoPopoverButton: View {
         }
     }
 }
+
+// MARK: - Shared Formatters
+/// Les octets, tels que toute l'app les écrit — `ByteCountFormatter`,
+/// style `.file`. Portait quatre copies identiques dans trois fichiers
+/// (passe de simplification 2026-10-03).
+enum SharedFormatters {
+    static func bytes(_ value: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+}
+
+/// Paire étiquette/valeur empilée — deux copies identiques
+/// (`ProfileConfigCompareView`, `TranslationRecoveryDiffView`).
+func labelledValue(_ label: String, _ value: String, color: Color) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+        Text(label)
+            .font(AppDesign.Font.iconXXS(.semibold))
+            .foregroundColor(.secondary)
+        Text(value)
+            .font(AppDesign.Font.caption)
+            .foregroundColor(color)
+            .textSelection(.enabled)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+}
+
+/// Rangée d'état « glyphe + texte » — deux copies identiques
+/// (`KeybindReportSection`, `ModConflictSection`).
+func statusRow(icon: String, color: Color, text: String) -> some View {
+    HStack(spacing: AppDesign.Spacing.sm) {
+        Image(systemName: icon).foregroundColor(color)
+        Text(text).foregroundColor(.secondary)
+    }
+}

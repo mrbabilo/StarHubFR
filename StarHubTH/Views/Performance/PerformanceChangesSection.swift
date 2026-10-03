@@ -89,7 +89,6 @@ struct PerformanceChangesSection: View {
 
     /// Le nom du manifeste quand le mod est installé, sinon l'identifiant.
     private func name(_ modId: String) -> String {
-        viewModel.scanStore.mods.flattenedMods
-            .first { $0.uniqueId.caseInsensitiveCompare(modId) == .orderedSame }?.name ?? modId
+        PerformanceFormatting.modName(modId, viewModel: viewModel)
     }
 }

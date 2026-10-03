@@ -183,13 +183,7 @@ struct PerformanceAnalysisSection: View {
     }
 
     private func reasonName(_ reason: ProbeExclusionReason) -> String {
-        switch reason {
-        case .unfocused: return localization.L(L10n.Performance.reasonUnfocused)
-        case .title: return localization.L(L10n.Performance.reasonTitle)
-        case .menuOpen: return localization.L(L10n.Performance.reasonMenu)
-        case .night: return localization.L(L10n.Performance.reasonNight)
-        case .firstAfterTitle: return localization.L(L10n.Performance.reasonLoading)
-        }
+        PerformanceFormatting.reasonName(reason, localization)
     }
 
     // MARK: Recommandation et gestes
@@ -365,7 +359,6 @@ struct PerformanceAnalysisSection: View {
     }
 
     private func name(_ modId: String) -> String {
-        viewModel.scanStore.mods.flattenedMods
-            .first { $0.uniqueId.caseInsensitiveCompare(modId) == .orderedSame }?.name ?? modId
+        PerformanceFormatting.modName(modId, viewModel: viewModel)
     }
 }

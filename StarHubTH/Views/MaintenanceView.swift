@@ -113,7 +113,7 @@ struct MaintenanceView: View {
             switch pending {
             case .purge(_, let doomed, let freed):
                 Text(String(format: localization.L(L10n.Maintenance.purgeMessage),
-                            doomed, MaintenanceStorageCard.bytes(freed)))
+                            doomed, SharedFormatters.bytes(freed)))
             case .cleanStale(let orphans, let keys):
                 Text(String(format: localization.L(L10n.Maintenance.cleanMessage),
                             orphans, keys))
@@ -138,7 +138,7 @@ struct MaintenanceView: View {
         PageHeader(icon: "internaldrive", title: localization.L(L10n.Maintenance.title),
                    subtitle: vm.maintenanceReport.map {
                        String(format: localization.L(L10n.Maintenance.headerTotal),
-                              MaintenanceStorageCard.bytes($0.totalBytes))
+                              SharedFormatters.bytes($0.totalBytes))
                    }) {
             if vm.isBuildingMaintenanceReport {
                 HStack(spacing: 6) {

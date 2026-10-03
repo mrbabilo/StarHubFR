@@ -124,13 +124,6 @@ struct KeybindReportSection: View {
         }
     }
 
-    private func statusRow(icon: String, color: Color, text: String) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            Image(systemName: icon).foregroundColor(color)
-            Text(text).foregroundColor(.secondary)
-        }
-    }
-
     // Le type du rapport est imbriqué dans le scanner (constat de T3) :
     // nom qualifié obligatoire hors de Core.
     /// Le verdict : compteurs, puis le vert — qui n'affirme l'absence de
