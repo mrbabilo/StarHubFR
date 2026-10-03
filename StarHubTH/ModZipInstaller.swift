@@ -886,7 +886,7 @@ class ModZipInstaller {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         try fm.createDirectory(atPath: modsPath, withIntermediateDirectories: true, attributes: nil)
 
-        let timestampStamp = Self.stampedFolderSuffix()
+        let timestampStamp = ModTrash.makeStamp()
 
         for selection in selections {
             guard selection.selected else { continue }
@@ -1236,14 +1236,6 @@ class ModZipInstaller {
             ? fallbackLeaf
             : (parentRelative as NSString).appendingPathComponent(fallbackLeaf)
         return (basePath as NSString).appendingPathComponent(prefix + relative)
-    }
-
-    /// Short timestamp suffix for renamed duplicate mod folders.
-    private static func stampedFolderSuffix() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd_HHmmss"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: Date())
     }
 
     // MARK: - Cleanup

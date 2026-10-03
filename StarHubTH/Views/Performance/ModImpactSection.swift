@@ -135,8 +135,7 @@ struct ModImpactSection: View {
     // MARK: — Morceaux
 
     private func note(_ text: String) -> some View {
-        Text(text).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        PerformanceFormatting.note(text)
     }
 
     private func axisLabel(_ axis: ModImpactAxis) -> String {

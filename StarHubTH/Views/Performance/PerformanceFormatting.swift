@@ -31,4 +31,12 @@ enum PerformanceFormatting {
         case .firstAfterTitle: return localization.L(L10n.Performance.reasonLoading)
         }
     }
+
+    /// Note secondaire (pied de section, avertissement) — deux copies
+    /// identiques (`ModImpactSection`, `PerformanceProbeSection`).
+    static func note(_ text: String) -> some View {
+        Text(text)
+            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
 }

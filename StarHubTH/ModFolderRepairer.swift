@@ -115,7 +115,7 @@ public struct ModFolderRepairer {
         var _trashPath: String?
         func trashDir(for gameDir: String) -> String {
             if let existing = _trashPath { return existing }
-            let p = (gameDir as NSString).appendingPathComponent("\(Self.trashPrefix)\(Self.nowStamp())")
+            let p = (gameDir as NSString).appendingPathComponent("\(Self.trashPrefix)\(ModTrash.makeStamp())")
             try? fm.createDirectory(atPath: p, withIntermediateDirectories: true)
             _trashPath = p
             return p
@@ -488,7 +488,7 @@ public struct ModFolderRepairer {
 
         // Collision avoidance: append a timestamp if an entry of the same name
         // already sits in the trash (e.g. a re-run).
-        let safeDest = fm.fileExists(atPath: dest) ? "\(dest)_\(Self.nowStamp())" : dest
+        let safeDest = fm.fileExists(atPath: dest) ? "\(dest)_\(ModTrash.makeStamp())" : dest
 
         do {
             try fm.moveItem(atPath: fullPath, toPath: safeDest)
@@ -506,12 +506,5 @@ public struct ModFolderRepairer {
             return String(fullPath.dropFirst(rootStd.count))
         }
         return (fullPath as NSString).lastPathComponent
-    }
-
-    private static func nowStamp() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd_HHmmss"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: Date())
     }
 }

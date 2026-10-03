@@ -65,8 +65,8 @@ enum ModTrash {
         return fm.fileExists(atPath: markerPath)
     }
 
-    /// Le même format que `ModFolderRepairer.nowStamp` : lisible dans
-    /// Finder, trié chronologiquement, locale posée (piège §4.7).
+    /// Seule définition du format (réparateur et installateur délèguent ici) :
+    /// lisible dans Finder, trié, locale posée (piège §4.7).
     static func makeStamp(_ date: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"

@@ -118,14 +118,12 @@ struct PerformanceProbeSection: View {
     }
 
     private func note(_ text: String) -> some View {
-        Text(text)
-            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        PerformanceFormatting.note(text)
     }
 
     /// Le mod à basculer, relu au clic : `mods` change sous nos pieds
     /// (scan, activation ailleurs) et `folderName` est la clé stable.
     private func mod(named folderName: String) -> ModItem? {
-        viewModel.mods.flatMap(\.components).first { $0.folderName == folderName }
+        viewModel.mods.flattenedMods.first { $0.folderName == folderName }
     }
 }
