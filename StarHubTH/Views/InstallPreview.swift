@@ -571,8 +571,8 @@ struct ConflictRow: View {
 
             // Un nom pris par un **autre** mod se dit : la ligne nomme
             // l'occupant, c'est lui qu'un écrasement remplacerait.
-            if conflict.conflictType == .nameTakenByOtherMod {
-                Text(String(format: localization.L(L10n.ModInstall.nameTakenByOtherMod),
+            if let occupantKey = conflict.conflictType.occupantMessageKey {
+                Text(String(format: localization.L(occupantKey),
                             conflict.existingName, conflict.existingVersion))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.orange)

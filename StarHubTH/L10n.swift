@@ -1623,6 +1623,8 @@ enum L10n {
         static let nexusRateLimited     = "updates_nexus_rate_limited"
         static let installedVersion     = "updates_installed_version"
         static let latestVersion        = "updates_latest_version"
+        static let alreadyInstalledRenamed = "updates_already_installed_renamed"
+        static let alreadyInstalledSuperseded = "updates_already_installed_superseded"
         static let uploadedOn           = "updates_uploaded_on"
         static let enabled              = "updates_mod_enabled"
         static let disabled             = "updates_mod_disabled"
@@ -2012,6 +2014,7 @@ enum L10n {
         // Conflit de nom logique : un **autre** mod occupe déjà le nom —
         // la ligne nomme l'occupant, c'est lui qu'un écrasement remplacerait.
         static let nameTakenByOtherMod  = "mod_install_name_taken_by_other_mod"
+        static let authorRenamedId      = "mod_install_author_renamed_id"
         static let droppedTitle         = "mod_install_dropped_title"
         static let droppedQuestion      = "mod_install_dropped_question"
         static let droppedHostPaused    = "mod_install_dropped_host_paused"

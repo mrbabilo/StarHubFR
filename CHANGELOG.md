@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Un mod renommé par son auteur se met à jour.** Quand un auteur change l'identifiant de son mod (Wallet Tools : `ThaleTheGreat` → `ThaleMagnus`), l'aperçu d'installation le dit et propose la mise à jour, réglages gardés — au lieu de poser la nouvelle version à côté, en pause.
+- **Mises à jour déjà installées, dites comme telles.** Une version annoncée par smapi.io mais déjà présente sous un nouvel identifiant, ou dans le mod qui a remplacé un ancien module (Kids for the School Tokens), est signalée sous sa ligne.
+
 ## [1.56.0] - 2026-10-03
 
 ### Added

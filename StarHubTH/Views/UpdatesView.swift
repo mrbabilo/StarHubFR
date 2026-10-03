@@ -147,6 +147,7 @@ struct UpdatesView: View {
                                                 .background((isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning).opacity(0.12))
                                                 .cornerRadius(4)
                                         }
+                                        UpdateAlreadyInstalledNote(update: update, mods: vm.mods, localization: localization)
                                         WrapHStack(spacing: AppDesign.Spacing.md) {
                                             Label("\(localization.L(L10n.Updates.installedVersion)) \(update.installedVersion)",
                                                   systemImage: "tag.fill")
@@ -177,9 +178,8 @@ struct UpdatesView: View {
                             }
                         }
 
-                        // Mods sans verdict d'aucune source (jusqu'à 115 sur le parc) : les
-                        // taire rendait la fenêtre mensongère ; repliés, pour ne pas noyer
-                        // les mises à jour réelles.
+                        // Mods sans verdict (jusqu'à 115 au parc) : les taire mentait ; repliés,
+                        // pour ne pas noyer les mises à jour réelles.
                         if !vm.unverifiableMods.isEmpty {
                             DisclosureGroup {
                                 VStack(alignment: .leading, spacing: 3) {

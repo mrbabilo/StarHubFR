@@ -179,6 +179,9 @@ enum ConflictType: Equatable {
     case folderExists
     /// Le nom logique est déjà pris par un mod d'**autre** UniqueID.
     case nameTakenByOtherMod
+    /// Le nom logique est pris par **le même mod**, l'auteur ayant changé
+    /// son identifiant (`AuthorRenamedMod`) : une mise à jour, dite comme telle.
+    case authorRenamedId
 }
 
 /// Available resolutions for conflicts. `keepExisting`/`useNew` — les
@@ -198,8 +201,20 @@ enum ConflictResolution: Hashable {
     /// vrai mod sans retour).
     static func `default`(for type: ConflictType) -> ConflictResolution {
         switch type {
-        case .folderExists: return .overwriteWithBackup
+        case .folderExists, .authorRenamedId: return .overwriteWithBackup
         case .nameTakenByOtherMod: return .rename
+        }
+    }
+}
+
+extension ConflictType {
+    /// La ligne qui nomme l'occupant du dossier dans l'aperçu ; `nil` pour
+    /// une mise à jour ordinaire (même identifiant).
+    var occupantMessageKey: String? {
+        switch self {
+        case .folderExists: nil
+        case .nameTakenByOtherMod: L10n.ModInstall.nameTakenByOtherMod
+        case .authorRenamedId: L10n.ModInstall.authorRenamedId
         }
     }
 }

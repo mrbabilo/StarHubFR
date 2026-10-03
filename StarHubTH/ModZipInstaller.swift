@@ -27,7 +27,7 @@ class ModZipInstaller {
     /// dossier) ; sinon seulement, occupant du **nom logique**, forcément un
     /// autre UniqueID (deux `[CP] Sounds of the Valley` au parc, identifiant
     /// changé entre 3.1.0 et 4.0.0) : sans ce signal, pause silencieuse et
-    /// identité partagée.
+    /// identité partagée. Même mod renommé par l'auteur → `.authorRenamedId`.
     /// - Returns: le mod installé par identifiant et zéro ou un conflit.
     static func detectConflicts(forFolderName folderName: String,
                                 manifest: ModManifest,
@@ -44,15 +44,15 @@ class ModZipInstaller {
             return (existing, [conflict])
         }
         if let occupant = existingMods.mod(withLogicalFolderName: folderName) {
+            let renamed = AuthorRenamedMod.isSameMod(installedId: occupant.uniqueId, installedNexusId: occupant.nexusModId, incomingId: manifest.uniqueId, incomingNexusId: manifest.nexusModId)
             let conflict = ModConflict(
-                conflictType: .nameTakenByOtherMod,
-                folderName: folderName,
-                existingName: occupant.name,
+                conflictType: renamed ? .authorRenamedId : .nameTakenByOtherMod,
+                folderName: folderName, existingName: occupant.name,
                 existingVersion: occupant.version,
                 newVersion: manifest.version,
                 resolutionOptions: [.overwriteWithBackup, .rename, .skip]
             )
-            return (nil, [conflict])
+            return (renamed ? occupant : nil, [conflict])
         }
         return (nil, [])
     }
