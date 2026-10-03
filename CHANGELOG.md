@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Santé : les compteurs de « Problèmes détectés » mènent à leur bloc.** Un clic sur « non chargés », « dépendances » ou les autres déplie la carte et y fait défiler, comme les tuiles des Alertes système.
 - **Liste des mods : « Identifiant changé ».** Quand un auteur a renommé son mod et que l'ancienne et la nouvelle copie sont sur le disque, l'onglet Problèmes les réunit sous une puce ; chaque ligne dit si elle est l'ancienne ou la nouvelle, et où est l'autre.
 - **Traduction de l'auteur contre la vôtre, à la mise à jour.** Quand une mise à jour apporte un `fr.json` différent de votre traduction, l'aperçu montre l'écart (clés différentes, clés que seul l'auteur traduit, les vôtres absentes) et propose : garder la vôtre, prendre celle de l'auteur, ou fusionner. Le fichier écarté reste récupérable.
 

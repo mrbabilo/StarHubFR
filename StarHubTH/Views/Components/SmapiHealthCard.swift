@@ -32,6 +32,14 @@ struct SmapiHealthCard: View {
     /// nil = dépliée, même sur un journal sain : la carte a son onglet (D4-T4,
     /// demande de l'auteur du 2026-09-28). Le chevron garde le choix contraire.
     @State private var userCollapsed: Bool? = nil
+    /// Le bloc qu'un compteur vient de demander (comme les tuiles des Alertes
+    /// système) : l'identifiant neuf à chaque clic rejoue le défilement.
+    @State private var scrollRequest: ScrollRequest?
+
+    private struct ScrollRequest: Equatable {
+        let anchor: String
+        let id = UUID()
+    }
 
     var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
 
@@ -76,9 +84,17 @@ struct SmapiHealthCard: View {
                 // list off-screen AND carry the collapse chevron out of view,
                 // making the card impossible to close. The header stays outside
                 // this ScrollView so it is always reachable.
-                ScrollView {
-                    problems
-                        .padding(AppDesignCore.Spacing.lg)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        problems
+                            .padding(AppDesignCore.Spacing.lg)
+                    }
+                    // `.task` et non `.onChange` : déplié par le clic, le corps
+                    // naît avec la demande déjà posée.
+                    .task(id: scrollRequest) {
+                        guard let anchor = scrollRequest?.anchor else { return }
+                        withAnimation { proxy.scrollTo(anchor, anchor: .top) }
+                    }
                 }
                 // A firm height, not a ceiling: the log list below also wants
                 // all the space it can get, so with `maxHeight` SwiftUI split
@@ -149,7 +165,12 @@ struct SmapiHealthCard: View {
             if !severityCounts.isEmpty {
                 HStack(spacing: AppDesignCore.Spacing.sm) {
                     ForEach(severityCounts, id: \.label) { item in
-                        countChip(item.count, item.label, item.color)
+                        Button {
+                            userCollapsed = false
+                            scrollRequest = ScrollRequest(anchor: item.anchor)
+                        } label: { countChip(item.count, item.label, item.color) }
+                        .buttonStyle(.plain)
+                        .pointingHandCursor()
                     }
                 }
             }
@@ -160,16 +181,18 @@ struct SmapiHealthCard: View {
 
     /// Problem counts by kind — the overview the card used to lack entirely:
     /// previously you had to expand and count list items yourself.
-    private var severityCounts: [(count: Int, label: String, color: Color)] {
+    /// Chaque compteur mène à son bloc (`anchor`) : les dépendances manquantes
+    /// sont nommées dans « ce que vous pouvez faire », en tête.
+    private var severityCounts: [(count: Int, label: String, color: Color, anchor: String)] {
         let d = diagnostics
-        var out: [(Int, String, Color)] = []
+        var out: [(Int, String, Color, String)] = []
         let blocking = d.skipped.count + d.failed.count + d.brokenMods.count
-        if blocking > 0 { out.append((blocking, localization.L(L10n.Logs.healthCountBlocking), .red)) }
-        if !d.missingDeps.isEmpty { out.append((d.missingDeps.count, localization.L(L10n.Logs.healthCountDeps), .orange)) }
+        if blocking > 0 { out.append((blocking, localization.L(L10n.Logs.healthCountBlocking), .red, "blocking")) }
+        if !d.missingDeps.isEmpty { out.append((d.missingDeps.count, localization.L(L10n.Logs.healthCountDeps), .orange, "suggestions")) }
         let advisory = d.saveSerializerMods.count + d.patchedMods.count + d.consoleMods.count
-        if advisory > 0 { out.append((advisory, localization.L(L10n.Logs.healthCountAdvisory), .secondary)) }
-        if !d.benignNotices.isEmpty { out.append((d.benignNotices.count, localization.L(L10n.Logs.healthCountBenign), .green)) }
-        return out.map { (count: $0.0, label: $0.1, color: $0.2) }
+        if advisory > 0 { out.append((advisory, localization.L(L10n.Logs.healthCountAdvisory), .secondary, "advisory")) }
+        if !d.benignNotices.isEmpty { out.append((d.benignNotices.count, localization.L(L10n.Logs.healthCountBenign), .green, "benign")) }
+        return out.map { (count: $0.0, label: $0.1, color: $0.2, anchor: $0.3) }
     }
 
     private func countChip(_ count: Int, _ label: String, _ color: Color) -> some View {
@@ -213,38 +236,50 @@ struct SmapiHealthCard: View {
     /// they're the actionable part for a non-expert.
     private var problems: some View {
         VStack(alignment: .leading, spacing: AppDesignCore.Spacing.lg) {
-            if !suggestions.isEmpty { suggestionsBlock }
+            if !suggestions.isEmpty { suggestionsBlock.id("suggestions") }
 
-            if !diagnostics.skipped.isEmpty {
-                issueSection(L10n.Logs.healthSkipped, items: diagnostics.skipped, severity: .red)
-            }
-            if !diagnostics.failed.isEmpty {
-                issueSection(L10n.Logs.healthFailed, items: diagnostics.failed, severity: .red)
-            }
-            if !diagnostics.brokenMods.isEmpty {
-                modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken,
-                           mods: diagnostics.brokenMods, severity: .red, logHeader: "Broken mods")
+            // Ancres des compteurs : chaque groupe n'existe que s'il a du
+            // contenu, sans quoi une VStack vide ajouterait son espacement.
+            if !diagnostics.skipped.isEmpty || !diagnostics.failed.isEmpty || !diagnostics.brokenMods.isEmpty {
+                VStack(alignment: .leading, spacing: AppDesignCore.Spacing.lg) {
+                    if !diagnostics.skipped.isEmpty {
+                        issueSection(L10n.Logs.healthSkipped, items: diagnostics.skipped, severity: .red)
+                    }
+                    if !diagnostics.failed.isEmpty {
+                        issueSection(L10n.Logs.healthFailed, items: diagnostics.failed, severity: .red)
+                    }
+                    if !diagnostics.brokenMods.isEmpty {
+                        modSection(L10n.Logs.healthBroken, explanation: L10n.Logs.healthExpBroken,
+                                   mods: diagnostics.brokenMods, severity: .red, logHeader: "Broken mods")
+                    }
+                }
+                .id("blocking")
             }
             compatibilityBlock
             if !diagnostics.externalConflicts.isEmpty { conflictsBlock }
-            if !diagnostics.saveSerializerMods.isEmpty {
-                modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave,
-                           mods: diagnostics.saveSerializerMods, severity: .orange,
-                           logHeader: "Changed save serializer")
-            }
-            if !diagnostics.patchedMods.isEmpty {
-                modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched,
-                           mods: diagnostics.patchedMods, severity: .secondary,
-                           logHeader: "Patched game code")
-            }
-            if !diagnostics.consoleMods.isEmpty {
-                modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole,
-                           mods: diagnostics.consoleMods, severity: .secondary,
-                           logHeader: "Direct console access")
+            if !diagnostics.saveSerializerMods.isEmpty || !diagnostics.patchedMods.isEmpty || !diagnostics.consoleMods.isEmpty {
+                VStack(alignment: .leading, spacing: AppDesignCore.Spacing.lg) {
+                    if !diagnostics.saveSerializerMods.isEmpty {
+                        modSection(L10n.Logs.healthSaveSerializer, explanation: L10n.Logs.healthExpSave,
+                                   mods: diagnostics.saveSerializerMods, severity: .orange,
+                                   logHeader: "Changed save serializer")
+                    }
+                    if !diagnostics.patchedMods.isEmpty {
+                        modSection(L10n.Logs.healthPatched, explanation: L10n.Logs.healthExpPatched,
+                                   mods: diagnostics.patchedMods, severity: .secondary,
+                                   logHeader: "Patched game code")
+                    }
+                    if !diagnostics.consoleMods.isEmpty {
+                        modSection(L10n.Logs.healthConsole, explanation: L10n.Logs.healthExpConsole,
+                                   mods: diagnostics.consoleMods, severity: .secondary,
+                                   logHeader: "Direct console access")
+                    }
+                }
+                .id("advisory")
             }
             if !diagnostics.topErrorMods.isEmpty { topErrorsBlock }
             if !diagnostics.recurringWarnings.isEmpty { recurringWarningsBlock }
-            if !diagnostics.benignNotices.isEmpty { benignBlock }
+            if !diagnostics.benignNotices.isEmpty { benignBlock.id("benign") }
         }
     }
 
@@ -503,78 +538,6 @@ struct SmapiHealthCard: View {
         case .optionalModMissing: return localization.L(L10n.Logs.healthBenignOptionalGeneric)
         case .modContentParse:   return localization.L(L10n.Logs.healthBenignParseGeneric)
         }
-    }
-
-    // MARK: - Suggestions
-
-    /// Actionable, plain-language advice derived from the diagnostics, ordered
-    /// most-blocking first (missing dependencies and load failures before
-    /// advisory notes). Formatting lives here, not in the pure parser.
-    private var suggestions: [String] {
-        var out: [String] = []
-        let d = diagnostics
-
-        for dep in d.missingDeps {
-            out.append(String(format: localization.L(L10n.Logs.healthSgMissingDep), dep.missing, dep.mod))
-        }
-        // Mods already covered by a missing-dependency tip don't need a second,
-        // vaguer one repeating the same root cause.
-        let depMods = Set(d.missingDeps.map(\.mod))
-        for issue in d.skipped where !depMods.contains(issue.name) {
-            out.append(advice(for: issue, fallback: L10n.Logs.healthSgSkipped))
-        }
-        for issue in d.failed where !depMods.contains(issue.name) {
-            out.append(advice(for: issue, fallback: L10n.Logs.healthSgFailed))
-        }
-        if !d.brokenMods.isEmpty {
-            out.append(localization.L(L10n.Logs.healthSgBroken))
-        }
-        if d.externalConflicts.contains(where: { $0.contains("RivaTuner") }) {
-            out.append(localization.L(L10n.Logs.healthSgRivatuner))
-        }
-        for mod in d.saveSerializerMods {
-            out.append(String(format: localization.L(L10n.Logs.healthSgSave), mod))
-        }
-        if let worst = d.topErrorMods.first, worst.count >= 5 {
-            out.append(String(format: localization.L(L10n.Logs.healthSgErrorMod), worst.name, Int64(worst.count)))
-        }
-        if d.patchedMods.count >= 15 {
-            out.append(String(format: localization.L(L10n.Logs.healthSgPatchedMany), Int64(d.patchedMods.count)))
-        }
-        // Keep the advice list readable: per-mod tips could otherwise run to
-        // dozens of lines. Ordering above puts the most blocking ones first,
-        // and the categories below still list every affected mod.
-        if out.count > Self.maxSuggestions {
-            let hidden = out.count - Self.maxSuggestions
-            out = Array(out.prefix(Self.maxSuggestions))
-            out.append(String(format: localization.L(L10n.Logs.healthAndMore), Int64(hidden)))
-        }
-        return out
-    }
-
-    /// Max suggestions shown before collapsing into "…and N more".
-    private static let maxSuggestions = 6
-
-    /// Maps a load failure to the most specific fix we can offer. SMAPI's raw
-    /// reasons are accurate but cryptic ("its DLL couldn't be loaded: … already
-    /// loaded"), so recognized families get a concrete instruction; anything
-    /// unrecognized falls back to quoting the reason verbatim.
-    private static let adviceRules: [(patterns: [String], key: String)] = [
-        (["already loaded", "two copies", "duplicate"], L10n.Logs.healthSgDuplicate),
-        (["requires a newer version", "older version of smapi", "needs smapi",
-          "compatible with stardew valley", "requires stardew valley",
-          "not compatible with this version"], L10n.Logs.healthSgGameVersion),
-        (["manifest.json", "manifest is invalid", "invalid manifest",
-          "no manifest", "couldn't parse manifest"], L10n.Logs.healthSgManifest),
-        (["not in a folder", "wrong folder", "subfolder"], L10n.Logs.healthSgFolder)
-    ]
-
-    private func advice(for issue: SmapiDiagnostics.Issue, fallback: String) -> String {
-        let reason = issue.reason.lowercased()
-        for rule in Self.adviceRules where rule.patterns.contains(where: reason.contains) {
-            return String(format: localization.L(rule.key), issue.name)
-        }
-        return String(format: localization.L(fallback), issue.name, issue.reason)
     }
 
     // MARK: - Summary
