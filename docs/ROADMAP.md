@@ -624,7 +624,7 @@ le journal réel le 2026-09-04.
       minute) avec un découpage juste. Détail et idées à refaire :
       [`audit-ultrasmooth-2.3.7.md`](audit-ultrasmooth-2.3.7.md). *(La note du
       matin qui concluait « le rendu coûte l'essentiel » est fausse — voir D1.)*
-- [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de D1-T3) :
+- [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de la carte « Impact », D5-C — D1-T3 est clos) :
       état SLO résolu, dernières sessions de la sonde (**D4-T2**), couverture des menus de config
       (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
       par mod. · **M**

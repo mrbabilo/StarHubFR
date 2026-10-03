@@ -11,7 +11,9 @@ struct PerformanceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                // D5-B — la carte « Chargements » en tête : sa comparaison est
+                // Les réglages de la sonde d'abord : tout ce qui suit en dépend.
+                PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
+                // D5-B — la carte « Chargements » : sa comparaison est
                 // automatique et ne dépend pas des sélecteurs Avant/Après plus
                 // bas. Elle vit aussi en `.needTwo` (pas de paire de minutes).
                 if store.status == .ready || store.status == .needTwo {
@@ -21,7 +23,6 @@ struct PerformanceView: View {
                     PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
                 PerformanceCard { PerformanceImpactSection(viewModel: viewModel, localization: localization) }
-                PerformanceProbeSection(viewModel: viewModel, localization: localization)
                 // En-tête, mesure guidée et sélecteurs forment un bloc : les
                 // tuiles de trame lisent la paire choisie (`store.report`).
                 inGameTitle

@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Onglet Performances : la sonde d'abord.** La carte « Sonde » ouvre la page et réunit ses réglages : installation, mise à jour, place en tête du chargement.
 - **Onglet Performances : la carte « Sonde » remplace la carte Profiler.** Elle dit si la sonde StarHubFR est installée, en pause ou active, et sa version. Elle déconseille d'installer le mod Profiler, qui fait le même travail avec un seuil et fausse les mesures de la sonde ; s'il est encore là, elle le signale.
 
 ## [1.55.0] - 2026-10-03

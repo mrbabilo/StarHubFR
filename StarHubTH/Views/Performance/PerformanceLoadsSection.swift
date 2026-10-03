@@ -11,9 +11,9 @@ struct PerformanceLoadsSection: View {
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
     @State private var pendingPause: PendingPause?
-    /// Reflète le consentement (`nil` = jamais demandé) pour re-rendre la
-    /// carte quand il change — `UserDefaults` seul ne déclenche rien.
-    @State private var consentShown: Bool?
+    /// Le consentement « sonde en tête » (`nil` = jamais demandé), réglé dans
+    /// la carte « Sonde » : `@AppStorage` re-rend celle-ci quand il change.
+    @AppStorage(UDKey.probeLoadEarlyConsent) private var consentShown: Bool?
     @State private var message: String?
     @State private var showBenchmark = false
     @State private var qualityExpanded = false
@@ -47,8 +47,6 @@ struct PerformanceLoadsSection: View {
                     if let b = store.lastLaunch { tile(L10n.Performance.loadsLaunch, b, store.launchComparison) }
                     if let b = store.lastSave { tile(L10n.Performance.loadsSave, b, store.saveComparison) }
                 }
-                PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,
-                                           consent: $consentShown)
                 detail
                 quality
             }
@@ -57,7 +55,6 @@ struct PerformanceLoadsSection: View {
         .sheet(isPresented: $showBenchmark) {
             PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
         }
-        .onAppear { consentShown = UserDefaults.standard.object(forKey: UDKey.probeLoadEarlyConsent) as? Bool }
         .confirmationDialog(confirmTitle,
                             isPresented: Binding(get: { pendingPause != nil },
                                                  set: { if !$0 { pendingPause = nil } }),

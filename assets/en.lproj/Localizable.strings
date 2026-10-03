@@ -1735,7 +1735,7 @@
 "conflicts_known_badge" = "Known incompatibility";
 "conflicts_known_probe_profiler" = "Both time the same frame hooks: each adds its own cost to what the other measures, and the recorded frame times are inflated. Pause Profiler while the probe measures.";
 "logs_segment_performance" = "Performance";
-"perf_no_probe" = "No StarHubFR probe data: install it (0.4.12 or later), then play a session.";
+"perf_no_probe" = "No data from the StarHubFR probe: install it from the “Probe” card at the top of the page, then play a session.";
 "perf_need_two" = "Two probe sessions are needed to compare.";
 "perf_loading" = "Reading the probe's measurements…";
 "perf_probe_title" = "StarHubFR probe";
@@ -1938,7 +1938,7 @@
 "perf_impact_patches" = "Harmony patches measured in %d of %d sessions: mods that patch may be under-counted.";
 "perf_impact_sources" = "Last measured: in game %@ · launch %@ · save %@";
 "perf_impact_never" = "never";
-"perf_impact_empty_probe" = "Install the StarHubFR probe to measure each mod's impact.";
+"perf_impact_empty_probe" = "Install the StarHubFR probe (the “Probe” card at the top of the page) to measure each mod's impact.";
 "perf_impact_empty_mod" = "Not measured yet: play 5 minutes with the probe active.";
 "perf_impact_negligible" = "Negligible impact on every measured axis.";
 "perf_impact_paused" = "Paused: this cost is no longer paid. Last measurements below.";

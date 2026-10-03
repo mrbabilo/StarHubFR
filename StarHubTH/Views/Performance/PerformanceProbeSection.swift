@@ -1,13 +1,17 @@
 import SwiftUI
 
-/// La carte « Sonde » de l'onglet Performances : où en est la sonde
-/// StarHubFR (absente, en pause, active et sa version), et pourquoi ne pas
+/// La carte « Sonde », en tête de l'onglet Performances : ses réglages
+/// d'abord — où en est la sonde StarHubFR (absente, en pause, active et sa
+/// version), son installation, sa place en tête du chargement — puis pourquoi ne pas
 /// installer Profiler — elle fait le même travail, sans seuil, et les deux
 /// faussent mutuellement leurs mesures (D1 clos le 2026-10-03). La
 /// détection vient de `ModPresence` (Core, testé).
 struct PerformanceProbeSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    var store: ProbePerformanceStore
+    /// « Sonde en tête » (`ModsToLoadEarly`), partagé avec la carte Chargements.
+    @AppStorage(UDKey.probeLoadEarlyConsent) private var loadEarlyConsent: Bool?
     /// D4-T3 — l'installation ou la mise à jour en attente de confirmation.
     @State private var pending: ProbeBundle.Action?
     @State private var failure: String?
@@ -42,6 +46,10 @@ struct PerformanceProbeSection: View {
                     .foregroundColor(AppDesign.Color.success)
             }
             installButton
+            if case .enabled = probe {
+                PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,
+                                           consent: $loadEarlyConsent)
+            }
             if let failure {
                 Label(failure, systemImage: "exclamationmark.triangle.fill")
                     .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.warning)
