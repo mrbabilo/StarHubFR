@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.57.0] - 2026-10-03
+
 ### Added
 
 - **Santé : les compteurs de « Problèmes détectés » mènent à leur bloc.** Un clic sur « non chargés », « dépendances » ou les autres déplie la carte et y fait défiler, comme les tuiles des Alertes système.
