@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.56.0] - 2026-10-03
+
 ### Added
 
 - **La sonde StarHubFR livrée avec l'app.** La carte « Sonde » de l'onglet Performances l'installe ou la met à jour en un clic, après confirmation ; elle arrive comme un mod ordinaire de la liste, que l'on peut mettre en pause ou supprimer. Une mise à jour garde son `config.json`.
