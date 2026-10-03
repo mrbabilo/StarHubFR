@@ -49,7 +49,12 @@ struct PerformanceImpactSection: View {
         if ranked.isEmpty {
             StateCard(icon: "hourglass", text: localization.L(L10n.Performance.impactEmptyMod), actionTitle: nil) {}
         } else {
-            ForEach(shown) { entry in row(entry) }
+            // « Tout montrer » pose ~900 lignes : virtualisées, la
+            // construction suit le défilement au lieu de tout dresser d'un
+            // coup (le beach-ball des 2 000 lignes de journal).
+            LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                ForEach(shown) { entry in row(entry) }
+            }
             if ranked.count > 10 {
                 Button(showAll ? localization.L(L10n.Performance.impactShowLess)
                                : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) {

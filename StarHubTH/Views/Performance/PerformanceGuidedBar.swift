@@ -122,7 +122,7 @@ struct PerformanceGuidedBar: View {
     }
 
     private func note(_ text: String) -> some View {
-        Text(text).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+        PerformanceFormatting.note(text)
     }
 
     private struct DraftBox: Identifiable {

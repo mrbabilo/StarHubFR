@@ -21,6 +21,21 @@ struct DiagnosticsView: View {
     /// L'onglet Performances (D4-T4 plan 4) : possédé ici, jamais par le
     /// ViewModel ; l'onglet reste monté, la paire choisie survit.
     @State private var performance = ProbePerformanceStore()
+    /// Rapidité d'affichage : les onglets secondaires ne se construisent qu'au
+    /// premier affichage, puis restent montés — l'état (filtres du journal,
+    /// paire choisie) ne se perd jamais (consigne du 2026-09-28). Entrer sur
+    /// la page ne construit plus les ~8 graphiques de l'onglet Performances ni
+    /// le journal invisibles : `opacity(0)` se rend quand même, un onglet non
+    /// visité, non.
+    @State private var mounted: Set<DiagnosticsSegment>
+
+    init(viewModel: StarHubTHViewModel, localization: LocalizationStore) {
+        self.viewModel = viewModel
+        self.localization = localization
+        // Le segment survit à la navigation : entrer directement sur
+        // Performances ou Journal doit trouver son onglet monté.
+        _mounted = State(initialValue: [viewModel.navigationStore.diagnosticsSegment])
+    }
 
     private var segment: Binding<DiagnosticsSegment> {
         Binding(get: { viewModel.navigationStore.diagnosticsSegment },
@@ -66,6 +81,12 @@ struct DiagnosticsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppDesign.Color.windowBg)
+        // Tout chemin qui affiche un onglet le fait monter — le Picker via le
+        // binding, mais aussi `focusLogSearch()` (⌘F), qui pose le segment
+        // directement sur le store sans passer par lui.
+        .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, newValue in
+            mounted.insert(newValue)
+        }
     }
 
     /// « SMAPI 4.1.10 · journal du 02/10 15:20 » : ce que les onglets lisent.
@@ -85,15 +106,21 @@ struct DiagnosticsView: View {
     /// affiché passe **au-dessus** (`zIndex`) : les vues AppKit du journal
     /// caché (défilement, texte sélectionnable qui impose le curseur I-beam)
     /// ne doivent pas s'interposer devant Santé.
+    @ViewBuilder
     private func tab<Content: View>(_ value: DiagnosticsSegment,
                                     @ViewBuilder content: () -> Content) -> some View {
-        let shown = viewModel.navigationStore.diagnosticsSegment == value
-        return content()
-            .zIndex(shown ? 1 : 0)
-            .opacity(shown ? 1 : 0)
-            .allowsHitTesting(shown)
-            .disabled(!shown)
-            .accessibilityHidden(!shown)
+        if !mounted.contains(value) {
+            // Jamais visité : rien à construire, rien à conserver.
+            EmptyView()
+        } else {
+            let shown = viewModel.navigationStore.diagnosticsSegment == value
+            content()
+                .zIndex(shown ? 1 : 0)
+                .opacity(shown ? 1 : 0)
+                .allowsHitTesting(shown)
+                .disabled(!shown)
+                .accessibilityHidden(!shown)
+        }
     }
 
     @ViewBuilder

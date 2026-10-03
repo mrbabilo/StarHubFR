@@ -40,9 +40,14 @@ struct PerformanceView: View {
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
             if segment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
         }
-        // Jeu quitté : la session close entre dans les analyses sans attendre
-        // un retour dans l'app.
-        .onReceive(GameExit.publisher) { Task { await store.reload(gameDir: viewModel.gameDir) } }
+        // Jeu quitté : la session close entre dans les analyses — mais
+        // seulement si l'onglet est affiché ; caché, quinze mutations
+        // feraient re-rendre huit graphiques invisibles. L'ouverture de
+        // l'onglet relit de toute façon (`onChange` ci-dessus).
+        .onReceive(GameExit.publisher) {
+            guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
+            Task { await store.reload(gameDir: viewModel.gameDir) }
+        }
         // Le jeu se joue app en arrière-plan, onglet ouvert : relire au retour
         // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
