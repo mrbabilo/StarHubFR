@@ -747,7 +747,12 @@ Profiler et la sonde s'excluent dans une même session (incompatibilité connue,
   9 fois), SVE 7,4 s en `ApplyLoad`, FTM 3,0 s au `DayStarted`. Ce sont des
   **minorants** : `config.json` de Profiler ne journalise un appel de tête
   qu'à partir de 5 ms (`LoggerDurationOuterThreshold`) et un appel imbriqué
-  qu'à partir de 0,1 ms (`LoggerDurationInnerThreshold`). En chargement, où
+  qu'à partir de 0,1 ms (`LoggerDurationInnerThreshold`). Bornes retenues par
+  `ProfilerCosts` (D1-T2) : chargement = du premier `LoadStageChanged` (Fast)
+  à `Day Started` (Slow) → 61,4 s ; les 63,0 s ci-dessus couraient jusqu'au
+  premier `Warped`. Piège de lecture : un enfant d'`InnerDetails` a la forme
+  `{OccuredAt, Metadata}` — lu à plat, son temps compte deux fois (57,3 s au
+  lieu de 51,7 s au lancement). En chargement, où
   les gros appels dominent, l'écart est faible ; en jeu, il est complet.
 
 **Le code source de Profiler** (SinZ163/StardewMods relu le 2026-09-29 ;

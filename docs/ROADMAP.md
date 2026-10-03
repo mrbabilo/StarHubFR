@@ -579,17 +579,12 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 > 8,8 ms, sous le seuil où Profiler n'écrit rien.*
 
 - [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session).
-- [ ] **D1-T2** — Parser les lignes `[RawLog] {json}` de Profiler (pas `[BigLoop]`, qui
-      n'est qu'un résumé) : temps **propre** par mod et par événement (enfants
-      soustraits), séparé en lancement / chargement / jeu. Modèle Core testable,
-      jeux de test tirés du vrai journal conservé
-      (`ErrorLogs/SMAPI-2026-09-26-0112-profiler.txt` absent du disque ;
-      remplacé par la session Profiler seul du 2026-09-29, conservée sous
-      `~/Library/Application Support/StarHubFR/ProfilerLogs/` ; forme
-      des lignes `[RawLog]` confirmée dans le code source (§5 de
-      `docs/SOURCES.md`)). L'écran dira « au-dessus
-      du seuil de Profiler », jamais « tout le temps du mod » — le coût par tick
-      sous le seuil vient de la sonde (**D4-T1**). · **M**
+- [x] **D1-T2** ✅ *(livré le 2026-10-03)* — `ProfilerCosts` (Core) : temps propre par mod
+      et par événement, enfants soustraits, en lancement / chargement / jeu par les
+      jalons de Profiler. Vérifié sur la session du 2026-09-29 : lancement 51,70 s
+      (Content Patcher 30,81 s), chargement 61,39 s (AutoForager 10,56 s), 0 ligne
+      illisible. Aucun écran : c'est **D1-T3** qui l'affichera, « au-dessus du seuil
+      de Profiler ».
 - [ ] **D1-T3** — Vue « Impact performances » dans l'onglet Diagnostic : classement des mods
       par temps moyen/max, jointure sur le registre. · **M**
 - [ ] **D1-T4** — Badge d'impact (faible / moyen / élevé) dans la liste et sur la fiche mod,
