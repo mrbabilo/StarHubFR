@@ -81,3 +81,6 @@ StardewValley.Icon.*
 
 # Artefacts du MCP Playwright (snapshots, journaux de console) — jamais versionnés
 .playwright-mcp/
+
+# Cache de décompilation de tools/keybind_contexts.py (DLL en C#, mégaoctets)
+.keybind-decompile-cache/

@@ -1180,6 +1180,31 @@ Content Patcher (Ctrl seul), actives avec `EnableDebugFeatures` uniquement.
 Le correctif propre — ne lever la paire que si les deux sont tenues — est
 hors périmètre.
 
+**L'outil** : `tools/keybind_contexts.py` (stdlib seule) rejoue le relevé
+hors app. Il préfiltre les mods à touches par une grammaire SButton sur
+`config.json`, décompile l'`EntryDll` du manifeste avec `ilspycmd` (cache
+par chemin + mtime, écrit puis renommé), et laisse **le C# trancher** : une
+clé n'est une touche que si la DLL la déclare `SButton`/`KeybindList`/`Keys`
+(la grammaire seule prenait `RadioLocation` ou `Scope` pour des touches).
+Il relève ensuite chaque lecture — `X.Key.JustPressed()`, `e.Button ==
+X.Key`, `Input.IsDown(X.Key)` — et les gardes visibles au-dessus dans la
+même méthode. Sortie : `report.md` à lire + `candidates.json`. Il
+**propose**, il ne décide pas : une règle n'entre dans le dataset qu'après
+lecture humaine du C#. Il dit aussi les entrées du dataset devenues
+périmées (mod parti) et les manifestes illisibles — un décapage naïf des
+commentaires coupait `"https://smapi.io/schemas/…"` au `//` et perdait
+**241 mods en silence**, dont Sword & Sorcery. Premier passage sur le parc
+(2026-10-03) : 1 163 manifestes (composants et mods en pause compris), 169 passés au C#, 152 déclarent des touches
+(504 réglages), 0 échec ; 381 réglages ont au moins une lecture reconnue,
+les autres passent par une variable ou un tableau (les emplacements de
+Sword & Sorcery) — à lire. Les mods des conflits restants y sont tous ;
+leurs gardes restent **à lire** avant tout verdict (la fenêtre ramasse les
+`if` au-dessus sans tenir compte de l'imbrication — All Chests Menu, par
+exemple, montre une garde de menu propre sur `SwitchButton`).
+
+Limite : la preuve se rattache au nom de feuille ; des réglages homonymes
+(`ShortcutKey` de chaque couche de Data Layers) partagent les mêmes lectures.
+
 Effet de bord découvert : la liste remap comparait des UniqueID au **dossier**
 du mod et ne s'appliquait jamais dans l'app ; l'éditeur de config passait
 l'UniqueID et se signalait en conflit avec sa propre rangée. Les deux
