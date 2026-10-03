@@ -317,6 +317,58 @@ def generate_compile_commands_only():
     module_cache_dir = os.path.join(".build", "module-cache")
     write_compile_commands(swift_files, app_executable, module_cache_dir)
 
+PROBE_SOURCE_DIR = os.path.join("companion", "StarHubFR.Probe")
+PROBE_FOLDER_NAME = "StarHubFR Probe"
+
+
+def bundle_probe() -> None:
+    """D4-T3 — la sonde StarHubFR embarquée dans l'app, que l'onglet
+    Performances propose d'installer ou de mettre à jour comme un mod.
+
+    Construite sur la machine qui a le jeu (`ModBuildConfig` lit ses DLL) :
+    recompilée en Release quand une source est plus récente que la DLL,
+    jamais embarquée périmée — le `manifest.json` copié en porte la version,
+    une DLL plus ancienne mentirait sur ce qu'elle mesure. Sans `dotnet` ni
+    jeu (CI), l'app part sans sonde et le dit."""
+    release_dir = os.path.join(PROBE_SOURCE_DIR, "bin", "Release", "net6.0")
+    dll = os.path.join(release_dir, "StarHubFR.Probe.dll")
+    sources = [str(f) for f in pathlib.Path(PROBE_SOURCE_DIR).glob("*.cs")]
+    sources += [os.path.join(PROBE_SOURCE_DIR, n) for n in ("manifest.json", "StarHubFR.Probe.csproj")]
+    sources += [str(f) for f in pathlib.Path(PROBE_SOURCE_DIR, "i18n").glob("*.json")]
+
+    def stale() -> bool:
+        return not os.path.exists(dll) or max(os.path.getmtime(f) for f in sources) > os.path.getmtime(dll)
+
+    if stale() and shutil.which("dotnet"):
+        print("[INFO] Building the StarHubFR probe (dotnet, Release)...")
+        log_path = os.path.join(".build", "probe-build.log")
+        os.makedirs(".build", exist_ok=True)
+        with open(log_path, "w", encoding="utf-8") as log:
+            result = subprocess.run(["dotnet", "build", "-c", "Release", "--nologo"], cwd=PROBE_SOURCE_DIR,
+                                    stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+        if result.returncode != 0:
+            print(f"[WARNING] Probe build failed (see {log_path}).")
+        elif os.path.exists(dll):
+            # Build réussi : la DLL est à jour, même si MSBuild n'a rien eu à
+            # recompiler (un manifest.json touché seul ne la réécrit pas).
+            os.utime(dll)
+    if stale():
+        print("[WARNING] StarHubFR probe NOT bundled: no up-to-date Release build "
+              "(needs dotnet and the game's DLLs). The app will say it cannot install it.")
+        return
+
+    dest = os.path.join(RESOURCES_DIR, "Probe", PROBE_FOLDER_NAME)
+    os.makedirs(os.path.join(dest, "i18n"), exist_ok=True)
+    shutil.copy2(dll, dest)
+    for name in ("manifest.json", "LICENSE-THIRD-PARTY.md"):
+        shutil.copy2(os.path.join(PROBE_SOURCE_DIR, name), dest)
+    for f in pathlib.Path(PROBE_SOURCE_DIR, "i18n").glob("*.json"):
+        shutil.copy2(f, os.path.join(dest, "i18n"))
+    with open(os.path.join(dest, "manifest.json"), encoding="utf-8-sig") as f:
+        version = json.load(f).get("Version", "?")
+    print(f"[INFO] Bundled StarHubFR probe {version}")
+
+
 def create_app_bundle():
     print(f"[INFO] Starting build process for {APP_DIR}...")
     generate_localizable_strings()
@@ -378,7 +430,8 @@ def create_app_bundle():
             os.makedirs(lproj_dest, exist_ok=True)
             shutil.copy2(os.path.join(lproj_src, "Localizable.strings"), os.path.join(lproj_dest, "Localizable.strings"))
             print(f"[INFO] Copied {lang} to App Resources")
-        
+    bundle_probe()
+
     # 4. Compile Swift App
     app_executable = os.path.join(MACOS_DIR, APP_NAME)
     module_cache_dir = os.path.join(".build", "module-cache")

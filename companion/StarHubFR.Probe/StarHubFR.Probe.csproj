@@ -3,8 +3,9 @@
   <!--
     Essai A5-T7 / D1 (2026-09-26) : un mod d'observation que StarHubFR lit.
     Construit sur la machine qui a le jeu (ModBuildConfig lit ses DLL) ;
-    la CI ne le construit pas. Jamais déployé automatiquement : le dossier
-    de sortie se copie à la main dans Mods/.
+    la CI ne le construit pas. D4-T3 (2026-10-03) : build_app.py le
+    recompile en Release si une source a bougé et l'embarque dans l'app ;
+    l'onglet Performances propose de l'installer, jamais sans confirmation.
   -->
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>

@@ -78,6 +78,14 @@ def create_release():
     if not os.path.exists(APP_DIR):
         print(f"[ERROR] Output folder {APP_DIR} not found after build.")
         return
+
+    # D4-T3 — une release porte la sonde : l'onglet Performances propose de
+    # l'installer depuis l'app. Sans elle (build sans dotnet ni jeu), on
+    # s'arrête plutôt que publier une app qui ne sait plus l'installer.
+    probe_manifest = os.path.join(APP_DIR, "Contents", "Resources", "Probe", "StarHubFR Probe", "manifest.json")
+    if not os.path.exists(probe_manifest):
+        print("[ERROR] The StarHubFR probe is not bundled (see the build warnings). Release interrompue.")
+        return
         
     # 2. Get version
     version = get_version()

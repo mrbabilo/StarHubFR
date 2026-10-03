@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **La sonde StarHubFR livrée avec l'app.** La carte « Sonde » de l'onglet Performances l'installe ou la met à jour en un clic, après confirmation ; elle arrive comme un mod ordinaire de la liste, que l'on peut mettre en pause ou supprimer. Une mise à jour garde son `config.json`.
+
 ### Changed
 
 - **Onglet Performances : la carte « Sonde » remplace la carte Profiler.** Elle dit si la sonde StarHubFR est installée, en pause ou active, et sa version. Elle déconseille d'installer le mod Profiler, qui fait le même travail avec un seuil et fausse les mesures de la sonde ; s'il est encore là, elle le signale.

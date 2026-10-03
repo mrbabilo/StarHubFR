@@ -8,6 +8,14 @@ import SwiftUI
 struct PerformanceProbeSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// D4-T3 — l'installation ou la mise à jour en attente de confirmation.
+    @State private var pending: ProbeBundle.Action?
+    @State private var failure: String?
+
+    private var bundledFolder: URL? { ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL) }
+    private var action: ProbeBundle.Action {
+        ProbeBundle.action(bundled: bundledFolder.flatMap(ProbeBundle.version(ofFolder:)), presence: probe)
+    }
 
     private var probe: ModPresence { ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods) }
     private var profiler: ModPresence { ModPresence.resolve(uniqueId: ModPresence.profilerId, in: viewModel.mods) }
@@ -33,6 +41,12 @@ struct PerformanceProbeSection: View {
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(AppDesign.Color.success)
             }
+            installButton
+            if let failure {
+                Label(failure, systemImage: "exclamationmark.triangle.fill")
+                    .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             switch profiler {
             case .enabled(let folderName, _):
                 Label(String(format: localization.L(L10n.Performance.profilerActive), folderName),
@@ -46,6 +60,52 @@ struct PerformanceProbeSection: View {
                 EmptyView()
             }
             note(localization.L(L10n.Performance.probeNoProfiler))
+        }
+        .confirmationDialog(localization.L(L10n.Performance.probeInstallConfirmTitle),
+                            isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
+                            presenting: pending) { action in
+            Button(title(action) ?? "") { perform() }
+        } message: { _ in
+            Text(String(format: localization.L(L10n.Performance.probeInstallConfirm), ProbeBundle.folderName))
+        }
+    }
+
+    /// Installer ou mettre à jour : jamais sans confirmation (D4-T3).
+    @ViewBuilder private var installButton: some View {
+        if let title = title(action) {
+            Button(title) { failure = nil; pending = action }
+                .buttonStyle(.borderedProminent).pointingHandCursor()
+        } else if action == .unavailable, probe == .absent {
+            note(localization.L(L10n.Performance.probeUnavailable))
+        }
+    }
+
+    private func title(_ action: ProbeBundle.Action) -> String? {
+        switch action {
+        case .install(let version):
+            String(format: localization.L(L10n.Performance.probeInstall), version)
+        case .update(let from, let to):
+            String(format: localization.L(L10n.Performance.probeUpdate), from, to)
+        case .unavailable, .upToDate, .newerInstalled:
+            nil
+        }
+    }
+
+    private func perform() {
+        guard !viewModel.isGameRunning() else {
+            failure = localization.L(L10n.Performance.gameRunning); return
+        }
+        let modsRoot = URL(fileURLWithPath: viewModel.gameDir).appendingPathComponent("Mods")
+        guard !viewModel.gameDir.isEmpty, let source = bundledFolder,
+              let target = ProbeBundle.target(modsRoot: modsRoot, presence: probe) else {
+            failure = String(format: localization.L(L10n.Performance.probeInstallFailed), ProbeBundle.folderName)
+            return
+        }
+        do {
+            try ProbeBundle.install(from: source, into: target)
+            viewModel.scanMods(gameDir: viewModel.gameDir)
+        } catch {
+            failure = String(format: localization.L(L10n.Performance.probeInstallFailed), error.localizedDescription)
         }
     }
 

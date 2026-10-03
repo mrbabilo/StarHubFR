@@ -345,6 +345,7 @@ let package = Package(
                 "Models/ModScanner.swift",
                 "Models/ModFolderTraversal.swift",
                 "Models/ModPresence.swift",
+                "Models/ProbeBundle.swift",
                 "Models/DependencyIndex.swift",
                 "Models/TogglePlan.swift",
                 "Models/DisabledModsMigration.swift",

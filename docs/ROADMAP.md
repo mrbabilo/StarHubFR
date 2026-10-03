@@ -838,10 +838,14 @@ SLO est actif et ce que la dernière session a mesuré.
       (Core, `Tests/ProbeFilesTests` sur des extraits réels, régénérables par
       `make_fixtures.py`) ; minute « écran titre » = sans lieu, pas « première
       minute » (4 contre-exemples réels). Premier consommateur : A5-T7 marche 2. · **M**
-- [ ] **D4-T3** — Distribution : la DLL embarquée dans l'app, installée comme un mod
-      **visible et pausable** de la liste, mise à jour avec l'app, jamais activée
-      sans l'accord de l'utilisateur. Décision à prendre avec l'auteur : c'est le
-      changement de nature écarté le 2026-09-14. · **M**
+- [x] **D4-T3** ✅ *(livré le 2026-10-03 — accord de l'auteur le même jour)* —
+      `build_app.py` recompile la sonde en Release quand une source est plus
+      récente que la DLL et l'embarque (`Resources/Probe/StarHubFR Probe`) ;
+      jamais périmée, et `release.py` refuse une release sans elle. La carte
+      « Sonde » propose « Installer » ou « Mettre à jour », avec confirmation
+      (`ProbeBundle`, Core : version, dossier réel, `config.json` gardé,
+      dossier en 0555 ouvert). Installée active dans `Mods/StarHubFR Probe`,
+      un mod de la liste comme un autre.
 - [ ] **D4-T4** — Avant/après : comparer deux sessions de la sonde autour d'une
       activation de mod (la version tenable de D1-T5, idée reprise d'UltraSmooth
       mais sur des sessions entières). · **S**

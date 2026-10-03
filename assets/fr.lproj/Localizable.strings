@@ -1746,6 +1746,12 @@
 "perf_probe_no_profiler" = "N'installez pas le mod Profiler : il fait le même travail que la sonde, avec un seuil qu'elle n'a pas, et chacun fausse les mesures de l'autre.";
 "perf_probe_profiler_active" = "Profiler est actif (%@) : il fausse les mesures de la sonde. Mettez-le en pause ou supprimez-le — la sonde le remplace.";
 "perf_probe_profiler_installed" = "Profiler est encore installé, en pause (%@) : vous pouvez le supprimer, la sonde le remplace.";
+"perf_probe_install" = "Installer la sonde %@";
+"perf_probe_update" = "Mettre à jour la sonde (%@ → %@)";
+"perf_probe_install_confirm_title" = "Installer la sonde StarHubFR ?";
+"perf_probe_install_confirm" = "StarHubFR copie la sonde livrée avec l'app dans Mods/%@. Elle n'optimise rien, ne touche à aucun autre mod et n'utilise pas le réseau ; vous pourrez la mettre en pause ou la supprimer comme n'importe quel mod. Une mise à jour garde son config.json.";
+"perf_probe_unavailable" = "Cette version de l'app n'embarque pas la sonde.";
+"perf_probe_install_failed" = "Installation de la sonde impossible : %@";
 "perf_unreadable" = "%lld ligne(s) illisible(s) ignorée(s)";
 "perf_inventory_missing" = "Inventaire absent pour un des deux moments : installez la sonde 0.4.12 ou plus récente pour voir ce qui a changé.";
 "perf_before" = "Avant";
