@@ -72,7 +72,12 @@ internal static class Guided
     {
         WindowActive = windowActive;
         if (PatchCosts.Active) patchesSeen = true;
-        if (Rule is { Outcome: GuidedOutcome.Running } rule && Context.IsWorldReady && !Game1.eventUp
+        // La présence ne compte que fenêtre active : une minute défocalisée
+        // est exclue par la garde « unfocused », elle ne doit pas non plus
+        // brûler le décompte — sinon le bandeau promet « 0:00 » alors que
+        // des minutes gardées manquent encore (retour d'écran du 2026-10-04,
+        // 151 s brûlées en trois minutes d'onglet inactif).
+        if (windowActive && Rule is { Outcome: GuidedOutcome.Running } rule && Context.IsWorldReady && !Game1.eventUp
             && Game1.currentLocation?.NameOrUniqueName == rule.Target)
         {
             targetTicks++;
