@@ -680,12 +680,31 @@ de code ni suppression de fichier (motif compté avant/après).
   `VisitsUntilY1Guarantee` est décrémenté deux fois dans la sauvegarde).
   Jamais exécuté sur le parc : le mod est en pause. Avant de le réactiver :
   `"EnableParallelDayUpdate": false` (clé écrite dans le `config.json` du parc
-  le 2026-10-01, sauvegarde `config.json.bak-2026-10-01`). Catalogue A5-T7
+  le 2026-10-01, sauvegarde `config.json.bak-2026-10-01`) — **obsolète depuis
+  la 2.4.5** : la clé est false d'usine, verdict GO,
+  [`audit-ultrasmooth-2.4.5.md`](audit-ultrasmooth-2.4.5.md). Catalogue A5-T7
   mis à jour : `LightSource.Draw` et `findPathForNPCSchedules` (patch
   toujours posé, `EnableRouteCache` vrai par défaut) passent dans les
   méthodes communes avec Stardropium, mesurées sur 2.4.1 et 0.2.0-beta.
   Détail, autres optimiseurs (préchauffage de saison hors du fil du jeu,
   hibernation d'Automate) : [`audit-ultrasmooth-2.4.1.md`](audit-ultrasmooth-2.4.1.md).
+- **UltraSmooth 2.4.4 → 2.4.5** — 7 fichiers. La boucle sub-tick (cause des
+  CTD de récolte de la lignée 2.4.x) est retirée, `EnableSmartSchedule` et
+  `EnableFurnitureCulling` passent false d'usine comme
+  `EnableParallelDayUpdate` et `EnableSpaceCorePrewarm` : le réglage posé à
+  la main le 2026-09-26 est devenu l'état d'usine. Surfaces dangereuses
+  identiques. Verdict **GO** ; le préchauffage SpaceCore reste le même code,
+  seulement désarmé — ne jamais forcer les cinq clés. Détail :
+  [`audit-ultrasmooth-2.4.5.md`](audit-ultrasmooth-2.4.5.md).
+- **Stardropium 0.2.0-beta → 0.2.2-beta** — 40 fichiers. Caméra, trim mémoire
+  Mac pendant les fondus, sortie du mode basse latence au titre, replanification
+  complète des lieux dynamiques à la sauvegarde (équivalent SpaceCore) : de
+  vrais correctifs, aucune surface nouvelle, le module d'écrasement CP n'est
+  pas revenu. Deux 🟡 : cache d'images sans invalidation taille+mtime, patch
+  « SaveSaver » sur-large (inerte, SaveSaver absent du parc). Verdict
+  **GARDER ACTUEL** — mais noter que le mod est **en pause** sur le parc
+  (`.Stardropium`), état qui avait dérivé du « actif » porté jusque-là.
+  Détail : [`audit-stardropium-0.2.2.md`](audit-stardropium-0.2.2.md).
 - **Modern Config Menu 2.2.4 → 2.2.5** — 9 fichiers, aucun neuf.
   Le bouton `[+]` écrit des raccourcis alternatifs séparés par une virgule
   (`F8, ControllerBack`) : `KeybindParser` les lit déjà (test `"F8, K"`).
