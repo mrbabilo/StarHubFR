@@ -33,6 +33,13 @@ public struct ModItem: Identifiable, Equatable, Sendable {
     /// c'est le pack « Always Raining in the Valley » qui a une page.
     public var isPackComponent: Bool { folderName.contains("/") }
 
+    /// La sonde StarHubFR (`companion/StarHubFR.Probe`) : elle ouvre la
+    /// liste, porte un mode d'emploi sur sa fiche et ne se supprime pas
+    /// (demande d'auteur du 2026-10-04) — une pause suffit à l'arrêter.
+    public var isStarHubProbe: Bool {
+        uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame
+    }
+
     /// La date d'installation à **montrer et à trier** : la sienne, ou — pour
     /// un en-tête de pack, fabriqué sans date propre — la plus récente de ses
     /// composants.

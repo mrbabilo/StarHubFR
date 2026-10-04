@@ -255,7 +255,7 @@ struct ModDetailView: View {
                         reportConflictNote = ""
                         showReportConflict = true
                     },
-                    onDelete: { showDeleteConfirm = true })
+                    onDelete: live.isStarHubProbe ? nil : { showDeleteConfirm = true })
             }
         }
     }
@@ -270,6 +270,13 @@ struct ModDetailView: View {
     }
 
     private var heroPictureURL: URL? {
+        // La sonde porte la couverture de l'app (celle du splash, copiée
+        // dans le bundle par `build_app.py`) : elle n'a pas de page Nexus
+        // à illustrer sa fiche.
+        if mod.isStarHubProbe,
+           let local = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") {
+            return local
+        }
         guard let extra = vm.modExtra(for: mod), !extra.pictureUrl.isEmpty else { return nil }
         return URL(string: extra.pictureUrl)
     }
@@ -1153,7 +1160,7 @@ struct ModDetailView: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 // La sonde ouvre sa propre fiche par son mode d'emploi :
                 // l'outil maison se lit avant tout le reste.
-                if live.uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame {
+                if live.isStarHubProbe {
                     ProbeManualSection(localization: localization)
                 }
                 ModCompatibilityCard(viewModel: vm, localization: localization, live: live,

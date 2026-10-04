@@ -319,7 +319,7 @@ enum ModListScoping {
         var rest: [ModItem] = []
         rest.reserveCapacity(mods.count)
         for mod in mods {
-            if mod.uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame { probe.append(mod) }
+            if mod.isStarHubProbe { probe.append(mod) }
             else { rest.append(mod) }
         }
         guard order != .name else { return probe + rest }

@@ -7198,6 +7198,13 @@ final class StarHubTHViewModel {
     }
 
     func deleteMod(_ mod: ModItem) {
+        // La sonde ne se supprime pas (demande d'auteur du 2026-10-04) : les
+        // corbeilles de sa rangée et de sa fiche n'existent pas, cette garde
+        // couvre tout autre appelant futur.
+        if mod.isStarHubProbe {
+            showModal(message: localization.L(L10n.Mods.probeDeleteRefused))
+            return
+        }
         if refuseDuringBenchmark() { return }
         guard !gameDir.isEmpty else {
             showModal(message: localization.L(L10n.Settings.gameDirNotSet))

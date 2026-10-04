@@ -227,6 +227,14 @@ struct ModListView: View {
     /// fiche, qui les détaille) ; leur infobulle porte le texte entier.
     private func gridAttributes(for mod: ModItem) -> [CardAttribute] {
         var attributes: [CardAttribute] = []
+        // La marque de la sonde d'abord : même famille visuelle que la
+        // capsule de la rangée, sur la carte.
+        if mod.isStarHubProbe {
+            attributes.append(CardAttribute(id: "probe",
+                                            systemImage: "gauge.with.dots.needle.67percent",
+                                            tint: AppDesign.Color.accent,
+                                            help: localization.L(L10n.Mods.probeBadgeHelp)))
+        }
         if let anomaly = vm.anomaly(for: mod) {
             attributes.append(CardAttribute(id: "anomaly",
                                             systemImage: "exclamationmark.triangle.fill",
@@ -258,6 +266,12 @@ struct ModListView: View {
     /// L'identifiant passe par `sharedNexusId` : un pack **à plat** n'hérite
     /// pas de la capture de son premier composant.
     private func gridPictureURL(for mod: ModItem) -> String? {
+        // La sonde porte la couverture de l'app (celle du splash) : elle
+        // n'a pas de page Nexus à illustrer sa carte.
+        if mod.isStarHubProbe,
+           let local = Bundle.main.url(forResource: "nexus_cover_final", withExtension: "png") {
+            return local.absoluteString
+        }
         guard let id = ModGridCardValues.sharedNexusId(of: mod, effectiveId: {
             vm.effectiveNexusModId(for: $0)
         }) else { return nil }

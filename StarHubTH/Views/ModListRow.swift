@@ -350,6 +350,23 @@ struct ModListRow: View {
         .frame(width: ModListRow.Column.weight, alignment: .leading)
     }
 
+    /// La marque de la sonde, même famille que les badges d'alerte : la
+    /// capsule se lit avant le nom, teinte d'accent — elle dit « outil
+    /// maison », pas « alerte ». La sonde ne se supprime pas : la corbeille
+    /// de sa rangée n'existe pas (garde de fond dans `deleteMod`).
+    private var probeBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "gauge.with.dots.needle.67percent")
+            Text(localization.L(L10n.Mods.probeBadge))
+        }
+        .font(AppDesign.Font.iconXS(.semibold))
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .background(AppDesign.Color.accent.opacity(AppDesign.Opacity.subtle))
+        .foregroundColor(AppDesign.Color.accent)
+        .clipShape(Capsule())
+        .help(localization.L(L10n.Mods.probeBadgeHelp))
+    }
+
     /// Jusqu'à 76 caractères de codes sur le parc réel : borné à ce que la
     /// place permet, avec la liste entière à l'infobulle.
     @ViewBuilder
@@ -471,6 +488,7 @@ struct ModListRow: View {
                     // déplacement de l'anomalie vers la bande de
                     // métadonnées, retournée : ces badges ont vocation à
                     // alerter avant la fiche, et c'est ici qu'on les cherche.
+                    if mod.isStarHubProbe { probeBadge }
                     if let page = vm.nexusPageState(for: mod) {
                         Button { showingNexusPage = true } label: {
                             NexusPageBadge(state: page.state, L: localization.L)
@@ -743,11 +761,12 @@ struct ModListRow: View {
 
                 // Delete button — permanently removes the mod (or pack) from
                 // disk. Hidden for child rows inside a pack, since the pack
-                // header carries the delete action for all children. A
-                // confirmation dialog fires before the actual deletion.
+                // header carries the delete action for all children, et pour
+                // la sonde, qui ne se supprime pas (garde dans `deleteMod`).
+                // A confirmation dialog fires before the actual deletion.
                 // While the deletion is in flight (folder removal + rescan),
                 // a spinner replaces the trash icon on this row.
-                if !isChild {
+                if !isChild && !mod.isStarHubProbe {
                     if vm.pendingDeleteFolder == mod.folderName {
                         ProgressView()
                             .controlSize(.small)

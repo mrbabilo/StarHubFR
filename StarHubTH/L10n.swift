@@ -391,6 +391,9 @@ enum L10n {
         static let probeManualHow       = "mods_probe_manual_how"
         static let probeManualAfter     = "mods_probe_manual_after"
         static let probeManualPause     = "mods_probe_manual_pause"
+        static let probeBadge           = "mods_probe_badge"
+        static let probeBadgeHelp       = "mods_probe_badge_help"
+        static let probeDeleteRefused   = "mods_probe_delete_refused"
         // Le lot H-T4b — la fiche refondue : onglets, toggle d'état, pager.
         static let tabOverview         = "mods_tab_overview"
         static let tabHealth           = "mods_tab_health"

@@ -18,7 +18,9 @@ struct ModDetailActionBar: View {
     @Binding var pendingActivation: ModItem?
     @Binding var pendingConflict: ConflictActivation?
     let onReportConflict: () -> Void
-    let onDelete: () -> Void
+    /// `nil` : rien à supprimer — la sonde ne se supprime pas, la corbeille
+    /// n'existe alors pas (garde de fond dans `deleteMod`).
+    let onDelete: (() -> Void)?
 
     /// L'état relu à chaque rendu : la pause renomme le dossier physique,
     /// la copie figée ne suit pas.
@@ -97,16 +99,18 @@ struct ModDetailActionBar: View {
 
             // La suppression, à l'écart : icône seule, rôle destructif —
             // la confirmation vit dans la fiche, qui se referme ensuite.
-            Button(role: .destructive, action: onDelete) {
-                Image(systemName: "trash")
+            if let onDelete {
+                Button(role: .destructive, action: onDelete) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .foregroundColor(.red)
+                .disabled(vm.pendingDeleteFolder != nil)
+                .help(localization.L(L10n.Mods.deleteMod))
+                .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
+                .accessibilityHint(localization.L(L10n.Mods.deleteModA11yHint))
+                .pointingHandCursor()
             }
-            .buttonStyle(.borderless)
-            .foregroundColor(.red)
-            .disabled(vm.pendingDeleteFolder != nil)
-            .help(localization.L(L10n.Mods.deleteMod))
-            .accessibilityLabel(localization.L(L10n.Mods.deleteMod))
-            .accessibilityHint(localization.L(L10n.Mods.deleteModA11yHint))
-            .pointingHandCursor()
         } }
         .padding(.horizontal, 24)
         .padding(.vertical, 10)
