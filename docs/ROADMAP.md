@@ -1009,7 +1009,10 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       avec le benchmark — sonde **0.9.5**. *Corrigé le soir même* : le plan
       ne démarrait qu'au `SaveLoaded`, trop tard d'un chargement — l'écran
       titre ne voyait jamais `Active`, donc jamais l'auto-chargement ;
-      `RefreshPlan` appelé à l'`Entry`. À valider en jeu.
+      `RefreshPlan` appelé à l'`Entry`. *Leçon du soir* : le correctif était
+      d'abord reparti sous le **même** 0.9.5 que la build périmée du parc —
+      renuméroté **0.9.6** (un numéro par DLL livrée : la copie `Mods/` ne
+      suit pas le gate). À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
