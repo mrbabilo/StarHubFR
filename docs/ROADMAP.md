@@ -341,7 +341,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **5 items ouverts sur 29** *(le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **7 items ouverts sur 31** *(le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -374,6 +374,15 @@ backup se retrouve en moins de dix secondes.
       posé en silence. Un dossier de mod portant le suffixe `.app` **sans**
       `Contents` reste un mod ordinnaire (test voisin). Vérifié sur la vraie
       archive (Stardew Save Launcher, 113 Mo, probe jetable).
+- [ ] **A1-T12** — `§audit-stardrop-nativemac` · Protéger les trois mods internes
+      installés par SMAPI (`SMAPI.ConsoleCommands`, `SMAPI.ErrorHandler`,
+      `SMAPI.SaveBackup`) dans les opérations en masse : toujours actifs, exclus de
+      « désactiver tout », non supprimables. Le concurrent natif le fait simplement
+      (`ModScannerService.coreModIds`) ; l'audit Stardrop l'avait déjà relevé
+      (« nettoyage d'UX quasi gratuit », §3.6), jamais pris. Nos slots d'accueil
+      (`CoreModSlot`) n'affichent que SMAPI/CP/SpaceCore/SVE — rien ne protège ces
+      trois-là d'un « tout désactiver » ; l'exclusion du compte affiché est à
+      arbitrer avec les bandeaux de comptes existants. · **S**
 
 - [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
       compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
@@ -408,6 +417,13 @@ backup se retrouve en moins de dix secondes.
 #### A3 — Métadonnées Nexus
 
 > ✅ **Les 7 items de ce lot sont livrés** (A3-T7 le 2026-09-25). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+
+- [ ] **A3-T8** — `§audit-stardrop-nativemac` · Endorsement/abstention Nexus depuis
+      la fiche du mod (état actuel, bouton d'action, erreurs typées : mod à soi,
+      délai de 15 min après téléchargement, mod non téléchargé — la typologie du
+      concurrent natif, `NexusService.setModEndorsement`, sert de référence de
+      surface). Faible priorité : A3 est en lecture seule aujourd'hui, c'est le seul
+      write-op Nexus utile que nous n'avons pas. · **S**
 
 
 #### A5 — Incompatibilités entre mods
@@ -1348,6 +1364,21 @@ parties, profils.
 des écrans voués au remplacement ; la palette de commandes touche au routage
 de `MainView` — le piège des états de détail remis à `nil` au changement
 d'onglet s'applique à chaque saut.
+**`§audit-stardrop-nativemac` — idées relevées le 2026-10-04**
+([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
+de l'axe — l'un des rares domaines où le port devance nos écrans :
+
+- [ ] **I-T20** — Multi-sélection fine dans la liste : ⇧clic/⇧↑↓ pour les plages,
+      ⌘clic pour ajouter/retirer, ⌘A, bascule **Espace** de la sélection (un seul
+      désactivé ⇒ tout activer), navigation ↑↓ — avec la garde de focus (la saisie
+      dans un champ ne déclenche pas la bascule). Aujourd'hui : tout/pas tout. Le
+      port natif de Stardrop le démontre complet (`AppState.swift:185-400`). · **S**
+- [ ] **I-T21** — Groupes/séparateurs pliables dans la liste (bannière, repli,
+      activer/désactiver tout le groupe, déplacer un mod de groupe en groupe,
+      génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil
+      décrit un **état**, un groupe décrit un **rangement** — les deux se
+      complètent sans se remplacer. · **M**
+
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
 
