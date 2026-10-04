@@ -1151,6 +1151,11 @@ struct ModDetailView: View {
             }
         case .overview:
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                // La sonde ouvre sa propre fiche par son mode d'emploi :
+                // l'outil maison se lit avant tout le reste.
+                if live.uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame {
+                    ProbeManualSection(localization: localization)
+                }
                 ModCompatibilityCard(viewModel: vm, localization: localization, live: live,
                                      note: vm.modDetailState.flatMap { CompatibilityNote.find(in: $0.description) },
                                      onShowHealth: { selectedTab = .health })

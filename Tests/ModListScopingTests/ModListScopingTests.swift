@@ -407,6 +407,16 @@ struct ModListScopingTests {
             == ["Zeta", "Alpha"])
     }
 
+    @Test func theProbeOpensTheListWhateverTheOrder() {
+        // Demande d'auteur du 2026-10-04 : l'outil maison se lit en premier,
+        // même en ordre descendant — le reste garde le sens du tri choisi.
+        let probe = mod("Sonde", id: ModPresence.probeId)
+        #expect(ModListScoping.sorted([mod("Alpha"), probe, mod("Zeta")], by: .name,
+                                      inputs: .init()).map(\.name) == ["Sonde", "Alpha", "Zeta"])
+        #expect(ModListScoping.sorted([mod("Zeta"), probe, mod("Alpha")], by: .nameDescending,
+                                      inputs: .init()).map(\.name) == ["Sonde", "Zeta", "Alpha"])
+    }
+
     @Test func sortingByNameDescendingReverses() {
         #expect(ModListScoping.sorted(named(["Alpha", "Zeta"]), by: .nameDescending,
                                       inputs: .init()).map(\.name) == ["Zeta", "Alpha"])

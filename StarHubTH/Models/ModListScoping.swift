@@ -306,13 +306,24 @@ enum ModListScoping {
     /// code triait ici avec un comparateur toujours faux, ce qui ne rendait le
     /// même résultat **que si** `sorted(by:)` était stable : la bibliothèque
     /// standard ne le garantit pas (elle l'est aujourd'hui, par implémentation).
-    /// Ne rien faire est à la fois juste et gratuit — le tri à blanc coûtait une
-    /// passe complète sur 949 mods à chaque rendu, donc à chaque frappe dans la
-    /// recherche.
+    /// Reste une passe de partition pour épingler la sonde en tête — une
+    /// comparaison de chaîne par mod, pas de re-tri à blanc qui coûtait une
+    /// passe complète sur 949 mods à chaque rendu, donc à chaque frappe.
     static func sorted(_ mods: [ModItem], by order: ModSortOrder,
                        inputs: Inputs) -> [ModItem] {
-        guard order != .name else { return mods }
-        return mods.sorted { lhs, rhs in
+        // La sonde ouvre la liste, quel que soit le tri (demande d'auteur du
+        // 2026-10-04) : l'outil maison se lit en premier ; chaque ordre garde
+        // son sens sur tout le reste. Une passe de partition, pas deux filtres
+        // — l'ordre du reste est préservé pour `.name`, qui ne retraite pas.
+        var probe: [ModItem] = []
+        var rest: [ModItem] = []
+        rest.reserveCapacity(mods.count)
+        for mod in mods {
+            if mod.uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame { probe.append(mod) }
+            else { rest.append(mod) }
+        }
+        guard order != .name else { return probe + rest }
+        return probe + rest.sorted { lhs, rhs in
             switch order {
             case .name:
                 // Inatteignable : écarté par le `guard` ci-dessus. Le cas reste

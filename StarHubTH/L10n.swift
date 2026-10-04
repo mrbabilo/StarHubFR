@@ -384,6 +384,13 @@ enum L10n {
         static let sortInstallDate      = "mods_sort_install_date"
         static let prevPageHint         = "mods_prev_page_hint"
         static let nextPageHint         = "mods_next_page_hint"
+        // Le mode d'emploi de la sonde, en tête de sa fiche (demande du
+        // 2026-10-04) : l'outil maison se lit avant sa description.
+        static let probeManualTitle     = "mods_probe_manual_title"
+        static let probeManualWhat      = "mods_probe_manual_what"
+        static let probeManualHow       = "mods_probe_manual_how"
+        static let probeManualAfter     = "mods_probe_manual_after"
+        static let probeManualPause     = "mods_probe_manual_pause"
         // Le lot H-T4b — la fiche refondue : onglets, toggle d'état, pager.
         static let tabOverview         = "mods_tab_overview"
         static let tabHealth           = "mods_tab_health"

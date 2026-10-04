@@ -687,3 +687,25 @@ struct NexusIdentitySection: View {
         .padding(.vertical, 2)
     }
 }
+
+/// Le mode d'emploi de la sonde StarHubFR, en tête de sa fiche : l'outil
+/// maison se lit avant sa description de mod ordinaire (demande du
+/// 2026-10-04). Quatre lignes courtes, rien à déplier.
+struct ProbeManualSection: View {
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            Text(localization.L(L10n.Mods.probeManualTitle))
+                .font(AppDesign.Font.headline(.semibold))
+            ForEach([L10n.Mods.probeManualWhat, L10n.Mods.probeManualHow,
+                     L10n.Mods.probeManualAfter, L10n.Mods.probeManualPause], id: \.self) { key in
+                Text(localization.L(key))
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
+    }
+}
