@@ -1000,6 +1000,13 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       cible** (ticks comptés par la sonde, pas l'horloge murale — le temps
       passé ailleurs ou en pause ne descend pas), format mm:ss sans heures,
       disparait au plancher atteint — sonde **0.9.4**. À valider en jeu.
+      *2026-10-04, soir, choix au lancement* : la feuille gagne deux pickers —
+      sauvegarde (champ `SaveName` optionnel du plan, **toujours Version 1** :
+      la sonde la charge seule 5 s après l'écran titre ; « — » = clic manuel)
+      et profil (« parc tel quel » par défaut ; ses mods appliqués au
+      lancement puis **laissés actifs** — « Préparer seulement » ne les
+      applique pas). Geste de chargement extrait en `AutoLoad.cs` partagé
+      avec le benchmark — sonde **0.9.5**. À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
