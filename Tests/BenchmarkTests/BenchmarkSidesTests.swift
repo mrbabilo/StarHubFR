@@ -29,6 +29,17 @@ import Testing
         #expect(BenchmarkSides.foldersB(.sameState, foldersA: a, mods: []) == a)
     }
 
+    /// Ce que le panneau du benchmark annonce comme « ce qui change entre A et B » :
+    /// le nom affiché du mod mis en pause, la taille du profil, ou le bruit.
+    @Test func theABChangeNamesTheModOrCountsTheProfile() {
+        let mods = [mod("Speedy", id: "sinz.speedysolutions"), mod("CP", id: "Pathoschild.ContentPatcher")]
+        #expect(BenchmarkSides.change(for: .pauseMod(folderName: "Speedy"), mods: mods) == .pauseMod(modName: "Speedy"))
+        // Dossier sans correspondance : le dossier lui-même, jamais une chaîne vide.
+        #expect(BenchmarkSides.change(for: .pauseMod(folderName: "Fantôme"), mods: mods) == .pauseMod(modName: "Fantôme"))
+        #expect(BenchmarkSides.change(for: .profile(enabledModIds: ["a", "b", "c", "d"]), mods: mods) == .profile(modCount: 4))
+        #expect(BenchmarkSides.change(for: .sameState, mods: mods) == .sameState)
+    }
+
     @Test func profileSideResolvesIdsCaseInsensitively() {
         let mods = [mod("CP", id: "Pathoschild.ContentPatcher"), mod("Probe", id: "mrbabilo.StarHubFR.Probe"),
                     mod("Skip", id: "Pathoschild.SkipIntro", enabled: false)]

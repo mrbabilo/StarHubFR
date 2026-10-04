@@ -1,18 +1,12 @@
 import SwiftUI
 
-/// Série en cours, résultat ou reprise d'un benchmark interrompu.
+/// Série en cours, résultat ou reprise d'un benchmark interrompu. Le détail
+/// vivant (étapes, durées, jalons) vit dans le panneau flottant
+/// (`BenchmarkPanelContent`) ; cette ligne reste le filet quand le panneau
+/// est fermé.
 struct PerformanceBenchmarkStatus: View {
     var runner: BenchmarkRunner
     @ObservedObject var localization: LocalizationStore
-
-    private static let percentFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        // Un formateur nu n'écrit aucune décimale (0,5 → « 0 »).
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 1
-        return f
-    }()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -35,11 +29,15 @@ struct PerformanceBenchmarkStatus: View {
             case .restoring:
                 Text(localization.L(L10n.Benchmark.restoring))
             case .finished(let outcome):
-                line(L10n.Benchmark.resultLaunch, outcome.launch)
-                line(L10n.Benchmark.resultSave, outcome.save)
+                BenchmarkOutcomeLines(outcome: outcome, localization: localization)
             case .failed(let failure):
                 Text(String(format: localization.L(L10n.Benchmark.failed), localization.L(key(failure))))
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            // Ce que la série compare — la même ligne que le panneau, pour
+            // qu'un panneau fermé ne perde pas l'information.
+            if runner.isActive, let setup = runner.setup {
+                changeLine(setup)
             }
             if !runner.touchedSaves.isEmpty {
                 Text(String(format: localization.L(L10n.Benchmark.saveTouched),
@@ -50,41 +48,19 @@ struct PerformanceBenchmarkStatus: View {
         .font(AppDesign.Font.footnote)
     }
 
+    /// Ce qui change entre A et B : le mod en pause (par son nom), le profil
+    /// réduit, ou la mesure du bruit. Résolution partagée avec le panneau
+    /// (`BenchmarkSides.change`).
     @ViewBuilder
-    private func line(_ titleKey: String, _ outcome: BenchmarkKindOutcome) -> some View {
-        switch outcome {
-        case .notComparable:
-            Text(String(format: localization.L(titleKey), localization.L(L10n.Benchmark.notComparable)))
-                .fixedSize(horizontal: false, vertical: true)
-        case .result(let r):
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(format: localization.L(titleKey), verdict(r.verdict)))
-                    .font(AppDesign.Font.body(.semibold))
-                Text(String(format: localization.L(L10n.Benchmark.noiseLine),
-                            PerformanceLoadsSection.duration(r.medianAMs),
-                            PerformanceLoadsSection.duration(r.medianBMs),
-                            percent(r.noisePercent), percent(r.thresholdPercent)))
-                    .foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+    private func changeLine(_ setup: BenchmarkSetup) -> some View {
+        let text: String = {
+            switch BenchmarkSides.change(for: setup.sideB, mods: runner.viewModelMods) {
+            case .pauseMod(let name): return String(format: localization.L(L10n.Benchmark.changePause), name)
+            case .profile(let count): return String(format: localization.L(L10n.Benchmark.changeProfile), count)
+            case .sameState: return localization.L(L10n.Benchmark.changeSame)
             }
-        }
-    }
-
-    private func verdict(_ v: ProbeLoadVerdict) -> String {
-        switch v {
-        case .faster(let seconds, let p):
-            return "B −\(PerformanceLoadsSection.duration(seconds * 1000)) (−\(percent(p)))"
-        case .slower(let seconds, let p):
-            return "B +\(PerformanceLoadsSection.duration(seconds * 1000)) (+\(percent(p)))"
-        case .noDifference:
-            return localization.L(L10n.Benchmark.verdictSame)
-        case .grayZone:
-            return localization.L(L10n.Benchmark.verdictGray)
-        }
-    }
-
-    private func percent(_ value: Double?) -> String {
-        guard let value, let text = Self.percentFormatter.string(from: NSNumber(value: value)) else { return "—" }
-        return "\(text) %"
+        }()
+        Text(text).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
     }
 
     /// Une chauffe se dit comme telle : sans quoi elle passe pour une mesure A.

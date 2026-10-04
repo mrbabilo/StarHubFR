@@ -33,6 +33,18 @@ final class BenchmarkRunner {
 
     private(set) var phase: Phase = .idle
     private(set) var runs: [BenchmarkRun] = []
+    /// La série en cours, pour la ligne « ce qui change entre A et B ».
+    private(set) var setup: BenchmarkSetup?
+    /// L'état observé de chaque run : démarré, jeu vu, dernier jalon de
+    /// chargement lu dans `loads.jsonl`, durée à la sortie. Le panneau et le
+    /// statut inline le lisent — la preuve que la série vit.
+    struct RunObservation: Equatable {
+        var startedAt: Date?
+        var duration: TimeInterval?
+        var gameSeen = false
+        var milestone: String?
+    }
+    private(set) var observations: [RunObservation] = []
     /// Instantané d'une série interrompue (plantage, restauration partielle).
     private(set) var interrupted: BenchmarkSnapshot?
     /// Sauvegardes d'origine dont la taille ou la date a bougé pendant la série.
@@ -44,6 +56,10 @@ final class BenchmarkRunner {
         case .idle, .finished, .failed: return false
         }
     }
+
+    /// Le parc courant du ViewModel — le panneau y résout le nom du mod mis
+    /// en pause pour sa ligne « ce qui change entre A et B ».
+    var viewModelMods: [ModItem] { viewModel.mods }
 
     private unowned let viewModel: StarHubTHViewModel
     private let directory: URL? = AppSupport.directory
@@ -99,9 +115,11 @@ final class BenchmarkRunner {
         stopRequested = false
         touchedSaves = []
         runs = []
+        self.setup = setup
         phase = .preparing
         activity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated, .idleSystemSleepDisabled], reason: "Benchmark des chargements")
+        BenchmarkPanelController.shared.show(runner: self, localization: viewModel.localization)
         Task { await run(setup) }
     }
 
@@ -151,6 +169,7 @@ final class BenchmarkRunner {
         viewModel.restoreActiveProfileAfterBenchmark(nil)
 
         runs = BenchmarkSequence.runs(perSide: setup.perSide, sameState: setup.sideB == .sameState)
+        observations = runs.map { _ in RunObservation() }
         // Dernier état appliqué **et** relu sur le disque. Le premier lancement
         // applique toujours (sa relecture confronte le parc en mémoire au
         // disque) ; ensuite, un état inchangé ne bouge rien : le relire à
@@ -163,6 +182,8 @@ final class BenchmarkRunner {
                 return
             }
             phase = .running(index: index)
+            observations[index].startedAt = Date()
+            observations[index].milestone = nil
             let target = Set(run.side.isA ? foldersA : foldersB)
             if target != applied {
                 guard await apply(run.side.isA ? foldersA : foldersB) else {
@@ -191,10 +212,11 @@ final class BenchmarkRunner {
                 await finish(.failed(.launch), snapshot: snapshot)
                 return
             }
-            if let failure = await waitForGame() {
+            if let failure = await waitForGame(runId: run.id, index: index) {
                 await finish(.failed(failure), snapshot: snapshot)
                 return
             }
+            observations[index].duration = observations[index].startedAt.map { Date().timeIntervalSince($0) }
             // Le plan a servi (lu à l'Entry de la sonde) : le retirer tout de
             // suite — un lancement manuel lancé dans la foulée ne doit pas
             // pouvoir être détourné.
@@ -232,8 +254,10 @@ final class BenchmarkRunner {
 
     /// Suivi en deux temps : `isGameRunning()` ne voit pas le jeu pendant ses
     /// premières secondes — « vu puis disparu » = fin ; jamais vu en 90 s =
-    /// échec ; 8 min = fermeture forcée.
-    private func waitForGame() async -> BenchmarkFailure? {
+    /// échec ; 8 min = fermeture forcée. Chaque sondage nourrit l'observation
+    /// du run (jeu vu, dernier jalon lu dans `loads.jsonl`) : le panneau montre
+    /// la vie pendant un lancement qui peut durer plusieurs minutes.
+    private func waitForGame(runId: String, index: Int) async -> BenchmarkFailure? {
         let start = Date()
         var seen = false
         var seenAt = Date()
@@ -242,7 +266,10 @@ final class BenchmarkRunner {
             guard await sleep(seconds: Self.pollSeconds) else { return .stopped }
             let running = viewModel.isGameRunning()
             if running && !seen { seenAt = Date() }
-            if running { seen = true }
+            if running { seen = true; observations[index].gameSeen = true }
+            if seen {
+                observations[index].milestone = latestMilestone(runId: runId)
+            }
             // Une activation unique se perd au premier lancement (jeu à froid,
             // vu avant d'avoir fini de démarrer) : redemander à chaque
             // sondage jusqu'à ce qu'il soit devant.
@@ -257,6 +284,15 @@ final class BenchmarkRunner {
                 return .timeout
             }
         }
+    }
+
+    /// Le dernier jalon écrit par la sonde pour ce run (`L0`…`L4` au menu
+    /// titre, `S0`…`S9` au chargement). Lecture best-effort : un fichier
+    /// absent ou à moitié écrit laisse le jalon précédent en place.
+    private func latestMilestone(runId: String) -> String? {
+        let records = files.loads().records
+        guard let record = records.last(where: { $0.benchmarkRun == runId }) else { return nil }
+        return record.milestones.last?.name
     }
 
     private func gameProcesses() -> [NSRunningApplication] {

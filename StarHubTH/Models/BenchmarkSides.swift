@@ -30,6 +30,27 @@ public enum BenchmarkSides {
     /// interne grandisse (`observedNoisePercent` ne le voit pas).
     public static let cacheModIds: Set<String> = ["sinz.speedysolutions"]
 
+    /// Ce qui change entre A et B, en termes humains — la ligne du panneau
+    /// et du statut inline. Le nom du mod en pause est résolu depuis la liste
+    /// (le `folderName` seul n'est pas le libellé de l'utilisateur).
+    public enum ABChange: Equatable, Sendable {
+        case pauseMod(modName: String)
+        case profile(modCount: Int)
+        case sameState
+    }
+
+    public static func change(for sideB: BenchmarkSideB, mods: [ModItem]) -> ABChange {
+        switch sideB {
+        case .sameState:
+            return .sameState
+        case .pauseMod(let folder):
+            let name = mods.first { $0.folderName == folder }?.name ?? folder
+            return .pauseMod(modName: name)
+        case .profile(let ids):
+            return .profile(modCount: ids.count)
+        }
+    }
+
     public static func foldersA(_ mods: [ModItem]) -> [String] {
         mods.filter(\.isEnabled).map(\.folderName)
     }

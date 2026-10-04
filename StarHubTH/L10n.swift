@@ -897,6 +897,24 @@ enum L10n {
         static let verdictSame        = "bench_verdict_same"
         static let verdictGray        = "bench_verdict_gray"
         static let siblings           = "bench_siblings"
+        // Panneau de suivi flottant (visible pendant que le jeu tourne).
+        static let panelTitle         = "bench_panel_title"
+        static let preparingLine      = "bench_preparing_line"
+        static let changePause        = "bench_change_pause"
+        static let changeProfile      = "bench_change_profile"
+        static let changeSame         = "bench_change_same"
+        static let savesLine          = "bench_saves_line"
+        static let savesSame          = "bench_saves_same"
+        static let savesDistinct      = "bench_saves_distinct"
+        static let stepPending        = "bench_step_pending"
+        static let stopHint           = "bench_stop_hint"
+        static let close              = "bench_close"
+        static let gameLaunching      = "bench_game_launching"
+        static let gameLoading        = "bench_game_loading"
+        static let titleReached       = "bench_title_reached"
+        static let saveLoadedDone     = "bench_save_loaded_done"
+        static let loadingAt          = "bench_loading_at"
+        static let startingAt         = "bench_starting_at"
     }
 
     enum Performance {
