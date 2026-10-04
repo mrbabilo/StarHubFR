@@ -1012,7 +1012,10 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       `RefreshPlan` appelé à l'`Entry`. *Leçon du soir* : le correctif était
       d'abord reparti sous le **même** 0.9.5 que la build périmée du parc —
       renuméroté **0.9.6** (un numéro par DLL livrée : la copie `Mods/` ne
-      suit pas le gate). À valider en jeu.
+      suit pas le gate). *Encore itéré* : le décompte restait figé entre deux
+      minutes gardées — l'append vivait dans le bloc de cache du bandeau ;
+      sorti hors cache, recalculé à chaque trame — sonde **0.9.7**. À valider
+      en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions

@@ -82,16 +82,18 @@ internal static class GuidedBanner
                 State.Counting => I18n.Get("state.countingReady", new { count }).ToString(),
                 _ => I18n.Get("state.starting").ToString(),
             };
-            // Décompte en direct, hors cache : recalculé à chaque trame, la
-            // taille du bandeau le lit après (il fait partie du texte mesuré).
-            // 5:00 → 0:00 en temps de présence réel au lieu cible — l'horloge
-            // murale compterait le temps passé ailleurs ou en pause. Disparait
-            // quand le plancher est atteint (l'état « prêt » prend le relais).
-            if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
-            {
-                int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
-                status = $"{status} · {remaining / 60}:{remaining % 60:00}";
-            }
+        }
+        // Décompte en direct, **hors** du bloc de cache : recalculé à chaque
+        // trame (dans le cache, il ne bougeait qu'aux changements de minute —
+        // 5:00 puis 4:15, retour d'écran du 2026-10-04). La taille du bandeau
+        // le lit après : il fait partie du texte mesuré. 5:00 → 0:00 en temps
+        // de présence réel au lieu cible — l'horloge murale compterait le
+        // temps passé ailleurs ou en pause. Disparait au plancher atteint
+        // (l'état « prêt » prend le relais).
+        if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
+        {
+            int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
+            status = $"{status} · {remaining / 60}:{remaining % 60:00}";
         }
         var font = Game1.smallFont;
         Vector2 titleSize = font.MeasureString(title), statusSize = font.MeasureString(status);
