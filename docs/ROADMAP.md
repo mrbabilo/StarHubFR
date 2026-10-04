@@ -178,7 +178,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 > *workflow*, on ne recopie pas le code. Bonne nouvelle stratégique : elle est
 > **Windows uniquement** — la place est libre sur macOS.
 
-- [ ] **C3-T2** — Scan élargi aux assets Content Patcher (`events.json`, `dialogues.json`,
+- ~~**C3-T2**~~ ✅ *(pesé le 2026-10-02 — non engagé, cas clos sans code ; récit et mesures à l'archive, à rouvrir sur un parc qui le demande)* — Scan élargi aux assets Content Patcher (`events.json`, `dialogues.json`,
       `content.json`) : repérer les chaînes affichées restées en anglais. · **L** ·
       risque : forte hétérogénéité des packs → livrer en « suggestions », jamais en verdict.
       **Référence trouvée le 2026-09-24** : Transtar (`wanniwa/transtar`, GPL-3.0) tient
