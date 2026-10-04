@@ -982,6 +982,14 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       mod ; coût `TryLoadMod` ; couture Content Patcher ; paire de contrôle
       A/A restée grise ; benchmark 0.7.0 avec restauration de sauvegarde
       vérifiée ; geste pause ; clair et sombre, 560 pt). · **M**
+      *2026-10-04, panneau de suivi* : le bench quittait la ligne discrète
+      (impression d'app figée pendant les lancements) pour un panneau flottant
+      non activant, visible pendant que le jeu tourne — chaque étape avec
+      durée, chronomètre du run en cours et dernier jalon lu dans
+      `loads.jsonl` (L0–L4/S0–S9, écrits déjà par la sonde) ; ligne « ce qui
+      change entre A et B » résolue en Core (`BenchmarkSides.change`, testée) ;
+      arrêt explicité « après le lancement en cours ». Lignes de verdict en
+      une seule copie partagée inline/panneau. À valider à l'écran.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
