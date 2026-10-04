@@ -1014,8 +1014,9 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       renuméroté **0.9.6** (un numéro par DLL livrée : la copie `Mods/` ne
       suit pas le gate). *Encore itéré* : le décompte restait figé entre deux
       minutes gardées — l'append vivait dans le bloc de cache du bandeau ;
-      sorti hors cache, recalculé à chaque trame — sonde **0.9.7**. À valider
-      en jeu.
+      sorti hors cache — mais l'append mutait le champ caché : « 5:00 · 5:00 ·
+      5:00… » répété à l'infini (retour d'écran) ; `status` reste la référence,
+      `shown` local porte l'append de trame — sonde **0.9.8**. À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions

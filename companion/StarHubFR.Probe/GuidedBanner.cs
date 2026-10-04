@@ -83,24 +83,25 @@ internal static class GuidedBanner
                 _ => I18n.Get("state.starting").ToString(),
             };
         }
-        // Décompte en direct, **hors** du bloc de cache : recalculé à chaque
-        // trame (dans le cache, il ne bougeait qu'aux changements de minute —
-        // 5:00 puis 4:15, retour d'écran du 2026-10-04). La taille du bandeau
-        // le lit après : il fait partie du texte mesuré. 5:00 → 0:00 en temps
-        // de présence réel au lieu cible — l'horloge murale compterait le
-        // temps passé ailleurs ou en pause. Disparait au plancher atteint
-        // (l'état « prêt » prend le relais).
+        // Décompte en direct, **hors** du bloc de cache ET sans muter le
+        // champ caché : `status` reste le texte de référence, `shown` porte
+        // l'append de la trame — muter `status` ré-appendait à chaque trame
+        // (« 5:00 · 5:00 · 5:00… », retour d'écran du 2026-10-04). 5:00 →
+        // 0:00 en temps de présence réel au lieu cible — l'horloge murale
+        // compterait le temps passé ailleurs ou en pause. Disparait au
+        // plancher atteint (l'état « prêt » prend le relais).
+        string shown = status;
         if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
         {
             int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
-            status = $"{status} · {remaining / 60}:{remaining % 60:00}";
+            shown = $"{shown} · {remaining / 60}:{remaining % 60:00}";
         }
         var font = Game1.smallFont;
-        Vector2 titleSize = font.MeasureString(title), statusSize = font.MeasureString(status);
+        Vector2 titleSize = font.MeasureString(title), statusSize = font.MeasureString(shown);
         int width = (int)Math.Ceiling(Math.Max(titleSize.X, statusSize.X)) + 48;
         int height = (int)Math.Ceiling(titleSize.Y + statusSize.Y) + 40;
         IClickableMenu.drawTextureBox(batch, 16, 16, width, height, Color.White);
         Utility.drawTextWithShadow(batch, title, font, new Vector2(40, 36), Game1.textColor);
-        Utility.drawTextWithShadow(batch, status, font, new Vector2(40, 36 + titleSize.Y), Game1.textColor);
+        Utility.drawTextWithShadow(batch, shown, font, new Vector2(40, 36 + titleSize.Y), Game1.textColor);
     }
 }
