@@ -10,6 +10,21 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
+## [Unreleased]
+
+### Added
+
+- **Panneau flottant de suivi du benchmark.** Le jeu lancé, un panneau flottant suit la série au-dessus de lui : chaque étape, son chrono, les jalons lus dans `loads.jsonl`, le verdict et l'arrêt.
+- **Profil et sauvegarde choisis à la mesure guidée.** La préparation dit sous quel profil jouer et quelle sauvegarde charger — la sonde la charge seule à l'écran titre.
+- **Menu « Rapport » dans l'en-tête de la page Diagnostic.**
+- **La sonde ouvre la liste des mods.** En premier quel que soit le tri, marquée « Sonde » sur sa rangée et sa carte, illustrée par la couverture de l'app ; sa fiche commence par un mode d'emploi et sa suppression est fermée — une pause suffit.
+- **La paire d'une mesure guidée close prend la sélection.** L'« après » terminé, sa paire avec l'« avant » s'affiche seule ; les côtés se libellent « Mesure « … » » ou « Session · … ».
+
+### Fixed
+
+- **Le décompte guidé descend en temps de présence réelle.** Il ne répète plus « 5:00 · 5:00… », ne se fige plus, et les minutes passées hors du jeu ne l'épuisent plus (sonde 0.9.6 → 0.9.10).
+- **L'auto-chargement de la sauvegarde d'une mesure guidée ne partait jamais.**
+
 ## [1.57.1] - 2026-10-03
 
 ### Changed
