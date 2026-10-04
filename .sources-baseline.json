@@ -2,9 +2,9 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "86dca38",
-    "last_commit_at": "2026-10-01T15:41:36Z",
-    "pushed_at": "2026-10-01T16:06:02Z",
+    "last_commit": "57b26b5",
+    "last_commit_at": "2026-10-02T02:17:31Z",
+    "pushed_at": "2026-10-02T02:17:31Z",
     "release": "v1.2.4",
     "released_at": "2026-10-01T05:51:37Z"
   },
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "bf7a7ab",
-    "last_commit_at": "2026-10-01T21:13:33Z",
-    "pushed_at": "2026-10-01T21:29:31Z",
-    "release": "v1.52.0",
-    "released_at": "2026-10-01T15:57:02Z"
+    "last_commit": "5f24094",
+    "last_commit_at": "2026-10-04T11:56:35Z",
+    "pushed_at": "2026-10-04T11:57:18Z",
+    "release": "v1.57.1",
+    "released_at": "2026-10-03T20:02:14Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -93,9 +93,9 @@
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "1f1a622",
-    "last_commit_at": "2026-10-01T21:13:04Z",
-    "pushed_at": "2026-10-01T21:42:25Z",
+    "last_commit": "65420b2",
+    "last_commit_at": "2026-10-02T20:47:58Z",
+    "pushed_at": "2026-10-02T20:48:00Z",
     "release": "v2.2.0",
     "released_at": "2026-10-01T10:16:11Z"
   },
@@ -143,10 +143,10 @@
     "version": "1.0.0"
   },
   "mod/modern-config-menu": {
-    "changelog_reviewed": "2.2.5",
+    "changelog_reviewed": "2.2.7",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.5"
+    "version": "2.2.7"
   },
   "mod/profiler": {
     "changelog_reviewed": "2.0.0",
@@ -155,10 +155,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.2.3",
+    "changelog_reviewed": "2.2.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.3"
+    "version": "2.2.5"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -177,10 +177,10 @@
     "version": "1.1.0"
   },
   "mod/stardropium": {
-    "changelog_reviewed": "0.2.0-beta",
+    "changelog_reviewed": "0.2.2-beta",
     "gitHubRepo": null,
     "name": null,
-    "version": "0.2.0-beta"
+    "version": "0.2.2-beta"
   },
   "mod/stardropium-src": {
     "archived": false,
@@ -196,10 +196,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.1",
+    "changelog_reviewed": "2.4.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.1"
+    "version": "2.4.5"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -248,9 +248,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "0d57537",
-    "last_commit_at": "2026-09-25T23:15:53Z",
-    "pushed_at": "2026-09-25T23:16:00Z"
+    "last_commit": "2432d4e",
+    "last_commit_at": "2026-10-03T18:08:56Z",
+    "pushed_at": "2026-10-03T18:08:57Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [
@@ -282,7 +282,7 @@
     ],
     "fichiers_pieges": 1,
     "http": 200,
-    "mods_bloques": 18,
+    "mods_bloques": 19,
     "noms_surveilles": [
       "Auto_Alchemistry.bat"
     ]
@@ -299,9 +299,9 @@
   "ui-framework-source": {
     "archived": false,
     "default_branch": "master",
-    "last_commit": "432fb6a",
-    "last_commit_at": "2026-10-01T15:26:21Z",
-    "pushed_at": "2026-10-01T21:38:49Z",
+    "last_commit": "b33ac8d",
+    "last_commit_at": "2026-10-02T16:20:14Z",
+    "pushed_at": "2026-10-02T16:20:39Z",
     "release": "UIFramework/v1.8.3",
     "released_at": "2026-09-29T11:48:35Z"
   }
