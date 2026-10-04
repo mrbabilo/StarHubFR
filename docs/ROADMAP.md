@@ -997,9 +997,11 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       comptes ; un pack qualifie par un composant (`matchesImpact`, Core
       testé) ; le store indexe ses entrées par `folderName` (badge O(1)) ;
       premier chargement de l'historique à l'apparition de la liste —
-      sinon il n'arrivait qu'à la fermeture du jeu. Reste : courbe de note
-      par date (dès qu'un mod a ≥ 3 versions mesurées), validation à
-      l'écran.
+      sinon il n'arrivait qu'à la fermeture du jeu. *Itéré puis validé à
+      l'écran le 2026-10-04* (filtre exclusif élevé **ou** moyen ; pastille
+      élevée en rond plein rouge — le triangle restait la signalétique des
+      problèmes). Reste : courbe de note par date, qui attend qu'un mod ait
+      ≥ 3 versions mesurées — une condition de données, pas de code.
       *2026-10-01, axe Sauvegarde* : premier chargement en 0.9.0 (219 mods,
       70 s attribuées sur 86 s) ; seuils **re-mesurés et gardés** (15 / 5) :
       142 classés, 8 élevés (5,6 %), 37 moyens (26 %) — mêmes proportions
