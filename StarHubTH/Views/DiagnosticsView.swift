@@ -45,9 +45,16 @@ struct DiagnosticsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // En-tête commun des pages (audit UX 2026-10-02) : la version de
-            // SMAPI et l'âge du journal que les trois onglets lisent.
+            // SMAPI et l'âge du journal que les trois onglets lisent. Sur
+            // Santé, le slot trailing porte le menu du rapport de la liste de
+            // mods — en haut, toujours à l'écran (la carte pleine hauteur
+            // repoussait la section du bas sous le pli, 2026-10-04).
             PageHeader(icon: "terminal.fill", title: localization.L(L10n.Logs.logs),
-                       subtitle: headerSummary)
+                       subtitle: headerSummary) {
+                if viewModel.navigationStore.diagnosticsSegment == .health {
+                    ModlistReportMenu(vm: viewModel, localization: localization)
+                }
+            }
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.md)
             Picker("", selection: segment) {

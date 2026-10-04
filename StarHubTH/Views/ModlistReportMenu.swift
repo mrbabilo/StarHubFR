@@ -2,7 +2,11 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-/// E2-T1 — l'export du rapport de la liste de mods, sur l'onglet « Santé » :
+/// E2-T1 — l'export du rapport de la liste de mods, dans l'en-tête de
+/// l'onglet « Santé » (slot `trailing` du `PageHeader`) : toujours à
+/// l'écran, là où la section de bas de page était repoussée sous le pli par
+/// la carte Santé pleine hauteur (retour d'écran du 2026-10-04). Un bouton
+/// menu : les libellés FR complets ne tiennent pas dans un en-tête.
 /// Markdown compact au presse-papiers (à coller dans un fil de discussion),
 /// HTML complet au panneau d'enregistrement (à archiver ou joindre).
 ///
@@ -11,7 +15,7 @@ import UniformTypeIdentifiers
 /// Nexus ; aucun accès réseau, aucune lecture de plus. Le calcul est synchrone
 /// au clic, comme l'export du rapport de raccourcis : ~un millier de lignes
 /// d'opérations dictionnaires, et le panneau modal bloque de toute façon.
-struct ModlistReportSection: View {
+struct ModlistReportMenu: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
@@ -27,15 +31,16 @@ struct ModlistReportSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
-            Text(localization.L(L10n.Logs.modlistReportTitle))
-                .font(.headline)
-            HStack(spacing: AppDesignCore.Spacing.md) {
-                Button(localization.L(L10n.Logs.modlistReportCopy), action: copyReport)
-                Button(localization.L(L10n.Logs.modlistReportSave), action: saveReport)
-            }
+        Menu {
+            Button(localization.L(L10n.Logs.modlistReportCopy), action: copyReport)
+            Button(localization.L(L10n.Logs.modlistReportSave), action: saveReport)
+        } label: {
+            Label(localization.L(L10n.Logs.modlistReportMenu),
+                  systemImage: "doc.text")
         }
-        .padding(AppDesignCore.Spacing.lg)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
     }
 
     private func copyReport() {
