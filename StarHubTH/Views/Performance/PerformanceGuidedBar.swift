@@ -152,6 +152,9 @@ struct PerformanceGuidedSheet: View {
             Text(localization.L(L10n.Performance.guidedSheetTitle)).font(AppDesign.Font.headline(.semibold))
             Text(localization.L(L10n.Performance.guidedSheetHint))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            Text(String(format: localization.L(L10n.Performance.guidedSheetDuration),
+                        GuidedProtocol.minimumKeptMinutes, GuidedProtocol.maximumKeptMinutes))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             TextField(localization.L(L10n.Performance.guidedName), text: $draft.name)
             // Une mesure « après » garde le lieu de sa mesure « avant ».
             if draft.role == .before {

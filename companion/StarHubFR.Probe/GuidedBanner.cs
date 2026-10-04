@@ -75,7 +75,11 @@ internal static class GuidedBanner
                 State.Night => I18n.Get("state.night").ToString(),
                 State.Config => I18n.Get("state.config").ToString(),
                 State.Patches => I18n.Get("state.patches").ToString(),
-                State.Counting => I18n.Get("state.counting", new { place, count }).ToString(),
+                // Décompte vers la première minute gardée ; au-delà, la mesure
+                // peut s'arrêter seule dès que le travail devient stable.
+                State.Counting when count < GuidedRule.MinimumMinutes =>
+                    I18n.Get("state.counting", new { count, remaining = GuidedRule.MinimumMinutes - count }).ToString(),
+                State.Counting => I18n.Get("state.countingReady", new { count }).ToString(),
                 _ => I18n.Get("state.starting").ToString(),
             };
         }

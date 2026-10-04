@@ -1,14 +1,15 @@
 {
   "banner.title": "Mesure « {{name}} »",
-  "state.starting": "on démarre…",
-  "state.counting": "reste à {{place}} — {{count}} min gardées",
-  "state.elsewhere": "en pause : retourne à {{place}}",
-  "state.menu": "menu ouvert : la minute ne compte que s'il se referme vite",
-  "state.night": "en pause : nouvelle journée",
-  "state.config": "un réglage a changé : on recommence",
-  "state.patches": "en pause : mesure des patches en cours (option de la sonde)",
+  "state.starting": "joue normalement ici : la première minute est en cours",
+  "state.counting": "reste ici et joue normalement — {{count}} min gardées, encore {{remaining}} avant l'arrêt possible",
+  "state.countingReady": "reste ici et joue normalement — {{count}} min gardées : arrêt dès que c'est stable",
+  "state.elsewhere": "va à {{place}} : les minutes ne comptent que là-bas",
+  "state.menu": "referme le menu : la minute ne compte que s'il se referme vite",
+  "state.night": "nouvelle journée : la mesure reprend seule",
+  "state.config": "un réglage a changé : le décompte repart de zéro",
+  "state.patches": "en pause : la mesure des patches tourne (option de la sonde)",
   "state.stable": "mesure terminée ({{count}} min) : tu peux quitter ou continuer",
-  "state.noisy": "mesure terminée, mais bruitée : joue moins varié la prochaine fois",
+  "state.noisy": "mesure terminée, mais trop bruitée : rejoue-la en variant moins de lieux",
   "refused.splitscreen": "mesure guidée indisponible : écran partagé",
   "refused.noticks": "mesure guidée indisponible : les minuteurs du jeu ne sont pas interceptés"
 }

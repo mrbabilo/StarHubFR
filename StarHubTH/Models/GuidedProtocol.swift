@@ -29,6 +29,10 @@ public enum GuidedReadiness: Equatable, Sendable {
 
 public enum GuidedProtocol {
     public static let probeId = "mrbabilo.StarHubFR.Probe"
+    /// Bornes de la mesure guidée — miroir de `GuidedRule.MinimumMinutes` /
+    /// `MaximumMinutes` (sonde, `GuidedRule.cs`). Changer un côté impose l'autre.
+    public static let minimumKeptMinutes = 5
+    public static let maximumKeptMinutes = 15
     /// Lieux proposés dans la feuille, la Ferme d'abord (spec « Le lieu »).
     public static let locations = ["Farm", "FarmHouse", "Town", "Beach", "Forest", "Mountain"]
     public static let fallbackLocation = "Farm"

@@ -1816,6 +1816,7 @@
   "perf_guided_after_button": "“After” measurement",
   "perf_guided_sheet_title": "Prepare a guided measurement",
   "perf_guided_sheet_hint": "The game will tell you what to do, at the top left, and stop by itself once the measurement is enough.",
+  "perf_guided_sheet_duration": "Duration: %1$lld to %2$lld kept minutes in game, at a single location.",
   "perf_guided_name": "Name",
   "perf_guided_location": "Location",
   "perf_guided_launch": "Prepare and launch the game",

@@ -1816,6 +1816,7 @@
 "perf_guided_after_button" = "Mesure « après »";
 "perf_guided_sheet_title" = "Préparer une mesure guidée";
 "perf_guided_sheet_hint" = "Le jeu t'indiquera quoi faire, en haut à gauche, et s'arrêtera tout seul quand la mesure suffit.";
+"perf_guided_sheet_duration" = "Durée : de %1$lld à %2$lld minutes gardées en jeu, à un seul lieu.";
 "perf_guided_name" = "Nom";
 "perf_guided_location" = "Lieu";
 "perf_guided_launch" = "Préparer et lancer le jeu";
@@ -2070,3 +2071,6 @@
 "settings_config_header_subtitle" = "config.json · %@";
 "mod_install_embedded_app" = "Cette archive est une application macOS (%@), pas un mod à installer dans Mods/. Le mod qu'elle embarque (%@) est inerte sans elle.";
 "mod_install_embedded_app_hint" = "Installez l'application .app elle-même (double-clic, comme n'importe quelle application) ; c'est elle qui s'occupe du mod compagnon.";
+"mods_impact_filter_label" = "Impact";
+"mods_impact_filter_high" = "Impact élevé";
+"mods_impact_filter_medium" = "Impact moyen";

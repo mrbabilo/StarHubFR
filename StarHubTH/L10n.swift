@@ -1131,6 +1131,7 @@ enum L10n {
         static let guidedAfterButton = "perf_guided_after_button"
         static let guidedSheetTitle = "perf_guided_sheet_title"
         static let guidedSheetHint = "perf_guided_sheet_hint"
+        static let guidedSheetDuration = "perf_guided_sheet_duration"
         static let guidedName = "perf_guided_name"
         static let guidedLocation = "perf_guided_location"
         static let guidedLaunch = "perf_guided_launch"

@@ -9,6 +9,14 @@ struct GuidedProtocolTests {
                          keptAt: [], outcome: outcome, role: role, pairedWith: pairedWith, location: "Beach")
     }
 
+    /// Miroir des bornes de `GuidedRule.cs` (sonde) : le bandeau compte à rebours
+    /// vers la première, la feuille de préparation annonce la fourchette.
+    @Test func durationConstantsMirrorTheProbeRule() {
+        #expect(GuidedProtocol.minimumKeptMinutes == 5)
+        #expect(GuidedProtocol.maximumKeptMinutes == 15)
+        #expect(GuidedProtocol.minimumKeptMinutes < GuidedProtocol.maximumKeptMinutes)
+    }
+
     @Test func excludedLocationsFallBackToTheFarm() {
         for name in ["UndergroundMine42", "VolcanoDungeon3", "Temp", "", nil] as [String?] {
             #expect(GuidedProtocol.safeLocation(name) == "Farm")
