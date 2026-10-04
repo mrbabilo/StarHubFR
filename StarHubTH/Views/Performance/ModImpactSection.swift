@@ -12,9 +12,12 @@ struct ModImpactBadge: View {
     /// La charte d'une classe — icône, couleur, clé du libellé — en un seul
     /// endroit : la pastille de liste (`ImpactListBadge`) la réutilise, et
     /// deux copies de ce switch divergeraient à la première retouche.
+    /// L'élevé est un **rond plein**, pas un triangle : le triangle est la
+    /// signalétique des problèmes (anomalies de la liste, avertissements du
+    /// journal) et un coût de performance mesuré n'est pas une panne.
     static func visuals(for impactClass: ModImpactClass) -> (icon: String, color: Color, key: String) {
         switch impactClass {
-        case .high: ("exclamationmark.triangle.fill", AppDesign.Color.error, L10n.Performance.impactClassHigh)
+        case .high: ("circle.fill", AppDesign.Color.error, L10n.Performance.impactClassHigh)
         case .medium: ("minus.circle.fill", AppDesign.Color.warning, L10n.Performance.impactClassMedium)
         case .low: ("checkmark.circle.fill", AppDesign.Color.success, L10n.Performance.impactClassLow)
         }

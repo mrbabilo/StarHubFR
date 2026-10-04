@@ -2072,5 +2072,5 @@
   "mod_install_embedded_app_hint": "Install the .app itself (double-click, like any application); it handles the companion mod.",
   "mods_impact_filter_label": "Impact",
   "mods_impact_filter_high": "High impact",
-  "mods_impact_filter_high_medium": "High & medium impact"
+  "mods_impact_filter_medium": "Medium impact"
 }

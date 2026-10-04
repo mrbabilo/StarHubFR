@@ -17,7 +17,7 @@ extension ModListView {
                     uncatCount: Int,
                     tagBuckets: [(tag: String, label: String, count: Int)],
                     translationCounts: [FrenchTranslationScope: Int],
-                    impactCounts: (high: Int, highAndMedium: Int)) -> some View {
+                    impactCounts: (high: Int, medium: Int)) -> some View {
         let noCategory = categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             // En-tête commun des pages (audit UX 2026-10-02) : le poids du
@@ -175,7 +175,7 @@ extension ModListView {
                              tagBuckets: [(tag: String, label: String, count: Int)],
                              noCategory: Bool,
                              translationCounts: [FrenchTranslationScope: Int],
-                             impactCounts: (high: Int, highAndMedium: Int)) -> some View {
+                             impactCounts: (high: Int, medium: Int)) -> some View {
         sortPicker
 
         chipSeparator

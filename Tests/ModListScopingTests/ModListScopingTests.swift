@@ -517,36 +517,45 @@ struct ModListScopingTests {
         #expect(!ModListScoping.matchesImpact(mod("Tiny"), filters: f, classes: impactClasses))
     }
 
-    @Test func highAndMediumKeepsBothClasses() {
-        let f = filters(impact: .highAndMedium)
-        #expect(ModListScoping.matchesImpact(mod("Content Patcher"), filters: f, classes: impactClasses))
+    @Test func mediumKeepsOnlyTheMediumClass() {
+        // Les deux filtres sont **exclusifs** (choix de l'auteur) : « moyen »
+        // ne cumule pas les élevés — chacun Spotlight sa classe.
+        let f = filters(impact: .medium)
         #expect(ModListScoping.matchesImpact(mod("Extras"), filters: f, classes: impactClasses))
+        #expect(!ModListScoping.matchesImpact(mod("Content Patcher"), filters: f, classes: impactClasses))
         #expect(!ModListScoping.matchesImpact(mod("Tiny"), filters: f, classes: impactClasses))
     }
 
     @Test func aPackQualifiesThroughAnyOfItsComponents() {
-        let f = filters(impact: .high)
+        let high = filters(impact: .high)
         let pack = mod("RSV", children: [mod("Core"), mod("Annexe")])
-        #expect(ModListScoping.matchesImpact(pack, filters: f, classes: impactClasses))
+        #expect(ModListScoping.matchesImpact(pack, filters: high, classes: impactClasses))
         let quiet = mod("Calme", children: [mod("Annexe"), mod("Tiny")])
-        #expect(!ModListScoping.matchesImpact(quiet, filters: f, classes: impactClasses))
+        #expect(!ModListScoping.matchesImpact(quiet, filters: high, classes: impactClasses))
+        let medium = filters(impact: .medium)
+        let mixed = mod("Milieu", children: [mod("Annexe"), mod("Extras")])
+        #expect(ModListScoping.matchesImpact(mixed, filters: medium, classes: impactClasses))
     }
 
     @Test func theNeverMeasuredNeverPassesAnActiveFilter() {
         // Le miroir du garde `.partial` de la traduction : affirmer « non
         // concerné » sur un mod non lu serait un mensonge — il ne sort du
         // filtre actif que par une classe posée.
-        let f = filters(impact: .highAndMedium)
-        #expect(!ModListScoping.matchesImpact(mod("JamaisMesuré"), filters: f, classes: impactClasses))
-        #expect(!ModListScoping.matchesImpact(mod("JamaisMesuré"), filters: f, classes: [:]))
+        for scope in [ImpactScope.high, .medium] {
+            let f = filters(impact: scope)
+            #expect(!ModListScoping.matchesImpact(mod("JamaisMesuré"), filters: f, classes: impactClasses))
+            #expect(!ModListScoping.matchesImpact(mod("JamaisMesuré"), filters: f, classes: [:]))
+        }
     }
 
     @Test func theCompositeFilterAppliesImpactToo() {
         // `matches` est la porte unique (X57) : le filtre impact doit s'y
         // entendre, sinon la bascule en masse agirait ailleurs que la liste.
-        let f = filters(impact: .high)
-        let inputs = ModListScoping.Inputs(impactClasses: impactClasses)
-        #expect(ModListScoping.matches(mod("Content Patcher"), filters: f, inputs: inputs))
-        #expect(!ModListScoping.matches(mod("Extras"), filters: f, inputs: inputs))
+        for (scope, name) in [(ImpactScope.high, "Content Patcher"), (ImpactScope.medium, "Extras")] {
+            let f = filters(impact: scope)
+            let inputs = ModListScoping.Inputs(impactClasses: impactClasses)
+            #expect(ModListScoping.matches(mod(name), filters: f, inputs: inputs))
+            #expect(!ModListScoping.matches(mod("Tiny"), filters: f, inputs: inputs))
+        }
     }
 }

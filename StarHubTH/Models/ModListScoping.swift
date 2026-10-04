@@ -160,10 +160,8 @@ enum ModListScoping {
             return true
         case .high:
             return matchesSelfOrAnyChild(mod) { classes[$0.folderName] == .high }
-        case .highAndMedium:
-            return matchesSelfOrAnyChild(mod) {
-                classes[$0.folderName] == .high || classes[$0.folderName] == .medium
-            }
+        case .medium:
+            return matchesSelfOrAnyChild(mod) { classes[$0.folderName] == .medium }
         }
     }
 

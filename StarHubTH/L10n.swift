@@ -519,7 +519,7 @@ enum L10n {
         static let frTranslationPartial    = "mods_fr_translation_partial"
         static let impactFilterLabel       = "mods_impact_filter_label"
         static let impactFilterHigh        = "mods_impact_filter_high"
-        static let impactFilterHighMedium  = "mods_impact_filter_high_medium"
+        static let impactFilterMedium      = "mods_impact_filter_medium"
         static let diffTab                 = "mods_diff_tab"
         static let translationFocus        = "mods_translation_focus"
         static let translationFocusHint    = "mods_translation_focus_hint"

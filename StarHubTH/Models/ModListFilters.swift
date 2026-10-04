@@ -26,7 +26,7 @@ enum FrenchTranslationScope: Equatable {
 }
 
 /// Scope for the impact filter (D5-C) : show everything, or only the mods
-/// whose measured impact is high, or high **or medium**. The classes come
+/// whose measured impact is high, or only the medium ones. The classes come
 /// from the probe history (`ModImpactStore`) ; a mod never measured — or
 /// measured negligible — only passes under `.off`. On the reference parc,
 /// 6 mods are high and 23 medium out of 966 : the filter stays a spotlight,
@@ -34,7 +34,7 @@ enum FrenchTranslationScope: Equatable {
 enum ImpactScope: Equatable {
     case off
     case high
-    case highAndMedium
+    case medium
 }
 
 /// Scope for the category-filter menu: show everything, scope to one Nexus
