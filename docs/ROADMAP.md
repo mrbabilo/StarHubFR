@@ -930,6 +930,12 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       travail 0,28 % à 9,65 % : le seuil de 10 % tient. Leçon de l'A/A : les
       quartiles du travail y sont **disjoints** (14,52 contre 14,24 ms) — seul
       le garde-fou des 5 % évite un faux « plus rapide » ; ne jamais l'assouplir.
+      *2026-10-04, textes et décompte* : sonde **0.9.2** — bandeau réécrit
+      « que faire » à chaque état (fr/en) ; décompte vers la 5ᵉ minute gardée
+      (« encore N avant l'arrêt possible », puis « arrêt dès que c'est stable »
+      au-delà, l'IQR ne suit pas toujours) ; la feuille de préparation annonce
+      « 5 à 15 minutes gardées en jeu » (`GuidedProtocol.minimumKeptMinutes` /
+      `maximumKeptMinutes`, miroir des bornes de la sonde). À valider en jeu.
 - [x] **D5-B** ✅ *(livré le 2026-09-30, validé en jeu le 2026-10-04)* — **Temps de chargement** : lancement (processus → écran
       titre) et chargement de sauvegarde (clic → première trame jouable),
       mesurés par la sonde et comparés avant/après. Contribution par mod :
