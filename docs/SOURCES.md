@@ -705,6 +705,23 @@ de code ni suppression de fichier (motif compté avant/après).
   **GARDER ACTUEL** — mais noter que le mod est **en pause** sur le parc
   (`.Stardropium`), état qui avait dérivé du « actif » porté jusque-là.
   Détail : [`audit-stardropium-0.2.2.md`](audit-stardropium-0.2.2.md).
+- **JuniGrid `86dca38 → 57b26b5`** — un commit : le README retire le lien vers
+  l'édition anglaise `JuniGrid-en`. Rien.
+- **save-editor `0d57537 → 2432d4e`** — tooltip d'inventaire dans l'éditeur web
+  (4 fichiers Svelte, pure UI) ; format de sauvegarde intact. Rien à prendre.
+- **i18n-translator `1f1a622 → 65420b2`** — expérience opt-in de lots ChatGPT
+  **parallèles bornés** (`chatgpt/parallel_probe.rs`, 571 lignes : 4 lots × 75
+  éléments, taxonomie de reprises transient/structure, scission de lot,
+  phases de réparation jetons puis terminologie, métriques par phase) —
+  motif à relire le jour où le hub FR fera appel à un LLM. Distribution de
+  ZIP (chemins Vortex/MO2, FOMOD retiré) : leur canal, pas le nôtre.
+- **UI Framework `432fb6a → b33ac8d`** — 51 fichiers, tous dans
+  `UIFrameworkDesigner/` : le concepteur web des menus JSON (autosave, liens
+  de partage, aperçu ScrollView/List/DataGrid, expressions `model.*`,
+  validation). Le schéma côté jeu n'a pas bougé d'un octet dans la passe —
+  mais le format de menus a désormais un outillage complet ;
+  `fieldShapes.ts`/`dataFormat.ts` valent spécification de facto pour la
+  tâche en attente « second front de config » (§ mod/ui-framework).
 - **Modern Config Menu 2.2.4 → 2.2.5** — 9 fichiers, aucun neuf.
   Le bouton `[+]` écrit des raccourcis alternatifs séparés par une virgule
   (`F8, ControllerBack`) : `KeybindParser` les lit déjà (test `"F8, K"`).

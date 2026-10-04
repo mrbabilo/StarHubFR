@@ -980,7 +980,7 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       *2026-10-01, étape 2* : sonde **0.9.0** — coût de chargement par mod
       (`TryLoadMod`), sonde en tête sur accord de l'auteur (`ModsToLoadEarly`),
       deux positions ne se comparent pas (`probePosition`).
-- [ ] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
+- [x] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
       par seconde en événements et patches, pics, allocations), puis de la
       mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
       directement à un mod — il se déduit du temps de calcul rapporté à la
