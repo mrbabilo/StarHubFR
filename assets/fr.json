@@ -2069,5 +2069,8 @@
   "saves_timeline_subtitle": "%lld sauvegarde(s) · %@",
   "settings_config_header_subtitle": "config.json · %@",
   "mod_install_embedded_app": "Cette archive est une application macOS (%@), pas un mod à installer dans Mods/. Le mod qu'elle embarque (%@) est inerte sans elle.",
-  "mod_install_embedded_app_hint": "Installez l'application .app elle-même (double-clic, comme n'importe quelle application) ; c'est elle qui s'occupe du mod compagnon."
+  "mod_install_embedded_app_hint": "Installez l'application .app elle-même (double-clic, comme n'importe quelle application) ; c'est elle qui s'occupe du mod compagnon.",
+  "mods_impact_filter_label": "Impact",
+  "mods_impact_filter_high": "Impact élevé",
+  "mods_impact_filter_high_medium": "Impact élevé et moyen"
 }

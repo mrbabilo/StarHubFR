@@ -277,6 +277,7 @@ struct ModListView: View {
         let uncatCount = uncategorizedCount(from: facets.category)
         let tagBuckets = inferredTagBuckets(from: facets.category)
         let translationCounts = frenchTranslationCounts(from: facets.translation)
+        let impactCounts = impactFilterCounts()
         let scoped = vm.scopedMods(from: filtered, scope: filters.scope)
         let display = displayMods(from: filtered)
         let pages = totalPages(for: display)
@@ -291,7 +292,8 @@ struct ModListView: View {
             // Toolbar fixed above the scrolling list, as in LogsView.
             listHeader(counts: counts, display: display, categories: categories,
                        uncatCount: uncatCount, tagBuckets: tagBuckets,
-                       translationCounts: translationCounts)
+                       translationCounts: translationCounts,
+                       impactCounts: impactCounts)
             if filters.scope == .issues, !scoped.isEmpty {
                 ProblemKindChips(counts: problemKindCounts(in: scoped),
                                  selection: $problemKind, L: localization.L)
@@ -423,6 +425,9 @@ struct ModListView: View {
         // pager. Non publié sur ModListState — voir là-bas le pourquoi.
         .onAppear { vm.modList.displayOrder = displayIds }
         .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
+        // D5-C — l'historique de la sonde ne se relit sinon qu'à la fermeture
+        // du jeu : première lecture à l'apparition de la liste, en fond.
+        .task { await vm.modImpactStore.reloadIfIdle(mods: vm.mods, gameRunning: vm.isGameRunning(), gameDir: vm.gameDir) }
         .sheet(isPresented: $showMissingDependencies) {
             MissingDependenciesSheet(vm: vm, localization: localization,
                                      isPresented: $showMissingDependencies)

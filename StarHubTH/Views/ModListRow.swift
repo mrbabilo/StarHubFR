@@ -500,6 +500,15 @@ struct ModListRow: View {
                     }
                     if let pending = PendingModUpdates.current(vm).pending(for: mod) { PendingUpdateBadge(pending: pending,
                         help: String(format: localization.L(L10n.Updates.availableVersion), pending.availableVersion)) }
+                    // D5-C — l'impact mesuré, même famille que les badges
+                    // d'alerte : il prévient avant la fiche. La pastille est
+                    // O(1) (`entriesById` du store) ; en dehors des classes
+                    // élevée et moyenne, elle ne se dessine pas.
+                    if let shown = vm.modImpactStore.entriesById[mod.folderName]?.shown,
+                       let impactClass = shown.impactClass {
+                        ImpactListBadge(shown: shown, impactClass: impactClass,
+                                        localization: localization)
+                    }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)

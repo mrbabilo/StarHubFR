@@ -9,18 +9,37 @@ struct ModImpactBadge: View {
     /// Note d'une autre version que l'installée (spec §3.3) : en gris.
     var dimmed = false
 
+    /// La charte d'une classe — icône, couleur, clé du libellé — en un seul
+    /// endroit : la pastille de liste (`ImpactListBadge`) la réutilise, et
+    /// deux copies de ce switch divergeraient à la première retouche.
+    static func visuals(for impactClass: ModImpactClass) -> (icon: String, color: Color, key: String) {
+        switch impactClass {
+        case .high: ("exclamationmark.triangle.fill", AppDesign.Color.error, L10n.Performance.impactClassHigh)
+        case .medium: ("minus.circle.fill", AppDesign.Color.warning, L10n.Performance.impactClassMedium)
+        case .low: ("checkmark.circle.fill", AppDesign.Color.success, L10n.Performance.impactClassLow)
+        }
+    }
+
+    /// Le nom localisé d'un axe, partagé par le radar de la fiche et la
+    /// pastille de liste — une seule copie du switch, pour la même raison.
+    static func axisLabel(_ axis: ModImpactAxis, localization: LocalizationStore) -> String {
+        switch axis {
+        case .fps: localization.L(L10n.Performance.impactAxisFps)
+        case .spikes: localization.L(L10n.Performance.impactAxisSpikes)
+        case .launch: localization.L(L10n.Performance.impactAxisLaunch)
+        case .save: localization.L(L10n.Performance.impactAxisSave)
+        case .alloc: localization.L(L10n.Performance.impactAxisAlloc)
+        }
+    }
+
     var body: some View {
         if let impactClass, let score {
-            let (icon, color, key): (String, Color, String) = switch impactClass {
-            case .high: ("exclamationmark.triangle.fill", AppDesign.Color.error, L10n.Performance.impactClassHigh)
-            case .medium: ("minus.circle.fill", AppDesign.Color.warning, L10n.Performance.impactClassMedium)
-            case .low: ("checkmark.circle.fill", AppDesign.Color.success, L10n.Performance.impactClassLow)
-            }
+            let visuals = Self.visuals(for: impactClass)
             Label {
-                Text("\(localization.L(key)) · \(String(format: localization.L(L10n.Performance.impactScore), ModImpactFormat.score(score)))")
+                Text("\(localization.L(visuals.key)) · \(String(format: localization.L(L10n.Performance.impactScore), ModImpactFormat.score(score)))")
                     .monospacedDigit()
             } icon: {
-                Image(systemName: icon).foregroundStyle(dimmed ? Color.secondary : color)
+                Image(systemName: visuals.icon).foregroundStyle(dimmed ? Color.secondary : visuals.color)
             }
             .font(AppDesign.Font.footnote(.semibold))
             .foregroundStyle(dimmed ? .secondary : .primary)
@@ -139,13 +158,7 @@ struct ModImpactSection: View {
     }
 
     private func axisLabel(_ axis: ModImpactAxis) -> String {
-        switch axis {
-        case .fps: localization.L(L10n.Performance.impactAxisFps)
-        case .spikes: localization.L(L10n.Performance.impactAxisSpikes)
-        case .launch: localization.L(L10n.Performance.impactAxisLaunch)
-        case .save: localization.L(L10n.Performance.impactAxisSave)
-        case .alloc: localization.L(L10n.Performance.impactAxisAlloc)
-        }
+        ModImpactBadge.axisLabel(axis, localization: localization)
     }
 
     private func axisDetail(_ axis: ModImpactAxis, _ stats: ModImpactVersionStats) -> String {

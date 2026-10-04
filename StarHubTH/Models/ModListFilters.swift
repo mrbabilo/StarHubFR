@@ -25,6 +25,18 @@ enum FrenchTranslationScope: Equatable {
     case stale
 }
 
+/// Scope for the impact filter (D5-C) : show everything, or only the mods
+/// whose measured impact is high, or high **or medium**. The classes come
+/// from the probe history (`ModImpactStore`) ; a mod never measured — or
+/// measured negligible — only passes under `.off`. On the reference parc,
+/// 6 mods are high and 23 medium out of 966 : the filter stays a spotlight,
+/// not a sorting of the world.
+enum ImpactScope: Equatable {
+    case off
+    case high
+    case highAndMedium
+}
+
 /// Scope for the category-filter menu: show everything, scope to one Nexus
 /// category, or scope to mods with no category assigned. A single enum
 /// (rather than `NexusCategory?` plus a separate boolean) keeps these three
@@ -119,6 +131,13 @@ struct ModListFilters: Equatable {
     var frenchTranslation: FrenchTranslationScope = .off {
         didSet { if frenchTranslation != oldValue { page = 1 } }
     }
+    /// N'afficher que les mods dont l'impact mesuré est élevé, ou élevé et
+    /// moyen (D5-C). La classe vient de l'historique de la sonde : tant que
+    /// `ModImpactStore` n'a pas lu, la carte est vide et le filtre actif ne
+    /// montrerait rien — la liste déclenche la lecture au premier affichage.
+    var impactScope: ImpactScope = .off {
+        didSet { if impactScope != oldValue { page = 1 } }
+    }
     /// Le tri ne remet **pas** à la page 1 : réordonner ne change pas le nombre
     /// de résultats, et repartir du début ferait perdre sa place à qui compare
     /// deux tris sur une liste de plusieurs centaines de mods.
@@ -137,6 +156,7 @@ struct ModListFilters: Equatable {
         favoritesOnly = false
         blacklistedOnly = false
         frenchTranslation = .off
+        impactScope = .off
         search = searchTerm
         // Pas redondant avec le `didSet` de `search` : sauter deux fois vers le
         // même mod laisse `search` inchangé, donc son `didSet` ne se déclenche

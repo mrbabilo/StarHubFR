@@ -16,7 +16,8 @@ extension ModListView {
                     categories: [(category: NexusCategory, count: Int)],
                     uncatCount: Int,
                     tagBuckets: [(tag: String, label: String, count: Int)],
-                    translationCounts: [FrenchTranslationScope: Int]) -> some View {
+                    translationCounts: [FrenchTranslationScope: Int],
+                    impactCounts: (high: Int, highAndMedium: Int)) -> some View {
         let noCategory = categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             // En-tête commun des pages (audit UX 2026-10-02) : le poids du
@@ -50,7 +51,8 @@ extension ModListView {
                 HStack(spacing: 6) {
                     filterChips(categories: categories, uncatCount: uncatCount,
                                 tagBuckets: tagBuckets, noCategory: noCategory,
-                                translationCounts: translationCounts)
+                                translationCounts: translationCounts,
+                                impactCounts: impactCounts)
                     Spacer()
                     listMeta(noCategory: noCategory)
                 }
@@ -60,7 +62,8 @@ extension ModListView {
                 WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.sm) {
                     filterChips(categories: categories, uncatCount: uncatCount,
                                 tagBuckets: tagBuckets, noCategory: noCategory,
-                                translationCounts: translationCounts)
+                                translationCounts: translationCounts,
+                                impactCounts: impactCounts)
                     listMeta(noCategory: noCategory)
                 }
             }
@@ -171,7 +174,8 @@ extension ModListView {
                              uncatCount: Int,
                              tagBuckets: [(tag: String, label: String, count: Int)],
                              noCategory: Bool,
-                             translationCounts: [FrenchTranslationScope: Int]) -> some View {
+                             translationCounts: [FrenchTranslationScope: Int],
+                             impactCounts: (high: Int, highAndMedium: Int)) -> some View {
         sortPicker
 
         chipSeparator
@@ -185,6 +189,8 @@ extension ModListView {
         chipSeparator
 
         frenchTranslationPicker(counts: translationCounts)
+
+        impactPicker(counts: impactCounts)
 
         categoryPicker(categories: categories, uncatCount: uncatCount, tagBuckets: tagBuckets)
             .disabled(noCategory)

@@ -144,6 +144,29 @@ enum ModListScoping {
         }
     }
 
+    /// Le cadrage par impact mesuré (D5-C).
+    ///
+    /// La classe vient de l'historique de la sonde, portée en **valeur** — une
+    /// carte `folderName → classe` que `ModImpactStore` remplit une fois par
+    /// relecture. Un mod **absent** de la carte n'a jamais été mesuré (ou l'a
+    /// été négligeable) : il ne passe que filtre éteint — affirmer « non
+    /// concerné » sur un mod non lu serait le même mensonge que le cadrage
+    /// `.partial` de la traduction refuse. Un pack qualifie par son en-tête
+    /// ou l'un de ses composants, exactement comme sa pastille le montre.
+    static func matchesImpact(_ mod: ModItem, filters: ModListFilters,
+                              classes: [String: ModImpactClass]) -> Bool {
+        switch filters.impactScope {
+        case .off:
+            return true
+        case .high:
+            return matchesSelfOrAnyChild(mod) { classes[$0.folderName] == .high }
+        case .highAndMedium:
+            return matchesSelfOrAnyChild(mod) {
+                classes[$0.folderName] == .high || classes[$0.folderName] == .medium
+            }
+        }
+    }
+
     /// Ce que le cadrage complet a besoin de savoir et qu'il ne peut pas
     /// calculer lui-même.
     ///
@@ -175,19 +198,24 @@ enum ModListScoping {
         let translation: TranslationState
         /// Les dates de dernière activation, pour le tri correspondant.
         let activationDates: [String: Date]
+        /// La classe d'impact mesurée, par nom de dossier (D5-C) — les mods
+        /// jamais mesurés ou négligeables en sont absents.
+        let impactClasses: [String: ModImpactClass]
 
         init(category: @escaping (ModItem) -> NexusCategory? = { _ in nil },
              sizeOnDisk: @escaping (ModItem) -> Int64? = { _ in nil },
              favorites: Set<String> = [],
              blacklisted: Set<String> = [],
              translation: TranslationState = .init(),
-             activationDates: [String: Date] = [:]) {
+             activationDates: [String: Date] = [:],
+             impactClasses: [String: ModImpactClass] = [:]) {
             self.category = category
             self.sizeOnDisk = sizeOnDisk
             self.favorites = favorites
             self.blacklisted = blacklisted
             self.translation = translation
             self.activationDates = activationDates
+            self.impactClasses = impactClasses
         }
     }
 
@@ -222,6 +250,7 @@ enum ModListScoping {
             && matchesFavorites(mod, filters: filters, favorites: inputs.favorites)
             && matchesBlacklisted(mod, filters: filters, blacklisted: inputs.blacklisted)
             && matchesTranslation(mod, filters.frenchTranslation, state: inputs.translation)
+            && matchesImpact(mod, filters: filters, classes: inputs.impactClasses)
     }
 
     /// La liste cadrée restreinte au cadrage courant — ce que la section

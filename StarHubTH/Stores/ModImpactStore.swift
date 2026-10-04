@@ -21,6 +21,14 @@ final class ModImpactStore {
     private(set) var status: Status = .idle
     private(set) var entries: [ModImpactEntry] = []
     private(set) var ranking: [ModImpactEntry] = []
+    /// Les mêmes entrées, indexées par `folderName` : la liste de mods lit
+    /// chaque rangée en O(1) — la recherche linéaire d'avant, appelée une
+    /// fois par rangée rendue, coûtait un balayage par badge (D5-C).
+    private(set) var entriesById: [String: ModImpactEntry] = [:]
+    /// La classe d'impact affichable, par `folderName` ; les mods jamais
+    /// mesurés ou négligeables en sont absents. Sert le badge de liste et le
+    /// filtre impact (`ModListScoping.matchesImpact`).
+    private(set) var classesById: [String: ModImpactClass] = [:]
     private(set) var probeMsPerFrame: Double?
     private(set) var lastInGame: Date?
     private(set) var lastLaunch: Date?
@@ -37,7 +45,14 @@ final class ModImpactStore {
         self.historyURL = historyURL
     }
 
-    func entry(for mod: ModItem) -> ModImpactEntry? { entries.first { $0.id == mod.folderName } }
+    func entry(for mod: ModItem) -> ModImpactEntry? { entriesById[mod.folderName] }
+
+    /// Première lecture paresseuse (D5-C) : la liste et la fiche l'appellent
+    /// à leur apparition — passé le premier, chaque appel ne fait rien.
+    func reloadIfIdle(mods: [ModItem], gameRunning: Bool, gameDir: String?) async {
+        guard status == .idle else { return }
+        await reload(mods: mods, gameRunning: gameRunning, gameDir: gameDir)
+    }
 
     /// `gameRunning` : la dernière session grossit encore, elle attend.
     func reload(mods: [ModItem], gameRunning: Bool, gameDir: String?) async {
@@ -83,13 +98,16 @@ final class ModImpactStore {
         }.value
         let history: ModImpactHistory
         switch loaded {
-        case .unreadable: status = .unreadableHistory; entries = []; ranking = []; return
-        case .noProbe: status = .noProbe; entries = []; ranking = []; return
+        case .unreadable: status = .unreadableHistory; entries = []; ranking = []; entriesById = [:]; classesById = [:]; return
+        case .noProbe: status = .noProbe; entries = []; ranking = []; entriesById = [:]; classesById = [:]; return
         case .ready(let h): history = h
         }
         status = .ready
         entries = ModImpact.entries(history: history, mods: mods)
         ranking = ModImpact.ranking(entries)
+        entriesById = Dictionary(entries.map { ($0.id, $0) },
+                                 uniquingKeysWith: { first, _ in first })
+        classesById = entriesById.compactMapValues { $0.shown?.impactClass }
         probeMsPerFrame = history.probeMsPerFrame
         let all = history.samples.values.flatMap { $0 }
         lastInGame = all.filter { $0.kind == .inGame }.map(\.date).max()
