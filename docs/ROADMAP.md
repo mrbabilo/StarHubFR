@@ -547,7 +547,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T3 et D5-A livrés, sonde embarquée et validée ; restent D2, D4-T1/T5–T9 et D5-B/C
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T3, D4-T4, D5-A et D5-B livrés et validés ; restent D2, D4-T1/T5–T9 et D5-C
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
 
@@ -930,7 +930,7 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       travail 0,28 % à 9,65 % : le seuil de 10 % tient. Leçon de l'A/A : les
       quartiles du travail y sont **disjoints** (14,52 contre 14,24 ms) — seul
       le garde-fou des 5 % évite un faux « plus rapide » ; ne jamais l'assouplir.
-- [ ] **D5-B** — **Temps de chargement** : lancement (processus → écran
+- [x] **D5-B** ✅ *(livré le 2026-09-30, validé en jeu le 2026-10-04)* — **Temps de chargement** : lancement (processus → écran
       titre) et chargement de sauvegarde (clic → première trame jouable),
       mesurés par la sonde et comparés avant/après. Contribution par mod :
       événements `GameLaunched`/`SaveLoaded` vus par la sonde ; l'`Entry` des
@@ -954,7 +954,12 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       bruit A/A mesuré 2,2 % le 2026-09-30, seuil = max(3 %, 2 × bruit) — plancher abaissé de 5 à 3 % le 2026-10-01, deux A/B à −3/−4 % restant gris ; froid =
       premier lancement depuis `kern.boottime`, +98 % mesuré, éjection du
       volume sans effet) ; carte « Chargements » (tuiles, frise, top 5,
-      verdict, geste pause gardé). Tâche 13 = validation en jeu. · **M**
+      verdict, geste pause gardé). Tâche 13 = validation en jeu.
+      ✅ *Validé en jeu le 2026-10-04 par l'auteur* (check-list complète :
+      tuiles, frise et top 5 alimentés ; ventilation `Entry`+`GetApi` mod par
+      mod ; coût `TryLoadMod` ; couture Content Patcher ; paire de contrôle
+      A/A restée grise ; benchmark 0.7.0 avec restauration de sauvegarde
+      vérifiée ; geste pause ; clair et sombre, 560 pt). · **M**
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
