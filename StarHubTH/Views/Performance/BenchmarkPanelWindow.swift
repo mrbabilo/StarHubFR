@@ -78,9 +78,15 @@ final class BenchmarkPanelController {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         panel.title = localization.L(L10n.Benchmark.panelTitle)
-        panel.contentView = NSHostingView(rootView: BenchmarkPanelContent(
+        let hosting = NSHostingView(rootView: BenchmarkPanelContent(
             runner: runner, localization: localization,
             onClose: { [weak panel] in panel?.orderOut(nil) }))
+        panel.contentView = hosting
+        // À la taille idéale du contenu, bornée — une série de 8 étapes ne
+        // doit pas couper le texte du bas (retour d'écran du 2026-10-04),
+        // une série courte ne doit pas étirer un panneau vide.
+        panel.setContentSize(NSSize(width: max(380, hosting.fittingSize.width),
+                                    height: min(560, max(300, hosting.fittingSize.height))))
         panel.center()
         // `orderFrontRegardless` : l'app n'est pas forcément active (le jeu
         // l'est), `makeKeyAndOrderFront` resterait sans effet visible.
@@ -109,6 +115,19 @@ struct BenchmarkPanelContent: View {
     let onClose: () -> Void
 
     var body: some View {
+        // Le contenu peut dépasser la hauteur bornée du panneau (série de 8
+        // étapes + verdict) : il défile au lieu d'être coupé en bas.
+        ScrollView(.vertical, showsIndicators: false) {
+            panelBody
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(AppDesign.Spacing.md)
+        .frame(minWidth: 360, alignment: .leading)
+        .font(AppDesign.Font.footnote)
+    }
+
+    @ViewBuilder
+    private var panelBody: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             if let setup = runner.setup { changeLine(setup) }
             switch runner.phase {
@@ -151,9 +170,6 @@ struct BenchmarkPanelContent: View {
                     .foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(AppDesign.Spacing.md)
-        .frame(minWidth: 360, alignment: .leading)
-        .font(AppDesign.Font.footnote)
     }
 
     /// La ligne d'annonce : ce que la série compare, et avec quelles sauvegardes.

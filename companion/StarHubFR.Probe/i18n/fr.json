@@ -1,7 +1,7 @@
 {
   "banner.title": "Mesure « {{name}} »",
   "state.starting": "joue normalement ici : la première minute est en cours",
-  "state.counting": "reste ici et joue normalement — {{count}} min gardées, encore {{remaining}} avant l'arrêt possible",
+  "state.counting": "reste ici et joue normalement — {{count}} min gardées",
   "state.countingReady": "reste ici et joue normalement — {{count}} min gardées : arrêt dès que c'est stable",
   "state.elsewhere": "va à {{place}} : les minutes ne comptent que là-bas",
   "state.menu": "referme le menu : la minute ne compte que s'il se referme vite",

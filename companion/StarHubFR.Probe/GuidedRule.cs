@@ -75,6 +75,9 @@ public sealed class GuidedRule
     public GuidedRule(string target) => Target = target;
 
     public string Target { get; }
+    /// <summary>Le début réel de la mesure — le chrono du bandeau court
+    /// depuis là ; un abandon/repart repart de zéro (nouvelle règle).</summary>
+    public DateTime StartedAtUtc { get; } = DateTime.UtcNow;
     public IReadOnlyList<string> KeptAt => kept.Select(k => k.At).ToList();
     /// <summary>Le compte seul, sans liste : le bandeau le lit à chaque trame.</summary>
     public int KeptCount => kept.Count;

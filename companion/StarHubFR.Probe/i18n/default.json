@@ -1,7 +1,7 @@
 {
   "banner.title": "Measurement “{{name}}”",
   "state.starting": "play normally here: the first minute is running",
-  "state.counting": "stay here and play normally — {{count}} min kept, {{remaining}} more before it can stop",
+  "state.counting": "stay here and play normally — {{count}} min kept",
   "state.countingReady": "stay here and play normally — {{count}} min kept: stops as soon as it is stable",
   "state.elsewhere": "go to {{place}}: minutes only count there",
   "state.menu": "close the menu: the minute only counts if it closes quickly",

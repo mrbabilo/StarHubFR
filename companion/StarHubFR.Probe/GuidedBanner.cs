@@ -75,13 +75,21 @@ internal static class GuidedBanner
                 State.Night => I18n.Get("state.night").ToString(),
                 State.Config => I18n.Get("state.config").ToString(),
                 State.Patches => I18n.Get("state.patches").ToString(),
-                // Décompte vers la première minute gardée ; au-delà, la mesure
-                // peut s'arrêter seule dès que le travail devient stable.
+                // Chrono à la place du décompte (retour d'écran du 2026-10-04) :
+                // une horloge qui tourne dit « ça avance », un « encore N » figé
+                // ne dit rien du temps déjà passé.
                 State.Counting when count < GuidedRule.MinimumMinutes =>
-                    I18n.Get("state.counting", new { count, remaining = GuidedRule.MinimumMinutes - count }).ToString(),
+                    I18n.Get("state.counting", new { count }).ToString(),
                 State.Counting => I18n.Get("state.countingReady", new { count }).ToString(),
                 _ => I18n.Get("state.starting").ToString(),
             };
+            // Chrono en direct, hors cache : recalculé à chaque trame, la
+            // taille du bandeau le lit après (il fait partie du texte mesuré).
+            if (state is State.Starting or State.Counting && Guided.Rule is { } liveRule)
+            {
+                string elapsed = (DateTime.UtcNow - liveRule.StartedAtUtc).ToString(@"hh\:mm\:ss");
+                status = $"{status} · {elapsed}";
+            }
         }
         var font = Game1.smallFont;
         Vector2 titleSize = font.MeasureString(title), statusSize = font.MeasureString(status);
