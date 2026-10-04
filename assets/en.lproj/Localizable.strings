@@ -875,6 +875,14 @@
 "mods_premium_only_hint" = "Direct download needs a Nexus Premium account — use the Nexus button instead.";
 "mods_premium_update" = "Premium update";
 "mods_prev_page_hint" = "Previous page";
+"mods_probe_manual_title" = "Probe user guide";
+"mods_probe_manual_what" = "StarHubFR's observation mod: it measures frame time and maps Harmony patches. It optimizes nothing, touches no other mod and accesses no network.";
+"mods_probe_manual_how" = "Guided measurement: prepare it in Diagnostics → Performances, launch the game, then play normally at the indicated location. The top-left banner counts kept minutes; five stable minutes close the measurement.";
+"mods_probe_manual_after" = "Finished measurements feed the Performances tab's “Before / After” comparisons: a back-to-back pair selects itself.";
+"mods_probe_manual_pause" = "Pausing the probe stops any new measurement; finished measurements remain readable.";
+"mods_probe_badge" = "Probe";
+"mods_probe_badge_help" = "StarHubFR probe: it measures performance for the Performances tab. It cannot be deleted — pause it to stop it.";
+"mods_probe_delete_refused" = "The StarHubFR probe cannot be deleted: it measures what the Performances tab reads. Pause it to stop it.";
 "mods_profile_config_badge" = "Keeps a separate config.json per profile";
 "mods_profile_config_compare" = "Compare with…";
 "mods_profile_config_diff_differs" = "Values differ";
@@ -1714,10 +1722,10 @@
 "perf_inventory_missing" = "No inventory for one of the two moments: install probe 0.4.12 or later to see what changed.";
 "perf_before" = "Before";
 "perf_after" = "After";
-"perf_side_segment" = "%1$@ · %2$@ · %3$lld comparable min";
+"perf_side_segment" = "Session · %1$@ · %2$@ · %3$lld comparable min";
 "perf_side_measurement" = "Measurement “%1$@” · %2$@ · %3$lld comparable min";
 "perf_crossed_change" = "A setting changed during the measurement: later minutes are excluded.";
-"perf_measure_default_name" = "Measurement of %@";
+"perf_measure_default_name" = "%@";
 "perf_tile_frame" = "Typical image (P50 frame)";
 "perf_tile_heap" = "Memory (heap)";
 "perf_verdict_slower" = "Slower, clear gap";

@@ -875,6 +875,14 @@
 "mods_premium_only_hint" = "Le téléchargement direct demande un compte Nexus Premium — passez par le bouton Nexus.";
 "mods_premium_update" = "MàJ Premium";
 "mods_prev_page_hint" = "Page précédente";
+"mods_probe_manual_title" = "Mode d'emploi de la sonde";
+"mods_probe_manual_what" = "Mod d'observation de StarHubFR : il mesure le temps de trame et cartographie les patches Harmony. Il n'optimise rien, ne touche à aucun autre mod et n'accède à aucun réseau.";
+"mods_probe_manual_how" = "Mesure guidée : prépare-la dans Diagnostic → Performances, lance le jeu, puis joue normalement au lieu indiqué. Le bandeau en haut à gauche compte les minutes gardées ; cinq minutes stables ferment la mesure.";
+"mods_probe_manual_after" = "Les mesures closes remplissent les comparaisons « Avant / Après » de l'onglet Performances : une paire enchaînée s'y sélectionne seule.";
+"mods_probe_manual_pause" = "Mettre la sonde en pause arrête toute nouvelle mesure ; les mesures déjà closes restent lisibles.";
+"mods_probe_badge" = "Sonde";
+"mods_probe_badge_help" = "Sonde StarHubFR : elle mesure les performances pour l'onglet Performances. Elle ne se supprime pas — mets-la en pause pour l'arrêter.";
+"mods_probe_delete_refused" = "La sonde StarHubFR ne se supprime pas : elle mesure ce que lit l'onglet Performances. Mets-la en pause pour l'arrêter.";
 "mods_profile_config_badge" = "Garde un config.json par profil";
 "mods_profile_config_compare" = "Comparer avec…";
 "mods_profile_config_diff_differs" = "Valeurs différentes";
@@ -1714,10 +1722,10 @@
 "perf_inventory_missing" = "Inventaire absent pour un des deux moments : installez la sonde 0.4.12 ou plus récente pour voir ce qui a changé.";
 "perf_before" = "Avant";
 "perf_after" = "Après";
-"perf_side_segment" = "%1$@ · %2$@ · %3$lld min comparables";
+"perf_side_segment" = "Session · %1$@ · %2$@ · %3$lld min comparables";
 "perf_side_measurement" = "Mesure « %1$@ » · %2$@ · %3$lld min comparables";
 "perf_crossed_change" = "Un réglage a changé pendant la mesure : les minutes d'après sont exclues.";
-"perf_measure_default_name" = "Mesure du %@";
+"perf_measure_default_name" = "%@";
 "perf_tile_frame" = "Image typique (trame P50)";
 "perf_tile_heap" = "Mémoire (tas)";
 "perf_verdict_slower" = "Plus lent, écart net";
