@@ -113,6 +113,11 @@ internal static class Guided
                 else
                 {
                     LastReason = rule.Add(facts with { TargetTicks = ticks, PatchesActive = patches, ConfigChanged = changed }, guard);
+                    // Une ligne par minute pendant la mesure : le journal dit
+                    // pourquoi une minute ne compte pas — l'écran ne montre
+                    // que l'état, pas la raison (décompte bloqué à Starting
+                    // le 2026-10-04, cause invisible sans cette ligne).
+                    Log($"Mesure guidée : minute « {MinuteFactsName(LastReason)} », {rule.KeptCount} gardée(s), présence {ticks / 60} s.");
                     if (rule.Outcome != GuidedOutcome.Running) Finish(rule);
                 }
                 StateVersion++;
@@ -280,4 +285,8 @@ internal static class Guided
         try { Monitor?.Log(message, LogLevel.Info); }
         catch (ObjectDisposedException) { }
     }
+
+    private static string MinuteFactsName(MinuteReason? reason) => reason is { } r
+        ? char.ToLowerInvariant(r.ToString()[0]) + r.ToString()[1..]
+        : "aucune";
 }
