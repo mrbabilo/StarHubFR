@@ -55,6 +55,10 @@ public sealed class ModEntry : Mod
         ModCosts.Initialize(harmony, Monitor);
         GcPauses.Start(Monitor);
         Guided.Initialize(Monitor, ModManifest.Version.ToString());
+        // Démarrer le plan **tout de suite** : l'auto-chargement de la
+        // sauvegarde choisie se déclenche à l'écran titre, où `RefreshPlan`
+        // n'était appelé qu'au `SaveLoaded` — trop tard d'un chargement.
+        Guided.RefreshPlan();
         GuidedBanner.Initialize(helper);
         // Avant Loads.Initialize : l'enregistrement de lancement lit Benchmark.RunId.
         Benchmark.Initialize(helper, Monitor);

@@ -1006,7 +1006,10 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       et profil (« parc tel quel » par défaut ; ses mods appliqués au
       lancement puis **laissés actifs** — « Préparer seulement » ne les
       applique pas). Geste de chargement extrait en `AutoLoad.cs` partagé
-      avec le benchmark — sonde **0.9.5**. À valider en jeu.
+      avec le benchmark — sonde **0.9.5**. *Corrigé le soir même* : le plan
+      ne démarrait qu'au `SaveLoaded`, trop tard d'un chargement — l'écran
+      titre ne voyait jamais `Active`, donc jamais l'auto-chargement ;
+      `RefreshPlan` appelé à l'`Entry`. À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
