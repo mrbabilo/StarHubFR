@@ -1,17 +1,24 @@
 import Foundation
 
-/// Ce qu'une mesure guidée à préparer doit porter (D5-A).
+/// Ce qu'une mesure guidée à préparer doit porter (D5-A). `saveName` voyage
+/// dans le plan (auto-chargement par la sonde) ; `launchProfileId` ne voyage
+/// pas — l'app l'applique elle-même quand elle lance le jeu.
 public struct GuidedPlanDraft: Equatable, Sendable {
     public var name: String
     public var role: ProbeMeasurement.Role
     public var location: String
     public var pairedWith: UUID?
+    public var saveName: String?
+    public var launchProfileId: UUID?
 
-    public init(name: String, role: ProbeMeasurement.Role, location: String, pairedWith: UUID?) {
+    public init(name: String, role: ProbeMeasurement.Role, location: String, pairedWith: UUID?,
+                saveName: String? = nil, launchProfileId: UUID? = nil) {
         self.name = name
         self.role = role
         self.location = location
         self.pairedWith = pairedWith
+        self.saveName = saveName
+        self.launchProfileId = launchProfileId
     }
 }
 

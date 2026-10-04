@@ -1819,6 +1819,11 @@
 "perf_guided_sheet_duration" = "Duration: %1$lld to %2$lld kept minutes in game, at a single location.";
 "perf_guided_name" = "Name";
 "perf_guided_location" = "Location";
+"perf_guided_save" = "Save";
+"perf_guided_save_none" = "— (you pick it in game)";
+"perf_guided_profile" = "Profile";
+"perf_guided_profile_parc" = "the park as it stands";
+"perf_guided_profile_note" = "The profile's mods are applied when the game launches, and left active — “Prepare only” does not apply it.";
 "perf_guided_launch" = "Prepare and launch the game";
 "perf_guided_prepare_only" = "Prepare only";
 "perf_guided_vanilla" = "Launch profile is “Vanilla”: the game would start without SMAPI, so without the probe. Launch it with SMAPI.";

@@ -1819,6 +1819,11 @@
 "perf_guided_sheet_duration" = "Durée : de %1$lld à %2$lld minutes gardées en jeu, à un seul lieu.";
 "perf_guided_name" = "Nom";
 "perf_guided_location" = "Lieu";
+"perf_guided_save" = "Sauvegarde";
+"perf_guided_save_none" = "— (tu la choisis en jeu)";
+"perf_guided_profile" = "Profil";
+"perf_guided_profile_parc" = "le parc tel quel";
+"perf_guided_profile_note" = "Les mods du profil sont appliqués au lancement du jeu, puis laissés actifs — « Préparer seulement » ne les applique pas.";
 "perf_guided_launch" = "Préparer et lancer le jeu";
 "perf_guided_prepare_only" = "Préparer seulement";
 "perf_guided_vanilla" = "Profil de lancement « Vanilla » : le jeu partirait sans SMAPI, donc sans la sonde. Lance-le avec SMAPI.";

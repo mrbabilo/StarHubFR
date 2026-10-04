@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.Menus;
 
 namespace StarHubFR.Probe;
 
@@ -17,7 +18,7 @@ namespace StarHubFR.Probe;
 internal static class Guided
 {
     internal sealed record Plan(int Version, string Id, string Name, string Role, string? Location,
-                                string? PairedWith, string? CreatedAt);
+                                string? PairedWith, string? CreatedAt, string? SaveName = null);
     private sealed record ExcludedLine(string At, string Reason);
     private sealed record Line(int Version, string PlanId, string Name, string Role, string? PairedWith,
         string Session, string Location, string? Start, string? End, IReadOnlyList<string> KeptAt,
@@ -40,6 +41,10 @@ internal static class Guided
     private static bool patchesSeen;
     /// <summary>Posé par le relevé d'inventaire, qui tourne en tâche de fond.</summary>
     private static int configChanged;
+    /// <summary>Auto-chargement de la sauvegarde du plan : 5 s à l'écran
+    /// titre (300 ticks, comme le benchmark), une seule tentative.</summary>
+    private static int titleTicks;
+    private static bool autoLoaded;
 
     internal static Plan? Active { get; private set; }
     internal static GuidedRule? Rule { get; private set; }
@@ -72,6 +77,17 @@ internal static class Guided
         {
             targetTicks++;
             PresenceTicks++;
+        }
+        // Sauvegarde choisie dans la feuille : chargée seule à l'écran titre,
+        // le geste du benchmark. Sans elle, le joueur clique comme toujours.
+        if (Active?.SaveName is { } saveName && !autoLoaded && !Context.IsWorldReady
+            && Game1.activeClickableMenu is TitleMenu)
+        {
+            if (++titleTicks >= 300) autoLoaded = AutoLoad.Try(saveName, Monitor!, "Mesure guidée");
+        }
+        else if (Game1.activeClickableMenu is not TitleMenu)
+        {
+            titleTicks = 0;
         }
     }
 
@@ -171,6 +187,8 @@ internal static class Guided
         RefusedKey = null;
         targetTicks = 0;
         PresenceTicks = 0;
+        titleTicks = 0;
+        autoLoaded = false;
         patchesSeen = false;
         Interlocked.Exchange(ref configChanged, 0);
         if (Context.IsSplitScreen) Refuse("refused.splitscreen");

@@ -9,16 +9,20 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
     public var role: ProbeMeasurement.Role
     public var location: String
     public var pairedWith: UUID?
+    /// Sauvegarde à charger seule à l'écran titre (sonde ≥ 0.9.5) ; `nil`,
+    /// le joueur clique lui-même — et la clé n'est pas écrite du tout.
+    public var saveName: String?
     public var createdAt: Date
 
     public init(version: Int = 1, id: UUID, name: String, role: ProbeMeasurement.Role, location: String,
-                pairedWith: UUID?, createdAt: Date) {
+                pairedWith: UUID?, saveName: String? = nil, createdAt: Date) {
         self.version = version
         self.id = id
         self.name = name
         self.role = role
         self.location = location
         self.pairedWith = pairedWith
+        self.saveName = saveName
         // À la seconde : `.iso8601` n'écrit pas les fractions, le plan relu
         // doit égaler le plan écrit.
         self.createdAt = Date(timeIntervalSince1970: createdAt.timeIntervalSince1970.rounded(.down))
@@ -26,7 +30,7 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case version = "Version", id = "Id", name = "Name", role = "Role", location = "Location"
-        case pairedWith = "PairedWith", createdAt = "CreatedAt"
+        case pairedWith = "PairedWith", saveName = "SaveName", createdAt = "CreatedAt"
     }
 
     public static func load(from url: URL) -> GuidedPlan? {

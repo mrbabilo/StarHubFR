@@ -23,6 +23,22 @@ struct GuidedFilesTests {
         #expect(object["Version"] as? Int == 1)
     }
 
+    /// La sauvegarde choisie voyage dans le plan — champ optionnel : une
+    /// sonde ancienne l'ignore, un plan ancien se lit sans elle.
+    @Test func planCarriesTheChosenSave() throws {
+        let url = directory.appendingPathComponent("guided-plan-save.json")
+        var written = plan()
+        written.saveName = "TestOK_444827372"
+        try written.write(to: url)
+        #expect(GuidedPlan.load(from: url) == written)
+        let object = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        #expect(object["SaveName"] as? String == "TestOK_444827372")
+        let bare = directory.appendingPathComponent("guided-plan-bare.json")
+        try plan().write(to: bare)
+        let bareObject = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: bare)) as? [String: Any])
+        #expect(bareObject["SaveName"] == nil)
+    }
+
     /// Review Focus 3 — l'effacement ne touche qu'au plan désigné.
     @Test func removeKeepsANewerPlan() throws {
         let url = directory.appendingPathComponent("guided-plan.json")

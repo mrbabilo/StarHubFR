@@ -36,7 +36,7 @@ struct PerformanceGuidedBar: View {
             if let message { note(message) }
         }
         .sheet(item: Binding(get: { draft.map(DraftBox.init) }, set: { draft = $0?.draft })) { box in
-            PerformanceGuidedSheet(localization: localization, draft: box.draft,
+            PerformanceGuidedSheet(viewModel: viewModel, localization: localization, draft: box.draft,
                                    canLaunch: launchProfile != "Vanilla") { final, launch in
                 prepare(final, launch: launch)
             }
@@ -102,7 +102,17 @@ struct PerformanceGuidedBar: View {
         do {
             try store.prepare(final)
             message = nil
-            if launch { viewModel.launchGame() }
+            guard launch else { return }
+            // Profil choisi : l'état de mods du profil est appliqué **avant**
+            // le lancement, puis laissé actif — c'est le profil sous lequel on
+            // joue la mesure. « Préparer seulement » ne l'applique pas.
+            if let profileId = final.launchProfileId {
+                let ids = viewModel.modProfiles.first { $0.id == profileId }?.enabledModIds ?? []
+                let folders = BenchmarkSides.foldersA(BenchmarkSides.stateA(viewModel.mods, baseProfileIds: ids))
+                viewModel.applyEnabledFolders(folders) { _ in viewModel.launchGame() }
+            } else {
+                viewModel.launchGame()
+            }
         } catch {
             message = String(format: localization.L(L10n.Performance.guidedWriteFailed), error.localizedDescription)
         }
@@ -133,14 +143,18 @@ struct PerformanceGuidedBar: View {
 
 /// La feuille : nom, lieu, lancer ou préparer seulement.
 struct PerformanceGuidedSheet: View {
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State var draft: GuidedPlanDraft
     let canLaunch: Bool
     let onConfirm: (GuidedPlanDraft, Bool) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var saveFolder = ""
+    @State private var profileId: UUID?
 
-    init(localization: LocalizationStore, draft: GuidedPlanDraft, canLaunch: Bool,
-         onConfirm: @escaping (GuidedPlanDraft, Bool) -> Void) {
+    init(viewModel: StarHubTHViewModel, localization: LocalizationStore, draft: GuidedPlanDraft,
+         canLaunch: Bool, onConfirm: @escaping (GuidedPlanDraft, Bool) -> Void) {
+        self.viewModel = viewModel
         self.localization = localization
         _draft = State(initialValue: draft)
         self.canLaunch = canLaunch
@@ -166,6 +180,19 @@ struct PerformanceGuidedSheet: View {
             } else {
                 Text(Self.placeName(draft.location, localization: localization)).font(AppDesign.Font.body(.medium))
             }
+            Picker(localization.L(L10n.Performance.guidedSave), selection: $saveFolder) {
+                Text(localization.L(L10n.Performance.guidedSaveNone)).tag("")
+                ForEach(viewModel.saves) { Text($0.folderName).tag($0.folderName) }
+            }
+            Picker(localization.L(L10n.Performance.guidedProfile), selection: $profileId) {
+                Text(localization.L(L10n.Performance.guidedProfileParc)).tag(UUID?.none)
+                ForEach(viewModel.modProfiles) { Text($0.name).tag(UUID?.some($0.id)) }
+            }
+            if profileId != nil {
+                Text(localization.L(L10n.Performance.guidedProfileNote))
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !canLaunch {
                 Text(localization.L(L10n.Performance.guidedVanilla))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
@@ -180,13 +207,26 @@ struct PerformanceGuidedSheet: View {
             }
         }
         .padding(AppDesign.Spacing.lg)
-        .frame(minWidth: 360)
+        .frame(minWidth: 420)
+        .onAppear {
+            // Comme la feuille benchmark : la liste se relit à l'ouverture,
+            // le choix reprend quand elle arrive.
+            viewModel.reloadSaves()
+            if saveFolder.isEmpty { saveFolder = viewModel.saves.first?.folderName ?? "" }
+        }
+        .onChange(of: viewModel.saves) { _, saves in
+            if saves.first(where: { $0.folderName == saveFolder }) == nil {
+                saveFolder = saves.first?.folderName ?? ""
+            }
+        }
     }
 
     private func confirm(launch: Bool) {
         var final = draft
         final.name = final.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if final.name.isEmpty { final.name = Self.placeName(draft.location, localization: localization) }
+        final.saveName = saveFolder.isEmpty ? nil : saveFolder
+        final.launchProfileId = profileId
         onConfirm(final, launch)
         dismiss()
     }

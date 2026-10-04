@@ -68,15 +68,7 @@ internal static class Benchmark
         if (BenchmarkRule.ShouldLoad(L4At, now, Game1.activeClickableMenu is TitleMenu, Loaded))
         {
             Loaded = true;
-            string path = Path.Combine(Constants.SavesPath, Plan.SaveName, Plan.SaveName);
-            if (!File.Exists(path))
-            {
-                Monitor.Log($"Benchmark : sauvegarde {Plan.SaveName} introuvable, sortie sans chargement.", LogLevel.Warn);
-                Quit();
-                return;
-            }
-            SaveGame.Load(Plan.SaveName);
-            Game1.exitActiveMenu();
+            if (!AutoLoad.Try(Plan.SaveName, Monitor, "Benchmark")) Quit();
             return;
         }
         if (BenchmarkRule.ShouldQuit(S9At, now))

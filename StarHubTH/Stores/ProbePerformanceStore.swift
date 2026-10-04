@@ -135,7 +135,7 @@ final class ProbePerformanceStore {
     @discardableResult
     func prepare(_ draft: GuidedPlanDraft, now: Date = Date()) throws -> GuidedPlan {
         let plan = GuidedPlan(id: UUID(), name: draft.name, role: draft.role, location: draft.location,
-                              pairedWith: draft.pairedWith, createdAt: now)
+                              pairedWith: draft.pairedWith, saveName: draft.saveName, createdAt: now)
         try plan.write(to: files.guidedPlanURL)
         self.plan = plan
         return plan
