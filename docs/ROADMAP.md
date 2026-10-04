@@ -990,8 +990,15 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       versions, gain si pause) et carte « Impact par mod ». Mesuré par le
       code sur le parc : 113 classés (6 élevés — CP 43, Cropgenics 35,
       QuestJournal 22, UIInfoSuite2Alt 21, MMAP 20, SpaceCore 17 — 23
-      moyens, 84 faibles), 172 négligeables : les classes de la spec. Reste : courbe de note par date (dès qu'un
-      mod a ≥ 3 versions mesurées), badge de liste (D1-T4), validation à
+      moyens, 84 faibles), 172 négligeables : les classes de la spec.
+      ✅ *Badge et filtre de liste livrés le 2026-10-04* (`35da4c0f`) :
+      pastille sur les seules classes élevée et moyenne (29 lignes du parc),
+      note et axe dominant à l'infobulle, menu de filtre à trois états avec
+      comptes ; un pack qualifie par un composant (`matchesImpact`, Core
+      testé) ; le store indexe ses entrées par `folderName` (badge O(1)) ;
+      premier chargement de l'historique à l'apparition de la liste —
+      sinon il n'arrivait qu'à la fermeture du jeu. Reste : courbe de note
+      par date (dès qu'un mod a ≥ 3 versions mesurées), validation à
       l'écran.
       *2026-10-01, axe Sauvegarde* : premier chargement en 0.9.0 (219 mods,
       70 s attribuées sur 86 s) ; seuils **re-mesurés et gardés** (15 / 5) :
