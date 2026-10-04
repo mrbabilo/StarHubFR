@@ -990,6 +990,12 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       change entre A et B » résolue en Core (`BenchmarkSides.change`, testée) ;
       arrêt explicité « après le lancement en cours ». Lignes de verdict en
       une seule copie partagée inline/panneau. À valider à l'écran.
+      *Itéré sur retour d'écran le 2026-10-04* : panneau coupé en bas →
+      `ScrollView` + hauteur idéale bornée 300–560 pt.
+      *2026-10-04, chrono de la mesure guidée* : le « encore N avant l'arrêt
+      possible » du bandeau devient un chrono hh:mm:ss depuis le début de la
+      mesure (hors cache du bandeau, recalculé à chaque trame) — sonde
+      **0.9.3**. À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
