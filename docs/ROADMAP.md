@@ -341,7 +341,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **8 items ouverts sur 29** *(le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **5 items ouverts sur 29** *(le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -547,7 +547,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · à faire
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T3 et D5-A livrés, sonde embarquée et validée ; restent D2, D4-T1/T5–T9 et D5-B/C
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
 
@@ -846,7 +846,7 @@ SLO est actif et ce que la dernière session a mesuré.
       (`ProbeBundle`, Core : version, dossier réel, `config.json` gardé,
       dossier en 0555 ouvert). Installée active dans `Mods/StarHubFR Probe`,
       un mod de la liste comme un autre.
-- [ ] **D4-T4** — Avant/après : comparer deux sessions de la sonde autour d'une
+- [x] **D4-T4** ✅ *(livré le 2026-09-28, validé — clôturé le 2026-10-04)* — Avant/après : comparer deux sessions de la sonde autour d'une
       activation de mod (la version tenable de D1-T5, idée reprise d'UltraSmooth
       mais sur des sessions entières). · **S**
       *En cours (2026-09-28)* : spec `docs/superpowers/specs/2026-09-28-d4-t4-before-after-design.md`
@@ -874,10 +874,14 @@ SLO est actif et ce que la dernière session a mesuré.
       sous chaque graphique), coût par mod en haltères, analyse et gestes
       réversibles (pause, sauvegardes, réglage d'avant sous garde, mesure
       préparée). Les gardes tournent une fois par session (un segment après
-      une coupure n'a pas de « chargement » à lui). Reste la vérification à
-      l'écran par l'auteur : clair et sombre, 560 pt, une paire « dans le
-      bruit » et une « écart net » — il faut d'abord une session propre (≥ 15
-      minutes en partie de chaque côté, sans menu, même lieu).
+      une coupure n'a pas de « chargement » à lui).
+      ✅ *Validé* : les deux paires exigées à l'écran sont celles de D5-A, lues
+      sur le même onglet le 2026-09-29 — « écart net » (UltraSmooth retiré →
+      « plus rapide », confiance élevée) et « dans le bruit » (paire A/A →
+      « pas de différence mesurable ») ; lisibilité 560 pt couverte par le
+      balayage I-T11, clair et sombre par l'audit UX du 2026-10-02 ; l'auteur
+      valide l'écran (entrées instantanées, défilement fluide) le 2026-10-04
+      après l'accélération de l'entrée de page (`da0a6012`).
 
 **Risques** : un mod à suivre à chaque version de SMAPI et du jeu ; l'effet de
 l'observateur (aucun patch par trame au-delà des minuteurs) ; deux langages dans
@@ -1288,7 +1292,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · à faire — **plus rien devant : H est clos depuis le 2026-09-09**
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive) ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -1905,10 +1909,11 @@ Par lot, dans l'ordre de ce que l'axe « perte de données » recommande de fair
 ensuite : **F2** (audit sécurité et perf — c'est lui qui trouverait les X à
 venir), ~~**F5**~~ *(clos le 2026-09-10 : dossier de données, domaine de
 préférences et Trousseau propres au fork — le plan du 2026-08-26 exécuté avec
-re-mesures ; reste X105 pour `Backups/`)*, puis ~~**C4**~~ *(clos le
+re-mesures ; X105 pour `Backups/` livré le 2026-09-10, §11)*, puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
-~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T1/T2, A2-T5, A5-T4/T5/T6/T7), **D1/D2**
-(Profiler et télémétrie), **C3/C5/C6**, **I** (accessibilité — **débloqué**, H est clos),
+~~**H**~~ *(clos le 2026-09-09)*, **A** (A1-T2, A2-T5, A5-T4/T5/T6), **D2**
+(télémétrie tierce) et la sonde (**D4/D5**), **C3/C5** *(C6 abandonnée le 2026-09-24,
+mesure)*, **I** (accessibilité — **débloqué**, H est clos),
 **E1–E3** et **D3** (horizon, sous décision produit).
 
 **Non classés ici parce qu'ils attendent une décision, pas un développement** :
