@@ -616,6 +616,15 @@ SOURCES = [
              "(classe « données runtime » du §6, non régénérables)",
      "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
 
+    {"key": "mod/internationalization", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 21317, "uniqueId": "bcmpinc.Internationalization",
+     "role": "éditeur de traductions i18n en jeu (serveur web local + "
+             "navigateur, aperçu vivant par réflexion dans SMAPI) — complément "
+             "en jeu de notre axe C ; audité le 2026-10-04. UpdateKeys "
+             "« Nexus:0 » cassé dans son manifeste — alertes SMAPI en jeu "
+             "muettes, mais smapi.io résout par UniqueID (0.8.0 au relevé)",
+     "used_by": "docs/audit-internationalization.md, docs/SOURCES.md §5"},
+
     {"key": "mod/stardropium", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 52803, "uniqueId": "Arshia1381.Stardropium",
      "role": "mod de performances (37 modules en 0.1.3, dont 15 patchent des types "

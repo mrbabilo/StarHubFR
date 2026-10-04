@@ -77,9 +77,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "5f24094",
-    "last_commit_at": "2026-10-04T11:56:35Z",
-    "pushed_at": "2026-10-04T11:57:18Z",
+    "last_commit": "30a666b",
+    "last_commit_at": "2026-10-04T19:30:29Z",
+    "pushed_at": "2026-10-04T19:30:30Z",
     "release": "v1.57.1",
     "released_at": "2026-10-03T20:02:14Z"
   },
@@ -130,6 +130,11 @@
     "name": "Generic Mod Config Menu",
     "version": "1.16.0"
   },
+  "mod/internationalization": {
+    "gitHubRepo": null,
+    "name": "Internationalization",
+    "version": "0.8.0"
+  },
   "mod/keybind-radar": {
     "changelog_reviewed": "1.0.2",
     "gitHubRepo": null,
@@ -158,7 +163,7 @@
     "changelog_reviewed": "2.2.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.5"
+    "version": "2.2.6"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -199,7 +204,7 @@
     "changelog_reviewed": "2.4.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.5"
+    "version": "2.4.6"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -282,7 +287,7 @@
     ],
     "fichiers_pieges": 1,
     "http": 200,
-    "mods_bloques": 19,
+    "mods_bloques": 20,
     "noms_surveilles": [
       "Auto_Alchemistry.bat"
     ]
