@@ -199,7 +199,10 @@ enum ModListScoping {
         /// Les dates de dernière activation, pour le tri correspondant.
         let activationDates: [String: Date]
         /// La classe d'impact mesurée, par nom de dossier (D5-C) — les mods
-        /// jamais mesurés ou négligeables en sont absents.
+        /// jamais mesurés ou négligeables en sont absents. ⚠️ Câblée par
+        /// `StarHubTHViewModel.scopingInputs` (hors Core) : un filtre actif
+        /// sur une carte vide ne laisse **rien** passer, par construction —
+        /// le défaut de l'init ne dispense pas de la passer.
         let impactClasses: [String: ModImpactClass]
 
         init(category: @escaping (ModItem) -> NexusCategory? = { _ in nil },

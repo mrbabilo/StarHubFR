@@ -6993,10 +6993,10 @@ final class StarHubTHViewModel {
     private var scopingInputs: ModListScoping.Inputs {
         .init(category: { self.category(for: $0) },
               sizeOnDisk: { self.sizeOnDisk(of: $0) },
-              favorites: favoriteMods,
-              blacklisted: blacklistedMods,
+              favorites: favoriteMods, blacklisted: blacklistedMods,
               translation: translationScopingState,
-              activationDates: modActivationTimestamps)
+              activationDates: modActivationTimestamps,
+              impactClasses: modImpactStore.classesById)
     }
 
     /// Liste cadrée : six filtres composés, puis triée — source de
