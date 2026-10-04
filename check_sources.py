@@ -485,6 +485,13 @@ SOURCES = [
              "relevé pour ses idées, rien de repris",
      "used_by": "docs/SOURCES.md §5"},
 
+    {"key": "Stardrop-NativeMac", "kind": "repo", "repo": "kxgcayh/Stardrop-NativeMac",
+     "role": "gestionnaire concurrent (SwiftUI, macOS natif, Nexus mod 53356) — "
+             "un fork de Stardrop qui recouvre notre créneau exact ; dépôt sous "
+             "GPL-3.0 (héritée du parent) quand la page Nexus revendique MIT : "
+             "ses idées se relèvent, son code ne se reprend pas sans trancher",
+     "used_by": "docs/SOURCES.md §5"},
+
     {"key": "i18n-translator", "kind": "repo", "repo": "Nana1873/stardew-i18n-translator",
      "role": "référence du hub de traduction : jetons protégés, garanties d'écriture",
      "used_by": "docs/ (spec du hub FR), TranslationTokenCheck, TranslationDocument"},
