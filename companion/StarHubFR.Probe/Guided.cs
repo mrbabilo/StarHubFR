@@ -28,6 +28,10 @@ internal static class Guided
     private static string ProbeVersion = "";
     private static string PlanPath => Path.Combine(ModEntry.OutputDir, "guided-plan.json");
     private static string OutputPath => Path.Combine(ModEntry.OutputDir, "guided-measurements.jsonl");
+    /// <summary>Ticks de présence au lieu cible depuis le début de la mesure
+    /// (60 par seconde) : le décompte du bandeau descend avec le temps
+    /// **réellement passé sur place**, pas avec l'horloge murale.</summary>
+    internal static int PresenceTicks;
 
     private static readonly ComparableGuards Guards = new();
     private static readonly HashSet<string> Finished = new();
@@ -65,7 +69,10 @@ internal static class Guided
         if (PatchCosts.Active) patchesSeen = true;
         if (Rule is { Outcome: GuidedOutcome.Running } rule && Context.IsWorldReady && !Game1.eventUp
             && Game1.currentLocation?.NameOrUniqueName == rule.Target)
+        {
             targetTicks++;
+            PresenceTicks++;
+        }
     }
 
     /// <summary>
@@ -163,6 +170,7 @@ internal static class Guided
         FinishedAtUtc = null;
         RefusedKey = null;
         targetTicks = 0;
+        PresenceTicks = 0;
         patchesSeen = false;
         Interlocked.Exchange(ref configChanged, 0);
         if (Context.IsSplitScreen) Refuse("refused.splitscreen");

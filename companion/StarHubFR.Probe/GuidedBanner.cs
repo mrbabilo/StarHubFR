@@ -75,20 +75,22 @@ internal static class GuidedBanner
                 State.Night => I18n.Get("state.night").ToString(),
                 State.Config => I18n.Get("state.config").ToString(),
                 State.Patches => I18n.Get("state.patches").ToString(),
-                // Chrono à la place du décompte (retour d'écran du 2026-10-04) :
-                // une horloge qui tourne dit « ça avance », un « encore N » figé
-                // ne dit rien du temps déjà passé.
+                // Le décompte vivant vit plus bas (hors cache) : les textes
+                // ne portent que les minutes gardées.
                 State.Counting when count < GuidedRule.MinimumMinutes =>
                     I18n.Get("state.counting", new { count }).ToString(),
                 State.Counting => I18n.Get("state.countingReady", new { count }).ToString(),
                 _ => I18n.Get("state.starting").ToString(),
             };
-            // Chrono en direct, hors cache : recalculé à chaque trame, la
+            // Décompte en direct, hors cache : recalculé à chaque trame, la
             // taille du bandeau le lit après (il fait partie du texte mesuré).
-            if (state is State.Starting or State.Counting && Guided.Rule is { } liveRule)
+            // 5:00 → 0:00 en temps de présence réel au lieu cible — l'horloge
+            // murale compterait le temps passé ailleurs ou en pause. Disparait
+            // quand le plancher est atteint (l'état « prêt » prend le relais).
+            if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
             {
-                string elapsed = (DateTime.UtcNow - liveRule.StartedAtUtc).ToString(@"hh\:mm\:ss");
-                status = $"{status} · {elapsed}";
+                int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
+                status = $"{status} · {remaining / 60}:{remaining % 60:00}";
             }
         }
         var font = Game1.smallFont;

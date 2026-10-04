@@ -995,7 +995,11 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       *2026-10-04, chrono de la mesure guidée* : le « encore N avant l'arrêt
       possible » du bandeau devient un chrono hh:mm:ss depuis le début de la
       mesure (hors cache du bandeau, recalculé à chaque trame) — sonde
-      **0.9.3**. À valider en jeu.
+      **0.9.3**. *Itéré le soir même sur retour d'écran* : **décompte**
+      5:00 → 0:00 seconde par seconde, **temps de présence réelle au lieu
+      cible** (ticks comptés par la sonde, pas l'horloge murale — le temps
+      passé ailleurs ou en pause ne descend pas), format mm:ss sans heures,
+      disparait au plancher atteint — sonde **0.9.4**. À valider en jeu.
       *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
       `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
       comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
