@@ -47,6 +47,9 @@ final class ProbePerformanceStore {
     var protocolState: GuidedProtocolState { GuidedProtocol.state(plan: plan, measurements: measurements) }
 
     func reload(gameDir: String? = nil) async {
+        // Mesures déjà connues avant la lecture : seules les nouvelles peuvent
+        // prendre la sélection (ci-dessous).
+        let knownMeasurementIds = Set(measurements.map(\.id))
         // Première lecture seulement : une relecture garde l'écran affiché
         // (retour dans l'app, changement de segment) au lieu de le vider.
         if status == .idle { status = .loading }
@@ -105,14 +108,32 @@ final class ProbePerformanceStore {
         probeWritesLoads = ProbeLoadRecords.writesLoads(probeVersion: loaded.launches.last?.probe)
         guard loaded.hasProbe else { status = .noProbe; report = nil; return }
         guard sides.count >= 2 else { status = .needTwo; report = nil; return }
-        // Garder la paire choisie si elle existe encore, sinon la paire par défaut.
-        if let beforeId, let afterId, sides.contains(where: { $0.id == beforeId }),
+        // Une mesure close depuis la lecture précédente prend la sélection :
+        // la paire qu'elle forme avec celle qu'elle désigne est ce qu'on vient
+        // de jouer — la paire affichée d'avant est périmée. Ensuite garder la
+        // paire choisie si elle existe encore, sinon la paire par défaut.
+        if let pair = freshGuidedPair(known: knownMeasurementIds) {
+            select(before: pair.before.id, after: pair.after.id)
+        } else if let beforeId, let afterId, sides.contains(where: { $0.id == beforeId }),
            sides.contains(where: { $0.id == afterId }) {
             select(before: beforeId, after: afterId)
         } else if let pair = ProbePerformance.defaultPair(sides) {
             select(before: pair.before.id, after: pair.after.id)
         }
         status = .ready
+    }
+
+    /// La paire formée par la dernière mesure guidée close depuis la lecture
+    /// précédente et celle qu'elle désigne (`PairedWith`) : des mesures
+    /// enchaînées s'affichent seules, sans les choisir à la main.
+    private func freshGuidedPair(known: Set<UUID>) -> (before: ProbeSide, after: ProbeSide)? {
+        guard let fresh = measurements.last(where: {
+            $0.outcome != .abandoned && $0.pairedWith != nil && !known.contains($0.id)
+        }), let target = fresh.pairedWith,
+              let before = sides.first(where: { $0.measurement?.id == target }),
+              let after = sides.first(where: { $0.measurement?.id == fresh.id })
+        else { return nil }
+        return (before, after)
     }
 
     /// Le rapport d'une paire se calcule sur des minutes déjà en mémoire

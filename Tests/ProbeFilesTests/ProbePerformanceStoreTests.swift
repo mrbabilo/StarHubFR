@@ -116,6 +116,38 @@ import Foundation
         #expect(side.minutes.count == 3)
         if case .beforeDone(let m) = s.protocolState { #expect(m.id == plan.id) } else { Issue.record("état") }
     }
+
+    /// Deux mesures guidées enchaînées closes : la paire qu'elles forment
+    /// prend la sélection d'elle-même (retour d'utilisateur du 2026-10-04) —
+    /// pas la mesure seule, et une relecture ultérieure ne la reprend plus.
+    @Test func aFinishedGuidedPairTakesTheSelection() async throws {
+        let s = try store()
+        await s.reload()
+        let target = try #require(s.sides.first { $0.minutes.count >= 4 })
+        let beforeId = UUID(), afterId = UUID()
+        let kept = target.minutes.prefix(3).map(\.at)
+        func line(_ id: UUID, role: String, pairedWith: UUID?) -> String {
+            """
+            {"Version":1,"PlanId":"\(id.uuidString)","Name":"m","Role":"\(role)",\
+            "PairedWith":\(pairedWith.map { "\"\($0.uuidString)\"" } ?? "null"),\
+            "Session":"\(target.session)","Location":"Farm","Start":"\(kept.first!)","End":"\(kept.last!)",\
+            "KeptAt":[\(kept.map { "\"\($0)\"" }.joined(separator: ","))],"Excluded":[],"Outcome":"stable",\
+            "FrameIqrShare":0.02,"WorkIqrShare":0.02,"GameTimeFrom":600,"GameTimeTo":620,"Probe":"0.5.0"}
+            """
+        }
+        let url = probe.appendingPathComponent("guided-measurements.jsonl")
+        try (line(beforeId, role: "before", pairedWith: nil) + "\n").write(to: url, atomically: true, encoding: .utf8)
+        await s.reload()
+        #expect(s.afterId != "m:\(beforeId.uuidString)")   // seule, sans paire : rien ne bouge
+        try (line(beforeId, role: "before", pairedWith: nil) + "\n"
+             + line(afterId, role: "after", pairedWith: beforeId) + "\n")
+            .write(to: url, atomically: true, encoding: .utf8)
+        await s.reload()
+        #expect(s.beforeId == "m:\(beforeId.uuidString)")
+        #expect(s.afterId == "m:\(afterId.uuidString)")
+        await s.reload()
+        #expect(s.afterId == "m:\(afterId.uuidString)")
+    }
 }
 
 extension ProbePerformanceStoreTests {
