@@ -159,6 +159,7 @@ let package = Package(
                 "Models/TranslationDiffCache.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
+                "Models/SloOptimizerConfig.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",

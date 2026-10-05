@@ -625,10 +625,18 @@ Complément de D1 : trois mods déjà présents sur le parc écrivent de la tél
 exploitable **sans rien installer de plus**. Établi par décompilation et mesure sur
 le journal réel le 2026-09-04.
 
-- [ ] **D2-T1** — Parser `[OPTIMIZER CONFIG]` (SLO, une ligne INFO au démarrage) :
+- [x] **D2-T1** — Parser `[OPTIMIZER CONFIG]` (SLO, une ligne INFO au démarrage) :
       profil, limites de cache, et le triplet configuré/effectif/**raison** de chaque
       optimisation. Modèle Core testable ; échec silencieux si la ligne change de
       forme. · **S**
+      ✅ *Livré le 2026-10-06* : `SloOptimizerConfig` (Core, testé) — format
+      relevé dans la DLL 1.0.0 décompilée (`ModEntry.cs`, la ligne compte
+      ~40 paires dont 4 triplets à virgules collées) ; clés inconnues gardées
+      en clair, booléens `True`/`false` mixtes tolérés, virgule décimale FR
+      acceptée, `[OPTIMIZER CONFIG MIGRATION]` jamais pris pour la config,
+      forme changée = `nil`. Sans écran : la vue viendra avec **D2-T3** ; le
+      parc a le mod **en pause** — relire un vrai journal demandera de le
+      réactiver une session.
 - ~~**D2-T2**~~ — ❌ **Abandonné le 2026-09-26 (mesure).** Ingérer les rapports
       `us_trace`/`us_diag` d'UltraSmooth. Lus sur 5 vrais rapports et confrontés à
       la sonde (**D4**) : le rapport ne naît que d'une commande console, ne nomme
