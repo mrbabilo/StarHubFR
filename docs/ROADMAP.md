@@ -562,7 +562,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T3, D4-T4, D5-A et D5-B livrés et validés ; restent D2, D4-T1/T5–T9 et D5-C
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T1, D4-T3, D4-T4, D4-T5, D5-A et D5-B livrés et validés ; restent D2, D4-T6b (optionnel), D4-T9 (livré le 2026-10-06, à valider en jeu) et D5-C
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
 
@@ -690,7 +690,7 @@ SLO est actif et ce que la dernière session a mesuré.
 > lents et gourmands en mémoire, ceux qui dégradent les FPS**, et **lire les bornes
 > min-max des options de config** des mods.
 
-- [ ] **D4-T1** — Sonde v0.3 *(code écrit le 2026-09-26, à valider en jeu)* : (a) coût de
+- [x] **D4-T1** — Sonde v0.3 *(code écrit le 2026-09-26, à valider en jeu)* : (a) coût de
       **chaque gestionnaire d'événement de chaque mod**, sans seuil — temps **propre**
       (enfants soustraits) et **octets alloués**, par mod et par événement, une ligne
       par minute dans `mod-costs.jsonl` ; transpileur sur `ManagedEvent<T>.Raise`
@@ -731,7 +731,16 @@ SLO est actif et ce que la dernière session a mesuré.
       Témoin de coût en régime
       continu : événements = 6 à 8 s sur 59 s de travail de trame par minute
       (la première ligne d'une session inclut le chargement, hors trames).
-- [ ] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
+      ✅ *Cœur livré le 2026-09-26 (sonde v0.3 → v0.4.2), validé par les
+      sessions réelles décrites ci-dessus ; les quatre restes sont couverts
+      ailleurs : pics à seuil relatif = verdict de comparaison de l'app
+      (`ProbeComparison.compare`, écart > 5 % et quartiles disjoints), pauses
+      GC pic = `BlockingGcMaxMs` (champ de chaque ligne de minute), changements
+      de lieu = `Location`
+      par minute + restrictions de comparaison, horloge des minutes =
+      chronologie de « Fluidité », en-tête = `LoadedMods` + VSync déduit à
+      l'affichage (`isAtRefreshCeiling`) + pas fixe compté (`UpdatesPerTick`).*
+- [x] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
       méthodes de préfixe/postfixe elles-mêmes, par propriétaire — un mod qui agit par
       patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût
       d'observation à mesurer d'abord : certains préfixes tirent des milliers de fois
@@ -809,6 +818,15 @@ SLO est actif et ce que la dernière session a mesuré.
       comptait en entier dans la suivante — les fenêtres se ferment désormais
       entre deux ticks, et un tick coupé par une fermeture forcée n'apporte que
       sa part).
+      ✅ *Livré et validé en jeu le 2026-09-26 (sonde v0.4.1 → v0.4.8) —
+      les sessions ci-dessus sont la validation : enveloppe à 40 ns de biais,
+      autotest des réécritures, disjoncteur (exceptions + volume terminal),
+      première session complète en v0.4.7, défauts de retrait corrigés en
+      v0.4.8. Option `MeasureHarmonyPatches` (opt-in, GMCM aujourd'hui),
+      `PatchMs` par mod dans `mod-costs.jsonl`, angles morts dans
+      `patch-wraps.json` ; l'app compare sous `patchesMeasured` et refuse
+      d'arbitrer des trames aux états de mesure différents
+      (`patchesMismatch`).*
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
