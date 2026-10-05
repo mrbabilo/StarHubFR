@@ -176,6 +176,9 @@ struct PerformanceSmoothnessSection: View {
         Text(localization.L(report.locationsRestricted ? L10n.Performance.sameLocations
                                                        : L10n.Performance.differentLocations))
             .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+        PerformanceSceneNote(localization: localization,
+                             before: report.keptBefore.map(\.minute),
+                             after: report.keptAfter.map(\.minute))
         if report.comparison.vsyncLimited {
             Text(localization.L(L10n.Performance.vsync)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
         }

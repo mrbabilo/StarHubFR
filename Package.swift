@@ -70,6 +70,7 @@ let package = Package(
                 "Models/PerformanceOverlap.swift",
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",
+                "Models/ProbeScene.swift",
                 "Models/ProbeHarmonyMap.swift",
                 "Models/ProbeFiles.swift",
                 "Models/ProbeInventory.swift",

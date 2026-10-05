@@ -44,6 +44,11 @@ public struct ProbeMinute: Decodable, Equatable, Sendable {
     public let menuTicks: Int?
     /// Heure du jeu en fin de minute (`Game1.timeOfDay`), sonde ≥ 0.4.12.
     public let gameTime: Int?
+    /// D4-T9 — charge de la scène du lieu courant en fin de minute, sonde ≥
+    /// 0.9.21 : PNJ, animaux, meubles, objets posés, éléments de terrain,
+    /// lumières… clés stables documentées dans `ProbeSceneCounts.counters`.
+    /// `nil` hors monde (écran titre) et sur les lignes des sondes antérieures.
+    public let scene: [String: Int]?
     public let tick: Stats?
     public let update: Stats?
     public let draw: Stats?

@@ -2118,5 +2118,18 @@
   "mod_install_embedded_app_hint": "Install the .app itself (double-click, like any application); it handles the companion mod.",
   "mods_impact_filter_label": "Impact",
   "mods_impact_filter_high": "High impact",
-  "mods_impact_filter_medium": "Medium impact"
+  "mods_impact_filter_medium": "Medium impact",
+  "perf_scene_label": "Scene",
+  "perf_scene_comparable": "Comparable scene before and after",
+  "perf_scene_npcs": "NPCs",
+  "perf_scene_animals": "animals",
+  "perf_scene_furniture": "furniture",
+  "perf_scene_objects": "placed objects",
+  "perf_scene_terrain": "terrain features",
+  "perf_scene_large_terrain": "bushes and grass",
+  "perf_scene_resource_clumps": "rocks and stumps",
+  "perf_scene_lights": "active lights",
+  "perf_scene_temporary_sprites": "temporary sprites",
+  "perf_scene_debris": "debris",
+  "perf_scene_locations": "active locations"
 }

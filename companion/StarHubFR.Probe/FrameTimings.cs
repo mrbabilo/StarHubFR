@@ -198,7 +198,8 @@ internal static class FrameTimings
                         long HeapMB, int Gen0, int Gen1, int Gen2, double BlockingGcMs, double BlockingGcMaxMs, double BackgroundGcMs,
                         long WorkingSetMB, long PeakWorkingSetMB, long CommittedMB,
                         long? TextureMB, int? TextureCount, Dictionary<string, long>? TextureByMod,
-                        string? Location, int? GameTime, string? Menu);
+                        string? Location, int? GameTime, string? Menu,
+                        Dictionary<string, int>? Scene);
 
     /// Le pic de mémoire physique **suivi par la sonde** : `PeakWorkingSet64`
     /// rend 0 sur macOS (pas de `/proc`, mesuré le 2026-10-05) — on garde le
@@ -243,7 +244,8 @@ internal static class FrameTimings
                 TextureMemory.ArmedNow ? TextureMemory.ByOwner() : null,
                 Context.IsWorldReady ? Game1.currentLocation?.NameOrUniqueName : null,
                 Context.IsWorldReady ? Game1.timeOfDay : null,
-                Game1.activeClickableMenu?.GetType().FullName);
+                Game1.activeClickableMenu?.GetType().FullName,
+                SceneCounts.Snapshot());
             File.AppendAllText(Path.Combine(ModEntry.OutputDir, "timings.jsonl"),
                 JsonSerializer.Serialize(line) + "\n");
             // La ligne est écrite : la mesure guidée la juge sur ces mêmes chiffres.

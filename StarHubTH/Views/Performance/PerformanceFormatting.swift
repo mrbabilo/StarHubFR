@@ -32,6 +32,25 @@ enum PerformanceFormatting {
         }
     }
 
+    /// Libellé localisé d'un compteur de scène (D4-T9). Une clé ajoutée un
+    /// jour par la sonde sans libellé ici est ignorée, pas affichée brute.
+    static func sceneName(_ key: String, _ localization: LocalizationStore) -> String? {
+        let keys: [String: String] = [
+            "npcs": L10n.Performance.sceneNpcs,
+            "animals": L10n.Performance.sceneAnimals,
+            "furniture": L10n.Performance.sceneFurniture,
+            "objects": L10n.Performance.sceneObjects,
+            "terrainFeatures": L10n.Performance.sceneTerrain,
+            "largeTerrainFeatures": L10n.Performance.sceneLargeTerrain,
+            "resourceClumps": L10n.Performance.sceneResourceClumps,
+            "lights": L10n.Performance.sceneLights,
+            "temporarySprites": L10n.Performance.sceneTemporarySprites,
+            "debris": L10n.Performance.sceneDebris,
+            "locations": L10n.Performance.sceneLocations,
+        ]
+        return keys[key].map { localization.L($0) }
+    }
+
     /// Note secondaire (pied de section, avertissement) — deux copies
     /// identiques (`ModImpactSection`, `PerformanceProbeSection`).
     static func note(_ text: String) -> some View {
