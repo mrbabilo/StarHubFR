@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Les options de la sonde se règlent depuis l'app et depuis le jeu.** La fiche sonde gagne une section « Options de mesure » (toggles expliqués, écriture toujours valable, geste « réparer »), et le jeu gagne un menu de configuration si GMCM est installé — plus jamais de config.json édité à la main (sonde 0.9.20).
 - **Les textures résidentes par mod, opt-in.** La sonde suit la mémoire retenue dans les textures chargées du jeu — par loader/éditeur de mod, vanilla sinon — dans chaque minute (`MeasureTextures`, sonde 0.9.13) ; attribution partielle assumée, atlas et textures créées en code écartés.
 - **La mémoire du processus dans chaque minute mesurée.** La sonde relève la RAM physique, son pic depuis le lancement et la mémoire réservée par .NET à côté du tas : textures, MonoGame et bibliothèques natives entrent enfin dans la courbe de « Fluidité » et le tableau avant/après (sonde 0.9.12).
 
