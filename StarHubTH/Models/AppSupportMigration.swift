@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Deux fichiers d'index en portent, mesurés le 2026-08-26 :
 /// `installed_translations.json` (2) et `Backups/ModInstalls/install_metadata.json`
-/// (1 309). Seul le premier est concerné par la phase 1 — `Backups/` ne bouge pas.
+/// (1 309). X105 (2026-09-10) a depuis déplacé `Backups/` sous le même
+/// dossier — ce commentaire décrivait la phase 1 seulement.
 ///
 /// **Pourquoi c'est le point sensible** : `ManifestlessInstaller.uninstall`
 /// *supprime* le fichier déposé quand sa sauvegarde est introuvable, au lieu de
@@ -18,7 +19,7 @@ import Foundation
 /// **aucun** chemin absolu (noms dérivés de la racine ou données pures). La
 /// phase 1 réécrit donc `installed_translations.json` **et son `.bak`** — que
 /// `InstalledTranslationStore` promeut quand le principal est corrompu.
-/// X105 y ajoutera les index de `Backups/` : 220 `backupPath` absolus dans
+/// X105 a y ajouté les index de `Backups/` : 220 `backupPath` absolus dans
 /// `install_metadata.json`, aucun dans `metadata.json` (relevé 2026-09-10).
 public enum AppSupportMigration {
 

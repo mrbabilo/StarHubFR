@@ -123,9 +123,8 @@ Effort : **S** ≈ une session · **M** ≈ 2–3 sessions · **L** ≈ chantier
 Les correctifs **X2** et **X3** du §4 (X1 clos sans suite ; X4/X5/X6 livrés en v1.10.1),
 plus **B1-T1** et **B1-T2**.
 
-> ✅ **X4, X5 et X6 sont corrigés** et consignés dans `[Unreleased]` — reste à couper la
-> **v1.10.1** avec `release.py`. Build vert, 192 tests au vert (dont une régression
-> ajoutée sur les codes de sortie d'extraction).
+> ✅ **X4, X5 et X6 sont corrigés** et coupés en **v1.10.1** le jour même
+> (la note « reste à couper » mentait depuis des mois, purgée le 2026-10-05).
 
 **Risques** : manipulation massive de dossiers ; un abandon en cours de session ne doit
 jamais laisser la modlist dans un état intermédiaire.
@@ -2012,8 +2011,9 @@ que X55 a câblés, sous bouton, avec la garde du parc vide que X55 réclamait.
 **Mesuré sur les préférences réelles le 2026-09-09 : 0 fantôme** sur 735
 entrées — 537 horodatages d'activation, 188 identifiants Nexus, 10 configs de
 profil, tous pointant sur un dossier existant. Ne pas rouvrir)*,
-`X103` (suppression des mods : corbeille livrée en
-X103-B ; reste la rétention des archives Nexus, §8.1 option C), `D3-T1`
+`X103` (suppression des mods : corbeille **et** rétention des archives Nexus
+livrées le 2026-09-09 — corrigé ici le 2026-10-05, la case parlait d'autre
+chose), `D3-T1`
 (un backend ou non), `F1-T2` (règle permanente, pas une tâche).
 
 
@@ -2096,7 +2096,7 @@ antérieure ne portent pas `categoryId` (pastille absente jusqu'au premier
 rafraîchissement), et `languageName` existe au filtre — piste pour la sélection
 FR sans passer par le tag.
 
-### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, **B tranché et livré le jour même** ; C encore ouvert)*
+### 8.1 Cadrage X103 — la suppression peut-elle se défaire ? *(instruit le 2026-09-09, **B tranché et livré le jour même** ; C livré le jour même aussi — le titre « encore ouvert » mentait depuis, corrigé le 2026-10-05)*
 
 > **Arbitrage rendu le jour même (2026-09-09) : option B, livrée en séance** —
 > type Core `ModTrash` (corbeille `Mods/_Trash_*`, 15 tests), « Remettre »
