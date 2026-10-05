@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Une traduction déclarée suit ses mises à jour.** Déclarée sur la fiche d'un mod, une traduction posée à la main entre dans le balayage « Traductions FR » et gagne la pastille de mise à jour ; la date Nexus est adoptée dès que la recherche retrouve sa version, et un dépôt depuis l'app remplace la déclaration.
 - **Panneau flottant de suivi du benchmark.** Le jeu lancé, un panneau flottant suit la série au-dessus de lui : chaque étape, son chrono, les jalons lus dans `loads.jsonl`, le verdict et l'arrêt.
 - **Profil et sauvegarde choisis à la mesure guidée.** La préparation dit sous quel profil jouer et quelle sauvegarde charger — la sonde la charge seule à l'écran titre.
 - **Menu « Rapport » dans l'en-tête de la page Diagnostic.**
