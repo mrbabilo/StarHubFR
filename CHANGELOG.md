@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **Le balayage « Traductions FR » ne re-cherche que ce qui a changé.** Un parc stable se relit au cache en secondes au lieu de ~90 minutes ; « tout re-balayer » reste au menu, et deux chercheurs doublent la vitesse d'un passage complet.
+- **Les traductions d'un mod au nom collé se retrouvent enfin.** L'index Nexus ignore le camelCase : `CarryableChests` ne rendait rien, « Carryable Chests » oui — 87 mods du parc étaient dans ce cas ; les suffixes d'archive (`Swim Mod-23169-…`) ne polluent plus la recherche.
 - **Une traduction déclarée suit ses mises à jour.** Déclarée sur la fiche d'un mod, une traduction posée à la main entre dans le balayage « Traductions FR » et gagne la pastille de mise à jour ; la date Nexus est adoptée dès que la recherche retrouve sa version, et un dépôt depuis l'app remplace la déclaration.
 - **Panneau flottant de suivi du benchmark.** Le jeu lancé, un panneau flottant suit la série au-dessus de lui : chaque étape, son chrono, les jalons lus dans `loads.jsonl`, le verdict et l'arrêt.
 - **Profil et sauvegarde choisis à la mesure guidée.** La préparation dit sous quel profil jouer et quelle sauvegarde charger — la sonde la charge seule à l'écran titre.
