@@ -89,7 +89,12 @@ internal static class TextureMemory
     }
 
     /// <summary>L'attributaire se résout **à la demande** : c'est le seul
-    /// moment où SMAPI expose qui répond à l'asset.</summary>
+    /// moment où SMAPI expose qui répond à l'asset. **En dernier**
+    /// (`EventPriority.MinValue`) : la sonde se charge en premier
+    /// (`ModsToLoadEarly`) — s'exécuter avant Content Patcher, c'est lire ses
+    /// `LoadOperations` **avant qu'il les pose** : tout partait `vanilla`
+    /// (session du 2026-10-05 17:25, 2 062 textures sans un seul mod).</summary>
+    [EventPriority((EventPriority)int.MinValue)]
     private static void OnRequested(object? sender, AssetRequestedEventArgs e)
     {
         if (Resolving) return;
