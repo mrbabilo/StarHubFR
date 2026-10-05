@@ -1,7 +1,8 @@
 namespace StarHubFR.Probe;
 
-/// <summary>`config.json` de la sonde, créé au premier lancement.</summary>
-internal sealed class ModConfig
+/// <summary>`config.json` de la sonde, créé au premier lancement. Public :
+/// le miroir de remise à défaut est testé (`ModConfigMirrorTests`).</summary>
+public sealed class ModConfig
 {
     /// <summary>
     /// D4-T5 : chronométrer chaque méthode de patch Harmony des autres mods.
@@ -18,4 +19,14 @@ internal sealed class ModConfig
     /// d'observation se mesure en comparant deux sessions, avec et sans.
     /// </summary>
     public bool MeasureTextures { get; set; } = false;
+
+    /// <summary>La remise à défaut du menu de configuration : **tous** les
+    /// champs connus passent par ici — un champ ajouté à la classe sans
+    /// passer par ce miroir resterait au réglage courant quand l'utilisateur
+    /// clique « Réinitialiser » (testé : `ModConfigMirrorTests`).</summary>
+    public void Apply(ModConfig defaults)
+    {
+        MeasureHarmonyPatches = defaults.MeasureHarmonyPatches;
+        MeasureTextures = defaults.MeasureTextures;
+    }
 }

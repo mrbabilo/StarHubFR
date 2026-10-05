@@ -11,5 +11,9 @@
   "state.stable": "mesure terminée ({{count}} min) : tu peux quitter ou continuer",
   "state.noisy": "mesure terminée, mais trop bruitée : rejoue-la en variant moins de lieux",
   "refused.splitscreen": "mesure guidée indisponible : écran partagé",
-  "refused.noticks": "mesure guidée indisponible : les minuteurs du jeu ne sont pas interceptés"
+  "refused.noticks": "mesure guidée indisponible : les minuteurs du jeu ne sont pas interceptés",
+  "config.harmony.name": "Mesurer les patches Harmony",
+  "config.harmony.tooltip": "Chronomètre les patches Harmony des autres mods (opt-in). Prend effet au prochain lancement du jeu ; une mesure guidée ou un benchmark la désarme pour la session.",
+  "config.textures.name": "Mesurer les textures résidentes",
+  "config.textures.tooltip": "Suit la mémoire retenue dans les textures chargées, par fournisseur (opt-in). Prend effet au prochain lancement du jeu."
 }

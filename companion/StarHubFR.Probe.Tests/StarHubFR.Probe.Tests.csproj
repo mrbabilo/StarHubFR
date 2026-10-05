@@ -20,6 +20,7 @@
     <Compile Include="../StarHubFR.Probe/StartupTimeline.cs" Link="StartupTimeline.cs" />
     <Compile Include="../StarHubFR.Probe/ProbeHealth.cs" Link="ProbeHealth.cs" />
     <Compile Include="../StarHubFR.Probe/GmcmExportRule.cs" Link="GmcmExportRule.cs" />
+    <Compile Include="../StarHubFR.Probe/ModConfig.cs" Link="ModConfig.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

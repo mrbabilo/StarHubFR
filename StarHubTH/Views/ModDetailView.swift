@@ -1162,6 +1162,9 @@ struct ModDetailView: View {
                 // l'outil maison se lit avant tout le reste.
                 if live.isStarHubProbe {
                     ProbeManualSection(localization: localization)
+                    // D4-T6 bis : les options de la sonde, réglées d'ici —
+                    // plus jamais de config.json édité à la main.
+                    ProbeOptionsSection(localization: localization, mod: live, vm: vm)
                 }
                 ModCompatibilityCard(viewModel: vm, localization: localization, live: live,
                                      note: vm.modDetailState.flatMap { CompatibilityNote.find(in: $0.description) },

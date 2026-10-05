@@ -87,6 +87,8 @@ public sealed class ModEntry : Mod
         Loads.Initialize(helper, harmony, Monitor, ModManifest.Version.ToString(), ModManifest.UniqueID);
         // D4-T6a : opt-in, par événements — la mesure des patches peut rester armée à côté.
         TextureMemory.Initialize(helper, Monitor, config.MeasureTextures);
+        // D4-T6 bis : les options réglables en jeu (GMCM facultatif).
+        ConfigMenu.Initialize(helper, Monitor, config, ModManifest);
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules

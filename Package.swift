@@ -26,6 +26,7 @@ let package = Package(
                 "ModFolderRepairer.swift",
                 "SaveManager.swift",
                 "Models/SidebarDestination.swift",
+                "Models/ProbeOptions.swift",
                 "Models/SidebarOrder.swift",
                 "Models/CommandPaletteSearch.swift",
                 "Models/InventoryItem.swift",
