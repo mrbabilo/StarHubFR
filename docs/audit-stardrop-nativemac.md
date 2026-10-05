@@ -1,6 +1,10 @@
 # Audit Stardrop Native MacOS — synthèse concurrentielle
 
-> **Date** : 2026-10-04.
+> **Date** : 2026-10-04. *Delta **v1.12.0** (poussé le soir même, instruit au
+> check sources du 2026-10-05) : installation d'archives par glisser-déposer,
+> **découverte récursive des manifestes imbriqués** (notre cas `save-launcher`
+> — comparer avec `ModZipInstaller`), préservation du `config.json` à la mise
+> à jour (notre règle « jamais écraser » déjà en place). Idées seules : GPL-3.0.*
 > **Objet** : **Stardrop - Native MacOS** (Nexus [53356](https://www.nexusmods.com/stardewvalley/mods/53356)),
 > dépôt `github.com/kxgcayh/Stardrop-NativeMac`, branche `development` @ `e68e005`
 > (2026-10-04), tags `v1.10.4-macos` et `v1.11.0-macos`. C'est un **port macOS natif

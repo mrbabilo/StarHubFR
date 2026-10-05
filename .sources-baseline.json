@@ -29,10 +29,10 @@
   "Stardrop-NativeMac": {
     "archived": false,
     "default_branch": "development",
-    "last_commit": "e68e005",
-    "last_commit_at": "2026-10-04T03:33:09Z",
-    "pushed_at": "2026-10-04T03:33:12Z",
-    "release": "v1.11.0-macos",
+    "last_commit": "d7991ed",
+    "last_commit_at": "2026-10-04T21:58:51Z",
+    "pushed_at": "2026-10-04T22:09:35Z",
+    "release": "v1.12.0",
     "released_at": "2026-10-04T03:25:26Z"
   },
   "XnbHack": {
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "30a666b",
-    "last_commit_at": "2026-10-04T19:30:29Z",
-    "pushed_at": "2026-10-04T19:30:30Z",
-    "release": "v1.57.1",
-    "released_at": "2026-10-03T20:02:14Z"
+    "last_commit": "e7903c2",
+    "last_commit_at": "2026-10-05T13:27:56Z",
+    "pushed_at": "2026-10-05T13:29:12Z",
+    "release": "v1.58.0",
+    "released_at": "2026-10-05T10:53:42Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -93,9 +93,9 @@
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "65420b2",
-    "last_commit_at": "2026-10-02T20:47:58Z",
-    "pushed_at": "2026-10-02T20:48:00Z",
+    "last_commit": "1081b7d",
+    "last_commit_at": "2026-10-05T12:38:51Z",
+    "pushed_at": "2026-10-05T13:59:54Z",
     "release": "v2.2.0",
     "released_at": "2026-10-01T10:16:11Z"
   },
@@ -107,10 +107,10 @@
     "pushed_at": "2026-03-17T01:20:57Z"
   },
   "mod/event-studio": {
-    "changelog_reviewed": "1.0.0-rc.4",
+    "changelog_reviewed": "1.0.0",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.0-rc.4"
+    "version": "1.0.0"
   },
   "mod/fast-loads": {
     "changelog_reviewed": "1.0.3",
@@ -131,6 +131,7 @@
     "version": "1.16.0"
   },
   "mod/internationalization": {
+    "changelog_reviewed": "0.8.0",
     "gitHubRepo": null,
     "name": "Internationalization",
     "version": "0.8.0"
@@ -160,7 +161,7 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.2.5",
+    "changelog_reviewed": "2.2.6",
     "gitHubRepo": null,
     "name": null,
     "version": "2.2.6"
@@ -201,7 +202,7 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.5",
+    "changelog_reviewed": "2.4.6",
     "gitHubRepo": null,
     "name": null,
     "version": "2.4.6"
