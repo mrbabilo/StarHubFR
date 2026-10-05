@@ -158,6 +158,10 @@ internal static class FrameTimings
         double total = TickWatch.Elapsed.TotalMilliseconds;
         if (!Announced) return;
         TickSeen = true;
+        // Par tick, pas par minute : un pic intra-minute (le menu de Stardew
+        // Gallery allouait 1,2 Go) disparaîtrait d'un échantillon de fin de
+        // minute. Un `proc_pid_rusage` par tick, sub-microseconde.
+        _peakWorkingSetBytes = Math.Max(_peakWorkingSetBytes, Environment.WorkingSet);
         // Une fenêtre refermée **pendant** ce tick (retour au titre, commande,
         // première trame) : seule la part d'après lui revient. Sans ce partage,
         // le tick de 100 s du chargement (2026-09-26, 16:40) était compté en
@@ -192,7 +196,14 @@ internal static class FrameTimings
     private record Line(string Session, int LoadedMods, string At, double WallSeconds, double Fps, Stat? FrameInterval, Stat? Draw, Stat? Update,
                         Stat? Tick, Stat? OuterUpdate, Stat? OuterDraw, Stat? Present, Stat? Wait, Stat? UpdatesPerTick, int InactiveTicks, int MenuTicks,
                         long HeapMB, int Gen0, int Gen1, int Gen2, double BlockingGcMs, double BlockingGcMaxMs, double BackgroundGcMs,
+                        long WorkingSetMB, long PeakWorkingSetMB, long CommittedMB,
                         string? Location, int? GameTime, string? Menu);
+
+    /// Le pic de mémoire physique **suivi par la sonde** : `PeakWorkingSet64`
+    /// rend 0 sur macOS (pas de `/proc`, mesuré le 2026-10-05) — on garde le
+    /// maximum des `WorkingSet` vus depuis le lancement. Monotone : un
+    /// libellé, pas une courbe.
+    private static long _peakWorkingSetBytes;
 
     /// <summary>Pour la commande console : ce que la minute en cours a déjà vu.</summary>
     public static string Status() =>
@@ -223,6 +234,9 @@ internal static class FrameTimings
                 GC.GetTotalMemory(false) / (1024 * 1024),
                 GC.CollectionCount(0) - Gen0, GC.CollectionCount(1) - Gen1, GC.CollectionCount(2) - Gen2,
                 Math.Round(pauseMs, 2), Math.Round(maxPauseMs, 2), Math.Round(backgroundMs, 2),
+                Environment.WorkingSet / (1024 * 1024),
+                _peakWorkingSetBytes / (1024 * 1024),
+                GC.GetGCMemoryInfo().TotalCommittedBytes / (1024 * 1024),
                 Context.IsWorldReady ? Game1.currentLocation?.NameOrUniqueName : null,
                 Context.IsWorldReady ? Game1.timeOfDay : null,
                 Game1.activeClickableMenu?.GetType().FullName);

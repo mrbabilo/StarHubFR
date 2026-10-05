@@ -10,6 +10,12 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
+## [Unreleased]
+
+### Added
+
+- **La mémoire du processus dans chaque minute mesurée.** La sonde relève la RAM physique, son pic depuis le lancement et la mémoire réservée par .NET à côté du tas : textures, MonoGame et bibliothèques natives entrent enfin dans la courbe de « Fluidité » et le tableau avant/après (sonde 0.9.12).
+
 ## [1.58.0] - 2026-10-05
 
 ### Added

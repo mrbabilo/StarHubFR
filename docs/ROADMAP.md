@@ -812,7 +812,7 @@ SLO est actif et ce que la dernière session a mesuré.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
-- [ ] **D4-T8** — **Mémoire du processus** dans chaque minute de `timings.jsonl` :
+- [x] **D4-T8** — **Mémoire du processus** dans chaque minute de `timings.jsonl` :
       mémoire physique (`Environment.WorkingSet`), pic
       (`Process.PeakWorkingSet64`) et mémoire réservée par .NET
       (`GC.GetGCMemoryInfo().TotalCommittedBytes`). La sonde ne relève
@@ -821,6 +821,17 @@ SLO est actif et ce que la dernière session a mesuré.
       Courbe de mémoire dans l'onglet Performances ; préalable au volet mémoire
       de **D5-C**. Idée tirée de `perf_memory` de Stardropium (audit 2026-10-01),
       implémentée sans en dépendre. · **S**
+      *Livré en code le 2026-10-05, à valider en jeu* : sonde **0.9.12**
+      (trois champs par minute). **Le pic ne vient pas de
+      `Process.PeakWorkingSet64`** : il rend 0 sur macOS (pas de `/proc`,
+      mesuré le 2026-10-05) — la sonde suit le maximum des `WorkingSet` par
+      tick (un pic intra-minute disparaîtrait d'un échantillon de fin de
+      minute). `ProbeMinute` décode les trois, `nil` sur les lignes des
+      sondes antérieures ; mesures « RAM » et « Réservée » du sélecteur de
+      « Fluidité » (menu, pas segments : six libellés ne tenaient pas)
+      + tableau avant/après (`ProbeComparison.workingSet`/`committed`) ;
+      sessions antérieures à 0.9.11 : message dédié, pas des exclusions de
+      trames. Déployée sur le parc.
 - [ ] **D4-T9** — **Charge de la scène** par minute, relevée par la sonde **sans
       patch de dessin** (comptage des collections en mémoire au moment d'écrire
       la ligne, ≈ µs/minute — compter à chaque dessin, comme Stardropium,

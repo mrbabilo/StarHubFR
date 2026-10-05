@@ -52,6 +52,11 @@ public struct ProbeComparison: Equatable, Sendable {
     public let workP50: ProbeMeasureComparison
     public let fps: ProbeMeasureComparison
     public let heap: ProbeMeasureComparison
+    /// D4-T8 — mémoire physique et mémoire réservée .NET, minute par minute.
+    /// `nil` partout des deux côtés (sondes < 0.9.11) : verdict « pas assez »,
+    /// le tableau reste cohérent.
+    public let workingSet: ProbeMeasureComparison
+    public let committed: ProbeMeasureComparison
     /// Cadence des ticks (appels à `Update` par seconde) : 60 en pas fixe,
     /// celle des trames en pas variable (UltraSmooth 2.3.9, X117).
     public let updatesPerSecond: ProbeMeasureComparison
@@ -70,6 +75,8 @@ public struct ProbeComparison: Equatable, Sendable {
         let work = compare(a.compactMap(workP50(of:)), b.compactMap(workP50(of:)))
         let fps = compare(a.map(\.minute.fps), b.map(\.minute.fps))
         let heap = compare(a.compactMap(\.minute.heapMB), b.compactMap(\.minute.heapMB))
+        let workingSet = compare(a.compactMap(\.minute.workingSetMB), b.compactMap(\.minute.workingSetMB))
+        let committed = compare(a.compactMap(\.minute.committedMB), b.compactMap(\.minute.committedMB))
         let updatesPerSecond = compare(a.compactMap(updatesPerSecond(of:)), b.compactMap(updatesPerSecond(of:)))
 
         // Plafond de synchro des deux côtés, pas forcément le même : le jeu
@@ -85,7 +92,8 @@ public struct ProbeComparison: Equatable, Sendable {
         let patchesMismatch = Set(a.compactMap(\.patchesMeasured)) != Set(b.compactMap(\.patchesMeasured))
         let verdict = patchesMismatch ? .notEnoughData : (vsyncLimited ? work.verdict : frameP50.verdict)
         return ProbeComparison(frameP50: frameP50, frameP99: frameP99, workP50: work,
-                               fps: fps, heap: heap, updatesPerSecond: updatesPerSecond,
+                               fps: fps, heap: heap, workingSet: workingSet, committed: committed,
+                               updatesPerSecond: updatesPerSecond,
                                vsyncLimited: vsyncLimited,
                                patchesMismatch: patchesMismatch, verdict: verdict)
     }

@@ -27,7 +27,9 @@ struct ProbeAnalysisTests {
             verdict: .noise)
         let comparison = ProbeComparison(
             frameP50: measure(verdict), frameP99: measure(.noise), workP50: measure(workVerdict),
-            fps: measure(.noise), heap: measure(.noise), updatesPerSecond: rates, vsyncLimited: false,
+            fps: measure(.noise), heap: measure(.noise),
+            workingSet: measure(.noise), committed: measure(.noise),
+            updatesPerSecond: rates, vsyncLimited: false,
             patchesMismatch: patchesMismatch, verdict: verdict)
         return ProbeAnalysisInput(comparison: comparison, diff: diff, costDeltas: costs,
                                   exclusionsA: [:], exclusionsB: [:],

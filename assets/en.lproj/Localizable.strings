@@ -1750,6 +1750,9 @@
 "perf_measure_frame" = "Frame time";
 "perf_measure_work" = "Frame work";
 "perf_measure_fps" = "FPS";
+"perf_measure_working_set" = "RAM";
+"perf_measure_committed" = "Committed";
+"perf_measure_unavailable" = "These sessions predate probe 0.9.11: process memory was not recorded then.";
 "perf_col_median" = "Median";
 "perf_col_quartiles" = "Q1–Q3";
 "perf_col_minutes" = "Minutes";

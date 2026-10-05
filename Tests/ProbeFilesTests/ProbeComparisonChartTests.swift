@@ -64,6 +64,32 @@ struct ProbeComparisonChartTests {
         #expect(ProbeComparisonChart.value(of: minute, .fps) == 42)
     }
 
+    /// D4-T8 — la mémoire du processus dans chaque minute : physique courante,
+    /// pic depuis le lancement, réservée .NET. Absents des lignes écrites par
+    /// les sondes < 0.9.11 : `nil`, la courbe montre les minutes qui en ont.
+    @Test func memoryMeasuresReadTheirFieldsAndTolerateTheirAbsence() throws {
+        let json = """
+        {"Session":"s","At":"2026-09-28T10:00:00.0000000+02:00","WallSeconds":60,"Fps":42,
+         "FrameInterval":{"Count":45,"Avg":30,"P50":24,"P99":50,"Max":60},
+         "HeapMB":912,"WorkingSetMB":3400,"PeakWorkingSetMB":4100,"CommittedMB":3600}
+        """
+        let minute = try ProbeJSON.decoder().decode(ProbeMinute.self, from: Data(json.utf8))
+        #expect(minute.heapMB == 912)
+        #expect(minute.workingSetMB == 3400)
+        #expect(minute.peakWorkingSetMB == 4100)
+        #expect(minute.committedMB == 3600)
+        #expect(ProbeComparisonChart.value(of: minute, .workingSet) == 3400)
+        #expect(ProbeComparisonChart.value(of: minute, .committed) == 3600)
+        // Champ absent (sonde < 0.9.11) : décode, et la mesure ne rend rien.
+        let bare = """
+        {"Session":"s","At":"2026-09-28T10:00:00.0000000+02:00","WallSeconds":60,"Fps":42,
+         "FrameInterval":{"Count":45,"Avg":30,"P50":24,"P99":50,"Max":60}}
+        """
+        let old = try ProbeJSON.decoder().decode(ProbeMinute.self, from: Data(bare.utf8))
+        #expect(old.workingSetMB == nil)
+        #expect(ProbeComparisonChart.value(of: old, .workingSet) == nil)
+    }
+
     /// Le sens de la couleur : un temps qui monte est pire, des FPS qui
     /// montent sont mieux ; le bruit et le manque de données restent neutres.
     @Test func trendFollowsTheDirectionOfEachMeasure() {

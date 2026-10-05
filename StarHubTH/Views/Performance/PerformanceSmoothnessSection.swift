@@ -17,10 +17,13 @@ struct PerformanceSmoothnessSection: View {
         let timelineData = ProbeComparisonChart.timeline(report)
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Performance.sectionSmoothness)).font(AppDesign.Font.headline(.semibold))
+            // Menu, pas segments : six mesures ne tiennent plus en 420 pt —
+            // « Temps de trame » et « Travail de trame » se tronquaient
+            // (I-T11). Le menu garde les libellés entiers.
             Picker("", selection: $measure) {
                 ForEach(ProbeChartMeasure.allCases, id: \.self) { Text(label($0)).tag($0) }
             }
-            .pickerStyle(.segmented).labelsHidden().frame(maxWidth: 420)
+            .pickerStyle(.menu).labelsHidden().fixedSize()
             notes
             distribution(distributionData)
             table
@@ -36,9 +39,24 @@ struct PerformanceSmoothnessSection: View {
 
     // MARK: Distribution
 
+    /// La mesure mémoire est-elle absente **de toutes** les minutes gardées ?
+    /// Vrai sur des sessions antérieures à la sonde 0.9.11 : les champs
+    /// décodent `nil`, aucun point — ce n'est pas une exclusion.
+    private var memoryMissing: Bool {
+        guard measure == .workingSet || measure == .committed else { return false }
+        let kept = report.keptBefore + report.keptAfter
+        return !kept.isEmpty && kept.allSatisfy { ProbeComparisonChart.value(of: $0.minute, measure) == nil }
+    }
+
     @ViewBuilder
     private func distribution(_ data: (points: [ProbeChartPoint], boxes: [ProbeChartBox])) -> some View {
-        if data.points.isEmpty {
+        if data.points.isEmpty, memoryMissing {
+            // La mesure n'existait pas dans ces sessions : des exclusions de
+            // trames n'expliqueraient rien — le dire, ne pas deviner (I-T11,
+            // « une fonctionnalité qui ne montre rien le dit »).
+            Text(localization.L(L10n.Performance.measureUnavailable))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+        } else if data.points.isEmpty {
             exclusions   // Review Focus 1 : les raisons, pas un graphique vide.
         } else {
             Chart {
@@ -114,6 +132,8 @@ struct PerformanceSmoothnessSection: View {
         case .frameP99: return report.comparison.frameP99
         case .work: return report.comparison.workP50
         case .fps: return report.comparison.fps
+        case .workingSet: return report.comparison.workingSet
+        case .committed: return report.comparison.committed
         }
     }
 
@@ -261,11 +281,15 @@ struct PerformanceSmoothnessSection: View {
         case .frameP99: return localization.L(L10n.Performance.measureP99)
         case .work: return localization.L(L10n.Performance.measureWork)
         case .fps: return localization.L(L10n.Performance.measureFps)
+        case .workingSet: return localization.L(L10n.Performance.measureWorkingSet)
+        case .committed: return localization.L(L10n.Performance.measureCommitted)
         }
     }
 
     /// Unité de la mesure : identique en français et en anglais.
-    private func unit(_ measure: ProbeChartMeasure) -> String { measure == .fps ? "FPS" : "ms" }
+    private func unit(_ measure: ProbeChartMeasure) -> String {
+        measure == .fps ? "FPS" : (measure == .workingSet || measure == .committed ? "Mo" : "ms")
+    }
 
     private func reasonName(_ reason: ProbeExclusionReason) -> String {
         PerformanceFormatting.reasonName(reason, localization)

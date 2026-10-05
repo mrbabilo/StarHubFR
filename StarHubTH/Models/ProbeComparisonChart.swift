@@ -6,8 +6,11 @@ public enum ProbeChartSide: String, CaseIterable, Sendable { case before, after 
 /// deux échelles sur un graphique (spec §3c).
 public enum ProbeChartMeasure: String, CaseIterable, Sendable {
     case frameP50, frameP99, work, fps
+    /// D4-T8 — mémoire du processus par minute (sonde ≥ 0.9.11).
+    case workingSet, committed
 
-    /// Les temps baissent quand le jeu va mieux ; les FPS montent.
+    /// Les temps baissent quand le jeu va mieux ; les FPS montent ; la
+    /// mémoire, comme un temps : moins.
     public var lowerIsBetter: Bool { self != .fps }
 }
 
@@ -76,6 +79,8 @@ public enum ProbeComparisonChart {
             guard let update = minute.update?.p50, let draw = minute.draw?.p50 else { return nil }
             return update + draw
         case .fps: return minute.fps
+        case .workingSet: return minute.workingSetMB
+        case .committed: return minute.committedMB
         }
     }
 

@@ -1750,6 +1750,9 @@
 "perf_measure_frame" = "Temps de trame";
 "perf_measure_work" = "Travail de trame";
 "perf_measure_fps" = "FPS";
+"perf_measure_working_set" = "RAM";
+"perf_measure_committed" = "Réservée";
+"perf_measure_unavailable" = "Ces sessions précèdent la sonde 0.9.11 : la mémoire du processus n'y était pas relevée.";
 "perf_col_median" = "Médiane";
 "perf_col_quartiles" = "Q1–Q3";
 "perf_col_minutes" = "Minutes";

@@ -21,6 +21,16 @@ public struct ProbeMinute: Decodable, Equatable, Sendable {
     public let inactiveTicks: Int?
     public let frameInterval: Stats
     public let heapMB: Double?
+    /// D4-T8 — mémoire **physique** courante du processus (sonde ≥ 0.9.11) :
+    /// textures, MonoGame et bibliothèques natives, que le tas seul ignore —
+    /// c'est ce qui gonfle un parc lourd.
+    public let workingSetMB: Double?
+    /// Le pic physique depuis le lancement du jeu — monotone : sert de
+    /// libellé, pas de courbe.
+    public let peakWorkingSetMB: Double?
+    /// Mémoire réservée par .NET (`TotalCommittedBytes`) : le plafond que le
+    /// ramasse-miettes s'est fixé, au-dessus du tas utilisé.
+    public let committedMB: Double?
     public let loadedMods: Int?
     /// Ticks de la minute avec un menu ouvert (sonde ≥ 0.4.12).
     public let menuTicks: Int?
