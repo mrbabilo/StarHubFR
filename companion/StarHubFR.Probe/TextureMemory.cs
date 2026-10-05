@@ -31,12 +31,21 @@ internal static class TextureMemory
 {
     private static IMonitor Monitor = null!;
     private static PropertyInfo? LoadOps, EditOps;
-    /// <summary>Clé = `NameWithoutLocale`, valeur = l'attributaire résolu à la demande.</summary>
-    private static readonly Dictionary<string, string> OwnerPending = new();
+    /// <summary>Clé = `NameWithoutLocale`, valeur = l'attributaire résolu à la
+    /// demande **et le type demandé** — le garde : sans lui, le `Load
+    /// <Texture2D>` de `OnReady` rejouait la chaîne de chargement des assets
+    /// non-texture (traductions = `Dictionary<string,string>`…) et SMAPI
+    /// journalisait 1 048 « Mod crashed when loading asset » fausses
+    /// (session du 2026-10-05 17:37).</summary>
+    private static readonly Dictionary<string, (string Owner, Type DataType)> OwnerPending = new();
     /// <summary>La carte résidente : clé = nom non localisé, valeur = (octets, attributaire).</summary>
     private static readonly Dictionary<string, (long Bytes, string Owner)> Known = new();
     private static bool Armed;
     private static bool Resolving;
+    /// <summary>Instrumentation 0.9.15 : d'où vient le `vanilla` général —
+    /// compteur d'une ligne au journal après la première minute.</summary>
+    private static long RequestsSeen, WithLoadOps, WithEditOps, PendingWhenReady, KnownAtReport;
+    private static bool Reported;
 
     public static bool ArmedNow => Armed;
     public static int Count => Known.Count;
@@ -54,6 +63,16 @@ internal static class TextureMemory
     /// <summary>L'octet retenu par attributaire, pour la minute écrite.</summary>
     public static Dictionary<string, long> ByOwner()
     {
+        if (!Reported && Known.Count > 50)
+        {
+            Reported = true;
+            KnownAtReport = Known.Count;
+            Monitor.Log($"Attribution textures : {RequestsSeen} demandes vues, "
+                + $"{WithLoadOps} avec loader(s), {WithEditOps} avec éditeur(s), "
+                + $"{PendingWhenReady}/{KnownAtReport} retrouvés en attente. "
+                + $"Réflexion LoadOps={(LoadOps != null)}, EditOps={(EditOps != null)}.",
+                LogLevel.Info);
+        }
         var byOwner = new Dictionary<string, long>();
         foreach (var entry in Known.Values)
         {
@@ -98,10 +117,15 @@ internal static class TextureMemory
     private static void OnRequested(object? sender, AssetRequestedEventArgs e)
     {
         if (Resolving) return;
+        RequestsSeen++;
         try
         {
+            int loads = (LoadOps?.GetValue(e) as System.Collections.IEnumerable)?.Cast<object>().Count() ?? -1;
+            int edits = (EditOps?.GetValue(e) as System.Collections.IEnumerable)?.Cast<object>().Count() ?? -1;
+            if (loads > 0) WithLoadOps++;
+            if (edits > 0) WithEditOps++;
             string id = OwnerOf(e);
-            OwnerPending[e.NameWithoutLocale.ToString()] = id;
+            OwnerPending[e.NameWithoutLocale.ToString()] = (id, e.DataType);
         }
         catch (Exception ex)
         {
@@ -136,13 +160,18 @@ internal static class TextureMemory
         {
             string key = e.NameWithoutLocale.ToString();
             if (Known.ContainsKey(key)) return;
+            // Le garde du type demandé : ne toucher que les textures — un
+            // Load<Texture2D> sur une traduction re-jouait la chaîne et SMAPI
+            // journalisait l'échec de cast comme un crash de mod (2026-10-05).
+            if (!OwnerPending.TryGetValue(key, out var pending)
+                || pending.DataType != typeof(Texture2D)) return;
             object? asset;
             try { asset = Game1.content.Load<Texture2D>(e.Name.ToString()); }
-            catch { return; }   // pas une texture (map, donnée…) : ignoré
+            catch { return; }   // garde en plus : jamais une fausse erreur SMAPI
             if (asset is not Texture2D texture) return;
             long bytes = (long)texture.Width * texture.Height * 4;
-            OwnerPending.TryGetValue(key, out string? owner);
-            Known[key] = (bytes, owner ?? "vanilla");
+            if (pending.Owner is not null) PendingWhenReady++;
+            Known[key] = (bytes, pending.Owner);
         }
         catch (Exception ex)
         {
