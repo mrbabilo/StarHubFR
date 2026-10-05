@@ -46,6 +46,10 @@ internal static class TextureMemory
     /// compteur d'une ligne au journal après la première minute.</summary>
     private static long RequestsSeen, WithLoadOps, WithEditOps, PendingWhenReady, KnownAtReport;
     private static bool Reported;
+    /// <summary>Comptes d'opérations **au moment de la demande**, pour les
+    /// textures finies vanilla : la ligne qui dit si les listes étaient
+    /// réellement vides ou lues trop tôt.</summary>
+    private static readonly Dictionary<string, (int Loads, int Edits)> OpsSeenAtRequest = new();
 
     public static bool ArmedNow => Armed;
     public static int Count => Known.Count;
@@ -67,9 +71,23 @@ internal static class TextureMemory
         {
             Reported = true;
             KnownAtReport = Known.Count;
-            Monitor.Log($"Attribution textures : {RequestsSeen} demandes vues, "
-                + $"{WithLoadOps} avec loader(s), {WithEditOps} avec éditeur(s), "
-                + $"{PendingWhenReady}/{KnownAtReport} retrouvés en attente. "
+            long vanilla = Known.Values.Count(v => v.Owner == "vanilla");
+            var nonVanilla = Known.Where(k => k.Value.Owner != "vanilla").Take(3)
+                .Select(k => $"{k.Key}={k.Value.Owner}").ToList();
+            // Échantillon du contraire : trois textures vanilla, avec leurs
+            // comptes d'opérations au moment de la demande — la ligne qui
+            // désigne l'étage si tout reste vanilla.
+            var vanSamples = Known.Where(k => k.Value.Owner == "vanilla").Take(3)
+                .Select(k => k.Key).ToList();
+            var detail = vanSamples.Select(key =>
+            {
+                if (!OpsSeenAtRequest.TryGetValue(key, out var counts)) return $"{key}:?";
+                return $"{key}:L{counts.Item1}/E{counts.Item2}";
+            }).ToList();
+            Monitor.Log($"Attribution textures : {RequestsSeen} demandes, {WithLoadOps} avec loader, "
+                + $"{WithEditOps} avec éditeur ; connu={KnownAtReport} dont vanilla={vanilla} "
+                + $"({PendingWhenReady} retrouvés). Non-vanilla: [{string.Join(", ", nonVanilla)}]. "
+                + $"Vanilla détail: [{string.Join(", ", detail)}]. "
                 + $"Réflexion LoadOps={(LoadOps != null)}, EditOps={(EditOps != null)}.",
                 LogLevel.Info);
         }
@@ -125,7 +143,10 @@ internal static class TextureMemory
             if (loads > 0) WithLoadOps++;
             if (edits > 0) WithEditOps++;
             string id = OwnerOf(e);
-            OwnerPending[e.NameWithoutLocale.ToString()] = (id, e.DataType);
+            string key = e.NameWithoutLocale.ToString();
+            OwnerPending[key] = (id, e.DataType);
+            if (e.DataType == typeof(Texture2D))
+                OpsSeenAtRequest[key] = (loads, edits);
         }
         catch (Exception ex)
         {
@@ -145,8 +166,13 @@ internal static class TextureMemory
 
     private static string? ModIdOf(object operation)
     {
+        // `IModMetadata` n'expose pas d'`Id` : l'identité vit dans
+        // `Manifest.UniqueID` (session du 2026-10-05 18:33 : les textures
+        // portaient L1/E0 et finissaient vanilla — `GetProperty("Id")` = null
+        // sur tous les métadonnées).
         var mod = operation.GetType().GetProperty("Mod")?.GetValue(operation);
-        return mod?.GetType().GetProperty("Id")?.GetValue(mod) as string;
+        var manifest = mod?.GetType().GetProperty("Manifest")?.GetValue(mod);
+        return (manifest as StardewModdingAPI.IManifest)?.UniqueID;
     }
 
     /// <summary>L'objet est en cache **avant** l'événement : `Load` est un
