@@ -10,7 +10,7 @@ by ZeroXPatch (the idea of a player-facing SMAPI log doctor), to SMAPI's own
 [log parser](https://smapi.io/log/), and to the [SMAPI sources](https://github.com/pathoschild/SMAPI)
 where the exact log format was verified.
 
-## [Unreleased]
+## [1.58.0] - 2026-10-05
 
 ### Added
 
@@ -27,6 +27,7 @@ where the exact log format was verified.
 
 - **Le décompte guidé descend en temps de présence réelle.** Il ne répète plus « 5:00 · 5:00… », ne se fige plus, et les minutes passées hors du jeu ne l'épuisent plus (sonde 0.9.6 → 0.9.10).
 - **L'auto-chargement de la sauvegarde d'une mesure guidée ne partait jamais.**
+- **Le bouton « Re-balayer » re-balayait tout.** Un menu sans action propre ouvrait la liste dont l'unique item était le passage total ; le bouton principal a de nouveau son geste, le passage total vit derrière le glyph ⋯.
 
 ## [1.57.1] - 2026-10-03
 
