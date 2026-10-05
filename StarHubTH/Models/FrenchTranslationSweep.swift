@@ -145,6 +145,10 @@ public enum FrenchTranslationSweep {
             guard let entry, !entry.failed, installed.nexusModId > 0 else {
                 return .installedUnverified
             }
+            // Une base de comparaison absente ne dit pas « à jour » : la
+            // déclaration manuelle ne relève pas la date Nexus, et un vert
+            // mensonger cacherait précisément la mise à jour qu'on cherche.
+            guard installed.updatedAt != nil else { return .installedUnverified }
             let split = NexusModSearch.partition(
                 entry.hits,
                 installedNexusIds: installed.nexusModId > 0 ? [installed.nexusModId] : [],

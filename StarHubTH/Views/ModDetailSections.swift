@@ -280,10 +280,12 @@ struct TranslationSection: View {
     }
 
     /// Variante déclarée : « Retirer » n'enlève que la ligne du registre
-    /// (l'UI le dit).
+    /// (l'UI le dit). La pastille de mise à jour vit ici comme sur une
+    /// traduction posée par l'app — déclarer sans suivi n'aurait aucun
+    /// intérêt.
     @ViewBuilder
     private func declaredInPlace(_ declared: DeclaredTranslation) -> some View {
-        HStack(spacing: 6) {
+        SplitRow(spacing: 6) {
             Image(systemName: "person.crop.rectangle.badge.checkmark")
                 .font(AppDesign.Font.iconXS)
                 .foregroundColor(.blue)
@@ -294,7 +296,25 @@ struct TranslationSection: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            Spacer()
+            if update != nil {
+                Text(localization.L(L10n.Mods.translationUpdateAvailable))
+                    .font(AppDesign.Font.iconXS(.semibold))
+                    .foregroundColor(.orange)
+            }
+        } trailing: {
+            if let newer = update {
+                // Déposer la mise à jour depuis l'app **remplace** la
+                // déclaration par une vraie entrée suivie (règle
+                // `depositIntoMod`) : le suivi devient complet, fichiers
+                // compris.
+                Button(localization.L(L10n.Mods.translationUpdate)) {
+                    vm.installTranslation(newer, into: mod)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
+                .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
+            }
             Button(localization.L(L10n.Mods.translationUndeclare), role: .destructive) {
                 vm.undeclareTranslation(for: mod)
             }

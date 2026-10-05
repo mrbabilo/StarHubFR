@@ -95,6 +95,42 @@ public struct DeclaredTranslation: Codable, Equatable, Sendable {
         self.updatedAt = updatedAt
         self.declaredAt = declaredAt
     }
+
+    /// La déclaration vue comme une traduction suivie : l'identité passe, les
+    /// fichiers non — on ne sait pas ce qu'elle a déposé, et prétendre le
+    /// savoir serait le défaut que `replacedFiles` documente sur
+    /// `InstalledTranslation`.
+    ///
+    /// C'est par elle que la déclaration entre dans les mêmes règles de mise à
+    /// jour qu'une traduction posée par l'app (`TranslationPresence.update`) :
+    /// sans cette vue, une traduction posée à la main restait sans suivi même
+    /// déclarée (SVE-Français, 2026-10-05).
+    ///
+    /// `updatedAt` reste ce que la déclaration sait — `nil` le plus souvent :
+    /// la feuille de déclaration ne relève pas la date Nexus, et une base
+    /// inconnue ne prétend ni à jour ni en retard.
+    public func asTracked(hostFolderName: String) -> InstalledTranslation {
+        InstalledTranslation(hostFolderName: hostFolderName, nexusModId: nexusModId,
+                             nexusName: nexusName, version: version ?? "",
+                             updatedAt: updatedAt, installedAt: declaredAt,
+                             files: [], replacedFiles: [:])
+    }
+
+    /// Adopte la date Nexus d'un résultat **quand il décrit la version
+    /// déclarée** : même fiche, même version.
+    ///
+    /// Sur toute autre combinaison, `nil` : la date d'une version différente
+    /// deviendrait la base de comparaison et ferait taire la mise à jour qui
+    /// les sépare ; une base fausse vaut moins qu'une base absente.
+    public func adopting(_ hit: NexusModSearch.Hit) -> DeclaredTranslation? {
+        guard hit.modId == nexusModId,
+              let version, version == hit.version,
+              let date = hit.updatedAt
+        else { return nil }
+        return DeclaredTranslation(nexusModId: nexusModId, nexusName: nexusName,
+                                   version: version, updatedAt: date,
+                                   declaredAt: declaredAt)
+    }
 }
 
 /// Ce que l'app retient des traductions posées sur ses mods.

@@ -146,6 +146,28 @@ struct FrenchTranslationSweepTests {
             == .installedUnverified)
     }
 
+    /// Une base de comparaison absente ne dit pas « à jour » : la déclaration
+    /// manuelle ne relève pas la date Nexus, et un vert mensonger cacherait
+    /// précisément la mise à jour qu'on cherche (SVE-Français, 2026-10-05).
+    @Test func statusWithoutABaselineStaysUnverified() {
+        let now = Date()
+        let entry = FrenchTranslationSweep.Entry(hits: [hit(5, "X - FR", updated: 200)],
+                                                 searchedAt: now)
+        let declared = DeclaredTranslation(nexusModId: 5, nexusName: "X - FR",
+                                           version: nil, updatedAt: nil, declaredAt: now)
+        #expect(FrenchTranslationSweep.status(
+            entry: entry, installed: declared.asTracked(hostFolderName: "Host"))
+            == .installedUnverified)
+        // Dès que la base existe — adoptée depuis un résultat concordant — la
+        // pastille vit comme pour une traduction posée par l'app.
+        let based = DeclaredTranslation(nexusModId: 5, nexusName: "X - FR",
+                                        version: "1.0", updatedAt: Date(timeIntervalSince1970: 100),
+                                        declaredAt: now)
+        #expect(FrenchTranslationSweep.status(
+            entry: entry, installed: based.asTracked(hostFolderName: "Host"))
+            == .updateAvailable(hit(5, "X - FR", updated: 200)))
+    }
+
     /// Le lien passe devant, le nom ne rajoute que ce que le lien n'a pas vu.
     @Test func mergePutsLinkedFirstAndMarksNameOnlyHits() {
         let entry = FrenchTranslationSweep.merge(

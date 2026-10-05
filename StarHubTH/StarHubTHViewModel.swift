@@ -4007,6 +4007,22 @@ final class StarHubTHViewModel {
         installedTranslations.translation(forHost: mod.folderName)
     }
 
+    /// Une traduction **suivie** : posée par l'app ou déclarée à la main
+    /// (A3-T6). C'est elle qui fait entrer un mod dans le balayage des
+    /// traductions — sans trace des deux genres, une traduction posée hors de
+    /// l'app restait invisible au suivi de mise à jour (SVE-Français,
+    /// 2026-10-05).
+    func tracksTranslation(for mod: ModItem) -> Bool {
+        translation(for: mod) != nil || declaredTranslation(for: mod) != nil
+    }
+
+    /// La déclaration vue comme une traduction suivie (règle
+    /// `DeclaredTranslation.asTracked`), ou `nil` : le repli de
+    /// `translation(for:)` pour la comparaison de mise à jour.
+    func declaredTracked(for mod: ModItem) -> InstalledTranslation? {
+        declaredTranslation(for: mod)?.asTracked(hostFolderName: mod.folderName)
+    }
+
     /// Déclaration manuelle (A3-T6) : identité Nexus seule, sans fichiers.
     func declaredTranslation(for mod: ModItem) -> DeclaredTranslation? {
         installedTranslations.declaredTranslation(forHost: mod.folderName)
@@ -4048,6 +4064,13 @@ final class StarHubTHViewModel {
             log("Déclaration non enregistrée : la fiche affichera encore « origine inconnue »",
                 level: .warning)
         }
+        // Sans date Nexus, la déclaration ne peut rien comparer : chercher
+        // tout de suite, `adoptDeclaredDate` prendra celle du résultat qui
+        // décrit la version déclarée. Sans cela, déclarer ne donnerait jamais
+        // de pastille — le défaut même que la déclaration est censée fermer.
+        if updatedAt == nil {
+            searchTranslations(for: mod)
+        }
     }
 
     /// Retire une déclaration. **Disque intact** : l'utilisateur a écrit,
@@ -4066,7 +4089,9 @@ final class StarHubTHViewModel {
     /// Version plus récente trouvée ? Sur les **dates Nexus**, jamais les
     /// numéros (souvent recopiés).
     func translationUpdateAvailable(for mod: ModItem) -> NexusModSearch.Hit? {
-        guard let installed = translation(for: mod) else { return nil }
+        // La déclaration compte comme une traduction suivie : c'est tout
+        // l'intérêt de la déclarer.
+        guard let installed = translation(for: mod) ?? declaredTracked(for: mod) else { return nil }
         return TranslationPresence.update(
             for: installed,
             amongAvailable: translationHits[mod.folderName] ?? [],
@@ -4141,7 +4166,9 @@ final class StarHubTHViewModel {
     /// courant sur compte gratuit).
     private func withoutInstalledTranslation(_ hits: [NexusModSearch.Hit],
                                              for mod: ModItem) -> [NexusModSearch.Hit] {
-        guard let installed = translation(for: mod) else {
+        // La déclaration compte : sa fiche part dans la moitié « déjà posée »,
+        // pas dans les propositions.
+        guard let installed = translation(for: mod) ?? declaredTracked(for: mod) else {
             translationHub.setInstalledHits([], for: mod.folderName)
             return hits
         }
@@ -4155,7 +4182,24 @@ final class StarHubTHViewModel {
         // Rattacher sans demander si titre et id du nom de fichier concordent.
         adoptConfirmedNexusId(for: installed, among: split.installed,
                               isTranslation: true, host: mod)
+        adoptDeclaredDate(for: mod, among: hits)
         return split.available
+    }
+
+    /// Complète une déclaration sans date Nexus avec celle du résultat qui
+    /// décrit **la version déclarée** (règle `DeclaredTranslation.adopting`).
+    /// Sans adoption, la déclaration reste « non vérifiée » — jamais un vert
+    /// mensonger, mais jamais de pastille non plus.
+    private func adoptDeclaredDate(for mod: ModItem, among hits: [NexusModSearch.Hit]) {
+        guard let declared = declaredTranslation(for: mod),
+              declared.updatedAt == nil,
+              let adopted = hits.compactMap({ declared.adopting($0) }).first
+        else { return }
+        translationHub.mutateInstalled { $0.declare(adopted, forHost: mod.folderName) }
+        if !InstalledTranslationStore.save(installedTranslations) {
+            log("Date Nexus de la déclaration non enregistrée : la base de "
+                + "comparaison ne survivra pas à la fermeture", level: .warning)
+        }
     }
 
     /// Rattache un dépôt à sa fiche **sans doute possible** : id dans le nom
@@ -4491,6 +4535,10 @@ final class StarHubTHViewModel {
                                       replacedFiles: written.replaced)
         translationHub.mutateInstalled {
             if plan.kind == .translation {
+                // Le dépôt réel supplante la déclaration : il sait, lui, quels
+                // fichiers sont posés. Garder les deux afficherait l'ancienne
+                // identité sous la nouvelle.
+                $0.undeclare(forHost: host.folderName)
                 $0.record(recorded)
             } else {
                 $0.recordAddon(recorded)

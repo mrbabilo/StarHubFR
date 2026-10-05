@@ -40,13 +40,14 @@ struct FrenchTranslationsView: View {
         let byFolder = Dictionary(vm.mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
         return FrenchTranslationSweep.candidates(
             among: vm.mods,
-            hasInstalledTranslation: { vm.translation(for: $0) != nil },
+            hasInstalledTranslation: { vm.tracksTranslation(for: $0) },
             nexusModId: { Int(vm.resolvedNexusModId(for: $0)) })
         .compactMap { candidate in
             guard let mod = byFolder[candidate.folderName] else { return nil }
             return Row(candidate: candidate, mod: mod,
-                       status: FrenchTranslationSweep.status(entry: store.entries[candidate.folderName],
-                                                             installed: vm.translation(for: mod)))
+                       status: FrenchTranslationSweep.status(
+                           entry: store.entries[candidate.folderName],
+                           installed: vm.translation(for: mod) ?? vm.declaredTracked(for: mod)))
         }
     }
 

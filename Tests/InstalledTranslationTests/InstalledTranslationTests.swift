@@ -639,4 +639,56 @@ struct RegistryForgetEverythingTests {
         let paths = Set(registry.entries(forHost: "Gunther").flatMap { $0.replacedFiles.values })
         #expect(paths == ["/bak/Gunther/1/fr.json", "/bak/Gunther/2/a.json"])
     }
+
+    // MARK: - Suivi de mise à jour d'une déclaration (SVE-Français, 2026-10-05)
+
+    /// La déclaration vue comme une traduction suivie : l'identité passe, les
+    /// fichiers non (on ne sait pas ce qu'elle a déposé), et `updatedAt` reste
+    /// ce que la déclaration sait — `nil` le plus souvent, la feuille de
+    /// déclaration ne relève pas la date Nexus.
+    @Test func aDeclarationBecomesATrackedEntryOfTheSameIdentity() {
+        let declared = DeclaredTranslation(nexusModId: 29381, nexusName: "SVE - Francais",
+                                           version: "1.6.15", updatedAt: nil, declaredAt: t0)
+        let tracked = declared.asTracked(hostFolderName: "Stardew Valley Expanded")
+        #expect(tracked.hostFolderName == "Stardew Valley Expanded")
+        #expect(tracked.nexusModId == 29381)
+        #expect(tracked.nexusName == "SVE - Francais")
+        #expect(tracked.version == "1.6.15")
+        #expect(tracked.updatedAt == nil)
+        #expect(tracked.installedAt == t0)
+        #expect(tracked.files.isEmpty && tracked.replacedFiles.isEmpty)
+    }
+
+    /// La date Nexus d'un résultat n'est adoptée que s'il décrit **la version
+    /// déclarée** : même fiche, même version. Toute autre combinaison rend
+    /// `nil` — une date de version différente ferait taire la mise à jour qui
+    /// les sépare, et une base fausse vaut moins qu'une base absente.
+    @Test func adoptionTakesTheHitDateOnlyForTheDeclaredVersion() {
+        let declared = DeclaredTranslation(nexusModId: 29381, nexusName: "SVE - Francais",
+                                           version: "1.6.15", updatedAt: nil, declaredAt: t0)
+        let same = NexusModSearch.Hit(modId: 29381, name: "SVE - Francais", version: "1.6.15",
+                                      updatedAt: t0.addingTimeInterval(-86400), categoryName: "",
+                                      uploader: "", adultContent: false, tags: [])
+        let newer = NexusModSearch.Hit(modId: 29381, name: "SVE - Francais", version: "1.6.16",
+                                       updatedAt: t0.addingTimeInterval(86400), categoryName: "",
+                                       uploader: "", adultContent: false, tags: [])
+        let other = NexusModSearch.Hit(modId: 99999, name: "SVE - Francais", version: "1.6.15",
+                                       updatedAt: t0, categoryName: "",
+                                       uploader: "", adultContent: false, tags: [])
+        let undated = NexusModSearch.Hit(modId: 29381, name: "SVE - Francais", version: "1.6.15",
+                                         updatedAt: nil, categoryName: "",
+                                         uploader: "", adultContent: false, tags: [])
+
+        let adopted = declared.adopting(same)
+        #expect(adopted?.updatedAt == t0.addingTimeInterval(-86400))
+        #expect(adopted?.declaredAt == t0)
+        #expect(declared.adopting(newer) == nil)
+        #expect(declared.adopting(other) == nil)
+        #expect(declared.adopting(undated) == nil)
+
+        // Sans version déclarée, rien ne peut concorder.
+        let unversioned = DeclaredTranslation(nexusModId: 29381, nexusName: "SVE - Francais",
+                                              version: nil, updatedAt: nil, declaredAt: t0)
+        #expect(unversioned.adopting(same) == nil)
+    }
 }
