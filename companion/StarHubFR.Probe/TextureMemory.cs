@@ -42,14 +42,6 @@ internal static class TextureMemory
     private static readonly Dictionary<string, (long Bytes, string Owner)> Known = new();
     private static bool Armed;
     private static bool Resolving;
-    /// <summary>Instrumentation 0.9.15 : d'où vient le `vanilla` général —
-    /// compteur d'une ligne au journal après la première minute.</summary>
-    private static long RequestsSeen, WithLoadOps, WithEditOps, PendingWhenReady, KnownAtReport;
-    private static bool Reported;
-    /// <summary>Comptes d'opérations **au moment de la demande**, pour les
-    /// textures finies vanilla : la ligne qui dit si les listes étaient
-    /// réellement vides ou lues trop tôt.</summary>
-    private static readonly Dictionary<string, (int Loads, int Edits)> OpsSeenAtRequest = new();
 
     public static bool ArmedNow => Armed;
     public static int Count => Known.Count;
@@ -67,30 +59,6 @@ internal static class TextureMemory
     /// <summary>L'octet retenu par attributaire, pour la minute écrite.</summary>
     public static Dictionary<string, long> ByOwner()
     {
-        if (!Reported && Known.Count > 50)
-        {
-            Reported = true;
-            KnownAtReport = Known.Count;
-            long vanilla = Known.Values.Count(v => v.Owner == "vanilla");
-            var nonVanilla = Known.Where(k => k.Value.Owner != "vanilla").Take(3)
-                .Select(k => $"{k.Key}={k.Value.Owner}").ToList();
-            // Échantillon du contraire : trois textures vanilla, avec leurs
-            // comptes d'opérations au moment de la demande — la ligne qui
-            // désigne l'étage si tout reste vanilla.
-            var vanSamples = Known.Where(k => k.Value.Owner == "vanilla").Take(3)
-                .Select(k => k.Key).ToList();
-            var detail = vanSamples.Select(key =>
-            {
-                if (!OpsSeenAtRequest.TryGetValue(key, out var counts)) return $"{key}:?";
-                return $"{key}:L{counts.Item1}/E{counts.Item2}";
-            }).ToList();
-            Monitor.Log($"Attribution textures : {RequestsSeen} demandes, {WithLoadOps} avec loader, "
-                + $"{WithEditOps} avec éditeur ; connu={KnownAtReport} dont vanilla={vanilla} "
-                + $"({PendingWhenReady} retrouvés). Non-vanilla: [{string.Join(", ", nonVanilla)}]. "
-                + $"Vanilla détail: [{string.Join(", ", detail)}]. "
-                + $"Réflexion LoadOps={(LoadOps != null)}, EditOps={(EditOps != null)}.",
-                LogLevel.Info);
-        }
         var byOwner = new Dictionary<string, long>();
         foreach (var entry in Known.Values)
         {
@@ -135,18 +103,10 @@ internal static class TextureMemory
     private static void OnRequested(object? sender, AssetRequestedEventArgs e)
     {
         if (Resolving) return;
-        RequestsSeen++;
         try
         {
-            int loads = (LoadOps?.GetValue(e) as System.Collections.IEnumerable)?.Cast<object>().Count() ?? -1;
-            int edits = (EditOps?.GetValue(e) as System.Collections.IEnumerable)?.Cast<object>().Count() ?? -1;
-            if (loads > 0) WithLoadOps++;
-            if (edits > 0) WithEditOps++;
             string id = OwnerOf(e);
-            string key = e.NameWithoutLocale.ToString();
-            OwnerPending[key] = (id, e.DataType);
-            if (e.DataType == typeof(Texture2D))
-                OpsSeenAtRequest[key] = (loads, edits);
+            OwnerPending[e.NameWithoutLocale.ToString()] = (id, e.DataType);
         }
         catch (Exception ex)
         {
@@ -196,7 +156,6 @@ internal static class TextureMemory
             catch { return; }   // garde en plus : jamais une fausse erreur SMAPI
             if (asset is not Texture2D texture) return;
             long bytes = (long)texture.Width * texture.Height * 4;
-            if (pending.Owner is not null) PendingWhenReady++;
             Known[key] = (bytes, pending.Owner);
         }
         catch (Exception ex)
