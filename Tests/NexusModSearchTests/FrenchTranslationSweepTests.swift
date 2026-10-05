@@ -11,8 +11,9 @@ struct FrenchTranslationSweepTests {
                            categoryName: "", uploader: "", adultContent: false, tags: tags)
     }
     private func mod(_ name: String, languages: [String], enabled: Bool = true,
-                     nexus: String = "", children: [ModItem]? = nil) -> ModItem {
-        ModItem(uniqueId: "id.\(name)", name: name, folderName: name, version: "1.0",
+                     nexus: String = "", version: String = "1.0",
+                     children: [ModItem]? = nil) -> ModItem {
+        ModItem(uniqueId: "id.\(name)", name: name, folderName: name, version: version,
                 author: "", description: "", nexusUrl: "", nexusModId: nexus,
                 isEnabled: enabled, dependencies: [], children: children,
                 isGroup: children != nil, hasConfigFile: false, languages: languages)
@@ -176,6 +177,77 @@ struct FrenchTranslationSweepTests {
         #expect(entry.hits.map(\.modId) == [1, 2, 3])
         #expect(entry.isLinked(hit(2, "B - FR")))
         #expect(!entry.isLinked(hit(3, "C - Francais")))
+    }
+
+    // MARK: - Re-balayage incrémental (2026-10-05)
+
+    /// ~90 min pour tout le parc dont 90 % sans résultat : on ne re-cherche
+    /// que l'utile. Jamais cherché, mod changé, résultat vieux — les trois
+    /// seuls signaux ; le reste se relit au cache.
+    @Test func rescanWaitsForAChangeOrStaleResults() {
+        let now = Date(timeIntervalSince1970: 1_791_000_000)
+        let day: TimeInterval = 86_400
+        func candidate(_ name: String) -> FrenchTranslationSweep.Candidate {
+            .init(folderName: name, name: name, isActive: true, nexusModId: nil, version: "1.0")
+        }
+        let fresh = FrenchTranslationSweep.Entry(hits: [hit(1, "A - FR")],
+                                                 searchedAt: now.addingTimeInterval(-3 * day),
+                                                 signature: "0|1.0")
+        let stale = FrenchTranslationSweep.Entry(hits: [hit(1, "A - FR")],
+                                                 searchedAt: now.addingTimeInterval(-20 * day),
+                                                 signature: "0|1.0")
+        let staleEmpty = FrenchTranslationSweep.Entry(hits: [],
+                                                      searchedAt: now.addingTimeInterval(-40 * day),
+                                                      signature: "0|1.0")
+        let youngEmpty = FrenchTranslationSweep.Entry(hits: [],
+                                                      searchedAt: now.addingTimeInterval(-20 * day),
+                                                      signature: "0|1.0")
+
+        #expect(FrenchTranslationSweep.shouldRescan(candidate: candidate("New"),
+                                                    previous: nil, now: now))
+        // Un cache écrit avant la signature (nil) repasse une dernière fois,
+        // le temps de la poser — le premier passage après l'upgrade re-balaye
+        // tout, c'est annoncé.
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Unsigned"),
+            previous: FrenchTranslationSweep.Entry(hits: [hit(1, "A - FR")],
+                                                   searchedAt: now.addingTimeInterval(-3 * day)),
+            now: now))
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Fresh"), previous: fresh, now: now) == false)
+        // Des hits vieux de plus de deux semaines : une traduction peut être
+        // sortie depuis.
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Stale"), previous: stale, now: now))
+        // Sans résultat, l'espoir d'une traduction nouvelle s'épuise plus
+        // lentement : un mois.
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("StaleEmpty"), previous: staleEmpty, now: now))
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("YoungEmpty"), previous: youngEmpty, now: now) == false)
+    }
+
+    /// Le signal le plus direct : le mod a bougé depuis la recherche (mise à
+    /// jour installée, identifiant appris). Sa signature change, on re-cherche
+    /// quel que soit l'âge du cache.
+    @Test func aChangedModIsRescannedHoweverFreshTheCache() {
+        let now = Date()
+        let entry = FrenchTranslationSweep.Entry(hits: [hit(1, "A - FR")],
+                                                 searchedAt: now, signature: "12|1.0")
+        func candidate(_ name: String, id: Int, version: String) -> FrenchTranslationSweep.Candidate {
+            .init(folderName: name, name: name, isActive: true,
+                  nexusModId: id > 0 ? id : nil, version: version)
+        }
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Changed", id: 12, version: "2.0"),
+            previous: entry, now: now))
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Same", id: 12, version: "1.0"),
+            previous: entry, now: now) == false)
+        // Ancien cache sans signature : on la pose au premier passage.
+        #expect(FrenchTranslationSweep.shouldRescan(
+            candidate: candidate("Old", id: 12, version: "1.0"),
+            previous: FrenchTranslationSweep.Entry(hits: [], searchedAt: now), now: now))
     }
 
     /// Relevé sur l'API réelle (SVE, 2026-09-24) : le lien rend aussi les

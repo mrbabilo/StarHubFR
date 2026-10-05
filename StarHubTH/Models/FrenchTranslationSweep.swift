@@ -26,11 +26,16 @@ public enum FrenchTranslationSweep {
         /// Une panne n'est pas une absence : `failed` avec `hits` vide ne veut
         /// **pas** dire « aucune traduction », et la vue ne le dira pas.
         public let failed: Bool
+        /// La signature du mod au moment de la recherche (`id|version`) —
+        /// `nil` dans les caches écrits avant elle : on re-cherche une fois
+        /// pour la poser (2026-10-05).
+        public let signature: String?
 
         public init(hits: [NexusModSearch.Hit], linkedModIds: Set<Int> = [],
-                    searchedAt: Date, failed: Bool = false) {
+                    searchedAt: Date, failed: Bool = false, signature: String? = nil) {
             self.hits = hits; self.linkedModIds = linkedModIds
             self.searchedAt = searchedAt; self.failed = failed
+            self.signature = signature
         }
 
         public func isLinked(_ hit: NexusModSearch.Hit) -> Bool {
@@ -91,12 +96,50 @@ public enum FrenchTranslationSweep {
         /// `nil` quand le mod ne déclare pas de fiche Nexus : seule la
         /// recherche par nom est alors possible.
         public let nexusModId: Int?
+        /// La version installée : une moitié de la signature qui dit si le
+        /// cache parle encore de ce mod.
+        public let version: String
         public var id: String { folderName }
 
-        public init(folderName: String, name: String, isActive: Bool, nexusModId: Int?) {
+        public init(folderName: String, name: String, isActive: Bool, nexusModId: Int?,
+                    version: String = "") {
             self.folderName = folderName; self.name = name
             self.isActive = isActive; self.nexusModId = nexusModId
+            self.version = version
         }
+
+        /// Ce que le mod était au moment de la recherche : l'identifiant Nexus
+        /// et la version. Une mise à jour installée change la version, une
+        /// fiche apprise change l'identifiant — deux raisons de re-chercher,
+        /// quel que soit l'âge du cache.
+        public var signature: String { "\(nexusModId ?? 0)|\(version)" }
+    }
+
+    // MARK: - Re-balayage incrémental
+
+    /// Avec des résultats : une traduction peut sortir à tout moment, mais un
+    /// balayage toutes les deux semaines suffit — le lien « requis par » rend
+    /// les traductions d'un mod à jour par avance.
+    static let rescanWindow: TimeInterval = 14 * 86_400
+    /// Sans résultat, l'espoir d'une traduction nouvelle s'épuise plus
+    /// lentement : un mois. Le mod qui bouge re-cherche de toute façon
+    /// (signature).
+    static let emptyRescanWindow: TimeInterval = 30 * 86_400
+
+    /// Faut-il re-chercher ce mod ? **Jamais cherché, mod changé, résultat
+    /// vieux** — trois signaux, rien d'autre : le reste se relit au cache, et
+    /// un parc stable se balaye en secondes au lieu de ~90 minutes (2026-10-05).
+    ///
+    /// Un cache écrit avant la signature (`nil`) repasse une dernière fois,
+    /// le temps de la poser.
+    public static func shouldRescan(candidate: Candidate, previous: Entry?, now: Date) -> Bool {
+        guard let previous else { return true }
+        // Un cache écrit avant la signature repasse une dernière fois, le
+        // temps de la poser.
+        guard let signature = previous.signature else { return true }
+        if signature != candidate.signature { return true }
+        let window = previous.hits.isEmpty ? emptyRescanWindow : rescanWindow
+        return now.timeIntervalSince(previous.searchedAt) >= window
     }
 
     /// Les mods à couvrir : les mods **de premier niveau** — c'est là qu'une
@@ -114,7 +157,8 @@ public enum FrenchTranslationSweep {
             .filter { ModListScoping.matchesTranslation($0, .missing, state: none)
                         || hasInstalledTranslation($0) }
             .map { Candidate(folderName: $0.folderName, name: $0.name, isActive: $0.isEnabled,
-                             nexusModId: nexusModId($0).flatMap { $0 > 0 ? $0 : nil }) }
+                             nexusModId: nexusModId($0).flatMap { $0 > 0 ? $0 : nil },
+                             version: $0.version) }
             .sorted { ($0.name.localizedLowercase, $0.folderName)
                     < ($1.name.localizedLowercase, $1.folderName) }
     }

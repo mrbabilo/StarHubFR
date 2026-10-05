@@ -344,6 +344,52 @@ struct NexusModSearchTests {
         #expect(NexusModSearch.queryBody(name: "[CP]", gameId: 1303) != nil)
     }
 
+    // MARK: - Termes collés et suffixes d'archive (2026-10-05)
+
+    /// **L'index Nexus ignore le camelCase** : mesuré, `CarryableChests` 0
+    /// résultat contre 1 pour `Carryable Chests` — et jamais l'inverse
+    /// (`LoadItUp` 0, `Load It Up` 2 ; `GreenhouseSprinklers` 1, à tort, contre
+    /// 6). 93 hôtes du balayage portent un nom collé, 87 d'entre eux sans
+    /// aucun résultat. Les sigles restent groupés (`JP Cheats`), les chiffres
+    /// se détachent (`UI Info Suite 2 Alt` : 17 résultats mesurés, le terme
+    /// collé : 0).
+    @Test func aCamelCaseNameIsSearchedByItsWords() {
+        #expect(NexusModSearch.searchTerm(for: "CarryableChests") == "Carryable Chests")
+        #expect(NexusModSearch.searchTerm(for: "JPCheatsMenu") == "JP Cheats Menu")
+        #expect(NexusModSearch.searchTerm(for: "UIInfoSuite2Alt") == "UI Info Suite 2 Alt")
+        #expect(NexusModSearch.searchTerm(for: "BetterBuildingUpgrades") == "Better Building Upgrades")
+    }
+
+    /// Un sigle **seul** ne se coupe pas : `SDV` reste `SDV`, et un séparateur
+    /// déjà présent marque une frontière — `SDV-Radiance` n'ajoute pas
+    /// d'espace après le tiret.
+    @Test func acronymsAndSeparatorsStayPut() {
+        #expect(NexusModSearch.searchTerm(for: "SDV-Radiance") == "SDV-Radiance")
+        #expect(NexusModSearch.searchTerm(for: "[CP] ValleyBonds.IsekaiBonds")
+                == "Valley Bonds.Isekai Bonds")
+    }
+
+    /// **Les noms d'hôtes pollués par un nom de fichier Nexus** : la forme à
+    /// tirets (`Swim Mod-23169-1-9-0-1743804163`) se coupe comme une archive —
+    /// même ancre que `NexusArchiveName`, la date Unix finale.
+    @Test func aNexusArchiveSuffixIsStripped() {
+        #expect(NexusModSearch.searchTerm(for: "Swim Mod-23169-1-9-0-1743804163") == "Swim Mod")
+        #expect(NexusModSearch.searchTerm(for: "MakeGuntherRealFR-34339-1-0-1748539543")
+                == "Make Gunther Real FR")
+    }
+
+    /// Les suffixes horodatés d'un outil tiers (`…_20260920_112420`) ne sont
+    /// **pas** des archives Nexus : coupe bornée à la forme exacte, rien de
+    /// plus — un vrai titre finissant par des chiffres reste.
+    @Test func aTimestampedSuffixIsStrippedOnlyInItsExactShape() {
+        #expect(NexusModSearch.searchTerm(for: "Mapster - A Local Map Mod_20260920_112211")
+                == "Mapster - A Local Map Mod")
+        #expect(NexusModSearch.searchTerm(for: "Tool and Sprinkler Upgrades_20260920_112420")
+                == "Tool and Sprinkler Upgrades")
+        #expect(NexusModSearch.searchTerm(for: "Stardew 64") == "Stardew 64")
+    }
+
+
     // MARK: - Résultats déjà tagués par le serveur
 
     /// **Le tag suffit.** Une traduction correctement taguée `French` dont le

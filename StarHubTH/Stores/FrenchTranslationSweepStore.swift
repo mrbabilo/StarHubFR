@@ -9,9 +9,16 @@ import Foundation
 /// recréée à chaque changement d'onglet, une recherche en cours ne doit pas
 /// mourir avec elle.
 ///
-/// Séquentielle, un mod à la fois : le quota Nexus est de 2 000 requêtes par
-/// heure. S'arrête net sur l'absence de clé ou un 429 — enchaîner 175 échecs
-/// écraserait des résultats valables par des pannes.
+/// **Incrémentale depuis le 2026-10-05** (`FrenchTranslationSweep
+/// .shouldRescan`) : un parc stable se relit au cache — ~90 minutes pour tout
+/// balayer, dont 90 % sans résultat, ne servaient qu'une fois. `forceAll`
+/// refait tout, pour la main qui veut être sûre.
+///
+/// **Deux chercheurs** (moitiés du tableau, borné à deux) : ~×2 sur un
+/// balayage complet, marge large sous le quota Nexus de 2 000 requêtes/heure
+/// (~500 par passage). S'arrête net sur l'absence de clé ou un 429 — chaque
+/// chercheur relit `stopReason` **avant chaque requête** : après un 429 reçu
+/// par l'un, l'autre n'en envoie plus.
 @MainActor
 @Observable
 final class FrenchTranslationSweepStore {
@@ -25,8 +32,10 @@ final class FrenchTranslationSweepStore {
     private(set) var isRunning = false
     private(set) var done = 0
     private(set) var total = 0
-    /// Le mod en cours de recherche, pour la ligne de progression.
-    private(set) var currentName: String?
+    /// Les mods en cours de recherche — jusqu'à deux chercheurs, la ligne de
+    /// progression nomme les deux (un seul nom ferait passer le second
+    /// chercheur pour du silence).
+    private(set) var currentNames: [String] = []
     /// Pourquoi la dernière recherche s'est arrêtée avant la fin, s'il y a lieu.
     private(set) var stopReason: StopReason?
 
@@ -51,9 +60,24 @@ final class FrenchTranslationSweepStore {
         candidates.compactMap { entries[$0.folderName]?.searchedAt }.min()
     }
 
-    /// - Parameter log: la trace de chaque mod (début, durée, issue), vers la
-    ///   page Journaux — c'est elle qui dira où une recherche s'attarde.
+    /// Combien de ces mods parlent encore à leur cache (dans la fenêtre de
+    /// re-balayage, signature intacte) : l'en-tête le dit — un « à jour au »
+    /// global mentirait dès qu'un passage incrémental ne re-cherche qu'une
+    /// partie du parc.
+    func freshCount(among candidates: [FrenchTranslationSweep.Candidate], now: Date = Date()) -> Int {
+        candidates.filter {
+            !FrenchTranslationSweep.shouldRescan(candidate: $0,
+                                                 previous: entries[$0.folderName], now: now)
+        }.count
+    }
+
+    /// - Parameters:
+    ///   - forceAll: re-chercher **tout**, cache frais compris (le menu,
+    ///     contre le bouton qui suit `shouldRescan`).
+    ///   - log: la trace de chaque mod (début, durée, issue), vers la
+    ///     page Journaux — c'est elle qui dira où une recherche s'attarde.
     func run(_ candidates: [FrenchTranslationSweep.Candidate],
+             forceAll: Bool = false,
              log: @escaping (String) -> Void) {
         guard !isRunning else { return }
         generation += 1
@@ -61,48 +85,84 @@ final class FrenchTranslationSweepStore {
         // Sans clé, le premier mod rend `.noApiKey` et la boucle s'arrête
         // avant d'écrire quoi que ce soit : pas de seconde vérification ici.
         stopReason = nil
+        let due = forceAll ? candidates : candidates.filter {
+            FrenchTranslationSweep.shouldRescan(candidate: $0,
+                                                previous: entries[$0.folderName], now: Date())
+        }
         isRunning = true
         done = 0
-        total = candidates.count
-        log("Traductions FR : recherche de \(candidates.count) mods")
+        total = due.count
+        if total == 0 {
+            log("Traductions FR : rien à re-balayer — le cache couvre \(candidates.count) mod(s)")
+            finish()
+            return
+        }
+        log("Traductions FR : \(forceAll ? "re-balayage total" : "re-balayage") de \(total) "
+            + "mod(s) sur \(candidates.count) en cache")
         task = Task { [weak self] in
-            for candidate in candidates {
-                guard let self, self.generation == run else { return }
-                self.currentName = candidate.name
-                let started = Date()
-                let result = await FrenchTranslationLookup.find(name: candidate.name,
-                                                                hostModId: candidate.nexusModId)
-                // Arrêtée pendant l'attente : rien de ce qui revient ne s'écrit.
-                guard self.generation == run else { return }
-                let elapsed = String(format: "%.1f s", Date().timeIntervalSince(started))
-                switch result {
-                case .success(let entry):
-                    self.entries[candidate.folderName] = entry
-                    log("Traductions FR : \(candidate.name) — \(entry.hits.count) résultat(s), \(elapsed)")
-                case .failure(let error):
-                    log("Traductions FR : \(candidate.name) — échec \(error), \(elapsed)")
-                    switch error {
-                    case .noApiKey: self.stopReason = .noApiKey
-                    case .rateLimited: self.stopReason = .rateLimited
-                    default:
-                        // Une panne sur un mod n'arrête pas les autres ; elle
-                        // se retient comme panne, jamais comme « rien
-                        // trouvé ». Un résultat antérieur valable reste
-                        // lisible : on ne l'écrase que s'il n'y en avait pas.
-                        if self.entries[candidate.folderName] == nil {
-                            self.entries[candidate.folderName] = .init(hits: [], searchedAt: Date(),
-                                                                       failed: true)
-                        }
+            await withTaskGroup(of: Void.self) { group in
+                // Deux chercheurs, chacun sa moitié : borné à deux requêtes
+                // en vol, sans sémaphore ni file à inventer.
+                let half = (due.count + 1) / 2
+                for slice in [due.prefix(half), due.suffix(due.count - half)] {
+                    group.addTask {
+                        await self?.scanHalf(Array(slice), run: run, log: log)
                     }
                 }
-                if self.stopReason != nil { break }
-                self.done += 1
-                if self.done % 10 == 0 { FrenchTranslationSweep.Storage.save(self.entries) }
             }
             guard let self, self.generation == run else { return }
             log("Traductions FR : terminé, \(self.done) / \(self.total)")
             self.finish()
         }
+    }
+
+    /// La moitié d'un chercheur : un mod après l'autre, en relisant
+    /// `stopReason` **avant chaque requête** — après un 429 reçu par l'autre
+    /// moitié, celle-ci n'en envoie plus.
+    private func scanHalf(_ slice: [FrenchTranslationSweep.Candidate],
+                          run: Int, log: @escaping (String) -> Void) async {
+        for candidate in slice {
+            guard generation == run, stopReason == nil else { return }
+            await search(candidate, run: run, log: log)
+        }
+    }
+
+    /// Un mod, par le chercheur qui l'a pris : chercher, écrire, compter.
+    private func search(_ candidate: FrenchTranslationSweep.Candidate,
+                        run: Int, log: @escaping (String) -> Void) async {
+        currentNames.append(candidate.name)
+        defer { currentNames.removeAll { $0 == candidate.name } }
+        let started = Date()
+        let result = await FrenchTranslationLookup.find(name: candidate.name,
+                                                        hostModId: candidate.nexusModId)
+        // Arrêtée pendant l'attente : rien de ce qui revient ne s'écrit.
+        guard generation == run, stopReason == nil else { return }
+        let elapsed = String(format: "%.1f s", Date().timeIntervalSince(started))
+        switch result {
+        case .success(let entry):
+            entries[candidate.folderName] = .init(
+                hits: entry.hits, linkedModIds: entry.linkedModIds,
+                searchedAt: entry.searchedAt, failed: entry.failed,
+                signature: candidate.signature)
+            log("Traductions FR : \(candidate.name) — \(entry.hits.count) résultat(s), \(elapsed)")
+        case .failure(let error):
+            log("Traductions FR : \(candidate.name) — échec \(error), \(elapsed)")
+            switch error {
+            case .noApiKey: stopReason = .noApiKey
+            case .rateLimited: stopReason = .rateLimited
+            default:
+                // Une panne sur un mod n'arrête pas les autres ; elle
+                // se retient comme panne, jamais comme « rien
+                // trouvé ». Un résultat antérieur valable reste
+                // lisible : on ne l'écrase que s'il n'y en avait pas.
+                if entries[candidate.folderName] == nil {
+                    entries[candidate.folderName] = .init(hits: [], searchedAt: Date(),
+                                                          failed: true)
+                }
+            }
+        }
+        done += 1
+        if done % 10 == 0 { FrenchTranslationSweep.Storage.save(entries) }
     }
 
     /// Clôt la recherche **tout de suite**, sans attendre la requête en vol.
@@ -117,7 +177,7 @@ final class FrenchTranslationSweepStore {
     private func finish() {
         FrenchTranslationSweep.Storage.save(entries)
         isRunning = false
-        currentName = nil
+        currentNames = []
         task = nil
     }
 }

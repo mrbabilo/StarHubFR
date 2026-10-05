@@ -146,10 +146,68 @@ public enum NexusModSearch {
     /// du parc en portent un.
     public static func searchTerm(for name: String) -> String {
         let stripped = stripConventionPrefixes(name)
-        return stripped.folding(options: [.diacriticInsensitive],
-                                locale: Locale(identifier: "en_US_POSIX"))
+        let unarchived = stripArchiveSuffixes(stripped)
+        let spaced = spacingCamelCase(unarchived)
+        return spaced.folding(options: [.diacriticInsensitive],
+                              locale: Locale(identifier: "en_US_POSIX"))
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// **L'index ignore le camelCase** (mesuré 2026-10-05 : `CarryableChests`
+    /// 0 résultat, `Carryable Chests` 1 — et jamais l'inverse) : les mots
+    /// collés se séparent, à l'intérieur de chaque run alphanumérique. Les
+    /// sigles restent groupés (`JPCheatsMenu` → `JP Cheats Menu`), les chiffres
+    /// se détachent (`UIInfoSuite2Alt` → `UI Info Suite 2 Alt`, 17 résultats
+    /// contre 0). Un séparateur déjà présent (`-`, `.`, espace) marque déjà
+    /// une frontière : on ne touche qu'aux runs qu'il contient.
+    static func spacingCamelCase(_ term: String) -> String {
+        guard term.contains(where: { $0.isLetter || $0.isNumber }) else { return term }
+        let chars = Array(term)
+        var out = String()
+        out.reserveCapacity(chars.count + 4)
+        var previous: Character?
+        for (index, char) in chars.enumerated() {
+            if let p = previous, p.isLetter || p.isNumber, char.isLetter || char.isNumber {
+                let nextLower = index + 1 < chars.count ? chars[index + 1].isLowercase : false
+                let boundary =
+                    (p.isNumber != char.isNumber)                       // lettre↔chiffre
+                    || (!p.isUppercase && !p.isNumber && char.isUppercase) // minuscule→majuscule
+                    || (p.isUppercase && char.isUppercase
+                        && (char.isLowercase || nextLower))             // sigle→mot : UI|Info, P|Cheats
+                if boundary { out.append(" ") }
+            }
+            out.append(char)
+            previous = char
+        }
+        return out
+    }
+
+    /// **Un nom d'hôte qui porte un nom de fichier Nexus** : la forme à tirets
+    /// (`Swim Mod-23169-1-9-0-1743804163`) se coupe comme une archive, à la
+    /// même ancre que `NexusArchiveName` — la date Unix finale ; celle d'un
+    /// outil tiers (`…_20260920_112420`) à sa forme exacte, rien de plus — un
+    /// vrai titre finissant par des chiffres (`Stardew 64`) reste.
+    static func stripArchiveSuffixes(_ term: String) -> String {
+        // Le `swiftc` du gate ne passe pas `-enable-bare-slash-regex` : pas de
+        // literal `/…/` ici — `NSRegularExpression`, comme partout ailleurs.
+        if let match = archiveSuffix.firstMatch(in: term, range: NSRange(term.startIndex..., in: term)),
+           match.numberOfRanges > 1, let name = Range(match.range(at: 1), in: term) {
+            return String(term[name])
+        }
+        // …_20260920_112420 : seize caractères finaux, deux underscores.
+        let chars = Array(term)
+        guard chars.count > 16 else { return term }
+        // Array, pas ArraySlice : le slice garde les indices du parent et
+        // tail[0] serait hors bornes dès que le nom dépasse seize caractères.
+        let tail = Array(chars.suffix(16))
+        guard tail[0] == "_", tail[9] == "_",
+              tail.dropFirst().prefix(8).allSatisfy(\.isNumber),
+              tail.dropFirst(10).allSatisfy(\.isNumber) else { return term }
+        return String(chars.dropLast(16))
+    }
+
+    private static let archiveSuffix = try! NSRegularExpression(
+        pattern: "^(.+?)-\\d+-[\\d.]+(?:-\\d+)+-\\d{10,}$")
 
     /// Retire les préfixes `[…]`/`(…)` de **tête**, courts seulement.
     /// **Jamais le vide** : un nom tout en crochets est cherché tel quel.

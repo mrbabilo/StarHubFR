@@ -1602,11 +1602,13 @@
 "frtr_title" = "French translations";
 "frtr_subtitle" = "French translations available on Nexus for your installed mods, paused ones included, and updates to those already installed.";
 "frtr_search" = "Search Nexus";
+"frtr_rescan" = "Rescan what changed";
+"frtr_rescan_all" = "Rescan everything";
 "frtr_cancel" = "Stop";
 "frtr_progress" = "Searching %1$lld / %2$lld — %3$@";
 "frtr_summary" = "%1$lld mods covered · %2$lld with a French translation to install · %3$lld without result";
 "frtr_chart_label" = "Translatable mods by translation status";
-"frtr_checked_at" = "Oldest result: %@";
+"frtr_checked_at" = "%1$lld of %2$lld fresh · oldest result: %3$@";
 "frtr_never" = "The search covers %lld mods: 2 requests for most of them, around twenty for the biggest (SVE). It only runs when you click.";
 "frtr_stop_nokey" = "Add your Nexus API key in Settings to search.";
 "frtr_stop_ratelimit" = "Nexus request limit reached: search stopped. Results found so far are kept; try again later.";

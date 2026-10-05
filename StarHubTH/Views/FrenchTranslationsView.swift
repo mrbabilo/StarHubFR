@@ -111,12 +111,17 @@ struct FrenchTranslationsView: View {
                     Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
                         .controlSize(.small)
                 } else {
-                    Button {
-                        store.run(all.map(\.candidate)) { vm.log($0) }
+                    // Incrémental par défaut : un parc stable se relit au
+                    // cache en secondes ; le menu garde le passage total.
+                    Menu {
+                        Button(localization.L(L10n.FrTranslations.rescanAll)) {
+                            store.run(all.map(\.candidate), forceAll: true) { vm.log($0) }
+                        }
                     } label: {
-                        Label(localization.L(L10n.FrTranslations.search), systemImage: "magnifyingglass")
+                        Label(localization.L(L10n.FrTranslations.rescan), systemImage: "magnifyingglass")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .menuStyle(.borderedButton)
+                    .menuIndicator(.visible)
                     .controlSize(.small)
                     .disabled(all.isEmpty)
                 }
@@ -129,13 +134,18 @@ struct FrenchTranslationsView: View {
                     ProgressView(value: Double(store.done), total: Double(max(store.total, 1)))
                         .frame(maxWidth: 220)
                     Text(String(format: localization.L(L10n.FrTranslations.progress),
-                                store.done, store.total, store.currentName ?? ""))
+                                store.done, store.total, store.currentNames.joined(separator: " · ")))
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
             } else if let oldest = store.oldestSearch(among: all.map(\.candidate)) {
+                // Un « à jour au » global mentirait dès qu'un passage
+                // incrémental ne re-cherche qu'une partie : compter ce que le
+                // cache couvre encore.
+                let fresh = store.freshCount(among: all.map(\.candidate))
                 Text(summary(all) + " · "
                      + String(format: localization.L(L10n.FrTranslations.checkedAt),
+                              fresh, all.count,
                               oldest.formatted(date: .abbreviated, time: .shortened)))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             } else {
