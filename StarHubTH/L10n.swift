@@ -1631,6 +1631,7 @@ enum L10n {
         static let search           = "frtr_search"
         static let rescan           = "frtr_rescan"
         static let rescanAll        = "frtr_rescan_all"
+        static let rescanHint       = "frtr_rescan_hint"
         static let cancel           = "frtr_cancel"
         static let progress         = "frtr_progress"
         static let summary          = "frtr_summary"

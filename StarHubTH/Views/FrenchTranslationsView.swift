@@ -111,19 +111,38 @@ struct FrenchTranslationsView: View {
                     Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
                         .controlSize(.small)
                 } else {
-                    // Incrémental par défaut : un parc stable se relit au
-                    // cache en secondes ; le menu garde le passage total.
-                    Menu {
-                        Button(localization.L(L10n.FrTranslations.rescanAll)) {
-                            store.run(all.map(\.candidate), forceAll: true) { vm.log($0) }
+                    // Incrémental par défaut : un parc stable se lit au cache
+                    // en secondes ; le passage total vit derrière le glyph.
+                    // Un Menu seul ne convient pas : son clic OUVRIT le menu,
+                    // dont l'unique item était « tout re-balayer » — le
+                    // bouton principal n'avait aucune action propre
+                    // (2026-10-05). Et `.primaryAction()` n'existe pas sur
+                    // Menu dans ce SDK.
+                    HStack(spacing: 4) {
+                        Button {
+                            store.run(all.map(\.candidate)) { vm.log($0) }
+                        } label: {
+                            Label(localization.L(L10n.FrTranslations.rescan),
+                                  systemImage: "magnifyingglass")
                         }
-                    } label: {
-                        Label(localization.L(L10n.FrTranslations.rescan), systemImage: "magnifyingglass")
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .disabled(all.isEmpty)
+                        .help(localization.L(L10n.FrTranslations.rescanHint))
+                        Menu {
+                            Button(localization.L(L10n.FrTranslations.rescanAll)) {
+                                store.run(all.map(\.candidate), forceAll: true) { vm.log($0) }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .frame(width: 20, height: 20)
+                        .contentShape(.rect)
+                        .controlSize(.small)
+                        .disabled(all.isEmpty)
+                        .help(localization.L(L10n.FrTranslations.rescanAll))
                     }
-                    .menuStyle(.borderedButton)
-                    .menuIndicator(.visible)
-                    .controlSize(.small)
-                    .disabled(all.isEmpty)
                 }
             }
             Text(localization.L(L10n.FrTranslations.subtitle))

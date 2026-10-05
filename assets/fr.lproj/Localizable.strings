@@ -1602,8 +1602,9 @@
 "frtr_title" = "Traductions FR";
 "frtr_subtitle" = "Les traductions françaises disponibles sur Nexus pour vos mods installés, en pause compris, et les mises à jour de celles déjà installées.";
 "frtr_search" = "Chercher sur Nexus";
-"frtr_rescan" = "Re-balayer ce qui a changé";
+"frtr_rescan" = "Re-balayer";
 "frtr_rescan_all" = "Tout re-balayer";
+"frtr_rescan_hint" = "Re-cherche ce qui a changé ou est vieux du cache. Au premier passage, tout le parc (les signatures se posent). Le bouton ⋯ ouvre « Tout re-balayer ».";
 "frtr_cancel" = "Arrêter";
 "frtr_progress" = "Recherche %1$lld / %2$lld — %3$@";
 "frtr_summary" = "%1$lld mods couverts · %2$lld avec une traduction à installer · %3$lld sans résultat";
