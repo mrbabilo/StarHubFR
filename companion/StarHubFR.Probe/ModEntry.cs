@@ -85,6 +85,8 @@ public sealed class ModEntry : Mod
         // `PatchCosts.Active`, qui vient d'être fixé.
         ContentPackSections.Initialize(helper, harmony, Monitor);
         Loads.Initialize(helper, harmony, Monitor, ModManifest.Version.ToString(), ModManifest.UniqueID);
+        // D4-T6a : opt-in, par événements — la mesure des patches peut rester armée à côté.
+        TextureMemory.Initialize(helper, Monitor, config.MeasureTextures);
 
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules

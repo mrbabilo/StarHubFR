@@ -10,4 +10,12 @@ internal sealed class ModConfig
     /// coût d'observation se mesure en comparant deux sessions, avec et sans.
     /// </summary>
     public bool MeasureHarmonyPatches { get; set; } = false;
+
+    /// <summary>
+    /// D4-T6a : relever la mémoire des textures résidentes, par attributaire.
+    /// Suivi par événements SMAPI, sans patch — mais le relevé passe par un
+    /// accès au cache à chaque asset chargé : désactivé par défaut, le coût
+    /// d'observation se mesure en comparant deux sessions, avec et sans.
+    /// </summary>
+    public bool MeasureTextures { get; set; } = false;
 }

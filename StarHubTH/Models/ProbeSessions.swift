@@ -31,6 +31,14 @@ public struct ProbeMinute: Decodable, Equatable, Sendable {
     /// Mémoire réservée par .NET (`TotalCommittedBytes`) : le plafond que le
     /// ramasse-miettes s'est fixé, au-dessus du tas utilisé.
     public let committedMB: Double?
+    /// D4-T6a — textures résidentes au total, sonde ≥ 0.9.13 opt-in
+    /// `MeasureTextures`. RAM gérée, pas VRAM ; les textures créées en code
+    /// ne passent pas par le ContentManager et sont invisibles.
+    public let textureMB: Int64?
+    public let textureCount: Int?
+    /// Les octets retenus par attributaire (`vanilla` compris) — attribution
+    /// partielle : loader de mod, sinon éditeur, sinon vanilla.
+    public let textureByMod: [String: Int64]?
     public let loadedMods: Int?
     /// Ticks de la minute avec un menu ouvert (sonde ≥ 0.4.12).
     public let menuTicks: Int?

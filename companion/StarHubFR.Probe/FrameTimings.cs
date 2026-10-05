@@ -197,6 +197,7 @@ internal static class FrameTimings
                         Stat? Tick, Stat? OuterUpdate, Stat? OuterDraw, Stat? Present, Stat? Wait, Stat? UpdatesPerTick, int InactiveTicks, int MenuTicks,
                         long HeapMB, int Gen0, int Gen1, int Gen2, double BlockingGcMs, double BlockingGcMaxMs, double BackgroundGcMs,
                         long WorkingSetMB, long PeakWorkingSetMB, long CommittedMB,
+                        long? TextureMB, int? TextureCount, Dictionary<string, long>? TextureByMod,
                         string? Location, int? GameTime, string? Menu);
 
     /// Le pic de mémoire physique **suivi par la sonde** : `PeakWorkingSet64`
@@ -237,6 +238,9 @@ internal static class FrameTimings
                 Environment.WorkingSet / (1024 * 1024),
                 _peakWorkingSetBytes / (1024 * 1024),
                 GC.GetGCMemoryInfo().TotalCommittedBytes / (1024 * 1024),
+                TextureMemory.ArmedNow ? TextureMemory.TotalBytes / (1024 * 1024) : null,
+                TextureMemory.ArmedNow ? TextureMemory.Count : null,
+                TextureMemory.ArmedNow ? TextureMemory.ByOwner() : null,
                 Context.IsWorldReady ? Game1.currentLocation?.NameOrUniqueName : null,
                 Context.IsWorldReady ? Game1.timeOfDay : null,
                 Game1.activeClickableMenu?.GetType().FullName);

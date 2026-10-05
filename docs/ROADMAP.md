@@ -812,6 +812,22 @@ SLO est actif et ce que la dernière session a mesuré.
 - [ ] **D4-T6** — Mémoire **retenue** par mod : textures chargées par le gestionnaire
       de contenu de chaque mod (largeur × hauteur × 4), en plus des allocations de
       D4-T1 (qui mesurent la pression sur le GC, pas ce qui reste). · **M**
+      *T6a livré en code le 2026-10-05, à valider en jeu* (sonde **0.9.13**,
+      opt-in `MeasureTextures`) : suivi incrémental **sans patch** —
+      `AssetRequested` retient l'attributaire (réflexion une fois sur les
+      propriétés internal `LoadOperations`/`EditOperations` des arguments ;
+      record à champ `Mod` public), `AssetReady` relève la taille par accès
+      au cache, `AssetsInvalidated` suit la purge de SMAPI. Attribution
+      partielle assumée : loader de mod, sinon éditeur, sinon `vanilla` ;
+      atlas = un attributaire ; textures créées en code invisibles ; RAM
+      gérée, pas VRAM. Total par minute dans `timings.jsonl`
+      (`TexturesMB`/`TextureCount`/`TextureByMod`), `null` sans l'opt-in.
+      **Écart assumé : pas d'écran tant qu'aucune session réelle ne porte
+      les champs** — la fiche/carte attendra des données à montrer.
+      *Tranche T6b, si besoin* : inventaire complet par réflexion —
+      `BaseContentManager.GetCachedAssets()` est **public** (une seule
+      réflexion pour y accéder), jamais en continu. Coût d'observation à
+      calibrer par paire A/B, comme D4-T5.
 - [x] **D4-T8** — **Mémoire du processus** dans chaque minute de `timings.jsonl` :
       mémoire physique (`Environment.WorkingSet`), pic
       (`Process.PeakWorkingSet64`) et mémoire réservée par .NET

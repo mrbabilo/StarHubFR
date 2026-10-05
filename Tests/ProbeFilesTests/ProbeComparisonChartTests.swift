@@ -71,7 +71,8 @@ struct ProbeComparisonChartTests {
         let json = """
         {"Session":"s","At":"2026-09-28T10:00:00.0000000+02:00","WallSeconds":60,"Fps":42,
          "FrameInterval":{"Count":45,"Avg":30,"P50":24,"P99":50,"Max":60},
-         "HeapMB":912,"WorkingSetMB":3400,"PeakWorkingSetMB":4100,"CommittedMB":3600}
+         "HeapMB":912,"WorkingSetMB":3400,"PeakWorkingSetMB":4100,"CommittedMB":3600,
+         "TextureMB":780,"TextureCount":1420,"TextureByMod":{"vanilla":300,"Pathoschild.ContentPatcher":480}}
         """
         let minute = try ProbeJSON.decoder().decode(ProbeMinute.self, from: Data(json.utf8))
         #expect(minute.heapMB == 912)
@@ -80,6 +81,10 @@ struct ProbeComparisonChartTests {
         #expect(minute.committedMB == 3600)
         #expect(ProbeComparisonChart.value(of: minute, .workingSet) == 3400)
         #expect(ProbeComparisonChart.value(of: minute, .committed) == 3600)
+        #expect(minute.textureMB == 780)
+        #expect(minute.textureCount == 1420)
+        #expect(minute.textureByMod?["vanilla"] == 300)
+        #expect(minute.textureByMod?.count == 2)
         // Champ absent (sonde < 0.9.11) : décode, et la mesure ne rend rien.
         let bare = """
         {"Session":"s","At":"2026-09-28T10:00:00.0000000+02:00","WallSeconds":60,"Fps":42,
