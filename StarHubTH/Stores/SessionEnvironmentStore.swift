@@ -25,7 +25,9 @@ final class SessionEnvironmentStore {
     }
 
     /// `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt` (VM:2019).
-    static func defaultLogURL() -> URL {
+    /// `nonisolated` : sert de valeur par défaut d'`init` — évaluée hors
+    /// acteur (mode Swift 6 du gate, un static hérite l'isolation sinon).
+    nonisolated static func defaultLogURL() -> URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config/StardewValley/ErrorLogs/SMAPI-latest.txt")
     }

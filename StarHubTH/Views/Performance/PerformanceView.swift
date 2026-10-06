@@ -7,6 +7,9 @@ struct PerformanceView: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
+    /// D2-T3 — l'état environnement de la session (carte « Environnement »),
+    /// rechargé aux mêmes moments que la sonde.
+    var environment: SessionEnvironmentStore
 
     var body: some View {
         ScrollView {
@@ -23,6 +26,11 @@ struct PerformanceView: View {
                     PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                 }
                 PerformanceCard { PerformanceImpactSection(viewModel: viewModel, localization: localization) }
+                // D2-T3 — la carte « Environnement » : statique, indépendante
+                // des sélecteurs Avant/Après et de la présence de la sonde.
+                PerformanceCard {
+                    PerformanceEnvironmentSection(localization: localization, store: environment)
+                }
                 // En-tête, mesure guidée et sélecteurs forment un bloc : les
                 // tuiles de trame lisent la paire choisie (`store.report`).
                 inGameTitle
@@ -33,12 +41,20 @@ struct PerformanceView: View {
             .padding(AppDesign.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .task { if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) } }
+        .task {
+            if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
+            if environment.status == .idle { await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir) }
+        }
         // L'onglet reste monté : relire à chaque retour, sinon une session
         // jouée depuis n'apparaît jamais (le cache taille + date de l'index
         // rend la relecture quasi gratuite quand rien n'a bougé).
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
-            if segment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
+            if segment == .performance {
+                Task {
+                    await store.reload(gameDir: viewModel.gameDir)
+                    await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+                }
+            }
         }
         // Jeu quitté : la session close entre dans les analyses — mais
         // seulement si l'onglet est affiché ; caché, quinze mutations
@@ -46,12 +62,20 @@ struct PerformanceView: View {
         // l'onglet relit de toute façon (`onChange` ci-dessus).
         .onReceive(GameExit.publisher) {
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
-            Task { await store.reload(gameDir: viewModel.gameDir) }
+            Task {
+                await store.reload(gameDir: viewModel.gameDir)
+                await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+            }
         }
         // Le jeu se joue app en arrière-plan, onglet ouvert : relire au retour
         // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await store.reload(gameDir: viewModel.gameDir) } }
+            if viewModel.navigationStore.diagnosticsSegment == .performance {
+                Task {
+                    await store.reload(gameDir: viewModel.gameDir)
+                    await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+                }
+            }
         }
     }
 

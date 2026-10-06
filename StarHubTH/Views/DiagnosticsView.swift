@@ -21,6 +21,9 @@ struct DiagnosticsView: View {
     /// L'onglet Performances (D4-T4 plan 4) : possédé ici, jamais par le
     /// ViewModel ; l'onglet reste monté, la paire choisie survit.
     @State private var performance = ProbePerformanceStore()
+    /// D2-T3 — l'état environnement de la session (carte « Environnement »),
+    /// même possession que la sonde.
+    @State private var environment = SessionEnvironmentStore()
     /// Rapidité d'affichage : les onglets secondaires ne se construisent qu'au
     /// premier affichage, puis restent montés — l'état (filtres du journal,
     /// paire choisie) ne se perd jamais (consigne du 2026-09-28). Entrer sur
@@ -82,7 +85,8 @@ struct DiagnosticsView: View {
                     }
                 }
                 tab(.performance) {
-                    PerformanceView(viewModel: viewModel, localization: localization, store: performance)
+                    PerformanceView(viewModel: viewModel, localization: localization,
+                                    store: performance, environment: environment)
                 }
             }
         }
