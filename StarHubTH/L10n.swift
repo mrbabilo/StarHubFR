@@ -1214,6 +1214,27 @@ enum L10n {
         static let locationBeach = "perf_location_beach"
         static let locationForest = "perf_location_forest"
         static let locationMountain = "perf_location_mountain"
+
+        // D2-T3 — carte « Environnement » (état SLO, menus, packs CP).
+        static let envTitle           = "perf_env_title"
+        static let envJournalDate     = "perf_env_journal_date"
+        static let envJournalMissing  = "perf_env_journal_missing"
+        static let envSloAbsent       = "perf_env_slo_absent"
+        static let envSloProfile      = "perf_env_slo_profile"
+        static let envSloCache        = "perf_env_slo_cache"
+        static let envSloOptRow       = "perf_env_slo_opt_row"
+        static let envYes             = "perf_env_yes"
+        static let envNo              = "perf_env_no"
+        static let envMenusTitle      = "perf_env_menus_title"
+        static let envMenusCount      = "perf_env_menus_count"
+        static let envMenusPartial    = "perf_env_menus_partial"
+        static let envFlavorMcm       = "perf_env_flavor_mcm"
+        static let envFlavorGmcm      = "perf_env_flavor_gmcm"
+        static let envPacksTitle      = "perf_env_packs_title"
+        static let envPacksTotal      = "perf_env_packs_total"
+        static let envPacksRest       = "perf_env_packs_rest"
+        static let envPacksIllisible  = "perf_env_packs_illisible"
+        static let envPacksConflicts  = "perf_env_packs_conflicts"
     }
 
     // MARK: - Logs
