@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Performances : résumé de la dernière session, puis comparaison détaillée.** Fluidité, saccades et mémoire apparaissent en premier ; graphiques, valeurs par lieu, historique des mods et environnement restent accessibles. Les mesures manquantes, leur provenance et les limites de comparaison sont expliquées en français et en anglais.
+- **Performances : résumé de la dernière session, puis comparaison détaillée.** Fluidité, saccades et mémoire apparaissent en premier ; en mode comparaison, « Analyse et conclusion » suit immédiatement le résumé. Graphiques, valeurs par lieu, historique des mods et environnement restent accessibles. Les mesures manquantes, leur provenance et les limites de comparaison sont expliquées en français et en anglais.
 - **Évolution de la mémoire pendant une période comparable.** La tendance s'interrompt lors d'un changement de lieu, d'une exclusion ou d'une mesure manquante ; elle ne conclut pas automatiquement à une fuite mémoire.
 - **Onglet Performances : carte « Environnement ».** Les réglages Stardew Loading Optimizer de la session (profil, optimisations configurées vs effectives), les mods avec menu de config détectés dans le journal, le poids des packs Content Patcher et leurs conflits — l'état statique qui explique les mesures.
 - **La scène du lieu dans chaque minute mesurée.** La sonde compte PNJ, meubles, objets posés, lumières… du lieu courant en écrivant sa ligne, sans patch de dessin qui fausserait le temps de trame (sonde 0.9.21). La comparaison avant/après liste ce qui sépare les deux côtés : un mod coûteux ne se confond plus avec une scène plus chargée.

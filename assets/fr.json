@@ -1748,7 +1748,7 @@
   "perf_section_smoothness": "Fluidité",
   "perf_section_timeline": "Chronologie",
   "perf_section_costs": "Temps mesuré par mod",
-  "perf_section_analysis": "Analyse",
+  "perf_section_analysis": "Analyse et conclusion",
   "perf_change_added": "Ajouté",
   "perf_change_removed": "Retiré",
   "perf_change_version": "Mis à jour : %1$@ → %2$@",

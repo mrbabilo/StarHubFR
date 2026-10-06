@@ -1748,7 +1748,7 @@
   "perf_section_smoothness": "Smoothness",
   "perf_section_timeline": "Timeline",
   "perf_section_costs": "Measured time per mod",
-  "perf_section_analysis": "Analysis",
+  "perf_section_analysis": "Analysis and conclusion",
   "perf_change_added": "Added",
   "perf_change_removed": "Removed",
   "perf_change_version": "Updated: %1$@ → %2$@",

@@ -30,6 +30,12 @@ struct PerformanceView: View {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary)
                     }.id("summary")
+                    if comparing, let report = store.report {
+                        PerformanceCard {
+                            PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
+                                                       store: store, report: report)
+                        }.id("analysis")
+                    }
                     if store.status == .ready || store.status == .needTwo {
                         PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }.id("loads")
                     } else if viewModel.benchmark.interrupted != nil {
@@ -39,7 +45,6 @@ struct PerformanceView: View {
                         PerformanceCard {
                             PerformanceChangesSection(viewModel: viewModel, localization: localization,
                                                       report: report, configDiffs: store.configDiffs)
-                            PerformanceAnalysisSection(viewModel: viewModel, localization: localization, store: store, report: report)
                         }
                         PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }.id("game")
                         PerformanceCard { PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report) }
@@ -105,9 +110,12 @@ struct PerformanceView: View {
     }
 
     private func navigation(_ proxy: ScrollViewProxy) -> some View {
-        let anchors = [("summary", L10n.PerformanceEvidence.summary), ("loads", L10n.Performance.loadsTitle),
-                       ("game", L10n.Performance.inGameTitle), ("mods", L10n.PerformanceEvidence.history),
-                       ("details", L10n.PerformanceEvidence.details)]
+        let comparisonAnchors = [("analysis", L10n.Performance.sectionAnalysis),
+                                 ("game", L10n.Performance.inGameTitle)]
+        let anchors = [("summary", L10n.PerformanceEvidence.summary)]
+            + (comparing ? comparisonAnchors : [])
+            + [("loads", L10n.Performance.loadsTitle), ("mods", L10n.PerformanceEvidence.history),
+               ("details", L10n.PerformanceEvidence.details)]
         return ViewThatFits(in: .horizontal) {
             HStack {
                 ForEach(anchors, id: \.0) { id, key in
