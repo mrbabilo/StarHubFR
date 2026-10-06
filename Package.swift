@@ -170,6 +170,7 @@ let package = Package(
                 "Models/ContentPatcherPacks.swift",
                 "Models/ConfigMenuCoverage.swift",
                 "Models/SloOptimizerConfig.swift",
+                "Models/SloDiagnosticContract.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
@@ -953,6 +954,11 @@ let package = Package(
             name: "ModPresenceTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModPresenceTests"
+        ),
+        .testTarget(
+            name: "SloDiagnosticTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SloDiagnosticTests"
         ),
         .testTarget(
             name: "MissingDependenciesTests",
