@@ -160,6 +160,7 @@ let package = Package(
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
                 "Models/ContentPatcherPacks.swift",
+                "Models/ConfigMenuCoverage.swift",
                 "Models/SloOptimizerConfig.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
@@ -1258,6 +1259,11 @@ let package = Package(
             name: "ContentPatcherPacksTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ContentPatcherPacksTests"
+        ),
+        .testTarget(
+            name: "ConfigMenuCoverageTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigMenuCoverageTests"
         ),
         .testTarget(
             name: "BisectionCopyTests",
