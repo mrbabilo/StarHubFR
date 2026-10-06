@@ -159,6 +159,7 @@ let package = Package(
                 "Models/TranslationDiffCache.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
+                "Models/ContentPatcherPacks.swift",
                 "Models/SloOptimizerConfig.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
@@ -1252,6 +1253,11 @@ let package = Package(
             name: "SmapiLogParserTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SmapiLogParserTests"
+        ),
+        .testTarget(
+            name: "ContentPatcherPacksTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ContentPatcherPacksTests"
         ),
         .testTarget(
             name: "BisectionCopyTests",
