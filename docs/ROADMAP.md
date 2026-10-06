@@ -647,10 +647,13 @@ le journal réel le 2026-09-04.
       minute) avec un découpage juste. Détail et idées à refaire :
       [`audit-ultrasmooth-2.3.7.md`](audit-ultrasmooth-2.3.7.md). *(La note du
       matin qui concluait « le rendu coûte l'essentiel » est fausse — voir D1.)*
-- [ ] **D2-T3** — Vue « Performance » dans l'onglet Diagnostic (à côté de la carte « Impact », D5-C — D1-T3 est clos) :
-      état SLO résolu, dernières sessions de la sonde (**D4-T2**), couverture des menus de config
-      (`Registered config menu` de MCM), le tout corrélé aux patches Content Patcher
-      par mod. · **M**
+- [x] **D2-T3** — Carte « Environnement » dans l'onglet Performances (à côté de la carte « Impact ») :
+      état SLO résolu, couverture des menus de config (MCM + GMCM), poids des
+      packs Content Patcher, badge conflits CP. · **M**
+      ✅ *Livré le 2026-10-06* : `SessionEnvironmentStore` + `ContentPatcherPacks` +
+      `ConfigMenuCoverage` (Core, testés), `PerformanceEnvironmentSection`. Le volet
+      « dernières sessions de la sonde » de la case initiale n'est **pas** repris :
+      l'onglet les affiche déjà (D4-T4, écrit après la ligne ROADMAP).
 - [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
       ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth

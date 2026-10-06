@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Onglet Performances : carte « Environnement ».** Les réglages Stardew Loading Optimizer de la session (profil, optimisations configurées vs effectives), les mods avec menu de config détectés dans le journal, le poids des packs Content Patcher et leurs conflits — l'état statique qui explique les mesures.
 - **La scène du lieu dans chaque minute mesurée.** La sonde compte PNJ, meubles, objets posés, lumières… du lieu courant en écrivant sa ligne, sans patch de dessin qui fausserait le temps de trame (sonde 0.9.21). La comparaison avant/après liste ce qui sépare les deux côtés : un mod coûteux ne se confond plus avec une scène plus chargée.
 - **Les options de la sonde se règlent depuis l'app et depuis le jeu.** La fiche sonde gagne une section « Options de mesure » (toggles expliqués, écriture toujours valable, geste « réparer »), et le jeu gagne un menu de configuration si GMCM est installé — plus jamais de config.json édité à la main (sonde 0.9.20).
 - **Les textures résidentes par mod, opt-in.** La sonde suit la mémoire retenue dans les textures chargées du jeu — par loader/éditeur de mod, vanilla sinon — dans chaque minute (`MeasureTextures`, sonde 0.9.13) ; attribution partielle assumée, atlas et textures créées en code écartés.
