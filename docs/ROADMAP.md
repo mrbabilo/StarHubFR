@@ -654,6 +654,9 @@ le journal réel le 2026-09-04.
       `ConfigMenuCoverage` (Core, testés), `PerformanceEnvironmentSection`. Le volet
       « dernières sessions de la sonde » de la case initiale n'est **pas** repris :
       l'onglet les affiche déjà (D4-T4, écrit après la ligne ROADMAP).
+      Correctif du même jour : lecteur Newtonsoft commun à la place du parseur
+      `Character` qui cassait les commentaires sous CRLF (**57 faux illisibles →
+      0 sur 137 packs actifs**) ; refus futurs repliés et rangées adaptatives.
 - [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
       ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth
@@ -1859,12 +1862,13 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         cas, pas seulement le cas moyen.
         ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
         objet tant que P1 tient le critère.
-- [ ] **F8** — **`build_app.py` ne dit pas *quel* fichier de localisation est
+- [x] **F8** — **`build_app.py` ne dit pas *quel* fichier de localisation est
       invalide.** *(relevé le 2026-09-14, par sabotage.)* Une virgule retirée dans
       `assets/fr.json` **fait bien échouer le gate** — exit 1, et la dernière ligne donne
       « Expecting ',' delimiter: line 7 column 3 » — mais c'est une **pile Python nue**,
       et elle ne nomme pas le fichier : sur `en.json` et `fr.json`, il faut deviner lequel.
-      Envelopper les deux `json.load` pour que l'échec nomme le fichier.
+      **Corrigé le 2026-10-06** : l'échec nomme le chemin du JSON, la ligne et
+      la colonne, sans pile Python ; code de sortie 1 conservé.
       ⚠️ **À ne pas confondre avec le défaut qui l'a fait chercher** : chez Stardrop
       (`8205d0ea`), un `pl.json` malformé faisait **disparaître toute la traduction
       polonaise en silence**, faute de validation. Ici le gate attrape correctement — le

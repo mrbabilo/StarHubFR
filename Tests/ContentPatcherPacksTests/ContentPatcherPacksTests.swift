@@ -114,6 +114,49 @@ struct ContentPatcherPacksTests {
         #expect(result.patches == 2)
     }
 
+    @Test func crlfCommentDoesNotHideTheRestOfTheFile() {
+        // Swift regroupe `\r\n` en un seul Character. Un parseur par Character
+        // qui cherche seulement `\n` avale donc tout après le premier `//`.
+        let text = "{\r\n// section\r\n\"Changes\": [{\"Action\": \"Load\"}]\r\n}"
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text,
+                                               includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 1)
+    }
+
+    @Test func trailingCommaBeforeCommentAndClosingBracketIsTolerated() {
+        // Après retrait du commentaire, la virgule devient traînante. Les deux
+        // nettoyages doivent donc être des passes distinctes.
+        let text = """
+        {
+            "Changes": [
+                {"Action": "Load"},
+                // fin de section
+            ]
+        }
+        """
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text,
+                                               includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 1)
+    }
+
+    @Test func barePropertyNameAcceptedLikeNewtonsoft() {
+        let text = #"{Format: "2.0.0", Changes: [{Action: "Load"}]}"#
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text,
+                                               includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 1)
+    }
+
+    @Test func rawNewlineInsideStringAcceptedLikeNewtonsoft() {
+        let text = "{\"Changes\": [{\"Action\": \"EditData\", \"Text\": \"line one\nline two\"}]}"
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text,
+                                               includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 1)
+    }
+
     @Test func commentMarkersInsideStringsStay() {
         // Le nettoyage ne doit pas toucher une chaîne : une URL, un texte
         // avec `//`, `,}` ou `/*` reste entier.

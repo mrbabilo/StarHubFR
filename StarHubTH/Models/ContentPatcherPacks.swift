@@ -63,60 +63,12 @@ public enum ContentPatcherPacks {
         return total
     }
 
-    /// BOM UTF-8 toléré (certains packs Windows l'embarquent). CP parse le
-    /// content.json avec Newtonsoft : commentaires `//` et `/*…*/` (et
-    /// virgules traînantes) y sont légaux — 24 des 137 content.json du vrai
-    /// parc (2026-10-06) en portent, dont SVE et Ridgeside. `JSONSerialization`
-    /// est strict : nettoyage d'abord, en respectant les chaînes (une URL ou
-    /// un texte peut contenir `//`, `,}` ou `/*`).
+    /// CP parse avec Newtonsoft : commentaires, virgules traînantes, clés nues
+    /// et contrôles bruts sont légaux. Réutiliser le parseur commun évite une
+    /// seconde implémentation incomplète — notamment le piège Swift où `\r\n`
+    /// forme un seul `Character` et fait avaler la fin d'un fichier commenté.
     private static func jsonObject(_ text: String) -> [String: Any]? {
-        let cleaned = text.hasPrefix("\u{FEFF}") ? String(text.dropFirst()) : text
-        guard let data = lenient(cleaned).data(using: .utf8),
-              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
-        return obj
-    }
-
-    /// Retire les commentaires `//…` et `/*…*/` et les virgules traînantes
-    /// hors chaînes. Une seule passe, O(n).
-    private static func lenient(_ text: String) -> String {
-        var chars = Array(text)
-        var out: [Character] = []
-        out.reserveCapacity(chars.count)
-        var i = 0
-        while i < chars.count {
-            let c = chars[i]
-            if c == "\"" {                          // chaîne : copiée telle quelle
-                out.append(c); i += 1
-                while i < chars.count {
-                    out.append(chars[i])
-                    if chars[i] == "\\", i + 1 < chars.count {
-                        out.append(chars[i + 1]); i += 2; continue
-                    }
-                    let closed = chars[i] == "\""
-                    i += 1
-                    if closed { break }
-                }
-            } else if c == "/", i + 1 < chars.count, chars[i + 1] == "/" {
-                i += 2
-                while i < chars.count, chars[i] != "\n" { i += 1 }
-            } else if c == "/", i + 1 < chars.count, chars[i + 1] == "*" {
-                i += 2
-                while i + 1 < chars.count, !(chars[i] == "*" && chars[i + 1] == "/") { i += 1 }
-                i = min(i + 2, chars.count)
-            } else if c == "," {
-                var j = i + 1
-                while j < chars.count,
-                      chars[j] == " " || chars[j] == "\t" || chars[j] == "\n" || chars[j] == "\r" { j += 1 }
-                if j < chars.count, chars[j] == "}" || chars[j] == "]" {
-                    i += 1                          // virgule traînante : retirée
-                } else {
-                    out.append(c); i += 1
-                }
-            } else {
-                out.append(c); i += 1
-            }
-        }
-        return String(out)
+        I18nLenientParser.lenientObject(text)
     }
 
     /// `Include` est un tableau de chemins ; un stub de pack peut écrire une

@@ -120,13 +120,13 @@ struct PerformanceEnvironmentSection: View {
             Text(String(format: localization.L(L10n.Performance.envMenusCount), Int64(menus.count)))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             ForEach(menus) { menu in
-                HStack(spacing: AppDesign.Spacing.xs) {
+                SplitRow(spacing: AppDesign.Spacing.xs) {
                     Text(menu.name).font(AppDesign.Font.body)
                     if let id = menu.modId {
                         Text("(\(id))").font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary).lineLimit(1).truncationMode(.middle)
                     }
-                    Spacer(minLength: AppDesign.Spacing.xs)
+                } trailing: {
                     flavorTag(menu.flavor)
                 }
             }
@@ -171,17 +171,22 @@ struct PerformanceEnvironmentSection: View {
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 }
                 if !report.unreadablePacks.isEmpty {
-                    Text(String(format: localization.L(L10n.Performance.envPacksIllisible),
-                                report.unreadablePacks.joined(separator: ", ")))
-                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    DisclosureGroup(String(format:
+                        localization.L(L10n.Performance.envPacksIllisible),
+                        Int64(report.unreadablePacks.count))) {
+                        ForEach(report.unreadablePacks.sorted(), id: \.self) { name in
+                            Text(name).font(AppDesign.Font.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(AppDesign.Font.footnote)
                 }
             }
         }
     }
 
     private func packRow(_ group: ContentPatcherPacks.Group, conflicted: Bool) -> some View {
-        HStack(spacing: AppDesign.Spacing.xs) {
+        SplitRow(spacing: AppDesign.Spacing.xs) {
             Text(group.rootName).font(AppDesign.Font.body).lineLimit(1)
                 .truncationMode(.middle)
             // Détail par pack quand la racine en porte plusieurs (SVE = [CP]+[FTM]).
@@ -191,7 +196,7 @@ struct PerformanceEnvironmentSection: View {
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     .lineLimit(1).truncationMode(.middle)
             }
-            Spacer(minLength: AppDesign.Spacing.xs)
+        } trailing: {
             Text("\(group.totalPatches)")
                 .font(AppDesign.Font.body.monospacedDigit()).foregroundColor(.secondary)
             if conflicted {

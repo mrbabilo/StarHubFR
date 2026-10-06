@@ -20,6 +20,10 @@ where the exact log format was verified.
 - **Les textures résidentes par mod, opt-in.** La sonde suit la mémoire retenue dans les textures chargées du jeu — par loader/éditeur de mod, vanilla sinon — dans chaque minute (`MeasureTextures`, sonde 0.9.13) ; attribution partielle assumée, atlas et textures créées en code écartés.
 - **La mémoire du processus dans chaque minute mesurée.** La sonde relève la RAM physique, son pic depuis le lancement et la mémoire réservée par .NET à côté du tas : textures, MonoGame et bibliothèques natives entrent enfin dans la courbe de « Fluidité » et le tableau avant/après (sonde 0.9.12).
 
+### Fixed
+
+- **La carte « Environnement » lit les vrais fichiers Content Patcher.** Les commentaires sous fins de ligne Windows, clés non citées et retours bruts acceptés par SMAPI ne font plus déclarer des dizaines de packs illisibles ; les rares refus restants vivent dans une liste repliable.
+
 ## [1.58.0] - 2026-10-05
 
 ### Added

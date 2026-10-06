@@ -32,8 +32,13 @@ def generate_localizable_strings() -> None:
     locale_data: dict[str, dict[str, str]] = {}
     for locale in SUPPORTED_LOCALES:
         json_path = os.path.join("assets", f"{locale}.json")
-        with open(json_path, "r", encoding="utf-8") as file:
-            locale_data[locale] = json.load(file)
+        try:
+            with open(json_path, "r", encoding="utf-8") as file:
+                locale_data[locale] = json.load(file)
+        except json.JSONDecodeError as error:
+            print(f"[ERROR] {json_path}: {error.msg} "
+                  f"(line {error.lineno}, column {error.colno})", file=sys.stderr)
+            raise SystemExit(1) from None
 
     key_sets: dict[str, set[str]] = {locale: set(values.keys()) for locale, values in locale_data.items()}
     reference_locale = "en"
