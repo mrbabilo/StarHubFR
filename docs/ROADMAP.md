@@ -562,12 +562,15 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T1, D4-T3, D4-T4, D4-T5, D5-A et D5-B livrés et validés ; restent D2, D4-T6b (optionnel), D4-T9 (livré le 2026-10-06, à valider en jeu) et D5-C
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T1, D4-T3, D4-T4, D4-T5, D5-A, D5-B et D5-C livrés ; restent D2, D4-T6b (optionnel), D4-T9 (livré le 2026-10-06, à valider en jeu) et la recette accessibilité/cycle de jeu de la refonte
 
-**Refonte de la page et de l'analyse (2026-10-06)** — résumé de dernière session,
-comparaison par métrique et par lieu à poids égaux, inconnus explicites, qualité
-de mesure distincte de son résultat, répétitions indépendantes, tendance mémoire
-par période continue, graphiques et historique avec unités et provenance.
+**Refonte de la page et de l'analyse — livrée et parcours principal validé le
+2026-10-06** — résumé de dernière session, comparaison par métrique et par lieu
+à poids égaux, inconnus explicites, qualité de mesure distincte de son résultat,
+répétitions indépendantes, tendance mémoire par période continue, graphiques et
+historique avec unités et provenance. En comparaison, la carte « Analyse et
+conclusion » suit directement le résumé ; la légende des graphiques conserve sa
+hauteur au survol.
 Le seuil de 5 % et les quartiles sont des heuristiques de lecture, pas une
 preuve statistique ni une attribution causale à un mod. Les recommandations
 conservent confirmations, sauvegardes et garde jeu actif.
@@ -578,14 +581,18 @@ conservent confirmations, sauvegardes et garde jeu actif.
 300/3 000 minutes par côté : environ 0,98/3,29 s après optimisation des dates
 (contre 3,28/23,76 s avant). Calcul de comparaison hors du fil principal ;
 ces durées ne sont pas un benchmark du jeu. Revue indépendante corrigée et
-protégée par tests de régression.
+protégée par tests de régression. Livraison sur `main` : `de3a9c2b`, puis
+corrections UI `357a10ae` et `ae61c80b`.
 
-- [ ] **Recette humaine de cette refonte** : volet 560 pt et noms longs en FR/EN ;
-      une seule session et deuxième mesure ; changement rapide de paire et de
+- [x] **Recette humaine — parcours principal** *(validée le 2026-10-06)* : mode
+      Comparer, analyse immédiatement visible sous le résumé, navigation à
+      560 pt, légende stable au survol, cas concluant et données insuffisantes.
+- [ ] **Recette humaine — accessibilité et cycle de jeu** : noms longs en FR/EN ;
+      une seule session puis deuxième mesure ; changement rapide de paire et de
       métrique ; clavier/VoiceOver ; Réduire les animations ; retour du jeu
-      pendant une mesure ; journal ancien face à un disque modifié.
-      Aucun lancement de l'app ni capture par l'agent. Cette recette reste
-      distincte des validations en jeu D4/D5 encore ouvertes ci-dessous.
+      pendant une mesure ; journal ancien face à un disque modifié. Aucun
+      lancement de l'app ni capture par l'agent. Cette recette reste distincte
+      des validations en jeu D4/D5 encore ouvertes ci-dessous.
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
 
