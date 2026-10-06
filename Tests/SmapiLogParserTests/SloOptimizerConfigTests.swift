@@ -59,4 +59,15 @@ struct SloOptimizerConfigTests {
         #expect(SloOptimizerConfig.bool("false") == false)
         #expect(SloOptimizerConfig.int("3") == 3)
     }
+
+    @Test func malformedBooleanIsUnknownAndLatestConfigWins() {
+        #expect(SloOptimizerConfig.bool("yes") == nil)
+        #expect(SloOptimizerConfig.bool("1") == nil)
+        let log = """
+        [OPTIMIZER CONFIG] profile=1, detailedDiagnostics=False.
+        [OPTIMIZER CONFIG MIGRATION] profile=2, reason=upgrade.
+        [OPTIMIZER CONFIG] profile=3, detailedDiagnostics=True.
+        """
+        #expect(SloOptimizerConfig.parseLatest(log: log)?.profile == 3)
+    }
 }

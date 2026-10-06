@@ -10,10 +10,10 @@ import Foundation
 /// Tolérant par construction : clés inconnues vont dans `raw`, clés connues
 /// absentes restent `nil`, et une ligne qui a changé de forme rend `nil` —
 /// jamais une valeur inventée.
-public struct SloOptimizerConfig: Equatable, Sendable {
+public struct SloOptimizerConfig: Codable, Equatable, Sendable {
     /// Le triplet d'une optimisation : ce qui était demandé, ce que la
     /// session applique vraiment, et pourquoi ça diffère.
-    public struct Optimization: Equatable, Sendable {
+    public struct Optimization: Codable, Equatable, Sendable {
         public let configured: Bool?
         public let effective: Bool?
         public let reason: String?
@@ -37,6 +37,15 @@ public struct SloOptimizerConfig: Equatable, Sendable {
     /// plus rien ne se découpe en paires (forme changée).
     public static func parse(log: String) -> SloOptimizerConfig? {
         for line in log.split(whereSeparator: \.isNewline) {
+            if let config = parse(line: String(line)) { return config }
+        }
+        return nil
+    }
+
+    /// Dernière configuration effective de la tranche. Un lancement peut
+    /// journaliser une valeur avant migration puis sa valeur finale.
+    public static func parseLatest(log: String) -> SloOptimizerConfig? {
+        for line in log.split(whereSeparator: \.isNewline).reversed() {
             if let config = parse(line: String(line)) { return config }
         }
         return nil
@@ -95,7 +104,11 @@ public struct SloOptimizerConfig: Equatable, Sendable {
     }
 
     static func bool(_ text: String?) -> Bool? {
-        text.map { $0.lowercased() == "true" }
+        switch text?.lowercased() {
+        case "true": true
+        case "false": false
+        default: nil
+        }
     }
 
     static func int(_ text: String?) -> Int? {

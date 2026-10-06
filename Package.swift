@@ -172,6 +172,8 @@ let package = Package(
                 "Models/SloOptimizerConfig.swift",
                 "Models/SloDiagnosticContract.swift",
                 "Models/SloDiagnosticTransaction.swift",
+                "Models/SloDiagnosticLog.swift",
+                "Models/SloDiagnosticReport.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
