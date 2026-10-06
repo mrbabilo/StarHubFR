@@ -78,7 +78,8 @@ struct ProbePerformanceTests {
         let measured = try #require(all.first {
             !ProbeCosts.perMod($0.comparable.kept, costs: $0.costs).isEmpty })
         let report = ProbePerformance.report(before: empty, after: measured)
-        #expect(report.keptBefore.isEmpty && !report.keptAfter.isEmpty)
+        #expect(report.keptBefore.isEmpty && report.keptAfter.isEmpty)
+        #expect(report.scope.issues.contains(.noSharedLocation))
         #expect(report.costDeltas.isEmpty)
     }
 

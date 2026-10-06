@@ -10,25 +10,26 @@ struct PerformanceSceneNote: View {
     let after: [ProbeMinute]
 
     var body: some View {
-        if ProbeScene.hasData(before) || ProbeScene.hasData(after) {
-            let differences = ProbeScene.differences(before: before, after: after)
-            let body = differences.isEmpty
-                ? localization.L(L10n.Performance.sceneComparable)
-                : differences.compactMap(sceneText).joined(separator: ", ")
-            Text("\(localization.L(L10n.Performance.sceneLabel)) — \(body)")
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        let assessment = ProbeScene.assess(before: before, after: after)
+        let text: String = {
+            switch assessment {
+            case .unknown: return localization.L(L10n.PerformanceEvidence.sceneUnknown)
+            case .similar: return localization.L(L10n.Performance.sceneComparable)
+            case .different(let differences): return differences.compactMap(sceneText).joined(separator: ", ")
+            }
+        }()
+        Text(text).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// « meubles 312 → 424 (+36 %) » ; une clé sans libellé (sonde future) est
     /// sautée plutôt qu'affichée brute.
     private func sceneText(_ difference: ProbeScene.Difference) -> String? {
         guard let name = PerformanceFormatting.sceneName(difference.key, localization) else { return nil }
-        let sign = difference.percent >= 0 ? "+" : "−"
+        let sign = (difference.percent ?? 0) >= 0 ? "+" : "−"
         let before = PerformanceFormatting.number(difference.medianBefore, fraction: 0)
         let after = PerformanceFormatting.number(difference.medianAfter, fraction: 0)
-        let percent = PerformanceFormatting.number(abs(difference.percent), fraction: 0)
-        return "\(name) \(before) → \(after) (\(sign)\(percent) %)"
+        let percent = PerformanceFormatting.number(abs(difference.percent ?? 0), fraction: 0)
+        return "\(name) \(before) → \(after)" + (difference.percent == nil ? "" : " (\(sign)\(percent) %)")
     }
 }

@@ -109,7 +109,7 @@ public enum ProbeLoadComparison {
     public static func exclusions(_ records: [ProbeLoadRecord], kind: ProbeLoadRecord.Kind,
                                   launches: [ProbeInventoryLaunch], changes: [ProbeInventoryChange],
                                   coldBefore: Date?) -> [ProbeLoadExclusion: Int] {
-        guard let reference = records.filter({ $0.kind == kind && $0.complete })
+        guard let reference = records.filter({ $0.kind == kind && validTotal($0) })
             .max(by: { ($0.at ?? .distantPast) < ($1.at ?? .distantPast) })
         else { return [:] }
         var counts: [ProbeLoadExclusion: Int] = [:]
@@ -129,7 +129,7 @@ public enum ProbeLoadComparison {
     public static func compare(_ records: [ProbeLoadRecord], kind: ProbeLoadRecord.Kind,
                                launches: [ProbeInventoryLaunch], changes: [ProbeInventoryChange],
                                coldBefore: Date?) -> ProbeLoadComparisonResult? {
-        guard let reference = records.filter({ $0.kind == kind && $0.complete })
+        guard let reference = records.filter({ $0.kind == kind && validTotal($0) })
             .max(by: { ($0.at ?? .distantPast) < ($1.at ?? .distantPast) })
         else { return nil }
         var exclusions: [ProbeLoadExclusion: Int] = [:]
@@ -177,8 +177,10 @@ public enum ProbeLoadComparison {
     /// au-delà du seuil ; « pas de différence » sous le bruit observé ; zone
     /// grise sinon.
     public static func verdict(before: [Double], after: [Double]) -> ProbeLoadVerdict {
+        let before = before.filter { $0.isFinite && $0 > 0 }
+        let after = after.filter { $0.isFinite && $0 > 0 }
         guard let beforeMs = median(before), let afterMs = median(after), beforeMs > 0 else {
-            return .noDifference
+            return .grayZone(beforeCount: before.count, afterCount: after.count)
         }
         let gray = ProbeLoadVerdict.grayZone(beforeCount: before.count, afterCount: after.count)
         guard before.count >= 2, after.count >= 2,
@@ -193,13 +195,19 @@ public enum ProbeLoadComparison {
         return gray
     }
 
+    static func validTotal(_ record: ProbeLoadRecord) -> Bool {
+        let endpoint = record.kind == .launch ? "L4" : "S9"
+        guard record.complete, let total = record.milestones.last(where: { $0.name == endpoint })?.ms else { return false }
+        return total.isFinite && total > 0
+    }
+
     // MARK: — Privé
 
     /// Le premier motif qui s'applique, ou nil si le candidat est comparable.
     private static func reason(record: ProbeLoadRecord, reference: ProbeLoadRecord, kind: ProbeLoadRecord.Kind,
                                records: [ProbeLoadRecord], launches: [ProbeInventoryLaunch],
                                changes: [ProbeInventoryChange], coldBefore: Date?) -> ProbeLoadExclusion? {
-        if !record.complete { return .incomplete }
+        if !validTotal(record) { return .incomplete }
         if isCold(record, among: records, coldBefore: coldBefore) { return .coldDisk }
         if record.probeVersion != reference.probeVersion { return .olderProbe }
         if kind == .save {
@@ -251,7 +259,7 @@ public enum ProbeLoadComparison {
             return out
         }
         let beforeSums = sums(before), afterSums = sums(after)
-        return Set(beforeSums.keys).union(afterSums.keys)
+        return Set(beforeSums.keys).intersection(afterSums.keys)
             .map { mod in ProbeLoadModDelta(mod: mod,
                                             deltaMs: (median(afterSums[mod] ?? []) ?? 0) - (median(beforeSums[mod] ?? []) ?? 0)) }
             .sorted { abs($0.deltaMs) > abs($1.deltaMs) }

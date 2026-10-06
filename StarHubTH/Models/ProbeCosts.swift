@@ -1,5 +1,17 @@
 import Foundation
 
+/// Une valeur absente n'indique jamais que le mod était absent du parc.
+public struct ProbeMeasuredCost: Identifiable, Equatable, Sendable {
+    public var id: String { modId }
+    public let modId: String
+    public let before: Double?
+    public let after: Double?
+    public var delta: Double? {
+        guard let before, let after else { return nil }
+        return after - before
+    }
+}
+
 /// L'écart de coût propre d'un mod entre avant (A) et après (B).
 public struct ProbeCostDelta: Equatable, Sendable {
     public enum Presence: Equatable, Sendable { case both, added, removed }
@@ -43,6 +55,22 @@ public struct ProbeSegmentCosts: Equatable, Sendable {
 }
 
 public enum ProbeCosts {
+    public static func measuredRows(_ a: [String: Double], _ b: [String: Double]) -> [ProbeMeasuredCost] {
+        func index(_ values: [String: Double]) -> [String: (id: String, value: Double)] {
+            Dictionary(values.filter { $0.value.isFinite && $0.value >= 0 }.map {
+                ($0.key.lowercased(), (id: $0.key, value: $0.value))
+            }, uniquingKeysWith: { first, _ in first })
+        }
+        let a = index(a), b = index(b)
+        return Set(a.keys).union(b.keys).map { key in
+            ProbeMeasuredCost(modId: b[key]?.id ?? a[key]?.id ?? key, before: a[key]?.value, after: b[key]?.value)
+        }.sorted {
+            if ($0.delta != nil) != ($1.delta != nil) { return $0.delta != nil }
+            let x = $0.delta.map(abs) ?? max($0.before ?? 0, $0.after ?? 0)
+            let y = $1.delta.map(abs) ?? max($1.before ?? 0, $1.after ?? 0)
+            return x != y ? x > y : $0.modId < $1.modId
+        }
+    }
     /// ms de temps propre par seconde de jeu, par mod, sur les minutes
     /// gardées : `somme(SelfMs) / somme(WallSeconds)`, robuste aux minutes
     /// inégales. Seules les minutes appariées à une ligne de coûts (|ΔAt|

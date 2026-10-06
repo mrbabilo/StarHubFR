@@ -7,6 +7,7 @@ struct PerformanceImpactSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var showAll = false
+    @State private var axis: ModImpactAxis = .fps
 
     private var store: ModImpactStore { viewModel.modImpactStore }
     private var language: String { localization.currentLanguage }
@@ -42,70 +43,71 @@ struct PerformanceImpactSection: View {
         await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir)
     }
 
-    @ViewBuilder
     private var list: some View {
-        let ranked = store.ranking
+        let ranked = store.performanceRows[axis] ?? []
         let shown = showAll ? ranked : Array(ranked.prefix(10))
-        if ranked.isEmpty {
-            StateCard(icon: "hourglass", text: localization.L(L10n.Performance.impactEmptyMod), actionTitle: nil) {}
-        } else {
-            // « Tout montrer » pose ~900 lignes : virtualisées, la
-            // construction suit le défilement au lieu de tout dresser d'un
-            // coup (le beach-ball des 2 000 lignes de journal).
-            LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                ForEach(shown) { entry in row(entry) }
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            Text(localization.L(L10n.PerformanceEvidence.historyNote)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            Picker(localization.L(L10n.PerformanceEvidence.history), selection: $axis) {
+                ForEach(ModImpactAxis.allCases, id: \.self) { Text(axisName($0)).tag($0) }
+            }.pickerStyle(.menu)
+            LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                ForEach(shown) { row in
+                    VStack(alignment: .leading, spacing: 3) {
+                        SplitRow {
+                            Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id) }
+                                .buttonStyle(.hoverLink).help(row.name)
+                        } trailing: { Text(valueText(row.value)).monospacedDigit() }
+                        if let value = row.value {
+                            ProgressView(value: value, total: max(ranked.first?.value ?? 1, 1))
+                                .tint(AppDesign.Chart.before).accessibilityLabel(axisName(axis))
+                                .accessibilityValue(valueText(value))
+                        }
+                        Text(String(format: localization.L(L10n.PerformanceEvidence.historyCoverage),
+                                    row.version ?? "—", row.sourceCount,
+                                    row.lastMeasured?.formatted(date: .abbreviated, time: .shortened) ?? "—"))
+                            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        if !row.currentVersionMeasured && row.value != nil {
+                            Text(localization.L(L10n.PerformanceEvidence.historical)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
             if ranked.count > 10 {
                 Button(showAll ? localization.L(L10n.Performance.impactShowLess)
-                               : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) {
-                    showAll.toggle()
-                }
-                .buttonStyle(.hoverLink)
+                               : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) { showAll.toggle() }
+                    .buttonStyle(.hoverLink)
             }
+            footer
         }
-        footer
     }
 
-    private func row(_ entry: ModImpactEntry) -> some View {
-        let stats = entry.shown
-        return HStack(alignment: .center, spacing: AppDesign.Spacing.sm) {
-            ModImpactRadar(shares: stats?.shares ?? [:], size: 24, showsLabels: false,
-                           label: { $0.rawValue }, detail: { $0.rawValue })
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                // Le dossier du mod lui-même, composant de pack compris :
-                // `ModFocusResolver` le retrouve (H-T6c), et c'est sa fiche —
-                // pas celle du pack, sans UniqueID — qui porte l'impact.
-                Button(entry.name) { viewModel.navigationStore.openModDetail(folderName: entry.id) }
-                    .buttonStyle(.hoverLink)
-                .lineLimit(2).multilineTextAlignment(.leading)
-                if entry.current == nil, let stats {
-                    Text(String(format: localization.L(L10n.Performance.impactLastKnown),
-                                ModImpactFormat.version(stats.version, localization: localization)))
-                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: AppDesign.Spacing.sm)
-            if let delta = entry.evolution {
-                let icon = ModImpactFormat.evolutionIcon(delta)
-                let text = ModImpactFormat.evolutionText(delta, previous: entry.previousVersion?.version,
-                                                         localization: localization)
-                Image(systemName: icon.name)
-                    .foregroundStyle(icon.color)
-                    .frame(width: 18, height: 18).contentShape(.rect)
-                    .help(text)
-                    .accessibilityLabel(text)
-            }
-            ModImpactBadge(localization: localization, impactClass: stats?.impactClass, score: stats?.score,
-                           dimmed: entry.current == nil)
+    private func axisName(_ axis: ModImpactAxis) -> String {
+        let key: String
+        switch axis {
+        case .fps: key = L10n.PerformanceEvidence.axisFps
+        case .spikes: key = L10n.PerformanceEvidence.axisSpikes
+        case .launch: key = L10n.PerformanceEvidence.axisLaunch
+        case .save: key = L10n.PerformanceEvidence.axisSave
+        case .alloc: key = L10n.PerformanceEvidence.axisAlloc
         }
+        return localization.L(key)
+    }
+
+    private func valueText(_ value: Double?) -> String {
+        guard let value else { return localization.L(L10n.PerformanceEvidence.unavailable) }
+        let unit: String
+        switch axis {
+        case .fps: unit = "ms"
+        case .launch, .save: unit = "s"
+        case .spikes: unit = "%"
+        case .alloc: unit = localization.L(L10n.Performance.unitMB) + "/min"
+        }
+        return "\(PerformanceFormatting.number(axis == .launch || axis == .save ? value / 1000 : value, fraction: 2)) \(unit)"
     }
 
     private var footer: some View {
-        let negligible = store.entries.filter { $0.isEnabled && $0.isNegligible }.count
-        let unmeasured = store.entries.filter { $0.isEnabled && $0.shown == nil && !$0.isNegligible }.count
         return VStack(alignment: .leading, spacing: 2) {
-            Text(String(format: localization.L(L10n.Performance.impactCardFooter), negligible, unmeasured))
             if let probe = store.probeMsPerFrame {
                 Text(String(format: localization.L(L10n.Performance.impactProbeCost),
                             ModImpactFormat.number(probe, digits: 2, language: language)))

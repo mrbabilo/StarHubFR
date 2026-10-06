@@ -46,6 +46,12 @@ struct PerformanceEnvironmentSection: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             sloSection(report.slo)
             menusSection(report.menus)
+            if let date = report.diskReadAt {
+                Text(String(format: localization.L(L10n.PerformanceEvidence.diskDate), date.formatted(date: .abbreviated, time: .shortened)))
+                    .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            }
+            Text(localization.L(L10n.PerformanceEvidence.diskSource)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            Text(localization.L(L10n.PerformanceEvidence.cpNote)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
             packsSection(report)
         }
     }

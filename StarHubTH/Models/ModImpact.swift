@@ -8,6 +8,8 @@ public enum ModImpactClass: String, Sendable { case low, medium, high }
 /// La statistique d'une version d'un mod : médiane par axe sur ses sources.
 public struct ModImpactVersionStats: Equatable, Sendable {
     public let version: String?
+    public var measuredSources: [ModImpactAxis: Int] = [:]
+    public var measuredLast: [ModImpactAxis: Date] = [:]
     /// Médianes des parts ; une clé absente = axe non mesuré (≠ 0).
     public let shares: [ModImpactAxis: Double]
     public let ranges: [ModImpactAxis: ClosedRange<Double>]
@@ -134,7 +136,7 @@ public enum ModImpact {
                 shares[axis] = m
                 ranges[axis] = lo...hi
             }
-            return ModImpactVersionStats(
+            var stats = ModImpactVersionStats(
                 version: version, shares: shares, ranges: ranges,
                 sourceCount: Set(list.map(\.sourceId)).count, inGameSources: inGame.count,
                 launchSources: launches.count, saveSources: saves.count,
@@ -144,6 +146,16 @@ public enum ModImpact {
                 frameWorkShare: median(inGame.compactMap(\.frameWorkShare)),
                 launchMs: median(launches.compactMap(\.ms)), saveMs: median(saves.compactMap(\.ms)),
                 allocMBPerMinute: median(inGame.compactMap(\.allocMBPerMinute)))
+            let measured: [ModImpactAxis: [ModImpactSample]] = [
+                .fps: inGame.filter { $0.msPerFrame.map { $0.isFinite && $0 >= 0 } == true },
+                .spikes: inGame.filter { $0.spikeShare.map { $0.isFinite && $0 >= 0 } == true },
+                .alloc: inGame.filter { $0.allocMBPerMinute.map { $0.isFinite && $0 >= 0 } == true },
+                .launch: launches.filter { $0.ms.map { $0.isFinite && $0 >= 0 } == true },
+                .save: saves.filter { $0.ms.map { $0.isFinite && $0 >= 0 } == true }
+            ]
+            stats.measuredSources = measured.mapValues { Set($0.map(\.sourceId)).count }
+            stats.measuredLast = measured.compactMapValues { $0.map(\.date).max() }
+            return stats
         }
         .sorted { $0.last > $1.last }
     }

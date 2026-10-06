@@ -45,8 +45,10 @@ struct PerformanceAnalysisSection: View {
                             in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
                 .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.md)
                     .stroke(AppDesign.Color.accent.opacity(AppDesign.Opacity.medium), lineWidth: 1))
-            ForEach(Array(analysis.evidence.enumerated()), id: \.offset) { _, evidence in
-                Text("· " + line(evidence)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            DisclosureGroup(localization.L(L10n.PerformanceEvidence.details)) {
+                ForEach(Array(analysis.evidence.enumerated()), id: \.offset) { _, evidence in
+                    Text("· " + line(evidence)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                }
             }
             Text(localization.L(L10n.Performance.contextual))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
@@ -69,46 +71,8 @@ struct PerformanceAnalysisSection: View {
     // MARK: Textes
 
     private var conclusion: String {
-        let percent: (Double) -> String = { $0.formatted(.number.precision(.fractionLength(1))) }
-        // Le changement unique est nommé, avec son sens (« plus rapide sans X ») :
-        // un novice doit savoir qui agit et dans quel sens.
-        if let change = onlyChange, let phrase = changePhrase(change) {
-            switch analysis.direction {
-            case .faster(let p):
-                return String(format: localization.L(L10n.Performance.conclusionFasterNamed), phrase, percent(p))
-            case .slower(let p):
-                return String(format: localization.L(L10n.Performance.conclusionSlowerNamed), phrase, percent(p))
-            case .noDifference:
-                return String(format: localization.L(L10n.Performance.conclusionNoneNamed), phrase)
-            case .inconclusive: break
-            }
-        }
-        switch analysis.direction {
-        case .slower(let p): return String(format: localization.L(L10n.Performance.conclusionSlower), percent(p))
-        case .faster(let p): return String(format: localization.L(L10n.Performance.conclusionFaster), percent(p))
-        case .noDifference: return localization.L(L10n.Performance.conclusionNone)
-        case .inconclusive: return localization.L(L10n.Performance.conclusionInconclusive)
-        }
-    }
-
-    /// Le seul changement entre les deux moments, s'il est unique.
-    private var onlyChange: ProbeModChange? {
-        guard let changes = report.diff?.changes, changes.count == 1 else { return nil }
-        return changes.first
-    }
-
-    /// « sans UltraSmooth », « avec le réglage actuel de X »… : le nom, puis
-    /// la direction de la phrase, première lettre en capitale.
-    private func changePhrase(_ change: ProbeModChange) -> String? {
-        let key: String
-        switch change.kind {
-        case .added: key = L10n.Performance.phraseAdded
-        case .removed: key = L10n.Performance.phraseRemoved
-        case .versionChanged: key = L10n.Performance.phraseVersion
-        case .configChanged: key = L10n.Performance.phraseConfig
-        }
-        let formatted = String(format: localization.L(key), name(change.modId))
-        return formatted.prefix(1).uppercased() + formatted.dropFirst()
+        report.metrics[.frameP50].map { PerformanceMetricText.outcome($0.outcome, localization) }
+            ?? localization.L(L10n.PerformanceEvidence.unavailable)
     }
 
     /// Le nom court d'un côté : le nom de la mesure guidée, sinon la date.
@@ -190,6 +154,15 @@ struct PerformanceAnalysisSection: View {
 
     @ViewBuilder
     private var recommendation: some View {
+        if report.scope.incompatible {
+            ForEach(report.scope.issues, id: \.rawValue) { issue in
+                Text(PerformanceMetricText.issue(issue, localization)).font(AppDesign.Font.body(.medium))
+            }
+        } else { recommendationAction }
+    }
+
+    @ViewBuilder
+    private var recommendationAction: some View {
         let mods = viewModel.scanStore.mods
         switch analysis.recommendation {
         case .disableMod(let modId):
@@ -221,16 +194,14 @@ struct PerformanceAnalysisSection: View {
                 isolateRow(change, mods: mods)
             }
         case .rerunCleanMeasurement(let location, let missing):
-            // Paire guidée : ne plus chiffrer les minutes manquantes, la mesure
-            // guidée s'arrête d'elle-même.
-            let guided = report.before.measurement != nil || report.after.measurement != nil
-            let where_ = location.map { "\($0) : " } ?? ""
-            // La raison du « refaire » : part indirecte dominante, ou paire guidée.
-            let indirectDominant = analysis.evidence.contains { if case .indirectShare = $0 { return true } else { return false } }
-            action(localization.L(L10n.Performance.recRerun),
-                   detail: indirectDominant ? localization.L(L10n.Performance.recRerunIndirect)
-                       : guided ? localization.L(L10n.Performance.recRerunGuided)
-                       : String(format: localization.L(L10n.Performance.recRerunDetail), where_, missing),
+            let detail: String = {
+                if missing > 0 { return String(format: localization.L(L10n.PerformanceEvidence.missingMinutes), missing) }
+                if let reason = report.quality[.frameP50]?.reasons.first {
+                    return PerformanceMetricText.reason(reason, localization)
+                }
+                return localization.L(L10n.PerformanceEvidence.repeatAdvice)
+            }()
+            action(localization.L(L10n.Performance.recRerun), detail: detail,
                    button: L10n.Performance.actionPrepareMeasure,
                    gesture: .prepare(GuidedPlanDraft(name: localization.L(L10n.Performance.recRerun),
                                                      role: .before,
@@ -246,7 +217,10 @@ struct PerformanceAnalysisSection: View {
                 Text(title).font(AppDesign.Font.body(.medium))
             } trailing: {
                 if let gesture {
-                    Button(localization.L(button)) { pending = gesture }.clickableCursor()
+                    AdaptiveLabels {
+                        Button { pending = gesture } label: { Label(localization.L(button), systemImage: "arrow.right.circle") }
+                            .help(localization.L(button)).clickableCursor()
+                    }
                 }
             }
             if let detail {

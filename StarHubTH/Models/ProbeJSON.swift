@@ -49,18 +49,48 @@ enum ProbeJSON {
 /// erreur (mesuré sur macOS 26.7) : les décimales sont ramenées à 3 avant
 /// lecture.
 public enum ProbeDate {
+    private static let cache = DateCache()
+
     public static func parse(_ text: String) -> Date? {
-        var normalized = text
-        if let dot = text.firstIndex(of: "."),
-           let zone = text[dot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" }) {
-            let digits = text[text.index(after: dot)..<zone]
-            let millis = String(digits.prefix(3)).padding(toLength: 3, withPad: "0", startingAt: 0)
-            normalized = String(text[..<dot]) + "." + millis + String(text[zone...])
+        cache.parse(text)
+    }
+
+    /// A report reads the same timestamps for seven metrics and their charts.
+    /// Bound retained strings; serialize both formatters and memoized values
+    /// because background reports and file scans can parse concurrently.
+    private final class DateCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private let whole = ISO8601DateFormatter()
+        private let fractional = ISO8601DateFormatter()
+        private var dates: [String: Date] = [:]
+
+        init() {
+            whole.formatOptions = [.withInternetDateTime]
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = normalized.contains(".")
-            ? [.withInternetDateTime, .withFractionalSeconds]
-            : [.withInternetDateTime]
-        return formatter.date(from: normalized)
+
+        func parse(_ text: String) -> Date? {
+            lock.lock()
+            defer { lock.unlock() }
+            if let date = dates[text] { return date }
+            let date = parseUncached(text)
+            if let date {
+                if dates.count >= 16_384 { dates.removeAll(keepingCapacity: true) }
+                dates[text] = date
+            }
+            return date
+        }
+
+        private func parseUncached(_ text: String) -> Date? {
+            var normalized = text
+            if let dot = text.firstIndex(of: "."),
+               let zone = text[dot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" }) {
+                let digits = text[text.index(after: dot)..<zone]
+                let millis = String(digits.prefix(3)).padding(toLength: 3, withPad: "0", startingAt: 0)
+                normalized = String(text[..<dot]) + "." + millis + String(text[zone...])
+            }
+            let formatter = normalized.contains(".") ? fractional : whole
+            return formatter.date(from: normalized)
+        }
     }
 }

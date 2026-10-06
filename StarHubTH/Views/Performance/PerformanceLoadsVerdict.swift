@@ -17,7 +17,7 @@ struct PerformanceLoadsVerdict: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
             Text(localization.L(titleKey)).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: AppDesign.Spacing.xs) {
-                Text(PerformanceLoadsSection.duration(breakdown.record.totalMs))
+                Text(ProbeLoadComparison.validTotal(breakdown.record) ? PerformanceLoadsSection.duration(breakdown.record.totalMs) : "—")
                     .font(AppDesign.Font.rowTitle(.semibold)).monospacedDigit()
                 if breakdown.record.reload { badge(L10n.Performance.loadsReload) }
                 if isCold { badge(L10n.Performance.loadsColdDisk) }
@@ -30,6 +30,9 @@ struct PerformanceLoadsVerdict: View {
                                 date.formatted(date: .abbreviated, time: .shortened)))
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 }
+                Text(String(format: localization.L(L10n.PerformanceEvidence.loadSources),
+                            comparison.before.count, dates(comparison.before), comparison.after.count, dates(comparison.after)))
+                    .font(AppDesign.Font.caption).foregroundStyle(.secondary)
                 sides(comparison)
                 deltas(comparison)
             }
@@ -41,6 +44,11 @@ struct PerformanceLoadsVerdict: View {
         // Liseré de la couleur du sens, seulement pour un verdict tranché.
         .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
             .stroke(edge, lineWidth: 1.5))
+    }
+
+    private func dates(_ records: [ProbeLoadRecord]) -> String {
+        guard let first = records.first?.at, let last = records.last?.at else { return "—" }
+        return first.formatted(date: .abbreviated, time: .shortened) + " → " + last.formatted(date: .abbreviated, time: .shortened)
     }
 
     private var edge: Color {

@@ -10,36 +10,61 @@ struct PerformanceView: View {
     /// D2-T3 — l'état environnement de la session (carte « Environnement »),
     /// rechargé aux mêmes moments que la sonde.
     var environment: SessionEnvironmentStore
+    @State private var comparing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                // Les réglages de la sonde d'abord : tout ce qui suit en dépend.
-                PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
-                // D5-B — la carte « Chargements » : sa comparaison est
-                // automatique et ne dépend pas des sélecteurs Avant/Après plus
-                // bas. Elle vit aussi en `.needTwo` (pas de paire de minutes).
-                if store.status == .ready || store.status == .needTwo {
-                    PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }
-                } else if viewModel.benchmark.interrupted != nil {
-                    // Benchmark interrompu : la reprise reste visible hors de la carte.
-                    PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
+                    navigation(proxy)
+                    PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store)
+                    PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
+                    Picker(localization.L(L10n.Performance.inGameTitle), selection: $comparing) {
+                        Text(localization.L(L10n.PerformanceEvidence.lastSession)).tag(false)
+                        Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
+                    }.pickerStyle(.menu)
+                    if comparing { selectors }
+                    if store.isComputing { Text(localization.L(L10n.PerformanceEvidence.computing)).font(AppDesign.Font.footnote) }
+                    PerformanceCard {
+                        PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
+                                                  single: comparing ? nil : store.singleSummary)
+                    }.id("summary")
+                    if store.status == .ready || store.status == .needTwo {
+                        PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }.id("loads")
+                    } else if viewModel.benchmark.interrupted != nil {
+                        PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
+                    }
+                    if comparing, let report = store.report {
+                        PerformanceCard {
+                            PerformanceChangesSection(viewModel: viewModel, localization: localization,
+                                                      report: report, configDiffs: store.configDiffs)
+                            PerformanceAnalysisSection(viewModel: viewModel, localization: localization, store: store, report: report)
+                        }
+                        PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }.id("game")
+                        PerformanceCard { PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report) }
+                    }
+                    PerformanceCard {
+                        DisclosureGroup(localization.L(L10n.PerformanceEvidence.history)) {
+                            PerformanceImpactSection(viewModel: viewModel, localization: localization)
+                        }
+                    }.id("mods")
+                    PerformanceCard {
+                        DisclosureGroup(localization.L(L10n.Performance.envTitle)) {
+                            PerformanceEnvironmentSection(localization: localization, store: environment)
+                        }
+                    }.id("details")
+                    DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings)) {
+                        PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
+                    }
+                    if store.unreadableLines > 0 {
+                        Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))
+                            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                    }
                 }
-                PerformanceCard { PerformanceImpactSection(viewModel: viewModel, localization: localization) }
-                // D2-T3 — la carte « Environnement » : statique, indépendante
-                // des sélecteurs Avant/Après et de la présence de la sonde.
-                PerformanceCard {
-                    PerformanceEnvironmentSection(localization: localization, store: environment)
-                }
-                // En-tête, mesure guidée et sélecteurs forment un bloc : les
-                // tuiles de trame lisent la paire choisie (`store.report`).
-                inGameTitle
-                PerformanceHeader(localization: localization, store: store)
-                PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
-                content
+                .padding(AppDesign.Spacing.lg)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(AppDesign.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .task {
             if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
@@ -79,46 +104,27 @@ struct PerformanceView: View {
         }
     }
 
-    private var inGameTitle: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(localization.L(L10n.Performance.inGameTitle)).font(AppDesign.Font.headline(.semibold))
-            Text(localization.L(L10n.Performance.inGameSubtitle))
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch store.status {
-        case .idle, .loading:
-            StateCard(icon: "hourglass", text: localization.L(L10n.Performance.loading), actionTitle: nil) {}
-        case .noProbe:
-            StateCard(icon: "gauge.with.dots.needle.0percent",
-                      text: localization.L(L10n.Performance.noProbe), actionTitle: nil) {}
-        case .needTwo:
-            StateCard(icon: "square.split.2x1", text: localization.L(L10n.Performance.needTwo),
-                      actionTitle: nil) {}
-        case .ready:
-            selectors
-            if let report = store.report {
-                PerformanceCard {
-                    PerformanceChangesSection(viewModel: viewModel, localization: localization,
-                                              report: report, configDiffs: store.configDiffs)
-                }
-                PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }
-                PerformanceCard {
-                    PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report)
-                }
-                PerformanceCard {
-                    PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
-                                               store: store, report: report)
+    private func navigation(_ proxy: ScrollViewProxy) -> some View {
+        let anchors = [("summary", L10n.PerformanceEvidence.summary), ("loads", L10n.Performance.loadsTitle),
+                       ("game", L10n.Performance.inGameTitle), ("mods", L10n.PerformanceEvidence.history),
+                       ("details", L10n.PerformanceEvidence.details)]
+        return ViewThatFits(in: .horizontal) {
+            HStack {
+                ForEach(anchors, id: \.0) { id, key in
+                    Button(localization.L(key)) {
+                        if id == "game" { comparing = true }
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+                    }.fixedSize().help(localization.L(key))
                 }
             }
-            if store.unreadableLines > 0 {
-                Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))
-                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-            }
+            Menu(localization.L(L10n.PerformanceEvidence.details)) {
+                ForEach(anchors, id: \.0) { id, key in
+                    Button(localization.L(key)) {
+                        if id == "game" { comparing = true }
+                        proxy.scrollTo(id, anchor: .top)
+                    }
+                }
+            }.fixedSize()
         }
     }
 

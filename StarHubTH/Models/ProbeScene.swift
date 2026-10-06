@@ -5,6 +5,18 @@ import Foundation
 /// L'onglet s'en sert pour dire ce qui explique une minute lente et, dans une
 /// comparaison avant/après, distinguer un mod coûteux d'une scène plus chargée.
 public enum ProbeScene {
+    public enum Assessment: Equatable, Sendable {
+        case unknown, similar, different([Difference])
+    }
+
+    public static func assess(before: [ProbeMinute], after: [ProbeMinute]) -> Assessment {
+        let keys = counters.filter { !values($0, before).isEmpty || !values($0, after).isEmpty }
+        guard !keys.isEmpty else { return .unknown }
+        let changes = differences(before: before, after: after)
+        if !changes.isEmpty { return .different(changes) }
+        guard keys.allSatisfy({ values($0, before).count >= 5 && values($0, after).count >= 5 }) else { return .unknown }
+        return .similar
+    }
     /// Les compteurs connus, dans l'ordre d'affichage. La sonde peut en
     /// ajouter plus tard : une clé sans libellé n'est pas affichée, jamais
     /// une ligne tronquée de rien.
@@ -24,7 +36,7 @@ public enum ProbeScene {
     static func values(_ key: String, _ minutes: [ProbeMinute]) -> [Double] {
         var out: [Double] = []
         for minute in minutes {
-            guard let count = minute.scene?[key] else { continue }
+            guard let count = minute.scene?[key], count >= 0 else { continue }
             out.append(Double(count))
         }
         return out
@@ -51,7 +63,7 @@ public enum ProbeScene {
         public let medianBefore: Double
         public let medianAfter: Double
         public let delta: Double
-        public let percent: Double
+        public let percent: Double?
     }
 
     /// Les différences nettes des deux côtés, compteurs connus dans l'ordre
@@ -63,9 +75,10 @@ public enum ProbeScene {
         var out: [Difference] = []
         for key in counters {
             guard let a = mediansBefore[key], let b = mediansAfter[key], a != b else { continue }
-            guard case .netChange(let delta, let percent) =
-                ProbeComparison.compare(values(key, before), values(key, after)).verdict
-            else { continue }
+            guard values(key, before).count >= 5, values(key, after).count >= 5 else { continue }
+            let delta = b - a
+            guard abs(delta) >= 1, abs(delta) > abs(a) * 0.05 else { continue }
+            let percent = a == 0 ? nil : delta / a * 100
             out.append(Difference(key: key, medianBefore: a, medianAfter: b,
                                   delta: delta, percent: percent))
         }

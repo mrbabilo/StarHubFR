@@ -20,6 +20,7 @@ final class ModImpactStore {
 
     private(set) var status: Status = .idle
     private(set) var entries: [ModImpactEntry] = []
+    private(set) var performanceRows: [ModImpactAxis: [ProbeImpactPresentation.Row]] = [:]
     private(set) var ranking: [ModImpactEntry] = []
     /// Les mêmes entrées, indexées par `folderName` : la liste de mods lit
     /// chaque rangée en O(1) — la recherche linéaire d'avant, appelée une
@@ -98,13 +99,16 @@ final class ModImpactStore {
         }.value
         let history: ModImpactHistory
         switch loaded {
-        case .unreadable: status = .unreadableHistory; entries = []; ranking = []; entriesById = [:]; classesById = [:]; return
-        case .noProbe: status = .noProbe; entries = []; ranking = []; entriesById = [:]; classesById = [:]; return
+        case .unreadable: status = .unreadableHistory; entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]; return
+        case .noProbe: status = .noProbe; entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]; return
         case .ready(let h): history = h
         }
         status = .ready
         entries = ModImpact.entries(history: history, mods: mods)
         ranking = ModImpact.ranking(entries)
+        performanceRows = Dictionary(uniqueKeysWithValues: ModImpactAxis.allCases.map {
+            ($0, ProbeImpactPresentation.rows(entries: entries, axis: $0))
+        })
         entriesById = Dictionary(entries.map { ($0.id, $0) },
                                  uniquingKeysWith: { first, _ in first })
         classesById = entriesById.compactMapValues { $0.shown?.impactClass }

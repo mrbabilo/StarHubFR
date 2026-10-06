@@ -3,8 +3,10 @@ import Foundation
 /// Tout ce que l'analyse lit (spec §3d) : les nombres sont déjà calculés,
 /// l'analyse ne fait que les lire.
 public struct ProbeAnalysisInput: Sendable {
+    public let metrics: [ProbeMetric: ProbeMetricResult]
+    public let quality: [ProbeMetric: ProbeComparisonQuality]
     public let comparison: ProbeComparison
-    public let diff: ProbeInventoryDiff
+    public let diff: ProbeInventoryDiff?
     public let costDeltas: [ProbeCostDelta]
     public let exclusionsA: [ProbeExclusionReason: Int]
     public let exclusionsB: [ProbeExclusionReason: Int]
@@ -16,11 +18,15 @@ public struct ProbeAnalysisInput: Sendable {
     /// Un côté est une mesure guidée bruitée : confiance plafonnée à « moyenne » (D5-A).
     public let noisyMeasurement: Bool
 
-    public init(comparison: ProbeComparison, diff: ProbeInventoryDiff,
+    public init(comparison: ProbeComparison, diff: ProbeInventoryDiff?,
                 costDeltas: [ProbeCostDelta],
                 exclusionsA: [ProbeExclusionReason: Int], exclusionsB: [ProbeExclusionReason: Int],
                 locationsRestricted: Bool, measurement: ProbeMeasurement?,
-                dominantLocation: String?, noisyMeasurement: Bool = false) {
+                dominantLocation: String?, noisyMeasurement: Bool = false,
+                metrics: [ProbeMetric: ProbeMetricResult] = [:],
+                quality: [ProbeMetric: ProbeComparisonQuality] = [:]) {
+        self.metrics = metrics
+        self.quality = quality
         self.comparison = comparison
         self.diff = diff
         self.costDeltas = costDeltas
@@ -80,149 +86,59 @@ public struct ProbeAnalysisResult: Equatable, Sendable {
 /// Règles explicables et déterministes (spec §3d) : mêmes données, même
 /// réponse. Fonction pure.
 public enum ProbeAnalysis {
-    /// Cadence des ticks en pas fixe, le défaut du jeu : sert quand la sonde
-    /// n'a pas relevé `Update` (lignes anciennes). En pas variable (UltraSmooth
-    /// 2.3.9) la cadence mesurée de chaque côté la remplace (X117).
-    static let fixedTicksPerSecond = 60.0
-    /// Minutes comparables de chaque côté pour une confiance élevée.
-    static let enoughMinutes = 15
-    /// Variation de coût d'un mod (ms/s) au-delà de laquelle elle compte.
     public static let directCostThreshold = 0.05
 
     public static func analyze(_ input: ProbeAnalysisInput) -> ProbeAnalysisResult {
-        // 1. Conclusion — la mesure de tête a déjà tranché (travail de trame
-        // si plafond de synchro, temps de trame sinon).
+        let metric = input.metrics[.frameP50]
+        let quality = input.quality[.frameP50]
         let direction: ProbeAnalysisResult.Direction
-        switch input.comparison.verdict {
-        case .netChange(_, let percent):
-            direction = percent < 0 ? .faster(percent: -percent) : .slower(percent: percent)
-        case .noise: direction = .noDifference
-        case .notEnoughData: direction = .inconclusive
+        switch metric?.outcome {
+        case .improved: direction = metric?.percent.map { .faster(percent: abs($0)) } ?? .inconclusive
+        case .worsened: direction = metric?.percent.map { .slower(percent: abs($0)) } ?? .inconclusive
+        case .noClearDifference: direction = .noDifference
+        default: direction = .inconclusive
         }
-
-        // 2. Confiance — une règle de « faible » l'emporte sur tout ; chaque
-        // règle qui a joué laisse une preuve.
-        let countA = input.comparison.frameP50.a.count
-        let countB = input.comparison.frameP50.b.count
+        let confidence: ProbeAnalysisResult.Confidence
+        switch quality?.level {
+        case .repeated: confidence = .high
+        case .usable: confidence = .medium
+        default: confidence = .low
+        }
         var evidence: [ProbeAnalysisResult.Evidence] = [
-            .comparableMinutes(a: countA, b: countB, sameLocations: input.locationsRestricted)
+            .comparableMinutes(a: metric?.keptBefore ?? 0, b: metric?.keptAfter ?? 0,
+                               sameLocations: input.locationsRestricted)
         ]
-        var confidence: ProbeAnalysisResult.Confidence
-        if input.measurement != nil && countA >= 5 && countB >= 5 {
-            confidence = .high
-            evidence.append(.cleanMeasurement)
-        } else if countA >= enoughMinutes && countB >= enoughMinutes && input.locationsRestricted {
-            confidence = .high
-        } else if countA >= 5 && countB >= 5 {
-            confidence = .medium
-        } else {
-            confidence = .low
-        }
-        if input.noisyMeasurement && confidence == .high {
-            confidence = .medium
-            evidence.append(.noisyMeasurement)
-        }
         if !input.exclusionsA.isEmpty || !input.exclusionsB.isEmpty {
             evidence.append(.excludedMinutes(a: input.exclusionsA, b: input.exclusionsB))
         }
-        let changes = input.diff.changes
-        if input.diff.probeChanged {
-            confidence = .low
-            evidence.append(.probeChanged)
-        }
-        if changes.count >= 3 { confidence = .low }
-        if input.comparison.patchesMismatch {
-            // Enveloppes actives d'un seul côté : mesures non comparables.
-            confidence = .low
-            evidence.append(.envelopesAsymmetric)
-        }
-
-        // 3. Attribution — un seul changement est LA cause ; plusieurs se
-        // classent par variation de leur coût direct (identifiants sans la
-        // casse : mod-costs porte la casse du manifeste).
-        if changes.count == 1, let only = changes.first {
-            evidence.append(.singleChange(modId: only.modId))
-        } else if changes.count > 1 {
-            evidence.append(.changeCount(changes.count))
-        }
+        let changes = input.diff?.changes ?? []
+        if let only = changes.first, changes.count == 1 { evidence.append(.singleChange(modId: only.modId)) }
+        else if !changes.isEmpty { evidence.append(.changeCount(changes.count)) }
+        if input.diff?.probeChanged == true { evidence.append(.probeChanged) }
+        if input.comparison.patchesMismatch { evidence.append(.envelopesAsymmetric) }
         let changed = Set(changes.map { $0.modId.lowercased() })
-        let direct = input.costDeltas
-            .filter { changed.contains($0.modId.lowercased()) }
-            .sorted { abs($0.delta) > abs($1.delta) }
-        for delta in direct where abs(delta.delta) > directCostThreshold {
-            evidence.append(.directCost(modId: delta.modId, deltaMsPerSecond: delta.delta))
+        for cost in input.costDeltas.sorted(by: { abs($0.delta) > abs($1.delta) })
+            where changed.contains(cost.modId.lowercased()) && abs(cost.delta) > directCostThreshold {
+            evidence.append(.directCost(modId: cost.modId, deltaMsPerSecond: cost.delta))
         }
-
-        // Part indirecte = variation du travail de trame − somme des
-        // variations directes, les deux en ms par tick. Au-delà de la moitié
-        // de l'écart, la cause n'est pas dans les événements des mods
-        // (patches Harmony, mémoire, GC) : retour au protocole. Sans coûts
-        // mesurés des deux côtés (`costDeltas` vide), rien ne se répartit.
-        var indirectDominant = false
-        if !input.costDeltas.isEmpty,
-           case .netChange(let workDelta, _) = input.comparison.workP50.verdict, workDelta != 0 {
-            // Chaque côté ramené en ms par tick à **sa** cadence : un mod
-            // à 12 ms/s coûte 0,2 ms par tick à 60 ticks/s, 0,4 à 30.
-            let rateA = input.comparison.updatesPerSecond.a.median.flatMap { $0 > 0 ? $0 : nil }
-                ?? fixedTicksPerSecond
-            let rateB = input.comparison.updatesPerSecond.b.median.flatMap { $0 > 0 ? $0 : nil }
-                ?? fixedTicksPerSecond
-            let directPerTick = direct.reduce(0.0) {
-                $0 + ($1.msPerSecondB ?? 0) / rateB - ($1.msPerSecondA ?? 0) / rateA
-            }
-            let indirect = workDelta - directPerTick
-            if abs(indirect) > abs(workDelta) / 2 {
-                evidence.append(.indirectShare((indirect / workDelta * 100).rounded() / 100))
-                indirectDominant = true
-            }
-        }
-
-        // Trame nettement changée, travail de trame inchangé : le temps passe
-        // hors Update/Draw (GC, synchro), là où ni les événements ni les
-        // patches des mods ne tournent. Dit en preuve ; la recommandation
-        // reste un geste réversible qui le vérifiera.
-        if !input.comparison.vsyncLimited,
-           case .netChange(_, let percent) = input.comparison.frameP50.verdict, abs(percent) >= 5,
-           input.comparison.workP50.verdict == .noise {
-            evidence.append(.frameWorkUnchanged)
-        }
-
-        // 4. Recommandation.
-        let missing = max(enoughMinutes - min(countA, countB), 0)
+        let counts = metric?.locations.map { min($0.before.count, $0.after.count) } ?? []
+        let missing = max(0, 5 - (counts.max() ?? 0))
         let recommendation: ProbeAnalysisResult.Recommendation
-        if direction == .inconclusive || confidence == .low || indirectDominant {
-            // Protocole chiffré : le lieu qui a le plus de minutes, la durée
-            // qui manque pour 15 de chaque côté.
+        if confidence == .low || direction == .inconclusive {
             recommendation = .rerunCleanMeasurement(location: input.dominantLocation, missingMinutes: missing)
-        } else {
-            recommendation = recommend(direction, changes: changes)
-        }
+        } else if changes.count > 1 {
+            recommendation = .isolate
+        } else if quality?.level != .repeated && direction != .noDifference {
+            recommendation = .rerunCleanMeasurement(location: input.dominantLocation, missingMinutes: 0)
+        } else if case .slower = direction, let only = changes.first {
+            switch only.kind {
+            case .added: recommendation = .disableMod(modId: only.modId)
+            case .versionChanged: recommendation = .revertVersion(modId: only.modId)
+            case .configChanged: recommendation = .revertConfig(modId: only.modId)
+            case .removed: recommendation = .keep
+            }
+        } else { recommendation = .keep }
         return ProbeAnalysisResult(direction: direction, confidence: confidence,
                                    evidence: evidence, recommendation: recommendation)
-    }
-
-    private static func recommend(_ direction: ProbeAnalysisResult.Direction,
-                                  changes: [ProbeModChange]) -> ProbeAnalysisResult.Recommendation {
-        let only = changes.count == 1 ? changes.first : nil
-        switch direction {
-        // Garde-fou : un écart sous 5 % n'est jamais une raison d'agir.
-        case .slower(let percent) where percent >= 5:
-            guard let only else { return changes.isEmpty ? .keep : .isolate }
-            switch only.kind {
-            case .added: return .disableMod(modId: only.modId)
-            case .versionChanged: return .revertVersion(modId: only.modId)
-            case .configChanged: return .revertConfig(modId: only.modId)
-            case .removed: return .keep   // retiré et plus lent : rien à défaire
-            }
-        case .faster(let percent) where percent >= 5:
-            return .keep
-        default:
-            guard let only else { return .keep }
-            switch only.kind {
-            case .added: return .keepNoCost(modId: only.modId)
-            case .configChanged: return .configNoGain(modId: only.modId)
-            default: return .keep
-            }
-        }
     }
 }

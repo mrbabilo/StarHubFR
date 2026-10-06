@@ -39,7 +39,7 @@ import Foundation
     @Test func selectingAnotherPairRebuildsTheReport() async throws {
         let s = try store()
         await s.reload()
-        s.select(before: s.sides[0].id, after: s.sides[2].id)
+        await s.select(before: s.sides[0].id, after: s.sides[2].id).value
         #expect(s.report?.before.id == s.sides[0].id && s.report?.after.id == s.sides[2].id)
     }
 
@@ -47,7 +47,7 @@ import Foundation
     @Test func reloadKeepsTheScreenOnceReady() async throws {
         let s = try store()
         await s.reload()
-        s.select(before: s.sides[0].id, after: s.sides[2].id)
+        await s.select(before: s.sides[0].id, after: s.sides[2].id).value
         let pair = (s.beforeId, s.afterId)
         let reloading = Task { await s.reload() }
         await Task.yield()  // la relecture tourne jusqu'à sa lecture en fond
@@ -71,12 +71,12 @@ import Foundation
         await s.reload()
         let pair = s.sides.indices.flatMap { i in s.sides.indices.map { (i, $0) } }.first { i, j in
             guard i < j else { return false }
-            s.select(before: s.sides[i].id, after: s.sides[j].id)
-            return s.report?.diff?.changes.contains {
+            return ProbeComparisonScope.make(before: s.sides[i], after: s.sides[j]).diff?.changes.contains {
                 if case .configChanged = $0.kind { return true } else { return false }
             } == true
         }
-        #expect(pair != nil)
+        let selected = try #require(pair)
+        await s.select(before: s.sides[selected.0].id, after: s.sides[selected.1].id).value
         await s.configDiffsLoaded()
         #expect(s.configDiffs["spacechase0.GenericModConfigMenu"]?.map(\.path) == ["a"])
     }
@@ -125,9 +125,9 @@ import Foundation
         await s.reload()
         let target = try #require(s.sides.first { $0.minutes.count >= 4 })
         let beforeId = UUID(), afterId = UUID()
-        let kept = target.minutes.prefix(3).map(\.at)
         func line(_ id: UUID, role: String, pairedWith: UUID?) -> String {
-            """
+            let kept = (role == "before" ? Array(target.minutes.prefix(3)) : Array(target.minutes.suffix(3))).map(\.at)
+            return """
             {"Version":1,"PlanId":"\(id.uuidString)","Name":"m","Role":"\(role)",\
             "PairedWith":\(pairedWith.map { "\"\($0.uuidString)\"" } ?? "null"),\
             "Session":"\(target.session)","Location":"Farm","Start":"\(kept.first!)","End":"\(kept.last!)",\

@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **Performances : résumé de la dernière session, puis comparaison détaillée.** Fluidité, saccades et mémoire apparaissent en premier ; graphiques, valeurs par lieu, historique des mods et environnement restent accessibles. Les mesures manquantes, leur provenance et les limites de comparaison sont expliquées en français et en anglais.
+- **Évolution de la mémoire pendant une période comparable.** La tendance s'interrompt lors d'un changement de lieu, d'une exclusion ou d'une mesure manquante ; elle ne conclut pas automatiquement à une fuite mémoire.
 - **Onglet Performances : carte « Environnement ».** Les réglages Stardew Loading Optimizer de la session (profil, optimisations configurées vs effectives), les mods avec menu de config détectés dans le journal, le poids des packs Content Patcher et leurs conflits — l'état statique qui explique les mesures.
 - **La scène du lieu dans chaque minute mesurée.** La sonde compte PNJ, meubles, objets posés, lumières… du lieu courant en écrivant sa ligne, sans patch de dessin qui fausserait le temps de trame (sonde 0.9.21). La comparaison avant/après liste ce qui sépare les deux côtés : un mod coûteux ne se confond plus avec une scène plus chargée.
 - **Les options de la sonde se règlent depuis l'app et depuis le jeu.** La fiche sonde gagne une section « Options de mesure » (toggles expliqués, écriture toujours valable, geste « réparer »), et le jeu gagne un menu de configuration si GMCM est installé — plus jamais de config.json édité à la main (sonde 0.9.20).
@@ -22,6 +24,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Comparaisons de performances plus prudentes.** Chaque lieu comparable pèse autant ; une différence de temps passé en ville ou à la ferme ne crée plus de faux gain. Les fenêtres qui se chevauchent, options différentes, scènes inconnues et essais contradictoires sont signalés. Un coût non mesuré ne devient plus zéro ni une preuve contre un mod.
+- **Graphiques cohérents avec la mesure choisie.** Unités, courbes, valeurs détaillées et exclusions suivent le même périmètre ; les trous de mesure restent visibles et les détails sont accessibles au clavier. Les résultats d'une ancienne sélection ne remplacent plus ceux de la sélection courante.
 - **La carte « Environnement » lit les vrais fichiers Content Patcher.** Les commentaires sous fins de ligne Windows, clés non citées et retours bruts acceptés par SMAPI ne font plus déclarer des dizaines de packs illisibles ; les rares refus restants vivent dans une liste repliable.
 
 ## [1.58.0] - 2026-10-05

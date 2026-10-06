@@ -4,15 +4,7 @@ public enum ProbeChartSide: String, CaseIterable, Sendable { case before, after 
 
 /// Les mesures du sélecteur de « Fluidité » : une seule à la fois, jamais
 /// deux échelles sur un graphique (spec §3c).
-public enum ProbeChartMeasure: String, CaseIterable, Sendable {
-    case frameP50, frameP99, work, fps
-    /// D4-T8 — mémoire du processus par minute (sonde ≥ 0.9.11).
-    case workingSet, committed
-
-    /// Les temps baissent quand le jeu va mieux ; les FPS montent ; la
-    /// mémoire, comme un temps : moins.
-    public var lowerIsBetter: Bool { self != .fps }
-}
+public typealias ProbeChartMeasure = ProbeMetric
 
 /// Le sens d'un écart pour le joueur, que l'écran met en couleur. Seul un
 /// écart net (`.netChange`, seuil de 5 % et quartiles disjoints) ou un coût
@@ -44,6 +36,7 @@ public struct ProbeChartPoint: Identifiable, Equatable, Sendable {
 }
 
 public struct ProbeChartBox: Equatable, Sendable {
+    public let location: String
     public let side: ProbeChartSide
     public let q1: Double
     public let median: Double
@@ -52,12 +45,27 @@ public struct ProbeChartBox: Equatable, Sendable {
 
 /// Une minute de la chronologie : gardée (valeur) ou écartée (raison, sans
 /// valeur — une nuit à 13 000 ms écraserait l'échelle).
+public enum ProbeChartExclusion: Equatable, Sendable {
+    case existing(ProbeExclusionReason), unmatchedLocation, missingMetric, invalidMetric
+}
+
 public struct ProbeTimelineMark: Identifiable, Equatable, Sendable {
     public let id: String
     public let side: ProbeChartSide
+    public let at: String
+    public let location: String?
+    public let segmentId: String
+    public let exclusion: ProbeChartExclusion?
     public let minutesFromStart: Double
     public let value: Double?
     public let reason: ProbeExclusionReason?
+}
+
+public struct ProbeChartData: Equatable, Sendable {
+    public let points: [ProbeChartPoint]
+    public let boxes: [ProbeChartBox]
+    public let marks: [ProbeTimelineMark]
+    public let yMax: Double?
 }
 
 public struct ProbeDumbbell: Identifiable, Equatable, Sendable {
@@ -71,58 +79,64 @@ public struct ProbeDumbbell: Identifiable, Equatable, Sendable {
 /// Les données des graphiques de l'onglet Performances, calculées ici pour que
 /// la vue ne calcule rien (spec, « Tests »).
 public enum ProbeComparisonChart {
-    public static func value(of minute: ProbeMinute, _ measure: ProbeChartMeasure) -> Double? {
-        switch measure {
-        case .frameP50: return minute.frameInterval.p50
-        case .frameP99: return minute.frameInterval.p99
-        case .work:
-            guard let update = minute.update?.p50, let draw = minute.draw?.p50 else { return nil }
-            return update + draw
-        case .fps: return minute.fps
-        case .workingSet: return minute.workingSetMB
-        case .committed: return minute.committedMB
-        }
+    public static func data(_ report: ProbePerformanceReport, measure: ProbeMetric) -> ProbeChartData {
+        let distribution = distribution(report, measure: measure)
+        let timeline = timeline(report, measure: measure)
+        return ProbeChartData(points: distribution.points, boxes: distribution.boxes,
+                              marks: timeline.marks, yMax: timeline.yMax)
     }
 
-    public static func distribution(_ report: ProbePerformanceReport, measure: ProbeChartMeasure)
+    public static func value(of minute: ProbeMinute, _ measure: ProbeMetric) -> Double? {
+        measure.value(minute)
+    }
+
+    public static func distribution(_ report: ProbePerformanceReport, measure: ProbeMetric)
         -> (points: [ProbeChartPoint], boxes: [ProbeChartBox]) {
-        var points: [ProbeChartPoint] = []
-        var boxes: [ProbeChartBox] = []
-        for (side, kept) in [(ProbeChartSide.before, report.keptBefore), (.after, report.keptAfter)] {
-            let values = kept.compactMap { item in value(of: item.minute, measure).map { (item.minute, $0) } }
-            for (index, entry) in values.enumerated() {
-                points.append(ProbeChartPoint(id: "\(side.rawValue)|\(entry.0.at)", side: side,
-                                              at: entry.0.at, location: entry.0.location,
-                                              value: entry.1, jitter: jitter(index)))
+        var points: [ProbeChartPoint] = [], boxes: [ProbeChartBox] = []
+        let locations = report.metrics[measure]?.plottedLocations ?? []
+        for (side, source) in [(ProbeChartSide.before, report.before), (.after, report.after)] {
+            let kept = source.comparable.kept.filter { locations.contains($0.minute.location ?? "") }
+            for (index, item) in kept.enumerated() {
+                guard let value = measure.value(item.minute) else { continue }
+                points.append(ProbeChartPoint(id: "\(side.rawValue)|\(item.minute.at)", side: side,
+                    at: item.minute.at, location: item.minute.location, value: value, jitter: jitter(index)))
             }
-            let numbers = values.map(\.1)
-            if numbers.count >= 5, let median = ProbeStats.median(numbers),
-               let quartiles = ProbeStats.quartiles(numbers) {
-                boxes.append(ProbeChartBox(side: side, q1: quartiles.q1, median: median, q3: quartiles.q3))
+            for location in locations.sorted() {
+                let values = kept.filter { $0.minute.location == location }.compactMap { measure.value($0.minute) }
+                if values.count >= 5, let median = ProbeStats.median(values), let q = ProbeStats.quartiles(values) {
+                    boxes.append(ProbeChartBox(location: location, side: side, q1: q.q1, median: median, q3: q.q3))
+                }
             }
         }
         return (points, boxes)
     }
 
-    /// Minutes gardées (temps de trame médian) et écartées, depuis le début
-    /// de chaque côté ; `yMax` fixe la même échelle aux deux graphiques.
-    public static func timeline(_ report: ProbePerformanceReport) -> (marks: [ProbeTimelineMark], yMax: Double?) {
+    public static func timeline(_ report: ProbePerformanceReport, measure: ProbeMetric = .frameP50)
+        -> (marks: [ProbeTimelineMark], yMax: Double?) {
         var marks: [ProbeTimelineMark] = []
+        let locations = report.metrics[measure]?.plottedLocations ?? []
         for (side, source) in [(ProbeChartSide.before, report.before), (.after, report.after)] {
-            let start = source.start
-            func offset(_ at: String) -> Double {
-                guard let start, let date = ProbeDate.parse(at) else { return 0 }
-                return date.timeIntervalSince(start) / 60
-            }
-            for item in source.comparable.kept {
-                marks.append(ProbeTimelineMark(id: "\(side.rawValue)|\(item.minute.at)", side: side,
-                                               minutesFromStart: offset(item.minute.at),
-                                               value: item.minute.frameInterval.p50, reason: nil))
-            }
-            for item in source.comparable.excluded {
-                marks.append(ProbeTimelineMark(id: "\(side.rawValue)|\(item.minute.at)", side: side,
-                                               minutesFromStart: offset(item.minute.at),
-                                               value: nil, reason: item.reason))
+            let reasons = Dictionary(source.comparable.excluded.map { ($0.minute.at, $0.reason) }, uniquingKeysWith: { a, _ in a })
+            let kept = Set(source.comparable.kept.map(\.minute.at))
+            let ordered = source.minutes.sorted { $0.at < $1.at }
+            let start = source.start ?? ordered.compactMap { ProbeDate.parse($0.at) }.min()
+            var previous: Date?, previousLocation: String?, segment = 0
+            for minute in ordered {
+                let date = ProbeDate.parse(minute.at)
+                let exclusion: ProbeChartExclusion?
+                if let reason = reasons[minute.at] { exclusion = .existing(reason) }
+                else if !kept.contains(minute.at) || !locations.contains(minute.location ?? "") { exclusion = .unmatchedLocation }
+                else if date == nil || !minute.wallSeconds.isFinite || minute.wallSeconds <= 0 { exclusion = .invalidMetric }
+                else if measure.value(minute) == nil { exclusion = .missingMetric }
+                else { exclusion = nil }
+                if exclusion != nil || previous == nil || previousLocation != minute.location
+                    || (date.map { $0.timeIntervalSince(previous ?? $0) > 90 } ?? true) { segment += 1 }
+                let offset = date.flatMap { date in start.map { date.timeIntervalSince($0) / 60 } } ?? 0
+                marks.append(ProbeTimelineMark(id: "\(side.rawValue)|\(minute.at)", side: side,
+                    at: minute.at, location: minute.location, segmentId: "\(side.rawValue)|\(segment)", exclusion: exclusion,
+                    minutesFromStart: offset, value: exclusion == nil ? measure.value(minute) : nil, reason: reasons[minute.at]))
+                previous = exclusion == nil ? date : nil
+                previousLocation = minute.location
             }
         }
         marks.sort { ($0.side.rawValue, $0.minutesFromStart) < ($1.side.rawValue, $1.minutesFromStart) }

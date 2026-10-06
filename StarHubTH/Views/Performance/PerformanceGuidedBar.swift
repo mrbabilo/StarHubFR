@@ -63,13 +63,21 @@ struct PerformanceGuidedBar: View {
                 .disabled(viewModel.isBenchmarkActive)
             }
         case .idle:
-            Button(localization.L(L10n.Performance.guidedButton)) {
-                draft = GuidedPlanDraft(name: defaultName(), role: .before,
-                                        location: GuidedProtocol.fallbackLocation, pairedWith: nil)
+            AdaptiveLabels {
+                Button {
+                    draft = GuidedPlanDraft(name: defaultName(), role: .before,
+                                            location: GuidedProtocol.fallbackLocation, pairedWith: nil)
+                } label: { Label(primaryTitle, systemImage: "play.circle") }
+                .help(primaryTitle).clickableCursor().disabled(viewModel.isBenchmarkActive)
             }
-            .clickableCursor()
-            .disabled(viewModel.isBenchmarkActive)
         }
+    }
+
+    private var primaryTitle: String {
+        let count = Set(store.sides.map(\.session)).count
+        let key = count == 0 ? L10n.PerformanceEvidence.startMeasurement
+            : count == 1 ? L10n.PerformanceEvidence.secondMeasurement : L10n.PerformanceEvidence.compareChange
+        return localization.L(key)
     }
 
     @ViewBuilder

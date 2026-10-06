@@ -30,6 +30,12 @@ public struct ProbeSide: Identifiable, Equatable, Sendable {
 
 /// Tout ce que l'onglet montre pour une paire : les vues lisent, ne calculent pas.
 public struct ProbePerformanceReport: Equatable, Sendable {
+    public let scope: ProbeComparisonScope
+    public let metrics: [ProbeMetric: ProbeMetricResult]
+    public var charts: [ProbeMetric: ProbeChartData] = [:]
+    public var memoryBefore: [ProbeMemoryTrend.Segment] = []
+    public var memoryAfter: [ProbeMemoryTrend.Segment] = []
+    public let quality: [ProbeMetric: ProbeComparisonQuality]
     public let before: ProbeSide
     public let after: ProbeSide
     /// Minutes gardées, restreintes aux lieux communs quand il y en a assez.
@@ -41,11 +47,30 @@ public struct ProbePerformanceReport: Equatable, Sendable {
     /// n'annonce jamais « aucun changement ».
     public let diff: ProbeInventoryDiff?
     public let costDeltas: [ProbeCostDelta]
+    public let costRows: [ProbeMeasuredCost]
     public let analysis: ProbeAnalysisResult
     public let dominantLocation: String?
 }
 
 public enum ProbePerformance {
+    /// Apparier chronologiquement sans réutiliser de session. Les contrôles
+    /// de qualité par métrique décideront ensuite quelles paires sont exploitables.
+    public static func repetitionCandidates(_ sides: [ProbeSide], before: ProbeSide,
+                                             after: ProbeSide) -> [ProbeComparisonScope] {
+        guard before.inventory != nil, after.inventory != nil else { return [] }
+        let ordered = sides.sorted { ($0.start ?? .distantPast, $0.id) < ($1.start ?? .distantPast, $1.id) }
+        var used: Set<String> = [before.session, after.session]
+        var out = [ProbeComparisonScope.make(before: before, after: after)]
+        for a in ordered where a.inventory == before.inventory && !used.contains(a.session) {
+            guard let b = ordered.first(where: {
+                $0.inventory == after.inventory && $0.session != a.session && !used.contains($0.session)
+                    && ($0.start ?? .distantPast) >= (a.start ?? .distantPast)
+            }) else { continue }
+            out.append(.make(before: a, after: b))
+            used.insert(a.session); used.insert(b.session)
+        }
+        return out
+    }
     /// Les côtés de toutes les sessions, du plus ancien au plus récent :
     /// chaque segment qui a des minutes, puis chaque mesure propre dans la
     /// session qui la contient. `excludingSessions` : les sessions de
@@ -98,19 +123,27 @@ public enum ProbePerformance {
         // encore là (`PairedWith`) — le rôle ne sert qu'à l'affichage.
         for after in sides.reversed() {
             guard let target = after.measurement?.pairedWith,
-                  let before = sides.first(where: { $0.measurement?.id == target }) else { continue }
+                  let before = sides.first(where: { $0.measurement?.id == target }),
+                  !ProbeComparisonScope.overlaps(before, after) else { continue }
             return (before, after)
         }
         for afterIndex in sides.indices.reversed() {
             let after = sides[afterIndex]
             guard let afterInventory = after.inventory else { continue }
             for beforeIndex in sides.indices[..<afterIndex].reversed() {
-                if let beforeInventory = sides[beforeIndex].inventory, beforeInventory != afterInventory {
+                if let beforeInventory = sides[beforeIndex].inventory, beforeInventory != afterInventory,
+                   !ProbeComparisonScope.overlaps(sides[beforeIndex], after) {
                     return (sides[beforeIndex], after)
                 }
             }
         }
-        return (sides[sides.count - 2], sides[sides.count - 1])
+        for afterIndex in sides.indices.reversed() {
+            for beforeIndex in sides.indices[..<afterIndex].reversed()
+                where !ProbeComparisonScope.overlaps(sides[beforeIndex], sides[afterIndex]) {
+                return (sides[beforeIndex], sides[afterIndex])
+            }
+        }
+        return nil
     }
 
     /// Mesure propre : deux mesures guidées stables (D5-A). Un côté bruité
@@ -120,35 +153,50 @@ public enum ProbePerformance {
          noisy: a?.outcome == .noisy || b?.outcome == .noisy)
     }
 
-    public static func report(before: ProbeSide, after: ProbeSide) -> ProbePerformanceReport {
-        let shared = ProbeComparableMinutes.restrictToSharedLocations(before.comparable.kept,
-                                                                       after.comparable.kept)
+    public static func report(before: ProbeSide, after: ProbeSide,
+                              repeats: [ProbeComparisonScope] = []) -> ProbePerformanceReport {
+        let scope = ProbeComparisonScope.make(before: before, after: after)
+        let metrics = Dictionary(uniqueKeysWithValues: ProbeMetric.allCases.map {
+            ($0, ProbeMetricComparison.compare(scope, metric: $0))
+        })
+        let quality = metrics.mapValues { ProbeComparisonQuality.assess(scope: scope, metric: $0, repeats: repeats) }
+        let locations = metrics[.frameP50]?.plottedLocations ?? []
+        let shared = (a: before.comparable.kept.filter { locations.contains($0.minute.location ?? "") && ProbeMetric.frameP50.value($0.minute) != nil },
+                      b: after.comparable.kept.filter { locations.contains($0.minute.location ?? "") && ProbeMetric.frameP50.value($0.minute) != nil },
+                      restricted: !locations.isEmpty)
         let comparison = ProbeComparison.compare(shared.a, shared.b)
-        let diff: ProbeInventoryDiff? = {
-            guard let a = before.inventory, let b = after.inventory else { return nil }
-            return ProbeInventoryDiffRule.between(launch(before, a), launch(after, b))
-        }()
+        let diff = scope.diff
         // Un côté sans coût mesuré (aucune minute comparable, ou aucune ligne
         // de coût) ne dit rien : comparé à lui, chaque mod de l'autre côté
         // passerait pour « nouveau » avec tout son coût en delta.
         let costsA = ProbeCosts.perMod(shared.a, costs: before.costs)
         let costsB = ProbeCosts.perMod(shared.b, costs: after.costs)
-        let costDeltas = costsA.isEmpty || costsB.isEmpty ? [] : ProbeCosts.delta(costsA, costsB)
+        let costRows = scope.incompatible ? [] : ProbeCosts.measuredRows(costsA, costsB)
+        let costDeltas = costRows.compactMap { row -> ProbeCostDelta? in
+            guard row.before != nil, row.after != nil else { return nil }
+            return ProbeCostDelta(modId: row.modId, msPerSecondA: row.before, msPerSecondB: row.after, presence: .both)
+        }
         let dominant = dominantLocation(shared.a + shared.b)
         // Mesure propre « des deux côtés » (spec §3d) : sinon aucune.
         let guided = guidedStatus(before.measurement, after.measurement)
         let measurement = guided.clean ? after.measurement : nil
         let analysis = ProbeAnalysis.analyze(ProbeAnalysisInput(
             comparison: comparison,
-            diff: diff ?? ProbeInventoryDiff(probeChanged: false, changes: []),
+            diff: diff,
             costDeltas: costDeltas,
             exclusionsA: before.comparable.exclusions, exclusionsB: after.comparable.exclusions,
             locationsRestricted: shared.restricted, measurement: measurement,
-            dominantLocation: dominant, noisyMeasurement: guided.noisy))
-        return ProbePerformanceReport(before: before, after: after, keptBefore: shared.a,
+            dominantLocation: dominant, noisyMeasurement: guided.noisy, metrics: metrics, quality: quality))
+        var report = ProbePerformanceReport(scope: scope, metrics: metrics, quality: quality, before: before, after: after, keptBefore: shared.a,
                                       keptAfter: shared.b, locationsRestricted: shared.restricted,
-                                      comparison: comparison, diff: diff, costDeltas: costDeltas,
+                                      comparison: comparison, diff: diff, costDeltas: costDeltas, costRows: costRows,
                                       analysis: analysis, dominantLocation: dominant)
+        report.charts = Dictionary(uniqueKeysWithValues: ProbeMetric.allCases.map {
+            ($0, ProbeComparisonChart.data(report, measure: $0))
+        })
+        report.memoryBefore = ProbePerformanceSummary.single(before).memory
+        report.memoryAfter = ProbePerformanceSummary.single(after).memory
+        return report
     }
 
     // MARK: — Privé

@@ -13,6 +13,9 @@ final class ProbePerformanceStore {
     private(set) var status: Status = .idle
     private(set) var sides: [ProbeSide] = []
     private(set) var report: ProbePerformanceReport?
+    private(set) var singleSummary: ProbePerformanceSummary?
+    private(set) var isComputing = false
+    private(set) var guidedMinuteCount = 0
     private(set) var beforeId: String?
     private(set) var afterId: String?
     /// Mesures guidées lues dans `guided-measurements.jsonl` (D5-A).
@@ -36,11 +39,20 @@ final class ProbePerformanceStore {
     @ObservationIgnored private let files: ProbeFiles
     @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
     @ObservationIgnored private var configDiffsChanges: [ProbeModChange]?
-    @ObservationIgnored private let index: ProbeSessionsIndex
+    @ObservationIgnored private let loader: @Sendable (String?) async -> ProbePerformanceSnapshot
+    @ObservationIgnored private var loadGeneration = 0
+    @ObservationIgnored private var selectionGeneration = 0
+    @ObservationIgnored private var reportTask: Task<Void, Never>?
 
-    init(files: ProbeFiles = ProbeFiles()) {
+    init(files: ProbeFiles = ProbeFiles(),
+         loader: (@Sendable (String?) async -> ProbePerformanceSnapshot)? = nil) {
         self.files = files
-        self.index = ProbeSessionsIndex(files: files)
+        let index = ProbeSessionsIndex(files: files)
+        self.loader = loader ?? { gameDir in
+            await Task.detached(priority: .userInitiated) {
+                ProbePerformanceSnapshot.read(files: files, index: index, gameDir: gameDir)
+            }.value
+        }
     }
 
     var configsDirectory: URL { files.configsDirectory }
@@ -53,33 +65,17 @@ final class ProbePerformanceStore {
         // Première lecture seulement : une relecture garde l'écran affiché
         // (retour dans l'app, changement de segment) au lieu de le vider.
         if status == .idle { status = .loading }
-        let index = index, files = files
-        let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
-            let sessions = index.sessions(keeping: nil)
-            let inventory = files.inventory()
-            let guided = files.guidedMeasurements()
-            let loads = files.loads()
-            var plan = files.guidedPlan()
-            // Mesure close : le plan est à effacer — sur le fil principal,
-            // là où passent toutes les écritures du plan (pas de course avec
-            // une préparation).
-            var finished: UUID?
-            if let current = plan, guided.measurements.contains(where: { $0.id == current.id && $0.isFinished }) {
-                finished = current.id
-                plan = nil
-            }
-            let sides = ProbePerformance.sides(sessions: sessions, launches: inventory?.launches ?? [],
-                                               changes: inventory?.changes ?? [],
-                                               measurements: guided.measurements,
-                                               excludingSessions: ProbeLoadRecords.benchmarkSessions(loads.records))
-            return Loaded(sides: sides, measurements: guided.measurements, plan: plan, finishedPlan: finished,
-                          unreadable: sessions.unreadableLines + (inventory?.unreadable ?? 0) + guided.unreadable
-                                      + loads.unreadable,
-                          hasProbe: !sessions.sessions.isEmpty || inventory != nil || !loads.records.isEmpty,
-                          loads: loads.records,
-                          launches: inventory?.launches ?? [], changes: inventory?.changes ?? [],
-                          coldBefore: ProbeColdDisk.cutoff(gameDir: gameDir))
+        loadGeneration += 1
+        let generation = loadGeneration
+        let selectionAtStart = selectionGeneration
+        let loaded = await loader(gameDir)
+        guard generation == loadGeneration, !Task.isCancelled else { return }
+        let summary = await Task.detached(priority: .userInitiated) {
+            ProbePerformanceSummary.latestSession(loaded.sides)
         }.value
+        guard generation == loadGeneration, !Task.isCancelled else { return }
+        singleSummary = summary
+        guidedMinuteCount = loaded.guidedMinuteCount
         sides = loaded.sides
         if let finished = loaded.finishedPlan {
             do {
@@ -106,20 +102,21 @@ final class ProbePerformanceStore {
         saveComparison = ProbeLoadComparison.compare(loads, kind: .save, launches: loaded.launches,
                                                      changes: loaded.changes, coldBefore: loaded.coldBefore)
         probeWritesLoads = ProbeLoadRecords.writesLoads(probeVersion: loaded.launches.last?.probe)
-        guard loaded.hasProbe else { status = .noProbe; report = nil; return }
-        guard sides.count >= 2 else { status = .needTwo; report = nil; return }
+        guard loaded.hasProbe else { clearSelection(); status = .noProbe; return }
+        guard sides.count >= 2 else { clearSelection(); status = .needTwo; return }
         // Une mesure close depuis la lecture précédente prend la sélection :
         // la paire qu'elle forme avec celle qu'elle désigne est ce qu'on vient
         // de jouer — la paire affichée d'avant est périmée. Ensuite garder la
         // paire choisie si elle existe encore, sinon la paire par défaut.
-        if let pair = freshGuidedPair(known: knownMeasurementIds) {
-            select(before: pair.before.id, after: pair.after.id)
+        if selectionAtStart == selectionGeneration, let pair = freshGuidedPair(known: knownMeasurementIds) {
+            await select(before: pair.before.id, after: pair.after.id).value
         } else if let beforeId, let afterId, sides.contains(where: { $0.id == beforeId }),
            sides.contains(where: { $0.id == afterId }) {
-            select(before: beforeId, after: afterId)
+            await select(before: beforeId, after: afterId).value
         } else if let pair = ProbePerformance.defaultPair(sides) {
-            select(before: pair.before.id, after: pair.after.id)
-        }
+            await select(before: pair.before.id, after: pair.after.id).value
+        } else { clearSelection() }
+        guard generation == loadGeneration else { return }
         status = .ready
     }
 
@@ -133,23 +130,47 @@ final class ProbePerformanceStore {
               let before = sides.first(where: { $0.measurement?.id == target }),
               let after = sides.first(where: { $0.measurement?.id == fresh.id })
         else { return nil }
+        guard !ProbeComparisonScope.overlaps(before, after) else { return nil }
         return (before, after)
     }
 
-    /// Le rapport d'une paire se calcule sur des minutes déjà en mémoire
-    /// (quelques centaines) : sur place.
-    func select(before: String?, after: String?) {
+    /// Calcul hors MainActor ; seule la dernière sélection publie son rapport.
+    @discardableResult
+    func select(before: String?, after: String?) -> Task<Void, Never> {
+        selectionGeneration += 1
+        let generation = selectionGeneration
+        reportTask?.cancel()
+        if before != beforeId || after != afterId {
+            // An old pair must not appear below the new selectors while
+            // its replacement is computing. Same-pair refresh keeps data.
+            report = nil
+            loadConfigDiffs(nil)
+        }
         beforeId = before
         afterId = after
         guard let a = sides.first(where: { $0.id == before }),
-              let b = sides.first(where: { $0.id == after }), a.id != b.id
-        else { report = nil; loadConfigDiffs(nil); return }
-        report = ProbePerformance.report(before: a, after: b)
-        loadConfigDiffs(report?.diff?.changes)
+              let b = sides.first(where: { $0.id == after }) else {
+            report = nil; isComputing = false; loadConfigDiffs(nil)
+            return Task {}
+        }
+        isComputing = true
+        let snapshot = sides
+        let task = Task { [weak self] in
+            let report = await Task.detached(priority: .userInitiated) {
+                let repeats = ProbePerformance.repetitionCandidates(snapshot, before: a, after: b)
+                return ProbePerformance.report(before: a, after: b, repeats: repeats)
+            }.value
+            guard let self, !Task.isCancelled, generation == self.selectionGeneration else { return }
+            self.report = report
+            self.isComputing = false
+            self.loadConfigDiffs(report.diff?.changes)
+        }
+        reportTask = task
+        return task
     }
 
     /// Attendu par les tests : la lecture des diffs de la paire courante.
-    func configDiffsLoaded() async { await configDiffsTask?.value }
+    func configDiffsLoaded() async { await reportTask?.value; await configDiffsTask?.value }
 
     /// Écrit le plan (atomique) ; remplace un plan en attente — la vue a
     /// déjà demandé confirmation.
@@ -169,20 +190,17 @@ final class ProbePerformanceStore {
         plan = nil
     }
 
-    // MARK: — Privé
-
-    private struct Loaded: Sendable {
-        let sides: [ProbeSide]
-        let measurements: [ProbeMeasurement]
-        let plan: GuidedPlan?
-        let finishedPlan: UUID?
-        let unreadable: Int
-        let hasProbe: Bool
-        let loads: [ProbeLoadRecord]
-        let launches: [ProbeInventoryLaunch]
-        let changes: [ProbeInventoryChange]
-        let coldBefore: Date?
+    private func clearSelection() {
+        selectionGeneration += 1
+        reportTask?.cancel()
+        report = nil
+        beforeId = nil
+        afterId = nil
+        isComputing = false
+        loadConfigDiffs(nil)
     }
+
+    // MARK: — Privé
 
     /// Les contenus de réglages se lisent sur disque : hors du fil principal,
     /// une fois par paire. Une paire changée entre-temps annule la lecture

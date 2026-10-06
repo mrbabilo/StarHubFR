@@ -57,7 +57,7 @@ final class SessionEnvironmentStore {
             let date = (try? logURL.resourceValues(forKeys: [.contentModificationDateKey]))?
                 .contentModificationDate
             return SessionEnvironmentReport(
-                journalDate: date,
+                journalDate: date, diskReadAt: Date(),
                 slo: SloOptimizerConfig.parse(log: text),
                 menus: ConfigMenuCoverage.coverage(in: entries),
                 groups: SessionEnvironmentStore.scanGroups(mods: mods, modsRoot: modsRootPath),
@@ -120,6 +120,7 @@ final class SessionEnvironmentStore {
 /// celui du scan disque (spec §7 : les deux s'affichent tels quels).
 public struct SessionEnvironmentReport: Equatable, Sendable {
     public let journalDate: Date?
+    public var diskReadAt: Date? = nil
     public let slo: SloOptimizerConfig?
     public let menus: [ConfigMenuEntry]
     public let groups: [ContentPatcherPacks.Group]

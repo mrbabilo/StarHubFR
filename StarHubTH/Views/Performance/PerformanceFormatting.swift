@@ -12,7 +12,7 @@ import SwiftUI
 /// modifié ici.
 enum PerformanceFormatting {
     /// Le nom du manifeste quand le mod est installé, sinon l'identifiant.
-    static func modName(_ modId: String, viewModel: StarHubTHViewModel) -> String {
+    @MainActor static func modName(_ modId: String, viewModel: StarHubTHViewModel) -> String {
         viewModel.scanStore.mods.flattenedMods
             .first { $0.uniqueId.caseInsensitiveCompare(modId) == .orderedSame }?.name ?? modId
     }
