@@ -18,18 +18,21 @@ import Foundation
 /// rend le découpage impossible. La forme « Multiple » hérite de cette fragilité
 /// si un pack se nomme avec une virgule, mais rien n'y remédie sans amener du
 /// faux positif.
-struct LoadConflict: Equatable, Hashable {
-    enum Kind: Equatable, Hashable {
+///
+/// Public + `Sendable` (D2-T3) : porté par `SessionEnvironmentReport`, qui
+/// traverse `Task.detached` puis expose les conflits à la carte Environnement.
+public struct LoadConflict: Equatable, Hashable, Sendable {
+    public enum Kind: Equatable, Hashable, Sendable {
         /// Deux content packs ou plus se disputent la cible.
         case betweenPacks
         /// Un seul pack, dont deux patches se disputent la cible : à signaler à
         /// son auteur, ce n'est pas un arbitrage d'utilisateur.
         case withinOnePack
     }
-    let asset: String
+    public let asset: String
     /// Les **noms d'affichage** des packs, tels que Content Patcher les imprime.
-    let packs: [String]
-    let kind: Kind
+    public let packs: [String]
+    public let kind: Kind
     /// Les chemins des patches qui se disputent l'asset, lus dans la ligne
     /// `TRACE` qui suit immédiatement l'erreur (`Affected patches: Pack >
     /// Patch, …`, IL `PatchManager::ApplyPatchesToAsset`). Chaque élément se
@@ -40,7 +43,7 @@ struct LoadConflict: Equatable, Hashable {
     /// `TRACE` avant les autres, la branche `withinOnePack` n'en émet pas, et
     /// une version future peut changer la forme. Vide veut dire « inconnu »,
     /// et l'affichage s'abstient.
-    var affectedPatches: [String] = []
+    public var affectedPatches: [String] = []
 }
 
 enum ContentPatcherConflicts {

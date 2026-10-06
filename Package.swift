@@ -367,6 +367,7 @@ let package = Package(
                 "Stores/SaveAbsentModsStore.swift",
                 "Stores/SaveCleanupStore.swift",
                 "Stores/ProbePerformanceStore.swift",
+                "Stores/SessionEnvironmentStore.swift",
                 "Stores/ModImpactStore.swift",
                 "Models/ChangelogExcerpt.swift",
             ],
@@ -1264,6 +1265,11 @@ let package = Package(
             name: "ConfigMenuCoverageTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ConfigMenuCoverageTests"
+        ),
+        .testTarget(
+            name: "SessionEnvironmentStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SessionEnvironmentStoreTests"
         ),
         .testTarget(
             name: "BisectionCopyTests",
