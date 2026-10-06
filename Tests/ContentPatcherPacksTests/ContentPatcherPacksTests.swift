@@ -93,6 +93,36 @@ struct ContentPatcherPacksTests {
         #expect(result.patches == 2)
     }
 
+    @Test func commentsAndTrailingCommasTolerated() {
+        // CP parse content.json avec Newtonsoft : commentaires `//` et `/*…*/`
+        // et virgules traînantes y sont légaux — 90 des 137 content.json du
+        // vrai parc (2026-10-06) en portent, dont SVE et Ridgeside. Strict,
+        // ils ressortaient `illisible` à tort.
+        let text = """
+        // ligne d'en-tête
+        {
+            /* bloc
+           multi-ligne */
+            "Changes": [
+                {"Action": "Load"},
+                {"Action": "Load"}, // fin de ligne
+            ],
+        }
+        """
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text, includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 2)
+    }
+
+    @Test func commentMarkersInsideStringsStay() {
+        // Le nettoyage ne doit pas toucher une chaîne : une URL, un texte
+        // avec `//`, `,}` ou `/*` reste entier.
+        let text = #"{"Changes": [{"Action": "EditData", "Entries": {"a//b": "x,} y/*z*/"}, "When": {"url": "http://example.com/p"}, }]}"#
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text, includeLoader: { _ in nil })
+        #expect(result.state == .ok)
+        #expect(result.patches == 1)
+    }
+
     @Test func bomPrefixTolerated() {
         let text = "\u{FEFF}" + json(["Changes": [["Action": "Load"]]])
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: text, includeLoader: { _ in nil })
