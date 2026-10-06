@@ -171,6 +171,7 @@ let package = Package(
                 "Models/ConfigMenuCoverage.swift",
                 "Models/SloOptimizerConfig.swift",
                 "Models/SloDiagnosticContract.swift",
+                "Models/SloDiagnosticTransaction.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
