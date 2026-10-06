@@ -12,6 +12,7 @@ struct PerformanceSmoothnessSection: View {
     var body: some View {
         let chart = report.charts[measure]
         let data = (marks: chart?.marks ?? [], yMax: chart?.yMax)
+        let activeMark = data.marks.first { $0.id == (hoveredId ?? selectedId) }
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Performance.sectionTimeline)).font(AppDesign.Font.headline(.semibold))
             Picker(localization.L(L10n.Performance.sectionSmoothness), selection: $measure) {
@@ -30,9 +31,11 @@ struct PerformanceSmoothnessSection: View {
             }
             timeline(.before, data: data)
             timeline(.after, data: data)
-            if let mark = data.marks.first(where: { $0.id == (hoveredId ?? selectedId) }) {
-                Text(markText(mark)).font(AppDesign.Font.footnote).textSelection(.enabled)
-            }
+            // Hauteur toujours réservée : le survol remplit cette ligne sans
+            // déplacer les explications et les détails situés dessous.
+            Text(activeMark.map(markText) ?? " ")
+                .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                .lineLimit(1).truncationMode(.tail).textSelection(.enabled)
             if measure == .work { note(L10n.PerformanceEvidence.workNote) }
             if measure == .frameP99 { note(L10n.PerformanceEvidence.p99Note) }
             if measure.isMemory { note(L10n.PerformanceEvidence.memoryNote) }
