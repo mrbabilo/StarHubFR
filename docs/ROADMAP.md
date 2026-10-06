@@ -562,7 +562,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T1, D4-T3, D4-T4, D4-T5, D5-A, D5-B et D5-C livrés ; restent D2, D4-T6b (optionnel), D4-T9 (livré le 2026-10-06, à valider en jeu) et la recette accessibilité/cycle de jeu de la refonte
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D4-T1, D4-T3, D4-T4, D4-T5, D4-T9, D5-A, D5-B et D5-C livrés ; restent D2, D4-T6b (optionnel) et la recette accessibilité/cycle de jeu de la refonte
 
 **Refonte de la page et de l'analyse — livrée et parcours principal validé le
 2026-10-06** — résumé de dernière session, comparaison par métrique et par lieu
@@ -912,7 +912,7 @@ SLO est actif et ce que la dernière session a mesuré.
       + tableau avant/après (`ProbeComparison.workingSet`/`committed`) ;
       sessions antérieures à 0.9.11 : message dédié, pas des exclusions de
       trames. Déployée sur le parc.
-- [ ] **D4-T9** — **Charge de la scène** par minute, relevée par la sonde **sans
+- [x] **D4-T9** — **Charge de la scène** par minute, relevée par la sonde **sans
       patch de dessin** (comptage des collections en mémoire au moment d'écrire
       la ligne, ≈ µs/minute — compter à chaque dessin, comme Stardropium,
       fausserait le temps de trame mesuré) : PNJ, animaux, meubles, objets
@@ -924,6 +924,14 @@ SLO est actif et ce que la dernière session a mesuré.
       `TelemetryMetrics` de Stardropium ont servi d'inventaire ; seule leur
       moitié « dessinés » décrit la scène, l'autre mesure ses propres
       économies. · **M**
+      ✅ *Livré et validé en jeu le 2026-10-06* : sonde **0.9.21**,
+      `SceneCounts` relève la scène une fois par minute et `ProbeScene` compare
+      cinq observations minimum par lieu. La page distingue scène similaire,
+      différente ou inconnue ; une scène différente limite la qualité de la
+      conclusion au lieu d'attribuer l'écart à un mod (`fcd06c23`, complété par
+      la refonte `de3a9c2b`). Validation réelle : six observations sur la Ferme
+      puis une sur la Ville, avec variation cohérente des objets (**1 013 →
+      921**) et des éléments de terrain (**531 → 484**) pendant la session.
 - [x] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
       nombres bornés, liste pour les choix — lève le « ne pas porter : le curseur »
       de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
