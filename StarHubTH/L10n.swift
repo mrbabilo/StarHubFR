@@ -1231,6 +1231,7 @@ enum L10n {
         static let envFlavorMcm       = "perf_env_flavor_mcm"
         static let envFlavorGmcm      = "perf_env_flavor_gmcm"
         static let envPacksTitle      = "perf_env_packs_title"
+        static let envPacksNone       = "perf_env_packs_none"
         static let envPacksTotal      = "perf_env_packs_total"
         static let envPacksRest       = "perf_env_packs_rest"
         static let envPacksIllisible  = "perf_env_packs_illisible"

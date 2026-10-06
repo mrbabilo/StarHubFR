@@ -2147,6 +2147,7 @@
   "perf_env_flavor_mcm": "Modern Config Menu",
   "perf_env_flavor_gmcm": "Generic Mod Config Menu",
   "perf_env_packs_title": "Content Patcher",
+  "perf_env_packs_none": "No active Content Patcher pack found on disk",
   "perf_env_packs_total": "%1$lld patches in %2$lld packs",
   "perf_env_packs_rest": "and %lld more",
   "perf_env_packs_illisible": "Unreadable packs (not counted): %@",

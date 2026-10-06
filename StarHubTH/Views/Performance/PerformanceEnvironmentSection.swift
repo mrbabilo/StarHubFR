@@ -152,7 +152,10 @@ struct PerformanceEnvironmentSection: View {
             Text(localization.L(L10n.Performance.envPacksTitle))
                 .font(AppDesign.Font.headline(.semibold))
             if report.groups.isEmpty {
-                Text(localization.L(L10n.Performance.envJournalMissing))
+                // Le report != nil garantit un journal lu : ici c'est le disque
+                // qui n'a aucun pack CP actif (tout en pause, ou gameDir absent)
+                // — pas « pas de journal » (revue D2-T3, issue 1).
+                Text(localization.L(L10n.Performance.envPacksNone))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             } else {
                 Text(String(format: localization.L(L10n.Performance.envPacksTotal),
