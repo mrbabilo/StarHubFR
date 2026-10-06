@@ -174,6 +174,7 @@ let package = Package(
                 "Models/SloDiagnosticTransaction.swift",
                 "Models/SloDiagnosticLog.swift",
                 "Models/SloDiagnosticReport.swift",
+                "Models/SloDiagnosticSources.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
