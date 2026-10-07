@@ -402,7 +402,8 @@ struct ModListView: View {
                 .padding(.top, AppDesign.Spacing.lg)
             }
             .focusable().focusEffectDisabled()
-            .onKeyPress(keys: Self.navigationKeys) { handleListKey($0.key, display: display, page: page, proxy: proxy) } }
+            .onKeyPress(keys: Self.navigationKeys) { handleListKey($0, display: display, page: page, proxy: proxy) } }
+            if listLayout == .list { ModListSelectionBar(viewModel: vm, localization: localization, listState: listState) }
             // ── Sticky pagination footer ─────────────────────────────────
             // Pinned under the scrolling list, like LogsView's status bar.
             if !filtered.isEmpty && !display.isEmpty && pages > 1 {

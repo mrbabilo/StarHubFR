@@ -53,6 +53,11 @@ public enum KeyboardShortcutCatalog {
                 ShortcutEntry(["↑", ShortcutEntry.or, "↓"], L10n.Shortcuts.listMove),
                 ShortcutEntry(["↖", ShortcutEntry.or, "↘"], L10n.Shortcuts.listEnds),
                 ShortcutEntry(["↩"], L10n.Shortcuts.listOpen),
+                ShortcutEntry(["⇧", "↑", ShortcutEntry.or, "↓"], L10n.Shortcuts.listExtend),
+                ShortcutEntry(["⌘"], L10n.Shortcuts.listPick),
+                ShortcutEntry(["⌘", "A"], L10n.Shortcuts.listSelectAll),
+                ShortcutEntry(["␣"], L10n.Shortcuts.listToggle),
+                ShortcutEntry(["⎋"], L10n.Shortcuts.listClear),
             ]),
             ShortcutGroup(titleKey: L10n.Shortcuts.groupPalette, entries: [
                 ShortcutEntry(["↑", ShortcutEntry.or, "↓"], L10n.Shortcuts.paletteMove),

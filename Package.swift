@@ -116,6 +116,7 @@ let package = Package(
                 "Models/ModGridCardValues.swift",
                 "Models/ModDetailPager.swift",
                 "Models/ModListKeyStep.swift",
+                "Models/ModListSelection.swift",
                 "Models/KeyboardShortcutCatalog.swift",
                 "Models/TextScale.swift",
                 "Models/CompatibilityResolution.swift",
@@ -1041,6 +1042,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "ModListSelectionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModListSelectionTests"
         ),
         .testTarget(
             name: "ModListFiltersTests",

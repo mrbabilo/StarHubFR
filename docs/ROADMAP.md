@@ -1537,11 +1537,15 @@ d'onglet s'applique à chaque saut.
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
 de l'axe — l'un des rares domaines où le port devance nos écrans :
 
-- [ ] **I-T20** — Multi-sélection fine dans la liste : ⇧clic/⇧↑↓ pour les plages,
+- [x] **I-T20** — Multi-sélection fine dans la liste : ⇧clic/⇧↑↓ pour les plages,
       ⌘clic pour ajouter/retirer, ⌘A, bascule **Espace** de la sélection (un seul
       désactivé ⇒ tout activer), navigation ↑↓ — avec la garde de focus (la saisie
       dans un champ ne déclenche pas la bascule). Aujourd'hui : tout/pas tout. Le
       port natif de Stardrop le démontre complet (`AppState.swift:185-400`). · **S**
+      ✅ *Livré le 2026-10-07* : `ModListSelection` (Core, testé) ; clic, ⌘clic,
+      ⇧clic, ⇧↑↓, ⌘A, Échap, Espace ; bandeau dès deux mods ; « Tout » et la
+      sélection partagent `toggleMods` (SMAPI protégé, empreintes avant pause).
+      Mode liste seulement ; composants de pack non sélectionnables.
 - [ ] **I-T21** — Groupes/séparateurs pliables dans la liste (bannière, repli,
       activer/désactiver tout le groupe, déplacer un mod de groupe en groupe,
       génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil

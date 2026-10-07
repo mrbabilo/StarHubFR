@@ -804,6 +804,10 @@
 "mods_disable_all_confirm" = "Disable all mods?";
 "mods_disable_all_message" = "%d mod(s) matching the current list filters will be disabled.";
 "mods_disable_all_kept_smapi" = "Installed by SMAPI, these stay on: %@.";
+"mods_selection_count" = "%lld mods selected";
+"mods_selection_enable" = "Enable";
+"mods_selection_pause" = "Pause";
+"mods_selection_clear" = "Clear selection";
 "mods_disabled" = "Disabled";
 "mods_disabled_all_count" = "Disabled %d mod(s)";
 "mods_disabled_required_deps" = "Disabled dependencies: %@";
@@ -1706,6 +1710,11 @@
 "shortcuts_list_move" = "Select the previous or next mod";
 "shortcuts_list_ends" = "Go to the first or last mod (fn ← / fn →)";
 "shortcuts_list_open" = "Open the selected mod's page";
+"shortcuts_list_extend" = "Extend the selection (also ⇧ click)";
+"shortcuts_list_pick" = "⌘ click: add a mod to the selection or remove it";
+"shortcuts_list_select_all" = "Select every mod in the current view (filters and scope, all pages)";
+"shortcuts_list_toggle" = "Enable or pause the selection (one paused mod: all are enabled)";
+"shortcuts_list_clear" = "Clear the selection";
 "shortcuts_palette_move" = "Choose a destination";
 "shortcuts_palette_go" = "Go there";
 "shortcuts_confirm" = "Confirm the main action";

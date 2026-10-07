@@ -72,6 +72,8 @@ enum ModSortOrder: String, CaseIterable, Identifiable {
 /// Même motif que `vm.bisection`, pour la même raison.
 final class ModListState: ObservableObject {
     @Published var filters = ModListFilters()
+    /// I-T20 — la sélection multiple ; survit à l'ouverture d'une fiche.
+    @Published var selection = ModListSelection()
 
     /// Le cadrage ordonné courant (noms de dossier, premier niveau), tel que
     /// la liste vient de le rendre — liste **et** grille partagent ce flux.

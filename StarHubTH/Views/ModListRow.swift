@@ -20,6 +20,8 @@ struct ModSectionGroup: View {
                     } else {
                         ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
                                    isChild: false, isGroupHeader: false, isExpanded: .constant(false))
+                            .contentShape(Rectangle())
+                            .onTapGesture { listState.clickRow(mod.folderName, viewModel: vm) }
                     }
                     
                     if idx < mods.count - 1 {
@@ -50,6 +52,8 @@ struct ModGroupRow: View {
             ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
                        isChild: false, isGroupHeader: true, isExpanded: $isExpanded)
                 .onTapGesture {
+                    // ⌘ ou ⇧ : la sélection seule (I-T20) ; un clic simple déplie aussi.
+                    guard listState.clickRow(mod.folderName, viewModel: vm) == .plain else { return }
                     withMotion(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
@@ -877,7 +881,7 @@ struct ModListRow: View {
             isHovered ? Color.accentColor.opacity(0.06) : Color.clear
         )
         .background(
-            vm.selectedModID == mod.folderName
+            vm.selectedModID == mod.folderName || (!isChild && listState.selection.selected.contains(mod.folderName))
                 ? Color.accentColor.opacity(0.08)
                 : Color.clear
         )

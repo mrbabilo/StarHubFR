@@ -25,7 +25,9 @@ struct KeyboardShortcutCatalogTests {
         #expect(combos.contains("⌘ /"))
         #expect(combos.contains("⌘ ,"))
         #expect(combos.contains("↑ | ↓"))
-        #expect(groups.flatMap(\.entries).count == 9 + 4 + 3 + 3 + 2 + 4)
+        #expect(combos.contains("⌘ A"))
+        #expect(combos.contains("␣"))
+        #expect(groups.flatMap(\.entries).count == 9 + 4 + 8 + 3 + 2 + 4)
     }
 
     /// Dans un même groupe, une combinaison ne peut pas vouloir dire deux

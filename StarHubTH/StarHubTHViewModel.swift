@@ -7052,18 +7052,18 @@ final class StarHubTHViewModel {
     /// collision guard as `performToggle` : un dossier à destination n'est
     /// écarté que s'il porte l'identité du mod, sinon refus compté. Progress
     /// after every move; timestamps only for moved mods.
-    @MainActor
-    func toggleAllMods(enable: Bool, fingerprintChecked: Bool = false) {
+    /// X57 : ensemble du cadrage courant, figé ici sur main.
+    @MainActor func toggleAllMods(enable: Bool) {
+        toggleMods(scopedMods(from: mods(matching: modList.filters), scope: modList.filters.scope), enable: enable)
+    }
+    /// Moteur commun de « Tout » et de la sélection (I-T20), mods de premier niveau.
+    @MainActor func toggleMods(_ candidates: [ModItem], enable: Bool, fingerprintChecked: Bool = false) {
         if refuseDuringBenchmark() { return }
         // No re-entry (same paths), and not while unit toggles are queued: the
         // guard prevents the collision the disk checks would only contain.
         guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
               !saveFingerprintPauseStore.isBusy else { return }
-
-        // X57 : ensemble du cadrage courant, figé ici sur main.
-        let framing = modList.filters
-        let modsToMove = scopedMods(from: mods(matching: framing), scope: framing.scope)
-            .bulkToggleTargets(enable: enable)
+        let modsToMove = candidates.bulkToggleTargets(enable: enable)
         guard !modsToMove.isEmpty else {
             log(enable ? localization.L(L10n.Mods.allAlreadyEnabled) : localization.L(L10n.Mods.allAlreadyDisabled))
             return
@@ -7073,7 +7073,7 @@ final class StarHubTHViewModel {
         if !enable, !fingerprintChecked, !modsToMove.allUniqueIds.isEmpty {
             return saveFingerprintPauseStore.checkBeforePause(
                 subject: .mods(count: modsToMove.count), modIDs: modsToMove.allUniqueIds,
-                resume: { [weak self] in self?.toggleAllMods(enable: false, fingerprintChecked: true) },
+                resume: { [weak self] in self?.toggleMods(candidates, enable: false, fingerprintChecked: true) },
                 abort: {})
         }
         let total = modsToMove.count

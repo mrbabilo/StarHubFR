@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Sélection multiple dans la liste des mods.** Clic, ⌘clic, ⇧clic, ⇧↑↓ et ⌘A sélectionnent ; Espace active ou met en pause la sélection (un mod en pause : tout s'active) ; un bandeau donne le compte et les deux gestes. Les mods de SMAPI restent protégés.
+
 ## [1.59.0] - 2026-10-07
 
 ### Added
