@@ -332,6 +332,12 @@ enum L10n {
         /// plus rien, il déclare.
         static let reportConfirm      = "conflicts_report_confirm"
         static let activationWarning  = "conflicts_activation_warning"
+        /// A5-T8 — la confirmation des gestes groupés (`BulkConflictSummary`).
+        static let bulkModsMessage    = "conflicts_bulk_mods_message"
+        static let bulkProfileMessage = "conflicts_bulk_profile_message"
+        static let bulkPairLine       = "conflicts_bulk_pair_line"
+        static let bulkAssetsLine     = "conflicts_bulk_assets_line"
+        static let bulkMore           = "conflicts_bulk_more"
     }
 
     /// A5-T7 — mods de performance qui patchent les mêmes méthodes.

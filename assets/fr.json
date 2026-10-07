@@ -2373,5 +2373,10 @@
   "perf_stard_diag_finishedDetail": "Les réglages et les états initiaux des mods ont été restaurés. Le rapport de cette mesure reste disponible ci-dessous.",
   "perf_stard_diag_directoryChanged": "Le dossier de jeu a changé. Sélectionne celui utilisé pour cette mesure, puis actualise pour restaurer les réglages.",
   "perf_diag_pending_slo": "Une mesure SLO est encore en cours ou attend sa restauration. Termine-la dans la carte SLO, puis actualise ici.",
-  "perf_diag_pending_stardropium": "Une mesure Stardropium est encore en cours ou attend sa restauration. Termine-la dans la carte Mémoire — Stardropium, puis actualise ici."
+  "perf_diag_pending_stardropium": "Une mesure Stardropium est encore en cours ou attend sa restauration. Termine-la dans la carte Mémoire — Stardropium, puis actualise ici.",
+  "conflicts_bulk_mods_message": "Activer ces %d mods rend actives des paires en conflit :",
+  "conflicts_bulk_profile_message": "Appliquer le profil « %@ » rend actives des paires en conflit :",
+  "conflicts_bulk_pair_line": "• %@ ↔ %@",
+  "conflicts_bulk_assets_line": "   chargent tous deux %@ en exclusif : aucun des deux ne s'appliquera.",
+  "conflicts_bulk_more": "et %d autres paires"
 }

@@ -225,7 +225,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **4 items ouverts sur 32** *(le 2026-10-08 : **A5-T8** ajouté à la livraison d'A5-T4 ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **3 items ouverts sur 32** *(le 2026-10-08 : **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -321,16 +321,8 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 > 13 Mo de JSON) pour **trois paires dormantes**. Elle passe donc en dernier.
 > *(Livrée en dernier, le 2026-10-08 : **A5-T4**, à l'archive — 3 duos dormants, 0 actif, mêmes chiffres qu'au spike.)*
 
-> ✅ **A5-T1 → A5-T4 et A5-T7 sont livrés** (A5-T4 le 2026-10-08). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **A5-T1 → A5-T4, A5-T7 et A5-T8 sont livrés** (A5-T4 et A5-T8 le 2026-10-08). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
-- [ ] **A5-T8** — **Les gestes en masse esquivent l'alerte de conflit.** *(relevé le
-      2026-10-08, à la livraison d'A5-T4.)* `conflictWarning(for:)` ne garde que les
-      trois activations unitaires (ligne, fiche, arbre des dépendances) ; `toggleMods`
-      — « Tout activer », bandeau et Espace de la multi-sélection (I-T20) — et
-      l'application d'un profil activent sans le consulter. Une paire `Load` exclusive
-      réveillée en masse passe donc sans un mot, et Content Patcher n'applique alors
-      **ni l'un ni l'autre**. À faire : une seule confirmation récapitulative avant
-      le geste, qui nomme les paires et leurs assets ; jamais une alerte par mod. · **S**
 - [ ] **A5-T5** — **Élargir le signal**, une source à la fois et chacune mesurée avant
       d'être codée : les 339 fichiers illisibles, les 1 280 cibles à jetons *(chiffres
       du spike du 2026-08-29, avant le lecteur Newtonsoft commun et le suivi des
@@ -2163,7 +2155,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **B1-T4** | 2026-08-25 | Réunir les problèmes dans l'onglet qui porte ce nom |
 | **B1-T3** | — | Pastilles d'anomalie dans la liste des mods. Livré : une pastille orange près du nom réunit les trois signaux — erreu… |
 
-**Fiabilité du registre & compatibilité — Axe A · 4 items ouverts**
+**Fiabilité du registre & compatibilité — Axe A · 3 items ouverts**
 
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
@@ -2195,6 +2187,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A2-T5** | 2026-10-07 | 3e source hors ligne : `smapi-internal/metadata.json`, bornes de version lues (`SmapiLocalMetadata`) ; sans elles, 14 faux signaux sur le parc pour 1 réel |
 | **A3-T8** | 2026-10-07 | Approuver un mod Nexus depuis sa fiche, refus typés (`NexusEndorsement`) ; nombre d'approbations en fiche, liste et grille, tris associés |
 | **A5-T4** | 2026-10-08 | Conflits `Load` exclusifs Content Patcher prévus depuis les fichiers : porte d'activation unitaire, ligne « Prévu » dans le rapport ; 3 duos dormants, 0 actif. Vérifié dans l'app par l'auteur le 2026-10-08 ; gestes en masse → **A5-T8** |
+| **A5-T8** | 2026-10-08 | « Tout activer », la sélection et l'activation d'un profil annoncent les paires en conflit qu'ils rendraient actives, deux mods réveillés ensemble compris ; une confirmation récapitulative (`newConflicts`, `BulkConflictGateStore`) |
 | **A5-T7** | 2026-09-26 | Deux mods de performance qui patchent les mêmes méthodes : catalogue décompilé (marche 1), puis carte Harmony de la sonde (marche 2) — Stardropium × UltraSmooth 6, pas 9 |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**

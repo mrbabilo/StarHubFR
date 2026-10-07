@@ -2374,3 +2374,8 @@
 "perf_stard_diag_directoryChanged" = "The game folder has changed. Select the folder used for this measurement, then refresh to restore settings.";
 "perf_diag_pending_slo" = "An SLO measurement is still running or awaiting restoration. Complete it in the SLO card, then refresh here.";
 "perf_diag_pending_stardropium" = "A Stardropium measurement is still running or awaiting restoration. Complete it in the Memory — Stardropium card, then refresh here.";
+"conflicts_bulk_mods_message" = "Turning on these %d mods makes conflicting pairs active:";
+"conflicts_bulk_profile_message" = "Applying the profile \"%@\" makes conflicting pairs active:";
+"conflicts_bulk_pair_line" = "• %@ ↔ %@";
+"conflicts_bulk_assets_line" = "   both load %@ exclusively: neither will apply.";
+"conflicts_bulk_more" = "and %d more pairs";

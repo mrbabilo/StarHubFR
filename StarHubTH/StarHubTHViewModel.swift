@@ -355,9 +355,7 @@ final class StarHubTHViewModel {
     @MainActor
     var healthIssues: [HealthIssue] {
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
-        let candidates = modConflictVerdicts.candidates(
-            observed: contentPatcherConflicts.compactMap(conflictPair),
-            predicted: contentPatcherLoadIndex.conflictPairs, installed: mods)
+        let candidates = conflictCandidates
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
                                                     activeFolders: activeFolders)
         // Seul le VM connaît `[ModItem]` ; la règle (repli sur le dossier) est
@@ -2220,6 +2218,7 @@ final class StarHubTHViewModel {
     /// A1-T8 — état de l'avertissement d'empreintes dans son store ; le VM
     /// intercepte la pause dans `performToggle` et relance au confirm.
     let saveFingerprintPauseStore = SaveFingerprintPauseStore()
+    let bulkConflictGate = BulkConflictGateStore() // A5-T8, gestes groupés
 
     /// Bulk enable/disable progress `(done, total)`, nil when idle.
     var bulkToggleProgress: (done: Int, total: Int)? = nil
@@ -2930,6 +2929,10 @@ final class StarHubTHViewModel {
         return compatibilityWarning(for: mod)
     }
 
+    /// Toutes les paires à juger, une seule définition pour la pastille et les gardes.
+    var conflictCandidates: [ModConflictPair] { modConflictVerdicts.candidates(
+        observed: contentPatcherConflicts.compactMap(conflictPair),
+        predicted: contentPatcherLoadIndex.conflictPairs, installed: mods) }
     /// Mod **actif** avec lequel activer `mod` formerait un conflit connu.
     /// **Séparée** d'`activationWarning` (type de retour taillé pour smapi.io,
     /// déjà consommé par `compatibilityGate`). État **actuel** du parc
@@ -2941,9 +2944,7 @@ final class StarHubTHViewModel {
         // composants dans `activating`.
         let activating = Set([mod.folderName] + (mod.children ?? []).map(\.folderName))
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
-        let candidates = modConflictVerdicts.candidates(
-            observed: contentPatcherConflicts.compactMap(conflictPair),
-            predicted: contentPatcherLoadIndex.conflictPairs, installed: mods)
+        let candidates = conflictCandidates
         guard let otherFolder = modConflictVerdicts.activationConflict(
             activating: activating, candidates: candidates, activeFolders: activeFolders
         ) else { return nil }
@@ -6740,8 +6741,8 @@ final class StarHubTHViewModel {
         return true
     }
 
-    func applyProfile(id: UUID?, fingerprintChecked: Bool = false) {
-        if refuseDuringBenchmark() { return }
+    func applyProfile(id: UUID?, fingerprintChecked: Bool = false, conflictChecked: Bool = false) {
+        if refuseDuringBenchmark() || bulkConflictGate.isBusy { return }
         // Aiguillage dans `ProfileActivation` (Core, 16 tests).
         // ⚠️ `isGameRunning()` **en closure** : il informe le garde anti
         // double-lancement ; un test épingle cette paresse.
@@ -6793,6 +6794,10 @@ final class StarHubTHViewModel {
                         self?.applyProfile(id: id, fingerprintChecked: true) },
                     abort: { [weak self] in self?.profilesStore.setApplying(false) })
             }
+            // A5-T8 — après les empreintes : la reprise porte les deux drapeaux.
+            if !conflictChecked, bulkConflictGate.suspendIfNeeded(
+                applying: profile, mods: mods, verdicts: modConflictVerdicts, candidates: conflictCandidates,
+                resume: { [weak self] in self?.applyProfile(id: id, fingerprintChecked: true, conflictChecked: true) }) { return }
             // Capture AVANT tout : seule fenêtre où les réglages du sortant existent.
             if let capturing { captureProfileConfigs(for: capturing) }
             if let clearingJournalNamed {
@@ -7084,12 +7089,13 @@ final class StarHubTHViewModel {
         toggleMods(scopedMods(from: mods(matching: modList.filters), scope: modList.filters.scope), enable: enable)
     }
     /// Moteur commun de « Tout » et de la sélection (I-T20), mods de premier niveau.
-    @MainActor func toggleMods(_ candidates: [ModItem], enable: Bool, fingerprintChecked: Bool = false) {
+    @MainActor func toggleMods(_ candidates: [ModItem], enable: Bool, fingerprintChecked: Bool = false,
+                               conflictChecked: Bool = false) {
         if refuseDuringBenchmark() { return }
         // No re-entry (same paths), and not while unit toggles are queued: the
         // guard prevents the collision the disk checks would only contain.
         guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
-              !saveFingerprintPauseStore.isBusy else { return }
+              !saveFingerprintPauseStore.isBusy, !bulkConflictGate.isBusy else { return }
         let modsToMove = candidates.bulkToggleTargets(enable: enable)
         guard !modsToMove.isEmpty else {
             log(enable ? localization.L(L10n.Mods.allAlreadyEnabled) : localization.L(L10n.Mods.allAlreadyDisabled))
@@ -7103,6 +7109,11 @@ final class StarHubTHViewModel {
                 resume: { [weak self] in self?.toggleMods(candidates, enable: false, fingerprintChecked: true) },
                 abort: {})
         }
+        // A5-T8 — paires en conflit que l'activation groupée rendrait actives.
+        if enable, !conflictChecked, bulkConflictGate.suspendIfNeeded(
+            mods: mods, verdicts: modConflictVerdicts, candidates: conflictCandidates,
+            enabling: modsToMove.map(\.folderName), subject: .mods(count: modsToMove.count),
+            resume: { [weak self] in self?.toggleMods(candidates, enable: true, conflictChecked: true) }) { return }
         let total = modsToMove.count
         bulkToggleEnabling = enable
         bulkToggleProgress = (done: 0, total: total)

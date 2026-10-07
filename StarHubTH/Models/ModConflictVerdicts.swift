@@ -170,6 +170,22 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         return sortPairs(Array(filtered))
     }
 
+    /// A5-T8 — les paires qu'un geste groupé (« Tout activer », sélection,
+    /// profil) rendrait actives et qui ne l'étaient pas : le différentiel de
+    /// `liveConflicts`, donc les mêmes règles (écartées muettes, une fois par
+    /// paire). Contrairement à `activationConflict`, deux mods activés
+    /// **ensemble** comptent — c'est le cas qu'un geste groupé ajoute. Seules
+    /// restent muettes les paires internes à un même pack (`topFolders`).
+    public func newConflicts(candidates: [ModConflictPair], activeBefore: Set<String>,
+                             activeAfter: Set<String>, topFolders: [String: String]) -> [ModConflictPair] {
+        let before = Set(liveConflicts(candidates: candidates, activeFolders: activeBefore))
+        return liveConflicts(candidates: candidates, activeFolders: activeAfter).filter { pair in
+            guard !before.contains(pair) else { return false }
+            guard let top = topFolders[pair.first] else { return true }
+            return topFolders[pair.second] != top
+        }
+    }
+
     /// Le compte **dérive** de la liste : une seule règle de filtrage, pas
     /// deux qui finiraient par diverger.
     public func liveConflictCount(candidates: [ModConflictPair],

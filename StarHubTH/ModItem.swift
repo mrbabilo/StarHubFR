@@ -281,6 +281,21 @@ extension Array where Element == ModItem {
         filter { $0.isEnabled != enable && (enable || !$0.isSmapiBundled) }
     }
 
+    /// A5-T8 — les dossiers actifs **après** un geste groupé, dans la forme de
+    /// la pastille (composants, jamais l'en-tête d'un pack). `enabling` et
+    /// `disabling` sont des dossiers **de tête**, ceux que le geste renomme.
+    func activeFolders(enabling: Set<String>, disabling: Set<String>) -> Set<String> {
+        Set(filter { enabling.contains($0.folderName) || ($0.isEnabled && !disabling.contains($0.folderName)) }
+            .flattenedMods.map(\.folderName))
+    }
+
+    /// Le dossier de tête de chaque dossier — composant ou mod simple : deux
+    /// membres d'une paire qui partagent la même tête viennent du même pack.
+    var topFolders: [String: String] {
+        Dictionary(flatMap { top in top.components.map { ($0.folderName, top.folderName) } },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
     /// Les mods de SMAPI qu'une désactivation en masse laisse actifs : la
     /// confirmation les nomme, le refus n'est pas muet.
     func bulkToggleKept(enable: Bool) -> [ModItem] {

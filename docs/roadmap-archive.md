@@ -5842,6 +5842,30 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       travail », pas « ils sont incompatibles ». · **M** (marches 1 et 2 livrées)
 
 
+- [x] **A5-T8** — **Les gestes en masse esquivent l'alerte de conflit.** *(relevé le
+      2026-10-08, à la livraison d'A5-T4.)* `conflictWarning(for:)` ne garde que les
+      trois activations unitaires (ligne, fiche, arbre des dépendances) ; `toggleMods`
+      — « Tout activer », bandeau et Espace de la multi-sélection (I-T20) — et
+      l'application d'un profil activent sans le consulter. Une paire `Load` exclusive
+      réveillée en masse passe donc sans un mot, et Content Patcher n'applique alors
+      **ni l'un ni l'autre**. À faire : une seule confirmation récapitulative avant
+      le geste, qui nomme les paires et leurs assets ; jamais une alerte par mod. · **S**
+      ✅ *Livré le 2026-10-08* : `ModConflictVerdicts.newConflicts` (Core, 9
+      tests) — différentiel de `liveConflicts` entre l'état actuel et l'état
+      d'après le geste (`[ModItem].activeFolders`), donc deux mods réveillés
+      **ensemble** comptent ; paires déjà actives, écartées, ou internes à un
+      pack (`topFolders`) muettes. `BulkConflictGateStore` + alerte racine
+      `bulkConflictGate` : trois paires au plus, assets disputés nommés.
+      Gardés : `toggleMods` (« Tout activer », bandeau, Espace) et l'activation
+      d'un profil, après les empreintes. **Exemptés, par décision** : la chaîne
+      de dépendances d'une activation unitaire (la garde unitaire ne teste que
+      le mod cliqué ; les dépendances sont des frameworks), la bissection
+      (geste de diagnostic), la reprise d'un profil interrompu (geste déjà
+      confirmé), l'édition du profil actif (`updateProfile` applique sans
+      garde), l'installation et la mise à jour (le mod arrive actif : la
+      pastille seule le rattrape).
+
+
 ### Performance mesurée — Axe D
 
 #### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
