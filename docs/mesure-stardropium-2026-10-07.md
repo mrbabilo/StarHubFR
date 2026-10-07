@@ -65,3 +65,29 @@ données de partie. D2-T5 est implémenté dans `StardropiumMemoryReport` et la 
 horodatés et conclusion sur le dernier relevé. La carte reste explicitement
 attachée au dernier journal, indépendamment des sessions comparées de la sonde.
 Vérification visuelle par l'utilisateur encore à faire.
+
+## Validation du lancement guidé — 16:41 à 16:47
+
+Mesure effectuée par l'utilisateur après les corrections de reprise. Le journal
+commence à **16:41:48**, charge Stardropium **0.2.2-beta**, SLO **1.0.0** et
+la sonde **0.9.22**, puis se ferme normalement à **16:47:38**.
+
+```text
+[16:46:44 INFO  Stardropium] [Morning Memory Optimizer (Background)] RAM: 2097 MB -> 2099 MB (Managed Heap: 4246 MB -> 4244 MB, 0 cached textures purged/bounded).
+```
+
+Le reçu `StardropiumDiagnostic/memory_report.json`, terminé à **16:47:42**,
+contient exactement ce relevé, le début de cette session, la bonne version et
+zéro ligne illisible. Aucun instantané de restauration SLO ou Stardropium ne
+subsiste. Stardropium est revenu en pause ; SLO et la sonde sont actifs,
+UltraSmooth reste en pause. La transaction est terminée ; les octets de la
+configuration initiale ne sont plus disponibles pour une comparaison indépendante.
+
+RAM résidente : **+2 Mio** ; mémoire gérée : **−2 Mio** ; **0 texture purgée**.
+Un seul relevé ne démontre aucun gain global ni amélioration de fluidité. Aucun
+WARN/ERROR attribué à Stardropium, SLO ou la sonde. Les trois problèmes déjà
+observés restent distincts : Alternative Textures absent, patch Sunberry Village
+sur CJB Cheats Menu en échec, authentification Galaxy non connectée.
+
+Acquisition et fin de transaction validées par les fichiers. L'affichage des
+graphiques et des confirmations reste à confirmer visuellement par l'utilisateur.

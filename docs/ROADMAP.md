@@ -714,8 +714,10 @@ le journal réel le 2026-09-04.
       Rapport lié au lancement et conservé séparément de SLO ; reprise après
       interruption, conflits de config et changement de dossier de jeu protégés.
       Build, suite complète, sources offline et relecture validés.
-      **Vérification visuelle et essai du lancement guidé par l'utilisateur
-      à faire**. · **S**
+      Essai guidé effectué par l'utilisateur le **2026-10-07, 16:41–16:47** :
+      relevé matinal retrouvé dans le rapport conservé, Stardropium revenu en
+      pause, aucun instantané de restauration restant. **Affichage des graphiques
+      et confirmations encore à valider visuellement**. · **S**
 - [ ] **D2-T6** — Vérifier en jeu les deux risques relevés dans UltraSmooth 2.3.7
       ([audit](audit-ultrasmooth-2.3.7.md) §3), puis les signaler à l'auteur :
       (1) `DayTransitionOptimizer` saute `GameLocation.DayUpdate` des lieux
