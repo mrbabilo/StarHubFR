@@ -42,7 +42,11 @@ struct DiagnosticsView: View {
             logURL: URL(fileURLWithPath: viewModel.smapiLogPath), probeFiles: ProbeFiles()))
         // Le segment survit à la navigation : entrer directement sur
         // Performances ou Journal doit trouver son onglet monté.
-        _mounted = State(initialValue: [viewModel.navigationStore.diagnosticsSegment])
+        var initiallyMounted = Set([viewModel.navigationStore.diagnosticsSegment])
+        if SloDiagnosticSnapshotStore.hasPending(in: AppSupport.directory) {
+            initiallyMounted.insert(.performance)
+        }
+        _mounted = State(initialValue: initiallyMounted)
     }
 
     private var segment: Binding<DiagnosticsSegment> {

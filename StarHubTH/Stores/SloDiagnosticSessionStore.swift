@@ -28,7 +28,6 @@ public final class SloDiagnosticSessionStore {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var finalizing = false
     @ObservationIgnored private var pendingReport: SloDiagnosticReport?
-
     public init(applicationSupport: URL?, logURL: URL, probeFiles: ProbeFiles) {
         self.applicationSupport = applicationSupport
         self.logURL = logURL
@@ -82,11 +81,6 @@ public final class SloDiagnosticSessionStore {
         }
         state = .preparing
         let installation = preparation.slo
-        let original = FileManager.default.contents(atPath: installation.initialConfigURL.path)
-        guard let prepared = try? SloDiagnosticTransaction.prepare(
-            original: original, version: installation.version) else {
-            state = .failed(.invalidConfig); return
-        }
         let rootNames = orderedUnique([installation.rootFolderName,
                                        preparation.probeRootFolderName])
         var roots: [SloDiagnosticRootSnapshot] = []
@@ -98,10 +92,19 @@ public final class SloDiagnosticSessionStore {
                 logicalName: name, initialPhysicalName: enabled ? name : ".\(name)",
                 activePhysicalName: name, initiallyEnabled: enabled))
         }
+        guard let sloWasEnabled = roots.first(where: { $0.logicalName.caseInsensitiveCompare(
+            installation.rootFolderName) == .orderedSame })?.initiallyEnabled
+        else { state = .failed(.invalidConfig); return }
+        let initialConfigURL = sloWasEnabled ? installation.activeConfigURL : installation.initialConfigURL
+        let original = FileManager.default.contents(atPath: initialConfigURL.path)
+        guard let prepared = try? SloDiagnosticTransaction.prepare(
+            original: original, version: installation.version) else {
+            state = .failed(.invalidConfig); return
+        }
         let known = Set(probeFiles.sessions().sessions.map(\.id))
         var snapshot = SloDiagnosticSnapshot(
             startedAt: runtime.now(), modsRootURL: modsRootURL(for: installation),
-            roots: roots, initialConfigURL: installation.initialConfigURL,
+            roots: roots, initialConfigURL: initialConfigURL,
             activeConfigURL: installation.activeConfigURL, originalConfig: prepared.original,
             diagnosticConfig: prepared.data, acceptedDiagnosticSHA256: [prepared.sha256],
             logBookmark: SloDiagnosticSourceReader.bookmark(logURL: logURL),
@@ -112,7 +115,7 @@ public final class SloDiagnosticSessionStore {
         for root in roots where !root.initiallyEnabled {
             guard await runtime.setModEnabled(root.logicalName, true),
                   runtime.modEnabled(root.logicalName) == true else {
-                await rollback(snapshot: snapshot, runtime: runtime)
+                guard await rollback(snapshot: snapshot, runtime: runtime) else { return }
                 state = .failed(.rootActivation(root.logicalName)); return
             }
             snapshot.activatedRootFolderNames.insert(root.logicalName)
@@ -126,14 +129,15 @@ public final class SloDiagnosticSessionStore {
             snapshot.configWritten = true
             try SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport)
         } catch {
-            await rollback(snapshot: snapshot, runtime: runtime)
+            guard await rollback(snapshot: snapshot, runtime: runtime) else { return }
             state = .failed(.configWrite); return
         }
         snapshot.launchRequestedAt = runtime.now()
         do { try SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport) }
-        catch { await rollback(snapshot: snapshot, runtime: runtime); state = .failed(.snapshotWrite); return }
+        catch { guard await rollback(snapshot: snapshot, runtime: runtime) else { return }
+            state = .failed(.snapshotWrite); return }
         guard runtime.launchGame() else {
-            await rollback(snapshot: snapshot, runtime: runtime)
+            guard await rollback(snapshot: snapshot, runtime: runtime) else { return }
             state = .failed(.launch); return
         }
         state = .waitingForGame
@@ -165,7 +169,7 @@ public final class SloDiagnosticSessionStore {
             return
         }
         guard let requested = snapshot.launchRequestedAt else {
-            await rollback(snapshot: snapshot, runtime: runtime); return
+            _ = await rollback(snapshot: snapshot, runtime: runtime); return
         }
         if snapshot.gameSeen || runtime.now().timeIntervalSince(requested) >= SloDiagnosticRuntime.launchTimeout {
             await runtime.sleep(SloDiagnosticRuntime.sourceSettleSeconds)
@@ -265,12 +269,13 @@ public final class SloDiagnosticSessionStore {
         await runtime.rescan()
         state = .report(report)
     }
-    private func rollback(snapshot: SloDiagnosticSnapshot, runtime: SloDiagnosticRuntime) async {
+    private func rollback(snapshot: SloDiagnosticSnapshot, runtime: SloDiagnosticRuntime) async -> Bool {
         var copy = snapshot
-        _ = await restore(snapshot: &copy, runtime: runtime)
+        guard await restore(snapshot: &copy, runtime: runtime) else { return false }
         if copy.configRestored && copy.restoredRootFolderNames.count == copy.roots.count {
             try? SloDiagnosticSnapshotStore.clear(in: applicationSupport)
         }
+        return true
     }
     private func restore(snapshot: inout SloDiagnosticSnapshot,
                          runtime: SloDiagnosticRuntime) async -> Bool {

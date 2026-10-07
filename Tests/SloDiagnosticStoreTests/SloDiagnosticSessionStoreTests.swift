@@ -11,6 +11,8 @@ import Testing
         var events: [String] = []
         var launchCount = 0
         var setChangesState = true
+        var failRoot: String?
+        var createSloCollisionOnFailure = false
     }
 
     private struct Fixture {
@@ -59,6 +61,14 @@ import Testing
             setModEnabled: { root, enabled in
                 let planExists = SloDiagnosticSnapshotStore.hasPending(in: fixture.support)
                 box.events.append("toggle:\(root):\(enabled):plan=\(planExists)")
+                if root == box.failRoot {
+                    if box.createSloCollisionOnFailure {
+                        try? FileManager.default.createDirectory(
+                            at: mods.appendingPathComponent(".SLO"),
+                            withIntermediateDirectories: true)
+                    }
+                    return false
+                }
                 guard box.setChangesState else { return true }
                 let source = mods.appendingPathComponent(enabled ? ".\(root)" : root)
                 let destination = mods.appendingPathComponent(enabled ? root : ".\(root)")
@@ -264,5 +274,39 @@ import Testing
         let snapshot = try #require(try SloDiagnosticSnapshotStore.load(from: f.support))
         #expect(snapshot.modsRootURL == f.game.appendingPathComponent("Mods").resolvingSymlinksInPath())
         #expect(FileManager.default.fileExists(atPath: groupedConfig.path))
+    }
+
+    @Test func preparationRereadsConfigAtCurrentRootState() async throws {
+        let f = try fixture()
+        defer { try? FileManager.default.removeItem(at: f.base) }
+        let paused = f.game.appendingPathComponent("Mods/.SLO")
+        let active = f.game.appendingPathComponent("Mods/SLO")
+        try FileManager.default.moveItem(at: paused, to: active)
+        let current = Data(#"{"ChangedWhileSheetWasOpen":true}"#.utf8)
+        try current.write(to: f.slo.activeConfigURL)
+        let box = Box(); box.enabled["SLO"] = true
+        let store = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+                                               probeFiles: ProbeFiles(directory: f.probe))
+        let rt = runtime(f, box)
+        await store.start(f.preparation, runtime: rt)
+        var snapshot = try #require(try SloDiagnosticSnapshotStore.load(from: f.support))
+        #expect(snapshot.initialConfigURL == f.slo.activeConfigURL)
+        #expect(snapshot.originalConfig == .bytes(current))
+        snapshot.gameSeen = true
+        try SloDiagnosticSnapshotStore.save(snapshot, in: f.support)
+        box.running = false
+        await store.gameExited(runtime: rt)
+        #expect(try Data(contentsOf: f.slo.activeConfigURL) == current)
+    }
+
+    @Test func failedRollbackKeepsRecoveryActionVisible() async throws {
+        let f = try fixture()
+        defer { try? FileManager.default.removeItem(at: f.base) }
+        let box = Box(); box.failRoot = "Probe"; box.createSloCollisionOnFailure = true
+        let store = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+                                               probeFiles: ProbeFiles(directory: f.probe))
+        await store.start(f.preparation, runtime: runtime(f, box))
+        #expect(store.state == .recoveryBlocked(.rootCollision("SLO")))
+        #expect(SloDiagnosticSnapshotStore.hasPending(in: f.support))
     }
 }
