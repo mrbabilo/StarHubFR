@@ -436,6 +436,9 @@ backup se retrouve en moins de dix secondes.
       `node-nexus-api` (JSON `{"Version"}`), pas mesuré en direct — réponse
       brute au journal. Avec : nombre d'approbations dans la bande de la fiche
       (`endorsement_count` v1, `endorsements` v2, mesuré). [Sources](SOURCES.md).
+      Même jour : pouce et nombre en liste et en grille, tris « Approbations » et
+      « Mise à jour Nexus la plus ancienne » (`NexusModStats`, lots de 80 sans
+      clé via `legacyModsByDomain`, rafraîchis une fois par jour).
 
 
 #### A5 — Incompatibilités entre mods

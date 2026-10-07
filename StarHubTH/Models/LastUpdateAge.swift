@@ -9,6 +9,15 @@ import Foundation
 /// `RelativeDateTimeFormatter`, dont le rendu a été vérifié sur la machine de
 /// référence (« il y a 5 ans », « 5 years ago ») : pas de clé L10n à tenir,
 /// la localisation suit la locale du système.
+/// La ligne « date courte · âge » de la fiche, reprise par le tri « Mise à
+/// jour Nexus la plus ancienne » de la liste et de la grille.
+enum NexusUpdateAge {
+    static func line(for date: Date, now: Date = .init()) -> String {
+        [date.formatted(date: .abbreviated, time: .omitted), LastUpdateAge.ageText(for: date, now: now)]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
+}
+
 enum LastUpdateAge {
     /// Une année moyenne — 365,25 jours, bissextiles compris. La frontière
     /// exacte d'une année civile n'apporterait rien : l'âge se compte en

@@ -54,6 +54,8 @@ enum CategoryScope: Equatable {
 /// sorts by `installedFileDate` (folder mod date), most recent first.
 enum ModSortOrder: String, CaseIterable, Identifiable {
     case name, nameDescending, activationOrder, installDate, author, version, size
+    /// Nexus : le plus approuvé d'abord ; la mise à jour la plus ancienne d'abord.
+    case endorsements, lastNexusUpdate
     var id: String { rawValue }
 }
 

@@ -53,6 +53,8 @@ extension ModListView {
             sortItem(.author, label: L10n.Mods.sortAuthor, icon: "person.fill")
             sortItem(.version, label: L10n.Mods.sortVersion, icon: "tag")
             sortItem(.size, label: L10n.Mods.sortSize, icon: "internaldrive")
+            sortItem(.endorsements, label: L10n.Mods.sortEndorsements, icon: "hand.thumbsup")
+            sortItem(.lastNexusUpdate, label: L10n.Mods.sortLastNexusUpdate, icon: "hourglass")
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
@@ -88,6 +90,8 @@ extension ModListView {
         case .author: return localization.L(L10n.Mods.sortAuthor)
         case .version: return localization.L(L10n.Mods.sortVersion)
         case .size: return localization.L(L10n.Mods.sortSize)
+        case .endorsements: return localization.L(L10n.Mods.sortEndorsements)
+        case .lastNexusUpdate: return localization.L(L10n.Mods.sortLastNexusUpdate)
         }
     }
 

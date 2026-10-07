@@ -37,7 +37,7 @@ struct ModDetailActionBar: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
             actions
             if let id = nexusId, let refusal = vm.endorsementStore.failures[id] {
-                Text(endorsementMessage(refusal))
+                Text(ModEndorsement.message(refusal, localization: localization))
                     .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.error)
             }
         }
@@ -47,10 +47,7 @@ struct ModDetailActionBar: View {
     }
 
     /// A3-T8 — l'identifiant Nexus du mod, si une clé permet d'agir dessus.
-    private var nexusId: Int? {
-        guard vm.hasNexusApiKey, let id = Int(vm.resolvedNexusModId(for: live)), id > 0 else { return nil }
-        return id
-    }
+    private var nexusId: Int? { ModEndorsement.actionableId(live, viewModel: vm) }
 
     private var actions: some View {
         // Icônes seules si la fiche est trop étroite pour les libellés.
@@ -93,8 +90,7 @@ struct ModDetailActionBar: View {
                 markToggle(isOn: endorsed, on: "hand.thumbsup.fill", off: "hand.thumbsup",
                            tint: AppDesign.Color.info,
                            label: endorsed ? L10n.Mods.endorseWithdraw : L10n.Mods.endorseAdd) {
-                    let version = live.version.isEmpty ? (live.components.first?.version ?? "") : live.version
-                    Task { await vm.endorsementStore.toggle(modId: id, version: version) { vm.log($0) } }
+                    ModEndorsement.toggle(live, viewModel: vm, localization: localization, reportRefusal: false)
                 }
                 .disabled(vm.endorsementStore.inFlight.contains(id))
             }
@@ -142,17 +138,6 @@ struct ModDetailActionBar: View {
                 .pointingHandCursor()
             }
         } }
-    }
-
-    private func endorsementMessage(_ refusal: NexusEndorsement.Outcome) -> String {
-        switch refusal {
-        case .isOwnMod: return localization.L(L10n.Mods.endorseOwnMod)
-        case .tooSoonAfterDownload: return localization.L(L10n.Mods.endorseTooSoon)
-        case .notDownloaded: return localization.L(L10n.Mods.endorseNotDownloaded)
-        case .unknown(let code, let message):
-            return String(format: localization.L(L10n.Mods.endorseUnknown), Int64(code), message ?? "—")
-        case .endorsed, .abstained: return ""
-        }
     }
 
     /// Activer / Mettre en pause — l'interrupteur vert de la rangée de

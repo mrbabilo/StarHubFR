@@ -202,6 +202,9 @@ enum ModListScoping {
         /// sur une carte vide ne laisse **rien** passer, par construction —
         /// le défaut de l'init ne dispense pas de la passer.
         let impactClasses: [String: ModImpactClass]
+        /// Approbations et dernière mise à jour Nexus, pour les tris du même nom.
+        let endorsements: (ModItem) -> Int?
+        let lastNexusUpdate: (ModItem) -> Date?
 
         init(category: @escaping (ModItem) -> NexusCategory? = { _ in nil },
              sizeOnDisk: @escaping (ModItem) -> Int64? = { _ in nil },
@@ -209,7 +212,9 @@ enum ModListScoping {
              blacklisted: Set<String> = [],
              translation: TranslationState = .init(),
              activationDates: [String: Date] = [:],
-             impactClasses: [String: ModImpactClass] = [:]) {
+             impactClasses: [String: ModImpactClass] = [:],
+             endorsements: @escaping (ModItem) -> Int? = { _ in nil },
+             lastNexusUpdate: @escaping (ModItem) -> Date? = { _ in nil }) {
             self.category = category
             self.sizeOnDisk = sizeOnDisk
             self.favorites = favorites
@@ -217,6 +222,8 @@ enum ModListScoping {
             self.translation = translation
             self.activationDates = activationDates
             self.impactClasses = impactClasses
+            self.endorsements = endorsements
+            self.lastNexusUpdate = lastNexusUpdate
         }
     }
 
@@ -351,15 +358,24 @@ enum ModListScoping {
                 // nombreux par construction : rien n'est mesuré tant que la
                 // première passe n'a pas abouti, ni pendant les secondes qui
                 // suivent une bascule.
-                switch (inputs.sizeOnDisk(lhs), inputs.sizeOnDisk(rhs)) {
-                case (let l?, let r?):
-                    if l != r { return l > r }
-                    return byName(lhs, rhs)
-                case (.some, nil): return true
-                case (nil, .some): return false
-                case (nil, nil):   return byName(lhs, rhs)
-                }
+                return byKnownFirst(inputs.sizeOnDisk(lhs), inputs.sizeOnDisk(rhs), lhs, rhs, >)
+            case .endorsements:
+                return byKnownFirst(inputs.endorsements(lhs), inputs.endorsements(rhs), lhs, rhs, >)
+            case .lastNexusUpdate:
+                // La plus ancienne d'abord : c'est là que se cachent les mods obsolètes.
+                return byKnownFirst(inputs.lastNexusUpdate(lhs), inputs.lastNexusUpdate(rhs), lhs, rhs, <)
             }
+        }
+    }
+
+    /// Valeurs connues d'abord, dans l'ordre `before` ; inconnues en fin, par nom.
+    private static func byKnownFirst<T: Equatable>(_ l: T?, _ r: T?, _ lhs: ModItem, _ rhs: ModItem,
+                                                   _ before: (T, T) -> Bool) -> Bool {
+        switch (l, r) {
+        case let (l?, r?): return l != r ? before(l, r) : byName(lhs, rhs)
+        case (.some, nil): return true
+        case (nil, .some): return false
+        case (nil, nil): return byName(lhs, rhs)
         }
     }
 

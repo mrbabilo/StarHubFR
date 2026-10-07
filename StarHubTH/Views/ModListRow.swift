@@ -573,6 +573,9 @@ struct ModListRow: View {
 
                     VersionBadge(version: mod.isGroup ? vm.displayVersion(for: mod) : mod.version)
                         .frame(width: ModListRow.Column.version, alignment: .leading)
+                    if !isChild, listState.filters.sort == .lastNexusUpdate, let updated = vm.nexusLastUpdated(for: mod) {
+                        Text(NexusUpdateAge.line(for: updated)).font(AppDesign.Font.footnote).foregroundColor(.secondary).lineLimit(1)
+                    }
 
                     if mod.isGroup {
                         // Le nombre de composants ferme la ligne : il varie, et
@@ -728,6 +731,8 @@ struct ModListRow: View {
                     .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
                     .pointingHandCursor()
                 }
+
+                if !isChild { ModEndorseButton(mod: mod, viewModel: vm, localization: localization) } // A3-T8
 
                 // Direct "open on Nexus" button — visible whenever the mod has
                 // an effective Nexus id (manifest-declared or user-assigned).

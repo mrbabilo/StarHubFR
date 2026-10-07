@@ -814,6 +814,9 @@
 "mods_endorse_too_soon" = "Nexus refused: wait 15 minutes after downloading the mod.";
 "mods_endorse_not_downloaded" = "Nexus refused: download this mod from your Nexus account first.";
 "mods_endorse_unknown" = "Nexus refused the endorsement (HTTP %lld): %@";
+"mods_sort_endorsements" = "Endorsements";
+"mods_sort_last_nexus_update" = "Oldest Nexus update";
+"mods_endorsements_count" = "%lld Nexus endorsements";
 "mods_disabled" = "Disabled";
 "mods_disabled_all_count" = "Disabled %d mod(s)";
 "mods_disabled_required_deps" = "Disabled dependencies: %@";

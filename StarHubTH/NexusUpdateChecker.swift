@@ -208,6 +208,8 @@ final class NexusUpdateChecker: @unchecked Sendable {
         var version: String? = nil
         /// Latest upload date (`updated_timestamp`), optional; "last updated".
         var uploadedTime: Date? = nil
+        /// Nexus endorsement count (v1 `endorsement_count`, v2 `endorsements`).
+        var endorsements: Int? = nil
     }
 
     /// Last update list, regardless of freshness (launch seed).
@@ -294,6 +296,12 @@ final class NexusUpdateChecker: @unchecked Sendable {
                 DispatchQueue.main.async { completion(.error(msg)) }
             }
         }
+    }
+
+    /// Fusionne dans le cache des métadonnées sous verrou (A3-T8,
+    /// `NexusModStatsRefresher`) et rend le cache fusionné.
+    func mergeCachedExtras(_ transform: ([String: NexusModExtra]) -> [String: NexusModExtra]) -> [String: NexusModExtra] {
+        withMetadataCacheLock { let merged = transform(loadCachedExtras()); saveCachedExtras(merged); return merged }
     }
 
     // MARK: - Cached results
@@ -463,7 +471,8 @@ final class NexusUpdateChecker: @unchecked Sendable {
             var finalPageFile: NexusModFile?
             let finalize = { (ver: String) in
                 let extra = NexusModExtra(summary: summary, pictureUrl: pictureUrl,
-                                          version: ver, uploadedTime: uploadedDate)
+                                          version: ver, uploadedTime: uploadedDate,
+                                          endorsements: dict["endorsement_count"] as? Int)
                 completion(.success(version: ver, categoryId: categoryId, extra: extra,
                                     uploadedTime: uploadedDate, pageFile: finalPageFile))
             }

@@ -602,4 +602,20 @@ struct ModListScopingTests {
         #expect(!toggled("AdvancedSaveBackup", id: "Omegasis.AdvancedSaveBackup", enabled: true).isSmapiBundled)
         #expect(!toggled("Header", id: "", enabled: true).isSmapiBundled)
     }
+
+    // MARK: - Tris Nexus (approbations, dernière mise à jour)
+
+    @Test func endorsementsSortMostEndorsedFirstAndUnknownLast() {
+        let counts = ["A": 10, "B": 500, "C": 10]
+        let inputs = ModListScoping.Inputs(endorsements: { counts[$0.name] })
+        let sorted = ModListScoping.sorted([mod("D"), mod("C"), mod("A"), mod("B")], by: .endorsements, inputs: inputs)
+        #expect(sorted.map(\.name) == ["B", "A", "C", "D"])
+    }
+
+    @Test func lastUpdateSortOldestFirstToSpotStaleModsAndUnknownLast() {
+        let dates = ["A": Date(timeIntervalSince1970: 300), "B": Date(timeIntervalSince1970: 100)]
+        let inputs = ModListScoping.Inputs(lastNexusUpdate: { dates[$0.name] })
+        let sorted = ModListScoping.sorted([mod("C"), mod("A"), mod("B")], by: .lastNexusUpdate, inputs: inputs)
+        #expect(sorted.map(\.name) == ["B", "A", "C"])
+    }
 }

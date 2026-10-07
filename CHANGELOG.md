@@ -16,6 +16,12 @@ where the exact log format was verified.
 
 - **Approuver un mod sur Nexus depuis sa fiche.** Une icône 👍 approuve ou retire l'approbation, avec la clé d'API ; les refus de Nexus (ton propre mod, téléchargement de moins de 15 min, mod jamais téléchargé) s'affichent en clair.
 - **Le nombre d'approbations Nexus sur chaque fiche**, en tête à côté de la version.
+- **Approbations dans la liste et la grille.** Le pouce montre le nombre et ton approbation ; un clic (clic droit sur une carte) approuve. Nombres et dates se rafraîchissent une fois par jour, sans clé.
+- **Deux tris : « Approbations » et « Mise à jour Nexus la plus ancienne ».** Le second affiche date et âge pour repérer les mods obsolètes.
+
+### Changed
+
+- « Endossements » devient « Approbations » dans Découvrir.
 
 - **Sélection multiple dans la liste des mods.** Clic, ⌘clic, ⇧clic, ⇧↑↓ et ⌘A sélectionnent ; Espace active ou met en pause la sélection (un mod en pause : tout s'active) ; un bandeau donne le compte et les deux gestes. Les mods de SMAPI restent protégés.
 

@@ -390,10 +390,7 @@ struct ModDetailView: View {
 
     /// Date courte + âge au-delà d'un an (`LastUpdateAge`).
     private var updatedLine: String {
-        guard let updated = vm.nexusLastUpdated(for: mod) else { return "—" }
-        return [updated.formatted(date: .abbreviated, time: .omitted),
-                LastUpdateAge.ageText(for: updated)].compactMap { $0 }
-            .joined(separator: " · ")
+        vm.nexusLastUpdated(for: mod).map { NexusUpdateAge.line(for: $0) } ?? "—"
     }
 
     /// Top-level folder rather than a pack component (`scanStore.mods` never

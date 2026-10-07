@@ -71,3 +71,27 @@ struct ModListSelectionBar: View {
         }
     }
 }
+
+/// A3-T8 — l'approbation Nexus dans la grille et la liste : la carte est un
+/// bouton, le geste y passe par le menu contextuel.
+extension ModListView {
+    @ViewBuilder
+    func endorseMenuItem(_ mod: ModItem) -> some View {
+        if ModEndorsement.actionableId(mod, viewModel: vm) != nil {
+            let endorsed = ModEndorsement.isEndorsed(mod, viewModel: vm)
+            Button {
+                ModEndorsement.toggle(mod, viewModel: vm, localization: localization, reportRefusal: true)
+            } label: {
+                Label(localization.L(endorsed ? L10n.Mods.endorseWithdraw : L10n.Mods.endorseAdd),
+                      systemImage: endorsed ? "hand.thumbsup.fill" : "hand.thumbsup")
+            }
+        }
+    }
+
+    /// Nombres d'approbations et dates de tout le parc (une fois par jour),
+    /// puis tes approbations (une requête, avec clé).
+    func loadNexusStats() async {
+        NexusModStatsRefresher.refreshIfDue(viewModel: vm)
+        if vm.hasNexusApiKey { await vm.endorsementStore.loadIfNeeded { vm.log($0) } }
+    }
+}

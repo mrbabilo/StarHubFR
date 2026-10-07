@@ -3609,6 +3609,8 @@ final class StarHubTHViewModel {
     }
 
     /// Last Nexus update date, `nil` before a check.
+    func nexusEndorsementCount(for mod: ModItem) -> Int? { nexusModExtras[resolvedNexusModId(for: mod)]?.endorsements }
+
     func nexusLastUpdated(for mod: ModItem) -> Date? {
         let id = resolvedNexusModId(for: mod)
         guard !id.isEmpty else { return nil }
@@ -7030,7 +7032,9 @@ final class StarHubTHViewModel {
               favorites: favoriteMods, blacklisted: blacklistedMods,
               translation: translationScopingState,
               activationDates: modActivationTimestamps,
-              impactClasses: modImpactStore.classesById)
+              impactClasses: modImpactStore.classesById,
+              endorsements: { self.nexusEndorsementCount(for: $0) },
+              lastNexusUpdate: { self.nexusLastUpdated(for: $0) })
     }
 
     /// Liste cadrée : six filtres composés, puis triée — source de

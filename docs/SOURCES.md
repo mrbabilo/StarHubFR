@@ -295,6 +295,14 @@ autre forme remonte `unknown` avec son code.
 client officiel) ; v2 `mods { endorsements }`, mesuré sans clé le 2026-10-07 :
 Content Patcher = 489 860.
 
+**Par lots, sans clé (A3-T8 bis, 2026-10-07)** — v2
+`legacyModsByDomain(ids: [{gameDomain, modId}], count:)` → `modId endorsements
+updatedAt`. Mesuré : **80 mods au plus par réponse** quel que soit `count`
+(20 sans), ~0,2 s, un id inconnu est absent sans erreur ; 933 mods du parc = 12
+requêtes. Écarté en mesurant : `mods(filter:)` avec plusieurs `modId` (ET → 0
+résultat ; `op: OR` → tout le catalogue). Code : `Models/NexusModStats.swift`,
+`Stores/NexusModStatsRefresher.swift` (une fois par jour).
+
 ### 2.4 Nexus Mods — API v2 (GraphQL)
 
 | | |

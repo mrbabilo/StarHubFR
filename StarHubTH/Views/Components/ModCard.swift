@@ -38,6 +38,9 @@ struct ModCard: View {
     /// Une pastille neutre supplémentaire (« FR »), ou `nil`.
     let neutralBadge: String?
     let endorsements: Int?
+    /// Approuvé par toi sur Nexus (A3-T8) : le pouce se remplit. Découvrir
+    /// ne le sait pas, la valeur par défaut y reste.
+    var endorsedByMe: Bool = false
     /// Ce qui tient la place d'une vignette absente. Découvrir garde le
     /// rectangle gris (`false`) — sa vitrine sert des captures Nexus et
     /// l'absence y est l'exception. La grille des mods installés l'allume :
@@ -181,9 +184,9 @@ struct ModCard: View {
             }
             Spacer(minLength: 0)
             if let endorsements {
-                Label("\(endorsements)", systemImage: "hand.thumbsup")
+                Label("\(endorsements)", systemImage: endorsedByMe ? "hand.thumbsup.fill" : "hand.thumbsup")
                     .font(AppDesign.Font.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(endorsedByMe ? AppDesign.Color.info : .secondary)
                     .lineLimit(1)
             }
         }

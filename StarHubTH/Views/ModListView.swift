@@ -368,8 +368,10 @@ struct ModListView: View {
                                             versionPrefix: localization.L(L10n.Mods.versionPrefix),
                                             pictureURL: gridPictureURL(for: mod))
                                         let active = values.state == .active
+                                        let age = filters.sort == .lastNexusUpdate
+                                            ? vm.nexusLastUpdated(for: mod).map { NexusUpdateAge.line(for: $0) } : nil
                                         ModCard(title: values.title,
-                                                subtitle: values.subtitle,
+                                                subtitle: age.map { "\(values.subtitle) · \($0)" } ?? values.subtitle,
                                                 thumbnailURL: values.thumbnailURL,
                                                 // L'**état**, pas « installé » :
                                                 // les deux se posent (P6).
@@ -386,12 +388,14 @@ struct ModListView: View {
                                                 // d'un pack (`category(for:)`).
                                                 category: vm.category(for: mod),
                                                 neutralBadge: values.neutralBadge,
-                                                endorsements: values.endorsements,
+                                                endorsements: vm.nexusEndorsementCount(for: mod),
+                                                endorsedByMe: ModEndorsement.isEndorsed(mod, viewModel: vm),
                                                 usesDefaultArtwork: true,
                                                 attributes: gridAttributes(for: mod),
                                                 pageState: vm.nexusPageState(for: mod)?.state,
                                                 L: localization.L,
                                                 action: { vm.navigationStore.setViewingModDetail(mod) })
+                                        .contextMenu { endorseMenuItem(mod) }
                                     }
                                 }
                             }
@@ -439,6 +443,7 @@ struct ModListView: View {
         // (qui s'exclut de la liste dans MainView) y lira l'ordre de son
         // pager. Non publié sur ModListState — voir là-bas le pourquoi.
         .onAppear { vm.modList.displayOrder = displayIds }
+        .task { await loadNexusStats() }
         .onChange(of: displayIds) { _, order in vm.modList.displayOrder = order }
         // D5-C — l'historique de la sonde ne se relit sinon qu'à la fermeture
         // du jeu : première lecture à l'apparition de la liste, en fond.
