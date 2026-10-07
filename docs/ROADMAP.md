@@ -2194,7 +2194,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T12** | 2026-10-07 | Les mods internes de SMAPI (`ConsoleCommands`, `SaveBackup`, `ErrorHandler` des vieux parcs) ne sont plus mis en pause par « Tout désactiver », les profils ni la bissection ; suppression refusée (`ModItem.isSmapiBundled`) |
 | **A2-T5** | 2026-10-07 | 3e source hors ligne : `smapi-internal/metadata.json`, bornes de version lues (`SmapiLocalMetadata`) ; sans elles, 14 faux signaux sur le parc pour 1 réel |
 | **A3-T8** | 2026-10-07 | Approuver un mod Nexus depuis sa fiche, refus typés (`NexusEndorsement`) ; nombre d'approbations en fiche, liste et grille, tris associés |
-| **A5-T4** | 2026-10-08 | Conflits `Load` exclusifs Content Patcher prévus depuis les fichiers : porte d'activation unitaire, ligne « Prévu » dans le rapport ; 3 duos dormants, 0 actif. Vérification GUI par l'auteur en attente ; gestes en masse → **A5-T8** |
+| **A5-T4** | 2026-10-08 | Conflits `Load` exclusifs Content Patcher prévus depuis les fichiers : porte d'activation unitaire, ligne « Prévu » dans le rapport ; 3 duos dormants, 0 actif. Vérifié dans l'app par l'auteur le 2026-10-08 ; gestes en masse → **A5-T8** |
 | **A5-T7** | 2026-09-26 | Deux mods de performance qui patchent les mêmes méthodes : catalogue décompilé (marche 1), puis carte Harmony de la sonde (marche 2) — Stardropium × UltraSmooth 6, pas 9 |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**
