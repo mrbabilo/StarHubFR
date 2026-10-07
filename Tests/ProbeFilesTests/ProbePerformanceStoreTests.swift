@@ -14,7 +14,8 @@ import Foundation
                 try Fixture.data(name).write(to: probe.appendingPathComponent(name))
             }
         }
-        return ProbePerformanceStore(files: ProbeFiles(directory: probe))
+        return ProbePerformanceStore(files: ProbeFiles(directory: probe),
+                                     snapshotDirectory: root.appendingPathComponent("support"))
     }
 
     @Test func loadsSidesAndTheDefaultPair() async throws {

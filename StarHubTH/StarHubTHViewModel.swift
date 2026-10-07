@@ -1450,8 +1450,8 @@ final class StarHubTHViewModel {
     var applyingProfileId: UUID? { profilesStore.applyingId }
 
     /// Anti double-lancement (R2bis) : couvre le délai avant que le jeu
-    /// apparaisse dans `runningApplications`.
-    private var launchGate = GameLaunchGate()
+    /// apparaisse dans `runningApplications`. Non observé : lu et réarmé depuis les vues.
+    @ObservationIgnored private var launchGate = GameLaunchGate()
 
     /// When true, toggling a mod also cascades to its dependencies / dependents.
     var chainToggleDependencies: Bool = UserDefaults.standard.object(forKey: UDKey.chainToggleDependencies) as? Bool ?? true {
