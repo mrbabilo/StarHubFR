@@ -723,6 +723,7 @@
 "mods_compat_source_cache" = "Source: cached dump (offline, %@)";
 "mods_compat_source_live" = "Source: smapi.io (live)";
 "mods_compat_source_pathoschild" = "Source: Pathoschild list (fallback, %@)";
+"mods_compat_source_smapi_local" = "Source: SMAPI local file";
 "mods_compat_status_abandoned" = "Abandoned";
 "mods_compat_status_broken" = "Broken";
 "mods_compat_status_obsolete" = "Obsolete";

@@ -471,6 +471,7 @@ enum L10n {
         static let compatHealthUnknown      = "mods_compat_health_unknown"
         static let compatSourceLive         = "mods_compat_source_live"
         static let compatSourcePathoschild  = "mods_compat_source_pathoschild"
+        static let compatSourceSmapiLocal  = "mods_compat_source_smapi_local"
         static let compatSourceCache        = "mods_compat_source_cache"
 
         // MARK: Empreintes de sauvegarde (A1-T8)

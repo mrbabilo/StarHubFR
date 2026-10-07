@@ -78,7 +78,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 ### 🔄 Mises à jour et téléchargements
 
-*   **Détection des mises à jour** via [smapi.io](https://smapi.io/) — sans clé API ni compte Nexus : la vérification lit ce que chaque mod déclare dans son manifeste, et un mod qu'elle n'a pas pu joindre reste signalé au lieu de passer pour à jour.
+*   **Détection des mises à jour** via [smapi.io](https://smapi.io/) — sans clé API ni compte Nexus : la vérification lit ce que chaque mod déclare dans son manifeste, et un mod qu'elle n'a pas pu joindre reste signalé au lieu de passer pour à jour. Hors ligne, la compatibilité a deux filets : le dump Pathoschild puis le fichier local de SMAPI, qui lit les clauses de version avant de dire quoi que ce soit.
 *   **Chaque mod dit qu'il a une mise à jour** — pastille « ↑ version » sur sa ligne et sa carte, et bandeau en tête de sa fiche avec les mêmes gestes que la page Mises à jour. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus, que plusieurs mods partagent parfois.
 *   **« Je l'ai déjà »** — certains auteurs publient une nouvelle version sans incrémenter celle de leur manifeste : le contrôle voit un écart qui n'existe pas et le réaffiche à chaque passage. La ligne porte un bouton qui enregistre la version réellement installée, puis s'efface.
 *   **Téléchargement dans l'application** — bouton *MàJ Premium* pour les comptes Premium, ou *MàJ Nexus* via le lien `nxm://` pour les comptes gratuits. La clé API Nexus, stockée dans le trousseau macOS, ne sert qu'à télécharger. Le téléchargement s'affiche en **volet coulissant** au bas de la barre latérale : il glisse à l'écran au démarrage et repart glisser à la fin, sans masquer le reste.

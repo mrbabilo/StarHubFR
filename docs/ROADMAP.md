@@ -390,13 +390,18 @@ backup se retrouve en moins de dix secondes.
       Bascule unitaire laissée libre ; comptés dans les bandeaux (décision
       de l'auteur). Parc : `ConsoleCommands`, `SaveBackup` actifs.
 
-- [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
+- [x] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
       compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
       l'installation) comme troisième source hors ligne, derrière l'API live et
       `mods.jsonc`. ⚠️ **La comparaison de bornes de version est obligatoire** : chaque
       motif y est assorti d'une clause de version, et l'apparier sans la lire signalerait
       **14 mods à tort** sur le parc de référence — pour **1 seul** réellement concerné.
       C'est ce rapport, pas la difficulté, qui fixe la priorité. · **S**
+      ✅ *Livré le 2026-10-07* : `SmapiLocalMetadata` (Core, 6 tests, fixture =
+      copie du vrai fichier) ; bornes lues avec `CompatibilityResolution.isAtLeast`,
+      version illisible = clause muette. 3e filet derrière smapi.io et le dump
+      (`applyLocalMetadataFallback`), badge « Source : fichier local SMAPI ».
+      Mesure du jour rejouée en test : 17 couverts, 0 signal, 14 faux sans bornes.
 > ⚠️ **Réserve conservée** : `smapi.io/mods` annonce lui-même ne plus être mis à jour
 > exhaustivement, et son avenir est incertain. À traiter comme **complément** au
 > diagnostic de log, jamais comme source unique de vérité — d'où le fallback `mods.jsonc`.

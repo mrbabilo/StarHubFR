@@ -186,6 +186,20 @@ avec le parc réel (1 090 identifiants, 292 connus du dump) :
 Les cinq `unofficialUpdate` du parc sont des correctifs communautaires
 installables (Bus Locations, Informant, SAAT ×2, Mod Update Menu) — voir X56.
 
+### 2.2 ter SMAPI — `smapi-internal/metadata.json`, volet compatibilité *(A2-T5, 2026-10-07)*
+
+Fichier **local** livré avec SMAPI (aucun réseau). JSONC : commentaires bloc/ligne,
+virgules traînantes — lu par le parseur commun (`I18nLenientParser`). Section
+`ModData` (188 entrées au 2026-10-07, SMAPI 4.15.9) ; chaque champ vit sous une
+clé `"<borne> | Status"` qui ne s'applique que si la version installée est
+**strictement inférieure** à la borne (`~1.13.11`) ; `"~"` sans borne = toujours.
+Statuts : `AssumeBroken`, `Obsolete` (+ `OK` prévu par le format). Mesuré sur le
+parc : 17 manifestes couverts, **0 signal réel, 14 faux positifs sans les
+bornes** — d'où la clause obligatoire. Rang : smapi.io > dump Pathoschild >
+ce fichier. Sémantique des bornes relevée dans le fichier lui-même et le
+comportement de SMAPI (mod `AssumeBroken` en dessous de sa borne) ; code :
+`Models/SmapiLocalMetadata.swift`, test sur fixture = copie du vrai fichier.
+
 ### 2.2 bis SMAPI — la liste noire des mods **malveillants**
 
 | | |

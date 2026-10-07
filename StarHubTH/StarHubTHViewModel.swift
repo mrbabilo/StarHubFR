@@ -122,6 +122,8 @@ final class StarHubTHViewModel {
         case live
         case pathoschildDump
         case diskCache
+        /// A2-T5 : `smapi-internal/metadata.json`, lu sur le disque.
+        case smapiMetadata
         case none
     }
     private(set) var compatibilitySource: CompatibilitySource = .none
@@ -3027,14 +3029,14 @@ final class StarHubTHViewModel {
                     case .success:
                         self.log("Filet Pathoschild : dump vide", level: .info)
                     }
-                    return
+                    self.applyLocalMetadataFallback(uniqueIds: uniqueIds); return
                 }
                 let verdicts = PathoschildCompatibilityList.verdicts(for: uniqueIds, from: entries)
                 guard !verdicts.isEmpty else {
                     self.log("Filet Pathoschild : 0 verdict applicable sur \(uniqueIds.count) mods", level: .info)
                     self.compatibilitySource = .diskCache
                     self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
-                    return
+                    self.applyLocalMetadataFallback(uniqueIds: uniqueIds); return
                 }
                 // Pathoschild **secondaire** : ne remplace pas un verdict smapi.io.
                 var merged = self.modCompatibility
@@ -3046,7 +3048,7 @@ final class StarHubTHViewModel {
                 if added == 0 {
                     self.log("Filet Pathoschild : aucun verdict à ajouter (les \(verdicts.count) "
                              + "troués sont déjà couverts)", level: .info)
-                    return
+                    self.applyLocalMetadataFallback(uniqueIds: uniqueIds); return
                 }
                 // Purge des désinstallés : `stillInstalled` = parc figé à l'envoi.
                 let stillInstalled = Set(uniqueIds)
@@ -3061,8 +3063,23 @@ final class StarHubTHViewModel {
                 }
                 self.compatibilitySource = .pathoschildDump
                 self.pathoschildDumpDate = PathoschildCompatibilityList.dumpFetchedAt()
-            }
-        }
+                self.applyLocalMetadataFallback(uniqueIds: uniqueIds)
+            } } }
+
+    /// A2-T5 — troisième filet, **local et sans réseau** :
+    /// `smapi-internal/metadata.json` (volet `ModData` de SMAPI), lu sur le
+    /// disque. Ne remplit que les verdicts encore inconnus après smapi.io et
+    /// le dump Pathoschild ; la clause de version de chaque entrée est lue —
+    /// mesuré sur le parc : 17 mods couverts, 0 signal réel, 14 faux
+    /// positifs sans elle (`SmapiLocalMetadata`).
+    /// A2-T5 : `smapi-internal/metadata.json` complète les verdicts inconnus (règle : `SmapiLocalMetadata`).
+    private func applyLocalMetadataFallback(uniqueIds: [String]) {
+        guard let fresh = SmapiLocalMetadata.loadVerdicts(gameDir: gameDir, mods: mods.flattenedMods, uniqueIds: uniqueIds),
+              let merged = SmapiLocalMetadata.fillBlanks(fresh, into: modCompatibility) else { return }
+        modCompatibility = merged
+        _ = ModCompatibilityStore.save(merged)
+        if compatibilitySource != .live { compatibilitySource = .smapiMetadata }
+        log("Filet SMAPI local : \(fresh.count) verdict(s) ajouté(s)", level: .info)
     }
 
     /// B2-T10 — reprend par Nexus les mods que smapi.io n'a pas su juger

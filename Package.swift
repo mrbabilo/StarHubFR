@@ -244,6 +244,7 @@ let package = Package(
                 "Models/ModHistoryRecorder.swift",
                 "Models/TranslationOriginalsRebase.swift",
                 "Models/SmapiBlacklist.swift",
+                "Models/SmapiLocalMetadata.swift",
                 "Models/SmapiBlacklistScan.swift",
                 "Models/ModsFolderSizer.swift",
                 "Models/LastUpdateAge.swift",
@@ -1044,6 +1045,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "SmapiLocalMetadataTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SmapiLocalMetadataTests"
         ),
         .testTarget(
             name: "NexusModStatsTests",

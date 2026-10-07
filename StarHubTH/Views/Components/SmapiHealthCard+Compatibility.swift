@@ -22,6 +22,8 @@ extension SmapiHealthCard {
             pill(text: String(format: localization.L(L10n.Mods.compatSourceCache),
                               PathoschildDateLabel.string(from: vm.pathoschildDumpDate)),
                  color: .secondary)
+        case .smapiMetadata:
+            pill(text: localization.L(L10n.Mods.compatSourceSmapiLocal), color: .secondary)
         case .none:
             EmptyView()
         }
