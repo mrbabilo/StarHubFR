@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.59.0] - 2026-10-07
+
 ### Added
 
 - **Réglages : les mods dont StarHubFR a besoin.** « Extensions principales » liste les mods de SMAPI, la sonde, SLO, Stardropium et GMCM, puis CP, SpaceCore et SVE : rôle, état, fiche du mod et lien d'installation (Nexus, SMAPI ou sonde intégrée).
