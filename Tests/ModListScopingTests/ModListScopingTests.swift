@@ -568,4 +568,38 @@ struct ModListScopingTests {
             #expect(!ModListScoping.matches(mod("Tiny"), filters: f, inputs: inputs))
         }
     }
+
+    // MARK: - A1-T12 — bascule en masse
+
+    private func toggled(_ name: String, id: String, enabled: Bool) -> ModItem {
+        ModItem(uniqueId: id, name: name, folderName: name, version: "1.0", author: "",
+                description: "", nexusUrl: "", nexusModId: "", isEnabled: enabled,
+                dependencies: [], children: nil, isGroup: false)
+    }
+
+    @Test func disablingAllKeepsSmapiBundledModsActive() {
+        let mods = [toggled("SaveBackup", id: "SMAPI.SaveBackup", enabled: true),
+                    toggled("ConsoleCommands", id: "smapi.consolecommands", enabled: true),
+                    toggled("Alpha", id: "a.alpha", enabled: true),
+                    toggled("Beta", id: "a.beta", enabled: false)]
+        #expect(mods.bulkToggleTargets(enable: false).map(\.name) == ["Alpha"])
+        #expect(mods.bulkToggleKept(enable: false).map(\.name)
+                == ["SaveBackup", "ConsoleCommands"])
+    }
+
+    @Test func enablingAllStillBringsBackAPausedSmapiBundledMod() {
+        // Protéger, c'est ne jamais couper : remettre en marche reste permis.
+        let mods = [toggled("SaveBackup", id: "SMAPI.SaveBackup", enabled: false),
+                    toggled("Alpha", id: "a.alpha", enabled: false)]
+        #expect(mods.bulkToggleTargets(enable: true).map(\.name) == ["SaveBackup", "Alpha"])
+        #expect(mods.bulkToggleKept(enable: true).isEmpty)
+    }
+
+    @Test func smapiBundledIdentityFoldsCaseAndIgnoresLookalikes() {
+        #expect(toggled("X", id: "SMAPI.ErrorHandler", enabled: true).isSmapiBundled)
+        #expect(toggled("X", id: "smapi.savebackup", enabled: true).isSmapiBundled)
+        // Mod tiers au nom voisin, présent en pause dans le parc.
+        #expect(!toggled("AdvancedSaveBackup", id: "Omegasis.AdvancedSaveBackup", enabled: true).isSmapiBundled)
+        #expect(!toggled("Header", id: "", enabled: true).isSmapiBundled)
+    }
 }

@@ -7080,7 +7080,7 @@ final class StarHubTHViewModel {
         // X57 : ensemble du cadrage courant, figé ici sur main.
         let framing = modList.filters
         let modsToMove = scopedMods(from: mods(matching: framing), scope: framing.scope)
-            .filter { $0.isEnabled != enable }
+            .bulkToggleTargets(enable: enable)
         guard !modsToMove.isEmpty else {
             log(enable ? localization.L(L10n.Mods.allAlreadyEnabled) : localization.L(L10n.Mods.allAlreadyDisabled))
             return
@@ -7246,11 +7246,11 @@ final class StarHubTHViewModel {
     }
 
     func deleteMod(_ mod: ModItem) {
-        // La sonde ne se supprime pas (demande d'auteur du 2026-10-04) : les
-        // corbeilles de sa rangée et de sa fiche n'existent pas, cette garde
-        // couvre tout autre appelant futur.
-        if mod.isStarHubProbe {
-            showModal(message: localization.L(L10n.Mods.probeDeleteRefused))
+        // Ni la sonde (demande d'auteur du 2026-10-04) ni les mods de SMAPI
+        // (A1-T12) ne se suppriment : pas de corbeille, garde pour tout appelant.
+        if mod.isStarHubProbe || mod.isSmapiBundled {
+            showModal(message: localization.L(mod.isStarHubProbe ? L10n.Mods.probeDeleteRefused
+                                                                 : L10n.Mods.smapiBundledDeleteRefused))
             return
         }
         if refuseDuringBenchmark() { return }

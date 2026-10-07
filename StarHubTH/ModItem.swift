@@ -40,6 +40,19 @@ public struct ModItem: Identifiable, Equatable, Sendable {
         uniqueId.caseInsensitiveCompare(ModPresence.probeId) == .orderedSame
     }
 
+    /// Mods qu'installe SMAPI lui-même (A1-T12). `SaveBackup` sauvegarde les
+    /// parties à chaque lancement, `ConsoleCommands` porte les commandes de
+    /// console ; `ErrorHandler` n'existe plus depuis SMAPI 4 mais peut rester
+    /// sur un vieux parc. Aucune opération en masse ne les met en pause et
+    /// l'app ne les supprime pas ; une bascule unitaire, nommée, reste permise.
+    public static let smapiBundledIds: Set<String> = [
+        "smapi.consolecommands", "smapi.errorhandler", "smapi.savebackup",
+    ]
+
+    public var isSmapiBundled: Bool {
+        Self.smapiBundledIds.contains(uniqueId.lowercased())
+    }
+
     /// La date d'installation à **montrer et à trier** : la sienne, ou — pour
     /// un en-tête de pack, fabriqué sans date propre — la plus récente de ses
     /// composants.
@@ -259,6 +272,19 @@ extension Array where Element == ModItem {
     /// parle en dossiers ; une empreinte de sauvegarde, en identifiants.
     func uniqueIds(inTopFolders folders: Set<String>) -> Set<String> {
         filter { folders.contains($0.folderName) }.allUniqueIds
+    }
+
+    /// Ce que « Tout activer / Tout désactiver » déplace dans un cadrage déjà
+    /// restreint au scope : les mods pas encore du bon côté, sauf ceux de SMAPI
+    /// quand on désactive (A1-T12). Source unique du VM et de la confirmation.
+    func bulkToggleTargets(enable: Bool) -> [ModItem] {
+        filter { $0.isEnabled != enable && (enable || !$0.isSmapiBundled) }
+    }
+
+    /// Les mods de SMAPI qu'une désactivation en masse laisse actifs : la
+    /// confirmation les nomme, le refus n'est pas muet.
+    func bulkToggleKept(enable: Bool) -> [ModItem] {
+        enable ? [] : filter { $0.isEnabled && $0.isSmapiBundled }
     }
 
     /// Le mod installé qui porte cet `UniqueID`, **composants de packs

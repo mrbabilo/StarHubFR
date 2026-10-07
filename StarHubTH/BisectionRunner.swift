@@ -426,7 +426,7 @@ final class BisectionRunner: ObservableObject {
     private nonisolated static func candidates(from mods: [ModItem], gameDir: String) -> [BisectionCandidate] {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         return mods.compactMap { mod -> BisectionCandidate? in
-            guard mod.isEnabled else { return nil }
+            guard mod.isEnabled, !mod.isSmapiBundled else { return nil } // A1-T12 : jamais en pause
             let folder = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
             guard containsCode(at: folder) else { return nil }
             let children = mod.components

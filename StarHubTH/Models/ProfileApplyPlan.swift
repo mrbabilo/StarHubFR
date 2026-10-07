@@ -48,8 +48,10 @@ enum ProfileApplyPlan {
     ///   composants d'un pack ne bougent pas seuls — leur dossier vit dans
     ///   celui du pack).
     static func moves(applying profile: ModProfile, to installedMods: [ModItem]) -> [Move] {
+        // Les mods de SMAPI ne sont jamais mis de côté (A1-T12) : un profil
+        // ou un essai de bissection qui les oublie couperait la sauvegarde.
         let toDisable = installedMods.filter {
-            $0.isEnabled && isManageable($0) && !isCovered($0, by: profile)
+            $0.isEnabled && isManageable($0) && !$0.isSmapiBundled && !isCovered($0, by: profile)
         }
         let toEnable = installedMods.filter { !$0.isEnabled && isCovered($0, by: profile) }
 

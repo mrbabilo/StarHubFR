@@ -373,7 +373,7 @@ backup se retrouve en moins de dix secondes.
       posé en silence. Un dossier de mod portant le suffixe `.app` **sans**
       `Contents` reste un mod ordinnaire (test voisin). Vérifié sur la vraie
       archive (Stardew Save Launcher, 113 Mo, probe jetable).
-- [ ] **A1-T12** — `§audit-stardrop-nativemac` · Protéger les trois mods internes
+- [x] **A1-T12** — `§audit-stardrop-nativemac` · Protéger les trois mods internes
       installés par SMAPI (`SMAPI.ConsoleCommands`, `SMAPI.ErrorHandler`,
       `SMAPI.SaveBackup`) dans les opérations en masse : toujours actifs, exclus de
       « désactiver tout », non supprimables. Le concurrent natif le fait simplement
@@ -382,6 +382,13 @@ backup se retrouve en moins de dix secondes.
       (`CoreModSlot`) n'affichent que SMAPI/CP/SpaceCore/SVE — rien ne protège ces
       trois-là d'un « tout désactiver » ; l'exclusion du compte affiché est à
       arbitrer avec les bandeaux de comptes existants. · **S**
+      ✅ *Livré le 2026-10-07* : `ModItem.isSmapiBundled` (identifiants pliés,
+      `ErrorHandler` gardé pour les vieux parcs — absent depuis SMAPI 4).
+      « Tout désactiver » (`[ModItem].bulkToggleTargets`), plan de profil
+      et bissection ne les mettent jamais en pause ; la confirmation nomme
+      ceux qui restent actifs. Suppression refusée, corbeille masquée.
+      Bascule unitaire laissée libre ; comptés dans les bandeaux (décision
+      de l'auteur). Parc : `ConsoleCommands`, `SaveBackup` actifs.
 
 - [ ] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
       compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec

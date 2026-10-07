@@ -255,7 +255,7 @@ struct ModDetailView: View {
                         reportConflictNote = ""
                         showReportConflict = true
                     },
-                    onDelete: live.isStarHubProbe ? nil : { showDeleteConfirm = true })
+                    onDelete: (live.isStarHubProbe || live.isSmapiBundled) ? nil : { showDeleteConfirm = true })
             }
         }
     }

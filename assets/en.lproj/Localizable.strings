@@ -784,6 +784,7 @@
 "mods_disable_all" = "Disable All";
 "mods_disable_all_confirm" = "Disable all mods?";
 "mods_disable_all_message" = "%d mod(s) matching the current list filters will be disabled.";
+"mods_disable_all_kept_smapi" = "Installed by SMAPI, these stay on: %@.";
 "mods_disabled" = "Disabled";
 "mods_disabled_all_count" = "Disabled %d mod(s)";
 "mods_disabled_required_deps" = "Disabled dependencies: %@";
@@ -883,6 +884,7 @@
 "mods_probe_badge" = "Probe";
 "mods_probe_badge_help" = "StarHubFR probe: it measures performance for the Performances tab. It cannot be deleted — pause it to stop it.";
 "mods_probe_delete_refused" = "The StarHubFR probe cannot be deleted: it measures what the Performances tab reads. Pause it to stop it.";
+"mods_smapi_bundled_delete_refused" = "This mod is installed by SMAPI itself: SaveBackup backs up your saves, ConsoleCommands provides the console commands. StarHubFR does not delete it; pause it if you need to.";
 "mods_probe_options_title" = "Measurement options";
 "mods_probe_options_harmony" = "Measure Harmony patches";
 "mods_probe_options_harmony_help" = "Chronometers every other mod's Harmony patches. Observation cost: compare two sessions, on and off. Disarmed for a guided measurement or a benchmark.";

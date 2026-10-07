@@ -71,6 +71,22 @@ private func simulate(_ moves: [ProfileApplyPlan.Move],
     }
 
     /// Un mod en pause que le profil réclame revient : `Mods/.X` → `Mods/X`.
+    @Test func smapiBundledModsAreNeverSetAsideByAProfile() {
+        // A1-T12 : SMAPI installe ces dossiers lui-même. Un profil (ou un
+        // essai de bissection, qui passe par ce plan) qui les oublie ne doit
+        // pas couper la sauvegarde des parties. Identifiants tels que les
+        // manifestes du parc les écrivent.
+        let backup = makeMod("SaveBackup", uniqueId: "SMAPI.SaveBackup", enabled: true)
+        let console = makeMod("ConsoleCommands", uniqueId: "SMAPI.ConsoleCommands", enabled: true)
+        let other = makeMod("Alpha", enabled: true)
+        let profile = ModProfile(name: "Solo", enabledModIds: [])
+
+        let moves = ProfileApplyPlan.moves(applying: profile, to: [backup, console, other])
+
+        #expect(moves.map(\.folderName) == ["Alpha"])
+        #expect(ProfileApplyPlan.pausedModIDs(applying: profile, to: [backup, console, other]) == ["alpha"])
+    }
+
     @Test func aPausedModTheProfileAsksForIsBroughtBack() {
         let mods = [makeMod("Alpha", enabled: false)]
         let profile = ModProfile(name: "Solo", enabledModIds: ["alpha"])

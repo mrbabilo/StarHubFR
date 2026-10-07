@@ -476,10 +476,11 @@ struct ModListView: View {
             // du parc entier (X57). C'est lui qui rend « Tout » lisible :
             // filtrer sur une catégorie puis « Tout désactiver » annonce les
             // mods de cette catégorie, tous confondus sinon.
-            let count = display.filter { $0.isEnabled != (bulkToggleTarget ?? true) }.count
-            Text(String(format: localization.L(bulkToggleTarget == true
-                 ? L10n.Mods.enableAllMessage
-                 : L10n.Mods.disableAllMessage), count))
+            let enable = bulkToggleTarget ?? true, kept = display.bulkToggleKept(enable: enable)
+            let base = String(format: localization.L(enable ? L10n.Mods.enableAllMessage : L10n.Mods.disableAllMessage),
+                              display.bulkToggleTargets(enable: enable).count)
+            Text(kept.isEmpty ? base : base + "\n\n" + String(format: localization.L(L10n.Mods.disableAllKeptSmapi),
+                                                               kept.map(\.name).joined(separator: ", ")))
         }
     }
 

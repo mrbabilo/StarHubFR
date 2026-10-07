@@ -766,7 +766,7 @@ struct ModListRow: View {
                 // A confirmation dialog fires before the actual deletion.
                 // While the deletion is in flight (folder removal + rescan),
                 // a spinner replaces the trash icon on this row.
-                if !isChild && !mod.isStarHubProbe {
+                if !isChild && !mod.isStarHubProbe && !mod.isSmapiBundled {
                     if vm.pendingDeleteFolder == mod.folderName {
                         ProgressView()
                             .controlSize(.small)
