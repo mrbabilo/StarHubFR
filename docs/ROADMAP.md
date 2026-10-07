@@ -494,7 +494,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 > mais elle coûte le plus cher (récursion des `Include`, sémantique des priorités,
 > 13 Mo de JSON) pour **trois paires dormantes**. Elle passe donc en dernier.
 
-- [ ] **A5-T4** — **L'analyse statique des cibles disputées** — repoussée, et cadrée
+- [x] **A5-T4** — **L'analyse statique des cibles disputées** — repoussée, et cadrée
       par le spike : suivre les `Include` récursivement (garde anti-boucle, fichiers
       absents comptés), lire `Priority`, ne tenir pour **certain** que deux `Load`
       inconditionnels et exclusifs sur la même cible. Réutiliser `ConfigJSONTree.parse`
@@ -502,6 +502,19 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       signature de scan doit inclure la **date de modification** des `content.json` :
       une mise à jour de mod les réécrit sans changer ni le nom du dossier ni son
       état. · **L**
+      ✅ *Livré le 2026-10-08* : `ContentPatcherPacks.loadTargets` (cibles
+      certaines collectées dans le même parcours que le compte de patches :
+      sans `When`, ni sur le patch ni sur un `Include` ancêtre ; `Priority`
+      absente ou `Exclusive` ; sans jeton ; `,`/`|` éclatés, `\` → `/`),
+      `ContentPatcherLoadTargets` (paires inter-mods), `ContentPatcherLoadIndex`
+      (toutes racines, pauses comprises, cache dossier logique + mtime). 4e
+      source de `ModConflictVerdicts.candidates` : porte d'activation sur les
+      trois sites avec l'asset nommé, ligne « Prévu par les fichiers » écartable
+      dans le rapport, pastille Alertes pour les paires actives. Mesure du jour
+      (sonde Swift sur le vrai scanner, retirée) : 559 packs, 7 433 cibles,
+      **3 duos dormants** (Haley ×4 portraits, Leah, Rasmodia/Xtardew), 0 actif —
+      identique au script Python. `ConfigJSONTree.parse` non repris : le
+      parseur commun lit déjà ces fichiers.
 - [ ] **A5-T5** — **Élargir le signal**, une source à la fois et chacune mesurée avant
       d'être codée : les 339 fichiers illisibles, les 1 280 cibles à jetons, et les
       `EditData`/`EditImage` sur une même entrée. · **L** ·

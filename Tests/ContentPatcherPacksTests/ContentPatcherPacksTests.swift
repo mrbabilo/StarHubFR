@@ -233,9 +233,76 @@ struct ContentPatcherPacksTests {
 
     @Test func groupTotalSumsOnlyReadablePacks() {
         let group = ContentPatcherPacks.Group(rootName: "SVE", packs: [
-            ContentPatcherPackCount(packName: "[CP] SVE", patches: 120, includesRead: 2, includesUnread: 0, state: .ok),
-            ContentPatcherPackCount(packName: "[FTM] SVE", patches: 0, includesRead: 0, includesUnread: 0, state: .illisible),
+            ContentPatcherPackCount(packName: "[CP] SVE", patches: 120, includesRead: 2, includesUnread: 0, loadTargets: [], state: .ok),
+            ContentPatcherPackCount(packName: "[FTM] SVE", patches: 0, includesRead: 0, includesUnread: 0, loadTargets: [], state: .illisible),
         ])
         #expect(group.totalPatches == 120)
+    }
+
+    // MARK: - A5-T4 — cibles Load certaines et paires
+
+    @Test func onlyUnconditionalExclusiveUntokenizedLoadsClaimATarget() {
+        func targets(_ json: String) -> Set<String> {
+            ContentPatcherPacks.count(packName: "P", contentJSON: json, includeLoader: { _ in nil }).loadTargets
+        }
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/Town"}]}"#) == ["maps/town"])
+        // Conditionnel, priorité déclarée, jeton : aucun n'est certain.
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/Town", "When": {"Season": "spring"}}]}"#).isEmpty)
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/Town", "Priority": "High"}]}"#).isEmpty)
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/{{Season}}"}]}"#).isEmpty)
+        // Multi-cibles « A|B » et « A,B » : chacune réclamée, casse pliée.
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/Town | portraits/Abigail,x"}]}"#)
+                == ["maps/town", "portraits/abigail", "x"])
+        // Le cas voisin qui ne doit PAS fusionner : un Load à jeton d'un côté
+        // ne réclame rien, même si l'autre pack vise la même cible en clair.
+        #expect(targets(#"{"Changes": [{"Action": "Load", "Target": "Maps/{{Season}}"}, {"Action": "EditData", "Target": "Maps/Town"}]}"#).isEmpty)
+    }
+
+    @Test func aConditionalIncludeMakesEverythingItLoadsUncertain() {
+        // Le cas voisin qui ne doit PAS réclamer : un Load nu dans un fichier
+        // inclus sous condition (patron « Seasonal Include » de SVE).
+        let root = #"{"Changes": [{"Action": "Include", "FromFile": "inc.json", "When": {"Season": "spring"}}]}"#
+        let inc = #"{"Changes": [{"Action": "Load", "Target": "Maps/Town"}, {"Action": "Include", "FromFile": "deep.json"}]}"#
+        let deep = #"{"Changes": [{"Action": "Load", "Target": "Maps/Beach"}]}"#
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: root) {
+            $0 == "inc.json" ? inc : ($0 == "deep.json" ? deep : nil)
+        }
+        #expect(result.loadTargets.isEmpty)
+        #expect(result.patches == 2)                    // compté, mais incertain
+    }
+
+    @Test func explicitExclusiveStaysCertainAndBackslashesFold() {
+        let json = #"{"Changes": [{"Action": "Load", "Target": "Portraits\\Haley", "Priority": "Exclusive"}]}"#
+        #expect(ContentPatcherPacks.count(packName: "P", contentJSON: json, includeLoader: { _ in nil }).loadTargets
+                == ["portraits/haley"])
+    }
+
+    @Test func loadTargetsFollowIncludes() {
+        let root = #"{"Changes": [{"Action": "Include", "FromFile": "inc.json"}]}"#
+        let inc = #"{"Changes": [{"Action": "Load", "Target": "Maps/Town"}]}"#
+        #expect(ContentPatcherPacks.count(packName: "P", contentJSON: root) { $0 == "inc.json" ? inc : nil }
+               .loadTargets == ["maps/town"])
+    }
+
+    @Test func pairsNeedTwoRootsAndFlagDormantOnes() {
+        let packs: [ContentPatcherLoadTargets.Pack] = [
+            .init(rootName: "A", packName: "[CP] A", rootEnabled: true,
+                  loadTargets: ["maps/town", "portraits/haley"]),
+            .init(rootName: "B", packName: "[CP] B", rootEnabled: true,
+                  loadTargets: ["maps/town"]),
+            .init(rootName: "C", packName: "[CP] C", rootEnabled: false,
+                  loadTargets: ["portraits/haley"]),
+        ]
+        let pairs = ContentPatcherLoadTargets.pairs(packs)
+        #expect(pairs.count == 2)                       // maps/town active, portraits/haley dormante
+        #expect(pairs.contains { $0.asset == "maps/town" && $0.bothActive })
+        #expect(pairs.contains { $0.asset == "portraits/haley" && !$0.bothActive })
+        // Deux packs du même mod ne sont pas une paire d'utilisateur.
+        let sameRoot: [ContentPatcherLoadTargets.Pack] = [
+            .init(rootName: "A", packName: "[CP] A1", rootEnabled: true, loadTargets: ["x/y"]),
+            .init(rootName: "A", packName: "[CP] A2", rootEnabled: true, loadTargets: ["x/y"]),
+            .init(rootName: "B", packName: "[CP] B", rootEnabled: true, loadTargets: []),
+        ]
+        #expect(ContentPatcherLoadTargets.pairs(sameRoot).isEmpty)
     }
 }

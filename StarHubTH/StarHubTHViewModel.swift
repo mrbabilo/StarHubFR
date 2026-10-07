@@ -146,6 +146,7 @@ final class StarHubTHViewModel {
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
     let endorsementStore = NexusEndorsementStore() // A3-T8
+    let contentPatcherLoadIndex = ContentPatcherLoadIndex() // A5-T4
     /// `true` seulement si on **sait** le compte non premium : mieux vaut un
     /// bouton qui échoue qu'un bouton absent.
     var nexusDirectDownloadUnavailable: Bool { accountStore.directDownloadUnavailable }
@@ -355,7 +356,8 @@ final class StarHubTHViewModel {
     var healthIssues: [HealthIssue] {
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
         let candidates = modConflictVerdicts.candidates(
-            observed: contentPatcherConflicts.compactMap(conflictPair), installed: mods)
+            observed: contentPatcherConflicts.compactMap(conflictPair),
+            predicted: contentPatcherLoadIndex.conflictPairs, installed: mods)
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
                                                     activeFolders: activeFolders)
         // Seul le VM connaît `[ModItem]` ; la règle (repli sur le dossier) est
@@ -2004,6 +2006,7 @@ final class StarHubTHViewModel {
     /// Rebuilds dependency lookup indexes from `mods`; after each full scan
     /// and each in-memory toggle.
     private func rebuildDependencyIndexes() {
+        contentPatcherLoadIndex.refresh(mods: mods, gameDir: gameDir) // A5-T4
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
         scanStore.setDuplicateIndex(index.duplicateIndex)
@@ -2939,7 +2942,8 @@ final class StarHubTHViewModel {
         let activating = Set([mod.folderName] + (mod.children ?? []).map(\.folderName))
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
         let candidates = modConflictVerdicts.candidates(
-            observed: contentPatcherConflicts.compactMap(conflictPair), installed: mods)
+            observed: contentPatcherConflicts.compactMap(conflictPair),
+            predicted: contentPatcherLoadIndex.conflictPairs, installed: mods)
         guard let otherFolder = modConflictVerdicts.activationConflict(
             activating: activating, candidates: candidates, activeFolders: activeFolders
         ) else { return nil }

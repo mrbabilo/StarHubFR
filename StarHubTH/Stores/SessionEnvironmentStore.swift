@@ -79,41 +79,12 @@ final class SessionEnvironmentStore {
     /// `Task.detached` dans `reload` (mode Swift 6 : un static hérite
     /// l'isolation @MainActor de la classe sinon).
     nonisolated static func scanGroups(mods: [ModItem], modsRoot: String) -> [ContentPatcherPacks.Group] {
-        let fm = FileManager.default
-        var groups: [ContentPatcherPacks.Group] = []
-        // Racines actives seulement (spec §3.1 : dossiers préfixés point
-        // exclus). Les composants viennent du groupe déjà constitué par la
-        // découverte — pas de second balayage du disque.
-        for root in mods where !root.isPackComponent && root.isEnabled {
-            let rootPhysical = (modsRoot as NSString).appendingPathComponent(root.physicalFolderName)
-            var packDirs: [(name: String, dir: String)] = []
-            if fm.fileExists(atPath: rootPhysical + "/content.json") {
-                packDirs.append((root.name, rootPhysical))
-            }
-            for comp in root.components {
-                // folderName du composant = « Racine/Composant » (logique).
-                guard let slash = comp.folderName.firstIndex(of: "/") else { continue }
-                let sub = String(comp.folderName[comp.folderName.index(after: slash)...])
-                let dir = rootPhysical + "/" + sub
-                if fm.fileExists(atPath: dir + "/content.json") {
-                    packDirs.append((comp.name, dir))
-                }
-            }
-            guard !packDirs.isEmpty else { continue }
-            let counts = packDirs.map { pair -> ContentPatcherPackCount in
-                let url = URL(fileURLWithPath: pair.dir)
-                let text = try? String(contentsOf: url.appendingPathComponent("content.json"), encoding: .utf8)
-                guard let text else {
-                    return ContentPatcherPackCount(packName: pair.name, patches: 0,
-                                                   includesRead: 0, includesUnread: 0, state: .illisible)
-                }
-                return ContentPatcherPacks.count(packName: pair.name, contentJSON: text) { rel in
-                    try? String(contentsOf: url.appendingPathComponent(rel), encoding: .utf8)
-                }
-            }
-            groups.append(ContentPatcherPacks.Group(rootName: root.name, packs: counts))
+        // Racines actives seulement (spec §3.1 : dossiers préfixés point exclus).
+        mods.filter { !$0.isPackComponent && $0.isEnabled }.compactMap { root in
+            let dirs = ContentPatcherPacks.packDirectories(of: root, modsRoot: modsRoot)
+            guard !dirs.isEmpty else { return nil }
+            return ContentPatcherPacks.Group(rootName: root.name, packs: dirs.map(ContentPatcherPacks.read))
         }
-        return groups
     }
 }
 

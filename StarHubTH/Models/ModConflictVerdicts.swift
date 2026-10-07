@@ -74,12 +74,16 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         pairs(declared: true)
     }
 
-    /// Toutes les paires à juger : déclarées, observées (journal SMAPI) et
-    /// connues d'avance (`KnownIncompatibilities`), sans doublon. Le filtrage
-    /// (actifs, écartées) reste celui de `liveConflicts`.
-    public func candidates(observed: [ModConflictPair], installed: [ModItem]) -> [ModConflictPair] {
+    /// Toutes les paires à juger : déclarées, observées (journal SMAPI),
+    /// prévues par les fichiers Content Patcher (A5-T4, `Load` exclusifs sur
+    /// la même cible) et connues d'avance (`KnownIncompatibilities`), sans
+    /// doublon. Le filtrage (actifs, écartées) reste celui de `liveConflicts`.
+    /// `predicted` sans valeur par défaut : chaque appelant le câble.
+    public func candidates(observed: [ModConflictPair], predicted: [ModConflictPair],
+                           installed: [ModItem]) -> [ModConflictPair] {
         var seen = Set<ModConflictPair>()
-        return (declared + observed + KnownIncompatibilities.pairs(in: installed)).filter { seen.insert($0).inserted }
+        return (declared + observed + predicted + KnownIncompatibilities.pairs(in: installed))
+            .filter { seen.insert($0).inserted }
     }
 
     /// Les paires connues d'avance à montrer comme telles : ni déclarées

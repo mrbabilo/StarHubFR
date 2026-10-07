@@ -159,4 +159,33 @@ extension SessionEnvironmentStoreTests {
         await store.reload(mods: [], gameDir: nil)
         #expect(store.report?.stardropiumMemory.samples.isEmpty == true)
     }
+
+    /// A5-T4 — l'index lit **toutes** les racines, pause comprise : la paire
+    /// d'un mod actif et d'un mod en pause est connue avant l'activation.
+    @Test func loadIndexScansPausedRootsAndPairsByLogicalFolder() throws {
+        let root = try makeTemp("Mods")
+        let fm = FileManager.default
+        let files = [
+            "Active/content.json": #"{"Changes": [{"Action": "Load", "Target": "Portraits/Haley_Outfit1"}]}"#,
+            ".Paused/Pack/content.json": #"{"Changes": [{"Action": "Load", "Target": "portraits\\haley_outfit1"}]}"#,
+        ]
+        for (rel, text) in files {
+            let url = root.appendingPathComponent(rel)
+            try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        func mod(_ folder: String, enabled: Bool, children: [ModItem]? = nil) -> ModItem {
+            ModItem(uniqueId: "", name: folder, folderName: folder, version: "", author: "",
+                    description: "", nexusUrl: "", nexusModId: "", isEnabled: enabled,
+                    dependencies: [], children: children, isGroup: children != nil)
+        }
+        let paused = mod("Paused", enabled: false, children: [mod("Paused/Pack", enabled: false)])
+        let (packs, cache) = ContentPatcherLoadIndex.scan(mods: [mod("Active", enabled: true), paused],
+                                                          modsRoot: root.path, cache: [:])
+        #expect(cache.count == 2)
+        let pairs = ContentPatcherLoadTargets.pairs(packs)
+        #expect(pairs.count == 1)
+        #expect(pairs.first?.bothActive == false)
+        #expect(ContentPatcherLoadTargets.conflictPairs(pairs) == [ModConflictPair("Active", "Paused/Pack")])
+    }
 }

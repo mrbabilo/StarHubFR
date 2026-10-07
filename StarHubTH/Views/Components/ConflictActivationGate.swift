@@ -42,7 +42,14 @@ extension View {
             }
         } message: {
             if let state = pending.wrappedValue {
-                Text(String(format: vm.localization.L(L10n.Conflicts.activationWarning), state.mod.name, state.other.name))
+                // A5-T4 : une paire prévue par les fichiers CP dit **quoi** —
+                // deux `Load` exclusifs, aucun des deux ne s'appliquera.
+                let assets = ContentPatcherLoadTargets.assets(
+                    activating: Set([state.mod.folderName] + state.mod.components.map(\.folderName)),
+                    other: state.other.folderName, in: vm.contentPatcherLoadIndex.pairs)
+                let base = String(format: vm.localization.L(L10n.Conflicts.activationWarning), state.mod.name, state.other.name)
+                Text(assets.isEmpty ? base : base + "\n\n" + String(
+                    format: vm.localization.L(L10n.Conflicts.predictedDetail), assets.joined(separator: ", ")))
             }
         }
     }

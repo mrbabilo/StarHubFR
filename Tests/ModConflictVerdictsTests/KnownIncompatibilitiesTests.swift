@@ -27,7 +27,7 @@ struct KnownIncompatibilitiesTests {
     /// comme toute paire (`liveConflicts`).
     @Test func alertsOnlyWhenBothAreActive() {
         let verdicts = ModConflictVerdicts()
-        let candidates = verdicts.candidates(observed: [], installed: parc)
+        let candidates = verdicts.candidates(observed: [], predicted: [], installed: parc)
         #expect(verdicts.liveConflicts(candidates: candidates, activeFolders: ["StarHubFR Probe"]).isEmpty)
         #expect(verdicts.liveConflicts(candidates: candidates,
                                        activeFolders: ["StarHubFR Probe", "Profiler"]).count == 1)
@@ -37,7 +37,7 @@ struct KnownIncompatibilitiesTests {
     @Test func aKnownPairCanBeDismissed() {
         var verdicts = ModConflictVerdicts()
         verdicts.dismiss(ModConflictPair("Profiler", "StarHubFR Probe"), note: "", at: Date())
-        let candidates = verdicts.candidates(observed: [], installed: parc)
+        let candidates = verdicts.candidates(observed: [], predicted: [], installed: parc)
         #expect(verdicts.liveConflicts(candidates: candidates,
                                        activeFolders: ["StarHubFR Probe", "Profiler"]).isEmpty)
     }
@@ -48,7 +48,7 @@ struct KnownIncompatibilitiesTests {
         var verdicts = ModConflictVerdicts()
         verdicts.declare(ModConflictPair("StarHubFR Probe", "Profiler"), note: "", at: Date())
         let observed = [ModConflictPair("A", "B")]
-        let candidates = verdicts.candidates(observed: observed, installed: parc)
+        let candidates = verdicts.candidates(observed: observed, predicted: [], installed: parc)
         #expect(Set(candidates) == [ModConflictPair("StarHubFR Probe", "Profiler"), ModConflictPair("A", "B")])
         #expect(candidates.count == 2)
     }

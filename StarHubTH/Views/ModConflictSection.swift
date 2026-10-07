@@ -148,11 +148,11 @@ struct ModConflictSection: View {
 
     /// Les mods installés aujourd'hui, packs dépliés — c'est contre cette
     /// liste, jamais contre le journal, que « les deux actifs » se juge.
-    private var installedMods: [ModItem] {
+    var installedMods: [ModItem] {
         vm.scanStore.mods.flattenedMods
     }
 
-    private func displayName(_ folderName: String) -> String {
+    func displayName(_ folderName: String) -> String {
         installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
     }
 
@@ -193,6 +193,10 @@ struct ModConflictSection: View {
     /// Tenues par l'app (`KnownIncompatibilities`) : badge et raison à part,
     /// jamais « Signalé par vous ».
     private var knownPairs: [ModConflictPair] { vm.modConflictVerdicts.knownPairs(installed: installedMods) }
+    /// A5-T4 — prévues par les fichiers, hors écartées et déjà déclarées.
+    private var predictedPairs: [ModConflictPair] {
+        vm.contentPatcherLoadIndex.conflictPairs.filter { vm.modConflictVerdicts.verdict(for: $0) == nil }
+    }
 
     /// Le libellé du badge « actifs », ou `nil` si au moins un pack cité
     /// n'est pas installé et activé aujourd'hui. Deux libellés distincts
@@ -231,7 +235,7 @@ struct ModConflictSection: View {
         // l'est pas, tout ce qu'il contenait a été écarté par choix — un
         // fait différent, avec son propre libellé neutre.
         if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty
-            && knownPairs.isEmpty {
+            && knownPairs.isEmpty && predictedPairs.isEmpty {
             if vm.smapiLogDate == nil {
                 statusRow(icon: "info.circle", color: .secondary,
                           text: localization.L(L10n.Conflicts.noLogRead))
@@ -256,6 +260,9 @@ struct ModConflictSection: View {
                 ForEach(knownPairs, id: \.self) { p in
                     knownRow(p)
                 }
+                ForEach(predictedPairs, id: \.self) { p in
+                    predictedRow(p)
+                }
             }
         }
 
@@ -276,7 +283,7 @@ struct ModConflictSection: View {
     /// sur un `betweenPacks` à plus de deux packs : `pair` y est `nil` — un
     /// clic écrirait un verdict que ce fichier ne sait pas lire (la
     /// contradiction que le commentaire de tête met en garde).
-    private func dismissButton(for pair: ModConflictPair) -> some View {
+    func dismissButton(for pair: ModConflictPair) -> some View {
         Button(localization.L(L10n.Conflicts.dismissButton)) {
             vm.dismissConflict(pair)
         }
@@ -286,7 +293,7 @@ struct ModConflictSection: View {
         .pointingHandCursor()
     }
 
-    private func badge(_ text: String) -> some View {
+    func badge(_ text: String) -> some View {
         Text(text)
             .font(AppDesign.Font.iconXS(.semibold))
             .foregroundColor(.secondary)

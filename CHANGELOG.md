@@ -18,6 +18,7 @@ where the exact log format was verified.
 - **Le nombre d'approbations Nexus sur chaque fiche**, en tête à côté de la version.
 - **Approbations dans la liste et la grille.** Le pouce montre le nombre et ton approbation ; un clic (clic droit sur une carte) approuve. Nombres et dates se rafraîchissent une fois par jour, sans clé.
 - **Deux tris : « Approbations » et « Mise à jour Nexus la plus ancienne ».** Le second affiche date et âge pour repérer les mods obsolètes.
+- **Conflits de chargement prévus avant de jouer.** Deux mods qui chargent le même asset en exclusif (Content Patcher n'en applique alors aucun) apparaissent dans « Conflits entre mods », et l'activation du second avertit en nommant l'asset.
 - **Troisième filet de compatibilité, sans réseau.** Après smapi.io et la liste Pathoschild, le fichier local de SMAPI (`smapi-internal/metadata.json`) complète les verdicts inconnus — ses clauses de version sont lues, un mod à jour n'est jamais signalé.
 
 ### Changed
