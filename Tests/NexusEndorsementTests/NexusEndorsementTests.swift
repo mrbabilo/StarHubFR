@@ -4,8 +4,9 @@ import Testing
 
 /// A3-T8 — approuver un mod sur Nexus. Chemins : spécification officielle de
 /// l'API v1 ; corps et réponses : `IEndorsement`/`IEndorseResponse` du client
-/// officiel `node-nexus-api`. ⚠️ **Non mesuré en direct** (un essai approuverait
-/// un vrai mod) — d'où l'issue `unknown` qui rend toujours le brut.
+/// officiel `node-nexus-api`. Première réponse réelle relevée le 2026-10-07
+/// (mod 48694, approuvé par l'auteur depuis l'app) ; les refus restent non
+/// mesurés — d'où l'issue `unknown` qui rend toujours le brut.
 @Suite struct NexusEndorsementTests {
 
     @Test func statusesKeepOnlyStardewAndFoldCase() throws {
@@ -32,6 +33,12 @@ import Testing
         #expect(outcome(#"{"status": "Error", "message": "IS_OWN_MOD"}"#, 400) == .isOwnMod)
         #expect(outcome(#"{"status": "Error", "message": "TOO_SOON_AFTER_DOWNLOAD"}"#, 400) == .tooSoonAfterDownload)
         #expect(outcome(#"{"status": "Error", "message": "NOT_DOWNLOADED_MOD"}"#, 403) == .notDownloaded)
+    }
+
+    @Test func realEndorseResponseFromTheParc() {
+        // Relevée telle quelle au journal de l'app, HTTP 200 (2026-10-07).
+        let body = #"{"message":"A request to endorse the mod was queued","status":"Endorsed"}"#
+        #expect(NexusEndorsement.outcome(from: Data(body.utf8), httpStatus: 200) == .endorsed)
     }
 
     @Test func anythingElseIsUnknownWithCodeAndRawText() {

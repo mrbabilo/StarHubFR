@@ -285,9 +285,11 @@ existe sur Nexus ; erreur lue dans `message` ou `error` ; `TOO_SOON_AFTER_DOWNLO
 (« 15 minutes ») et `NOT_DOWNLOADED_MOD` traduits par ce client, `IS_OWN_MOD`
 présent dans Vortex et Stardrop (C#, GPL, lu, pas repris). La spécification
 SwaggerHub décrit un champ de formulaire `version` : les deux clients envoient du
-JSON, on suit le client officiel. **Non mesuré en direct** (un essai approuverait
-un vrai mod) : la réponse brute de chaque geste part au journal, toute autre forme
-remonte `unknown` avec son code.
+JSON, on suit le client officiel. **Mesuré le 2026-10-07** (mod 48694, approuvé
+par l'auteur depuis l'app) : HTTP 200,
+`{"message":"A request to endorse the mod was queued","status":"Endorsed"}`. Les
+refus restent non mesurés ; la réponse brute de chaque geste part au journal, toute
+autre forme remonte `unknown` avec son code.
 
 **Nombre d'approbations d'un mod** — v1 `endorsement_count` (`IModInfo`, même
 client officiel) ; v2 `mods { endorsements }`, mesuré sans clé le 2026-10-07 :
