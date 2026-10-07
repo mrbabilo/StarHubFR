@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Réglages : les mods dont StarHubFR a besoin.** « Extensions principales » liste SaveBackup, ConsoleCommands, la sonde, Stardew Loading Optimizer, Stardropium et GMCM, puis Content Patcher, SpaceCore et SVE : rôle, état actif ou en pause, et lien d'installation (page Nexus, SMAPI ou sonde intégrée).
+- **Réglages : les mods dont StarHubFR a besoin.** « Extensions principales » liste SaveBackup, ConsoleCommands, la sonde, Stardew Loading Optimizer, Stardropium et GMCM, puis Content Patcher, SpaceCore et SVE : rôle, état actif ou en pause, lien vers la fiche du mod et lien d'installation (page Nexus, SMAPI ou sonde intégrée).
 - **Lancement guidé d’une mesure Stardropium.** Depuis sa carte mémoire, StarHubFR propose son installation, active temporairement le mod et la sonde, puis configure les relevés matinaux. Réglages et états initiaux sont restaurés après le jeu, avec reprise après interruption et protection des modifications manuelles. Rapport conservé séparément de SLO et mesures simultanées empêchées.
 
 - **Mesures mémoire Stardropium dans Performances.** Le dernier journal SMAPI fournit des relevés avant/après nettoyage, deux graphiques de points et les valeurs détaillées. Mémoire résidente et mémoire gérée restent séparées ; hausses, données absentes et limites d’interprétation sont explicites, en français et en anglais.

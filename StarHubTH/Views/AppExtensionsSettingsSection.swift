@@ -65,7 +65,16 @@ struct AppExtensionsSettingsSection: View {
                 }
             }
         } trailing: {
-            action(ext, presence: presence)
+            HStack(spacing: AppDesign.Spacing.xs) {
+                // Installé, actif ou en pause : la fiche du mod dans l'app.
+                // Un composant de pack (SVE) se résout aussi (H-T6c).
+                if let folder = presence.folderName {
+                    Button(localization.L(L10n.Mods.openDetails)) {
+                        viewModel.navigationStore.openModDetail(folderName: folder)
+                    }
+                }
+                action(ext, presence: presence)
+            }
         }
         .padding(.vertical, AppDesign.Spacing.xs)
         .padding(.horizontal, AppDesign.Spacing.sm)
