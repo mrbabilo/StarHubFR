@@ -98,7 +98,8 @@ final class BenchmarkRunner {
 
     /// Nil = libre ; sinon la raison, déjà traduite.
     func busyReason() -> String? {
-        if viewModel.isGameRunning() || viewModel.bisection.state != nil || viewModel.bulkToggleProgress != nil
+        if SloDiagnosticSnapshotStore.hasPending(in: directory)
+            || viewModel.isGameRunning() || viewModel.bisection.state != nil || viewModel.bulkToggleProgress != nil
             || viewModel.isApplyingProfile || viewModel.unresolvedApplyJournal != nil
             || files.guidedPlan() != nil || interrupted != nil {
             return viewModel.localization.L(L10n.Benchmark.refBusy)

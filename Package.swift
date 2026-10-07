@@ -175,6 +175,8 @@ let package = Package(
                 "Models/SloDiagnosticLog.swift",
                 "Models/SloDiagnosticReport.swift",
                 "Models/SloDiagnosticSources.swift",
+                "Models/SloDiagnosticExclusion.swift",
+                "Stores/SloDiagnosticSessionStore.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",
                 "Models/TranslationTokens.swift",
@@ -963,6 +965,11 @@ let package = Package(
             name: "SloDiagnosticTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/SloDiagnosticTests"
+        ),
+        .testTarget(
+            name: "SloDiagnosticStoreTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/SloDiagnosticStoreTests"
         ),
         .testTarget(
             name: "MissingDependenciesTests",

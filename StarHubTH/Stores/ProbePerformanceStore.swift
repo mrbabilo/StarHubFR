@@ -37,6 +37,7 @@ final class ProbePerformanceStore {
     private(set) var probeWritesLoads = false
 
     @ObservationIgnored private let files: ProbeFiles
+    @ObservationIgnored private let snapshotDirectory: URL?
     @ObservationIgnored private var configDiffsTask: Task<Void, Never>?
     @ObservationIgnored private var configDiffsChanges: [ProbeModChange]?
     @ObservationIgnored private let loader: @Sendable (String?) async -> ProbePerformanceSnapshot
@@ -44,9 +45,10 @@ final class ProbePerformanceStore {
     @ObservationIgnored private var selectionGeneration = 0
     @ObservationIgnored private var reportTask: Task<Void, Never>?
 
-    init(files: ProbeFiles = ProbeFiles(),
+    init(files: ProbeFiles = ProbeFiles(), snapshotDirectory: URL? = AppSupport.directory,
          loader: (@Sendable (String?) async -> ProbePerformanceSnapshot)? = nil) {
         self.files = files
+        self.snapshotDirectory = snapshotDirectory
         let index = ProbeSessionsIndex(files: files)
         self.loader = loader ?? { gameDir in
             await Task.detached(priority: .userInitiated) {
@@ -176,6 +178,9 @@ final class ProbePerformanceStore {
     /// déjà demandé confirmation.
     @discardableResult
     func prepare(_ draft: GuidedPlanDraft, now: Date = Date()) throws -> GuidedPlan {
+        guard !SloDiagnosticSnapshotStore.hasPending(in: snapshotDirectory) else {
+            throw SloDiagnosticExclusionError.diagnosticPending
+        }
         let plan = GuidedPlan(id: UUID(), name: draft.name, role: draft.role, location: draft.location,
                               pairedWith: draft.pairedWith, saveName: draft.saveName, createdAt: now)
         try plan.write(to: files.guidedPlanURL)
