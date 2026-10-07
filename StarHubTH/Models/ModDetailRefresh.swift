@@ -18,17 +18,18 @@ import Foundation
 enum ModDetailRefresh {
 
     static func fetch(modId: Int,
-                      fetchDescription: @escaping (Int, @escaping (String) -> Void) -> Void,
+                      fetchDescription: @escaping (Int, @escaping (String, Int?) -> Void) -> Void,
                       fetchChangelogs: @escaping (Int, @escaping (String) -> Void) -> Void,
                       fallback: @escaping (Int, @escaping (ModDetailRaw?) -> Void) -> Void = { $1(nil) },
                       completion: @escaping (ModDetailRaw?) -> Void) {
-        fetchDescription(modId) { description in
+        fetchDescription(modId) { description, endorsements in
             guard !description.isEmpty else {
                 fallback(modId, completion)
                 return
             }
             fetchChangelogs(modId) { changelog in
-                completion(ModDetailRaw(description: description, changelog: changelog))
+                completion(ModDetailRaw(description: description, changelog: changelog,
+                                        endorsements: endorsements))
             }
         }
     }

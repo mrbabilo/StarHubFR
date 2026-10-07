@@ -25,6 +25,19 @@ import Testing
 
     /// Deux fichiers ARCHIVED en 1.9.0, même journal de 4 lignes : il compte
     /// une fois, pas huit lignes.
+    @Test func readsTheEndorsementCount() throws {
+        let raw = try NexusModDetailV2.decode(Data(NexusModDetailV2Fixtures.zebrusCoreWithEndorsements.utf8)).get()
+        #expect(raw.endorsements == 9)
+        // Réponse d'avant le champ : pas de nombre, la fiche reste lisible.
+        let old = try NexusModDetailV2.decode(Data(NexusModDetailV2Fixtures.zebrusCore.utf8)).get()
+        #expect(old.endorsements == nil)
+    }
+
+    @Test func queryAsksForEndorsements() throws {
+        let body = try #require(NexusModDetailV2.body(modId: 1, gameId: 1303))
+        #expect(String(decoding: body, as: UTF8.self).contains("description endorsements"))
+    }
+
     @Test func identicalChangelogsOfTheSameVersionCountOnce() {
         let merged = NexusModDetailV2.mergeChangelogs(files(NexusModDetailV2Fixtures.zebrusCore))
         #expect(merged["1.9.0"]?.count == 4)

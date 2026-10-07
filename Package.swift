@@ -35,6 +35,7 @@ let package = Package(
                 "Models/NexusDownloadAPI.swift",
                 "Models/NexusFileDownload.swift",
                 "Models/NexusRequestBuilder.swift",
+                "Models/NexusEndorsement.swift",
                 "Models/SmapiInstallerLimits.swift",
                 "Models/ChildProcessEnvironment.swift",
                 "Models/SmapiInstallerInvocation.swift",
@@ -1042,6 +1043,11 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
+        ),
+        .testTarget(
+            name: "NexusEndorsementTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NexusEndorsementTests"
         ),
         .testTarget(
             name: "ModListSelectionTests",

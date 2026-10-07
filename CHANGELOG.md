@@ -14,6 +14,9 @@ where the exact log format was verified.
 
 ### Added
 
+- **Approuver un mod sur Nexus depuis sa fiche.** Une icône 👍 approuve ou retire l'approbation, avec la clé d'API ; les refus de Nexus (ton propre mod, téléchargement de moins de 15 min, mod jamais téléchargé) s'affichent en clair.
+- **Le nombre d'approbations Nexus sur chaque fiche**, en tête à côté de la version.
+
 - **Sélection multiple dans la liste des mods.** Clic, ⌘clic, ⇧clic, ⇧↑↓ et ⌘A sélectionnent ; Espace active ou met en pause la sélection (un mod en pause : tout s'active) ; un bandeau donne le compte et les deux gestes. Les mods de SMAPI restent protégés.
 
 ## [1.59.0] - 2026-10-07

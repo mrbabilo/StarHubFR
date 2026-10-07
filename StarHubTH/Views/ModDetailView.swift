@@ -366,9 +366,11 @@ struct ModDetailView: View {
         .contentShape(.rect)
     }
 
-    /// Version, fraîcheur, poids, langues — tous locaux.
+    /// Approbations Nexus (de la fiche de ce mod), version, fraîcheur, poids, langues.
     private var statStrip: some View {
         StatStrip(items: [
+            .init(label: localization.L(L10n.Discovery.statEndorsements), value: vm.modDetailState.flatMap {
+                $0.modId == Int(vm.resolvedNexusModId(for: mod)) ? $0.endorsements : nil }.map { "\($0)" } ?? "—"),
             .init(label: localization.L(L10n.ModInstall.labelVersion),
                   value: vm.displayVersion(for: mod)),
             .init(label: localization.L(L10n.Mods.detailUpdated), value: updatedLine),

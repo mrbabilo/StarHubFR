@@ -13,6 +13,8 @@ struct ModDetailState {
     var isStale: Bool
     /// Un fetch réseau est en vol — seulement si un identifiant Nexus existe.
     var isLoading: Bool
+    /// Approbations Nexus du mod, quand la réponse (ou le cache) les porte.
+    var endorsements: Int? = nil
 
     /// État initial : le cache s'il existe (affiché instantané, marqué
     /// stale pendant le rafraîchissement), sinon la description locale du
@@ -24,7 +26,7 @@ struct ModDetailState {
             return ModDetailState(modId: modId,
                 description: DescriptionBlockParser.parse(cached.description),
                 changelog: DescriptionBlockParser.parse(cached.changelog),
-                isStale: true, isLoading: true)
+                isStale: true, isLoading: true, endorsements: cached.endorsements)
         }
         return ModDetailState(modId: modId,
             description: DescriptionBlockParser.parse(localDescription),
@@ -36,7 +38,7 @@ struct ModDetailState {
         ModDetailState(modId: modId,
             description: DescriptionBlockParser.parse(raw.description),
             changelog: DescriptionBlockParser.parse(raw.changelog),
-            isStale: false, isLoading: false)
+            isStale: false, isLoading: false, endorsements: raw.endorsements)
     }
 
     /// Ferme le spinner — mais seulement si la fiche affichée est bien

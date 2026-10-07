@@ -58,3 +58,14 @@ import Testing
         #expect(!state.isLoading)
     }
 }
+
+extension ModDetailStateTests {
+    /// Le cache d'avant le champ se relit sans nombre ; le frais l'apporte.
+    @Test func endorsementsFollowCacheThenRefresh() throws {
+        let old = try JSONDecoder().decode(ModDetailRaw.self,
+                                           from: Data(#"{"description": "d", "changelog": "c"}"#.utf8))
+        #expect(ModDetailState.initial(modId: 7, cached: old, localDescription: "").endorsements == nil)
+        let fresh = ModDetailRaw(description: "d", changelog: "c", endorsements: 12)
+        #expect(ModDetailState.refreshed(modId: 7, raw: fresh).endorsements == 12)
+    }
+}

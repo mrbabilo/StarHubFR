@@ -274,6 +274,25 @@ les mods changés depuis leur dernière vérification se relisent (registre
 
 v1 **ne sait pas chercher** : la recherche passe par GraphQL (§2.4).
 
+**Approbation (A3-T8, 2026-10-07)** — `GET /user/endorsements.json`,
+`POST /games/stardewvalley/mods/{id}/endorse.json` et `abstain.json` (chemins :
+spécification officielle SwaggerHub `NexusMods/nexus-mods_public_api_params_in_form_data`
+1.0, qui ne décrit pas les réponses). Corps et réponses : le client officiel
+[`Nexus-Mods/node-nexus-api`](https://github.com/Nexus-Mods/node-nexus-api)
+(`src/types.ts` `IEndorsement`, `IEndorseResponse`, `EndorsedStatus` ;
+`src/Nexus.ts` `endorseMod`) — POST JSON `{"Version": …}`, une version qui
+existe sur Nexus ; erreur lue dans `message` ou `error` ; `TOO_SOON_AFTER_DOWNLOAD`
+(« 15 minutes ») et `NOT_DOWNLOADED_MOD` traduits par ce client, `IS_OWN_MOD`
+présent dans Vortex et Stardrop (C#, GPL, lu, pas repris). La spécification
+SwaggerHub décrit un champ de formulaire `version` : les deux clients envoient du
+JSON, on suit le client officiel. **Non mesuré en direct** (un essai approuverait
+un vrai mod) : la réponse brute de chaque geste part au journal, toute autre forme
+remonte `unknown` avec son code.
+
+**Nombre d'approbations d'un mod** — v1 `endorsement_count` (`IModInfo`, même
+client officiel) ; v2 `mods { endorsements }`, mesuré sans clé le 2026-10-07 :
+Content Patcher = 489 860.
+
 ### 2.4 Nexus Mods — API v2 (GraphQL)
 
 | | |

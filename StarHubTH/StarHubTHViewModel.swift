@@ -143,6 +143,7 @@ final class StarHubTHViewModel {
 
     /// Whether the user has provided a Nexus API key (kept in sync with Keychain).
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
+    let endorsementStore = NexusEndorsementStore() // A3-T8
     /// `true` seulement si on **sait** le compte non premium : mieux vaut un
     /// bouton qui échoue qu'un bouton absent.
     var nexusDirectDownloadUnavailable: Bool { accountStore.directDownloadUnavailable }
@@ -2755,6 +2756,7 @@ final class StarHubTHViewModel {
         // Clé, compte et quota partent ensemble — les mises à jour n'en dépendent
         // pas.
         accountStore.clearKey()
+        endorsementStore.reset()
         nexusCategories = [:]
         nexusModExtras = [:]
         updateStore.setCheckError(nil)

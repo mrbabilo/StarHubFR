@@ -502,21 +502,21 @@ final class NexusUpdateChecker: @unchecked Sendable {
     /// `""` on any failure (cached/local data stays).
     /// ⚠️ **Complétion hors fil principal** (fil `URLSession`) : l'appelant
     /// repasse par main.
-    func fetchRawDescription(modId: Int, completion: @escaping (String) -> Void) {
+    func fetchRawDescription(modId: Int, completion: @escaping (String, Int?) -> Void) {
         guard let apiKey = apiKey(), !apiKey.isEmpty else {
-            completion("")
+            completion("", nil)
             return
         }
         // 429 en cours = indisponible.
         guard !isRateLimited() else {
-            completion("")
+            completion("", nil)
             return
         }
         guard let request = NexusRequestBuilder.makeRequest(
             path: "/games/\(NexusRequestBuilder.gameDomain)/mods/\(modId).json",
             apiKey: apiKey
         ) else {
-            completion("")
+            completion("", nil)
             return
         }
 
@@ -528,10 +528,10 @@ final class NexusUpdateChecker: @unchecked Sendable {
                   let json = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]),
                   let dict = json as? [String: Any],
                   let description = dict["description"] as? String else {
-                completion("")
+                completion("", nil)
                 return
             }
-            completion(description)
+            completion(description, dict["endorsement_count"] as? Int) // `IModInfo`, node-nexus-api
         }
         task.resume()
     }

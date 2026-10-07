@@ -424,12 +424,18 @@ backup se retrouve en moins de dix secondes.
 
 > ✅ **Les 7 items de ce lot sont livrés** (A3-T7 le 2026-09-25). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
-- [ ] **A3-T8** — `§audit-stardrop-nativemac` · Endorsement/abstention Nexus depuis
+- [x] **A3-T8** — `§audit-stardrop-nativemac` · Endorsement/abstention Nexus depuis
       la fiche du mod (état actuel, bouton d'action, erreurs typées : mod à soi,
       délai de 15 min après téléchargement, mod non téléchargé — la typologie du
       concurrent natif, `NexusService.setModEndorsement`, sert de référence de
       surface). Faible priorité : A3 est en lecture seule aujourd'hui, c'est le seul
       write-op Nexus utile que nous n'avons pas. · **S**
+      ✅ *Livré le 2026-10-07* : `NexusEndorsement` (Core, testé) +
+      `NexusEndorsementStore` ; icône 👍 dans la barre d'actions de la fiche,
+      refus typés. Contrat recoupé sur la spécification et le client officiel
+      `node-nexus-api` (JSON `{"Version"}`), pas mesuré en direct — réponse
+      brute au journal. Avec : nombre d'approbations dans la bande de la fiche
+      (`endorsement_count` v1, `endorsements` v2, mesuré). [Sources](SOURCES.md).
 
 
 #### A5 — Incompatibilités entre mods

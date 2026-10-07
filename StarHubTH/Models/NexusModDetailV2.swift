@@ -18,7 +18,7 @@ enum NexusModDetailV2 {
         query ModDetailRaw($game: String!, $id: String!, $modId: ID!, $gameId: ID!) {
           mods(filter: { gameId: { value: $game, op: EQUALS },
                          modId: { value: $id, op: EQUALS } }, count: 1) {
-            nodes { description }
+            nodes { description endorsements }
           }
           modFiles(modId: $modId, gameId: $gameId) { version date changelogText }
         }
@@ -50,7 +50,8 @@ enum NexusModDetailV2 {
         else { return .failure(.malformed) }
         let files = (payload?["modFiles"] as? [[String: Any]]) ?? []
         let changelog = NexusUpdateChecker.formatChangelogs(mergeChangelogs(files))
-        return .success(ModDetailRaw(description: description, changelog: changelog))
+        return .success(ModDetailRaw(description: description, changelog: changelog,
+                                     endorsements: nodes?.first?["endorsements"] as? Int))
     }
 
     /// `modFiles` → `{version: [lignes]}`, le format de la v1. Plusieurs

@@ -8,11 +8,22 @@ import Testing
 /// acceptable.
 @Suite struct ModDetailRefreshTests {
 
+    /// Le nombre d'approbations suit la description v1 jusqu'à la fiche.
+    @Test func carriesTheEndorsementCountFromV1() {
+        var raw: ModDetailRaw?
+        ModDetailRefresh.fetch(
+            modId: 42,
+            fetchDescription: { _, done in done("desc", 489_860) },
+            fetchChangelogs: { _, done in done("log") },
+            completion: { raw = $0 })
+        #expect(raw?.endorsements == 489_860)
+    }
+
     @Test func composesDescriptionAndChangelog() {
         var raw: ModDetailRaw?
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("desc") },
+            fetchDescription: { _, done in done("desc", nil) },
             fetchChangelogs: { _, done in done("log") },
             completion: { raw = $0 })
         #expect(raw?.description == "desc")
@@ -27,7 +38,7 @@ import Testing
         var changelogAsked = false
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("") },
+            fetchDescription: { _, done in done("", nil) },
             fetchChangelogs: { _, done in changelogAsked = true; done("log") },
             completion: { raw = $0 })
         #expect(raw == nil)
@@ -39,7 +50,7 @@ import Testing
         var raw: ModDetailRaw?
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("desc") },
+            fetchDescription: { _, done in done("desc", nil) },
             fetchChangelogs: { _, done in done("") },
             completion: { raw = $0 })
         #expect(raw?.description == "desc")
@@ -54,7 +65,7 @@ import Testing
         var raw: ModDetailRaw?
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("desc") },
+            fetchDescription: { _, done in done("desc", nil) },
             fetchChangelogs: { _, done in done("log") },
             fallback: { _, done in fallbackAsked = true; done(nil) },
             completion: { raw = $0 })
@@ -69,7 +80,7 @@ import Testing
         var raw: ModDetailRaw?
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("") },
+            fetchDescription: { _, done in done("", nil) },
             fetchChangelogs: { _, done in changelogAsked = true; done("log") },
             fallback: { id, done in done(ModDetailRaw(description: "v2 \(id)", changelog: "v2 log")) },
             completion: { raw = $0 })
@@ -83,7 +94,7 @@ import Testing
         var raw: ModDetailRaw? = ModDetailRaw(description: "x", changelog: "")
         ModDetailRefresh.fetch(
             modId: 42,
-            fetchDescription: { _, done in done("") },
+            fetchDescription: { _, done in done("", nil) },
             fetchChangelogs: { _, done in done("log") },
             fallback: { _, done in done(nil) },
             completion: { raw = $0 })

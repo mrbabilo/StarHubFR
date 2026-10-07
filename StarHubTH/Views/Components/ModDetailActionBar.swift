@@ -34,6 +34,25 @@ struct ModDetailActionBar: View {
     @State private var localIsOn: Bool? = nil
 
     var body: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+            actions
+            if let id = nexusId, let refusal = vm.endorsementStore.failures[id] {
+                Text(endorsementMessage(refusal))
+                    .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.error)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 10)
+        .task(id: nexusId) { if nexusId != nil { await vm.endorsementStore.loadIfNeeded { vm.log($0) } } }
+    }
+
+    /// A3-T8 — l'identifiant Nexus du mod, si une clé permet d'agir dessus.
+    private var nexusId: Int? {
+        guard vm.hasNexusApiKey, let id = Int(vm.resolvedNexusModId(for: live)), id > 0 else { return nil }
+        return id
+    }
+
+    private var actions: some View {
         // Icônes seules si la fiche est trop étroite pour les libellés.
         AdaptiveLabels { HStack(spacing: 12) {
             stateToggle
@@ -67,6 +86,17 @@ struct ModDetailActionBar: View {
                        tint: .secondary,
                        label: vm.isBlacklisted(live) ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd) {
                 vm.toggleBlacklist(live)
+            }
+            // A3-T8 — approuver sur Nexus : un clic approuve, un second s'abstient.
+            if let id = nexusId {
+                let endorsed = vm.endorsementStore.statuses[id] == .endorsed
+                markToggle(isOn: endorsed, on: "hand.thumbsup.fill", off: "hand.thumbsup",
+                           tint: AppDesign.Color.info,
+                           label: endorsed ? L10n.Mods.endorseWithdraw : L10n.Mods.endorseAdd) {
+                    let version = live.version.isEmpty ? (live.components.first?.version ?? "") : live.version
+                    Task { await vm.endorsementStore.toggle(modId: id, version: version) { vm.log($0) } }
+                }
+                .disabled(vm.endorsementStore.inFlight.contains(id))
             }
 
             // Les gestes rares dans « … » : signaler une incompatibilité (la
@@ -112,8 +142,17 @@ struct ModDetailActionBar: View {
                 .pointingHandCursor()
             }
         } }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 10)
+    }
+
+    private func endorsementMessage(_ refusal: NexusEndorsement.Outcome) -> String {
+        switch refusal {
+        case .isOwnMod: return localization.L(L10n.Mods.endorseOwnMod)
+        case .tooSoonAfterDownload: return localization.L(L10n.Mods.endorseTooSoon)
+        case .notDownloaded: return localization.L(L10n.Mods.endorseNotDownloaded)
+        case .unknown(let code, let message):
+            return String(format: localization.L(L10n.Mods.endorseUnknown), Int64(code), message ?? "—")
+        case .endorsed, .abstained: return ""
+        }
     }
 
     /// Activer / Mettre en pause — l'interrupteur vert de la rangée de

@@ -105,6 +105,7 @@ L'app savait tout faire **à partir d'un mod installé** — traductions, suppl�
 *   **Journal des modifications** du mod, et **arbre de dépendances transitif** avec statut (activé, désactivé, manquant), actions *Activer* / *Nexus* / *Chercher*, et navigation d'un mod à l'autre.
 *   **Ce qui ne va pas, dès l'ouverture** — un bandeau sous l'en-tête résume erreurs, dépendance manquante, doublon ou incompatibilité, et mène à l'onglet Santé. Celui-ci s'ouvre sur un relevé : un verdict et huit vérifications (liste noire SMAPI, chargement, smapi.io, journal, incompatibilités, raccourcis, travail en double, page Nexus), « non vérifié » quand la donnée manque, chaque ligne à voir menant à son détail. Un mod installé deux fois nomme ses dossiers, chacun ouvrable dans le Finder ou sur sa fiche.
 *   **Des gestes hiérarchisés** — l'interrupteur et les réglages du mod au premier plan, favori et « à écarter » en icônes, signaler et Finder rangés dans « … » ; la couverture française se lit en pastille dans l'en-tête.
+*   **Approuver le mod sur Nexus** d'un clic depuis sa fiche, avec son nombre d'approbations en tête ; un refus de Nexus est dit en clair.
 *   Édition de la catégorie et de l'identifiant Nexus directement depuis le volet.
 *   Bannières mises en cache pour un affichage instantané.
 

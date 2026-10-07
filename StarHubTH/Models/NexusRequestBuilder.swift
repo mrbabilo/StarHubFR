@@ -71,6 +71,16 @@ enum NexusRequestBuilder {
         return req
     }
 
+    /// POST v1 à corps JSON (A3-T8, `endorse.json`/`abstain.json`, comme le
+    /// client officiel `node-nexus-api`), mêmes en-têtes.
+    static func makeJSONPost(path: String, apiKey: String, body: Data) -> URLRequest? {
+        guard var req = makeRequest(path: path, apiKey: apiKey) else { return nil }
+        req.httpMethod = "POST"
+        req.httpBody = body
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return req
+    }
+
     /// Construit la requête POST de l'API GraphQL v2, avec les mêmes en-têtes
     /// d'identification que les appels v1 — c'est la raison d'être de ce
     /// fichier : un second jeu d'en-têtes ferait voir deux clients à Nexus.

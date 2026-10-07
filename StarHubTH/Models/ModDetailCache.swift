@@ -1,6 +1,11 @@
 import Foundation
 
-struct ModDetailRaw: Codable { let description: String; let changelog: String }
+struct ModDetailRaw: Codable {
+    let description: String
+    let changelog: String
+    /// Nombre d'approbations Nexus ; `nil` dans un cache d'avant le champ.
+    var endorsements: Int? = nil
+}
 
 /// File-backed cache (Caches/) for raw mod description + changelog, keyed by
 /// modId. Not UserDefaults — these blobs are large.
