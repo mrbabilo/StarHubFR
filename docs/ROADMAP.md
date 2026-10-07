@@ -716,8 +716,8 @@ le journal réel le 2026-09-04.
       Build, suite complète, sources offline et relecture validés.
       Essai guidé effectué par l'utilisateur le **2026-10-07, 16:41–16:47** :
       relevé matinal retrouvé dans le rapport conservé, Stardropium revenu en
-      pause, aucun instantané de restauration restant. **Affichage des graphiques
-      et confirmations encore à valider visuellement**. · **S**
+      pause, aucun instantané de restauration restant. Graphiques et
+      confirmations validés visuellement par l'utilisateur le 2026-10-07. · **S**
 - [ ] **D2-T6** — Vérifier en jeu les deux risques relevés dans UltraSmooth 2.3.7
       ([audit](audit-ultrasmooth-2.3.7.md) §3), puis les signaler à l'auteur :
       (1) `DayTransitionOptimizer` saute `GameLocation.DayUpdate` des lieux

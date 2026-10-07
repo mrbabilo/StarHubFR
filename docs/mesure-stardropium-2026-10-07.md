@@ -64,7 +64,7 @@ données de partie. D2-T5 est implémenté dans `StardropiumMemoryReport` et la 
 `SessionEnvironmentStore`, points avant/après sans ligne interpolée, détails
 horodatés et conclusion sur le dernier relevé. La carte reste explicitement
 attachée au dernier journal, indépendamment des sessions comparées de la sonde.
-Vérification visuelle par l'utilisateur encore à faire.
+Vérification visuelle faite par l'utilisateur le 2026-10-07.
 
 ## Validation du lancement guidé — 16:41 à 16:47
 
@@ -89,5 +89,5 @@ WARN/ERROR attribué à Stardropium, SLO ou la sonde. Les trois problèmes déj�
 observés restent distincts : Alternative Textures absent, patch Sunberry Village
 sur CJB Cheats Menu en échec, authentification Galaxy non connectée.
 
-Acquisition et fin de transaction validées par les fichiers. L'affichage des
-graphiques et des confirmations reste à confirmer visuellement par l'utilisateur.
+Acquisition et fin de transaction validées par les fichiers. Graphiques et
+confirmations validés visuellement par l'utilisateur le 2026-10-07.
