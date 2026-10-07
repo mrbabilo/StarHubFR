@@ -110,6 +110,35 @@ struct SessionEnvironmentStoreTests {
         #expect(sve.totalPatches == 3)
         #expect(groups[1].totalPatches == 3)
     }
+
+    @Test func includesResolveFromPackRootOnDisk() throws {
+        // Vrai format CP : l'inclusion est un patch, ses chemins partent de
+        // la racine du pack même depuis un fichier en sous-dossier. Le
+        // fichier cassé reste visible dans le rapport, jamais muet.
+        let root = try makeTemp("Mods")
+        let pack = root.appendingPathComponent("Big")
+        let fm = FileManager.default
+        try fm.createDirectory(at: pack.appendingPathComponent("code/npcs"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: pack.appendingPathComponent("code/items"), withIntermediateDirectories: true)
+        let files = [
+            "content.json": #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "code/npcs/a.json, code/items/broken.json"}]}"#,
+            "code/npcs/a.json": #"{"Changes": [{"Action": "EditData"}, {"Action": "Include", "FromFile": "code/items/b.json"}]}"#,
+            "code/items/b.json": #"{"Changes": [{"Action": "EditData"}, {"Action": "EditData"}]}"#,
+            "code/items/broken.json": "{oops",
+        ]
+        for (rel, text) in files {
+            try text.write(to: pack.appendingPathComponent(rel), atomically: true, encoding: .utf8)
+        }
+        let big = ModItem(uniqueId: "", name: "Big CP", folderName: "Big", version: "",
+                          author: "", description: "", nexusUrl: "", nexusModId: "",
+                          isEnabled: true, dependencies: [], children: nil, isGroup: false)
+        let groups = SessionEnvironmentStore.scanGroups(mods: [big], modsRoot: root.path)
+        let report = SessionEnvironmentReport(journalDate: nil, slo: nil, menus: [],
+                                              groups: groups, conflicts: [])
+        #expect(report.totalPatches == 4)                 // Load + EditData + 2 EditData
+        #expect(report.packsWithUnreadIncludes.map(\.packName) == ["Big CP"])
+        #expect(report.packsWithUnreadIncludes.first?.includesUnread == 1)
+    }
 }
 
 extension SessionEnvironmentStoreTests {

@@ -2151,6 +2151,7 @@
   "perf_env_packs_total": "%1$lld declared changes in %2$lld packs",
   "perf_env_packs_rest": "and %lld more",
   "perf_env_packs_illisible": "Unreadable packs (not counted) · %lld",
+  "perf_env_packs_includes_unread": "Included files not read (not counted) · %lld",
   "perf_env_packs_conflicts": "CP conflicts",
   "perf_evidence_summary": "Summary",
   "perf_evidence_lastSession": "Latest session",

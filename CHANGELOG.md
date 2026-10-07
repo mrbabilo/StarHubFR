@@ -36,6 +36,7 @@ where the exact log format was verified.
 - **Graphiques cohérents avec la mesure choisie.** Unités, courbes, valeurs détaillées et exclusions suivent le même périmètre ; les trous de mesure restent visibles et les détails sont accessibles au clavier. Les résultats d'une ancienne sélection ne remplacent plus ceux de la sélection courante.
 - **La légende au survol d'un graphique ne décale plus le contenu.** Sa ligne reste réservée, avec les textes longs limités à une ligne.
 - **La carte « Environnement » lit les vrais fichiers Content Patcher.** Les commentaires sous fins de ligne Windows, clés non citées et retours bruts acceptés par SMAPI ne font plus déclarer des dizaines de packs illisibles ; les rares refus restants vivent dans une liste repliable.
+- **La carte « Environnement » compte les fichiers inclus par Content Patcher.** Les inclusions `Include` sont suivies comme dans le jeu : le total passe d’environ 2 400 à 21 000 modifications déclarées sur le parc. Les fichiers inclus non lus sont comptés à part.
 
 ## [1.58.0] - 2026-10-05
 

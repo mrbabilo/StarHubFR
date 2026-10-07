@@ -105,7 +105,7 @@ final class SessionEnvironmentStore {
                 let text = try? String(contentsOf: url.appendingPathComponent("content.json"), encoding: .utf8)
                 guard let text else {
                     return ContentPatcherPackCount(packName: pair.name, patches: 0,
-                                                   includesRead: 0, state: .illisible)
+                                                   includesRead: 0, includesUnread: 0, state: .illisible)
                 }
                 return ContentPatcherPacks.count(packName: pair.name, contentJSON: text) { rel in
                     try? String(contentsOf: url.appendingPathComponent(rel), encoding: .utf8)
@@ -132,5 +132,10 @@ public struct SessionEnvironmentReport: Equatable, Sendable {
     public var totalPacks: Int { groups.reduce(0) { $0 + $1.packs.count } }
     public var unreadablePacks: [String] {
         groups.flatMap(\.packs).filter { $0.state == .illisible }.map(\.packName)
+    }
+    /// Packs lus dont une partie des inclusions n'a pu être comptée : leur
+    /// total est un plancher, la carte dit de combien de fichiers.
+    public var packsWithUnreadIncludes: [ContentPatcherPackCount] {
+        groups.flatMap(\.packs).filter { $0.state == .ok && $0.includesUnread > 0 }
     }
 }

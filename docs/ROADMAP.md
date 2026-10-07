@@ -687,6 +687,13 @@ le journal réel le 2026-09-04.
       Correctif du même jour : lecteur Newtonsoft commun à la place du parseur
       `Character` qui cassait les commentaires sous CRLF (**57 faux illisibles →
       0 sur 137 packs actifs**) ; refus futurs repliés et rangées adaptatives.
+      Correctif du 2026-10-07 : les inclusions suivent le vrai format CP (patch
+      `"Action": "Include"`, `FromFile` à virgules, chemins depuis la racine du
+      pack). La spec supposait des clés racine `Include`/`DynamicChanges`,
+      absentes du parc : **2 371 → 21 252 modifications** sur 137 packs.
+      7 fichiers inclus restent non lus (nombres `.03`, éléments vides `,,`
+      que Newtonsoft accepte) : comptés et affichés, à couvrir dans
+      `I18nLenientParser` après vérification sur la DLL Newtonsoft.
 - [x] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
       ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth

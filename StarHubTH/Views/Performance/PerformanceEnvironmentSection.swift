@@ -187,6 +187,21 @@ struct PerformanceEnvironmentSection: View {
                     }
                     .font(AppDesign.Font.footnote)
                 }
+                let partial = report.packsWithUnreadIncludes
+                if !partial.isEmpty {
+                    DisclosureGroup(String(format:
+                        localization.L(L10n.Performance.envPacksIncludesUnread),
+                        Int64(partial.reduce(0) { $0 + $1.includesUnread }))) {
+                        // Deux racines peuvent porter un pack du même nom.
+                        ForEach(Array(partial.sorted { $0.packName < $1.packName }.enumerated()),
+                                id: \.offset) { _, pack in
+                            Text("\(pack.packName) · \(pack.includesUnread)")
+                                .font(AppDesign.Font.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(AppDesign.Font.footnote)
+                }
             }
         }
     }

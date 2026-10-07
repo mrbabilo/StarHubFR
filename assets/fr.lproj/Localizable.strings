@@ -2151,6 +2151,7 @@
 "perf_env_packs_total" = "%1$lld modifications déclarées dans %2$lld packs";
 "perf_env_packs_rest" = "et %lld autres";
 "perf_env_packs_illisible" = "Packs illisibles (non comptés) · %lld";
+"perf_env_packs_includes_unread" = "Fichiers inclus non lus (non comptés) · %lld";
 "perf_env_packs_conflicts" = "Conflits CP";
 "perf_evidence_summary" = "Résumé";
 "perf_evidence_lastSession" = "Dernière session";

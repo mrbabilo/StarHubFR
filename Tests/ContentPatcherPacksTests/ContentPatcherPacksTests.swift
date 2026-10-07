@@ -2,9 +2,12 @@ import Testing
 import Foundation
 @testable import StarHubTHCore
 
-/// D2-T3 §6 — fixtures content.json. Champ `DynamicChanges` : 0 occurrence
-/// sur le vrai parc (mesuré 2026-10-06) mais officiel dans le format CP 2.x —
-/// fixture synthétique, seul endroit où il existe.
+/// D2-T3 §6 — fixtures content.json. Content Patcher n'a ni clé racine
+/// `Include` ni `DynamicChanges` : une inclusion est un patch de `Changes`
+/// (`"Action": "Include"`, `FromFile` = liste à virgules, chemins depuis la
+/// racine du pack). Mesuré sur le vrai parc le 2026-10-07 : 1 103 patches
+/// Include, 134 listes multiples, 2 446 chemins tous résolus depuis la racine,
+/// 0 clé racine `Include`/`DynamicChanges`.
 struct ContentPatcherPacksTests {
 
     private func json(_ dict: [String: Any]) -> String {
@@ -20,8 +23,9 @@ struct ContentPatcherPacksTests {
     }
 
     @Test func includeOneLevel() {
-        let root = json(["Format": "2.5.0", "Changes": [["Action": "Load"]], "Include": ["inc.json"]])
-        let inc = json(["Changes": [["Action": "EditMap"], ["Action": "EditMap"]]])
+        // L'Include remplace son patch par le contenu du fichier : 1 + 2.
+        let root = #"{"Format": "2.5.0", "Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "inc.json"}]}"#
+        let inc = #"{"Changes": [{"Action": "EditMap"}, {"Action": "EditMap"}]}"#
         var fed: [String] = []
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: root) { path in
             fed.append(path)
@@ -29,35 +33,68 @@ struct ContentPatcherPacksTests {
         }
         #expect(result.patches == 3)
         #expect(result.includesRead == 1)
+        #expect(result.includesUnread == 0)
         #expect(fed == ["inc.json"])
     }
 
-    @Test func includeNestedRelativePath() {
-        // Un Include dans un fichier sous-dossier se résout relativement à CE fichier.
-        let root = json(["Format": "2.5.0", "Changes": [], "Include": ["sub/a.json"]])
-        let a = json(["Changes": [["Action": "Load"]], "Include": ["b.json"]])
-        let b = json(["Changes": [["Action": "Load"]]])
+    @Test func includeCommaListFromRealSVE() {
+        // Extrait de « [CP] Stardew Valley Expanded/content.json » : liste à
+        // virgules, espaces doubles, virgule traînante après le dernier champ.
+        let root = """
+        {
+          "Changes": [
+            // INCLUDES
+            {
+              "Action": "Include",
+              "FromFile": "code/npcs/victor.json, code/npcs/olivia.json,code/npcs/susan.json,  code/npcs/andy.json ",
+            },
+          ]
+        }
+        """
+        var fed: [String] = []
+        let result = ContentPatcherPacks.count(packName: "SVE", contentJSON: root) { path in
+            fed.append(path)
+            return #"{"Changes": [{"Action": "EditData"}]}"#
+        }
+        #expect(fed == ["code/npcs/victor.json", "code/npcs/olivia.json",
+                        "code/npcs/susan.json", "code/npcs/andy.json"])
+        #expect(result.patches == 4)
+        #expect(result.includesRead == 4)
+    }
+
+    @Test func actionAndFieldNamesAreCaseInsensitiveLikeCP() {
+        let root = #"{"changes": [{"action": "include", "fromFile": "a.json"}]}"#
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: root) { _ in
+            #"{"Changes": [{"Action": "Load"}]}"#
+        }
+        #expect(result.patches == 1)
+        #expect(result.includesRead == 1)
+    }
+
+    @Test func nestedIncludeResolvesFromPackRoot() {
+        // CP résout FromFile depuis la racine du pack, jamais depuis le
+        // fichier qui inclut (2 446 chemins sur 2 446 dans le vrai parc).
+        let root = #"{"Changes": [{"Action": "Include", "FromFile": "sub/a.json"}]}"#
+        let a = #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "other/b.json"}]}"#
+        let b = #"{"Changes": [{"Action": "Load"}]}"#
         var fed: [String] = []
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: root) { path in
             fed.append(path)
             switch path {
             case "sub/a.json": return a
-            case "sub/b.json": return b
+            case "other/b.json": return b
             default: return nil
             }
         }
+        #expect(fed == ["sub/a.json", "other/b.json"])
         #expect(result.patches == 2)
         #expect(result.includesRead == 2)
-        #expect(fed == ["sub/a.json", "sub/b.json"])
     }
 
     @Test func includeCycleTerminates() {
-        // Spéc §3.1 : le cycle est gardé par l'ensemble des chemins déjà lus.
-        // La racine n'a pas de chemin : ré-incluse une fois (a → b → a), le
-        // cycle se referme sur « b.json » déjà visité. a + b + a relu = 3
-        // patches pour 2 lectures ; l'important (Review Focus 1) : ça termine.
-        let a = json(["Changes": [["Action": "Load"]], "Include": ["b.json"]])
-        let b = json(["Changes": [["Action": "Load"]], "Include": ["a.json"]])
+        // a → b → a : le second « a.json » est déjà lu, la boucle se ferme.
+        let a = #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "b.json"}]}"#
+        let b = #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "a.json"}]}"#
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: a) { $0 == "b.json" ? b : a }
         #expect(result.state == .ok)
         #expect(result.patches == 3)
@@ -67,10 +104,9 @@ struct ContentPatcherPacksTests {
     @Test func includeDepthCap() {
         // Chaîne de 7 fichiers : la profondeur max 5 coupe avant la fin.
         func file(_ n: Int) -> String {
-            n >= 7 ? json(["Changes": [["Action": "Load"]]])
-                   : json(["Changes": [["Action": "Load"]], "Include": ["f\(n + 1).json"]])
+            n >= 7 ? #"{"Changes": [{"Action": "Load"}]}"#
+                   : #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "f\#(n + 1).json"}]}"#
         }
-        // Le loader doit vraiment suivre la chaîne : f0 → f1 → … → f6.
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: file(0)) { path in
             let digits = path.dropFirst().prefix(while: \.isNumber)
             return file(Int(digits) ?? -1)
@@ -81,16 +117,26 @@ struct ContentPatcherPacksTests {
         #expect(result.state == .ok)
     }
 
+    @Test func tokenPathAndBrokenIncludeAreCountedUnread() {
+        // Un chemin à jeton ne se résout pas hors du jeu ; un fichier inclus
+        // illisible non plus. Les deux restent visibles, jamais muets.
+        let root = #"{"Changes": [{"Action": "Include", "FromFile": "{{Season}}.json, broken.json"}]}"#
+        var fed: [String] = []
+        let result = ContentPatcherPacks.count(packName: "P", contentJSON: root) { path in
+            fed.append(path)
+            return "{oops"
+        }
+        #expect(fed == ["broken.json"])
+        #expect(result.state == .ok)
+        #expect(result.patches == 0)
+        #expect(result.includesRead == 0)
+        #expect(result.includesUnread == 2)
+    }
+
     @Test func brokenJSONIsIllisibleNeverInvented() {
         let result = ContentPatcherPacks.count(packName: "[CP] Cassé", contentJSON: "{oops", includeLoader: { _ in nil })
         #expect(result.state == .illisible)
         #expect(result.patches == 0)
-    }
-
-    @Test func dynamicChangesOnly() {
-        let text = json(["Format": "2.5.0", "DynamicChanges": [["When": [:]], ["When": [:]]]])
-        let result = ContentPatcherPacks.count(packName: "P", contentJSON: text, includeLoader: { _ in nil })
-        #expect(result.patches == 2)
     }
 
     @Test func commentsAndTrailingCommasTolerated() {
@@ -176,17 +222,19 @@ struct ContentPatcherPacksTests {
     @Test func includeMissingFileStaysOk() {
         // Fichier inclus introuvable : SMAPI le signalera au chargement ;
         // le pack reste lisible, on ne compte que ce qu'on a lu.
-        let root = json(["Changes": [["Action": "Load"]], "Include": ["gone.json"]])
+        // Cas réel : 5 inclusions conditionnelles vers des mods absents du parc.
+        let root = #"{"Changes": [{"Action": "Load"}, {"Action": "Include", "FromFile": "gone.json"}]}"#
         let result = ContentPatcherPacks.count(packName: "P", contentJSON: root, includeLoader: { _ in nil })
         #expect(result.state == .ok)
         #expect(result.patches == 1)
         #expect(result.includesRead == 0)
+        #expect(result.includesUnread == 0)
     }
 
     @Test func groupTotalSumsOnlyReadablePacks() {
         let group = ContentPatcherPacks.Group(rootName: "SVE", packs: [
-            ContentPatcherPackCount(packName: "[CP] SVE", patches: 120, includesRead: 2, state: .ok),
-            ContentPatcherPackCount(packName: "[FTM] SVE", patches: 0, includesRead: 0, state: .illisible),
+            ContentPatcherPackCount(packName: "[CP] SVE", patches: 120, includesRead: 2, includesUnread: 0, state: .ok),
+            ContentPatcherPackCount(packName: "[FTM] SVE", patches: 0, includesRead: 0, includesUnread: 0, state: .illisible),
         ])
         #expect(group.totalPatches == 120)
     }

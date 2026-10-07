@@ -1235,6 +1235,7 @@ enum L10n {
         static let envPacksTotal      = "perf_env_packs_total"
         static let envPacksRest       = "perf_env_packs_rest"
         static let envPacksIllisible  = "perf_env_packs_illisible"
+        static let envPacksIncludesUnread = "perf_env_packs_includes_unread"
         static let envPacksConflicts  = "perf_env_packs_conflicts"
     }
 
