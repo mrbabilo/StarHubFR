@@ -61,7 +61,8 @@ final class SessionEnvironmentStore {
                 slo: SloOptimizerConfig.parse(log: text),
                 menus: ConfigMenuCoverage.coverage(in: entries),
                 groups: SessionEnvironmentStore.scanGroups(mods: mods, modsRoot: modsRootPath),
-                conflicts: ContentPatcherConflicts.read(from: entries))
+                conflicts: ContentPatcherConflicts.read(from: entries),
+                stardropiumMemory: StardropiumMemoryReport.parse(text))
         }.value
         report = loaded
         lastStamp = stamp
@@ -125,6 +126,7 @@ public struct SessionEnvironmentReport: Equatable, Sendable {
     public let menus: [ConfigMenuEntry]
     public let groups: [ContentPatcherPacks.Group]
     public let conflicts: [LoadConflict]
+    public var stardropiumMemory: StardropiumMemoryReport = .init()
 
     public var totalPatches: Int { groups.reduce(0) { $0 + $1.totalPatches } }
     public var totalPacks: Int { groups.reduce(0) { $0 + $1.packs.count } }

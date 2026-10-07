@@ -14,6 +14,10 @@ where the exact log format was verified.
 
 ### Added
 
+- **Lancement guidé d’une mesure Stardropium.** Depuis sa carte mémoire, StarHubFR propose son installation, active temporairement le mod et la sonde, puis configure les relevés matinaux. Réglages et états initiaux sont restaurés après le jeu, avec reprise après interruption et protection des modifications manuelles. Rapport conservé séparément de SLO et mesures simultanées empêchées.
+
+- **Mesures mémoire Stardropium dans Performances.** Le dernier journal SMAPI fournit des relevés avant/après nettoyage, deux graphiques de points et les valeurs détaillées. Mémoire résidente et mémoire gérée restent séparées ; hausses, données absentes et limites d’interprétation sont explicites, en français et en anglais.
+
 - **Session de diagnostic SLO guidée et réversible.** L’onglet Performances propose l’installation de Stardew Loading Optimizer quand il manque, active temporairement ses deux mesures détaillées et la sonde StarHubFR, puis restaure exactement config et états des mods. Après fermeture du jeu, rapport explique attentes observées, caches, transitions, fluidité, mémoire et limites des données ; une reprise durable protège aussi après redémarrage de l’app.
 - **Performances : résumé de la dernière session, puis comparaison détaillée.** Fluidité, saccades et mémoire apparaissent en premier ; en mode comparaison, « Analyse et conclusion » suit immédiatement le résumé. Graphiques, valeurs par lieu, historique des mods et environnement restent accessibles. Les mesures manquantes, leur provenance et les limites de comparaison sont expliquées en français et en anglais.
 - **Évolution de la mémoire pendant une période comparable.** La tendance s'interrompt lors d'un changement de lieu, d'une exclusion ou d'une mesure manquante ; elle ne conclut pas automatiquement à une fuite mémoire.
@@ -25,6 +29,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Boutons de reprise des diagnostics SLO et Stardropium.** Une confirmation unique rend la restauration accessible sur macOS. Un mod mis en pause après la mesure reste restaurable, sans écraser une configuration modifiée avant confirmation. « Actualiser » reprend une restauration en attente et indique quand l'autre diagnostic bloque une nouvelle mesure.
 - **Réglages accessibles pendant une partie.** Ouvrir la configuration d’un mod ne fige plus StarHubFR avec la roue d’attente macOS. Correction vérifiée en ouvrant la configuration SLO pendant une session de diagnostic, jeu en cours.
 - Le rapport du diagnostic SLO reste affiché après le retour dans l’app ; la sonde attend désormais `GameLaunched` avant d’accéder à GMCM, et une même erreur SMAPI n’est plus recomptée à chaque actualisation du journal.
 - **Comparaisons de performances plus prudentes.** Chaque lieu comparable pèse autant ; une différence de temps passé en ville ou à la ferme ne crée plus de faux gain. Les fenêtres qui se chevauchent, options différentes, scènes inconnues et essais contradictoires sont signalés. Un coût non mesuré ne devient plus zéro ni une preuve contre un mod.

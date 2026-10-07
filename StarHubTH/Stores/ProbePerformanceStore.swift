@@ -178,7 +178,7 @@ final class ProbePerformanceStore {
     /// déjà demandé confirmation.
     @discardableResult
     func prepare(_ draft: GuidedPlanDraft, now: Date = Date()) throws -> GuidedPlan {
-        guard !SloDiagnosticSnapshotStore.hasPending(in: snapshotDirectory) else {
+        guard !SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: snapshotDirectory) else {
             throw SloDiagnosticExclusionError.diagnosticPending
         }
         let plan = GuidedPlan(id: UUID(), name: draft.name, role: draft.role, location: draft.location,

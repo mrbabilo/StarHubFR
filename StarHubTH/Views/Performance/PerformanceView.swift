@@ -11,6 +11,7 @@ struct PerformanceView: View {
     /// rechargé aux mêmes moments que la sonde.
     var environment: SessionEnvironmentStore
     var sloDiagnostic: SloDiagnosticSessionStore
+    var stardropiumDiagnostic: SloDiagnosticSessionStore
     @State private var comparing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -54,6 +55,10 @@ struct PerformanceView: View {
                         PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }.id("game")
                         PerformanceCard { PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report) }
                     }
+                    PerformanceStardropiumMemorySection(viewModel: viewModel, localization: localization,
+                                                       store: environment, diagnostic: stardropiumDiagnostic,
+                                                       runtime: sloRuntime)
+                        .id("stardropium")
                     PerformanceCard {
                         DisclosureGroup(localization.L(L10n.PerformanceEvidence.history)) {
                             PerformanceImpactSection(viewModel: viewModel, localization: localization)
@@ -105,6 +110,7 @@ struct PerformanceView: View {
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
             Task {
                 await sloDiagnostic.gameExited(runtime: sloRuntime())
+                await stardropiumDiagnostic.gameExited(runtime: sloRuntime())
                 await store.reload(gameDir: viewModel.gameDir)
                 await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
             }
@@ -128,7 +134,7 @@ struct PerformanceView: View {
         let anchors = [("summary", L10n.PerformanceEvidence.summary),
                        ("slo", L10n.PerformanceSloDiagnostic.title)]
             + (comparing ? comparisonAnchors : [])
-            + [("loads", L10n.Performance.loadsTitle), ("mods", L10n.PerformanceEvidence.history),
+            + [("loads", L10n.Performance.loadsTitle), ("stardropium", L10n.StardropiumMemory.title), ("mods", L10n.PerformanceEvidence.history),
                ("details", L10n.PerformanceEvidence.details)]
         return ViewThatFits(in: .horizontal) {
             HStack {
@@ -190,10 +196,17 @@ struct PerformanceView: View {
                                                runtime: sloRuntime())
         }
         await sloDiagnostic.reload(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
+        if resume {
+            await stardropiumDiagnostic.resumeIfNeeded(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
+        }
+        await stardropiumDiagnostic.reload(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
     }
 
     private func sloRuntime() -> SloDiagnosticRuntime {
-        SloDiagnosticRuntime(
+        let gameDir = viewModel.gameDir
+        let modsRoot = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods")
+        return SloDiagnosticRuntime(
+            modsRootURL: modsRoot,
             isGameRunning: { viewModel.isGameRunning() },
             busyReason: {
                 SloDiagnosticExclusion.busyReason(
@@ -212,20 +225,28 @@ struct PerformanceView: View {
                 UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
             },
             modEnabled: { name in
-                viewModel.mods.first { $0.folderName == name }?.isEnabled
+                DiagnosticModToggle.enabled(root: name,
+                    modsRoot: modsRoot)
             },
             setModEnabled: { name, enabled in
-                guard let mod = viewModel.mods.first(where: { $0.folderName == name }) else {
-                    return false
+                guard !viewModel.isGameRunning() else { return false }
+                let success = DiagnosticModToggle.setEnabled(enabled, root: name,
+                    modsRoot: modsRoot)
+                if success, viewModel.gameDir == gameDir {
+                    // Publish exact activation before launch (ProbeLoadOrder reads this list).
+                    viewModel.scanStore.setMods(TogglePlan.flipped(viewModel.mods,
+                        folders: [name], target: enabled))
                 }
-                if mod.isEnabled == enabled { return true }
-                await withCheckedContinuation { continuation in
-                    viewModel.toggleMod(mod) { continuation.resume() }
-                }
-                return viewModel.mods.first { $0.folderName == name }?.isEnabled == enabled
+                return success
             },
             grantOwnerWriteAccess: { ModZipInstaller.grantOwnerWriteAccess(in: $0) },
-            launchGame: { viewModel.launchGame(honoringCloseAfterLaunch: false) },
-            rescan: { viewModel.scanMods(gameDir: viewModel.gameDir) })
+            launchGame: {
+                guard viewModel.gameDir == gameDir,
+                      UserDefaults.standard.string(forKey: UDKey.launchProfile) != "Vanilla" else { return false }
+                return viewModel.launchGame(honoringCloseAfterLaunch: false)
+            },
+            rescan: {
+                if viewModel.gameDir == gameDir { viewModel.scanMods(gameDir: gameDir) }
+            })
     }
 }

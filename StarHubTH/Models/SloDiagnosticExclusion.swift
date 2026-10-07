@@ -7,6 +7,7 @@ public enum SloDiagnosticExclusionError: Error, Equatable, Sendable {
 public enum SloDiagnosticExclusion {
     public static func blocksOtherPerformanceWork(snapshotDirectory: URL?) -> Bool {
         SloDiagnosticSnapshotStore.hasPending(in: snapshotDirectory)
+            || SloDiagnosticSnapshotStore.hasPending(in: PerformanceDiagnosticKind.stardropium.directory(in: snapshotDirectory))
     }
 
     public static func busyReason(gameRunning: Bool, benchmarkActive: Bool,
@@ -32,6 +33,7 @@ public struct SloDiagnosticRuntime {
     public static let pollSeconds: TimeInterval = 5
     public static let launchTimeout: TimeInterval = 90
     public static let sourceSettleSeconds: TimeInterval = 3
+    public let modsRootURL: URL?
     public let isGameRunning: () -> Bool
     public let busyReason: () -> String?
     public let launchProfile: () -> String
@@ -43,7 +45,7 @@ public struct SloDiagnosticRuntime {
     public let now: () -> Date
     public let sleep: (TimeInterval) async -> Void
 
-    public init(isGameRunning: @escaping () -> Bool,
+    public init(modsRootURL: URL? = nil, isGameRunning: @escaping () -> Bool,
                 busyReason: @escaping () -> String?, launchProfile: @escaping () -> String,
                 modEnabled: @escaping (String) -> Bool?,
                 setModEnabled: @escaping (String, Bool) async -> Bool,
@@ -53,10 +55,17 @@ public struct SloDiagnosticRuntime {
                 sleep: @escaping (TimeInterval) async -> Void = { seconds in
                     try? await Task.sleep(for: .seconds(seconds))
                 }) {
+        self.modsRootURL = modsRootURL?.resolvingSymlinksInPath()
         self.isGameRunning = isGameRunning; self.busyReason = busyReason
         self.launchProfile = launchProfile; self.modEnabled = modEnabled
         self.setModEnabled = setModEnabled; self.grantOwnerWriteAccess = grantOwnerWriteAccess
         self.launchGame = launchGame; self.rescan = rescan; self.now = now; self.sleep = sleep
+    }
+}
+
+public extension SloDiagnosticRuntime {
+    func matches(modsRoot: URL) -> Bool {
+        modsRootURL == nil || modsRootURL?.path == modsRoot.resolvingSymlinksInPath().path
     }
 }
 
@@ -117,7 +126,7 @@ public enum SloDiagnosticReportStore {
 }
 
 public enum SloDiagnosticRecoveryConflict: Equatable, Sendable {
-    case modsUnavailable, configChanged
+    case modsUnavailable, configChanged, gameDirectoryChanged
     case rootMissing(String), rootCollision(String), rootChanged(String)
 }
 

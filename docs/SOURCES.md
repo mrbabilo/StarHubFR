@@ -698,6 +698,14 @@ de code ni suppression de fichier (motif compté avant/après).
   identiques. Verdict **GO** ; le préchauffage SpaceCore reste le même code,
   seulement désarmé — ne jamais forcer les cinq clés. Détail :
   [`audit-ultrasmooth-2.4.5.md`](audit-ultrasmooth-2.4.5.md).
+- **UltraSmooth 2.4.6 → 2.4.9** *(2026-10-07)* — delta décompilé avec les DLL
+  Content Patcher 2.9.1 et SpaceCore 1.28.4 du parc. Tableaux `object[]`
+  incompatibles avec l'appel CP typé : repli silencieux et travail supplémentaire.
+  Nouveau parcours de sauvegarde partagé avec Stardropium, sans garde de
+  coexistence identifié. **Garder en pause** pour les prochaines mesures ;
+  aucune corruption ni incompatibilité globale SLO démontrée. Le GO 2.4.5 ne
+  couvre pas cette version/configuration. Détail et limites :
+  [`audit-ultrasmooth-2.4.9.md`](audit-ultrasmooth-2.4.9.md).
 - **Stardropium 0.2.0-beta → 0.2.2-beta** — 40 fichiers. Caméra, trim mémoire
   Mac pendant les fondus, sortie du mode basse latence au titre, replanification
   complète des lieux dynamiques à la sauvegarde (équivalent SpaceCore) : de
@@ -707,6 +715,20 @@ de code ni suppression de fichier (motif compté avant/après).
   **GARDER ACTUEL** — mais noter que le mod est **en pause** sur le parc
   (`.Stardropium`), état qui avait dérivé du « actif » porté jusque-là.
   Détail : [`audit-stardropium-0.2.2.md`](audit-stardropium-0.2.2.md).
+- **Stardropium 0.2.2-beta — D2-T5** *(2026-10-07)* — activation et session
+  réalisées ensuite par l'utilisateur, UltraSmooth restant en pause. Deux
+  lignes mémoire matinales confirment le contrat du parseur
+  `StardropiumMemoryReport` ; valeurs en Mio malgré le libellé `MB` du mod,
+  variations signées, source `INFO Stardropium` vérifiée. Pas de gain mémoire
+  résidente observé sur ces nettoyages et aucun message de profil basse mémoire.
+  [Mesure réelle, extraits et limites](mesure-stardropium-2026-10-07.md).
+  Préparation guidée : `Arshia1381.Stardropium`, Nexus **52803** (manifest installé),
+  version minimale **0.2.2**, suffixe `-beta` reconnu. Les deux seules options
+  forcées sont `EnableMemoryOptimization` et `AutoTrimWorkingSetOnNewDay` ;
+  `MemoryOptimizationModule.OnDayStarted` et `TrimMemory(isOvernight: true)`
+  de la DLL confirment que le relevé INFO ne nécessite pas `EnableLiveDiagnostics`.
+  Aucun profil basse mémoire ni autre optimiseur forcé. Snapshot et rapport
+  distincts dans `StardropiumDiagnostic/` ; fermeture du jeu requise pour restaurer.
 - **JuniGrid `86dca38 → 57b26b5`** — un commit : le README retire le lien vers
   l'édition anglaise `JuniGrid-en`. Rien.
 - **save-editor `0d57537 → 2432d4e`** — tooltip d'inventaire dans l'éditeur web

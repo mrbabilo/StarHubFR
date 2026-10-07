@@ -108,14 +108,15 @@ public enum SloDiagnosticTransactionError: Error, Equatable, Sendable {
 }
 
 public enum SloDiagnosticTransaction {
-    public static func prepare(original: Data?, version: String) throws -> SloDiagnosticPreparedConfig {
-        guard ProbeLoadRecords.version(version, atLeast: SloDiagnosticContract.minimumVersion) else {
+    public static func prepare(original: Data?, version: String,
+                               kind: PerformanceDiagnosticKind = .slo) throws -> SloDiagnosticPreparedConfig {
+        guard kind.supports(version: version) else {
             throw SloDiagnosticTransactionError.outdatedVersion(version)
         }
 
         let originalState = original.map(SloDiagnosticConfigState.bytes) ?? .missing
         let object: [String: Any]
-        if let original, !original.isEmpty {
+        if let original {
             guard let decoded = try? JSONSerialization.jsonObject(with: original,
                                                                   options: [.json5Allowed]),
                   let dictionary = decoded as? [String: Any]
@@ -126,8 +127,7 @@ public enum SloDiagnosticTransaction {
         }
 
         var prepared = object
-        for key in [SloDiagnosticContract.detailedDiagnosticsKey,
-                    SloDiagnosticContract.performanceMeasurementKey] {
+        for key in kind.enabledKeys {
             if let value = prepared[key], !isJSONBoolean(value) {
                 throw SloDiagnosticTransactionError.invalidDiagnosticValue(key)
             }

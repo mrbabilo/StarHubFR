@@ -26,6 +26,7 @@ struct DiagnosticsView: View {
     @State private var environment = SessionEnvironmentStore()
     /// D2-T4 — transaction durable séparée des comparaisons habituelles.
     @State private var sloDiagnostic: SloDiagnosticSessionStore
+    @State private var stardropiumDiagnostic: SloDiagnosticSessionStore
     /// Rapidité d'affichage : les onglets secondaires ne se construisent qu'au
     /// premier affichage, puis restent montés — l'état (filtres du journal,
     /// paire choisie) ne se perd jamais (consigne du 2026-09-28). Entrer sur
@@ -40,10 +41,13 @@ struct DiagnosticsView: View {
         _sloDiagnostic = State(initialValue: SloDiagnosticSessionStore(
             applicationSupport: AppSupport.directory,
             logURL: URL(fileURLWithPath: viewModel.smapiLogPath), probeFiles: ProbeFiles()))
+        _stardropiumDiagnostic = State(initialValue: SloDiagnosticSessionStore(
+            applicationSupport: AppSupport.directory,
+            logURL: URL(fileURLWithPath: viewModel.smapiLogPath), probeFiles: ProbeFiles(), kind: .stardropium))
         // Le segment survit à la navigation : entrer directement sur
         // Performances ou Journal doit trouver son onglet monté.
         var initiallyMounted = Set([viewModel.navigationStore.diagnosticsSegment])
-        if SloDiagnosticSnapshotStore.hasPending(in: AppSupport.directory) {
+        if SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: AppSupport.directory) {
             initiallyMounted.insert(.performance)
         }
         _mounted = State(initialValue: initiallyMounted)
@@ -96,7 +100,7 @@ struct DiagnosticsView: View {
                 tab(.performance) {
                     PerformanceView(viewModel: viewModel, localization: localization,
                                     store: performance, environment: environment,
-                                    sloDiagnostic: sloDiagnostic)
+                                    sloDiagnostic: sloDiagnostic, stardropiumDiagnostic: stardropiumDiagnostic)
                 }
             }
         }

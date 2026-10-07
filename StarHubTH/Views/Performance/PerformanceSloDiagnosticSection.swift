@@ -11,8 +11,7 @@ struct PerformanceSloDiagnosticSection: View {
     let runtime: () -> SloDiagnosticRuntime
 
     @State private var pendingPreparation: SloDiagnosticPreparation?
-    @State private var pendingProbe: ProbeBundle.Action?
-    @State private var confirmRecovery = false
+    @State private var pendingConfirmation: PerformanceDiagnosticConfirmation?
     @State private var hoverDetail: String?
     @State private var selectedDetail: String?
 
@@ -51,20 +50,25 @@ struct PerformanceSloDiagnosticSection: View {
             set: { if !$0 { pendingPreparation = nil } })) {
                 if let preparation = pendingPreparation { confirmation(preparation) }
             }
-        .confirmationDialog(localization.L(L10n.PerformanceSloDiagnostic.probeConfirmTitle),
-                            isPresented: Binding(get: { pendingProbe != nil },
-                                                 set: { if !$0 { pendingProbe = nil } })) {
-            Button(localization.L(L10n.PerformanceSloDiagnostic.installProbe)) {
-                installProbe()
+        .alert(localization.L(pendingConfirmation == .restore
+                             ? L10n.PerformanceSloDiagnostic.restoreConfirmTitle
+                             : L10n.PerformanceSloDiagnostic.probeConfirmTitle),
+               isPresented: Binding(get: { pendingConfirmation != nil },
+                                    set: { if !$0 { pendingConfirmation = nil } }),
+               presenting: pendingConfirmation) { confirmation in
+            switch confirmation {
+            case .installProbe:
+                Button(localization.L(L10n.PerformanceSloDiagnostic.installProbe)) { installProbe() }
+            case .restore:
+                Button(localization.L(L10n.PerformanceSloDiagnostic.restore), role: .destructive) {
+                    Task { await store.confirmOverwriteAndRestore(runtime: runtime()) }
+                }
             }
-        }
-        .confirmationDialog(localization.L(L10n.PerformanceSloDiagnostic.restoreConfirmTitle),
-                            isPresented: $confirmRecovery) {
-            Button(localization.L(L10n.PerformanceSloDiagnostic.restore), role: .destructive) {
-                Task { await store.confirmOverwriteAndRestore(runtime: runtime()) }
+            Button(localization.L(L10n.PerformanceSloDiagnostic.cancel), role: .cancel) { }
+        } message: { confirmation in
+            if confirmation == .restore {
+                Text(localization.L(L10n.PerformanceSloDiagnostic.restoreConfirmBody))
             }
-        } message: {
-            Text(localization.L(L10n.PerformanceSloDiagnostic.restoreConfirmBody))
         }
     }
 
@@ -120,6 +124,12 @@ struct PerformanceSloDiagnosticSection: View {
     }
 
     private var statusDetail: String {
+        if case .unavailable(.blocked("stardropium-diagnostic-pending")) = store.state {
+            return localization.L(L10n.PerformanceSloDiagnostic.pendingStardropium)
+        }
+        if case .recoveryBlocked(.gameDirectoryChanged) = store.state {
+            return localization.L(L10n.StardropiumDiagnostic.directoryChanged)
+        }
         switch presentation.kind {
         case .missing: return localization.L(L10n.PerformanceSloDiagnostic.missingDetail)
         case .paused: return localization.L(L10n.PerformanceSloDiagnostic.pausedDetail)
@@ -158,7 +168,7 @@ struct PerformanceSloDiagnosticSection: View {
         case .openPage(let url, let id, let uniqueId):
             viewModel.expectNexusMod(nexusId: id, uniqueId: uniqueId)
             NSWorkspace.shared.open(url)
-        case .installProbe(let action): pendingProbe = action
+        case .installProbe: pendingConfirmation = .installProbe
         case .confirm(let preparation): pendingPreparation = preparation
         case .retry:
             Task {
@@ -166,7 +176,7 @@ struct PerformanceSloDiagnosticSection: View {
                                    gameDir: URL(fileURLWithPath: viewModel.gameDir),
                                    runtime: runtime(), preserveReport: false)
             }
-        case .restore: confirmRecovery = true
+        case .restore: pendingConfirmation = .restore
         }
     }
 
@@ -220,7 +230,6 @@ struct PerformanceSloDiagnosticSection: View {
     }
 
     private func installProbe() {
-        defer { pendingProbe = nil }
         let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
         let root = URL(fileURLWithPath: viewModel.gameDir).appendingPathComponent("Mods")
         guard let source = ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL),

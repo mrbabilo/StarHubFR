@@ -13,6 +13,8 @@ extension L10n {
         static let incompatible = "perf_slo_incompatible"
         static let probeRequired = "perf_slo_probe_required"
         static let blocked = "perf_slo_blocked"
+        static let pendingSlo = "perf_diag_pending_slo"
+        static let pendingStardropium = "perf_diag_pending_stardropium"
         static let preparing = "perf_slo_preparing"
         static let waiting = "perf_slo_waiting"
         static let running = "perf_slo_running"

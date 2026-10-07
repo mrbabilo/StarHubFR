@@ -698,15 +698,24 @@ le journal réel le 2026-09-04.
       Au retour, journal et session Probe sont corrélés après le lancement ; rapport
       présente chargements, caches, transitions, fluidité et mémoire avec limites
       explicites. Config et états initiaux sont restaurés avant effacement du plan.
-- [ ] **D2-T5** — Parser la ligne mémoire quotidienne de **Stardropium**
-      (`[Morning Memory Optimizer (Background)] RAM: <a> MB -> <b> MB (Managed
-      Heap: <c> MB -> <d> MB, <n> cached textures purged/bounded).`, `INFO`, une
-      par jour de jeu) : la courbe mémoire de la session dans la vue D2-T3, sans
-      commande à taper. Plus la ligne `INFO` « Detected low-memory / unified
-      memory device » (bascule seule en profil basse mémoire). Chaînes relevées
-      dans la DLL 0.1.1 ([audit](audit-stardropium.md)). ⚠️ Mod **en pause** sur
-      le parc et bêta du jour : ne rien coder avant qu'il tourne, puis mesurer
-      sur un vrai journal. · **S**
+- [x] **D2-T5** — Mesures mémoire quotidiennes de **Stardropium** dans
+      Performances. ✅ *Implémenté le 2026-10-07*, format confirmé sur une
+      session réelle **0.2.2-beta**, UltraSmooth en pause :
+      [mesure et extraits](mesure-stardropium-2026-10-07.md).
+      Carte « Mémoire — Stardropium » : deux graphiques de points avant/après,
+      valeurs horodatées, variations signées, conclusion sur le dernier relevé,
+      compte des textures purgées et preuve éventuelle du profil basse mémoire.
+      Mémoire résidente et gérée séparées en Mio ; dernier journal clairement
+      distinct des sessions Avant/Après de la sonde. Formats invalides signalés,
+      absence explicite, aucune courbe continue inventée ni gain de fluidité
+      déduit. Lancement guidé ajouté : installation proposée si nécessaire,
+      activation temporaire de Stardropium et de la sonde, configuration des
+      relevés matinaux, puis restauration des réglages et états initiaux.
+      Rapport lié au lancement et conservé séparément de SLO ; reprise après
+      interruption, conflits de config et changement de dossier de jeu protégés.
+      Build, suite complète, sources offline et relecture validés.
+      **Vérification visuelle et essai du lancement guidé par l'utilisateur
+      à faire**. · **S**
 - [ ] **D2-T6** — Vérifier en jeu les deux risques relevés dans UltraSmooth 2.3.7
       ([audit](audit-ultrasmooth-2.3.7.md) §3), puis les signaler à l'auteur :
       (1) `DayTransitionOptimizer` saute `GameLocation.DayUpdate` des lieux

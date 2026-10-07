@@ -327,4 +327,59 @@ import Testing
 
         #expect(store.state == .report(report))
     }
+
+    @Test func pausedOriginallyActiveModCanBeRestoredAndUnblocksStardropium() async throws {
+        let f = try fixture()
+        defer { try? FileManager.default.removeItem(at: f.base) }
+        let active = f.game.appendingPathComponent("Mods/SLO")
+        let paused = f.game.appendingPathComponent("Mods/.SLO")
+        try FileManager.default.moveItem(at: paused, to: active)
+        let original = try Data(contentsOf: f.slo.activeConfigURL)
+        let box = Box(); box.enabled["SLO"] = true
+        let rt = runtime(f, box)
+        let store = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+                                              probeFiles: ProbeFiles(directory: f.probe))
+        defer { store.monitorTask?.cancel() }
+        await store.start(f.preparation, runtime: rt)
+        box.running = false
+        try FileManager.default.moveItem(at: active, to: paused)
+        box.enabled["SLO"] = false
+        let manual = Data(#"{"ManuallyChanged":true}"#.utf8)
+        try manual.write(to: f.slo.initialConfigURL)
+        await store.gameExited(runtime: rt)
+        #expect(store.state == .recoveryBlocked(.configChanged))
+        #expect(try Data(contentsOf: f.slo.initialConfigURL) == manual)
+        let stardropium = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+            probeFiles: ProbeFiles(directory: f.probe), kind: .stardropium)
+        await stardropium.reload(mods: [], gameDir: f.game, runtime: rt, preserveReport: false)
+        #expect(stardropium.state == .unavailable(.blocked("slo-diagnostic-pending")))
+
+        await store.confirmOverwriteAndRestore(runtime: rt)
+        #expect(box.enabled["SLO"] == true)
+        #expect(try Data(contentsOf: f.slo.activeConfigURL) == original)
+        #expect(!SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: f.support))
+        await stardropium.reload(mods: [], gameDir: f.game, runtime: rt, preserveReport: false)
+        #expect(stardropium.state == .unavailable(.sloAbsent))
+    }
+
+    @Test func explicitRefreshRetriesPendingRecoveryInsteadOfReturningSilently() async throws {
+        let f = try fixture()
+        defer { try? FileManager.default.removeItem(at: f.base) }
+        let box = Box(), rt = runtime(f, Box())
+        let store = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+                                              probeFiles: ProbeFiles(directory: f.probe))
+        let launchRuntime = runtime(f, box)
+        defer { store.monitorTask?.cancel() }
+        await store.start(f.preparation, runtime: launchRuntime)
+        var snapshot = try #require(try SloDiagnosticSnapshotStore.load(from: f.support))
+        snapshot.gameSeen = true
+        try SloDiagnosticSnapshotStore.save(snapshot, in: f.support)
+        box.running = false
+        // The explicit reload must resume the transaction; normal background reloads must not.
+        await store.reload(mods: [], gameDir: f.game, runtime: rt)
+        #expect(SloDiagnosticSnapshotStore.hasPending(in: f.support))
+        await store.reload(mods: [], gameDir: f.game, runtime: launchRuntime, preserveReport: false)
+        #expect(!SloDiagnosticSnapshotStore.hasPending(in: f.support))
+        #expect(box.enabled.values.allSatisfy { !$0 })
+    }
 }

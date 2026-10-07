@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// One alert presenter per diagnostic card; stacked dialogs can mask each other on macOS.
+enum PerformanceDiagnosticConfirmation { case installProbe, restore }
+
 /// Mise en couleur de l'onglet Performances. Vert et orange disent « mieux »
 /// et « moins bien » pour le joueur, rien d'autre ; jamais la couleur seule
 /// (glyphe + teinte + texte, patron `SeverityBadge`). Le sens vient du Core

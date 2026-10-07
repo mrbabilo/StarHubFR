@@ -111,3 +111,23 @@ struct SessionEnvironmentStoreTests {
         #expect(groups[1].totalPatches == 3)
     }
 }
+
+extension SessionEnvironmentStoreTests {
+    @Test func stardropiumMeasurementsFollowJournalReplacement() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = dir.appendingPathComponent("SMAPI-latest.txt")
+        try "[14:54:12 INFO Stardropium] [Morning Memory Optimizer (Background)] RAM: 1561 MB -> 1565 MB (Managed Heap: 3749 MB -> 3751 MB, 0 cached textures purged/bounded).".write(to: log, atomically: true, encoding: .utf8)
+        let store = SessionEnvironmentStore(logURL: log)
+        await store.reload(mods: [], gameDir: nil)
+        #expect(store.report?.stardropiumMemory.samples.count == 1)
+        #expect(store.report?.stardropiumMemory.samples.first?.residentDelta == 4)
+        try FileManager.default.removeItem(at: log)
+        await store.reload(mods: [], gameDir: nil)
+        #expect(store.report == nil)
+        try "[12:00:00 INFO SMAPI] New session without Stardropium".write(to: log, atomically: true, encoding: .utf8)
+        await store.reload(mods: [], gameDir: nil)
+        #expect(store.report?.stardropiumMemory.samples.isEmpty == true)
+    }
+}

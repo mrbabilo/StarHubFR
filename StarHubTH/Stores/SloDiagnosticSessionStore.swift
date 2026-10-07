@@ -13,40 +13,58 @@ public final class SloDiagnosticSessionStore {
         case running
         case restoring
         case report(SloDiagnosticReport)
+        case memoryReport(StardropiumMemoryReport)
         case recoveryBlocked(SloDiagnosticRecoveryConflict)
         case failed(SloDiagnosticFailure)
     }
     public private(set) var state: State = .idle
     public private(set) var lastReceipt: SloDiagnosticReportReceipt?
-    @ObservationIgnored private let applicationSupport: URL?
-    @ObservationIgnored private let logURL: URL
-    @ObservationIgnored private let probeFiles: ProbeFiles
-    @ObservationIgnored private var monitorTask: Task<Void, Never>?
-    @ObservationIgnored private var generation = 0
-    @ObservationIgnored private var finalizing = false
-    @ObservationIgnored private var pendingReport: SloDiagnosticReport?
-    public init(applicationSupport: URL?, logURL: URL, probeFiles: ProbeFiles) {
-        self.applicationSupport = applicationSupport
+    public private(set) var memoryReceipt: StardropiumDiagnosticReceipt?
+    public let kind: PerformanceDiagnosticKind
+    @ObservationIgnored let exclusionDirectory: URL?
+    @ObservationIgnored let applicationSupport: URL?
+    @ObservationIgnored let logURL: URL
+    @ObservationIgnored let probeFiles: ProbeFiles
+    @ObservationIgnored var monitorTask: Task<Void, Never>?
+    @ObservationIgnored var generation = 0
+    @ObservationIgnored var finalizing = false
+    @ObservationIgnored var pendingReport: SloDiagnosticReport?
+    public init(applicationSupport: URL?, logURL: URL, probeFiles: ProbeFiles,
+                kind: PerformanceDiagnosticKind = .slo) {
+        self.kind = kind
+        self.exclusionDirectory = applicationSupport
+        self.applicationSupport = kind.directory(in: applicationSupport)
         self.logURL = logURL
         self.probeFiles = probeFiles
-        self.lastReceipt = try? SloDiagnosticReportStore.load(from: applicationSupport)
+        self.lastReceipt = try? SloDiagnosticReportStore.load(from: self.applicationSupport)
+        if kind == .stardropium {
+            memoryReceipt = StardropiumDiagnosticReceipt.load(in: self.applicationSupport)
+            if let report = memoryReceipt?.report { state = .memoryReport(report) }
+        }
         if let report = lastReceipt?.report { state = .report(report) }
     }
     public func reload(mods: [ModItem], gameDir: URL, runtime: SloDiagnosticRuntime,
                        preserveReport: Bool = true) async {
         generation += 1
         let currentGeneration = generation
-        if SloDiagnosticSnapshotStore.hasPending(in: applicationSupport) { return }
+        if SloDiagnosticSnapshotStore.hasPending(in: applicationSupport) {
+            if !preserveReport { await resumeIfNeeded(mods: mods, gameDir: gameDir, runtime: runtime) }
+            return
+        }
+        if preserveReport, let report = memoryReceipt?.report {
+            state = .memoryReport(report); return
+        }
         if preserveReport, let report = lastReceipt?.report {
             state = .report(report)
             return
         }
-        let discovery = SloDiagnosticContract.discover(mods: mods, gameDir: gameDir)
+        let discovery = SloDiagnosticContract.discover(mods: mods, gameDir: gameDir, kind: kind)
         var compatibility: SloDiagnosticCompatibility?
         if case .found(let installation) = discovery {
             let data = FileManager.default.contents(atPath: installation.initialConfigURL.path)
-            compatibility = SloDiagnosticContract.compatibility(installation: installation,
-                                                                  configData: data)
+            compatibility = data == nil && FileManager.default.fileExists(atPath: installation.initialConfigURL.path)
+                ? .invalidConfig
+                : SloDiagnosticContract.compatibility(installation: installation, configData: data, kind: kind)
         }
         let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: mods)
         let bundledProbeVersion = ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL)
@@ -55,10 +73,18 @@ public final class SloDiagnosticSessionStore {
         let readiness = SloDiagnosticContract.readiness(
             discovery: discovery, compatibility: compatibility,
             probe: SloDiagnosticProbeStatus(presence: presence, action: action), nexusActivity: .idle,
-            launchProfile: runtime.launchProfile(), busyReason: runtime.busyReason())
+            launchProfile: runtime.launchProfile(),
+            busyReason: SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: exclusionDirectory)
+                ? (kind == .slo ? "stardropium-diagnostic-pending" : "slo-diagnostic-pending")
+                : runtime.busyReason(), kind: kind)
         guard currentGeneration == generation else { return }
+        let probeReady: Bool
+        switch action {
+        case .upToDate, .newerInstalled: probeReady = true
+        default: probeReady = false
+        }
         if case .found(let slo) = discovery, let probeFolder = presence.folderName,
-           case .upToDate = action {
+           probeReady {
             let root = topRoot(of: probeFolder, in: mods)
             let enabled: Bool
             if case .enabled = presence { enabled = true } else { enabled = false }
@@ -78,11 +104,14 @@ public final class SloDiagnosticSessionStore {
         guard runtime.launchProfile() != "Vanilla" else { state = .failed(.vanillaProfile); return }
         guard !runtime.isGameRunning() else { state = .failed(.gameRunning); return }
         if let reason = runtime.busyReason() { state = .failed(.busy(reason)); return }
-        guard !SloDiagnosticSnapshotStore.hasPending(in: applicationSupport) else {
+        guard !SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: exclusionDirectory) else {
             state = .failed(.busy("diagnostic-pending")); return
         }
         state = .preparing
         let installation = preparation.slo
+        guard runtime.matches(modsRoot: modsRootURL(for: installation)) else {
+            state = .failed(.busy("game-directory-changed")); return
+        }
         let rootNames = orderedUnique([installation.rootFolderName,
                                        preparation.probeRootFolderName])
         var roots: [SloDiagnosticRootSnapshot] = []
@@ -97,10 +126,18 @@ public final class SloDiagnosticSessionStore {
         guard let sloWasEnabled = roots.first(where: { $0.logicalName.caseInsensitiveCompare(
             installation.rootFolderName) == .orderedSame })?.initiallyEnabled
         else { state = .failed(.invalidConfig); return }
-        let initialConfigURL = sloWasEnabled ? installation.activeConfigURL : installation.initialConfigURL
+        var initialConfigURL = modsRootURL(for: installation)
+            .appendingPathComponent(sloWasEnabled ? installation.rootFolderName : "." + installation.rootFolderName)
+        if !installation.componentRelativePath.isEmpty {
+            initialConfigURL.appendPathComponent(installation.componentRelativePath)
+        }
+        initialConfigURL.appendPathComponent("config.json")
         let original = FileManager.default.contents(atPath: initialConfigURL.path)
+        guard original != nil || !FileManager.default.fileExists(atPath: initialConfigURL.path) else {
+            state = .failed(.invalidConfig); return
+        }
         guard let prepared = try? SloDiagnosticTransaction.prepare(
-            original: original, version: installation.version) else {
+            original: original, version: installation.version, kind: kind) else {
             state = .failed(.invalidConfig); return
         }
         let known = Set(probeFiles.sessions().sessions.map(\.id))
@@ -156,6 +193,9 @@ public final class SloDiagnosticSessionStore {
         let snapshot: SloDiagnosticSnapshot
         do { snapshot = try requireSnapshot() }
         catch { state = .failed(.snapshotUnreadable); return }
+        guard runtime.matches(modsRoot: snapshot.modsRootURL) else {
+            state = .recoveryBlocked(.gameDirectoryChanged); return
+        }
         guard validateRootAvailability(snapshot) == nil else {
             state = .recoveryBlocked(validateRootAvailability(snapshot)!); return
         }
@@ -181,7 +221,11 @@ public final class SloDiagnosticSessionStore {
         }
     }
     public func confirmOverwriteAndRestore(runtime: SloDiagnosticRuntime) async {
+        guard !runtime.isGameRunning() else { state = .failed(.gameRunning); return }
         guard var snapshot = try? requireSnapshot() else { return }
+        guard runtime.matches(modsRoot: snapshot.modsRootURL) else {
+            state = .recoveryBlocked(.gameDirectoryChanged); return
+        }
         if let conflict = validateRootAvailability(snapshot) {
             state = .recoveryBlocked(conflict)
             return
@@ -203,6 +247,7 @@ public final class SloDiagnosticSessionStore {
             try SloDiagnosticSnapshotStore.clear(in: applicationSupport)
             await runtime.rescan()
             if let report = pendingReport ?? lastReceipt?.report { state = .report(report) }
+            else if let report = memoryReceipt?.report { state = .memoryReport(report) }
             else { state = .idle }
         } catch { state = .recoveryBlocked(.configChanged) }
     }
@@ -228,173 +273,7 @@ public final class SloDiagnosticSessionStore {
             }
         }
     }
-    private func finalize(runtime: SloDiagnosticRuntime) async {
-        guard !finalizing, var snapshot = try? requireSnapshot() else { return }
-        finalizing = true
-        defer { finalizing = false }
-        state = .restoring
-        let logData = FileManager.default.contents(atPath: logURL.path)
-        let modified = (try? FileManager.default.attributesOfItem(atPath: logURL.path))?[.modificationDate] as? Date
-        let logText = snapshot.launchRequestedAt.flatMap {
-            SloDiagnosticSourceReader.newLog(current: logData, bookmark: snapshot.logBookmark,
-                                             modified: modified, launchRequestedAt: $0)
-        } ?? ""
-        let parsedLog = SloDiagnosticLog.parse(logText)
-        let sources = SloDiagnosticCorrelation.select(
-            snapshot: snapshot, sessions: probeFiles.sessions(), inventory: probeFiles.inventory(),
-            loads: probeFiles.loads())
-        var candidate = sources.candidate
-        if case .normalizationCandidate(let sha) = candidate?.configMatch {
-            let current = FileManager.default.contents(atPath: currentConfigURL(snapshot).path)
-            if validatesNormalization(data: current, sha: sha, log: parsedLog) {
-                snapshot.acceptedDiagnosticSHA256.insert(sha)
-                try? SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport)
-            } else { candidate = nil }
-        }
-        let report = SloDiagnosticReport.build(
-            log: parsedLog, probe: candidate?.input ?? .init(session: nil, loads: [], inventory: nil),
-            startedAt: snapshot.startedAt)
-        pendingReport = report
-        var fingerprints: [String: String] = [:]
-        if let logData { fingerprints["log"] = SloDiagnosticTransaction.sha256(logData) }
-        if let current = FileManager.default.contents(atPath: currentConfigURL(snapshot).path) {
-            fingerprints["config"] = SloDiagnosticTransaction.sha256(current)
-        }
-        let receipt = SloDiagnosticReportReceipt(
-            completedAt: runtime.now(), sessionId: candidate?.selectedSessionId,
-            report: report, sourceFingerprints: fingerprints)
-        try? SloDiagnosticReportStore.save(receipt, in: applicationSupport)
-        lastReceipt = receipt
-        guard await restore(snapshot: &snapshot, runtime: runtime) else { return }
-        try? SloDiagnosticSnapshotStore.clear(in: applicationSupport)
-        await runtime.rescan()
-        state = .report(report)
-    }
-    private func rollback(snapshot: SloDiagnosticSnapshot, runtime: SloDiagnosticRuntime) async -> Bool {
-        var copy = snapshot
-        guard await restore(snapshot: &copy, runtime: runtime) else { return false }
-        if copy.configRestored && copy.restoredRootFolderNames.count == copy.roots.count {
-            try? SloDiagnosticSnapshotStore.clear(in: applicationSupport)
-        }
-        return true
-    }
-    private func restore(snapshot: inout SloDiagnosticSnapshot,
-                         runtime: SloDiagnosticRuntime) async -> Bool {
-        if let conflict = validateRootAvailability(snapshot) {
-            state = .recoveryBlocked(conflict); return false
-        }
-        let url = currentConfigURL(snapshot)
-        let current = FileManager.default.contents(atPath: url.path)
-        switch SloDiagnosticTransaction.restoreDecision(snapshot: snapshot, current: current) {
-        case .restore(let data):
-            do { try runtime.grantOwnerWriteAccess(url.deletingLastPathComponent());
-                try data.write(to: url, options: .atomic) }
-            catch { state = .recoveryBlocked(.configChanged); return false }
-        case .remove:
-            do { try FileManager.default.removeItem(at: url) }
-            catch { state = .recoveryBlocked(.configChanged); return false }
-        case .alreadyRestored: break
-        case .conflict: state = .recoveryBlocked(.configChanged); return false
-        }
-        snapshot.configRestored = true
-        try? SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport)
-        return await restoreRoots(&snapshot, runtime: runtime)
-    }
-    private func restoreRoots(_ snapshot: inout SloDiagnosticSnapshot,
-                              runtime: SloDiagnosticRuntime) async -> Bool {
-        for root in snapshot.roots.reversed() {
-            if root.initiallyEnabled {
-                snapshot.restoredRootFolderNames.insert(root.logicalName); continue
-            }
-            let initial = snapshot.modsRootURL.appendingPathComponent(root.initialPhysicalName)
-            let active = snapshot.modsRootURL.appendingPathComponent(root.activePhysicalName)
-            let initialExists = FileManager.default.fileExists(atPath: initial.path)
-            let activeExists = FileManager.default.fileExists(atPath: active.path)
-            if initialExists && !activeExists {
-                snapshot.restoredRootFolderNames.insert(root.logicalName); continue
-            }
-            guard activeExists && !initialExists,
-                  await runtime.setModEnabled(root.logicalName, false),
-                  runtime.modEnabled(root.logicalName) == false else {
-                state = .recoveryBlocked(.rootChanged(root.logicalName)); return false
-            }
-            snapshot.restoredRootFolderNames.insert(root.logicalName)
-            try? SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport)
-        }
-        return true
-    }
-    private func validateRootAvailability(_ snapshot: SloDiagnosticSnapshot)
-        -> SloDiagnosticRecoveryConflict? {
-        var directory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: snapshot.modsRootURL.path,
-                                             isDirectory: &directory), directory.boolValue else {
-            return .modsUnavailable
-        }
-        for root in snapshot.roots {
-            let initial = snapshot.modsRootURL.appendingPathComponent(root.initialPhysicalName)
-            let active = snapshot.modsRootURL.appendingPathComponent(root.activePhysicalName)
-            if initial.path == active.path {
-                if !FileManager.default.fileExists(atPath: active.path) { return .rootMissing(root.logicalName) }
-                continue
-            }
-            let initialExists = FileManager.default.fileExists(atPath: initial.path)
-            let activeExists = FileManager.default.fileExists(atPath: active.path)
-            if initialExists && activeExists { return .rootCollision(root.logicalName) }
-            if !initialExists && !activeExists { return .rootMissing(root.logicalName) }
-        }
-        return nil
-    }
-
-    private func currentConfigURL(_ snapshot: SloDiagnosticSnapshot) -> URL {
-        guard let sloRoot = snapshot.roots.first(where: {
-            snapshot.activeConfigURL.path.contains("/\($0.activePhysicalName)/")
-        }), !sloRoot.initiallyEnabled else { return snapshot.activeConfigURL }
-        let active = snapshot.modsRootURL.appendingPathComponent(sloRoot.activePhysicalName)
-        return FileManager.default.fileExists(atPath: active.path)
-            ? snapshot.activeConfigURL : snapshot.initialConfigURL
-    }
-
-    private func validatesNormalization(data: Data?, sha: String,
-                                        log: SloDiagnosticLog) -> Bool {
-        guard let data, SloDiagnosticTransaction.sha256(data) == sha,
-              let value = try? JSONSerialization.jsonObject(with: data, options: [.json5Allowed]),
-              let object = value as? [String: Any],
-              isJSONTrue(object[SloDiagnosticContract.detailedDiagnosticsKey]),
-              isJSONTrue(object[SloDiagnosticContract.performanceMeasurementKey]),
-              let config = log.config,
-              SloOptimizerConfig.bool(config.raw["detailedDiagnostics"]) == true,
-              SloOptimizerConfig.bool(config.raw["performanceMeasurement"]) == true else { return false }
-        return true
-    }
-
-    private func isJSONTrue(_ value: Any?) -> Bool {
-        guard let number = value as? NSNumber,
-              CFGetTypeID(number) == CFBooleanGetTypeID() else { return false }
-        return number.boolValue
-    }
-
-    private func modsRootURL(for installation: SloDiagnosticInstallation) -> URL {
-        var root = installation.activeConfigURL.deletingLastPathComponent()
-        for _ in installation.componentRelativePath.split(separator: "/") {
-            root.deleteLastPathComponent()
-        }
-        return root.deletingLastPathComponent()
-    }
-
-    private func requireSnapshot() throws -> SloDiagnosticSnapshot {
-        guard let snapshot = try SloDiagnosticSnapshotStore.load(from: applicationSupport) else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        return snapshot
-    }
-
-    private func orderedUnique(_ names: [String]) -> [String] {
-        var seen = Set<String>()
-        return names.filter { seen.insert($0.lowercased()).inserted }
-    }
-
-    private func topRoot(of folder: String, in mods: [ModItem]) -> String {
-        mods.first { root in root.components.contains { $0.folderName == folder } }?.folderName
-            ?? folder.split(separator: "/").first.map(String.init) ?? folder
-    }
+    func setState(_ value: State) { state = value }
+    func setReceipt(_ value: SloDiagnosticReportReceipt) { lastReceipt = value }
+    func setMemoryReceipt(_ value: StardropiumDiagnosticReceipt) { memoryReceipt = value }
 }

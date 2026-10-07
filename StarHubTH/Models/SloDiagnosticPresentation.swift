@@ -21,18 +21,19 @@ public struct SloDiagnosticPresentation: Equatable, Sendable {
 
     public static func make(state: SloDiagnosticSessionStore.State,
                             directDownloadUnavailable: Bool,
-                            nexusActivity: SloDiagnosticNexusActivity = .idle)
+                            nexusActivity: SloDiagnosticNexusActivity = .idle,
+                            kind: PerformanceDiagnosticKind = .slo)
         -> SloDiagnosticPresentation {
-        if case .downloading(let id) = nexusActivity, id == SloDiagnosticContract.nexusId {
+        if case .downloading(let id) = nexusActivity, id == kind.nexusId {
             return .init(kind: .downloading, action: nil)
         }
-        if case .awaitingInstall(let id) = nexusActivity, id == SloDiagnosticContract.nexusId {
+        if case .awaitingInstall(let id) = nexusActivity, id == kind.nexusId {
             return .init(kind: .awaitingInstall, action: nil)
         }
         switch state {
         case .idle: return .init(kind: .blocked, action: .retry)
         case .unavailable(let readiness):
-            return unavailable(readiness, directDownloadUnavailable: directDownloadUnavailable)
+            return unavailable(readiness, directDownloadUnavailable: directDownloadUnavailable, kind: kind)
         case .ready(let preparation):
             let paused = !preparation.slo.isEnabled || !preparation.probeWasEnabled
             return .init(kind: paused ? .paused : .ready, action: .confirm(preparation))
@@ -40,28 +41,29 @@ public struct SloDiagnosticPresentation: Equatable, Sendable {
         case .waitingForGame: return .init(kind: .waitingForGame, action: nil)
         case .running: return .init(kind: .running, action: nil)
         case .restoring: return .init(kind: .restoring, action: nil)
+        case .recoveryBlocked(.gameDirectoryChanged): return .init(kind: .recovery, action: .retry)
         case .recoveryBlocked: return .init(kind: .recovery, action: .restore)
         case .failed: return .init(kind: .failed, action: .retry)
-        case .report: return .init(kind: .report, action: .retry)
+        case .report, .memoryReport: return .init(kind: .report, action: .retry)
         }
     }
 
     private static func unavailable(_ readiness: SloDiagnosticReadiness,
-                                    directDownloadUnavailable: Bool)
+                                    directDownloadUnavailable: Bool, kind: PerformanceDiagnosticKind)
         -> SloDiagnosticPresentation {
         switch readiness {
         case .sloAbsent:
             let route = SloDiagnosticContract.installRoute(
-                directDownloadUnavailable: directDownloadUnavailable)
+                directDownloadUnavailable: directDownloadUnavailable, kind: kind)
             switch route {
             case .directDownload(let id):
                 return .init(kind: .missing,
                              action: .download(nexusId: id,
-                                               uniqueId: SloDiagnosticContract.uniqueId))
+                                               uniqueId: kind.uniqueId))
             case .webPage(let url):
                 return .init(kind: .missing,
-                             action: .openPage(url, nexusId: SloDiagnosticContract.nexusId,
-                                               uniqueId: SloDiagnosticContract.uniqueId))
+                             action: .openPage(url, nexusId: kind.nexusId,
+                                               uniqueId: kind.uniqueId))
             }
         case .sloDownloading: return .init(kind: .downloading, action: nil)
         case .sloPaused:

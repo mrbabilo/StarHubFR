@@ -82,8 +82,9 @@ public enum SloDiagnosticContract {
     public static let detailedDiagnosticsKey = "EnableDetailedDiagnostics"
     public static let performanceMeasurementKey = "EnablePerformanceMeasurement"
 
-    public static func discover(mods: [ModItem], gameDir: URL) -> SloDiagnosticDiscovery {
-        let wanted = uniqueId.lowercased()
+    public static func discover(mods: [ModItem], gameDir: URL,
+                                kind: PerformanceDiagnosticKind = .slo) -> SloDiagnosticDiscovery {
+        let wanted = kind.uniqueId.lowercased()
         var matches: [SloDiagnosticInstallation] = []
 
         for root in mods {
@@ -128,15 +129,15 @@ public enum SloDiagnosticContract {
     }
 
     public static func compatibility(installation: SloDiagnosticInstallation,
-                                     configData: Data?) -> SloDiagnosticCompatibility {
-        guard ProbeLoadRecords.version(installation.version, atLeast: minimumVersion) else {
+                                     configData: Data?, kind: PerformanceDiagnosticKind = .slo) -> SloDiagnosticCompatibility {
+        guard kind.supports(version: installation.version) else {
             return .outdated(installation.version)
         }
         guard let configData else { return .missingConfig }
         guard let value = try? JSONSerialization.jsonObject(with: configData, options: [.json5Allowed]),
               let object = value as? [String: Any]
         else { return .invalidConfig }
-        for key in [detailedDiagnosticsKey, performanceMeasurementKey] {
+        for key in kind.enabledKeys {
             if let value = object[key], !isJSONBoolean(value) { return .invalidConfig }
         }
         return .compatible
@@ -147,13 +148,13 @@ public enum SloDiagnosticContract {
                                  probe: SloDiagnosticProbeStatus,
                                  nexusActivity: SloDiagnosticNexusActivity,
                                  launchProfile: String,
-                                 busyReason: String?) -> SloDiagnosticReadiness {
+                                 busyReason: String?, kind: PerformanceDiagnosticKind = .slo) -> SloDiagnosticReadiness {
         if let busyReason, !busyReason.isEmpty { return .blocked(busyReason) }
         if launchProfile == "Vanilla" { return .blocked("vanilla") }
 
         switch nexusActivity {
         case .downloading(let modId), .awaitingInstall(let modId):
-            if modId == nexusId { return .sloDownloading }
+            if modId == kind.nexusId { return .sloDownloading }
             return .blocked("nexus-busy")
         case .idle:
             break
@@ -186,10 +187,11 @@ public enum SloDiagnosticContract {
         return installation.isEnabled ? .ready(installation) : .sloPaused(installation)
     }
 
-    public static func installRoute(directDownloadUnavailable: Bool) -> SloDiagnosticInstallRoute {
+    public static func installRoute(directDownloadUnavailable: Bool,
+                                    kind: PerformanceDiagnosticKind = .slo) -> SloDiagnosticInstallRoute {
         directDownloadUnavailable
-            ? .webPage(MissingDependencies.filesPage(nexusId: nexusId))
-            : .directDownload(nexusId)
+            ? .webPage(MissingDependencies.filesPage(nexusId: kind.nexusId))
+            : .directDownload(kind.nexusId)
     }
 
     private static func componentPath(_ folderName: String, under rootFolderName: String) -> String {

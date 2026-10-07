@@ -98,7 +98,7 @@ final class BenchmarkRunner {
 
     /// Nil = libre ; sinon la raison, déjà traduite.
     func busyReason() -> String? {
-        if SloDiagnosticSnapshotStore.hasPending(in: directory)
+        if SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: directory)
             || viewModel.isGameRunning() || viewModel.bisection.state != nil || viewModel.bulkToggleProgress != nil
             || viewModel.isApplyingProfile || viewModel.unresolvedApplyJournal != nil
             || files.guidedPlan() != nil || interrupted != nil {
