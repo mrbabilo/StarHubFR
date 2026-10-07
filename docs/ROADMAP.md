@@ -694,6 +694,7 @@ le journal réel le 2026-09-04.
       7 fichiers inclus restent non lus (nombres `.03`, éléments vides `,,`
       que Newtonsoft accepte) : comptés et affichés, à couvrir dans
       `I18nLenientParser` après vérification sur la DLL Newtonsoft.
+      Carte vérifiée dans l'app par l'utilisateur le 2026-10-07.
 - [x] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
       ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth
