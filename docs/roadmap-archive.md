@@ -6434,6 +6434,27 @@ sans lire une ligne de log.
 
 ### Dette technique — §7
 
+  - [x] **F6-T3** — **Deux parseurs du même journal SMAPI.** *(tranche ④,
+        2026-09-03)* `smapiErrors` est extrait par un scanner inline du
+        ViewModel (~L.3142 : chirurgie de chaînes sur « ERROR SMAPI] », drapeau
+        `isParsingErrors`), pendant que `SmapiLogParser` (Core, testé) parse le
+        même fichier pour les entrées de l'onglet Journaux, les conflits
+        Content Patcher et l'historique d'erreurs par mod. Le patron « copies
+        divergentes » — cf. `isOsJunk`, 4 copies dont une amputée : chaque
+        évolution du format SMAPI se corrige deux fois, et rien ne signale la
+        divergence le jour où l'un des deux seul est adapté. Fix = mapper les
+        consommateurs de `smapiErrors` sur `SmapiLogParser` et retirer le
+        scanner inline. Pas au fil de l'eau : ça touche l'affichage du volet
+        erreurs, à faire avec un vrai journal SMAPI sous la main. · **M**
+        ✅ *Livré le 2026-10-08* : `SmapiLogParser.header(of:)` est le seul
+        lecteur de l'en-tête, partagé par `parse` et `smapiErrors(in:)` (Core,
+        5 tests sur lignes réelles CRLF) ; scanner du ViewModel retiré
+        (−53 lignes). La source **brute** reste visible à `smapiErrors` : la
+        ligne `ERROR game` du parc (« Galaxy auth failure ») n'est toujours pas
+        une alerte. Oracle jetable (ancien scanner recopié) : sortie identique
+        sur le journal réel du 2026-10-07. Écart assumé : une ligne d'erreur du
+        bloc « Skipped mods » contenant « INFO » n'est plus perdue.
+
 - [x] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
       `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
       L'upstream a traité le même défaut (leur 2.4) : une dépendance déclarée avec un

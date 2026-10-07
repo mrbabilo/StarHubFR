@@ -31,28 +31,10 @@ public enum SmapiLogParser {
                                         modNameIsInferred: last.modNameIsInferred))
                 continue
             }
-            // Crochet ouvrant jamais refermé : ligne tronquée ou corrompue.
-            // L'ignorer plutôt que de fabriquer une entrée arbitraire.
-            guard let bracketEnd = line.firstIndex(of: "]") else { continue }
-
-            let header = String(line[line.index(after: line.startIndex)..<bracketEnd])
-            // Découpage sur les espaces en filtrant les vides : c'est ce qui
-            // absorbe la double espace du format.
-            let parts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-
-            let timestamp = parts.first ?? "—"
-            let level = level(from: parts.count >= 2 ? parts[1] : "")
-            let context: String? = {
-                guard parts.count >= 3 else { return nil }
-                let name = parts[2...].joined(separator: " ")
-                // « SMAPI » et « game » sont des sources, pas des mods.
-                return (name == "SMAPI" || name == "game") ? nil : name
-            }()
-
-            let msgStart = line.index(after: bracketEnd)
-            let message = msgStart < line.endIndex
-                ? String(line[msgStart...]).trimmingCharacters(in: .whitespaces)
-                : ""
+            guard let header = header(of: line) else { continue }
+            let (timestamp, level, message) = (header.timestamp, header.level, header.message)
+            // « SMAPI » et « game » sont des sources, pas des mods.
+            let context = header.source == "SMAPI" || header.source == "game" ? nil : header.source
 
             guard !message.isEmpty || context != nil else { continue }
 
@@ -113,6 +95,49 @@ public enum SmapiLogParser {
                             level: entry.level, source: entry.source,
                             modName: nil, modNameIsInferred: false)
         }
+    }
+
+    /// L'en-tête d'une ligne : horodatage, niveau, source **brute** (`SMAPI`,
+    /// `game` ou le nom d'un mod) et message. `nil` pour une continuation ou
+    /// une ligne tronquée. Seul lecteur du format, pour `parse` et
+    /// `smapiErrors` (F6-T3 : un second scanner vivait dans le ViewModel).
+    static func header(of line: String) -> (timestamp: String, level: LogLevel,
+                                             source: String?, message: String)? {
+        guard line.hasPrefix("[") else { return nil }
+        // Crochet ouvrant jamais refermé : ligne tronquée ou corrompue.
+        // L'ignorer plutôt que de fabriquer une entrée arbitraire.
+        guard let bracketEnd = line.firstIndex(of: "]") else { return nil }
+        let header = String(line[line.index(after: line.startIndex)..<bracketEnd])
+        // Découpage sur les espaces en filtrant les vides : c'est ce qui
+        // absorbe la double espace du format.
+        let parts = header.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let msgStart = line.index(after: bracketEnd)
+        let message = msgStart < line.endIndex
+            ? String(line[msgStart...]).trimmingCharacters(in: .whitespaces)
+            : ""
+        return (parts.first ?? "—", level(from: parts.count >= 2 ? parts[1] : ""),
+                parts.count >= 3 ? parts[2...].joined(separator: " ") : nil, message)
+    }
+
+    /// Les erreurs que SMAPI écrit **sous sa propre source** — les alertes du
+    /// volet santé. Une ligne par erreur (les traces de continuation restent
+    /// aux Journaux), sans doublon, `limit` au plus. Écartés : l'en-tête et
+    /// la mise en page du bloc « Skipped mods » ; les erreurs d'un mod (source
+    /// nommée) et du jeu (`game` — l'authentification GOG, sur le parc) ne
+    /// sont pas des alertes de SMAPI.
+    public static func smapiErrors(in text: String, limit: Int = 10) -> [String] {
+        var seen = Set<String>()
+        var errors: [String] = []
+        for line in text.components(separatedBy: .newlines) {
+            guard errors.count < limit, let header = header(of: line),
+                  header.level == .error, header.source == "SMAPI" else { continue }
+            let message = header.message
+            guard !message.isEmpty, !message.contains("Skipped mods"),
+                  !message.contains("-----"),
+                  !message.contains("These mods could not be added") else { continue }
+            if seen.insert(message).inserted { errors.append(message) }
+        }
+        return errors
     }
 
     private static func level(from raw: String) -> LogLevel {

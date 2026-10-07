@@ -1269,18 +1269,6 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         divergence — une ancre trouvée à l'affichage, introuvable à la suppression.
         **À traiter d'un bloc ou pas du tout** : normaliser la clé à l'écriture, avec
         une migration des ancres déjà posées. Aucun observable sur le parc actuel.
-  - [ ] **F6-T3** — **Deux parseurs du même journal SMAPI.** *(tranche ④,
-        2026-09-03)* `smapiErrors` est extrait par un scanner inline du
-        ViewModel (~L.3142 : chirurgie de chaînes sur « ERROR SMAPI] », drapeau
-        `isParsingErrors`), pendant que `SmapiLogParser` (Core, testé) parse le
-        même fichier pour les entrées de l'onglet Journaux, les conflits
-        Content Patcher et l'historique d'erreurs par mod. Le patron « copies
-        divergentes » — cf. `isOsJunk`, 4 copies dont une amputée : chaque
-        évolution du format SMAPI se corrige deux fois, et rien ne signale la
-        divergence le jour où l'un des deux seul est adapté. Fix = mapper les
-        consommateurs de `smapiErrors` sur `SmapiLogParser` et retirer le
-        scanner inline. Pas au fil de l'eau : ça touche l'affichage du volet
-        erreurs, à faire avec un vrai journal SMAPI sous la main. · **M**
 
 ---
 
@@ -1386,9 +1374,9 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
-`F4` (`uniqueId: ""` sur les groupes — chaîne d'exploitation coupée),
-`F6-T1` (course à l'annulation, sans observable), `F6-T3` (deux parseurs du
-même journal). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
+~~`F4`~~ ✅ (clos le 2026-10-07, non reproduit),
+`F6-T1` (course à l'annulation, sans observable), ~~`F6-T3`~~ ✅ (livré le
+2026-10-08). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
 À traiter quand on passe à côté, pas pour eux-mêmes.
 
 **P4 — chantiers et fonctionnalités** *(rien à perdre, tout à construire)*
@@ -2226,6 +2214,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **F5-T2** | 2026-09-10 | Identité `com.mrbabilo.StarHubFR` + schéma `nxm` ; 45 clés UserDefaults recopiées jamais écrasées, Trousseau basculé avec lecture de secours sur l'ancien service |
 | **F7** | 2026-09-09 | `currentTab` de `String` à `SidebarDestination` (Core, 15 cas), `MainView` switche sans `default:` — une 16ᵉ destination sans page casse le build |
 | **F4** | 2026-10-07 | Clos non reproduit : l'en-tête de pack n'est jamais indexé ; garde structurelle, `DependencyIndex.build` n'indexe plus la clé vide |
+| **F6-T3** | 2026-10-08 | Un seul lecteur du journal SMAPI : les alertes du volet santé passent par `SmapiLogParser` (`header(of:)`, `smapiErrors`), scanner du ViewModel retiré |
 | **F8** | 2026-10-06 | L'échec du gate L10n nomme le fichier JSON, la ligne et la colonne, sans pile Python |
 
 **Performance mesurée — Axe D · en cours**

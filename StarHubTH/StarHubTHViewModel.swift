@@ -2042,61 +2042,8 @@ final class StarHubTHViewModel {
         let conflictEntries = SmapiLogParser.parse(logContent)
         onProgress?(wConflicts)
         let conflicts = ContentPatcherConflicts.read(from: conflictEntries)
-        var errors: [String] = []
-        
-        let lines = logContent.components(separatedBy: .newlines)
-        var isParsingErrors = false
-        
-        for line in lines {
-            // Check for Errors (Skipped mods or general red text)
-            if line.contains("ERROR SMAPI") {
-                if line.contains("Skipped mods") {
-                    isParsingErrors = true
-                    continue
-                }
-                
-                if isParsingErrors {
-                    if line.contains("-------------------------") || line.contains("These mods could not be added") {
-                        continue
-                    }
-                    if line.contains("WARN ") || line.contains("INFO ") || line.contains("TRACE ") || line.contains("DEBUG ") {
-                        isParsingErrors = false
-                    } else {
-                        let parts = line.components(separatedBy: "ERROR SMAPI]")
-                        if parts.count > 1 {
-                            let msg = parts[1].trimmingCharacters(in: .whitespaces)
-                            if !msg.isEmpty {
-                                errors.append(msg)
-                            }
-                        }
-                    }
-                } else {
-                    // General error line not in "Skipped mods"
-                    if !line.contains("Skipped mods") && !line.contains("-------------------------") {
-                        let parts = line.components(separatedBy: "ERROR")
-                        if parts.count > 1 {
-                            let msg = parts[1].trimmingCharacters(in: .whitespaces)
-                            // Filter out known empty or structural lines
-                            if msg.hasPrefix("SMAPI]") {
-                                let actualMsg = msg.replacingOccurrences(of: "SMAPI]", with: "").trimmingCharacters(in: .whitespaces)
-                                if !actualMsg.isEmpty {
-                                    errors.append(actualMsg)
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if isParsingErrors && (line.contains("WARN ") || line.contains("INFO ") || line.contains("TRACE ") || line.contains("DEBUG ")) {
-                isParsingErrors = false
-            }
-        }
-        
-        // Remove duplicates and limit error messages
-        let uniqueErrors = Array(
-            Array(NSOrderedSet(array: errors))
-                .compactMap { $0 as? String }
-                .prefix(10)
-        )
+        // F6-T3 — même lecteur d'en-tête que les Journaux (`SmapiLogParser`).
+        let uniqueErrors = SmapiLogParser.smapiErrors(in: logContent)
         
         DispatchQueue.main.async {
             // Même lecture, publiées ensemble par le store (tri par nom).
