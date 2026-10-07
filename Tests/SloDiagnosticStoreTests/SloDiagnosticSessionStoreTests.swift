@@ -309,4 +309,22 @@ import Testing
         #expect(store.state == .recoveryBlocked(.rootCollision("SLO")))
         #expect(SloDiagnosticSnapshotStore.hasPending(in: f.support))
     }
+
+    @Test func automaticReloadKeepsTheCompletedReportVisible() async throws {
+        let f = try fixture()
+        defer { try? FileManager.default.removeItem(at: f.base) }
+        let report = SloDiagnosticReport.build(
+            log: SloDiagnosticLog.parse(""),
+            probe: .init(session: nil, loads: [], inventory: nil),
+            startedAt: Date(timeIntervalSince1970: 10))
+        try SloDiagnosticReportStore.save(.init(
+            completedAt: Date(timeIntervalSince1970: 20), sessionId: nil,
+            report: report, sourceFingerprints: [:]), in: f.support)
+        let store = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
+                                               probeFiles: ProbeFiles(directory: f.probe))
+
+        await store.reload(mods: [], gameDir: f.game, runtime: runtime(f, Box()))
+
+        #expect(store.state == .report(report))
+    }
 }

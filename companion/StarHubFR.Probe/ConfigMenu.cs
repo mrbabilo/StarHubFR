@@ -8,7 +8,8 @@ namespace StarHubFR.Probe;
 
 /// <summary>
 /// D4-T6 bis : les options de la sonde réglables **en jeu**, par le menu de
-/// configuration générique (GMCM) — s'il est installé. Intégration faible :
+/// configuration générique (GMCM) — s'il est installé. Appelé à
+/// `GameLaunched`, quand SMAPI autorise enfin les API de mods. Intégration faible :
 /// l'API est résolue par réflexion sur l'objet rendu par
 /// `IModRegistry.GetApi(string)` (référence d'assembly refusée — la sonde ne
 /// déclare aucune dépendance, et GMCM absent = aucun menu, jamais une

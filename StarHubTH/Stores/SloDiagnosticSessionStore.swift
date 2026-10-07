@@ -1,7 +1,6 @@
 import CoreFoundation
 import Foundation
 import Observation
-
 @MainActor
 @Observable
 public final class SloDiagnosticSessionStore {
@@ -17,10 +16,8 @@ public final class SloDiagnosticSessionStore {
         case recoveryBlocked(SloDiagnosticRecoveryConflict)
         case failed(SloDiagnosticFailure)
     }
-
     public private(set) var state: State = .idle
     public private(set) var lastReceipt: SloDiagnosticReportReceipt?
-
     @ObservationIgnored private let applicationSupport: URL?
     @ObservationIgnored private let logURL: URL
     @ObservationIgnored private let probeFiles: ProbeFiles
@@ -35,10 +32,15 @@ public final class SloDiagnosticSessionStore {
         self.lastReceipt = try? SloDiagnosticReportStore.load(from: applicationSupport)
         if let report = lastReceipt?.report { state = .report(report) }
     }
-    public func reload(mods: [ModItem], gameDir: URL, runtime: SloDiagnosticRuntime) async {
+    public func reload(mods: [ModItem], gameDir: URL, runtime: SloDiagnosticRuntime,
+                       preserveReport: Bool = true) async {
         generation += 1
         let currentGeneration = generation
         if SloDiagnosticSnapshotStore.hasPending(in: applicationSupport) { return }
+        if preserveReport, let report = lastReceipt?.report {
+            state = .report(report)
+            return
+        }
         let discovery = SloDiagnosticContract.discover(mods: mods, gameDir: gameDir)
         var compatibility: SloDiagnosticCompatibility?
         if case .found(let installation) = discovery {
@@ -111,7 +113,6 @@ public final class SloDiagnosticSessionStore {
             knownProbeSessionIDs: known)
         do { try SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport) }
         catch { state = .failed(.snapshotWrite); return }
-
         for root in roots where !root.initiallyEnabled {
             guard await runtime.setModEnabled(root.logicalName, true),
                   runtime.modEnabled(root.logicalName) == true else {
@@ -322,7 +323,6 @@ public final class SloDiagnosticSessionStore {
         }
         return true
     }
-
     private func validateRootAvailability(_ snapshot: SloDiagnosticSnapshot)
         -> SloDiagnosticRecoveryConflict? {
         var directory: ObjCBool = false

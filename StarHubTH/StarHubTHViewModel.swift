@@ -2641,7 +2641,7 @@ final class StarHubTHViewModel {
                                    conflicts: ContentPatcherConflicts.read(from: entries),
                                    outOfDate: SmapiLogParser.updates(in: text))
             // Error history from the full parse: the display cap must not drop errors.
-            self.recordErrorHistory(from: entries, logDate: smapiDate)
+            self.recordErrorHistory(from: entries, logIdentityDate: SmapiHealthFold.logIdentityDate(in: text, modificationDate: smapiDate))
             completion?()
         }
     }
@@ -2657,17 +2657,17 @@ final class StarHubTHViewModel {
 
     /// Folds a SMAPI log into the error history and persists it. Skips logs
     /// already folded (re-read on every open) and undated ones.
-    private func recordErrorHistory(from entries: [LogEntry], logDate: Date?) {
+    private func recordErrorHistory(from entries: [LogEntry], logIdentityDate: Date?) {
         errorHistory.loadIfNeeded()
-        guard let logDate,
-              SmapiHealthFold.shouldFold(logDate: logDate,
+        guard let logIdentityDate,
+              SmapiHealthFold.shouldFold(logDate: logIdentityDate,
                                          lastFolded: errorHistory.lastFoldedDate) else { return }
         // `resolveModFolder` a besoin du parc ; la règle est en Core.
         let observations = SmapiHealthFold.observations(from: entries) { name in
             guard let mod = resolveModFolder(forLoggedName: name) else { return nil }
             return .init(folderName: mod.folderName, version: mod.version)
         }
-        errorHistory.fold(observations, at: logDate)
+        errorHistory.fold(observations, at: logIdentityDate)
     }
 
     /// Relie un nom journalisé au `ModItem` installé. Non privé : la

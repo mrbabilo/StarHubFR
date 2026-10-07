@@ -164,7 +164,7 @@ struct PerformanceSloDiagnosticSection: View {
             Task {
                 await store.reload(mods: viewModel.mods,
                                    gameDir: URL(fileURLWithPath: viewModel.gameDir),
-                                   runtime: runtime())
+                                   runtime: runtime(), preserveReport: false)
             }
         case .restore: confirmRecovery = true
         }

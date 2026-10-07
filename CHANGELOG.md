@@ -25,6 +25,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- Le rapport du diagnostic SLO reste affiché après le retour dans l’app ; la sonde attend désormais `GameLaunched` avant d’accéder à GMCM, et une même erreur SMAPI n’est plus recomptée à chaque actualisation du journal.
 - **Comparaisons de performances plus prudentes.** Chaque lieu comparable pèse autant ; une différence de temps passé en ville ou à la ferme ne crée plus de faux gain. Les fenêtres qui se chevauchent, options différentes, scènes inconnues et essais contradictoires sont signalés. Un coût non mesuré ne devient plus zéro ni une preuve contre un mod.
 - **Graphiques cohérents avec la mesure choisie.** Unités, courbes, valeurs détaillées et exclusions suivent le même périmètre ; les trous de mesure restent visibles et les détails sont accessibles au clavier. Les résultats d'une ancienne sélection ne remplacent plus ceux de la sélection courante.
 - **La légende au survol d'un graphique ne décale plus le contenu.** Sa ligne reste réservée, avec les textes longs limités à une ligne.

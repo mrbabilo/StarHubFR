@@ -87,14 +87,14 @@ public sealed class ModEntry : Mod
         Loads.Initialize(helper, harmony, Monitor, ModManifest.Version.ToString(), ModManifest.UniqueID);
         // D4-T6a : opt-in, par événements — la mesure des patches peut rester armée à côté.
         TextureMemory.Initialize(helper, Monitor, config.MeasureTextures);
-        // D4-T6 bis : les options réglables en jeu (GMCM facultatif).
-        ConfigMenu.Initialize(helper, Monitor, config, ModManifest);
-
         // La carte se relève deux fois : après l'Entry de tous les mods, puis
         // au chargement de la sauvegarde — certains mods patchent tard (modules
         // activés à la demande, intégrations posées quand l'autre mod répond).
         helper.Events.GameLoop.GameLaunched += (_, _) =>
         {
+            // D4-T6 bis : GetApi est interdit pendant Entry ; GameLaunched
+            // garantit que tous les fournisseurs d'API sont initialisés.
+            ConfigMenu.Initialize(helper, Monitor, config, ModManifest);
             FrameTimings.LoadedMods = helper.ModRegistry.GetAll().Count();
             Inventory.WriteLaunch(helper, Monitor, ModManifest.Version.ToString());
             HarmonyMap.Write(helper, Monitor, "GameLaunched");

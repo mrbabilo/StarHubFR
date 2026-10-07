@@ -22,8 +22,9 @@ import Observation
 final class ErrorHistoryStore {
 
     private(set) var history = ModErrorHistory()
-    /// Date du dernier journal replié, pour ne jamais compter le même deux
-    /// fois. L'appelant la passe à `SmapiHealthFold.shouldFold`.
+    /// Date de lancement du dernier journal replié, stable pendant toute la
+    /// session, pour ne jamais compter la même deux fois. L'appelant la passe
+    /// à `SmapiHealthFold.shouldFold`.
     private(set) var lastFoldedDate: Date?
 
     @ObservationIgnored private var isLoaded = false

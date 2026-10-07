@@ -9,6 +9,18 @@ import Foundation
 /// tant qu'elles vivaient au milieu de l'orchestration du ViewModel.
 enum SmapiHealthFold {
 
+    /// Identité stable d'un journal pendant un lancement. Sa date de
+    /// modification avance à chaque ligne écrite ; l'en-tête SMAPI reste fixe.
+    static func logIdentityDate(in content: String, modificationDate: Date?) -> Date? {
+        let marker = "Log started at "
+        guard let line = content.split(separator: "\n", maxSplits: 8)
+            .first(where: { $0.contains(marker) }),
+              let range = line.range(of: marker) else { return modificationDate }
+        let raw = line[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+        return ISO8601DateFormatter().date(
+            from: raw.replacingOccurrences(of: " UTC", with: "Z")) ?? modificationDate
+    }
+
     /// Ce qu'un mod installé apporte à une observation : son dossier (la clé
     /// de l'historique) et sa version (l'erreur est imputée à une version
     /// précise, pas au mod en général).
