@@ -103,4 +103,20 @@ import Testing
         #expect(index.resolve("DEP.PRESENT")?.mod.uniqueId == "dep.present")
         #expect(index.resolve("dep.absent") == nil)
     }
+
+    /// F4 — un mod sans `UniqueID` (5 manifestes sur le parc) ne doit pas
+    /// faire entrer l'identité vide dans l'index : une dépendance vide, si
+    /// une autre voie que `ModDependencyParser` en fabriquait une, passerait
+    /// alors pour installée. L'en-tête de pack, lui, n'a jamais été indexé.
+    @Test func anEmptyUniqueIdNeverEntersTheIndex() {
+        let idless = mod("NoManifestId", id: "")
+        let pack = mod("Pack", id: "", isGroup: true, children: [mod("Child", id: "a.child", folderName: "Pack/Child")])
+        let needsEmpty = mod("Needs", id: "a.needs", deps: [dep("")])
+        let index = DependencyIndex.build(from: [idless, pack, needsEmpty])
+
+        #expect(!index.installedUniqueIds.contains(""))
+        #expect(index.resolve("") == nil)
+        #expect(index.missing(for: needsEmpty) == [""])
+        #expect(index.installedUniqueIds == ["a.child", "a.needs"])
+    }
 }

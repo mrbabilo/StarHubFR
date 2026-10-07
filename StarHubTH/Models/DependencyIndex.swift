@@ -35,9 +35,7 @@ struct DependencyIndex {
             if m.isGroup, let children = m.children {
                 for c in children {
                     let k = c.uniqueId.lowercased()
-                    ids.insert(k)
-                    states[k] = c.isEnabled
-                    byId[k] = c
+                    if !k.isEmpty { ids.insert(k); states[k] = c.isEnabled; byId[k] = c }
                     // `folderName` d'un composant **porte déjà** le nom du
                     // pack (`scanEntryForMods` construit
                     // `{pack}/{sous-chemin}`) : c'est lui qui distingue
@@ -46,10 +44,11 @@ struct DependencyIndex {
                     entries.append((c.uniqueId, c.folderName, c.isEnabled))
                 }
             } else {
+                // F4 : un mod sans `UniqueID` n'apporte aucune identité —
+                // la clé vide satisferait une dépendance vide. Les doublons
+                // l'écartent déjà de leur côté.
                 let k = m.uniqueId.lowercased()
-                ids.insert(k)
-                states[k] = m.isEnabled
-                byId[k] = m
+                if !k.isEmpty { ids.insert(k); states[k] = m.isEnabled; byId[k] = m }
                 entries.append((m.uniqueId, m.folderName, m.isEnabled))
             }
         }

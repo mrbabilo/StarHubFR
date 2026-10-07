@@ -1735,7 +1735,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         résultats ramène à la page 1, le tri n'y touche pas, et `focus(on:)`
         lève tout filtre susceptible d'écarter. C'était le déblocage que X91
         avait laissé documenté. 2 370 tests verts.
-- [ ] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
+- [x] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
       `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
       L'upstream a traité le même défaut (leur 2.4) : une dépendance déclarée avec un
       identifiant vide peut alors se résoudre sur un groupe et passer pour satisfaite.
@@ -1743,6 +1743,11 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       d'un groupe, jamais le groupe lui-même, donc la chaîne d'exploitation semble
       coupée. À instruire avant de conclure, puis soit clore, soit corriger
       structurellement (leur réponse : un groupe cesse de porter une identité de mod). · **S**
+      ✅ *Clos le 2026-10-07, non reproduit* : l'en-tête n'est jamais indexé et
+      `ModDependencyParser` rejette tout `UniqueID` vide (1 seul sur 1 180
+      manifestes du parc, dans un bloc commenté). Garde-fou structurel :
+      `DependencyIndex.build` n'indexe plus la clé vide qu'apportaient les mods
+      sans identifiant (5 manifestes) — testé.
 - [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage, au scan
       (~900 mods) et **au build** (`python3 build_app.py`, `run_tests.sh`), concurrence
       (`scanMods()` parallèle, verrous du registre), et surface de sécurité : extraction
