@@ -5649,3 +5649,790 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       fichiers serait un chantier plus gros que tout l'axe H réuni. **C'est un
       relevé daté pour un futur axe, pas une dette à éteindre ici.**
 
+## Archivage du 2026-10-08 — remise à niveau
+
+Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMAP.md`. Corps déplacés verbatim, dans l'ordre où ils s'y trouvaient, avec les textes d'introduction des lots clos (C3, C4, D1, D5). Sept items dont le récit vivait déjà ici (A1-T1, A1-T4, A1-T5, C3-T2, C4-T13, D1-T1, E2-T2) n'ont laissé que leur case : elle a été supprimée sans copie. Les identifiants sont indexés au §11 de la roadmap.
+
+
+### Hub de traduction FR, phase 2 — Axe C (clos le 2026-10-02)
+
+> **Référence** : `Nana1873/stardew-i18n-translator` — app de bureau **Windows x64**
+> (Rust + Tauri + React), qui lit `i18n/default.json`, écrit `i18n/<lang>.json`, produit
+> des ZIP d'installation, et sait construire un glossaire depuis `Content/Strings/*.xnb`.
+> Elle traduit via saisie manuelle, **points de terminaison locaux compatibles OpenAI
+> (Ollama, LM Studio)** ou lots JSON externes.
+> ⚠️ **Licence GPL-3.0+, incompatible avec le MIT de StarHubFR** : on s'inspire du
+> *workflow*, on ne recopie pas le code. Bonne nouvelle stratégique : elle est
+> **Windows uniquement** — la place est libre sur macOS.
+
+> **Deux populations, deux sources — c'est la distinction qui manquait ici.**
+> Un **content pack** décrit ses options dans un schéma posé sur le disque ; un **mod
+> C#** ne décrit rien nulle part, et ses libellés ne s'attrapent que par son `i18n/`.
+> Établi le 2026-08-28 par décompilation et mesure → `§audit-config-menus`,
+> [`audit-config-menus.md`](audit-config-menus.md). **Prendre C4-T4 avant C4-T1.**
+
+> **Le socle de C4 est déjà découpé, et dormant.** Un plan local de 67 étapes
+> (`docs/superpowers/plans/2026-08-03-c4-socle-core.md`, marqué « Plan 1/3 ») détaille les
+> dix types Core que C4-T1 suppose — `ConfigValue`, `ConfigDoc`, `ConfigOption`,
+> `ModConfigInferrer`, `ConfigLabelResolver`, `ConfigEdit`, `ConfigValidator`,
+> `ConfigWriter`. **Aucun n'existe** : les `Config*.swift` du dépôt viennent tous de
+> **B3-T5**, et les plans 2/3 et 3/3 n'ont jamais été écrits. Sa tâche 1 est une
+> mesure-échantillon avec décision go/no-go — précisément l'hypothèse que C4-T1 dit devoir
+> valider avant engagement.
+>
+> ⚠️ **Le plan a vieilli, et deux de ses dix types sont à abandonner** (2026-08-28) :
+> `ConfigValue` fait doublon avec **`ConfigJSONTree.Value`**, livré depuis par B3-T5 et
+> supérieur (ordre des clés retenu, littéral numérique gardé en `String`, tolérance
+> calquée sur Newtonsoft) — le reprendre créerait une quatrième copie divergente.
+> `ModConfigInferrer` n'a **aucune matière** : sur les 547 `config.json` voisins d'un
+> `manifest.json`, **zéro** porte un commentaire hors chaîne. Les `ValueSpan` que le
+> plan prévoyait pour préserver ces commentaires ne protègent donc rien ici ; ce qui
+> mérite d'être préservé, c'est l'**ordre des clés**, et `ConfigJSONTree` le fait déjà
+> — voir **C4-T5**.
+
+- [x] **C5-T1** — ✅ **Livré le 2026-09-24** (page « Traductions FR », hub thaï retiré — il n'était exposé par aucun réglage). **Redéfini le même jour** (l'ancien énoncé — rendre
+      `ThaiTranslationHubView` générique — n'avait pas de source : le hub thaï lit le
+      catalogue d'AppleBoiy, et il n'existe aucun catalogue FR ; l'org GitHub
+      `FR-translation-for-Stardew-Valley-Mods` n'est que 27 forks morts depuis 2020).
+      **Une page « Traductions FR » qui remplace l'entrée du hub thaï** : toutes les
+      traductions françaises disponibles sur Nexus pour les mods installés (**en pause
+      compris**), et les mises à jour de celles déjà posées. Recherche lancée **par un
+      bouton**, résultats mémorisés sur disque. · **L**
+      - **Source primaire : le lien « requis par »** (`modsRequiringThisMod`, voir
+        SOURCES §2.4) — 10 traductions FR sur 87 ids, toutes justes, contre 11 dont
+        4 fausses pour la recherche par nom. **Repli** : la recherche d'A3-T3
+        (nom + tag `French`, puis titre) pour les 82 mods sans id Nexus — **un seul
+        chemin de recherche**, extrait du ViewModel, partagé avec le bouton de la fiche.
+      - Stocker l'observation brute (résultats, date, échec ≠ rien trouvé) ; le statut
+        (disponible, posée, mise à jour, désormais traduit) se **dérive** à l'affichage
+        de l'état vivant (registre, couverture, `TranslationPresence.update`).
+      - Candidats : cadrage `FrenchTranslationScope.missing` + hôtes du registre (8 +
+        7 suppléments le 2026-09-24).
+      - Livré avec : `FrenchTranslationLookup` (chemin unique, le bouton de la fiche
+        l'emprunte aussi — il gagne le lien), `FrenchTranslationSweepStore` (séquentiel,
+        arrêt net sur clé absente ou 429), union lien + nom avec marque « par nom, à
+        vérifier » (le lien seul rate 2 des 5 traductions FR de SVE). Candidats au
+        **premier niveau** : c'est là qu'une traduction se dépose. Le hub thaï, son
+        code VM (247 lignes), son parseur et ses 34 clés sont retirés ; ⌘5 mène à la
+        page, la quarantaine prend ⌘9, les sauvegardes d'installation perdent leur numéro.
+        Mesuré ensuite sur l'API réelle : le lien rend aussi les traductions des mods
+        qui **requièrent** l'hôte (SVE : 4 sur 8) — chaque résultat porte donc un niveau
+        (confirmée = liée + titre qui nomme le mod ; liée seule ; par nom). Parc : 167
+        candidats de premier niveau, 92 avec id, 9 traductions liées dont 8 confirmées.
+        Les 17 packs n'ont pas d'id au manifeste de tête : recherche par nom seule — ne
+        pas emprunter l'id d'un composant sans mesure (un id Nexus n'est pas une
+        identité). Une « posée » sans fiche ni recherche aboutie est « non vérifiable »,
+        jamais « à jour ».
+      - Ajusté le jour même, à l'usage : « Arrêter » clôt la recherche tout de suite
+        (la tâche attendait une requête dont le rappel ignorait l'annulation, et
+        `isRunning` ne retombait qu'à la fin) ; les requêtes GraphQL abandonnent
+        après 20 s, plus 60 (un mod en enchaîne jusqu'à vingt) ; la traduction
+        téléchargée se dépose dans le bon mod et le bon dossier — `fr.json` livré
+        seul va dans `i18n/`, ou dans le sous-dossier français quand le mod range
+        ses traductions par dossier ; une traduction couvrant plusieurs composants
+        d'un pack (Cape Stardew FR) est enregistrée comme traduction, pas comme
+        supplément.
+
+
+### Fiabilité du registre & compatibilité — Axe A
+
+- [x] **A1-T12** — `§audit-stardrop-nativemac` · Protéger les trois mods internes
+      installés par SMAPI (`SMAPI.ConsoleCommands`, `SMAPI.ErrorHandler`,
+      `SMAPI.SaveBackup`) dans les opérations en masse : toujours actifs, exclus de
+      « désactiver tout », non supprimables. Le concurrent natif le fait simplement
+      (`ModScannerService.coreModIds`) ; l'audit Stardrop l'avait déjà relevé
+      (« nettoyage d'UX quasi gratuit », §3.6), jamais pris. Nos slots d'accueil
+      (`CoreModSlot`) n'affichent que SMAPI/CP/SpaceCore/SVE — rien ne protège ces
+      trois-là d'un « tout désactiver » ; l'exclusion du compte affiché est à
+      arbitrer avec les bandeaux de comptes existants. · **S**
+      ✅ *Livré le 2026-10-07* : `ModItem.isSmapiBundled` (identifiants pliés,
+      `ErrorHandler` gardé pour les vieux parcs — absent depuis SMAPI 4).
+      « Tout désactiver » (`[ModItem].bulkToggleTargets`), plan de profil
+      et bissection ne les mettent jamais en pause ; la confirmation nomme
+      ceux qui restent actifs. Suppression refusée, corbeille masquée.
+      Bascule unitaire laissée libre ; comptés dans les bandeaux (décision
+      de l'auteur). Parc : `ConsoleCommands`, `SaveBackup` actifs.
+
+- [x] **A2-T5** — `§audit-gestionnaires` · *(faible priorité)* — Lire la base de
+      compatibilité **locale** de SMAPI (`smapi-internal/metadata.json`, livrée avec
+      l'installation) comme troisième source hors ligne, derrière l'API live et
+      `mods.jsonc`. ⚠️ **La comparaison de bornes de version est obligatoire** : chaque
+      motif y est assorti d'une clause de version, et l'apparier sans la lire signalerait
+      **14 mods à tort** sur le parc de référence — pour **1 seul** réellement concerné.
+      C'est ce rapport, pas la difficulté, qui fixe la priorité. · **S**
+      ✅ *Livré le 2026-10-07* : `SmapiLocalMetadata` (Core, 6 tests, fixture =
+      copie du vrai fichier) ; bornes lues avec `CompatibilityResolution.isAtLeast`,
+      version illisible = clause muette. 3e filet derrière smapi.io et le dump
+      (`applyLocalMetadataFallback`), badge « Source : fichier local SMAPI ».
+      Mesure du jour rejouée en test : 17 couverts, 0 signal, 14 faux sans bornes.
+
+- [x] **A3-T8** — `§audit-stardrop-nativemac` · Endorsement/abstention Nexus depuis
+      la fiche du mod (état actuel, bouton d'action, erreurs typées : mod à soi,
+      délai de 15 min après téléchargement, mod non téléchargé — la typologie du
+      concurrent natif, `NexusService.setModEndorsement`, sert de référence de
+      surface). Faible priorité : A3 est en lecture seule aujourd'hui, c'est le seul
+      write-op Nexus utile que nous n'avons pas. · **S**
+      ✅ *Livré le 2026-10-07* : `NexusEndorsement` (Core, testé) +
+      `NexusEndorsementStore` ; icône 👍 dans la barre d'actions de la fiche,
+      refus typés. Contrat recoupé sur la spécification et le client officiel
+      `node-nexus-api` (JSON `{"Version"}`), pas mesuré en direct — réponse
+      brute au journal. Avec : nombre d'approbations dans la bande de la fiche
+      (`endorsement_count` v1, `endorsements` v2, mesuré). [Sources](SOURCES.md).
+      Même jour : pouce et nombre en liste et en grille, tris « Approbations » et
+      « Mise à jour Nexus la plus ancienne » (`NexusModStats`, lots de 80 sans
+      clé via `legacyModsByDomain`, rafraîchis une fois par jour).
+
+- [x] **A5-T4** — **L'analyse statique des cibles disputées** — repoussée, et cadrée
+      par le spike : suivre les `Include` récursivement (garde anti-boucle, fichiers
+      absents comptés), lire `Priority`, ne tenir pour **certain** que deux `Load`
+      inconditionnels et exclusifs sur la même cible. Réutiliser `ConfigJSONTree.parse`
+      (analyseur tolérant déjà écrit pour C4) plutôt qu'un second lecteur JSON. La
+      signature de scan doit inclure la **date de modification** des `content.json` :
+      une mise à jour de mod les réécrit sans changer ni le nom du dossier ni son
+      état. · **L**
+      ✅ *Livré le 2026-10-08* : `ContentPatcherPacks.loadTargets` (cibles
+      certaines collectées dans le même parcours que le compte de patches :
+      sans `When`, ni sur le patch ni sur un `Include` ancêtre ; `Priority`
+      absente ou `Exclusive` ; sans jeton ; `,`/`|` éclatés, `\` → `/`),
+      `ContentPatcherLoadTargets` (paires inter-mods), `ContentPatcherLoadIndex`
+      (toutes racines, pauses comprises, cache dossier logique + mtime). 4e
+      source de `ModConflictVerdicts.candidates` : porte d'activation sur les
+      trois sites avec l'asset nommé, ligne « Prévu par les fichiers » écartable
+      dans le rapport, pastille Alertes pour les paires actives. Mesure du jour
+      (sonde Swift sur le vrai scanner, retirée) : 559 packs, 7 433 cibles,
+      **3 duos dormants** (Haley ×4 portraits, Leah, Rasmodia/Xtardew), 0 actif —
+      identique au script Python. `ConfigJSONTree.parse` non repris : le
+      parseur commun lit déjà ces fichiers.
+
+- [x] **A5-T7** — **Deux mods actifs qui patchent la même méthode du jeu.**
+      Premier cas mesuré : Stardropium × UltraSmooth (7 méthodes en 2.3.6 ;
+      9 en 2.3.7, plus 3 derrière `EnableExperimentalFeatures`).
+      ✅ *Marche 1 livrée le 2026-09-26* : `PerformanceOverlap.catalog`, 6 paires
+      à 2 méthodes ou plus (Radiance compris ; les paires à une méthode écartées
+      comme bruit), fiche du mod + feuille Conflits, hors pastille.
+      ✅ *Marche 2 livrée le 2026-09-26* : la paire vient de `harmony-map.json`
+      quand les deux mods étaient chargés lors de la dernière session de la
+      sonde (méthodes partagées ≥ 2, et patch du code de l'autre dès 1 —
+      Loading Optimizer → `ModEntry.OnGameLaunched` de SinZ), le catalogue
+      décompilé sinon. Sur le parc : Stardropium × UltraSmooth 6 (pas 9),
+      Loading Optimizer × UltraSmooth 2 ajoutée, Loading Optimizer ×
+      Stardropium écartée (rien en commun en jeu).
+      🔬 *Essai du mod d'observation `companion/StarHubFR.Probe` (2026-09-26,
+      parc réel, UltraSmooth + Stardropium actifs, Radiance en pause) : sa
+      carte Harmony recoupe `harmony_summary` de SMAPI à 2 094 couples sur
+      2 095 (le 2 095ᵉ est posé après le chargement). Elle **contredit le
+      catalogue** là où l'exécution diffère du code : (1) **Stardew Loading
+      Optimizer neutralise SinZ au démarrage** (`removedHarmonyPatches=6`,
+      2 gestionnaires retirés) — les paires avec SinZ n'existent pas en jeu, et
+      le limiteur mémoire que Stardropium greffe sur SinZ s'accroche à du code
+      mort ; (2) UltraSmooth ne pose pas ses patches `Tree`/`FruitTree`/
+      `HoeDirt.draw` avec la config du parc : 6 méthodes communes avec
+      Stardropium, pas 9 ; (3) SLO × UltraSmooth partagent 2 méthodes
+      (`ScreenFade.UpdateFadeAlpha`, `LoadGameMenu.SaveFileSlot..ctor`) que le
+      seuil « ≥ 2 » aurait dû retenir. La décompilation dit ce qu'un mod
+      **peut** patcher ; seule la carte dit ce qu'il **a** patché.* *(Plan
+      initial, dépassé par la sonde : lire les tables ECMA-335 et l'IL autour
+      des `Harmony.Patch`.)* **Première marche** : une
+      liste tenue à la main des paires de mods de performance qui se recouvrent
+      (Stardropium, UltraSmooth, Stardew Loading Optimizer, SinZational Speedy
+      Solutions), chaque paire mesurée par décompilation, affichée quand les
+      deux sont **actifs** — comme la liste de compatibilité de smapi.io. ⚠️ Un
+      recouvrement n'est pas un conflit : deux préfixes de culling s'empilent
+      souvent sans dommage ; le message dit « ces deux mods font le même
+      travail », pas « ils sont incompatibles ». · **M** (marches 1 et 2 livrées)
+
+
+### Performance mesurée — Axe D
+
+#### D1 — Exploitation du log du mod *Profiler* (Nexus 12135) — **clos le 2026-10-03, remplacé par la sonde**
+
+> **Décision de l'auteur (2026-10-03)** : Profiler n'est plus nécessaire. La
+> sonde (D4) reprend son code (MIT) et fait le même travail **sans seuil**,
+> mémoire allouée et phases de chargement comprises (D5-B), comparaison
+> avant/après comprise (D5-C), coût par pack Content Patcher compris (elle
+> arme la couture `Profiler?.RecordSection` de Content Patcher). Les deux
+> s'excluent dans une même session. L'app dit désormais **de ne pas
+> l'installer** (carte « Sonde » de l'onglet Performances, qui remplace la
+> carte Profiler de D1-T1). Un lecteur `[RawLog]` (D1-T2) a été écrit puis
+> retiré le même jour : il ne servait à rien que la sonde ne donne déjà. Ce
+> qui reste utile — la forme des lignes, le piège des enfants, les chiffres
+> de la session du 2026-09-29 — vit au §5 de `docs/SOURCES.md`.
+
+> Source ajoutée au registre le 2026-09-04 : `SinZ.Profiler` 2.0.0, page et
+> monorepo **surveillés** (`mod/profiler`, `profiler-source`). La chaîne de
+> journal à parser est mesurée dans la DLL : `[BigLoop] In total, it took
+> {0:N}ms handling {1}{2}`. Sur le parc de référence, Profiler a été
+> **réactivé le 2026-09-26** (il était en pause) ; sa détection doit tout de
+> même regarder les mods en pause, pas seulement les actifs.
+
+> *Mesuré le 2026-09-26 sur une vraie session (Profiler activé, lancement
+> + chargement) : `[BigLoop]` n'est que le résumé. Profiler écrit surtout des
+> lignes TRACE `[RawLog] {json}` — 1 011 sur la session, toutes lisibles — avec
+> `ModId`, `EventType`, `Duration` (ms) et des `InnerDetails` **imbriqués** :
+> la durée d'un gestionnaire inclut le travail des autres mods qu'il
+> déclenche (Content Patcher : 99 s inclusifs, 86 s propres). Toujours
+> soustraire les enfants avant d'attribuer. Les mods de contenu Content
+> Patcher y paraissent par patch (`ApplyLoad`/`ApplyEdit`, `Details` = le
+> chemin du patch). C'est la source par mod que D2-T2 ne peut pas donner.*
+>
+> *Sonde v0.2 (`companion/StarHubFR.Probe`, 2026-09-26, parc réel, en ville,
+> ~30 FPS) — la trame découpée par MonoGame : **mise à jour 17,6 ms** (≈ 2
+> mises à jour du jeu par trame, 8,8 ms chacune : le pas fixe à 60 Hz
+> rattrape son retard, attente = 0), **dessin 15,4 ms** dont **affichage
+> (Present, VSync) 10,2 ms** et dessin du jeu 3,7 ms. Le goulot est la mise à
+> jour, mods compris, doublée par le rattrapage — pas le rendu (conclusion
+> de la veille, tirée du rapport UltraSmooth, fausse ; son « CPU Tick
+> 0,5 ms » aussi). La question utile devient : quels mods pèsent dans ces
+> 8,8 ms, sous le seuil où Profiler n'écrit rien.*
+
+- [x] **D1-T1** ✅ *(livré le 2026-10-02, à l'archive)* — `ProfilerDetection` (Core) + carte de l'onglet Performances : absent (lien GitHub), en pause (bouton Activer), actif (guidage de session). *Remplacé le 2026-10-03 par la carte « Sonde » (`ModPresence`) : état et version de la sonde, et conseil de ne pas installer Profiler.*
+- [x] ~~**D1-T2**~~ *(abandonné le 2026-10-03)* — lecteur des `[RawLog]` : écrit, vérifié sur la
+      session du 2026-09-29, retiré — la sonde (D4-T1) mesure la même chose sans seuil.
+- [x] ~~**D1-T3**~~ *(remplacé)* — l'impact par mod vit dans la carte « Impact » de l'onglet
+      Performances (**D5-C**, sonde).
+- [x] ~~**D1-T4**~~ *(remplacé)* — même source que D1-T3 : **D5-C**.
+- [x] ~~**D1-T5**~~ *(remplacé)* — l'avant/après est la mesure guidée de la sonde (**D5-A**,
+      **D5-C**) et le benchmark de chargement (**D5-B**).
+
+**Risques** : dépendance au format de sortie d'un mod tiers → parseur tolérant, échec
+silencieux plutôt que faux chiffres.
+**Critère de succès** : identifier en une session de jeu les trois mods les plus coûteux,
+sans lire une ligne de log.
+
+- [x] **D2-T1** — Parser `[OPTIMIZER CONFIG]` (SLO, une ligne INFO au démarrage) :
+      profil, limites de cache, et le triplet configuré/effectif/**raison** de chaque
+      optimisation. Modèle Core testable ; échec silencieux si la ligne change de
+      forme. · **S**
+      ✅ *Livré le 2026-10-06* : `SloOptimizerConfig` (Core, testé) — format
+      relevé dans la DLL 1.0.0 décompilée (`ModEntry.cs`, la ligne compte
+      ~40 paires dont 4 triplets à virgules collées) ; clés inconnues gardées
+      en clair, booléens `True`/`false` mixtes tolérés, virgule décimale FR
+      acceptée, `[OPTIMIZER CONFIG MIGRATION]` jamais pris pour la config,
+      forme changée = `nil`. Sans écran : la vue viendra avec **D2-T3** ; le
+      parc a le mod **en pause** — relire un vrai journal demandera de le
+      réactiver une session.
+
+- ~~**D2-T2**~~ — ❌ **Abandonné le 2026-09-26 (mesure).** Ingérer les rapports
+      `us_trace`/`us_diag` d'UltraSmooth. Lus sur 5 vrais rapports et confrontés à
+      la sonde (**D4**) : le rapport ne naît que d'une commande console, ne nomme
+      aucun mod, et ses chiffres centraux sont faux ou mal nommés — « Last 60s » =
+      3 600 trames, « CPU Tick » = la logique du jeu seule (0,5 ms quand la mise à
+      jour en coûte 5 à 9), causes du §5 figées, fenêtre sans focus jamais
+      signalée. La sonde donne les mêmes FPS (51,0 contre 51,01 ms sur la même
+      minute) avec un découpage juste. Détail et idées à refaire :
+      [`audit-ultrasmooth-2.3.7.md`](audit-ultrasmooth-2.3.7.md). *(La note du
+      matin qui concluait « le rendu coûte l'essentiel » est fausse — voir D1.)*
+
+- [x] **D2-T3** — Carte « Environnement » dans l'onglet Performances (à côté de la carte « Impact ») :
+      état SLO résolu, couverture des menus de config (MCM + GMCM), poids des
+      packs Content Patcher, badge conflits CP. · **M**
+      ✅ *Livré le 2026-10-06* : `SessionEnvironmentStore` + `ContentPatcherPacks` +
+      `ConfigMenuCoverage` (Core, testés), `PerformanceEnvironmentSection`. Le volet
+      « dernières sessions de la sonde » de la case initiale n'est **pas** repris :
+      l'onglet les affiche déjà (D4-T4, écrit après la ligne ROADMAP).
+      Correctif du même jour : lecteur Newtonsoft commun à la place du parseur
+      `Character` qui cassait les commentaires sous CRLF (**57 faux illisibles →
+      0 sur 137 packs actifs**) ; refus futurs repliés et rangées adaptatives.
+      Correctif du 2026-10-07 : les inclusions suivent le vrai format CP (patch
+      `"Action": "Include"`, `FromFile` à virgules, chemins depuis la racine du
+      pack). La spec supposait des clés racine `Include`/`DynamicChanges`,
+      absentes du parc : **2 371 → 21 252 modifications** sur 137 packs.
+      7 fichiers inclus restent non lus (nombres `.03`, éléments vides `,,`
+      que Newtonsoft accepte) : comptés et affichés dans la carte. **Écart
+      assumé, pas de correctif** (décision du 2026-10-07) : ~160 modifications
+      sur 21 252 (0,75 %), purement informatives ; 0 `config.json` et 0 i18n
+      du parc ne portent de nombre `.N`, donc rien à gagner ailleurs pour un
+      parseur partagé par 14 fichiers.
+      Carte vérifiée dans l'app par l'utilisateur le 2026-10-07.
+
+- [x] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
+      (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
+      ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth
+      est écarté : deux nombres, dont le temps d'un seul tick.)* · **M**
+      ✅ *Livré le 2026-10-07* : carte toujours visible dans Performances, proposition
+      d’installation Nexus 50153 si SLO manque, confirmation des mods et réglages
+      temporairement activés (`EnableDetailedDiagnostics` et
+      `EnablePerformanceMeasurement`), instantané durable et reprise après crash.
+      Au retour, journal et session Probe sont corrélés après le lancement ; rapport
+      présente chargements, caches, transitions, fluidité et mémoire avec limites
+      explicites. Config et états initiaux sont restaurés avant effacement du plan.
+
+- [x] **D2-T5** — Mesures mémoire quotidiennes de **Stardropium** dans
+      Performances. ✅ *Implémenté le 2026-10-07*, format confirmé sur une
+      session réelle **0.2.2-beta**, UltraSmooth en pause :
+      [mesure et extraits](mesure-stardropium-2026-10-07.md).
+      Carte « Mémoire — Stardropium » : deux graphiques de points avant/après,
+      valeurs horodatées, variations signées, conclusion sur le dernier relevé,
+      compte des textures purgées et preuve éventuelle du profil basse mémoire.
+      Mémoire résidente et gérée séparées en Mio ; dernier journal clairement
+      distinct des sessions Avant/Après de la sonde. Formats invalides signalés,
+      absence explicite, aucune courbe continue inventée ni gain de fluidité
+      déduit. Lancement guidé ajouté : installation proposée si nécessaire,
+      activation temporaire de Stardropium et de la sonde, configuration des
+      relevés matinaux, puis restauration des réglages et états initiaux.
+      Rapport lié au lancement et conservé séparément de SLO ; reprise après
+      interruption, conflits de config et changement de dossier de jeu protégés.
+      Build, suite complète, sources offline et relecture validés.
+      Essai guidé effectué par l'utilisateur le **2026-10-07, 16:41–16:47** :
+      relevé matinal retrouvé dans le rapport conservé, Stardropium revenu en
+      pause, aucun instantané de restauration restant. Graphiques et
+      confirmations validés visuellement par l'utilisateur le 2026-10-07. · **S**
+
+- [x] **D4-T1** — Sonde v0.3 *(code écrit le 2026-09-26, à valider en jeu)* : (a) coût de
+      **chaque gestionnaire d'événement de chaque mod**, sans seuil — temps **propre**
+      (enfants soustraits) et **octets alloués**, par mod et par événement, une ligne
+      par minute dans `mod-costs.jsonl` ; transpileur sur `ManagedEvent<T>.Raise`
+      (idée de Profiler, MIT), sans allocation par appel, fil du jeu seulement ;
+      (b) **options GMCM** avec min, max, pas et choix, dans `gmcm-options.json`,
+      la clé de `config.json` retrouvée dans l'IL du délégué de lecture
+      (`AccessPath`) plus la valeur courante. Restent pour la suite : pics avec
+      contexte à seuil **relatif**, horloge des 10 minutes, changements de lieu,
+      en-tête matériel (fréquence, VSync, pas fixe). · **M**
+      *Première session v0.3 (2026-09-26, 02:33–02:42, Profiler en pause,
+      aucune erreur imputable à la sonde) :* **Stardew Gallery** a gelé le jeu
+      **8,6 s** dans un seul `UpdateTicked` et alloué **1,2 Go** à l'ouverture
+      de son menu (scan de 2 727 fichiers d'événements, « 6359 ms » dans son
+      journal) ; en régime continu, les événements de tous les mods coûtent
+      **4,4 ms par trame** — Content Patcher (changements de lieu), Cropgenics,
+      Teleshopping (~280 ms à chaque invalidation d'assets), UI Info Suite 2 ;
+      plus gros allocateurs AutoForager (455 Mo/min), Teleshopping, Content
+      Patcher. La mise à jour d'une trame en coûte ~15 : **les deux tiers
+      restent hors des événements** (patches Harmony, jeu, SMAPI) → D4-T5.
+      GMCM : 170 mods, 4 252 options dont 276 bornées ; témoin UltraSmooth
+      **8/8 exact** (min, max, pas). Rapprochement option → clé de
+      `config.json` : 1 079 sur 3 423 — l'aide d'intégration de Pathoschild
+      (84 mods) enveloppe l'accès dans un délégué capturé, suivi depuis la
+      v0.3.2.
+      *Session v0.4.1 (2026-09-26, 12:00–12:09, mesure des patches éteinte) :*
+      la v0.3.2 remplit un `AccessPath` pour 4 203 options sur 4 209, mais
+      contrôlé contre les vrais `config.json` (`tools/check_gmcm_paths.py`),
+      **1 313 sur 3 984 seulement** mènent à une clé — pas mieux que la v0.3.
+      Content Patcher (~1 400 options de packs) ne lit jamais la clé dans son
+      délégué : elle est capturée à côté (`name` d'`AddField`) → v0.4.2
+      exporte les chaînes de la fermeture (`ClosureStrings`) ; les délégués
+      liés au runtime (`FieldInfo.GetValue`, BinningSkill) ne produisent plus
+      de chemin parasite. Restent AutoForager (557, options générées par
+      liste) et ConvenientInventory (modèle ≠ JSON). **Mesuré sur la session
+      v0.4.2 : 3 198 sur 3 984 (80 %)** — 1 369 par chemin, 1 829 par chaîne
+      capturée, **aucune ambiguïté** (une seule chaîne désigne une clé), valeur
+      courante identique pour 1 862 sur 1 938. Base suffisante pour D4-T7.
+      Témoin de coût en régime
+      continu : événements = 6 à 8 s sur 59 s de travail de trame par minute
+      (la première ligne d'une session inclut le chargement, hors trames).
+      ✅ *Cœur livré le 2026-09-26 (sonde v0.3 → v0.4.2), validé par les
+      sessions réelles décrites ci-dessus ; les quatre restes sont couverts
+      ailleurs : pics à seuil relatif = verdict de comparaison de l'app
+      (`ProbeComparison.compare`, écart > 5 % et quartiles disjoints), pauses
+      GC pic = `BlockingGcMaxMs` (champ de chaque ligne de minute), changements
+      de lieu = `Location`
+      par minute + restrictions de comparaison, horloge des minutes =
+      chronologie de « Fluidité », en-tête = `LoadedMods` + VSync déduit à
+      l'affichage (`isAtRefreshCeiling`) + pas fixe compté (`UpdatesPerTick`).*
+
+- [x] **D4-T5** — Coût des **patches Harmony** par mod (opt-in) : chronométrer les
+      méthodes de préfixe/postfixe elles-mêmes, par propriétaire — un mod qui agit par
+      patch (Stardropium, UltraSmooth, SpaceCore, Wildroot…) échappe à D4-T1. Coût
+      d'observation à mesurer d'abord : certains préfixes tirent des milliers de fois
+      par trame (`Tree.draw`). Les transpileurs restent invisibles. · **M**
+      *Code écrit le 2026-09-26 (v0.4.1, à valider en jeu)* : option
+      `MeasureHarmonyPatches` de `config.json`, **désactivée par défaut**. Chaque
+      méthode de prefix/postfix/finalizer reçoit un prefix et un finalizer de la
+      sonde, sur la **même pile** que les événements (un patch tiré dans un
+      gestionnaire sort de son temps propre : rien ne compte deux fois).
+      `mod-costs.jsonl` gagne `PatchMs` par mod, `Interrupted`, et `FrameWorkMs`/`EventMs`/`PatchMs`
+      par minute (la couverture des deux tiers invisibles) ; `patch-wraps.json`
+      écrit les angles morts : transpileurs par propriétaire, méthodes génériques,
+      enveloppes **jamais appelées** (JIT qui aurait intégré le patch avant
+      l'enveloppe), appels hors du fil du jeu, temps d'enveloppe par étape, et le **biais** mesuré de l'enveloppe en ns par appel (à soustraire × appels). Propriétaire Harmony ≠ UniqueID (18 sur le parc) : rattaché par l'assembly du patch.
+      Protocole : deux sessions, même sauvegarde et même durée, option éteinte
+      puis allumée — l'écart de `timings.jsonl` est le coût d'observation.
+      *Session v0.4.2 allumée (2026-09-26, 12:14–12:26) :* 1 702 méthodes
+      enveloppées (5 s à GameLaunched, ~1 s à chaque DayStarted), 0 échec,
+      46 propriétaires de transpileurs, 928 enveloppes jamais appelées (à
+      trier : menus non ouverts ou JIT). **27,7 millions d'appels de patch par
+      minute** ; l'enveloppe allouait **87 octets par appel**
+      (`__originalMethod`) : 2,8 Go/min, Gen0 × 2,6, FPS 27–33 → 9–12. Chiffres
+      de coût de cette session inutilisables. v0.4.3 : emplacement injecté en
+      constante par transpileur, calibration du surcoût complet et des octets.
+      Plus gros appelants : Stardropium (`Bush.getBoundingBox`,
+      `Game1._UpdateLocation`, 3 M/min chacun), PassableCrops, UltraSmooth
+      (`Character.Update`, 2,7 M/min).
+      *Session v0.4.3 (12:46–12:54) :* enveloppe à **22,6 ns mesurés, 0 octet,
+      112 ns de surcoût complet** par appel (≈ 3 s/min aux 27,7 M appels) ;
+      mais la mesure s'arrête pendant le chargement de la sauvegarde, cause
+      non écrite. v0.4.4 écrit la première cause, la pile de mesure et la
+      pile d'appels dans `interruption.txt`, et contrôle aussi la fin
+      d'événement (patch resté ouvert dessous).
+      *Session v0.4.4 (12:58–13:02) :* cause trouvée — **Stardropium patche
+      le postfix `CharacterPatch.UpdatePostfix` d'AlternativeTextures et en
+      saute le corps** (un patch de patch : la carte Harmony le montre, à
+      verser au catalogue PerformanceOverlap) ; l'entrée injectée dans le
+      corps sautait avec lui, la sortie par finalizer Harmony passait quand
+      même. v0.4.5 : `Enter(slot)` … `finally { Exit(slot) }` dans le corps
+      (sautés ensemble), sortie strictement appariée, et **autotest** de la
+      réécriture sur des témoins de la sonde (plusieurs `ret`, `try` en tête,
+      `leave` vers le `ret`, boucle en tête, exception) — au moindre écart,
+      aucun patch d'un autre mod n'est enveloppé. Banc hors jeu impossible :
+      le Harmony de SMAPI ne se charge pas hors du jeu.
+      *Session v0.4.5 (option allumée) :* ~30 Go déversés dans le terminal de
+      SMAPI, disque plein, 15 Go de swap, **aucun journal SMAPI écrit** — cause
+      inconnue, option remise à `false`. v0.4.6 : **disjoncteur**
+      (`PatchBreaker.cs`) sur les exceptions de première chance — première
+      `InvalidProgramException`, 100 levées dans une méthode enveloppée (son nom
+      porte `WrapperId`, vérifié hors jeu sur une `DynamicMethod`), 1 000 en une
+      seconde d'où qu'elles viennent, mesure interrompue, et **échéance**
+      (5 min après le chargement, 15 après l'armement) pour ce qu'aucun des
+      autres ne verrait. Au déclenchement : `UnpatchAll(WrapperId)` au tick
+      suivant, cause + étape + exception dans `disjoncteur.txt`, une ligne au
+      journal. Ne couvre pas un échec avant le premier tick.
+      *Session v0.4.6 (16:17) :* disjoncteur **à tort** 82 s après l'armement,
+      au chargement — 1 000 `ArgumentException` par seconde que MonoMod lève et
+      rattrape lui-même en posant des patches (`GetMethodHandle`, « Type must
+      derive from Delegate »). Aucun déversement, 1 550 enveloppes retirées en
+      3,5 s. v0.4.7 : ce déclencheur remplacé par le **volume vers le
+      terminal** (`ConsoleVolume.cs`, devant `Console.Out`/`Error` — SMAPI 4.5
+      n'y met aucun intercepteur), > 8 M caractères en 10 s ; la dernière ligne
+      écrite va dans `disjoncteur.txt`.
+      *Session v0.4.7 (16:34–16:48) :* **première mesure complète** — 1 700
+      enveloppes, 0 échec, biais 40 ns, coupure à l'échéance. Sur 300 s de jeu
+      (ms de calcul par seconde) : Stardropium **45** en patches (un appel à
+      1,9 s), UltraSmooth 16, PassableCrops 15, SpaceCore 9 ; en événements
+      Cropgenics 17, AutoForager 16 (pics 3,7 s), World Navigator 14,5. Fil
+      du jeu saturé (~59,5 s de travail par minute, 12–39 FPS) ; patches 5–8 s
+      et événements 2–9 s par minute. Deux défauts corrigés en v0.4.8 : le
+      retrait à l'échéance figeait le jeu **4,1 s** (désormais veille, retrait
+      en fin de journée ou au retour au titre ; les urgences retirent
+      toujours aussitôt) ; une minute affichait **159 s de travail pour 60 s**
+      (le tick de 100 s du chargement, commencé dans la fenêtre précédente,
+      comptait en entier dans la suivante — les fenêtres se ferment désormais
+      entre deux ticks, et un tick coupé par une fermeture forcée n'apporte que
+      sa part).
+      ✅ *Livré et validé en jeu le 2026-09-26 (sonde v0.4.1 → v0.4.8) —
+      les sessions ci-dessus sont la validation : enveloppe à 40 ns de biais,
+      autotest des réécritures, disjoncteur (exceptions + volume terminal),
+      première session complète en v0.4.7, défauts de retrait corrigés en
+      v0.4.8. Option `MeasureHarmonyPatches` (opt-in, GMCM aujourd'hui),
+      `PatchMs` par mod dans `mod-costs.jsonl`, angles morts dans
+      `patch-wraps.json` ; l'app compare sous `patchesMeasured` et refuse
+      d'arbitrer des trames aux états de mesure différents
+      (`patchesMismatch`).*
+
+- [x] **D4-T8** — **Mémoire du processus** dans chaque minute de `timings.jsonl` :
+      mémoire physique (`Environment.WorkingSet`), pic
+      (`Process.PeakWorkingSet64`) et mémoire réservée par .NET
+      (`GC.GetGCMemoryInfo().TotalCommittedBytes`). La sonde ne relève
+      aujourd'hui que le tas (`HeapMB`) : textures, MonoGame et bibliothèques
+      natives lui échappent, alors que c'est ce qui gonfle un parc de 280 mods.
+      Courbe de mémoire dans l'onglet Performances ; préalable au volet mémoire
+      de **D5-C**. Idée tirée de `perf_memory` de Stardropium (audit 2026-10-01),
+      implémentée sans en dépendre. · **S**
+      *Livré en code le 2026-10-05, à valider en jeu* : sonde **0.9.12**
+      (trois champs par minute). **Le pic ne vient pas de
+      `Process.PeakWorkingSet64`** : il rend 0 sur macOS (pas de `/proc`,
+      mesuré le 2026-10-05) — la sonde suit le maximum des `WorkingSet` par
+      tick (un pic intra-minute disparaîtrait d'un échantillon de fin de
+      minute). `ProbeMinute` décode les trois, `nil` sur les lignes des
+      sondes antérieures ; mesures « RAM » et « Réservée » du sélecteur de
+      « Fluidité » (menu, pas segments : six libellés ne tenaient pas)
+      + tableau avant/après (`ProbeComparison.workingSet`/`committed`) ;
+      sessions antérieures à 0.9.11 : message dédié, pas des exclusions de
+      trames. Déployée sur le parc.
+
+- [x] **D4-T9** — **Charge de la scène** par minute, relevée par la sonde **sans
+      patch de dessin** (comptage des collections en mémoire au moment d'écrire
+      la ligne, ≈ µs/minute — compter à chaque dessin, comme Stardropium,
+      fausserait le temps de trame mesuré) : PNJ, animaux, meubles, objets
+      posés, éléments de terrain, gros éléments (rochers, souches), lumières
+      actives, sprites temporaires, débris du lieu courant ; nombre de lieux
+      actifs. L'onglet Performances dit alors **ce qui explique** une minute
+      lente (« 312 meubles, 48 lumières »), et la comparaison avant/après
+      distingue un mod coûteux d'une scène plus chargée. Les 53 compteurs de
+      `TelemetryMetrics` de Stardropium ont servi d'inventaire ; seule leur
+      moitié « dessinés » décrit la scène, l'autre mesure ses propres
+      économies. · **M**
+      ✅ *Livré et validé en jeu le 2026-10-06* : sonde **0.9.21**,
+      `SceneCounts` relève la scène une fois par minute et `ProbeScene` compare
+      cinq observations minimum par lieu. La page distingue scène similaire,
+      différente ou inconnue ; une scène différente limite la qualité de la
+      conclusion au lieu d'attribuer l'écart à un mod (`fcd06c23`, complété par
+      la refonte `de3a9c2b`). Validation réelle : six observations sur la Ferme
+      puis une sur la Ville, avec variation cohérente des objets (**1 013 →
+      921**) et des éléments de terrain (**531 → 484**) pendant la session.
+
+- [x] **D4-T7** — L'éditeur de config lit `gmcm-options.json` : **curseur** pour les
+      nombres bornés, liste pour les choix — lève le « ne pas porter : le curseur »
+      de l'archive C4, faute d'échelle jusqu'ici. Rapprochement option ↔ clé par
+      `AccessPath` et valeur courante, à mesurer sur le parc (combien d'options se
+      rapprochent sans ambiguïté).
+      ✅ *Livré le 2026-09-27* : sonde v0.4.11 (copie de `config.json`,
+      version, langue) ; `GmcmCapture` (Core, `Tests/ProbeFilesTests`) —
+      rapprochement vérifié sur la copie (valeur égale), collisions
+      fusionnées, mod ignoré si sa version a changé. Mesuré avant livraison :
+      226 curseurs (43 mods), 49 menus hors packs CP, 1 085 libellés neufs
+      (81 mods) ; 116 options écartées (inversions Mail Services,
+      transformation MS Books). · **M**
+
+- [x] **D4-T2** — L'app lit `harmony-map.json`, `timings.jsonl` et `mod-costs.jsonl` : modèles Core testés
+      sur les vrais fichiers de la session du 2026-09-26, sessions séparées par
+      leur identifiant, ticks sans focus signalés (une minute sans focus ne décrit
+      pas le jeu). Alimente A5-T7 (marche 2), D1-T3, D2-T3.
+      *Livré le 2026-09-26* : `ProbeSessions`, `ProbeHarmonyMap`, `ProbeFiles`
+      (Core, `Tests/ProbeFilesTests` sur des extraits réels, régénérables par
+      `make_fixtures.py`) ; minute « écran titre » = sans lieu, pas « première
+      minute » (4 contre-exemples réels). Premier consommateur : A5-T7 marche 2. · **M**
+
+- [x] **D4-T3** ✅ *(livré le 2026-10-03 — accord de l'auteur le même jour)* —
+      `build_app.py` recompile la sonde en Release quand une source est plus
+      récente que la DLL et l'embarque (`Resources/Probe/StarHubFR Probe`) ;
+      jamais périmée, et `release.py` refuse une release sans elle. La carte
+      « Sonde » propose « Installer » ou « Mettre à jour », avec confirmation
+      (`ProbeBundle`, Core : version, dossier réel, `config.json` gardé,
+      dossier en 0555 ouvert). Installée active dans `Mods/StarHubFR Probe`,
+      un mod de la liste comme un autre.
+
+- [x] **D4-T4** ✅ *(livré le 2026-09-28, validé — clôturé le 2026-10-04)* — Avant/après : comparer deux sessions de la sonde autour d'une
+      activation de mod (la version tenable de D1-T5, idée reprise d'UltraSmooth
+      mais sur des sessions entières). · **S**
+      *En cours (2026-09-28)* : spec `docs/superpowers/specs/2026-09-28-d4-t4-before-after-design.md`
+      (poste local), quatre plans. ✅ Plan 1 : page « Diagnostic & Performances » en onglets
+      Santé · Journal, sans perte (onglets gardés montés, bandeau Santé dans le Journal).
+      ✅ Plan 2 : sonde v0.4.12 (inventaire, réglages relevés à la minute, `MenuTicks`),
+      construite le 2026-09-28 ; lancement validé en jeu (289 mods, 174 config.json,
+      contenus cohérents). La validation du réglage changé a révélé une perte : le
+      dernier relevé, `Task.Run` dans `ProcessExit`, était tué par la fin du
+      processus — corrigé en v0.4.13 (relevé final synchrone), validé en jeu le
+      2026-09-28 : réglage changé à 19:24:56, relevé de fermeture à 19:25:09,
+      `ChangedAt` = mtime exact, contrôleur OK.
+      ✅ Plan 3 : le Core — `ProbeInventory`, `ProbeSegments` (coupure au
+      `ChangedAt`, minutes mixtes écartées), `ProbeComparableMinutes` (gardes,
+      « même lieu d'abord »), `ProbeComparison` (médianes, quartiles, verdicts,
+      plafond de synchro), `ProbeSessionsIndex` (index sans décodage, cache par
+      taille+date), `ProbeInventoryDiff` + `ProbeCosts`, `ProbeMeasurements`,
+      `ProbeAnalysis` (règles explicables, recommandations réversibles). Écart à
+      la spec §3d : la part indirecte ramène le coût direct (ms/s) en ms par tick
+      (÷ 60) avant de le soustraire du travail de trame — la spec soustrayait
+      deux unités différentes.
+      ✅ Plan 4 : l'onglet « Performances » — deux moments au choix (segments ou
+      mesures propres), ce qui a changé (diff de réglages clé par clé), tuiles et
+      verdict, distribution des minutes et chronologie (Swift Charts, tableau
+      sous chaque graphique), coût par mod en haltères, analyse et gestes
+      réversibles (pause, sauvegardes, réglage d'avant sous garde, mesure
+      préparée). Les gardes tournent une fois par session (un segment après
+      une coupure n'a pas de « chargement » à lui).
+      ✅ *Validé* : les deux paires exigées à l'écran sont celles de D5-A, lues
+      sur le même onglet le 2026-09-29 — « écart net » (UltraSmooth retiré →
+      « plus rapide », confiance élevée) et « dans le bruit » (paire A/A →
+      « pas de différence mesurable ») ; lisibilité 560 pt couverte par le
+      balayage I-T11, clair et sombre par l'audit UX du 2026-10-02 ; l'auteur
+      valide l'écran (entrées instantanées, défilement fluide) le 2026-10-04
+      après l'accélération de l'entrée de page (`da0a6012`).
+
+#### D5 — Mesurer sans effort, chargements, score par mod
+
+> *Demande de l'auteur (2026-09-29)* : « une aide à la mesure durant le jeu
+> (guidage par écrans, durée des mesures, actions à effectuer) », mesurer le
+> temps de chargement du jeu et des sauvegardes, un score par mod (mémoire,
+> ticks, FPS). Trois sous-projets, dans cet ordre — A rend fiables les mesures
+> que B et C exploitent. Critère posé : **facile d'utilisation**.
+> *Constat qui motive A* : les deux sessions du 2026-09-29 matin (réglage de
+> Farmer's Notebook) — 11 minutes sur 17 dans un menu, 5 à 8 lieux par
+> session, bouton « Démarrer » jamais utilisé : verdict « bruit » partout.
+
+- [x] **D5-A** — **Mesure guidée en jeu.** Un clic dans l'onglet Performances
+      écrit un plan dans le dossier de la sonde ; en jeu, la sonde (v0.5.0)
+      affiche un bandeau (lieu à garder, minutes gardées, pause « menu
+      ouvert »…), s'arrête seule quand la mesure est stable et l'écrit ; l'app
+      la lit et propose l'étape « après », au même lieu. Durée **adaptative**
+      (≥ 5 minutes gardées, arrêt à IQR ≤ 10 % de la médiane, plafond 15) —
+      mesuré : au même lieu l'IQR tombe à 3 %, en changeant de lieu il reste à
+      40–71 % même sur 21 minutes. Remplace les boutons « Démarrer /
+      Terminer » de D4-T4. Spec `docs/superpowers/specs/2026-09-29-d5-a-guided-measurement-design.md`
+      (poste local), relue par agent. · **L**
+      *Livré en code le 2026-09-29, à valider en jeu* : sonde **0.5.0**
+      (`Guided.cs`, `GuidedRule.cs`, `GuidedBanner.cs`, textes fr/en ; mesure
+      des patches désarmée quand un plan attend) ; gardes guidées `patchesMeasured`,
+      `partial` (< 45 s), `otherLocation` (ticks au lieu, hors cinématique),
+      `configChanged` (décompte remis à zéro) ; parité app ↔ sonde par un
+      fichier de référence commun (`Tests/ProbeFilesTests/Fixtures/comparable-reasons.json`,
+      tests Swift et `dotnet test companion/StarHubFR.Probe.Tests`, premier
+      projet de tests C# du dépôt) ; côté app, `GuidedPlan`,
+      `GuidedMeasurementsFile`, `GuidedProtocol`, barre et feuille de l'onglet,
+      gestes de l'analyse qui préparent un plan, mesures manuelles retirées ;
+      plafonds de synchro élargis à 2, 3, 4 périodes de 60 Hz (33 des 86
+      minutes gardées du parc étaient à 33,3 ms, jugées sur la trame).
+      ✅ *Validé en jeu le 2026-09-29* (sonde 0.5.0 → 0.5.2) : paire réelle
+      UltraSmooth retiré → « plus rapide », travail −6,7 %, confiance élevée ;
+      paire **A/A** (rien changé) → « pas de différence mesurable », confiance
+      élevée, « garder ». Quatre mesures `stable` à 5 minutes gardées, IQR du
+      travail 0,28 % à 9,65 % : le seuil de 10 % tient. Leçon de l'A/A : les
+      quartiles du travail y sont **disjoints** (14,52 contre 14,24 ms) — seul
+      le garde-fou des 5 % évite un faux « plus rapide » ; ne jamais l'assouplir.
+      *2026-10-04, textes et décompte* : sonde **0.9.2** — bandeau réécrit
+      « que faire » à chaque état (fr/en) ; décompte vers la 5ᵉ minute gardée
+      (« encore N avant l'arrêt possible », puis « arrêt dès que c'est stable »
+      au-delà, l'IQR ne suit pas toujours) ; la feuille de préparation annonce
+      « 5 à 15 minutes gardées en jeu » (`GuidedProtocol.minimumKeptMinutes` /
+      `maximumKeptMinutes`, miroir des bornes de la sonde). À valider en jeu.
+- [x] **D5-B** ✅ *(livré le 2026-09-30, validé en jeu le 2026-10-04)* — **Temps de chargement** : lancement (processus → écran
+      titre) et chargement de sauvegarde (clic → première trame jouable),
+      mesurés par la sonde et comparés avant/après. Contribution par mod :
+      événements `GameLaunched`/`SaveLoaded` vus par la sonde ; l'`Entry` des
+      mods chargés avant elle lui échappe — Profiler le donnerait peut-être
+      (sa visionneuse, `docs/SOURCES.md` §5), à vérifier sur une session
+      Profiler seul. · **M**
+      *Vérifié le 2026-09-29* : Profiler **ne voit pas l'`Entry`** (22 s en
+      bloc, lisibles seulement à la seconde dans le journal SMAPI). Il donne en
+      revanche les jalons de phase (`LoadStageChanged`, `Save Loaded`,
+      `Day Started`) et le temps propre **par mod et par pack de contenu**
+      (`ApplyLoad`/`ApplyEdit`) dans chaque phase. Sur le parc : lancement
+      ≈ 1 min 50, dont 30,8 s pour Content Patcher ; chargement de sauvegarde
+      ≈ 1 min 30, dont 10,6 s pour AutoForager. D5-B et **D1-T2** lisent donc
+      le même journal. Détail et chiffres : `docs/SOURCES.md` §5.
+      *Livré en code le 2026-09-30, à valider en jeu* : sonde **0.6.0**
+      (`loads.jsonl` : jalons `L0`–`L4` et `S0`–`S9`, total comparé arrêté à
+      `S9`, `S10` affiché seul ; `CostStack` minute/phase — `mod-costs.jsonl`
+      inchangé ; couture Content Patcher `Profiler?.RecordSection` armée
+      pendant les fenêtres ; rappels d'assets `ApplyLoader`/`ApplyEditors`) ;
+      Core (`ProbeLoadRecord`, `ProbeLoadBreakdown`, `ProbeLoadComparison` —
+      bruit A/A mesuré 2,2 % le 2026-09-30, seuil = max(3 %, 2 × bruit) — plancher abaissé de 5 à 3 % le 2026-10-01, deux A/B à −3/−4 % restant gris ; froid =
+      premier lancement depuis `kern.boottime`, +98 % mesuré, éjection du
+      volume sans effet) ; carte « Chargements » (tuiles, frise, top 5,
+      verdict, geste pause gardé). Tâche 13 = validation en jeu.
+      ✅ *Validé en jeu le 2026-10-04 par l'auteur* (check-list complète :
+      tuiles, frise et top 5 alimentés ; ventilation `Entry`+`GetApi` mod par
+      mod ; coût `TryLoadMod` ; couture Content Patcher ; paire de contrôle
+      A/A restée grise ; benchmark 0.7.0 avec restauration de sauvegarde
+      vérifiée ; geste pause ; clair et sombre, 560 pt). · **M**
+      *2026-10-04, panneau de suivi* : le bench quittait la ligne discrète
+      (impression d'app figée pendant les lancements) pour un panneau flottant
+      non activant, visible pendant que le jeu tourne — chaque étape avec
+      durée, chronomètre du run en cours et dernier jalon lu dans
+      `loads.jsonl` (L0–L4/S0–S9, écrits déjà par la sonde) ; ligne « ce qui
+      change entre A et B » résolue en Core (`BenchmarkSides.change`, testée) ;
+      arrêt explicité « après le lancement en cours ». Lignes de verdict en
+      une seule copie partagée inline/panneau. À valider à l'écran.
+      *Itéré sur retour d'écran le 2026-10-04* : panneau coupé en bas →
+      `ScrollView` + hauteur idéale bornée 300–560 pt.
+      *2026-10-04, chrono de la mesure guidée* : le « encore N avant l'arrêt
+      possible » du bandeau devient un chrono hh:mm:ss depuis le début de la
+      mesure (hors cache du bandeau, recalculé à chaque trame) — sonde
+      **0.9.3**. *Itéré le soir même sur retour d'écran* : **décompte**
+      5:00 → 0:00 seconde par seconde, **temps de présence réelle au lieu
+      cible** (ticks comptés par la sonde, pas l'horloge murale — le temps
+      passé ailleurs ou en pause ne descend pas), format mm:ss sans heures,
+      disparait au plancher atteint — sonde **0.9.4**. À valider en jeu.
+      *2026-10-04, soir, choix au lancement* : la feuille gagne deux pickers —
+      sauvegarde (champ `SaveName` optionnel du plan, **toujours Version 1** :
+      la sonde la charge seule 5 s après l'écran titre ; « — » = clic manuel)
+      et profil (« parc tel quel » par défaut ; ses mods appliqués au
+      lancement puis **laissés actifs** — « Préparer seulement » ne les
+      applique pas). Geste de chargement extrait en `AutoLoad.cs` partagé
+      avec le benchmark — sonde **0.9.5**. *Corrigé le soir même* : le plan
+      ne démarrait qu'au `SaveLoaded`, trop tard d'un chargement — l'écran
+      titre ne voyait jamais `Active`, donc jamais l'auto-chargement ;
+      `RefreshPlan` appelé à l'`Entry`. *Leçon du soir* : le correctif était
+      d'abord reparti sous le **même** 0.9.5 que la build périmée du parc —
+      renuméroté **0.9.6** (un numéro par DLL livrée : la copie `Mods/` ne
+      suit pas le gate). *Encore itéré* : le décompte restait figé entre deux
+      minutes gardées — l'append vivait dans le bloc de cache du bandeau ;
+      sorti hors cache — mais l'append mutait le champ caché : « 5:00 · 5:00 ·
+      5:00… » répété à l'infini (retour d'écran) ; `status` reste la référence,
+      `shown` local porte l'append de trame — sonde **0.9.8**. À valider en jeu.
+      *2026-09-30, soir* : sonde **0.6.2** (rappels d'assets accrochés sur
+      `SCore.RequestAssetOperations`, validés en jeu) ; seuil mesuré **par
+      comparaison** (bruit = plus grand écart de chaque côté, ≥ 2 sessions
+      par côté ; le 2,2 % sans sonde ne valait pas avec elle : 8,9 %) ;
+      **benchmark automatique** (sonde 0.7.0, chauffes + A/B alternés, copie
+      de sauvegarde, restauration) livré en code, à valider en jeu.
+      *2026-10-01* : sonde **0.8.0** — coût de démarrage (`Entry` + `GetApi`)
+      **par mod**, exclusif (moins ce que la sonde attribue ailleurs pendant
+      ce temps), accroché dès le constructeur de la sonde ; la boucle de
+      20–23 s n'est plus « en bloc ». Étape 2 à venir : coût de chargement
+      (`SCore.TryLoadMod`) et sonde en tête (`ModsToLoadEarly`).
+      *2026-10-01, étape 2* : sonde **0.9.0** — coût de chargement par mod
+      (`TryLoadMod`), sonde en tête sur accord de l'auteur (`ModsToLoadEarly`),
+      deux positions ne se comparent pas (`probePosition`).
+- [x] **D5-C** — **Score par mod** : note tirée des mesures de la sonde (ms
+      par seconde en événements et patches, pics, allocations), puis de la
+      mémoire retenue quand **D4-T6** existera ; aucun FPS n'est attribuable
+      directement à un mod — il se déduit du temps de calcul rapporté à la
+      trame. Reprend **D1-T3** (classement) et **D1-T4** (badge). · **M**
+      *Livré en code le 2026-10-01* : `ModImpactSources` / `ModImpactHistory` /
+      `ModImpact` (Core, `Tests/ProbeFilesTests`) — échantillons par source
+      (segment ≥ 5 min, lancement sonde en tête, sauvegarde 0.9.0), historique
+      persistant intégré une fois par source (`ModImpactHistory.json`, 774 Ko
+      sur le parc ; échantillons négligeables gardés — les jeter biaisait la
+      médiane ; démarrages du Mac retenus pour écarter chaque lancement
+      froid), note /100 = Σ poids × √médiane des parts, **par version**
+      (comparaison sémantique « 7.4 » = « 7.4.0 ») ; fiche (étoile, note,
+      versions, gain si pause) et carte « Impact par mod ». Mesuré par le
+      code sur le parc : 113 classés (6 élevés — CP 43, Cropgenics 35,
+      QuestJournal 22, UIInfoSuite2Alt 21, MMAP 20, SpaceCore 17 — 23
+      moyens, 84 faibles), 172 négligeables : les classes de la spec.
+      ✅ *Badge et filtre de liste livrés le 2026-10-04* (`35da4c0f`) :
+      pastille sur les seules classes élevée et moyenne (29 lignes du parc),
+      note et axe dominant à l'infobulle, menu de filtre à trois états avec
+      comptes ; un pack qualifie par un composant (`matchesImpact`, Core
+      testé) ; le store indexe ses entrées par `folderName` (badge O(1)) ;
+      premier chargement de l'historique à l'apparition de la liste —
+      sinon il n'arrivait qu'à la fermeture du jeu. *Itéré puis validé à
+      l'écran le 2026-10-04* (filtre exclusif élevé **ou** moyen ; pastille
+      élevée en rond plein rouge — le triangle restait la signalétique des
+      problèmes). Reste : courbe de note par date, qui attend qu'un mod ait
+      ≥ 3 versions mesurées — une condition de données, pas de code.
+      *2026-10-01, axe Sauvegarde* : premier chargement en 0.9.0 (219 mods,
+      70 s attribuées sur 86 s) ; seuils **re-mesurés et gardés** (15 / 5) :
+      142 classés, 8 élevés (5,6 %), 37 moyens (26 %) — mêmes proportions
+      qu'avant l'axe (p75 5 → 6, p95 17). Ce que l'axe révèle : AutoForager
+      10,7 s au chargement (15 %), SinZational Speedy Solutions 17 % — coût
+      **attribué**, pas effet net (un mod de performances peut faire gagner
+      ailleurs plus qu'il ne coûte ici : seul un A/B le dit).
+
+
+### Expérience utilisateur — Axe I
+
+- [x] **I-T20** — Multi-sélection fine dans la liste : ⇧clic/⇧↑↓ pour les plages,
+      ⌘clic pour ajouter/retirer, ⌘A, bascule **Espace** de la sélection (un seul
+      désactivé ⇒ tout activer), navigation ↑↓ — avec la garde de focus (la saisie
+      dans un champ ne déclenche pas la bascule). Aujourd'hui : tout/pas tout. Le
+      port natif de Stardrop le démontre complet (`AppState.swift:185-400`). · **S**
+      ✅ *Livré le 2026-10-07* : `ModListSelection` (Core, testé) ; clic, ⌘clic,
+      ⇧clic, ⇧↑↓, ⌘A, Échap, Espace ; bandeau dès deux mods ; « Tout » et la
+      sélection partagent `toggleMods` (SMAPI protégé, empreintes avant pause).
+      Mode liste seulement ; composants de pack non sélectionnables.
+
+
+### Packs, distribution & pédagogie — Axe E
+
+- [x] **E2-T1** ✅ *(livré le 2026-10-04)* — Rapport de modlist exportable (Markdown/HTML) : nom, version, source, état,
+      couverture FR, anomalies — pensé pour le support et l'usage en cours. Onglet Santé de Diagnostic. · **M**
+
+
+### Dette technique — §7
+
+- [x] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
+      `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
+      L'upstream a traité le même défaut (leur 2.4) : une dépendance déclarée avec un
+      identifiant vide peut alors se résoudre sur un groupe et passer pour satisfaite.
+      **Non reproduit ici** — notre `rebuildDependencyIndexes()` n'indexe que les enfants
+      d'un groupe, jamais le groupe lui-même, donc la chaîne d'exploitation semble
+      coupée. À instruire avant de conclure, puis soit clore, soit corriger
+      structurellement (leur réponse : un groupe cesse de porter une identité de mod). · **S**
+      ✅ *Clos le 2026-10-07, non reproduit* : l'en-tête n'est jamais indexé et
+      `ModDependencyParser` rejette tout `UniqueID` vide (1 seul sur 1 180
+      manifestes du parc, dans un bloc commenté). Garde-fou structurel :
+      `DependencyIndex.build` n'indexe plus la clé vide qu'apportaient les mods
+      sans identifiant (5 manifestes) — testé.
+
+- [x] **F8** — **`build_app.py` ne dit pas *quel* fichier de localisation est
+      invalide.** *(relevé le 2026-09-14, par sabotage.)* Une virgule retirée dans
+      `assets/fr.json` **fait bien échouer le gate** — exit 1, et la dernière ligne donne
+      « Expecting ',' delimiter: line 7 column 3 » — mais c'est une **pile Python nue**,
+      et elle ne nomme pas le fichier : sur `en.json` et `fr.json`, il faut deviner lequel.
+      **Corrigé le 2026-10-06** : l'échec nomme le chemin du JSON, la ligne et
+      la colonne, sans pile Python ; code de sortie 1 conservé.
+      ⚠️ **À ne pas confondre avec le défaut qui l'a fait chercher** : chez Stardrop
+      (`8205d0ea`), un `pl.json` malformé faisait **disparaître toute la traduction
+      polonaise en silence**, faute de validation. Ici le gate attrape correctement — le
+      défaut est dans la façon de le dire, pas dans la détection. Sévérités sans rapport.
+      · **XS**
