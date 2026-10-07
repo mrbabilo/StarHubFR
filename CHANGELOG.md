@@ -25,7 +25,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- L’ouverture des réglages d’un mod pendant que le jeu tourne ne déclenche plus une boucle de réaffichage : le garde interne anti-double-lancement est exclu de l’observation de l’interface.
+- **Réglages accessibles pendant une partie.** Ouvrir la configuration d’un mod ne fige plus StarHubFR avec la roue d’attente macOS. Correction vérifiée en ouvrant la configuration SLO pendant une session de diagnostic, jeu en cours.
 - Le rapport du diagnostic SLO reste affiché après le retour dans l’app ; la sonde attend désormais `GameLaunched` avant d’accéder à GMCM, et une même erreur SMAPI n’est plus recomptée à chaque actualisation du journal.
 - **Comparaisons de performances plus prudentes.** Chaque lieu comparable pèse autant ; une différence de temps passé en ville ou à la ferme ne crée plus de faux gain. Les fenêtres qui se chevauchent, options différentes, scènes inconnues et essais contradictoires sont signalés. Un coût non mesuré ne devient plus zéro ni une preuve contre un mod.
 - **Graphiques cohérents avec la mesure choisie.** Unités, courbes, valeurs détaillées et exclusions suivent le même périmètre ; les trous de mesure restent visibles et les détails sont accessibles au clavier. Les résultats d'une ancienne sélection ne remplacent plus ceux de la sélection courante.
