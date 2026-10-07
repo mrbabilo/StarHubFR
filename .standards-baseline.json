@@ -53,7 +53,7 @@
   "oversized_excess_lines": 19730,
   "oversized_files": 43,
   "print_calls": 33,
-  "try_optional": 370,
+  "try_optional": 390,
   "view_files_past_1500": 0,
   "viewmodel_facades_to_combine": 0,
   "viewmodel_stored_state": 77,

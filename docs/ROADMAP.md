@@ -687,10 +687,17 @@ le journal réel le 2026-09-04.
       Correctif du même jour : lecteur Newtonsoft commun à la place du parseur
       `Character` qui cassait les commentaires sous CRLF (**57 faux illisibles →
       0 sur 137 packs actifs**) ; refus futurs repliés et rangées adaptatives.
-- [ ] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
+- [x] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
       ingérer journal et fichiers de la sonde au retour. *(Le benchmark d'UltraSmooth
       est écarté : deux nombres, dont le temps d'un seul tick.)* · **M**
+      ✅ *Livré le 2026-10-07* : carte toujours visible dans Performances, proposition
+      d’installation Nexus 50153 si SLO manque, confirmation des mods et réglages
+      temporairement activés (`EnableDetailedDiagnostics` et
+      `EnablePerformanceMeasurement`), instantané durable et reprise après crash.
+      Au retour, journal et session Probe sont corrélés après le lancement ; rapport
+      présente chargements, caches, transitions, fluidité et mémoire avec limites
+      explicites. Config et états initiaux sont restaurés avant effacement du plan.
 - [ ] **D2-T5** — Parser la ligne mémoire quotidienne de **Stardropium**
       (`[Morning Memory Optimizer (Background)] RAM: <a> MB -> <b> MB (Managed
       Heap: <c> MB -> <d> MB, <n> cached textures purged/bounded).`, `INFO`, une

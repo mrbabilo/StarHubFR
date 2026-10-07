@@ -10,6 +10,7 @@ struct PerformanceView: View {
     /// D2-T3 — l'état environnement de la session (carte « Environnement »),
     /// rechargé aux mêmes moments que la sonde.
     var environment: SessionEnvironmentStore
+    var sloDiagnostic: SloDiagnosticSessionStore
     @State private var comparing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -30,6 +31,10 @@ struct PerformanceView: View {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary)
                     }.id("summary")
+                    PerformanceSloDiagnosticSection(
+                        viewModel: viewModel, localization: localization,
+                        store: sloDiagnostic, runtime: sloRuntime)
+                        .id("slo")
                     if comparing, let report = store.report {
                         PerformanceCard {
                             PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
@@ -72,6 +77,7 @@ struct PerformanceView: View {
             }
         }
         .task {
+            await refreshSlo(resume: true)
             if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
             if environment.status == .idle { await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir) }
         }
@@ -81,10 +87,15 @@ struct PerformanceView: View {
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
             if segment == .performance {
                 Task {
+                    await refreshSlo(resume: true)
                     await store.reload(gameDir: viewModel.gameDir)
                     await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
                 }
             }
+        }
+        .onChange(of: viewModel.mods) { _, _ in
+            guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
+            Task { await refreshSlo(resume: false) }
         }
         // Jeu quitté : la session close entre dans les analyses — mais
         // seulement si l'onglet est affiché ; caché, quinze mutations
@@ -93,6 +104,7 @@ struct PerformanceView: View {
         .onReceive(GameExit.publisher) {
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
             Task {
+                await sloDiagnostic.gameExited(runtime: sloRuntime())
                 await store.reload(gameDir: viewModel.gameDir)
                 await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
             }
@@ -102,6 +114,7 @@ struct PerformanceView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if viewModel.navigationStore.diagnosticsSegment == .performance {
                 Task {
+                    await refreshSlo(resume: true)
                     await store.reload(gameDir: viewModel.gameDir)
                     await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
                 }
@@ -112,7 +125,8 @@ struct PerformanceView: View {
     private func navigation(_ proxy: ScrollViewProxy) -> some View {
         let comparisonAnchors = [("analysis", L10n.Performance.sectionAnalysis),
                                  ("game", L10n.Performance.inGameTitle)]
-        let anchors = [("summary", L10n.PerformanceEvidence.summary)]
+        let anchors = [("summary", L10n.PerformanceEvidence.summary),
+                       ("slo", L10n.PerformanceSloDiagnostic.title)]
             + (comparing ? comparisonAnchors : [])
             + [("loads", L10n.Performance.loadsTitle), ("mods", L10n.PerformanceEvidence.history),
                ("details", L10n.PerformanceEvidence.details)]
@@ -167,5 +181,51 @@ struct PerformanceView: View {
                           measurement.name, duration, count)
         }
         return String(format: localization.L(L10n.Performance.sideSegment), date, duration, count)
+    }
+
+    private func refreshSlo(resume: Bool) async {
+        let game = URL(fileURLWithPath: viewModel.gameDir)
+        if resume {
+            await sloDiagnostic.resumeIfNeeded(mods: viewModel.mods, gameDir: game,
+                                               runtime: sloRuntime())
+        }
+        await sloDiagnostic.reload(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
+    }
+
+    private func sloRuntime() -> SloDiagnosticRuntime {
+        SloDiagnosticRuntime(
+            isGameRunning: { viewModel.isGameRunning() },
+            busyReason: {
+                SloDiagnosticExclusion.busyReason(
+                    gameRunning: viewModel.isGameRunning(),
+                    benchmarkActive: viewModel.benchmark.isActive
+                        || viewModel.benchmark.interrupted != nil,
+                    bisectionActive: viewModel.bisection.state != nil
+                        || viewModel.bisection.isApplying
+                        || viewModel.bisection.interruptedSnapshot != nil,
+                    guidedPlanPending: store.plan != nil,
+                    otherReason: viewModel.bulkToggleProgress != nil
+                        || viewModel.isApplyingProfile
+                        || viewModel.unresolvedApplyJournal != nil ? "mods-busy" : nil)
+            },
+            launchProfile: {
+                UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
+            },
+            modEnabled: { name in
+                viewModel.mods.first { $0.folderName == name }?.isEnabled
+            },
+            setModEnabled: { name, enabled in
+                guard let mod = viewModel.mods.first(where: { $0.folderName == name }) else {
+                    return false
+                }
+                if mod.isEnabled == enabled { return true }
+                await withCheckedContinuation { continuation in
+                    viewModel.toggleMod(mod) { continuation.resume() }
+                }
+                return viewModel.mods.first { $0.folderName == name }?.isEnabled == enabled
+            },
+            grantOwnerWriteAccess: { ModZipInstaller.grantOwnerWriteAccess(in: $0) },
+            launchGame: { viewModel.launchGame(honoringCloseAfterLaunch: false) },
+            rescan: { viewModel.scanMods(gameDir: viewModel.gameDir) })
     }
 }

@@ -176,6 +176,7 @@ let package = Package(
                 "Models/SloDiagnosticReport.swift",
                 "Models/SloDiagnosticSources.swift",
                 "Models/SloDiagnosticExclusion.swift",
+                "Models/SloDiagnosticPresentation.swift",
                 "Stores/SloDiagnosticSessionStore.swift",
                 "Models/DroppedContentRecognizer.swift",
                 "Models/TranslationBackupFinder.swift",

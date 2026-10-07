@@ -48,11 +48,9 @@ public final class SloDiagnosticSessionStore {
                                                                   configData: data)
         }
         let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: mods)
-        let action: ProbeBundle.Action
-        switch presence {
-        case .absent: action = .unavailable
-        case .paused(_, let version), .enabled(_, let version): action = .upToDate(version: version)
-        }
+        let bundledProbeVersion = ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL)
+            .flatMap(ProbeBundle.version(ofFolder:))
+        let action = ProbeBundle.action(bundled: bundledProbeVersion, presence: presence)
         let readiness = SloDiagnosticContract.readiness(
             discovery: discovery, compatibility: compatibility,
             probe: SloDiagnosticProbeStatus(presence: presence, action: action), nexusActivity: .idle,

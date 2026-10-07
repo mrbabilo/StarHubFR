@@ -101,8 +101,7 @@ final class BisectionRunner: ObservableObject {
     }
 
     func start() {
-        guard !isApplying, !vm.isBenchmarkActive,
-              !SloDiagnosticSnapshotStore.hasPending(in: snapshotDirectory) else { return }
+        guard !isApplying, !vm.isBenchmarkActive, !SloDiagnosticSnapshotStore.hasPending(in: snapshotDirectory) else { return }
         guard !vm.isGameRunning() else { gameStillRunning = true; return }
         gameStillRunning = false
         restoreIncomplete = false

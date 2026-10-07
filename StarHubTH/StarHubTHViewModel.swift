@@ -1203,7 +1203,6 @@ final class StarHubTHViewModel {
         }
     }
 
-
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer
     /// (installation, mise à jour, restauration). Sinon il garde pourcentage,
     /// clés obsolètes et place dans « À revoir » de sa version précédente.
@@ -2131,9 +2130,6 @@ final class StarHubTHViewModel {
                                  duplicates: scanStore.duplicateIndex,
                                  compatibility: compatibilityStatuses)
     }
-
-
-
     func getMissingDependencies(for mod: ModItem) -> [String] {
         // Precomputed index — safe per row render.
         dependencyIndex.missing(for: mod)
@@ -2162,6 +2158,13 @@ final class StarHubTHViewModel {
         missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: dep.uniqueIds)
         downloadModFromNexus(nexusId: nexusId)
     }
+
+    func expectAndDownloadNexusMod(nexusId: Int, uniqueId: String) {
+        missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: [uniqueId])
+        downloadModFromNexus(nexusId: nexusId)
+    }
+    func expectNexusMod(nexusId: Int, uniqueId: String) {
+        missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: [uniqueId]) }
 
     /// Effacé aux mêmes endroits que `pendingNexusSource` : une archive
     /// déposée ou choisie au fichier n'est pas un téléchargement de dépendance.
@@ -4611,7 +4614,6 @@ final class StarHubTHViewModel {
         return owners.mapValues { Array(Set($0)).sorted() }
     }
 
-
     // MARK: - Découverte (axe G)
 
     /// Carte de la vitrine en Core (`DiscoveryScoping.Row`) ; l'alias garde
@@ -5381,7 +5383,6 @@ final class StarHubTHViewModel {
         // Premier niveau seulement : rien en cross.
         return .applied(count: done.count, skippedCrossComponent: 0)
     }
-
 
     // MARK: - Mods à écarter (blacklist)
 
@@ -7062,7 +7063,6 @@ final class StarHubTHViewModel {
     func scopedMods(from filtered: [ModItem], scope: ModFilter) -> [ModItem] {
         ModListScoping.scoped(filtered, scope: scope, hasAnomaly: { self.hasIssues($0) }, pendingUpdates: { .current(self) })
     }
-
 
     /// Enable or disable every mod of the current framing
     /// (`modList.filters`, pas les 949 dossiers du parc), off main. Same

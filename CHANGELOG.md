@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Session de diagnostic SLO guidée et réversible.** L’onglet Performances propose l’installation de Stardew Loading Optimizer quand il manque, active temporairement ses deux mesures détaillées et la sonde StarHubFR, puis restaure exactement config et états des mods. Après fermeture du jeu, rapport explique attentes observées, caches, transitions, fluidité, mémoire et limites des données ; une reprise durable protège aussi après redémarrage de l’app.
 - **Performances : résumé de la dernière session, puis comparaison détaillée.** Fluidité, saccades et mémoire apparaissent en premier ; en mode comparaison, « Analyse et conclusion » suit immédiatement le résumé. Graphiques, valeurs par lieu, historique des mods et environnement restent accessibles. Les mesures manquantes, leur provenance et les limites de comparaison sont expliquées en français et en anglais.
 - **Évolution de la mémoire pendant une période comparable.** La tendance s'interrompt lors d'un changement de lieu, d'une exclusion ou d'une mesure manquante ; elle ne conclut pas automatiquement à une fuite mémoire.
 - **Onglet Performances : carte « Environnement ».** Les réglages Stardew Loading Optimizer de la session (profil, optimisations configurées vs effectives), les mods avec menu de config détectés dans le journal, le poids des packs Content Patcher et leurs conflits — l'état statique qui explique les mesures.

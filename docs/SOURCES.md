@@ -930,6 +930,17 @@ clé `config.*` (libellés GMCM bruts).
 **Stardew Loading Optimizer** (neoiw, 1.0.0 — décompilé depuis le parc,
 `.StardewLoadingOptimizer/`, où il est **en pause**) : ~20 600 lignes
 décompilées, dix services. Sur 1.6.15 :
+
+Contrat D2-T4 ajouté le 2026-10-07 : page Nexus **50153**, UniqueID
+`neoiw.StardewLoadingOptimizer`, version minimale 1.0.0. La session guidée ne
+modifie temporairement que `EnableDetailedDiagnostics=true` et
+`EnablePerformanceMeasurement=true`, puis restaure les octets d’origine. Son
+rapport ne retient qu’une session Probe postérieure au lancement dont
+l’inventaire contient SLO et `mrbabilo.StarHubFR.Probe`; le SHA-256 de config
+doit être celui écrit par l’app, ou une normalisation attestée par la ligne
+`[OPTIMIZER CONFIG]`. Cette corrélation évite d’attribuer au nouvel essai des
+fichiers plus anciens.
+
 - `SaveFileSlot` ctor postfix : `ActivateDelay = 0` — supprime le délai
   artificiel du menu de chargement de sauvegarde (−2,17 s revendiqués par le
   README) ; la chaîne de `SaveGame.Load` reste au jeu ;

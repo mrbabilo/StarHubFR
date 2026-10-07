@@ -139,6 +139,9 @@ public struct SloDiagnosticReport: Codable, Equatable, Sendable {
     public let deferredTiles: SloDeferredTileSnapshot?
     public let spaceCore: SloSpaceCoreSnapshot?
     public let warps: SloWarpSummary?
+    /// Durées individuelles des transitions terminées, pour le nuage de points.
+    /// Optionnel afin de relire les rapports persistés avant D2-T4.
+    public let warpMarks: [Double]?
     public let steadyGameplay: SloStableGameplaySummary?
     public let frameMarks: [SloChartMark]
     public let memoryMarks: [SloChartMark]
@@ -251,6 +254,7 @@ public struct SloDiagnosticReport: Codable, Equatable, Sendable {
             primaryWait: primary, loadScopeMarks: probeMarks + nativeMarks + contentPatcherMarks,
             mapCache: mapCache, imageCache: imageCache, prefetch: log.prefetch,
             deferredTiles: log.deferredTiles, spaceCore: log.spaceCore, warps: warpSummary,
+            warpMarks: completedDurations,
             steadyGameplay: steady, frameMarks: frameMarks, memoryMarks: memoryMarks,
             sloRuntime: runtime, memory: memory, readyStalls: ready,
             limitations: limitations.sorted { $0.rawValue < $1.rawValue })

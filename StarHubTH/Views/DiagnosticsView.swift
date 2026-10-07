@@ -24,6 +24,8 @@ struct DiagnosticsView: View {
     /// D2-T3 — l'état environnement de la session (carte « Environnement »),
     /// même possession que la sonde.
     @State private var environment = SessionEnvironmentStore()
+    /// D2-T4 — transaction durable séparée des comparaisons habituelles.
+    @State private var sloDiagnostic: SloDiagnosticSessionStore
     /// Rapidité d'affichage : les onglets secondaires ne se construisent qu'au
     /// premier affichage, puis restent montés — l'état (filtres du journal,
     /// paire choisie) ne se perd jamais (consigne du 2026-09-28). Entrer sur
@@ -35,6 +37,9 @@ struct DiagnosticsView: View {
     init(viewModel: StarHubTHViewModel, localization: LocalizationStore) {
         self.viewModel = viewModel
         self.localization = localization
+        _sloDiagnostic = State(initialValue: SloDiagnosticSessionStore(
+            applicationSupport: AppSupport.directory,
+            logURL: URL(fileURLWithPath: viewModel.smapiLogPath), probeFiles: ProbeFiles()))
         // Le segment survit à la navigation : entrer directement sur
         // Performances ou Journal doit trouver son onglet monté.
         _mounted = State(initialValue: [viewModel.navigationStore.diagnosticsSegment])
@@ -86,7 +91,8 @@ struct DiagnosticsView: View {
                 }
                 tab(.performance) {
                     PerformanceView(viewModel: viewModel, localization: localization,
-                                    store: performance, environment: environment)
+                                    store: performance, environment: environment,
+                                    sloDiagnostic: sloDiagnostic)
                 }
             }
         }
