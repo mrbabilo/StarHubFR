@@ -692,8 +692,11 @@ le journal réel le 2026-09-04.
       pack). La spec supposait des clés racine `Include`/`DynamicChanges`,
       absentes du parc : **2 371 → 21 252 modifications** sur 137 packs.
       7 fichiers inclus restent non lus (nombres `.03`, éléments vides `,,`
-      que Newtonsoft accepte) : comptés et affichés, à couvrir dans
-      `I18nLenientParser` après vérification sur la DLL Newtonsoft.
+      que Newtonsoft accepte) : comptés et affichés dans la carte. **Écart
+      assumé, pas de correctif** (décision du 2026-10-07) : ~160 modifications
+      sur 21 252 (0,75 %), purement informatives ; 0 `config.json` et 0 i18n
+      du parc ne portent de nombre `.N`, donc rien à gagner ailleurs pour un
+      parseur partagé par 14 fichiers.
       Carte vérifiée dans l'app par l'utilisateur le 2026-10-07.
 - [x] **D2-T4** — Session instrumentée : « Lancer avec diagnostics » — activer la sonde
       (**D4**) et `EnablePerformanceMeasurement` (SLO) le temps d'une session, puis
