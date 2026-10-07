@@ -2197,23 +2197,6 @@ final class StarHubTHViewModel {
         }
     }
 
-    /// Core-extension statuses shown in Settings.
-    var coreExtensionsSnapshot: CoreExtensionsSnapshot {
-        let allMods = mods.flattenedMods
-
-        func slot(matching keyword: String) -> CoreModSlot {
-            CoreModSlot.resolve(keyword: keyword, among: allMods)
-        }
-
-        return CoreExtensionsSnapshot(
-            contentPatcher: slot(matching: "content patcher"),
-            spacecore: slot(matching: "spacecore"),
-            sve: slot(matching: "stardew valley expanded"),
-            unarTool: .init(installed: unarInstalled),
-            sevenZipTool: .init(installed: sevenZipInstalled)
-        )
-    }
-
     /// `true` if `unar` is available (RAR support row on home).
     var unarInstalled: Bool {
         // Même recherche que l'extraction : l'accueil n'annonce que ce que

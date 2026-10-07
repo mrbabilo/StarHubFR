@@ -78,4 +78,27 @@ import Testing
         try write("{}", resources.appendingPathComponent("Probe/StarHubFR Probe/manifest.json"))
         #expect(ProbeBundle.bundledFolder(resourcesURL: resources) != nil)
     }
+
+    @Test func installBundledWritesIntoTheGameModsFolder() throws {
+        let resources = try tempDir(), game = try tempDir()
+        defer { try? FileManager.default.removeItem(at: resources); try? FileManager.default.removeItem(at: game) }
+        try write(#"{"Version": "0.9.22"}"#, resources.appendingPathComponent("Probe/StarHubFR Probe/manifest.json"))
+
+        try ProbeBundle.installBundled(resourcesURL: resources, gameDir: game.path, mods: [])
+
+        let installed = game.appendingPathComponent("Mods/StarHubFR Probe/manifest.json")
+        #expect(FileManager.default.fileExists(atPath: installed.path))
+    }
+
+    @Test func installBundledRefusesWithoutABundleOrAGameFolder() throws {
+        let resources = try tempDir(), game = try tempDir()
+        defer { try? FileManager.default.removeItem(at: resources); try? FileManager.default.removeItem(at: game) }
+        #expect(throws: ProbeBundle.InstallError.notBundled) {
+            try ProbeBundle.installBundled(resourcesURL: resources, gameDir: game.path, mods: [])
+        }
+        try write("{}", resources.appendingPathComponent("Probe/StarHubFR Probe/manifest.json"))
+        #expect(throws: ProbeBundle.InstallError.noGameFolder) {
+            try ProbeBundle.installBundled(resourcesURL: resources, gameDir: "", mods: [])
+        }
+    }
 }

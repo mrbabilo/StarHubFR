@@ -103,17 +103,13 @@ struct PerformanceProbeSection: View {
         guard !viewModel.isGameRunning() else {
             failure = localization.L(L10n.Performance.gameRunning); return
         }
-        let modsRoot = URL(fileURLWithPath: viewModel.gameDir).appendingPathComponent("Mods")
-        guard !viewModel.gameDir.isEmpty, let source = bundledFolder,
-              let target = ProbeBundle.target(modsRoot: modsRoot, presence: probe) else {
-            failure = String(format: localization.L(L10n.Performance.probeInstallFailed), ProbeBundle.folderName)
-            return
-        }
         do {
-            try ProbeBundle.install(from: source, into: target)
+            try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
+                                           gameDir: viewModel.gameDir, mods: viewModel.mods)
             viewModel.scanMods(gameDir: viewModel.gameDir)
         } catch {
-            failure = String(format: localization.L(L10n.Performance.probeInstallFailed), error.localizedDescription)
+            failure = String(format: localization.L(L10n.Performance.probeInstallFailed),
+                             error is ProbeBundle.InstallError ? ProbeBundle.folderName : error.localizedDescription)
         }
     }
 

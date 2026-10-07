@@ -161,12 +161,9 @@ struct PerformanceStardropiumDiagnosticControls: View {
         }.padding(AppDesign.Spacing.xl).frame(minWidth: 460, maxWidth: 620)
     }
     private func installProbe() {
-        let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
-        let root = URL(fileURLWithPath: viewModel.gameDir).appendingPathComponent("Mods")
-        guard let source = ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL),
-              let target = ProbeBundle.target(modsRoot: root, presence: presence) else { installFailed = true; return }
         do {
-            try ProbeBundle.install(from: source, into: target)
+            try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
+                                           gameDir: viewModel.gameDir, mods: viewModel.mods)
             installFailed = false
             viewModel.scanMods(gameDir: viewModel.gameDir)
         } catch { installFailed = true }

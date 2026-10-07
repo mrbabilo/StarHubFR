@@ -420,36 +420,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var coreExtensionsSection: some View {
-        // ── CORE EXTENSIONS SECTION ──
-        StandardSection(title: localization.L(L10n.Home.coreExtensions), icon: ("puzzlepiece.extension.fill", .purple)) {
-            VStack(spacing: 0) {
-                let core = vm.coreExtensionsSnapshot
-                CoreModRow(vm: vm, localization: localization, title: "Content Patcher", status: core.contentPatcher.status, mod: core.contentPatcher.mod)
-                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                CoreModRow(vm: vm, localization: localization, title: "SpaceCore", status: core.spacecore.status, mod: core.spacecore.mod)
-                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                CoreModRow(vm: vm, localization: localization, title: "Stardew Valley Expanded", status: core.sve.status, mod: core.sve.mod)
-                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                CoreToolRow(
-                    title: localization.L(L10n.Home.toolUnar),
-                    status: core.unarTool.installed ? .enabledAndInstalled : .notInstalled,
-                    tooltip: localization.L(L10n.Home.toolUnarTooltip),
-                    installCommand: "brew install unar"
-                )
-                Rectangle().fill(Color.primary.opacity(0.05)).frame(height: 1).padding(.leading, 12).padding(.vertical, 2)
-
-                CoreToolRow(
-                    title: localization.L(L10n.Home.toolSevenZip),
-                    status: core.sevenZipTool.installed ? .enabledAndInstalled : .notInstalled,
-                    tooltip: localization.L(L10n.Home.toolSevenZipTooltip),
-                    installCommand: "brew install sevenzip"
-                )
-            }
-            .padding(.vertical, -8)
-        }
+        AppExtensionsSettingsSection(viewModel: vm, localization: localization)
     }
 }
 

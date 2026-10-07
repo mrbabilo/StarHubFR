@@ -77,6 +77,26 @@ public enum ProbeBundle {
         }
     }
 
+    public enum InstallError: Error, Equatable {
+        /// L'app n'embarque pas de sonde (build sans `dotnet` ni jeu).
+        case notBundled
+        case noGameFolder
+        /// La sonde est connue mais son dossier réel a disparu.
+        case noTarget
+    }
+
+    /// Installe ou met à jour la sonde embarquée dans `Mods/` : le seul
+    /// chemin des cartes Performances et des réglages. L'appelant relance le
+    /// scan.
+    public static func installBundled(resourcesURL: URL?, gameDir: String, mods: [ModItem]) throws {
+        guard let source = bundledFolder(resourcesURL: resourcesURL) else { throw InstallError.notBundled }
+        guard !gameDir.isEmpty else { throw InstallError.noGameFolder }
+        let root = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods")
+        let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: mods)
+        guard let target = target(modsRoot: root, presence: presence) else { throw InstallError.noTarget }
+        try install(from: source, into: target)
+    }
+
     static func components(_ version: String) -> [Int] {
         version.split(separator: ".").map { Int($0) ?? 0 }
     }

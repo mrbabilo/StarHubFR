@@ -247,7 +247,7 @@ let package = Package(
                 "Models/FavoriteResolution.swift",
                 "Models/BlacklistResolution.swift",
                 "Models/ModDependencyStatus.swift",
-                "Models/CoreModSlot.swift",
+                "Models/CoreModStatus.swift",
                 "Models/ModListFilters.swift",
                 "Models/XMLEntities.swift",
                 "L10n.swift",
@@ -372,6 +372,7 @@ let package = Package(
                 "Models/ModFolderTraversal.swift",
                 "Models/ModPresence.swift",
                 "Models/ProbeBundle.swift",
+                "Models/AppExtensions.swift",
                 "Models/AuthorRenamedMod.swift",
                 "Models/UpdateAlreadyInstalled.swift",
                 "Models/ModFolderPaths.swift",
@@ -1040,11 +1041,6 @@ let package = Package(
             name: "ModFocusResolverTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModFocusResolverTests"
-        ),
-        .testTarget(
-            name: "CoreModSlotTests",
-            dependencies: ["StarHubTHCore"],
-            path: "Tests/CoreModSlotTests"
         ),
         .testTarget(
             name: "ModListFiltersTests",
