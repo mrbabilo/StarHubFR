@@ -244,21 +244,21 @@ struct UpdatesView: View {
                                                 vm.navigationStore.pendingDetailTab = .health
                                                 currentTab = .mods
                                             } label: {
-                                                Text(localization.L(L10n.Updates.affirmedOpenMod))
-                                                    .font(AppDesign.Font.footnote)
+                                                OpenDetailIcon()
                                             }
                                             .buttonStyle(.plain)
                                             .pointingHandCursor()
                                             .help(localization.L(L10n.Updates.affirmedOpenModHelp))
+                                            .accessibilityLabel(localization.L(L10n.Updates.affirmedOpenMod))
                                             Button {
                                                 vm.revealAffirmedUpdate(uniqueId: row.uniqueId)
                                             } label: {
-                                                Text(localization.L(L10n.Updates.affirmedReveal))
-                                                    .font(AppDesign.Font.footnote)
+                                                ActionIcon(symbol: "eye")
                                             }
                                             .buttonStyle(.plain)
                                             .pointingHandCursor()
                                             .help(localization.L(L10n.Updates.affirmedRevealHelp))
+                                            .accessibilityLabel(localization.L(L10n.Updates.affirmedReveal))
                                         }
                                     }
                                 }

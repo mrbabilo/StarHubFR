@@ -1495,7 +1495,7 @@
   "updates_affirmed_explanation": "Ces mods ne signalent plus de mise à jour : vous avez indiqué avoir déjà la version affichée, et StarHubFR envoie désormais ce numéro à smapi.io au lieu de celui du manifest. Quand les deux diffèrent, ou bien le mod est réellement en avance sur son propre manifest, ou bien le bouton a été cliqué par mégarde — et une vraie mise à jour se tait depuis.",
   "updates_affirmed_on_disk": "sur le disque : %@",
   "updates_affirmed_open_mod": "Voir la fiche",
-  "updates_affirmed_open_mod_help": "Ouvre la fiche de ce mod sur son onglet État — version installée, compatibilité et erreurs relevées, de quoi juger avant de retirer l'affirmation.",
+  "updates_affirmed_open_mod_help": "Ouvre la fiche de ce mod sur son onglet Santé — version installée, compatibilité et erreurs relevées, de quoi juger avant de retirer l'affirmation.",
   "updates_affirmed_reveal": "Réafficher",
   "updates_affirmed_reveal_help": "Retire l'affirmation pour ce mod. La ligne revient à la prochaine vérification — elle n'est pas rétablie sur-le-champ, car rien ici ne sait ce que la page annonce aujourd'hui.",
   "updates_affirmed_title": "%lld mod(s) marqués « Je l'ai déjà »",

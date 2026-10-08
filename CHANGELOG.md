@@ -19,6 +19,7 @@ where the exact log format was verified.
 ### Changed
 
 - **Les mêmes icônes d'état partout.** Erreur, avertissement, info, correct et inconnu reprennent celles de l'onglet Santé dans toute l'app (journal, dépendances, aperçu d'installation, rapports…), et tout ce qui ouvre la fiche d'un mod porte la flèche → de la page Santé du diagnostic, plus ⓘ ni chevron.
+- **« Je l'ai déjà » en icônes.** « Voir la fiche » devient la flèche → et « Réafficher » un œil, avec leurs explications au survol.
 
 ### Fixed
 
