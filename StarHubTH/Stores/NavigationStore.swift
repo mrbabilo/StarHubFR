@@ -141,12 +141,12 @@ final class NavigationStore {
         requestTab(.backups)
     }
 
-    /// La fiche d'un mod, onglet État, depuis une page qui ne peut pas écrire
-    /// `currentTab` (onglet Performances) : l'intention traverse le
+    /// La fiche d'un mod, onglet Santé par défaut, depuis une page qui ne peut
+    /// pas écrire `currentTab` (onglet Performances) : l'intention traverse le
     /// changement d'onglet et `MainView` la consomme (patron B3-T4).
-    func openModDetail(folderName: String) {
+    func openModDetail(folderName: String, tab: DetailTab = .health) {
         pendingModDetailFocus = folderName
-        pendingDetailTab = .health
+        pendingDetailTab = tab
         requestTab(.mods)
     }
 

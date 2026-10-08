@@ -27,8 +27,8 @@ struct UpdateTriageRows: View {
         }
         add(L10n.UpdateTriage.ghosts, "trash", .secondary, report.removedGhosts)
         add(L10n.UpdateTriage.retouches, "paintbrush", .green, report.keptRetouches)
-        add(L10n.UpdateTriage.authorChanged, "exclamationmark.circle", .orange, report.retouchesAuthorChanged)
-        add(L10n.UpdateTriage.content, "exclamationmark.triangle.fill", .orange, report.contentRetouches)
+        add(L10n.UpdateTriage.authorChanged, AppDesign.Status.warning.symbol, .orange, report.retouchesAuthorChanged)
+        add(L10n.UpdateTriage.content, AppDesign.Status.warning.symbol, .orange, report.contentRetouches)
         add(L10n.UpdateTriage.structural, "arrow.triangle.2.circlepath", .orange, report.replacedStructural)
         add(L10n.UpdateTriage.unverified, "questionmark.circle", .orange, report.replacedUnverified)
         add(L10n.UpdateTriage.unverifiedTranslations, "character.bubble", .secondary,

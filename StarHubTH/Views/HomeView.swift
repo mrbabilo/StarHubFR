@@ -305,7 +305,7 @@ struct CoreToolRow: View {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(AppDesign.Color.warning)
             case .notInstalled:
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: AppDesign.Status.error.symbol)
                     .foregroundColor(AppDesign.Color.error.opacity(0.6))
             }
         }

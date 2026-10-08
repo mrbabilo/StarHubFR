@@ -14,7 +14,11 @@ where the exact log format was verified.
 
 ### Added
 
-- **Ouvrir la fiche d'un mod sans verdict.** Une icône ⓘ devant chaque mod de la liste « sans verdict » ouvre sa fiche sur l'onglet Santé, où se saisit l'identifiant Nexus qui manque.
+- **Ouvrir la fiche d'un mod sans verdict.** Chaque ligne de la liste « sans verdict » ouvre la fiche du mod sur l'onglet Gestion, où se saisit l'identifiant Nexus qui manque.
+
+### Changed
+
+- **Les mêmes icônes d'état partout.** Erreur, avertissement, info, correct et inconnu reprennent celles de l'onglet Santé dans toute l'app (journal, dépendances, aperçu d'installation, rapports…), et une ligne qui ouvre une fiche le dit par un chevron, plus par ⓘ.
 
 ## [1.60.0] - 2026-10-08
 

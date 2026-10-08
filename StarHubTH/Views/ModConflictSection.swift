@@ -237,13 +237,13 @@ struct ModConflictSection: View {
         if betweenPacksConflicts.isEmpty && withinOnePackConflicts.isEmpty && declaredPairs.isEmpty
             && knownPairs.isEmpty && predictedPairs.isEmpty {
             if vm.smapiLogDate == nil {
-                statusRow(icon: "info.circle", color: .secondary,
+                statusRow(icon: AppDesign.Status.info.symbol, color: .secondary,
                           text: localization.L(L10n.Conflicts.noLogRead))
             } else if vm.contentPatcherConflicts.isEmpty {
-                statusRow(icon: "checkmark.circle.fill", color: .green,
+                statusRow(icon: AppDesign.Status.ok.symbol, color: AppDesign.Status.ok.tint,
                           text: localization.L(L10n.Conflicts.noneObserved))
             } else {
-                statusRow(icon: "info.circle", color: .secondary,
+                statusRow(icon: AppDesign.Status.info.symbol, color: .secondary,
                           text: localization.L(L10n.Conflicts.allDismissed))
             }
         } else {

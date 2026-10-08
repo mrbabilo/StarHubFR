@@ -41,7 +41,7 @@ struct PerformanceProbeSection: View {
                 .buttonStyle(.bordered).pointingHandCursor()
             case .enabled(_, let version):
                 Label(String(format: localization.L(L10n.Performance.probeEnabled), version),
-                      systemImage: "checkmark.circle")
+                      systemImage: AppDesign.Status.ok.symbol)
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(AppDesign.Color.success)
             }

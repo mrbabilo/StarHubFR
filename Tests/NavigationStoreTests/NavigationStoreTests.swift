@@ -293,4 +293,14 @@ import Foundation
         #expect(s.pendingTabRequest == .mods)
         #expect(DiagnosticsSegment.allCases == [.health, .journal, .performance])
     }
+
+    /// Un mod sans verdict de mise à jour s'ouvre sur **Gestion**, là où se
+    /// saisit l'identifiant Nexus qui lui manque (2026-10-08).
+    @Test func openModDetailCanAimAtAnotherTab() {
+        let s = NavigationStore()
+        s.openModDetail(folderName: "Bird Cove", tab: .management)
+        #expect(s.pendingModDetailFocus == "Bird Cove")
+        #expect(s.pendingDetailTab == .management)
+        #expect(s.pendingTabRequest == .mods)
+    }
 }

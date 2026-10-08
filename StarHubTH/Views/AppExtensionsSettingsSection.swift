@@ -84,7 +84,7 @@ struct AppExtensionsSettingsSection: View {
         let (key, glyph, tint): (String, String, Color) = switch presence {
         case .enabled: (L10n.AppExtensions.statusEnabled, "checkmark.circle.fill", AppDesign.Color.installed)
         case .paused: (L10n.AppExtensions.statusPaused, "minus.circle.fill", AppDesign.Color.warning)
-        case .absent: (L10n.AppExtensions.statusAbsent, "xmark.circle.fill", AppDesign.Color.error)
+        case .absent: (L10n.AppExtensions.statusAbsent, AppDesign.Status.error.symbol, AppDesign.Color.error)
         }
         let version = switch presence {
         case .enabled(_, let v), .paused(_, let v): v.isEmpty ? "" : " · v\(v)"

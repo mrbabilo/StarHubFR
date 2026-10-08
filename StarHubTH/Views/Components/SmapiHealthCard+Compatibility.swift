@@ -96,7 +96,7 @@ extension SmapiHealthCard {
     func compatActions(_ folderName: String, name: String,
                                links: [ModCompatibility.Link]) -> some View {
         HStack(spacing: 2) {
-            actionButton("info.circle", help: L10n.Mods.openDetails) {
+            actionButton(AppDesign.disclosureSymbol, help: L10n.Mods.openDetails) {
                 vm.navigationStore.pendingModDetailFocus = folderName
                 vm.navigationStore.pendingDetailTab = .health
                 vm.navigationStore.requestTab(.mods)

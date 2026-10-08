@@ -752,15 +752,15 @@ struct ModListRow: View {
                     .pointingHandCursor()
                 }
 
-                // Info button — always visible so the user can edit the mod's
-                // category / Nexus link even when it has no dependencies or
-                // pre-existing Nexus URL.
+                // Fiche du mod : chevron du relevé de santé (la ligne sert à la sélection).
                 Button {
                     vm.navigationStore.setViewingModDetail(mod)
                 } label: {
-                    Image(systemName: "info.circle")
-                        .font(AppDesign.Font.rowTitle)
+                    Image(systemName: AppDesign.disclosureSymbol)
+                        .font(AppDesign.Font.body)
                         .foregroundColor(.secondary)
+                        .frame(width: 18, height: 18)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .help(localization.L(L10n.Mods.openDetails))

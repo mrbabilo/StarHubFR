@@ -19,7 +19,7 @@ struct AppChangelogView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     if let failure {
-                        StateCard(icon: "exclamationmark.triangle", text: failure, actionTitle: nil) {}
+                        StateCard(icon: AppDesign.Status.warning.symbol, text: failure, actionTitle: nil) {}
                     }
                     ForEach(releases, id: \.version) { ChangelogReleaseCard(release: $0, localization: localization) }
                 }

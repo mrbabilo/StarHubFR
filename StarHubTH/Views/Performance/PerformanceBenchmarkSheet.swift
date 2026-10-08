@@ -130,7 +130,7 @@ struct PerformanceBenchmarkSheet: View {
                         Int((Double(runCount) * 3.5).rounded())))
             ForEach(cacheMods, id: \.self) { name in
                 Label(String(format: localization.L(L10n.Benchmark.cacheWarning), name),
-                      systemImage: "exclamationmark.triangle")
+                      systemImage: AppDesign.Status.warning.symbol)
                     .font(AppDesign.Font.footnote)
                     .fixedSize(horizontal: false, vertical: true)
             }

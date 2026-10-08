@@ -23,7 +23,7 @@ struct FrenchTranslationsOverview: View {
         case L10n.FrTranslations.sectionUpdates:     return (AppDesign.Color.info, "arrow.up.circle.fill")
         case L10n.FrTranslations.sectionAvailable:   return (AppDesign.Color.accent, "arrow.down.circle.fill")
         case L10n.FrTranslations.sectionFailed:      return (AppDesign.Color.error, "xmark.octagon.fill")
-        case L10n.FrTranslations.sectionUnverified:  return (AppDesign.Color.warning, "questionmark.circle.fill")
+        case L10n.FrTranslations.sectionUnverified:  return (AppDesign.Color.warning, AppDesign.Status.unknown.symbol)
         case L10n.FrTranslations.sectionInstalled:   return (AppDesign.Color.success, "checkmark.circle.fill")
         case L10n.FrTranslations.sectionNone:        return (AppDesign.Color.paused, "minus.circle.fill")
         default:                                     return (Color.secondary.opacity(AppDesign.Opacity.disabled), "circle.dashed")

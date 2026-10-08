@@ -134,7 +134,7 @@ struct KeybindReportSection: View {
                                       proxy: ScrollViewProxy) -> some View {
         if report.scannedMods == 0 {
             // Rien d'analysé : distinct du vert « aucun conflit ».
-            statusRow(icon: "info.circle", color: .secondary,
+            statusRow(icon: AppDesign.Status.info.symbol, color: .secondary,
                       text: localization.L(L10n.Keybinds.noModsScanned))
         } else {
             Text(String(format: localization.L(L10n.Keybinds.counters),
@@ -307,7 +307,7 @@ struct KeybindReportSection: View {
             }
             .padding(.top, AppDesign.Spacing.xs)
         } label: {
-            groupLabel(L10n.Keybinds.subsetsHeader, overlaps.count, icon: "info.circle",
+            groupLabel(L10n.Keybinds.subsetsHeader, overlaps.count, icon: AppDesign.Status.info.symbol,
                        tint: AppDesign.Color.info)
         }
     }

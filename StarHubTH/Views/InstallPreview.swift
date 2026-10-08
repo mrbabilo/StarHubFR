@@ -465,7 +465,7 @@ struct DependencyRow: View {
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(.blue)
             case .missing:
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: AppDesign.Status.error.symbol)
                     .foregroundColor(.red)
                 Text(entry.uniqueId)
                     .font(AppDesign.Font.monoFootnote)
@@ -686,7 +686,7 @@ struct DetectedModRow: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                             } else {
-                                Image(systemName: "xmark.circle.fill")
+                                Image(systemName: AppDesign.Status.error.symbol)
                                     .foregroundColor(.red)
                             }
                             Text(dep)

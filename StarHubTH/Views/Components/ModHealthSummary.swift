@@ -97,10 +97,7 @@ struct ModHealthSummary: View {
                 .monospacedDigit()
                 .lineLimit(1)
             if entry.status.needsAttention {
-                Image(systemName: "chevron.right")
-                    .font(AppDesign.Font.iconXS)
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
+                DisclosureChevron()
             }
         }
         .padding(.vertical, 5)
@@ -161,24 +158,19 @@ struct ModHealthSummary: View {
         }
     }
 
-    static func icon(_ status: ModHealthChecklist.Status) -> String {
+    /// Le relevé est la source du vocabulaire partagé (`AppDesign.Status`).
+    static func status(_ status: ModHealthChecklist.Status) -> AppDesign.Status {
         switch status {
-        case .error:         return "xmark.octagon.fill"
-        case .warning:       return "exclamationmark.triangle.fill"
-        case .info:          return "info.circle.fill"
-        case .ok:            return "checkmark.circle.fill"
-        case .unmeasured:    return "questionmark.circle"
-        case .notApplicable: return "minus.circle"
+        case .error:         return .error
+        case .warning:       return .warning
+        case .info:          return .info
+        case .ok:            return .ok
+        case .unmeasured:    return .unknown
+        case .notApplicable: return .notApplicable
         }
     }
 
-    static func tint(_ status: ModHealthChecklist.Status) -> Color {
-        switch status {
-        case .error:                     return AppDesign.Color.error
-        case .warning:                   return AppDesign.Color.warning
-        case .info:                      return AppDesign.Color.info
-        case .ok:                        return AppDesign.Color.success
-        case .unmeasured, .notApplicable: return .secondary
-        }
-    }
+    static func icon(_ status: ModHealthChecklist.Status) -> String { Self.status(status).symbol }
+
+    static func tint(_ status: ModHealthChecklist.Status) -> Color { Self.status(status).tint }
 }

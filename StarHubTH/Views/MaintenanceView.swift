@@ -230,7 +230,7 @@ struct MaintenanceView: View {
     private func protectedCard(_ row: ProtectedRow) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: row.isGone ? "exclamationmark.triangle"
+                Image(systemName: row.isGone ? AppDesign.Status.warning.symbol
                                              : "arrow.uturn.backward")
                     .foregroundColor(AppDesign.Color.warning)
                 Text(row.modFolder)

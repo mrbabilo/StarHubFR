@@ -54,7 +54,7 @@ extension UpdatesView {
         case .upToDate, .pending:
             ("checkmark.circle.fill", AppDesign.Color.success, L10n.Updates.allUpToDate)
         case .verifiableUpToDate:
-            ("checkmark.circle", .secondary, L10n.Updates.allVerifiedUpToDate)
+            (AppDesign.Status.ok.symbol, .secondary, L10n.Updates.allVerifiedUpToDate)
         case .neverChecked:
             ("questionmark.circle", .secondary, L10n.Updates.neverChecked)
         }

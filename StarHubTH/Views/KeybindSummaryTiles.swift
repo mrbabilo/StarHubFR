@@ -24,7 +24,7 @@ struct KeybindSummaryTiles: View {
               label: L(L10n.Keybinds.tileGamepad), tint: KeybindConflictStyle.color(.mods)),
          Tile(id: "game", icon: KeybindConflictStyle.glyph, value: report.gameConflicts.count,
               label: L(L10n.Keybinds.tileGame), tint: KeybindConflictStyle.color(.game)),
-         Tile(id: "unrecognized", icon: "questionmark.circle.fill", value: report.unrecognized.count,
+         Tile(id: "unrecognized", icon: AppDesign.Status.unknown.symbol, value: report.unrecognized.count,
               label: L(L10n.Keybinds.tileUnrecognized), tint: AppDesign.Color.warning)]
             .filter { $0.value > 0 }
     }

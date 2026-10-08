@@ -10,7 +10,7 @@ struct NexusPageBadge: View {
     let L: (String) -> String
 
     private var tint: Color { state == .removed ? .red : .orange }
-    private var glyph: String { state == .removed ? "xmark.circle.fill" : "eye.slash.fill" }
+    private var glyph: String { state == .removed ? AppDesign.Status.error.symbol : "eye.slash.fill" }
     private var hintKey: String {
         state == .removed ? L10n.Mods.nexusPageRemovedHint : L10n.Mods.nexusPageUnavailableHint
     }
@@ -45,7 +45,7 @@ struct NexusPageBanner: View {
             let tint: Color = removed ? .red : .orange
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Image(systemName: removed ? "xmark.circle.fill" : "eye.slash.fill")
+                    Image(systemName: removed ? AppDesign.Status.error.symbol : "eye.slash.fill")
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(tint)
                     Text(localization.L(removed ? L10n.Mods.nexusPageRemoved

@@ -25,7 +25,7 @@ struct PerformanceImpactSection: View {
                 StateCard(icon: "gauge.with.dots.needle.0percent",
                           text: localization.L(L10n.Performance.impactEmptyProbe), actionTitle: nil) {}
             case .unreadableHistory:
-                StateCard(icon: "exclamationmark.triangle",
+                StateCard(icon: AppDesign.Status.warning.symbol,
                           text: localization.L(L10n.Performance.impactUnreadable), actionTitle: nil) {}
             case .ready:
                 list

@@ -86,30 +86,7 @@ struct UnverifiableModsSection: View {
                 // Indexé par `UniqueID` : deux mods peuvent porter le même nom,
                 // et la reprise Nexus retire des lignes en cours de route.
                 ForEach(rows, id: \.uniqueId) { row in
-                    HStack(spacing: 6) {
-                        // La fiche s'ouvre sur Santé : c'est là qu'on saisit
-                        // l'identifiant Nexus qui manque (2026-10-08).
-                        if let mod = viewModel.scanStore.mods.mod(withUniqueId: row.uniqueId) {
-                            Button {
-                                viewModel.navigationStore.openModDetail(folderName: mod.folderName)
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(.rect)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(Color.accentColor)
-                            .help(localization.L(L10n.Mods.openDetails))
-                            .accessibilityLabel(localization.L(L10n.Mods.openDetails) + " — " + row.name)
-                        }
-                        Text(row.name)
-                            .font(AppDesign.Font.footnote(.medium))
-                        Text(localization.L(row.outcome?.labelKey ?? row.blocker.labelKey))
-                            .font(AppDesign.Font.footnote)
-                            .foregroundStyle(.secondary)
-                            .help(localization.L(row.blocker.labelKey))
-                        Spacer(minLength: 8)
-                    }
+                    UnverifiableRow(viewModel: viewModel, localization: localization, row: row)
                 }
             }
             .padding(.vertical, AppDesign.Spacing.xs)
@@ -118,6 +95,43 @@ struct UnverifiableModsSection: View {
                   systemImage: "exclamationmark.triangle.fill")
                 .font(AppDesign.Font.caption)
                 .foregroundColor(AppDesign.Color.warning)
+        }
+    }
+}
+
+/// Une ligne « sans verdict », au geste du relevé de santé : la ligne entière
+/// ouvre la fiche, un chevron le dit. Onglet **Gestion**, où se saisit
+/// l'identifiant Nexus (2026-10-08).
+private struct UnverifiableRow: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+    let row: SmapiVerdicts.Unverifiable
+
+    var body: some View {
+        let content = HStack(spacing: 6) {
+            Text(row.name)
+                .font(AppDesign.Font.footnote(.medium))
+            Text(localization.L(row.outcome?.labelKey ?? row.blocker.labelKey))
+                .font(AppDesign.Font.footnote)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+        }
+        if let mod = viewModel.scanStore.mods.mod(withUniqueId: row.uniqueId) {
+            Button {
+                viewModel.navigationStore.openModDetail(folderName: mod.folderName, tab: .management)
+            } label: {
+                HStack(spacing: 6) {
+                    content
+                    DisclosureChevron()
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            .help(localization.L(row.blocker.labelKey))
+            .accessibilityHint(localization.L(L10n.Mods.openDetails))
+        } else {
+            content.help(localization.L(row.blocker.labelKey))
         }
     }
 }

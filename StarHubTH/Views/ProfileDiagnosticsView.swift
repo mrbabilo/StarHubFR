@@ -249,7 +249,7 @@ struct ProfileDiagnosticsView: View {
                 // Gravité = glyph **et** couleur (P6) : l'orange seul ne dit
                 // pas « manque », surtout à côté d'un libellé neutre.
                 HStack(spacing: AppDesign.Spacing.xs) {
-                    Image(systemName: "exclamationmark.circle")
+                    Image(systemName: AppDesign.Status.warning.symbol)
                         .font(AppDesign.Font.iconXS)
                     Text(localization.L(L10n.Profiles.dependencyNotInstalled))
                         .font(AppDesign.Font.footnote)

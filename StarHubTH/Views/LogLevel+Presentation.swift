@@ -15,9 +15,9 @@ extension LogLevel {
 
     var icon: String {
         switch self {
-        case .info:    return "info.circle"
-        case .warning: return "exclamationmark.triangle"
-        case .error:   return "xmark.octagon"
+        case .info:    return AppDesign.Status.info.symbol
+        case .warning: return AppDesign.Status.warning.symbol
+        case .error:   return AppDesign.Status.error.symbol
         case .trace:   return "terminal"
         }
     }

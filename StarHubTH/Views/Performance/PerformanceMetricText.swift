@@ -81,7 +81,7 @@ enum PerformanceMetricText {
         case .worsened: return "arrow.up.right"
         case .noClearDifference: return "equal"
         case .memoryChanged: return "arrow.left.arrow.right"
-        default: return "info.circle"
+        default: return AppDesign.Status.info.symbol
         }
     }
 

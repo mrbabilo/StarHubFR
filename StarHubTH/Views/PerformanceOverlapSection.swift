@@ -40,7 +40,7 @@ struct PerformanceOverlapSection: View {
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if shown.isEmpty {
-                Label(localization.L(L10n.PerformanceOverlaps.none), systemImage: "checkmark.circle")
+                Label(localization.L(L10n.PerformanceOverlaps.none), systemImage: AppDesign.Status.ok.symbol)
                     .foregroundColor(.green)
             }
             ForEach(shown, id: \.overlap.key) { match in

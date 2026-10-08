@@ -164,6 +164,43 @@ enum AppDesign {
         static let favorite = SwiftUI.Color.yellow
     }
 
+    // MARK: - États (vocabulaire de la page Santé, 2026-10-08)
+    /// Un sens = un glyphe, partout : erreur, avertissement, info, correct,
+    /// inconnu, sans objet. Repris tel quel du relevé de santé d'un mod
+    /// (`ModHealthSummary`), qui l'utilise lui-même. « En pause » n'en fait
+    /// pas partie (`minus.circle.fill` + `Color.paused`), ni les échelles
+    /// (impact, confiance), ni les actions (`xmark.circle` pour effacer,
+    /// `info.circle` pour une explication en popover).
+    enum Status {
+        case error, warning, info, ok, unknown, notApplicable
+
+        var symbol: String {
+            switch self {
+            case .error:         return "xmark.octagon.fill"
+            case .warning:       return "exclamationmark.triangle.fill"
+            case .info:          return "info.circle.fill"
+            case .ok:            return "checkmark.circle.fill"
+            case .unknown:       return "questionmark.circle"
+            case .notApplicable: return "minus.circle"
+            }
+        }
+
+        var tint: SwiftUI.Color {
+            switch self {
+            case .error:                   return Color.error
+            case .warning:                 return Color.warning
+            case .info:                    return Color.info
+            case .ok:                      return Color.success
+            case .unknown, .notApplicable: return .secondary
+            }
+        }
+    }
+
+    /// « Ouvrir le détail » : la ligne entière est le bouton, ce chevron à
+    /// droite le dit (relevé de santé). Jamais `info.circle`, qui veut dire
+    /// « information » dans le vocabulaire des états.
+    static let disclosureSymbol = "chevron.right"
+
     // MARK: - Chart (D4-T4 §3c)
     /// Deux états d'un même élément, une teinte en deux nuances : « avant »
     /// recule, « après » ressort. Rampe validée par `validate_palette.js

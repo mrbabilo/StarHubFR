@@ -12,7 +12,7 @@ struct ErrorBanner: View {
 
     var body: some View {
         HStack(spacing: AppDesign.Spacing.sm) {
-            Image(systemName: "exclamationmark.triangle")
+            Image(systemName: AppDesign.Status.warning.symbol)
                 .foregroundStyle(Color.orange)
             Text(text).font(AppDesign.Font.caption)
             Spacer(minLength: AppDesign.Spacing.sm)

@@ -41,9 +41,9 @@ struct SeverityBadge: View {
 
     private var glyph: String {
         switch severity {
-        case .critical: return "exclamationmark.octagon.fill"
-        case .warning: return "exclamationmark.triangle.fill"
-        case .info: return "info.circle"
+        case .critical: return AppDesign.Status.error.symbol
+        case .warning: return AppDesign.Status.warning.symbol
+        case .info: return AppDesign.Status.info.symbol
         }
     }
 

@@ -148,7 +148,7 @@ struct PerformanceSloDiagnosticSection: View {
         case .ready, .report: "checkmark.circle.fill"
         case .running: "waveform"
         case .preparing, .waitingForGame, .restoring, .downloading: "clock.arrow.circlepath"
-        case .missing, .paused, .probeRequired, .awaitingInstall: "info.circle"
+        case .missing, .paused, .probeRequired, .awaitingInstall: AppDesign.Status.info.symbol
         case .incompatible, .blocked, .recovery, .failed: "exclamationmark.triangle.fill"
         }
     }

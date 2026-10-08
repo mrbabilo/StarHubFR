@@ -27,7 +27,7 @@ struct PerformanceSummarySection: View {
                 }
                 if let quality = report.quality[.frameP50] {
                     ForEach(Array(quality.reasons.enumerated()), id: \.offset) { _, reason in
-                        Label(PerformanceMetricText.reason(reason, localization), systemImage: "info.circle")
+                        Label(PerformanceMetricText.reason(reason, localization), systemImage: AppDesign.Status.info.symbol)
                             .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                     }
                 }

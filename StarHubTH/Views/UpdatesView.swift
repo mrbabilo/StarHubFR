@@ -325,7 +325,7 @@ struct UpdatesView: View {
                         // pourquoi ces mods-là étaient là et pas d'autres.
                         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                             HStack(spacing: AppDesign.Spacing.sm) {
-                                Image(systemName: "exclamationmark.triangle")
+                                Image(systemName: AppDesign.Status.warning.symbol)
                                     .foregroundColor(AppDesign.Color.warning)
                                     .font(AppDesign.Font.headline)
                                 Text(localization.L(L10n.Updates.smapiSection))

@@ -744,7 +744,7 @@ struct TranslationDiffView: View {
 enum DiffStateStyle {
     static func glyph(_ state: TranslationCoverage.DiffRow.State) -> String {
         switch state {
-        case .translated:        return "checkmark.circle"
+        case .translated:        return AppDesign.Status.ok.symbol
         case .missing:           return "text.badge.minus"
         case .empty:             return "exclamationmark.triangle.fill"
         case .identicalToSource: return "equal.circle"

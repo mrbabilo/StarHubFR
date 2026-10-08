@@ -120,7 +120,7 @@ struct DependencyRowView: View {
         switch node.status {
         case .active: return "checkmark.circle.fill"
         case .disabled: return "pause.circle.fill"
-        case .missing: return node.isRequired ? "xmark.circle.fill" : "questionmark.circle"
+        case .missing: return node.isRequired ? AppDesign.Status.error.symbol : AppDesign.Status.unknown.symbol
         }
     }
     private var iconColor: Color {

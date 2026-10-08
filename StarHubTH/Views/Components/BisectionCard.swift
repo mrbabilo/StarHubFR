@@ -196,7 +196,7 @@ struct BisectionCard: View {
                                    || suspect.name.localizedCaseInsensitiveContains($0) }
             })?.name, let first = remaining.first {
                 Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, first),
-                      systemImage: "info.circle")
+                      systemImage: AppDesign.Status.info.symbol)
                     .font(AppDesign.Font.caption).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
                     // une VStack, un Label ne se replie pas de lui-même.
@@ -240,7 +240,7 @@ struct BisectionCard: View {
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
             if let other = blamedByLog {
                 Label(String(format: localization.L(L10n.Bisect.logNamesOther), other, folder),
-                      systemImage: "info.circle")
+                      systemImage: AppDesign.Status.info.symbol)
                     .font(AppDesign.Font.caption).foregroundColor(.orange)
                     // Sans cela le texte est tronqué sur une seule ligne : dans
                     // une VStack, un Label ne se replie pas de lui-même.

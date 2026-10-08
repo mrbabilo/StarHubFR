@@ -855,11 +855,11 @@ struct ModDetailView: View {
                     if let expected = file.expectedName {
                         translationNote(String(format: localization.L(L10n.Mods.translationUnloadableExpected),
                                                file.fileName, expected),
-                                        icon: "exclamationmark.triangle", color: .secondary)
+                                        icon: AppDesign.Status.warning.symbol, color: .secondary)
                     } else {
                         translationNote(String(format: localization.L(L10n.Mods.translationUnloadableUnknown),
                                                file.fileName),
-                                        icon: "exclamationmark.triangle", color: .secondary)
+                                        icon: AppDesign.Status.warning.symbol, color: .secondary)
                     }
                 }
 
@@ -972,12 +972,12 @@ struct ModDetailView: View {
                             }
                             Spacer()
                             if record.errorCount > 0 {
-                                Label("\(record.errorCount)", systemImage: "xmark.octagon")
+                                Label("\(record.errorCount)", systemImage: AppDesign.Status.error.symbol)
                                     .font(AppDesign.Font.iconXS)
                                     .foregroundColor(AppDesign.Color.error)
                             }
                             if record.warningCount > 0 {
-                                Label("\(record.warningCount)", systemImage: "exclamationmark.triangle")
+                                Label("\(record.warningCount)", systemImage: AppDesign.Status.warning.symbol)
                                     .font(AppDesign.Font.iconXS)
                                     .foregroundColor(AppDesign.Color.warning)
                             }
