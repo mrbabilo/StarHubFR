@@ -2431,6 +2431,8 @@ enum L10n {
         static let confirmTitle = "activation_history_confirm_title"
         static let confirmMessage = "activation_history_confirm_message"
         static let leavesProfile = "activation_history_leaves_profile"
+        static let reentersProfile = "activation_history_reenters_profile"
+        static let configsUnchanged = "activation_history_configs_unchanged"
         static let confirmButton = "activation_history_confirm_button"
         static let nothingToRestore = "activation_history_nothing_to_restore"
         static let restoredLog = "activation_history_restored_log"

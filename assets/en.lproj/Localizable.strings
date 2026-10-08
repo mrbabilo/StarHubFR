@@ -260,7 +260,7 @@
 "update_triage_nexus_incomplete" = "Nexus history incomplete: files that could not be explained are kept";
 "update_triage_more_files" = "… and %d more";
 "activation_history_title" = "Go back to an earlier state";
-"activation_history_subtitle" = "Taken before every “Enable all”, selection toggle or applied profile. Kept 30 days unless pinned. Files and configs do not change: only which mods are active or paused.";
+"activation_history_subtitle" = "Taken before every “Enable all”, selection toggle or applied profile. Kept 30 days unless pinned. Going back restores which mods are active or paused, and the profile active at the time with its configs.";
 "activation_history_empty" = "No snapshot yet: the next bulk action will take one.";
 "activation_history_show_all" = "Show all";
 "activation_history_show_less" = "Show less";
@@ -274,11 +274,13 @@
 "activation_history_pin_help" = "Pin: kept beyond 30 days";
 "activation_history_unpin_help" = "Unpin";
 "activation_history_confirm_title" = "Go back to the state of %@?";
-"activation_history_confirm_message" = "%1$lld mods will be enabled, %2$lld paused. Configs do not come back.";
-"activation_history_leaves_profile" = "Profile “%@” will be left: it would otherwise adopt this state as its own.";
+"activation_history_confirm_message" = "%1$lld mods will be enabled, %2$lld paused.";
+"activation_history_leaves_profile" = "Profile “%@” will be left (its configs are saved).";
 "activation_history_confirm_button" = "Go back to this state";
 "activation_history_nothing_to_restore" = "Nothing to move: mods are already in this state.";
 "activation_history_write_failed" = "Undo history not saved: %@";
+"activation_history_reenters_profile" = "Profile “%@” becomes active again, with its saved configs.";
+"activation_history_configs_unchanged" = "No profile was active then: configs do not change.";
 "activation_history_restored_log" = "Earlier state restored: %lld folders moved.";
 "mod_history_title" = "Update history";
 "mod_history_empty" = "No install recorded yet: the history starts with the next install made by the app.";

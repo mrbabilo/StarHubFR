@@ -7203,16 +7203,20 @@ final class StarHubTHViewModel {
     /// R5 — ramène `Mods/` à un instantané d'avant un geste de masse. Mêmes
     /// portes que `toggleMods` : empreintes avant toute pause (A1-T9), paires
     /// en conflit avant toute activation (A5-T8). Le retour pose son propre
-    /// instantané : il se défait comme le reste. Sous un autre profil que
-    /// celui de l'instantané, le profil est quitté (configs capturées) : il
-    /// adopterait sinon cet état comme le sien.
+    /// instantané : il se défait comme le reste. Le profil actif d'alors
+    /// revient aussi, avec ses configs, comme par « Activer » : le profil
+    /// actif est d'abord quitté (configs capturées), sans quoi il adopterait
+    /// cet état comme le sien.
     @MainActor func restoreActivation(_ snapshot: ActivationSnapshot, fingerprintChecked: Bool = false,
                                       conflictChecked: Bool = false) {
         if refuseDuringBenchmark() { return }
         guard _bisection?.state == nil, !isApplyingProfile, bulkToggleProgress == nil, !isToggling,
               pendingToggles.isEmpty, !saveFingerprintPauseStore.isBusy, !bulkConflictGate.isBusy else { return }
         let moves = ActivationRestore.moves(to: snapshot, installed: mods)
-        guard !moves.isEmpty else { return log(localization.L(L10n.ActivationHistory.nothingToRestore)) }
+        let returning = snapshot.activeProfileId.flatMap { profilesStore.profile(with: $0)?.id }
+        guard !moves.isEmpty || returning != activeProfileId else {
+            return log(localization.L(L10n.ActivationHistory.nothingToRestore))
+        }
         let pausing = moves.filter { $0.direction == .disable }
         let pausedIDs = mods.uniqueIds(inTopFolders: Set(pausing.map(\.folderName)))
         if !fingerprintChecked, !pausedIDs.isEmpty {
@@ -7227,19 +7231,28 @@ final class StarHubTHViewModel {
             disabling: pausing.map(\.folderName), subject: .mods(count: moves.count),
             resume: { [weak self] in self?.restoreActivation(snapshot, fingerprintChecked: true,
                                                              conflictChecked: true) }) { return }
-        if let active = activeProfileId, active != snapshot.activeProfileId { applyProfile(id: nil) }
-        guard activeProfileId == nil || activeProfileId == snapshot.activeProfileId else { return } // sortie refusée
         activationHistory.record(.restore, detail: nil, mods: mods, activeProfileId: activeProfileId)
-        executeBulkMoves(moves, enabling: pausing.isEmpty) { [weak self] moved in
+        if let active = activeProfileId, active != returning { applyProfile(id: nil) }
+        guard activeProfileId == nil || activeProfileId == returning else { return } // sortie refusée
+        executeBulkMoves(moves, enabling: pausing.isEmpty, summary: { [weak self] moved in
             guard let self else { return "" }
             return String(format: self.localization.L(L10n.ActivationHistory.restoredLog), moved)
-        }
+        }, then: { [weak self] in
+            // Après le rescan : le profil adopte le disque restauré — son contenu d'alors.
+            guard let self, let returning, self.activeProfileId != returning else { return }
+            self.syncProfileConfigsDesyncMarker(entering: returning)
+            self.profilesStore.setActiveProfile(returning)
+            self.saveProfiles()
+            self.syncActiveProfileIds()
+            self.restoreProfileConfigs(for: returning)
+        })
     }
 
     /// Exécute des renommages groupés, rescane, puis rend compte : succès au
     /// journal, échec partiel ou total en alerte.
     private func executeBulkMoves(_ moves: [ProfileApplyPlan.Move], enabling enable: Bool,
-                                  summary: @escaping @MainActor (Int) -> String) {
+                                  summary: @escaping @MainActor (Int) -> String,
+                                  then: (@MainActor () -> Void)? = nil) {
         let total = moves.count
         bulkToggleEnabling = enable
         bulkToggleProgress = (done: 0, total: total)
@@ -7289,6 +7302,7 @@ final class StarHubTHViewModel {
             }
             self.bulkToggleProgress = nil
             self.syncActiveProfileIds()
+            then?()
             if outcome.failures.isEmpty {
                 self.log(summary(movedCount))
             } else if outcome.attempted == outcome.failures.count {

@@ -260,7 +260,7 @@
 "update_triage_nexus_incomplete" = "Historique Nexus incomplet : les fichiers inexpliqués sont gardés";
 "update_triage_more_files" = "… et %d autre(s)";
 "activation_history_title" = "Revenir à un état d'avant";
-"activation_history_subtitle" = "Pris avant chaque « Tout activer », bascule de sélection ou profil appliqué. Gardés 30 jours, sauf épinglés. Ni fichiers ni configurations ne changent : seulement quels mods sont actifs ou en pause.";
+"activation_history_subtitle" = "Pris avant chaque « Tout activer », bascule de sélection ou profil appliqué. Gardés 30 jours, sauf épinglés. Revenir rétablit quels mods sont actifs ou en pause, et le profil alors actif avec ses configurations.";
 "activation_history_empty" = "Aucun instantané : le prochain geste de masse en posera un.";
 "activation_history_show_all" = "Tout afficher";
 "activation_history_show_less" = "Afficher moins";
@@ -274,11 +274,13 @@
 "activation_history_pin_help" = "Épingler : gardé au-delà de 30 jours";
 "activation_history_unpin_help" = "Désépingler";
 "activation_history_confirm_title" = "Revenir à l'état du %@ ?";
-"activation_history_confirm_message" = "%1$lld mods seront activés, %2$lld mis en pause. Les configurations ne reviennent pas.";
-"activation_history_leaves_profile" = "Le profil « %@ » sera quitté : il adopterait sinon cet état comme le sien.";
+"activation_history_confirm_message" = "%1$lld mods seront activés, %2$lld mis en pause.";
+"activation_history_leaves_profile" = "Le profil « %@ » sera quitté (ses configurations sont mémorisées).";
 "activation_history_confirm_button" = "Revenir à cet état";
 "activation_history_nothing_to_restore" = "Rien à déplacer : les mods sont déjà dans cet état.";
 "activation_history_write_failed" = "Historique des retours non enregistré : %@";
+"activation_history_reenters_profile" = "Le profil « %@ » redevient actif, avec ses configurations mémorisées.";
+"activation_history_configs_unchanged" = "Aucun profil n'était actif alors : les configurations ne changent pas.";
 "activation_history_restored_log" = "État précédent rétabli : %lld dossiers déplacés.";
 "mod_history_title" = "Historique des mises à jour";
 "mod_history_empty" = "Aucune installation journalisée : le journal commence à la prochaine installation faite par l'app.";

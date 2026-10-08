@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Revenir à l'état d'avant un geste de masse.** Avant chaque « Tout activer », bascule de sélection ou profil appliqué, l'app note quels mods étaient actifs. La page Profils liste ces états (30 jours, épinglables) et y ramène en un clic, sans toucher aux mods installés depuis.
+- **Revenir à l'état d'avant un geste de masse.** Avant chaque « Tout activer », bascule de sélection ou profil appliqué, l'app note quels mods étaient actifs. La page Profils liste ces états (30 jours, épinglables) et y ramène en un clic, avec le profil alors actif et ses configurations, sans toucher aux mods installés depuis.
 
 - **Un manifeste illisible se répare depuis les Alertes.** Un mod que SMAPI ne charge pas à cause de son `manifest.json` paraît en critique dans les alertes système, avec le geste qui le ramène : reprise du manifeste depuis la sauvegarde d'installation la plus récente, sinon réinstallation depuis Nexus.
 - **Mémoire retenue en textures, par mod et par pack.** Nouvelle carte dans Performances et ligne dans la fiche : les Mo de textures que chaque mod garde chargés, hors note d'impact. La sonde 0.9.24 attribue enfin chaque pack Content Patcher à lui-même.

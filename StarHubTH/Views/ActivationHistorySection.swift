@@ -112,9 +112,19 @@ struct ActivationHistorySection: View {
         guard let pending = pendingRestore else { return "" }
         var message = String(format: localization.L(L10n.ActivationHistory.confirmMessage),
                              pending.enabling, pending.pausing)
-        if let active = viewModel.activeProfileId, active != pending.snapshot.activeProfileId,
-           let name = viewModel.modProfiles.first(where: { $0.id == active })?.name {
-            message += "\n\n" + String(format: localization.L(L10n.ActivationHistory.leavesProfile), name)
+        // Même règle que `restoreActivation` : le profil d'alors, s'il existe encore.
+        let profiles = viewModel.modProfiles
+        let returning = profiles.first { $0.id == pending.snapshot.activeProfileId }
+        let active = profiles.first { $0.id == viewModel.activeProfileId }
+        if let active, active.id != returning?.id {
+            message += "\n\n" + String(format: localization.L(L10n.ActivationHistory.leavesProfile), active.name)
+        }
+        if let returning {
+            if returning.id != active?.id {
+                message += "\n" + String(format: localization.L(L10n.ActivationHistory.reentersProfile), returning.name)
+            }
+        } else {
+            message += "\n" + localization.L(L10n.ActivationHistory.configsUnchanged)
         }
         return message
     }

@@ -319,10 +319,17 @@ touchées).
       écrasé. Retour : mêmes portes qu'un geste de masse — empreintes avant
       toute pause (A1-T9), paires en conflit avant toute activation (A5-T8),
       refus pendant un benchmark, une bissection, une application de profil
-      ou une bascule. Sous un autre profil que celui de l'instantané, le
-      profil est quitté (configs capturées) : il adopterait sinon cet état
-      comme le sien ; les configurations ne reviennent pas, la confirmation
-      le dit. Écran : section « Revenir à un état d'avant » sous les profils.
+      ou une bascule. Le profil actif au moment de l'instantané revient
+      aussi, avec ses configs, comme par « Activer » : le profil courant est
+      quitté (configs capturées), les dossiers bougent, puis le profil d'alors
+      redevient actif et adopte le disque restauré — son contenu d'alors,
+      puisqu'un profil actif suit le disque. *Corrigé le 2026-10-09 sur retour
+      d'écran* : la première version quittait le profil sans réactiver
+      l'ancien ; les dossiers revenaient, mais aucun profil n'était actif et
+      BENCH MOD gardait les 1 168 mods adoptés pendant « Tout activer » — à
+      l'écran, le retour paraissait sans effet. Sans le retour des configs,
+      le profil réactivé aurait capturé, au changement suivant, les
+      `config.json` d'un autre profil comme les siens. Écran : section « Revenir à un état d'avant » sous les profils.
       Exemptés : la bissection et le benchmark (leur propre retour), la reprise
       d'un profil interrompu (geste déjà confirmé). Activer un profil est refusé
       pendant un lot de renommages : la page Profils n'a pas l'overlay de la
