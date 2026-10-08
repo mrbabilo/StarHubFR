@@ -752,13 +752,13 @@ struct ModListRow: View {
                     .pointingHandCursor()
                 }
 
-                // Fiche du mod : chevron du relevé de santé (la ligne sert à la sélection).
+                // Fiche du mod : flèche de la page Santé (la ligne sert à la sélection).
                 Button {
                     vm.navigationStore.setViewingModDetail(mod)
                 } label: {
-                    Image(systemName: AppDesign.disclosureSymbol)
+                    Image(systemName: AppDesign.openDetailSymbol)
                         .font(AppDesign.Font.body)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.accentColor)
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }

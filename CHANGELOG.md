@@ -18,7 +18,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Les mêmes icônes d'état partout.** Erreur, avertissement, info, correct et inconnu reprennent celles de l'onglet Santé dans toute l'app (journal, dépendances, aperçu d'installation, rapports…), et une ligne qui ouvre une fiche le dit par un chevron, plus par ⓘ.
+- **Les mêmes icônes d'état partout.** Erreur, avertissement, info, correct et inconnu reprennent celles de l'onglet Santé dans toute l'app (journal, dépendances, aperçu d'installation, rapports…), et tout ce qui ouvre la fiche d'un mod porte la flèche → de la page Santé du diagnostic, plus ⓘ ni chevron.
 
 ## [1.60.0] - 2026-10-08
 

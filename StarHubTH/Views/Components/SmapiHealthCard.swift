@@ -506,7 +506,7 @@ struct SmapiHealthCard: View {
     /// two loose glyphs floating next to the name.
     func modActions(_ mod: String) -> some View {
         HStack(spacing: 2) {
-            actionButton("arrow.right.circle", help: L10n.Logs.healthOpenMod) {
+            actionButton(AppDesign.openDetailSymbol, help: L10n.Logs.healthOpenMod) {
                 NotificationCenter.default.post(name: .jumpToMod, object: mod)
             }
             actionButton("text.magnifyingglass", help: L10n.Logs.healthShowInLog) {

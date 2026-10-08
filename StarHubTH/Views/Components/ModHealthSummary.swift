@@ -97,7 +97,7 @@ struct ModHealthSummary: View {
                 .monospacedDigit()
                 .lineLimit(1)
             if entry.status.needsAttention {
-                DisclosureChevron()
+                OpenDetailIcon()
             }
         }
         .padding(.vertical, 5)

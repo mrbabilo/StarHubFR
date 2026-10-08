@@ -99,8 +99,8 @@ struct UnverifiableModsSection: View {
     }
 }
 
-/// Une ligne « sans verdict », au geste du relevé de santé : la ligne entière
-/// ouvre la fiche, un chevron le dit. Onglet **Gestion**, où se saisit
+/// Une ligne « sans verdict » : la ligne entière ouvre la fiche, la flèche de
+/// la page Santé le dit. Onglet **Gestion**, où se saisit
 /// l'identifiant Nexus (2026-10-08).
 private struct UnverifiableRow: View {
     var viewModel: StarHubTHViewModel
@@ -122,7 +122,7 @@ private struct UnverifiableRow: View {
             } label: {
                 HStack(spacing: 6) {
                     content
-                    DisclosureChevron()
+                    OpenDetailIcon()
                 }
                 .contentShape(.rect)
             }

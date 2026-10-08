@@ -196,10 +196,11 @@ enum AppDesign {
         }
     }
 
-    /// « Ouvrir le détail » : la ligne entière est le bouton, ce chevron à
-    /// droite le dit (relevé de santé). Jamais `info.circle`, qui veut dire
-    /// « information » dans le vocabulaire des états.
-    static let disclosureSymbol = "chevron.right"
+    /// « Ouvrir la fiche » : la flèche cerclée de la page Santé du
+    /// diagnostic (`SmapiHealthCard`), partout où une ligne mène à un mod
+    /// (choix de l'utilisateur, 2026-10-08). Jamais `info.circle`, qui veut
+    /// dire « information » dans le vocabulaire des états, ni un chevron.
+    static let openDetailSymbol = "arrow.right.circle"
 
     // MARK: - Chart (D4-T4 §3c)
     /// Deux états d'un même élément, une teinte en deux nuances : « avant »
