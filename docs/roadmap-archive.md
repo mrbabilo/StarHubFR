@@ -5859,11 +5859,16 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       Gardés : `toggleMods` (« Tout activer », bandeau, Espace) et l'activation
       d'un profil, après les empreintes. **Exemptés, par décision** : la chaîne
       de dépendances d'une activation unitaire (la garde unitaire ne teste que
-      le mod cliqué ; les dépendances sont des frameworks), la bissection
+      le mod cliqué ; les dépendances sont **supposées** être des frameworks,
+      non mesuré), le bouton « Activer » de la carte Sonde (Performances, qui
+      passe par `toggleMod` sans garde — la paire connue Sonde × Profiler y
+      échappe), la bissection
       (geste de diagnostic), la reprise d'un profil interrompu (geste déjà
       confirmé), l'édition du profil actif (`updateProfile` applique sans
       garde), l'installation et la mise à jour (le mod arrive actif : la
-      pastille seule le rattrape).
+      pastille seule le rattrape). Pour un profil, l'alerte suit celle des
+      empreintes : `pending` est publié au tour suivant (le verrou `isBusy`,
+      lui, est immédiat) — enchaînement à vérifier à l'écran.
 
 
 ### Performance mesurée — Axe D

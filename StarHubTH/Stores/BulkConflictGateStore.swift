@@ -30,7 +30,8 @@ final class BulkConflictGateStore {
     private(set) var pending: Pending?
     private var onResume: (@MainActor () -> Void)?
 
-    var isBusy: Bool { pending != nil }
+    /// Pris dès la suspension, avant même que l'alerte paraisse.
+    var isBusy: Bool { onResume != nil }
 
     /// Suspend le geste s'il rend actives des paires en conflit, et rend
     /// `true` : l'appelant s'arrête là, `confirm` le reprendra. `false` : rien
@@ -47,8 +48,16 @@ final class BulkConflictGateStore {
             activeAfter: mods.activeFolders(enabling: Set(enabling), disabling: Set(disabling)),
             topFolders: mods.topFolders)
         guard !pairs.isEmpty else { return false }
-        pending = Pending(subject: subject, pairs: pairs)
         onResume = resume
+        // Publiée au tour suivant : pour un profil, cette alerte suit celle
+        // des empreintes, dont le bouton vient de relancer le geste — posée
+        // pendant que la première se ferme, SwiftUI pourrait ne jamais la
+        // présenter, et le store resterait pris.
+        let next = Pending(subject: subject, pairs: pairs)
+        Task { @MainActor [weak self] in
+            guard let self, self.onResume != nil else { return }
+            self.pending = next
+        }
         return true
     }
 
