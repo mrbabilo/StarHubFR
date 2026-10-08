@@ -69,11 +69,15 @@ struct UpdateCheckStopButton: View {
 struct UnverifiableModsSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// Dépliée ou non, **hors de la vue** : la page est recréée à chaque
+    /// retour (ouvrir la fiche d'un mod de la liste, puis revenir), et un
+    /// état local la repliait — la liste semblait effacée (2026-10-08).
+    @AppStorage("updates.unverifiableExpanded") private var expanded = false
 
     var body: some View {
         let rows = viewModel.unverifiableMods
         let summary = viewModel.unverifiableSummary
-        DisclosureGroup {
+        DisclosureGroup(isExpanded: $expanded) {
             VStack(alignment: .leading, spacing: 3) {
                 if summary.nexus > 0 {
                     Text(String(format: localization.L(L10n.Updates.unverifiableSummary),
