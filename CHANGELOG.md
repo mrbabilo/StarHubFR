@@ -25,6 +25,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **« Je l'ai déjà » résiste à un changement de casse.** Un mod dont l'auteur réécrit l'identifiant (`Author.Mod` → `author.mod`) garde sa version affirmée, et sa ligne se retire bien de la liste « Je l'ai déjà ».
+
 - **22 fichiers relus comme par le jeu** : nombres écrits `.03`, textes entre apostrophes, virgules en double. 13 fichiers Content Patcher, dont trois de SVE, comptent enfin dans le poids des packs et les conflits ; 9 traductions (Button's Extra Books…) apparaissent.
 - **La liste « sans verdict » reste dépliée** quand on quitte la page des mises à jour, par exemple pour ouvrir la fiche d'un de ses mods, puis qu'on y revient.
 

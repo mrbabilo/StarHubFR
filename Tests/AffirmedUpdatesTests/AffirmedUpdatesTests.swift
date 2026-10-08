@@ -92,4 +92,13 @@ struct AffirmedUpdatesTests {
                                         installed: [mod("", "Sans identité", "1.0")])
         #expect(rows.isEmpty)
     }
+
+
+    @Test func anAffirmationMatchesItsModWhateverTheCase() {
+        // F6-T4 : seul appariement d'UniqueID du dépôt à respecter la casse.
+        // Un manifeste réécrit en minuscules faisait disparaître la rangée.
+        let rows = AffirmedUpdates.rows(anchors: ["Author.Mod": anchor("Author.Mod", "2.0")],
+                                        installed: [mod("author.mod", "Mod", "1.0")])
+        #expect(rows.map(\.affirmedVersion) == ["2.0"])
+    }
 }

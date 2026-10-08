@@ -201,7 +201,7 @@ final class ModUpdateStore {
     /// Pathoschild) devient candidat (`SmapiVerdicts`, cas sans réponse).
     func offerNexusAlternative(entries: [SmapiUpdateRequest.Entry],
                                installedNames: [String: String],
-                               anchors: [String: ModVersionAnchor]) {
+                               anchors: ModVersionAnchors) {
         nexusAlternative = SmapiVerdicts.apply(
             [], entries: entries, installedNames: installedNames, anchors: anchors,
             pathoschildIndex: PathoschildNexusIndex.loadFromCache(),

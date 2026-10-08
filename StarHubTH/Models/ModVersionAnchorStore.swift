@@ -41,10 +41,10 @@ public final class ModVersionAnchorStore: @unchecked Sendable {
         self.defaults = defaults
     }
 
-    public func all() -> [String: ModVersionAnchor] {
+    public func all() -> ModVersionAnchors {
         lock.lock()
         defer { lock.unlock() }
-        return load()
+        return ModVersionAnchors(load())
     }
 
     public func anchor(for uniqueId: String) -> ModVersionAnchor? {
@@ -52,18 +52,19 @@ public final class ModVersionAnchorStore: @unchecked Sendable {
     }
 
     public func put(_ anchor: ModVersionAnchor) {
-        mutate { $0[anchor.uniqueId] = anchor }
+        mutate { $0[ModVersionAnchors.key(anchor.uniqueId)] = anchor }
     }
 
     public func remove(uniqueId: String) {
-        mutate { $0.removeValue(forKey: uniqueId) }
+        mutate { $0.removeValue(forKey: ModVersionAnchors.key(uniqueId)) }
     }
 
     /// Retire les ancres des mods qui ne sont plus installés. Sans ce ménage,
     /// un mod supprimé puis réinstallé hériterait d'une version affirmée qu'il
     /// n'a pas.
     public func pruneAnchors(keeping installed: Set<String>) {
-        mutate { $0 = $0.filter { installed.contains($0.key) } }
+        let kept = Set(installed.map(ModVersionAnchors.key))
+        mutate { $0 = $0.filter { kept.contains($0.key) } }
     }
 
     /// Ancre `.install` par dossier posé, lue dans son `manifest.json`.
@@ -145,10 +146,13 @@ public final class ModVersionAnchorStore: @unchecked Sendable {
 
     // MARK: - Privé
 
+    /// La carte passée au corps est **normalisée** (clés sans la casse, voir
+    /// `ModVersionAnchors`) : la première écriture réécrit donc d'elle-même
+    /// les ancres posées avant F6-T4.
     private func mutate(_ body: (inout [String: ModVersionAnchor]) -> Void) {
         lock.lock()
         defer { lock.unlock() }
-        var map = load()
+        var map = ModVersionAnchors(load()).storage
         body(&map)
         if let data = try? JSONEncoder().encode(map) {
             defaults.set(data, forKey: Self.key)

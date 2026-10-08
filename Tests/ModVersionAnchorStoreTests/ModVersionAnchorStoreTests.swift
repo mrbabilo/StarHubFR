@@ -102,4 +102,66 @@ struct ModVersionAnchorStoreTests {
         defaults.set(Data(legacy.utf8), forKey: "installedModRegistry")
         #expect(ModVersionAnchorStore.migrateAwayFromNexusVersion(defaults: defaults) == .nothingToDo)
     }
+
+
+    // MARK: - F6-T4 — l'UniqueID se compare sans la casse, comme SMAPI
+
+    @Test func anAnchorIsFoundWhateverTheCaseOfItsUniqueId() {
+        // SMAPI compare les UniqueID sans la casse : un auteur qui passe de
+        // `Author.Mod` à `author.mod` livre le même mod.
+        let store = ModVersionAnchorStore(defaults: freshDefaults())
+        store.put(anchor("Author.Mod", "1.0"))
+        #expect(store.anchor(for: "author.mod")?.anchoredVersion == "1.0")
+        #expect(store.all()["AUTHOR.MOD"]?.anchoredVersion == "1.0")
+    }
+
+    @Test func puttingUnderAnotherCaseReplacesRatherThanDuplicates() {
+        let store = ModVersionAnchorStore(defaults: freshDefaults())
+        store.put(anchor("Author.Mod", "1.0"))
+        store.put(anchor("author.mod", "2.0"))
+        #expect(store.all().count == 1)
+        #expect(store.anchor(for: "Author.Mod")?.anchoredVersion == "2.0")
+    }
+
+    @Test func removingUnderAnotherCaseDropsTheAnchor() {
+        // La divergence que F6-T4 craignait : trouvée à l'affichage,
+        // introuvable à la suppression.
+        let store = ModVersionAnchorStore(defaults: freshDefaults())
+        store.put(anchor("Author.Mod", "1.0"))
+        store.remove(uniqueId: "author.MOD")
+        #expect(store.anchor(for: "Author.Mod") == nil)
+    }
+
+    @Test func pruningKeepsAnAnchorWhoseManifestChangedCase() {
+        // Le manifeste réécrit la casse à la mise à jour : l'affirmation
+        // survit, le mod est toujours installé.
+        let store = ModVersionAnchorStore(defaults: freshDefaults())
+        store.put(anchor("Author.Mod", "1.0"))
+        store.pruneAnchors(keeping: ["author.mod"])
+        #expect(store.anchor(for: "Author.Mod") != nil)
+    }
+
+    @Test func anchorsStoredUnderMixedCaseAreMergedOnRead() {
+        // Les ancres posées avant F6-T4 : clés à la casse du manifeste. Deux
+        // clés qui ne diffèrent que par la casse gardent la plus récente.
+        let defaults = freshDefaults()
+        let old = ModVersionAnchor(uniqueId: "Author.Mod", anchoredVersion: "1.0",
+                                   origin: .install, anchoredAt: Date(timeIntervalSince1970: 10))
+        let new = ModVersionAnchor(uniqueId: "author.mod", anchoredVersion: "2.0",
+                                   origin: .userAffirmed, anchoredAt: Date(timeIntervalSince1970: 20))
+        let legacy = try! JSONEncoder().encode(["Author.Mod": old, "author.mod": new])
+        defaults.set(legacy, forKey: "modVersionAnchors")
+        let store = ModVersionAnchorStore(defaults: defaults)
+        #expect(store.all().count == 1)
+        #expect(store.anchor(for: "AUTHOR.MOD")?.anchoredVersion == "2.0")
+    }
+
+    @Test func aMixedCaseLegacyAnchorIsRemovable() {
+        let defaults = freshDefaults()
+        let legacy = try! JSONEncoder().encode(["Author.Mod": anchor("Author.Mod", "1.0")])
+        defaults.set(legacy, forKey: "modVersionAnchors")
+        let store = ModVersionAnchorStore(defaults: defaults)
+        store.remove(uniqueId: "Author.Mod")
+        #expect(ModVersionAnchorStore(defaults: defaults).all().isEmpty)
+    }
 }

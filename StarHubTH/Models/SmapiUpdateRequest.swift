@@ -202,7 +202,7 @@ public enum SmapiUpdateRequest {
     ///   substitue une autre. Un repli muet ici serait exactement le défaut
     ///   qu'il corrige : c'est l'appelant qui le journalise.
     public static func entries(from candidates: [Candidate],
-                               anchors: [String: ModVersionAnchor],
+                               anchors: ModVersionAnchors,
                                reportingSubstitution: ((String, String, String) -> Void)? = nil)
         -> [Entry] {
         var best: [String: Candidate] = [:]

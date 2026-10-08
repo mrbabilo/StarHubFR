@@ -97,15 +97,17 @@ public enum AffirmedUpdates {
     /// Le tri retombe sur l'`UniqueID` à noms égaux : deux mods homonymes
     /// existent, et sans ce second critère l'ordre suivrait le parcours du
     /// dictionnaire, donc sauterait d'un rendu à l'autre.
-    public static func rows(anchors: [String: ModVersionAnchor],
+    public static func rows(anchors: ModVersionAnchors,
                             installed: [InstalledMod]) -> [Row] {
+        // Sans la casse, comme le magasin (F6-T4) : un manifeste réécrit en
+        // minuscules ne doit pas faire disparaître l'affirmation.
         let byId = Dictionary(installed.filter { !$0.uniqueId.isEmpty }
-                                .map { ($0.uniqueId, $0) },
+                                .map { (ModVersionAnchors.key($0.uniqueId), $0) },
                               uniquingKeysWith: { first, _ in first })
         return anchors.values
             .filter { $0.origin == .userAffirmed && !$0.uniqueId.isEmpty }
             .compactMap { anchor in
-                guard let mod = byId[anchor.uniqueId] else { return nil }
+                guard let mod = byId[ModVersionAnchors.key(anchor.uniqueId)] else { return nil }
                 return Row(uniqueId: anchor.uniqueId, name: mod.name,
                            affirmedVersion: anchor.anchoredVersion,
                            manifestVersion: mod.version,

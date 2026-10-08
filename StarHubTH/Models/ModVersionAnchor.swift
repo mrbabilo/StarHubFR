@@ -83,3 +83,51 @@ public struct NexusInstallFacts: Codable, Equatable, Sendable {
                   fileUploadedAt: Date(timeIntervalSince1970: TimeInterval(ts)))
     }
 }
+
+/// Les ancres, indexées par `UniqueID` **sans la casse** (F6-T4).
+///
+/// SMAPI compare les `UniqueID` sans la casse, et tout le reste du dépôt
+/// aussi. Les ancres faisaient exception de bout en bout : un mod affirmé
+/// sous `Author.Mod` puis relu sous `author.mod` — un auteur qui réécrit son
+/// manifeste suffit — perdait son ancre au ménage du scan, et une correction
+/// de la seule lecture aurait rendu une rangée visible mais impossible à
+/// retirer. Le type porte la règle : chaque lecteur passe par ce subscript,
+/// et le compilateur refuse qu'on l'oublie.
+public struct ModVersionAnchors: Equatable, ExpressibleByDictionaryLiteral {
+    private let byKey: [String: ModVersionAnchor]
+
+    /// La clé normalisée. Une seule définition : magasin et lecteurs ne
+    /// peuvent pas diverger.
+    public static func key(_ uniqueId: String) -> String { uniqueId.lowercased() }
+
+    /// Deux clés qui ne diffèrent que par la casse — ancres posées avant
+    /// F6-T4 — se fondent en gardant la plus récente.
+    public init(_ anchors: [String: ModVersionAnchor]) {
+        var merged: [String: ModVersionAnchor] = [:]
+        for anchor in anchors.values {
+            let key = Self.key(anchor.uniqueId)
+            // À date égale, l'`UniqueID` départage : l'ordre d'un dictionnaire
+            // ne doit pas décider de l'ancre gardée.
+            if let kept = merged[key],
+               kept.anchoredAt > anchor.anchoredAt
+                || (kept.anchoredAt == anchor.anchoredAt && kept.uniqueId <= anchor.uniqueId) { continue }
+            merged[key] = anchor
+        }
+        byKey = merged
+    }
+
+    public init(dictionaryLiteral elements: (String, ModVersionAnchor)...) {
+        self.init(Dictionary(elements, uniquingKeysWith: { _, last in last }))
+    }
+
+    public subscript(uniqueId: String) -> ModVersionAnchor? { byKey[Self.key(uniqueId)] }
+
+    public var values: Dictionary<String, ModVersionAnchor>.Values { byKey.values }
+    /// Les clés normalisées, pas les `UniqueID` tels qu'écrits.
+    public var keys: Dictionary<String, ModVersionAnchor>.Keys { byKey.keys }
+    public var count: Int { byKey.count }
+    public var isEmpty: Bool { byKey.isEmpty }
+
+    /// Ce que le magasin persiste : déjà normalisé.
+    var storage: [String: ModVersionAnchor] { byKey }
+}

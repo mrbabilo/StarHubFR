@@ -442,4 +442,11 @@ struct SmapiInstalledVersionTests {
         #expect(SmapiUpdateRequest.comparedVersion(anchored: "  ", sent: "1.0.0") == "1.0.0")
         #expect(SmapiUpdateRequest.comparedVersion(anchored: "", sent: "1.0.0") == "1.0.0")
     }
+
+
+    @Test func anAnchorAppliesWhateverTheCaseOfTheUniqueId() {
+        let entries = SmapiUpdateRequest.entries(from: [candidate("author.mod", "2.1.0")],
+                                                 anchors: ["Author.Mod": anchor("Author.Mod", "2.2.0")])
+        #expect(entries[0].installedVersion == "2.2.0")
+    }
 }

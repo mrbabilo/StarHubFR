@@ -1227,28 +1227,6 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
         objet tant que P1 tient le critère.
 
-- [ ] **F6** — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
-      fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
-      aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
-      ci-dessous sont les constats volontairement non traités ; le constat de perf
-      du même audit est allé grossir **F3**, son seau désigné.)*
-      **Étendu le 2026-09-03** : l'audit fichier-par-fichier de `StarHubTH/Models/` est
-      **achevé** — 119 fichiers, tranches A→M, aucun bug bloquant. Les correctifs qui en
-      sont sortis sont inscrits en §4 (**X10**–**X17**), auxquels s'ajoutent les
-      corrections de la chaîne de traduction et du chemin des mises à jour livrées en
-      v1.35.0/v1.35.1 ; tous prouvés sur le parc réel. Reste de l'audit global : `Views/`,
-      `Extensions/`, `AppDesignCore`, puis les phases 2-5 du brief (clients réseau
-      restants, persistance, `Tests/`, configuration de build).
-  - [ ] **F6-T4** — **`AffirmedUpdates.rows` apparie l'`UniqueID` en respectant la
-        casse.** · **S** Seul appariement d'`UniqueID` du dépôt à le faire — partout
-        ailleurs la comparaison est insensible à la casse. Mais **tout le sous-système
-        d'ancres** (écriture, `remove`, `all`, l'écran X12) est casse-exact de bout en
-        bout : un mod affirmé sous une casse et relu sous une autre est déjà traité
-        comme deux entrées à l'écriture. Corriger la seule lecture créerait la
-        divergence — une ancre trouvée à l'affichage, introuvable à la suppression.
-        **À traiter d'un bloc ou pas du tout** : normaliser la clé à l'écriture, avec
-        une migration des ancres déjà posées. Aucun observable sur le parc actuel.
-
 ---
 
 ## 7 bis. F7 — l'onglet Traduction met 1,7 s à s'ouvrir *(mesuré le 2026-09-12)*
@@ -1348,7 +1326,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 | ~~6~~ | ~~**X31**~~ | ✅ **Corrigé le 2026-09-04** — marqueur et journal départagés par leur date d'écriture (`SmapiVersionEvidence`, 13 tests). Voir l'archive |
 | ~~7~~ | ~~**X54**~~ | ✅ **Corrigé le 2026-09-04** — deux clés neuves : l'ajout nomme le mod, l'import dit combien de favoris sont entrés. Voir l'archive |
 | ~~8~~ | ~~**X49**~~ | ✅ **Corrigé le 2026-09-04** — jeton d'époque (`RequestEpoch`, Core, 6 tests) sur la recherche **et** sur la fiche, second exemplaire trouvé en câblant. Voir l'archive |
-| 9 | **F6-T4** | Une ancre « je l'ai déjà » ratée quand le manifeste et l'ancre diffèrent par la casse. ⚠️ **Réévalué le 2026-09-04 : ce n'est pas un S.** Corriger la seule lecture créerait la divergence que l'item décrit ; le faire d'un bloc demande de normaliser la clé à l'écriture **et** de migrer les ancres déjà posées. Aucun observable sur le parc — ne pas le reprendre comme « petit correctif » |
+| ~~9~~ | ~~**F6-T4**~~ | ✅ **Livré le 2026-10-08, d'un bloc** — clé normalisée à l'écriture, migration à la lecture, lecteurs tenus par le type `ModVersionAnchors`. Toujours 0 observable sur le parc (413 ancres). Voir l'archive |
 | 10 | ~~**X58**~~ ✅, ~~**X60**~~ ✅, ~~**C2-T4**~~ ✅, ~~**X47**~~ ✅ | ~~Ce qu'un mod garde en silence~~, ~~l'échange de noms de dossier qu'un profil ne peut pas faire~~, ~~les lots smapi.io abandonnés après un échec~~ *(corrigés le 2026-09-05 — voir l'archive)* et ~~les clés de config perdues à une mise à jour~~ *(livré le 2026-09-08 — la case C2-T4 ci-dessus porte le constat)* |
 
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
@@ -1852,20 +1830,12 @@ audit outillé sans mesure sur la modlist de l'auteur ne vaut rien.
 
 ### 10.3 Six actions à pousser en roadmap
 
+> R1 (clos sans objet le 2026-10-08), R2, R3 et R6 sont à l'archive ; R4 reste ci-dessous, déjà livré sous **B3-T5**.
+
 Périmètre : ce qui est **conceptuellement réutilisable** et **techniquement faisable**
 sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
 `ModsConfig.xml` byte-exact, Steamworks bindings) sont écartées.
 
-- [ ] **R1** — **Indexer les couleurs catégories en palette, pas en hex.** Les 26 entrées
-      de `NexusCategory.swift` (`Color(red: 0.80, …)`) sont des hex codés en dur. Le mode
-      dark est géré par un asset 1:1 qui ne survivra pas à un thème custom. Pattern
-      RimManager : stocker un `paletteIndex: Int` (0–5), interpréter via le thème
-      courant au rendu. Bénéfice futur : un thème custom n'a pas à migrer les données.
-      · **M** · ~~*à pousser dans l'axe H (cohérence UI), après H-T1.*~~
-      ⚠️ **Ancrage caduc depuis le 2026-09-09 : l'axe H est clos et R1 n'y a
-      pas été traité.** Il n'a jamais été un item H — il y était seulement
-      *renvoyé*. Reste ouvert et sans axe : à rattacher (I, ou un lot de thème)
-      ou à instruire pour lui-même. Ne pas le croire livré parce que H l'est.
 - [x] **R4** ✅ *(sans objet — c'est **B3-T5**, livré ; constaté le 2026-09-04)* —
       **Profils = modlist + configs isolées.** La veille RimManager a redemandé ce que
       l'axe B avait déjà livré : `profileManagedConfigMods` existe en production
@@ -1905,7 +1875,7 @@ rend le texte complet.
 
 ⚠️ **Deux exceptions à cette table.** Un item coché reste sur place quand le
 sortir perdrait son sens : les sous-items d'un parent ouvert (`F1-T1`, `F2-T1`,
-`F2-T2`, `F6-T2` — au §7, sous leur parent) et `R4` au §10.3, qui n'existe que
+`F2-T2` — au §7, sous leur parent ; `F6-T2` est parti avec **F6**, clos le 2026-10-08) et `R4` au §10.3, qui n'existe que
 pour dire à la prochaine lecture de la veille que cette action-là est déjà
 livrée sous le nom `B3-T5`. Et un identifiant qui ne se trouve ni ici
 ni dans l'archive n'a jamais existé sous cette forme — vérifier la casse et le
@@ -2199,6 +2169,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **F4** | 2026-10-07 | Clos non reproduit : l'en-tête de pack n'est jamais indexé ; garde structurelle, `DependencyIndex.build` n'indexe plus la clé vide |
 | **F6-T1** | 2026-10-08 | Une mesure de couverture FR plus ancienne n'écrase plus une plus récente (re-mesure ciblée, invalidation après mise à jour) : tampon par mod dans `FrenchCoveragePass.State` |
 | **F6-T3** | 2026-10-08 | Un seul lecteur du journal SMAPI : les alertes du volet santé passent par `SmapiLogParser` (`header(of:)`, `smapiErrors`), scanner du ViewModel retiré |
+| **F6-T4** | 2026-10-08 | Ancres de version : `UniqueID` comparé sans la casse de bout en bout (`ModVersionAnchors`), ancres existantes fusionnées à la lecture ; clôt **F6** |
 | **F8** | 2026-10-06 | L'échec du gate L10n nomme le fichier JSON, la ligne et la colonne, sans pile Python |
 
 **Performance mesurée — Axe D · en cours**
@@ -2246,5 +2217,6 @@ suffixe (`H-T5b`, pas `H-T5B`).
 
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
+| **R1** | 2026-10-08 | Clos sans objet : couleurs de catégorie = constantes du code, rien de persisté, aucun thème |
 | **R2** | 2026-09-06 | Écriture atomique + apply guard pour l'application de profil : garde jeu (refus net), journal write-ahead, reprise au lancement ; le « backup timestamped » de RimManager écarté — récit en archive §4 |
 | **R3** | 2026-09-07 | Snooze d'updates Nexus : 1 semaine / prochaine version du mod / prochaine version de Stardew ; expire seul, retire de la liste « updates » sans masquer |

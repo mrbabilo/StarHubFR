@@ -87,7 +87,7 @@ enum SmapiVerdicts {
     static func apply(_ mods: [SmapiUpdateResponse.Mod],
                       entries: [SmapiUpdateRequest.Entry],
                       installedNames: [String: String],
-                      anchors: [String: ModVersionAnchor],
+                      anchors: ModVersionAnchors,
                       pathoschildIndex: [String: Int],
                       previousRows: [NexusUpdateChecker.ModUpdate],
                       previousVerdicts: [String: ModCompatibility],

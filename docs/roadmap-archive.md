@@ -279,6 +279,23 @@ touchées).
 
 ## 4. Correctifs identifiés — à traiter en premier
 
+- [x] **R1** — ✅ *(clos sans objet le 2026-10-08, décision de l'auteur)* — **Indexer les couleurs catégories en palette, pas en hex.** Les 26 entrées
+      de `NexusCategory.swift` (`Color(red: 0.80, …)`) sont des hex codés en dur. Le mode
+      dark est géré par un asset 1:1 qui ne survivra pas à un thème custom. Pattern
+      RimManager : stocker un `paletteIndex: Int` (0–5), interpréter via le thème
+      courant au rendu. Bénéfice futur : un thème custom n'a pas à migrer les données.
+      · **M** · ~~*à pousser dans l'axe H (cohérence UI), après H-T1.*~~
+      ⚠️ **Ancrage caduc depuis le 2026-09-09 : l'axe H est clos et R1 n'y a
+      pas été traité.** Il n'a jamais été un item H — il y était seulement
+      *renvoyé*. Reste ouvert et sans axe : à rattacher (I, ou un lot de thème)
+      ou à instruire pour lui-même. Ne pas le croire livré parce que H l'est.
+      ✅ *Clos sans objet le 2026-10-08* : les deux prémisses sont fausses dans le
+      code. Les 26 couleurs sont des **constantes** de `NexusCategory.swift`
+      (`RGBColor`, peintes par `CategoryBadge`), jamais persistées — un thème
+      futur n'aurait aucune donnée à migrer. Aucun asset de couleur
+      (`find -name "*.colorset"` vide) ni thème custom. Un `paletteIndex` sans
+      thème serait une abstraction spéculative.
+
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
       `applyProfileToFilesystem`.** Le constat de la passe du 2026-09-04 disait
       « aucun instantané au niveau profil » ; la relecture du code en a dit plus :
@@ -6555,6 +6572,19 @@ sans lire une ligne de log.
 
 ### Dette technique — §7
 
+- [x] **F6** — ✅ *(clos le 2026-10-08 avec F6-T4, le dernier ouvert)* — **Constats laissés ouverts par l'audit des 2026-09-02/03.** *(audit
+      fichier-par-fichier : `StarHubTHApp.swift` et tranches ①-④ du ViewModel —
+      aucun bug bloquant, deux corrections livrées au commit `7e0896a`. Les items
+      ci-dessous sont les constats volontairement non traités ; le constat de perf
+      du même audit est allé grossir **F3**, son seau désigné.)*
+      **Étendu le 2026-09-03** : l'audit fichier-par-fichier de `StarHubTH/Models/` est
+      **achevé** — 119 fichiers, tranches A→M, aucun bug bloquant. Les correctifs qui en
+      sont sortis sont inscrits en §4 (**X10**–**X17**), auxquels s'ajoutent les
+      corrections de la chaîne de traduction et du chemin des mises à jour livrées en
+      v1.35.0/v1.35.1 ; tous prouvés sur le parc réel. Reste de l'audit global : `Views/`,
+      `Extensions/`, `AppDesignCore`, puis les phases 2-5 du brief (clients réseau
+      restants, persistance, `Tests/`, configuration de build).
+
   - [x] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
         ✅ **Rendue observable le 2026-09-10** (point 3 du §5 de `REFACTORING.md`) :
         `FrenchCoveragePass.merging` prend une génération, et un test décrit la course
@@ -6619,6 +6649,28 @@ sans lire une ligne de log.
         une alerte. Oracle jetable (ancien scanner recopié) : sortie identique
         sur le journal réel du 2026-10-07. Écart assumé : une ligne d'erreur du
         bloc « Skipped mods » contenant « INFO » n'est plus perdue.
+
+  - [x] **F6-T4** — **`AffirmedUpdates.rows` apparie l'`UniqueID` en respectant la
+        casse.** · **S** Seul appariement d'`UniqueID` du dépôt à le faire — partout
+        ailleurs la comparaison est insensible à la casse. Mais **tout le sous-système
+        d'ancres** (écriture, `remove`, `all`, l'écran X12) est casse-exact de bout en
+        bout : un mod affirmé sous une casse et relu sous une autre est déjà traité
+        comme deux entrées à l'écriture. Corriger la seule lecture créerait la
+        divergence — une ancre trouvée à l'affichage, introuvable à la suppression.
+        **À traiter d'un bloc ou pas du tout** : normaliser la clé à l'écriture, avec
+        une migration des ancres déjà posées. Aucun observable sur le parc actuel.
+        ✅ *Livré le 2026-10-08, d'un bloc* : `ModVersionAnchors` (Core) porte la
+        règle — clé `UniqueID` sans la casse, une seule définition
+        (`ModVersionAnchors.key`) pour le magasin et les quatre lecteurs
+        (`SmapiVerdicts`, `SmapiUpdateRequest`, `ModUpdateStore`,
+        `AffirmedUpdates`), que le compilateur oblige à passer par son
+        subscript. Écriture, `remove`, `pruneAnchors` et l'appariement de
+        `AffirmedUpdates.rows` normalisent ; migration à la lecture : deux clés
+        qui ne diffèrent que par la casse se fondent en gardant la plus récente,
+        la première écriture réécrit le tout. Re-mesuré le jour même : 413
+        ancres (40 affirmées), 1 176 `UniqueID` sur le parc, **0 collision de
+        casse** — toujours latent. 8 tests ; sabotages : clé non normalisée
+        (7 rouges), migration absente à l'écriture (1 rouge).
 
 - [x] **F4** — **Les en-têtes de pack portent `uniqueId: ""`.**
       `StarHubTHViewModel.swift:1207` construit chaque groupe avec une identité vide.
