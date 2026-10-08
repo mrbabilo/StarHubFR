@@ -20,45 +20,112 @@
   <a href="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml"><img src="https://github.com/mrbabilo/StarHubFR/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
+**StarHubFR is a native macOS mod manager for Stardew Valley, in French and English.**
+Install, organise and troubleshoot your mods without opening Finder or a terminal, even with several hundred mods.
+
+The **[user guide](GUIDE.md)** (in French) covers living alongside other mod managers, the `X` / `.X` convention for paused mods, and removing the app cleanly.
+
+## Why StarHubFR
+
+*   🇫🇷 **French throughout** — interface, errors and diagnostics, with an instant switch to English.
+*   🩺 **It tells you what's wrong** — it reads the SMAPI log for you and says what to do, in plain words.
+*   ✍️ **Translate mods inside the app** — a key-by-key editor writes the `fr.json` without breaking the game's markers.
+*   🍎 **Truly native** — Swift and SwiftUI, no web layer, usable with VoiceOver.
+*   🧩 **Built for large collections** — designed and tested on installs of several hundred mods (SVE and friends).
+*   🧭 **Find new mods without leaving the app** — trending, recently updated and a French selection, checked against what you already have.
+
 <p align="center">
   <img src="assets/banners/features_banner.png" alt="Key Features" width="300">
 </p>
 
-*   **A Home Page That Gets to the Point**: The Nexus banner with your Steam avatar, the counters that need your attention (updates, alerts, quarantine, mods), and **Launch Game** in Vanilla mode or through SMAPI — or, when something is missing, the action that fixes it.
-*   **Mod Manager**: Enable or disable mods effortlessly through a beautiful app interface — no manual file moving required. Enable or disable **every mod at once** (progress bar, lossless moves) — mods installed by SMAPI (SaveBackup, ConsoleCommands) stay on, and no profile pauses them — see each mod's Nexus endorsements and endorse it with one click, sort by endorsements or by oldest Nexus update to spot stale mods, select several mods (click, ⌘-click, ⇧-click, ⌘A) and toggle them at once with Space or the selection bar, and **delete** a mod or pack from disk after confirmation.
-*   **Drag & Drop Mod Installer**: Drag a `.zip`, `.7z` or `.rar` file directly into the app to install one or more mods. Automatic structure detection (single-mod, multi-mod pack), integrity validation (500 MB archive cap, 2 GB zip-bomb guard across all three formats, format detected from the file signature rather than its extension), conflict preview and missing dependency suggestions.
-*   **Content installs inside its host mod**: Some Nexus downloads are content for a framework, not standalone mods — an *ItemBags* bag, say — and carry no `manifest.json`. The app recognises them and offers to put the file where it belongs, showing the exact path first, backing up any existing file; a paused host mod is handled, and a backup that fails cancels the install rather than overwriting.
-*   **Mod Profiles**: Group mods into multiple profiles and switch between them instantly with a single click.
-*   **Mod Updates & Downloads**: Check for mod updates via [smapi.io](https://smapi.io/) — no API key and no Nexus account needed: the check reads what each mod's manifest declares, and a mod it couldn't reach stays flagged instead of passing for up to date. An **"I already have it"** button covers authors who ship a new version without bumping their manifest's version: the row records the version you actually have, then drops. Then **download right in the app** — a *Premium update* button (Premium account required; the API key, stored in the macOS Keychain, only serves downloads) or *Nexus update* via the free `nxm://` link. After installing, the `manifest.json` is auto-reconciled so the mod stops showing a phantom "update available". **Each mod says it has an update**: an "↑ version" badge on its row and card, an *Updates* filter in the list, and a banner at the top of its page carrying the same actions as the Updates page — matched by manifest id, never by Nexus id, which several mods sometimes share.
-*   **Mod Discovery**: A *Discover* tab fills the gap the app had — it could do everything **from an installed mod** (translations, add-ons) and nothing **without a starting point**. Three showcases served by Nexus — trending (most endorsed), recently updated, and a **French selection** — one request each, cached for 24 h, so only the refresh button hits the network. Every card carries an **Installed** badge, cross-checked against your library by Nexus id *and* by title, with a filter that hides installed mods while always saying how many it hid. Scope the whole showcase to one of the game's 26 categories — applied **server-side**, so "Portraits" asks Nexus for portraits rather than sorting the twenty mods already in hand — or search by name, with the real total announced. From a card, a quick sheet gives endorsements, version, update age, category and the full description, then **Install** (the Nexus download API is Premium-only) or **Open on Nexus**, which lands straight on the files tab — the `nxm://` link then brings the archive back into the app on a free account too.
-*   **Rich Mod Detail Pane**: Six tabs — Overview, Health, Dependencies, Translation, History, Manage. The Overview leads with a **compatibility card** (smapi.io's verdict — compatible, flagged, or plainly unknown — and what the author says about it). The pane shows the mod's **full description** (BBCode/HTML rendered as native text — bold, lists, links, native-size images, collapsible spoilers; an author's unclosed markup no longer leaves asterisks on screen), its complete **changelog**, and a **transitive dependency tree** (enabled/disabled/missing status, Enable/Nexus/Search actions, click-through between mods). Category and Nexus-id editing live in the pane. A **status banner** under the header sums up errors, a missing dependency, a duplicate install or an incompatibility, and leads to the Health tab, which opens on a checklist: a verdict and eight checks (SMAPI blocklist, loading, smapi.io, log, incompatibilities, shortcuts, duplicated work, Nexus page), "not checked" when the data is missing, each row to review leading to its details; a mod installed twice names its folders, each one opening in Finder or on its own page. The toggle and the mod's settings lead the action bar, favourite, "set aside" and a Nexus **endorse** toggle are icons (the mod's endorsement count leads the header, Nexus refusals are spelled out), report and Finder live in a "…" menu, and French coverage shows as a badge in the header.
-*   **French Translation Tab**: A Translation tab on each mod's page shows the real state of its French — and it is an editor, not just a report. Click any line to open it side by side — English on the left, read-only; your French on the right — and step to the next key, or back to the previous one, without returning to the list. A mod with no French file yet gets one on the first save, and the tab opens on mods with no French at all, not only where work has begun. Every key appears with its English and its status (translated, to translate, empty, same as English, orphan), each filter carrying its count. Marks the game reads but must not be translated (Content Patcher tokens, dialogue separators, portrait commands) show in monospace and colour in both columns — and in the editor they insert with a click rather than a retype; a save that drops one is refused, naming what is missing, with a way through when the omission is deliberate, since a gender-neutral French sentence has no use for a gender switch. A focus mode hides banners and sidebar (Esc to leave), and a button takes the window full screen. Sections an author wrote become collapsible headings with what's left in them, and a list jumps straight to one. A pill gives the real completion rate — green when complete, amber when not, and only 100 % when every key is done. An absent key (falls back to English) is told apart from an empty one (shows nothing at all), listed separately, empty first; an outdated translation is flagged with its date gap and a "To review" filter; and where a StarHubFR backup still holds a translation lost to an update, the mod's page says so with its date. A **French Translations** page lists the French translations published on Nexus for all your mods, paused ones included, plus updates to the ones you have — each result judged "confirmed" when its title names the mod, "to check" otherwise. To **work with another translator**, export a ZIP batch (one JSON per mod) and merge the return key by key: new translations written at once, disagreements settled side by side, English rechecked before anything is written. Files are read the way their authors write them — comments, trailing commas, unquoted keys, CRLF, legacy UTF-16/UTF-32/8-bit encodings — what the game loads, we read.
-*   **Mod Backups**, one page in three segments:
-    *   *Installs*: Automatic backup before overwriting a mod, with hybrid retention (5 most recent + ≤30 days + 1 per month beyond).
-    *   *Configuration*: Backup and restore `config.json`/`fr.json` files for enabled mods.
-    *   *Recoverable files*: what an update took away (a translation, your settings) and a backup can give back without restoring the whole mod — sole copies of uninstalled mods included.
-*   **Mod Config Editor**: Edit a mod's `config.json` directly in the app, via a hierarchical visual editor (searchable tree of typed settings) or a raw JSON editor with line numbers and live validation. Reset and restore-from-local-backup buttons included. Dropdowns show the labels the mod provides, translated when it is: "Chests in current location" rather than `CurrentLocation`. A captured key says at once if another active mod already uses it.
-*   **AI-Assisted Translation**: A model running on your own Mac fills the draft — one key at a time, or a batch you can stop and resume. Suggestions arrive marked *Needs review*, with a filter to find them, and go through the same marker check as anything you type. Nothing leaves the machine: only a loopback address is accepted, with no proxy and no redirect followed. A glossary built from your installed game — over a thousand item, tool, character, location and season names — is imposed on the model, so a suggestion reads *Minerai d'iridium* rather than an invented synonym, and the matching terms show as chips in the editor. Since a fresh Ollama has no model and the right name is not guessable, Settings reads this Mac's memory, names a model that fits and the one command to run — or points at a suitable model you already have.
-*   **Advanced Mod List**: Automatic classification by **type** (UI, Framework, Content Patcher, Translation, NPC, Audio, Map…) inferred from the manifest, also used as an offline fallback for the category filter. Five scopes up top — All, Enabled, Paused, **Issues**, **Updates** — each with its count; under Issues, counted chips (errors, warnings, dependencies, duplicates, compatibility, Nexus page…) filter by kind of problem. Category filtering, pagination (12 mods/page with direct page jump), uncategorized mod filter, "With Config" filter (configurable mods only), sorting by name (A-Z/Z-A), author, version or activation order. A gear icon on each configurable mod opens the config editor directly.
-*   **Save Manager**:
-    *   View details of all save files (money, in-game time, season, farm layout)
-    *   Duplicate or delete save files
-    *   Edit money and basic character stats
-    *   See what your mods left behind: pausing a mod does not remove its objects, buildings and data from a save. Before pausing, the app counts what stays, save by save; and a save's page names the paused mods that left content in it, each one leading to its mod page. A **Clean up…** button removes a save's data left by mods you no longer have, key by key, after a safety backup.
-*   **Developer Logs**: Monitor SMAPI output in real time directly within the app. Filter by source (StarHubFR/SMAPI) and by level with counts, search, and copy lines that keep their origin and the mod they came from.
-*   **SMAPI Diagnostics**: A health card at the top of the logs turns `SMAPI-latest.txt` into a readable diagnosis — SMAPI and game versions, loaded mods and content packs, skipped or failed mods **with the reason**, missing dependencies, mods that change game code or your saves, and the mods logging the most errors. A **keybind report**, in its own *Keyboard shortcuts* tab of System Alerts next to the alert list and the mod-conflict overview, lists every key binding of your active mods (all, bound, conflicting, unassigned), searchable by mod, setting or key, with each mod's config one click away. It leads with **"What you can do"**: actionable advice in plain language instead of jargon. An **"Errors you can ignore"** section recognizes common false alarms (GOG Galaxy sign-in, an unavailable optional integration, a missing companion mod, a mod failing to read its own data), names the mod involved, quotes the original message, and offers a button that jumps straight to its lines in the log — and they no longer count against the mod. A badge flags a stale log, and a button reveals it in Finder. Repetitive lines fold into one expandable row, entries can be grouped per mod (most problematic first), and each mod keeps a per-version history of the errors it logged, shown on its detail page — so you can tell whether a new version behaves worse than the one before.
-*   **Performance**: The StarHubFR probe, a small SMAPI mod installed at your request, measures the game while you play, and the *Performance* tab compares two moments. **Load times** — launch and save loading, compared automatically with your setup's previous state (faster, slower, or uncertain, in color), with stages on a timeline and the heaviest mods split into loading and startup. A **benchmark** button runs game launches on its own, alternating the starting state and the change to test, then puts your setup back. **In-game smoothness** — frame time, stutters and memory, minute by minute, between two sessions you pick, with each mod's cost and what changed in between. A **guided measurement** tells you where to stand and stops once the reading is stable. The analysis proposes a reversible action (pause a mod, roll back a version or a setting), refused while the game runs. A difference is only called beyond the noise measured across your own sessions — at least two per side; within the noise it stays gray. An **Environment** card shows Stardew Loading Optimizer's state for the session (configured versus applied), the mods with a config menu, and each Content Patcher pack's weight, included files counted, with its conflicts. **Memory** is tracked from every angle: process RAM, its peak and .NET-reserved memory per minute, textures held per mod on request, and Stardropium's morning readings before and after cleanup. **Guided, reversible diagnostics** for Stardew Loading Optimizer and Stardropium offer the install, turn measurements on for one session, then put settings and mods back as they were, even after an interruption. The probe's options can be set from its page in the app or in game through Generic Mod Config Menu.
-*   **The Mods the App Needs, in Settings**: *Core Extensions* lists what StarHubFR relies on (SMAPI's own mods, the probe, Stardew Loading Optimizer, Stardropium, Generic Mod Config Menu), then common extensions (Content Patcher, SpaceCore, SVE), each with its role, its state, its detail page and an install link.
-*   **In-App Changelog Viewer**: The two latest versions, right from the app's sidebar — one card per version, additions, changes and fixes as coloured badges; the full history stays in [`CHANGELOG.md`](CHANGELOG.md).
-*   **One Visual Language**: Every page opens on the same header (icon, title, what to know before reading, actions on the right) and lays its content out in cards; summary figures lead to what they summarise.
-*   **Bilingual Support**: Switch the app language instantly between French and English.
-*   **Native macOS UI**: A clean, intuitive interface designed to feel right at home on macOS.
-*   **VoiceOver Accessibility**: Full screen-reader navigation across the mod list, action buttons, sidebar, and the empty-state install zone; delete and purge buttons are announced as destructive.
-*   **Readable in a Narrow Window**: When space runs out, button rows collapse to icons with the title as a tooltip, rather than truncating.
-*   **Account Card**: The top of the sidebar carries your Steam identity, the active profile, active mods and SMAPI status; updates and alerts count their badges on their own entries.
-*   **Empty-State Drop Zone**: When no mods are installed, a large visual drag-and-drop prompt replaces plain text.
-*   **Cached Mod Images**: Mod detail-pane banners are now cached for faster repeat display.
-*   **Improved Mod Search**: Missing-dependency links now open Nexus with a human-readable search term (e.g. "Content Patcher" instead of "Pathoschild.ContentPatcher").
+### 🩺 SMAPI diagnostics
+
+When the game crashes or a mod refuses to load, StarHubFR turns the SMAPI log into a readable diagnosis.
+
+*   **Advice, not jargon** — "install this dependency", "this mod is installed twice", "this mod doesn't support your game version".
+*   **Health at a glance** — SMAPI and game versions, mods loaded, skipped or failed with their reason, missing dependencies.
+*   **Mods to watch** — those that change the game's code or your saves, those that log the most errors, with what it means for you.
+*   **False alarms set aside** — GOG Galaxy, an optional integration missing, an absent companion mod: the message is quoted, a button jumps to its lines, and the mod is no longer blamed for nothing.
+*   **A log you can read** — repetitive lines folded, grouping by mod (worst first), a badge when the log predates your session.
+*   **Errors tracked version by version** — a mod's page tells you whether its new version behaves worse than the previous one.
+*   **Every shortcut and its conflicts** — each key of your active mods, searchable by mod, setting or key; when capturing a key, the config editor says if another mod already uses it.
+*   **Conflicts predicted before you play** — two mods loading the same asset exclusively are flagged, and enabling them (one at a time, in bulk or through a profile) warns you and names the asset.
+*   **Find the faulty mod** — when nothing points to a culprit, the app pauses your mods by halves and asks one question per step. About ten tries are enough; everything comes back in one click.
+
+### ⏱️ Performance
+
+The StarHubFR probe, a small SMAPI mod installed at your request, measures the game while you play. The *Performance* tab compares two moments and tells you what changed.
+
+*   **Load times** — game launch and save loading, compared with the previous state of your collection, with the heaviest mods.
+*   **Automatic benchmark** — the app runs several launches on its own, alternating both states, then puts your collection back as it was.
+*   **Smoothness and memory** — frame time, stutters, process memory and per-mod textures, minute by minute, with what separates two sessions (mods, versions, settings, scene).
+*   **No verdict by chance** — a difference only counts beyond the noise measured between your own sessions; otherwise it stays grey.
+*   **Guided, reversible diagnostics** — for Stardew Loading Optimizer and Stardropium, the app installs them if needed, turns measurements on for one play session, then restores settings and mods, even after an interruption.
+*   **"Environment" card** — the settings Stardew Loading Optimizer actually applied, configurable mods, and the weight and conflicts of each Content Patcher pack.
+
+### 📦 Installing and organising
+
+*   **Drag and drop an archive** (`.zip`, `.7z`, `.rar`) — structure detected (single mod or pack), format recognised from its bytes, safety limits (500 MB archive, 2 GB unpacked), conflicts and missing dependencies announced.
+*   **Content for another mod lands in the right place** — a file meant for a framework (an *ItemBags* bag, say) goes into its host mod, with the path shown and any existing file backed up first.
+*   **Enable without moving files** — one mod, a selection (click, ⌘, ⇧, ⌘A, then Space) or all at once. Mods shipped with SMAPI stay enabled.
+*   **Profiles** — several sets of mods, one click to switch.
+*   **A list that sorts** — categories inferred from the manifest, filters (configurable, "set aside", uncategorised…), sorting by name, author, endorsements or oldest update; All, Enabled, Paused, **Problems** and **Updates** scopes.
+*   **Nexus endorsements** — each mod's thumb shows its endorsement count and endorses in one click.
+*   **"Set aside" mark** — take a mod out of circulation without uninstalling it: greyed out, gathered by a filter, importable into a profile.
+
+### 🔄 Updates and downloads
+
+*   **Checks with no account**, through [smapi.io](https://smapi.io/), from the manifests. A "Stop" button interrupts the check at any time.
+*   **If smapi.io goes down** — the app says so and offers to check directly on Nexus: a keyless sort only rechecks the pages that changed, a few dozen requests instead of several thousand.
+*   **Mods without a verdict, explained** — the ones neither smapi.io nor Nexus could judge, each with its reason (no Nexus ID, page hidden or removed…). A Nexus ID you entered by hand replaces a broken manifest key.
+*   **Each mod says it has an update** — an "↑ version" badge on its row and a banner on its page. Matching uses the manifest ID, never the Nexus ID.
+*   **"I already have it"** — for authors who publish without bumping their manifest version: the row records the version you actually have, then goes away.
+*   **Download in the app** — directly with a Premium account, or through the `nxm://` link with a free one. The API key stays in the macOS Keychain.
+*   **What an update changes** — config options added or removed, new text to translate, author translations dropped; renamed keys are carried over, never overwritten. The preview also warns when active mods read the internal code of the mod being replaced.
+
+### 🧭 Discover
+
+*   **Three Nexus showcases** — trending, recently updated and a French selection, cached for 24 h.
+*   **What you already have shows** — an "Installed" badge and a filter to hide them, with the number hidden.
+*   **Categories and search** — 26 categories filtered server-side, name search with the real total.
+*   **Quick sheet** — description, version, endorsements, then **Install** (Premium) or **Open on Nexus**.
+*   **Never silent** — no key, quota reached or network down, each state says what's happening and offers the action that fixes it.
+
+### 📖 Mod page
+
+*   **Six tabs** — Overview, Health, Dependencies, Translation, History, Manage.
+*   **Compatibility first** — smapi.io's verdict and what the author says about it, in one card.
+*   **Health** — a verdict and eight checks (SMAPI blocklist, loading, smapi.io, log, incompatibilities, shortcuts, duplicates, Nexus page), with "not checked" when data is missing.
+*   **Dependencies** — the full tree with status and actions, plus the mods whose internal code this one reads without declaring them.
+*   **Description and changelog** rendered as native text (bold, lists, links, images, spoilers).
+*   **Nexus ID and category** editable in place.
+
+### 🌐 French translation
+
+Each mod page has a **Translation** tab that shows the real state of its French and doubles as an editor.
+
+*   **English on the left, French on the right**, key by key; a mod without a `fr.json` gets one on the first save.
+*   **A local AI drafts the French** — a model running on your Mac (Ollama, LM Studio), key by key or in batches, marked "To review". Nothing leaves the machine.
+*   **The glossary comes from the game** — over a thousand item, character and place names, read from your install and imposed on the model.
+*   **The game's markers are protected** — shown in colour, inserted in one click; a save that drops one is refused.
+*   **The real completion rate** — 100 % only when every key is done; empty, missing and outdated keys listed separately.
+*   **"French Translations" page** — translations published on Nexus for your mods, and updates to the ones you have.
+*   **Teamwork** — export a ZIP batch for a translator, merge it back key by key.
+*   **Focus mode** — banners and sidebar hidden (Esc to leave).
+
+### ⚙️ Configuration and backups
+
+*   **Config editor** — a searchable tree of typed settings, or raw JSON validated live; dropdowns show the mod's own labels, translated.
+*   **Mod backups** — before every overwrite, plus your `config.json` and `fr.json`, and the files an update took away.
+*   **Saves** — details, copy, deletion, and editing money or character stats.
+*   **What your mods leave in your saves** — counted before pausing a mod; "Clean…" removes data from mods that are gone, after a backup.
+
+### 🎮 Everyday use
+
+*   **A home page that gets to the point** — the counters that matter and **Launch Game**, vanilla or through SMAPI.
+*   **Live logs** — SMAPI and StarHubFR output, filterable by source and level.
+*   **The mods the app relies on** — listed in Settings, with their role, state and install link.
+*   **Accessible and readable** — VoiceOver, and buttons that turn into icons when the window is narrow.
 
 <p align="center">
   <img src="assets/banners/screenshots_banner.png" alt="Screenshots" width="300">
@@ -78,91 +145,83 @@
   <img src="assets/banners/install_banner.png" alt="Installation" width="300">
 </p>
 
-### Minimum Requirements
-*   **Operating System**: macOS 14.0 (Sonoma) or later
-*   **Stardew Valley**: the game installed on macOS (Steam or GOG version)
-*   **Optional**: [SMAPI](https://smapi.io/) for playing with mods
+### Requirements
 
-### Installation Steps
-1. **Download**: Grab the latest release from the [Releases](../../releases) page.
-2. **Install**: Unzip the file and drag `StarHubFR.app` into your Applications folder, then double-click to launch.
-3. **Set Game Folder**: On first launch, the app will attempt to auto-detect your Steam game folder. If not found, you can manually select the game directory (e.g. `/Applications/Stardew Valley.app/Contents/MacOS`).
-4. **You're ready!**: Manage your mods or saves, then hit **"Launch Game"** on the Home page.
+*   macOS 14 (Sonoma) or later.
+*   Stardew Valley installed on macOS (Steam or GOG).
+*   [SMAPI](https://smapi.io/) to play with mods; the app can install it.
+
+### Install
+
+1. Download the latest version from the [Releases](../../releases) page.
+2. Unzip it and drag `StarHubFR.app` into Applications.
+3. On first launch macOS may block the app, which isn't notarised: open **System Settings › Privacy & Security**, then **Open Anyway**.
+4. The app looks for the game folder; if it isn't found, point to it (for example `/Applications/Stardew Valley.app/Contents/MacOS`).
+
+To move to a new version, quit the app completely (⌘Q) before replacing the bundle.
 
 <p align="center">
   <img src="assets/banners/developers_banner.png" alt="For Developers" width="300">
 </p>
 
-This app is built with **Swift** and **SwiftUI** as a native macOS application.
+The app is written in **Swift** and **SwiftUI**. You need macOS 14 and Xcode 16 (the version the CI uses).
 
-### Requirements
-*   macOS 14.0 (Sonoma) or later
-*   Xcode 15.0 or later (for compiling from source)
-
-### Running the Project
-You can open the project in Xcode or compile via Terminal using the build script:
 ```bash
-python3 build_app.py
+python3 build_app.py   # compiles, checks conventions and produces StarHubFR.app
 open StarHubFR.app
+./run_tests.sh         # core tests (Swift Testing)
+python3 release.py     # release archive in bundles/
 ```
 
-### Building a Release
-To package the app into a `.zip` for distribution:
-```bash
-python3 release.py
-```
-Release files will be saved in the `bundles/` folder.
+There is no Xcode project: `build_app.py` compiles every source, and `Package.swift` only describes the tested core.
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Credits & License" width="300">
 </p>
 
-This project is released under the [MIT License](LICENSE). Feel free to fork, modify, and build upon it.
-Original project: [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy** — which offers a **Thai** version.
+StarHubFR is released under the [MIT License](LICENSE): fork it, change it, improve it. It derives from [StarHubTH](https://github.com/AppleBoiy/StarHubTH) by **AppleBoiy**, who offers a **Thai** version.
 
-### Acknowledgements and Sources
+### Acknowledgements
 
-StarHubFR builds on other people's work. The full map — APIs queried, files read, code reused, and the state of each — is kept in [`docs/SOURCES.md`](docs/SOURCES.md).
+StarHubFR builds on the work of many projects. The full list — APIs queried, files read, code reused, and the state of each — is kept up to date in [`docs/SOURCES.md`](docs/SOURCES.md).
 
-**SMAPI diagnostics**
+**SMAPI and diagnostics**
 
-*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** (MIT) — the exact log format (warning-group sections, levels, headers), the manifest schema and JSON leniency were verified directly against the sources, notably `LogManager.cs`. The built-in SMAPI installer downloads the latest release published there.
-*   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) by **ZeroXPatch** — the idea of a player-facing SMAPI log doctor (skipped mods with their reason, missing dependencies, risk categories, suggested fixes) was the starting point for our parser.
-*   [**smapi.io/log**](https://smapi.io/log/) — SMAPI's official log parser, our reference for what's worth extracting from a log.
-*   [**SmapiCompatibilityList**](https://github.com/Pathoschild/SmapiCompatibilityList) by **Pathoschild** — the mod compatibility list (broken, abandoned, the version that broke them), our offline fallback when smapi.io is silent.
-*   [**SMAPI's blacklist**](https://smapi.io/SMAPI.blacklist.json) — the booby-trapped mods SMAPI refuses to load; the app flags them before the game even starts.
+*   [**SMAPI**](https://github.com/pathoschild/SMAPI), [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher), [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) and the [**compatibility list**](https://github.com/Pathoschild/SmapiCompatibilityList) by **Pathoschild** (MIT) — log and manifest formats checked against the sources, load-time measuring points, pack config schema, reading the game's files, offline verdicts. The built-in installer downloads SMAPI's releases.
+*   [**smapi.io**](https://smapi.io/) — the update API that answers for Nexus, CurseForge, ModDrop and GitHub with no key or account, its [log parser](https://smapi.io/log/) and its [blocklist](https://smapi.io/SMAPI.blacklist.json).
+*   [**SMAPILogDoctor.py**](https://github.com/ZeroXPatch/Projects-for-Nexus-Mod/blob/main/SMAPILogDoctor.py) by **ZeroXPatch** — the idea of a log diagnosis written for players.
 
-**Discovery, updates and downloads**
+**Nexus Mods**
 
-*   [**Nexus Mods**](https://www.nexusmods.com/stardewvalley) — the *Discover* tab, mod search and the French Translations page query its v2 GraphQL API; mod pages, files and downloads go through the v1 API. v2 is **not publicly documented**: its shape was mapped by schema introspection, and the app's client is written to survive an unannounced change — tolerant parsing, clean failure, never an outage dressed up as "no results". Thanks to Nexus for leaving it open.
-*   [**smapi.io**](https://smapi.io/) — SMAPI's update API, which answers for Nexus, CurseForge, ModDrop and GitHub from the manifest alone, **with no key and no account**. It is what lets StarHubFR check your mods without asking you for anything.
-*   [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) and [**node-nexus-api**](https://github.com/Nexus-Mods/node-nexus-api) — documentation of the `nxm://` protocol and of the v1 API's response shapes.
+*   [**Nexus Mods**](https://www.nexusmods.com/stardewvalley) — API v1 for mod pages and downloads, GraphQL API v2 (undocumented, mapped by introspection) for discovery, search and keyless sorting. Thank you for keeping it open.
+*   [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/), [**node-nexus-api**](https://github.com/Nexus-Mods/node-nexus-api) and [**Vortex**](https://github.com/Nexus-Mods/Vortex) — the `nxm://` protocol, response shapes, mod manager conventions.
 
-**Assisted translation**
+**Translation**
 
-*   [**lzxd**](https://codeberg.org/Lonami/lzxd) by **Lonami** (MIT / Apache-2.0) — our LZX decoder, which reads the game's official localization files straight from your install, is a Swift transliteration of this implementation (the project moved from GitHub to Codeberg).
-*   [**libmspack**](https://github.com/kyz/libmspack) by **Stuart Caie** (LGPL-2.1) — reference for reading the LZX format; no code is taken from it.
-*   [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) by **Pathoschild** (MIT) — used as the oracle that validates our game-file reader, byte for byte.
-*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) by **Nana1873** (GPL-3.0) — a Windows mod-translation app whose workflow served as the design reference for ours, down to the marker-protection rules (three compound forms) and the write guarantees. No code is taken from it: the licenses rule that out.
-*   [**Ollama**](https://ollama.com) (MIT) — the local AI server the app detects, points you to, and sends to — the only recipient of anything it sends. StarHubFR neither installs nor bundles it: it runs on your machine, under your control.
-*   [**LM Studio**](https://lmstudio.ai) — detected alongside Ollama when it exposes its OpenAI-compatible API (free, proprietary).
-*   [**Qwen2.5**](https://ollama.com/library/qwen2.5) by the **Qwen team** (Apache-2.0) — the family the app suggests by default: multilingual, regular sizes, and above all **no reasoning** — a model that deliberates before answering burns its token budget and returns a truncated translation. The choice stays yours: the Model field takes anything your server serves.
-*   [**DeepL**](https://www.deepl.com/pro-api) — an optional fallback, with your own key and only after your explicit consent.
+*   [**lzxd**](https://codeberg.org/Lonami/lzxd) by **Lonami** (MIT / Apache-2.0) — ported to Swift to read the game's official translations; [**libmspack**](https://github.com/kyz/libmspack) by **Stuart Caie** (LGPL-2.1) as a reference, with no code reused.
+*   [**stardew-i18n-translator**](https://github.com/Nana1873/stardew-i18n-translator) by **Nana1873** (GPL-3.0) — the design model for our editor, down to marker protection. No code reused.
+*   [**Transtar**](https://github.com/wanniwa/transtar) by **wanniwa**, [**Internationalization**](https://www.nexusmods.com/stardewvalley/mods/21317) by **bcmpinc** and [**ModTRANS**](https://www.nexusmods.com/stardewvalley/mods/53388) — other approaches to translating mods, studied for ours.
+*   [**Ollama**](https://ollama.com) (MIT) and [**LM Studio**](https://lmstudio.ai) — the local AI servers the app detects, without bundling them; [**Qwen2.5**](https://ollama.com/library/qwen2.5) by the **Qwen team** (Apache-2.0), the recommended model; [**DeepL**](https://www.deepl.com/pro-api), an optional fallback with your own key.
 
 **Configuration and saves**
 
-*   [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher) by **Pathoschild** — its `ConfigSchema` describes a pack's config options, and its i18n files provide the labels the editor shows.
-*   **Newtonsoft.Json** (MIT), as shipped with the game — run as an oracle to measure what SMAPI really accepts in a `config.json` or a translation file.
-*   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) by **colecrouter** — reference for reading and editing saves.
+*   [**Generic Mod Config Menu**](https://www.nexusmods.com/stardewvalley/mods/5098) by **spacechase0** and [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) by **palmhacker13** — what mods declare about their settings, and the probe's in-game menu.
+*   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) by **colecrouter** — the reference for reading and editing saves.
+*   **Newtonsoft.Json** (MIT), as shipped with the game and run under Mono — the oracle for what SMAPI really accepts as JSON.
 
 **Performance**
 
-*   [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) by **SinZ** (MIT) — the probe reuses its frame timers and its reading of .NET garbage-collection pauses; its [Stardew Utilities](https://stardew.361zn.is) viewer guided how we read loading stages.
-*   [**SMAPI**](https://github.com/pathoschild/SMAPI) by **Pathoschild** — its sources gave the measuring points for each mod's loading and startup, and the `ModsToLoadEarly` setting that lets the probe load first.
-*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) by **spajus** and **Stardew Loading Optimizer** by **neoiw** — two loading-time mods, decompiled and studied to learn what they change in the game, and so what our measurements must see.
-*   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — `ilspycmd` decompiles updated mods so their changes can be audited.
+*   [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) by **SinZ** (MIT) — frame timers and garbage-collector pause reading reused by the probe; its viewer [Stardew Utilities](https://stardew.361zn.is) guided how we read load times.
+*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) by **spajus**, [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) by **neoiw**, [**Stardropium**](https://www.nexusmods.com/stardewvalley/mods/52803) by **Arshia1381**, [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) by **palmhacker13** and [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) by **PHUICMT** — decompiled and studied to learn what they change in the game, and so what our measurements must see.
 
-**Inspirations**
+**Tools**
 
-*   [**Stardrop**](https://github.com/Floogen/Stardrop) by **Floogen** — a cross-platform mod manager, studied in depth: live update checks, notes, per-profile configs, bulk actions limited to the visible mods.
-*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) by **Wooa** and [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) by **Sky** — two in-game mods overlapping our keybind and save reports; studying them shaped the conflict signal at key capture and the guided save cleanup.
+*   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — decompiling mods to audit their changes.
+*   [**dnfile**](https://github.com/malwarefrank/dnfile) (MIT) — the Python oracle for our .NET metadata reader.
+*   [**7-Zip**](https://www.7-zip.org), [**The Unarchiver**](https://theunarchiver.com) (`unar`) and **unrar** — used, when installed, to open `.7z` and `.rar` archives.
+
+**Inspiration**
+
+*   [**Stardrop**](https://github.com/Floogen/Stardrop) by **Floogen** and its macOS port [**Stardrop – Native MacOS**](https://www.nexusmods.com/stardewvalley/mods/53356) by **kautsaralbaa** — live update checks, notes, per-profile configs.
+*   [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) by **MLD210** and [**StarModsManager**](https://github.com/Arborsm/StarModsManager) by **Arborsm** — other managers, read for their ideas as much as their pitfalls.
+*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) by **Wooa** and [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) by **Sky** — they shaped the conflict signal at key capture and guided save cleanup.
