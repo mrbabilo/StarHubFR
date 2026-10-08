@@ -5870,6 +5870,38 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       empreintes : `pending` est publié au tour suivant (le verrou `isBusy`,
       lui, est immédiat) — enchaînement à vérifier à l'écran.
 
+- [x] **A5-T5** — **Élargir le signal**, une source à la fois et chacune mesurée avant
+      d'être codée : les fichiers illisibles, les cibles `Load` à jetons, et les
+      `EditData`/`EditImage` sur une même entrée. · **L**
+      ✅ *Mesuré et clos le 2026-10-08* (sonde Swift sur le parseur de l'app,
+      parc entier, retirée ; 506 packs CP dont 114 actifs — les 559 d'A5-T4
+      comptent 57 packs FTM/FF/BBM porteurs d'un `content.json` sans `Changes`) :
+      - **Fichiers illisibles : 13, pas 339** — le chiffre du spike venait du
+        décapage naïf. Les 13 tombaient sur trois formes que Newtonsoft lit
+        (oracle sur la DLL 13.0.4) et `JSONSerialization` non : nombres `.03`
+        (SVE `Crops.json`, `Fish.json`), chaînes `'…'` (boutiques de MoreBooks,
+        `MigrateIds` de WTDR), éléments vides de tableau `,,` (SVE
+        `Winter25.json`, `CapeShops.json`). **Seul code livré** :
+        `I18nLenientParser` lit les trois — `,,` dans un objet reste refusé,
+        comme par le jeu. Parc rejoué : 22 fichiers gagnés (13 CP, 9 i18n dont
+        les deux faux négatifs de guillemets connus), aucun autre verdict
+        changé, `Changes` égaux à ceux de la DLL fichier par fichier ;
+        +513 patches comptés, +47 `Load`, **0 paire nouvelle**.
+      - **`Load` à jetons : piste morte.** 811 inconditionnels et exclusifs ;
+        794 se résolvent statiquement (`{{ModId}}` ×730, config, `DynamicTokens`
+        sans `When`) et ne créent **aucune** paire — `Mods/{{ModId}}/…` est
+        unique par construction.
+      - **`EditData` sur une même entrée : sans porte.** 678 clés `Entries`
+        disputées sans `When` ; une fois les clés à jeton résolues (179 non
+        résolubles écartées) et les liens déclarés écartés (320 par
+        `Dependencies`, 1 par auteur), restent **6 duos actifs** et 22 dormants
+        — chaînes de carte du désert (Desert Expansion × SVE, 14 clés), 5
+        répliques d'Alissa (RDE × Ridgeside), un horaire de Jas (East Scarp ×
+        SVE). Sémantique : le dernier appliqué gagne, pas « aucun des deux » —
+        un écrasement que l'auteur a souvent voulu. Les `Fields` : 0 actif.
+      - **`EditImage` : 0 recouvrement `Replace` inconditionnel entre mods
+        actifs** (329 tous sous `When`) — l'avertissement de composition tient.
+
 
 ### Performance mesurée — Axe D
 

@@ -8,7 +8,7 @@ import Foundation
 /// ligne bruts dans une valeur. Refuser de les lire reviendrait à afficher
 /// « pas de traduction » sur un mod parfaitement traduit.
 ///
-/// Quatre passes, toutes **conscientes des chaînes** — c'est le point
+/// Des passes toutes **conscientes des chaînes** — c'est le point
 /// délicat : une URL `https://…` contient `//` sans être un commentaire, et une
 /// valeur peut contenir `,}` sans être une virgule structurale. Une expression
 /// régulière appliquée au texte entier corromprait les deux.
@@ -59,7 +59,7 @@ import Foundation
 /// « le jeu ne chargera pas ce fichier » sur **31 fichiers** qu'il charge très
 /// bien — l'inverse exact du service rendu. Corrigé le 2026-08-02.
 ///
-/// Restent 6 fichiers que **nous** ne lisons pas, pour deux raisons étrangères
+/// Restaient 6 fichiers que **nous** ne lisions pas, pour deux raisons étrangères
 /// aux quatre passes :
 /// - **4 par l'encodage**, hors périmètre de ce parseur qui prend une `String`.
 ///   `DestroyableBushes/i18n/ru.json` est en UTF-16 LE avec BOM — SMAPI le lit
@@ -68,11 +68,16 @@ import Foundation
 ///   mais en remplaçant les octets invalides par U+FFFD, donc **avec les accents
 ///   corrompus**. La couche de lecture devra reproduire les deux comportements
 ///   (cf. C1-T6 de la roadmap).
-/// - **2 par des tolérances Newtonsoft de guillemets** que nous n'implémentons
-///   pas : `SpecialPowerUtilities/i18n/ko.json` porte des valeurs entre
+/// - **2 par des tolérances Newtonsoft de guillemets** :
+///   `SpecialPowerUtilities/i18n/ko.json` porte des valeurs entre
 ///   apostrophes simples (`'…'` contenant des `"`), et
 ///   `DestroyableBushes/i18n/zh.json` échappe l'apostrophe (`\'`), ce que JSON
-///   interdit. Ce serait une cinquième passe.
+///   interdit. **Lus depuis le 2026-10-08** (A5-T5), avec les nombres sans
+///   partie entière (`.03`) et les éléments vides de tableau (`,,`) : ces
+///   trois formes laissaient 13 fichiers Content Patcher du parc illisibles,
+///   dont trois de SVE. Rejoué sur le parc entier : 22 fichiers gagnés
+///   (9 i18n, 13 CP), aucun autre verdict changé, et les `Changes` comptés
+///   égalent ceux de la DLL du jeu fichier par fichier.
 ///
 /// Les 19 tests unitaires d'origine passaient déjà quand la passe 1 détruisait
 /// un fichier sur deux, et deux d'entre eux affirmaient sur SMAPI le contraire
@@ -176,11 +181,10 @@ enum I18nLenientParser {
     /// guillemets est refusé, `ConfigName:` accepté), une valeur objet ou
     /// tableau, et le JSON structurellement cassé.
     ///
-    /// ⚠️ Faux négatifs résiduels : cette fonction ne peut être exacte que là où
-    /// le parseur sait lire. Les deux fichiers qu'il refuse encore (guillemets
-    /// simples, `\'` — cf. en-tête) sont chargés par le jeu et rapportés ici
-    /// comme refusés. Le parc de l'auteur n'en contient que deux, mais rien ne
-    /// borne ce que d'autres modlists contiennent : Newtonsoft s'est révélé plus
+    /// ⚠️ Faux négatifs possibles : cette fonction ne peut être exacte que là où
+    /// le parseur sait lire. Le parc de l'auteur n'en contient plus depuis que
+    /// les guillemets simples et `\'` sont lus (2026-10-08), mais rien ne borne
+    /// ce que d'autres modlists contiennent : Newtonsoft s'est révélé plus
     /// permissif que nous sur *tous* les axes mesurés.
     ///
     /// **Ce qu'un appelant a le droit d'en conclure** : `false` signifie « nous
@@ -214,9 +218,11 @@ enum I18nLenientParser {
         var work = text
         if work.hasPrefix("\u{FEFF}") { work.removeFirst() }
 
-        let withoutComments = stripComments(work)
-        let withoutTrailing = stripTrailingCommas(withoutComments)
-        let (quoted, quotedRefusedKey) = quoteBareKeys(withoutTrailing)
+        let withoutComments = stripCommentsAndSingleQuotes(work)
+        let withoutEmpty = stripEmptyArrayElements(withoutComments)
+        let withoutTrailing = stripTrailingCommas(withoutEmpty)
+        let withZeros = addLeadingZeros(withoutTrailing)
+        let (quoted, quotedRefusedKey) = quoteBareKeys(withZeros)
         // La passe 4 ne participe pas au verdict : Newtonsoft lit les retours à
         // la ligne et tabulations bruts dans une valeur, vérifié sur sa DLL.
         let escaped = escapeRawControlCharacters(quoted)
@@ -316,26 +322,43 @@ enum I18nLenientParser {
 
     // MARK: - Nettoyage (suite)
 
-    /// Passe 1 — retire `// …` et `/* … */`, sauf à l'intérieur d'une chaîne.
+    /// Passe 1 — retire `// …` et `/* … */`, sauf à l'intérieur d'une chaîne,
+    /// et réécrit entre guillemets doubles une chaîne à guillemets simples.
     ///
     /// Le commentaire de ligne s'arrête au premier `\n` **ou** `\r` : les
     /// fichiers CRLF sont majoritaires, et les fins de ligne héritées de Mac OS
     /// classique existent encore dans le parc.
-    private static func stripComments(_ text: String) -> String {
+    ///
+    /// Les deux travaux partagent une passe parce qu'ils dépendent l'un de
+    /// l'autre : `'https://…'` est une chaîne, pas un commentaire, et
+    /// l'apostrophe de `// don't` n'ouvre pas une chaîne. Newtonsoft lit
+    /// `'…'` (le guillemet ouvrant fait terminateur, un `"` y est du texte)
+    /// et l'échappement `\'` dans les deux sortes de chaînes — mesuré sur sa
+    /// DLL 13.0.4 le 2026-10-08. `JSONSerialization` ne lit ni l'un ni
+    /// l'autre : `'a "b"'` devient `"a \"b\""`, `\'` devient `'`. Réel :
+    /// `Condition: 'ANY "YEAR 3" …'` dans les boutiques de MoreBooks et
+    /// Button's Extra Books, `'Pathoschild.ContentPatcher_MigrateIds …'` dans
+    /// WTDR et Advanced Cask.
+    private static func stripCommentsAndSingleQuotes(_ text: String) -> String {
         let chars = Array(text.unicodeScalars)
         var out = String.UnicodeScalarView()
         out.reserveCapacity(chars.count)
-        var inString = false, escaped = false
+        // Le guillemet qui a ouvert la chaîne en cours, `nil` hors chaîne.
+        var quote: Unicode.Scalar?
         var i = 0
         while i < chars.count {
             let c = chars[i]
-            if escaped { out.append(c); escaped = false; i += 1; continue }
-            if inString {
-                if c == "\\" { escaped = true }
-                if c == "\"" { inString = false }
+            if let open = quote {
+                if c == "\\", i + 1 < chars.count {
+                    let next = chars[i + 1]
+                    if next == "'" { out.append("'") } else { out.append(c); out.append(next) }
+                    i += 2; continue
+                }
+                if c == open { quote = nil; out.append("\""); i += 1; continue }
+                if c == "\"" { out.append("\\") }        // seulement dans `'…'`
                 out.append(c); i += 1; continue
             }
-            if c == "\"" { inString = true; out.append(c); i += 1; continue }
+            if c == "\"" || c == "'" { quote = c; out.append("\""); i += 1; continue }
             if c == "/", i + 1 < chars.count {
                 if chars[i + 1] == "/" {
                     while i < chars.count, chars[i] != "\n", chars[i] != "\r" { i += 1 }
@@ -349,6 +372,75 @@ enum I18nLenientParser {
                 }
             }
             out.append(c); i += 1
+        }
+        return String(out)
+    }
+
+    /// Retire la virgule d'un élément vide de **tableau** : `[,{…}]`, `{…},,{…}`.
+    ///
+    /// Newtonsoft lit un tel élément comme `undefined` (DLL 13.0.4, mesuré le
+    /// 2026-10-08) ; le modèle qu'il remplit le reçoit nul, ce n'est pas un
+    /// patch. Le retirer évite à `JSONSerialization` de refuser le fichier, et
+    /// aux lecteurs de compter un `NSNull` comme une entrée. **Dans un objet,
+    /// Newtonsoft refuse** (`Invalid property identifier character: ,`) : la
+    /// virgule y reste, et le fichier illisible, comme pour le jeu. Réel : 7
+    /// fichiers du parc, dont `Winter25.json` de SVE et `CapeShops.json`.
+    private static func stripEmptyArrayElements(_ text: String) -> String {
+        let chars = Array(text.unicodeScalars)
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(chars.count)
+        var inString = false, escaped = false
+        var containers: [Unicode.Scalar] = []
+        var lastSignificant: Unicode.Scalar?
+        for c in chars {
+            if escaped { escaped = false; out.append(c); continue }
+            if inString {
+                if c == "\\" { escaped = true }
+                else if c == "\"" { inString = false; lastSignificant = c }
+                out.append(c); continue
+            }
+            switch c {
+            case "\"": inString = true
+            case "[", "{": containers.append(c)
+            case "]", "}": _ = containers.popLast()
+            case "," where containers.last == "[" && (lastSignificant == "[" || lastSignificant == ","):
+                continue
+            default: break
+            }
+            if !isSpace(c) { lastSignificant = c }
+            out.append(c)
+        }
+        return String(out)
+    }
+
+    /// Ajoute le zéro d'un nombre écrit sans partie entière : `.03` → `0.03`,
+    /// `-.5` → `-0.5`. Newtonsoft les lit (DLL 13.0.4, mesuré le 2026-10-08),
+    /// `JSONSerialization` non. Seulement en position de valeur — après `:`,
+    /// `[` ou `,`, signe compris. Réel : `"HarvestMaxIncreasePerFarmingLevel":
+    /// .03` dans `Crops.json` de SVE, `"Chance": .75` dans son `Fish.json`.
+    private static func addLeadingZeros(_ text: String) -> String {
+        let chars = Array(text.unicodeScalars)
+        var out = String.UnicodeScalarView()
+        out.reserveCapacity(chars.count)
+        var inString = false, escaped = false
+        // Les deux derniers scalaires significatifs (hors blancs) émis.
+        var last: Unicode.Scalar?, beforeLast: Unicode.Scalar?
+        for (i, c) in chars.enumerated() {
+            if escaped { escaped = false; out.append(c); continue }
+            if inString {
+                if c == "\\" { escaped = true }
+                else if c == "\"" { inString = false }
+                out.append(c); continue
+            }
+            if c == "\"" { inString = true }
+            if c == ".", i + 1 < chars.count, isDigit(chars[i + 1]) {
+                let opensValue: (Unicode.Scalar?) -> Bool = { $0 == ":" || $0 == "[" || $0 == "," }
+                if opensValue(last) || ((last == "-" || last == "+") && opensValue(beforeLast)) {
+                    out.append("0")
+                }
+            }
+            if !isSpace(c) { beforeLast = last; last = c }
+            out.append(c)
         }
         return String(out)
     }

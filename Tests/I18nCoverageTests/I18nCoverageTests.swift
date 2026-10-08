@@ -186,6 +186,57 @@ struct I18nLenientParserTests {
     }
 }
 
+/// Trois tolérances Newtonsoft que `JSONSerialization` n'a pas, relevées sur
+/// les 13 fichiers Content Patcher du parc qu'on ne lisait pas (A5-T5,
+/// 2026-10-08) et vérifiées sur la `Newtonsoft.Json.dll` 13.0.4 du jeu.
+struct I18nNewtonsoftToleranceTests {
+    @Test func readsASingleQuotedValueHoldingDoubleQuotes() throws {
+        // Réel : `MoreBooks/[CP] MoreBooks/Data/Shops.json`.
+        let obj = try #require(I18nLenientParser.lenientObject(
+            #"{ "Condition": 'ANY "YEAR 3" "IS_COMMUNITY_CENTER_COMPLETE"' }"#))
+        #expect(obj["Condition"] as? String == #"ANY "YEAR 3" "IS_COMMUNITY_CENTER_COMPLETE""#)
+    }
+
+    @Test func readsASingleQuotedKeyAndAnEscapedApostrophe() throws {
+        let out = try I18nLenientParser.parse(#"{ 'k': 'it\'s', "d": "don\'t" }"#)
+        #expect(out == ["k": "it's", "d": "don't"])
+    }
+
+    @Test func aSingleQuotedStringIsNotACommentAndAnApostropheInACommentIsNotAString() throws {
+        let out = try I18nLenientParser.parse("{\n // don't\n 'u': 'https://x.y'\n}")
+        #expect(out == ["u": "https://x.y"])
+    }
+
+    @Test func readsANumberWithoutIntegerPart() throws {
+        // Réel : SVE `code/Items/Crops.json`, `code/other/Fish.json`.
+        let obj = try #require(I18nLenientParser.lenientObject(
+            #"{ "a": .03, "b": [-.5, .75], "c": "keep .5 here" }"#))
+        #expect((obj["a"] as? NSNumber)?.doubleValue == 0.03)
+        #expect((obj["b"] as? [NSNumber])?.map(\.doubleValue) == [-0.5, 0.75])
+        #expect(obj["c"] as? String == "keep .5 here")
+    }
+
+    @Test func dropsAnEmptyArrayElement() throws {
+        // Réel : SVE `Festivals/Winter25.json` (`},\n,\n{`), `CapeShops.json`
+        // (`[\n,\n{`). Newtonsoft y lit `undefined`, pas un patch.
+        let obj = try #require(I18nLenientParser.lenientObject(
+            "{ \"Changes\": [\n,\n{\"a\":1},,\n{\"b\":2},,] }"))
+        let changes = try #require(obj["Changes"] as? [Any])
+        #expect(changes.count == 2)
+        #expect(changes.allSatisfy { $0 is [String: Any] })
+    }
+
+    @Test func anEmptyObjectMemberStaysUnreadableLikeInTheGame() {
+        // Newtonsoft : « Invalid property identifier character: , ».
+        #expect(I18nLenientParser.lenientObject(#"{ "a": 1,, "b": 2 }"#) == nil)
+        #expect(I18nLenientParser.lenientObject(#"{ "s": "a,,b", "t": "[,]" }"#)?.count == 2)
+    }
+
+    @Test func singleQuotesAreAcceptedBySmapi() {
+        #expect(I18nLenientParser.smapiAccepts(#"{ "a": 'v "w"', "b": "x\'y" }"#))
+    }
+}
+
 /// Une clé écrite deux fois dans le même fichier : le jeu retient la **dernière**
 /// valeur, nous retenions la première.
 ///
