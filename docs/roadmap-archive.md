@@ -5902,6 +5902,41 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       - **`EditImage` : 0 recouvrement `Replace` inconditionnel entre mods
         actifs** (329 tous sous `When`) — l'avertissement de composition tient.
 
+- [x] **A5-T6** — **Dépendances cachées sur le code d'un autre mod.** *(Livré le 2026-10-08 : `HiddenCodeDependencies` (Core) + `HiddenCodeDependencyIndex` ; fiche = liens **non déclarés** seulement, onglet Dépendances ; aperçu de mise à jour = citants **actifs** seulement, déclarés ou non ; références mortes non affichées. Vérification à l'écran par l'auteur en attente.)* Lire les
+      chaînes littérales du tas `#US` de chaque `EntryDll` (Swift pur, pas de .NET)
+      et relever celles qui nomment un type interne d'un autre mod du parc. Deux
+      usages : sur la fiche, « touche au code interne de Content Patcher,
+      SpaceCore… » ; et **à la mise à jour** d'un mod ciblé, prévenir que les mods
+      qui le visent peuvent perdre une fonction — Stardropium, par exemple, éteint
+      alors son module sans rien journaliser. La signature de scan inclut la date
+      de la DLL (même raison qu'A5-T4). · **M**
+
+      **Mesuré le 2026-10-08 — l'heuristique « racine du nom = nom de DLL » est
+      abandonnée**, fausse dans les deux sens : 118 chaînes qu'aucun type ne
+      confirme (102 identifiants d'objets, clés `modData`, noms de fichiers —
+      `ValleyBonds.IsekaiBonds_RiftEel`, `ChestsAnywhere.pdb`), et 95 chaînes
+      exactes manquées — tout `Pathoschild.Stardew.*`, `Leclair.Stardew.*`,
+      `DaLion.*`, dont la racine n'est le nom d'aucune DLL. **Règle retenue** :
+      une chaîne compte si, coupée avant `:` (méthode) et `,` (assembly), elle
+      est le nom complet (`+` pour l'imbrication) d'un `TypeDef` de l'`EntryDll`
+      d'**un seul** autre mod, que le citant ne définit pas lui-même. Les 5
+      chaînes de code source partagé (`Pathoschild.Stardew.Common.*`,
+      `SpaceShared.*`, compilé dans 3 à 10 mods) tombent ainsi. Relu dans le C#
+      décompilé, un cas par cible (69) : **tous** sont des recherches par
+      réflexion (`AccessTools.TypeByName`/`Method("T:M")`, `Assembly.GetType`,
+      `Type.GetType`, `TryGetType`, `FullName ==`), aucun faux positif ;
+      `Cropgenics` → `bubuge.*` est réel (`TypeByName(…CheckoutRun) ?? throw`).
+      **Références déjà mortes** (forme de type, aucun `TypeDef` sur le parc) :
+      11 sont des replis `A ?? B` dont l'autre nom se résout ; **5 visent un
+      type absent de la version installée** — Stardropium
+      (`DynamicReflections.ModEntry`, `FarmTypeManager.FarmConfig`), Tractor Mod
+      et Chargeable (`FullName == "FarmTypeManager.LargeResourceClump"`), Better
+      Crafting, actif (branche `SpaceCore.CustomCraftingRecipe+ObjectIngredientMatcher`
+      jamais prise). C'est la cassure qu'A5-T6 veut annoncer, déjà là sans mise
+      à jour — mais un repli `A ?? B` ne se distingue d'une référence morte
+      qu'à la lecture du code. Les `[HarmonyPatch("…")]` en chaîne (tas `#Blob`)
+      des 50 DLL relues ne nomment que des méthodes : `#US` suffit sur ce parc.
+
 - [x] **A1-T2** — **Détecter un `manifest.json` illisible et proposer la
       réparation** : restauration depuis backup, sinon réinstallation Nexus.
       · **M** · *mesuré le 2026-10-02 : zéro manifeste illisible sur le parc
