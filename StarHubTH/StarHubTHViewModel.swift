@@ -426,7 +426,9 @@ final class StarHubTHViewModel {
     /// Couverture FR par `folderName`, absente tant que non calculée. `Coverage`
     /// entière : la fiche dit **ce qui** manque, dont les vides qui cassent
     /// l'affichage en jeu.
-    private(set) var frenchCoverageByMod: [String: TranslationCoverage.Coverage] = [:]
+    var frenchCoverageByMod: [String: TranslationCoverage.Coverage] { frenchCoverage.coverage }
+    /// Couverture, mods à revoir et tampons de mesure (F6-T1), un seul état.
+    private(set) var frenchCoverage = FrenchCoveragePass.State()
 
     /// Index des clés obsolètes, relu après chaque diff (évite un fichier par
     /// ligne).
@@ -434,7 +436,7 @@ final class StarHubTHViewModel {
 
     /// Mods dont l'anglais est plus récent que le FR, mesuré au scan (deux
     /// lectures d'attributs par `i18n`).
-    private(set) var staleTranslationMods: Set<String> = []
+    var staleTranslationMods: Set<String> { frenchCoverage.stale }
 
     /// `@MainActor` explicite : la reprise après `await` d'une tâche détachée
     /// ne revient pas seule sur main (voir `scanMods()`).
@@ -467,7 +469,7 @@ final class StarHubTHViewModel {
         let snapshot = FrenchCoveragePass.targets(in: mods,
                                                   known: Set(frenchCoverageByMod.keys))
         guard !snapshot.isEmpty else { return }
-
+        let stamp = frenchCoverage.tick()
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
             var batch: [String: TranslationCoverage.Coverage] = [:]
@@ -487,25 +489,21 @@ final class StarHubTHViewModel {
                     let publishedStale = staleBatch
                     batch.removeAll(keepingCapacity: true)
                     staleBatch.removeAll(keepingCapacity: true)
-                    await self?.mergeFrenchCoverage(published, stale: publishedStale)
+                    await self?.mergeFrenchCoverage(published, stale: publishedStale, stamp: stamp)
                 }
             }
             if Task.isCancelled { return }
-            await self?.mergeFrenchCoverage(batch, stale: staleBatch)
+            await self?.mergeFrenchCoverage(batch, stale: staleBatch, stamp: stamp)
         }
     }
 
     @MainActor
     private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage],
-                                     stale: Set<String>) {
-        // Garde de génération non câblée à dessein (F6-T1) — voir
-        // `FrenchCoveragePass.merging`.
-        guard let next = FrenchCoveragePass.merging(
-            batch, stale: stale,
-            into: .init(coverage: frenchCoverageByMod, stale: staleTranslationMods))
-        else { return }
-        frenchCoverageByMod = next.coverage
-        staleTranslationMods = next.stale
+                                     stale: Set<String>, stamp: Int) {
+        // F6-T1 : une mesure plus ancienne que la dernière posée tombe, par mod.
+        guard let next = FrenchCoveragePass.merging(batch, stale: stale, into: frenchCoverage,
+                                                    stamp: stamp) else { return }
+        frenchCoverage = next
     }
 
     /// Le taux à afficher sur la pastille de la liste, si mesuré.
@@ -1155,6 +1153,7 @@ final class StarHubTHViewModel {
             let root = gameDir
             let folderName = mod.folderName
             let physicalFolderName = mod.physicalFolderName
+            let stamp = frenchCoverage.tick()
             Task.detached(priority: .utility) { [weak self] in
                 let directory = URL(fileURLWithPath: (root as NSString)
                     .appendingPathComponent("Mods"))
@@ -1169,7 +1168,7 @@ final class StarHubTHViewModel {
                 let isStale = TranslationFreshness.staleness(forModAt: directory,
                                                               locale: locale) != nil
                 await self?.mergeFrenchCoverage([folderName: coverage],
-                                                stale: isStale ? [folderName] : [])
+                                                stale: isStale ? [folderName] : [], stamp: stamp)
             }
 
             log("Traduction enregistrée : \(mod.name) — \(row.key)", level: .info)
@@ -1217,8 +1216,7 @@ final class StarHubTHViewModel {
         if let store = TranslationBaseline.defaultDirectory() {
             try? TranslationBaseline.removeFromIndex(modFolderName: folderName, in: store)
         }
-        frenchCoverageByMod.removeValue(forKey: folderName)
-        staleTranslationMods.remove(folderName)
+        frenchCoverage.invalidate(folderName)
         outdatedKeysByMod.removeValue(forKey: folderName)
         // Store des profils indexé par identifiant, pas par dossier.
         if let uniqueId = mods.flattenedMods.first(where: { $0.folderName == folderName })?.uniqueId,

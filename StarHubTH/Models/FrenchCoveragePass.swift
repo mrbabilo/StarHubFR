@@ -66,11 +66,30 @@ enum FrenchCoveragePass {
     struct State: Equatable {
         var coverage: [String: TranslationCoverage.Coverage]
         var stale: Set<String>
+        /// F6-T1 — le tampon de la dernière mesure posée (ou de la dernière
+        /// invalidation) de chaque mod : une mesure plus ancienne n'y entre plus.
+        fileprivate(set) var stamps: [String: Int] = [:]
+        private(set) var clock = 0
 
         init(coverage: [String: TranslationCoverage.Coverage] = [:],
              stale: Set<String> = []) {
             self.coverage = coverage
             self.stale = stale
+        }
+
+        /// Le tampon d'une mesure qui commence — passe complète ou re-mesure
+        /// ciblée. Pris **avant** de lire les fichiers.
+        mutating func tick() -> Int {
+            clock += 1
+            return clock
+        }
+
+        /// Oublie un mod dont les fichiers ont pu changer ; un lot lu avant
+        /// l'oubli ne le ressuscite pas avec les chiffres d'avant.
+        mutating func invalidate(_ key: String) {
+            coverage.removeValue(forKey: key)
+            stale.remove(key)
+            stamps[key] = tick()
         }
     }
 
@@ -78,41 +97,33 @@ enum FrenchCoveragePass {
     ///
     /// - Parameter batch: les couvertures mesurées, par nom logique.
     /// - Parameter stale: ceux du lot dont l'anglais est plus récent.
-    /// - Parameter generation: la génération de la passe qui a produit ce lot.
-    /// - Parameter current: la génération en cours.
+    /// - Parameter stamp: le tampon (`State.tick()`) pris au début de la
+    ///   mesure qui a produit ce lot.
     /// - Returns: le nouvel état, ou `nil` quand rien ne s'applique — lot vide,
-    ///   ou lot périmé.
+    ///   ou entièrement plus ancien que ce qui est posé.
     ///
-    /// **La garde de génération est la réponse à F6-T1.** Le `cancel()` d'un
-    /// recalcul n'interrompt pas une fusion déjà engagée : un lot de ≤ 25
-    /// mesures de la génération précédente peut atterrir après le recalcul
-    /// suivant. C'est bénin tant que le contenu des fichiers ne change pas
-    /// entre les deux — les mesures sont alors identiques, ce qui est le cas
-    /// aujourd'hui — et cela devient réel le jour de la re-mesure ciblée d'un
-    /// seul mod.
-    ///
-    /// ⚠️ **L'appelant n'a aujourd'hui qu'une génération**, et la ROADMAP dit de
-    /// ne pas corriger F6-T1 isolément faute d'observable. Ce paramètre *est*
-    /// l'observable : la course s'exprime ici dans un test — deux générations,
-    /// arrivée dans le désordre, lot périmé écarté — sans que le comportement
-    /// livré change d'un iota. Câbler un compteur dans le chemin vivant reste
-    /// à faire, avec la re-mesure ciblée qui lui donnera un sens.
+    /// **F6-T1.** Le `cancel()` d'un recalcul n'interrompt pas une fusion déjà
+    /// engagée, et une re-mesure ciblée (traduction enregistrée) ou une
+    /// invalidation (mise à jour du mod) peut passer entre la lecture d'un lot
+    /// et sa fusion. La garde est **par mod** : seules les entrées plus
+    /// anciennes que la dernière posée tombent, le reste du lot s'applique —
+    /// une garde par passe jetterait des mesures que rien n'a remplacées.
     static func merging(_ batch: [String: TranslationCoverage.Coverage],
                         stale: Set<String>,
                         into current: State,
-                        generation: Int = 0,
-                        currentGeneration: Int = 0) -> State? {
-        guard generation >= currentGeneration else { return nil }
-        guard !batch.isEmpty || !stale.isEmpty else { return nil }
+                        stamp: Int) -> State? {
+        let isFresh = { (key: String) in stamp >= current.stamps[key, default: .min] }
+        let fresh = batch.filter { isFresh($0.key) }
+        let freshStale = stale.filter(isFresh)
+        guard !fresh.isEmpty || !freshStale.isEmpty else { return nil }
         var next = current
-        next.coverage.merge(batch) { _, new in new }
+        next.coverage.merge(fresh) { _, new in new }
         // Un mod du lot qui n'y est plus signalé a cessé d'être suspect — le
         // retirer d'abord laisse `formUnion` ne faire grandir l'ensemble que de
-        // ce que ce lot confirme. Latent aujourd'hui, le balayage étant
-        // incrémental (chaque mod n'est mesuré qu'une fois) ; nécessaire dès
-        // qu'une re-mesure ciblée existera.
-        next.stale.subtract(batch.keys)
-        next.stale.formUnion(stale)
+        // ce que ce lot confirme. Réel depuis la re-mesure ciblée.
+        next.stale.subtract(fresh.keys)
+        next.stale.formUnion(freshStale)
+        for key in Set(fresh.keys).union(freshStale) { next.stamps[key] = stamp }
         return next
     }
 }

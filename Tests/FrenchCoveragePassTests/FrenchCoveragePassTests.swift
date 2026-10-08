@@ -68,17 +68,17 @@ struct FrenchCoveragePassTests {
 
     @Test func aBatchLandsInTheState() {
         let next = FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
-                                              stale: [], into: .init())
+                                              stale: [], into: .init(), stamp: 1)
         #expect(next?.coverage["Automate"]?.displayPercent == 40)
     }
 
     @Test func anEmptyBatchChangesNothing() {
         // Pas de republication à vide : chaque merge redessine la liste.
-        #expect(FrenchCoveragePass.merging([:], stale: [], into: .init()) == nil)
+        #expect(FrenchCoveragePass.merging([:], stale: [], into: .init(), stamp: 1) == nil)
     }
 
     @Test func aBatchCarryingOnlyStalenessStillApplies() {
-        let next = FrenchCoveragePass.merging([:], stale: ["Automate"], into: .init())
+        let next = FrenchCoveragePass.merging([:], stale: ["Automate"], into: .init(), stamp: 1)
         #expect(next?.stale == ["Automate"])
     }
 
@@ -89,7 +89,7 @@ struct FrenchCoveragePassTests {
         // casser de visible.
         let before = FrenchCoveragePass.State(coverage: [:], stale: ["Automate"])
         let next = FrenchCoveragePass.merging(["Automate": coverage(100, of: 100)],
-                                              stale: [], into: before)
+                                              stale: [], into: before, stamp: 1)
         #expect(next?.stale.isEmpty == true)
     }
 
@@ -98,44 +98,74 @@ struct FrenchCoveragePassTests {
         // lot a réexaminé. L'élargir viderait l'ensemble à chaque paquet de 25.
         let before = FrenchCoveragePass.State(coverage: [:], stale: ["Ailleurs"])
         let next = FrenchCoveragePass.merging(["Automate": coverage(100, of: 100)],
-                                              stale: [], into: before)
+                                              stale: [], into: before, stamp: 1)
         #expect(next?.stale == ["Ailleurs"])
     }
 
     @Test func aLaterMeasureOfTheSameModWins() {
         let before = FrenchCoveragePass.State(coverage: ["Automate": coverage(40, of: 100)])
         let next = FrenchCoveragePass.merging(["Automate": coverage(90, of: 100)],
-                                              stale: [], into: before)
+                                              stale: [], into: before, stamp: 1)
         #expect(next?.coverage["Automate"]?.displayPercent == 90)
     }
 
-    // MARK: - F6-T1 : la course à l'annulation, rendue observable
+    // MARK: - F6-T1 : une mesure plus ancienne n'écrase jamais une plus récente
 
-    @Test func aBatchFromASupersededPassIsDropped() {
-        // F6-T1. Le `cancel()` d'un recalcul n'interrompt pas une fusion déjà
-        // engagée : un lot de ≤ 25 mesures de la génération précédente peut
-        // atterrir après le recalcul suivant. Bénin tant que les fichiers ne
-        // changent pas entre les deux ; réel le jour de la re-mesure ciblée.
-        let before = FrenchCoveragePass.State(coverage: ["Automate": coverage(90, of: 100)])
-        let next = FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
-                                              stale: [], into: before,
-                                              generation: 0, currentGeneration: 1)
-        #expect(next == nil)
+    /// Le cas réel depuis la re-mesure ciblée : la passe complète (tampon 1)
+    /// a lu `Automate` avant que l'utilisateur n'enregistre une traduction ;
+    /// la re-mesure ciblée (tampon 2) a posé 90 %. Le lot de la passe arrive
+    /// après — il ne doit pas ramener 40 %.
+    @Test func anOlderMeasureDoesNotOverwriteANewerOne() throws {
+        var state = FrenchCoveragePass.State()
+        let pass = state.tick()
+        let targeted = state.tick()
+        state = try #require(FrenchCoveragePass.merging(["Automate": coverage(90, of: 100)],
+                                                        stale: [], into: state, stamp: targeted))
+        let late = FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
+                                              stale: ["Automate"], into: state, stamp: pass)
+        #expect(late == nil)
     }
 
-    @Test func aBatchFromTheCurrentPassApplies() {
-        let next = FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
-                                              stale: [], into: .init(),
-                                              generation: 1, currentGeneration: 1)
-        #expect(next?.coverage["Automate"] != nil)
+    /// Le voisin qui doit passer : le lot en retard porte aussi des mods que
+    /// rien n'a remesurés depuis. Jeter tout le lot (garde par génération)
+    /// les laisserait non mesurés jusqu'au prochain scan.
+    @Test func theRestOfALateBatchStillApplies() throws {
+        var state = FrenchCoveragePass.State()
+        let pass = state.tick()
+        state = try #require(FrenchCoveragePass.merging(["Automate": coverage(90, of: 100)],
+                                                        stale: [], into: state, stamp: state.tick()))
+        let next = try #require(FrenchCoveragePass.merging(
+            ["Automate": coverage(40, of: 100), "Lookup Anything": coverage(70, of: 100)],
+            stale: [], into: state, stamp: pass))
+        #expect(next.coverage["Automate"]?.displayPercent == 90)
+        #expect(next.coverage["Lookup Anything"]?.displayPercent == 70)
     }
 
-    @Test func theDefaultGenerationIsAlwaysCurrent() {
-        // L'appelant d'aujourd'hui ne compte pas les générations : sans
-        // paramètre, la garde doit être inerte. La câbler serait corriger F6-T1
-        // isolément, ce que la ROADMAP demande de ne pas faire.
+    /// Une mise à jour du mod invalide sa couverture ; un lot lu avant elle
+    /// ne doit pas la ressusciter avec les chiffres de l'ancienne version.
+    @Test func anInvalidatedModIsNotRevivedByAnOlderBatch() throws {
+        var state = FrenchCoveragePass.State()
+        let pass = state.tick()
+        state = try #require(FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
+                                                        stale: ["Automate"], into: state, stamp: pass))
+        state.invalidate("Automate")
+        #expect(state.coverage["Automate"] == nil)
+        #expect(state.stale.isEmpty)
         #expect(FrenchCoveragePass.merging(["Automate": coverage(40, of: 100)],
-                                           stale: [], into: .init()) != nil)
+                                           stale: [], into: state, stamp: pass) == nil)
+        // La mesure suivante, elle, s'applique.
+        #expect(FrenchCoveragePass.merging(["Automate": coverage(80, of: 100)],
+                                           stale: [], into: state, stamp: state.tick()) != nil)
+    }
+
+    /// Plusieurs lots d'une même passe portent le même tampon : tous passent.
+    @Test func batchesOfOnePassShareTheirStamp() throws {
+        var state = FrenchCoveragePass.State()
+        let pass = state.tick()
+        state = try #require(FrenchCoveragePass.merging(["A": coverage(1, of: 2)], stale: [],
+                                                        into: state, stamp: pass))
+        #expect(FrenchCoveragePass.merging(["A": coverage(2, of: 2)], stale: [],
+                                           into: state, stamp: pass)?.coverage["A"]?.displayPercent == 100)
     }
 
     // MARK: - Passe des profils : les mêmes gestes, d'autres règles

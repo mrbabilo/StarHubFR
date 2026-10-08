@@ -1228,38 +1228,6 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       v1.35.0/v1.35.1 ; tous prouvés sur le parc réel. Reste de l'audit global : `Views/`,
       `Extensions/`, `AppDesignCore`, puis les phases 2-5 du brief (clients réseau
       restants, persistance, `Tests/`, configuration de build).
-  - [ ] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
-        ✅ **Rendue observable le 2026-09-10** (point 3 du §5 de `REFACTORING.md`) :
-        `FrenchCoveragePass.merging` prend une génération, et un test décrit la course
-        — lot de la passe précédente arrivé après le recalcul suivant, écarté. **Le
-        défaut n'est pas corrigé pour autant** : le chemin livré ne compte toujours
-        qu'une génération, le paramètre y est inerte. Ce qui manquait à cet item pour
-        être traitable — un observable — existe désormais ; le reste vaut toujours.
-        La garde à câbler est écrite et testée, il n'y a plus qu'à l'appeler.
-        (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
-        `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
-        génération précédente peut atterrir après le recalcul de la génération suivante.
-        Bénin tant que le contenu des fichiers ne change pas entre les deux (mesures
-        identiques — c'est le cas aujourd'hui) ; devient réel le jour de la re-mesure
-        ciblée d'un seul mod, cas que le commentaire du code (~L.530) anticipe déjà.
-        **Ne pas corriger isolément maintenant** — aucun observable aujourd'hui. Quand la
-        re-mesure ciblée arrivera : poser une garde de génération (compteur incrémenté à
-        chaque recalcul, merge ignoré si sa génération est dépassée).
-  - [x] **F6-T2** — **`fetchModDetailRemote` suppose une complétion exactement une fois.**
-        (`StarHubTHViewModel.swift:245`) Les deux appels imbriqués
-        (`NexusUpdateChecker.fetchRawDescription` puis `fetchChangelogs`) ne posent
-        aucune garde : si l'un appelle sa complétion zéro fois (erreur avalée, réessai
-        interne) la fiche reste `isLoading` à vie ; deux fois, la complétion se rejoue.
-        **Clos le 2026-09-03, vérifié à la lecture** (audit tranche ③) : chaque
-        complétion de `NexusUpdateChecker` est appelée **exactement une fois** sur
-        tous les chemins — un `dataTask` URLSession ne rend son rappel qu'une fois
-        (annulation comprise, traduite en échec), `fetchRawDescription` et
-        `fetchChangelogs` n'ont qu'une sortie par branche, et le cas le plus subtil
-        (`fetchModInfo`, requête secondaire `files.json` imbriquée) passe par un
-        `finalize` appelé exactement une fois sur chacune de ses deux sorties.
-        Seule échappatoire théorique : `fetchSingleMod` rend sans complétion si
-        `self` a disparu en vol — singleton éternel, indéallocable. L'hypothèse
-        tient ; rien à blinder.
   - [ ] **F6-T4** — **`AffirmedUpdates.rows` apparie l'`UniqueID` en respectant la
         casse.** · **S** Seul appariement d'`UniqueID` du dépôt à le faire — partout
         ailleurs la comparaison est insensible à la casse. Mais **tout le sous-système
@@ -1375,7 +1343,7 @@ corrompre ou faire disparaître quelque chose sans le dire ?* — et non à
 **P3 — latent : la condition est vraie, zéro exemplaire sur le parc**
 
 ~~`F4`~~ ✅ (clos le 2026-10-07, non reproduit),
-`F6-T1` (course à l'annulation, sans observable), ~~`F6-T3`~~ ✅ (livré le
+~~`F6-T1`~~ ✅ (livré le 2026-10-08), ~~`F6-T3`~~ ✅ (livré le
 2026-10-08). Vérifiés un par un : tous encore exacts, aucun ne se manifeste.
 À traiter quand on passe à côté, pas pour eux-mêmes.
 
@@ -2214,6 +2182,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **F5-T2** | 2026-09-10 | Identité `com.mrbabilo.StarHubFR` + schéma `nxm` ; 45 clés UserDefaults recopiées jamais écrasées, Trousseau basculé avec lecture de secours sur l'ancien service |
 | **F7** | 2026-09-09 | `currentTab` de `String` à `SidebarDestination` (Core, 15 cas), `MainView` switche sans `default:` — une 16ᵉ destination sans page casse le build |
 | **F4** | 2026-10-07 | Clos non reproduit : l'en-tête de pack n'est jamais indexé ; garde structurelle, `DependencyIndex.build` n'indexe plus la clé vide |
+| **F6-T1** | 2026-10-08 | Une mesure de couverture FR plus ancienne n'écrase plus une plus récente (re-mesure ciblée, invalidation après mise à jour) : tampon par mod dans `FrenchCoveragePass.State` |
 | **F6-T3** | 2026-10-08 | Un seul lecteur du journal SMAPI : les alertes du volet santé passent par `SmapiLogParser` (`header(of:)`, `smapiErrors`), scanner du ViewModel retiré |
 | **F8** | 2026-10-06 | L'échec du gate L10n nomme le fichier JSON, la ligne et la colonne, sans pile Python |
 

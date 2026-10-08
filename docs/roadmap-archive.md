@@ -6434,6 +6434,50 @@ sans lire une ligne de log.
 
 ### Dette technique — §7
 
+  - [x] **F6-T1** — **Course à l'annulation dans `recomputeFrenchCoverage`.** · **S**
+        ✅ **Rendue observable le 2026-09-10** (point 3 du §5 de `REFACTORING.md`) :
+        `FrenchCoveragePass.merging` prend une génération, et un test décrit la course
+        — lot de la passe précédente arrivé après le recalcul suivant, écarté. **Le
+        défaut n'est pas corrigé pour autant** : le chemin livré ne compte toujours
+        qu'une génération, le paramètre y est inerte. Ce qui manquait à cet item pour
+        être traitable — un observable — existe désormais ; le reste vaut toujours.
+        La garde à câbler est écrite et testée, il n'y a plus qu'à l'appeler.
+        (`StarHubTHViewModel.swift:473`) Le `cancel()` d'un recalcul n'interrompt pas un
+        `await mergeFrenchCoverage(…)` déjà engagé : un lot de ≤ 25 mesures de la
+        génération précédente peut atterrir après le recalcul de la génération suivante.
+        Bénin tant que le contenu des fichiers ne change pas entre les deux (mesures
+        identiques — c'est le cas aujourd'hui) ; devient réel le jour de la re-mesure
+        ciblée d'un seul mod, cas que le commentaire du code (~L.530) anticipe déjà.
+        **Ne pas corriger isolément maintenant** — aucun observable aujourd'hui. Quand la
+        re-mesure ciblée arrivera : poser une garde de génération (compteur incrémenté à
+        chaque recalcul, merge ignoré si sa génération est dépassée).
+  - [x] **F6-T2** — **`fetchModDetailRemote` suppose une complétion exactement une fois.**
+        (`StarHubTHViewModel.swift:245`) Les deux appels imbriqués
+        (`NexusUpdateChecker.fetchRawDescription` puis `fetchChangelogs`) ne posent
+        aucune garde : si l'un appelle sa complétion zéro fois (erreur avalée, réessai
+        interne) la fiche reste `isLoading` à vie ; deux fois, la complétion se rejoue.
+        **Clos le 2026-09-03, vérifié à la lecture** (audit tranche ③) : chaque
+        complétion de `NexusUpdateChecker` est appelée **exactement une fois** sur
+        tous les chemins — un `dataTask` URLSession ne rend son rappel qu'une fois
+        (annulation comprise, traduite en échec), `fetchRawDescription` et
+        `fetchChangelogs` n'ont qu'une sortie par branche, et le cas le plus subtil
+        (`fetchModInfo`, requête secondaire `files.json` imbriquée) passe par un
+        `finalize` appelé exactement une fois sur chacune de ses deux sorties.
+        Seule échappatoire théorique : `fetchSingleMod` rend sans complétion si
+        `self` a disparu en vol — singleton éternel, indéallocable. L'hypothèse
+        tient ; rien à blinder.
+        ✅ *Livré le 2026-10-08* : l'observable existait — la re-mesure ciblée
+        après une traduction enregistrée (`mergeFrenchCoverage` d'un seul mod).
+        Garde **par mod**, pas par génération : `FrenchCoveragePass.State`
+        porte une horloge et le tampon de la dernière mesure posée de chaque
+        mod ; `merging(…, stamp:)` écarte les seules entrées plus anciennes,
+        le reste du lot s'applique (une garde par passe jetterait des mesures
+        que rien n'a remplacées). `invalidate(_:)` avance le tampon : un lot
+        lu avant une mise à jour du mod ne ressuscite plus l'ancienne
+        couverture — seconde course trouvée au passage. Un seul état stocké
+        au ViewModel au lieu de deux. 4 tests neufs, prouvés par sabotage
+        (garde forcée vraie : 3 rouges).
+
   - [x] **F6-T3** — **Deux parseurs du même journal SMAPI.** *(tranche ④,
         2026-09-03)* `smapiErrors` est extrait par un scanner inline du
         ViewModel (~L.3142 : chirurgie de chaînes sur « ERROR SMAPI] », drapeau
