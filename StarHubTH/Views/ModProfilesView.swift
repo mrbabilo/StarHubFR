@@ -198,6 +198,9 @@ struct ModProfilesView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, AppDesign.Spacing.lg)
                 }
+                ActivationHistorySection(viewModel: vm, localization: localization) // R5
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, AppDesign.Spacing.lg)
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))

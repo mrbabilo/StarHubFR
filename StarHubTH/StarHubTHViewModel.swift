@@ -2208,6 +2208,7 @@ final class StarHubTHViewModel {
     /// intercepte la pause dans `performToggle` et relance au confirm.
     let saveFingerprintPauseStore = SaveFingerprintPauseStore()
     let bulkConflictGate = BulkConflictGateStore() // A5-T8, gestes groupés
+    let activationHistory = ActivationHistoryStore(directory: AppSupport.directory) // R5
 
     /// Bulk enable/disable progress `(done, total)`, nil when idle.
     var bulkToggleProgress: (done: Int, total: Int)? = nil
@@ -6426,6 +6427,7 @@ final class StarHubTHViewModel {
 
             // If this is the active profile, apply the new mod selection to the filesystem
             if activeProfileId == id, let updated = profilesStore.profile(with: id) {
+                activationHistory.record(.profile, detail: newName, mods: mods, activeProfileId: id) // R5
                 applyProfileToFilesystem(profile: updated)
             }
         }
@@ -6862,6 +6864,7 @@ final class StarHubTHViewModel {
             if !conflictChecked, bulkConflictGate.suspendIfNeeded(
                 applying: profile, mods: mods, verdicts: modConflictVerdicts, candidates: conflictCandidates,
                 resume: { [weak self] in self?.applyProfile(id: id, fingerprintChecked: true, conflictChecked: true) }) { return }
+            activationHistory.record(.profile, detail: profile.name, mods: mods, activeProfileId: activeProfileId) // R5
             // Capture AVANT tout : seule fenêtre où les réglages du sortant existent.
             if let capturing { captureProfileConfigs(for: capturing) }
             if let clearingJournalNamed {
@@ -7178,13 +7181,8 @@ final class StarHubTHViewModel {
             mods: mods, verdicts: modConflictVerdicts, candidates: conflictCandidates,
             enabling: modsToMove.map(\.folderName), subject: .mods(count: modsToMove.count),
             resume: { [weak self] in self?.toggleMods(candidates, enable: true, conflictChecked: true) }) { return }
-        let total = modsToMove.count
-        bulkToggleEnabling = enable
-        bulkToggleProgress = (done: 0, total: total)
-
-        let gameDir = self.gameDir
-        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-
+        activationHistory.record(enable ? .bulkEnable : .bulkDisable, detail: "\(modsToMove.count)",
+                                 mods: mods, activeProfileId: activeProfileId) // R5
         // Moves depuis l'instantané (même primitive que le plan de profil).
         let moves = modsToMove.map { mod in
             ProfileApplyPlan.Move(
@@ -7194,6 +7192,59 @@ final class StarHubTHViewModel {
                 destination: enable ? mod.folderName : "." + mod.folderName,
                 direction: enable ? .enable : .disable)
         }
+        executeBulkMoves(moves, enabling: enable) { [weak self] moved in
+            guard let self else { return "" }
+            return String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount)
+                                         : self.localization.L(L10n.Mods.disabledAllCount), moved)
+        }
+    }
+
+    /// R5 — ramène `Mods/` à un instantané d'avant un geste de masse. Mêmes
+    /// portes que `toggleMods` : empreintes avant toute pause (A1-T9), paires
+    /// en conflit avant toute activation (A5-T8). Le retour pose son propre
+    /// instantané : il se défait comme le reste. Sous un autre profil que
+    /// celui de l'instantané, le profil est quitté (configs capturées) : il
+    /// adopterait sinon cet état comme le sien.
+    @MainActor func restoreActivation(_ snapshot: ActivationSnapshot, fingerprintChecked: Bool = false,
+                                      conflictChecked: Bool = false) {
+        if refuseDuringBenchmark() { return }
+        guard _bisection?.state == nil, !isApplyingProfile, bulkToggleProgress == nil, !isToggling,
+              pendingToggles.isEmpty, !saveFingerprintPauseStore.isBusy, !bulkConflictGate.isBusy else { return }
+        let moves = ActivationRestore.moves(to: snapshot, installed: mods)
+        guard !moves.isEmpty else { return log(localization.L(L10n.ActivationHistory.nothingToRestore)) }
+        let pausing = moves.filter { $0.direction == .disable }
+        let pausedIDs = mods.uniqueIds(inTopFolders: Set(pausing.map(\.folderName)))
+        if !fingerprintChecked, !pausedIDs.isEmpty {
+            return saveFingerprintPauseStore.checkBeforePause(
+                subject: .mods(count: pausing.count), modIDs: pausedIDs,
+                resume: { [weak self] in self?.restoreActivation(snapshot, fingerprintChecked: true) },
+                abort: {})
+        }
+        if !conflictChecked, bulkConflictGate.suspendIfNeeded(
+            mods: mods, verdicts: modConflictVerdicts, candidates: conflictCandidates,
+            enabling: moves.filter { $0.direction == .enable }.map(\.folderName),
+            disabling: pausing.map(\.folderName), subject: .mods(count: moves.count),
+            resume: { [weak self] in self?.restoreActivation(snapshot, fingerprintChecked: true,
+                                                             conflictChecked: true) }) { return }
+        if let active = activeProfileId, active != snapshot.activeProfileId { applyProfile(id: nil) }
+        guard activeProfileId == nil || activeProfileId == snapshot.activeProfileId else { return } // sortie refusée
+        activationHistory.record(.restore, detail: nil, mods: mods, activeProfileId: activeProfileId)
+        executeBulkMoves(moves, enabling: pausing.isEmpty) { [weak self] moved in
+            guard let self else { return "" }
+            return String(format: self.localization.L(L10n.ActivationHistory.restoredLog), moved)
+        }
+    }
+
+    /// Exécute des renommages groupés, rescane, puis rend compte : succès au
+    /// journal, échec partiel ou total en alerte.
+    private func executeBulkMoves(_ moves: [ProfileApplyPlan.Move], enabling enable: Bool,
+                                  summary: @escaping @MainActor (Int) -> String) {
+        let total = moves.count
+        bulkToggleEnabling = enable
+        bulkToggleProgress = (done: 0, total: total)
+
+        let gameDir = self.gameDir
+        let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let events = ModFolderBulkMove.execute(moves, in: modsPath,
                                                skipMissingSource: true,
                                                progressStep: 1)
@@ -7238,14 +7289,12 @@ final class StarHubTHViewModel {
             self.bulkToggleProgress = nil
             self.syncActiveProfileIds()
             if outcome.failures.isEmpty {
-                self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
-                               movedCount))
+                self.log(summary(movedCount))
             } else if outcome.attempted == outcome.failures.count {
                 self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkToggleFailed), outcome.failures.count))
             } else {
                 self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkTogglePartial), movedCount, outcome.failures.count))
-                self.log(String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount) : self.localization.L(L10n.Mods.disabledAllCount),
-                               movedCount), level: .warning)
+                self.log(summary(movedCount), level: .warning)
             }
         }
     }

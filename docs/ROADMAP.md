@@ -1830,7 +1830,7 @@ audit outillé sans mesure sur la modlist de l'auteur ne vaut rien.
 
 ### 10.3 Six actions à pousser en roadmap
 
-> R1 (clos sans objet le 2026-10-08), R2, R3 et R6 sont à l'archive ; R4 reste ci-dessous, déjà livré sous **B3-T5**.
+> R1 (clos sans objet le 2026-10-08), R2, R3, R5 (2026-10-09) et R6 sont à l'archive ; R4 reste ci-dessous, déjà livré sous **B3-T5**.
 
 Périmètre : ce qui est **conceptuellement réutilisable** et **techniquement faisable**
 sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
@@ -1841,11 +1841,6 @@ sur macOS / SwiftUI. Les features trop spécifiques à RimWorld (Cecil analyzer,
       l'axe B avait déjà livré : `profileManagedConfigMods` existe en production
       (`UDKey.swift:52`, `StarHubTHViewModel.swift:316`), la capture se fait au profil
       sortant et la restauration au profil entrant. Voir **B3-T5** dans l'archive.
-- [ ] **R5** — **Historique append-only des actions.** Modèle RimManager : chaque
-      `apply`, `sort`, `install`, `delete` crée un snapshot, restaurable sans
-      réécrire l'historique. Pinning (étoile) protège du pruning auto à 30 j. Remplace
-      l'actuel *« annuler la dernière action »* (s'il existe) par un vrai timeline.
-      · **M** · *B3-T1+ : à concevoir avec R4 pour partager le store.*
 
 ### 10.4 Ce qu'on **n'importe PAS**
 
@@ -2220,3 +2215,4 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **R1** | 2026-10-08 | Clos sans objet : couleurs de catégorie = constantes du code, rien de persisté, aucun thème |
 | **R2** | 2026-09-06 | Écriture atomique + apply guard pour l'application de profil : garde jeu (refus net), journal write-ahead, reprise au lancement ; le « backup timestamped » de RimManager écarté — récit en archive §4 |
 | **R3** | 2026-09-07 | Snooze d'updates Nexus : 1 semaine / prochaine version du mod / prochaine version de Stardew ; expire seul, retire de la liste « updates » sans masquer |
+| **R5** | 2026-10-09 | Revenir à l'état actif/en pause d'avant un geste de masse (« Tout activer », sélection, profil) : instantanés 30 j, épinglables, retour par dossier sous les mêmes portes |

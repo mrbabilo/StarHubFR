@@ -2413,6 +2413,30 @@ enum L10n {
         static let smapiUnknownNoNote     = "mod_compat_smapi_unknown_no_note"
         static let seeHealth              = "mod_compat_see_health"
     }
+    enum ActivationHistory {
+        static let title = "activation_history_title"
+        static let subtitle = "activation_history_subtitle"
+        static let empty = "activation_history_empty"
+        static let showAll = "activation_history_show_all"
+        static let showLess = "activation_history_show_less"
+        static let gestureBulkEnable = "activation_history_gesture_bulk_enable"
+        static let gestureBulkDisable = "activation_history_gesture_bulk_disable"
+        static let gestureProfile = "activation_history_gesture_profile"
+        static let gestureRestore = "activation_history_gesture_restore"
+        static let activeCount = "activation_history_active_count"
+        static let restore = "activation_history_restore"
+        static let restoreHelp = "activation_history_restore_help"
+        static let pinHelp = "activation_history_pin_help"
+        static let unpinHelp = "activation_history_unpin_help"
+        static let confirmTitle = "activation_history_confirm_title"
+        static let confirmMessage = "activation_history_confirm_message"
+        static let leavesProfile = "activation_history_leaves_profile"
+        static let confirmButton = "activation_history_confirm_button"
+        static let nothingToRestore = "activation_history_nothing_to_restore"
+        static let restoredLog = "activation_history_restored_log"
+        static let writeFailed = "activation_history_write_failed"
+    }
+
     enum ModHistory {
         static let title            = "mod_history_title"
         static let empty            = "mod_history_empty"

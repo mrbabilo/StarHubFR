@@ -294,6 +294,7 @@ let package = Package(
                 "Models/ProfileFactory.swift",
                 "Models/ProfileDiagnostics.swift",
                 "Models/ProfileApplyPlan.swift",
+                "Models/ActivationHistory.swift",
                 "Models/ProfileActivation.swift",
                 "Models/ProfileConfigCapture.swift",
                 "Models/ProfileRecovery.swift",
@@ -391,6 +392,7 @@ let package = Package(
                 "Models/SaveFootprintEntries.swift",
                 "Models/SaveAbsentModsRemoval.swift",
                 "Stores/SaveFingerprintPauseStore.swift",
+                "Stores/ActivationHistoryStore.swift",
                 "Stores/SaveFingerprintScanCache.swift",
                 "Stores/SaveAbsentModsStore.swift",
                 "Stores/SaveCleanupStore.swift",
@@ -1044,6 +1046,11 @@ let package = Package(
             name: "BisectionSessionTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/BisectionSessionTests"
+        ),
+        .testTarget(
+            name: "ActivationHistoryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ActivationHistoryTests"
         ),
         .testTarget(
             name: "BisectionSnapshotTests",

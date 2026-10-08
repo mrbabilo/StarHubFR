@@ -296,6 +296,37 @@ touchées).
       (`find -name "*.colorset"` vide) ni thème custom. Un `paletteIndex` sans
       thème serait une abstraction spéculative.
 
+- [x] **R5** — **Historique append-only des actions.** Modèle RimManager : chaque
+      `apply`, `sort`, `install`, `delete` crée un snapshot, restaurable sans
+      réécrire l'historique. Pinning (étoile) protège du pruning auto à 30 j. Remplace
+      l'actuel *« annuler la dernière action »* (s'il existe) par un vrai timeline.
+      · **M** · *B3-T1+ : à concevoir avec R4 pour partager le store.*
+      ✅ *Livré le 2026-10-09, recadré par l'auteur* : l'inventaire a montré que
+      presque tout existait déjà, chacun avec son retour — historique par mod
+      (A1-T11), backups d'installation, corbeille et « Tout restaurer »,
+      backups de config, journal de reprise de profil (R2) ; et Stardew n'a
+      pas d'ordre de chargement à trier. **Seul manque comblé** : revenir à
+      l'état actif/en pause d'avant un geste de masse. `ActivationHistory`
+      (Core) : un instantané des dossiers de tête — actifs **et** en pause —
+      avant « Tout activer », bascule de sélection, profil appliqué ou édité
+      (actif), et avant chaque retour (qui se défait donc aussi) ; état
+      identique au précédent non repris ; 30 jours et 50 au plus, sauf
+      épinglés. `ActivationRestore.moves` : par **dossier**, pas par
+      `UniqueID` (les mods sans identifiant reviennent), un mod installé
+      depuis garde son état, les mods de SMAPI jamais mis en pause, pauses
+      d'abord. `ActivationHistoryStore` : `activation_history.json`, dossier
+      injecté, fichier illisible mis de côté (`.unreadable-<date>`), jamais
+      écrasé. Retour : mêmes portes qu'un geste de masse — empreintes avant
+      toute pause (A1-T9), paires en conflit avant toute activation (A5-T8),
+      refus pendant un benchmark, une bissection, une application de profil
+      ou une bascule. Sous un autre profil que celui de l'instantané, le
+      profil est quitté (configs capturées) : il adopterait sinon cet état
+      comme le sien ; les configurations ne reviennent pas, la confirmation
+      le dit. Écran : section « Revenir à un état d'avant » sous les profils.
+      Exemptés : la bissection et le benchmark (leur propre retour). 16 tests ;
+      sabotages 5/5 (dossier inconnu mis en pause, doublon, épingle, SMAPI,
+      fichier illisible écrasé). Vérification à l'écran par l'auteur à faire.
+
 - [x] **R2** ✅ *(livré le 2026-09-06)* — **Écriture atomique + apply guard pour
       `applyProfileToFilesystem`.** Le constat de la passe du 2026-09-04 disait
       « aucun instantané au niveau profil » ; la relecture du code en a dit plus :
