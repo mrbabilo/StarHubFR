@@ -1455,7 +1455,7 @@
 "settings_nexus_quota_hourly" = "Cette heure : %@";
 "settings_nexus_quota_never" = "Jamais mesuré";
 "settings_nexus_quota_never_hint" = "Le chiffre apparaît après le premier appel à l'API Nexus — l'ouverture de la fiche d'un mod portant un identifiant Nexus, ou un téléchargement.";
-"settings_nexus_quota_of" = "%1$@ sur %2$@";
+"settings_nexus_quota_of" = "%1$@ restantes sur %2$@";
 "settings_nexus_quota_renewed" = "Renouvelé depuis la dernière mesure";
 "settings_nexus_quota_reset" = "Remise à zéro à %@";
 "settings_nexus_save_key" = "Enregistrer";
@@ -2385,3 +2385,5 @@
 "hidden_code_update_title" = "Des mods actifs lisent son code interne";
 "hidden_code_update_line" = "%@ est lu par : %@";
 "hidden_code_update_explain" = "Ces mods cherchent ses types internes par leur nom. Si cette version les renomme, ils peuvent perdre une fonction sans message : à vérifier en jeu.";
+"updates_smapi_server_down" = "smapi.io est en panne de son côté — réessayez plus tard. Vos mods n'y sont pour rien.";
+"updates_check_failed_stale" = "Cette vérification a échoué : la liste ci-dessous date de la dernière vérification réussie.";

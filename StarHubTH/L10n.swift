@@ -1688,6 +1688,8 @@ enum L10n {
         static let nexusUpdatesCount    = "updates_nexus_updates_count"
         static let nexusError           = "updates_nexus_error"
         static let nexusRateLimited     = "updates_nexus_rate_limited"
+        static let smapiServerDown      = "updates_smapi_server_down"
+        static let checkFailedStale     = "updates_check_failed_stale"
         static let installedVersion     = "updates_installed_version"
         static let latestVersion        = "updates_latest_version"
         static let alreadyInstalledRenamed = "updates_already_installed_renamed"

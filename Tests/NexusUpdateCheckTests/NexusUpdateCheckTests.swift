@@ -176,4 +176,17 @@ struct NexusUpdateCheckTests {
         let transport = await runAndAwait(smapiResult: .failure(.transport("réseau indisponible")))
         #expect(transport.checkError == "transport(\"réseau indisponible\")")
     }
+
+    /// smapi.io en panne côté serveur (2026-10-08 : HTTP 500 sur toute requête
+    /// portant un mod, `InvalidOperationException` dans `ModsApiController`) :
+    /// nommé `server_down`, pour que l'écran dise que la faute n'est pas au
+    /// parc. Un 4xx autre que 429 reste brut : c'est notre requête.
+    @Test func serverErrorsAreNamedServerDown() async {
+        for status in [500, 502, 503] {
+            let down = await runAndAwait(smapiResult: .failure(.http(status)))
+            #expect(down.checkError == "server_down")
+        }
+        let badRequest = await runAndAwait(smapiResult: .failure(.http(400)))
+        #expect(badRequest.checkError == "http(400)")
+    }
 }

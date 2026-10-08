@@ -144,9 +144,14 @@ enum NexusUpdateCheck {
                 }
             case .failure(let failure)?:
                 resolution = .failed(failure)
-                // Le 429 est nommé : l'écran dit « limitation de débit »
-                // plutôt qu'une interpolation d'enum.
-                checkError = if case .http(429) = failure { "rate_limited" } else { "\(failure)" }
+                // Le 429 et les 5xx sont nommés : l'écran dit « limitation de
+                // débit » ou « smapi.io en panne » plutôt qu'une interpolation
+                // d'enum (500 sur toute requête le 2026-10-08).
+                checkError = switch failure {
+                case .http(429): "rate_limited"
+                case .http(500...599): "server_down"
+                default: "\(failure)"
+                }
                 journal.append(JournalLine(
                     text: "Vérification des mises à jour en échec : \(failure)",
                     level: .warning))

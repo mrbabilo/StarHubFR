@@ -102,14 +102,20 @@ struct UpdatesView: View {
                             // through to the list below instead of here — an
                             // error banner must never hide real data that was
                             // actually gathered.
-                            Text(err == "rate_limited"
-                                 ? localization.L(L10n.Updates.nexusRateLimited)
-                                 : localization.L(L10n.Updates.nexusError))
+                            Text(checkErrorText(err))
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(AppDesign.Color.error.opacity(0.8))
                         } else if vm.nexusUpdates.isEmpty {
                             nexusEmptyState
                         } else {
+                            // Échec avec une liste en cache : dire que la liste
+                            // est celle d'avant, sans la cacher (2026-10-08).
+                            if let err = vm.nexusCheckError {
+                                Text(checkErrorText(err) + " " + localization.L(L10n.Updates.checkFailedStale))
+                                    .font(AppDesign.Font.caption)
+                                    .foregroundColor(AppDesign.Color.error.opacity(0.8))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             // Summary line + list of available updates.
                             // Plus de note d'ordre : la liste est alphabétique,
                             // ce qui se voit. La note existait pour un tri par
