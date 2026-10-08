@@ -87,6 +87,21 @@ struct UnverifiableModsSection: View {
                 // et la reprise Nexus retire des lignes en cours de route.
                 ForEach(rows, id: \.uniqueId) { row in
                     HStack(spacing: 6) {
+                        // La fiche s'ouvre sur Santé : c'est là qu'on saisit
+                        // l'identifiant Nexus qui manque (2026-10-08).
+                        if let mod = viewModel.scanStore.mods.mod(withUniqueId: row.uniqueId) {
+                            Button {
+                                viewModel.navigationStore.openModDetail(folderName: mod.folderName)
+                            } label: {
+                                Image(systemName: "info.circle")
+                                    .frame(width: 18, height: 18)
+                                    .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.accentColor)
+                            .help(localization.L(L10n.Mods.openDetails))
+                            .accessibilityLabel(localization.L(L10n.Mods.openDetails) + " — " + row.name)
+                        }
                         Text(row.name)
                             .font(AppDesign.Font.footnote(.medium))
                         Text(localization.L(row.outcome?.labelKey ?? row.blocker.labelKey))

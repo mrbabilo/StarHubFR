@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Ouvrir la fiche d'un mod sans verdict.** Une icône ⓘ devant chaque mod de la liste « sans verdict » ouvre sa fiche sur l'onglet Santé, où se saisit l'identifiant Nexus qui manque.
+
 ## [1.60.0] - 2026-10-08
 
 ### Added
