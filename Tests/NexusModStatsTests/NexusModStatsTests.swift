@@ -17,6 +17,18 @@ import Testing
         #expect(stats[999_999_999] == nil)
     }
 
+    /// Réponse réelle du 2026-10-08, avec le champ `version` demandé pour le
+    /// tri de la vérification directe : 44358 garde l'en-tête 1.0.0 alors
+    /// que son fichier principal est en 1.0.1.
+    @Test func decodesTheHeaderVersion() throws {
+        let batch = #"{"data":{"legacyModsByDomain":{"nodes":[{"modId":44358,"endorsements":3,"updatedAt":"2026-04-07T09:55:13Z","version":"1.0.0"}]}}}"#
+        let stats = try #require(NexusModStats.decode(Data(batch.utf8)))
+        #expect(stats[44358]?.version == "1.0.0")
+        #expect(NexusModStats.decode(Data(Self.realBatch.utf8))?[1915]?.version == nil)
+        let body = try #require(NexusModStats.body(ids: [44358]))
+        #expect(String(decoding: body, as: UTF8.self).contains("updatedAt version"))
+    }
+
     @Test func serviceErrorsAreNotAnEmptyAnswer() {
         #expect(NexusModStats.decode(Data(#"{"errors":[{"message":"boom"}],"data":null}"#.utf8)) == nil)
         #expect(NexusModStats.decode(Data("<html>".utf8)) == nil)

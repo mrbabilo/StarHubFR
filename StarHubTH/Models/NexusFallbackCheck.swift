@@ -95,6 +95,29 @@ enum NexusFallbackCheck {
             .sorted { $0.nexusId < $1.nexusId }
     }
 
+    /// smapi.io en panne : avant la reprise complète (deux requêtes par page
+    /// sur le quota), un tri **sans clé** sur la version d'en-tête et la date
+    /// de dernière modification de chaque page (`NexusModStats`, 80 pages par
+    /// requête). Mesuré sur le parc le 2026-10-08 : 903 pages, 8 modifiées
+    /// depuis la dernière passe complète, 23 à l'en-tête plus récent — 28 à
+    /// reprendre au lieu de 903.
+    ///
+    /// Une page reste si rien ne permet de l'écarter (pas de relevé), si elle
+    /// a bougé depuis `since` — `updatedAt` suit l'envoi du dernier fichier,
+    /// même quand l'en-tête est en retard (page 44358 : en-tête 1.0.0,
+    /// fichier principal 1.0.1) —, ou si son en-tête dépasse **chaque**
+    /// version installée. Sans `since`, seul l'en-tête trie (≈ 1 % de ratés
+    /// sur un échantillon de 150 pages).
+    static func triage(_ targets: [Target], stats: [Int: NexusModStats.Entry],
+                       since: Date?) -> [Target] {
+        targets.filter { target in
+            guard let id = Int(target.nexusId), let stat = stats[id] else { return true }
+            if let since, let updated = stat.updatedAt, updated > since { return true }
+            guard let header = stat.version, !header.isEmpty else { return since == nil }
+            return target.mods.allSatisfy { NexusUpdateChecker.isNewer(header, installed: $0.installedVersion) }
+        }
+    }
+
     /// `true` quand smapi.io n'a **pas** rendu de verdict Nexus pour ce mod.
     ///
     /// Deux cas, et seulement deux :

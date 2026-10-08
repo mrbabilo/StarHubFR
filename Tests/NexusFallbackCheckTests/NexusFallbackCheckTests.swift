@@ -460,4 +460,68 @@ struct NexusFallbackCheckTests {
         let row = update("Seiz.FarmComputerTodo", installed: "1.1.5", latest: "4")
         #expect(AffirmedUpdates.isStillDue(row, anchored: "3"))
     }
+
+    // MARK: - Tri sans clé avant la reprise complète (2026-10-08)
+
+    private func target(_ id: String, versions: [String]) -> NexusFallbackCheck.Target {
+        .init(nexusId: id, mods: versions.enumerated().map { index, version in
+            blocked("\(id).\(index)", version: version, keys: ["Nexus:\(id)"], errors: ["nexus: down"])
+        })
+    }
+
+    private func stat(version: String?, updated: String?) -> NexusModStats.Entry {
+        .init(endorsements: nil, updatedAt: updated.flatMap(NexusModSearch.parseDate), version: version)
+    }
+
+    private let lastCheck = NexusModSearch.parseDate("2026-10-07T19:56:27Z")!
+
+    /// Mesuré sur le parc : la page 44358 garde l'en-tête 1.0.0 alors que
+    /// son fichier principal est en 1.0.1 — mais `updatedAt` vaut la date
+    /// d'envoi de ce fichier. Une page modifiée depuis la dernière passe
+    /// complète se revérifie, quel que soit son en-tête.
+    @Test func aPageUpdatedSinceTheLastCompleteCheckIsKept() {
+        let kept = NexusFallbackCheck.triage(
+            [target("44358", versions: ["1.0.0"])],
+            stats: [44358: stat(version: "1.0.0", updated: "2026-10-08T09:55:13Z")],
+            since: lastCheck)
+        #expect(kept.map(\.nexusId) == ["44358"])
+    }
+
+    @Test func anUntouchedPageWithTheInstalledHeaderIsDropped() {
+        let kept = NexusFallbackCheck.triage(
+            [target("1915", versions: ["2.9.1"])],
+            stats: [1915: stat(version: "2.9.1", updated: "2026-04-16T11:18:42Z")],
+            since: lastCheck)
+        #expect(kept.isEmpty)
+    }
+
+    /// L'en-tête plus récent que **chaque** version installée de la page
+    /// garde la page, même non modifiée depuis (verdict d'avant perdu).
+    @Test func aHeaderNewerThanEveryInstalledVersionIsKept() {
+        let kept = NexusFallbackCheck.triage(
+            [target("10", versions: ["1.0.0", "1.1.0"]), target("20", versions: ["1.0.0", "3.0.0"])],
+            stats: [10: stat(version: "2.0.0", updated: "2026-01-01T00:00:00Z"),
+                    20: stat(version: "2.0.0", updated: "2026-01-01T00:00:00Z")],
+            since: lastCheck)
+        #expect(kept.map(\.nexusId) == ["10"])
+    }
+
+    /// Sans relevé pour une page (lot en échec, page absente), rien ne
+    /// permet de l'écarter : elle part à la reprise complète.
+    @Test func aPageWithoutStatsIsKept() {
+        let kept = NexusFallbackCheck.triage(
+            [target("30", versions: ["1.0.0"])], stats: [:], since: lastCheck)
+        #expect(kept.map(\.nexusId) == ["30"])
+    }
+
+    /// Sans passe complète connue, la date ne sert à rien : seul l'en-tête
+    /// trie (≈ 1 % de ratés mesurés, dit à l'écran).
+    @Test func withoutAPreviousCompleteCheckOnlyTheHeaderSorts() {
+        let kept = NexusFallbackCheck.triage(
+            [target("40", versions: ["1.0.0"]), target("41", versions: ["1.0.0"])],
+            stats: [40: stat(version: "1.0.0", updated: "2026-10-08T09:00:00Z"),
+                    41: stat(version: "1.2.0", updated: "2025-01-01T00:00:00Z")],
+            since: nil)
+        #expect(kept.map(\.nexusId) == ["41"])
+    }
 }

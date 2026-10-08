@@ -3057,9 +3057,22 @@ final class StarHubTHViewModel {
     }
 
     /// smapi.io en échec : l'utilisateur choisit de vérifier sur Nexus.
+    /// Tri sans clé d'abord (`NexusFallbackCheck.triage`), reprise complète
+    /// ensuite sur les seules pages gardées.
     func checkUpdatesViaNexus() {
-        guard !isCheckingNexusUpdates else { return }
-        recheckBlockedViaNexus(updateStore.takeNexusAlternative())
+        // La clé d'abord : sans elle, la reprise sortirait sans refermer la passe.
+        guard !isCheckingNexusUpdates, hasNexusApiKey else { return }
+        let targets = NexusFallbackCheck.plan(updateStore.takeNexusAlternative())
+        let since = updateStore.lastCheckedAt
+        updateStore.beginFallback(pages: 0)
+        Task {
+            let (stats, _) = await NexusModStatsRefresher.fetch(targets.compactMap { Int($0.nexusId) })
+            let kept = NexusFallbackCheck.triage(targets, stats: stats, since: since)
+            log("Tri Nexus sans clé : \(kept.count) page(s) sur \(targets.count) à vérifier"
+                + (since == nil ? " (aucune vérification réussie connue : tri par en-tête seul)" : ""), level: .info)
+            guard !updateStore.stopRequested, !kept.isEmpty else { return updateStore.endFallback() }
+            recheckBlockedViaNexus(kept.flatMap(\.mods))
+        }
     }
 
     private func recheckBlockedViaNexus(_ blocked: [NexusFallbackCheck.Blocked]) {

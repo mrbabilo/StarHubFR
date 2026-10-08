@@ -9,6 +9,9 @@ enum NexusModStats {
     struct Entry: Equatable, Sendable {
         let endorsements: Int?
         let updatedAt: Date?
+        /// La version d'en-tête de la page — tri sans clé de la vérification
+        /// directe (2026-10-08), en retard parfois sur le fichier principal.
+        var version: String? = nil
     }
 
     static let batchSize = 80
@@ -30,7 +33,7 @@ enum NexusModStats {
     static func body(ids: [Int]) -> Data? {
         let query = """
         query ModStats($ids: [CompositeDomainWithIdInput!]!, $c: Int) {
-          legacyModsByDomain(ids: $ids, count: $c) { nodes { modId endorsements updatedAt } }
+          legacyModsByDomain(ids: $ids, count: $c) { nodes { modId endorsements updatedAt version } }
         }
         """
         let variables: [String: Any] = [
@@ -51,7 +54,8 @@ enum NexusModStats {
         for node in nodes {
             guard let id = (node["modId"] as? Int) ?? (node["modId"] as? String).flatMap(Int.init) else { continue }
             stats[id] = Entry(endorsements: node["endorsements"] as? Int,
-                              updatedAt: (node["updatedAt"] as? String).flatMap(NexusModSearch.parseDate))
+                              updatedAt: (node["updatedAt"] as? String).flatMap(NexusModSearch.parseDate),
+                              version: node["version"] as? String)
         }
         return stats
     }

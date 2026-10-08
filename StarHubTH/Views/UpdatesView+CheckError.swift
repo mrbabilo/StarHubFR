@@ -28,11 +28,11 @@ struct UpdateCheckFailureBanner: View {
                 .fixedSize(horizontal: false, vertical: true)
             if pages > 0 {
                 if viewModel.hasNexusApiKey {
-                    Button(String(format: localization.L(L10n.Updates.nexusAlternativeButton), Int64(pages))) {
+                    Button(localization.L(L10n.Updates.nexusAlternativeButton)) {
                         viewModel.checkUpdatesViaNexus()
                     }
                     .controlSize(.small)
-                    Text(localization.L(L10n.Updates.nexusAlternativeHint))
+                    Text(String(format: localization.L(L10n.Updates.nexusAlternativeHint), Int64(pages)))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
