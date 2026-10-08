@@ -500,26 +500,30 @@ SLO est actif et ce que la dernière session a mesuré.
       tant que la fiche/carte ne s'appuierait que sur ce parc** — l'écran
       suivra quand l'historique d'impact intègre la source.
       *2026-10-08 — attribution par pack, historique et écran (code livré,
-      validation en jeu à faire)* : la sonde **0.9.23** lit `OnBehalfOf`
+      validation en jeu à faire)* : la sonde **0.9.24** lit `OnBehalfOf`
       des opérations SMAPI, que Content Patcher 2.9.1 renseigne avec
-      l'identifiant du pack sur `LoadFrom` **et** `Edit` (décompilé) — les
-      826 Mo « CP » se répartissent désormais par pack. L'app intègre la
+      l'identifiant du pack (décompilé) — les 826 Mo « CP » se répartissent
+      désormais par pack. Et seul le **loader** attribue : une édition ne
+      crée pas la texture (taille du jeu), recolorer une grande feuille
+      ferait passer un pack pour gourmand, et deux éditeurs donnaient une clé
+      jointe sans mod (0.9.23, jamais jouée, avait la règle « éditeur »). L'app intègre la
       médiane des minutes gardées par segment (`ModImpactSample.textureMB`,
       absent d'une minute relevée = 0, aucune minute relevée = rien) ; les
-      relevés des sondes < 0.9.23 sont **écartés**, pas remplis après coup —
+      relevés des sondes < 0.9.24 sont **écartés**, pas remplis après coup —
       leur attribution d'avant mettrait tout sous CP. Packs sans code :
       échantillons « textures seules », sans note. Écrans : carte
       Performances « Mémoire retenue — textures » (dix premiers, reliquat
-      `vanilla` / éditeurs joints / désinstallés de la dernière session,
-      jamais jeté) et ligne de la fiche, montrée même quand le temps de
+      `vanilla` / mods en pause ou retirés de la dernière session, jamais
+      jeté) et ligne de la fiche, montrée même quand le temps de
       calcul est négligeable. **Hors note D5-C**, contre ce que prévoyait
       l'archive : la mesure est opt-in et un axe absent compte 0 sans
       renormaliser — les sessions avec textures gonfleraient les notes des
       seuls mods relevés ; c'est un stock, pas un coût par seconde. À
       trancher par l'auteur si la note doit l'intégrer un jour.
-      **Reste** : une session de jeu ≥ 5 minutes gardées avec la 0.9.23
-      (`MeasureTextures` est déjà allumé sur le parc) ; vérifier la part des
-      octets sous clés jointes (`a+b`) — critère de l'attribution.
+      **Reste** : une session de jeu ≥ 5 minutes gardées avec la 0.9.24
+      (déployée, `MeasureTextures` déjà allumé sur le parc) — la carte est
+      vide d'ici là ; vérifier la part de `vanilla` contre les 143,7 Mo de
+      la 0.9.21 (les éditions y reviennent) et l'absence de clé `a+b`.
       *Tranche T6b, si besoin* : inventaire complet par réflexion —
       `BaseContentManager.GetCachedAssets()` est **public** (une seule
       réflexion pour y accéder), jamais en continu. Coût d'observation à

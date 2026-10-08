@@ -14,17 +14,18 @@ namespace StarHubFR.Probe;
 /// D4-T6a : la mémoire **retenue** par mod dans les textures résidentes —
 /// en plus des allocations par minute de <see cref="ModCosts"/> (qui mesurent
 /// la pression sur le GC, pas ce qui reste). Suivi **incrémental, sans
-/// patch** : `AssetRequested` retient qui fournit ou édite l'asset
-/// (réflexion une fois au démarrage sur les propriétés internal
-/// `LoadOperations`/`EditOperations` des arguments — records à champ `Mod`
-/// public), `AssetReady` relève la taille (`Width × Height × 4`) via un
+/// patch** : `AssetRequested` retient qui fournit l'asset (réflexion une
+/// fois au démarrage sur la propriété internal `LoadOperations` des
+/// arguments — records à champs `Mod` et `OnBehalfOf` publics), `AssetReady` relève la taille (`Width × Height × 4`) via un
 /// accès au cache, `AssetsInvalidated` retire — la purge de SMAPI suit.
 ///
-/// Attribution **partielle et assumée** : loader de mod d'abord, éditeur
-/// ensuite, sinon `vanilla` — un pack Content Patcher compte pour lui-même
-/// (`OnBehalfOf`), plusieurs éditeurs se joignent par `+` ; atlas = une
-/// texture, un attributaire ; les textures créées en code (pas d'asset) sont
-/// invisibles. RAM gérée, pas
+/// Attribution **partielle et assumée** : le loader, sinon `vanilla` — un
+/// pack Content Patcher compte pour lui-même (`OnBehalfOf`). Une **édition**
+/// n'attribue rien (0.9.24) : elle ne crée pas la texture, dont la taille
+/// reste celle du jeu — recolorer une grande feuille de sprites aurait fait
+/// passer un pack pour gourmand, et deux éditeurs donnaient une clé jointe
+/// « a+b » qui ne désigne aucun mod. Atlas = une texture, un attributaire ;
+/// les textures créées en code (pas d'asset) sont invisibles. RAM gérée, pas
 /// VRAM. Le total vit dans `timings.jsonl` (`TexturesMB`, `TextureCount`,
 /// `TextureByMod`) à chaque minute, `null` quand `MeasureTextures` est
 /// éteint — jamais un zéro muet.
@@ -32,7 +33,7 @@ namespace StarHubFR.Probe;
 internal static class TextureMemory
 {
     private static IMonitor Monitor = null!;
-    private static PropertyInfo? LoadOps, EditOps;
+    private static PropertyInfo? LoadOps;
     /// <summary>Clé = `NameWithoutLocale`, valeur = l'attributaire résolu à la
     /// demande **et le type demandé** — le garde : sans lui, le `Load
     /// <Texture2D>` de `OnReady` rejouait la chaîne de chargement des assets
@@ -82,7 +83,6 @@ internal static class TextureMemory
         {
             var args = typeof(AssetRequestedEventArgs);
             LoadOps = AccessTools.Property(args, "LoadOperations");
-            EditOps = AccessTools.Property(args, "EditOperations");
         }
         catch (Exception ex)
         {
@@ -121,15 +121,12 @@ internal static class TextureMemory
         var owners = new List<string>();
         if (LoadOps?.GetValue(e) is IEnumerable<object> loads)
             owners.AddRange(loads.Select(ModIdOf).Where(id => id is not null)!);
-        if (owners.Count == 0 && EditOps?.GetValue(e) is IEnumerable<object> edits)
-            owners.AddRange(edits.Select(ModIdOf).Where(id => id is not null)!);
         return owners.Count == 0 ? "vanilla" : string.Join("+", owners.Distinct());
     }
 
     /// <summary>Le pack pour lequel l'opération est faite (`OnBehalfOf`),
     /// sinon le mod qui l'a posée. Content Patcher passe l'identifiant du
-    /// pack à `LoadFrom` et à `Edit` (`PatchManager`, CP 2.9.1) : sans ce
-    /// champ, les textures de tous ses packs tombaient sous CP seul — 827 Mo
+    /// pack à `LoadFrom` (`PatchManager`, CP 2.9.1) : sans ce champ, les textures de tous ses packs tombaient sous CP seul — 827 Mo
     /// sur 953 dans la session de validation du 2026-10-05.</summary>
     private static string? ModIdOf(object operation)
     {

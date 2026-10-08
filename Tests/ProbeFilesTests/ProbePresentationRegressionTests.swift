@@ -36,7 +36,7 @@ struct ProbePresentationRegressionTests {
             let stats = ModImpactVersionStats(version: version, shares: [.fps: share], ranges: [:],
                 sourceCount: 3, inGameSources: 3, launchSources: 0, saveSources: 0, patchedSources: 0,
                 first: .distantPast, last: .distantPast, msPerFrame: frame, frameWorkShare: nil,
-                launchMs: nil, saveMs: nil, allocMBPerMinute: nil, textureMB: nil, textureSources: 0)
+                launchMs: nil, saveMs: nil, allocMBPerMinute: nil, textureMB: nil, textureSources: 0, textureLast: nil)
             return ModImpactEntry(id: id, modId: id, name: id, installedVersion: "2", isEnabled: true, versions: [stats])
         }
         let entries = [entry("A", frame: 2, share: 0.01), entry("B", frame: 1, share: 0.8), entry("C", frame: nil, share: 1)]

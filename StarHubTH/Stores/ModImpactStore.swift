@@ -117,7 +117,7 @@ final class ModImpactStore {
         classesById = entriesById.compactMapValues { $0.shown?.impactClass }
         textureRows = ProbeTexturePresentation.rows(entries: entries)
         textureRemainder = ProbeTexturePresentation.remainder(
-            history: history, installedIds: Set(entries.map { $0.modId.lowercased() }))
+            history: history, shownIds: Set(entries.filter(\.isEnabled).map { $0.modId.lowercased() }))
         probeMsPerFrame = history.probeMsPerFrame
         let all = history.samples.values.flatMap { $0 }
         lastInGame = all.filter { $0.kind == .inGame }.map(\.date).max()

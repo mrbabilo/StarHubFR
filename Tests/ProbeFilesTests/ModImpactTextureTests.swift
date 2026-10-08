@@ -14,8 +14,8 @@ struct ModImpactTextureTests {
         return try #require(sides.first { $0.comparable.kept.count >= ModImpactSources.minimumKeptMinutes })
     }
 
-    /// Avant 0.9.23, les textures des packs tombaient sous Content Patcher :
-    /// la source compte, ses textures non.
+    /// Avant 0.9.24, les textures des packs tombaient sous Content Patcher
+    /// (0.9.23 : sous leurs éditeurs) : la source compte, ses textures non.
     @Test func aProbeBeforeOnBehalfOfRecordsNoTextures() throws {
         let source = try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-real.jsonl")))
         #expect(!source.samples.isEmpty)
@@ -24,7 +24,7 @@ struct ModImpactTextureTests {
     }
 
     @Test func texturesJoinTheCostSampleAndKeepOwnersWithoutCode() throws {
-        let side = try side(inventory: "texture-inventory-0.9.23.jsonl")
+        let side = try side(inventory: "texture-inventory-0.9.24.jsonl")
         let source = try #require(ModImpactSources.inGame(side))
         let keys = source.samples.keys.map { $0.lowercased() }
         #expect(Set(keys).count == keys.count)   // une ligne par mod, sans casse
@@ -54,16 +54,16 @@ struct ModImpactTextureTests {
             .map { ProbeComparableMinute(minute: $0, patchesMeasured: nil) }
         let present = minutes.filter { $0.minute.textureByMod?["spacechase0.SpaceCore"] != nil }.count
         #expect(present == 2 && minutes.count == 24)
-        let textures = ModImpactSources.retainedTextureMB(minutes, probeVersion: "0.9.23")
+        let textures = ModImpactSources.retainedTextureMB(minutes, probeVersion: "0.9.24")
         #expect(textures["spacechase0.SpaceCore"] == 0)
         #expect(try #require(textures["Pathoschild.ContentPatcher"]) > 780)
-        #expect(ModImpactSources.retainedTextureMB(minutes, probeVersion: "0.9.22").isEmpty)
+        #expect(ModImpactSources.retainedTextureMB(minutes, probeVersion: "0.9.23").isEmpty)
         #expect(ModImpactSources.retainedTextureMB(minutes, probeVersion: nil).isEmpty)
     }
 
     @Test func aContentPackHasTexturesButNoScore() throws {
         var history = ModImpactHistory()
-        history.integrate(try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-0.9.23.jsonl"))))
+        history.integrate(try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-0.9.24.jsonl"))))
         let vanillaSamples = try #require(history.samples["vanilla"])
         let stats = try #require(ModImpact.versionStats(vanillaSamples).first)
         #expect(!stats.hasTimings)
@@ -75,36 +75,37 @@ struct ModImpactTextureTests {
         #expect(cp.hasTimings && cp.textureMB != nil)
     }
 
-    /// Les lignes : mods installés relevés ; le reliquat : tout le reste de
-    /// la dernière session, jamais jeté.
+    /// Les lignes : mods actifs relevés ; le reliquat : tout le reste de la
+    /// dernière session, mods en pause compris — jamais jeté.
     @Test func rowsAndRemainderAccountForEveryOwner() throws {
         var history = ModImpactHistory()
-        let source = try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-0.9.23.jsonl")))
+        let source = try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-0.9.24.jsonl")))
         history.integrate(source)
         func entry(_ id: String, enabled: Bool = true) throws -> ModImpactEntry {
-            ModImpactEntry(id: id, modId: id, name: id, installedVersion: "0", isEnabled: enabled,
-                           versions: ModImpact.versionStats(try #require(history.samples[id.lowercased()])))
+            let samples = try #require(history.samples[id.lowercased()])
+            return ModImpactEntry(id: id, modId: id, name: id, installedVersion: "0", isEnabled: enabled,
+                                  versions: ModImpact.versionStats(samples))
         }
         let entries = [try entry("Cropgenics"), try entry("Pathoschild.ContentPatcher"),
                        try entry("Becks723.FontSettings", enabled: false)]
         let rows = ProbeTexturePresentation.rows(entries: entries)
         #expect(rows.map(\.id) == ["Pathoschild.ContentPatcher", "Cropgenics"])   // le plus lourd d'abord, actifs seuls
-        #expect(rows.allSatisfy { $0.sourceCount == 1 && !$0.currentVersionMeasured })
+        #expect(rows.allSatisfy { $0.sourceCount == 1 && !$0.currentVersionMeasured && $0.lastMeasured == source.date })
 
-        let installed = Set(entries.map { $0.modId.lowercased() })
-        let remainder = try #require(ProbeTexturePresentation.remainder(history: history, installedIds: installed))
+        let shown = Set(entries.filter(\.isEnabled).map { $0.modId.lowercased() })
+        let remainder = try #require(ProbeTexturePresentation.remainder(history: history, shownIds: shown))
         #expect(remainder.owners.contains("vanilla"))
-        #expect(!remainder.owners.contains { installed.contains($0) })
-        let expected = source.samples
-            .filter { !installed.contains($0.key.lowercased()) }
-            .compactMap(\.value.textureMB).reduce(0, +)
-        #expect(abs(remainder.mb - expected) < 1e-9)
+        #expect(remainder.owners.contains("becks723.fontsettings"))   // en pause : dans le reliquat
+        #expect(!remainder.owners.contains { shown.contains($0) })
+        let total = source.samples.values.compactMap(\.textureMB).reduce(0, +)
+        let inRows = rows.map(\.mb).reduce(0, +)
+        #expect(abs(inRows + remainder.mb - total) < 1e-9)          // chaque octet compté une fois
     }
 
     @Test func noTexturesMeansNoRowsAndNoRemainder() throws {
         var history = ModImpactHistory()
         history.integrate(try #require(ModImpactSources.inGame(try side(inventory: "texture-inventory-real.jsonl"))))
-        #expect(ProbeTexturePresentation.remainder(history: history, installedIds: []) == nil)
+        #expect(ProbeTexturePresentation.remainder(history: history, shownIds: []) == nil)
     }
 
     /// Un historique écrit avant D4-T6 (échantillon réel, sans `textureMB`)

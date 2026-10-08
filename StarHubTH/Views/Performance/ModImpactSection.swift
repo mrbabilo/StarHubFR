@@ -263,8 +263,10 @@ struct ModImpactSection: View {
 
     private func footer(_ shown: ModImpactVersionStats) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            note(localization.L(L10n.Performance.impactRelative))
-            if shown.inGameSources > 0, shown.patchedSources < shown.inGameSources {
+            // Un pack de contenu n'a ni note ni patches : ces deux notes
+            // parleraient de mesures qui n'existent pas pour lui.
+            if shown.hasTimings { note(localization.L(L10n.Performance.impactRelative)) }
+            if shown.hasTimings, shown.inGameSources > 0, shown.patchedSources < shown.inGameSources {
                 note(String(format: localization.L(L10n.Performance.impactPatches), shown.patchedSources, shown.inGameSources))
             }
             note(String(format: localization.L(L10n.Performance.impactSources),

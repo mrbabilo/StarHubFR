@@ -31,7 +31,7 @@ public struct ModImpactSample: Codable, Equatable, Sendable {
     public let allocShare: Double?
     /// Lancement ou sauvegarde, selon `kind`.
     public let loadShare: Double?
-    /// D4-T6 — Mio de textures retenues (en jeu, sonde ≥ 0.9.23, opt-in
+    /// D4-T6 — Mio de textures retenues (en jeu, sonde ≥ 0.9.24, opt-in
     /// `MeasureTextures`) : un stock, hors des parts et de la note. `nil` :
     /// pas relevé — jamais confondu avec 0.
     public let textureMB: Double?
@@ -57,8 +57,9 @@ public enum ModImpactSources {
     public static let minimumKeptMinutes = 5
     public static let minimumProbe = [0, 9, 0]
     /// Avant 0.9.23, les textures de tous les packs Content Patcher tombaient
-    /// sous Content Patcher (`OnBehalfOf` ignoré) : ces relevés n'entrent pas.
-    public static let minimumTextureProbe = [0, 9, 23]
+    /// sous Content Patcher (`OnBehalfOf` ignoré) ; avant 0.9.24, une simple
+    /// édition attribuait la texture à l'éditeur. Ces relevés n'entrent pas.
+    public static let minimumTextureProbe = [0, 9, 24]
     static let bytesPerMB = 1_048_576.0
 
     static func isProbe(_ id: String) -> Bool {
@@ -122,7 +123,7 @@ public enum ModImpactSources {
                 loadShare: nil, textureMB: textures.removeValue(forKey: id.lowercased()))
         }
         // Les attributaires sans code mesuré (packs de contenu, `vanilla`,
-        // éditeurs joints par `+`) gardent leurs textures : rien ne se perd.
+        // loaders joints par `+`) gardent leurs textures : rien ne se perd.
         for (owner, mb) in textures {
             samples[owner] = ModImpactSample(
                 sourceId: side.id, kind: .inGame, date: date, version: versions[owner],

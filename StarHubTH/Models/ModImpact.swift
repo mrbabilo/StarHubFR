@@ -29,6 +29,9 @@ public struct ModImpactVersionStats: Equatable, Sendable {
     /// jamais relevé pour cette version.
     public let textureMB: Double?
     public let textureSources: Int
+    /// La dernière source qui a relevé les textures — pas `last`, que les
+    /// lancements et sauvegardes avancent aussi.
+    public let textureLast: Date?
 
     public var score: Double { ModImpact.score(shares) }
     /// Faux pour un pack de contenu : seules ses textures sont mesurées, sa
@@ -154,7 +157,8 @@ public enum ModImpact {
                 launchMs: median(launches.compactMap(\.ms)), saveMs: median(saves.compactMap(\.ms)),
                 allocMBPerMinute: median(inGame.compactMap(\.allocMBPerMinute)),
                 textureMB: median(inGame.compactMap(\.textureMB)),
-                textureSources: Set(inGame.filter { $0.textureMB != nil }.map(\.sourceId)).count)
+                textureSources: Set(inGame.filter { $0.textureMB != nil }.map(\.sourceId)).count,
+                textureLast: inGame.filter { $0.textureMB != nil }.map(\.date).max())
             let measured: [ModImpactAxis: [ModImpactSample]] = [
                 .fps: inGame.filter { $0.msPerFrame.map { $0.isFinite && $0 >= 0 } == true },
                 .spikes: inGame.filter { $0.spikeShare.map { $0.isFinite && $0 >= 0 } == true },
