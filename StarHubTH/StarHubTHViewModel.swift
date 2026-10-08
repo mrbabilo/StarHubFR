@@ -1949,6 +1949,7 @@ final class StarHubTHViewModel {
             // le suppose.
             self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
             self.rebuildDependencyIndexes()
+            self.hiddenCodeIndex.refresh(gameDir: self.gameDir) // A5-T6 : une bascule ne change aucun lien
             if self.selectedMod == nil, let first = self.mods.first {
                 self.selectedMod = first
             }
@@ -2004,7 +2005,6 @@ final class StarHubTHViewModel {
     /// and each in-memory toggle.
     private func rebuildDependencyIndexes() {
         contentPatcherLoadIndex.refresh(mods: mods, gameDir: gameDir) // A5-T4
-        hiddenCodeIndex.refresh(gameDir: gameDir) // A5-T6
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
         scanStore.setDuplicateIndex(index.duplicateIndex)

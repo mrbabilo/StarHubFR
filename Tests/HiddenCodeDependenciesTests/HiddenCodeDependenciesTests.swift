@@ -109,6 +109,17 @@ import Testing
         #expect(links.map(\.target) == ["FlyingTNT.Swim"])
     }
 
+    /// Deux versions d'un même mod installées (cas réel : Personal Effects
+    /// 1.6.4 et 1.6.5) : la copie qui cite un type que seule **l'autre
+    /// copie** définit ne se lie pas à elle-même.
+    @Test func aTypeFromAnotherCopyOfTheCitingModIsItsOwn() {
+        let links = HiddenCodeDependencies.links([
+            asm("Citing", defines: ["Shared.Helper"]),
+            asm("citing", cites: ["Shared.Helper"]),
+        ])
+        #expect(links.isEmpty)
+    }
+
     @Test func linksGatherEveryNameAndStayOrdered() {
         let links = HiddenCodeDependencies.links([
             asm("SpaceCore", defines: ["SpaceCore.Skills", "SpaceCore.Skills+Skill"]),
