@@ -21,8 +21,10 @@ namespace StarHubFR.Probe;
 /// accès au cache, `AssetsInvalidated` retire — la purge de SMAPI suit.
 ///
 /// Attribution **partielle et assumée** : loader de mod d'abord, éditeur
-/// ensuite, sinon `vanilla` ; atlas = une texture, un attributaire ; les
-/// textures créées en code (pas d'asset) sont invisibles. RAM gérée, pas
+/// ensuite, sinon `vanilla` — un pack Content Patcher compte pour lui-même
+/// (`OnBehalfOf`), plusieurs éditeurs se joignent par `+` ; atlas = une
+/// texture, un attributaire ; les textures créées en code (pas d'asset) sont
+/// invisibles. RAM gérée, pas
 /// VRAM. Le total vit dans `timings.jsonl` (`TexturesMB`, `TextureCount`,
 /// `TextureByMod`) à chaque minute, `null` quand `MeasureTextures` est
 /// éteint — jamais un zéro muet.
@@ -124,14 +126,25 @@ internal static class TextureMemory
         return owners.Count == 0 ? "vanilla" : string.Join("+", owners.Distinct());
     }
 
+    /// <summary>Le pack pour lequel l'opération est faite (`OnBehalfOf`),
+    /// sinon le mod qui l'a posée. Content Patcher passe l'identifiant du
+    /// pack à `LoadFrom` et à `Edit` (`PatchManager`, CP 2.9.1) : sans ce
+    /// champ, les textures de tous ses packs tombaient sous CP seul — 827 Mo
+    /// sur 953 dans la session de validation du 2026-10-05.</summary>
     private static string? ModIdOf(object operation)
+    {
+        var type = operation.GetType();
+        return UniqueIdOf(type.GetProperty("OnBehalfOf")?.GetValue(operation))
+            ?? UniqueIdOf(type.GetProperty("Mod")?.GetValue(operation));
+    }
+
+    private static string? UniqueIdOf(object? metadata)
     {
         // `IModMetadata` n'expose pas d'`Id` : l'identité vit dans
         // `Manifest.UniqueID` (session du 2026-10-05 18:33 : les textures
         // portaient L1/E0 et finissaient vanilla — `GetProperty("Id")` = null
         // sur tous les métadonnées).
-        var mod = operation.GetType().GetProperty("Mod")?.GetValue(operation);
-        var manifest = mod?.GetType().GetProperty("Manifest")?.GetValue(mod);
+        var manifest = metadata?.GetType().GetProperty("Manifest")?.GetValue(metadata);
         return (manifest as StardewModdingAPI.IManifest)?.UniqueID;
     }
 
