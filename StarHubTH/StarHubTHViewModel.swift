@@ -81,6 +81,7 @@ final class StarHubTHViewModel {
 
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     var nexusUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.updates }
+    var nexusAlternativePages: Int { updateStore.nexusAlternativePages }
     /// R3 — mises à jour repoussées par un snooze vivant. Repliées sous la
     /// liste ; hors badge sidebar.
     var snoozedUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.snoozed }
@@ -2803,6 +2804,9 @@ final class StarHubTHViewModel {
                 case .failed:
                     self.updateStore.setCheckError(composition.checkError)
                     self.applyPathoschildFallback(entries: composition.entries)
+                    self.updateStore.offerNexusAlternative(
+                        entries: composition.entries, installedNames: self.installedNamesByUniqueId,
+                        anchors: self.anchorStore.all())
                 case .noResult:
                     break
                 }
@@ -2903,13 +2907,9 @@ final class StarHubTHViewModel {
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
                                    entries: [SmapiUpdateRequest.Entry],
                                    folders: [NexusIdLearning.Folder]) {
-        // Nom déclaré, le même que dans la liste.
-        let installedName = Dictionary(
-            allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
-            uniquingKeysWith: { first, _ in first })
         let app = SmapiVerdicts.apply(
             mods, entries: entries,
-            installedNames: installedName,
+            installedNames: installedNamesByUniqueId,
             anchors: anchorStore.all(),
             pathoschildIndex: PathoschildNexusIndex.loadFromCache(),
             previousRows: NexusUpdateChecker.shared.cachedUpdates(),
@@ -3039,6 +3039,18 @@ final class StarHubTHViewModel {
     /// 41 pages ; quota 2 000/h, et **à la demande** seulement. Sans clé :
     /// rien, sans erreur. **En série** : une rafale risquerait un 429, qui
     /// arrête la reprise sans compter d'échecs.
+    /// Nom déclaré, le même que dans la liste.
+    private var installedNamesByUniqueId: [String: String] {
+        Dictionary(allInstalledMods().filter { !$0.uniqueId.isEmpty }.map { ($0.uniqueId, $0.name) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
+    /// smapi.io en échec : l'utilisateur choisit de vérifier sur Nexus.
+    func checkUpdatesViaNexus() {
+        guard !isCheckingNexusUpdates else { return }
+        recheckBlockedViaNexus(updateStore.takeNexusAlternative())
+    }
+
     private func recheckBlockedViaNexus(_ blocked: [NexusFallbackCheck.Blocked]) {
         let targets = NexusFallbackCheck.plan(blocked)
         guard !targets.isEmpty else { return }

@@ -342,4 +342,27 @@ struct SmapiVerdictsTests {
         #expect(app.report.droppedCount == 1)
         #expect(app.report.resumeTriggered.isEmpty)
     }
+
+    // MARK: - smapi.io en panne
+
+    /// smapi.io tombée (2026-10-08 : HTTP 500 sur toute requête) = aucune
+    /// réponse. Le ViewModel compte alors sur cette fonction pour envoyer
+    /// **tout** le parc à la reprise Nexus : chaque mod avec une page —
+    /// clé du manifeste, sinon dump Pathoschild — en sort bloqué, sans page
+    /// il reste muet, et les lignes en cache survivent.
+    @Test func noAnswerAtAllSendsEveryModWithAPageToTheNexusFallback() {
+        let app = SmapiVerdicts.apply(
+            [],
+            entries: [entry("key.mod", updateKeys: ["Nexus:191"]),
+                      entry("dump.mod"),
+                      entry("mute.mod")],
+            installedNames: [:], anchors: [:],
+            pathoschildIndex: ["dump.mod": 1063],
+            previousRows: [row("key.mod", name: "Clé", installed: "1.0.0", latest: "2.0.0")],
+            previousVerdicts: [:])
+
+        #expect(Set(app.blocked.map(\.uniqueId)) == ["key.mod", "dump.mod"])
+        #expect(NexusFallbackCheck.plan(app.blocked).map(\.nexusId) == ["1063", "191"])
+        #expect(app.merged.map(\.uniqueId) == ["key.mod"])
+    }
 }

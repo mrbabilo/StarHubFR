@@ -2387,3 +2387,6 @@
 "hidden_code_update_explain" = "Ces mods cherchent ses types internes par leur nom. Si cette version les renomme, ils peuvent perdre une fonction sans message : à vérifier en jeu.";
 "updates_smapi_server_down" = "smapi.io est en panne de son côté — réessayez plus tard. Vos mods n'y sont pour rien.";
 "updates_check_failed_stale" = "Cette vérification a échoué : la liste ci-dessous date de la dernière vérification réussie.";
+"updates_nexus_alternative_button" = "Vérifier directement sur Nexus (%lld pages)";
+"updates_nexus_alternative_hint" = "Plus lent : environ deux requêtes par page, une page après l'autre, sur le quota de votre clé Nexus. Les mods sans page Nexus restent non vérifiés.";
+"updates_nexus_alternative_no_key" = "Une clé d'API Nexus permettrait de vérifier directement sur Nexus.";

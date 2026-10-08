@@ -50,7 +50,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **Une vérification de mises à jour en échec le dit.** Quand smapi.io tombe (erreur serveur, le 8 octobre), l'écran l'annonce et précise que la liste affichée date de la dernière vérification réussie, au lieu de la montrer sans rien dire. Le quota Nexus se lit « restantes sur ».
+- **Une vérification de mises à jour en échec le dit.** Quand smapi.io tombe (erreur serveur, le 8 octobre), l'écran l'annonce, précise que la liste affichée date de la dernière vérification réussie, et propose de vérifier directement sur Nexus (nombre de pages indiqué, avec la clé d'API). Le quota Nexus se lit « restantes sur ».
 - **Boutons de reprise des diagnostics SLO et Stardropium.** Une confirmation unique rend la restauration accessible sur macOS. Un mod mis en pause après la mesure reste restaurable, sans écraser une configuration modifiée avant confirmation. « Actualiser » reprend une restauration en attente et indique quand l'autre diagnostic bloque une nouvelle mesure.
 - **Réglages accessibles pendant une partie.** Ouvrir la configuration d’un mod ne fige plus StarHubFR avec la roue d’attente macOS. Correction vérifiée en ouvrant la configuration SLO pendant une session de diagnostic, jeu en cours.
 - Le rapport du diagnostic SLO reste affiché après le retour dans l’app ; la sonde attend désormais `GameLaunched` avant d’accéder à GMCM, et une même erreur SMAPI n’est plus recomptée à chaque actualisation du journal.

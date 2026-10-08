@@ -80,6 +80,16 @@ final class ModUpdateStore {
 
     private(set) var progress: UpdateCheckProgress?
 
+    /// smapi.io en échec (panne serveur du 2026-10-08) : les mods qu'une
+    /// vérification **directe sur Nexus** peut juger. Proposée, jamais lancée
+    /// d'office — deux requêtes par page, une page après l'autre, sur le
+    /// quota de la clé. Vide hors échec.
+    private(set) var nexusAlternative: [NexusFallbackCheck.Blocked] = []
+
+    /// Les pages que l'alternative interrogerait (les composants d'un pack
+    /// partagent la leur).
+    var nexusAlternativePages: Int { NexusFallbackCheck.plan(nexusAlternative).count }
+
     /// Vrai entre le lancement d'une reprise Nexus et sa fin. Interne : ce
     /// n'est pas un signal de rendu, c'est ce qui retient `endCheck()`.
     @ObservationIgnored private(set) var fallbackInFlight = false
@@ -137,6 +147,7 @@ final class ModUpdateStore {
     func beginCheck(progress: UpdateCheckProgress? = nil) {
         isChecking = true
         checkError = nil
+        nexusAlternative = []
         isUnverifiableKnown = false
         self.progress = progress
     }
@@ -155,6 +166,25 @@ final class ModUpdateStore {
 
     func setCheckError(_ message: String?) {
         checkError = message
+    }
+
+    /// Tout le parc envoyé, faute de **toute** réponse smapi.io : chaque mod
+    /// qui a une page Nexus (clé du manifeste ou saisie, sinon dump
+    /// Pathoschild) devient candidat (`SmapiVerdicts`, cas sans réponse).
+    func offerNexusAlternative(entries: [SmapiUpdateRequest.Entry],
+                               installedNames: [String: String],
+                               anchors: [String: ModVersionAnchor]) {
+        nexusAlternative = SmapiVerdicts.apply(
+            [], entries: entries, installedNames: installedNames, anchors: anchors,
+            pathoschildIndex: PathoschildNexusIndex.loadFromCache(),
+            previousRows: [], previousVerdicts: [:]).blocked
+    }
+
+    /// L'utilisateur accepte l'alternative : elle part, la proposition et
+    /// l'erreur s'effacent (la liste qui suit vient de Nexus, pas d'avant).
+    func takeNexusAlternative() -> [NexusFallbackCheck.Blocked] {
+        defer { nexusAlternative = []; checkError = nil }
+        return nexusAlternative
     }
 
     /// Referme la passe smapi.io — **sauf si une reprise Nexus est partie**,
