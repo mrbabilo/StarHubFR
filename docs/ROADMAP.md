@@ -225,7 +225,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **1 item ouvert sur 33** *(le 2026-10-08 au soir : **A5-T9** ajouté — `Load` sous `When` de config, mesuré, décision de l'auteur ; **A5-T6** livré, à l'archive. Le 2026-10-08 : **A1-T2** livré malgré un parc sain (0 cas mesuré trois fois) — décision de l'auteur, à l'archive ; **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **0 item ouvert sur 33** *(le 2026-10-08 au soir : **A5-T9** ajouté — `Load` sous `When` de config, mesuré (0 paire active) et laissé sans code par l'auteur, à l'archive ; **A5-T6** livré, à l'archive. Le 2026-10-08 : **A1-T2** livré malgré un parc sain (0 cas mesuré trois fois) — décision de l'auteur, à l'archive ; **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -315,7 +315,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 > 13 Mo de JSON) pour **trois paires dormantes**. Elle passe donc en dernier.
 > *(Livrée en dernier, le 2026-10-08 : **A5-T4**, à l'archive — 3 duos dormants, 0 actif, mêmes chiffres qu'au spike.)*
 
-> ✅ **A5-T1 → A5-T8 sont livrés** (A5-T4, A5-T5, A5-T6 et A5-T8 le 2026-10-08) ; reste **A5-T9**, en attente de décision. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **A5-T1 → A5-T8 sont livrés** (A5-T4, A5-T5, A5-T6 et A5-T8 le 2026-10-08) ; **A5-T9** mesuré et laissé sans code, décision de l'auteur. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
 > 🧪 **Le même axe côté C#, 2026-09-25** — ouvert par l'[audit de
 > Stardropium](audit-stardropium.md) (mod de performances, en pause sur le parc).
@@ -341,27 +341,6 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 > - ⚠️ **Piste écartée en mesurant** : les **UniqueID** cités dans les chaînes
 >   (`IsLoaded`, `GetApi`) sont des intégrations *optionnelles* — 98 mods actifs
 >   en citent un sans le déclarer. Ce signal-là ne dit rien d'un risque.
-
-- [ ] **A5-T9** — **Les `Load` exclusifs sous `When` de config.** *(relevé le
-      2026-10-08, à décider par l'auteur : coder ou rien.)* A5-T4 écarte tout
-      `Load` sous `When` — sur le patch ou sur un `Include` ancêtre — donc A5-T8
-      (« Tout activer », sélection, profil) n'en voit aucun. Mesuré le 2026-10-08
-      (script Python, retiré : `When` évalués contre les `config.json` réels,
-      défaut du `ConfigSchema` quand la clé ou le fichier manque — 646 packs n'en
-      ont pas ; `HasMod` contre les mods actifs ; toute autre condition ou jeton
-      = non tranché) : **0 paire active**, 0 « possible ». En réactivant les
-      packs en pause tels que configurés : **99 cibles, 6 couples**, dont **3
-      nouveaux** face à A5-T4 — Pretty Anime Characters Force × Pretty Bountiful
-      Choice (**91** portraits et sprites : Bouncer, Fizz, Governor…), Pretty
-      Bountiful Choice × `lemurkat.dwarf.cp` (1), Pretty Bountiful Choice ×
-      Miihau Shane Event Expansion (1). Réactiver les deux Dizzi par un profil
-      passe aujourd'hui **sans alerte**. **Question** : Force et Choice viennent
-      du même auteur — variantes exclusives par conception, que la page Nexus
-      dirait déjà ? **Limite** : le parseur du script n'est pas
-      `I18nLenientParser` (576 fichiers illisibles chez lui, 13 en A5-T5) —
-      remesurer sur le parseur de l'app avant de coder. Si codé : étendre
-      `ContentPatcherPacks.loadTargets` aux `When` de config résolubles, et
-      l'index se recalcule aussi sur la date du `config.json`. · **M**
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
@@ -1387,7 +1366,7 @@ venir), ~~**F5**~~ *(clos le 2026-09-10 : dossier de données, domaine de
 préférences et Trousseau propres au fork — le plan du 2026-08-26 exécuté avec
 re-mesures ; X105 pour `Backups/` livré le 2026-09-10, §11)*, puis ~~**C4**~~ *(clos le
 2026-09-09 : T1 et T7 livrés, T8 réfuté et coché sans code — §8.2)*,
-~~**H**~~ *(clos le 2026-09-09)*, **A** (reste A5-T9, décision de l'auteur — A1-T2, A2-T5, A5-T4 → T8 livrés), **D2**
+~~**H**~~ *(clos le 2026-09-09)*, ~~**A**~~ *(0 ouvert le 2026-10-08 : A5-T9 laissé sans code, le reste livré)*, **D2**
 (télémétrie tierce) et la sonde (**D4/D5**), **C3/C5** *(C6 abandonnée le 2026-09-24,
 mesure)*, **I** (accessibilité — **débloqué**, H est clos),
 **E1–E3** et **D3** (horizon, sous décision produit).
@@ -2179,6 +2158,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A5-T4** | 2026-10-08 | Conflits `Load` exclusifs Content Patcher prévus depuis les fichiers : porte d'activation unitaire, ligne « Prévu » dans le rapport ; 3 duos dormants, 0 actif. Vérifié dans l'app par l'auteur le 2026-10-08 ; gestes en masse → **A5-T8** |
 | **A5-T8** | 2026-10-08 | « Tout activer », la sélection et l'activation d'un profil annoncent les paires en conflit qu'ils rendraient actives, deux mods réveillés ensemble compris ; une confirmation récapitulative (`newConflicts`, `BulkConflictGateStore`) |
 | **A5-T6** | 2026-10-08 | Dépendances cachées sur le code d'un autre mod : chaînes `#US` résolues contre les `TypeDef` réels (161 paires, 21 actives non déclarées) ; fiche et aperçu de mise à jour. Vérification à l'écran par l'auteur en attente |
+| **A5-T9** | 2026-10-08 | `Load` exclusifs sous `When` de config mesurés : 0 paire active, 3 couples nouveaux seulement si des packs en pause revenaient (Dizzi Force × Choice, 91 cibles) ; laissé sans code, décision de l'auteur |
 | **A5-T7** | 2026-09-26 | Deux mods de performance qui patchent les mêmes méthodes : catalogue décompilé (marche 1), puis carte Harmony de la sonde (marche 2) — Stardropium × UltraSmooth 6, pas 9 |
 
 **Découverte de nouveaux mods — Axe G · livré en v1.25.0**

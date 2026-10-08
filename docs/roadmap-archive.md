@@ -5937,6 +5937,28 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       qu'à la lecture du code. Les `[HarmonyPatch("…")]` en chaîne (tas `#Blob`)
       des 50 DLL relues ne nomment que des méthodes : `#US` suffit sur ce parc.
 
+- [x] **A5-T9** — **Les `Load` exclusifs sous `When` de config.** *(relevé le
+      2026-10-08 ; **laissé sans code le jour même, décision de l'auteur** — 0 paire
+      active, rouvrir si un cas vivant apparaît.)* A5-T4 écarte tout
+      `Load` sous `When` — sur le patch ou sur un `Include` ancêtre — donc A5-T8
+      (« Tout activer », sélection, profil) n'en voit aucun. Mesuré le 2026-10-08
+      (script Python, retiré : `When` évalués contre les `config.json` réels,
+      défaut du `ConfigSchema` quand la clé ou le fichier manque — 646 packs n'en
+      ont pas ; `HasMod` contre les mods actifs ; toute autre condition ou jeton
+      = non tranché) : **0 paire active**, 0 « possible ». En réactivant les
+      packs en pause tels que configurés : **99 cibles, 6 couples**, dont **3
+      nouveaux** face à A5-T4 — Pretty Anime Characters Force × Pretty Bountiful
+      Choice (**91** portraits et sprites : Bouncer, Fizz, Governor…), Pretty
+      Bountiful Choice × `lemurkat.dwarf.cp` (1), Pretty Bountiful Choice ×
+      Miihau Shane Event Expansion (1). Réactiver les deux Dizzi par un profil
+      passe aujourd'hui **sans alerte**. **Question** : Force et Choice viennent
+      du même auteur — variantes exclusives par conception, que la page Nexus
+      dirait déjà ? **Limite** : le parseur du script n'est pas
+      `I18nLenientParser` (576 fichiers illisibles chez lui, 13 en A5-T5) —
+      remesurer sur le parseur de l'app avant de coder. Si codé : étendre
+      `ContentPatcherPacks.loadTargets` aux `When` de config résolubles, et
+      l'index se recalcule aussi sur la date du `config.json`. · **M**
+
 - [x] **A1-T2** — **Détecter un `manifest.json` illisible et proposer la
       réparation** : restauration depuis backup, sinon réinstallation Nexus.
       · **M** · *mesuré le 2026-10-02 : zéro manifeste illisible sur le parc
