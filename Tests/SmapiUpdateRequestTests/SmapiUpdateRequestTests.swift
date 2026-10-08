@@ -60,6 +60,39 @@ struct SmapiUpdateRequestTests {
         #expect(entries[0].updateKeys == ["GitHub:me/repo", "Nexus:49133"])
     }
 
+    // MARK: - Clés cassées (audit du 2026-10-08 : 36 mods, prouvés sur smapi.io)
+
+    /// `Nexus:???` faisait taire la saisie manuelle : la clé « déclarait »
+    /// Nexus, donc la saisie n'était pas ajoutée, et smapi.io répondait
+    /// « isn't a valid Nexus mod ID ». 20 mods du parc. Cas réel : Lumisteria
+    /// Giant Crops, saisi 39002.
+    @Test func aManualIdReplacesAnUnusableNexusKey() {
+        for broken in ["Nexus:???", "Nexus:-1", "Nexus:", "Nexus:000", "nexus:-1@FTM"] {
+            let entries = SmapiUpdateRequest.entries(
+                from: [candidate("a", "1.0", keys: [broken], manual: "39002")], anchors: [:])
+            #expect(entries[0].updateKeys == ["Nexus:39002"], "\(broken)")
+        }
+    }
+
+    /// Une clé qui n'a pas la forme `Site:identifiant` (`-1`, cas d'East
+    /// Scarp) part avec elle, sinon smapi.io répond encore « isn't in a
+    /// valid format » à côté de la bonne clé — et le mod reste sans verdict.
+    /// Une clé d'un autre site bien formée reste.
+    @Test func theSubstituteDropsMalformedKeysButKeepsWellFormedOnes() {
+        let entries = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0", keys: ["-1", "GitHub:me/repo", "Nexus:???"], manual: "5787")],
+            anchors: [:])
+        #expect(entries[0].updateKeys == ["GitHub:me/repo", "Nexus:5787"])
+    }
+
+    /// Une clé valide du manifeste prime sur la saisie.
+    @Test func aValidManifestKeyBeatsTheManualId() {
+        let entries = SmapiUpdateRequest.entries(
+            from: [candidate("a", "1.0", keys: ["Nexus:???"], manual: "1"),
+                   candidate("b", "1.0", keys: ["Nexus:3"], manual: "1")], anchors: [:])
+        #expect(entries.map(\.updateKeys) == [["Nexus:1"], ["Nexus:3"]])
+    }
+
     @Test func duplicateUniqueIdsProduceASingleEntry() {
         // Swim Mod est installé deux fois sur le parc : en pack et à plat.
         let entries = SmapiUpdateRequest.entries(

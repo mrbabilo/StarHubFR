@@ -60,6 +60,11 @@ final class ModUpdateStore {
     /// de verdict d'aucune source.
     private(set) var unverifiable: [SmapiVerdicts.Unverifiable] = []
 
+    /// Le bilan de la dernière passe (2026-10-08) : ce que smapi.io a laissé
+    /// sans verdict, et ce que la reprise Nexus a ensuite tranché.
+    private(set) var smapiUnverifiedCount = 0
+    private(set) var nexusSettledCount = 0
+
     /// L'état de la page Nexus observé par la dernière reprise (A2-T6), par
     /// `UniqueID` — cachée ou supprimée. **Projection du dernier check** :
     /// chaque reprise remplace l'ensemble (une page redevenue visible doit
@@ -135,6 +140,17 @@ final class ModUpdateStore {
 
     func setUnverifiable(_ rows: [SmapiVerdicts.Unverifiable]) {
         unverifiable = rows
+        smapiUnverifiedCount = rows.count
+        nexusSettledCount = 0
+    }
+
+    /// La raison finale de chaque ligne restante, après la reprise Nexus.
+    func setOutcomes(_ outcomes: [String: NexusFallbackCheck.Outcome]) {
+        unverifiable = unverifiable.map { row in
+            var row = row
+            row.outcome = outcomes[row.uniqueId] ?? row.outcome
+            return row
+        }
     }
 
     func setNexusPageStates(_ states: [String: NexusPageState]) {
@@ -146,7 +162,9 @@ final class ModUpdateStore {
     /// que la reprise n'a pas atteints restent dus.
     func settle(_ settled: Set<String>) {
         guard !settled.isEmpty else { return }
+        let before = unverifiable.count
         unverifiable = unverifiable.filter { !settled.contains($0.uniqueId) }
+        nexusSettledCount += before - unverifiable.count
     }
 
     // MARK: - Les passes

@@ -61,3 +61,48 @@ struct UpdateCheckStopButton: View {
         .disabled(stopping)
     }
 }
+
+/// Les mods sans verdict de mise à jour, ni smapi.io ni Nexus (2026-10-08) :
+/// le bilan des deux passes, puis la raison **finale** de chaque mod — celle
+/// de la reprise Nexus quand elle a eu lieu, sinon celle de smapi.io, qui
+/// reste en infobulle.
+struct UnverifiableModsSection: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        let rows = viewModel.unverifiableMods
+        let summary = viewModel.unverifiableSummary
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 3) {
+                if summary.nexus > 0 {
+                    Text(String(format: localization.L(L10n.Updates.unverifiableSummary),
+                                Int64(summary.smapi), Int64(summary.nexus), Int64(rows.count)))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 2)
+                }
+                // Indexé par `UniqueID` : deux mods peuvent porter le même nom,
+                // et la reprise Nexus retire des lignes en cours de route.
+                ForEach(rows, id: \.uniqueId) { row in
+                    HStack(spacing: 6) {
+                        Text(row.name)
+                            .font(AppDesign.Font.footnote(.medium))
+                        Text(localization.L(row.outcome?.labelKey ?? row.blocker.labelKey))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .help(localization.L(row.blocker.labelKey))
+                        Spacer(minLength: 8)
+                    }
+                }
+            }
+            .padding(.vertical, AppDesign.Spacing.xs)
+        } label: {
+            Label(String(format: localization.L(L10n.Updates.unverifiableTitle), Int64(rows.count)),
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(AppDesign.Font.caption)
+                .foregroundColor(AppDesign.Color.warning)
+        }
+    }
+}

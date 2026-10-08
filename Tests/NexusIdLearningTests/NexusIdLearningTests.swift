@@ -148,4 +148,42 @@ struct NexusIdLearningTests {
         )
         #expect(plan == ["EastScarp/Barber": "5787", "EastScarp/CSharp": "5787"])
     }
+
+    // MARK: - La page d'un pack (audit du 2026-10-08)
+
+    /// 16 composants du parc à clé cassée appartiennent à un pack dont tous
+    /// les autres mods déclarent la même page — prouvé sur smapi.io. Cas
+    /// réel : `[FTM] Bird Cove` (`Nexus:???`) dans le pack de la page 44040.
+    @Test func aBrokenComponentInheritsTheSinglePageOfItsPack() {
+        let ids = NexusIdLearning.packIds(folders: [
+            folder("Bird Cove Pack/[CP] Bird Cove", "a", keys: ["Nexus:44040"]),
+            folder("Bird Cove Pack/[FTM] Bird Cove", "b", keys: ["Nexus:???"]),
+            folder("Bird Cove Pack/[AT] Bird Cove", "c", keys: ["Nexus:44040@AT"]),
+        ])
+        #expect(ids == ["Bird Cove Pack/[FTM] Bird Cove": "44040"])
+    }
+
+    /// Deux pages dans le même dossier : aucune ne s'impose. Un mod hors de
+    /// tout pack n'a pas de frères.
+    @Test func noPageIsGuessedFromAMixedPackOrWithoutAPack() {
+        let ids = NexusIdLearning.packIds(folders: [
+            folder("Mixed/A", "a", keys: ["Nexus:1"]),
+            folder("Mixed/B", "b", keys: ["Nexus:2"]),
+            folder("Mixed/C", "c", keys: ["Nexus:???"]),
+            folder("Alone", "d", keys: ["Nexus:???"]),
+        ])
+        #expect(ids.isEmpty)
+    }
+
+    /// Un composant sans clé (bibliothèque embarquée possible) ou à clé
+    /// valide ne reçoit rien.
+    @Test func onlyBrokenKeysReceiveThePackPage() {
+        let ids = NexusIdLearning.packIds(folders: [
+            folder("P/A", "a", keys: ["Nexus:7"]),
+            folder("P/Lib", "lib", keys: []),
+            folder("P/Other", "o", keys: ["GitHub:me/x"]),
+            folder("P/Minus", "m", keys: ["-1"]),
+        ])
+        #expect(ids == ["P/Minus": "7"])
+    }
 }

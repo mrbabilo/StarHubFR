@@ -1541,7 +1541,7 @@
   "updates_snoozed_until_game_version_label": "endormie jusqu'à la prochaine version de Stardew Valley",
   "updates_snoozed_until_mod_version_label": "endormie jusqu'à la prochaine version du mod",
   "updates_snoozed_wake": "Réactiver",
-  "updates_unverifiable_title": "%lld mod(s) n'ont pas pu être vérifiés auprès de smapi.io",
+  "updates_unverifiable_title": "%lld mod(s) sans verdict de mise à jour (ni smapi.io ni Nexus)",
   "updates_update_available": "Mise à jour disponible",
   "updates_uploaded_on": "Publiée le %@",
   "updates_visit_website": "Pour en savoir plus sur le contenu de cette mise à jour, veuillez consulter ce site :",
@@ -2391,5 +2391,11 @@
   "updates_nexus_alternative_hint": "%lld pages : un tri sans clé ne garde que celles modifiées depuis la dernière vérification réussie, puis environ deux requêtes par page gardée, sur le quota de votre clé Nexus. Les mods sans page Nexus restent non vérifiés.",
   "updates_nexus_alternative_no_key": "Une clé d'API Nexus permettrait de vérifier directement sur Nexus.",
   "updates_check_stop": "Arrêter",
-  "updates_check_stopping": "Arrêt…"
+  "updates_check_stopping": "Arrêt…",
+  "updates_unverifiable_summary": "smapi.io : %1$lld sans verdict · vérifiés directement sur Nexus : %2$lld · restent : %3$lld",
+  "updates_outcome_no_nexus_page": "Aucun identifiant Nexus — saisissez-le dans la fiche du mod",
+  "updates_outcome_page_hidden": "Page Nexus masquée par l'auteur",
+  "updates_outcome_page_removed": "Page Nexus supprimée",
+  "updates_outcome_ambiguous_page": "Page Nexus partagée par des versions différentes",
+  "updates_outcome_not_reached": "Pas vérifié sur Nexus (clé d'API absente, limite ou arrêt)"
 }

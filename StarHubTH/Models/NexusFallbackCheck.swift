@@ -95,6 +95,57 @@ enum NexusFallbackCheck {
             .sorted { $0.nexusId < $1.nexusId }
     }
 
+    /// Pourquoi un mod reste sans verdict **après** la reprise Nexus.
+    enum Outcome: String, Equatable, Sendable {
+        /// Ni clé utilisable, ni identifiant connu de smapi.io : rien à
+        /// interroger. La fiche permet de saisir l'identifiant.
+        case noNexusPage
+        /// Page masquée par l'auteur (200 sur l'API, invisible à smapi.io).
+        case pageHidden
+        /// Page supprimée (404).
+        case pageRemoved
+        /// Page revendiquée par des mods de versions différentes.
+        case ambiguousPage
+        /// Page interrogeable, pas atteinte : pas de clé d'API, limite de
+        /// débit, arrêt, échec réseau.
+        case notReached
+
+        var labelKey: String {
+            switch self {
+            case .noNexusPage:   L10n.Updates.outcomeNoNexusPage
+            case .pageHidden:    L10n.Updates.outcomePageHidden
+            case .pageRemoved:   L10n.Updates.outcomePageRemoved
+            case .ambiguousPage: L10n.Updates.outcomeAmbiguousPage
+            case .notReached:    L10n.Updates.outcomeNotReached
+            }
+        }
+    }
+
+    /// La raison finale de chaque mod bloqué que la reprise n'a pas tranché.
+    static func outcomes(_ blocked: [Blocked], settled: Set<String>,
+                         pageStates: [String: NexusPageState]) -> [String: Outcome] {
+        var byPage: [String: [Blocked]] = [:]
+        for mod in blocked where needsNexusVerdict(mod) {
+            if let id = resolvedNexusId(mod) { byPage[id, default: []].append(mod) }
+        }
+        var reasons: [String: Outcome] = [:]
+        for mod in blocked where !settled.contains(mod.uniqueId) {
+            switch pageStates[mod.uniqueId] {
+            case .unavailable?: reasons[mod.uniqueId] = .pageHidden
+            case .removed?: reasons[mod.uniqueId] = .pageRemoved
+            case nil:
+                if needsNexusVerdict(mod), resolvedNexusId(mod) == nil {
+                    reasons[mod.uniqueId] = .noNexusPage
+                } else if let id = resolvedNexusId(mod), isAmbiguous(byPage[id] ?? []) {
+                    reasons[mod.uniqueId] = .ambiguousPage
+                } else {
+                    reasons[mod.uniqueId] = .notReached
+                }
+            }
+        }
+        return reasons
+    }
+
     /// smapi.io en panne : avant la reprise complète (deux requêtes par page
     /// sur le quota), un tri **sans clé** sur la version d'en-tête et la date
     /// de dernière modification de chaque page (`NexusModStats`, 80 pages par

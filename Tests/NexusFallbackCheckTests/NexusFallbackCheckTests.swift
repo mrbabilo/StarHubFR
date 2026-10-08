@@ -524,4 +524,26 @@ struct NexusFallbackCheckTests {
             since: nil)
         #expect(kept.map(\.nexusId) == ["41"])
     }
+
+    // MARK: - La raison finale d'un mod resté sans verdict (2026-10-08)
+
+    /// Ce que la liste « sans verdict » dit de chaque mod que ni smapi.io ni
+    /// la reprise Nexus n'ont jugé — la cause réelle, pas l'erreur de
+    /// smapi.io. Répartition mesurée sur le parc : 41 sans identifiant,
+    /// 22 pages cachées ou supprimées.
+    @Test func eachUnsettledModGetsItsFinalReason() {
+        let mods = [
+            blocked("none", keys: ["Nexus:???"], errors: ["isn't a valid Nexus mod ID"]),
+            blocked("hidden", keys: ["Nexus:10"], errors: ["Found no Nexus mod with this ID."]),
+            blocked("gone", keys: ["Nexus:11"], errors: ["Found no Nexus mod with this ID."]),
+            blocked("v1", version: "1.0.0", keys: ["Nexus:12"], errors: ["nexus: no valid versions"]),
+            blocked("v2", version: "2.0.0", keys: ["Nexus:12"], errors: ["nexus: no valid versions"]),
+            blocked("failed", keys: ["Nexus:13"], errors: ["nexus: no valid versions"]),
+            blocked("ok", keys: ["Nexus:14"], errors: ["nexus: no valid versions"]),
+        ]
+        let reasons = NexusFallbackCheck.outcomes(
+            mods, settled: ["ok"], pageStates: ["hidden": .unavailable, "gone": .removed])
+        #expect(reasons == ["none": .noNexusPage, "hidden": .pageHidden, "gone": .pageRemoved,
+                            "v1": .ambiguousPage, "v2": .ambiguousPage, "failed": .notReached])
+    }
 }

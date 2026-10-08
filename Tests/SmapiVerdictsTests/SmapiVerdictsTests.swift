@@ -109,7 +109,7 @@ struct SmapiVerdictsTests {
                                       fileUploadedAt: Date(timeIntervalSince1970: 100))
         let app = SmapiVerdicts.apply(
             [mod("b.mod", metadata: metadata(nexusID: 191),
-                 errors: ["b.mod isn't in a valid format"])],
+                 errors: ["The Nexus mod with ID '191' has no valid versions."])],
             entries: [entry("b.mod", updateKeys: ["Nexus:191"],
                             installedVersion: "5")],
             installedNames: ["b.mod": "Bloqué"],
@@ -129,23 +129,6 @@ struct SmapiVerdictsTests {
         // Une erreur sans suggestion ne déclenche pas de ligne de reprise :
         // seul le filet « sans réponse » en rend une.
         #expect(app.report.resumeTriggered.isEmpty)
-    }
-
-    /// Une erreur **avec** suggestion n'est pas un choix : la suggestion reste
-    /// un verdict et l'erreur reste affichée comme blocage. Les deux listes
-    /// portent le mod — mais la reprise Nexus, elle, ne le reprend pas.
-    @Test func errorWithSuggestionStaysUnverifiableAndStillYieldsUpdate() {
-        let app = SmapiVerdicts.apply(
-            [mod("c.mod", suggested: suggestion("2.0"),
-                 errors: ["c.mod has no valid versions"])],
-            entries: [entry("c.mod")],
-            installedNames: ["c.mod": "Deux voies"],
-            anchors: [:], pathoschildIndex: [:],
-            previousRows: [], previousVerdicts: [:])
-
-        #expect(app.updates.count == 1)
-        #expect(app.unverifiable.count == 1)
-        #expect(app.blocked.isEmpty)
     }
 
     /// Les invérifiables sont triés par nom, ex æquo départagés par
@@ -341,6 +324,59 @@ struct SmapiVerdictsTests {
         #expect(app.report.unansweredCount == 0)
         #expect(app.report.droppedCount == 1)
         #expect(app.report.resumeTriggered.isEmpty)
+    }
+
+    // MARK: - Faux « non vérifiables » (audit du 2026-10-08)
+
+    /// 20 mods du parc : clé Nexus valide, et seule l'autre clé (GitHub…) a
+    /// échoué. smapi.io a bien consulté Nexus et n'y a rien trouvé de plus
+    /// récent — le mod est vérifié, pas « sans verdict ».
+    @Test func aModWhoseNexusKeyAnsweredIsNotUnverifiable() {
+        let app = SmapiVerdicts.apply(
+            [mod("beyond.bedtime", errors: ["Found no GitHub release for KiraAylaria/BeyondBedtime."])],
+            entries: [entry("beyond.bedtime", updateKeys: ["Nexus:48060", "GitHub:KiraAylaria/BeyondBedtime"])],
+            installedNames: [:], anchors: [:], pathoschildIndex: [:],
+            previousRows: [], previousVerdicts: [:])
+        #expect(app.unverifiable.isEmpty)
+        #expect(app.blocked.isEmpty)
+    }
+
+    /// La même erreur sur la clé **Nexus** laisse le mod sans verdict.
+    @Test func aModWhoseNexusKeyFailedStaysUnverifiable() {
+        let app = SmapiVerdicts.apply(
+            [mod("a", errors: ["The Nexus mod with ID '28049' has no valid versions."])],
+            entries: [entry("a", updateKeys: ["Nexus:28049", "GitHub:me/a"])],
+            installedNames: [:], anchors: [:], pathoschildIndex: [:],
+            previousRows: [], previousVerdicts: [:])
+        #expect(app.unverifiable.map(\.uniqueId) == ["a"])
+    }
+
+    /// Une suggestion est un verdict, quoi qu'ait dit une autre clé.
+    @Test func aModWithASuggestionIsNotUnverifiable() {
+        let app = SmapiVerdicts.apply(
+            [mod("a", suggested: suggestion("2.0"), errors: ["Found no GitHub release for me/a."])],
+            entries: [entry("a", updateKeys: ["Nexus:1", "GitHub:me/a"])],
+            installedNames: [:], anchors: [:], pathoschildIndex: [:],
+            previousRows: [], previousVerdicts: [:])
+        #expect(app.unverifiable.isEmpty)
+        #expect(app.updates.map(\.uniqueId) == ["a"])
+    }
+
+    /// Composant de pack à clé cassée (`-1`) dont le mod principal déclare
+    /// la page : celle-ci est vérifiée par le principal, à **sa** version.
+    /// Le composant a donc un verdict — sans ligne à lui, qui comparerait sa
+    /// version propre (Wizardry CP 1.11.0) à celle du pack (1.11.14).
+    @Test func aComponentCoveredByItsPackIsNeitherUnverifiableNorResumed() {
+        let app = SmapiVerdicts.apply(
+            [mod("moonslime.WizardrySkill.CP",
+                 errors: ["The update key '-1' isn't in a valid format. It should contain the site key and mod ID like 'Nexus:12345' or 'Nexus:12345@subkey'."])],
+            entries: [entry("moonslime.WizardrySkill.CP", updateKeys: ["-1"], installedVersion: "1.11.0")],
+            installedNames: [:], anchors: [:], pathoschildIndex: [:],
+            previousRows: [], previousVerdicts: [:],
+            coveredByPack: ["moonslime.WizardrySkill.CP"])
+        #expect(app.unverifiable.isEmpty)
+        #expect(app.blocked.isEmpty)
+        #expect(app.updates.isEmpty)
     }
 
     // MARK: - smapi.io en panne

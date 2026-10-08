@@ -19,6 +19,9 @@ enum SmapiVerdicts {
         let uniqueId: String
         let name: String
         let blocker: SmapiUpdateResponse.Blocker
+        /// Pourquoi la reprise Nexus n'a pas tranché non plus — posée à la fin
+        /// de la reprise ; `nil` tant qu'elle n'a pas eu lieu.
+        var outcome: NexusFallbackCheck.Outcome? = nil
     }
 
     /// Une reprise Nexus déclenchée par le filet « sans réponse » : un fait,
@@ -87,7 +90,13 @@ enum SmapiVerdicts {
                       anchors: [String: ModVersionAnchor],
                       pathoschildIndex: [String: Int],
                       previousRows: [NexusUpdateChecker.ModUpdate],
-                      previousVerdicts: [String: ModCompatibility]) -> Application {
+                      previousVerdicts: [String: ModCompatibility],
+                      coveredByPack: Set<String> = []) -> Application {
+        // Composants de pack à clé cassée dont un frère déclare la page
+        // (`NexusIdLearning.packIds`) : la page est vérifiée par lui, à sa
+        // version. Audit du 2026-10-08 : les envoyer sous la page du pack
+        // inventait 7 fausses mises à jour sur 10.
+        let covered = Set(coveredByPack.map { $0.lowercased() })
         let assertedVersion = Dictionary(entries.map { ($0.id, $0.installedVersion) },
                                          uniquingKeysWith: { first, _ in first })
         // Les `UpdateKeys` telles qu'envoyées — donc y compris la clé
@@ -104,7 +113,16 @@ enum SmapiVerdicts {
         var blocked: [NexusFallbackCheck.Blocked] = []
 
         for mod in mods {
-            if let first = mod.errors.first {
+            // Sans verdict seulement (2026-10-08) : une suggestion en est un,
+            // et une clé Nexus valide qu'aucune erreur ne vise a été lue par
+            // smapi.io — seule une autre source (GitHub…) a échoué. 20 mods
+            // du parc s'affichaient « non vérifiables » à tort.
+            // Les échecs Nexus de smapi.io disent tous « Nexus mod » ; le
+            // message de clé mal formée ne cite `Nexus:12345` qu'en exemple.
+            let nexusAnswered = ModManifest.parseNexusId(fromUpdateKeys: declaredKeys[mod.id]) != nil
+                && !mod.errors.contains { $0.range(of: "nexus mod", options: .caseInsensitive) != nil }
+            if let first = mod.errors.first, mod.suggestedUpdate == nil, !nexusAnswered,
+               !covered.contains(mod.id.lowercased()) {
                 // Même résolution de nom que les lignes de mise à jour : un
                 // mod ne doit pas changer de nom d'un écran à l'autre.
                 let name = ModManifest.resolveDisplayName(
@@ -113,28 +131,26 @@ enum SmapiVerdicts {
                     uniqueId: mod.id)
                 unverifiable.append(Unverifiable(uniqueId: mod.id, name: name,
                                                  blocker: SmapiUpdateResponse.blocker(for: first)))
-                if mod.suggestedUpdate == nil {
-                    blocked.append(NexusFallbackCheck.Blocked(
-                        uniqueId: mod.id,
-                        name: name,
-                        // La version **affirmée** — l'ancre, pas ce qu'on a
-                        // envoyé. Les deux diffèrent quand l'ancre est une
-                        // étiquette Nexus libre que smapi.io ne sait pas lire :
-                        // on lui a alors envoyé le manifeste, mais la page
-                        // Nexus, elle, parle ce vocabulaire-là. Comparer
-                        // l'envoi ferait reparaître une ligne éteinte.
-                        installedVersion: SmapiUpdateRequest.comparedVersion(
-                            anchored: anchors[mod.id]?.anchoredVersion,
-                            sent: assertedVersion[mod.id] ?? ""),
-                        declaredKeys: declaredKeys[mod.id] ?? [],
-                        metadataNexusId: mod.metadata?.nexusID,
-                        errors: mod.errors,
-                        // X9 : le fichier que l'app a elle-même posé sur la
-                        // page de ce mod, s'il y en a un — la reprise Nexus en
-                        // fera son verdict (« plus récent que celui qu'on
-                        // tient ») au lieu du libellé.
-                        heldFacts: anchors[mod.id]?.nexusFacts))
-                }
+                blocked.append(NexusFallbackCheck.Blocked(
+                    uniqueId: mod.id,
+                    name: name,
+                    // La version **affirmée** — l'ancre, pas ce qu'on a
+                    // envoyé. Les deux diffèrent quand l'ancre est une
+                    // étiquette Nexus libre que smapi.io ne sait pas lire :
+                    // on lui a alors envoyé le manifeste, mais la page
+                    // Nexus, elle, parle ce vocabulaire-là. Comparer
+                    // l'envoi ferait reparaître une ligne éteinte.
+                    installedVersion: SmapiUpdateRequest.comparedVersion(
+                        anchored: anchors[mod.id]?.anchoredVersion,
+                        sent: assertedVersion[mod.id] ?? ""),
+                    declaredKeys: declaredKeys[mod.id] ?? [],
+                    metadataNexusId: mod.metadata?.nexusID,
+                    errors: mod.errors,
+                    // X9 : le fichier que l'app a elle-même posé sur la
+                    // page de ce mod, s'il y en a un — la reprise Nexus en
+                    // fera son verdict (« plus récent que celui qu'on
+                    // tient ») au lieu du libellé.
+                    heldFacts: anchors[mod.id]?.nexusFacts))
             }
             guard let suggested = mod.suggestedUpdate else { continue }
             updates.append(NexusUpdateChecker.ModUpdate(
@@ -175,7 +191,7 @@ enum SmapiVerdicts {
         // détail pour saisir l'identifiant.
         var resumeTriggered: [ResumeTrigger] = []
         for entry in entries where !answered.contains(entry.id) {
-            guard !entry.id.isEmpty else { continue }
+            guard !entry.id.isEmpty, !covered.contains(entry.id.lowercased()) else { continue }
             let manualId = ModManifest.parseNexusId(fromUpdateKeys: entry.updateKeys)?.id
             let pathoschildId = pathoschildIndex[entry.id].map(String.init)
             let resolvedId = manualId ?? pathoschildId

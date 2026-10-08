@@ -222,4 +222,27 @@ extension ModUpdateStoreTests {
         s.beginFallback(pages: 3)
         #expect(!s.stopRequested)
     }
+
+    // MARK: - Le bilan et la raison finale (2026-10-08)
+
+    /// Le bilan garde ce que smapi.io a laissé sans verdict et ce que Nexus
+    /// a ensuite tranché ; la liste ne garde que le reste.
+    @Test func theSummaryCountsWhatNexusSettledAfterSmapi() {
+        let s = ModUpdateStore()
+        s.setUnverifiable([unverifiable("a"), unverifiable("b"), unverifiable("c")])
+        s.settle(["a", "b", "zzz"])
+        #expect(s.smapiUnverifiedCount == 3)
+        #expect(s.nexusSettledCount == 2)
+        #expect(s.unverifiable.map(\.uniqueId) == ["c"])
+    }
+
+    /// La raison finale se pose sur les lignes restantes ; une ligne sans
+    /// raison connue garde celle de smapi.io.
+    @Test func finalReasonsAttachToTheRemainingRows() {
+        let s = ModUpdateStore()
+        s.setUnverifiable([unverifiable("a"), unverifiable("b")])
+        s.setOutcomes(["a": .pageHidden])
+        #expect(s.unverifiable.first { $0.uniqueId == "a" }?.outcome == .pageHidden)
+        #expect(s.unverifiable.first { $0.uniqueId == "b" }?.outcome == nil)
+    }
 }

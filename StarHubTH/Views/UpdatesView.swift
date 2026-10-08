@@ -185,32 +185,7 @@ struct UpdatesView: View {
                         // Mods sans verdict (jusqu'à 115 au parc) : les taire mentait ; repliés,
                         // pour ne pas noyer les mises à jour réelles.
                         if !vm.unverifiableMods.isEmpty {
-                            DisclosureGroup {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    // Indexé par `UniqueID` : deux mods peuvent
-                                    // porter le même nom, mais la réponse de
-                                    // smapi.io n'a qu'une entrée par identifiant.
-                                    // Indexer par rang ferait glisser les lignes
-                                    // quand la reprise Nexus en retire une.
-                                    ForEach(vm.unverifiableMods, id: \.uniqueId) { row in
-                                        HStack(spacing: 6) {
-                                            Text(row.name)
-                                                .font(AppDesign.Font.footnote(.medium))
-                                            Text(localization.L(row.blocker.labelKey))
-                                                .font(AppDesign.Font.footnote)
-                                                .foregroundStyle(.secondary)
-                                            Spacer(minLength: 8)
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, AppDesign.Spacing.xs)
-                            } label: {
-                                Label(String(format: localization.L(L10n.Updates.unverifiableTitle),
-                                             Int64(vm.unverifiableMods.count)),
-                                      systemImage: "exclamationmark.triangle.fill")
-                                    .font(AppDesign.Font.caption)
-                                    .foregroundColor(AppDesign.Color.warning)
-                            }
+                            UnverifiableModsSection(viewModel: vm, localization: localization)
                         }
 
                         // X12 — ce que « Je l'ai déjà » a fait taire.

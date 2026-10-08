@@ -83,6 +83,7 @@ final class StarHubTHViewModel {
     var nexusUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.updates }
     var nexusAlternativePages: Int { updateStore.nexusAlternativePages }
     var updateStopRequested: Bool { updateStore.stopRequested }
+    var unverifiableSummary: (smapi: Int, nexus: Int) { (updateStore.smapiUnverifiedCount, updateStore.nexusSettledCount) }
     /// R3 — mises à jour repoussées par un snooze vivant. Repliées sous la
     /// liste ; hors badge sidebar.
     var snoozedUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.snoozed }
@@ -2728,6 +2729,13 @@ final class StarHubTHViewModel {
 
         let anchors = anchorStore.all()
         let installed = allInstalledMods()
+        // Parc **tel qu'interrogé**, figé avec la requête : un scan peut survenir
+        // avant la réponse.
+        let folders = installed.map {
+            NexusIdLearning.Folder(folderName: $0.folderName,
+                                   uniqueId: $0.uniqueId,
+                                   updateKeys: $0.updateKeys)
+        }
         let candidates = installed.map { mod in
             SmapiUpdateRequest.Candidate(
                 uniqueId: mod.uniqueId,
@@ -2745,14 +2753,6 @@ final class StarHubTHViewModel {
                           + "n'est pas analysable par smapi.io, envoi de "
                           + (sent.isEmpty ? "rien" : "« \(sent) »"), level: .warning)
             })
-        // Parc **tel qu'interrogé**, figé avec la requête : un scan peut survenir
-        // avant la réponse.
-        let folders = installed.map {
-            NexusIdLearning.Folder(folderName: $0.folderName,
-                                   uniqueId: $0.uniqueId,
-                                   updateKeys: $0.updateKeys)
-        }
-
         NexusUpdateCheck.run(
             entries: entries, folders: folders,
             gameVersion: smapiDiagnostics?.gameVersion,
@@ -2910,13 +2910,15 @@ final class StarHubTHViewModel {
     private func applySmapiResults(_ mods: [SmapiUpdateResponse.Mod],
                                    entries: [SmapiUpdateRequest.Entry],
                                    folders: [NexusIdLearning.Folder]) {
+        let coveredFolders = NexusIdLearning.packIds(folders: folders)
         let app = SmapiVerdicts.apply(
             mods, entries: entries,
             installedNames: installedNamesByUniqueId,
             anchors: anchorStore.all(),
             pathoschildIndex: PathoschildNexusIndex.loadFromCache(),
             previousRows: NexusUpdateChecker.shared.cachedUpdates(),
-            previousVerdicts: modCompatibility)
+            previousVerdicts: modCompatibility,
+            coveredByPack: Set(folders.filter { coveredFolders[$0.folderName] != nil }.map(\.uniqueId)))
 
         updateStore.setUnverifiable(app.unverifiable)
         modCompatibility = app.verdicts
@@ -3076,6 +3078,8 @@ final class StarHubTHViewModel {
     }
 
     private func recheckBlockedViaNexus(_ blocked: [NexusFallbackCheck.Blocked]) {
+        // Raison provisoire de chaque ligne ; la fin de reprise la précise.
+        updateStore.setOutcomes(NexusFallbackCheck.outcomes(blocked, settled: [], pageStates: [:]))
         let targets = NexusFallbackCheck.plan(blocked)
         guard !targets.isEmpty else { return }
         guard NexusUpdateChecker.shared.apiKey()?.isEmpty == false else {
@@ -3167,6 +3171,7 @@ final class StarHubTHViewModel {
             .map(\.uniqueId))
         let states = NexusPageState.prune(settlement.pageStates, keeping: installedIds)
         updateStore.setNexusPageStates(states)
+        updateStore.setOutcomes(states.mapValues { $0 == .removed ? .pageRemoved : .pageHidden })
         if !NexusPageStateStore.save(states) {
             log("États de page Nexus non enregistrés : les badges de fiche "
                 + "repartiront du cache précédent", level: .warning)

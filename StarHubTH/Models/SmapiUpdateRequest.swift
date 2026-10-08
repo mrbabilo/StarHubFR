@@ -123,7 +123,7 @@ public enum SmapiUpdateRequest {
         /// charge pas.
         public let isPaused: Bool
         /// Identifiant Nexus saisi par l'utilisateur, quand le manifest n'en
-        /// déclare aucun.
+        /// déclare aucun d'utilisable.
         public let manualNexusId: String?
 
         public init(uniqueId: String, manifestVersion: String, updateKeys: [String],
@@ -352,18 +352,42 @@ public enum SmapiUpdateRequest {
         )
     }
 
-    /// L'identifiant saisi à la main devient une `UpdateKey` synthétique —
-    /// mais seulement quand le manifest n'en déclare aucune vers Nexus. Le
-    /// manifest fait foi : c'est ce que SMAPI lit.
+    /// L'identifiant de confiance devient une `UpdateKey` synthétique quand
+    /// le manifest n'en déclare aucune **utilisable** vers Nexus. Une clé
+    /// valide du manifest fait foi : c'est ce que SMAPI lit.
+    ///
+    /// Audit du 2026-10-08 : `Nexus:???`, `Nexus:-1` ou `-1` faisaient taire
+    /// la saisie manuelle, puisque la clé « déclarait » Nexus. Les clés
+    /// cassées partent avec la substitution : laissées, smapi.io répondrait
+    /// encore une erreur à côté de la bonne clé.
+    ///
+    /// ⚠️ La page d'un **pack** ne s'envoie pas ici pour un composant à clé
+    /// cassée : comparée à la version du composant, elle inventait 7 fausses
+    /// mises à jour sur 10 (Wizardry CP 1.11.0 face à la page 1.11.14, alors
+    /// que le mod principal du pack est en 1.11.14). Voir
+    /// `NexusIdLearning.packIds` et `SmapiVerdicts.apply(coveredByPack:)`.
     private static func resolvedUpdateKeys(_ candidate: Candidate) -> [String] {
-        let declaresNexus = candidate.updateKeys.contains {
-            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix("nexus:")
-        }
-        guard !declaresNexus,
-              let manual = candidate.manualNexusId?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !manual.isEmpty else {
-            return candidate.updateKeys
-        }
-        return candidate.updateKeys + ["Nexus:\(manual)"]
+        let keys = candidate.updateKeys
+        guard ModManifest.parseNexusId(fromUpdateKeys: keys) == nil,
+              let substitute = candidate.manualNexusId?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !substitute.isEmpty else { return keys }
+        return keys.filter { isWellFormed($0) && !isNexusKey($0) } + ["Nexus:\(substitute)"]
+    }
+
+    private static func isNexusKey(_ key: String) -> Bool {
+        key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix("nexus:")
+    }
+
+    /// `Site:identifiant`, les deux côtés non vides.
+    private static func isWellFormed(_ key: String) -> Bool {
+        let parts = key.split(separator: ":", maxSplits: 1)
+        return parts.count == 2 && parts.allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    /// L'auteur a voulu donner une page : une clé Nexus inutilisable, ou des
+    /// clés dont aucune n'a la forme `Site:identifiant` (`-1`).
+    static func hasBrokenKey(_ keys: [String]) -> Bool {
+        guard ModManifest.parseNexusId(fromUpdateKeys: keys) == nil, !keys.isEmpty else { return false }
+        return keys.contains(where: isNexusKey) || !keys.contains(where: isWellFormed)
     }
 }

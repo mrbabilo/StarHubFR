@@ -1541,7 +1541,7 @@
 "updates_snoozed_until_game_version_label" = "asleep until Stardew Valley updates";
 "updates_snoozed_until_mod_version_label" = "asleep until the mod's next version";
 "updates_snoozed_wake" = "Wake";
-"updates_unverifiable_title" = "%lld mod(s) could not be checked via smapi.io";
+"updates_unverifiable_title" = "%lld mod(s) without an update verdict (neither smapi.io nor Nexus)";
 "updates_update_available" = "Update available";
 "updates_uploaded_on" = "Uploaded %@";
 "updates_visit_website" = "For information on the content of this mod update, please visit this website:";
@@ -2392,3 +2392,9 @@
 "updates_nexus_alternative_no_key" = "A Nexus API key would let the app check directly on Nexus.";
 "updates_check_stop" = "Stop";
 "updates_check_stopping" = "Stopping…";
+"updates_unverifiable_summary" = "smapi.io: %1$lld without a verdict · checked directly on Nexus: %2$lld · left: %3$lld";
+"updates_outcome_no_nexus_page" = "No Nexus ID — enter it on the mod's page";
+"updates_outcome_page_hidden" = "Nexus page hidden by its author";
+"updates_outcome_page_removed" = "Nexus page removed";
+"updates_outcome_ambiguous_page" = "Nexus page shared by different versions";
+"updates_outcome_not_reached" = "Not checked on Nexus (no API key, rate limit or stopped)";

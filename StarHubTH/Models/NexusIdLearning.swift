@@ -59,4 +59,31 @@ public enum NexusIdLearning {
         }
         return plan
     }
+
+    /// La page d'un composant de pack à clé **cassée** (`Nexus:???`,
+    /// `Nexus:-1`, `-1`), déduite de ses frères : tous les autres mods du
+    /// même dossier de tête qui déclarent une page valide déclarent **la
+    /// même**. Par `folderName`.
+    ///
+    /// Audit du 2026-10-08 : 16 composants du parc, chacun devenu vérifiable
+    /// sur smapi.io avec la page déduite. Un mod sans clé n'en reçoit pas
+    /// (bibliothèque embarquée possible, de version propre), ni un mod hors
+    /// pack, ni un pack à plusieurs pages.
+    public static func packIds(folders: [Folder]) -> [String: String] {
+        func top(_ folder: Folder) -> Substring? {
+            folder.folderName.firstIndex(of: "/").map { folder.folderName[..<$0] }
+        }
+        var pages: [Substring: Set<String>] = [:]
+        for folder in folders {
+            guard let top = top(folder),
+                  let id = ModManifest.parseNexusId(fromUpdateKeys: folder.updateKeys)?.id else { continue }
+            pages[top, default: []].insert(id)
+        }
+        var inferred: [String: String] = [:]
+        for folder in folders where SmapiUpdateRequest.hasBrokenKey(folder.updateKeys) {
+            guard let top = top(folder), let ids = pages[top], ids.count == 1, let id = ids.first else { continue }
+            inferred[folder.folderName] = id
+        }
+        return inferred
+    }
 }
