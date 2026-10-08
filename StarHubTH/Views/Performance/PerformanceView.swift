@@ -65,6 +65,11 @@ struct PerformanceView: View {
                         }
                     }.id("mods")
                     PerformanceCard {
+                        DisclosureGroup(localization.L(L10n.PerformanceTextures.title)) {
+                            PerformanceTextureSection(viewModel: viewModel, localization: localization)
+                        }
+                    }.id("textures")
+                    PerformanceCard {
                         DisclosureGroup(localization.L(L10n.Performance.envTitle)) {
                             PerformanceEnvironmentSection(localization: localization, store: environment)
                         }

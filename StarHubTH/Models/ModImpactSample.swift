@@ -31,6 +31,10 @@ public struct ModImpactSample: Codable, Equatable, Sendable {
     public let allocShare: Double?
     /// Lancement ou sauvegarde, selon `kind`.
     public let loadShare: Double?
+    /// D4-T6 — Mio de textures retenues (en jeu, sonde ≥ 0.9.23, opt-in
+    /// `MeasureTextures`) : un stock, hors des parts et de la note. `nil` :
+    /// pas relevé — jamais confondu avec 0.
+    public let textureMB: Double?
 
     /// Toutes les parts mesurées sous leur plancher (ou aucune mesurée).
     public var isNegligible: Bool {
@@ -52,6 +56,10 @@ public struct ModImpactSource: Equatable, Sendable {
 public enum ModImpactSources {
     public static let minimumKeptMinutes = 5
     public static let minimumProbe = [0, 9, 0]
+    /// Avant 0.9.23, les textures de tous les packs Content Patcher tombaient
+    /// sous Content Patcher (`OnBehalfOf` ignoré) : ces relevés n'entrent pas.
+    public static let minimumTextureProbe = [0, 9, 23]
+    static let bytesPerMB = 1_048_576.0
 
     static func isProbe(_ id: String) -> Bool {
         id.caseInsensitiveCompare(BenchmarkSides.probeId) == .orderedSame
@@ -62,6 +70,21 @@ public enum ModImpactSources {
     static func versionsByModId(_ entries: [String: ProbeInventoryEntry]?) -> [String: String] {
         var out: [String: String] = [:]
         for entry in (entries ?? [:]).values { out[entry.modId.lowercased()] = entry.version }
+        return out
+    }
+
+    /// D4-T6 — Mio retenus par attributaire tel qu'écrit par la sonde :
+    /// médiane des minutes gardées qui ont relevé les textures. Un attributaire
+    /// absent d'une minute relevée y compte 0 ; aucune minute relevée (opt-in
+    /// éteint, sonde trop ancienne) rend une carte vide, jamais des zéros.
+    static func retainedTextureMB(_ kept: [ProbeComparableMinute], probeVersion: String?) -> [String: Double] {
+        guard ProbeLoadRecords.version(probeVersion, atLeast: minimumTextureProbe) else { return [:] }
+        let maps = kept.compactMap(\.minute.textureByMod)
+        let owners = Set(maps.flatMap(\.keys)).filter { !isProbe($0) }
+        var out: [String: Double] = [:]
+        for owner in owners {
+            out[owner] = ModImpact.median(maps.map { Double($0[owner] ?? 0) / bytesPerMB })
+        }
         return out
     }
 
@@ -78,6 +101,13 @@ public enum ModImpactSources {
         let workPerSecond = costs.seconds > 0 ? costs.frameWorkMs / costs.seconds : 0
         let patched: Bool? = costs.lines > 0 ? costs.patchesMeasuredLines == costs.lines : nil
         let versions = versionsByModId(side.inventory)
+        // Rapprochées sans casse des identifiants de coûts : deux échantillons
+        // d'une même source pour un mod se compteraient deux fois.
+        var textures: [String: Double] = [:]
+        for (owner, mb) in retainedTextureMB(side.comparable.kept,
+                                             probeVersion: versions[BenchmarkSides.probeId.lowercased()]) {
+            textures[owner.lowercased(), default: 0] += mb
+        }
         var samples: [String: ModImpactSample] = [:]
         for (id, s) in mods {
             samples[id] = ModImpactSample(
@@ -89,7 +119,16 @@ public enum ModImpactSources {
                 fpsShare: s.msPerSecond / sumMs,
                 spikeShare: maxSpike > 0 ? s.maxMs / maxSpike : nil,
                 allocShare: sumAlloc > 0 ? s.allocMBPerMinute / sumAlloc : nil,
-                loadShare: nil)
+                loadShare: nil, textureMB: textures.removeValue(forKey: id.lowercased()))
+        }
+        // Les attributaires sans code mesuré (packs de contenu, `vanilla`,
+        // éditeurs joints par `+`) gardent leurs textures : rien ne se perd.
+        for (owner, mb) in textures {
+            samples[owner] = ModImpactSample(
+                sourceId: side.id, kind: .inGame, date: date, version: versions[owner],
+                msPerSecond: nil, maxMs: nil, allocMBPerMinute: nil, msPerFrame: nil,
+                frameWorkShare: nil, patchesMeasured: nil, ms: nil,
+                fpsShare: nil, spikeShare: nil, allocShare: nil, loadShare: nil, textureMB: mb)
         }
         let probe = costs.mods.first { isProbe($0.key) }?.value
         return ModImpactSource(id: side.id, kind: .inGame, date: date, samples: samples,
@@ -130,7 +169,7 @@ public enum ModImpactSources {
                 sourceId: record.id, kind: kind, date: date, version: versions[total.mod.lowercased()],
                 msPerSecond: nil, maxMs: nil, allocMBPerMinute: nil, msPerFrame: nil,
                 frameWorkShare: nil, patchesMeasured: nil, ms: total.ms,
-                fpsShare: nil, spikeShare: nil, allocShare: nil, loadShare: total.ms / sum)
+                fpsShare: nil, spikeShare: nil, allocShare: nil, loadShare: total.ms / sum, textureMB: nil)
         }
         return ModImpactSource(id: record.id, kind: kind, date: date, samples: samples, probeMsPerFrame: nil)
     }

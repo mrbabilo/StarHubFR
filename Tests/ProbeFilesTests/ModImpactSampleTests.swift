@@ -62,7 +62,7 @@ struct ModImpactSampleTests {
             ModImpactSample(sourceId: "x", kind: .inGame, date: Date(timeIntervalSince1970: 0), version: nil,
                             msPerSecond: nil, maxMs: nil, allocMBPerMinute: nil, msPerFrame: nil,
                             frameWorkShare: nil, patchesMeasured: nil, ms: nil,
-                            fpsShare: fps, spikeShare: spike, allocShare: alloc, loadShare: load)
+                            fpsShare: fps, spikeShare: spike, allocShare: alloc, loadShare: load, textureMB: nil)
         }
         #expect(s(fps: 0.0009, spike: 0.009, alloc: 0.0005, load: nil).isNegligible)
         #expect(!s(fps: 0.0009, spike: 0.02, alloc: 0.0005, load: nil).isNegligible)   // un pic suffit

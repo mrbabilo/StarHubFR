@@ -8,7 +8,7 @@ struct ModImpactHistoryTests {
         ModImpactSample(sourceId: source, kind: kind, date: Date(timeIntervalSince1970: day * 86_400),
                         version: version, msPerSecond: 1, maxMs: 1, allocMBPerMinute: 1, msPerFrame: 0.1,
                         frameWorkShare: 0.01, patchesMeasured: true, ms: nil,
-                        fpsShare: fps, spikeShare: 0.5, allocShare: 0.1, loadShare: nil)
+                        fpsShare: fps, spikeShare: 0.5, allocShare: 0.1, loadShare: nil, textureMB: nil)
     }
     private func source(_ id: String, day: Double, _ samples: [String: ModImpactSample]) -> ModImpactSource {
         ModImpactSource(id: id, kind: .inGame, date: Date(timeIntervalSince1970: day * 86_400),
@@ -98,6 +98,6 @@ private extension ModImpactSample {
         ModImpactSample(sourceId: sourceId, kind: kind, date: date, version: version, msPerSecond: msPerSecond,
                         maxMs: maxMs, allocMBPerMinute: allocMBPerMinute, msPerFrame: msPerFrame,
                         frameWorkShare: frameWorkShare, patchesMeasured: patchesMeasured, ms: ms,
-                        fpsShare: fpsShare, spikeShare: spike, allocShare: alloc, loadShare: loadShare)
+                        fpsShare: fpsShare, spikeShare: spike, allocShare: alloc, loadShare: loadShare, textureMB: nil)
     }
 }

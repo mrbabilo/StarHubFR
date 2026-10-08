@@ -37,3 +37,52 @@ public enum ProbeImpactPresentation {
         }
     }
 }
+
+/// D4-T6 — la mémoire retenue en textures, hors note : un stock que la sonde
+/// relève quand `MeasureTextures` est allumé (sonde ≥ 0.9.23).
+public enum ProbeTexturePresentation {
+    public struct Row: Identifiable, Equatable, Sendable {
+        public let id: String
+        public let name: String
+        public let version: String?
+        public let currentVersionMeasured: Bool
+        public let mb: Double
+        public let sourceCount: Int
+        public let lastMeasured: Date
+    }
+
+    /// Ce qui n'est rattaché à aucun mod installé, à la dernière session
+    /// relevée : `vanilla`, éditeurs joints par `+`, mods désinstallés depuis.
+    /// Montré, jamais jeté : la somme des lignes ne dit pas tout sans lui.
+    public struct Remainder: Equatable, Sendable {
+        public let mb: Double
+        public let owners: [String]
+        public let date: Date
+    }
+
+    /// Mods actifs relevés, du plus lourd au plus léger (départage :
+    /// identifiant) ; la version affichée est celle de la fiche (`shown`).
+    public static func rows(entries: [ModImpactEntry]) -> [Row] {
+        entries.filter(\.isEnabled).compactMap { entry -> Row? in
+            guard let stats = entry.shown, let mb = stats.textureMB, mb.isFinite, mb >= 0 else { return nil }
+            return Row(id: entry.id, name: entry.name, version: stats.version,
+                       currentVersionMeasured: entry.current != nil, mb: mb,
+                       sourceCount: stats.textureSources, lastMeasured: stats.last)
+        }
+        .sorted { $0.mb != $1.mb ? $0.mb > $1.mb : $0.id < $1.id }
+    }
+
+    /// `installedIds` : les `UniqueID` des entrées, en minuscules.
+    public static func remainder(history: ModImpactHistory, installedIds: Set<String>) -> Remainder? {
+        let withTextures = history.samples.mapValues { $0.filter { $0.textureMB != nil } }
+        guard let latest = withTextures.values.flatMap({ $0 }).map(\.date).max() else { return nil }
+        var mb = 0.0
+        var owners: [String] = []
+        for (key, samples) in withTextures where !installedIds.contains(key) {
+            guard let value = samples.last(where: { $0.date == latest })?.textureMB else { continue }
+            mb += value
+            owners.append(key)
+        }
+        return owners.isEmpty ? nil : Remainder(mb: mb, owners: owners.sorted(), date: latest)
+    }
+}

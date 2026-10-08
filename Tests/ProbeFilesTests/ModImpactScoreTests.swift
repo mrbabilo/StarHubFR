@@ -8,13 +8,13 @@ struct ModImpactScoreTests {
         ModImpactSample(sourceId: source, kind: .inGame, date: Date(timeIntervalSince1970: day * 86_400),
                         version: version, msPerSecond: msPerFrame * 30, maxMs: 10, allocMBPerMinute: 5,
                         msPerFrame: msPerFrame, frameWorkShare: 0.02, patchesMeasured: day < 2, ms: nil,
-                        fpsShare: fps, spikeShare: spike, allocShare: alloc, loadShare: nil)
+                        fpsShare: fps, spikeShare: spike, allocShare: alloc, loadShare: nil, textureMB: nil)
     }
     private func launch(_ source: String, day: Double, version: String?, share: Double, ms: Double) -> ModImpactSample {
         ModImpactSample(sourceId: source, kind: .launch, date: Date(timeIntervalSince1970: day * 86_400),
                         version: version, msPerSecond: nil, maxMs: nil, allocMBPerMinute: nil, msPerFrame: nil,
                         frameWorkShare: nil, patchesMeasured: nil, ms: ms,
-                        fpsShare: nil, spikeShare: nil, allocShare: nil, loadShare: share)
+                        fpsShare: nil, spikeShare: nil, allocShare: nil, loadShare: share, textureMB: nil)
     }
     private func mod(_ id: String, version: String, enabled: Bool = true) -> ModItem {
         ModItem(uniqueId: id, name: id, folderName: id, version: version, author: "", description: "",

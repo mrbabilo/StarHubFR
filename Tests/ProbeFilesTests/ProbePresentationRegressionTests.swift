@@ -36,7 +36,7 @@ struct ProbePresentationRegressionTests {
             let stats = ModImpactVersionStats(version: version, shares: [.fps: share], ranges: [:],
                 sourceCount: 3, inGameSources: 3, launchSources: 0, saveSources: 0, patchedSources: 0,
                 first: .distantPast, last: .distantPast, msPerFrame: frame, frameWorkShare: nil,
-                launchMs: nil, saveMs: nil, allocMBPerMinute: nil)
+                launchMs: nil, saveMs: nil, allocMBPerMinute: nil, textureMB: nil, textureSources: 0)
             return ModImpactEntry(id: id, modId: id, name: id, installedVersion: "2", isEnabled: true, versions: [stats])
         }
         let entries = [entry("A", frame: 2, share: 0.01), entry("B", frame: 1, share: 0.8), entry("C", frame: nil, share: 1)]
@@ -52,7 +52,7 @@ struct ProbePresentationRegressionTests {
             ModImpactSample(sourceId: id, kind: .inGame, date: Date(timeIntervalSince1970: day * 86400),
                 version: "1", msPerSecond: nil, maxMs: nil, allocMBPerMinute: nil, msPerFrame: frame,
                 frameWorkShare: nil, patchesMeasured: false, ms: nil, fpsShare: frame.map { _ in 0.1 },
-                spikeShare: nil, allocShare: nil, loadShare: nil)
+                spikeShare: nil, allocShare: nil, loadShare: nil, textureMB: nil)
         }
         let entry = ModImpactEntry(id: "A", modId: "A", name: "A", installedVersion: "1", isEnabled: true,
             versions: ModImpact.versionStats([sample("measured", frame: 2, day: 1), sample("missing", frame: nil, day: 2)]))

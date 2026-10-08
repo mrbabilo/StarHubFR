@@ -22,6 +22,9 @@ final class ModImpactStore {
     private(set) var entries: [ModImpactEntry] = []
     private(set) var performanceRows: [ModImpactAxis: [ProbeImpactPresentation.Row]] = [:]
     private(set) var ranking: [ModImpactEntry] = []
+    /// D4-T6 — mémoire retenue en textures, hors note.
+    private(set) var textureRows: [ProbeTexturePresentation.Row] = []
+    private(set) var textureRemainder: ProbeTexturePresentation.Remainder?
     /// Les mêmes entrées, indexées par `folderName` : la liste de mods lit
     /// chaque rangée en O(1) — la recherche linéaire d'avant, appelée une
     /// fois par rangée rendue, coûtait un balayage par badge (D5-C).
@@ -99,8 +102,8 @@ final class ModImpactStore {
         }.value
         let history: ModImpactHistory
         switch loaded {
-        case .unreadable: status = .unreadableHistory; entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]; return
-        case .noProbe: status = .noProbe; entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]; return
+        case .unreadable: status = .unreadableHistory; clear(); return
+        case .noProbe: status = .noProbe; clear(); return
         case .ready(let h): history = h
         }
         status = .ready
@@ -112,10 +115,18 @@ final class ModImpactStore {
         entriesById = Dictionary(entries.map { ($0.id, $0) },
                                  uniquingKeysWith: { first, _ in first })
         classesById = entriesById.compactMapValues { $0.shown?.impactClass }
+        textureRows = ProbeTexturePresentation.rows(entries: entries)
+        textureRemainder = ProbeTexturePresentation.remainder(
+            history: history, installedIds: Set(entries.map { $0.modId.lowercased() }))
         probeMsPerFrame = history.probeMsPerFrame
         let all = history.samples.values.flatMap { $0 }
         lastInGame = all.filter { $0.kind == .inGame }.map(\.date).max()
         lastLaunch = all.filter { $0.kind == .launch }.map(\.date).max()
         lastSave = all.filter { $0.kind == .save }.map(\.date).max()
+    }
+
+    private func clear() {
+        entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]
+        textureRows = []; textureRemainder = nil
     }
 }

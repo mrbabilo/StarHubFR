@@ -25,8 +25,15 @@ public struct ModImpactVersionStats: Equatable, Sendable {
     public let launchMs: Double?
     public let saveMs: Double?
     public let allocMBPerMinute: Double?
+    /// D4-T6 — médiane des Mio de textures retenues, hors note ; `nil` :
+    /// jamais relevé pour cette version.
+    public let textureMB: Double?
+    public let textureSources: Int
 
     public var score: Double { ModImpact.score(shares) }
+    /// Faux pour un pack de contenu : seules ses textures sont mesurées, sa
+    /// note n'existe pas (ni « négligeable » ni classe).
+    public var hasTimings: Bool { !shares.isEmpty }
     public var isNegligible: Bool {
         shares.allSatisfy { axis, value in
             value < (axis == .spikes ? ModImpactSample.spikeFloor : ModImpactSample.shareFloor)
@@ -145,7 +152,9 @@ public enum ModImpact {
                 msPerFrame: median(inGame.compactMap(\.msPerFrame)),
                 frameWorkShare: median(inGame.compactMap(\.frameWorkShare)),
                 launchMs: median(launches.compactMap(\.ms)), saveMs: median(saves.compactMap(\.ms)),
-                allocMBPerMinute: median(inGame.compactMap(\.allocMBPerMinute)))
+                allocMBPerMinute: median(inGame.compactMap(\.allocMBPerMinute)),
+                textureMB: median(inGame.compactMap(\.textureMB)),
+                textureSources: Set(inGame.filter { $0.textureMB != nil }.map(\.sourceId)).count)
             let measured: [ModImpactAxis: [ModImpactSample]] = [
                 .fps: inGame.filter { $0.msPerFrame.map { $0.isFinite && $0 >= 0 } == true },
                 .spikes: inGame.filter { $0.spikeShare.map { $0.isFinite && $0 >= 0 } == true },

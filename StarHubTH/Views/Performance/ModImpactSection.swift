@@ -131,7 +131,10 @@ struct ModImpactSection: View {
                         ModImpactFormat.version(entry.installedVersion, localization: localization),
                         ModImpactFormat.version(shown.version, localization: localization)))
         }
-        if shown.isNegligible {
+        if !shown.hasTimings {
+            // Pack de contenu : rien d'autre que ses textures n'est mesuré —
+            // ni note ni « négligeable », qui mentirait sur sa mémoire.
+        } else if shown.isNegligible {
             StateCard(icon: "leaf", text: localization.L(L10n.Performance.impactNegligible), actionTitle: nil) {}
         } else {
             SplitRow(spacing: AppDesign.Spacing.lg) {
@@ -150,11 +153,23 @@ struct ModImpactSection: View {
                 }
             }
         }
+        textures(shown)
         versions(entry)
         footer(shown)
     }
 
     // MARK: — Morceaux
+
+    /// D4-T6 — hors note, montré même quand le temps de calcul est
+    /// négligeable : un mod léger en CPU peut retenir des centaines de Mo.
+    @ViewBuilder
+    private func textures(_ stats: ModImpactVersionStats) -> some View {
+        if let mb = stats.textureMB {
+            Text(String(format: localization.L(L10n.PerformanceTextures.detail),
+                        ModImpactFormat.number(mb, language: language), stats.textureSources))
+                .font(AppDesign.Font.body).fixedSize(horizontal: false, vertical: true)
+        }
+    }
 
     private func note(_ text: String) -> some View {
         PerformanceFormatting.note(text)
