@@ -342,12 +342,16 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 >   `NPC.update`), plus le même réglage du tampon réseau. Relevé dans le C#
 >   décompilé : `ilspycmd` exige .NET, que l'app n'a pas.
 > - **Types internes d'un autre mod** : les chaînes littérales d'une DLL (tas
->   `#US`, UTF-16) se lisent **sans .NET**. Sur 506 mods C# du parc, **72**
->   citent un type d'un autre mod du parc (`"ContentPatcher.Framework.PatchManager"`),
->   dont **19 actifs** — UltraSmooth (SpaceCore, Alternative Textures, UI Info
->   Suite 2 Alt., Content Patcher), Stardew Loading Optimizer (Content Patcher ×7,
->   SpaceCore ×3), Better Crafting (SpaceCore)… Rapprochement heuristique :
->   racine du nom de type = nom de la DLL d'un mod du parc.
+>   `#US`, UTF-16) se lisent **sans .NET**. Remesuré le 2026-10-08 (528 mods C#,
+>   0 manifeste ni DLL illisible) en résolvant chaque chaîne contre les
+>   **`TypeDef` réels** des autres mods : **88 mods** citent le nom complet d'un
+>   type d'un autre mod (**24 actifs**) — 161 paires citant → cible, 69 cibles.
+>   **27 paires ont leurs deux mods actifs**, dont **21 non déclarées** au
+>   manifeste (3 `Dependencies` requises, 3 optionnelles) : Content Patcher ×3,
+>   Better Crafting, GMCM, CJB Cheats, Convenient Chests, SpaceCore, Farm Type
+>   Manager… *(Le relevé du 2026-09-25 — 72 mods dont 19 actifs, UltraSmooth et
+>   Stardew Loading Optimizer en tête, en pause depuis — reposait sur
+>   l'heuristique écartée en A5-T6.)*
 > - ⚠️ **Piste écartée en mesurant** : les **UniqueID** cités dans les chaînes
 >   (`IsLoaded`, `GetApi`) sont des intégrations *optionnelles* — 98 mods actifs
 >   en citent un sans le déclarer. Ce signal-là ne dit rien d'un risque.
@@ -359,10 +363,33 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
       SpaceCore… » ; et **à la mise à jour** d'un mod ciblé, prévenir que les mods
       qui le visent peuvent perdre une fonction — Stardropium, par exemple, éteint
       alors son module sans rien journaliser. La signature de scan inclut la date
-      de la DLL (même raison qu'A5-T4). ⚠️ Avant de coder : mesurer les faux
-      positifs de l'heuristique « racine du nom = nom de DLL » (`Cropgenics` →
-      `bubuge.*` est à vérifier) ; ne rien affirmer sans l'avoir relu dans le
-      C# décompilé d'au moins un cas par mod ciblé. · **M**
+      de la DLL (même raison qu'A5-T4). · **M**
+
+      **Mesuré le 2026-10-08 — l'heuristique « racine du nom = nom de DLL » est
+      abandonnée**, fausse dans les deux sens : 118 chaînes qu'aucun type ne
+      confirme (102 identifiants d'objets, clés `modData`, noms de fichiers —
+      `ValleyBonds.IsekaiBonds_RiftEel`, `ChestsAnywhere.pdb`), et 95 chaînes
+      exactes manquées — tout `Pathoschild.Stardew.*`, `Leclair.Stardew.*`,
+      `DaLion.*`, dont la racine n'est le nom d'aucune DLL. **Règle retenue** :
+      une chaîne compte si, coupée avant `:` (méthode) et `,` (assembly), elle
+      est le nom complet (`+` pour l'imbrication) d'un `TypeDef` de l'`EntryDll`
+      d'**un seul** autre mod, que le citant ne définit pas lui-même. Les 5
+      chaînes de code source partagé (`Pathoschild.Stardew.Common.*`,
+      `SpaceShared.*`, compilé dans 3 à 10 mods) tombent ainsi. Relu dans le C#
+      décompilé, un cas par cible (69) : **tous** sont des recherches par
+      réflexion (`AccessTools.TypeByName`/`Method("T:M")`, `Assembly.GetType`,
+      `Type.GetType`, `TryGetType`, `FullName ==`), aucun faux positif ;
+      `Cropgenics` → `bubuge.*` est réel (`TypeByName(…CheckoutRun) ?? throw`).
+      **Références déjà mortes** (forme de type, aucun `TypeDef` sur le parc) :
+      11 sont des replis `A ?? B` dont l'autre nom se résout ; **5 visent un
+      type absent de la version installée** — Stardropium
+      (`DynamicReflections.ModEntry`, `FarmTypeManager.FarmConfig`), Tractor Mod
+      et Chargeable (`FullName == "FarmTypeManager.LargeResourceClump"`), Better
+      Crafting, actif (branche `SpaceCore.CustomCraftingRecipe+ObjectIngredientMatcher`
+      jamais prise). C'est la cassure qu'A5-T6 veut annoncer, déjà là sans mise
+      à jour — mais un repli `A ?? B` ne se distingue d'une référence morte
+      qu'à la lecture du code. Les `[HarmonyPatch("…")]` en chaîne (tas `#Blob`)
+      des 50 DLL relues ne nomment que des méthodes : `#US` suffit sur ce parc.
 
 **Critère de succès** : passer de « ce mod a planté » à « ce mod est cassé depuis
 SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu'il va
