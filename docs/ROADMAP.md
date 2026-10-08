@@ -356,7 +356,7 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 >   (`IsLoaded`, `GetApi`) sont des intégrations *optionnelles* — 98 mods actifs
 >   en citent un sans le déclarer. Ce signal-là ne dit rien d'un risque.
 
-- [ ] **A5-T6** — **Dépendances cachées sur le code d'un autre mod.** Lire les
+- [x] **A5-T6** — **Dépendances cachées sur le code d'un autre mod.** *(Livré le 2026-10-08 : `HiddenCodeDependencies` (Core) + `HiddenCodeDependencyIndex` ; fiche = liens **non déclarés** seulement, onglet Dépendances ; aperçu de mise à jour = citants **actifs** seulement, déclarés ou non ; références mortes non affichées. Vérification à l'écran par l'auteur en attente.)* Lire les
       chaînes littérales du tas `#US` de chaque `EntryDll` (Swift pur, pas de .NET)
       et relever celles qui nomment un type interne d'un autre mod du parc. Deux
       usages : sur la fiche, « touche au code interne de Content Patcher,

@@ -78,6 +78,8 @@ struct InstallPreview: View {
                     if !updateCautions.isEmpty {
                         updateCautionsSection
                     }
+                    HiddenCodeUpdateWarning(viewModel: vm, localization: localization,
+                                            detectedMods: zipModInfo.detectedMods) // A5-T6
 
                     // A1-T1 — l'archive ne porte pas l'identifiant attendu :
                     // le MAIN le plus récent d'une page n'est pas toujours

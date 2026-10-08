@@ -2436,4 +2436,13 @@ enum L10n {
         static let logDone           = "mod_cleanup_log_done"
     }
 
+    /// A5-T6 — dépendances cachées sur le code interne d'un autre mod.
+    enum HiddenCode {
+        static let title         = "hidden_code_title"
+        static let explain       = "hidden_code_explain"
+        static let types         = "hidden_code_types"
+        static let updateTitle   = "hidden_code_update_title"
+        static let updateLine    = "hidden_code_update_line"
+        static let updateExplain = "hidden_code_update_explain"
+    }
 }

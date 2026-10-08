@@ -409,6 +409,7 @@ struct ModDetailView: View {
     /// `mod.dependencies.count` (vide sur un en-tête).
     private var dependencyCount: Int {
         vm.dependencyTree(for: mod).count
+            + vm.hiddenCodeIndex.undeclaredLinks(for: mod, installed: vm.scanStore.mods).count // A5-T6
     }
 
     /// Category chip: Nexus category, else the inferred offline tag.

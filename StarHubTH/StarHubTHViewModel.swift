@@ -147,6 +147,7 @@ final class StarHubTHViewModel {
     var hasNexusApiKey: Bool { accountStore.hasApiKey }
     let endorsementStore = NexusEndorsementStore() // A3-T8
     let contentPatcherLoadIndex = ContentPatcherLoadIndex() // A5-T4
+    let hiddenCodeIndex = HiddenCodeDependencyIndex() // A5-T6
     /// `true` seulement si on **sait** le compte non premium : mieux vaut un
     /// bouton qui échoue qu'un bouton absent.
     var nexusDirectDownloadUnavailable: Bool { accountStore.directDownloadUnavailable }
@@ -2003,6 +2004,7 @@ final class StarHubTHViewModel {
     /// and each in-memory toggle.
     private func rebuildDependencyIndexes() {
         contentPatcherLoadIndex.refresh(mods: mods, gameDir: gameDir) // A5-T4
+        hiddenCodeIndex.refresh(gameDir: gameDir) // A5-T6
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
         scanStore.setDuplicateIndex(index.duplicateIndex)

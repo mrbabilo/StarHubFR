@@ -317,6 +317,7 @@ let package = Package(
                 "Models/GmcmOptions.swift",
                 "Models/DotNetMetadata.swift",
                 "Models/DotNetAssemblyOptions.swift",
+                "Models/HiddenCodeDependencies.swift",
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
@@ -1292,6 +1293,11 @@ let package = Package(
             name: "DotNetMetadataTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/DotNetMetadataTests"
+        ),
+        .testTarget(
+            name: "HiddenCodeDependenciesTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/HiddenCodeDependenciesTests"
         ),
         .testTarget(
             name: "ContentPackConfigSchemaTests",

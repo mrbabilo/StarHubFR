@@ -47,6 +47,7 @@ public enum DotNetMetadata {
         case typeDefOrRef, hasConstant, hasCustomAttribute, hasFieldMarshal
         case hasDeclSecurity, memberRefParent, hasSemantics, methodDefOrRef
         case customAttributeType, resolutionScope
+        case memberForwarded, implementation
 
         var tables: [Int] {
             switch self {
@@ -62,6 +63,8 @@ public enum DotNetMetadata {
             case .methodDefOrRef:      return [0x06, 0x0A]
             case .customAttributeType: return [0x06, 0x0A]
             case .resolutionScope:     return [0x00, 0x1A, 0x23, 0x01]
+            case .memberForwarded:     return [0x04, 0x06]
+            case .implementation:      return [0x26, 0x23, 0x27]
             }
         }
 
@@ -103,9 +106,9 @@ public enum DotNetMetadata {
             return biggest < (1 << (16 - index.tagBits)) ? 2 : 4
         }
 
-        /// La taille d'une ligne de chaque table 0x00–0x17 (§II.22). Les
-        /// tables au-delà ne sont jamais lues ici : seuls leurs **comptes**
-        /// comptent, et ils viennent de l'en-tête.
+        /// La taille d'une ligne de chaque table 0x00–0x29 (§II.22) : jusqu'à
+        /// `NestedClass`, la dernière que lit A5-T6. Les tables au-delà
+        /// (génériques) ne précèdent rien de ce qu'on lit.
         func rowSizes() -> [Int: Int] {
             var sizes: [Int: Int] = [:]
             sizes[0x00] = 2 + string + 3 * guid                                      // Module
@@ -133,6 +136,24 @@ public enum DotNetMetadata {
             sizes[0x15] = simple(0x02) + simple(0x17)                                // PropertyMap
             sizes[0x16] = simple(0x17)                                               // PropertyPtr
             sizes[0x17] = 2 + string + blob                                          // Property
+            sizes[0x18] = 2 + simple(0x06) + coded(.hasSemantics)                    // MethodSemantics
+            sizes[0x19] = simple(0x02) + 2 * coded(.methodDefOrRef)                  // MethodImpl
+            sizes[0x1A] = string                                                     // ModuleRef
+            sizes[0x1B] = blob                                                       // TypeSpec
+            sizes[0x1C] = 2 + coded(.memberForwarded) + string + simple(0x1A)        // ImplMap
+            sizes[0x1D] = 4 + simple(0x04)                                           // FieldRVA
+            sizes[0x1E] = 4 + 4                                                      // EncLog
+            sizes[0x1F] = 4                                                          // EncMap
+            sizes[0x20] = 4 + 4 * 2 + 4 + blob + string + string                     // Assembly
+            sizes[0x21] = 4                                                          // AssemblyProcessor
+            sizes[0x22] = 4 + 4 + 4                                                  // AssemblyOS
+            sizes[0x23] = 4 * 2 + 4 + blob + string + string + blob                  // AssemblyRef
+            sizes[0x24] = 4 + simple(0x23)                                           // AssemblyRefProcessor
+            sizes[0x25] = 4 + 4 + 4 + simple(0x23)                                   // AssemblyRefOS
+            sizes[0x26] = 4 + string + blob                                          // File
+            sizes[0x27] = 4 + 4 + string + string + coded(.implementation)           // ExportedType
+            sizes[0x28] = 4 + 4 + string + coded(.implementation)                    // ManifestResource
+            sizes[0x29] = simple(0x02) + simple(0x02)                                // NestedClass
             return sizes
         }
     }
@@ -180,6 +201,137 @@ public enum DotNetMetadata {
             }
         }
         return nil
+    }
+
+    // MARK: - La racine de métadonnées (§II.24.2)
+
+    /// La racine de métadonnées analysée : ses heaps et son stream de
+    /// tables. Partagée par les choix de config (C4-T11) et les
+    /// dépendances cachées (A5-T6).
+    struct MetadataFile {
+        let bytes: [UInt8]
+        let strings: Range<Int>
+        /// `#US` : absent d'un assembly sans littéral de chaîne.
+        let userStringHeap: Range<Int>?
+        let blobs: Range<Int>
+        let rowCount: [Int: Int]
+        let rowSize: [Int: Int]
+        let firstRowOffset: Int
+
+        init?(bytes: [UInt8], root: Int) {
+            self.bytes = bytes
+            // §II.24.2.1 — signature, versions, longueur de la chaîne de
+            // version (padée à 4), drapeaux, nombre de streams.
+            guard let versionLength = DotNetMetadata.u32(bytes, root + 12).map(Int.init) else { return nil }
+            var cursor = root + 16 + versionLength
+            guard let streamCount = DotNetMetadata.u16(bytes, cursor + 2).map(Int.init) else { return nil }
+            cursor += 4
+
+            var stringsRange: Range<Int>?
+            var userStringsRange: Range<Int>?
+            var blobRange: Range<Int>?
+            var tablesRange: Range<Int>?
+            for _ in 0..<streamCount {
+                guard let offset = DotNetMetadata.u32(bytes, cursor).map(Int.init),
+                      let size = DotNetMetadata.u32(bytes, cursor + 4).map(Int.init) else { return nil }
+                cursor += 8
+                var end = cursor
+                while end < bytes.count, bytes[end] != 0 { end += 1 }
+                guard end < bytes.count,
+                      let name = String(bytes: bytes[cursor..<end], encoding: .ascii) else { return nil }
+                cursor = end + 1
+                cursor = (cursor + 3) & ~3   // le nom est padé à 4 octets
+                let range = (root + offset)..<(root + offset + size)
+                guard range.upperBound <= bytes.count else { return nil }
+                switch name {
+                case "#Strings": stringsRange = range
+                case "#US":      userStringsRange = range
+                case "#Blob":    blobRange = range
+                case "#~":       tablesRange = range
+                // `#-` : tables non compressées. Absent du parc, schéma
+                // distinct — ne pas le lire comme un `#~`.
+                default: break
+                }
+            }
+            guard let stringsRange, let blobRange, let tablesRange else { return nil }
+            strings = stringsRange
+            userStringHeap = userStringsRange
+            blobs = blobRange
+
+            // §II.24.2.6 — en-tête du stream de tables.
+            let header = tablesRange.lowerBound
+            guard header + 24 <= bytes.count,
+                  let valid = DotNetMetadata.u64(bytes, header + 8) else { return nil }
+            let heapSizes = bytes[header + 6]
+            var counts: [Int: Int] = [:]
+            var countCursor = header + 24
+            for table in 0..<64 where valid & (1 << UInt64(table)) != 0 {
+                guard let count = DotNetMetadata.u32(bytes, countCursor).map(Int.init) else { return nil }
+                counts[table] = count
+                countCursor += 4
+            }
+            // Les tables d'indirection rendraient le parcours par plage
+            // faux : abandonner plutôt que répondre à côté.
+            for indirection in [0x03, 0x05, 0x07, 0x16] where (counts[indirection] ?? 0) > 0 {
+                return nil
+            }
+            rowCount = counts
+            rowSize = DotNetMetadata.ColumnWidths(heapSizes: heapSizes, rowCount: counts).rowSizes()
+            firstRowOffset = countCursor
+            widths = DotNetMetadata.ColumnWidths(heapSizes: heapSizes, rowCount: counts)
+        }
+
+        let widths: DotNetMetadata.ColumnWidths
+
+        /// L'offset de la première ligne d'une table : la somme des tailles
+        /// de **toutes** celles qui la précèdent.
+        func offset(ofTable table: Int) -> Int? {
+            guard (rowCount[table] ?? 0) > 0, rowSize[table] != nil else { return nil }
+            var offset = firstRowOffset
+            for earlier in 0..<table where (rowCount[earlier] ?? 0) > 0 {
+                guard let size = rowSize[earlier] else { return nil }
+                offset += size * (rowCount[earlier] ?? 0)
+            }
+            return offset
+        }
+
+        /// La valeur d'une colonne de `width` octets, à `column` octets du
+        /// début de la ligne `row` (numérotée à partir de 1).
+        func column(table: Int, row: Int, at column: Int, width: Int) -> Int? {
+            guard let base = offset(ofTable: table), let size = rowSize[table] else { return nil }
+            let at = base + (row - 1) * size + column
+            if width == 2 { return DotNetMetadata.u16(bytes, at).map(Int.init) }
+            return DotNetMetadata.u32(bytes, at).map(Int.init)
+        }
+
+        /// Une chaîne de `#Strings`, terminée par zéro.
+        func string(at index: Int) -> String? {
+            let start = strings.lowerBound + index
+            guard start >= strings.lowerBound, start < strings.upperBound else { return nil }
+            var end = start
+            while end < strings.upperBound, bytes[end] != 0 { end += 1 }
+            return String(bytes: bytes[start..<end], encoding: .utf8)
+        }
+
+        /// Un item de `#Blob` : longueur compressée, puis les octets.
+        func blob(at index: Int) -> [UInt8]? {
+            var position = blobs.lowerBound + index
+            guard position >= blobs.lowerBound, position < blobs.upperBound,
+                  let length = DotNetMetadata.compressedUInt(bytes, &position),
+                  position + length <= blobs.upperBound else { return nil }
+            return Array(bytes[position..<(position + length)])
+        }
+
+        /// La fin d'une plage déclarée par un index de liste : le début de
+        /// la ligne suivante, ou **le bout de la table visée** pour la
+        /// dernière ligne. C'est exactement le cas que seul un assembly
+        /// réel exerce (`Outer.NestedMode`, dernier TypeDef de la fixture).
+        func listEnd(table: Int, row: Int, column: Int, width: Int, target: Int) -> Int? {
+            if row < (rowCount[table] ?? 0) {
+                return self.column(table: table, row: row + 1, at: column, width: width)
+            }
+            return (rowCount[target] ?? 0) + 1
+        }
     }
 
     // MARK: - Lectures bornées

@@ -2378,5 +2378,11 @@
   "conflicts_bulk_profile_message": "Applying the profile \"%@\" makes conflicting pairs active:",
   "conflicts_bulk_pair_line": "• %@ ↔ %@",
   "conflicts_bulk_assets_line": "   both load %@ exclusively: neither will apply.",
-  "conflicts_bulk_more": "and %d more pairs"
+  "conflicts_bulk_more": "and %d more pairs",
+  "hidden_code_title": "Reads other mods' internal code, undeclared",
+  "hidden_code_explain": "This mod looks up these mods' internal types by name, without listing them as dependencies. If one of them renames those types in an update, part of this mod can stop working without any message.",
+  "hidden_code_types": "%d type(s) read",
+  "hidden_code_update_title": "Active mods read its internal code",
+  "hidden_code_update_line": "%@ is read by: %@",
+  "hidden_code_update_explain": "These mods look up its internal types by name. If this version renames them, they can lose a feature without any message — check them in game."
 }

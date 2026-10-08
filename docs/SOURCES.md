@@ -1257,6 +1257,16 @@ exactement ce que l'éditeur peut éditer.
 (`SetAllowedValues`) et les **bornes min/max** des `AddNumberOption` —
 là, il faut décoder l'IL des méthodes d'enregistrement.
 
+**Deuxième usage, A5-T6 (2026-10-08)** : le même lecteur lit le tas `#US`
+(littéraux de chaîne, UTF-16 LE, §II.24.2.4) et les noms complets des
+`TypeDef`, imbrication comprise par `NestedClass` (0x29) — d'où les
+tailles de ligne étendues de 0x18 à 0x29 (§II.22). `HiddenCodeDependencies`
+rapproche les deux : un littéral nommant un type d'un seul autre mod est
+une dépendance cachée. Oracle : un script Python/`dnfile` jetable ; sur le
+parc, **523 DLL, 0 illisible, 161 paires, mêmes noms des deux côtés**. Le
+cas par cible a été relu dans le C# décompilé (`ilspycmd`). Fixture
+`HiddenRefsAssembly`, produite par `dotnet build` (source en commentaire).
+
 ---
 
 ### 6 ter — Quand un mod écoute ses touches *(2026-10-03)*

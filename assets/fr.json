@@ -2378,5 +2378,11 @@
   "conflicts_bulk_profile_message": "Appliquer le profil « %@ » rend actives des paires en conflit :",
   "conflicts_bulk_pair_line": "• %@ ↔ %@",
   "conflicts_bulk_assets_line": "   chargent tous deux %@ en exclusif : aucun des deux ne s'appliquera.",
-  "conflicts_bulk_more": "et %d autres paires"
+  "conflicts_bulk_more": "et %d autres paires",
+  "hidden_code_title": "Lit le code interne d'autres mods sans le déclarer",
+  "hidden_code_explain": "Ce mod cherche par leur nom des types internes de ces mods, sans les déclarer comme dépendances. Si l'un d'eux renomme ces types à une mise à jour, une partie de ce mod peut cesser de fonctionner sans message.",
+  "hidden_code_types": "%d type(s) lu(s)",
+  "hidden_code_update_title": "Des mods actifs lisent son code interne",
+  "hidden_code_update_line": "%@ est lu par : %@",
+  "hidden_code_update_explain": "Ces mods cherchent ses types internes par leur nom. Si cette version les renomme, ils peuvent perdre une fonction sans message : à vérifier en jeu."
 }

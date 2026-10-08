@@ -11,13 +11,19 @@ struct DependencyTreeView: View {
 
     var body: some View {
         let nodes = vm.dependencyTree(for: mod)
-        if nodes.isEmpty {
+        // A5-T6 — ce que le manifeste tait compte aussi comme dépendance.
+        let hidden = vm.hiddenCodeIndex.undeclaredLinks(for: mod, installed: vm.scanStore.mods)
+        if nodes.isEmpty && hidden.isEmpty {
             ContentUnavailableView(localization.L(L10n.VM.noDependenciesFound), systemImage: "shippingbox")
                 .frame(maxWidth: .infinity, minHeight: 160)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(nodes) { node in
                     DependencyNodeTree(node: node, vm: vm, localization: localization)
+                }
+                if !hidden.isEmpty {
+                    HiddenCodeDependenciesSection(viewModel: vm, localization: localization, links: hidden)
+                        .padding(.top, nodes.isEmpty ? 0 : 8)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

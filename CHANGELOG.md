@@ -20,6 +20,7 @@ where the exact log format was verified.
 - **Deux tris : « Approbations » et « Mise à jour Nexus la plus ancienne ».** Le second affiche date et âge pour repérer les mods obsolètes.
 - **Conflits de chargement prévus avant de jouer.** Deux mods qui chargent le même asset en exclusif (Content Patcher n'en applique alors aucun) apparaissent dans « Conflits entre mods », et l'activation du second avertit en nommant l'asset.
 - **Les activations groupées préviennent aussi.** « Tout activer », la sélection (Espace, bandeau) et l'application d'un profil nomment les paires en conflit qu'ils rendraient actives, deux mods réveillés ensemble compris — une seule confirmation.
+- **Dépendances cachées sur le code d'autres mods.** L'onglet Dépendances liste les mods dont celui-ci lit les types internes sans les déclarer ; l'aperçu d'une mise à jour nomme les mods actifs qui lisent ceux du mod remplacé.
 - **Troisième filet de compatibilité, sans réseau.** Après smapi.io et la liste Pathoschild, le fichier local de SMAPI (`smapi-internal/metadata.json`) complète les verdicts inconnus — ses clauses de version sont lues, un mod à jour n'est jamais signalé.
 
 ### Changed

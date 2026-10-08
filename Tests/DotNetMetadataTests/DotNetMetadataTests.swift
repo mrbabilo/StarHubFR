@@ -174,7 +174,7 @@ struct DotNetMetadataTests {
     @Test func theSignatureTagTellsALocalTypeFromAForeignOne() throws {
         let bytes = FixtureAssembly.bytes
         let root = try #require(DotNetMetadata.metadataRootOffset(inPE: bytes))
-        let file = try #require(DotNetAssemblyOptions.MetadataFile(bytes: bytes, root: root))
+        let file = try #require(DotNetMetadata.MetadataFile(bytes: bytes, root: root))
         // (ligne 4, tag 0) → `28 00 11 10`, exactement la signature que le
         // compilateur a émise pour `Placement`.
         #expect(file.internalValueTypeRow(inPropertySignature: [0x28, 0x00, 0x11, 0x10]) == 4)
@@ -193,7 +193,7 @@ struct DotNetMetadataTests {
     @Test func theLastRowsListEndsAtTheTargetTableEnd() throws {
         let bytes = FixtureAssembly.bytes
         let root = try #require(DotNetMetadata.metadataRootOffset(inPE: bytes))
-        let file = try #require(DotNetAssemblyOptions.MetadataFile(bytes: bytes, root: root))
+        let file = try #require(DotNetMetadata.MetadataFile(bytes: bytes, root: root))
         let widths = file.widths
         let fieldListColumn = 4 + widths.string * 2 + widths.coded(.typeDefOrRef)
         let lastTypeDef = try #require(file.rowCount[0x02])
