@@ -447,6 +447,14 @@ le journal réel le 2026-09-04.
       (2) `QueryCacheManager` identifie l'objet d'une condition par son seul
       `ItemId` (qualité, quantité, prix confondus dans une trame). Rien à coder
       chez nous. · **XS**
+      *Préparé le 2026-10-08* : les deux chemins re-vérifiés inchangés dans la
+      **2.4.10** du parc, protocole de vérification en jeu (grotte à
+      chauves-souris uniquement — la grotte à champignons s'auto-protège, ses
+      bacs sont des objets) et brouillons des deux signalements dans
+      [`verif-d2t6-ultrasmooth.md`](verif-d2t6-ultrasmooth.md). Risque 2 :
+      preuve par code, aucune vérification en jeu à coût raisonnable (pas de
+      commande GSQ, seuls usages du parc hors rafale par trame). Restent la
+      session de jeu de l'auteur puis le dépôt des signalements.
 
 **Risques** : mêmes que D1 — formats de sortie de mods tiers, parseurs tolérants,
 **ne jamais inventer de chiffre**. La ventilation fine « ce mod coûte X ms »
