@@ -79,13 +79,14 @@ struct UpdatesView: View {
                                     Text(localization.L(L10n.Updates.nexusChecking))
                                         .font(AppDesign.Font.caption)
                                         .foregroundColor(.secondary)
+                                    Spacer()
                                     if let prog = vm.nexusCheckProgress, prog.total > 0 {
-                                        Spacer()
                                         Text("\(prog.done)/\(prog.total)")
                                             .font(AppDesign.Font.monoFootnote)
                                             .foregroundColor(.secondary)
                                             .monospacedDigit()
                                     }
+                                    UpdateCheckStopButton(viewModel: vm, localization: localization)
                                 }
                                 // Determinate progress bar when we know the total.
                                 if let prog = vm.nexusCheckProgress, prog.total > 0 {

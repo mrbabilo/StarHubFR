@@ -177,4 +177,49 @@ extension ModUpdateStoreTests {
         s.recordCompleteCheck(at: at)
         #expect(s.verdict(pending: 0) == .verifiableUpToDate(checkedAt: at))
     }
+
+    // MARK: - L'arrêt (2026-10-08)
+
+    /// Pendant la passe smapi.io, l'arrêt relâche **tout de suite** et périme
+    /// le numéro de passe : la réponse qui arrivera ensuite s'ignore.
+    @Test func stoppingTheSmapiPassReleasesAtOnceAndStalesItsNumber() {
+        let s = ModUpdateStore()
+        s.beginCheck(progress: .init(done: 1, total: 7))
+        let pass = s.passNumber
+        s.requestStop()
+        #expect(!s.isChecking)
+        #expect(s.progress == nil)
+        #expect(s.passNumber != pass)
+        #expect(!s.stopRequested)
+    }
+
+    /// Pendant la reprise Nexus, l'arrêt est **demandé** : le voyant reste
+    /// allumé jusqu'à ce que la reprise, à la page suivante, publie ce
+    /// qu'elle a trouvé et referme.
+    @Test func stoppingTheNexusResumeWaitsForItsNextPage() {
+        let s = ModUpdateStore()
+        s.beginCheck()
+        s.beginFallback(pages: 40)
+        let pass = s.passNumber
+        s.requestStop()
+        #expect(s.stopRequested)
+        #expect(s.isChecking)
+        #expect(s.passNumber == pass)
+        s.endFallback()
+        #expect(!s.isChecking)
+        #expect(!s.stopRequested)
+    }
+
+    /// Hors passe, l'arrêt ne fait rien ; une nouvelle passe repart sans la
+    /// demande d'arrêt de la précédente.
+    @Test func aStopOutsideAPassDoesNothingAndANewPassStartsClean() {
+        let s = ModUpdateStore()
+        s.requestStop()
+        #expect(!s.stopRequested)
+        s.beginCheck()
+        s.beginFallback(pages: 3)
+        s.requestStop()
+        s.beginFallback(pages: 3)
+        #expect(!s.stopRequested)
+    }
 }

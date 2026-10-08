@@ -2389,5 +2389,7 @@
   "updates_check_failed_stale": "This check failed: the list below is from the last successful check.",
   "updates_nexus_alternative_button": "Check directly on Nexus (%lld pages)",
   "updates_nexus_alternative_hint": "Slower: about two requests per page, one page at a time, on your Nexus key's quota. Mods without a Nexus page stay unchecked.",
-  "updates_nexus_alternative_no_key": "A Nexus API key would let the app check directly on Nexus."
+  "updates_nexus_alternative_no_key": "A Nexus API key would let the app check directly on Nexus.",
+  "updates_check_stop": "Stop",
+  "updates_check_stopping": "Stopping…"
 }

@@ -45,3 +45,19 @@ struct UpdateCheckFailureBanner: View {
         }
     }
 }
+
+/// Arrête une vérification en cours (2026-10-08) : tout de suite pendant
+/// smapi.io, à la page suivante pendant la reprise Nexus.
+struct UpdateCheckStopButton: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        let stopping = viewModel.updateStopRequested
+        Button(localization.L(stopping ? L10n.Updates.checkStopping : L10n.Updates.checkStop)) {
+            viewModel.stopUpdateCheck()
+        }
+        .controlSize(.small)
+        .disabled(stopping)
+    }
+}

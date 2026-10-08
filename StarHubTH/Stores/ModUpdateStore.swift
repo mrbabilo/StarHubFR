@@ -94,6 +94,14 @@ final class ModUpdateStore {
     /// n'est pas un signal de rendu, c'est ce qui retient `endCheck()`.
     @ObservationIgnored private(set) var fallbackInFlight = false
 
+    /// L'utilisateur a demandé l'arrêt ; la reprise Nexus le lit avant
+    /// chaque page et s'arrête en gardant ce qu'elle a trouvé.
+    private(set) var stopRequested = false
+
+    /// Numéro de la passe en cours : une réponse smapi.io arrivée après un
+    /// arrêt porte un ancien numéro et s'ignore.
+    @ObservationIgnored private(set) var passNumber = 0
+
     /// La dernière passe **complète** (toutes sessions) — l'horodatage que
     /// `NexusUpdateChecker` persiste, rendu observable : lu en direct dans
     /// `UserDefaults`, l'en-tête ne se redessinerait que par accident.
@@ -146,6 +154,8 @@ final class ModUpdateStore {
     /// Ouvre une passe : voyant allumé, erreur précédente effacée.
     func beginCheck(progress: UpdateCheckProgress? = nil) {
         isChecking = true
+        stopRequested = false
+        passNumber += 1
         checkError = nil
         nexusAlternative = []
         isUnverifiableKnown = false
@@ -203,6 +213,7 @@ final class ModUpdateStore {
     /// le voyant est déjà allumé, elle en prend la relève.
     func beginFallback(pages: Int) {
         isChecking = true
+        stopRequested = false
         fallbackInFlight = true
         progress = UpdateCheckProgress(done: 0, total: pages)
     }
@@ -214,6 +225,21 @@ final class ModUpdateStore {
     func endFallback() {
         fallbackInFlight = false
         isChecking = false
+        stopRequested = false
+        progress = nil
+    }
+
+    /// Arrêt demandé. Pendant la reprise Nexus, elle s'arrêtera à la page
+    /// suivante (`stopRequested`). Pendant la passe smapi.io, la passe est
+    /// abandonnée **tout de suite** : le voyant s'éteint et la réponse qui
+    /// arrivera porte un numéro périmé.
+    func requestStop() {
+        guard isChecking, !stopRequested else { return }
+        stopRequested = true
+        guard !fallbackInFlight else { return }
+        passNumber += 1
+        isChecking = false
+        stopRequested = false
         progress = nil
     }
 }

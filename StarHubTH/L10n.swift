@@ -1693,6 +1693,8 @@ enum L10n {
         static let nexusAlternativeButton = "updates_nexus_alternative_button"
         static let nexusAlternativeHint   = "updates_nexus_alternative_hint"
         static let nexusAlternativeNoKey  = "updates_nexus_alternative_no_key"
+        static let checkStop              = "updates_check_stop"
+        static let checkStopping          = "updates_check_stopping"
         static let installedVersion     = "updates_installed_version"
         static let latestVersion        = "updates_latest_version"
         static let alreadyInstalledRenamed = "updates_already_installed_renamed"

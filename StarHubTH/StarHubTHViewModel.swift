@@ -82,6 +82,7 @@ final class StarHubTHViewModel {
     /// Mods with an available update on Nexus Mods (from last user-triggered check).
     var nexusUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.updates }
     var nexusAlternativePages: Int { updateStore.nexusAlternativePages }
+    var updateStopRequested: Bool { updateStore.stopRequested }
     /// R3 — mises à jour repoussées par un snooze vivant. Repliées sous la
     /// liste ; hors badge sidebar.
     var snoozedUpdates: [NexusUpdateChecker.ModUpdate] { updateStore.snoozed }
@@ -2722,6 +2723,7 @@ final class StarHubTHViewModel {
     func checkNexusUpdates() {
         guard !isCheckingNexusUpdates else { return }
         updateStore.beginCheck()
+        let pass = updateStore.passNumber
         log("Vérification des mises à jour démarrée", level: .info)
 
         let anchors = anchorStore.all()
@@ -2785,7 +2787,8 @@ final class StarHubTHViewModel {
                 }
             },
             completion: { [weak self] composition in
-                guard let self else { return }
+                // Arrêtée pendant la passe smapi.io : sa réponse s'ignore.
+                guard let self, self.updateStore.passNumber == pass else { return }
                 for line in composition.journal {
                     self.log(line.text, level: line.level)
                 }
@@ -3045,6 +3048,14 @@ final class StarHubTHViewModel {
                    uniquingKeysWith: { first, _ in first })
     }
 
+    /// Arrêt demandé : immédiat pendant smapi.io, à la page suivante pendant
+    /// la reprise Nexus, qui publie ce qu'elle a trouvé.
+    func stopUpdateCheck() {
+        guard isCheckingNexusUpdates else { return }
+        updateStore.requestStop()
+        log("Vérification des mises à jour : arrêt demandé", level: .info)
+    }
+
     /// smapi.io en échec : l'utilisateur choisit de vérifier sur Nexus.
     func checkUpdatesViaNexus() {
         guard !isCheckingNexusUpdates else { return }
@@ -3081,6 +3092,12 @@ final class StarHubTHViewModel {
             finishNexusFallback(found: found, settled: settled,
                                 failures: failures, attempted: targets.count,
                                 notFound: notFound, pageStates: pageStates)
+            return
+        }
+        if updateStore.stopRequested {
+            log("Reprise Nexus arrêtée à la demande après \(index) page(s) sur \(targets.count)", level: .info)
+            finishNexusFallback(found: found, settled: settled, failures: failures,
+                                attempted: index, notFound: notFound, pageStates: pageStates)
             return
         }
         let target = targets[index]

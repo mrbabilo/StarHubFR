@@ -2390,3 +2390,5 @@
 "updates_nexus_alternative_button" = "Vérifier directement sur Nexus (%lld pages)";
 "updates_nexus_alternative_hint" = "Plus lent : environ deux requêtes par page, une page après l'autre, sur le quota de votre clé Nexus. Les mods sans page Nexus restent non vérifiés.";
 "updates_nexus_alternative_no_key" = "Une clé d'API Nexus permettrait de vérifier directement sur Nexus.";
+"updates_check_stop" = "Arrêter";
+"updates_check_stopping" = "Arrêt…";
