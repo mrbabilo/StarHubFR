@@ -323,7 +323,10 @@ touchées).
       profil est quitté (configs capturées) : il adopterait sinon cet état
       comme le sien ; les configurations ne reviennent pas, la confirmation
       le dit. Écran : section « Revenir à un état d'avant » sous les profils.
-      Exemptés : la bissection et le benchmark (leur propre retour). 16 tests ;
+      Exemptés : la bissection et le benchmark (leur propre retour), la reprise
+      d'un profil interrompu (geste déjà confirmé). Activer un profil est refusé
+      pendant un lot de renommages : la page Profils n'a pas l'overlay de la
+      liste, et deux lots auraient tourné ensemble sur `Mods/`. 16 tests ;
       sabotages 5/5 (dossier inconnu mis en pause, doublon, épingle, SMAPI,
       fichier illisible écrasé). Vérification à l'écran par l'auteur à faire.
 

@@ -6808,7 +6808,8 @@ final class StarHubTHViewModel {
     }
 
     func applyProfile(id: UUID?, fingerprintChecked: Bool = false, conflictChecked: Bool = false) {
-        if refuseDuringBenchmark() || bulkConflictGate.isBusy { return }
+        // `bulkToggleProgress` : un retour R5 lancé depuis Profils n'a pas l'overlay de la liste.
+        if refuseDuringBenchmark() || bulkConflictGate.isBusy || bulkToggleProgress != nil { return }
         // Aiguillage dans `ProfileActivation` (Core, 16 tests).
         // ⚠️ `isGameRunning()` **en closure** : il informe le garde anti
         // double-lancement ; un test épingle cette paresse.
