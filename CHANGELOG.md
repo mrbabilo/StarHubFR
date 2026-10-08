@@ -23,7 +23,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **13 fichiers Content Patcher relus**, dont trois de SVE : nombres écrits `.03`, textes entre apostrophes et virgules en double sont lus comme par le jeu. Le poids des packs et l'analyse des conflits les comptent enfin.
+- **22 fichiers relus comme par le jeu** : nombres écrits `.03`, textes entre apostrophes, virgules en double. 13 fichiers Content Patcher, dont trois de SVE, comptent enfin dans le poids des packs et les conflits ; 9 traductions (Button's Extra Books…) apparaissent.
 - **La liste « sans verdict » reste dépliée** quand on quitte la page des mises à jour, par exemple pour ouvrir la fiche d'un de ses mods, puis qu'on y revient.
 
 ## [1.60.0] - 2026-10-08

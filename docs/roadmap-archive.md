@@ -5876,8 +5876,8 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       ✅ *Mesuré et clos le 2026-10-08* (sonde Swift sur le parseur de l'app,
       parc entier, retirée ; 506 packs CP dont 114 actifs — les 559 d'A5-T4
       comptent 57 packs FTM/FF/BBM porteurs d'un `content.json` sans `Changes`) :
-      - **Fichiers illisibles : 13, pas 339** — le chiffre du spike venait du
-        décapage naïf. Les 13 tombaient sur trois formes que Newtonsoft lit
+      - **Fichiers illisibles : 13, pas 339** — le spike précédait le lecteur
+        Newtonsoft commun et le suivi des `Include`. Les 13 tombaient sur trois formes que Newtonsoft lit
         (oracle sur la DLL 13.0.4) et `JSONSerialization` non : nombres `.03`
         (SVE `Crops.json`, `Fish.json`), chaînes `'…'` (boutiques de MoreBooks,
         `MigrateIds` de WTDR), éléments vides de tableau `,,` (SVE
