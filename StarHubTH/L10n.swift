@@ -1390,6 +1390,11 @@ enum L10n {
         static let actionRenameFolder   = "health_action_rename_folder"
         static let folderCollisionTitle  = "health_folder_collision_title"
         static let folderCollisionDetail = "health_folder_collision_detail"
+        // A1-T2 — un manifest.json que même le lecteur clément refuse :
+        // SMAPI ne charge pas ce mod. La ligne porte la réparation.
+        static let manifestUnreadableTitle = "health_manifest_unreadable_title"
+        static let actionRepairManifest    = "health_action_repair_manifest"
+        static let actionReinstallNexus    = "health_action_reinstall_nexus"
         static let modWarningTitle       = "health_mod_warning_title"
         static let modWarningSource      = "health_mod_warning_source"
         // A2-T7 — la liste noire SMAPI (mods malveillants). À ne pas

@@ -225,19 +225,13 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **1 item ouvert sur 32** *(le 2026-10-08 : **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, il ne reste que **A1-T2** — l'ancien « 3 » comptait **A5-T6**, livré, en attente de vérification à l'écran ; **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **0 item ouvert sur 32** *(le 2026-10-08 : **A1-T2** livré malgré un parc sain (0 cas mesuré trois fois) — décision de l'auteur, à l'archive ; **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
 
-> ✅ **Tous les items de ce lot sont livrés, sauf A1-T2.** Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
-
-- [ ] **A1-T2** — Détecter un `manifest.json` illisible et proposer la réparation :
-      restauration depuis backup, sinon réinstallation Nexus. La validation doit accepter
-      ce que SMAPI accepte (JSON5 : commentaires, virgules traînantes) — `smapi.io/json`
-      sert de référence de comportement, et les messages d'erreur doivent être aussi
-      explicites que les siens. · **M** · *mesuré le 2026-10-02 : zéro manifeste
-      illisible sur le parc (1 162 lus par le parseur clément) — à l'exemplaire réel*
+> ✅ **Tous les items de ce lot sont livrés** (A1-T2, le dernier, le 2026-10-08).
+> Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
 
 #### A2 — Compatibilité SMAPI via l'API smapi.io
@@ -2161,6 +2155,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **A1-T12** | 2026-10-07 | Les mods internes de SMAPI (`ConsoleCommands`, `SaveBackup`, `ErrorHandler` des vieux parcs) ne sont plus mis en pause par « Tout désactiver », les profils ni la bissection ; suppression refusée (`ModItem.isSmapiBundled`) |
 | **A2-T5** | 2026-10-07 | 3e source hors ligne : `smapi-internal/metadata.json`, bornes de version lues (`SmapiLocalMetadata`) ; sans elles, 14 faux signaux sur le parc pour 1 réel |
 | **A3-T8** | 2026-10-07 | Approuver un mod Nexus depuis sa fiche, refus typés (`NexusEndorsement`) ; nombre d'approbations en fiche, liste et grille, tris associés |
+| **A1-T2** | 2026-10-08 | Manifeste illisible : ligne critique aux Alertes, restauration du manifeste seul depuis le backup le plus récent, sinon réinstallation Nexus ; le mod reste listé, le geste suit le rescan |
 | **A5-T5** | 2026-10-08 | Signal des conflits élargi, mesuré source par source : le parseur lit `.03`, `'…'` et `,,` en tableau (13 fichiers CP + 9 i18n gagnés, 0 paire nouvelle) ; `Load` à jetons et `EditData`/`EditImage` mesurés et clos sans alerte |
 | **A5-T4** | 2026-10-08 | Conflits `Load` exclusifs Content Patcher prévus depuis les fichiers : porte d'activation unitaire, ligne « Prévu » dans le rapport ; 3 duos dormants, 0 actif. Vérifié dans l'app par l'auteur le 2026-10-08 ; gestes en masse → **A5-T8** |
 | **A5-T8** | 2026-10-08 | « Tout activer », la sélection et l'activation d'un profil annoncent les paires en conflit qu'ils rendraient actives, deux mods réveillés ensemble compris ; une confirmation récapitulative (`newConflicts`, `BulkConflictGateStore`) |

@@ -46,6 +46,11 @@ public struct HealthIssue: Identifiable, Equatable {
         /// est la liste des mods que l'**utilisateur** a marqués « à écarter ».
         /// Deux notions, deux mots : celle-ci est subie, l'autre est choisie.
         case malicious
+        /// A1-T2 — un `manifest.json` que même le lecteur clément refuse :
+        /// SMAPI ne charge pas ce mod. Toujours en `critical` : le mod est
+        /// absent du jeu, et la ligne porte le geste qui le ramène
+        /// (`ManifestRepair` : backup, sinon Nexus).
+        case manifestUnreadable
     }
 
     /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien
@@ -82,6 +87,16 @@ public struct HealthIssue: Identifiable, Equatable {
         /// aboutir, les deux déplacements se refusant l'un l'autre.
         case renameFolder(folderName: String)
 
+        /// A1-T2 — recopie le `manifest.json` du backup d'installation le
+        /// plus récent dans le dossier du mod (`ManifestRepair.restore`).
+        /// Premier geste quand un backup porte le manifeste : chirurgical,
+        /// le contenu actuel du mod reste intact.
+        case repairManifest(folderName: String)
+        /// A1-T2 — réinstalle le mod depuis Nexus (dernière version, file de
+        /// téléchargement commune). Repli quand aucun backup ne porte le
+        /// manifeste.
+        case reinstallFromNexus(nexusId: Int)
+
         /// Identité dérivée du contenu, comme celle de `HealthIssue` : une
         /// ligne peut offrir deux chemins (voir `actions`), et `ForEach` les
         /// distingue par ceci — jamais par leur position, qui changerait la
@@ -92,6 +107,8 @@ public struct HealthIssue: Identifiable, Equatable {
             case .openLogs(let s):  return "logs:\(s)"
             case .revealInFinder(let p): return "finder:\(p.joined(separator: "|"))"
             case .renameFolder(let f):   return "rename:\(f)"
+            case .repairManifest(let f): return "repair:\(f)"
+            case .reinstallFromNexus(let i): return "reinstall:\(i)"
             }
         }
     }

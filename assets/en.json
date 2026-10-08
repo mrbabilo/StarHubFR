@@ -2397,5 +2397,8 @@
   "updates_outcome_page_hidden": "Nexus page hidden by its author",
   "updates_outcome_page_removed": "Nexus page removed",
   "updates_outcome_ambiguous_page": "Nexus page shared by different versions",
-  "updates_outcome_not_reached": "Not checked on Nexus (no API key, rate limit or stopped)"
+  "updates_outcome_not_reached": "Not checked on Nexus (no API key, rate limit or stopped)",
+  "health_manifest_unreadable_title": "Unreadable manifest: %@",
+  "health_action_repair_manifest": "Restore manifest",
+  "health_action_reinstall_nexus": "Reinstall from Nexus"
 }

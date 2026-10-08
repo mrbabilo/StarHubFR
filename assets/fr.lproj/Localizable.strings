@@ -2398,3 +2398,6 @@
 "updates_outcome_page_removed" = "Page Nexus supprimée";
 "updates_outcome_ambiguous_page" = "Page Nexus partagée par des versions différentes";
 "updates_outcome_not_reached" = "Pas vérifié sur Nexus (clé d'API absente, limite ou arrêt)";
+"health_manifest_unreadable_title" = "Manifeste illisible : %@";
+"health_action_repair_manifest" = "Restaurer le manifeste";
+"health_action_reinstall_nexus" = "Réinstaller depuis Nexus";

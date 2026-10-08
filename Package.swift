@@ -221,6 +221,7 @@ let package = Package(
                 "Models/ModVersionAnchorRules.swift",
                 "Models/AffirmedUpdates.swift",
                 "Models/ModFolderCollision.swift",
+                "Models/ManifestRepair.swift",
                 "Models/ModVersionAnchorStore.swift",
                 "Models/InstalledModRegistry.swift",
                 "SmapiUpdateClient.swift",
@@ -456,6 +457,11 @@ let package = Package(
             name: "ModScannerTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModScannerTests"
+        ),
+        .testTarget(
+            name: "ManifestRepairTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ManifestRepairTests"
         ),
         .testTarget(
             name: "DependencyIndexTests",

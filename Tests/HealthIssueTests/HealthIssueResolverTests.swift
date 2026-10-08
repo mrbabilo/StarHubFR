@@ -673,3 +673,33 @@ struct HealthIssueResolverAggregateTests {
 
     #expect(sorted.first?.source == .malicious)
 }
+
+/// A1-T2 — la ligne d'un manifeste illisible : critique (SMAPI ne charge
+/// pas le mod), geste de réparation en premier, fiche toujours là.
+@Suite struct ManifestUnreadableIssuesTests {
+    @Test func criticalRowCarriesThePlannedRepairThenTheFiche() {
+        let issues = HealthIssueResolver.manifestUnreadableIssues(
+            [("Broken", "Unexpected end of file",
+              .repairManifest(folderName: "Broken"))],
+            title: { "Manifeste illisible : \($0)" })
+
+        #expect(issues[0].severity == .critical)
+        #expect(issues[0].source == .manifestUnreadable)
+        #expect(issues[0].detail == "Unexpected end of file")
+        #expect(issues[0].actions == [.repairManifest(folderName: "Broken"),
+                                      .openMod(query: "Broken")])
+    }
+
+    @Test func withoutARepairTheFicheRemains() {
+        let issues = HealthIssueResolver.manifestUnreadableIssues(
+            [("Lost", "not UTF-8", nil)], title: { $0 })
+        #expect(issues[0].actions == [.openMod(query: "Lost")])
+    }
+
+    @Test func theNexusFallbackIsCarriedAsIs() {
+        let issues = HealthIssueResolver.manifestUnreadableIssues(
+            [("OnlyNexus", "bad JSON", .reinstallFromNexus(nexusId: 191))],
+            title: { $0 })
+        #expect(issues[0].actions.first == .reinstallFromNexus(nexusId: 191))
+    }
+}

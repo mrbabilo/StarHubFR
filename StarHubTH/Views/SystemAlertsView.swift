@@ -271,6 +271,10 @@ struct SystemAlertsView: View {
         case .openLogs: return localization.L(L10n.Health.actionOpenLogs)
         case .revealInFinder: return localization.L(L10n.Health.actionRevealInFinder)
         case .renameFolder: return localization.L(L10n.Health.actionRenameFolder)
+        // A1-T2 — les deux gestes qui ramènent le mod dans le jeu : le
+        // libellé dit lequel (backup local, ou Nexus).
+        case .repairManifest: return localization.L(L10n.Health.actionRepairManifest)
+        case .reinstallFromNexus: return localization.L(L10n.Health.actionReinstallNexus)
         }
     }
 
@@ -299,6 +303,12 @@ struct SystemAlertsView: View {
                 paths.map { URL(fileURLWithPath: $0) })
         case .renameFolder(let name):
             renameSheet = RenameFolderSheet(name: name)
+        case .repairManifest(let folderName):
+            // Le rescan qui suit la copie fait disparaître la ligne — ou la
+            // laisse si le manifeste du backup est cassé lui aussi.
+            vm.restoreManifest(folderName: folderName)
+        case .reinstallFromNexus(let nexusId):
+            vm.downloadModFromNexus(nexusId: nexusId)
         }
     }
 

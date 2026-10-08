@@ -299,4 +299,52 @@ import Testing
         #expect(Set(outcome.entriesWithoutMods) == [".kilo", "Tools"])
         #expect(outcome.mods.count == 1)
     }
+
+    // MARK: - Manifeste illisible (A1-T2)
+
+    /// Un manifeste que même le lecteur clément refuse : le mod reste
+    /// listé (valeurs par défaut), et le scan le **signale** au lieu de
+    /// ne le dire qu'au journal.
+    @Test func unreadableManifestIsReportedAndModStaysListed() throws {
+        let gameDir = try makeGameDir()
+        let modsPath = gameDir + "/Mods"
+        try makeMod(in: modsPath, name: "Broken", manifest: "{ not json at all")
+        try makeMod(in: modsPath, name: "Fine", manifest: fullManifest)
+        var logged: [String] = []
+        let outcome = try scan(gameDir, log: { logged.append($0) })
+        #expect(outcome.mods.map(\.folderName).contains("Broken"))
+        #expect(outcome.unreadableManifests.count == 1)
+        let unreadable = try #require(outcome.unreadableManifests.first)
+        #expect(unreadable.folderName == "Broken")
+        #expect(!unreadable.message.isEmpty)
+        #expect(logged.contains { $0.contains("Broken") })
+    }
+
+    /// Un manifeste hors UTF-8 échouait **avant** le décodage, sans même
+    /// la ligne de journal : le silence était total. Il compte aussi.
+    @Test func nonUtf8ManifestIsReported() throws {
+        let gameDir = try makeGameDir()
+        let dir = URL(fileURLWithPath: gameDir + "/Mods/BrokenEncoding")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data([0xFF, 0xFE, 0x00, 0x7B]).write(to: dir.appendingPathComponent("manifest.json"))
+        let outcome = try scan(gameDir)
+        #expect(outcome.unreadableManifests.count == 1)
+        #expect(outcome.unreadableManifests.first?.folderName == "BrokenEncoding")
+    }
+
+    /// Un composant de pack signalé porte son `folderName` complet
+    /// (`Racine/Composant`) — la clé qui résout la fiche et le disque.
+    /// La racine ne porte **pas** de manifeste : c'est un dossier de
+    /// recherche au sens de `ModFolderTraversal` (comme « Stardew Valley
+    /// Expanded » sur le vrai parc) — une racine à manifeste ne descend pas.
+    @Test func unreadablePackComponentReportsFullFolderName() throws {
+        let gameDir = try makeGameDir()
+        let comp = URL(fileURLWithPath: gameDir + "/Mods/RootMod/[CP] Component")
+        try fm.createDirectory(at: comp, withIntermediateDirectories: true)
+        try "{ broken".write(to: comp.appendingPathComponent("manifest.json"), atomically: true, encoding: .utf8)
+        let outcome = try scan(gameDir)
+        #expect(outcome.unreadableManifests.contains {
+            $0.folderName == "RootMod/[CP] Component"
+        })
+    }
 }

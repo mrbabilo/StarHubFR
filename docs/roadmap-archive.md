@@ -5902,6 +5902,33 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       - **`EditImage` : 0 recouvrement `Replace` inconditionnel entre mods
         actifs** (329 tous sous `When`) — l'avertissement de composition tient.
 
+- [x] **A1-T2** — **Détecter un `manifest.json` illisible et proposer la
+      réparation** : restauration depuis backup, sinon réinstallation Nexus.
+      · **M** · *mesuré le 2026-10-02 : zéro manifeste illisible sur le parc
+      (1 162 lus par le parseur clément) — livré quand même le 2026-10-08,
+      décision de l'auteur : le service ne s'exerce que sur un parc étranger
+      ou après corruption manuelle, et les pièces étaient en place.*
+      ✅ *Livré le 2026-10-08* : le catch du scanner (qui ne journalisait
+      qu'une ligne) alimente `Outcome.unreadableManifests` — le cas **hors
+      UTF-8**, muet même au journal, y entre aussi. Ligne `critical` aux
+      Alertes système (`HealthIssue.Source.manifestUnreadable`) : SMAPI ne
+      charge pas ce mod, et il restait listé avec des métadonnées vides sans
+      que rien le dise. `ManifestRepair` (Core, 6 tests + 3 au resolver)
+      choisit le geste : copie du **seul** `manifest.json` du backup
+      d'installation le plus récent (contenu actuel intact — restaurer le
+      dossier entier ferait une marche arrière de version), sinon
+      réinstallation Nexus (dernière version, file commune, `config.json` et
+      traductions préservées), sinon la fiche seule. Après restauration :
+      rescan — l'alerte disparaît avec la cause, ou reste si le manifeste du
+      backup est cassé lui aussi. Échec d'écriture (permissions, le piège
+      0555) nommé au journal. Validation : c'est le lecteur clément qui juge
+      (même tolérance que SMAPI), le message d'erreur du décodage s'affiche
+      tel quel — « aussi explicites que smapi.io/json » se limite à ça : la
+      position d'erreur vient de Foundation. Sabotages 3/3 (collecte muette,
+      premier backup au lieu du plus récent, geste non porté). Vérification à
+      l'écran par l'auteur en attente : aucun cas vivant sur le parc, il faut
+      casser un manifeste à la main pour voir la ligne.
+
 
 ### Performance mesurée — Axe D
 

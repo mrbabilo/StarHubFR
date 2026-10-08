@@ -297,6 +297,33 @@ public enum HealthIssueResolver {
         }
     }
 
+    /// A1-T2 — les `manifest.json` que même le lecteur clément refuse : le
+    /// mod est dans la liste avec des métadonnées vides, mais SMAPI ne le
+    /// charge pas. D'où `.critical` : c'est une absence du jeu, pas un
+    /// avertissement de confort.
+    ///
+    /// - Parameter inputs: un triple par manifeste illisible. `action` est
+    ///   le geste de réparation **déjà planifié** par l'appelant (backup
+    ///   sinon Nexus — `ManifestRepair`) : ce modèle vit dans Core et ne
+    ///   connaît ni les backups ni Nexus, il ne fait que porter le geste.
+    ///   `nil` quand aucun n'est possible : la ligne garde la fiche seule.
+    public static func manifestUnreadableIssues(
+        _ inputs: [(folderName: String, message: String, action: HealthIssue.Action?)],
+        title: (_ folderName: String) -> String) -> [HealthIssue] {
+        inputs.map { input in
+            HealthIssue(
+                id: "manifest-unreadable-\(input.folderName)",
+                severity: .critical,
+                source: .manifestUnreadable,
+                title: title(input.folderName),
+                // Le message d'erreur du décodage : de la donnée, comme les
+                // extraits du journal SMAPI — jamais un libellé L10n.
+                detail: input.message,
+                actions: [input.action].compactMap { $0 }
+                    + [.openMod(query: input.folderName)])
+        }
+    }
+
     /// Tri **stable** par gravité décroissante : à gravité égale, l'ordre de
     /// production (`smapiIssues` puis `keybindIssues` puis `conflictIssues`)
     /// est conservé, sinon les lignes sauteraient d'un rafraîchissement à

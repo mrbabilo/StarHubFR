@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Un manifeste illisible se répare depuis les Alertes.** Un mod que SMAPI ne charge pas à cause de son `manifest.json` paraît en critique dans les alertes système, avec le geste qui le ramène : reprise du manifeste depuis la sauvegarde d'installation la plus récente, sinon réinstallation depuis Nexus.
 - **Ouvrir la fiche d'un mod sans verdict.** Chaque ligne de la liste « sans verdict » ouvre la fiche du mod sur l'onglet Gestion, où se saisit l'identifiant Nexus qui manque.
 
 ### Changed

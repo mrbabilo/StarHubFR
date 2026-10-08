@@ -29,6 +29,10 @@ final class ScanStore {
     /// X109 — le scan qui a posé `mods` a-t-il pu lire `Mods/` ? Faux, une
     /// liste vide ne dit rien du disque : rien ne doit l'adopter.
     private(set) var modsFolderWasReadable = true
+    /// A1-T2 — les `manifest.json` illisibles du dernier scan. Vide sur le
+    /// parc sain ; posé par le scan, **conservé** par une bascule (qui ne
+    /// déplace qu'un dossier et ne peut ni créer ni réparer un manifeste).
+    private(set) var unreadableManifests: [ModScanner.UnreadableManifest] = []
 
     /// Le progrès du scan en vol — la boucle par mod publie
     /// « Analyse de <mod>… (X/N) » ; `nil` hors scan. Inerte.
@@ -69,6 +73,13 @@ final class ScanStore {
     /// Le scan reconstruit l'index de duplication à sa fin.
     func setDuplicateIndex(_ index: ModDuplicateIndex) {
         duplicateIndex = index
+    }
+
+    /// A1-T2 — pose les manifestes illisibles du scan. Méthode séparée de
+    /// `setMods` : une bascule repasse par `setMods` sans rescaner, et ne
+    /// doit ni vider ni reconstruire ce signal.
+    func setUnreadableManifests(_ list: [ModScanner.UnreadableManifest]) {
+        unreadableManifests = list
     }
 
     // MARK: - La mesure des poids : une passe à la fois

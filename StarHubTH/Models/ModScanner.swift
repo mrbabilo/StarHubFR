@@ -67,6 +67,20 @@ final class ModScanner: @unchecked Sendable {
         /// les retrouver dans le Finder). Junk, corbeilles et fichiers sont
         /// exclus : le réparateur les gère déjà.
         let entriesWithoutMods: [String]
+        /// A1-T2 — les `manifest.json` que même le lecteur clément refuse :
+        /// SMAPI ne chargera pas ces mods. Le mod reste dans `mods` avec ses
+        /// valeurs par défaut (nom = dossier logique) ; cette liste est le
+        /// signal qui mène à la réparation (backup, sinon Nexus).
+        let unreadableManifests: [UnreadableManifest]
+    }
+
+    /// Un manifeste illisible, avec ce qu'il faut pour le dire et le réparer :
+    /// le `folderName` **logique** (clé de la fiche, du disque via
+    /// `physicalFolderName`, et des backups) et le message d'erreur du
+    /// décodage — de la donnée, jamais un libellé d'interface.
+    struct UnreadableManifest: Equatable, Sendable {
+        let folderName: String
+        let message: String
     }
 
     /// Cache de décodage indexé par mtime : évite de relire et re-parser
@@ -105,6 +119,7 @@ final class ModScanner: @unchecked Sendable {
 
         var scannedMods: [ModItem] = []
         var entriesWithoutMods: [String] = []
+        var unreadableManifests: [UnreadableManifest] = []
 
         // Manifest decode cache hit-test helper. Returns the cached JSON when
         // the on-disk mtime matches the cached entry's mtime, nil otherwise
@@ -246,8 +261,28 @@ final class ModScanner: @unchecked Sendable {
                     // (nom = dossier logique) mais on le signale pour que
                     // l'utilisateur comprenne pourquoi les métadonnées
                     // sont vides plutôt que de voir un mod "Unknown".
-                    log("Manifest invalide pour \(relativePath.isEmpty ? logicalLeaf : relativePath): \(error.localizedDescription)")
+                    // A1-T2 : le signal va aussi à `unreadableManifests`,
+                    // la seule voie qui mène à l'offre de réparation.
+                    let folderName = relativePath.isEmpty ? logicalLeaf : relativePath
+                    log("Manifest invalide pour \(folderName): \(error.localizedDescription)")
+                    unreadableManifests.append(
+                        UnreadableManifest(folderName: folderName,
+                                           message: error.localizedDescription))
                 }
+            } else {
+                // Fichier illisible ou hors UTF-8 : ce cas échouait **avant**
+                // le décodage, sans même la ligne de journal. Il compte pour
+                // A1-T2 au même titre qu'un JSON cassé — SMAPI ne lira pas
+                // davantage un manifeste qu'on ne sait pas décoder en texte.
+                let folderName = relativePath.isEmpty ? logicalLeaf : relativePath
+                // Donnée, pas libellé d'interface : l'anglais comme les
+                // extraits du journal SMAPI que montre la même ligne.
+                let reason = fm.isReadableFile(atPath: manifestPath)
+                    ? "manifest.json is not valid UTF-8"
+                    : "manifest.json is unreadable (permissions or file system)"
+                log("Manifest invalide pour \(folderName): \(reason)")
+                unreadableManifests.append(
+                    UnreadableManifest(folderName: folderName, message: reason))
             }
 
             return ModItem(
@@ -387,6 +422,7 @@ final class ModScanner: @unchecked Sendable {
         return Outcome(mods: scannedMods,
                        modsFolderWasReadable: modsFolderWasReadable,
                        scannedEntries: scannedEntries,
-                       entriesWithoutMods: entriesWithoutMods)
+                       entriesWithoutMods: entriesWithoutMods,
+                       unreadableManifests: unreadableManifests)
     }
 }

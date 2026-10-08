@@ -403,11 +403,47 @@ final class StarHubTHViewModel {
             detail: { String(format: self.localization.L(L10n.Health.maliciousDetail), $0)
                       + " " + self.localization.L(L10n.Health.maliciousSource) })
 
+        // A1-T2 — manifestes illisibles : SMAPI ne charge pas ces mods. La
+        // lecture des backups ne se fait que s'il y a une ligne à armer —
+        // `healthIssues` est recalculé souvent, le parc sain ne paie rien.
+        let manifestIssues: [HealthIssue] = scanStore.unreadableManifests.isEmpty ? [] : {
+            let candidates = ModInstallBackupManager.shared.loadBackups().map {
+                ManifestRepair.BackupCandidate(timestamp: $0.timestamp,
+                                               originalFolderName: $0.originalFolderName,
+                                               backupPath: $0.backupPath)
+            }
+            return HealthIssueResolver.manifestUnreadableIssues(
+                scanStore.unreadableManifests.map { unreadable in
+                    // `nexusModId` est une chaîne brute (« 191 », vide sans
+                    // clé) : la file de téléchargement veut l'`Int`.
+                    let nexusId = installedMods
+                        .first { $0.folderName == unreadable.folderName }
+                        .flatMap { Int($0.nexusModId) }
+                    // Backup d'abord, Nexus en repli — même ordre que la
+                    // feuille de réparation.
+                    let action: HealthIssue.Action?
+                    if ManifestRepair.backupManifest(folderName: unreadable.folderName,
+                                                     candidates: candidates) != nil {
+                        action = .repairManifest(folderName: unreadable.folderName)
+                    } else if let nexusId {
+                        action = .reinstallFromNexus(nexusId: nexusId)
+                    } else {
+                        action = nil
+                    }
+                    return (folderName: unreadable.folderName,
+                            message: unreadable.message, action: action)
+                },
+                title: { folderName in
+                    let name = installedMods.first { $0.folderName == folderName }?.name ?? folderName
+                    return String(format: self.localization.L(L10n.Health.manifestUnreadableTitle), name)
+                })
+        }()
+
         return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
                                            keybindReport: keybindReport,
                                            conflicts: live,
                                            folderCollisions: collisionIssues + warningIssues
-                                               + maliciousIssues,
+                                               + maliciousIssues + manifestIssues,
                                            displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })
@@ -1839,6 +1875,7 @@ final class StarHubTHViewModel {
             // Called from background: publish on main.
             DispatchQueue.main.async { [weak self] in
                 self?.scanStore.setMods([], modsFolderWasReadable: false)
+                self?.scanStore.setUnreadableManifests([])
                 // Reset selection (the mod may have disappeared).
                 self?.selectedMod = nil
             }
@@ -1951,6 +1988,8 @@ final class StarHubTHViewModel {
             // Ordre alphabétique, packs et mods mêlés (2026-08-26) ; le tri « Nom »
             // le suppose.
             self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
+            // A1-T2 — le signal des manifestes illisibles suit le même scan.
+            self.scanStore.setUnreadableManifests(scanned.unreadableManifests)
             self.rebuildDependencyIndexes()
             self.hiddenCodeIndex.refresh(gameDir: self.gameDir) // A5-T6 : une bascule ne change aucun lien
             if self.selectedMod == nil, let first = self.mods.first {
@@ -3787,6 +3826,37 @@ final class StarHubTHViewModel {
     func downloadModFromNexus(nexusId: Int) {
         enqueueOrStartNexusDownload(.init(modId: nexusId, fileId: nil,
                                           game: "stardewvalley", key: nil, expires: nil))
+    }
+
+    /// A1-T2 — répare le manifeste illisible d'un mod en recopiant celui du
+    /// **backup d'installation le plus récent** (`ManifestRepair.restore`),
+    /// puis rescane : l'alerte disparaît avec la cause, ou reste si le
+    /// manifeste restauré ne décode pas mieux (backup lui-même cassé).
+    /// Le repli Nexus est porté par la ligne d'alerte, pas ici.
+    func restoreManifest(folderName: String) {
+        let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
+        let candidates = ModInstallBackupManager.shared.loadBackups().map {
+            ManifestRepair.BackupCandidate(timestamp: $0.timestamp,
+                                           originalFolderName: $0.originalFolderName,
+                                           backupPath: $0.backupPath)
+        }
+        // Dossier **physique** (le point d'un mod en pause est sur l'entrée
+        // de tête) : résolu depuis le parc, jamais recalculé ici.
+        let physical = mods.flattenedMods
+            .first { $0.folderName == folderName }?.physicalFolderName ?? folderName
+        let destination = (modsRoot as NSString).appendingPathComponent(physical)
+        do {
+            let written = try ManifestRepair.restore(folderName: folderName,
+                                                     destinationFolder: destination,
+                                                     candidates: candidates)
+            log("Manifeste restauré depuis le backup : \(written)", level: .info)
+            scanMods(gameDir: gameDir, includeRepair: false)
+        } catch {
+            // L'échec reste visible : la ligne d'alerte ne bouge pas, et le
+            // journal dit quoi (permissions — le piège 0555 — ou backup parti).
+            log("Réparation du manifeste échouée (\(folderName)) : \(error.localizedDescription)",
+                level: .error)
+        }
     }
 
     /// Point unique des demandes : démarre au repos, sinon en file
