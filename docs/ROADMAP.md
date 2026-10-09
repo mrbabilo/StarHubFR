@@ -98,11 +98,11 @@ proposés) :
       sans clé ; une clé effacée pendant ce tri fait sortir
       `recheckBlockedViaNexus` sans `endFallback()`, et plus rien ne relâche
       `isChecking`.
-- [ ] **X122** — **L'impact par mod dépend de l'onglet Mods.** Seules la
-      liste et la fiche lancent la première lecture de `ModImpactStore` :
-      ouvert d'abord, Performances reste en chargement. Ensuite l'état
-      actif/en pause des entrées est figé jusqu'à la fermeture du jeu — un
-      mod mis en pause reste classé parmi les actifs.
+- [ ] **X122** — **L'état actif/en pause de l'impact par mod reste figé
+      dans la session.** `ModImpactStore` copie `isEnabled` à chaque
+      relecture, et une bascule faite dans l'app n'en déclenche aucune : un
+      mod mis en pause reste classé parmi les actifs, et sa fiche ne dit pas
+      « en pause », jusqu'à la fermeture du jeu.
 - [ ] **X123** — **Un index d'archives Nexus illisible fait oublier toutes
       les archives.** `NexusArchiveStore.loadIndex()` relit un `index.json`
       abîmé comme vide ; la prochaine archive gardée réécrit l'index avec

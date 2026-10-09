@@ -34,7 +34,7 @@ bas, avec son scénario.
 
 | # | Où | Défaut | Correctif | Preuve à poser |
 |---|---|---|---|---|
-| X122 | `Stores/ModImpactStore.swift`, `Views/Performance/PerformanceView.swift` | Impact par mod jamais chargé depuis Performances ; état actif/en pause figé jusqu'à la fermeture du jeu | Garder le dernier `ModImpactHistory` ; re-dériver `entries` et les tables quand `mods` change, sans relire le disque ; `reloadIfIdle` dans `PerformanceView.task` | Test Core dans `ModImpactStoreTests` (le store est dans `Package.swift`, `files` et `historyURL` injectables) : `reload` sur un historique temporaire, bascule d'un mod, les entrées suivent `isEnabled` — rouge aujourd'hui |
+| X122 | `Stores/ModImpactStore.swift` | État actif/en pause de l'impact par mod figé dans la session : une bascule faite dans l'app ne se voit ni au classement, ni aux textures, ni sur la fiche, jusqu'à la fermeture du jeu ou un retour dans l'app avec Performances affiché | Garder le dernier `ModImpactHistory` ; re-dériver `entries` et les tables quand `mods` change, sans relire le disque | Test Core dans `ModImpactStoreTests` (le store est dans `Package.swift`, `files` et `historyURL` injectables) : `reload` sur un historique temporaire, bascule d'un mod, les entrées suivent `isEnabled` — rouge aujourd'hui |
 | X120 | `Views/MainView.swift:422` | Fausse alerte « dépendance absente » sur une archive sans rapport | `vm.clearPendingDependencyExpectation()` sous `vm.pendingNexusSource = nil` | Vérification à l'écran (vue) : dépendance téléchargée, feuille fermée, archive conservée réinstallée — aucune bannière |
 | X121 | `StarHubTHViewModel.checkUpdatesViaNexus()` | Vérification bloquée « en cours » si la clé disparaît pendant le tri | Garde de clé Trousseau dans le `guard` de la `Task`, sortie par `updateStore.endFallback()` | Build ; scénario à l'écran (effacer la clé pendant le tri) |
 | X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) **Exécuté** : 2 archives, index corrompu, `keep` d'une 3ᵉ → `entries().count == 1`, 3 fichiers dans `files/`, `applyRetention()` en efface 0. À reprendre en test dans `NexusArchiveStoreTests` |
@@ -72,8 +72,8 @@ passage dans le fichier, pas en priorité.
 - Détail et pistes : Phase 1 › ViewModel.
 
 ### 📁 `StarHubTH/Stores/ModImpactStore.swift`
-- 🟡 `reload`/`reloadIfIdle` — X122 (premier chargement absent de
-  Performances, `isEnabled` figé).
+- 🟡 `reload`/`reloadIfIdle` — X122 (`isEnabled` des entrées figé dans la
+  session).
 - Lu par : `ModListRow`, `ModImpactSection`, `PerformanceImpactSection`,
   `PerformanceTextureSection`, filtre impact.
 
@@ -247,30 +247,34 @@ Aucun TODO, FIXME ni `fatalError("TODO")` dans le delta.
 
 **Bilan : 0 🔴, 1 🟡 (X122), 8 pistes écartées.**
 
-## 🟡 X122 — L'impact par mod dépend de l'onglet Mods : jamais chargé depuis Performances, figé ensuite
+## 🟡 X122 — L'état actif/en pause de l'impact par mod reste figé dans la session
 
-- **Où** : `Stores/ModImpactStore.swift`, ses trois déclencheurs
-  (`ModListView.swift:450`, `ModImpactSection` de la fiche,
-  `GameExitRefresh`).
-- **Cause 1 — premier chargement** : seuls la liste des mods et la fiche
-  appellent `reloadIfIdle`. `PerformanceView.task` recharge son propre store
-  et l'environnement, pas `modImpactStore`. Lancer l'app (onglet Accueil par
-  défaut) puis ouvrir Journaux › Performances : les cartes « Impact par mod »
-  et « Textures » restent sur leur indicateur de chargement (`.idle`)
-  jusqu'à la visite de l'onglet Mods ou la fermeture du jeu.
-- **Cause 2 — état figé** : `ModImpact.entries(history:mods:)` copie
-  `isEnabled` de chaque mod au moment de la relecture
-  (`ModImpact.swift:183`). Classement, lignes de performance et textures
-  filtrent sur cette copie (`ModImpact.swift:191`,
-  `ProbeImpactPresentation.swift:16,66`), et la fiche affiche « en pause »
-  d'après elle. Or la relecture n'a lieu qu'une fois (`reloadIfIdle`) puis à
-  la fermeture du jeu. Mettre en pause un mod mesuré : il reste classé parmi
-  les actifs et sa fiche ne dit pas « en pause » ; activer un mod en pause :
-  l'inverse. Changer de dossier de jeu garde les entrées de l'ancien parc.
+- **Où** : `Stores/ModImpactStore.swift`. Déclencheurs de relecture : la
+  première apparition de la liste (`ModListView.swift:450`), de la fiche
+  (`ModImpactSection`), des cartes Impact et Textures de Performances (tous
+  gardés par `status == .idle`), le retour dans l'app quand Performances est
+  affiché (`PerformanceImpactSection`, `didBecomeActive`), la fermeture du
+  jeu (`GameExitRefresh`).
+- **Cause** : `ModImpact.entries(history:mods:)` copie `isEnabled` de chaque
+  mod au moment de la relecture (`ModImpact.swift:183`). Classement, lignes
+  de performance et textures filtrent sur cette copie
+  (`ModImpact.swift:191`, `ProbeImpactPresentation.swift:16,66`), et la
+  fiche affiche « en pause » d'après elle. Une bascule faite **dans l'app**
+  ne déclenche aucune relecture.
+- **Scénario** : ouvrir Performances (l'impact se charge), aller dans Mods,
+  mettre en pause le premier du classement, revenir : il reste classé parmi
+  les actifs, et sa fiche ne porte pas la mention « en pause ». L'inverse
+  pour un mod activé. Le défaut tient jusqu'à la fermeture du jeu ou un
+  passage par une autre application avec Performances affiché. Changer de
+  dossier de jeu garde aussi les entrées de l'ancien parc.
 - **Correctif proposé** : le store garde le dernier `ModImpactHistory` lu et
   expose une re-dérivation sans entrée-sortie (`ModImpact.entries` + les
-  tables qui en découlent) appelée quand `mods` change ;
-  `PerformanceView.task` appelle `reloadIfIdle` comme la liste.
+  tables qui en découlent), appelée quand `mods` change.
+- **Correction du rapport (2026-10-09, après-midi)** : une première version
+  annonçait aussi que Performances ne chargeait jamais l'impact. C'était
+  faux — les cartes Impact et Textures le chargent dans leur `.task`
+  (`store.reload`) ; la recherche avait visé `modImpactStore.reload` et
+  manqué l'alias local `store`.
 
 ## 🔬 Pistes écartées (Stores)
 
