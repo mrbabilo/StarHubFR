@@ -124,3 +124,23 @@ import Testing
         #expect(MissingDependencies.absent(expected: [], in: ["Other.Mod"]).isEmpty)
     }
 }
+
+/// `.urlQueryAllowed` laisse passer `&`, `+` et `=` : un nom portant `&`
+/// coupait la recherche Nexus au premier mot (`gsearch=Mail ` puis un
+/// paramètre parasite).
+struct MissingDependenciesSearchURLTests {
+    @Test func reservedQueryCharactersAreEncoded() throws {
+        let url = try #require(MissingDependencies.searchPage(for: "Mail & Co + 2=3"))
+        let item = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "gsearch" }
+        #expect(item?.value == "Mail & Co + 2=3")
+    }
+
+    @Test func authorPageEncodesTheSameWay() throws {
+        let url = try #require(MissingDependencies.authorPage(for: "A&B"))
+        let item = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "author" }
+        #expect(item?.value == "A&B")
+    }
+}
+

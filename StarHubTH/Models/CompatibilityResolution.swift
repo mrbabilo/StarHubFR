@@ -75,8 +75,12 @@ public enum CompatibilityResolution {
         }
     }
 
+    /// Même grammaire que `NexusUpdateChecker.compare` : préfixe `v` et
+    /// métadonnée `+build` retirés avant lecture.
     private static func split(_ version: String) -> (numbers: [Int], suffix: String?) {
-        let trimmed = version.trimmingCharacters(in: .whitespaces)
+        var trimmed = version.trimmingCharacters(in: .whitespaces)
+        if trimmed.first == "v" || trimmed.first == "V" { trimmed.removeFirst() }
+        if let plus = trimmed.firstIndex(of: "+") { trimmed = String(trimmed[..<plus]) }
         let parts = trimmed.split(separator: "-", maxSplits: 1).map(String.init)
         let numbers = (parts.first ?? "").split(separator: ".").map { Int($0) ?? 0 }
         return (numbers, parts.count > 1 ? parts[1] : nil)

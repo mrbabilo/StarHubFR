@@ -130,3 +130,27 @@ struct ModlistReportTests {
         #expect(html.contains("généré le 1970-01-01"))
     }
 }
+
+/// Les noms et versions viennent des manifestes : rien n'empêche un auteur
+/// d'y mettre `<`, `&` ou `|`. Échappés, ils ne cassent ni le tableau HTML
+/// ni le tableau Markdown.
+struct ModlistReportEscapingTests {
+    private let entry = ModlistReport.Entry(
+        name: "A <b>&</b> | B", version: "1.0|beta", isPaused: false,
+        packComponentCount: nil, frPercent: nil, nexusId: nil,
+        anomalyReason: "manifeste <illisible>", anomalyIsError: true)
+
+    @Test func htmlCellsAreEscaped() {
+        let html = ModlistReport.html(entries: [entry], generatedAt: Date(timeIntervalSince1970: 0))
+        #expect(html.contains("A &lt;b&gt;&amp;&lt;/b&gt; | B"))
+        #expect(html.contains("manifeste &lt;illisible&gt;"))
+        #expect(!html.contains("<b>&</b>"))
+    }
+
+    @Test func markdownCellsEscapeThePipe() {
+        let md = ModlistReport.compact(entries: [entry], generatedAt: Date(timeIntervalSince1970: 0))
+        #expect(md.contains("| A <b>&</b> \\| B |"))
+        #expect(md.contains("| 1.0\\|beta |"))
+    }
+}
+

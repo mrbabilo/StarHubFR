@@ -81,6 +81,7 @@ struct MissingDependenciesSheet: View {
             .pointingHandCursor()
         } else if let nexusId = dep.nexusId {
             Button {
+                vm.expectNexusMod(nexusId: nexusId, uniqueIds: dep.uniqueIds)
                 NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
             } label: {
                 Label(localization.L(L10n.Mods.depsSheetOpenPage), systemImage: "safari")

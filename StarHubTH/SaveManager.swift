@@ -35,7 +35,7 @@ struct SaveNote: Codable {
 @MainActor
 final class SaveNotesStore {
     static let shared = SaveNotesStore()
-    private let key = "SaveNotes_v2" // Upgraded version key to prevent conflicts
+    private let key = UDKey.saveNotes // Upgraded version key to prevent conflicts
 
     private var cache: [String: SaveNote] = [:]
 

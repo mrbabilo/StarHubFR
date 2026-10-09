@@ -36,6 +36,21 @@ import Testing
         #expect(s.lastInGame != nil)
     }
 
+    /// X122 — les entrées copient `isEnabled` à la relecture ; une bascule
+    /// faite dans l'app doit se voir sans attendre la fermeture du jeu.
+    @Test func aToggleInTheAppIsSeenWithoutReloading() async throws {
+        let s = try store(withLoads: false)
+        await s.reload(mods: mods, gameRunning: false, gameDir: nil)
+        #expect(s.entry(for: mods[0])?.isEnabled == true)
+
+        var paused = mods
+        paused[0].isEnabled = false
+        s.refresh(mods: paused)
+
+        #expect(s.entry(for: paused[0])?.isEnabled == false)
+        #expect(!s.ranking.contains { $0.id == paused[0].folderName })
+    }
+
     @Test func theOpenSessionIsNotIntegratedWhileTheGameRuns() async throws {
         let s = try store(withLoads: false)
         await s.reload(mods: mods, gameRunning: true, gameDir: nil)

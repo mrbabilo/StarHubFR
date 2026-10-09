@@ -46,4 +46,30 @@ struct TranslationLotArchiveTests {
             try TranslationLotArchive.extract(Data("not a zip".utf8))
         }
     }
+
+    /// Un lien symbolique glissé dans le ZIP sous un nom en `.json` : `unzip`
+    /// le recrée, et sa **cible** — n'importe quel fichier local — serait lue
+    /// comme un lot. Seuls les fichiers ordinaires reviennent.
+    @Test func aSymbolicLinkEntryIsNotFollowed() throws {
+        let work = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lot-link-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        let secret = work.appendingPathComponent("secret.txt")
+        try Data("ne pas lire".utf8).write(to: secret)
+        try Data("{}".utf8).write(to: work.appendingPathComponent("M1-fr-lot.json"))
+        try FileManager.default.createSymbolicLink(at: work.appendingPathComponent("piege.json"),
+                                                   withDestinationURL: secret)
+        let zipURL = work.appendingPathComponent("lot.zip")
+        let zip = Process()
+        zip.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        zip.currentDirectoryURL = work
+        zip.arguments = ["-q", "-y", zipURL.path, "M1-fr-lot.json", "piege.json"]
+        try zip.run(); zip.waitUntilExit()
+        #expect(zip.terminationStatus == 0)
+
+        let extracted = try TranslationLotArchive.extract(try Data(contentsOf: zipURL))
+
+        #expect(extracted.keys.sorted() == ["M1-fr-lot.json"])
+    }
 }

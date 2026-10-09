@@ -98,6 +98,22 @@ private func simulate(_ moves: [ProfileApplyPlan.Move],
         #expect(moves.first?.direction == .enable)
     }
 
+    /// X127 — SMAPI compare les `UniqueID` sans la casse, et les
+    /// diagnostics du profil aussi (`ProfileDiagnostics.missingMods`). Un
+    /// auteur qui change la casse de son identifiant ne doit pas voir son mod
+    /// mis en pause par le profil qui le réclame.
+    @Test func aProfileCoversAModWhateverItsUniqueIdCase() {
+        let mods = [makeMod("Alpha", uniqueId: "auteur.alpha", enabled: true),
+                    makeMod("Pack", uniqueId: "", enabled: false,
+                            children: [makeMod("Pack/Inside", uniqueId: "auteur.inside", enabled: false)])]
+        let profile = ModProfile(name: "Casse", enabledModIds: ["Auteur.Alpha", "AUTEUR.INSIDE"])
+
+        let moves = ProfileApplyPlan.moves(applying: profile, to: mods)
+
+        #expect(moves.map(\.folderName) == ["Pack"])
+        #expect(moves.first?.direction == .enable)
+    }
+
     /// Un mod déjà du bon côté ne bouge pas — c'est ce qui rend un double
     /// clic inoffensif.
     @Test func aModAlreadyOnTheRightSideDoesNotMove() {

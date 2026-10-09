@@ -26,7 +26,9 @@ struct PerformanceImpactSection: View {
                           text: localization.L(L10n.Performance.impactEmptyProbe), actionTitle: nil) {}
             case .unreadableHistory:
                 StateCard(icon: AppDesign.Status.warning.symbol,
-                          text: localization.L(L10n.Performance.impactUnreadable), actionTitle: nil) {}
+                          text: localization.L(L10n.Performance.impactUnreadable), actionTitle: localization.L(L10n.Mods.revealInFinder)) {
+                if let url = store.historyFileURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            }
             case .ready:
                 list
             }

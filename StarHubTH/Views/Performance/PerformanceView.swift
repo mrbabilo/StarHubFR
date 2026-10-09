@@ -251,7 +251,7 @@ struct PerformanceView: View {
                 return viewModel.launchGame(honoringCloseAfterLaunch: false)
             },
             rescan: {
-                if viewModel.gameDir == gameDir { viewModel.scanMods(gameDir: gameDir) }
+                if viewModel.gameDir == gameDir { await viewModel.rescanInBackground() } // X125
             })
     }
 }

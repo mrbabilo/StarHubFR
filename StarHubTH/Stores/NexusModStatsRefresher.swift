@@ -7,7 +7,7 @@ import Foundation
 /// que s'il est complet.
 @MainActor
 enum NexusModStatsRefresher {
-    private static let refreshedAtKey = "nexusStatsRefreshedAt"
+    private static let refreshedAtKey = UDKey.nexusStatsRefreshedAt
     private static var attempted = false
 
     static func refreshIfDue(viewModel: StarHubTHViewModel, checker: NexusUpdateChecker = .shared) {

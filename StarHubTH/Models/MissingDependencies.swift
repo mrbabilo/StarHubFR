@@ -168,13 +168,21 @@ public enum MissingDependencies {
         URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(nexusId)?tab=files")!
     }
 
+    /// Les caractères admis dans une **valeur** de paramètre : `.urlQueryAllowed`
+    /// laisse passer `&`, `+` et `=`, qui couperaient la recherche.
+    private static let queryValueAllowed: CharacterSet = {
+        var set = CharacterSet.urlQueryAllowed
+        set.remove(charactersIn: "&+=")
+        return set
+    }()
+
     public static func searchPage(for term: String) -> URL? {
-        let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? term
+        let encoded = term.addingPercentEncoding(withAllowedCharacters: queryValueAllowed) ?? term
         return URL(string: "https://www.nexusmods.com/stardewvalley/search/?gsearch=\(encoded)")
     }
 
     public static func authorPage(for author: String) -> URL? {
-        let encoded = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+        let encoded = author.addingPercentEncoding(withAllowedCharacters: queryValueAllowed) ?? author
         return URL(string: "https://www.nexusmods.com/games/stardewvalley/mods?author=\(encoded)")
     }
 

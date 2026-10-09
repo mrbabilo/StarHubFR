@@ -106,7 +106,7 @@ struct PerformanceProbeSection: View {
         do {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
-            viewModel.scanMods(gameDir: viewModel.gameDir)
+            Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
         } catch {
             failure = String(format: localization.L(L10n.Performance.probeInstallFailed),
                              error is ProbeBundle.InstallError ? ProbeBundle.folderName : error.localizedDescription)

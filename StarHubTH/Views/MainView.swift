@@ -420,6 +420,7 @@ struct MainView: View {
             }
             vm.pendingDownloadedZip = nil
             vm.pendingNexusSource = nil
+            vm.clearPendingDependencyExpectation() // X120 : mêmes endroits que la source
             // La feuille fermée, le créneau de téléchargement est libre :
             // la file nxm:// peut dérouler le lien suivant, s'il y en a.
             vm.drainQueuedNexusDownloads()

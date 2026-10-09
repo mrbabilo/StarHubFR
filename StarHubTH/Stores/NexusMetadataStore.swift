@@ -30,8 +30,8 @@ final class NexusMetadataStore {
     private let defaults: UserDefaults
     // Les clés historiques, inchangées : les données des utilisateurs
     // existants sont lues telles quelles.
-    private static let categoriesKey = "nexusCustomCategories"
-    private static let modIdsKey = "nexusCustomModIds"
+    private static let categoriesKey = UDKey.nexusCustomCategories
+    private static let modIdsKey = UDKey.nexusCustomModIds
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults

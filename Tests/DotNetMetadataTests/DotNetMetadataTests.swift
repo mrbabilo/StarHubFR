@@ -215,3 +215,21 @@ struct DotNetMetadataTests {
         _ = DotNetAssemblyOptions.extract(assembly: truncated)  // ne doit pas planter
     }
 }
+
+/// Une DLL abîmée qui annonce des milliards de lignes faisait tourner la
+/// lecture des types (`typeDefFullNames`) en tâche de fond, sans fin et sans
+/// cache. Une table plus grande que le flux qui la porte est refusée.
+struct DotNetMetadataRowCountBoundTests {
+    @Test func aRowCountLargerThanTheTablesStreamIsRefused() throws {
+        var bytes = FixtureAssembly.bytes
+        let root = try #require(DotNetMetadata.metadataRootOffset(inPE: bytes))
+        let file = try #require(DotNetMetadata.MetadataFile(bytes: bytes, root: root))
+        let tables = file.rowCount.keys.sorted()
+        let typeDefIndex = try #require(tables.firstIndex(of: 0x02))
+        let at = file.firstRowOffset - 4 * tables.count + 4 * typeDefIndex
+        for (i, byte) in [UInt8(0xFF), 0xFF, 0xFF, 0x7F].enumerated() { bytes[at + i] = byte }
+
+        #expect(DotNetMetadata.MetadataFile(bytes: bytes, root: root) == nil)
+    }
+}
+

@@ -17,15 +17,15 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     /// Last update list (`[ModUpdate]` JSON) : la **vérité**, à plat ;
     /// l'affichage en est la consolidation par pack.
-    private let cachedUpdatesKey = "nexusCachedUpdates"
+    private let cachedUpdatesKey = UDKey.nexusCachedUpdates
     /// Epoch of the last check that answered (A2-T4 TTL gate); a failure
     /// writes nothing.
-    private let lastCheckedKey = "nexusUpdatesLastCheckedAt"
+    private let lastCheckedKey = UDKey.nexusUpdatesLastCheckedAt
     /// `{ "modId": categoryId }` for every queried mod, kept apart from
     /// updates (categories apply to all mods).
-    private let cachedCategoriesKey = "nexusCachedCategories"
+    private let cachedCategoriesKey = UDKey.nexusCachedCategories
     /// `{ "modId": NexusModExtra }` (summary + picture), same lifetime.
-    private let cachedExtrasKey = "nexusCachedExtras"
+    private let cachedExtrasKey = UDKey.nexusCachedExtras
 
     /// Guards metadata-cache mutations (overlapping fetches lose nothing).
     private let metadataCacheLock = NSLock()
@@ -80,7 +80,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     /// Dernier quota (JSON `NexusQuota`), persisté : l'app n'appelle Nexus
     /// qu'à la demande.
-    private static let cachedQuotaKey = "nexusQuota"
+    private static let cachedQuotaKey = UDKey.nexusQuota
 
     /// Posté après chaque relevé (réglages ouverts rafraîchis).
     static let quotaDidChange = Notification.Name("StarHubFR.nexusQuotaDidChange")
@@ -111,7 +111,7 @@ final class NexusUpdateChecker: @unchecked Sendable {
 
     // MARK: - Compte (premium ou non)
 
-    private static let cachedAccountKey = "nexusAccount"
+    private static let cachedAccountKey = UDKey.nexusAccount
 
     /// Le compte tel qu'on l'a appris la dernière fois, périmé ou non.
     func cachedAccount() -> NexusAccount? {

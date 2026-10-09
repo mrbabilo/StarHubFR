@@ -2047,6 +2047,7 @@ final class StarHubTHViewModel {
     /// and each in-memory toggle.
     private func rebuildDependencyIndexes() {
         contentPatcherLoadIndex.refresh(mods: mods, gameDir: gameDir) // A5-T4
+        modImpactStore.refresh(mods: mods) // X122 : l'actif/en pause suit la bascule
         let index = DependencyIndex.build(from: mods)
         dependencyIndex = index
         scanStore.setDuplicateIndex(index.duplicateIndex)
@@ -2156,8 +2157,10 @@ final class StarHubTHViewModel {
         missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: [uniqueId])
         downloadModFromNexus(nexusId: nexusId)
     }
-    func expectNexusMod(nexusId: Int, uniqueId: String) {
-        missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: [uniqueId]) }
+    /// Page Nexus ouverte (compte gratuit) : l'archive reviendra par `nxm://`,
+    /// la feuille d'installation la vérifiera contre ces identifiants.
+    func expectNexusMod(nexusId: Int, uniqueIds: [String]) {
+        missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: uniqueIds) }
 
     /// Effacé aux mêmes endroits que `pendingNexusSource` : une archive
     /// déposée ou choisie au fichier n'est pas un téléchargement de dépendance.
@@ -2169,6 +2172,8 @@ final class StarHubTHViewModel {
     /// ouvertes d'un coup (compte gratuit, plafond `pageLimit` compris).
     func installAllMissingDependencies() {
         let plan = missingDependenciesPlan
+        // Pages ouvertes comprises : l'archive reviendra par `nxm://`.
+        for dep in plan where !dep.isSmapi { if let id = dep.nexusId { expectNexusMod(nexusId: id, uniqueIds: dep.uniqueIds) } }
         for action in MissingDependencies.actions(for: plan,
                                                   canDownloadInApp: !nexusDirectDownloadUnavailable) {
             switch action {
@@ -2246,7 +2251,10 @@ final class StarHubTHViewModel {
         // Refused during a bulk toggle (concurrent moves could lose a mod), and
         // during a « Tout désactiver » estimate (it would overwrite the pending
         // suspension).
-        guard bulkToggleProgress == nil,
+        // Ni pendant l'application d'un profil ni pendant une bissection : leurs
+        // renommages de fond se croiseraient avec celui-ci (même garde que
+        // `restoreActivation`).
+        guard bulkToggleProgress == nil, !isApplyingProfile, _bisection?.state == nil,
               isToggling || !saveFingerprintPauseStore.isBusy else {
             completion?()
             return
@@ -3112,7 +3120,10 @@ final class StarHubTHViewModel {
             let kept = NexusFallbackCheck.triage(targets, stats: stats, since: since)
             log("Tri Nexus sans clé : \(kept.count) page(s) sur \(targets.count) à vérifier"
                 + (since == nil ? " (aucune vérification réussie connue : tri par en-tête seul)" : ""), level: .info)
-            guard !updateStore.stopRequested, !kept.isEmpty else { return updateStore.endFallback() }
+            // X121 : la clé a pu partir pendant le tri — `recheckBlockedViaNexus`
+            // sortirait alors sans refermer la passe ouverte ici.
+            guard !updateStore.stopRequested, !kept.isEmpty,
+                  NexusUpdateChecker.shared.apiKey()?.isEmpty == false else { return updateStore.endFallback() }
             recheckBlockedViaNexus(kept.flatMap(\.mods))
         }
     }
@@ -3851,7 +3862,7 @@ final class StarHubTHViewModel {
                                                      destinationFolder: destination,
                                                      candidates: candidates)
             log("Manifeste restauré depuis le backup : \(written)", level: .info)
-            scanMods(gameDir: gameDir, includeRepair: false)
+            Task { await rescanInBackground(includeRepair: false) } // X125
         } catch {
             // L'échec reste visible : la ligne d'alerte ne bouge pas, et le
             // journal dit quoi (permissions — le piège 0555 — ou backup parti).
@@ -4937,7 +4948,7 @@ final class StarHubTHViewModel {
 
     // MARK: - Mods favoris (B3-T2)
 
-    private static let favoriteModsKey = "favoriteMods"
+    private static let favoriteModsKey = UDKey.favoriteMods
 
     private static func loadFavoriteMods() -> Set<String> {
         guard let data = UserDefaults.standard.data(forKey: favoriteModsKey) else { return [] }
@@ -5460,7 +5471,7 @@ final class StarHubTHViewModel {
 
     // MARK: - Mods à écarter (blacklist)
 
-    private static let blacklistedModsKey = "blacklistedMods"
+    private static let blacklistedModsKey = UDKey.blacklistedMods
 
     private static func loadBlacklistedMods() -> Set<String> {
         guard let data = UserDefaults.standard.data(forKey: blacklistedModsKey) else { return [] }
@@ -5934,7 +5945,7 @@ final class StarHubTHViewModel {
     /// Active profile, or nil (an orphaned id yields nothing).
     var activeProfile: ModProfile? { profilesStore.activeProfile }
 
-    private static let defaultProfileKey = "defaultProfileId"
+    private static let defaultProfileKey = UDKey.defaultProfileId
 
     /// Profil par défaut auto-créé. **Miroir** écrit seulement par le seed,
     /// d'où son absence de `resyncMirroredDefaults()`. Seed par la constante
@@ -5966,7 +5977,7 @@ final class StarHubTHViewModel {
     /// One-time starter profile on a fresh install, guarded by a persisted
     /// flag and deferred until a scan found mods.
     func ensureDefaultProfileIfNeeded() {
-        let key = "didSeedDefaultProfile"
+        let key = UDKey.didSeedDefaultProfile
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         guard !mods.isEmpty else { return }   // wait for a scan with mods; don't burn the flag yet
         if modProfiles.isEmpty {
@@ -7162,7 +7173,8 @@ final class StarHubTHViewModel {
         if refuseDuringBenchmark() { return }
         // No re-entry (same paths), and not while unit toggles are queued: the
         // guard prevents the collision the disk checks would only contain.
-        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
+        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty, !isApplyingProfile,
+              _bisection?.state == nil,
               !saveFingerprintPauseStore.isBusy, !bulkConflictGate.isBusy else { return }
         let modsToMove = candidates.bulkToggleTargets(enable: enable)
         guard !modsToMove.isEmpty else {
@@ -7248,6 +7260,19 @@ final class StarHubTHViewModel {
         })
     }
 
+    /// X125 — `scanMods` est synchrone et lourd (réparation, manifestes,
+    /// journal SMAPI) : tout appelant de l'interface passe par ici, hors du
+    /// fil principal. Rend la main une fois le scan publié.
+    func rescanInBackground(includeRepair: Bool = true) async {
+        let resolvedGameDir = gameDir
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.scanMods(gameDir: resolvedGameDir, includeRepair: includeRepair)
+                continuation.resume()
+            }
+        }
+    }
+
     /// Exécute des renommages groupés, rescane, puis rend compte : succès au
     /// journal, échec partiel ou total en alerte.
     private func executeBulkMoves(_ moves: [ProfileApplyPlan.Move], enabling enable: Bool,
@@ -7292,14 +7317,8 @@ final class StarHubTHViewModel {
                          level: .error)
             }
             // Rescan to reflect disk after partial failures, then
-            // syncActiveProfileIds. Scan hors main (T10), dossier de jeu résolu ici.
-            let resolvedGameDir = gameDir
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                    self?.scanMods(gameDir: resolvedGameDir)
-                    continuation.resume()
-                }
-            }
+            // syncActiveProfileIds. Scan hors main (T10).
+            await self.rescanInBackground()
             self.bulkToggleProgress = nil
             self.syncActiveProfileIds()
             then?()

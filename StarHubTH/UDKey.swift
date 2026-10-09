@@ -111,4 +111,27 @@ public enum UDKey {
     /// Paires de mods de performance écartées (A5-T7), une clé
     /// `PerformanceOverlap.key` par ligne — distinctes des verdicts de conflits.
     public static let dismissedPerformanceOverlaps = "starhubFR.dismissedPerformanceOverlaps"
+
+    // MARK: - Rangées ici depuis l'audit transverse (2026-10-09)
+
+    /// Ces clés vivaient en constantes privées dans leur fichier (I3 de
+    /// l'audit). Les **noms ne changent pas** : les données existantes se
+    /// relisent telles quelles, et `DefaultsMigration` les cite déjà.
+    public static let nexusCachedUpdates = "nexusCachedUpdates"
+    public static let nexusUpdatesLastCheckedAt = "nexusUpdatesLastCheckedAt"
+    public static let nexusCachedCategories = "nexusCachedCategories"
+    public static let nexusCachedExtras = "nexusCachedExtras"
+    public static let nexusQuota = "nexusQuota"
+    public static let nexusAccount = "nexusAccount"
+    public static let favoriteMods = "favoriteMods"
+    public static let blacklistedMods = "blacklistedMods"
+    public static let defaultProfileId = "defaultProfileId"
+    public static let didSeedDefaultProfile = "didSeedDefaultProfile"
+    public static let saveNotes = "SaveNotes_v2"
+    public static let nexusCustomCategories = "nexusCustomCategories"
+    public static let nexusCustomModIds = "nexusCustomModIds"
+    public static let nexusStatsRefreshedAt = "nexusStatsRefreshedAt"
+    public static let textScale = "textScale"
+    public static let modUpdateSnoozes = "modUpdateSnoozes"
+    public static let modVersionAnchors = "modVersionAnchors"
 }

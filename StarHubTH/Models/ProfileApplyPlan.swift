@@ -50,10 +50,11 @@ enum ProfileApplyPlan {
     static func moves(applying profile: ModProfile, to installedMods: [ModItem]) -> [Move] {
         // Les mods de SMAPI ne sont jamais mis de côté (A1-T12) : un profil
         // ou un essai de bissection qui les oublie couperait la sauvegarde.
+        let enabled = coveredIds(of: profile)
         let toDisable = installedMods.filter {
-            $0.isEnabled && isManageable($0) && !$0.isSmapiBundled && !isCovered($0, by: profile)
+            $0.isEnabled && isManageable($0) && !$0.isSmapiBundled && !isCovered($0, by: enabled)
         }
-        let toEnable = installedMods.filter { !$0.isEnabled && isCovered($0, by: profile) }
+        let toEnable = installedMods.filter { !$0.isEnabled && isCovered($0, by: enabled) }
 
         return toDisable.map { mod in
             Move(folderName: mod.folderName,
@@ -87,11 +88,22 @@ enum ProfileApplyPlan {
 
     /// Le profil réclame ce mod — ou, pour un pack, **au moins un** de ses
     /// composants. Un pack ne se renomme qu'en entier.
+    /// Sans la casse (X127), comme SMAPI et `ProfileDiagnostics.missingMods` :
+    /// un auteur qui change la casse de son identifiant ne sort pas du profil.
     static func isCovered(_ mod: ModItem, by profile: ModProfile) -> Bool {
+        isCovered(mod, by: coveredIds(of: profile))
+    }
+
+    /// Les identifiants du profil en minuscules, calculés une fois par plan.
+    private static func coveredIds(of profile: ModProfile) -> Set<String> {
+        Set(profile.enabledModIds.map { $0.lowercased() })
+    }
+
+    private static func isCovered(_ mod: ModItem, by enabled: Set<String>) -> Bool {
         if mod.isGroup, let children = mod.children {
-            return children.contains { profile.enabledModIds.contains($0.uniqueId) }
+            return children.contains { enabled.contains($0.uniqueId.lowercased()) }
         }
-        return profile.enabledModIds.contains(mod.uniqueId)
+        return enabled.contains(mod.uniqueId.lowercased())
     }
 
     /// Un profil ne retient que des `UniqueID` : un mod dont le manifeste n'en

@@ -533,6 +533,14 @@ final class SmapiInstaller: ObservableObject {
         let handle = stdoutPipe.fileHandleForReading
         let limits = SmapiInstallerLimits.standard
         let start = Date()
+        // La borne de durée n'est relue qu'à l'arrivée d'octets : un
+        // installateur **muet** et bloqué tiendrait la lecture indéfiniment.
+        // Ce minuteur le termine à la même borne ; sa mort ferme le tube et
+        // la boucle sort sur la fin de flux.
+        let pid = process.processIdentifier
+        let watchdog = DispatchWorkItem { kill(pid, SIGTERM) }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + limits.maxDuration,
+                                                       execute: watchdog)
         var outputData = Data()
         var aborted: SmapiInstallerLimits.Abort?
         while true {
@@ -561,7 +569,12 @@ final class SmapiInstaller: ObservableObject {
                 break
             }
         }
+        watchdog.cancel()
         process.waitUntilExit()
+        if aborted == nil, process.terminationReason == .uncaughtSignal,
+           Date().timeIntervalSince(start) >= limits.maxDuration {
+            aborted = .timedOut
+        }
         let output = String(data: outputData, encoding: .utf8) ?? ""
         // La sortie complète est persistée, pas seulement résumée.
         // `lastMeaningfulLine` n'en rend **qu'une ligne** à l'utilisateur, et

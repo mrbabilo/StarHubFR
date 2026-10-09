@@ -9,7 +9,7 @@ import Foundation
 public enum TextScale: String, CaseIterable, Sendable {
     case normal, large, extraLarge
 
-    public static let defaultsKey = "textScale"
+    public static let defaultsKey = UDKey.textScale
 
     public var factor: Double {
         switch self {

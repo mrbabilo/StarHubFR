@@ -59,3 +59,19 @@ struct CompatibilityResolutionTests {
         #expect(CompatibilityResolution.resolution(of: v, installedVersion: "1.1.3-beta", installedNexusId: "") == nil)
     }
 }
+
+/// `isAtLeast` et `NexusUpdateChecker.compare` lisaient deux grammaires de
+/// version : le premier ne retirait ni le préfixe `v` ni le suffixe `+build`
+/// (`v1.20.0` se lisait `0.20.0`). Les deux s'accordent désormais.
+struct CompatibilityVersionGrammarTests {
+    @Test func aLeadingVIsIgnored() {
+        #expect(CompatibilityResolution.isAtLeast("v1.20.0", "1.13.11"))
+        #expect(!CompatibilityResolution.isAtLeast("V1.2.0", "1.13.11"))
+    }
+
+    @Test func buildMetadataIsIgnored() {
+        #expect(CompatibilityResolution.isAtLeast("1.13.11+42", "1.13.11"))
+        #expect(!CompatibilityResolution.isAtLeast("1.13.10+999", "1.13.11"))
+    }
+}
+

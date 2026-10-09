@@ -174,6 +174,7 @@ struct DependencyRowView: View {
             Menu {
                 if let nexusId = entry?.nexusId {
                     Button {
+                        vm.expectNexusMod(nexusId: nexusId, uniqueIds: [node.uniqueId])
                         NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
                     } label: {
                         Label(localization.L(L10n.Mods.depsSheetOpenPage), systemImage: "safari")

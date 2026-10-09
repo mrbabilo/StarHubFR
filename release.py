@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import subprocess
 import plistlib
 
@@ -60,24 +61,27 @@ def bump_build_number():
     print(f"[INFO] Numéro de build : {previous} → {previous + 1} (Info.plist modifié, à commiter).")
     return previous + 1
 
-def create_release():
+def create_release() -> int:
+    """Rend le code de sortie du script : 0 seulement si le bundle est prêt
+    (X124 — chaque échec rendait 0, un `&&` ou une CI aurait enchaîné).
+    """
     print("[INFO] Starting release process...")
 
     # 0. Bump the build counter before building, so the bundle carries it.
     if bump_build_number() is None:
         print("[ERROR] Release interrompue.")
-        return
+        return 1
 
     # 1. Build the app using existing build_app.py
     print("[INFO] Building application...")
     result = subprocess.run(["python3", "build_app.py"])
     if result.returncode != 0:
         print("[ERROR] Application build failed. Check the errors above.")
-        return
+        return 1
         
     if not os.path.exists(APP_DIR):
         print(f"[ERROR] Output folder {APP_DIR} not found after build.")
-        return
+        return 1
 
     # D4-T3 — une release porte la sonde : l'onglet Performances propose de
     # l'installer depuis l'app. Sans elle (build sans dotnet ni jeu), on
@@ -85,7 +89,7 @@ def create_release():
     probe_manifest = os.path.join(APP_DIR, "Contents", "Resources", "Probe", "StarHubFR Probe", "manifest.json")
     if not os.path.exists(probe_manifest):
         print("[ERROR] The StarHubFR probe is not bundled (see the build warnings). Release interrompue.")
-        return
+        return 1
         
     # 2. Get version
     version = get_version()
@@ -108,7 +112,7 @@ def create_release():
     result = subprocess.run(["ditto", "-c", "-k", "--keepParent", APP_DIR, zip_path])
     if result.returncode != 0:
         print("[ERROR] ditto failed to create the zip archive.")
-        return
+        return 1
 
     print("[SUCCESS] Release bundle created successfully.")
     print(f"[INFO] The bundle is ready at {zip_path}.")
@@ -129,8 +133,10 @@ def create_release():
             print(res.stdout.strip())
         else:
             print(f"[ERROR] Upload failed:\n{res.stderr.strip()}")
+            return 1
     else:
         print("[INFO] Skipping upload.")
+    return 0
 
 if __name__ == "__main__":
-    create_release()
+    sys.exit(create_release())

@@ -180,7 +180,8 @@ struct PerformanceEnvironmentSection: View {
                     DisclosureGroup(String(format:
                         localization.L(L10n.Performance.envPacksIllisible),
                         Int64(report.unreadablePacks.count))) {
-                        ForEach(report.unreadablePacks.sorted(), id: \.self) { name in
+                        // Par position : deux packs peuvent porter le même nom affiché.
+                        ForEach(Array(report.unreadablePacks.sorted().enumerated()), id: \.offset) { _, name in
                             Text(name).font(AppDesign.Font.footnote)
                                 .foregroundColor(.secondary)
                         }

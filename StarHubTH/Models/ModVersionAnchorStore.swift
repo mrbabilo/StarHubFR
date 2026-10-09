@@ -31,7 +31,7 @@ public enum RegistryMigrationOutcome: Equatable {
 /// raison d'être ici — la classe elle-même n'a rien à promettre, et
 /// `UserDefaults` est thread-safe par contrat Apple.
 public final class ModVersionAnchorStore: @unchecked Sendable {
-    private static let key = "modVersionAnchors"
+    private static let key = UDKey.modVersionAnchors
     private static let registryKey = UDKey.installedModRegistry
 
     private let defaults: UserDefaults

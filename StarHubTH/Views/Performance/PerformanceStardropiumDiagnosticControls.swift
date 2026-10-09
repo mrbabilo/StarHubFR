@@ -128,7 +128,7 @@ struct PerformanceStardropiumDiagnosticControls: View {
         switch action {
         case .download(let id, let uniqueId): viewModel.expectAndDownloadNexusMod(nexusId: id, uniqueId: uniqueId)
         case .openPage(let url, let id, let uniqueId):
-            viewModel.expectNexusMod(nexusId: id, uniqueId: uniqueId); NSWorkspace.shared.open(url)
+            viewModel.expectNexusMod(nexusId: id, uniqueIds: [uniqueId]); NSWorkspace.shared.open(url)
         case .installProbe: pendingConfirmation = .installProbe
         case .confirm(let value): preparation = value
         case .restore: pendingConfirmation = .restore
@@ -165,7 +165,7 @@ struct PerformanceStardropiumDiagnosticControls: View {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
             installFailed = false
-            viewModel.scanMods(gameDir: viewModel.gameDir)
+            Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
         } catch { installFailed = true }
     }
 }

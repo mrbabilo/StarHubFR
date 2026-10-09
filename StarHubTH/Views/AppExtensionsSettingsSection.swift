@@ -133,7 +133,7 @@ struct AppExtensionsSettingsSection: View {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
             probeFailure = nil
-            viewModel.scanMods(gameDir: viewModel.gameDir)
+            Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
         } catch ProbeBundle.InstallError.noGameFolder {
             probeFailure = localization.L(L10n.Settings.gameDirNotSet)
         } catch {

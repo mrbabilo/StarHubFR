@@ -169,7 +169,7 @@ public enum ModlistReport {
             out.append("|---|---|---|")
             for entry in anomalous {
                 let severity = entry.anomalyIsError ? "erreur" : "attention"
-                out.append("| \(entry.name) | \(severity) | \(entry.anomalyReason ?? "") |")
+                out.append("| \(md(entry.name)) | \(severity) | \(md(entry.anomalyReason ?? "")) |")
             }
             out.append("")
         }
@@ -179,8 +179,8 @@ public enum ModlistReport {
         out.append("| Mod | Version | État | FR | Source |")
         out.append("|---|---|---|---|---|")
         for entry in entries {
-            out.append("| \(entry.name) | \(entry.version) | \(state(entry)) "
-                       + "| \(french(entry)) | \(source(entry)) |")
+            out.append("| \(md(entry.name)) | \(md(entry.version)) | \(state(entry)) "
+                       + "| \(french(entry)) | \(md(source(entry))) |")
         }
         return out.joined(separator: "\n") + "\n"
     }
@@ -199,8 +199,8 @@ public enum ModlistReport {
             for entry in anomalous {
                 let severity = entry.anomalyIsError ? "erreur" : "attention"
                 rows.append("<tr class=\"\(entry.anomalyIsError ? "error" : "warning")\">"
-                            + "<td>\(entry.name)</td><td>\(severity)</td>"
-                            + "<td>\(entry.anomalyReason ?? "")</td></tr>")
+                            + "<td>\(h(entry.name))</td><td>\(severity)</td>"
+                            + "<td>\(h(entry.anomalyReason ?? ""))</td></tr>")
             }
             rows.append("</tbody></table>")
         }
@@ -209,9 +209,9 @@ public enum ModlistReport {
         rows.append("<table><thead><tr><th>Mod</th><th>Version</th><th>État</th>"
                     + "<th>FR</th><th>Source</th></tr></thead><tbody>")
         for entry in entries {
-            rows.append("<tr><td>\(entry.name)</td><td>\(entry.version)</td>"
-                        + "<td>\(state(entry))</td><td>\(french(entry))</td>"
-                        + "<td>\(source(entry))</td></tr>")
+            rows.append("<tr><td>\(h(entry.name))</td><td>\(h(entry.version))</td>"
+                        + "<td>\(h(state(entry)))</td><td>\(h(french(entry)))</td>"
+                        + "<td>\(h(source(entry)))</td></tr>")
         }
         rows.append("</tbody></table>")
 
@@ -232,7 +232,7 @@ public enum ModlistReport {
         </head>
         <body>
         <h1>Liste de mods</h1>
-        <p class="meta">\(headerLine(entries: entries, generatedAt: generatedAt))</p>
+        <p class="meta">\(h(headerLine(entries: entries, generatedAt: generatedAt)))</p>
         \(rows.joined(separator: "\n"))
         </body>
         </html>
@@ -240,6 +240,23 @@ public enum ModlistReport {
     }
 
     // MARK: - Cellules partagées
+
+    /// Une cellule HTML : noms et versions viennent des manifestes, un `<`
+    /// d'auteur casserait le tableau.
+    static func h(_ text: String) -> String {
+        text.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+    }
+
+    /// Une cellule Markdown : `|` couperait la ligne du tableau, un retour à
+    /// la ligne la terminerait.
+    static func md(_ text: String) -> String {
+        text.replacingOccurrences(of: "|", with: "\\|")
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+    }
 
     private static func headerLine(entries: [Entry], generatedAt: Date) -> String {
         let anomalies = entries.filter { $0.anomalyReason != nil }.count

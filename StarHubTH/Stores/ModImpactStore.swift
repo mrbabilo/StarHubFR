@@ -38,6 +38,9 @@ final class ModImpactStore {
     private(set) var lastLaunch: Date?
     private(set) var lastSave: Date?
 
+    /// Le dernier historique lu : `refresh(mods:)` en redérive les entrées
+    /// sans relire le disque (X122).
+    @ObservationIgnored private var history: ModImpactHistory?
     @ObservationIgnored private let files: ProbeFiles
     @ObservationIgnored private let index: ProbeSessionsIndex
     @ObservationIgnored private let historyURL: URL?
@@ -50,6 +53,10 @@ final class ModImpactStore {
     }
 
     func entry(for mod: ModItem) -> ModImpactEntry? { entriesById[mod.folderName] }
+
+    /// Le fichier d'historique, pour que l'état « illisible » mène à la chose
+    /// à réparer (bouton « Afficher dans le Finder ») au lieu de la nommer.
+    var historyFileURL: URL? { historyURL }
 
     /// Première lecture paresseuse (D5-C) : la liste et la fiche l'appellent
     /// à leur apparition — passé le premier, chaque appel ne fait rien.
@@ -100,13 +107,23 @@ final class ModImpactStore {
             }
             return .ready(history)
         }.value
-        let history: ModImpactHistory
         switch loaded {
-        case .unreadable: status = .unreadableHistory; clear(); return
-        case .noProbe: status = .noProbe; clear(); return
-        case .ready(let h): history = h
+        case .unreadable: history = nil; status = .unreadableHistory; clear()
+        case .noProbe: history = nil; status = .noProbe; clear()
+        case .ready(let h): history = h; status = .ready; derive(from: h, mods: mods)
         }
-        status = .ready
+    }
+
+    /// X122 — les entrées copient l'état actif/en pause de chaque mod : une
+    /// bascule faite dans l'app (ou un autre dossier de jeu) les redérive
+    /// depuis l'historique gardé, sans relire les fichiers de la sonde.
+    /// Sans historique prêt, rien à faire.
+    func refresh(mods: [ModItem]) {
+        guard status == .ready, let history else { return }
+        derive(from: history, mods: mods)
+    }
+
+    private func derive(from history: ModImpactHistory, mods: [ModItem]) {
         entries = ModImpact.entries(history: history, mods: mods)
         ranking = ModImpact.ranking(entries)
         performanceRows = Dictionary(uniqueKeysWithValues: ModImpactAxis.allCases.map {

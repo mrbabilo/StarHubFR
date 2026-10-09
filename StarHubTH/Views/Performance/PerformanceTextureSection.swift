@@ -22,7 +22,9 @@ struct PerformanceTextureSection: View {
                 ProgressView().controlSize(.small)
             case .unreadableHistory:
                 StateCard(icon: AppDesign.Status.warning.symbol,
-                          text: localization.L(L10n.Performance.impactUnreadable), actionTitle: nil) {}
+                          text: localization.L(L10n.Performance.impactUnreadable), actionTitle: localization.L(L10n.Mods.revealInFinder)) {
+                if let url = store.historyFileURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            }
             case .noProbe, .ready:
                 if store.textureRows.isEmpty && store.textureRemainder == nil {
                     StateCard(icon: "photo.stack", text: localization.L(L10n.PerformanceTextures.empty), actionTitle: nil) {}

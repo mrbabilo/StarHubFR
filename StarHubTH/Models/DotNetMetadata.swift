@@ -275,8 +275,17 @@ public enum DotNetMetadata {
             for indirection in [0x03, 0x05, 0x07, 0x16] where (counts[indirection] ?? 0) > 0 {
                 return nil
             }
+            // Une table ne peut pas compter plus de lignes que son flux n'a
+            // d'octets, et les tables qu'on sait mesurer doivent y tenir :
+            // une DLL abîmée annonçant des milliards de lignes ferait tourner
+            // la lecture des types sans fin, en tâche de fond.
+            let streamBytes = tablesRange.count
+            guard counts.values.allSatisfy({ $0 <= streamBytes }) else { return nil }
+            let sizes = DotNetMetadata.ColumnWidths(heapSizes: heapSizes, rowCount: counts).rowSizes()
+            let measured = counts.reduce(0) { $0 + (sizes[$1.key] ?? 0) * $1.value }
+            guard countCursor + measured <= tablesRange.upperBound else { return nil }
             rowCount = counts
-            rowSize = DotNetMetadata.ColumnWidths(heapSizes: heapSizes, rowCount: counts).rowSizes()
+            rowSize = sizes
             firstRowOffset = countCursor
             widths = DotNetMetadata.ColumnWidths(heapSizes: heapSizes, rowCount: counts)
         }

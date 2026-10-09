@@ -71,12 +71,16 @@ public enum TranslationLotArchive {
         let urls: [URL]
         do {
             urls = try FileManager.default.contentsOfDirectory(
-                at: out, includingPropertiesForKeys: nil)
+                at: out, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey])
         } catch {
             throw Failure.extractionFailed
         }
         var files: [String: Data] = [:]
         for url in urls where url.pathExtension.lowercased() == "json" {
+            // Un lien symbolique du ZIP est recréé par `unzip` : le suivre
+            // lirait n'importe quel fichier local comme un lot.
+            let kind = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard kind?.isSymbolicLink != true, kind?.isRegularFile == true else { continue }
             // Une entrée illisible après extraction (droits) : ignorée, la
             // fusion nommera le mod manquant plutôt que d'avaler des octets
             // douteux.
@@ -107,17 +111,18 @@ public enum TranslationLotArchive {
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = arguments
         process.environment = ChildProcessEnvironment.localeLocked(to: "C")
+        // Un seul tube pour les deux sorties : vidés l'un après l'autre, un
+        // `stderr` de plus de 64 Ko bloquerait l'enfant pendant qu'on attend
+        // la fin de `stdout`.
         let output = Pipe()
-        let errors = Pipe()
         process.standardOutput = output
-        process.standardError = errors
+        process.standardError = output
         do {
             try process.run()
         } catch {
             throw Failure.extractionFailed
         }
         let _ = output.fileHandleForReading.readDataToEndOfFile()
-        let _ = errors.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw Failure.extractionFailed }
     }

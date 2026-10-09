@@ -186,9 +186,12 @@ final class TranslationLotMergeStore {
             do {
                 try TranslationBaseline.setReviewNeeded(flags, modFolderName: modID, in: store)
             } catch {
-                // L'écriture a réussi ; le drapeau « À relire » perdu se
-                // retrouvera au prochain calcul du diff. Ne pas faire
-                // échouer l'ensemble pour un magasin de drapeaux.
+                // Les traductions sont écrites ; seul le drapeau « À relire »
+                // manque, et **rien ne le reconstruira** : le diff ne sait pas
+                // qu'une ligne vient d'un lot. Ne pas faire échouer
+                // l'ensemble, mais le laisser au journal système.
+                NSLog("[StarHubFR] Review flags not saved for %@ (%d lines from a lot): %@",
+                      modID, flags.count, error.localizedDescription)
             }
         }
         reviews.removeAll { $0.id == modID }

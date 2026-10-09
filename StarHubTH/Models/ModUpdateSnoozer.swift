@@ -54,7 +54,7 @@ public final class ModUpdateSnoozer {
     public static let oneWeekInterval: TimeInterval = 7 * 86_400
     /// Clé du store — exposée pour les tests, qui écrivent un état corrompu
     /// directement.
-    public static let storeKey = "modUpdateSnoozes"
+    public static let storeKey = UDKey.modUpdateSnoozes
 
     /// Le `UserDefaults` injecté — interne, pour les tests de persistance.
     let defaultsForTesting: UserDefaults
