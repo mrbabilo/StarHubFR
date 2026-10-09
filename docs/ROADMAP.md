@@ -2238,7 +2238,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 |---|---|---|
 | **E2-T1** | 2026-10-04 | Rapport de modlist exportable (Markdown/HTML) depuis l'onglet Santé de Diagnostic |
 | **E2-T2** | 2026-10-02 | `GUIDE.md` : coexistence des gestionnaires, `X` / `.X`, désinstallation propre |
-| **E2-T4** | 2026-10-09 | Guide de premier lancement en huit étapes (dossier du jeu, dossier des mods scanné, SMAPI, clé API Nexus, IA locale, mods principaux et outils), rejouable depuis les Réglages ; v1.61.0. Vérification à l'écran par l'auteur en partie faite |
+| **E2-T4** | 2026-10-09 | Guide de premier lancement en huit étapes (dossier du jeu, dossier des mods scanné, SMAPI, clé API Nexus, IA locale, mods principaux et outils), rejouable depuis les Réglages ; v1.61.0. Vérifié à l'écran par l'auteur le 2026-10-10 |
 
 **Expérience utilisateur : navigation & accessibilité — Axe I · en veille**
 

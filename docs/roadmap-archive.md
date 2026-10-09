@@ -6683,7 +6683,7 @@ sans lire une ligne de log.
 
 ### Packs, distribution & pédagogie — Axe E
 
-- [x] **E2-T4** ✅ *(livré le 2026-10-09, v1.61.0)* — **Guide de premier lancement.**
+- [x] **E2-T4** ✅ *(livré le 2026-10-09, v1.61.0 ; vérifié à l'écran par l'auteur le 2026-10-10)* — **Guide de premier lancement.**
       Sheet en huit étapes : bienvenue, dossier du jeu, dossier des mods (dérivé
       `<jeu>/Mods`, jamais configurable — SMAPI l'impose ; créé si absent, scanné
       s'il est garni), SMAPI avec sa progression, clé API Nexus (trim, pas de
