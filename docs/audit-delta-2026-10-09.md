@@ -1,11 +1,28 @@
 # Audit du delta du 2026-10-01 au 2026-10-09
 
-Passe complète du prompt `docs/prompt-audit.md` (phases 1 à 5), limitée à ce
-qui a changé depuis le 2026-10-01 (`dfb8fce4..`) — et, pour les phases 2 et
-3, depuis leur dernier audit du 2026-09-07 (`c0b54852..`). Le reste du dépôt
-a été audité en septembre (tranches ①–④ du ViewModel, phases 1 à 5 :
+Passe du prompt `docs/prompt-audit.md`, phases 1 à 5, limitée à ce qui a
+changé depuis le 2026-10-01 (`dfb8fce4..`) — et, pour les phases 2 et 3,
+depuis leur dernier audit du 2026-09-07 (`c0b54852..`). Le reste du dépôt a
+été audité en septembre (tranches ①–④ du ViewModel, phases 1 à 5 :
 `docs/audit-phase*-2026-09-0*.md`). Ce document ne pose aucun correctif : il
 dit lesquels poser.
+
+**Profondeur de lecture — à ne pas surestimer à la prochaine passe :**
+
+| Zone | Lu ligne à ligne | Balayé par motifs seulement |
+|---|---|---|
+| ViewModel | tout le delta | — |
+| `Stores/` | les 11 créés + les diffs des 8 modifiés | — |
+| `Models/` | écrivains disque, constructeurs réseau, parseurs neufs (liste en Phase 1 › Models) | le reste des 121 fichiers |
+| `Views/` | `MainView` (feuilles), `ProbeOptionsSection`, `BulkConflictGate`, sections Performances citées | le reste des 137 fichiers |
+| Réseau | `SmapiBlacklist` (réseau et cache), `NexusFileManifestFetcher`, boucle de lecture de `SmapiInstaller`, `NexusEndorsementStore`, `NexusModStatsRefresher` | diffs de `NexusUpdateChecker`, `NexusSearchClient`, `DeepLClient`, `NexusDownloadAPI`, `PathoschildCompatibilityList`, `SmapiUpdateClient`, `NexusDownloadStore` |
+| Persistance | `NexusArchiveStore`, écritures de `ModUpdateKeyDeltaStore` et `NexusPageStateStore`, diff `SaveManager` | autres diffs |
+| Sonde C# | — | delta entier ; ni compilée ni testée (`dotnet` hors gate) |
+| Build | diffs de `build_app.py`, `release.py`, `check_sources.py` | — |
+
+**Preuves** : X123 démontré **par exécution** (binaire jetable hors dépôt,
+compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
+lecture, preuve décrite non exécutée.
 
 **Bilan : 0 🔴, 5 🟡 (X120–X124), une trentaine de pistes écartées avec leur
 raison.**
@@ -17,12 +34,37 @@ bas, avec son scénario.
 
 | # | Où | Défaut | Correctif | Preuve à poser |
 |---|---|---|---|---|
-| X122 | `Stores/ModImpactStore.swift`, `Views/Performance/PerformanceView.swift` | Impact par mod jamais chargé depuis Performances ; état actif/en pause figé jusqu'à la fermeture du jeu | Garder le dernier `ModImpactHistory` ; re-dériver `entries` et les tables quand `mods` change, sans relire le disque ; `reloadIfIdle` dans `PerformanceView.task` | Test Core : `ModImpact.entries` re-dérivé après bascule rend `isEnabled` à jour (le store n'est pas dans `Package.swift` : la re-dérivation doit vivre dans un type pur) |
+| X122 | `Stores/ModImpactStore.swift`, `Views/Performance/PerformanceView.swift` | Impact par mod jamais chargé depuis Performances ; état actif/en pause figé jusqu'à la fermeture du jeu | Garder le dernier `ModImpactHistory` ; re-dériver `entries` et les tables quand `mods` change, sans relire le disque ; `reloadIfIdle` dans `PerformanceView.task` | Test Core dans `ModImpactStoreTests` (le store est dans `Package.swift`, `files` et `historyURL` injectables) : `reload` sur un historique temporaire, bascule d'un mod, les entrées suivent `isEnabled` — rouge aujourd'hui |
 | X120 | `Views/MainView.swift:422` | Fausse alerte « dépendance absente » sur une archive sans rapport | `vm.clearPendingDependencyExpectation()` sous `vm.pendingNexusSource = nil` | Vérification à l'écran (vue) : dépendance téléchargée, feuille fermée, archive conservée réinstallée — aucune bannière |
 | X121 | `StarHubTHViewModel.checkUpdatesViaNexus()` | Vérification bloquée « en cours » si la clé disparaît pendant le tri | Garde de clé Trousseau dans le `guard` de la `Task`, sortie par `updateStore.endFallback()` | Build ; scénario à l'écran (effacer la clé pendant le tri) |
-| X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) | Test rouge Core : index corrompu + 2 archives, `keep` d'une 3ᵉ → aujourd'hui `entries().count == 1`, 3 fichiers sur disque |
-| X124 | `release.py` | Les cinq sorties d'échec font `return` : le script rend 0 | `create_release()` rend un code, `sys.exit(create_release())` ; chaque `return` d'erreur rend 1 | `python3 -c` sur la fonction avec un bundle absent, ou lecture : `echo $?` après un échec |
+| X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) **Exécuté** : 2 archives, index corrompu, `keep` d'une 3ᵉ → `entries().count == 1`, 3 fichiers dans `files/`, `applyRetention()` en efface 0. À reprendre en test dans `NexusArchiveStoreTests` |
+| X124 | `release.py` | Ses sorties d'échec rendent 0 (quatre `return`, plus l'envoi refusé qui se contente d'afficher) | `create_release()` rend un code, `sys.exit(create_release())` ; chaque sortie d'erreur rend 1 | **Lecture seule** — ne jamais lancer `release.py` pour le vérifier : il incrémente le compteur et lance `build_app.py` avant tout contrôle |
 
+
+## Fichiers porteurs d'un constat
+
+### 📁 `StarHubTH/Views/MainView.swift`
+- 🟡 [L.422] X120 — `onDismiss` de la feuille de téléchargement n'efface pas
+  l'attente de dépendances.
+- Appelle : `vm.pendingNexusSource`, `vm.drainQueuedNexusDownloads()` ;
+  impact : faux avertissement dans `InstallPreview`.
+
+### 📁 `StarHubTH/StarHubTHViewModel.swift`
+- 🟡 `checkUpdatesViaNexus()` / `recheckBlockedViaNexus(_:)` — X121.
+- Détail et pistes : Phase 1 › ViewModel.
+
+### 📁 `StarHubTH/Stores/ModImpactStore.swift`
+- 🟡 `reload`/`reloadIfIdle` — X122 (premier chargement absent de
+  Performances, `isEnabled` figé).
+- Lu par : `ModListRow`, `ModImpactSection`, `PerformanceImpactSection`,
+  `PerformanceTextureSection`, filtre impact.
+
+### 📁 `StarHubTH/Models/NexusArchiveStore.swift`
+- 🟡 [L.215-218] X123 — index illisible relu comme vide puis réécrit.
+- Lu par : `reinstallFromArchive`, carte de stockage, rétention.
+
+### 📁 `release.py`
+- 🟡 X124 — code de sortie 0 sur échec.
 
 ## Écarts de mesure du prompt
 
@@ -416,9 +458,11 @@ passe.
   et refuser d'écrire tant qu'il n'a pas été reconstruit ; reconstruction
   possible depuis `files/` (le nom porte `UniqueID@version`, la taille se
   relit ; `modName` et date se perdent).
-- **Preuve** : test Core rouge aujourd'hui — `index.json` rempli d'octets
-  invalides, deux archives dans `files/`, `keep` d'une troisième :
-  `entries().count == 1` alors que trois fichiers occupent le disque.
+- **Preuve, exécutée le 2026-10-09** (binaire jetable compilé sur
+  `NexusArchiveStore.swift`, dossier temporaire) : deux archives gardées,
+  `index.json` remplacé par `{ pas du json`, `keep` d'une troisième →
+  `entries().count == 1`, trois fichiers dans `files/`,
+  `applyRetention()` rend 0.
 
 ## 🔬 Pistes écartées (persistance)
 
@@ -446,14 +490,15 @@ passe.
   `NexusEndorsementStore`, `NexusModStatsRefresher`. Colle d'interface
   (réseau, `@Observable`) dont la règle vit dans un type Core testé
   (`ModConflictVerdicts.newConflicts`, `HiddenCodeDependencies`,
-  `NexusEndorsement`, `NexusModStats`). Pas un X91 ; mais X122 montre ce
-  que coûte une règle restée dans un store hors Core : la correction doit
-  descendre la re-dérivation dans un type pur.
+  `NexusEndorsement`, `NexusModStats`). Pas un X91. `ModImpactStore`, lui, est
+  dans le module Core et a sa suite (`ModImpactStoreTests`) : le test de
+  X122 y entre.
 - **Tests qui écriraient dans le vrai Application Support** : aucun nouveau
   test n'appelle `AppSupport.directory`, `.shared` d'un gestionnaire de
   sauvegardes, ni `defaultRoot` d'un magasin.
 - **Manque de test qui aurait vu X123** : aucun test de
-  `NexusArchiveStoreTests` (12) ne pose un index illisible.
+  `NexusArchiveStoreTests` (12) ne pose un index illisible. Le scénario a
+  été exécuté hors dépôt (binaire jetable) : il échoue comme décrit.
 - **`run_tests.sh`** : inchangé depuis le 2026-10-01.
 - **`companion/` (sonde C#, 31 commits, +1 284 lignes)** : relu au balayage,
   sans `dotnet` (hors gate Swift). Chaque accroche Harmony neuve
@@ -477,10 +522,11 @@ parité L10n qui sort en 1 sur un JSON illisible, sonde embarquée),
 
 - **Où** : `release.py`, `create_release()` et `if __name__ == "__main__":
   create_release()`.
-- **Cause** : les cinq sorties d'échec (compteur de build non incrémenté,
+- **Cause** : quatre sorties d'échec (compteur de build non incrémenté,
   build en échec, dossier de l'app absent, **sonde non embarquée** —
-  ajoutée le 2026-10-03 —, envoi refusé) affichent `[ERROR]` puis font
-  `return` ; le processus sort en 0. Le prompt d'audit l'exige
+  ajoutée le 2026-10-03) affichent `[ERROR]` puis font `return` ; l'envoi
+  refusé affiche son erreur et la fonction se termine. Dans les cinq cas
+  le processus sort en 0. Le prompt d'audit l'exige
   explicitement des scripts de la chaîne, et ce dépôt a déjà payé un
   `exit 0` sur échec. L'audit du 2026-09-07 avait jugé le flux
   (interruption avant le zip), pas le code de sortie.
@@ -488,7 +534,9 @@ parité L10n qui sort en 1 sur un JSON illisible, sonde embarquée),
   lit à l'écran (consigne : répondre « n » puis `gh release create`) ;
   faux succès dès qu'un `&&` ou une CI l'enchaîne.
 - **Correctif proposé** : `create_release() -> int`, chaque sortie
-  d'erreur rend 1, et `sys.exit(create_release())`. Au passage : le
+  d'erreur rend 1, et `sys.exit(create_release())`. Vérifier par lecture :
+  lancer le script incrémente le compteur de build et lance le gate avant
+  tout contrôle. Au passage : le
   compteur de build est incrémenté **avant** le build — un build raté
   consomme un numéro (sans gravité, voulu pour que le bundle le porte).
 
