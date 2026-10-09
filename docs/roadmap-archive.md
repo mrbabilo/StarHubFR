@@ -3774,6 +3774,28 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X128** ✅ *(signalé à l'écran par l'auteur et corrigé le 2026-10-09, v1.61.1 ; correctif pas encore revu à l'écran)* — **La page Quarantaine restait vide sous un badge à 1.**
+      X114 avait fait lire le disque au badge (`_Trash_*` du dossier du jeu),
+      mais la page n'affichait que `lastRepairReport`, en mémoire : perdu au
+      relancement, et remis à `nil` par toute réparation qui ne trouve rien
+      (`scanMods`, `published.isEmpty`). Correctif en trois commits :
+      `ModTrash.quarantineEntries` liste les entrées du disque et le compte en
+      dérive (source unique) ; la carte « En quarantaine sur le disque » s'affiche
+      **à côté** du rapport et liste les entrées hors de son `_Trash_`
+      (`entries(_:outsideReportedTrash:)`) — sinon une quarantaine d'une session
+      précédente disparaissait dès qu'un rapport neuf existait ; chaque réparation
+      écrit ce qu'elle a **réellement déplacé** et pourquoi dans
+      `.starhubfr-repair-report.json`, dans son `_Trash_` (fusion à la seconde,
+      jamais d'écrasement d'un rapport illisible, exclu de la liste et du compte).
+      ⚠️ **Ce que la page montre** : les **feuilles** écartées (fichiers et dossiers
+      vides), pas les enfants directs — le réparateur recrée l'arborescence sous
+      `_Trash_` (`moveToTrash`, ligne 483), et le cas réel `.PersonalEffectsRedux`
+      ne portait que deux `.DS_Store` retirés de l'intérieur, le mod intact dans
+      `Mods/` ; lister le squelette faisait lire « [JA] Personal Effects ».
+      `stillInMods` ne vaut que pour un conteneur non vide (un `.DS_Store` recréé
+      par le Finder n'est pas « un mod en place »). Deux hypothèses fausses en
+      route (doublon d'UniqueID, dossier vide) : le disque a tranché. 6 tests
+      neufs ; les 4 tests du compte existant restent verts.
 - [x] **X127** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Appliquer un profil comparait les `UniqueID` avec la casse.**
       `ProfileApplyPlan.isCovered` (égalité exacte) mettait en pause un mod
       dont l'auteur change la casse de l'identifiant, quand
@@ -6660,6 +6682,23 @@ sans lire une ligne de log.
 
 
 ### Packs, distribution & pédagogie — Axe E
+
+- [x] **E2-T4** ✅ *(livré le 2026-10-09, v1.61.0)* — **Guide de premier lancement.**
+      Sheet en huit étapes : bienvenue, dossier du jeu, dossier des mods (dérivé
+      `<jeu>/Mods`, jamais configurable — SMAPI l'impose ; créé si absent, scanné
+      s'il est garni), SMAPI avec sa progression, clé API Nexus (trim, pas de
+      validation réseau), IA locale et mods principaux (sections des Réglages
+      embarquées telles quelles), bilan. Clé `onboardingCompleted` : montré à tous
+      au premier lancement, utilisateurs migrés compris ; posée par toute fermeture,
+      rejouable depuis les Réglages. Présentation par `OnboardingPresentation`
+      (`ViewModifier` : la chaîne de `MainView` saturait le vérificateur de types),
+      garde fenêtre révélée + mutex complet avec l'alerte de release et les feuilles
+      d'installation (une feuille différée reprend à la fermeture du guide). Ordre
+      des étapes en type pur du Core (`OnboardingStep`, 4 tests). Deux défauts vus à
+      l'écran et corrigés le soir même : « Passer le guide » devait être cliqué deux
+      fois (le créneau se libérait avant l'écriture de la clé — clé posée
+      synchroniquement, garde relue dans UserDefaults) ; le bouton de scan agissait
+      sans témoin (progression `scanProgress` affichée). Finitions laissées : **X130**.
 
 - [x] **E2-T1** ✅ *(livré le 2026-10-04)* — Rapport de modlist exportable (Markdown/HTML) : nom, version, source, état,
       couverture FR, anomalies — pensé pour le support et l'usage en cours. Onglet Santé de Diagnostic. · **M**

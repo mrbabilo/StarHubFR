@@ -82,8 +82,25 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X127 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
-ont été corrigés le jour même et sont partis à l'archive. **Aucun correctif ouvert.**
+Les X1–X128 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
+ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1.
+**Deux correctifs ouverts**, de faible gravité :
+
+- [ ] **X129** — **Une archive Nexus sans dossier racine donne son nom de téléchargement au
+      mod.** *(relevé le 2026-10-09)* Nexus nomme désormais ses archives
+      `Nom modId version date jeton` (`StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62.zip`).
+      Pour une archive à plat (`ModZipStructure.flatRoot`), `ModZipInstaller` reprend ce
+      nom, extension retirée, comme nom de dossier : le dossier porte la date et le jeton.
+      Voulu par le code, mal adapté au nouveau nommage. Piste : nommer d'après le
+      manifeste (`Name`, sinon `UniqueID`), sans jamais écraser un dossier existant —
+      mesurer d'abord combien de dossiers du parc portent ce motif. · **S**
+- [ ] **X130** — **Finitions du guide de premier lancement** *(revue de branche du
+      2026-10-09, E2-T4)* : (1) un échec de création du dossier Mods **remplace** le
+      bouton « Créer le dossier » au lieu de s'afficher dessous — l'étape reste figée
+      jusqu'à réouverture du guide ; (2) `@AppStorage(UDKey.onboardingCompleted)` mort
+      dans `MainView` (le modificateur porte le sien) ; (3) clé `onboarding_title` sans
+      usage ; (4) quatrième copie du littéral de la page de clé API Nexus — en faire une
+      constante. · **XS**
 
 ---
 
@@ -225,7 +242,7 @@ backup se retrouve en moins de dix secondes.
 
 ---
 
-### Fiabilité du registre & compatibilité — **Axe A** · **0 item ouvert sur 33** *(le 2026-10-08 au soir : **A5-T9** ajouté — `Load` sous `When` de config, mesuré (0 paire active) et laissé sans code par l'auteur, à l'archive ; **A5-T6** livré, à l'archive. Le 2026-10-08 : **A1-T2** livré malgré un parc sain (0 cas mesuré trois fois) — décision de l'auteur, à l'archive ; **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
+### Fiabilité du registre & compatibilité — **Axe A** · **1 item ouvert sur 34** *(le 2026-10-10 : **A5-T10** ajouté — le catalogue A5-T7 mesuré sur des versions dépassées, relevé des sources. Le 2026-10-08 au soir : **A5-T9** ajouté — `Load` sous `When` de config, mesuré (0 paire active) et laissé sans code par l'auteur, à l'archive ; **A5-T6** livré, à l'archive. Le 2026-10-08 : **A1-T2** livré malgré un parc sain (0 cas mesuré trois fois) — décision de l'auteur, à l'archive ; **A5-T5** mesuré et clos — seul le parseur change, à l'archive ; recompté le même jour, **A5-T8** ajouté à la livraison d'A5-T4 et livré le soir même, à l'archive ; **A1-T12**, **A2-T5**, **A3-T8** (2026-10-07) et **A5-T4** (2026-10-08) livrés, partis à l'archive et au §11 avec **A5-T7** (marches 1 et 2, 2026-09-26) le 2026-10-08. Le 2026-10-04 : **A1-T12** et **A3-T8** ajoutés depuis l'[audit de Stardrop-NativeMac](audit-stardrop-nativemac.md). Le 2026-10-02/03 : **A1-T1** (recadrée), **A1-T4** et **A1-T5** livrés, à l'archive et au §11. Le 2026-09-28 : **A1-T11** livré (plan 2, nettoyage), à l'archive. Le 2026-09-27 : **A1-T11** ajouté, partie 1 livrée le jour même. Recompté le 2026-09-25 : **A3-T7** ajouté depuis le relevé des sources et livré le soir même ; **A5-T6** et **A5-T7** ajoutés depuis l'[audit de Stardropium](audit-stardropium.md). Le 2026-09-24 : **A1-T9** et **A1-T10** livrés, à l'archive. Le 2026-09-23 au soir : **A1-T6** livré après **A1-T8** — récit à l'archive ; **A1-T8**, ajouté le matin même de l'audit [Keybind Radar & SaveSaver](audit-keybind-radar-savesaver.md), est déjà livré — récit à l'archive. Avant lui : « 11 sur 26 » recomptés à l'ajout de A1-T8/T9/T10, où l'ancien « 9 sur 25 » annonçait un ouvert de trop. A1-T7 et A2-T7, livrés le 2026-09-15, sont partis à l'archive et au §11 le même jour)*
 *(recompté le 2026-09-14 : il en annonçait 6 sur 20, et c'était déjà faux d'un — A2-T6 est parti à l'archive le matin même. Les deux items neufs du jour, **A1-T4** et **A2-T7**, venaient de la veille ; le récit est dans [`roadmap-archive.md`](roadmap-archive.md) §3 bis.)*
 
 #### A1 — Registre robuste
@@ -316,6 +333,21 @@ réclament la même ressource**, ce que ni SMAPI ni le manifeste ne disent.
 > *(Livrée en dernier, le 2026-10-08 : **A5-T4**, à l'archive — 3 duos dormants, 0 actif, mêmes chiffres qu'au spike.)*
 
 > ✅ **A5-T1 → A5-T8 sont livrés** (A5-T4, A5-T5, A5-T6 et A5-T8 le 2026-10-08) ; **A5-T9** mesuré et laissé sans code, décision de l'auteur. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+
+- [ ] **A5-T10** — **Remettre le catalogue A5-T7 aux versions du parc.** *(ajouté le
+      2026-10-10, [relevé des sources](SOURCES.md) §5)* `PerformanceOverlap.catalog`
+      a été décompilé sur UltraSmooth **2.4.1**, Radiance **2.2.1** et Stardropium
+      **0.2.0-beta** ; le parc porte 2.4.15, 2.3.1 et 0.2.2-beta. Diff mesuré : les
+      19 méthodes déjà au catalogue sont **toutes encore patchées** (les lignes
+      restent vraies), mais quatre recoupements manquent — Radiance × UltraSmooth
+      `SpriteBatch.Draw` ; Stardropium × UltraSmooth `ArgUtility.SplitBySpaceAndGet`,
+      `FishingRod.distanceToLand`, `ItemQueryResolver.TryResolve`. À trancher dans
+      la tâche : `Monster.update`, posé par UltraSmooth (2.4.8) **par balayage
+      dynamique** des assemblies, invisible à la lecture des appels nommés ; et
+      [StardewOptimizer](audit-stardewoptimizer.md) comme nouveau membre
+      (`NPC.update` en commun avec les deux, module désactivé par défaut). Décompiler
+      chaque paire avant d'écrire une ligne (règle du catalogue), test du Core, gate,
+      release. Les trois mods sont **en pause** sur le parc : rien d'urgent. · **S**
 
 > 🧪 **Le même axe côté C#, 2026-09-25** — ouvert par l'[audit de
 > Stardropium](audit-stardropium.md) (mod de performances, en pause sur le parc).
@@ -862,7 +894,7 @@ seul, et VoiceOver restitue chaque écran majeur sans piège.
 
 #### E2 — Distribution & documentation
 
-> ✅ **E2-T1 et E2-T2 sont livrés.** Leur récit vit dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **E2-T1, E2-T2 et E2-T4 sont livrés.** Leur récit vit dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
 - [ ] **E2-T3** — Captures d'écran, page Nexus, distribution hors App Store (signature,
       notarisation, ou **Sentinel** pour lever la quarantaine côté utilisateur). · **M**
@@ -1981,6 +2013,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X128** | 2026-10-09 | La page Quarantaine lisait le rapport de réparation en mémoire, perdu au relancement et remis à nil par une réparation à vide, quand son badge comptait le disque (X114) : badge à 1, page vide. Liste lue sur le disque, source unique avec le compte (`ModTrash.quarantineEntries`) ; raisons gardées dans chaque `_Trash_` (`.starhubfr-repair-report.json`) ; v1.61.1 |
 | **X127** | 2026-10-09 | `ProfileApplyPlan.isCovered` comparait les `UniqueID` avec la casse, contrairement aux diagnostics du profil et à SMAPI : un mod dont l'identifiant change de casse était mis en pause ; minuscules des deux côtés (latent, 0 cas sur le parc) |
 | **X126** | 2026-10-09 | Les deux index de sauvegardes, relus vides s'ils étaient abîmés, étaient réécrits avec la seule nouvelle sauvegarde — l'entretien proposait alors de jeter tout l'historique comme orphelin ; index mis de côté, état « non lisible » tenu tant qu'il l'est |
 | **X125** | 2026-10-09 | Six appels de `scanMods` (synchrone, lourd) depuis l'interface — installation de la sonde, fin de diagnostic, réparation de manifeste — gelaient l'app ; un seul chemin d'arrière-plan, `rescanInBackground` |
@@ -2205,6 +2238,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 |---|---|---|
 | **E2-T1** | 2026-10-04 | Rapport de modlist exportable (Markdown/HTML) depuis l'onglet Santé de Diagnostic |
 | **E2-T2** | 2026-10-02 | `GUIDE.md` : coexistence des gestionnaires, `X` / `.X`, désinstallation propre |
+| **E2-T4** | 2026-10-09 | Guide de premier lancement en huit étapes (dossier du jeu, dossier des mods scanné, SMAPI, clé API Nexus, IA locale, mods principaux et outils), rejouable depuis les Réglages ; v1.61.0. Vérification à l'écran par l'auteur en partie faite |
 
 **Expérience utilisateur : navigation & accessibilité — Axe I · en veille**
 
