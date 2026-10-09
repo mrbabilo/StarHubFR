@@ -117,6 +117,16 @@ proposés) :
       `scanMods` — synchrone : réparation, manifestes, journal SMAPI —
       directement depuis l'interface, qui gèle le temps du scan. Les neuf
       autres appelants le lancent en arrière-plan.
+- [ ] **X126** — **Un index de sauvegardes illisible efface l'historique au
+      premier ajout.** `ModInstallBackupManager` et `ModConfigBackupManager`
+      relisent un index abîmé comme vide puis le réécrivent avec la seule
+      nouvelle sauvegarde : l'index redevient lisible, et l'écran d'entretien
+      propose de mettre à la corbeille toutes les sessions d'avant comme
+      orphelines (prouvé : 3 → 1, 4 sessions sur disque). Famille X76/X123.
+- [ ] **X127** — **Appliquer un profil compare les `UniqueID` avec la
+      casse.** `ProfileApplyPlan.isCovered` met en pause un mod dont
+      l'identifiant a changé de casse, quand `ProfileDiagnostics` le compte
+      présent. Latent (0 cas sur le parc), comme F6-T4.
 
 ---
 

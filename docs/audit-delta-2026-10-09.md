@@ -32,8 +32,9 @@ au 2026-10-01 » en fin de document.
 compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
 lecture, preuve décrite non exécutée.
 
-**Bilan : 0 🔴, 6 🟡 (X120–X125), 12 durcissements conseillés non numérotés,
-une quarantaine de pistes écartées avec leur raison.**
+**Bilan : 0 🔴, 8 🟡 (X120–X127), 14 durcissements conseillés non numérotés,
+une quarantaine de pistes écartées avec leur raison.** X126 et X127 viennent
+de l'audit transverse (dernière section).
 
 ## Corrections à effectuer
 
@@ -47,6 +48,8 @@ bas, avec son scénario.
 | X121 | `StarHubTHViewModel.checkUpdatesViaNexus()` | Vérification bloquée « en cours » si la clé disparaît pendant le tri | Garde de clé Trousseau dans le `guard` de la `Task`, sortie par `updateStore.endFallback()` | Build ; scénario à l'écran (effacer la clé pendant le tri) |
 | X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) **Exécuté** : 2 archives, index corrompu, `keep` d'une 3ᵉ → `entries().count == 1`, 3 fichiers dans `files/`, `applyRetention()` en efface 0. À reprendre en test dans `NexusArchiveStoreTests` |
 | X125 | `Views/AppExtensionsSettingsSection.swift:136`, `Views/Performance/PerformanceProbeSection.swift:109`, `PerformanceSloDiagnosticSection.swift:236`, `PerformanceStardropiumDiagnosticControls.swift:168`, `PerformanceView.swift:254` (`rescan` du diagnostic), `StarHubTHViewModel.restoreManifest` | `scanMods` lancé **sur le fil principal** : l'interface gèle le temps d'un scan complet (réparation des dossiers, manifestes, journal SMAPI) après l'installation de la sonde, un diagnostic ou la réparation d'un manifeste | Même patron que les autres appelants : `gameDir` relu sur main, puis `DispatchQueue.global(qos: .userInitiated).async { [weak vm] in vm?.scanMods(gameDir: dir) }` ; pour le `rescan` attendu du diagnostic, une continuation (patron `executeBulkMoves`) | Lecture : `scanMods` est `nonisolated` et synchrone, ses neuf autres appelants le lancent en arrière-plan. Durée non mesurée ici (le passage de réparation seul a coûté 5–10 s, commentaire de `scanMods`) |
+| X126 | `ModInstallBackupManager.swift:126-139`, `ModConfigBackupManager.swift:105-111` | Index des sauvegardes illisible relu comme vide : la sauvegarde suivante le réécrit avec elle seule ; les sessions d'avant deviennent « orphelines » et l'écran d'entretien propose de les mettre à la corbeille — la perte que X76 voulait empêcher, atteinte par un autre chemin | Même correctif que X123, porté par les deux gestionnaires : sur un index présent et illisible, le mettre de côté et refuser d'y écrire tant qu'il n'est pas reconstruit (depuis `backups/`, dont chaque session porte ses fichiers) | **Exécuté** (test jetable dans la suite du gestionnaire, retiré) : 3 sauvegardes, index corrompu, 1 sauvegarde de plus → l'index n'en connaît plus qu'**1**, **4** sessions sur le disque, donc 3 orphelines selon la règle d'`orphanSessions` |
+| X127 | `Models/ProfileApplyPlan.swift:90-95` (`isCovered`) | Appliquer un profil compare les `UniqueID` **avec** la casse, alors que `ProfileDiagnostics.missingMods` les compare sans : un mod dont l'auteur change la casse de l'identifiant est mis en pause par le profil, sans figurer parmi les manquants | Comparer sur `lowercased()` des deux côtés (un `Set` des identifiants du profil en minuscules) | Test rouge à écrire : profil `["Auteur.Mod"]`, mod `auteur.mod` → `isCovered == false` aujourd'hui. Mesuré : 0 variante de casse sur les 1 176 `UniqueID` du parc — latent, comme F6-T4 l'était |
 | X124 | `release.py` | Ses sorties d'échec rendent 0 (quatre `return`, plus l'envoi refusé qui se contente d'afficher) | `create_release()` rend un code, `sys.exit(create_release())` ; chaque sortie d'erreur rend 1 | **Lecture seule** — ne jamais lancer `release.py` pour le vérifier : il incrémente le compteur et lance `build_app.py` avant tout contrôle |
 
 
@@ -58,6 +61,8 @@ passage dans le fichier, pas en priorité.
 
 | Où | Cas latent | Durcissement | Mesure qui le classe ici |
 |---|---|---|---|
+| `StarHubTHViewModel.toggleMod` (L.2244), `toggleMods` (L.7160) | Ni la bascule unitaire ni la bascule groupée ne refusent pendant l'application d'un profil ou une bissection, contrairement à `restoreActivation` ; la ligne de la liste reste cliquable pendant que `applyProfileToFilesystem` renomme en tâche de fond | Ajouter `!isApplyingProfile` et `_bisection?.state == nil` aux deux gardes | Course de quelques secondes ; les renommages refusent d'écraser un autre mod (`moveReplacingStaleDestination`) |
+| `Models/CompatibilityResolution.isAtLeast` vs `NexusUpdateChecker.compare` | Deux comparateurs de version divergents : le premier ne retire ni le préfixe `v` ni le suffixe `+build` | Faire déléguer `isAtLeast` à `compare` | 0 version du parc (1 176) préfixée `v` ou portant `+` |
 | `Stores/TranslationLotMergeStore.swift:188` | `catch {}` sur `setReviewNeeded` : le commentaire promet que le drapeau « À relire » « se retrouvera au prochain calcul du diff » — faux, le diff ne sait pas qu'une ligne vient d'un lot importé. Un échec d'écriture rend des traductions de lot indiscernables des traductions relues | Journaliser l'échec (`vm.log`, niveau avertissement) et corriger le commentaire | Écriture d'un petit index ; jamais observé |
 | `Models/TranslationLotArchive.swift` (`extract`, `run`) | Un lot `.zip` peut contenir un lien symbolique nommé `x.json` : `unzip -j` le recrée et `Data(contentsOf:)` lit sa cible ; `run` vide `stdout` puis `stderr` à la suite, un `stderr` de plus de 64 Ko bloquerait | Ignorer les entrées non régulières (`isRegularFileKey`) ; lire les deux tubes en parallèle ou fusionner `stderr` dans `stdout` | Lot exporté par l'app elle-même ; `unzip -q` n'écrit presque rien |
 | `Views/MissingDependenciesSheet.swift` (bouton « page Nexus »), `installAllMissingDependencies` (`.openPage`), `DependencyTreeView.swift:177` | Compte gratuit : la page s'ouvre sans `expectNexusMod`, l'archive revenue par `nxm://` n'est pas vérifiée contre la dépendance attendue — alors que les contrôles du diagnostic Stardropium le font | Appeler `vm.expectNexusMod(nexusId:uniqueId:)` avant d'ouvrir la page | La vérification manque, rien ne casse |
@@ -756,3 +761,69 @@ Les 199 fichiers modifiés dans cette fenêtre et plus touchés depuis (hors les
   ne le retire pas : les indices ne bougent jamais.
 - **`ModCleanupSheet`** : jeu lancé relu au clic de confirmation, retrait en
   tâche de fond, résultat composé sur le fil principal.
+
+# Audit transverse — invariants vérifiés sur tout le code
+
+Pas de consigne dédiée dans le dépôt : les invariants viennent d'`AGENTS.md`
+§4, du prompt d'audit (anti-patterns) et des pièges consignés. Chacun est
+vérifié sur **tout** `StarHubTH/`, pas seulement sur le delta.
+
+| # | Invariant | Résultat |
+|---|---|---|
+| I1 | Chemin disque d'un mod par `physicalFolderName`, jamais `folderName` | ✅ Aucune jonction `Mods/` + nom logique hors des gestionnaires qui testent les deux formes (`.X` et `X`) ou d'un chemin de sauvegarde |
+| I2 | Sous-processus : environnement hérité, locale fixée, tube lu avant `waitUntilExit` | ✅ Les huit sites. `zip` de l'export (`ViewModel` L.5801) sans locale ni tube : sortie non analysée, sans effet |
+| I3 | Clés `UserDefaults` dans `UDKey` | ⚠️ **17** clés vivent hors de `UDKey` (`NexusUpdateChecker` ×6, ViewModel ×4, `NexusMetadataStore` ×2, `SaveManager`, `NexusModStatsRefresher`, `TextScale`, `ModUpdateSnoozer`, `ModVersionAnchorStore`). Aucune collision ; toutes celles d'avant F5 sont dans `DefaultsMigration` (`textScale`, ajoutée le 2026-09-25, n'a pas à l'être). Dette de convention |
+| I4 | Requêtes Nexus par `NexusRequestBuilder` | ✅ |
+| I5/I6 | Fichier persistant illisible relu comme vide, puis réécrit | ❌ **X123** (`NexusArchiveStore`), **X126** (index des sauvegardes d'installation et de configuration). Les autres magasins illisibles-vus-vides sont des caches régénérables, ou distinguent déjà absent et illisible (glossaire, registre des traductions avec `.bak`, `ActivationHistoryStore`, `ModImpactHistory`). Restent non prouvés : favoris, « à écarter », profils et notes de save en `UserDefaults` (blobs écrits par `JSONEncoder`, aucune corruption observée) |
+| I7 | Travail lourd hors du fil principal | ❌ **X125** (`scanMods`) ; lectures d'index de sauvegardes (~100 Ko) sur main dans deux vues : acceptable |
+| I8 | Gestes qui déplacent des mods : mêmes gardes | ⚠️ Matrice inégale (durcissement ci-dessus) : `restoreActivation` refuse profil en cours et bissection, `toggleMod`/`toggleMods` non |
+| I9 | Textes visibles localisés | ✅ Erreurs d'installation passées par `installErrorMessage` ; le refus en français de `FolderToggleRefusal` ne va qu'au journal |
+| I10 | `[weak self]` dans les closures `DispatchQueue.global` | ⚠️ 9 closures du ViewModel et de `BisectionRunner` capturent `self` en fort. Le ViewModel vit autant que l'app : aucune fuite, écart de convention (AGENTS §4.6) |
+| I11 | Une règle, une copie | ⚠️ Deux comparateurs de version divergents (durcissement ci-dessus) ; `OSJunk` reste unique |
+| I12 | `UniqueID` comparés sans la casse (DOMAINE §3) | ❌ **X127** (`ProfileApplyPlan.isCovered`). L'archive de F6-T4 affirmait « partout ailleurs la comparaison est insensible à la casse » : c'est faux pour l'application des profils. Les autres comparaisons sensibles relevées opposent des identifiants de **même source** (parc contre parc) |
+
+## 🟡 X126 — Un index de sauvegardes illisible efface l'historique au premier ajout
+
+- **Où** : `ModInstallBackupManager.loadIndex()` (L.126) et ses six
+  lecteurs-écrivains (`createBackup`, renommage X60, purge, rétention…) ;
+  `ModConfigBackupManager.loadIndex()` (L.105), même schéma.
+- **Cause** : X76 a appris au gestionnaire à **dire** qu'un index est
+  illisible (`loadBackupsWithIndexState`), pour que l'écran d'entretien ne
+  conclue pas « orphelines » sur un index vide. Mais les écrivains lisent
+  toujours par `loadIndex()`, qui rend un index vide, ajoutent la nouvelle
+  sauvegarde et réécrivent. L'index redevient **lisible**, avec une seule
+  entrée : la garde de X76 ne protège plus rien.
+- **Chaîne réelle** : `install_metadata.json` abîmé hors de l'app → la
+  prochaine mise à jour d'un mod sauvegarde → l'index ne connaît plus que
+  cette sauvegarde → Entretien affiche les quelque 220 sessions du parc
+  comme orphelines et propose de les mettre à la corbeille d'un clic.
+- **Preuve, exécutée le 2026-10-09** (test jetable dans
+  `Tests/ModInstallBackupManagerTests`, supprimé après) : trois sauvegardes,
+  index remplacé par `{ pas du json`, une sauvegarde de plus →
+  `loadBackupsWithIndexState()` rend 1 entrée, index lisible ; 4 sessions
+  dans `backups/`.
+- **Correctif proposé** : `loadIndex()` rend `(index, readable)` ; sur un
+  index présent et illisible, les écrivains le mettent de côté
+  (`install_metadata.unreadable-<epoch>.json`) et refusent d'écrire, ou
+  reconstruisent d'abord l'index depuis `backups/` (chaque session porte
+  son dossier de mod et son manifeste). Même patron pour
+  `ModConfigBackupManager` et `NexusArchiveStore` (X123) : une seule règle
+  à poser trois fois, ou un type commun.
+
+## 🟡 X127 — Appliquer un profil compare les `UniqueID` avec la casse
+
+- **Où** : `Models/ProfileApplyPlan.swift`, `isCovered` (L.90-95), utilisé
+  par `moves(applying:to:)`.
+- **Cause** : `profile.enabledModIds.contains(mod.uniqueId)` — égalité
+  exacte. `ProfileDiagnostics.missingMods` compare en minuscules ; SMAPI
+  aussi.
+- **Effet** : un mod dont la mise à jour change la casse de son
+  `UniqueID` n'est plus « couvert » : appliquer le profil le **met en
+  pause**, et l'écran des mods manquants ne le cite pas. Silencieux.
+- **Mesure** : profil `TEST` (286 identifiants) contre les 1 176 `UniqueID`
+  du parc : 0 écart de casse ; 0 paire d'identifiants du parc qui ne
+  diffèrent que par la casse. Latent, au même titre que F6-T4, corrigé
+  quand même « d'un bloc ».
+- **Correctif proposé** : `let enabled = Set(profile.enabledModIds.map {
+  $0.lowercased() })`, puis `enabled.contains(mod.uniqueId.lowercased())`
+  (composants compris). Test : un profil `["Auteur.Mod"]` couvre `auteur.mod`.
