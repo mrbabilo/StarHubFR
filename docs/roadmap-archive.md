@@ -3774,6 +3774,60 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X127** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Appliquer un profil comparait les `UniqueID` avec la casse.**
+      `ProfileApplyPlan.isCovered` (égalité exacte) mettait en pause un mod
+      dont l'auteur change la casse de l'identifiant, quand
+      `ProfileDiagnostics.missingMods` le comptait présent. Comparaison en
+      minuscules, ensemble calculé une fois par plan. Latent : 0 variante de
+      casse sur les 1 176 `UniqueID` du parc. 1 test (rouge avant).
+- [x] **X126** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Un index de sauvegardes illisible effaçait l'historique au premier ajout.**
+      `ModInstallBackupManager` et `ModConfigBackupManager` relisaient un
+      index abîmé comme vide puis le réécrivaient avec la seule nouvelle
+      sauvegarde : l'index redevenait lisible et l'écran d'entretien proposait
+      de jeter toutes les sessions d'avant comme orphelines (prouvé par un
+      test jetable : 3 → 1, 4 sessions sur disque). X76 n'avait protégé que la
+      lecture. Les écrivains passent par `loadIndexForWriting` : index
+      illisible mis de côté (`install_metadata.unreadable-*`, octets intacts)
+      ; index absent sous des sessions existantes : marque au même nom ; tant
+      qu'une marque existe, `indexWasReadable` reste faux. 4 tests ; sabotage
+      de la garde : 2 rouges.
+- [x] **X125** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Des gestes neufs rescannaient le parc sur le fil principal.**
+      Installer la sonde (Réglages, Performances, diagnostics
+      SLO/Stardropium), finir un diagnostic et réparer un manifeste appelaient
+      `scanMods` — synchrone : réparation, manifestes, journal SMAPI — depuis
+      l'interface. Un seul chemin, `rescanInBackground(includeRepair:)`, hors
+      du fil principal, attendu par le diagnostic ; `executeBulkMoves` le
+      réutilise.
+- [x] **X124** ✅ *(corrigé le 2026-10-09, audit du delta)* — **`release.py` rendait 0 quand il s'interrompait.**
+      Ses cinq sorties d'échec (compteur, build, dossier de l'app, sonde non
+      embarquée, envoi refusé) affichaient `[ERROR]` puis rendaient 0.
+      `create_release()` rend un code, `sys.exit(create_release())`. Vérifié
+      sans lancer de release (compteur simulé en échec : 1).
+- [x] **X123** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Un index d'archives Nexus illisible faisait oublier toutes les archives.**
+      `NexusArchiveStore` relisait un `index.json` abîmé comme vide ; la
+      prochaine archive gardée le réécrivait avec elle seule et les autres
+      pesaient dans `files/` sans être montrées ni nettoyées (prouvé par
+      exécution : 3 fichiers, 1 entrée, rétention 0). L'index se reconstruit
+      depuis `files/` (le nom porte `UniqueID@version`) quand il est absent ou
+      illisible ; l'index abîmé est mis de côté avant remplacement. 2 tests.
+- [x] **X122** ✅ *(corrigé le 2026-10-09, audit du delta)* — **L'état actif/en pause de l'impact par mod restait figé dans la session.**
+      `ModImpact.entries` copie `isEnabled` à la relecture, et une bascule
+      faite dans l'app n'en déclenchait aucune : classement, textures et
+      mention « en pause » de la fiche restaient faux jusqu'à la fermeture du
+      jeu. Le store garde le dernier historique et `refresh(mods:)` redérive
+      sans relire le disque, appelé par `rebuildDependencyIndexes` (après
+      chaque scan et chaque bascule). 1 test.
+- [x] **X121** ✅ *(corrigé le 2026-10-09, audit du delta)* — **« Vérifier sur Nexus » pouvait rester « en cours » jusqu'au redémarrage.**
+      `checkUpdatesViaNexus` ouvrait la reprise avant le tri sans clé ; une
+      clé effacée pendant ce tri faisait sortir `recheckBlockedViaNexus` sans
+      `endFallback()`. Le garde de la tâche relit le Trousseau et referme la
+      passe.
+- [x] **X120** ✅ *(corrigé le 2026-10-09, audit du delta)* — **Une archive sans rapport héritait des dépendances attendues d'un téléchargement abandonné.**
+      Fermer la feuille de téléchargement (`MainView`) effaçait
+      `pendingNexusSource` mais pas `pendingExpectedIds` ; une réinstallation
+      depuis une archive conservée affichait alors « dépendance absente ».
+      Effacement aux mêmes endroits ; et les pages Nexus ouvertes pour un
+      compte gratuit enregistrent désormais l'attente.
 - [x] **X119** ✅ *(livré le 2026-10-03, sonde 0.9.1)* — **La santé des accroches confondait la panne et « rien à observer ».**
       `ContentPackSections.Health` et `ModCosts.AssetHook` rendaient
       « missing » dès que rien n'avait été vu : un Content Patcher en pause

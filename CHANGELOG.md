@@ -31,6 +31,16 @@ where the exact log format was verified.
 
 - **22 fichiers relus comme par le jeu** : nombres écrits `.03`, textes entre apostrophes, virgules en double. 13 fichiers Content Patcher, dont trois de SVE, comptent enfin dans le poids des packs et les conflits ; 9 traductions (Button's Extra Books…) apparaissent.
 - **La liste « sans verdict » reste dépliée** quand on quitte la page des mises à jour, par exemple pour ouvrir la fiche d'un de ses mods, puis qu'on y revient.
+- **Un index de sauvegardes abîmé ne fait plus perdre l'historique.** La sauvegarde suivante le met de côté au lieu de le réécrire, et l'écran d'entretien ne propose plus de jeter les sessions d'avant comme orphelines. Même règle pour les sauvegardes de configs.
+- **Les archives Nexus conservées se retrouvent** même si leur index est abîmé ou effacé : il se reconstruit depuis les fichiers.
+- **Installer la sonde, finir un diagnostic ou réparer un manifeste ne fige plus l'app** le temps du rescan, qui tourne désormais en arrière-plan.
+- **L'impact par mod suit les bascules faites dans l'app** : un mod mis en pause sort du classement et sa fiche le dit, sans attendre la fermeture du jeu.
+- **Appliquer un profil reconnaît un mod dont l'identifiant a changé de casse**, au lieu de le mettre en pause.
+- **Fermer la feuille d'un téléchargement de dépendance** ne laisse plus d'alerte « dépendance absente » sur l'archive installée ensuite.
+- **« Vérifier sur Nexus » ne reste plus bloqué « en cours »** si la clé d'API est retirée pendant le tri.
+- **Basculer un mod est refusé pendant l'application d'un profil ou une bissection**, dont les déplacements se seraient croisés.
+- **Le rapport de la liste de mods échappe** les `<`, `&` et `|` des noms : le tableau HTML ou Markdown ne se casse plus.
+- **La recherche Nexus d'une dépendance** garde les noms contenant `&`, `+` ou `=`.
 
 ## [1.60.0] - 2026-10-08
 

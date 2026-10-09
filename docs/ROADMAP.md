@@ -82,51 +82,8 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X119 vivent à l'archive, indexés au §11 (X119, le dernier,
-y est parti le 2026-10-03). Ouverts depuis l'audit du delta du
-2026-10-09 (`docs/audit-delta-2026-10-09.md`, scénarios et correctifs
-proposés) :
-
-- [ ] **X120** — **Une archive sans rapport hérite des dépendances attendues
-      d'un téléchargement abandonné.** Fermer la feuille de téléchargement
-      (`MainView.swift:422`) efface `pendingNexusSource`, pas
-      `pendingExpectedIds` ; `reinstallFromArchive` et `pendingDropPresentation`
-      ouvrent ensuite l'installation sans effacer. `InstallPreview` annonce
-      alors une dépendance absente sur une archive qui n'en attendait aucune.
-- [ ] **X121** — **« Vérifier sur Nexus » peut laisser la vérification « en
-      cours » jusqu'au redémarrage.** `beginFallback` est posé avant le tri
-      sans clé ; une clé effacée pendant ce tri fait sortir
-      `recheckBlockedViaNexus` sans `endFallback()`, et plus rien ne relâche
-      `isChecking`.
-- [ ] **X122** — **L'état actif/en pause de l'impact par mod reste figé
-      dans la session.** `ModImpactStore` copie `isEnabled` à chaque
-      relecture, et une bascule faite dans l'app n'en déclenche aucune : un
-      mod mis en pause reste classé parmi les actifs, et sa fiche ne dit pas
-      « en pause », jusqu'à la fermeture du jeu.
-- [ ] **X123** — **Un index d'archives Nexus illisible fait oublier toutes
-      les archives.** `NexusArchiveStore.loadIndex()` relit un `index.json`
-      abîmé comme vide ; la prochaine archive gardée réécrit l'index avec
-      elle seule, et les autres pèsent dans `files/` sans être montrées ni
-      nettoyées (famille X76).
-- [ ] **X124** — **`release.py` rend 0 quand il s'interrompt.** Ses cinq
-      sorties d'échec (dont la sonde non embarquée) font `return` : faux
-      succès dès qu'un `&&` ou une CI enchaîne le script.
-- [ ] **X125** — **Des gestes neufs rescannent le parc sur le fil
-      principal.** Installer la sonde (Réglages, Performances), finir un
-      diagnostic SLO/Stardropium et réparer un manifeste appellent
-      `scanMods` — synchrone : réparation, manifestes, journal SMAPI —
-      directement depuis l'interface, qui gèle le temps du scan. Les neuf
-      autres appelants le lancent en arrière-plan.
-- [ ] **X126** — **Un index de sauvegardes illisible efface l'historique au
-      premier ajout.** `ModInstallBackupManager` et `ModConfigBackupManager`
-      relisent un index abîmé comme vide puis le réécrivent avec la seule
-      nouvelle sauvegarde : l'index redevient lisible, et l'écran d'entretien
-      propose de mettre à la corbeille toutes les sessions d'avant comme
-      orphelines (prouvé : 3 → 1, 4 sessions sur disque). Famille X76/X123.
-- [ ] **X127** — **Appliquer un profil compare les `UniqueID` avec la
-      casse.** `ProfileApplyPlan.isCovered` met en pause un mod dont
-      l'identifiant a changé de casse, quand `ProfileDiagnostics` le compte
-      présent. Latent (0 cas sur le parc), comme F6-T4.
+Les X1–X127 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
+ont été corrigés le jour même et sont partis à l'archive. **Aucun correctif ouvert.**
 
 ---
 
@@ -2024,6 +1981,14 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X127** | 2026-10-09 | `ProfileApplyPlan.isCovered` comparait les `UniqueID` avec la casse, contrairement aux diagnostics du profil et à SMAPI : un mod dont l'identifiant change de casse était mis en pause ; minuscules des deux côtés (latent, 0 cas sur le parc) |
+| **X126** | 2026-10-09 | Les deux index de sauvegardes, relus vides s'ils étaient abîmés, étaient réécrits avec la seule nouvelle sauvegarde — l'entretien proposait alors de jeter tout l'historique comme orphelin ; index mis de côté, état « non lisible » tenu tant qu'il l'est |
+| **X125** | 2026-10-09 | Six appels de `scanMods` (synchrone, lourd) depuis l'interface — installation de la sonde, fin de diagnostic, réparation de manifeste — gelaient l'app ; un seul chemin d'arrière-plan, `rescanInBackground` |
+| **X124** | 2026-10-09 | `release.py` sortait en 0 sur chacun de ses cinq échecs ; `sys.exit(create_release())`, 1 sur toute erreur |
+| **X123** | 2026-10-09 | L'index des archives Nexus, relu vide s'il était abîmé, faisait oublier les archives déjà gardées ; reconstruction depuis `files/`, index abîmé mis de côté |
+| **X122** | 2026-10-09 | L'impact par mod gardait l'état actif/en pause de sa dernière relecture ; redérivé depuis l'historique gardé à chaque bascule |
+| **X121** | 2026-10-09 | Une clé d'API effacée pendant le tri de « Vérifier sur Nexus » laissait la vérification « en cours » pour la session ; le garde relit le Trousseau et referme la passe |
+| **X120** | 2026-10-09 | Fermer la feuille d'un téléchargement de dépendance laissait l'attente en place : fausse alerte sur l'archive suivante ; effacée avec la source |
 | **X119** | 2026-10-03 | La santé des accroches de la sonde (`loads.jsonl`, champ `Health`) disait « missing » à la fois pour la panne et pour « rien à observer » : Content Patcher absent (43/43 enregistrements de benchmark) ou aucun rappel d'asset vu affichaient à l'écran des diagnostics faux ; « absent » et « idle » séparent désormais, l'app ne réagit qu'à « missing » (sonde 0.9.1) |
 | **X118** | 2026-09-29 | Le croisement de la liste noire au disque (X116) relisait tout le parc à chaque lancement (9,3 s) : un registre des mods vérifiés propres, par empreinte (taille + date du dossier, du manifeste, du DLL), ne relit que les mods changés — 0,9 à 1,2 s ; relecture complète si la liste change ou toutes les 24 h |
 | **X117** | 2026-09-29 | `ProbeAnalysis` ramenait le coût direct en ms par tick à 60 ticks/s : la cadence mesurée de chaque côté (`Update.Count / WallSeconds`) la remplace — 35 à 50 ticks/s sur le parc réel, pas variable sous UltraSmooth 2.3.9 |

@@ -36,6 +36,27 @@ lecture, preuve décrite non exécutée.
 une quarantaine de pistes écartées avec leur raison.** X126 et X127 viennent
 de l'audit transverse (dernière section).
 
+## État des corrections (2026-10-09, après-midi)
+
+**X120–X127 corrigés le jour même** (archive, §11 de la ROADMAP), avec
+4 388 tests verts et le gate `build_app.py` vert. Durcissements posés : gardes
+profil/bissection des bascules, attente des pages Nexus pour compte gratuit,
+grammaire de version alignée, échappement HTML/Markdown du rapport, encodage
+de la recherche Nexus, borne des tables .NET (572 DLL du parc lues avant
+comme après), liens symboliques et tube unique du lot de traduction,
+journal et commentaire du drapeau « À relire », identifiant stable des packs
+illisibles, bouton Finder de l'historique d'impact illisible, minuteur de
+l'installateur SMAPI muet, 17 clés rangées dans `UDKey` (noms inchangés).
+
+**Non posés, à dessein :**
+- **Verrou de `TextureMemory` (sonde C#)** : `Resolving`, statique lui
+  aussi, suppose le même fil ; un verrou sur les seuls dictionnaires ne
+  garantirait rien, et toucher la sonde demande une version validée en jeu.
+  Condition de réouverture : une `InvalidOperationException` au journal de
+  la sonde, ou un mod qui charge des assets en parallèle sur le parc.
+- **`[weak self]` des 9 closures de fond du ViewModel** : le ViewModel vit
+  autant que l'app, aucune fuite possible ; écart de convention seulement.
+
 ## Corrections à effectuer
 
 Ordre conseillé : du plus visible au plus rare. Chacune est détaillée plus
