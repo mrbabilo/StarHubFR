@@ -13,9 +13,9 @@ dit lesquels poser.
 |---|---|---|
 | ViewModel | tout le delta | — |
 | `Stores/` | les 11 créés + les diffs des 8 modifiés | — |
-| `Models/` | écrivains disque, constructeurs réseau, parseurs neufs (liste en Phase 1 › Models) | le reste des 121 fichiers |
+| `Models/` | écrivains disque, constructeurs réseau, parseurs neufs, `ActivationHistory`, `ContentPatcherLoadTargets`, `ModImpactHistory`, `ModlistReport`, `ModListSelection`, `ModDetailRefresh`, découverte de `SloDiagnosticContract` (liste en Phase 1 › Models) | présentation `Probe*`, `Keybind*`, `SloDiagnosticLog`/`Report`/`Sources` |
 | `Views/` | `MainView` (feuilles), `ProbeOptionsSection`, `BulkConflictGate`, sections Performances citées | le reste des 137 fichiers |
-| Réseau | `SmapiBlacklist` (réseau et cache), `NexusFileManifestFetcher`, boucle de lecture de `SmapiInstaller`, `NexusEndorsementStore`, `NexusModStatsRefresher` | diffs de `NexusUpdateChecker`, `NexusSearchClient`, `DeepLClient`, `NexusDownloadAPI`, `PathoschildCompatibilityList`, `SmapiUpdateClient`, `NexusDownloadStore` |
+| Réseau | tout le delta : `SmapiBlacklist`, `NexusFileManifestFetcher`, `SmapiInstaller` (lecture du tube), `NexusEndorsementStore`, `NexusModStatsRefresher`, diffs de `NexusUpdateChecker`, `NexusSearchClient`, `DeepLClient`, `NexusDownloadAPI`, `PathoschildCompatibilityList`, `SmapiUpdateClient`, `NexusDownloadStore` | — |
 | Persistance | `NexusArchiveStore`, écritures de `ModUpdateKeyDeltaStore` et `NexusPageStateStore`, diff `SaveManager` | autres diffs |
 | Sonde C# | — | delta entier ; ni compilée ni testée (`dotnet` hors gate) |
 | Build | diffs de `build_app.py`, `release.py`, `check_sources.py` | — |
@@ -24,8 +24,8 @@ dit lesquels poser.
 compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
 lecture, preuve décrite non exécutée.
 
-**Bilan : 0 🔴, 5 🟡 (X120–X124), une trentaine de pistes écartées avec leur
-raison.**
+**Bilan : 0 🔴, 5 🟡 (X120–X124), 9 durcissements conseillés non numérotés,
+une quarantaine de pistes écartées avec leur raison.**
 
 ## Corrections à effectuer
 
@@ -40,6 +40,24 @@ bas, avec son scénario.
 | X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) **Exécuté** : 2 archives, index corrompu, `keep` d'une 3ᵉ → `entries().count == 1`, 3 fichiers dans `files/`, `applyRetention()` en efface 0. À reprendre en test dans `NexusArchiveStoreTests` |
 | X124 | `release.py` | Ses sorties d'échec rendent 0 (quatre `return`, plus l'envoi refusé qui se contente d'afficher) | `create_release()` rend un code, `sys.exit(create_release())` ; chaque sortie d'erreur rend 1 | **Lecture seule** — ne jamais lancer `release.py` pour le vérifier : il incrémente le compteur et lance `build_app.py` avant tout contrôle |
 
+
+## Durcissements conseillés (non numérotés)
+
+Aucun ne répond à un défaut observé sur le parc ou par un test : ce sont
+des correctifs bon marché qui ferment un cas latent. À poser au prochain
+passage dans le fichier, pas en priorité.
+
+| Où | Cas latent | Durcissement | Mesure qui le classe ici |
+|---|---|---|---|
+| `Models/ModlistReport.swift` (`html`) | Noms, versions et raisons insérés sans échappement HTML : un `<` dans un nom de mod casserait le tableau exporté | Échapper `& < > "` dans chaque cellule | 18 noms du parc portent `&` (toléré par les navigateurs), 0 portent `<` ou `>` |
+| `Models/ModlistReport.swift` (`compact`) | Un `\|` dans un nom couperait la ligne du tableau Markdown | Échapper `\|` en `\\|` | 0 nom du parc |
+| `Models/HiddenCodeDependencies.swift`, `DotNetMetadata.MetadataFile.init` | DLL corrompue annonçant des milliards de lignes : boucle quasi sans fin en tâche de fond, jamais mise en cache | Refuser des tables dont la taille totale dépasse le stream `#~` | 523 DLL du parc lues en ~10 s |
+| `Models/MissingDependencies.swift` (`searchPage`) | `&`, `+`, `=` laissés par `.urlQueryAllowed` coupent la recherche Nexus | Retirer `&+=` de l'ensemble autorisé | Repli de dernier recours, aucun cas mesuré |
+| `Views/Performance/PerformanceEnvironmentSection.swift:183` | Deux packs illisibles au même nom affiché : une ligne en double disparaît | Identifier par `folderName` | Liste repliée, visuel |
+| `Stores/ModImpactStore.swift` + clé `perf_impact_unreadable` | Historique illisible : la fonction reste éteinte, le message nomme le fichier mais ne mène nulle part (règle « un écran de diagnostic doit conduire ») | Bouton « Afficher dans le Finder », ou mise de côté comme `ActivationHistoryStore` | Écritures atomiques ; jamais observé |
+| `SmapiInstaller.swift` (lecture du tube) | Installateur muet et bloqué : la borne de durée n'est relue qu'à l'arrivée d'octets | Lecture par `readabilityHandler` + minuterie, ou délai global sur le processus | Le cas mesuré est l'inverse (6 Mo/s) |
+| `NexusUpdateChecker.swift:83,114`, ViewModel L.4940, 5463, 5937 | Cinq clés `UserDefaults` hors `UDKey` (AGENTS §4.3) | Les déplacer dans `UDKey` | Toutes couvertes par `DefaultsMigration` : rien de perdu |
+| `companion/StarHubFR.Probe/TextureMemory.cs` | Dictionnaires statiques sans verrou si un mod charge des assets en parallèle | `lock` autour des trois accès | Préchauffage SpaceCore désactivé sur le parc |
 
 ## Fichiers porteurs d'un constat
 
@@ -368,6 +386,23 @@ Chaque occurrence relevée a été vérifiée à la main ; aucune ne plante.
   observé. Le fichier est toujours nommé `.zip`, même pour un RAR :
   sans effet, la réinstallation recopie sous `fileName` d'origine et
   l'installateur juge les octets.
+- **`ActivationRestore.moves`** : ne touche que les mods nommés par
+  l'instantané (un mod installé depuis reste tel quel), jamais un mod
+  livré avec SMAPI, chemins source par `physicalFolderName`.
+- **`ContentPatcherPatches.certainLoadTargets` ignore le champ `Enabled`**
+  (format Content Patcher 1.x) : un `Load` désactivé compterait comme
+  certain. Mesuré sur le parc : 1 544 fichiers JSON portent un `Load`, **1**
+  porte un champ `Enabled`.
+- **`ModImpactHistory` grossit d'une entrée par session intégrée**
+  (`integrated`, `boots`) : quelques dizaines d'octets chacune, plafond de
+  30 échantillons par version et par nature. Sans conséquence à l'échelle
+  d'années.
+- **`ModListSelection`** (I-T20) : sélection par `folderName`, toujours
+  relue à travers l'ordre visible (`members(in:)`) — un mod filtré ou
+  désinstallé ne reçoit pas le geste.
+- **`SloDiagnosticContract.discover`** : chemin initial par
+  `physicalFolderName`, chemin actif par `folderName` — le point d'un mod
+  en pause est pris en compte des deux côtés.
 
 # Phase 1 — `StarHubTH/Views/`
 
@@ -429,6 +464,21 @@ Delta depuis l'audit du 2026-09-07 (`c0b54852..`). Clients **nés depuis** :
 - **`try?` sur l'écriture du journal de l'installateur** : tampon de
   diagnostic, écrasé à chaque passe ; son échec ne change pas le résultat.
 - **`NexusEndorsementStore.loadIfNeeded` et `reset()`** : voir Stores.
+- **Diffs relus ligne à ligne** (deuxième passe du 2026-10-09) :
+  `DeepLClient` (la variable statique `lastResponse`, partagée entre appels
+  concurrents, est remplacée par un couple rendu par `send` — une course de
+  moins), `NexusSearchClient` (repli v2 sans clé limité à
+  `modDetailRaw` par `requiresKey: false`), `PathoschildCompatibilityList`
+  (chemin du cache passé par `AppSupport`), `SmapiUpdateClient` (prise et
+  pose de `inFlight` d'un seul tenant), `NexusDownloadAPI` (messages
+  rendus au Core), `NexusUpdateChecker` (`mergeCachedExtras` sous le
+  verrou du cache). `NexusDownloadStore` n'est pas `@MainActor` mais toutes
+  ses mutations passent sur le fil principal
+  (`noteNexusDownloadProgress` saute explicitement). Rien à corriger.
+- **`fetchRawDescription` rappelle sa complétion depuis le fil d'URLSession** :
+  `ModDetailRefresh` relaie, et le ViewModel saute sur le fil principal
+  avant de toucher l'état (`DispatchQueue.main.async`, garde anti-course
+  sur le mod affiché).
 
 # Phase 3 — Persistance
 
