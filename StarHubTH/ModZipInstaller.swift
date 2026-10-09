@@ -453,10 +453,10 @@ class ModZipInstaller {
                 scanFolder(at: modPath, relativePath: folder, folderName: destFolderName)
             }
         case .flatRoot:
-            // No enclosing folder: the temp dir's name becomes the mod folder.
-            // Extension retirée quelle qu'elle soit (sinon « MonMod.7z »).
+            // X129 : nom tiré du manifeste, pas du téléchargement Nexus.
             scanFolder(at: tempDir, relativePath: "",
-                       folderName: Self.strippingArchiveExtension(from: zipName))
+                       folderName: Self.flatRootFolderName(manifest: rootManifest(in: tempDir),
+                                                           archiveName: zipName))
         case .unrecognized, .modEmbeddedInAppBundle:
             return nil
         }

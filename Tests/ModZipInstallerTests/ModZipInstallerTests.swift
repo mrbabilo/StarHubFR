@@ -894,4 +894,29 @@ struct ZipRecoveryHintTests {
         #expect(info.isValid)
         #expect(info.detectedMods.count == 1)
     }
+
+    /// X129 — une archive Nexus sans dossier racine ne doit pas donner au mod
+    /// le nom de son téléchargement (date et jeton compris :
+    /// « StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62 »). Le dossier
+    /// prend le `Name` du manifeste, nettoyé ; repli sur l'`UniqueID`, puis sur
+    /// le nom d'archive (comportement d'avant).
+    @Test func flatRootFolderNameVientDuManifeste() {
+        let manifest = parsedManifest(uniqueId: "baiyu.StardewOptimizer", name: "Stardew Optimizer")
+        #expect(ModZipInstaller.flatRootFolderName(manifest: manifest,
+                                                   archiveName: "StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62.zip")
+                == "Stardew Optimizer")
+    }
+
+    @Test func flatRootFolderNameNettoieLesCaracteresInterdits() {
+        let manifest = parsedManifest(uniqueId: "a.b", name: " A/B: Mod — « épique » ")
+        #expect(ModZipInstaller.flatRootFolderName(manifest: manifest, archiveName: "x.zip")
+                == "A-B- Mod — « épique »")
+    }
+
+    @Test func flatRootFolderNameReplieSurUniqueIdPuisArchive() {
+        #expect(ModZipInstaller.flatRootFolderName(
+            manifest: parsedManifest(uniqueId: "baiyu.StardewOptimizer", name: "   "),
+            archiveName: "x.zip") == "baiyu.StardewOptimizer")
+        #expect(ModZipInstaller.flatRootFolderName(manifest: nil, archiveName: "MonMod.7z") == "MonMod")
+    }
 }
