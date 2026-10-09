@@ -425,7 +425,9 @@ struct MainView: View {
             viewModel: vm,
             localization: localization))
         .onChange(of: vm.pendingDownloadedZip) { _, newValue in
-            showDownloadedInstall = (newValue != nil)
+            // Guide ouvert : la feuille attend sa fermeture (mutex complet,
+            // spec §7.4 — le rattrapeur de showOnboarding la repose ensuite).
+            showDownloadedInstall = (newValue != nil) && !showOnboarding
         }
         .sheet(isPresented: $showDownloadedInstall, onDismiss: {
             if let url = vm.pendingDownloadedZip {
@@ -452,8 +454,18 @@ struct MainView: View {
         // « Archive suivante » de la fenêtre de bilan : la feuille se
         // rouvre sur l'archive posée (chemin preloadedZip existant).
         .onChange(of: vm.pendingDropPresentation) { _, url in
-            guard url != nil else { return }
+            guard url != nil, !showOnboarding else { return }
             showDropInstall = true
+        }
+        // Fermeture du guide : la feuille d'install qui attendait son créneau
+        // se présente — priorité au téléchargement posé, puis au dépôt.
+        .onChange(of: showOnboarding) { _, shown in
+            guard !shown else { return }
+            if vm.pendingDownloadedZip != nil {
+                showDownloadedInstall = true
+            } else if vm.pendingDropPresentation != nil {
+                showDropInstall = true
+            }
         }
         .sheet(isPresented: Bindable(vm.navigationStore).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }
         .sheet(isPresented: $showDropInstall, onDismiss: {
