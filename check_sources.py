@@ -635,6 +635,15 @@ SOURCES = [
              "(catalogue A5-T7)",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
 
+    {"key": "mod/stardewoptimizer", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 53663, "uniqueId": "baiyu.StardewOptimizer",
+     "role": "mod de performances (14 modules sous un hub, budget de 25 % du "
+             "temps d'image) ; paru et décompilé le 2026-10-09, en pause sur le "
+             "parc. 6 modules actifs par défaut malgré la page, dont un GC "
+             "complet bloquant et un frein sur les internes d'Automate ; "
+             "UpdateKeys vide — smapi.io peut l'ignorer un temps",
+     "used_by": "docs/audit-stardewoptimizer.md, docs/SOURCES.md §5"},
+
     {"key": "mod/stardropium-src", "kind": "repo", "repo": "ArshiaS1381/StardropiumMod",
      "role": "sources de Stardropium — un module retiré le jour même de la "
              "parution (suppression de mises à jour de Content Patcher) : "
