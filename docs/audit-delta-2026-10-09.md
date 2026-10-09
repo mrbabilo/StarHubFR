@@ -771,15 +771,17 @@ vérifié sur **tout** `StarHubTH/`, pas seulement sur le delta.
 | # | Invariant | Résultat |
 |---|---|---|
 | I1 | Chemin disque d'un mod par `physicalFolderName`, jamais `folderName` | ✅ Aucune jonction `Mods/` + nom logique hors des gestionnaires qui testent les deux formes (`.X` et `X`) ou d'un chemin de sauvegarde |
-| I2 | Sous-processus : environnement hérité, locale fixée, tube lu avant `waitUntilExit` | ✅ Les huit sites. `zip` de l'export (`ViewModel` L.5801) sans locale ni tube : sortie non analysée, sans effet |
+| I2 | Sous-processus : environnement hérité, locale fixée, tube lu avant `waitUntilExit` | ⚠️ Les huit sites héritent l'environnement et lisent avant d'attendre ; `TranslationLotArchive.run` vide ses deux tubes l'un après l'autre (durcissement, table ci-dessus). `zip` de l'export (`ViewModel` L.5801) sans locale ni tube : sortie non analysée, sans effet |
 | I3 | Clés `UserDefaults` dans `UDKey` | ⚠️ **17** clés vivent hors de `UDKey` (`NexusUpdateChecker` ×6, ViewModel ×4, `NexusMetadataStore` ×2, `SaveManager`, `NexusModStatsRefresher`, `TextScale`, `ModUpdateSnoozer`, `ModVersionAnchorStore`). Aucune collision ; toutes celles d'avant F5 sont dans `DefaultsMigration` (`textScale`, ajoutée le 2026-09-25, n'a pas à l'être). Dette de convention |
 | I4 | Requêtes Nexus par `NexusRequestBuilder` | ✅ |
-| I5/I6 | Fichier persistant illisible relu comme vide, puis réécrit | ❌ **X123** (`NexusArchiveStore`), **X126** (index des sauvegardes d'installation et de configuration). Les autres magasins illisibles-vus-vides sont des caches régénérables, ou distinguent déjà absent et illisible (glossaire, registre des traductions avec `.bak`, `ActivationHistoryStore`, `ModImpactHistory`). Restent non prouvés : favoris, « à écarter », profils et notes de save en `UserDefaults` (blobs écrits par `JSONEncoder`, aucune corruption observée) |
+| I5/I6 | Fichier persistant illisible relu comme vide, puis réécrit | ❌ **X123** (`NexusArchiveStore`), **X126** (index des sauvegardes d'installation et de configuration). Distinguent déjà absent et illisible : glossaire (`LoadOutcome`), registre des traductions (`.bak` promu), `ActivationHistoryStore` (mis de côté), `ModImpactHistory` (`.unreadable`, ne réécrit pas). **Même schéma, assumé et commenté** : `ModVersionAnchorStore.load` (L.163, « les perdre coûte une redécouverte »), `ProfileConfigStore.load` (L.47, « un souvenir, la donnée est dans le mod »). **Même schéma, non commenté** : `ModConflictVerdictsStore.load` (L.30) — un fichier abîmé ferait réapparaître les conflits écartés à la première décision suivante, perte rattrapable. Profils (`loadProfiles`, ViewModel L.5888) : blob `UserDefaults` relu vide sur échec, puis réécrit au prochain `saveProfiles` ; le décodeur de `ModProfile` tolère les champs absents (`decodeIfPresent`), donc pas de perte par évolution du schéma — reste la corruption du blob, non observée. Favoris, « à écarter », notes de save : même situation que les profils |
 | I7 | Travail lourd hors du fil principal | ❌ **X125** (`scanMods`) ; lectures d'index de sauvegardes (~100 Ko) sur main dans deux vues : acceptable |
 | I8 | Gestes qui déplacent des mods : mêmes gardes | ⚠️ Matrice inégale (durcissement ci-dessus) : `restoreActivation` refuse profil en cours et bissection, `toggleMod`/`toggleMods` non |
-| I9 | Textes visibles localisés | ✅ Erreurs d'installation passées par `installErrorMessage` ; le refus en français de `FolderToggleRefusal` ne va qu'au journal |
+| I9 | Textes visibles localisés | ✅ Erreurs d'installation passées par `installErrorMessage` ; le refus en français de `FolderToggleRefusal` et les messages de `PreservedModData.messages` (ViewModel L.5208) ne vont qu'au journal, rédigé en français par convention |
 | I10 | `[weak self]` dans les closures `DispatchQueue.global` | ⚠️ 9 closures du ViewModel et de `BisectionRunner` capturent `self` en fort. Le ViewModel vit autant que l'app : aucune fuite, écart de convention (AGENTS §4.6) |
 | I11 | Une règle, une copie | ⚠️ Deux comparateurs de version divergents (durcissement ci-dessus) ; `OSJunk` reste unique |
+| I13 | Aucune méthode `@MainActor` appelée depuis un fil de fond (mode Swift 6 : plantage à l'exécution, invisible au build et aux tests) | ⚠️ **Non vérifiable statiquement.** Relevé : 8 appels de méthodes `@MainActor` du ViewModel (42 explicites) dans une closure `DispatchQueue.global` ou `Task.detached` — 3 sont `await`és (saut d'acteur garanti : `mergeFrenchCoverage` ×2, `finishProfileTranslationCoverage`), 5 sont des homonymes de `SaveManager` (`deleteSave`, `duplicateSave`, `branchFromBackup`, `restoreBackup`, `deleteBackup`). Aucun cas suspect, sans preuve d'absence |
+| I14 | Aucun secret dans les journaux | ✅ Aucune clé, aucun jeton ni en-tête interpolé dans `log(`, `NSLog` ou `print` |
 | I12 | `UniqueID` comparés sans la casse (DOMAINE §3) | ❌ **X127** (`ProfileApplyPlan.isCovered`). L'archive de F6-T4 affirmait « partout ailleurs la comparaison est insensible à la casse » : c'est faux pour l'application des profils. Les autres comparaisons sensibles relevées opposent des identifiants de **même source** (parc contre parc) |
 
 ## 🟡 X126 — Un index de sauvegardes illisible efface l'historique au premier ajout
@@ -787,12 +789,16 @@ vérifié sur **tout** `StarHubTH/`, pas seulement sur le delta.
 - **Où** : `ModInstallBackupManager.loadIndex()` (L.126) et ses six
   lecteurs-écrivains (`createBackup`, renommage X60, purge, rétention…) ;
   `ModConfigBackupManager.loadIndex()` (L.105), même schéma.
-- **Cause** : X76 a appris au gestionnaire à **dire** qu'un index est
-  illisible (`loadBackupsWithIndexState`), pour que l'écran d'entretien ne
-  conclue pas « orphelines » sur un index vide. Mais les écrivains lisent
-  toujours par `loadIndex()`, qui rend un index vide, ajoutent la nouvelle
-  sauvegarde et réécrivent. L'index redevient **lisible**, avec une seule
-  entrée : la garde de X76 ne protège plus rien.
+- **Cause** : X76 (2026-09-05) a appris au gestionnaire à **dire** qu'un
+  index est illisible (`loadBackupsWithIndexState`), pour que l'écran
+  d'entretien ne conclue pas « orphelines » sur un index vide. Son entrée
+  d'archive ne traite que la **lecture** de l'écran d'entretien — aucun mot
+  des écrivains. Or ceux-ci lisent toujours par `loadIndex()`, qui rend un
+  index vide, ajoutent la nouvelle sauvegarde et réécrivent. L'index
+  redevient **lisible**, avec une seule entrée : la garde de X76 ne protège
+  plus rien. X76 rangeait déjà « un index supprimé sous des sauvegardes
+  présentes » dans le même danger ; ce cas-là mène aussi à X126 (index
+  absent, première sauvegarde, index lisible).
 - **Chaîne réelle** : `install_metadata.json` abîmé hors de l'app → la
   prochaine mise à jour d'un mod sauvegarde → l'index ne connaît plus que
   cette sauvegarde → Entretien affiche les quelque 220 sessions du parc
