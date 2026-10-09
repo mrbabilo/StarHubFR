@@ -20,7 +20,13 @@ struct OnboardingPresentation: ViewModifier {
     @ObservedObject var localization: LocalizationStore
 
     private var mayPresent: Bool {
-        !onboardingCompleted && !isLaunching && canPresentReleaseAlert
+        // Lecture directe du magasin, pas de la propriété `@AppStorage` :
+        // celle-ci peut encore valoir `false` dans la même transaction que
+        // l'écriture de fermeture (course « Passer le guide » contre le
+        // `onChange(of: canPresentReleaseAlert)` qui voit le créneau se
+        // libérer avant que `onDismiss` n'ait posé la clé).
+        !UserDefaults.standard.bool(forKey: UDKey.onboardingCompleted)
+            && !isLaunching && canPresentReleaseAlert
             && availableAppRelease == nil
     }
 
@@ -31,6 +37,17 @@ struct OnboardingPresentation: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // La clé est posée **synchromement** au passage à false — tout
+            // chemin de fermeture y passe, Esc compris (le système met le
+            // binding à false) — sinon le `onChange(of: canPresentReleaseAlert)`
+            // ci-dessous relit une clé encore vierge pendant la fermeture et
+            // représente la sheet (constaté à l'écran : « Passer le guide »
+            // devait être cliqué deux fois).
+            .onChange(of: showOnboarding) { _, shown in
+                if !shown {
+                    UserDefaults.standard.set(true, forKey: UDKey.onboardingCompleted)
+                }
+            }
             // `onAppear` couvre le lancement déjà fini ; `isLaunching` le
             // lancement normal (après le `finish()` du splash) ; feuilles et
             // release rattrapent quand le créneau se libère ; la clé rejoue

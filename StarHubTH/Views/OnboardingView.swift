@@ -168,6 +168,7 @@ struct OnboardingView: View {
                         .foregroundColor(AppDesign.Color.error)
                 } else if FileManager.default.fileExists(atPath: modsPath) {
                     Button(localization.L(L10n.Onboarding.modsScan)) { viewModel.refresh() }
+                    scanFeedback
                     Text(String(format: localization.L(L10n.Onboarding.modsCount),
                                 viewModel.scanStore.mods.count))
                         .font(AppDesign.Font.footnote)
@@ -291,6 +292,27 @@ struct OnboardingView: View {
                     detail: String(format: localization.L(L10n.Onboarding.modsCount),
                                    viewModel.scanStore.mods.count))
             Button(localization.L(L10n.Onboarding.runScan)) { viewModel.refresh() }
+            scanFeedback
+        }
+    }
+
+    /// Retour d'un scan en vol : barre + ligne courante publiée par
+    /// `scanStore.scanProgress`. Sans lui, le bouton de scan d'une étape
+    /// agit sans témoin — sur un parc déjà scanné au lancement, le compte ne
+    /// change pas et le clic paraît mort (constat écran 2026-10-09).
+    @ViewBuilder
+    private var scanFeedback: some View {
+        if let progress = viewModel.scanStore.scanProgress {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
+                    .progressViewStyle(.linear)
+                    .tint(.blue)
+                Text("\(progress.currentName) (\(progress.done)/\(progress.total))")
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
         }
     }
 
