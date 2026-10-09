@@ -115,7 +115,7 @@ proposés) :
       principal.** Installer la sonde (Réglages, Performances), finir un
       diagnostic SLO/Stardropium et réparer un manifeste appellent
       `scanMods` — synchrone : réparation, manifestes, journal SMAPI —
-      directement depuis l'interface, qui gèle le temps du scan. Les onze
+      directement depuis l'interface, qui gèle le temps du scan. Les neuf
       autres appelants le lancent en arrière-plan.
 
 ---
