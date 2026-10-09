@@ -21,6 +21,10 @@ public enum UDKey {
     public static let launchProfile = "launchProfile"
     /// Whether to quit StarHubTH right after launching the game.
     public static let closeAfterLaunch = "closeAfterLaunch"
+    /// `true` une fois le guide de premier lancement fermé — par « Terminer »,
+    /// « Passer le guide » ou Esc. Les Réglages peuvent le repasser à `false`
+    /// pour rejouer le guide.
+    public static let onboardingCompleted = "onboardingCompleted"
     /// Benchmark : sauvegarde choisie par côté — `"parc"` pour l'état actuel,
     /// l'UUID d'un profil sinon — dictionnaire `[String: String]` vers le dossier.
     public static let benchmarkSaveByProfile = "benchmarkSaveByProfile"

@@ -44,6 +44,7 @@ let package = Package(
                 "Models/SmapiVersionEvidence.swift",
                 "Models/SteamLoginUsers.swift",
                 "Models/GameDirLocator.swift",
+                "Models/OnboardingStep.swift",
                 "Models/RequestEpoch.swift",
                 "Models/NexusRateLimitGate.swift",
                 "Models/NexusQuota.swift",
@@ -408,6 +409,11 @@ let package = Package(
             name: "ModProblemKindsTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModProblemKindsTests"
+        ),
+        .testTarget(
+            name: "OnboardingStepTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/OnboardingStepTests"
         ),
         .testTarget(
             name: "SmapiBlacklistTests",
