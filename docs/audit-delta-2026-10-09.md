@@ -32,7 +32,7 @@ au 2026-10-01 » en fin de document.
 compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
 lecture, preuve décrite non exécutée.
 
-**Bilan : 0 🔴, 6 🟡 (X120–X125), 10 durcissements conseillés non numérotés,
+**Bilan : 0 🔴, 6 🟡 (X120–X125), 12 durcissements conseillés non numérotés,
 une quarantaine de pistes écartées avec leur raison.**
 
 ## Corrections à effectuer
