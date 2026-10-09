@@ -130,8 +130,17 @@ def probe_repo(spec):
              "archived": bool(meta.get("archived")),
              "default_branch": meta.get("default_branch")}
     rel = None
+    prefix = spec.get("tag_prefix")
     try:
-        rel = _gh(f"/repos/{repo}/releases/latest")
+        if prefix:
+            # Dépôt multi-projets : `releases/latest` rend la release du
+            # dernier projet publié, quel qu'il soit (relevé du 2026-10-10 :
+            # GiantCropFertilizerContinued au lieu d'UIFramework). On garde la
+            # plus récente dont le tag porte le préfixe du projet suivi.
+            rel = next((r for r in _gh(f"/repos/{repo}/releases?per_page=100")
+                        if (r.get("tag_name") or "").startswith(prefix)), None)
+        else:
+            rel = _gh(f"/repos/{repo}/releases/latest")
     except urllib.error.HTTPError as e:
         if e.code != 404:
             raise
@@ -139,7 +148,10 @@ def probe_repo(spec):
         state["release"] = rel.get("tag_name")
         state["released_at"] = rel.get("published_at")
     if spec.get("track_commit", True):
-        commits = _gh(f"/repos/{repo}/commits?per_page=1")
+        # `path` : le dossier du projet suivi dans un dépôt multi-projets —
+        # sinon chaque commit d'un projet voisin passe pour un écart.
+        path = spec.get("path")
+        commits = _gh(f"/repos/{repo}/commits?per_page=1" + (f"&path={path}" if path else ""))
         if commits:
             state["last_commit"] = commits[0]["sha"][:7]
             state["last_commit_at"] = commits[0]["commit"]["committer"]["date"]
@@ -661,6 +673,7 @@ SOURCES = [
      "used_by": "docs/SOURCES.md §6"},
 
     {"key": "ui-framework-source", "kind": "repo", "repo": "6135/StardewValleyMods",
+     "tag_prefix": "UIFramework/", "path": "StardewUIFramework",
      "role": "sources d'UI Framework (GPL-3.0, dossier StardewUIFramework) et "
              "de ses exemples ([CP] UI Framework Example) : le schéma JSON des "
              "menus et du Bind vit là",

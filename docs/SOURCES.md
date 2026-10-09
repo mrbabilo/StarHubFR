@@ -1144,6 +1144,25 @@ Relevés à la demande de l'utilisateur, pour le hub FR :
 - **Developer Tool — i18n Translator** (Nexus 21920) — déjà relevé : mémoire
   `stardew-i18n-translator-reference`.
 
+### Relevé du 2026-10-10 — huit écarts, un catalogue en retard
+
+`check_sources.py` : 8 sources bougées. UltraSmooth, Radiance et Stardropium
+décompilés depuis les archives gardées et le parc (`ilspycmd`, rien exécuté) ;
+les trois sont **en pause** sur le parc.
+
+| Source | Écart | Décision |
+|---|---|---|
+| `mod/ultrasmooth` | 2.4.6 → 2.4.15 ; le catalogue A5-T7 avait mesuré **2.4.1** | diff 2.4.1 → 2.4.15 : +14 méthodes nommées, −2 (`Game1.allocateLightmap`, `Game1.updateDebrisWeather`), plus `Monster.update` par balayage dynamique (2.4.8). Les 19 méthodes du catalogue sont **toutes encore patchées** — les lignes existantes restent vraies. **Recoupements nouveaux** : avec Radiance 2.3.1, `SpriteBatch.Draw` ; avec Stardropium 0.2.2-beta, `ArgUtility.SplitBySpaceAndGet`, `FishingRod.distanceToLand`, `ItemQueryResolver.TryResolve`. Mise à jour de `PerformanceOverlap.swift` **proposée, pas faite** (code de l'app : test, gate, release). 2.4.11-2.4.13 sans journal : le diff est la seule trace |
+| ↳ sauvegardes | `SpaceCoreSaveOptimizer` (2.4.9) remplace par sa propre traversée `SpaceCore.Patches.SaveGamePatcher.FindAndRemoveModNodes`, sous `EnableFastSaveEngine` **actif par défaut** | elle saute 14 branches de listes primitives (`mailReceived`, `stats`, `options`…) où un nœud `Mods_*` est improbable : **à surveiller**, pas un défaut constaté. `EnableSpaceCorePrewarm` existe toujours, défaut `false`. Autres options neuves actives par défaut : `EnableInstantSaveSlotLoad`, `EnableContentPatcherOptimizer`, `EnableSpaceCoreOptimizer`, `EnableMapMemoryOptimizer`, `EnableSmartCpuAffinity` (Windows seul) |
+| ↳ Radiance | la 2.4.7 garde un préfixe sur `SDVRadiance.ParticleSystem.AdvanceTo` | la méthode existe dans Radiance 2.3.1 (`internal bool AdvanceTo(int, float)`) : le patch porte |
+| `mod/radiance` | 2.2.6 → 2.3.1 ; catalogue mesuré sur 2.2.1 | journal lu. La 2.3.1 sauve sa config par `helper.Data.WriteGlobalData("config-backup")` (données SMAPI, hors du dossier) et ne la restaure **que si `config.json` manque** — nos mises à jour ne l'effacent jamais : pas d'interaction avec les configs par profil (B3-T5) |
+| `mod/event-studio` | 1.0.0 → 1.0.2 | journal lu ; l'app n'en dépend pas |
+| `smapi/blacklist` | 20 → 21 mods | le cache de l'app (2026-10-09 23:25) porte déjà les 21 ; balayage direct du parc : **aucun** UniqueID ni `Auto_Alchemistry.bat` de la liste |
+| `ui-framework-source` | la release suivie devenait `GiantCropFertilizerContinued/v1.0.1` | **sonde corrigée** : dépôt multi-projets, `tag_prefix: "UIFramework/"` et `path: "StardewUIFramework"` — release `UIFramework/v1.8.3` inchangée ; 3 commits du dossier (tests, Codacy), aucun changement de schéma |
+| `i18n-translator` | v2.2.0 → v2.3.0 | jetons protégés inchangés (« Protected-token checks still apply »). Idée à peser pour le hub : une valeur d'une seule espace marque une traduction **vide voulue** (suffixe à supprimer) |
+| `JuniGrid` | v1.2.5 | idées à peser : dépendance par l'id de page de la table *Requirements* (pas par mot-clé) ; refus d'installer quand deux mods partagent un nom d'affichage mais pas l'UniqueID, sans toucher à l'installé ; « réessayer » réutilise l'archive déjà téléchargée |
+| `fork/StarHubFR` | v1.58.0 → v1.61.1 | nos propres publications |
+
 ## 6. Mods du jeu observés — la convention `config.*`
 
 Références du domaine, pas des dépendances : aucun code de ces mods ne vit

@@ -2,11 +2,11 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "57b26b5",
-    "last_commit_at": "2026-10-02T02:17:31Z",
-    "pushed_at": "2026-10-02T02:17:31Z",
-    "release": "v1.2.4",
-    "released_at": "2026-10-01T05:51:37Z"
+    "last_commit": "dd1b104",
+    "last_commit_at": "2026-10-08T05:23:57Z",
+    "pushed_at": "2026-10-08T05:25:33Z",
+    "release": "v1.2.5",
+    "released_at": "2026-10-08T05:25:33Z"
   },
   "SMAPI": {
     "archived": false,
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "e7903c2",
-    "last_commit_at": "2026-10-05T13:27:56Z",
-    "pushed_at": "2026-10-05T13:29:12Z",
-    "release": "v1.58.0",
-    "released_at": "2026-10-05T10:53:42Z"
+    "last_commit": "a42a4a4",
+    "last_commit_at": "2026-10-09T21:11:49Z",
+    "pushed_at": "2026-10-09T21:12:04Z",
+    "release": "v1.61.1",
+    "released_at": "2026-10-09T21:12:05Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -93,11 +93,11 @@
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "1081b7d",
-    "last_commit_at": "2026-10-05T12:38:51Z",
-    "pushed_at": "2026-10-05T13:59:54Z",
-    "release": "v2.2.0",
-    "released_at": "2026-10-01T10:16:11Z"
+    "last_commit": "d633d0e",
+    "last_commit_at": "2026-10-06T17:35:40Z",
+    "pushed_at": "2026-10-06T17:35:43Z",
+    "release": "v2.3.0",
+    "released_at": "2026-10-06T17:51:28Z"
   },
   "log-doctor": {
     "archived": false,
@@ -107,10 +107,10 @@
     "pushed_at": "2026-03-17T01:20:57Z"
   },
   "mod/event-studio": {
-    "changelog_reviewed": "1.0.0",
+    "changelog_reviewed": "1.0.2",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.0"
+    "version": "1.0.2"
   },
   "mod/fast-loads": {
     "changelog_reviewed": "1.0.3",
@@ -161,10 +161,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.2.6",
+    "changelog_reviewed": "2.3.1",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.2.6"
+    "version": "2.3.1"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -207,10 +207,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.6",
+    "changelog_reviewed": "2.4.15",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.6"
+    "version": "2.4.15"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -293,7 +293,7 @@
     ],
     "fichiers_pieges": 1,
     "http": 200,
-    "mods_bloques": 20,
+    "mods_bloques": 21,
     "noms_surveilles": [
       "Auto_Alchemistry.bat"
     ]
@@ -310,9 +310,9 @@
   "ui-framework-source": {
     "archived": false,
     "default_branch": "master",
-    "last_commit": "b33ac8d",
-    "last_commit_at": "2026-10-02T16:20:14Z",
-    "pushed_at": "2026-10-02T16:20:39Z",
+    "last_commit": "753b496",
+    "last_commit_at": "2026-10-08T21:10:01Z",
+    "pushed_at": "2026-10-08T21:50:41Z",
     "release": "UIFramework/v1.8.3",
     "released_at": "2026-09-29T11:48:35Z"
   }
