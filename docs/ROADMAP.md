@@ -83,8 +83,8 @@ les chantiers, **§7** pour la dette technique.
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
 Les X1–X119 vivent à l'archive, indexés au §11 (X119, le dernier,
-y est parti le 2026-10-03). Ouverts depuis l'audit du delta ViewModel du
-2026-10-09 (`docs/audit-vm-delta-2026-10-09.md`, scénarios et correctifs
+y est parti le 2026-10-03). Ouverts depuis l'audit du delta du
+2026-10-09 (`docs/audit-delta-2026-10-09.md`, scénarios et correctifs
 proposés) :
 
 - [ ] **X120** — **Une archive sans rapport hérite des dépendances attendues
@@ -103,6 +103,14 @@ proposés) :
       ouvert d'abord, Performances reste en chargement. Ensuite l'état
       actif/en pause des entrées est figé jusqu'à la fermeture du jeu — un
       mod mis en pause reste classé parmi les actifs.
+- [ ] **X123** — **Un index d'archives Nexus illisible fait oublier toutes
+      les archives.** `NexusArchiveStore.loadIndex()` relit un `index.json`
+      abîmé comme vide ; la prochaine archive gardée réécrit l'index avec
+      elle seule, et les autres pèsent dans `files/` sans être montrées ni
+      nettoyées (famille X76).
+- [ ] **X124** — **`release.py` rend 0 quand il s'interrompt.** Ses cinq
+      sorties d'échec (dont la sonde non embarquée) font `return` : faux
+      succès dès qu'un `&&` ou une CI enchaîne le script.
 
 ---
 
