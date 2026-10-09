@@ -111,6 +111,12 @@ proposés) :
 - [ ] **X124** — **`release.py` rend 0 quand il s'interrompt.** Ses cinq
       sorties d'échec (dont la sonde non embarquée) font `return` : faux
       succès dès qu'un `&&` ou une CI enchaîne le script.
+- [ ] **X125** — **Des gestes neufs rescannent le parc sur le fil
+      principal.** Installer la sonde (Réglages, Performances), finir un
+      diagnostic SLO/Stardropium et réparer un manifeste appellent
+      `scanMods` — synchrone : réparation, manifestes, journal SMAPI —
+      directement depuis l'interface, qui gèle le temps du scan. Les onze
+      autres appelants le lancent en arrière-plan.
 
 ---
 

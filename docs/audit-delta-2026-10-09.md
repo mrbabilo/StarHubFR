@@ -14,7 +14,7 @@ dit lesquels poser.
 | ViewModel | tout le delta | — |
 | `Stores/` | les 11 créés + les diffs des 8 modifiés | — |
 | `Models/` | écrivains disque, constructeurs réseau, parseurs neufs, `ActivationHistory`, `ContentPatcherLoadTargets`, `ModImpactHistory`, `ModlistReport`, `ModListSelection`, `ModDetailRefresh`, découverte de `SloDiagnosticContract` (liste en Phase 1 › Models) | présentation `Probe*`, `Keybind*`, `SloDiagnosticLog`/`Report`/`Sources` |
-| `Views/` | `MainView` (feuilles), `ProbeOptionsSection`, `BulkConflictGate`, sections Performances citées | le reste des 137 fichiers |
+| `Views/` | `MainView` (feuilles), `ProbeOptionsSection`, `BulkConflictGate`, `ActivationHistorySection`, `ModListSelectionBar`, `ModEndorseButton`, `MissingDependenciesSheet`, `UpdatesView+CheckError`, `PerformanceSloDiagnosticSection` (gestes), `BenchmarkPanelWindow` (contrôleur), cartes Impact/Textures, appels directs de `scanMods` | rendu des autres fichiers (`KeybindKeyboardView`, cartes de présentation Performances, `QuarantineReportCards`…) |
 | Réseau | tout le delta : `SmapiBlacklist`, `NexusFileManifestFetcher`, `SmapiInstaller` (lecture du tube), `NexusEndorsementStore`, `NexusModStatsRefresher`, diffs de `NexusUpdateChecker`, `NexusSearchClient`, `DeepLClient`, `NexusDownloadAPI`, `PathoschildCompatibilityList`, `SmapiUpdateClient`, `NexusDownloadStore` | — |
 | Persistance | `NexusArchiveStore`, écritures de `ModUpdateKeyDeltaStore` et `NexusPageStateStore`, diff `SaveManager` | autres diffs |
 | Sonde C# | — | delta entier ; tests lancés (69/69 verts, 8 fichiers de règles purs), sonde elle-même non recompilée (le gate le fait quand elle est périmée) |
@@ -24,7 +24,7 @@ dit lesquels poser.
 compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
 lecture, preuve décrite non exécutée.
 
-**Bilan : 0 🔴, 5 🟡 (X120–X124), 9 durcissements conseillés non numérotés,
+**Bilan : 0 🔴, 6 🟡 (X120–X125), 10 durcissements conseillés non numérotés,
 une quarantaine de pistes écartées avec leur raison.**
 
 ## Corrections à effectuer
@@ -38,6 +38,7 @@ bas, avec son scénario.
 | X120 | `Views/MainView.swift:422` | Fausse alerte « dépendance absente » sur une archive sans rapport | `vm.clearPendingDependencyExpectation()` sous `vm.pendingNexusSource = nil` | Vérification à l'écran (vue) : dépendance téléchargée, feuille fermée, archive conservée réinstallée — aucune bannière |
 | X121 | `StarHubTHViewModel.checkUpdatesViaNexus()` | Vérification bloquée « en cours » si la clé disparaît pendant le tri | Garde de clé Trousseau dans le `guard` de la `Task`, sortie par `updateStore.endFallback()` | Build ; scénario à l'écran (effacer la clé pendant le tri) |
 | X123 | `Models/NexusArchiveStore.swift` | Index illisible relu comme vide : la prochaine archive gardée réécrit l'index avec elle seule, les autres deviennent des fichiers orphelins que ni la rétention ni le compteur de stockage ne voient | `loadIndex` rend aussi « lisible ? » ; sur un index présent mais illisible, `keep`/`remove`/`applyRetention` refusent d'écrire et l'index est mis de côté (patron `ActivationHistoryStore.load`, X76) **Exécuté** : 2 archives, index corrompu, `keep` d'une 3ᵉ → `entries().count == 1`, 3 fichiers dans `files/`, `applyRetention()` en efface 0. À reprendre en test dans `NexusArchiveStoreTests` |
+| X125 | `Views/AppExtensionsSettingsSection.swift:136`, `Views/Performance/PerformanceProbeSection.swift:109`, `PerformanceSloDiagnosticSection.swift:236`, `PerformanceStardropiumDiagnosticControls.swift:168`, `PerformanceView.swift:254` (`rescan` du diagnostic), `StarHubTHViewModel.restoreManifest` | `scanMods` lancé **sur le fil principal** : l'interface gèle le temps d'un scan complet (réparation des dossiers, manifestes, journal SMAPI) après l'installation de la sonde, un diagnostic ou la réparation d'un manifeste | Même patron que les autres appelants : `gameDir` relu sur main, puis `DispatchQueue.global(qos: .userInitiated).async { [weak vm] in vm?.scanMods(gameDir: dir) }` ; pour le `rescan` attendu du diagnostic, une continuation (patron `executeBulkMoves`) | Lecture : `scanMods` est `nonisolated` et synchrone, ses onze autres appelants le lancent en arrière-plan. Durée non mesurée ici (le passage de réparation seul a coûté 5–10 s, commentaire de `scanMods`) |
 | X124 | `release.py` | Ses sorties d'échec rendent 0 (quatre `return`, plus l'envoi refusé qui se contente d'afficher) | `create_release()` rend un code, `sys.exit(create_release())` ; chaque sortie d'erreur rend 1 | **Lecture seule** — ne jamais lancer `release.py` pour le vérifier : il incrémente le compteur et lance `build_app.py` avant tout contrôle |
 
 
@@ -49,6 +50,7 @@ passage dans le fichier, pas en priorité.
 
 | Où | Cas latent | Durcissement | Mesure qui le classe ici |
 |---|---|---|---|
+| `Views/MissingDependenciesSheet.swift` (bouton « page Nexus »), `installAllMissingDependencies` (`.openPage`), `DependencyTreeView.swift:177` | Compte gratuit : la page s'ouvre sans `expectNexusMod`, l'archive revenue par `nxm://` n'est pas vérifiée contre la dépendance attendue — alors que les contrôles du diagnostic Stardropium le font | Appeler `vm.expectNexusMod(nexusId:uniqueId:)` avant d'ouvrir la page | La vérification manque, rien ne casse |
 | `Models/ModlistReport.swift` (`html`) | Noms, versions et raisons insérés sans échappement HTML : un `<` dans un nom de mod casserait le tableau exporté | Échapper `& < > "` dans chaque cellule | 18 noms du parc portent `&` (toléré par les navigateurs), 0 portent `<` ou `>` |
 | `Models/ModlistReport.swift` (`compact`) | Un `\|` dans un nom couperait la ligne du tableau Markdown | Échapper `\|` en `\\|` | 0 nom du parc |
 | `Models/HiddenCodeDependencies.swift`, `DotNetMetadata.MetadataFile.init` | DLL corrompue annonçant des milliards de lignes : boucle quasi sans fin en tâche de fond, jamais mise en cache | Refuser des tables dont la taille totale dépasse le stream `#~` | 523 DLL du parc lues en ~10 s |
@@ -80,6 +82,13 @@ passage dans le fichier, pas en priorité.
 ### 📁 `StarHubTH/Models/NexusArchiveStore.swift`
 - 🟡 [L.215-218] X123 — index illisible relu comme vide puis réécrit.
 - Lu par : `reinstallFromArchive`, carte de stockage, rétention.
+
+### 📁 Vues qui rescannent sur le fil principal
+- 🟡 X125 — `AppExtensionsSettingsSection.swift:136`,
+  `PerformanceProbeSection.swift:109`,
+  `PerformanceSloDiagnosticSection.swift:236`,
+  `PerformanceStardropiumDiagnosticControls.swift:168`,
+  `PerformanceView.swift:254`, et `StarHubTHViewModel.restoreManifest`.
 
 ### 📁 `release.py`
 - 🟡 X124 — code de sortie 0 sur échec.
@@ -613,3 +622,72 @@ parité L10n qui sort en 1 sur un JSON illisible, sonde embarquée),
 - **Cliquet de taille** : relevé à chaque commit pour le ViewModel (voir
   Phase 1) — convention de relèvement assumée par le dépôt, pas une
   défaillance du script.
+
+# Phase 1 — `StarHubTH/Views/`, deuxième passe (lecture)
+
+Lecture des vues qui portent un geste ou un état. X125 vient de cette passe,
+et elle a corrigé X122 (voir sa section).
+
+## 🟡 X125 — Plusieurs gestes neufs rescannent le parc sur le fil principal
+
+- **Où** : `AppExtensionsSettingsSection.installProbe` (L.136),
+  `PerformanceProbeSection` (L.109), `PerformanceSloDiagnosticSection`
+  (installation de la sonde, L.236), `PerformanceStardropiumDiagnosticControls`
+  (L.168), le `rescan` du `SloDiagnosticRuntime` construit par
+  `PerformanceView` (L.254, attendu par `finalize` et la restauration), et
+  `StarHubTHViewModel.restoreManifest` (A1-T2, L.3854).
+- **Cause** : `scanMods(gameDir:includeRepair:)` est `nonisolated` et
+  **synchrone** : passage de réparation des dossiers (sauf
+  `includeRepair: false`), scan des manifestes, puis analyse du journal
+  SMAPI (`parseSMAPILog`), avant de publier sur le fil principal. Ses onze
+  autres appelants le lancent sur `DispatchQueue.global`. Ces six-là,
+  ajoutés entre le 2026-10-03 et le 2026-10-08, l'appellent depuis une
+  action de bouton ou un code `@MainActor` : l'interface reste figée tout
+  le temps du scan.
+- **Scénario** : Réglages › Extensions › Installer la sonde ; ou
+  Performances › installer la sonde ; ou Alertes › Réparer un manifeste ;
+  ou la fin d'un diagnostic SLO/Stardropium. Sur le parc (966 mods, volume
+  externe), le curseur d'attente pendant le scan. Durée non mesurée — le
+  passage de réparation seul avait coûté 5–10 s avant son option
+  `includeRepair: false` (commentaire de `scanMods`).
+- **Correctif proposé** : reprendre le patron de `renameModFolder`
+  (L.3331) — `gameDir` lu sur main, puis
+  `DispatchQueue.global(qos: .userInitiated).async { [weak vm] in
+  vm?.scanMods(gameDir: dir) }`. Pour le `rescan` **attendu** du
+  diagnostic, envelopper dans `withCheckedContinuation` comme
+  `executeBulkMoves`, pour que la restauration reprenne après le scan.
+  `includeRepair: false` suffit après l'installation de la sonde ou la
+  réparation d'un manifeste (aucun dossier orphelin créé).
+- **Preuve** : lecture (`scanMods` n'a aucun saut de fil avant son
+  travail). À l'écran : le curseur d'attente après « Installer la sonde ».
+
+## 🔬 Pistes écartées (Views, deuxième passe)
+
+- **`PerformanceSloDiagnosticSection` : double-clic sur « Lancer »** — deux
+  `start` pourraient partir avant la fermeture de la feuille. Le second
+  trouve l'instantané posé par le premier et finit en
+  `.failed(.busy("diagnostic-pending"))`, ce qui écrase l'état affiché
+  jusqu'au prochain tour de la surveillance, qui le remet à `.running`.
+  Rien n'est renommé deux fois.
+- **`MissingDependenciesSheet.plan` recalculé à chaque lecture** (quatre
+  par rendu) : un parcours des dépendances du parc, quelques
+  millisecondes ; la feuille n'est pas une liste longue.
+- **`ModEndorseButton` dans la liste avant la lecture des approbations** :
+  `loadNexusStats` (liste) et la barre de la fiche appellent
+  `loadIfNeeded` ; un clic avant la réponse enverrait « approuver » pour un
+  mod déjà approuvé, que Nexus garde approuvé.
+- **`ModListSelectionBar`** : désactivée pendant un geste groupé, gestes
+  passés à `toggleMods` (mêmes portes que « Tout ») ; `selectedMods` ne
+  retient que les mods de premier niveau, un composant sélectionné par
+  Espace ne fait rien.
+- **`ActivationHistorySection`** : le message de confirmation calcule les
+  renommages et le changement de profil avec la même règle que
+  `restoreActivation` ; le bouton est désactivé pendant un geste groupé ou
+  l'application d'un profil.
+- **`BenchmarkPanelController`** : panneau non activant, `level .floating`,
+  `isReleasedWhenClosed = false`, fermeture par `orderOut` capturée en
+  `weak` — conforme aux pièges du panneau flottant.
+- **`ModConfigEditorView.applyFocusIfNeeded`** : `Task` de trois secondes
+  non annulée qui remet le surlignage à `nil` — inoffensif si la vue a
+  disparu (état local), au pire efface un surlignage plus récent posé dans
+  les trois secondes.
