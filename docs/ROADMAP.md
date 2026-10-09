@@ -98,6 +98,11 @@ proposés) :
       sans clé ; une clé effacée pendant ce tri fait sortir
       `recheckBlockedViaNexus` sans `endFallback()`, et plus rien ne relâche
       `isChecking`.
+- [ ] **X122** — **L'impact par mod dépend de l'onglet Mods.** Seules la
+      liste et la fiche lancent la première lecture de `ModImpactStore` :
+      ouvert d'abord, Performances reste en chargement. Ensuite l'état
+      actif/en pause des entrées est figé jusqu'à la fermeture du jeu — un
+      mod mis en pause reste classé parmi les actifs.
 
 ---
 

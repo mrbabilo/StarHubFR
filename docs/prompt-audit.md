@@ -6,7 +6,7 @@
 >
 > Remesurée 2026-10-03 : ViewModel descendu à 7 741 lignes (extraction vers `Stores/` continue), 534 `.swift` sous `StarHubTH/`, 4 050 `@Test`, sonde C# `companion/` entre dans périmètre.
 >
-> Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X121 ouverts au §4 (`docs/audit-vm-delta-2026-10-09.md`).
+> Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X122 ouverts au §4 (`docs/audit-vm-delta-2026-10-09.md`).
 
 ---
 
@@ -71,11 +71,11 @@ RÈGLE ABSOLUE : lire `AGENTS.md`, `CLAUDE.md` ET `docs/DOMAINE.md` EN PREMIER.
 ≠ sens ici vs chez l'amont, et mod **en pause** = dossier **préfixé
 par point** dans `Mods/`, pas dossier déplacé.
 Lire aussi `docs/ROADMAP.md` §4 : constat d'audit **ouvert**
-porterait numéro `X<n>`. Au 2026-10-09 : **X120–X121 ouverts** ; X1–X119 tous
+porterait numéro `X<n>`. Au 2026-10-09 : **X120–X122 ouverts** ; X1–X119 tous
 corrigés, vivent dans `docs/roadmap-archive.md`, avec mesure qui les a
 établis, indexés §11 ROADMAP. Chercher `X<n>` dans **les deux**
 fichiers — sinon re-signale bug corrigé, et refait mesure du parc
-déjà faite. Nouveau constat prend numéro suivant (X122).
+déjà faite. Nouveau constat prend numéro suivant (X123).
 ⚠️ Cases ROADMAP traînent derrière code livré — vérifier `git log`
 avant tâche « à faire ».
 ⚠️ `AGENTS.md` §5 date : annonce ViewModel « ~3900 lignes » et

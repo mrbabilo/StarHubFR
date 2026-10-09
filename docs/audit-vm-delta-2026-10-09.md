@@ -152,3 +152,77 @@ Aucun TODO, FIXME ni `fatalError("TODO")` dans le delta.
 - **`autoCheckUpdatesIfDue` lit `updateStore.lastCheckedAt`** : initialisé
   depuis `NexusUpdateChecker.shared.lastSuccessfulCheck`, donc la règle des
   12 h survit au redémarrage.
+
+---
+
+# Suite — `StarHubTH/Stores/`, delta du 2026-10-01 au 2026-10-09
+
+19 fichiers touchés, dont 11 créés (`ActivationHistoryStore`,
+`BulkConflictGateStore`, `ContentPatcherLoadIndex`,
+`HiddenCodeDependencyIndex`, `MissingDependencyStore`, `ModImpactStore`,
+`NexusEndorsementStore`, `NexusModStatsRefresher`, `SessionEnvironmentStore`,
+`SloDiagnosticSessionStore` et son extension `+Completion`). Diffs lus :
+`BenchmarkRunner`, `FrenchTranslationSweepStore`, `ProbePerformanceStore`,
+`ModUpdateStore`, `NavigationStore`, `ScanStore`, `ErrorHistoryStore`.
+`AppDesignCore.swift` : une constante d'ombre ajoutée, rien à signaler.
+
+**Bilan : 0 🔴, 1 🟡 (X122), 8 pistes écartées.**
+
+## 🟡 X122 — L'impact par mod dépend de l'onglet Mods : jamais chargé depuis Performances, figé ensuite
+
+- **Où** : `Stores/ModImpactStore.swift`, ses trois déclencheurs
+  (`ModListView.swift:450`, `ModImpactSection` de la fiche,
+  `GameExitRefresh`).
+- **Cause 1 — premier chargement** : seuls la liste des mods et la fiche
+  appellent `reloadIfIdle`. `PerformanceView.task` recharge son propre store
+  et l'environnement, pas `modImpactStore`. Lancer l'app (onglet Accueil par
+  défaut) puis ouvrir Journaux › Performances : les cartes « Impact par mod »
+  et « Textures » restent sur leur indicateur de chargement (`.idle`)
+  jusqu'à la visite de l'onglet Mods ou la fermeture du jeu.
+- **Cause 2 — état figé** : `ModImpact.entries(history:mods:)` copie
+  `isEnabled` de chaque mod au moment de la relecture
+  (`ModImpact.swift:183`). Classement, lignes de performance et textures
+  filtrent sur cette copie (`ModImpact.swift:191`,
+  `ProbeImpactPresentation.swift:16,66`), et la fiche affiche « en pause »
+  d'après elle. Or la relecture n'a lieu qu'une fois (`reloadIfIdle`) puis à
+  la fermeture du jeu. Mettre en pause un mod mesuré : il reste classé parmi
+  les actifs et sa fiche ne dit pas « en pause » ; activer un mod en pause :
+  l'inverse. Changer de dossier de jeu garde les entrées de l'ancien parc.
+- **Correctif proposé** : le store garde le dernier `ModImpactHistory` lu et
+  expose une re-dérivation sans entrée-sortie (`ModImpact.entries` + les
+  tables qui en découlent) appelée quand `mods` change ;
+  `PerformanceView.task` appelle `reloadIfIdle` comme la liste.
+
+## 🔬 Pistes écartées (Stores)
+
+- **`BulkConflictGateStore` : bouton Confirmer suivi du `set(false)` de la
+  liaison** — si SwiftUI appelait `set(false)` avant l'action, `cancel()`
+  viderait `onResume` et Confirmer ne reprendrait rien. Même patron que
+  l'alerte d'empreintes (A1-T8) en service depuis des semaines : l'ordre
+  effectif est action puis liaison. Comportement d'interface, à constater à
+  l'écran, pas à déduire.
+- **`ContentPatcherLoadIndex` : cache sur la seule date du `content.json`**
+  alors que `ContentPatcherPacks.read` suit les inclusions. Un fichier
+  inclus modifié sans toucher `content.json` garderait des cibles périmées,
+  pour la session seulement (cache en mémoire). Une mise à jour de mod
+  réécrit le dossier entier ; cas non observé.
+- **`NexusEndorsementStore.loadIfNeeded` : `reset()` pendant la requête de
+  liste** — la réponse de l'ancien compte s'écrit après l'effacement de la
+  clé. Fenêtre d'une requête, aucun geste ne part sans clé (`toggle` relit
+  le Trousseau).
+- **`HiddenCodeDependencyIndex` : chaque DLL chargée entière en mémoire**
+  (`contents` + copie en `[UInt8]`), en série, hors fil principal. 523 DLL,
+  une à la fois : pic borné par la plus grosse.
+- **`SloDiagnosticSessionStore` : `try?` sur les sauvegardes d'instantané et
+  de reçu** (`+Completion.swift:32,47,50,58`). Famille X89, mais chaque
+  `try?` suit une écriture réussie du même fichier dans le même dossier ; un
+  instantané non effacé est repris et restauré au lancement suivant.
+- **`SloDiagnosticSessionStore` : `gameExited` et la boucle de surveillance
+  peuvent appeler `finalize` ensemble** — gardé par `finalizing`.
+- **`FrenchTranslationSweepStore` : un résultat valable jeté quand l'autre
+  chercheur reçoit un 429 entre-temps** — voulu (« rien de ce qui revient ne
+  s'écrit ») ; le mod sera re-cherché au passage suivant.
+  `currentNames.removeAll` retire aussi un homonyme en cours : visuel.
+- **`ProbePerformanceStore.select` : garde `a.id != b.id` retirée** — la même
+  sélection est désormais qualifiée (`ProbeComparisonScope.Issue.sameSelection`),
+  voulu par `de3a9c2b`.
