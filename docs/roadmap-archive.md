@@ -3774,7 +3774,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
-- [x] **X128** ✅ *(signalé à l'écran par l'auteur et corrigé le 2026-10-09, v1.61.1 ; correctif pas encore revu à l'écran)* — **La page Quarantaine restait vide sous un badge à 1.**
+- [x] **X128** ✅ *(signalé à l'écran par l'auteur et corrigé le 2026-10-09, v1.61.1 ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **La page Quarantaine restait vide sous un badge à 1.**
       X114 avait fait lire le disque au badge (`_Trash_*` du dossier du jeu),
       mais la page n'affichait que `lastRepairReport`, en mémoire : perdu au
       relancement, et remis à `nil` par toute réparation qui ne trouve rien
