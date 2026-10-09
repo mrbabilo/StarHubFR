@@ -2172,15 +2172,18 @@ final class StarHubTHViewModel {
     /// ouvertes d'un coup (compte gratuit, plafond `pageLimit` compris).
     func installAllMissingDependencies() {
         let plan = missingDependenciesPlan
-        // Pages ouvertes comprises : l'archive reviendra par `nxm://`.
-        for dep in plan where !dep.isSmapi { if let id = dep.nexusId { expectNexusMod(nexusId: id, uniqueIds: dep.uniqueIds) } }
         for action in MissingDependencies.actions(for: plan,
                                                   canDownloadInApp: !nexusDirectDownloadUnavailable) {
             switch action {
             case .download(let nexusId, let ids):
                 missingDependencyStore.recordExpectation(nexusId: nexusId, uniqueIds: ids)
                 downloadModFromNexus(nexusId: nexusId)
-            case .openPage(let url), .search(let url):
+            case .openPage(let url, let nexusId, let ids):
+                // Seules les pages vraiment ouvertes : une attente sans page
+                // fausserait le prochain téléchargement du même mod.
+                expectNexusMod(nexusId: nexusId, uniqueIds: ids)
+                NSWorkspace.shared.open(url)
+            case .search(let url):
                 NSWorkspace.shared.open(url)
             }
         }
@@ -2247,14 +2250,11 @@ final class StarHubTHViewModel {
     // `pendingToggles`/`isToggling`.
     @MainActor
     func toggleMod(_ mod: ModItem, completion: (() -> Void)? = nil) {
-        if refuseDuringBenchmark() { completion?(); return }
+        if refuseDuringBenchmark() || refuseDuringMassMove() { completion?(); return }
         // Refused during a bulk toggle (concurrent moves could lose a mod), and
         // during a « Tout désactiver » estimate (it would overwrite the pending
         // suspension).
-        // Ni pendant l'application d'un profil ni pendant une bissection : leurs
-        // renommages de fond se croiseraient avec celui-ci (même garde que
-        // `restoreActivation`).
-        guard bulkToggleProgress == nil, !isApplyingProfile, _bisection?.state == nil,
+        guard bulkToggleProgress == nil,
               isToggling || !saveFingerprintPauseStore.isBusy else {
             completion?()
             return
@@ -6524,6 +6524,16 @@ final class StarHubTHViewModel {
     /// sur le parc ou le jeu est refusé pendant la série.
     var isBenchmarkActive: Bool { _benchmark?.isActive ?? false }
 
+    /// Un profil qui s'applique ou une bissection qui renomme en tâche de fond :
+    /// une bascule s'y croiserait (même garde que `restoreActivation`). Le refus
+    /// se dit — un bouton qui revient en place sans un mot passerait pour une panne.
+    func refuseDuringMassMove() -> Bool {
+        let bisecting = _bisection.map { $0.isApplying || $0.state?.isSearching == true } ?? false
+        guard isApplyingProfile || bisecting else { return false }
+        showModal(message: localization.L(L10n.VM.toggleRefusedBusy))
+        return true
+    }
+
     func refuseDuringBenchmark() -> Bool {
         // Une série interrompue (instantané restant) réserve le parc autant
         // qu'une série active : toute bascule l'écraserait sans filet.
@@ -7170,11 +7180,10 @@ final class StarHubTHViewModel {
     /// Moteur commun de « Tout » et de la sélection (I-T20), mods de premier niveau.
     @MainActor func toggleMods(_ candidates: [ModItem], enable: Bool, fingerprintChecked: Bool = false,
                                conflictChecked: Bool = false) {
-        if refuseDuringBenchmark() { return }
+        if refuseDuringBenchmark() || refuseDuringMassMove() { return }
         // No re-entry (same paths), and not while unit toggles are queued: the
         // guard prevents the collision the disk checks would only contain.
-        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty, !isApplyingProfile,
-              _bisection?.state == nil,
+        guard bulkToggleProgress == nil, !isToggling, pendingToggles.isEmpty,
               !saveFingerprintPauseStore.isBusy, !bulkConflictGate.isBusy else { return }
         let modsToMove = candidates.bulkToggleTargets(enable: enable)
         guard !modsToMove.isEmpty else {

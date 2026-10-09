@@ -97,7 +97,8 @@ import Testing
 
     @Test func aFreeAccountOpensTheFilesTab() {
         let actions = MissingDependencies.actions(for: [dep("a.b", nexus: 6414)], canDownloadInApp: false)
-        #expect(actions == [.openPage(URL(string: "https://www.nexusmods.com/stardewvalley/mods/6414?tab=files")!)])
+        #expect(actions == [.openPage(URL(string: "https://www.nexusmods.com/stardewvalley/mods/6414?tab=files")!,
+                                      nexusId: 6414, uniqueIds: ["a.b"])])
     }
 
     /// SMAPI s'installe par son installateur ; une page inconnue se cherche.

@@ -288,3 +288,17 @@ struct BisectionSessionTests {
         #expect(s.state == .concluded(folderName: "Solo"))
     }
 }
+
+/// Les bascules ne sont refusées que pendant que la recherche déplace des
+/// dossiers ; une recherche finie laisse l'utilisateur décider du mod trouvé.
+struct BisectionStateSearchingTests {
+    @Test func onlyTheSearchStepsCountAsSearching() {
+        #expect(BisectionState.reproducing.isSearching)
+        #expect(BisectionState.trial(step: 1, total: 4).isSearching)
+        #expect(BisectionState.confirming(folderName: "A").isSearching)
+        #expect(!BisectionState.concluded(folderName: "A").isSearching)
+        #expect(!BisectionState.inconclusive(remaining: ["A", "B"]).isSearching)
+        #expect(!BisectionState.notReproducible.isSearching)
+    }
+}
+

@@ -134,7 +134,8 @@ public enum MissingDependencies {
         case download(nexusId: Int, uniqueIds: [String])
         /// Page Nexus à ouvrir : compte gratuit ou sans clé, l'utilisateur
         /// y clique « Mod Manager Download » (`nxm://`).
-        case openPage(URL)
+        /// La page s'ouvre ; l'archive reviendra par `nxm://`, vérifiée contre `uniqueIds`.
+        case openPage(URL, nexusId: Int, uniqueIds: [String])
         /// Page inconnue : recherche Nexus par nom.
         case search(URL)
     }
@@ -155,7 +156,7 @@ public enum MissingDependencies {
             guard pages < pageLimit else { continue }
             pages += 1
             if let nexusId = dep.nexusId {
-                actions.append(.openPage(filesPage(nexusId: nexusId)))
+                actions.append(.openPage(filesPage(nexusId: nexusId), nexusId: nexusId, uniqueIds: dep.uniqueIds))
             } else if let url = searchPage(for: dep.name) {
                 actions.append(.search(url))
             }

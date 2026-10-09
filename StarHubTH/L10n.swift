@@ -1913,6 +1913,7 @@ enum L10n {
         static let applyProfileMissing  = "vm_apply_profile_missing"
         static let profileApplyRefusedGame = "vm_profile_apply_refused_game"
         static let profileEditBlockedRecovery = "vm_profile_edit_blocked_recovery"
+        static let toggleRefusedBusy = "vm_toggle_refused_busy"
         static let profileAdoptionBlockedJournal = "vm_profile_adoption_blocked_journal"
         static let profileConfigsSkippedRecovery = "vm_profile_configs_skipped_recovery"
         static let profileRecoveryImplicitKeep = "vm_profile_recovery_implicit_keep"

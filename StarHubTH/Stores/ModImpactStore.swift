@@ -110,7 +110,15 @@ final class ModImpactStore {
         switch loaded {
         case .unreadable: history = nil; status = .unreadableHistory; clear()
         case .noProbe: history = nil; status = .noProbe; clear()
-        case .ready(let h): history = h; status = .ready; derive(from: h, mods: mods)
+        case .ready(let h):
+            history = h; status = .ready; derive(from: h, mods: mods)
+            // Ne dépend pas des mods : calculé à la relecture seulement, pas à
+            // chaque bascule (15 469 échantillons sur le parc de référence).
+            probeMsPerFrame = h.probeMsPerFrame
+            let all = h.samples.values.flatMap { $0 }
+            lastInGame = all.filter { $0.kind == .inGame }.map(\.date).max()
+            lastLaunch = all.filter { $0.kind == .launch }.map(\.date).max()
+            lastSave = all.filter { $0.kind == .save }.map(\.date).max()
         }
     }
 
@@ -135,11 +143,6 @@ final class ModImpactStore {
         textureRows = ProbeTexturePresentation.rows(entries: entries)
         textureRemainder = ProbeTexturePresentation.remainder(
             history: history, shownIds: Set(entries.filter(\.isEnabled).map { $0.modId.lowercased() }))
-        probeMsPerFrame = history.probeMsPerFrame
-        let all = history.samples.values.flatMap { $0 }
-        lastInGame = all.filter { $0.kind == .inGame }.map(\.date).max()
-        lastLaunch = all.filter { $0.kind == .launch }.map(\.date).max()
-        lastSave = all.filter { $0.kind == .save }.map(\.date).max()
     }
 
     private func clear() {

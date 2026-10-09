@@ -43,6 +43,16 @@ public enum BisectionState: Equatable {
     case inconclusive(remaining: [String])
     /// Le problème ne s'est pas reproduit : rien à chercher.
     case notReproducible
+
+    /// `true` tant que la recherche déplace des dossiers d'une étape à l'autre.
+    /// Une recherche finie laisse l'utilisateur décider du mod trouvé : les
+    /// bascules redeviennent libres.
+    public var isSearching: Bool {
+        switch self {
+        case .reproducing, .trial, .confirming: return true
+        case .concluded, .inconclusive, .notReproducible: return false
+        }
+    }
 }
 
 /// Recherche du dossier responsable en divisant l'ensemble par deux à chaque
