@@ -341,7 +341,12 @@ struct SettingsView: View {
     private var appInfoSection: some View {
         // ── App ──
         StandardSection(title: localization.L(L10n.Home.appInfo), icon: ("info.circle.fill", .blue)) {
-            StandardRow(title: LocalizedStringKey(localization.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: false)
+            StandardRow(title: LocalizedStringKey(localization.L(L10n.Home.developer)), detail: "AppleBoiy (original) · mrbabilo (fork)", showDivider: true)
+            // Le `@AppStorage` de `MainView` publie le changement et présente
+            // la sheet — aucun état local ici.
+            Button(localization.L(L10n.Onboarding.settingsCard)) {
+                UserDefaults.standard.set(false, forKey: UDKey.onboardingCompleted)
+            }
         }
     }
 

@@ -10,7 +10,6 @@ extension L10n {
         static let skipAll        = "onboarding_skip_all"
         static let skipStep       = "onboarding_skip_step"
         static let next           = "onboarding_next"
-        static let open           = "onboarding_open"
         static let finish         = "onboarding_finish"
         static let runScan        = "onboarding_run_scan"
         static let stepOf         = "onboarding_step_of"
