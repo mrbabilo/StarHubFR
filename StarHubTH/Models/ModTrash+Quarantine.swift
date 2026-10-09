@@ -45,10 +45,12 @@ extension ModTrash {
                 var isDirectory: ObjCBool = false
                 let children = fm.fileExists(atPath: entryPath, isDirectory: &isDirectory)
                     && isDirectory.boolValue ? listing(entryPath, fm).sorted() : []
-                return QuarantineEntry(
-                    folder: folder, name: name, children: children,
-                    stillInMods: fm.fileExists(atPath: (modsPath as NSString).appendingPathComponent(name)),
-                    date: date)
+                // Conteneur seulement : un fichier écarté (`.DS_Store`) que le
+                // Finder recrée dans `Mods/` n'est pas « un mod toujours en place ».
+                let stillInMods = !children.isEmpty
+                    && fm.fileExists(atPath: (modsPath as NSString).appendingPathComponent(name))
+                return QuarantineEntry(folder: folder, name: name, children: children,
+                                       stillInMods: stillInMods, date: date)
             }
         }
     }
@@ -57,5 +59,18 @@ extension ModTrash {
     /// quarantaine est un constat, pas une opération : rien à signaler.
     fileprivate static func listing(_ path: String, _ fm: FileManager) -> [String] {
         do { return try fm.contentsOfDirectory(atPath: path) } catch { return [] }
+    }
+}
+
+extension ModTrash {
+    /// Les entrées que le rapport en mémoire ne couvre pas : il ne décrit que
+    /// son propre `_Trash_` (`trashPath`, nil quand rien n'a été déplacé).
+    /// Sans ce filtre, une quarantaine d'une session précédente disparaissait
+    /// de la page dès qu'un rapport neuf existait — badge à 3, page à 2.
+    static func entries(_ entries: [QuarantineEntry],
+                        outsideReportedTrash trashPath: String?) -> [QuarantineEntry] {
+        guard let trashPath else { return entries }
+        let reported = (trashPath as NSString).lastPathComponent
+        return entries.filter { $0.folder != reported }
     }
 }

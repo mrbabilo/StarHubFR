@@ -49,19 +49,22 @@ struct QuarantineView: View {
                         // Dernier rapport de réparation, ou l'état vide : atteignable
                         // depuis que l'entrée est permanente (B2-T3) — aucune analyse
                         // n'a encore tourné (jeu non configuré, rapport jamais produit).
-                        let onDisk = vm.maintenanceStore.quarantineEntries
-                        if let report = vm.maintenanceStore.lastRepairReport {
+                        let report = vm.maintenanceStore.lastRepairReport
+                        // Le rapport vit en mémoire (perdu au relancement,
+                        // remis à nil par une réparation à vide) et ne couvre
+                        // que son `_Trash_` ; le badge, lui, compte le disque.
+                        // Sans cette liste, la page restait vide sous un badge à 1.
+                        let onDisk = ModTrash.entries(vm.maintenanceStore.quarantineEntries,
+                                                      outsideReportedTrash: report?.trashPath)
+                        if let report {
                             RepairReportSummary(report: report, localization: localization) { section in
                                 withMotion(.snappy) { proxy.scrollTo(section, anchor: .top) }
                             }
                             RepairReportCard(report: report, localization: localization, gameDir: vm.gameDir)
-                        } else if !onDisk.isEmpty {
-                            // Le rapport vit en mémoire (perdu au relancement,
-                            // remis à nil par une réparation à vide) ; le badge,
-                            // lui, compte le disque. Sans cette liste, la page
-                            // restait vide sous un badge à 1.
+                        }
+                        if !onDisk.isEmpty {
                             QuarantineOnDiskCard(entries: onDisk, localization: localization)
-                        } else {
+                        } else if report == nil {
                             VStack(spacing: AppDesign.Spacing.md) {
                                 IconTile(icon: "tray", tint: AppDesign.Color.success, size: 64)
                                 Text(localization.L(L10n.Quarantine.noQuarantine))

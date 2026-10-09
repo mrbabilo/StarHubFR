@@ -502,4 +502,35 @@ struct ModTrashTests {
         #expect(entries.first { $0.name == ".DS_Store" }?.children == [])
         #expect(entries.first { $0.name == "Dossier vide" }?.stillInMods == false)
     }
+
+    /// Le Finder recrée `Mods/.DS_Store` presque aussitôt : un fichier mis en
+    /// quarantaine n'est pas « un mod toujours en place ». Seul un conteneur
+    /// (dossier non vide) dont le dossier existe encore dans `Mods/` l'est.
+    @Test func unFichierRecreeNestPasUnModEnPlace() throws {
+        let env = try makeGame()
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+        ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+
+        let entries = ModTrash.quarantineEntries(gameDir: env.gameDir)
+
+        #expect(entries.first { $0.name == ".DS_Store" }?.stillInMods == false)
+    }
+
+    /// Un rapport en mémoire ne couvre que son propre `_Trash_` : la carte
+    /// disque liste le reste (une quarantaine d'une session précédente), et
+    /// tout quand le rapport n'a déplacé rien (`trashPath` nil).
+    @Test func lesEntreesHorsRapportRestentListees() throws {
+        let env = try makeGame()
+        for folder in ["_Trash_20261001_100000", "_Trash_20261009_202139"] {
+            try FileManager.default.createDirectory(
+                atPath: path(env.gameDir, folder, "X-\(folder.suffix(6))"), withIntermediateDirectories: true)
+        }
+        let entries = ModTrash.quarantineEntries(gameDir: env.gameDir)
+        let reported = path(env.gameDir, "_Trash_20261009_202139")
+
+        #expect(ModTrash.entries(entries, outsideReportedTrash: reported).map(\.folder)
+                == ["_Trash_20261001_100000"])
+        #expect(ModTrash.entries(entries, outsideReportedTrash: nil).count == 2)
+    }
 }
