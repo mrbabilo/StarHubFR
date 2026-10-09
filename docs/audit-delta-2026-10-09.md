@@ -17,7 +17,7 @@ dit lesquels poser.
 | `Views/` | `MainView` (feuilles), `ProbeOptionsSection`, `BulkConflictGate`, sections Performances citées | le reste des 137 fichiers |
 | Réseau | tout le delta : `SmapiBlacklist`, `NexusFileManifestFetcher`, `SmapiInstaller` (lecture du tube), `NexusEndorsementStore`, `NexusModStatsRefresher`, diffs de `NexusUpdateChecker`, `NexusSearchClient`, `DeepLClient`, `NexusDownloadAPI`, `PathoschildCompatibilityList`, `SmapiUpdateClient`, `NexusDownloadStore` | — |
 | Persistance | `NexusArchiveStore`, écritures de `ModUpdateKeyDeltaStore` et `NexusPageStateStore`, diff `SaveManager` | autres diffs |
-| Sonde C# | — | delta entier ; ni compilée ni testée (`dotnet` hors gate) |
+| Sonde C# | — | delta entier ; tests lancés (69/69 verts, 8 fichiers de règles purs), sonde elle-même non recompilée (le gate le fait quand elle est périmée) |
 | Build | diffs de `build_app.py`, `release.py`, `check_sources.py` | — |
 
 **Preuves** : X123 démontré **par exécution** (binaire jetable hors dépôt,
@@ -550,8 +550,13 @@ passe.
   `NexusArchiveStoreTests` (12) ne pose un index illisible. Le scénario a
   été exécuté hors dépôt (binaire jetable) : il échoue comme décrit.
 - **`run_tests.sh`** : inchangé depuis le 2026-10-01.
-- **`companion/` (sonde C#, 31 commits, +1 284 lignes)** : relu au balayage,
-  sans `dotnet` (hors gate Swift). Chaque accroche Harmony neuve
+- **`companion/` (sonde C#, 31 commits, +1 284 lignes)** : relu au balayage.
+  `dotnet test` sur `StarHubFR.Probe.Tests` : **69/69 verts** (code de
+  sortie 0), qui couvrent les huit fichiers de règles purs liés au projet
+  de test (`GuidedRule`, `LoadRecord`, `CostStack`, `BenchmarkRule`,
+  `StartupTimeline`, `ProbeHealth`, `GmcmExportRule`, `ModConfig`). Les
+  accroches au jeu (`StartupHooks`, `TextureMemory`, `ModCosts`) ne sont
+  couvertes que par les sessions en jeu. Chaque accroche Harmony neuve
   (`StartupHooks`) est enveloppée d'un `catch` qui ne remonte jamais dans
   la boucle de SMAPI. Piste écartée : `TextureMemory` tient deux
   `Dictionary` statiques sans verrou, mutés par les événements de contenu
