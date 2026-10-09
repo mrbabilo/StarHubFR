@@ -226,3 +226,54 @@ Aucun TODO, FIXME ni `fatalError("TODO")` dans le delta.
 - **`ProbePerformanceStore.select` : garde `a.id != b.id` retirée** — la même
   sélection est désormais qualifiée (`ProbeComparisonScope.Issue.sameSelection`),
   voulu par `de3a9c2b`.
+
+---
+
+# Suite — `StarHubTH/Models/`, delta du 2026-10-01 au 2026-10-09 (passe partielle)
+
+121 fichiers touchés (+8 516 lignes), dont 60 créés. Passe faite dans
+l'ordre du prompt sur ce qui écrit sur le disque ou parle au réseau, plus le
+seul parseur binaire neuf : `DotNetMetadata` + `HiddenCodeDependencies`
+(A5-T6), `TranslationUpdate` (et son appel dans `ModZipInstaller`),
+`ProbeBundle`, `NexusRequestBuilder` (constructeurs neufs). **Restent** :
+`SloDiagnostic*` (Transaction, Contract, Exclusion, Log, Report, Sources),
+`ModImpactHistory`, `ModlistReport`, `MissingDependencies`,
+`SmapiLocalMetadata`, `ContentPatcherPacks`/`LoadTargets`, les `Keybind*`,
+`I18nLenientParser` (delta), et la logique de présentation `Probe*`.
+
+**Bilan : 0 🔴, 0 🟡 neuf.**
+
+## 🔬 Pistes écartées (Models)
+
+- **`DotNetMetadata` : lectures hors bornes sur une DLL tronquée ou
+  étrangère** — chaque lecture passe par `u16`/`u32`/`u64` bornés ou une
+  garde de plage avant l'indice ; `compressedUInt` refuse un tampon
+  tronqué ; `Range` jamais inversée (taille non signée). Aucun indice brut
+  non gardé trouvé.
+- **`HiddenCodeDependencies` : nombre de lignes déclaré absurde** — une DLL
+  corrompue annonçant ~4·10⁹ lignes dans `TypeDef` ou `NestedClass` ferait
+  tourner `typeDefFullNames()` des milliards de fois (chaque appel échoue
+  sur ses bornes, sans planter), en tâche de fond `utility`, et le résultat
+  ne serait jamais mis en cache. Les 523 DLL du parc se lisent en ~10 s :
+  aucun cas réel. Durcissement possible, non posé : refuser dans
+  `MetadataFile.init` des tables dont la taille totale dépasse le stream
+  `#~`.
+- **`TranslationUpdate.apply(.takeAuthor)` dans un `i18n/` en 0555** — même
+  dossier que `restoreUserConfigs`, qui y écrit juste avant ; le droit
+  d'écriture est déjà exigé par le chemin existant (X7/X17).
+- **`TranslationUpdate.apply(.merge)` sort en silence** si la locale ne se
+  relit pas — inatteignable : l'aperçu ne propose le choix que pour des
+  fichiers que `comparisons` a déjà lus des deux côtés avec le même
+  parseur.
+- **`TranslationUpdate.merged` réécrit en UTF-8, fins de ligne `\n`** sur un
+  fichier d'origine UTF-16 ou CRLF : Newtonsoft lit les deux, et
+  `I18nFileDecoder` a déjà rendu le texte en Unicode.
+- **`ProbeBundle.install` : remplacement fichier par fichier, non
+  atomique** — une copie ratée laisse la sonde sans DLL (SMAPI la saute,
+  l'erreur remonte, la réinstallation répare). `config.json` n'est pas
+  embarqué (`build_app.py` : DLL, manifeste, licence, `i18n/`) : les
+  options de l'utilisateur survivent à la mise à jour.
+- **Requêtes Nexus hors `NexusRequestBuilder`** — les trois constructeurs
+  neufs (`makeJSONPost`, `makeGraphQLRequest`, `makeManifestRequest`) y
+  vivent ; le seul `URLRequest(url:)` hors du fichier vise
+  `appReleaseURL` (GitHub), pas Nexus.
