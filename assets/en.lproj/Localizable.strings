@@ -519,7 +519,7 @@
 "maintenance_confirm_purge_title" = "Move these backups to the Trash?";
 "maintenance_confirm_remove" = "Remove";
 "maintenance_confirm_trash" = "Move to Trash";
-"maintenance_index_unreadable" = "Maintenance: the install backup index is missing or unreadable — no session is judged orphan.";
+"maintenance_index_unreadable" = "Maintenance: the install backup index is missing or unreadable, or an earlier index was set aside (install_metadata.unreadable-… file in Backups/ModInstalls) — no session is judged orphan while it remains.";
 "maintenance_install_backups" = "Install backups";
 "maintenance_keep_per_mod" = "Keep %lld per mod — frees %@";
 "maintenance_loading" = "Reading the backups folder…";
@@ -1638,6 +1638,7 @@
 "vm_profile_created" = "Profile '%@' created (%lld mods)";
 "vm_profile_deleted" = "Profile '%@' deleted";
 "vm_profile_edit_blocked_recovery" = "Profile \"%@\" still has an interrupted apply pending. Resolve it first — click the active profile to bring the prompt back.";
+"vm_toggle_refused_busy" = "A profile is being applied or a faulty-mod search is in progress: toggling waits until it is done.";
 "vm_profile_favorites_imported" = "%lld favorite(s) imported into profile '%@' (%lld mods)";
 "vm_profile_mod_added" = "'%@' added to profile '%@' (%lld mods)";
 "vm_profile_recovery_dismiss" = "Clear the notice";

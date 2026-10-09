@@ -519,7 +519,7 @@
 "maintenance_confirm_purge_title" = "Mettre ces sauvegardes à la corbeille ?";
 "maintenance_confirm_remove" = "Retirer";
 "maintenance_confirm_trash" = "Mettre à la corbeille";
-"maintenance_index_unreadable" = "Entretien : l'index des sauvegardes d'installation est absent ou illisible — aucune session n'est jugée orpheline.";
+"maintenance_index_unreadable" = "Entretien : l'index des sauvegardes d'installation est absent ou illisible, ou un index précédent a été mis de côté (fichier install_metadata.unreadable-… dans Backups/ModInstalls) — aucune session n'est jugée orpheline tant qu'il reste.";
 "maintenance_install_backups" = "Sauvegardes d'installation";
 "maintenance_keep_per_mod" = "Garder %lld par mod — libère %@";
 "maintenance_loading" = "Lecture du dossier de sauvegardes…";
@@ -1638,6 +1638,7 @@
 "vm_profile_created" = "Profil « %@ » créé (%lld mods)";
 "vm_profile_deleted" = "Profil « %@ » supprimé";
 "vm_profile_edit_blocked_recovery" = "Le profil « %@ » a une application interrompue en suspens. Résolvez-la d'abord — cliquez le profil actif pour ravoir la proposition.";
+"vm_toggle_refused_busy" = "Un profil est en cours d'application ou une recherche du mod fautif est en cours : la bascule attend qu'elle soit finie.";
 "vm_profile_favorites_imported" = "%lld favori(s) importé(s) dans le profil « %@ » (%lld mods)";
 "vm_profile_mod_added" = "« %@ » ajouté au profil « %@ » (%lld mods)";
 "vm_profile_recovery_dismiss" = "Effacer le signalement";
