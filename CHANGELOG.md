@@ -12,9 +12,15 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.61.1] - 2026-10-09
+
+### Added
+
+- **La raison d'une mise en quarantaine survit au relancement.** Chaque réparation note ce qu'elle a écarté et pourquoi dans son dossier `_Trash_` ; la page Quarantaine l'affiche, même des semaines plus tard.
+
 ### Fixed
 
-- **La page Quarantaine montre ce que son badge compte.** Après un relancement, elle restait vide sous un badge à 1 : elle liste désormais chaque élément écarté sur le disque, avec sa date, son contenu, et précise quand le mod lui-même est toujours dans `Mods/`.
+- **La page Quarantaine montre ce que son badge compte.** Après un relancement, elle restait vide sous un badge à 1 : elle liste désormais chaque élément écarté sur le disque, avec sa date, ce qui en a été écarté et pourquoi, et précise quand le mod lui-même est toujours dans `Mods/`.
 
 ## [1.61.0] - 2026-10-09
 
