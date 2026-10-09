@@ -26,6 +26,11 @@ struct MainView: View {
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage(TextScale.defaultsKey) private var textScale = TextScale.normal.rawValue
+    /// Le guide de premier lancement se présente quand cette clé est fausse —
+    /// posée à `true` par le `onDismiss` de sa sheet, repassée à `false` par
+    /// la carte « Revoir le guide » des Réglages.
+    @AppStorage(UDKey.onboardingCompleted) private var onboardingCompleted = false
+    @State private var showOnboarding = false
     
     @State private var isProfileHovered = false
     @State private var showDownloadedInstall = false
@@ -38,10 +43,11 @@ struct MainView: View {
     @Environment(\.openWindow) private var openWindow
 
     /// L'alerte « nouvelle release de StarHubFR » n'est présentée que si
-    /// aucune feuille d'installation n'occupe la fenêtre : deux `.sheet`
-    /// simultanés et l'un se perd en silence (spec §7.4).
+    /// aucune feuille d'installation — ni le guide de premier lancement —
+    /// n'occupe la fenêtre : deux `.sheet` simultanés et l'un se perd en
+    /// silence (spec §7.4).
     private var canPresentReleaseAlert: Bool {
-        !showDownloadedInstall && !showDropInstall
+        !showDownloadedInstall && !showDropInstall && !showOnboarding
     }
 
     /// Aucune feuille ni voile modal à l'écran : une superposition présentée
@@ -408,6 +414,16 @@ struct MainView: View {
                 Button(localization.L(L10n.VM.profileRecoveryDismiss), role: .cancel) { vm.dismissApplyRecovery() }
             }
         }
+        // Guide de premier lancement : déclencheurs et sheet vivent dans
+        // `OnboardingPresentation` — ici, seul l'appel (la chaîne de
+        // modificateurs de ce `body` sature le vérificateur de types).
+        .modifier(OnboardingPresentation(
+            showOnboarding: $showOnboarding,
+            isLaunching: vm.isLaunching,
+            availableAppRelease: vm.availableAppRelease,
+            canPresentReleaseAlert: canPresentReleaseAlert,
+            viewModel: vm,
+            localization: localization))
         .onChange(of: vm.pendingDownloadedZip) { _, newValue in
             showDownloadedInstall = (newValue != nil)
         }
