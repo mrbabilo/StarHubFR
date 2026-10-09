@@ -20,6 +20,14 @@ dit lesquels poser.
 | Sonde C# | — | delta entier ; tests lancés (69/69 verts, 8 fichiers de règles purs), sonde elle-même non recompilée (le gate le fait quand elle est périmée) |
 | Build | diffs de `build_app.py`, `release.py`, `check_sources.py` | — |
 
+**Trou de couverture relevé le 2026-10-09 après-midi** : le delta partait du
+2026-10-01 alors que le dernier audit complet date du 2026-09-07. **199
+fichiers** modifiés entre ces deux dates et plus touchés depuis (hors les 22
+de réseau et de persistance relus depuis le 2026-09-07) n'étaient couverts
+par aucune passe : 133 `Models/`, 51 `Views/`, 26 `Stores/`, 11 à la racine
+(~19 000 lignes ajoutées). Leur audit est la section « Fenêtre du 2026-09-07
+au 2026-10-01 » en fin de document.
+
 **Preuves** : X123 démontré **par exécution** (binaire jetable hors dépôt,
 compilé sur `NexusArchiveStore.swift`) ; X120, X121, X122, X124 démontrés par
 lecture, preuve décrite non exécutée.
@@ -50,6 +58,8 @@ passage dans le fichier, pas en priorité.
 
 | Où | Cas latent | Durcissement | Mesure qui le classe ici |
 |---|---|---|---|
+| `Stores/TranslationLotMergeStore.swift:188` | `catch {}` sur `setReviewNeeded` : le commentaire promet que le drapeau « À relire » « se retrouvera au prochain calcul du diff » — faux, le diff ne sait pas qu'une ligne vient d'un lot importé. Un échec d'écriture rend des traductions de lot indiscernables des traductions relues | Journaliser l'échec (`vm.log`, niveau avertissement) et corriger le commentaire | Écriture d'un petit index ; jamais observé |
+| `Models/TranslationLotArchive.swift` (`extract`, `run`) | Un lot `.zip` peut contenir un lien symbolique nommé `x.json` : `unzip -j` le recrée et `Data(contentsOf:)` lit sa cible ; `run` vide `stdout` puis `stderr` à la suite, un `stderr` de plus de 64 Ko bloquerait | Ignorer les entrées non régulières (`isRegularFileKey`) ; lire les deux tubes en parallèle ou fusionner `stderr` dans `stdout` | Lot exporté par l'app elle-même ; `unzip -q` n'écrit presque rien |
 | `Views/MissingDependenciesSheet.swift` (bouton « page Nexus »), `installAllMissingDependencies` (`.openPage`), `DependencyTreeView.swift:177` | Compte gratuit : la page s'ouvre sans `expectNexusMod`, l'archive revenue par `nxm://` n'est pas vérifiée contre la dépendance attendue — alors que les contrôles du diagnostic Stardropium le font | Appeler `vm.expectNexusMod(nexusId:uniqueId:)` avant d'ouvrir la page | La vérification manque, rien ne casse |
 | `Models/ModlistReport.swift` (`html`) | Noms, versions et raisons insérés sans échappement HTML : un `<` dans un nom de mod casserait le tableau exporté | Échapper `& < > "` dans chaque cellule | 18 noms du parc portent `&` (toléré par les navigateurs), 0 portent `<` ou `>` |
 | `Models/ModlistReport.swift` (`compact`) | Un `\|` dans un nom couperait la ligne du tableau Markdown | Échapper `\|` en `\\|` | 0 nom du parc |
@@ -691,3 +701,58 @@ et elle a corrigé X122 (voir sa section).
   non annulée qui remet le surlignage à `nil` — inoffensif si la vue a
   disparu (état local), au pire efface un surlignage plus récent posé dans
   les trois secondes.
+
+# Fenêtre du 2026-09-07 au 2026-10-01
+
+Les 199 fichiers modifiés dans cette fenêtre et plus touchés depuis (hors les
+22 de réseau et de persistance relus depuis le 2026-09-07).
+
+**Bilan : 0 🔴, 0 🟡 neuf, 2 durcissements ajoutés à la table.**
+
+| Zone | Fichiers | Profondeur |
+|---|---|---|
+| `Stores/` | 26 | Tous lus en entier |
+| Racine | 5 (+ 6 déjà couverts par les phases 2-3) | Lus en entier |
+| `Models/` | 118 | Les 16 qui écrivent sur le disque ou lancent un processus lus (`PreservedModData`, `AppSupport`, `LegacyCleanupSession`, `ModHistory`, `ModFolderRename`, `GameDirLocator`, `TranslationLotArchive`, `TranslationOriginalsRebase`, `ProbePerformanceActions`, `BenchmarkSnapshot`, `DisabledModsMigration`, `BenchmarkPlan`, `BisectionSnapshot`, `ProfileApplyJournal`, `TranslationBaseline`, `TranslationCoverageCache`) ; le reste balayé par motifs, chaque occurrence vérifiée |
+| `Views/` | 51 | Balayage par motifs + lecture de chaque effet relevé (tâches, `onAppear`, `onChange`, ouvertures, appels disque) |
+
+## 🔬 Pistes écartées (fenêtre)
+
+- **`InstalledModRegistryStore.sync` lit (`all()`) puis écrit (`mutate`)
+  sous deux prises du verrou** : deux scans concurrents peuvent
+  s'intercaler entre les deux. La version précédente lue sert seulement à
+  détecter une mise à jour faite hors de l'app ; l'ancrage qui en découle
+  est idempotent. La purge d'un registre illisible sans mise de côté est le
+  comportement voulu (reconstruction depuis le disque, AGENTS §5.2).
+- **`NexusMetadataStore` : `try?` au décodage des catégories et des
+  identifiants Nexus saisis** — un blob illisible serait relu vide puis
+  réécrit à la première modification (même famille que X123). Données
+  écrites par `JSONEncoder` dans `UserDefaults` : aucune corruption
+  observée, et pas de mesure possible ici. À reprendre si un cas paraît.
+- **`GameEnvironmentStore.selectGameDir` enregistre un dossier qui n'est
+  pas celui du jeu** avant de le signaler : voulu (l'utilisateur voit
+  l'avertissement et peut choisir à nouveau).
+- **`SaveCleanupStore`** : sauvegarde vérifiée (taille non nulle), relecture
+  après la sauvegarde, écriture atomique, verrou des saves. L'avertissement
+  « jeu lancé » est relevé à l'ouverture de la feuille, pas au clic :
+  un jeu lancé entre-temps n'est pas signalé. Même règle que l'éditeur de
+  save (avertir, pas refuser).
+- **`ModInstallBackup.BackupReason.beforeCleanup`** (nouveau cas) : une
+  version **plus ancienne** de l'app ne saurait plus décoder l'index des
+  sauvegardes. Seulement en cas de retour à une ancienne version.
+- **`ModFolderRename.moveReplacingStaleDestination`** efface pour de bon le
+  doublon mis de côté — réservé à un dossier qui porte **le même**
+  `UniqueID` que le mod déplacé (`ModFolderCollision.isStaleDuplicate`) ;
+  un autre mod est refusé.
+- **`TranslationLotShuttleView`** : les noms de fichiers du lot viennent de
+  `viewModel.mods` (premier niveau), jamais d'un composant `Pack/Sub` que
+  `TranslationLotArchive.make` refuserait.
+- **Indices `[0]` relevés** (`SearchToolbarLayout`, `SplitRow`,
+  `TranslationTarget`, `NexusArchiveGroups`, `KeyRenameMatcher`,
+  `ManifestlessArchive+Locale`, `SaveFingerprint`) : tous derrière une
+  garde de nombre.
+- **`SaveEditorView` : `ForEach(inventoryToEdit.indices, id: \.self)`** —
+  emplacements d'inventaire de taille fixe ; « vider » remplace l'élément,
+  ne le retire pas : les indices ne bougent jamais.
+- **`ModCleanupSheet`** : jeu lancé relu au clic de confirmation, retrait en
+  tâche de fond, résultat composé sur le fil principal.
