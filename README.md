@@ -141,6 +141,15 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 | <img src="screenshots/9.jpg" width="400"> | <img src="screenshots/10.jpg" width="400"> |
 | <img src="screenshots/11.jpg" width="400"> | <img src="screenshots/12.jpg" width="400"> |
 | <img src="screenshots/13.jpg" width="400"> | <img src="screenshots/14.jpg" width="400"> |
+| <img src="screenshots/15.jpg" width="400"> | <img src="screenshots/16.jpg" width="400"> |
+| <img src="screenshots/17.jpg" width="400"> | <img src="screenshots/18.jpg" width="400"> |
+| <img src="screenshots/19.jpg" width="400"> | <img src="screenshots/20.jpg" width="400"> |
+| <img src="screenshots/21.jpg" width="400"> | <img src="screenshots/22.jpg" width="400"> |
+| <img src="screenshots/23.jpg" width="400"> | <img src="screenshots/24.jpg" width="400"> |
+| <img src="screenshots/25.jpg" width="400"> | <img src="screenshots/26.jpg" width="400"> |
+| <img src="screenshots/27.jpg" width="400"> | <img src="screenshots/28.jpg" width="400"> |
+| <img src="screenshots/29.jpg" width="400"> | <img src="screenshots/30.jpg" width="400"> |
+| <img src="screenshots/31.jpg" width="400"> |  |
 
 <p align="center">
   <img src="assets/banners/install_banner.png" alt="Installation" width="300">
