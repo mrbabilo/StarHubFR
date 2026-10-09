@@ -20,8 +20,8 @@ public struct ModFolderRepairer {
 
     // MARK: - Report types
 
-    public struct Item: Equatable {
-        public enum Kind: String, Equatable {
+    public struct Item: Equatable, Codable {
+        public enum Kind: String, Equatable, Codable {
             case osJunkFile
             case osJunkFolder
             case appleDouble
@@ -122,6 +122,7 @@ public struct ModFolderRepairer {
         }
 
         allItems += repairFolder(at: modsPath, gameDir: gameDir, trashProvider: trashDir)
+        if let trash = _trashPath, !allItems.isEmpty { Self.persistReport(allItems, in: trash, fm: fm) }
 
         // Duplicate detection is optional: the disk-walking implementation
         // re-decodes every manifest, which is redundant when the caller has

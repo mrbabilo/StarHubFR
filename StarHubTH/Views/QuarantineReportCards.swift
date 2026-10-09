@@ -27,12 +27,18 @@ struct QuarantineOnDiskCard: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
                     }
-                    if !entry.children.isEmpty {
-                        Text(String(format: localization.L(L10n.Quarantine.entryContains),
-                                    entry.children.joined(separator: ", ")))
+                    if !entry.removedItems.isEmpty {
+                        Text(String(format: localization.L(L10n.Quarantine.entryRemoved),
+                                    removedSummary(entry.removedItems)))
                             .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                            .lineLimit(3)
+                    }
+                    ForEach(entry.reasons, id: \.self) { reason in
+                        Text(reason)
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     if entry.stillInMods {
                         Text(localization.L(L10n.Quarantine.entryStillInMods))
@@ -46,6 +52,14 @@ struct QuarantineOnDiskCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(padding: AppDesign.Spacing.md)
+    }
+
+    /// Les trois premières feuilles, puis « et N autre(s) » : un `__MACOSX`
+    /// écarté en bloc en porte des centaines.
+    private func removedSummary(_ items: [String]) -> String {
+        let shown = items.prefix(3).joined(separator: ", ")
+        guard items.count > 3 else { return shown }
+        return shown + " " + String(format: localization.L(L10n.Quarantine.andNMore), items.count - 3)
     }
 }
 

@@ -1254,7 +1254,7 @@
   "quarantine_empty_confirm_message": "This moves all _Trash_ folders to the Mac Trash. You can still recover them from Trash until it is emptied.",
   "quarantine_empty_confirm_title": "Move quarantined items to Trash?",
   "quarantine_empty_trash": "Empty to Mac Trash",
-  "quarantine_entry_contains": "Contains: %@",
+  "quarantine_entry_removed": "Set aside: %@",
   "quarantine_entry_still_in_mods": "The mod itself is still in Mods/ — only this content was set aside.",
   "quarantine_items_quarantined": "%lld item(s) quarantined",
   "quarantine_last_repair": "Last repair run",

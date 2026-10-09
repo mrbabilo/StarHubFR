@@ -481,9 +481,52 @@ struct ModTrashTests {
 
         #expect(entries.map(\.name) == [".ModEnPause"])
         #expect(entries.first?.folder == "_Trash_20261009_202139")
-        #expect(entries.first?.children == ["sous-dossier"])
+        #expect(entries.first?.removedItems == ["sous-dossier"])
         #expect(entries.first?.stillInMods == true)
         #expect(entries.first?.date != nil)
+        // Quarantaine d'avant le rapport persistant : aucune raison, sans erreur.
+        #expect(entries.first?.reasons == [])
+    }
+
+    /// Le rapport de réparation vit dans son `_Trash_` : la raison survit au
+    /// relancement de l'app. Il ne compte pas comme une entrée.
+    @Test func leRapportEstEcritDansSonTrashSansCompter() throws {
+        let env = try makeGame()
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, "Dossier vide"), withIntermediateDirectories: true)
+
+        let report = ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+        let trash = try #require(report.trashPath)
+        let data = try Data(contentsOf: URL(fileURLWithPath:
+            path(trash, ModFolderRepairer.reportFileName)))
+        let saved = try JSONDecoder().decode([ModFolderRepairer.Item].self, from: data)
+
+        #expect(Set(saved.map(\.relativePath)) == [".DS_Store", "Dossier vide"])
+        #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 2)
+    }
+
+    /// Cas réel du 2026-10-09 : la passe profonde retire un `.DS_Store` de
+    /// l'intérieur d'un mod en pause, et `moveToTrash` recrée l'arborescence
+    /// parente. Ce qui a été écarté, ce sont les **feuilles** — pas le
+    /// squelette — et le mod reste complet dans `Mods/`. La raison se rattache
+    /// à l'entrée de tête par la première composante du chemin relatif.
+    @Test func lesRaisonsSeRattachentALEntreeDeTete() throws {
+        let env = try makeGame()
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, ".ModX", "Objects"), withIntermediateDirectories: true)
+        try "{}".write(toFile: path(env.mods, ".ModX", "manifest.json"), atomically: true,
+                       encoding: .utf8)
+        try "x".write(toFile: path(env.mods, ".ModX", "Objects", ".DS_Store"), atomically: true,
+                      encoding: .utf8)
+
+        ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+        let entries = ModTrash.quarantineEntries(gameDir: env.gameDir)
+
+        #expect(entries.map(\.name) == [".ModX"])
+        #expect(entries.first?.removedItems == ["Objects/.DS_Store"])
+        #expect(entries.first?.stillInMods == true)
+        #expect(entries.first?.reasons.count == 1)
     }
 
     /// Le contrat du compte tient : un `.DS_Store` mis en quarantaine est une
@@ -499,7 +542,7 @@ struct ModTrashTests {
 
         #expect(Set(entries.map(\.name)) == [".DS_Store", "Dossier vide"])
         #expect(entries.count == ModTrash.quarantineItemCount(gameDir: env.gameDir))
-        #expect(entries.first { $0.name == ".DS_Store" }?.children == [])
+        #expect(entries.first { $0.name == ".DS_Store" }?.removedItems == [])
         #expect(entries.first { $0.name == "Dossier vide" }?.stillInMods == false)
     }
 

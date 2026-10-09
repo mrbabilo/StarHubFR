@@ -24,6 +24,7 @@ let package = Package(
                 "ModZipInstaller.swift",
                 "ModZipStructure.swift",
                 "ModFolderRepairer.swift",
+                "ModFolderRepairer+Report.swift",
                 "SaveManager.swift",
                 "Models/SidebarDestination.swift",
                 "Models/ProbeOptions.swift",
