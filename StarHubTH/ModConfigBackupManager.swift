@@ -110,6 +110,28 @@ public final class ModConfigBackupManager: @unchecked Sendable {
         return index
     }
 
+    /// X126 — préfixe des index mis de côté, à côté de `metadata.json`.
+    public static let setAsideIndexPrefix = "metadata.unreadable-"
+
+    /// La lecture des **écrivains** (X126) : un index présent mais illisible
+    /// est mis de côté, octets intacts, avant d'être remplacé — sinon la
+    /// sauvegarde suivante le réécrivait avec elle seule et toutes les
+    /// précédentes disparaissaient de l'écran sans recours.
+    private func loadIndexForWriting() -> ModConfigBackupsIndex {
+        guard let data = try? Data(contentsOf: metadataPath) else { return ModConfigBackupsIndex() }
+        if let index = try? JSONDecoder().decode(ModConfigBackupsIndex.self, from: data) { return index }
+        let aside = metadataPath.deletingLastPathComponent().appendingPathComponent(
+            "\(Self.setAsideIndexPrefix)\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8)).json")
+        do {
+            try fm.moveItem(at: metadataPath, to: aside)
+            NSLog("[StarHubFR] Config backup index unreadable — set aside at %@.", aside.path)
+        } catch {
+            NSLog("[StarHubFR] Config backup index could not be set aside (%@): %@",
+                  aside.path, error.localizedDescription)
+        }
+        return ModConfigBackupsIndex()
+    }
+
     private func saveIndex(_ index: ModConfigBackupsIndex) {
         guard let data = try? JSONEncoder().encode(index) else { return }
         do {
@@ -131,7 +153,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     /// this library.
     func seedIndexForTesting(with backups: [ModConfigBackup]) {
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             index.backups.append(contentsOf: backups)
             saveIndex(index)
         }
@@ -228,7 +250,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
         )
 
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             index.backups.append(backup)
             saveIndex(index)
         }
@@ -296,7 +318,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     public func renameMod(from old: String, to new: String, shared: Bool = false) -> Bool {
         guard !shared else { return false }
         return withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             var changed = false
             index.backups = index.backups.map { backup in
                 let items = backup.items.map { item -> ModConfigBackupItem in
@@ -463,7 +485,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     public func deleteBackup(_ backup: ModConfigBackup) throws {
         try deleteBackupFiles(backup)
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             index.backups.removeAll { $0.id == backup.id }
             saveIndex(index)
         }
@@ -546,7 +568,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     /// "delete down past 5"; the 5 most recent are never eligible.
     public func cleanupOldBackups() -> Int {
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             let sorted = index.backups.sorted { $0.timestamp > $1.timestamp }
             guard sorted.count > Self.minBackupsToKeep else { return 0 }
 

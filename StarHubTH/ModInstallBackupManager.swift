@@ -123,19 +123,77 @@ public final class ModInstallBackupManager: @unchecked Sendable {
         }
     }
 
-    private func loadIndex() -> ModInstallBackupsIndex {
-        loadIndexReportingReadability().0
-    }
-
     /// L'index décodé, et la réponse à « en a-t-on décodé un ? » — absent et
     /// corrompu sont les deux faces du même « non » : l'un comme l'autre,
     /// rien n'a été lu et aucun verdict ne peut s'appuyer dessus.
+    ///
+    /// X126 — un index mis de côté (voir `loadIndexForWriting`) laisse le
+    /// « non » en place : l'index réécrit depuis ne référence que les
+    /// sauvegardes faites après la perte, les sessions d'avant ne sont pas
+    /// orphelines pour autant.
     private func loadIndexReportingReadability() -> (ModInstallBackupsIndex, Bool) {
         guard let data = try? Data(contentsOf: metadataPath),
               let index = try? JSONDecoder().decode(ModInstallBackupsIndex.self, from: data) else {
             return (ModInstallBackupsIndex(), false)
         }
-        return (index, true)
+        return (index, !hasSetAsideIndex())
+    }
+
+    /// X126 — préfixe des index mis de côté, à côté d'`install_metadata.json`.
+    public static let setAsideIndexPrefix = "install_metadata.unreadable-"
+
+    /// La lecture des **écrivains** (X126). Relire un index abîmé comme vide
+    /// puis le réécrire avec la seule nouvelle sauvegarde le rendait lisible
+    /// à nouveau : l'écran d'entretien voyait alors toutes les sessions
+    /// d'avant comme orphelines et proposait de les mettre à la corbeille —
+    /// la perte que X76 voulait empêcher. Ici, un index présent mais
+    /// illisible est **mis de côté** (octets intacts) avant toute écriture ;
+    /// un index absent alors que des sessions existent laisse une marque au
+    /// même nom. Tant qu'une marque existe, l'index se dit non lisible.
+    ///
+    /// - Parameter newSession: le dossier que l'écrivain vient de créer — il
+    ///   ne compte pas comme une session d'avant.
+    private func loadIndexForWriting(newSession: URL? = nil) -> ModInstallBackupsIndex {
+        if let data = try? Data(contentsOf: metadataPath) {
+            if let index = try? JSONDecoder().decode(ModInstallBackupsIndex.self, from: data) {
+                return index
+            }
+            setAsideIndex(moving: true)
+        } else if !hasSetAsideIndex(), hasSessions(excluding: newSession) {
+            setAsideIndex(moving: false)
+        }
+        return ModInstallBackupsIndex()
+    }
+
+    private func hasSetAsideIndex() -> Bool {
+        let parent = metadataPath.deletingLastPathComponent().path
+        return ((try? fm.contentsOfDirectory(atPath: parent)) ?? [])
+            .contains { $0.hasPrefix(Self.setAsideIndexPrefix) }
+    }
+
+    private func hasSessions(excluding newSession: URL?) -> Bool {
+        let sessions = ((try? fm.contentsOfDirectory(atPath: backupsDirPath.path)) ?? [])
+            .filter { !$0.hasPrefix(".") && $0 != newSession?.lastPathComponent }
+        return !sessions.isEmpty
+    }
+
+    /// `moving` : l'index illisible part sous le nouveau nom ; sinon (index
+    /// absent) une marque vide le remplace.
+    private func setAsideIndex(moving: Bool) {
+        let aside = metadataPath.deletingLastPathComponent().appendingPathComponent(
+            "\(Self.setAsideIndexPrefix)\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8)).json")
+        do {
+            if moving {
+                try fm.moveItem(at: metadataPath, to: aside)
+            } else {
+                try Data().write(to: aside, options: .atomic)
+            }
+            NSLog("[StarHubFR] Install backup index %@ — set aside at %@; orphan cleanup stays off.",
+                  moving ? "unreadable" : "missing under existing sessions", aside.path)
+        } catch {
+            NSLog("[StarHubFR] Install backup index could not be set aside (%@): %@",
+                  aside.path, error.localizedDescription)
+        }
     }
 
     private func saveIndex(_ index: ModInstallBackupsIndex) {
@@ -158,7 +216,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
     /// consumer of this library.
     func seedIndexForTesting(with backups: [ModInstallBackup]) {
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             index.backups.append(contentsOf: backups)
             saveIndex(index)
         }
@@ -183,7 +241,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
     public func renameMod(from old: String, to new: String, shared: Bool = false) -> Bool {
         guard !shared else { return false }
         return withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             var changed = false
             index.backups = index.backups.map { backup in
                 let folder = backup.originalFolderName
@@ -259,7 +317,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
         )
 
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting(newSession: backupDir)
             index.backups.append(backup)
             saveIndex(index)
         }
@@ -544,7 +602,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
             reason: .beforeRestore
         )
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting(newSession: backupDir)
             index.backups.append(backup)
             saveIndex(index)
         }
@@ -597,7 +655,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
         }
 
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             index.backups.removeAll { $0.id == backup.id }
             saveIndex(index)
         }
@@ -672,7 +730,7 @@ public final class ModInstallBackupManager: @unchecked Sendable {
     /// deleted backups.
     public func cleanupOldBackups() -> Int {
         withIndexLock {
-            var index = loadIndex()
+            var index = loadIndexForWriting()
             let sorted = index.backups.sorted { $0.timestamp > $1.timestamp }
             guard sorted.count > Self.minBackupsToKeep else { return 0 }
 

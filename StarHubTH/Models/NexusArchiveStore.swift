@@ -124,7 +124,7 @@ public final class NexusArchiveStore {
         try fm.copyItem(at: archive, to: destination)
 
         lock.lock(); defer { lock.unlock() }
-        var index = loadIndex()
+        var index = loadIndexForWriting()
         index.removeAll { $0.id == entry.id }
         index.append(entry)
         do {
@@ -141,7 +141,7 @@ public final class NexusArchiveStore {
     public func remove(_ entry: NexusArchiveEntry) {
         try? fm.removeItem(at: fileURL(of: entry))
         lock.lock(); defer { lock.unlock() }
-        var index = loadIndex()
+        var index = loadIndexForWriting()
         index.removeAll { $0.id == entry.id }
         // Le fichier est déjà parti : un index non réécrit se rattrape au
         // prochain passage, `entries()` ne sert pas une entrée sans fichier.
@@ -194,7 +194,7 @@ public final class NexusArchiveStore {
         }
         guard !removed.isEmpty else { return 0 }
         lock.lock(); defer { lock.unlock() }
-        var index = loadIndex()
+        var index = loadIndexForWriting()
         index.removeAll { removed.contains($0.id) }
         try? saveIndex(index)
         return removed.count
@@ -204,7 +204,7 @@ public final class NexusArchiveStore {
     /// éprouver la rétention sans attendre trente jours.
     public func replaceForTesting(_ entry: NexusArchiveEntry) {
         lock.lock(); defer { lock.unlock() }
-        var index = loadIndex()
+        var index = loadIndexForWriting()
         index.removeAll { $0.id == entry.id }
         index.append(entry)
         try? saveIndex(index)
@@ -212,9 +212,52 @@ public final class NexusArchiveStore {
 
     // MARK: - Index
 
+    /// L'index, ou — absent ou illisible — sa reconstruction depuis
+    /// `files/` (X123). Relu vide, un index abîmé faisait oublier toutes les
+    /// archives : la prochaine gardée le réécrivait avec elle seule, et les
+    /// autres pesaient sans être ni montrées ni nettoyées par la rétention.
     private func loadIndex() -> [NexusArchiveEntry] {
-        guard let data = try? Data(contentsOf: indexURL) else { return [] }
-        return (try? JSONDecoder().decode([NexusArchiveEntry].self, from: data)) ?? []
+        guard let data = try? Data(contentsOf: indexURL),
+              let entries = try? JSONDecoder().decode([NexusArchiveEntry].self, from: data)
+        else { return rebuiltFromFiles() }
+        return entries
+    }
+
+    /// La lecture des **écrivains** : un index présent mais illisible est mis
+    /// de côté, octets intacts, avant d'être remplacé par sa reconstruction.
+    private func loadIndexForWriting() -> [NexusArchiveEntry] {
+        if let data = try? Data(contentsOf: indexURL),
+           (try? JSONDecoder().decode([NexusArchiveEntry].self, from: data)) == nil {
+            let aside = root.appendingPathComponent(
+                "index.unreadable-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8)).json")
+            do {
+                try fm.moveItem(at: indexURL, to: aside)
+            } catch {
+                NSLog("[StarHubFR] Nexus archive index could not be set aside (%@): %@",
+                      aside.path, error.localizedDescription)
+            }
+        }
+        return loadIndex()
+    }
+
+    /// Une entrée par archive de `files/` : le nom porte l'identifiant
+    /// (`UniqueID@version`, voir `fileURL(of:)`), le disque la taille et la
+    /// date. Le nom affiché du mod ne survit pas : l'identifiant le remplace.
+    private func rebuiltFromFiles() -> [NexusArchiveEntry] {
+        let names = (try? fm.contentsOfDirectory(atPath: filesDir.path)) ?? []
+        return names.compactMap { name -> NexusArchiveEntry? in
+            guard name.hasSuffix(".zip") else { return nil }
+            let stem = String(name.dropLast(4))
+            guard let at = stem.lastIndex(of: "@") else { return nil }
+            let uniqueId = String(stem[..<at])
+            let version = String(stem[stem.index(after: at)...])
+            guard !uniqueId.isEmpty, !version.isEmpty else { return nil }
+            let attributes = try? fm.attributesOfItem(atPath: filesDir.appendingPathComponent(name).path)
+            return NexusArchiveEntry(
+                uniqueId: uniqueId, version: version, modName: uniqueId, fileName: name,
+                byteSize: (attributes?[.size] as? NSNumber)?.int64Value ?? 0,
+                timestamp: attributes?[.modificationDate] as? Date ?? Date())
+        }
     }
 
     /// Écrit l'index, et **remonte son échec**.

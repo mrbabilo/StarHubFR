@@ -627,3 +627,29 @@ struct TestEnvironment {
         #expect(!env.manager.renameMod(from: "Inconnu", to: "Autre"))
     }
 }
+
+/// X126 — un index abîmé n'est plus réécrit par-dessus : il est mis de côté,
+/// octets intacts, avant que la sauvegarde suivante n'écrive le sien.
+@Suite struct ModConfigBackupLostIndexTests {
+    @Test func aCorruptedIndexIsSetAsideBeforeTheNextBackupWrites() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        let modDir = env.modsDir.appendingPathComponent("M", isDirectory: true)
+        try writeTestFile(in: modDir, filename: "config.json", content: "{\"a\": 1}")
+        let mod = makeTestMod(folderName: "M")
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        let parent = env.manager.backupsDirectory.deletingLastPathComponent()
+        let garbage = Data("{ pas du JSON".utf8)
+        try garbage.write(to: parent.appendingPathComponent("metadata.json"), options: .atomic)
+
+        _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+
+        let aside = try FileManager.default.contentsOfDirectory(atPath: parent.path)
+            .filter { $0.hasPrefix(ModConfigBackupManager.setAsideIndexPrefix) }
+        #expect(aside.count == 1)
+        if let name = aside.first {
+            #expect(FileManager.default.contents(atPath: parent.appendingPathComponent(name).path) == garbage)
+        }
+        #expect(env.manager.loadBackups().count == 1)
+    }
+}
+

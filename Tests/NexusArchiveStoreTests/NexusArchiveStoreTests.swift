@@ -159,4 +159,40 @@ struct NexusArchiveStoreTests {
         #expect(store.applyRetention() == 0)
         #expect(store.entries().count == 4)
     }
+
+    /// X123 — un index illisible était relu vide : la prochaine archive gardée
+    /// le réécrivait avec elle seule, et les autres pesaient dans `files/` sans
+    /// être montrées ni nettoyées. L'index se reconstruit désormais depuis les
+    /// fichiers (leur nom porte `UniqueID@version`), et l'index abîmé est mis
+    /// de côté avant d'être remplacé.
+    @Test("un index illisible se reconstruit depuis les archives présentes")
+    func unreadableIndexIsRebuiltFromFiles() throws {
+        let (store, root, archive) = try makeStore()
+        try store.keep(archive: archive, uniqueId: "A.Mod", version: "1.0", modName: "A")
+        try store.keep(archive: archive, uniqueId: "B.Mod", version: "2.0", modName: "B")
+        let storeRoot = root.appendingPathComponent("store")
+        let garbage = Data("{ pas du json".utf8)
+        try garbage.write(to: storeRoot.appendingPathComponent("index.json"))
+
+        #expect(Set(store.entries().map(\.id)) == ["A.Mod@1.0", "B.Mod@2.0"])
+
+        try store.keep(archive: archive, uniqueId: "C.Mod", version: "3.0", modName: "C")
+        #expect(Set(store.entries().map(\.id)) == ["A.Mod@1.0", "B.Mod@2.0", "C.Mod@3.0"])
+        #expect(store.totalBytes() == 3 * 2048)
+        let aside = try FileManager.default.contentsOfDirectory(atPath: storeRoot.path)
+            .filter { $0.hasPrefix("index.unreadable-") }
+        #expect(aside.count == 1)
+        if let name = aside.first {
+            #expect(FileManager.default.contents(atPath: storeRoot.appendingPathComponent(name).path) == garbage)
+        }
+    }
+
+    @Test("un index disparu sous des archives présentes se reconstruit aussi")
+    func missingIndexIsRebuiltFromFiles() throws {
+        let (store, root, archive) = try makeStore()
+        try store.keep(archive: archive, uniqueId: "A.Mod", version: "1.0", modName: "A")
+        try FileManager.default.removeItem(at: root.appendingPathComponent("store/index.json"))
+        #expect(store.entries().map(\.id) == ["A.Mod@1.0"])
+        #expect(store.entry(uniqueId: "A.Mod", version: "1.0") != nil)
+    }
 }

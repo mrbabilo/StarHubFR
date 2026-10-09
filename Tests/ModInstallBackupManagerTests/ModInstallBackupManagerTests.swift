@@ -917,3 +917,70 @@ struct IndexReadStateTests {
         #expect(read.backups.isEmpty)
     }
 }
+
+// MARK: - X126 — un index perdu ne redevient pas lisible à la première écriture
+
+/// X126 — X76 avait appris à l'écran d'entretien à ne pas juger un index
+/// illisible ; mais les écrivains relisaient cet index comme vide, ajoutaient
+/// leur sauvegarde et le réécrivaient : l'index redevenait **lisible**, avec
+/// une seule entrée, et toutes les sessions d'avant passaient pour
+/// orphelines. Désormais l'index abîmé est mis de côté, et tant qu'il l'est,
+/// l'état de lecture reste « non lisible ».
+struct LostIndexTests {
+
+    private func indexURL(_ env: TestEnvironment) -> URL {
+        env.manager.backupsDirectory.deletingLastPathComponent()
+            .appendingPathComponent("install_metadata.json")
+    }
+
+    private func backup(_ name: String, in env: TestEnvironment) throws {
+        let dir = env.modsDir.appendingPathComponent(name, isDirectory: true)
+        try writeTestFile(in: dir, filename: "data.txt", content: name)
+        _ = try env.manager.createBackup(for: makeTestMod(folderName: name, isEnabled: true),
+                                         gameDir: env.gameDir, reason: .beforeUpdate)
+    }
+
+    @Test func aCorruptedIndexStaysUnreadableAfterTheNextBackup() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        try backup("A", in: env)
+        try backup("B", in: env)
+        let garbage = Data("{ pas du JSON".utf8)
+        try garbage.write(to: indexURL(env), options: .atomic)
+
+        try backup("C", in: env)
+
+        let read = env.manager.loadBackupsWithIndexState()
+        #expect(!read.indexWasReadable)
+        // L'index abîmé n'est pas écrasé : il est mis de côté, octets intacts.
+        let parent = indexURL(env).deletingLastPathComponent()
+        let aside = try FileManager.default.contentsOfDirectory(atPath: parent.path)
+            .filter { $0.hasPrefix(ModInstallBackupManager.setAsideIndexPrefix) }
+        #expect(aside.count == 1)
+        if let name = aside.first {
+            #expect(FileManager.default.contents(atPath: parent.appendingPathComponent(name).path) == garbage)
+        }
+        // La nouvelle sauvegarde est bien référencée.
+        #expect(read.backups.map(\.originalFolderName) == ["C"])
+    }
+
+    @Test func aDeletedIndexUnderExistingSessionsStaysUnreadable() throws {
+        let env = TestEnvironment(); defer { env.cleanup() }
+        try backup("A", in: env)
+        try FileManager.default.removeItem(at: indexURL(env))
+
+        try backup("B", in: env)
+
+        #expect(!env.manager.loadBackupsWithIndexState().indexWasReadable)
+    }
+
+    @Test func theFirstBackupEverMakesAReadableIndex() throws {
+        // Le cas voisin qui ne doit PAS être pris pour une perte : premier
+        // lancement, aucune session, la première sauvegarde crée l'index.
+        let env = TestEnvironment(); defer { env.cleanup() }
+        try backup("A", in: env)
+        let read = env.manager.loadBackupsWithIndexState()
+        #expect(read.indexWasReadable)
+        #expect(read.backups.count == 1)
+    }
+}
+
