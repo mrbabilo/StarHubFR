@@ -12,8 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.61.0] - 2026-10-09
+
 ### Added
 
+- **Un guide de premier lancement.** Huit étapes conduisent le nouvel arrivant — dossier du jeu, dossier des mods créé si absent et scanné s'il est déjà garni, SMAPI avec sa progression, clé API Nexus, IA locale, mods principaux et outils — puis un bilan. Il ne revient plus une fois fermé, et se rejoue depuis les Réglages.
 - **Revenir à l'état d'avant un geste de masse.** Avant chaque « Tout activer », bascule de sélection ou profil appliqué, l'app note quels mods étaient actifs. La page Profils liste ces états (30 jours, épinglables) et y ramène en un clic, avec le profil alors actif et ses configurations, sans toucher aux mods installés depuis.
 
 - **Un manifeste illisible se répare depuis les Alertes.** Un mod que SMAPI ne charge pas à cause de son `manifest.json` paraît en critique dans les alertes système, avec le geste qui le ramène : reprise du manifeste depuis la sauvegarde d'installation la plus récente, sinon réinstallation depuis Nexus.
