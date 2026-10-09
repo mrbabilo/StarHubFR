@@ -29,7 +29,9 @@ final class MaintenanceStore {
     private(set) var lastRepairReport: ModFolderRepairer.Report?
 
     /// X114 — quarantaine réellement sur le disque, pas le dernier rapport.
-    private(set) var quarantineItemCount = 0
+    /// La page la liste et le badge la compte : une seule source.
+    private(set) var quarantineEntries: [ModTrash.QuarantineEntry] = []
+    var quarantineItemCount: Int { quarantineEntries.count }
 
     /// Le message d'une action de quarantaine, avec sa sévérité.
     private(set) var quarantineMessage: QuarantineMessage?
@@ -76,9 +78,9 @@ final class MaintenanceStore {
         trashEvents = events
     }
 
-    /// Le compte vivant de la quarantaine du réparateur, relu du disque
-    /// (X114) — le badge ne dérive plus du dernier rapport.
-    func setQuarantineItemCount(_ count: Int) {
-        quarantineItemCount = count
+    /// La quarantaine du réparateur, relue du disque (X114) — le badge et la
+    /// page ne dérivent plus du dernier rapport.
+    func setQuarantineEntries(_ entries: [ModTrash.QuarantineEntry]) {
+        quarantineEntries = entries
     }
 }

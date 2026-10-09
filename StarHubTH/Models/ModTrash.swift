@@ -193,7 +193,7 @@ enum ModTrash {
     /// d'abord (un événement resté sous `Mods/` ne serait pas listé).
     struct Snapshot {
         let events: [Event]
-        let quarantined: Int
+        let quarantined: [QuarantineEntry]
         /// Les événements d'avant X115 restés sous `Mods/`.
         let migrationFailures: [String]
     }
@@ -204,7 +204,7 @@ enum ModTrash {
             modsPath: (gameDir as NSString).appendingPathComponent("Mods"),
             trashRoot: trashRoot, fm: fm)
         return Snapshot(events: events(trashRoot: trashRoot, fm: fm),
-                        quarantined: quarantineItemCount(gameDir: gameDir, fm: fm),
+                        quarantined: quarantineEntries(gameDir: gameDir, fm: fm),
                         migrationFailures: migration.failed.map(\.physical))
     }
 
@@ -293,12 +293,7 @@ enum ModTrash {
     /// réparateur n'écrit jamais, et affichait donc toujours zéro.
     static func quarantineItemCount(gameDir: String,
                                     fm: FileManager = .default) -> Int {
-        let names = (try? fm.contentsOfDirectory(atPath: gameDir))?
-            .filter(isTrashFolder) ?? []
-        return names.reduce(0) { count, name in
-            let dir = (gameDir as NSString).appendingPathComponent(name)
-            return count + ((try? fm.contentsOfDirectory(atPath: dir))?.count ?? 0)
-        }
+        quarantineEntries(gameDir: gameDir, fm: fm).count
     }
 
 

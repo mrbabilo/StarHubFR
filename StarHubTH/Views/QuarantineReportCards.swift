@@ -1,5 +1,54 @@
 import SwiftUI
 
+/// La quarantaine telle que le disque la porte, quand aucun rapport de
+/// réparation n'est en mémoire : une ligne par entrée comptée par le badge.
+/// Une entrée-conteneur (le réparateur recrée le chemin relatif) annonce ce
+/// qu'elle contient et que le mod est toujours dans `Mods/` — sans quoi
+/// l'utilisateur croirait son mod disparu.
+struct QuarantineOnDiskCard: View {
+    let entries: [ModTrash.QuarantineEntry]
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            Label(localization.L(L10n.Quarantine.onDiskTitle), systemImage: "tray.full.fill")
+                .font(AppDesign.Font.body.weight(.semibold))
+            Text(localization.L(L10n.Quarantine.onDiskNote))
+                .font(AppDesign.Font.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(entries) { entry in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: AppDesign.Spacing.xs) {
+                        Text(entry.name).font(AppDesign.Font.body)
+                        Spacer()
+                        Text(entry.date.map { DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short) }
+                             ?? entry.folder)
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !entry.children.isEmpty {
+                        Text(String(format: localization.L(L10n.Quarantine.entryContains),
+                                    entry.children.joined(separator: ", ")))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    if entry.stillInMods {
+                        Text(localization.L(L10n.Quarantine.entryStillInMods))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.vertical, AppDesign.Spacing.xs)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(padding: AppDesign.Spacing.md)
+    }
+}
+
 /// Le dernier rapport de réparation : quarantaine, doublons, et les dossiers
 /// sans manifeste (« à voir », jamais déplacés) — une carte par section, que
 /// les tuiles de `RepairReportSummary` atteignent par leur `id`.

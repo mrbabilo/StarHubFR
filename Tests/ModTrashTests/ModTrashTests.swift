@@ -464,4 +464,42 @@ struct ModTrashTests {
         let env = try makeGame()
         #expect(ModTrash.quarantineItemCount(gameDir: env.gameDir) == 0)
     }
+
+    /// Cas réel du 2026-10-09 : le réparateur recrée le chemin relatif, donc
+    /// l'entrée de tête `.PersonalEffectsRedux` n'est qu'un conteneur — ce qui
+    /// a été écarté est son enfant, et le mod est toujours dans `Mods/`. La
+    /// page doit le dire, sinon elle fait croire à un mod disparu.
+    @Test func listeUneEntreeConteneurAvecSesEnfants() throws {
+        let env = try makeGame()
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, ".ModEnPause"), withIntermediateDirectories: true)
+        let trash = path(env.gameDir, "_Trash_20261009_202139")
+        try FileManager.default.createDirectory(
+            atPath: path(trash, ".ModEnPause", "sous-dossier"), withIntermediateDirectories: true)
+
+        let entries = ModTrash.quarantineEntries(gameDir: env.gameDir)
+
+        #expect(entries.map(\.name) == [".ModEnPause"])
+        #expect(entries.first?.folder == "_Trash_20261009_202139")
+        #expect(entries.first?.children == ["sous-dossier"])
+        #expect(entries.first?.stillInMods == true)
+        #expect(entries.first?.date != nil)
+    }
+
+    /// Le contrat du compte tient : un `.DS_Store` mis en quarantaine est une
+    /// entrée, listée comme comptée — la liste et le badge ne divergent pas.
+    @Test func laListeEtLeCompteNeDivergentPas() throws {
+        let env = try makeGame()
+        try "x".write(toFile: path(env.mods, ".DS_Store"), atomically: true, encoding: .utf8)
+        try FileManager.default.createDirectory(
+            atPath: path(env.mods, "Dossier vide"), withIntermediateDirectories: true)
+        ModFolderRepairer().repairIfNeeded(gameDir: env.gameDir)
+
+        let entries = ModTrash.quarantineEntries(gameDir: env.gameDir)
+
+        #expect(Set(entries.map(\.name)) == [".DS_Store", "Dossier vide"])
+        #expect(entries.count == ModTrash.quarantineItemCount(gameDir: env.gameDir))
+        #expect(entries.first { $0.name == ".DS_Store" }?.children == [])
+        #expect(entries.first { $0.name == "Dossier vide" }?.stillInMods == false)
+    }
 }

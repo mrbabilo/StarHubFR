@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **La page Quarantaine montre ce que son badge compte.** Après un relancement, elle restait vide sous un badge à 1 : elle liste désormais chaque élément écarté sur le disque, avec sa date, son contenu, et précise quand le mod lui-même est toujours dans `Mods/`.
+
 ## [1.61.0] - 2026-10-09
 
 ### Added

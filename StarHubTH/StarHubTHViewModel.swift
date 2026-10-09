@@ -7504,7 +7504,7 @@ final class StarHubTHViewModel {
                              level: .warning)
                 }
                 self.maintenanceStore.setTrashEvents(snapshot.events)
-                self.maintenanceStore.setQuarantineItemCount(snapshot.quarantined)
+                self.maintenanceStore.setQuarantineEntries(snapshot.quarantined)
             }
         }
     }

@@ -150,6 +150,7 @@ let package = Package(
                 "Models/ModFolderRename.swift",
                 "Models/ModFolderBulkMove.swift",
                 "Models/ModTrash.swift",
+                "Models/ModTrash+Quarantine.swift",
                 "Models/SettingsSectionOrder.swift",
                 "Models/NexusArchiveStore.swift",
                 "Models/NexusArchiveGroups.swift",

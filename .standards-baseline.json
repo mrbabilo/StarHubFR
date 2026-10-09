@@ -1,5 +1,5 @@
 {
-  "abbreviation_vm": 1571,
+  "abbreviation_vm": 1572,
   "bare_L_calls": 14,
   "dispatch_queue": 134,
   "file:StarHubTH/BisectionRunner.swift": 457,
@@ -56,7 +56,7 @@
   "oversized_excess_lines": 20262,
   "oversized_files": 46,
   "print_calls": 33,
-  "try_optional": 409,
+  "try_optional": 407,
   "view_files_past_1500": 0,
   "viewmodel_facades_to_combine": 0,
   "viewmodel_stored_state": 76,
