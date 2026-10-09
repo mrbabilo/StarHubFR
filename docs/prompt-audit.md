@@ -5,6 +5,8 @@
 > Remesurée 2026-09-24 : ViewModel passé à `@Observable` (plus d'`ObservableObject` ni `@Published` chez lui), build mode Swift 6, nouveau dossier `StarHubTH/Stores/`, ROADMAP §4 vide (X1–X106 tous archivés), parc déplacé sur `/Volumes/BABILOGAMES`. Copie avec lignes amputées en plein milieu circule encore : **ce fichier = seule version de référence**.
 >
 > Remesurée 2026-10-03 : ViewModel descendu à 7 741 lignes (extraction vers `Stores/` continue), 534 `.swift` sous `StarHubTH/`, 4 050 `@Test`, sonde C# `companion/` entre dans périmètre.
+>
+> Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X121 ouverts au §4 (`docs/audit-vm-delta-2026-10-09.md`).
 
 ---
 
@@ -21,31 +23,31 @@ fichier + UserDefaults + Trousseau (pas SQL) · scripts Python
 - `swift build` / `Package.swift` — compile **sous-ensemble Core** seul (modèles purs, managers backup, `SaveManager`, `L10n`…). Ne voit ni UI ni ViewModel. Correctif validé par `swift build` seul = pas validé.
 - `./run_tests.sh` — `swift test` avec `DEVELOPER_DIR` sur Xcode.app. Sans : `no such module 'Testing'` — limite environnement, pas régression.
 
-CONTEXTE STRUCTUREL (mesuré 2026-10-03, pas estimé) :
+CONTEXTE STRUCTUREL (mesuré 2026-10-09, pas estimé) :
 - Point d'entrée : `StarHubTH/StarHubTHApp.swift` (13 931 o, 252 l)
 - ViewModel monolithique, priorité surveillance :
-  `StarHubTH/StarHubTHViewModel.swift` (384 969 o, **7 741 lignes**, une seule
+  `StarHubTH/StarHubTHViewModel.swift` (399 963 o, **7 926 lignes**, une seule
   classe `@MainActor @Observable final class StarHubTHViewModel`, 54 sections
   `// MARK:`). Se vide vers `StarHubTH/Stores/` (plan `docs/REFACTORING.md`)
-- Stores : `StarHubTH/Stores/` — 35 fichiers (30 `*Store.swift`), état extrait du ViewModel (`ScanStore`, `ModUpdateStore`, `NexusDownloadStore`…)
+- Stores : `StarHubTH/Stores/` — 44 fichiers (35 `*Store.swift`), état extrait du ViewModel (`ScanStore`, `ModUpdateStore`, `NexusDownloadStore`…)
 - Design : `StarHubTH/AppDesignCore.swift` (5 425 o) + `StarHubTH/Design/` (1 f.)
-- Sources : 534 `.swift` sous `StarHubTH/` — `Models/` 301, `Views/` 166
-  (dont `Views/Components/` 52 et `Views/Performance/` 20), `Stores/` 35,
-  `Extensions/` 2, `Design/` 1, racine 29
-- Observation : 31 fichiers en `@Observable` ; **5 restent `ObservableObject`**
+- Sources : 608 `.swift` sous `StarHubTH/` — `Models/` 334, `Views/` 191
+  (dont `Views/Components/` 56 et `Views/Performance/` 31), `Stores/` 44,
+  `Extensions/` 3, `Design/` 1, racine 36
+- Observation : 38 fichiers en `@Observable` ; **5 restent `ObservableObject`**
   (`SmapiInstaller`, `BisectionRunner`, `KeybindScanService`,
-  `Stores/LocalizationStore`, `Models/ModListFilters`) — 22 lignes `@Published`
+  `Stores/LocalizationStore`, `ModListState` dans `Models/ModListFilters.swift`) — 18 lignes `@Published`
   hors commentaires subsistent. Dans ViewModel + stores `@Observable`, `@Published` ne
   compile plus : `var` stockée déjà suivie
 - Tests : `Tests/` — **Swift Testing, pas XCTest** (0 `import XCTest`).
-  233 cibles dans `Package.swift`, 341 fichiers, 163 `@Suite`
-  explicites, **4 050 `@Test`**.
+  245 cibles dans `Package.swift`, 381 fichiers, 178 `@Suite`
+  explicites, **4 371 `@Test`**.
   Tests ne couvrent que ce que `Package.swift` embarque :
   code UI/ViewModel non testable ici — déplacer en Core d'abord.
-- Build/packaging : `Package.swift` (57 266 o), `Info.plist`, `build_app.py`,
+- Build/packaging : `Package.swift` (61 352 o), `Info.plist`, `build_app.py`,
   `release.py`
 - Sonde C# : `companion/` — `StarHubFR.Probe` (sonde installée sous
-  `Mods/StarHubFR Probe`) + `StarHubFR.Probe.Tests`, 42 `.cs`.
+  `Mods/StarHubFR Probe`) + `StarHubFR.Probe.Tests`, 40 `.cs`.
   Outil .NET, **hors** gate Swift : audit via `dotnet build` +
   tests dédiés, pas `build_app.py`
 - Qualité : `check_standards.py` + `.standards-baseline.json` — cliquet :
@@ -59,21 +61,21 @@ CONTEXTE STRUCTUREL (mesuré 2026-10-03, pas estimé) :
   réseau) et **ne jamais réécrire `.sources-baseline.json`** : signaler
   comme constat, c'est tout
 - Docs : `docs/` (dont `docs/DOMAINE.md` et `docs/ROADMAP.md`), `README.md`
-  (34 080 o), `README_EN.md`, `CONTRIBUTING.md`, `SECURITY.md`
+  (20 738 o), `README_EN.md`, `CONTRIBUTING.md`, `SECURITY.md`
 - Contexte projet : `AGENTS.md` (15 238 o) ET `CLAUDE.md` (6 362 o) — `CLAUDE.md` renvoie
   aux skills (`.claude/skills/`) et à `docs/SOURCES.md`, `docs/REFACTORING.md`
-- Historique : `CHANGELOG.md` — fichier unique (313 494 o), Keep a Changelog
+- Historique : `CHANGELOG.md` — fichier unique (327 536 o), Keep a Changelog
 
 RÈGLE ABSOLUE : lire `AGENTS.md`, `CLAUDE.md` ET `docs/DOMAINE.md` EN PREMIER.
 `DOMAINE.md` porte vocabulaire métier — « pack », « profil », « sauvegarde »
 ≠ sens ici vs chez l'amont, et mod **en pause** = dossier **préfixé
 par point** dans `Mods/`, pas dossier déplacé.
 Lire aussi `docs/ROADMAP.md` §4 : constat d'audit **ouvert**
-porterait numéro `X<n>`. Au 2026-10-03 **vide** : X1–X119 tous
+porterait numéro `X<n>`. Au 2026-10-09 : **X120–X121 ouverts** ; X1–X119 tous
 corrigés, vivent dans `docs/roadmap-archive.md`, avec mesure qui les a
 établis, indexés §11 ROADMAP. Chercher `X<n>` dans **les deux**
 fichiers — sinon re-signale bug corrigé, et refait mesure du parc
-déjà faite. Nouveau constat prend numéro suivant (X120).
+déjà faite. Nouveau constat prend numéro suivant (X122).
 ⚠️ Cases ROADMAP traînent derrière code livré — vérifier `git log`
 avant tâche « à faire ».
 ⚠️ `AGENTS.md` §5 date : annonce ViewModel « ~3900 lignes » et
@@ -131,9 +133,9 @@ PHASE 3 — Persistance & données locales
      `FileRecovery`
 
 PHASE 4 — Tests
- 20. `Tests/` (233 cibles Swift Testing, miroir modules audités)
+ 20. `Tests/` (245 cibles Swift Testing, miroir modules audités)
  21. `run_tests.sh`
- 22. `companion/` — sonde C# (`StarHubFR.Probe` + `.Tests`, 42 `.cs`) :
+ 22. `companion/` — sonde C# (`StarHubFR.Probe` + `.Tests`, 40 `.cs`) :
      mêmes sections de rapport ; build/tests via `dotnet`, le gate Swift ne
      la voit pas
 

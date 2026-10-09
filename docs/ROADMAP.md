@@ -83,7 +83,21 @@ les chantiers, **§7** pour la dette technique.
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
 Les X1–X119 vivent à l'archive, indexés au §11 (X119, le dernier,
-y est parti le 2026-10-03). **Aucun correctif ouvert.**
+y est parti le 2026-10-03). Ouverts depuis l'audit du delta ViewModel du
+2026-10-09 (`docs/audit-vm-delta-2026-10-09.md`, scénarios et correctifs
+proposés) :
+
+- [ ] **X120** — **Une archive sans rapport hérite des dépendances attendues
+      d'un téléchargement abandonné.** Fermer la feuille de téléchargement
+      (`MainView.swift:422`) efface `pendingNexusSource`, pas
+      `pendingExpectedIds` ; `reinstallFromArchive` et `pendingDropPresentation`
+      ouvrent ensuite l'installation sans effacer. `InstallPreview` annonce
+      alors une dépendance absente sur une archive qui n'en attendait aucune.
+- [ ] **X121** — **« Vérifier sur Nexus » peut laisser la vérification « en
+      cours » jusqu'au redémarrage.** `beginFallback` est posé avant le tri
+      sans clé ; une clé effacée pendant ce tri fait sortir
+      `recheckBlockedViaNexus` sans `endFallback()`, et plus rien ne relâche
+      `isChecking`.
 
 ---
 

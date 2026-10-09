@@ -40,7 +40,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ```
 - **`DEVELOPER_DIR` OBLIGATOIRE** : `Testing` (Swift Testing, `import Testing`) exige **Xcode.app complet**, pas Command Line Tools.
 - Sans `DEVELOPER_DIR` : `no such module 'Testing'` — **limite d'environnement, pas régression**.
-- 3 424 `@Test`, 134 `@Suite` explicites, 219 cibles (relevé 2026-09-24).
+- 4 371 `@Test`, 178 `@Suite` explicites, 245 cibles (relevé 2026-10-09).
 - CI GitHub (Xcode 16.4, Swift 6.0) = juge : chaîne locale plus récente, écart de mode de langage invisible en local.
 
 ### `swift build` (Core seulement)
@@ -139,9 +139,9 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 ## 5. Architecture — points sensibles
 
 ### 5.1 `StarHubTHViewModel` = god-object
-- ~10 000 lignes (10 027 au 2026-09-24). `scanMods()`, `performToggle`, `applyProfileToFilesystem`, `toggleAllMods`, `deleteMod`, `cleanDisabledMods`, `syncInstalledModRegistry` y vivent encore.
+- ~8 000 lignes (7 926 au 2026-10-09). `scanMods()`, `performToggle`, `applyProfileToFilesystem`, `toggleAllMods`, `deleteMod`, `cleanDisabledMods`, `syncInstalledModRegistry` y vivent encore.
 - Scan de `Mods/` (dont `parseModFolder`) dans `Models/ModScanner.swift`, détenu par VM (`private let scanner`).
-- Refacto **en cours** (`docs/REFACTORING.md`) : état sort vers `StarHubTH/Stores/` (30 fichiers). Règle F1-T2 : fonctionnalité neuve naît dans son type (store ou type pur dans `Models/`), jamais dans VM. Taille VM verrouillée par cliquet.
+- Refacto **en cours** (`docs/REFACTORING.md`) : état sort vers `StarHubTH/Stores/` (44 fichiers). Règle F1-T2 : fonctionnalité neuve naît dans son type (store ou type pur dans `Models/`), jamais dans VM. Taille VM verrouillée par cliquet.
 
 ### 5.2 Registre des mods installés
 - Porté par `Stores/InstalledModRegistryStore.swift`. Clé UserDefaults `installedModRegistry` (blob JSON, ~90 Ko).
@@ -196,7 +196,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 ## 8. Résumé — checklist avant de valider un changement
 
 1. [ ] `python3 build_app.py` passe (compile + parité L10n).
-2. [ ] `./run_tests.sh` passe (~3 400 tests).
+2. [ ] `./run_tests.sh` passe (~4 400 tests).
 3. [ ] Touché `en.json`/`fr.json` : parité clés + messages cohérents dans les deux langues.
 4. [ ] Touché chemin disque de mod : `physicalFolderName`, pas `folderName`.
 5. [ ] Nouveau code réseau : via `NexusRequestBuilder`.
