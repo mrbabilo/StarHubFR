@@ -3774,7 +3774,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
-- [x] **X129** ✅ *(corrigé le 2026-10-10, TDD)* — **Une archive Nexus sans dossier racine donnait son nom de téléchargement au mod.**
+- [x] **X129** ✅ *(corrigé le 2026-10-10, TDD ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **Une archive Nexus sans dossier racine donnait son nom de téléchargement au mod.**
       Nexus nomme désormais ses archives `Nom modId version date jeton`
       (`StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62.zip`) ; pour une
       archive à plat (`ModZipStructure.flatRoot`), `ModZipInstaller` reprenait ce
@@ -3785,7 +3785,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       jamais d'écrasement d'un dossier existant. Helpers dans
       `ModZipInstaller+FlatRoot.swift` (ratchet de taille de fichier) ;
       25 lignes de tests dans `ModZipInstallerTests.swift`.
-- [x] **X130** ✅ *(corrigé le 2026-10-10, revue de branche E2-T4)* — **Finitions du guide de premier lancement.**
+- [x] **X130** ✅ *(corrigé le 2026-10-10, revue de branche E2-T4 ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **Finitions du guide de premier lancement.**
       Quatre points relevés en revue : (1) un échec de création du dossier Mods
       **remplaçait** le bouton « Créer le dossier » — l'étape restait figée
       jusqu'à réouverture du guide ; l'échec s'affiche maintenant **sous** le
