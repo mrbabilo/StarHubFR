@@ -17,6 +17,10 @@ where the exact log format was verified.
 - **Les alertes système ne se recalculent plus à chaque affichage.** La liste des problèmes de santé du parc est résolue une fois par événement qui la change (scan, journal, verdicts, liste noire, langue) au lieu d'être déroulée à chaque rendu — badge, accueil et écran d'alertes lisent la même liste figée entre deux événements (F3).
 - **L'export d'un lot de traduction ne bloque plus l'interface.** Construction du lot et encodage JSON passent hors du fil principal, y compris pour la navette ZIP qui enchaîne un lot par mod sélectionné (F3).
 
+### Fixed
+
+- **Stardropium et UltraSmooth partagent bien `passTimeForObjects` par défaut.** Le catalogue la disait conditionnelle depuis UltraSmooth 2.4.9 ; il est remesuré sur Stardropium 0.2.9-alpha et UltraSmooth 2.4.16, versions du parc.
+
 ## [1.62.0] - 2026-10-10
 
 ### Fixed

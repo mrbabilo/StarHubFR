@@ -85,18 +85,32 @@ struct PerformanceOverlapTests {
         }
     }
 
-    /// A5-T10 — remesure du 2026-10-10 sur les versions du parc :
-    /// UltraSmooth 2.4.15, Radiance 2.3.1, Stardropium 0.2.2-beta, et
-    /// StardewOptimizer 1.0.0 comme nouveau membre.
-    @Test func lesVersionsMesureesSontCellesDuReleve20261010() {
+    /// Remesure du 2026-10-10 au soir sur les versions du parc :
+    /// UltraSmooth 2.4.16, Radiance 2.3.1, Stardropium 0.2.9-alpha (la
+    /// version du manifeste installé, pas l'étiquette Nexus « 0.2.9-beta »),
+    /// StardewOptimizer 1.0.0.
+    @Test func lesVersionsMesureesSontCellesDuParc() {
         func measured(_ id: String) -> String? {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.4.15")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.4.16")
         #expect(measured("phuicmt.SDVRadiance") == "2.3.1")
-        #expect(measured("Arshia1381.Stardropium") == "0.2.2-beta")
+        #expect(measured("Arshia1381.Stardropium") == "0.2.9-alpha")
         #expect(measured("baiyu.StardewOptimizer") == "1.0.0")
+    }
+
+    /// `GameLocation.passTimeForObjects` est patchée **par défaut** des deux
+    /// côtés : UltraSmooth par `ClockTickOptimizer` depuis 2.4.9 (seul garde
+    /// `EnableMod`), Stardropium par `TenMinuteClockOptimizationModule`. Seule
+    /// `timeUpdate` reste derrière l'option expérimentale d'UltraSmooth.
+    @Test func passTimeForObjectsEstPartageeParDefaut() throws {
+        let pair = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "arshia1381.stardropium|palmhacker13.ultrasmooth"
+        })
+        #expect(pair.sharedMethods.contains("GameLocation.passTimeForObjects"))
+        #expect(pair.conditionalMethods == ["GameLocation.timeUpdate"])
+        #expect(pair.conditionalOption == "EnableExperimentalFeatures")
     }
 
     @Test func stardewOptimizerRecouvreUltraSmoothEtStardropium() throws {

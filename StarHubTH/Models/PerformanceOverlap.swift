@@ -9,9 +9,11 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; remesure du 2026-10-10 sur les versions du parc : UltraSmooth
-/// 2.4.15, Radiance 2.3.1, Stardropium 0.2.2-beta, StardewOptimizer 1.0.0 —
-/// la première mesure du 2026-09-26 portait 2.4.1 / 2.2.1 / 0.2.0-beta) :
+/// (ilspycmd ; remesure du 2026-10-10 au soir sur les versions du parc :
+/// UltraSmooth 2.4.16, Radiance 2.3.1, Stardropium 0.2.9-alpha,
+/// StardewOptimizer 1.0.0 — la première mesure du 2026-09-26 portait
+/// 2.4.1 / 2.2.1 / 0.2.0-beta ; audit du delta dans
+/// `docs/audit-stardropium-0.2.9.md`) :
 /// une méthode compte quand les deux DLL posent un `harmony.Patch` dessus,
 /// **y compris par balayage dynamique des assemblies** (`Monster.update` est
 /// posée ainsi par UltraSmooth comme par StardewOptimizer — noté « balayage
@@ -78,9 +80,9 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.15",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.16",
                                             assemblyName: "UltraSmooth")
-    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.2-beta",
+    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.9-alpha",
                                             assemblyName: "Stardropium")
     private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.1",
                                          assemblyName: "SDV-Radiance")
@@ -101,12 +103,17 @@ extension PerformanceOverlap {
             // `FishingRod.distanceToLand` et `ItemQueryResolver.TryResolve`
             // sont neuves depuis 2.4.1 ; `findPathForNPCSchedules` reste
             // hors conditionnelles (`EnableRouteCache` vrai par défaut).
+            // `passTimeForObjects` n'est plus conditionnelle depuis
+            // UltraSmooth 2.4.9 (`ClockTickOptimizer`, seul garde `EnableMod`) :
+            // les deux mods y posent chacun un préfixe qui saute les objets
+            // qu'ils jugent inertes — même passage de 10 minutes, deux règles.
             sharedMethods: ["ArgUtility.SplitBySpaceAndGet", "Bush.draw", "FarmAnimal.draw",
                             "FishingRod.distanceToLand", "FruitTree.draw", "Furniture.draw",
-                            "Game1.getTimeOfDayString", "Grass.draw", "HoeDirt.draw",
-                            "ItemQueryResolver.TryResolve", "LightSource.Draw", "NPC.update",
+                            "Game1.getTimeOfDayString", "GameLocation.passTimeForObjects",
+                            "Grass.draw", "HoeDirt.draw", "ItemQueryResolver.TryResolve",
+                            "LightSource.Draw", "NPC.update",
                             "PathFindController.findPathForNPCSchedules", "Tree.draw"],
-            conditionalMethods: ["GameLocation.passTimeForObjects", "GameLocation.timeUpdate"],
+            conditionalMethods: ["GameLocation.timeUpdate"],
             conditionalOption: "EnableExperimentalFeatures"),
         PerformanceOverlap(
             first: radiance, second: ultraSmooth,

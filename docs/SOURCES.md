@@ -774,6 +774,18 @@ de code ni suppression de fichier (motif compté avant/après).
   de la DLL confirment que le relevé INFO ne nécessite pas `EnableLiveDiagnostics`.
   Aucun profil basse mémoire ni autre optimiseur forcé. Snapshot et rapport
   distincts dans `StardropiumDiagnostic/` ; fermeture du jeu requise pour restaurer.
+- **Stardropium 0.2.2-beta → 0.2.9-alpha** *(2026-10-10)* — sept versions sans
+  changelog sur Nexus ; delta décompilé contre le backup d'installation. Sept
+  modules neufs, tous sur le code interne d'autres mods (Automate, Dynamic Map
+  Tiles, Fashion Sense, GMCM, Nature in the Valley, Ornithologist's Guild,
+  SMAPI), actifs par défaut ; `reloadMap` préfixée ; surfaces inchangées.
+  Clés D2-T5, ligne mémoire et défaut Sword and Sorcery intacts. Au passage,
+  le catalogue A5-T7 corrigé : `passTimeForObjects` est partagée **par défaut**
+  avec UltraSmooth depuis sa 2.4.9. Détail :
+  [`audit-stardropium-0.2.9.md`](audit-stardropium-0.2.9.md).
+- **UltraSmooth 2.4.15 → 2.4.16** *(2026-10-10)* — 14 fichiers, patches
+  inchangés (165). Repli du limiteur de sons ; mise à jour parallèle des lieux
+  coupée en multijoueur. Les deux chemins de D2-T6 sont intacts.
 - **JuniGrid `86dca38 → 57b26b5`** — un commit : le README retire le lien vers
   l'édition anglaise `JuniGrid-en`. Rien.
 - **save-editor `0d57537 → 2432d4e`** — tooltip d'inventaire dans l'éditeur web
