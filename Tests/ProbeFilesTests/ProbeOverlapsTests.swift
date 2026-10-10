@@ -105,7 +105,7 @@ struct ProbeOverlapsTests {
         #expect(radUs == PerformanceOverlap.catalog.first {
             $0.member("phuicmt.SDVRadiance") != nil && $0.member("palmhacker13.UltraSmooth") != nil
         })
-        #expect(catalog.count == 6)
+        #expect(catalog.count == 7) // 6 paires + StardewOptimizer × UltraSmooth (A5-T10)
     }
 
     /// La carte écrit la version normalisée par SMAPI : `1.0` installé et

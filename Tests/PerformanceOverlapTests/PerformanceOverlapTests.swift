@@ -84,4 +84,46 @@ struct PerformanceOverlapTests {
             #expect(entry.conditionalMethods.isEmpty == (entry.conditionalOption == nil))
         }
     }
+
+    /// A5-T10 — remesure du 2026-10-10 sur les versions du parc :
+    /// UltraSmooth 2.4.15, Radiance 2.3.1, Stardropium 0.2.2-beta, et
+    /// StardewOptimizer 1.0.0 comme nouveau membre.
+    @Test func lesVersionsMesureesSontCellesDuReleve20261010() {
+        func measured(_ id: String) -> String? {
+            PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
+                .first { $0.uniqueId == id }?.measuredVersion
+        }
+        #expect(measured("palmhacker13.UltraSmooth") == "2.4.15")
+        #expect(measured("phuicmt.SDVRadiance") == "2.3.1")
+        #expect(measured("Arshia1381.Stardropium") == "0.2.2-beta")
+        #expect(measured("baiyu.StardewOptimizer") == "1.0.0")
+    }
+
+    @Test func stardewOptimizerRecouvreUltraSmoothEtStardropium() throws {
+        let so = PerformanceOverlap.catalog.first { $0.key.hasPrefix("baiyu.stardewoptimizer") }
+        let soUS = try #require(so)
+        #expect(soUS.sharedMethods.sorted()
+                == ["GameLocation.DayUpdate", "Monster.update", "NPC.update",
+                    "TemporaryAnimatedSprite.draw"])
+        // Une seule méthode commune avec Stardropium : écartée comme bruit,
+        // comme `ScreenFade.UpdateFadeAlpha` avant elle.
+        let soDrop = PerformanceOverlap.catalog.first {
+            $0.key == "arshia1381.stardropium|baiyu.stardewoptimizer"
+        }
+        #expect(soDrop == nil)
+    }
+
+    @Test func lesRecouplementsNouveauxDUltraSmooth2415SontAuCatalogue() throws {
+        let dropUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "arshia1381.stardropium|palmhacker13.ultrasmooth"
+        })
+        for m in ["ArgUtility.SplitBySpaceAndGet", "FishingRod.distanceToLand",
+                  "ItemQueryResolver.TryResolve"] {
+            #expect(dropUS.sharedMethods.contains(m))
+        }
+        let radUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "palmhacker13.ultrasmooth|phuicmt.sdvradiance"
+        })
+        #expect(radUS.sharedMethods.contains("SpriteBatch.Draw"))
+    }
 }

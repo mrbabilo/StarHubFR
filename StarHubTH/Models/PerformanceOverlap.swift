@@ -9,12 +9,18 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd, 2026-09-26 ; UltraSmooth 2.4.1 et Stardropium 0.2.0-beta
-/// re-mesurés le 2026-10-01) : une méthode compte quand les deux DLL posent un
-/// `harmony.Patch` dessus. La comparaison porte sur `Type.méthode` sans les
-/// surcharges — « même nom de méthode », pas forcément même signature. Les
-/// paires à une seule méthode (`ScreenFade.UpdateFadeAlpha`,
-/// `Town.getMapLoader`, `Debris.updateChunks`) sont écartées comme bruit.
+/// (ilspycmd ; remesure du 2026-10-10 sur les versions du parc : UltraSmooth
+/// 2.4.15, Radiance 2.3.1, Stardropium 0.2.2-beta, StardewOptimizer 1.0.0 —
+/// la première mesure du 2026-09-26 portait 2.4.1 / 2.2.1 / 0.2.0-beta) :
+/// une méthode compte quand les deux DLL posent un `harmony.Patch` dessus,
+/// **y compris par balayage dynamique des assemblies** (`Monster.update` est
+/// posée ainsi par UltraSmooth comme par StardewOptimizer — noté « balayage
+/// dynamique » dans les listes, invisible à la seule lecture des appels
+/// nommés). La comparaison porte sur `Type.méthode` sans les surcharges —
+/// « même nom de méthode », pas forcément même signature. Les paires à une
+/// seule méthode (`ScreenFade.UpdateFadeAlpha`, `Town.getMapLoader`,
+/// `Debris.updateChunks`, et StardewOptimizer × Stardropium sur
+/// `NPC.update`) sont écartées comme bruit.
 ///
 /// La clé est l'`UniqueID`, pas le `folderName` de `ModConflictPair` : un nom
 /// de dossier change d'un parc à l'autre, l'identifiant du manifeste non.
@@ -72,35 +78,52 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.1",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.15",
                                             assemblyName: "UltraSmooth")
-    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.0-beta",
+    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.2-beta",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.2.1",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.1",
                                          assemblyName: "SDV-Radiance")
+    private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "1.0.0",
+                                                 assemblyName: "StardewOptimizer")
     private static let speedySolutions = Member(uniqueId: "SinZ.SpeedySolutions", measuredVersion: "1.1.0",
                                                 assemblyName: "SinZational Speedy Solutions")
     private static let loadingOptimizer = Member(uniqueId: "neoiw.StardewLoadingOptimizer", measuredVersion: "1.0.0",
                                                  assemblyName: "StardewLoadingOptimizer")
 
     /// Les paires mesurées. Ajouter une paire = la décompiler d'abord ; le
-    /// relevé des sources (`check_sources.py`, les cinq mods y sont suivis)
+    /// relevé des sources (`check_sources.py`, les six mods y sont suivis)
     /// signale chaque nouvelle version, qui peut rendre une ligne fausse.
     public static let catalog: [PerformanceOverlap] = [
         PerformanceOverlap(
             first: stardropium, second: ultraSmooth,
-            // UltraSmooth 2.4.1 : `findPathForNPCSchedules` quitte les
-            // conditionnelles (patch toujours posé, `EnableRouteCache` vrai par
-            // défaut) ; `LightSource.Draw` est neuve (`EnableLightCulling`).
-            sharedMethods: ["Bush.draw", "FarmAnimal.draw", "FruitTree.draw", "Furniture.draw",
-                            "Game1.getTimeOfDayString", "Grass.draw", "HoeDirt.draw", "LightSource.Draw",
-                            "NPC.update", "PathFindController.findPathForNPCSchedules", "Tree.draw"],
+            // UltraSmooth 2.4.15 : `ArgUtility.SplitBySpaceAndGet`,
+            // `FishingRod.distanceToLand` et `ItemQueryResolver.TryResolve`
+            // sont neuves depuis 2.4.1 ; `findPathForNPCSchedules` reste
+            // hors conditionnelles (`EnableRouteCache` vrai par défaut).
+            sharedMethods: ["ArgUtility.SplitBySpaceAndGet", "Bush.draw", "FarmAnimal.draw",
+                            "FishingRod.distanceToLand", "FruitTree.draw", "Furniture.draw",
+                            "Game1.getTimeOfDayString", "Grass.draw", "HoeDirt.draw",
+                            "ItemQueryResolver.TryResolve", "LightSource.Draw", "NPC.update",
+                            "PathFindController.findPathForNPCSchedules", "Tree.draw"],
             conditionalMethods: ["GameLocation.passTimeForObjects", "GameLocation.timeUpdate"],
             conditionalOption: "EnableExperimentalFeatures"),
         PerformanceOverlap(
             first: radiance, second: ultraSmooth,
+            // `SpriteBatch.Draw` : neuve côté UltraSmooth 2.4.15.
             sharedMethods: ["Bush.draw", "Game1.drawMouseCursor", "GameLocation.updateWater",
-                            "Grass.draw", "TemporaryAnimatedSprite.update", "Tree.draw"],
+                            "Grass.draw", "SpriteBatch.Draw", "TemporaryAnimatedSprite.update",
+                            "Tree.draw"],
+            conditionalMethods: [], conditionalOption: nil),
+        // StardewOptimizer 1.0.0 (A5-T10) : `Monster.update` est posée par
+        // **balayage dynamique** des deux côtés — UltraSmooth depuis 2.4.8
+        // (`PatchMonsterUpdateMethods`), StardewOptimizer dans
+        // `MonsterAiThrottleModule`. Sa seule méthode commune avec Stardropium
+        // (`NPC.update`, module désactivé par défaut) ne fait pas une paire.
+        PerformanceOverlap(
+            first: stardewOptimizer, second: ultraSmooth,
+            sharedMethods: ["GameLocation.DayUpdate", "Monster.update", "NPC.update",
+                            "TemporaryAnimatedSprite.draw"],
             conditionalMethods: [], conditionalOption: nil),
         PerformanceOverlap(
             first: radiance, second: stardropium,
