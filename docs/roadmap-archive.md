@@ -3774,6 +3774,28 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X129** ✅ *(corrigé le 2026-10-10, TDD)* — **Une archive Nexus sans dossier racine donnait son nom de téléchargement au mod.**
+      Nexus nomme désormais ses archives `Nom modId version date jeton`
+      (`StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62.zip`) ; pour une
+      archive à plat (`ModZipStructure.flatRoot`), `ModZipInstaller` reprenait ce
+      nom, extension retirée, comme nom de dossier — le dossier installé portait
+      la date et le jeton. Le dossier prend maintenant le `Name` du manifeste
+      (caractères interdits dans un nom de dossier remplacés), avec repli sur le
+      `UniqueID`, puis sur l'ancien comportement si le manifeste ne dit rien ;
+      jamais d'écrasement d'un dossier existant. Helpers dans
+      `ModZipInstaller+FlatRoot.swift` (ratchet de taille de fichier) ;
+      25 lignes de tests dans `ModZipInstallerTests.swift`.
+- [x] **X130** ✅ *(corrigé le 2026-10-10, revue de branche E2-T4)* — **Finitions du guide de premier lancement.**
+      Quatre points relevés en revue : (1) un échec de création du dossier Mods
+      **remplaçait** le bouton « Créer le dossier » — l'étape restait figée
+      jusqu'à réouverture du guide ; l'échec s'affiche maintenant **sous** le
+      bouton, qui reste cliquable (un dossier en lecture seule se répare, et le
+      guide n'a pas de retour arrière) ; (2) `@AppStorage(UDKey.onboardingCompleted)`
+      mort dans `MainView` — le modificateur de présentation porte le sien ;
+      (3) clé `onboarding_title` sans usage, retirée d'en/fr et de
+      `L10n+Onboarding` ; (4) le littéral de la page de clé API Nexus existait en
+      quatre exemplaires (Réglages ×2, Mises à jour, guide) — constante unique
+      `NexusRequestBuilder.apiKeyPageURL`.
 - [x] **X128** ✅ *(signalé à l'écran par l'auteur et corrigé le 2026-10-09, v1.61.1 ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **La page Quarantaine restait vide sous un badge à 1.**
       X114 avait fait lire le disque au badge (`_Trash_*` du dossier du jeu),
       mais la page n'affichait que `lastRepairReport`, en mémoire : perdu au
@@ -6092,6 +6114,24 @@ Items livrés entre le 2026-09-24 et le 2026-10-08, restés cochés dans `ROADMA
       remesurer sur le parseur de l'app avant de coder. Si codé : étendre
       `ContentPatcherPacks.loadTargets` aux `When` de config résolubles, et
       l'index se recalcule aussi sur la date du `config.json`. · **M**
+
+- [x] **A5-T10** — **Remettre le catalogue A5-T7 aux versions du parc.** *(ajouté le
+      2026-10-10, [relevé des sources](SOURCES.md) §5 ; livré le soir même)* Le
+      catalogue `PerformanceOverlap` avait été décompilé sur UltraSmooth **2.4.1**,
+      Radiance **2.2.1** et Stardropium **0.2.0-beta** ; le parc porte 2.4.15, 2.3.1
+      et 0.2.2-beta. Règle du catalogue respectée : chaque paire décompilée avant
+      d'écrire une ligne. **Mesures** : les 19 méthodes déjà au catalogue restent
+      toutes patchées ; quatre recoupements manquaient — Radiance × UltraSmooth
+      `SpriteBatch.Draw` ; Stardropium × UltraSmooth
+      `ArgUtility.SplitBySpaceAndGet`, `FishingRod.distanceToLand`,
+      `ItemQueryResolver.TryResolve`. **`Monster.update`** tranché : posé par
+      UltraSmooth (2.4.8) **par balayage dynamique** des assemblies des deux côtés,
+      invisible à la lecture des seuls appels nommés — retenu. **StardewOptimizer**
+      ([audit](audit-stardewoptimizer.md)) entre comme membre : 4 méthodes partagées
+      avec UltraSmooth, dont `Monster.update` ; sa paire avec Stardropium ne partage
+      que `NPC.update` — recouvrement à une méthode, exclu comme bruit selon la règle
+      du catalogue. Le compte passe de 6 paires à 7 ; 3 tests Core neufs, suite
+      4 645 verts. Les mods restent en pause sur le parc.
 
 - [x] **A1-T2** — **Détecter un `manifest.json` illisible et proposer la
       réparation** : restauration depuis backup, sinon réinstallation Nexus.
