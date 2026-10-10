@@ -3774,7 +3774,7 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
-- [x] **X131** ✅ *(rejeté à l'écran par l'auteur le 2026-10-10 pendant la vérif de X129, corrigé le jour même en TDD)* — **Un pack livré dans un dossier « Mods » s'installait dans… un pack nommé « Mods ».**
+- [x] **X131** ✅ *(rejeté à l'écran par l'auteur le 2026-10-10 pendant la vérif de X129, corrigé le jour même en TDD ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **Un pack livré dans un dossier « Mods » s'installait dans… un pack nommé « Mods ».**
       Le mod 47995 (Zelda Masjora's Mask in SV) emballe ses deux composants
       (`MajoraMask`, `MajoraMaskFeatures`) dans un wrapper littéralement nommé
       `Mods` — l'emballage « copiez dans votre dossier Mods ». `commonParent`
