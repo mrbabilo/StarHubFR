@@ -1,0 +1,58 @@
+[center][size=5][b]Ce que StarHubFR fait que les autres gestionnaires ne font pas[/b][/size][/center]
+
+Voici, section par section, ce qui distingue StarHubFR. Chaque affirmation a été vérifiée dans le code des concurrents (Stardop, son port macOS natif, gestionnaires généralistes) — le détail, preuve à l'appui, est dans [url=https://github.com/mrbabilo/StarHubFR/blob/main/docs/features-originals.md]features-originals.md[/url] sur GitHub.
+
+[size=4][b]🌐 La traduction française, de bout en bout[/b][/size]
+Aucun autre gestionnaire de mods Stardew Valley n'offre de fonctions de traduction. StarHubFR couvre toute la chaîne, sans quitter l'app :
+[list]
+[*]Couverture de traduction par mod : clés manquantes, vides ou obsolètes, avec un filtre « À revoir ».
+[*]Comparaison anglais / français clé par clé, regroupée par sections, chaque clé marquée traduite, manquante, obsolète ou identique.
+[*]Éditeur intégré : écriture atomique, sauvegarde systématique, marqueurs du jeu ({{Token}}, $q, #$b#) protégés.
+[*]Pré-traduction assistée par une IA locale — rien ne quitte votre machine — ou par votre propre clé DeepL.
+[*]Un glossaire de plus de mille termes du jeu garde le vocabulaire cohérent d'un mod à l'autre.
+[*]Lots de traduction exportables (JSON, ZIP) et fusion des retours de plusieurs traducteurs, avec écran d'arbitrage.
+[*]Quand un mod reçoit une mise à jour, les clés ajoutées, retirées ou renommées sont listées : l'anglais d'un mod ne se fige plus.
+[*]Un lecteur de fichiers i18n aussi tolérant que le jeu lui-même — près de 40 % des fichiers réels seraient refusés par un lecteur strict.
+[/list]
+
+[size=4][b]🩺 Un diagnostic introuvable ailleurs[/b][/size]
+[list]
+[*]Le journal SMAPI devient une carte de santé : chaque erreur est attribuée au mod fautif, avec un historique par version et des alertes triées par gravité.
+[*]Bissection guidée : trouver le mod responsable d'un plantage parmi des centaines en une dizaine d'essais, et retrouver l'état exact de départ.
+[*]Réparation des dossiers cassés, et restauration d'un manifeste illisible depuis ses sauvegardes.
+[*]Compatibilité jugée sur trois sources complémentaires : l'API smapi.io, une liste hors-ligne et les métadonnées du SMAPI installé sur votre machine. Les mods malveillants (liste noire SMAPI) sont signalés avant même le lancement.
+[/list]
+
+[size=4][b]⚔️ Des conflits prévus avant qu'ils ne surviennent[/b][/size]
+[list]
+[*]Collisions de raccourcis entre mods, et avec le jeu, par contexte d'utilisation — avec une vue clavier AZERTY/QWERTY fidèle à ce que le jeu lit réellement.
+[*]Dépendances cachées : l'app lit le code des mods C# et repère ceux qui s'appuient sur un autre sans le déclarer.
+[*]Les mods de performance qui patchent les mêmes méthodes du jeu sont repérés et signalés.
+[*]Deux packs qui réclament le même asset en exclusif sont annoncés avant l'activation — y compris via « Tout activer » ou l'application d'un profil.
+[/list]
+
+[size=4][b]💾 Vos sauvegardes de partie, lues et protégées[/b][/size]
+[list]
+[*]La fiche d'une sauvegarde nomme les mods en pause qui y ont laissé des objets, bâtiments ou données — et les mods disparus qui y ont écrit.
+[*]Nettoyage clé par clé, sous sauvegarde vérifiée, pour retirer proprement ce qui ne sert plus.
+[*]Mettre un mod à jour ne perd plus ses données de partie : les fichiers absents de la nouvelle archive sont remis en place, et annoncés au bilan.
+[/list]
+
+[size=4][b]⏱️ La performance mesurée en jeu[/b][/size]
+Une sonde optionnelle mesure le jeu pendant que vous jouez : coût par mod et par événement, mémoire retenue par les textures (attribuée pack par pack), carte des patchs Harmony, bornes min-max des options de config. L'onglet Performances compare deux sessions et mène un benchmark avant/après ; un écart n'est signalé que s'il dépasse le bruit mesuré entre vos propres sessions. Rien d'équivalent n'existe chez les autres gestionnaires.
+
+[size=4][b]🔐 L'intégrité des données d'abord[/b][/size]
+[list]
+[*]Clé API Nexus dans le trousseau macOS — pas d'obfuscation maison.
+[*]Suppression réversible : corbeille dédiée, remise en place possible, purge toujours explicite ; conservation optionnelle des archives pour réinstaller hors-ligne, à la version exacte.
+[*]Application d'un profil protégée : refus net si le jeu tourne, reprise après un crash, retour en arrière après un geste de masse.
+[*]Extraction d'archives prudente : le format se lit dans les octets, pas dans l'extension ; plafond anti zip-bomb, chemins traversants rejetés.
+[*]Écran Entretien : inventaire mesuré de ce qui pèse et de ce qui est orphelin, purge sous confirmation — jamais automatique.
+[/list]
+
+[size=4][b]🧭 Et aussi[/b][/size]
+Interface bilingue français/anglais dont la parité est vérifiée à la compilation · guide de premier lancement en huit étapes · multi-sélection fine · palette de commandes (⌘K) · approbations Nexus d'un clic · quota Nexus visible · rapport de modlist exportable · vitrine des traductions françaises · éprouvé sur un parc réel de près de mille mods.
+
+[hr]
+[b]Ce qui manque encore[/b] — et que nous assumons : groupes pliables dans la liste, export de profils, notarisation de l'app. Sur la feuille de route.
+[b]Tout le détail, preuves à l'appui :[/b] [url=https://github.com/mrbabilo/StarHubFR]GitHub — StarHubFR[/url] (MIT).
