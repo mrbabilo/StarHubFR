@@ -1162,7 +1162,6 @@
 "onboarding_step_of" = "Step %1$d of %2$d";
 "onboarding_step_smapi" = "SMAPI";
 "onboarding_step_welcome" = "Welcome";
-"onboarding_title" = "Getting started";
 "onboarding_welcome_body" = "StarHubFR manages your Stardew Valley mods: install, update, translate and launch. This short guide sets up the essentials — you can skip it and replay it from Settings.";
 "palette_go_menu" = "Go";
 "palette_no_results" = "No result for “%@”";
