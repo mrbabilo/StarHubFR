@@ -2,11 +2,11 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "dd1b104",
-    "last_commit_at": "2026-10-08T05:23:57Z",
-    "pushed_at": "2026-10-08T05:25:33Z",
-    "release": "v1.2.5",
-    "released_at": "2026-10-08T05:25:33Z"
+    "last_commit": "f901fff",
+    "last_commit_at": "2026-10-10T17:29:46Z",
+    "pushed_at": "2026-10-10T17:33:13Z",
+    "release": "v1.2.6",
+    "released_at": "2026-10-10T17:33:14Z"
   },
   "SMAPI": {
     "archived": false,
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "a42a4a4",
-    "last_commit_at": "2026-10-09T21:11:49Z",
-    "pushed_at": "2026-10-09T21:12:04Z",
-    "release": "v1.61.1",
-    "released_at": "2026-10-09T21:12:05Z"
+    "last_commit": "f67ea14",
+    "last_commit_at": "2026-10-10T19:15:14Z",
+    "pushed_at": "2026-10-10T19:33:34Z",
+    "release": "v1.62.0",
+    "released_at": "2026-10-10T12:47:14Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -188,10 +188,10 @@
     "version": null
   },
   "mod/stardropium": {
-    "changelog_reviewed": "0.2.2-beta",
+    "changelog_reviewed": "0.2.9-beta",
     "gitHubRepo": null,
     "name": null,
-    "version": "0.2.2-beta"
+    "version": "0.2.9-beta"
   },
   "mod/stardropium-src": {
     "archived": false,
@@ -207,10 +207,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.15",
+    "changelog_reviewed": "2.4.16",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.15"
+    "version": "2.4.16"
   },
   "nexus/api-v1": {
     "bytes": 53,
