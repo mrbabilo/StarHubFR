@@ -3774,6 +3774,21 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X131** ✅ *(rejeté à l'écran par l'auteur le 2026-10-10 pendant la vérif de X129, corrigé le jour même en TDD)* — **Un pack livré dans un dossier « Mods » s'installait dans… un pack nommé « Mods ».**
+      Le mod 47995 (Zelda Masjora's Mask in SV) emballe ses deux composants
+      (`MajoraMask`, `MajoraMaskFeatures`) dans un wrapper littéralement nommé
+      `Mods` — l'emballage « copiez dans votre dossier Mods ». `commonParent`
+      le gardait comme parent de pack authentique (patron Lilybrook) et les
+      composants atterrissaient dans `Mods/Mods/MajoraMask` : un pack nommé
+      « Mods », illisible — et confondu avec le vrai dossier `Mods` du jeu une
+      fois en pause (`.Mods`). La page de l'auteur dit que les deux composants
+      vont **à la racine** du dossier Mods : un parent partagé unique nommé
+      « mods » (casse indifférente) est maintenant écarté, la collection
+      s'installe à plat (`Mods/MajoraMask`). Cas voisin protégé : le parent
+      d'un vrai pack (`Lilybrook/[CC]`) reste imbriqué — test existant vert.
+      Hypothèse B (renommer le pack depuis le titre Nexus) écartée : source du
+      titre = nom d'archive Nexus avec date et jeton (ce que X129 rejette), ou
+      contexte Nexus absent en glisser-déposer.
 - [x] **X129** ✅ *(corrigé le 2026-10-10, TDD ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **Une archive Nexus sans dossier racine donnait son nom de téléchargement au mod.**
       Nexus nomme désormais ses archives `Nom modId version date jeton`
       (`StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62.zip`) ; pour une
