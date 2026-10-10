@@ -241,7 +241,7 @@ struct TranslationLotShuttleView: View {
                 var skipped: [String] = []
                 for mod in selected {
                     let rows = await viewModel.translationDiff(for: mod)
-                    guard case .data(let encoded) = viewModel.exportTranslationLot(
+                    guard case .data(let encoded) = await viewModel.exportTranslationLot(
                         mod: mod, locale: "fr", rows: rows) else {
                         skipped.append(mod.name)
                         continue

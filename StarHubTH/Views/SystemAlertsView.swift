@@ -34,11 +34,9 @@ struct SystemAlertsView: View {
     @State private var severityFilter: HealthIssue.Severity?
 
     var body: some View {
-        // Capturée UNE fois par rendu (revue globale, bloquant 7) :
-        // `vm.healthIssues` est une propriété CALCULÉE qui retrie et
-        // reconstruit un `Set` sur le parc entier (~966 mods chez l'auteur)
-        // — la relire à chaque usage (vide, liste, tuiles, sous-titre)
-        // referait ce travail plusieurs fois par rendu SwiftUI, fréquent.
+        // Capturée UNE fois par rendu (revue globale, bloquant 7) ; depuis
+        // F3, `vm.healthIssues` est stockée — recalculée aux événements,
+        // jamais à l'accès. La capture locale reste le geste obvious.
         let issues = vm.healthIssues
         VStack(alignment: .leading, spacing: 0) {
             header(issues)
@@ -77,9 +75,6 @@ struct SystemAlertsView: View {
     /// onglets Raccourcis et Conflits, justement ce qu'on vient vérifier.
     @ViewBuilder
     private func alertsList(_ issues: [HealthIssue]) -> some View {
-        // Capturée UNE fois par rendu (revue globale, bloquant 7) :
-        // `vm.healthIssues` est une propriété CALCULÉE qui retrie et
-        // reconstruit un `Set` sur le parc entier (~966 mods chez l'auteur).
         let shown = severityFilter.map { f in issues.filter { $0.severity == f } } ?? issues
         if issues.isEmpty {
             emptyState

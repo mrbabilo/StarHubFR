@@ -356,8 +356,20 @@ final class StarHubTHViewModel {
 
     /// Problèmes de santé du parc, résolus une fois : accueil, badge et écran
     /// d'alertes lisent **cette** liste, sinon les nombres divergent.
-    @MainActor
-    var healthIssues: [HealthIssue] {
+    /// **Recalculé aux événements, pas à chaque rendu** (F3) : la version
+    /// computed déroulait `flattenedMods` + dictionnaires + résolution à
+    /// chaque accès — le badge de la barre latérale et les compteurs de
+    /// l'accueil la lisaient par trame. Chaque écrivain d'une entrée appelle
+    /// `recomputeHealthIssues()` ; en ajouter un sans l'appeler figerait la
+    /// liste (patron `affirmedUpdates`).
+    private(set) var healthIssues: [HealthIssue] = []
+
+    /// Résout `healthIssues` depuis l'état courant. À appeler sur main, à
+    /// chaque fois qu'une entrée bouge (scan, journal, verdicts, liste noire,
+    /// langue). Non `private` : un entonnoir vit hors du VM
+    /// (`PerformanceView` publie ses toggles de diagnostic par `setMods`
+    /// direct) — ne pas l'appeler depuis un rendu.
+    func recomputeHealthIssues() {
         let activeFolders = Set(mods.flattenedMods.filter(\.isEnabled).map(\.folderName))
         let candidates = conflictCandidates
         let live = modConflictVerdicts.liveConflicts(candidates: candidates,
@@ -439,12 +451,12 @@ final class StarHubTHViewModel {
                 })
         }()
 
-        return HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
-                                           keybindReport: keybindReport,
-                                           conflicts: live,
-                                           folderCollisions: collisionIssues + warningIssues
-                                               + maliciousIssues + manifestIssues,
-                                           displayName: { folderName in
+        healthIssues = HealthIssueResolver.resolve(diagnostics: smapiDiagnostics,
+                                                   keybindReport: keybindReport,
+                                                   conflicts: live,
+                                                   folderCollisions: collisionIssues + warningIssues
+                                                       + maliciousIssues + manifestIssues,
+                                                   displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })
     }
@@ -1228,21 +1240,35 @@ final class StarHubTHViewModel {
         case data(Data)
     }
 
-    /// Le lot d'un mod, prêt à être écrit sur disque.
-    @MainActor
+    /// Le lot d'un mod, prêt à être écrit sur disque. Construction et
+    /// encodage **hors du fil principal** (F3) : le glossaire filtre chaque
+    /// rangée et le JSON pèse des méga-octets sur les gros packs — la
+    /// navette en déroule un par mod sélectionné.
     func exportTranslationLot(mod: ModItem, locale: String,
-                              rows: [TranslationCoverage.DiffRow]) -> TranslationLotExport {
-        let lot = TranslationLot.build(mod: mod.folderName, language: locale,
-                                       rows: rows, glossary: currentGlossary(language: locale))
-        guard !lot.entries.isEmpty else { return .nothingToTranslate }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-        do {
-            return .data(try encoder.encode(lot))
-        } catch {
-            log("Lot non exporté pour \(mod.name) : \(error)", level: .warning)
-            return .failed
+                              rows: [TranslationCoverage.DiffRow]) async -> TranslationLotExport {
+        // Glossaire et noms lus sur main avant le saut (fers des vues).
+        let glossary = currentGlossary(language: locale)
+        let folderName = mod.folderName
+        let modName = mod.name
+        let outcome: TranslationLotExport = await Task.detached(priority: .userInitiated) {
+            let lot = TranslationLot.build(mod: folderName, language: locale,
+                                           rows: rows, glossary: glossary)
+            guard !lot.entries.isEmpty else { return .nothingToTranslate }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+            do {
+                return .data(try encoder.encode(lot))
+            } catch {
+                return .failed
+            }
+        }.value
+        if case .failed = outcome {
+            // L'erreur exacte est hors du closure `@Sendable` ; le message
+            // du journal reste générique, l'utilisateur garde le sien à
+            // l'écran.
+            log("Lot non exporté pour \(modName) : échec d'encodage", level: .warning)
         }
+        return outcome
     }
 
     /// Oublie la couverture d'un mod dont les fichiers ont pu changer
@@ -1569,7 +1595,10 @@ final class StarHubTHViewModel {
             // `AnyCancellable` non `Sendable` : assigné dans le bloc.
             self.keybindCancellable = keybindScanService.$report
                 .removeDuplicates()
-                .sink { [weak self] in self?.keybindReport = $0 }
+                .sink { [weak self] in
+                    self?.keybindReport = $0
+                    self?.recomputeHealthIssues()
+                }
         }
         // Réglages IA/DeepL écrits en `@AppStorage` hors VM : la notification
         // est le seul signal. Garde de différence : elle porte TOUTES les
@@ -1582,6 +1611,9 @@ final class StarHubTHViewModel {
         // (appelée par `persistCategories`/`persistModIds`) ; sans elle, une
         // catégorie épinglée laisserait des lignes périmées.
         nexusMetadata.setOnInvalidate { [weak self] in self?.invalidateCategoryCache() }
+        // F3 — `healthIssues` est mis en cache : un changement de langue doit
+        // relocaliser ses titres, et `setLanguage` vit dans le store.
+        localization.onLanguageChange = { [weak self] in self?.recomputeHealthIssues() }
         // L'historique d'erreurs ne se rebâtit pas : une panne d'écriture ne se
         // verrait qu'au lancement suivant, par une perte.
         errorHistory.setOnWriteFailure { [weak self] in
@@ -1635,6 +1667,7 @@ final class StarHubTHViewModel {
             self.profileManagedConfigMods = managedConfigs
             self.translationHub.setInstalled(translations)
             self.modConflictVerdicts = conflictVerdicts
+            self.recomputeHealthIssues()
 
             // Pré-charge le dump Pathoschild pendant le splash, pour que ses lignes
             // de journal précèdent la fin de `isLaunching`. Sans attente (1-2 s au
@@ -1675,6 +1708,7 @@ final class StarHubTHViewModel {
                                                registryDirectory: AppSupport.directory)
                     }.value
                     self.maliciousMods = outcome.matches
+                    self.recomputeHealthIssues()
                     // `error` : seule ligne qui parle de code hostile.
                     self.log(outcome.summary, level: outcome.matches.isEmpty ? .info : .error)
                 }
@@ -1876,6 +1910,7 @@ final class StarHubTHViewModel {
             DispatchQueue.main.async { [weak self] in
                 self?.scanStore.setMods([], modsFolderWasReadable: false)
                 self?.scanStore.setUnreadableManifests([])
+                self?.recomputeHealthIssues()
                 // Reset selection (the mod may have disappeared).
                 self?.selectedMod = nil
             }
@@ -1990,6 +2025,7 @@ final class StarHubTHViewModel {
             self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
             // A1-T2 — le signal des manifestes illisibles suit le même scan.
             self.scanStore.setUnreadableManifests(scanned.unreadableManifests)
+            self.recomputeHealthIssues()
             self.rebuildDependencyIndexes()
             self.hiddenCodeIndex.refresh(gameDir: self.gameDir) // A5-T6 : une bascule ne change aucun lien
             if self.selectedMod == nil, let first = self.mods.first {
@@ -2068,6 +2104,7 @@ final class StarHubTHViewModel {
             DispatchQueue.main.async {
                 // Journal disparu : reset, sinon anciens conflits à côté d'une date `nil`.
                 self.smapiHealth.reset()
+                self.recomputeHealthIssues()
             }
             return
         }
@@ -2093,6 +2130,7 @@ final class StarHubTHViewModel {
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
                                    isStale: smapiStale, conflicts: conflicts,
                                    outOfDate: updates)
+            self.recomputeHealthIssues()
             // Seules les alertes **neuves** s'écrivent (`SmapiHealthFold`) ; la
             // localisation reste au VM.
             let newAlerts = self.smapiHealth.apply(errors: uniqueErrors)
@@ -2374,6 +2412,7 @@ final class StarHubTHViewModel {
                     return
                 }
                 scanStore.setMods(TogglePlan.flipped(scanStore.mods, folders: foldersToToggle, target: targetState))
+                recomputeHealthIssues()
                 self.rebuildDependencyIndexes()
                 self.syncActiveProfileIds()
                 completion?()
@@ -2626,6 +2665,7 @@ final class StarHubTHViewModel {
                                    isStale: smapiStale,
                                    conflicts: ContentPatcherConflicts.read(from: entries),
                                    outOfDate: SmapiLogParser.updates(in: text))
+            self.recomputeHealthIssues()
             // Error history from the full parse: the display cap must not drop errors.
             self.recordErrorHistory(from: entries, logIdentityDate: SmapiHealthFold.logIdentityDate(in: text, modificationDate: smapiDate))
             completion?()
@@ -3291,10 +3331,12 @@ final class StarHubTHViewModel {
               let entries = PathoschildCompatibilityList.decode(data) else {
             modWarnings = [:]
             missingDependencyStore.replaceDirectory(.empty)
+            recomputeHealthIssues()
             return
         }
         modWarnings = PathoschildCompatibilityList.warnings(for: installed, from: entries)
         missingDependencyStore.replaceDirectory(DependencyNexusDirectory(entries: entries))
+        recomputeHealthIssues()
     }
 
     // MARK: - Renommer le dossier d'un mod (X60)
@@ -6487,12 +6529,14 @@ final class StarHubTHViewModel {
     func declareConflict(_ pair: ModConflictPair, note: String) {
         modConflictVerdicts.declare(pair, note: note, at: Date())
         saveConflictVerdicts()
+        recomputeHealthIssues()
     }
 
     /// Écarte une paire (constat faux ou signalement repris) ; même mutateur.
     func dismissConflict(_ pair: ModConflictPair, note: String = "") {
         modConflictVerdicts.dismiss(pair, note: note, at: Date())
         saveConflictVerdicts()
+        recomputeHealthIssues()
     }
 
     // MARK: - Bissection (recherche du mod responsable)

@@ -399,27 +399,31 @@ struct TranslationDiffView: View {
     /// sauvegarde — donc le lot exporté décrit exactement ce que le mod
     /// contient à cet instant.
     private func exportTranslationLot() {
-        let data: Data
-        switch vm.exportTranslationLot(mod: mod, locale: "fr", rows: rows) {
-        case .nothingToTranslate:
-            vm.showModal(message: localization.L(L10n.Mods.translationLotNothing))
-            return
-        case .failed:
-            vm.showModal(message: localization.L(L10n.Mods.translationLotExportFailed))
-            return
-        case .data(let encoded):
-            data = encoded
-        }
-        let panel = NSSavePanel()
-        panel.title = localization.L(L10n.Mods.translationLotExport)
-        panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "\(mod.folderName)-fr-lot.json"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            try data.write(to: url)
-        } catch {
-            vm.log("Lot non écrit pour \(mod.name) : \(error)", level: .warning)
-            vm.showModal(message: error.localizedDescription)
+        // F3 : construction + encodage hors fil principal ; le panneau
+        // reste sur main (Task hérite de l'acteur de la vue).
+        Task {
+            let data: Data
+            switch await vm.exportTranslationLot(mod: mod, locale: "fr", rows: rows) {
+            case .nothingToTranslate:
+                vm.showModal(message: localization.L(L10n.Mods.translationLotNothing))
+                return
+            case .failed:
+                vm.showModal(message: localization.L(L10n.Mods.translationLotExportFailed))
+                return
+            case .data(let encoded):
+                data = encoded
+            }
+            let panel = NSSavePanel()
+            panel.title = localization.L(L10n.Mods.translationLotExport)
+            panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = "\(mod.folderName)-fr-lot.json"
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            do {
+                try data.write(to: url)
+            } catch {
+                vm.log("Lot non écrit pour \(mod.name) : \(error)", level: .warning)
+                vm.showModal(message: error.localizedDescription)
+            }
         }
     }
 

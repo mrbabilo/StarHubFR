@@ -241,6 +241,9 @@ struct PerformanceView: View {
                     // Publish exact activation before launch (ProbeLoadOrder reads this list).
                     viewModel.scanStore.setMods(TogglePlan.flipped(viewModel.mods,
                         folders: [name], target: enabled))
+                    // F3 — `healthIssues` est mise en cache : un toggle hors
+                    // VM doit la recalculer (même règle que le VM).
+                    viewModel.recomputeHealthIssues()
                 }
                 return success
             },

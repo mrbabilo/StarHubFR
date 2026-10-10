@@ -71,12 +71,18 @@ final class LocalizationStore: ObservableObject {
 
     // MARK: - Changement de langue
 
+    /// Notifié après un changement effectif (patron `setOnInvalidate` de
+    /// `NexusMetadataStore`) : le VM relocalise ses listes dérivées —
+    /// titres d'alertes notamment (F3, cache `healthIssues`).
+    var onLanguageChange: (() -> Void)?
+
     /// Porte d'entrée unique pour changer de langue. La normalisation vit
     /// dans le `didSet` : une valeur non supportée y est réécrite puis
     /// persistée sous sa forme normalisée (cascade documentée ci-dessus) —
     /// l'état en mémoire et l'état sur disque ne peuvent pas diverger.
     func setLanguage(_ language: String) {
         currentLanguage = language
+        onLanguageChange?()
     }
 
     // MARK: - Résolution des clés

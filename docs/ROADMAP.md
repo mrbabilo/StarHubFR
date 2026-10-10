@@ -1113,12 +1113,22 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         `@MainActor` réévaluée à chaque accès, sans mémoïsation — le patron
         est reconnu dans le code (la doc d'`affirmedUpdates` raconte l'avoir
         publié *pour* l'éviter) et son traitement reste **porté en F3**
-        (arbitrage du 2026-08-01 : passe groupée, pas au fil de l'eau) ;
+        (arbitrage du 2026-08-01 : passe groupée, pas au fil de l'eau).
+        ✅ **Livré le 2026-10-10 (F3)** : propriété stockée, recalculée à
+        chacun des entonnoirs qui change une entrée (scan, journal SMAPI,
+        verdicts de conflits, liste noire, avertissements Pathoschild,
+        manifestes illisibles, langue — un 4ᵉ `setMods` vivait hors VM dans
+        `PerformanceView`, énuméré par grep) ; un test Core couvre le crochet
+        de langue (`onLanguageChange`) ;
       - `exportTranslationLot`/`importTranslationLot`
         (`StarHubTHViewModel.swift:1485`, `:1534`) restent synchrones sur le
         fil principal — `TranslationLot.build` inline, sans `Task.detached`
         ni progression, alors que le patron de la tâche détachée est déjà
-        celui du VM partout ailleurs (couverture FR, profil, mesures) ; F3 ;
+        celui du VM partout ailleurs (couverture FR, profil, mesures) ; F3.
+        ✅ **Livré le 2026-10-10 (F3)** : l'import était déjà hors fil depuis
+        les stores (`translationDiff` et `TranslationLotMergeStore.prepare`
+        détachés — le constat datait d'avant) ; l'export construit et encode
+        désormais dans une `Task.detached`, navette ZIP comprise ;
       - **constat périmé corrigé** : `scanProgress` n'est plus « publié par
         mod » (note du 2026-09-02) — throttlé à ~12/s et publié sur main
         depuis `87de592` ; l'annotation est posée sur la note ;
@@ -2172,7 +2182,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
 | **F9** | 2026-09-25 | `check_sources.py --fetch-changelogs` lit les changelogs Nexus par l'API v2 GraphQL sans clé (`modFiles.changelogText`) ; `--use-keychain` et la lecture du Trousseau retirés |
-| **F3** | 2026-09-12 | Le lag de frappe venait d'`inferTag` relancé par frappe (~150 regexes sans mémoïsation, ~0,7 s de fil principal par lettre, nommé par capture Instruments) — tag calculé une fois à l'init ; A/B trois témoins : défaut préexistant ; les constats de la passe groupée restent ouverts |
+| **F3** | 2026-09-12 | Le lag de frappe venait d'`inferTag` relancé par frappe (~150 regexes sans mémoïsation, ~0,7 s de fil principal par lettre, nommé par capture Instruments) — tag calculé une fois à l'init ; A/B trois témoins : défaut préexistant. **Passe groupée livrée le 2026-10-10** : `healthIssues` stockée et recalculée aux entonnoirs (§7, F2), export de lot hors fil principal |
 | **F5-T1** | 2026-09-10 | Données sous `~/Library/Application Support/StarHubFR/` derrière l'accesseur `AppSupport`, migration reprenable déclenchée par `static let` ; `Backups/` reste derrière (X105) |
 | **F5-T2** | 2026-09-10 | Identité `com.mrbabilo.StarHubFR` + schéma `nxm` ; 45 clés UserDefaults recopiées jamais écrasées, Trousseau basculé avec lecture de secours sur l'ancien service |
 | **F7** | 2026-09-09 | `currentTab` de `String` à `SidebarDestination` (Core, 15 cas), `MainView` switche sans `default:` — une 16ᵉ destination sans page casse le build |

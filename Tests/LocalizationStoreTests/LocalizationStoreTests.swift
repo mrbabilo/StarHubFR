@@ -150,6 +150,18 @@ import Testing
 
     // MARK: - Protocole du dépôt
 
+    /// F3 — le VM met en cache ses listes dérivées (titres d'alertes) :
+    /// `setLanguage` doit le prévenir, sinon les libellés restent dans la
+    /// langue d'avant jusqu'au prochain événement.
+    @Test func setLanguageNotifiesOnChangeClosure() {
+        let store = LocalizationStore(defaults: makeDefaults(), resourceURL: nil)
+        var notified = 0
+        store.onLanguageChange = { notified += 1 }
+        store.setLanguage("en")
+        store.setLanguage("fr")
+        #expect(notified == 2)
+    }
+
     /// `SaveFarmNameResolver` consomme le store via `L10nResolver` — la
     /// conformité délègue exactement à `L(_:)`.
     @Test func l10nResolverConformance() throws {
