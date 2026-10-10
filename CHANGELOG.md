@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Une archive sans dossier racine ne donne plus son nom de téléchargement au mod.** Le dossier prend le nom du manifeste (repli sur l'identifiant unique) : plus de date ni de jeton Nexus dans « StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62 ».
+- **Finitions du guide de premier lancement.** Un échec de création du dossier Mods s'affiche sous le bouton, qui reste cliquable ; propriété morte et clé de traduction inutilisée retirées ; l'URL de la page de clé Nexus n'existe plus qu'une fois.
+
 ## [1.61.1] - 2026-10-09
 
 ### Added

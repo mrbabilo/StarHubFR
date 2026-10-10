@@ -57,9 +57,7 @@ struct UpdatesView: View {
                                         .font(AppDesign.Font.caption)
                                         .foregroundColor(.secondary)
                                     Button {
-                                        if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                                            NSWorkspace.shared.open(url)
-                                        }
+                                                                                    NSWorkspace.shared.open(NexusRequestBuilder.apiKeyPageURL)
                                     } label: {
                                         Text(localization.L(L10n.Updates.nexusGetKey))
                                             .font(AppDesign.Font.caption(.medium))

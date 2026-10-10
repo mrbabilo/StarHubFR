@@ -162,11 +162,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
-                if let modsFolderError {
-                    Text(modsFolderError)
-                        .font(AppDesign.Font.footnote)
-                        .foregroundColor(AppDesign.Color.error)
-                } else if FileManager.default.fileExists(atPath: modsPath) {
+                if FileManager.default.fileExists(atPath: modsPath) {
                     Button(localization.L(L10n.Onboarding.modsScan)) { viewModel.refresh() }
                     scanFeedback
                     Text(String(format: localization.L(L10n.Onboarding.modsCount),
@@ -174,6 +170,9 @@ struct OnboardingView: View {
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
                 } else {
+                    // L'échec s'affiche SOUS le bouton : l'étape doit rester
+                    // actée — un dossier en lecture seule se répare, et le
+                    // guide n'a pas de retour en arrière (X130).
                     Button(localization.L(L10n.Onboarding.modsCreate)) {
                         do {
                             _ = try GameDirLocator.ensureModsFolder(gameDir: viewModel.gameDir)
@@ -181,6 +180,11 @@ struct OnboardingView: View {
                         } catch {
                             modsFolderError = localization.L(L10n.Onboarding.modsCreateFailed)
                         }
+                    }
+                    if let modsFolderError {
+                        Text(modsFolderError)
+                            .font(AppDesign.Font.footnote)
+                            .foregroundColor(AppDesign.Color.error)
                     }
                 }
             }
@@ -243,9 +247,7 @@ struct OnboardingView: View {
                     .font(AppDesign.Font.monoCaption)
                 HStack {
                     Button(localization.L(L10n.Settings.nexusGetKey)) {
-                        if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                            NSWorkspace.shared.open(url)
-                        }
+                        NSWorkspace.shared.open(NexusRequestBuilder.apiKeyPageURL)
                     }
                     Spacer()
                     Button(localization.L(L10n.Settings.nexusSaveKey)) {

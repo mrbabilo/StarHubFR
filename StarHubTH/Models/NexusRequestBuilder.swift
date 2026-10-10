@@ -18,6 +18,11 @@ enum NexusRequestBuilder {
     /// Game domain used for every Nexus call in this app.
     static let gameDomain = "stardewvalley"
 
+    /// La page « clé d'API personnelle » du compte Nexus. Une seule source :
+    /// le littéral existait en quatre exemplaires (Réglages ×2, Mises à jour,
+    /// guide de premier lancement — X130).
+    static let apiKeyPageURL = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api")!
+
     /// Identifiant **numérique** du jeu, tel que l'API GraphQL v2 l'exige.
     ///
     /// Lu sur `/v1/games/stardewvalley.json`. Il vit ici, à côté du domaine,

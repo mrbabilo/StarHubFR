@@ -5,7 +5,6 @@
 
 extension L10n {
     enum Onboarding {
-        static let title          = "onboarding_title"
         static let start          = "onboarding_start"
         static let skipAll        = "onboarding_skip_all"
         static let skipStep       = "onboarding_skip_step"

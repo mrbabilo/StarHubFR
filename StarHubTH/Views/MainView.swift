@@ -26,10 +26,8 @@ struct MainView: View {
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage(TextScale.defaultsKey) private var textScale = TextScale.normal.rawValue
-    /// Le guide de premier lancement se présente quand cette clé est fausse —
-    /// posée à `true` par le `onDismiss` de sa sheet, repassée à `false` par
-    /// la carte « Revoir le guide » des Réglages.
-    @AppStorage(UDKey.onboardingCompleted) private var onboardingCompleted = false
+    /// Le drapeau et la clé du guide de premier lancement vivent dans
+    /// `OnboardingPresentation` — ici, seul l'état de présentation.
     @State private var showOnboarding = false
     
     @State private var isProfileHovered = false

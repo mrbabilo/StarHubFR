@@ -169,9 +169,7 @@ struct SettingsView: View {
                         }
                         Spacer()
                         Button(action: {
-                            if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                                NSWorkspace.shared.open(url)
-                            }
+                            NSWorkspace.shared.open(NexusRequestBuilder.apiKeyPageURL)
                         }) {
                             Text(localization.L(L10n.Settings.nexusGetKey))
                         }
@@ -196,9 +194,7 @@ struct SettingsView: View {
 
                         HStack {
                             Button(action: {
-                                if let url = URL(string: "https://www.nexusmods.com/users/myaccount?tab=api") {
-                                    NSWorkspace.shared.open(url)
-                                }
+                                NSWorkspace.shared.open(NexusRequestBuilder.apiKeyPageURL)
                             }) {
                                 Text(localization.L(L10n.Settings.nexusGetKey))
                             }
