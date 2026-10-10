@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Un pack livré dans un dossier « Mods » s'installe à plat.** Le wrapper « Mods » de certaines archives (mod 47995) devenait un pack nommé « Mods » à l'intérieur de Mods/ ; il est écarté, les composants s'installent à la racine — l'instruction de l'auteur.
+
 - **Une archive sans dossier racine ne donne plus son nom de téléchargement au mod.** Le dossier prend le nom du manifeste (repli sur l'identifiant unique) : plus de date ni de jeton Nexus dans « StardewOptimizer 53663 1 2026-10-09T19-37Z arMRSFD62 ».
 - **Finitions du guide de premier lancement.** Un échec de création du dossier Mods s'affiche sous le bouton, qui reste cliquable ; propriété morte et clé de traduction inutilisée retirées ; l'URL de la page de clé Nexus n'existe plus qu'une fois.
 - **Le catalogue des recouvrements de performance suit les versions du parc.** Remesuré sur UltraSmooth 2.4.15, Radiance 2.3.1 et Stardropium 0.2.2-beta (4 méthodes communes de plus), et StardewOptimizer y entre : 4 méthodes partagées avec UltraSmooth, dont `Monster.update` posée par balayage dynamique des deux côtés.

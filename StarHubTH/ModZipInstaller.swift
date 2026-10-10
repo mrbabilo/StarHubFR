@@ -495,12 +495,12 @@ class ModZipInstaller {
     }
 
     /// Single shared top-level parent ("Lilybrook"), or nil (root entries,
-    /// flat collection, mix).
+    /// flat collection, mix, or a "mods" wrapper — layout artifact, mod 47995).
     private static func commonParent(of folders: [String]) -> String? {
         let parents = folders.map { ($0 as NSString).deletingLastPathComponent }
         guard parents.allSatisfy({ !$0.isEmpty }) else { return nil }
-        let unique = Set(parents)
-        return unique.count == 1 ? unique.first : nil
+        guard let parent = Set(parents).first, parents.allSatisfy({ $0 == parent }) else { return nil }
+        return parent.lowercased() == "mods" ? nil : parent
     }
 
     /// Detects the structure of extracted zip contents.

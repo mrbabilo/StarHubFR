@@ -473,6 +473,29 @@ struct InstallerTestEnv {
                "Pack components must install nested under the shared parent, not flattened to top level")
     }
 
+    @Test func genericModsWrapperIsNotAPackParent() throws {
+        // Mod 47995 (Zelda Masjora's Mask in SV) ships its components inside
+        // a wrapper folder literally named "Mods" — an installer-layout
+        // artifact ("copy into your Mods folder"), not a pack name. Keeping
+        // it produced Mods/Mods/MajoraMask and a folder that reads as the
+        // game's own paused Mods dir. The author's page says components go
+        // at the root of the Mods folder: the wrapper is dropped and the
+        // collection installs flat.
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try makeModFolder(base: dir, relativePath: "Mods/MajoraMask",
+                          uniqueId: "Shikket.MajoraMask", name: "Majora's Mask")
+        try makeModFolder(base: dir, relativePath: "Mods/MajoraMaskFeatures",
+                          uniqueId: "Shikket.MajoraMask.Features", name: "Majora Mask - Features")
+
+        let info = ModZipInstaller().analyzeExtractedDir(at: dir, zipName: "Zelda.zip", existingMods: [])
+
+        #expect(info.detectedMods.count == 2)
+        #expect(Set(info.detectedMods.map { $0.folderName }) == ["MajoraMask", "MajoraMaskFeatures"],
+               "A wrapper named 'Mods' (any case) is not a pack parent — components install at top level")
+    }
+
     @Test func flatCollectionInstallsAtTopLevel() throws {
         // No shared parent: components sit at the zip root. Behavior is
         // unchanged — each lands as its own top-level folder (no synthesized
