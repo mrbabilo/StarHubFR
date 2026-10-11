@@ -3774,6 +3774,34 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X133** ✅ *(corrigé le 2026-10-11, audit du module Performances)* — **Installer la sonde depuis la carte SLO échouait en silence.**
+      `PerformanceSloDiagnosticSection.installProbe` avalait toute erreur
+      (`catch { return }`) et ne refusait pas le geste jeu ouvert ; le volet
+      Stardropium (`PerformanceStardropiumDiagnosticControls`) ignorait le jeu
+      ouvert aussi, lui qui affichait ses échecs. Les deux jumeaux du même
+      geste — la carte « Sonde » (`PerformanceProbeSection.perform`) et les
+      Réglages (`AppExtensionsSettingsSection`) — gardent **et** signalent :
+      l'exemption était une divergence, pas une décision. Scénario réel : le
+      volume du jeu débranché rend `InstallError.noGameFolder`, la
+      confirmation acceptée ne fait alors rien, sans message ni rescan.
+      Correctif : garde jeu + messages distincts (`perf_game_running`
+      réutilisée, `perf_probeInstallFailed` réutilisée côté SLO). Écarté en
+      passant : le `$0.at` du comparateur de `ProbePerformanceSummary.
+      latestSession` n'est **pas** une typo — le `$0` y est le paramètre de la
+      closure `flatMap` interne, il ombre celui du `max(by:)` ; une première
+      « correction » ne compile pas (`$1` inexistant dans une closure à un
+      paramètre) et a été révertée.
+- [x] **X132** ✅ *(corrigé le 2026-10-11, audit du module Performances)* — **Une mesure guidée lancée sur un profil partait même si la bascule échouait.**
+      `PerformanceGuidedBar.prepare` appelait
+      `applyEnabledFolders(folders) { _ in viewModel.launchGame() }` : le
+      `BisectionRestoreOutcome` était jeté. Les deux autres sites du même
+      appel ne le jettent pas (`BenchmarkRunner.apply` : `$0 == .complete` ;
+      `BisectionRunner`). Sur un apply partiel (dossier tenu — 0555, jumeau
+      `.Nom` déjà présent), le jeu démarrait sous un parc qui n'était pas
+      celui du profil choisi et la sonde mesurait un « avant » faux, en
+      silence. Correctif : `.complete` exigé, sinon message
+      (`perf_guided_profile_apply_failed`, en/fr) et pas de lancement — le
+      plan reste posé, rejouable à la main.
 - [x] **X131** ✅ *(rejeté à l'écran par l'auteur le 2026-10-10 pendant la vérif de X129, corrigé le jour même en TDD ; correctif vérifié à l'écran par l'auteur le 2026-10-10)* — **Un pack livré dans un dossier « Mods » s'installait dans… un pack nommé « Mods ».**
       Le mod 47995 (Zelda Masjora's Mask in SV) emballe ses deux composants
       (`MajoraMask`, `MajoraMaskFeatures`) dans un wrapper littéralement nommé

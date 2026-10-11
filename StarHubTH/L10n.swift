@@ -1230,6 +1230,7 @@ enum L10n {
         static let guidedPaused = "perf_guided_paused"
         static let guidedOutdated = "perf_guided_outdated"
         static let guidedWriteFailed = "perf_guided_write_failed"
+        static let guidedProfileApplyFailed = "perf_guided_profile_apply_failed"
         static let guidedAbandonFailed = "perf_guided_abandon_failed"
         static let recRerunGuided = "perf_rec_rerun_guided"
         static let evidenceNoisy = "perf_evidence_noisy"

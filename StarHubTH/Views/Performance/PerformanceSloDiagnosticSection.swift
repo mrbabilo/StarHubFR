@@ -14,6 +14,8 @@ struct PerformanceSloDiagnosticSection: View {
     @State private var pendingConfirmation: PerformanceDiagnosticConfirmation?
     @State private var hoverDetail: String?
     @State private var selectedDetail: String?
+    /// X133 : l'échec d'installation de la sonde s'affiche, jeu ouvert compris.
+    @State private var probeFailure: String?
 
     private var nexusActivity: SloDiagnosticNexusActivity {
         if viewModel.downloadingNexusModId == SloDiagnosticContract.nexusId {
@@ -97,6 +99,11 @@ struct PerformanceSloDiagnosticSection: View {
                     Label(localization.L(L10n.PerformanceSloDiagnostic.openMods),
                           systemImage: "folder")
                 }.help(localization.L(L10n.PerformanceSloDiagnostic.openMods))
+            }
+            if let probeFailure {
+                Label(probeFailure, systemImage: "exclamationmark.triangle.fill")
+                    .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -230,11 +237,19 @@ struct PerformanceSloDiagnosticSection: View {
     }
 
     private func installProbe() {
+        guard !viewModel.isGameRunning() else {
+            probeFailure = localization.L(L10n.Performance.gameRunning)
+            return
+        }
         do {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
+            probeFailure = nil
             Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
-        } catch { return }
+        } catch {
+            probeFailure = String(format: localization.L(L10n.Performance.probeInstallFailed),
+                                  error is ProbeBundle.InstallError ? ProbeBundle.folderName : error.localizedDescription)
+        }
     }
 
     private func reportView(_ report: SloDiagnosticReport) -> some View {

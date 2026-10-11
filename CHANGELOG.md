@@ -19,6 +19,8 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une mesure guidée ne démarre plus le jeu sur un profil à moitié appliqué.** Si la bascule vers le profil choisi échoue, le lancement est refusé et la raison s'affiche, au lieu de mesurer un « avant » sous le mauvais parc (X132).
+- **Installer la sonde depuis un diagnostic ne peut plus échouer en silence.** Les cartes SLO et Stardropium refusent le geste jeu ouvert et affichent l'échec, comme la carte Sonde et les Réglages le faisaient déjà (X133).
 - **Stardropium et UltraSmooth partagent bien `passTimeForObjects` par défaut.** Le catalogue la disait conditionnelle depuis UltraSmooth 2.4.9 ; il est remesuré sur Stardropium 0.2.9-alpha et UltraSmooth 2.4.16, versions du parc.
 
 ## [1.62.0] - 2026-10-10

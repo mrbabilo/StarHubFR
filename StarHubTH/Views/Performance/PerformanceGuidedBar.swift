@@ -117,7 +117,15 @@ struct PerformanceGuidedBar: View {
             if let profileId = final.launchProfileId {
                 let ids = viewModel.modProfiles.first { $0.id == profileId }?.enabledModIds ?? []
                 let folders = BenchmarkSides.foldersA(BenchmarkSides.stateA(viewModel.mods, baseProfileIds: ids))
-                viewModel.applyEnabledFolders(folders) { _ in viewModel.launchGame() }
+                // X132 : un apply incomplet ne doit pas lancer le jeu — la
+                // mesure partirait sur un parc qui n'est pas celui du profil.
+                viewModel.applyEnabledFolders(folders) { outcome in
+                    guard outcome == .complete else {
+                        message = localization.L(L10n.Performance.guidedProfileApplyFailed)
+                        return
+                    }
+                    viewModel.launchGame()
+                }
             } else {
                 viewModel.launchGame()
             }

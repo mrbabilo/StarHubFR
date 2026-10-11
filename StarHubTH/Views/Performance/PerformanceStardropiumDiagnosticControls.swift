@@ -8,7 +8,9 @@ struct PerformanceStardropiumDiagnosticControls: View {
     let runtime: () -> SloDiagnosticRuntime
     @State private var preparation: SloDiagnosticPreparation?
     @State private var pendingConfirmation: PerformanceDiagnosticConfirmation?
-    @State private var installFailed = false
+    /// X133 : refus jeu ouvert et échec d'installation se disent, chacun
+    /// avec son texte.
+    @State private var installMessage: String?
     private typealias Keys = L10n.StardropiumDiagnostic
 
     private var activity: SloDiagnosticNexusActivity {
@@ -34,8 +36,9 @@ struct PerformanceStardropiumDiagnosticControls: View {
                     }.buttonStyle(.borderedProminent).help(localization.L(actionKey(action)))
                 }
             }
-            if installFailed {
-                Text(localization.L(Keys.installFailed)).foregroundStyle(AppDesign.Color.warning)
+            if let installMessage {
+                Text(installMessage).foregroundStyle(AppDesign.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .sheet(isPresented: Binding(get: { preparation != nil }, set: { if !$0 { preparation = nil } })) {
@@ -161,11 +164,15 @@ struct PerformanceStardropiumDiagnosticControls: View {
         }.padding(AppDesign.Spacing.xl).frame(minWidth: 460, maxWidth: 620)
     }
     private func installProbe() {
+        guard !viewModel.isGameRunning() else {
+            installMessage = localization.L(L10n.Performance.gameRunning)
+            return
+        }
         do {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
-            installFailed = false
+            installMessage = nil
             Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
-        } catch { installFailed = true }
+        } catch { installMessage = localization.L(Keys.installFailed) }
     }
 }
