@@ -1,5 +1,21 @@
 import Foundation
 
+/// Coordination de tuile du warp piloté (spec P1 §5) : la sonde reçoit des
+/// coordonnées brutes, la table vit côté app (`GuidedProtocol.warpAnchors`).
+public struct GuidedPlanWarp: Codable, Equatable, Sendable {
+    public var x: Int
+    public var y: Int
+
+    public init(x: Int, y: Int) {
+        self.x = x
+        self.y = y
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case x = "X", y = "Y"
+    }
+}
+
 /// `guided-plan.json` (D5-A) : écrit **et effacé** par l'app seule ; la sonde
 /// le lit (`System.Text.Json`, clés PascalCase) et ne l'efface jamais.
 public struct GuidedPlan: Codable, Equatable, Sendable {
@@ -13,9 +29,14 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
     /// le joueur clique lui-même — et la clé n'est pas écrite du tout.
     public var saveName: String?
     public var createdAt: Date
+    /// P1 : la sonde conduit la session en jeu (warp, nuit, sortie). `nil` :
+    /// protocole humain — champs absents du JSON, une vieille sonde les ignore.
+    public var autoPilot: Bool?
+    public var warp: GuidedPlanWarp?
 
     public init(version: Int = 1, id: UUID, name: String, role: ProbeMeasurement.Role, location: String,
-                pairedWith: UUID?, saveName: String? = nil, createdAt: Date) {
+                pairedWith: UUID?, saveName: String? = nil, createdAt: Date,
+                autoPilot: Bool? = nil, warp: GuidedPlanWarp? = nil) {
         self.version = version
         self.id = id
         self.name = name
@@ -26,11 +47,14 @@ public struct GuidedPlan: Codable, Equatable, Sendable {
         // À la seconde : `.iso8601` n'écrit pas les fractions, le plan relu
         // doit égaler le plan écrit.
         self.createdAt = Date(timeIntervalSince1970: createdAt.timeIntervalSince1970.rounded(.down))
+        self.autoPilot = autoPilot
+        self.warp = warp
     }
 
     enum CodingKeys: String, CodingKey {
         case version = "Version", id = "Id", name = "Name", role = "Role", location = "Location"
         case pairedWith = "PairedWith", saveName = "SaveName", createdAt = "CreatedAt"
+        case autoPilot = "AutoPilot", warp = "Warp"
     }
 
     public static func load(from url: URL) -> GuidedPlan? {

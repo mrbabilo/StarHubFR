@@ -44,6 +44,17 @@ public enum GuidedProtocol {
     public static let locations = ["Farm", "FarmHouse", "Town", "Beach", "Forest", "Mountain"]
     public static let fallbackLocation = "Farm"
 
+    /// Tuiles d'arrivée du warp piloté, une par lieu proposé (spec P1 §5 —
+    /// validées à l'écran : personnage posé sur tuile libre, pas dans un mur).
+    public static let warpAnchors: [String: (x: Int, y: Int)] = [
+        "Farm": (64, 15), "FarmHouse": (4, 11), "Town": (30, 55),
+        "Beach": (28, 34), "Forest": (30, 87), "Mountain": (18, 24),
+    ]
+
+    public static func warpAnchor(for location: String) -> (x: Int, y: Int)? {
+        warpAnchors[location]
+    }
+
     /// Lieux de passage ou générés : un étage de mine ne se retrouve pas.
     public static func isExcluded(_ location: String?) -> Bool {
         guard let location, !location.isEmpty else { return true }
