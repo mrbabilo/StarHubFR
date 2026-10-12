@@ -1966,6 +1966,15 @@
 "perf_guided_write_failed" = "Mesure non préparée : %@";
 "perf_guided_profile_apply_failed" = "Profil non appliqué — mesure non lancée.";
 "perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision (Diagnostics › Performances) : le parc et le jeu sont réservés jusqu'à la fin.";
+"perf_pilot_ref_series" = "Une série pilotée est déjà en cours ou attend une décision : vois sa ligne d'état ci-dessus.";
+"perf_pilot_ref_benchmark" = "Un benchmark des chargements tourne ou a été interrompu : termine-le ou restaure-le d'abord (carte Chargements).";
+"perf_pilot_ref_bisection" = "Une bissection tourne ou a été interrompue : termine-la ou restaure-la d'abord.";
+"perf_pilot_ref_slo" = "Un diagnostic SLO est resté ouvert : termine-le ou rétablis son réglage d'abord, dans sa carte.";
+"perf_pilot_ref_stardropium" = "Un diagnostic Stardropium est resté ouvert : termine-le ou rétablis son réglage d'abord, dans la carte « Mémoire — Stardropium ».";
+"perf_pilot_ref_mods_busy" = "Le parc est en cours de bascule (profil, bascule groupée ou application inachevée) : attends la fin.";
+"perf_pilot_ref_manual_plan" = "Un plan de mesure guidée attend : joue-le ou abandonne-le d'abord, dans la barre guidée.";
+"perf_pilot_ref_plan" = "Le plan de mesure n'a pas pu être écrit pour la sonde : vois les Journaux.";
+"perf_pilot_ref_launch" = "Le jeu n'a pas pu être lancé (dossier du jeu ou profil de lancement) : vois les Journaux.";
 "perf_pilot_needs_probe_update" = "La mesure pilotée demande la sonde %@ ou plus récente : mets-la à jour ci-dessous, jeu fermé.";
 "perf_pilot_not_persisted" = "État du pilotage non enregistré sur le disque : après un plantage de l'app, ni reprise ni retour arrière ne seront proposés.";
 "perf_pilot_need_profile" = "Choisis le profil à comparer : il devient le côté « après », le parc actuel le côté « avant ».";

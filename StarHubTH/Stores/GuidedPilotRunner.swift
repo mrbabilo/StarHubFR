@@ -16,6 +16,8 @@ public final class GuidedPilotRunner {
     /// La dernière écriture de l'état a échoué : pas de reprise après
     /// plantage — l'écran le dit au lieu de la promettre (spec §7).
     public private(set) var persistenceFailed = false
+    /// Le dernier refus de `start`/`resume` ; `nil` après un départ.
+    public private(set) var lastRefusal: GuidedPilotRefusal?
     /// Le disque portait `.applying` au démarrage : le geste a pu partir à moitié.
     private var interruptedWhileApplying = false
 
@@ -90,27 +92,21 @@ public final class GuidedPilotRunner {
     /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
     @discardableResult
     public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?) async -> Bool {
-        guard !working, canStart, !runtime.isGameRunning(), !runtime.isOtherWorkBusy(),
-              gesture.map(runtime.refusesGesture) != true else { return false }
+        guard !working, canStart else { return refuse(.seriesPending) }
+        if let refusal = preflight() { return refuse(refusal) }
+        if let gesture, runtime.refusesGesture(gesture) { return refuse(.gestureRefused) }
         working = true
         defer { working = false }
         if let profile = draft.launchProfileId {
             guard await runtime.applyLaunchProfile(profile) else {
                 runtime.log("Mesure pilotée : profil de la mesure non appliqué, rien lancé.")
-                return false
+                return refuse(.profileNotApplied)
             }
-            guard canStart, !runtime.isGameRunning() else { return false }
+            guard canStart else { return refuse(.seriesPending) }
+            if runtime.isGameRunning() { return refuse(.gameRunning) }
         }
         let plan = makePlan(draft, role: .before, pairedWith: nil)
-        do { try runtime.writePlan(plan) } catch {
-            runtime.log("Mesure pilotée : plan non écrit (\(error.localizedDescription)).")
-            return false
-        }
-        guard runtime.launchGame() else {
-            runtime.removePilotPlan()
-            runtime.log("Mesure pilotée : lancement du jeu refusé.")
-            return false
-        }
+        guard launch(plan) else { return false }
         reset()
         state.begin(draft: draft, gesture: gesture, now: runtime.now())
         state.setBeforePlan(plan.id)
@@ -126,22 +122,16 @@ public final class GuidedPilotRunner {
     /// le geste n'est pas rejoué (il a réussi, ou n'a pas eu lieu).
     @discardableResult
     public func resume() async -> Bool {
-        guard !working, canResume, let step = state.resumableStep, let draft = state.beforeDraft,
-              !runtime.isGameRunning(), !runtime.isOtherWorkBusy() else { return false }
+        guard !working, canResume, let step = state.resumableStep, let draft = state.beforeDraft
+        else { return refuse(.seriesPending) }
+        if let refusal = preflight() { return refuse(refusal) }
         let pairedWith = step == .after ? state.beforePlanId : nil
-        if step == .after, pairedWith == nil { return false }
+        if step == .after, pairedWith == nil { return refuse(.seriesPending) }
         working = true
         defer { working = false }
         let plan = makePlan(draft, role: step == .after ? .after : .before, pairedWith: pairedWith)
-        do { try runtime.writePlan(plan) } catch {
-            runtime.log("Mesure pilotée : plan non écrit (\(error.localizedDescription)).")
-            return false
-        }
-        guard runtime.launchGame() else {
-            runtime.removePilotPlan()
-            runtime.log("Mesure pilotée : lancement du jeu refusé.")
-            return false
-        }
+        guard launch(plan) else { return false }
+        lastRefusal = nil
         state.resume(now: runtime.now())
         interruptedWhileApplying = false
         if step == .before { state.setBeforePlan(plan.id) }
@@ -249,6 +239,27 @@ public final class GuidedPilotRunner {
 
     // MARK: — Transitions
 
+    private func preflight() -> GuidedPilotRefusal? {
+        if runtime.isGameRunning() { return .gameRunning }
+        return runtime.otherWorkReason().map(GuidedPilotRefusal.otherWork)
+    }
+
+    private func refuse(_ refusal: GuidedPilotRefusal) -> Bool { lastRefusal = refusal; return false }
+
+    /// Plan écrit, jeu lancé ; un échec se nomme, sans plan piloté laissé.
+    private func launch(_ plan: GuidedPlan) -> Bool {
+        do { try runtime.writePlan(plan) } catch {
+            runtime.log("Mesure pilotée : plan non écrit (\(error.localizedDescription)).")
+            return refuse(.planNotWritten)
+        }
+        guard runtime.launchGame() else {
+            runtime.removePilotPlan()
+            runtime.log("Mesure pilotée : lancement du jeu refusé.")
+            return refuse(.launchRefused)
+        }
+        return true
+    }
+
     private var canStart: Bool {
         switch state.phase {
         case .idle, .reporting: return true
@@ -336,6 +347,7 @@ public final class GuidedPilotRunner {
         sideLaunchedAt = nil
         gameBroughtFront = false
         persistenceFailed = false
+        lastRefusal = nil
         GuidedPilotStateStore.clear(in: stateDirectory)
     }
 

@@ -53,7 +53,7 @@ struct PerformancePilotStatus: View {
                     Button(localization.L(L10n.PerformancePilot.resume)) {
                         Task {
                             let resumed = await pilot.resume()
-                            message = resumed ? nil : localization.L(L10n.PerformancePilot.startRefused)
+                            message = resumed ? nil : Self.refusalText(pilot.lastRefusal, localization: localization)
                         }
                     }
                     .help(localization.L(L10n.PerformancePilot.resumeHelp))
@@ -79,6 +79,26 @@ struct PerformancePilotStatus: View {
                 .clickableCursor()
             }
         }
+    }
+
+    /// Le refus d'un départ, nommé : où aller pour le lever.
+    static func refusalText(_ refusal: GuidedPilotRefusal?, localization: LocalizationStore) -> String {
+        let key: String
+        switch refusal {
+        case .seriesPending: key = L10n.PerformancePilot.refSeries
+        case .gameRunning: key = L10n.Performance.gameRunning
+        case .otherWork("benchmark"): key = L10n.PerformancePilot.refBenchmark
+        case .otherWork("bisection"): key = L10n.PerformancePilot.refBisection
+        case .otherWork("slo-diagnostic"): key = L10n.PerformancePilot.refSlo
+        case .otherWork("stardropium-diagnostic"): key = L10n.PerformancePilot.refStardropium
+        case .otherWork("manual-plan"): key = L10n.PerformancePilot.refManualPlan
+        case .otherWork: key = L10n.PerformancePilot.refModsBusy
+        case .profileNotApplied: key = L10n.Performance.guidedProfileApplyFailed
+        case .planNotWritten: key = L10n.PerformancePilot.refPlan
+        case .launchRefused: key = L10n.PerformancePilot.refLaunch
+        case .gestureRefused, nil: key = L10n.PerformancePilot.startRefused
+        }
+        return localization.L(key)
     }
 
     private static func failureKey(_ failure: GuidedPilotPlan.Failure) -> String {

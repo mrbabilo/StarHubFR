@@ -1966,6 +1966,15 @@
 "perf_guided_write_failed" = "Measurement not prepared: %@";
 "perf_guided_profile_apply_failed" = "Profile not applied — measurement not launched.";
 "perf_pilot_locked" = "A guided pilot measurement is running or awaiting a decision (Diagnostics › Performance): mods and the game are reserved until it ends.";
+"perf_pilot_ref_series" = "A pilot series is already running or awaiting a decision: see its status line above.";
+"perf_pilot_ref_benchmark" = "A loading benchmark is running or was interrupted: finish or restore it in the Loads card first.";
+"perf_pilot_ref_bisection" = "A bisection is running or was interrupted: finish or restore it first.";
+"perf_pilot_ref_slo" = "An SLO diagnostic is still open: finish it or restore its setting in its card first.";
+"perf_pilot_ref_stardropium" = "A Stardropium diagnostic is still open: finish it or restore its setting in the “Memory — Stardropium” card first.";
+"perf_pilot_ref_mods_busy" = "Mods are being switched (profile, bulk toggle or unfinished apply): wait for it to end.";
+"perf_pilot_ref_manual_plan" = "A guided measurement plan is pending: play it or abandon it in the guided bar first.";
+"perf_pilot_ref_plan" = "The measurement plan could not be written for the probe: see the Logs.";
+"perf_pilot_ref_launch" = "The game could not be launched (game folder or launch profile): see the Logs.";
 "perf_pilot_needs_probe_update" = "Guided pilot measurement needs probe %@ or later: update it below, with the game closed.";
 "perf_pilot_not_persisted" = "Pilot state not saved to disk: after an app crash, no resume or rollback will be offered.";
 "perf_pilot_need_profile" = "Choose the profile to compare: it becomes the “after” side, the current mod list the “before”.";

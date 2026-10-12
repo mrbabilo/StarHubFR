@@ -187,7 +187,8 @@ struct PerformanceGuidedBar: View {
         }
         Task {
             let started = await viewModel.pilot.start(draft: before, gesture: gesture)
-            message = started ? nil : localization.L(L10n.PerformancePilot.startRefused)
+            message = started ? nil : PerformancePilotStatus.refusalText(viewModel.pilot.lastRefusal,
+                                                                         localization: localization)
         }
     }
 

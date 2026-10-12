@@ -28,14 +28,14 @@ import Foundation
         var now = Date(timeIntervalSince1970: 0)
         var writtenPlans: [GuidedPlan] = []
         var gameRunning = false
-        var otherBusy = false
+        var otherBusy: String?
         /// Suspend dans les lectures : deux sondages s'y croisent vraiment.
         var suspendReads = false
     }
 
     private func runtime(_ fake: Fake) -> GuidedPilotRuntime {
         .init(isGameRunning: { fake.gameRunning },
-              isOtherWorkBusy: { fake.otherBusy },
+              otherWorkReason: { fake.otherBusy },
               refusesGesture: { _ in fake.gestureRefused },
               activateGame: { fake.activations += 1; return fake.gameFront },
               launchGame: { fake.launched += 1; return true },
@@ -205,6 +205,7 @@ import Foundation
         let refused = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(failing))
         #expect(await refused.start(draft: draft(profile: profile), gesture: nil) == false)
         #expect(failing.launched == 0 && failing.writtenPlans.isEmpty)
+        #expect(refused.lastRefusal == .profileNotApplied)
         #expect(refused.state.phase == .idle)
         #expect(refused.canRollback == false)
     }
@@ -215,16 +216,22 @@ import Foundation
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
         #expect(await runner.start(draft: draft(), gesture: nil) == false)
         #expect(fake.launched == 0)
+        #expect(runner.lastRefusal == .gameRunning)
+        fake.gameRunning = false
+        #expect(await runner.start(draft: draft(), gesture: nil))
+        #expect(runner.lastRefusal == nil)
     }
 
     /// Benchmark, bissection, profil en cours, plan manuel en attente : deux
     /// travaux de masse sur le parc ne se croisent jamais.
     @Test func refusesToStartWhileOtherWorkIsBusy() async {
         let fake = Fake()
-        fake.otherBusy = true
+        fake.otherBusy = "stardropium-diagnostic"
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
         #expect(await runner.start(draft: draft(), gesture: nil) == false)
         #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
+        // Le refus se nomme : « non lancée » seul laissait chercher à l'aveugle.
+        #expect(runner.lastRefusal == .otherWork("stardropium-diagnostic"))
     }
 
     @Test func singleSideWithoutGestureReportsAfterOneRun() async {
@@ -361,6 +368,7 @@ import Foundation
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
         #expect(await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"])) == false)
         #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
+        #expect(runner.lastRefusal == .gestureRefused)
     }
 
     /// I2 — l'état d'avant le geste est relevé **avant** lui et persisté : un

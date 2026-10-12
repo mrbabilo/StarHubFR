@@ -52,6 +52,24 @@ enum GuidedPilotLive {
         }
     }
 
+    /// La raison qui bloque une série, par ordre d'évidence ; clés lues par
+    /// `PerformancePilotStatus.refusalText`.
+    private static func otherWork(_ viewModel: StarHubTHViewModel, files: ProbeFiles) -> String? {
+        let support = AppSupport.directory
+        if viewModel.benchmark.isActive || viewModel.benchmark.interrupted != nil { return "benchmark" }
+        if viewModel.bisection.state != nil || viewModel.bisection.isApplying
+            || viewModel.bisection.interruptedSnapshot != nil { return "bisection" }
+        if SloDiagnosticSnapshotStore.hasPending(in: support) { return "slo-diagnostic" }
+        if SloDiagnosticSnapshotStore.hasPending(in: PerformanceDiagnosticKind.stardropium.directory(in: support)) {
+            return "stardropium-diagnostic"
+        }
+        if viewModel.bulkToggleProgress != nil || viewModel.isApplyingProfile
+            || viewModel.unresolvedApplyJournal != nil { return "mods-busy" }
+        // Un plan guidé manuel en attente serait écrasé par le plan piloté.
+        if files.guidedPlan().map({ $0.autoPilot != true }) == true { return "manual-plan" }
+        return nil
+    }
+
     /// Sans le créer : une garde de bascule ne doit pas instancier le pilotage.
     static func existingRunner(for viewModel: StarHubTHViewModel) -> GuidedPilotRunner? {
         runners[ObjectIdentifier(viewModel)]
@@ -61,16 +79,9 @@ enum GuidedPilotLive {
         let files = ProbeFiles()
         return GuidedPilotRuntime(
             isGameRunning: { [weak viewModel] in viewModel?.isGameRunning() ?? true },
-            isOtherWorkBusy: { [weak viewModel] in
-                guard let viewModel else { return true }
-                // Un plan guidé manuel en attente serait écrasé par le plan piloté.
-                let manualPlanPending = files.guidedPlan().map { $0.autoPilot != true } ?? false
-                return viewModel.benchmark.isActive || viewModel.benchmark.interrupted != nil
-                    || viewModel.bisection.state != nil || viewModel.bisection.isApplying
-                    || viewModel.bisection.interruptedSnapshot != nil
-                    || viewModel.bulkToggleProgress != nil || viewModel.isApplyingProfile || viewModel.unresolvedApplyJournal != nil
-                    || SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: AppSupport.directory)
-                    || manualPlanPending
+            otherWorkReason: { [weak viewModel] in
+                guard let viewModel else { return "mods-busy" }
+                return otherWork(viewModel, files: files)
             },
             refusesGesture: { [weak viewModel] gesture in
                 guard let viewModel else { return true }

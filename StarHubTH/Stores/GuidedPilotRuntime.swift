@@ -5,15 +5,25 @@ public enum PilotMeasurementState: Equatable, Sendable {
     case none, running, finished
 }
 
+/// Pourquoi une série n'a pas démarré : l'écran le nomme — « non lancée »
+/// seul laissait chercher à l'aveugle (un diagnostic Stardropium resté
+/// ouvert bloquait, sans un mot, le 2026-10-13).
+public enum GuidedPilotRefusal: Equatable, Sendable {
+    case seriesPending, gameRunning, otherWork(String), gestureRefused
+    case profileNotApplied, planNotWritten, launchRefused
+}
+
 /// Tout ce que le runner touche hors de lui-même (spec P1 §7) : le ViewModel
 /// branche le réel (T7), les tests un faux. Closures isolées au main : le VM
 /// qu'elles capturent l'est, et une closure `async` non isolée s'exécuterait
 /// hors du main.
 public struct GuidedPilotRuntime {
     public var isGameRunning: @MainActor () -> Bool
-    /// Benchmark, bissection, profil qui s'applique, plan guidé manuel en
-    /// attente : deux travaux de masse sur le parc ne se croisent jamais.
-    public var isOtherWorkBusy: @MainActor () -> Bool
+    /// Benchmark, bissection, profil qui s'applique, diagnostic resté ouvert,
+    /// plan guidé manuel en attente : deux travaux de masse sur le parc ne se
+    /// croisent jamais. Rend la clé de la raison (`GuidedPilotRefusal.otherWork`),
+    /// `nil` = libre.
+    public var otherWorkReason: @MainActor () -> String?
     /// Les refus du benchmark pour le même mécanisme (pause à dépendants,
     /// profil sans la sonde, identifiants partagés) : vrai = refusé.
     public var refusesGesture: @MainActor (GuidedPilotGesture) -> Bool
@@ -44,7 +54,7 @@ public struct GuidedPilotRuntime {
     public var log: @MainActor (String) -> Void
 
     public init(isGameRunning: @escaping @MainActor () -> Bool,
-                isOtherWorkBusy: @escaping @MainActor () -> Bool,
+                otherWorkReason: @escaping @MainActor () -> String?,
                 refusesGesture: @escaping @MainActor (GuidedPilotGesture) -> Bool,
                 activateGame: @escaping @MainActor () -> Bool,
                 launchGame: @escaping @MainActor () -> Bool,
@@ -65,7 +75,7 @@ public struct GuidedPilotRuntime {
                 requestUserAttention: @escaping @MainActor () -> Void,
                 log: @escaping @MainActor (String) -> Void) {
         self.isGameRunning = isGameRunning
-        self.isOtherWorkBusy = isOtherWorkBusy
+        self.otherWorkReason = otherWorkReason
         self.refusesGesture = refusesGesture
         self.activateGame = activateGame
         self.launchGame = launchGame

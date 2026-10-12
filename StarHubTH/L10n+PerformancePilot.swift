@@ -31,6 +31,15 @@ extension L10n {
         static let resumeHelp = "perf_pilot_resume_help"
         static let notPersisted = "perf_pilot_not_persisted"
         static let needsProbeUpdate = "perf_pilot_needs_probe_update"
+        static let refSeries = "perf_pilot_ref_series"
+        static let refBenchmark = "perf_pilot_ref_benchmark"
+        static let refBisection = "perf_pilot_ref_bisection"
+        static let refSlo = "perf_pilot_ref_slo"
+        static let refStardropium = "perf_pilot_ref_stardropium"
+        static let refModsBusy = "perf_pilot_ref_mods_busy"
+        static let refManualPlan = "perf_pilot_ref_manual_plan"
+        static let refPlan = "perf_pilot_ref_plan"
+        static let refLaunch = "perf_pilot_ref_launch"
     }
 }
 
