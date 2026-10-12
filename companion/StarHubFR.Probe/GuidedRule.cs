@@ -71,14 +71,28 @@ public sealed class GuidedRule
 
     private readonly List<(string At, double? Frame, double? Work, int? GameTime)> kept = new();
     private readonly List<(string At, MinuteReason Reason)> excluded = new();
+    private readonly Dictionary<MinuteReason, int> excludedByReason = new();
+    private readonly int minimumMinutes;
+    private readonly int maximumMinutes;
 
-    public GuidedRule(string target) => Target = target;
+    /// <summary>`target` optionnel : les tests des compteurs n'ont pas de lieu.
+    /// Les seuils par défaut sont les constantes publiques (bandeau, app).</summary>
+    public GuidedRule(string? target = null, int minimumMinutes = MinimumMinutes,
+                      int maximumMinutes = MaximumMinutes)
+    {
+        Target = target ?? "";
+        this.minimumMinutes = minimumMinutes;
+        this.maximumMinutes = maximumMinutes;
+    }
 
     public string Target { get; }
     public IReadOnlyList<string> KeptAt => kept.Select(k => k.At).ToList();
     /// <summary>Le compte seul, sans liste : le bandeau le lit à chaque trame.</summary>
     public int KeptCount => kept.Count;
     public IReadOnlyList<(string At, MinuteReason Reason)> Excluded => excluded;
+    /// <summary>Le bandeau enrichi (P1 T5) : combien de minutes exclues, par
+    /// raison — cumulées sur la mesure, comme `Excluded`.</summary>
+    public IReadOnlyDictionary<MinuteReason, int> ExcludedByReason => excludedByReason;
     public GuidedOutcome Outcome { get; private set; } = GuidedOutcome.Running;
     /// <summary>La dernière minute a remis le décompte à zéro (réglage changé).</summary>
     public bool JustReset { get; private set; }
@@ -96,9 +110,10 @@ public sealed class GuidedRule
         {
             // Coupure de segment côté app : rien d'avant ne se compare à la
             // suite, et la minute courante peut contenir le `ChangedAt`.
-            foreach (var k in kept) excluded.Add((k.At, MinuteReason.ConfigChanged));
+            foreach (var k in kept) { excluded.Add((k.At, MinuteReason.ConfigChanged)); Count(MinuteReason.ConfigChanged); }
             kept.Clear();
             excluded.Add((m.At, MinuteReason.ConfigChanged));
+            Count(MinuteReason.ConfigChanged);
             JustReset = true;
             return MinuteReason.ConfigChanged;
         }
@@ -110,12 +125,13 @@ public sealed class GuidedRule
         if (reason != MinuteReason.Kept)
         {
             excluded.Add((m.At, reason));
+            Count(reason);
             return reason;
         }
         kept.Add((m.At, m.FrameP50, m.WorkP50, m.GameTime));
-        if (kept.Count >= MinimumMinutes && WorkIqrShare is double work && work <= StableIqrShare)
+        if (kept.Count >= minimumMinutes && WorkIqrShare is double work && work <= StableIqrShare)
             Outcome = GuidedOutcome.Stable;
-        else if (kept.Count >= MaximumMinutes)
+        else if (kept.Count >= maximumMinutes)
             Outcome = GuidedOutcome.Noisy;
         return reason;
     }
@@ -144,5 +160,11 @@ public sealed class GuidedRule
     {
         string name = reason.ToString();
         return char.ToLowerInvariant(name[0]) + name[1..];
+    }
+
+    private void Count(MinuteReason reason)
+    {
+        excludedByReason.TryGetValue(reason, out int n);
+        excludedByReason[reason] = n + 1;
     }
 }

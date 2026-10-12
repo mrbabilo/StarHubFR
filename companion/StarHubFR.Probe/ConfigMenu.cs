@@ -62,6 +62,10 @@ internal static class ConfigMenu
                 () => config.MeasureTextures,
                 value => config.MeasureTextures = value,
                 "config.textures");
+            AddBool(addBool, api,
+                () => config.ShowMiniStats,
+                value => config.ShowMiniStats = value,
+                "config.ministats");
             monitor.Log("Menu de configuration GMCM posé.", LogLevel.Trace);
         }
         catch (Exception ex)

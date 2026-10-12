@@ -1,19 +1,23 @@
 {
   "banner.title": "Measurement “{{name}}”",
   "state.starting": "play normally here: the first minute is running",
-  "state.counting": "stay here and play normally — {{count}} min kept",
-  "state.countingReady": "stay here and play normally — {{count}} min kept: stops as soon as it is stable",
+  "state.counting": "stay here and play normally — {{count}}/{{target}} min kept (+{{excluded}} excluded)",
+  "state.countingReady": "stay here and play normally — {{count}}/{{target}} min kept (+{{excluded}} excluded): stops as soon as it is stable",
+  "state.pilotStep": "auto-pilot step {{step}}/2 · heading to {{place}}",
+  "state.pilotCounting": "auto-pilot step {{step}}/2 · {{count}}/{{target}} min — you can look away",
   "state.elsewhere": "go to {{place}}: minutes only count there",
   "state.menu": "close the menu: the minute only counts if it closes quickly",
   "state.night": "new day: the measurement resumes on its own",
   "state.config": "a setting changed: the count starts over",
   "state.patches": "paused: the patch measurement is running (probe option)",
-  "state.stable": "measurement done ({{count}} min): you can quit or keep playing",
+  "state.stable": "measurement done ({{count}} min, noise {{iqr}}%): report in StarHubFR",
   "state.noisy": "measurement done, but too noisy: replay it with less variety in places",
   "refused.splitscreen": "guided measurement unavailable: split screen",
   "refused.noticks": "guided measurement unavailable: the game's timers aren't intercepted",
   "config.harmony.name": "Measure Harmony patches",
   "config.harmony.tooltip": "Chronometers every other mod's Harmony patches (opt-in). Takes effect at the next launch of the game; a guided measurement or a benchmark disarms it for the session.",
   "config.textures.name": "Measure resident textures",
-  "config.textures.tooltip": "Tracks the memory kept in loaded textures, by provider (opt-in). Takes effect at the next launch of the game."
+  "config.textures.tooltip": "Tracks the memory kept in loaded textures, by provider (opt-in). Takes effect at the next launch of the game.",
+  "config.ministats.name": "Show mini stats",
+  "config.ministats.tooltip": "Live FPS, P50/P99 over 60 s and working set, top-right, once per second (opt-in). Takes effect at the next launch of the game."
 }

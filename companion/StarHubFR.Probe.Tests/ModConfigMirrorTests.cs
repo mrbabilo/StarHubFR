@@ -11,10 +11,11 @@ public class ModConfigMirrorTests
     [Fact]
     public void ApplyResetsEveryKnownOption()
     {
-        var config = new ModConfig { MeasureHarmonyPatches = true, MeasureTextures = true };
+        var config = new ModConfig { MeasureHarmonyPatches = true, MeasureTextures = true, ShowMiniStats = true };
         config.Apply(new ModConfig());
         Assert.False(config.MeasureHarmonyPatches);
         Assert.False(config.MeasureTextures);
+        Assert.False(config.ShowMiniStats);
     }
 
     [Fact]

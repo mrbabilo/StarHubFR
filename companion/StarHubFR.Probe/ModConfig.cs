@@ -20,6 +20,13 @@ public sealed class ModConfig
     /// </summary>
     public bool MeasureTextures { get; set; } = false;
 
+    /// <summary>
+    /// P1 T5 : mini-stats en jeu (FPS, P50/P99 sur 60 s, jeu de travail du
+    /// processus), coin haut droit, une fois par seconde. Opt-in : le coût
+    /// d'observation se mesure en comparant deux sessions, avec et sans.
+    /// </summary>
+    public bool ShowMiniStats { get; set; } = false;
+
     /// <summary>La remise à défaut du menu de configuration : **tous** les
     /// champs connus passent par ici — un champ ajouté à la classe sans
     /// passer par ce miroir resterait au réglage courant quand l'utilisateur
@@ -28,5 +35,6 @@ public sealed class ModConfig
     {
         MeasureHarmonyPatches = defaults.MeasureHarmonyPatches;
         MeasureTextures = defaults.MeasureTextures;
+        ShowMiniStats = defaults.ShowMiniStats;
     }
 }

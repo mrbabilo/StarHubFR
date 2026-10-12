@@ -64,6 +64,10 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.SaveLoaded += (_, _) => AutoPilot.OnSaveLoaded();
         helper.Events.GameLoop.UpdateTicked += (_, _) => AutoPilot.OnTick();
         helper.Events.GameLoop.ReturnedToTitle += (_, _) => AutoPilot.OnReturnedToTitle();
+        // P1 T5 : mini-stats opt-in, dessinées après le bandeau guidé, coin
+        // opposé (inscrites après GuidedBanner pour cet ordre).
+        MiniStats.Initialize(helper);
+        helper.Events.GameLoop.UpdateTicked += (_, _) => MiniStats.OnTicked(config.ShowMiniStats);
         // Avant Loads.Initialize : l'enregistrement de lancement lit Benchmark.RunId.
         Benchmark.Initialize(helper, Monitor);
         // D5-A : un plan en attente désarme la mesure des patches pour la

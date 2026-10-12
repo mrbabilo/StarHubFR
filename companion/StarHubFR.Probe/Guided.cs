@@ -54,6 +54,9 @@ internal static class Guided
     internal static GuidedRule? Rule { get; private set; }
     internal static MinuteReason? LastReason { get; private set; }
     internal static DateTime? FinishedAtUtc { get; private set; }
+    /// <summary>Part IQR de trame de la mesure close, en pourcent arrondi —
+    /// posé à la clôture, lu par le bandeau de fin (P1 T5).</summary>
+    internal static int LastIqrSharePercent { get; private set; }
     internal static string? RefusedKey { get; private set; }
     internal static int StateVersion { get; private set; }
     /// <summary>La fenêtre du jeu a le focus : sans lui, rien ne se dessine et les minutes sont écartées.</summary>
@@ -198,6 +201,7 @@ internal static class Guided
         Rule = new GuidedRule(plan.Location!);
         LastReason = null;
         FinishedAtUtc = null;
+        LastIqrSharePercent = 0;
         RefusedKey = null;
         targetTicks = 0;
         PresenceTicks = 0;
@@ -223,6 +227,7 @@ internal static class Guided
         Rule = null;
         LastReason = null;
         RefusedKey = null;
+        LastIqrSharePercent = 0;
         StateVersion++;
     }
 
@@ -233,6 +238,7 @@ internal static class Guided
         catch (Exception ex) { Log($"Mesure guidée non écrite : {ex.Message}"); }
         if (Active is not null) Finished.Add(Active.Id);
         FinishedAtUtc = DateTime.UtcNow;
+        LastIqrSharePercent = (int)Math.Round((rule.FrameIqrShare ?? 0) * 100);
         Log($"Mesure guidée « {Active?.Name} » terminée : {outcome}, {rule.KeptAt.Count} min.");
     }
 

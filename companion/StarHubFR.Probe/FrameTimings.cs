@@ -67,6 +67,9 @@ internal static class FrameTimings
     /// <summary>Un lancement = une session : les lignes de deux lancements ne se mélangent pas. Partagée avec l'inventaire.</summary>
     internal static readonly string Session = DateTimeOffset.Now.ToString("o");
     internal static int LoadedMods;
+    /// <summary>La durée de la dernière trame vue de MonoGame (`TickMs`),
+    /// lue par les mini-stats — aucune mesure neuve ici.</summary>
+    internal static double LastFrameMs => TickMs.Count == 0 ? 0 : TickMs[^1];
     private static double WindowStartMs;
     private static int Gen0, Gen1, Gen2;
     private const double WindowMs = 60_000;

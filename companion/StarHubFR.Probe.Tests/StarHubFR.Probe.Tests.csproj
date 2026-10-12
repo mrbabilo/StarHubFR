@@ -22,6 +22,7 @@
     <Compile Include="../StarHubFR.Probe/GmcmExportRule.cs" Link="GmcmExportRule.cs" />
     <Compile Include="../StarHubFR.Probe/ModConfig.cs" Link="ModConfig.cs" />
     <Compile Include="../StarHubFR.Probe/AutoPilotRule.cs" Link="AutoPilotRule.cs" />
+    <Compile Include="../StarHubFR.Probe/MiniStatsRule.cs" Link="MiniStatsRule.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

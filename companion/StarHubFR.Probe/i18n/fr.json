@@ -1,19 +1,23 @@
 {
   "banner.title": "Mesure « {{name}} »",
   "state.starting": "joue normalement ici : la première minute est en cours",
-  "state.counting": "reste ici et joue normalement — {{count}} min gardées",
-  "state.countingReady": "reste ici et joue normalement — {{count}} min gardées : arrêt dès que c'est stable",
+  "state.counting": "reste ici et joue normalement — {{count}}/{{target}} min gardées (+{{excluded}} exclues)",
+  "state.countingReady": "reste ici et joue normalement — {{count}}/{{target}} min gardées (+{{excluded}} exclues) : arrêt dès que c'est stable",
+  "state.pilotStep": "pilotage étape {{step}}/2 · en route vers {{place}}",
+  "state.pilotCounting": "pilotage étape {{step}}/2 · {{count}}/{{target}} min — tu peux quitter le jeu des yeux",
   "state.elsewhere": "va à {{place}} : les minutes ne comptent que là-bas",
   "state.menu": "referme le menu : la minute ne compte que s'il se referme vite",
   "state.night": "nouvelle journée : la mesure reprend seule",
   "state.config": "un réglage a changé : le décompte repart de zéro",
   "state.patches": "en pause : la mesure des patches tourne (option de la sonde)",
-  "state.stable": "mesure terminée ({{count}} min) : tu peux quitter ou continuer",
+  "state.stable": "mesure terminée ({{count}} min, bruit {{iqr}} %) : rapport dans StarHubFR",
   "state.noisy": "mesure terminée, mais trop bruitée : rejoue-la en variant moins de lieux",
   "refused.splitscreen": "mesure guidée indisponible : écran partagé",
   "refused.noticks": "mesure guidée indisponible : les minuteurs du jeu ne sont pas interceptés",
   "config.harmony.name": "Mesurer les patches Harmony",
   "config.harmony.tooltip": "Chronomètre les patches Harmony des autres mods (opt-in). Prend effet au prochain lancement du jeu ; une mesure guidée ou un benchmark la désarme pour la session.",
   "config.textures.name": "Mesurer les textures résidentes",
-  "config.textures.tooltip": "Suit la mémoire retenue dans les textures chargées, par fournisseur (opt-in). Prend effet au prochain lancement du jeu."
+  "config.textures.tooltip": "Suit la mémoire retenue dans les textures chargées, par fournisseur (opt-in). Prend effet au prochain lancement du jeu.",
+  "config.ministats.name": "Afficher les mini-stats",
+  "config.ministats.tooltip": "FPS courant, P50/P99 sur 60 s et mémoire de travail, coin haut droit, une fois par seconde (opt-in). Prend effet au prochain lancement du jeu."
 }

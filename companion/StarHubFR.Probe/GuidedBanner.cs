@@ -15,11 +15,11 @@ namespace StarHubFR.Probe;
 /// </summary>
 internal static class GuidedBanner
 {
-    private enum State { Hidden, Refused, Stable, Noisy, Menu, Elsewhere, Night, Config, Patches, Starting, Counting }
+    private enum State { Hidden, Refused, Stable, Noisy, Menu, Elsewhere, Night, Config, Patches, Starting, Counting, PilotCounting, PilotStep }
 
     private static readonly TimeSpan DoneVisible = TimeSpan.FromSeconds(60);
     private static ITranslationHelper? I18n;
-    private static (State State, int Count, string Place, int Version)? cacheKey;
+    private static (State State, int Count, int Excluded, bool Pilot, string Place, int Version)? cacheKey;
     private static string title = "", status = "";
 
     public static void Initialize(IModHelper helper)
@@ -37,6 +37,7 @@ internal static class GuidedBanner
         count = Guided.Rule?.KeptCount ?? 0;
         place = Guided.Active?.Location ?? "";
         if (Guided.Active is null || !Guided.WindowActive) return State.Hidden;
+        bool pilot = Guided.Active.AutoPilot == true;
         if (Guided.RefusedKey is not null) return State.Refused;
         if (Guided.Rule is { } rule && rule.Outcome != GuidedOutcome.Running)
         {
@@ -44,13 +45,14 @@ internal static class GuidedBanner
             return rule.Outcome == GuidedOutcome.Stable ? State.Stable : State.Noisy;
         }
         if (Game1.activeClickableMenu is not null) return State.Menu;
-        if (Game1.currentLocation?.NameOrUniqueName != Guided.Rule?.Target) return State.Elsewhere;
+        if (Game1.currentLocation?.NameOrUniqueName != Guided.Rule?.Target)
+            return pilot ? State.PilotStep : State.Elsewhere;
         if (Guided.Rule?.JustReset == true) return State.Config;
         return Guided.LastReason switch
         {
             MinuteReason.Night => State.Night,
             MinuteReason.PatchesMeasured => State.Patches,
-            _ => count == 0 ? State.Starting : State.Counting,
+            _ => pilot ? State.PilotCounting : count == 0 ? State.Starting : State.Counting,
         };
     }
 
@@ -59,27 +61,36 @@ internal static class GuidedBanner
         if (I18n is null || !Context.IsWorldReady || Context.ScreenId != 0) return;
         var state = Current(out int count, out string placeId);
         if (state == State.Hidden) return;
-        var key = (state, count, placeId, Guided.StateVersion);
+        int excluded = Guided.Rule?.Excluded.Count ?? 0;
+        bool pilot = Guided.Active?.AutoPilot == true;
+        var key = (state, count, excluded, pilot, placeId, Guided.StateVersion);
         if (cacheKey != key)
         {
             cacheKey = key;
             string place = Game1.getLocationFromName(placeId)?.DisplayName ?? placeId;
+            int step = Guided.Active?.Role == "after" ? 2 : 1;
             title = I18n.Get("banner.title", new { name = Guided.Active?.Name ?? "" }).ToString();
             status = state switch
             {
                 State.Refused => I18n.Get(Guided.RefusedKey!).ToString(),
-                State.Stable => I18n.Get("state.stable", new { count }).ToString(),
+                State.Stable => I18n.Get("state.stable",
+                    new { count, iqr = Guided.LastIqrSharePercent }).ToString(),
                 State.Noisy => I18n.Get("state.noisy").ToString(),
                 State.Menu => I18n.Get("state.menu").ToString(),
                 State.Elsewhere => I18n.Get("state.elsewhere", new { place }).ToString(),
                 State.Night => I18n.Get("state.night").ToString(),
                 State.Config => I18n.Get("state.config").ToString(),
                 State.Patches => I18n.Get("state.patches").ToString(),
+                State.PilotStep => I18n.Get("state.pilotStep", new { step, place }).ToString(),
+                State.PilotCounting => I18n.Get("state.pilotCounting",
+                    new { step, count, target = GuidedRule.MinimumMinutes }).ToString(),
                 // Le décompte vivant vit plus bas (hors cache) : les textes
                 // ne portent que les minutes gardées.
                 State.Counting when count < GuidedRule.MinimumMinutes =>
-                    I18n.Get("state.counting", new { count }).ToString(),
-                State.Counting => I18n.Get("state.countingReady", new { count }).ToString(),
+                    I18n.Get("state.counting",
+                        new { count, target = GuidedRule.MinimumMinutes, excluded }).ToString(),
+                State.Counting => I18n.Get("state.countingReady",
+                    new { count, target = GuidedRule.MinimumMinutes, excluded }).ToString(),
                 _ => I18n.Get("state.starting").ToString(),
             };
         }
@@ -89,7 +100,8 @@ internal static class GuidedBanner
         // (« 5:00 · 5:00 · 5:00… », retour d'écran du 2026-10-04). 5:00 →
         // 0:00 en temps de présence réel au lieu cible — l'horloge murale
         // compterait le temps passé ailleurs ou en pause. Disparait au
-        // plancher atteint (l'état « prêt » prend le relais).
+        // plancher atteint (l'état « prêt » prend le relais). Pas de décompte
+        // en pilotage : « tu peux quitter le jeu des yeux » (P1 T5).
         string shown = status;
         if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
         {
