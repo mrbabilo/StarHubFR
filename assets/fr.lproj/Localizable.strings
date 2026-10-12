@@ -1965,6 +1965,7 @@
 "perf_guided_outdated" = "Ta sonde (%@) ne sait pas guider une mesure : installe la version 0.5.0 ou plus récente.";
 "perf_guided_write_failed" = "Mesure non préparée : %@";
 "perf_guided_profile_apply_failed" = "Profil non appliqué — mesure non lancée.";
+"perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision : le parc et le jeu sont réservés jusqu'à la fin.";
 "perf_guided_abandon_failed" = "Mesure non abandonnée : %@";
 "perf_rec_rerun_guided" = "Lance une mesure guidée : elle s'arrête d'elle-même quand c'est assez.";
 "perf_evidence_noisy" = "Mesure guidée bruitée avant ou après : confiance plafonnée à moyenne";

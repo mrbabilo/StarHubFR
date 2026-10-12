@@ -23,12 +23,14 @@ import Foundation
         var now = Date(timeIntervalSince1970: 0)
         var writtenPlans: [GuidedPlan] = []
         var gameRunning = false
+        var otherBusy = false
         /// Suspend dans les lectures : deux sondages s'y croisent vraiment.
         var suspendReads = false
     }
 
     private func runtime(_ fake: Fake) -> GuidedPilotRuntime {
         .init(isGameRunning: { fake.gameRunning },
+              isOtherWorkBusy: { fake.otherBusy },
               launchGame: { fake.launched += 1; return true },
               applyLaunchProfile: { fake.profileApplied.append($0); return fake.profileSucceeds },
               performGesture: { fake.gestures.append($0); return fake.gestureSucceeds },
@@ -205,6 +207,16 @@ import Foundation
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
         #expect(await runner.start(draft: draft(), gesture: nil) == false)
         #expect(fake.launched == 0)
+    }
+
+    /// Benchmark, bissection, profil en cours, plan manuel en attente : deux
+    /// travaux de masse sur le parc ne se croisent jamais.
+    @Test func refusesToStartWhileOtherWorkIsBusy() async {
+        let fake = Fake()
+        fake.otherBusy = true
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        #expect(await runner.start(draft: draft(), gesture: nil) == false)
+        #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
     }
 
     @Test func singleSideWithoutGestureReportsAfterOneRun() async {

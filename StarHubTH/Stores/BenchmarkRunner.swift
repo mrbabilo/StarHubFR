@@ -101,7 +101,7 @@ final class BenchmarkRunner {
         if SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: directory)
             || viewModel.isGameRunning() || viewModel.bisection.state != nil || viewModel.bulkToggleProgress != nil
             || viewModel.isApplyingProfile || viewModel.unresolvedApplyJournal != nil
-            || files.guidedPlan() != nil || interrupted != nil {
+            || files.guidedPlan() != nil || interrupted != nil || viewModel.pilot.busyReasonKey != nil {
             return viewModel.localization.L(L10n.Benchmark.refBusy)
         }
         if UserDefaults.standard.string(forKey: UDKey.launchProfile) == "Vanilla" {

@@ -156,6 +156,8 @@ struct StarHubTHApp: App {
                     vm.bisection.checkForInterruptedSession()
                     // Benchmark laissé en plan : plan effacé, restauration proposée.
                     vm.benchmark.checkForInterruptedSession()
+                    // Pilotage interrompu : retour arrière ou annulation proposés.
+                    vm.pilot.checkForInterruptedSession()
                     // Raise the splash now. The main window was already
                     // intercepted in `applicationWillFinishLaunching`, so it
                     // never reached the screen — no need to defer this.

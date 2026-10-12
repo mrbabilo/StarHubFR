@@ -1965,6 +1965,7 @@
   "perf_guided_outdated": "Your probe (%@) can't guide a measurement: install version 0.5.0 or later.",
   "perf_guided_write_failed": "Measurement not prepared: %@",
   "perf_guided_profile_apply_failed": "Profile not applied — measurement not launched.",
+  "perf_pilot_locked": "A guided pilot measurement is running or awaiting a decision: mods and the game are reserved until it ends.",
   "perf_guided_abandon_failed": "Measurement not discarded: %@",
   "perf_rec_rerun_guided": "Run a guided measurement: it stops by itself once it has enough.",
   "perf_evidence_noisy": "Noisy guided measurement before or after: confidence capped at medium",

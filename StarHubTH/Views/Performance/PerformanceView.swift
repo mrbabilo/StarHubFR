@@ -224,7 +224,8 @@ struct PerformanceView: View {
                     guidedPlanPending: store.plan != nil,
                     otherReason: viewModel.bulkToggleProgress != nil
                         || viewModel.isApplyingProfile
-                        || viewModel.unresolvedApplyJournal != nil ? "mods-busy" : nil)
+                        || viewModel.unresolvedApplyJournal != nil ? "mods-busy" : nil,
+                    pilotActive: viewModel.pilot.busyReasonKey != nil)
             },
             launchProfile: {
                 UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"

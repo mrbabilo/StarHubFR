@@ -6579,6 +6579,7 @@ final class StarHubTHViewModel {
     }
 
     func refuseDuringBenchmark() -> Bool {
+        if refuseDuringPilot() { return true }
         // Une série interrompue (instantané restant) réserve le parc autant
         // qu'une série active : toute bascule l'écraserait sans filet.
         guard isBenchmarkActive || _benchmark?.interrupted != nil else { return false }

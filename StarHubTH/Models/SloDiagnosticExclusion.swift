@@ -12,8 +12,10 @@ public enum SloDiagnosticExclusion {
 
     public static func busyReason(gameRunning: Bool, benchmarkActive: Bool,
                                   bisectionActive: Bool, guidedPlanPending: Bool,
-                                  otherReason: String?) -> String? {
+                                  otherReason: String?, pilotActive: Bool = false) -> String? {
         if gameRunning { return "game-running" }
+        // Clé partagée avec `GuidedPilotRunner.busyKey` (P1).
+        if pilotActive { return "guided-pilot-active" }
         if benchmarkActive { return "benchmark-running" }
         if bisectionActive { return "bisection-running" }
         if guidedPlanPending { return "guided-measurement-pending" }

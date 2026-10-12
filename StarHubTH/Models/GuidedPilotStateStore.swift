@@ -31,7 +31,8 @@ public enum GuidedPilotStateStore {
         else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(GuidedPilotPlan.self, from: data)
+        // Illisible (écriture coupée) : comme absent — aucune reprise à proposer.
+        do { return try decoder.decode(GuidedPilotPlan.self, from: data) } catch { return nil }
     }
 
     public static func hasPending(in directory: URL?) -> Bool {

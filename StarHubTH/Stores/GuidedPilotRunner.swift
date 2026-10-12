@@ -12,6 +12,9 @@ public enum PilotMeasurementState: Equatable, Sendable {
 /// hors du main.
 public struct GuidedPilotRuntime {
     public var isGameRunning: @MainActor () -> Bool
+    /// Benchmark, bissection, profil qui s'applique, plan guidé manuel en
+    /// attente : deux travaux de masse sur le parc ne se croisent jamais.
+    public var isOtherWorkBusy: @MainActor () -> Bool
     public var launchGame: @MainActor () -> Bool
     /// Le profil de la mesure, appliqué **avant** le « avant » (spec §7) —
     /// hors geste : un échec bloque le lancement, sans retour arrière à offrir.
@@ -34,6 +37,7 @@ public struct GuidedPilotRuntime {
     public var log: @MainActor (String) -> Void
 
     public init(isGameRunning: @escaping @MainActor () -> Bool,
+                isOtherWorkBusy: @escaping @MainActor () -> Bool,
                 launchGame: @escaping @MainActor () -> Bool,
                 applyLaunchProfile: @escaping @MainActor (UUID) async -> Bool,
                 performGesture: @escaping @MainActor (GuidedPilotGesture) async -> Bool,
@@ -45,11 +49,13 @@ public struct GuidedPilotRuntime {
                 quitGame: @escaping @MainActor () async -> Void,
                 now: @escaping @MainActor () -> Date = Date.init,
                 sleep: @escaping @MainActor (TimeInterval) async -> Void = { seconds in
-                    try? await Task.sleep(for: .seconds(seconds))
+                    // Annulée : la boucle relit `Task.isCancelled` et sort.
+                    do { try await Task.sleep(for: .seconds(seconds)) } catch {}
                 },
                 requestUserAttention: @escaping @MainActor () -> Void,
                 log: @escaping @MainActor (String) -> Void) {
         self.isGameRunning = isGameRunning
+        self.isOtherWorkBusy = isOtherWorkBusy
         self.launchGame = launchGame
         self.applyLaunchProfile = applyLaunchProfile
         self.performGesture = performGesture
@@ -126,7 +132,7 @@ public final class GuidedPilotRunner {
     /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
     @discardableResult
     public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?) async -> Bool {
-        guard !working, canStart, !runtime.isGameRunning() else { return false }
+        guard !working, canStart, !runtime.isGameRunning(), !runtime.isOtherWorkBusy() else { return false }
         working = true
         defer { working = false }
         if let profile = draft.launchProfileId {
