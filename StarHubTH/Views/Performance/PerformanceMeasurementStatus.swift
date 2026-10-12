@@ -16,6 +16,14 @@ struct PerformanceMeasurementStatus: View {
                     .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 if case .outdated = GuidedProtocol.readiness(probeVersion: version, isEnabled: true) {
                     PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
+                } else if !GuidedProtocol.supportsPilot(version) {
+                    // Guidage possible, pilotage non : sans ce mot, le bouton
+                    // « Mesure pilotée » resterait caché sans explication.
+                    Text(String(format: localization.L(L10n.PerformancePilot.needsProbeUpdate),
+                                GuidedProtocol.pilotMinimumVersion.map(String.init).joined(separator: ".")))
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
                 }
             }
             // Pilotage : le plan est écrit par le runner, pas par ce store —

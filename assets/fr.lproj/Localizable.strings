@@ -1966,6 +1966,7 @@
 "perf_guided_write_failed" = "Mesure non préparée : %@";
 "perf_guided_profile_apply_failed" = "Profil non appliqué — mesure non lancée.";
 "perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision (Diagnostics › Performances) : le parc et le jeu sont réservés jusqu'à la fin.";
+"perf_pilot_needs_probe_update" = "La mesure pilotée demande la sonde %@ ou plus récente : mets-la à jour ci-dessous, jeu fermé.";
 "perf_pilot_not_persisted" = "État du pilotage non enregistré sur le disque : après un plantage de l'app, ni reprise ni retour arrière ne seront proposés.";
 "perf_pilot_need_profile" = "Choisis le profil à comparer : il devient le côté « après », le parc actuel le côté « avant ».";
 "perf_pilot_resume" = "Relancer ce côté";
