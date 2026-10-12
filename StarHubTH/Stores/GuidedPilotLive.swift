@@ -149,7 +149,9 @@ enum GuidedPilotLive {
         case .revertConfig(let modId, _):
             guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.mods) else { return nil }
             let url = configURL(mod, viewModel)
-            // Illisible ou absent : pas de retour arrière possible pour ce réglage.
+            // Absent : le retour arrière le retirera (`configText` nil).
+            // Illisible : rien de sûr à remettre, pas de retour arrière.
+            guard FileManager.default.fileExists(atPath: url.path) else { return GuidedPilotUndo(configPath: url.path) }
             do {
                 return GuidedPilotUndo(configPath: url.path, configText: try String(contentsOf: url, encoding: .utf8))
             } catch { return nil }
@@ -162,10 +164,12 @@ enum GuidedPilotLive {
         case .pauseMod, .applyProfile:
             guard let folders = saved.enabledFolders else { return false }
             return await apply(folders, viewModel)
-        case .revertConfig:
-            guard let path = saved.configPath, let text = saved.configText else { return false }
-            do { try text.write(toFile: path, atomically: true, encoding: .utf8) } catch { return false }
-            return true
+        case .revertConfig(_, let sha):
+            guard let path = saved.configPath else { return false }
+            let outcome = ProbePerformanceActions.undoRevertConfig(
+                at: URL(fileURLWithPath: path), previous: saved.configText, revertedToSha: sha,
+                configsDirectory: ProbeFiles().configsDirectory, gameRunning: viewModel.isGameRunning())
+            return outcome == .reverted
         }
     }
 

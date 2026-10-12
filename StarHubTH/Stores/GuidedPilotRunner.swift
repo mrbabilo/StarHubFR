@@ -13,6 +13,9 @@ public final class GuidedPilotRunner {
     public static let busyKey = "guided-pilot-active"
 
     public private(set) var state: GuidedPilotPlan = .initial
+    /// La dernière écriture de l'état a échoué : pas de reprise après
+    /// plantage — l'écran le dit au lieu de la promettre (spec §7).
+    public private(set) var persistenceFailed = false
     /// Le disque portait `.applying` au démarrage : le geste a pu partir à moitié.
     private var interruptedWhileApplying = false
 
@@ -59,6 +62,15 @@ public final class GuidedPilotRunner {
     @ObservationIgnored private var sideLaunchedAt: Date?
     @ObservationIgnored private var gameBroughtFront = false
     public static let focusRetrySeconds: TimeInterval = 60
+    /// Une sortie de jeu plus tardive que ce délai après le lancement du côté
+    /// est la sienne, même jamais vu ouvert (quitté avant le premier sondage) ;
+    /// plus tôt, c'est la notification retardée (3 s) du jeu précédent.
+    public static let staleExitSeconds: TimeInterval = 10
+    /// Mesure close mais jeu resté ouvert (garde-fou de la sonde raté) : au-delà,
+    /// le pilote le ferme lui-même.
+    public static let finishedOpenSeconds: TimeInterval = 60
+    @ObservationIgnored private var finishedOpenSince: Date?
+    @ObservationIgnored private var quitRequested = false
     /// Un sondage, un lancement ou un retour arrière en cours : la boucle et
     /// la sortie du jeu se croisent au-delà d'un `await` — un seul geste.
     @ObservationIgnored private var working = false
@@ -166,7 +178,16 @@ public final class GuidedPilotRunner {
         guard isStill(step, id) else { return }
         if measured == .finished {
             // La sonde quitte d'elle-même : aucun geste disque jeu ouvert.
-            guard !runtime.isGameRunning() else { return }
+            guard !runtime.isGameRunning() else {
+                let since = finishedOpenSince ?? runtime.now()
+                finishedOpenSince = since
+                if !quitRequested, runtime.now().timeIntervalSince(since) > Self.finishedOpenSeconds {
+                    quitRequested = true
+                    runtime.log("Mesure pilotée : mesure close, jeu toujours ouvert — fermeture.")
+                    await runtime.quitGame()
+                }
+                return
+            }
             await sideFinished()
         } else if gameSeen, !runtime.isGameRunning() {
             fail(.gameQuit, "le jeu s'est fermé sans rendre sa mesure")
@@ -176,8 +197,16 @@ public final class GuidedPilotRunner {
         }
     }
 
-    /// Branché sur `GameExit.publisher` (T7) : sonde tout de suite.
-    public func gameExited() async { await pollOnce() }
+    /// Branché sur `GameExit.publisher` (T7) : sonde tout de suite. Le jeu du
+    /// côté a pu fermer avant le premier sondage : passé `staleExitSeconds`
+    /// après son lancement, la sortie est la sienne.
+    public func gameExited() async {
+        if !gameSeen, let launched = sideLaunchedAt,
+           runtime.now().timeIntervalSince(launched) > Self.staleExitSeconds {
+            gameSeen = true
+        }
+        await pollOnce()
+    }
 
     /// Arrête la série sans geste ; le jeu reste ouvert, au joueur de le fermer.
     public func stop() {
@@ -306,6 +335,7 @@ public final class GuidedPilotRunner {
         gameSeen = false
         sideLaunchedAt = nil
         gameBroughtFront = false
+        persistenceFailed = false
         GuidedPilotStateStore.clear(in: stateDirectory)
     }
 
@@ -315,6 +345,8 @@ public final class GuidedPilotRunner {
         gameSeen = false
         gameBroughtFront = false
         sideLaunchedAt = runtime.now()
+        finishedOpenSince = nil
+        quitRequested = false
     }
 
     /// Écran gardé allumé aussi : une mise en veille de l'écran ou un
@@ -331,7 +363,7 @@ public final class GuidedPilotRunner {
         activity = nil
     }
 
-    private func persist() { GuidedPilotStateStore.save(state, in: stateDirectory) }
+    private func persist() { persistenceFailed = !GuidedPilotStateStore.save(state, in: stateDirectory) }
 
     private func makePlan(_ draft: GuidedPlanDraft, role: ProbeMeasurement.Role, pairedWith: UUID?) -> GuidedPlan {
         GuidedPlan(id: UUID(), name: draft.name, role: role, location: draft.location,

@@ -27,4 +27,17 @@ public class AutoPilotRuleTests
         Assert.True(AutoPilotRule.ShouldExit(GuidedOutcome.Stable));
         Assert.True(AutoPilotRule.ShouldExit(GuidedOutcome.Noisy));
     }
+
+    /// M5 — le saut ne tire qu'en partie, côté hôte, hors cinématique et hors
+    /// menu : `SafelySetTime` y touche l'horloge de tous les joueurs.
+    [Fact]
+    public void SkipsNightOnlyInAPlainWorldTick()
+    {
+        Assert.True(AutoPilotRule.ShouldSkipNightNow(2400, worldReady: true, mainPlayer: true, eventUp: false, menuOpen: false));
+        Assert.False(AutoPilotRule.ShouldSkipNightNow(2350, worldReady: true, mainPlayer: true, eventUp: false, menuOpen: false));
+        Assert.False(AutoPilotRule.ShouldSkipNightNow(2400, worldReady: false, mainPlayer: true, eventUp: false, menuOpen: false));
+        Assert.False(AutoPilotRule.ShouldSkipNightNow(2400, worldReady: true, mainPlayer: false, eventUp: false, menuOpen: false));
+        Assert.False(AutoPilotRule.ShouldSkipNightNow(2400, worldReady: true, mainPlayer: true, eventUp: true, menuOpen: false));
+        Assert.False(AutoPilotRule.ShouldSkipNightNow(2400, worldReady: true, mainPlayer: true, eventUp: false, menuOpen: true));
+    }
 }

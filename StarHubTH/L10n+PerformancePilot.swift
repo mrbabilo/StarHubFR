@@ -29,6 +29,7 @@ extension L10n {
         static let needProfile = "perf_pilot_need_profile"
         static let resume = "perf_pilot_resume"
         static let resumeHelp = "perf_pilot_resume_help"
+        static let notPersisted = "perf_pilot_not_persisted"
     }
 }
 

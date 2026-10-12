@@ -37,6 +37,9 @@ struct PerformancePilotStatus: View {
             case .interrupted:
                 decision(localization.L(L10n.PerformancePilot.interrupted), pilot: pilot)
             }
+            if pilot.persistenceFailed, pilot.isActive || pilot.state.phase == .interrupted {
+                PerformanceFormatting.note(localization.L(L10n.PerformancePilot.notPersisted))
+            }
             if let message { PerformanceFormatting.note(message) }
         }
     }

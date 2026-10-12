@@ -357,10 +357,11 @@ struct PerformanceAnalysisSection: View {
     }
 
     /// Le côté « avant » de la paire pilotée : mêmes nom et lieu que la mesure
-    /// d'après, sauvegarde chargée seule (la première, comme la feuille).
+    /// d'après, la ferme chargée dans la session du rapport (M9).
     private func beforeDraft(_ then: GuidedPlanDraft) -> GuidedPlanDraft {
         GuidedPlanDraft(name: then.name, role: .before, location: then.location, pairedWith: nil,
-                        saveName: viewModel.saves.first?.folderName)
+                        saveName: GuidedPilotSaveChoice.save(session: report.after.session, loads: store.loads,
+                                                             available: viewModel.saves.map(\.folderName)))
     }
 
     /// Un identifiant que `target` résout vers ce dossier (un pack n'en a pas, ses composants si).

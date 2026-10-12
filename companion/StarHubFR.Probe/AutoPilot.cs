@@ -27,7 +27,11 @@ internal static class AutoPilot
     public static void OnTick()
     {
         if (Guided.Active?.AutoPilot != true) return;
-        if (AutoPilotRule.ShouldSkipNight(Game1.timeOfDay)) SafelySetTime(AutoPilotRule.MorningTime);
+        if (AutoPilotRule.ShouldSkipNightNow(Game1.timeOfDay, Context.IsWorldReady, Context.IsMainPlayer,
+                                             Game1.eventUp, Game1.activeClickableMenu is not null))
+            SafelySetTime(AutoPilotRule.MorningTime);
+        // La sortie, elle, ne dépend pas du monde : après ExitToTitle, le
+        // garde-fou doit encore pouvoir couper le processus.
         if (!exiting && AutoPilotRule.ShouldExit(Guided.Rule?.Outcome ?? GuidedOutcome.Running))
         {
             exiting = true;

@@ -456,4 +456,52 @@ import Foundation
         #expect(runner.canResume == false)
         #expect(await runner.resume() == false)
     }
+
+    // MARK: — Mineurs de la revue
+
+    /// M3 — jeu quitté avant le premier sondage : la sortie arrive bien après
+    /// le lancement, ce n'est pas la notification tardive d'un jeu précédent.
+    @Test func earlyQuitAfterTheGraceIsAQuit() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        fake.now += GuidedPilotRunner.staleExitSeconds + 1
+        await runner.gameExited()
+        #expect(runner.state.phase == .failed(.gameQuit))
+    }
+
+    /// M4 — mesure close, jeu resté ouvert (garde-fou de la sonde raté) : au
+    /// bout d'une minute, le pilote ferme le jeu au lieu d'attendre sans fin.
+    @Test func finishedSideWithGameStillOpenQuitsTheGameOnce() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        fake.gameRunning = true
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        #expect(fake.quits == 0)
+        fake.now += GuidedPilotRunner.finishedOpenSeconds + 1
+        await runner.pollOnce()
+        #expect(fake.quits == 1)
+        await runner.pollOnce()
+        #expect(fake.quits == 1)
+        #expect(fake.gestures.isEmpty)
+        fake.gameRunning = false
+        await runner.gameExited()
+        #expect(fake.gestures.count == 1)
+    }
+
+    /// M10 — état non écrit : la reprise après plantage n'existe pas, et
+    /// l'écran doit le dire au lieu de la promettre.
+    @Test func persistenceFailureIsReported() async {
+        let fake = Fake()
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent("absent-\(UUID().uuidString)/sous", isDirectory: true)
+        let runner = GuidedPilotRunner(stateDirectory: missing, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: nil)
+        #expect(runner.persistenceFailed)
+        let healthy = GuidedPilotRunner(stateDirectory: temporaryDirectory(), runtime: runtime(Fake()))
+        await healthy.start(draft: draft(), gesture: nil)
+        #expect(healthy.persistenceFailed == false)
+    }
 }

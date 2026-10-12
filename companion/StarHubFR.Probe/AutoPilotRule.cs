@@ -12,5 +12,13 @@ public static class AutoPilotRule
 
     public static bool ShouldWarp(bool alreadyWarped, bool autoPilot) => autoPilot && !alreadyWarped;
     public static bool ShouldSkipNight(int timeOfDay) => timeOfDay >= NightSkipThreshold;
+
+    /// <summary>Le saut ne tire qu'en partie, côté hôte, hors cinématique et
+    /// hors menu. La minute qui le contient reste exclue (« nuit » : l'horloge
+    /// recule) — voulu : elle porte la rafale de ~108 mises à jour d'horloge
+    /// d'une seule trame, pas représentative. Une minute perdue par journée de
+    /// jeu, contre les cinq ou six que coûtent le sommeil et sa cinématique.</summary>
+    public static bool ShouldSkipNightNow(int timeOfDay, bool worldReady, bool mainPlayer, bool eventUp, bool menuOpen) =>
+        worldReady && mainPlayer && !eventUp && !menuOpen && ShouldSkipNight(timeOfDay);
     public static bool ShouldExit(GuidedOutcome outcome) => outcome is GuidedOutcome.Stable or GuidedOutcome.Noisy;
 }
