@@ -18,17 +18,29 @@ struct PerformanceMeasurementStatus: View {
                     PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
                 }
             }
-            if store.plan != nil, viewModel.isGameRunning() {
+            // Pilotage : le plan est écrit par le runner, pas par ce store —
+            // la relecture démarre sans attendre que `store.plan` le voie.
+            let piloting = viewModel.pilot.isActive
+            if store.plan != nil || piloting, viewModel.isGameRunning() {
                 TimelineView(.periodic(from: .now, by: 15)) { context in
-                    Text(String(format: localization.L(L10n.PerformanceEvidence.guidedProgress), store.guidedMinuteCount))
-                        .font(AppDesign.Font.footnote)
-                        .task(id: context.date) {
-                            if viewModel.navigationStore.diagnosticsSegment == .performance {
-                                await store.reload(gameDir: viewModel.gameDir)
-                            }
+                    Group {
+                        // En pilotage, la ligne d'état du pilote porte le compte.
+                        if piloting {
+                            Color.clear.frame(width: 0, height: 0)
+                        } else {
+                            Text(String(format: localization.L(L10n.PerformanceEvidence.guidedProgress),
+                                        store.guidedMinuteCount))
+                                .font(AppDesign.Font.footnote)
                         }
+                    }
+                    .task(id: context.date) {
+                        if viewModel.navigationStore.diagnosticsSegment == .performance {
+                            await store.reload(gameDir: viewModel.gameDir)
+                        }
+                    }
                 }
             }
+            PerformancePilotStatus(viewModel: viewModel, localization: localization, store: store)
             if store.status == .loading { ProgressView(localization.L(L10n.Performance.loading)).controlSize(.small) }
             if viewModel.isBenchmarkActive {
                 Text(localization.L(L10n.PerformanceEvidence.benchmarkBusy)).font(AppDesign.Font.footnote)

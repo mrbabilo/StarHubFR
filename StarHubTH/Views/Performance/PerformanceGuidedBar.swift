@@ -7,6 +7,8 @@ struct PerformanceGuidedBar: View {
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
     @State private var draft: GuidedPlanDraft?
+    /// La feuille ouverte par « Mesure pilotée » : même choix, autre issue.
+    @State private var piloted = false
     @State private var message: String?
 
     /// `nil` tant que le scan n'a pas fini : « sonde non installée » serait
@@ -20,11 +22,26 @@ struct PerformanceGuidedBar: View {
         return GuidedProtocol.readiness(probeVersion: probe?.version, isEnabled: probe?.isEnabled ?? false)
     }
 
+    /// Bouton caché sous 0.9.25 : une vieille sonde ignorerait le pilotage
+    /// et attendrait un joueur (spec §5).
+    private var pilotSupported: Bool {
+        viewModel.scanStore.mods.flattenedMods.first {
+            $0.uniqueId.caseInsensitiveCompare(GuidedProtocol.probeId) == .orderedSame
+        }.map { GuidedProtocol.supportsPilot($0.version) } ?? false
+    }
+
+    /// Série en vol, benchmark ou jeu ouvert : aucune mesure ne démarre.
+    private var startBlocked: Bool {
+        viewModel.isBenchmarkActive || viewModel.pilot.busyReasonKey != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
             // Un plan en attente reste visible et abandonnable, sonde prête
             // ou non : sinon il resterait sur disque, hors d'atteinte.
-            if case .planPending(let plan) = store.protocolState { pending(plan) }
+            // Plan piloté : la ligne d'état du pilote en tient lieu (l'abandonner
+            // ici couperait la série sous le runner).
+            if case .planPending(let plan) = store.protocolState, plan.autoPilot != true { pending(plan) }
             switch readiness {
             case .missing: note(localization.L(L10n.Performance.guidedMissing))
             case .paused: note(localization.L(L10n.Performance.guidedPaused))
@@ -37,8 +54,8 @@ struct PerformanceGuidedBar: View {
         }
         .sheet(item: Binding(get: { draft.map(DraftBox.init) }, set: { draft = $0?.draft })) { box in
             PerformanceGuidedSheet(viewModel: viewModel, localization: localization, draft: box.draft,
-                                   canLaunch: launchProfile != "Vanilla") { final, launch in
-                prepare(final, launch: launch)
+                                   canLaunch: launchProfile != "Vanilla", piloted: piloted) { final, launch in
+                if piloted { startPilot(final) } else { prepare(final, launch: launch) }
             }
         }
     }
@@ -55,20 +72,34 @@ struct PerformanceGuidedBar: View {
                             before.keptAt?.count ?? 0, outcomeName(before.outcome)))
                     .font(AppDesign.Font.footnote)
                 Button(localization.L(L10n.Performance.guidedAfterButton)) {
+                    piloted = false
                     draft = GuidedPlanDraft(name: defaultName(), role: .after,
                                             location: GuidedProtocol.safeLocation(before.location),
                                             pairedWith: before.id)
                 }
                 .clickableCursor()
-                .disabled(viewModel.isBenchmarkActive)
+                .disabled(startBlocked)
             }
         case .idle:
             AdaptiveLabels {
-                Button {
-                    draft = GuidedPlanDraft(name: defaultName(), role: .before,
-                                            location: GuidedProtocol.fallbackLocation, pairedWith: nil)
-                } label: { Label(primaryTitle, systemImage: "play.circle") }
-                .help(primaryTitle).clickableCursor().disabled(viewModel.isBenchmarkActive)
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    Button {
+                        piloted = false
+                        draft = GuidedPlanDraft(name: defaultName(), role: .before,
+                                                location: GuidedProtocol.fallbackLocation, pairedWith: nil)
+                    } label: { Label(primaryTitle, systemImage: "play.circle") }
+                    .help(primaryTitle).clickableCursor().disabled(startBlocked)
+                    if pilotSupported && launchProfile != "Vanilla" {
+                        Button {
+                            piloted = true
+                            draft = GuidedPlanDraft(name: defaultName(), role: .before,
+                                                    location: GuidedProtocol.fallbackLocation, pairedWith: nil)
+                        } label: { Label(localization.L(L10n.PerformancePilot.action), systemImage: "autostart") }
+                        .help(localization.L(L10n.PerformancePilot.actionHelp))
+                        .clickableCursor()
+                        .disabled(startBlocked || viewModel.isGameRunning())
+                    }
+                }
             }
         }
     }
@@ -134,6 +165,26 @@ struct PerformanceGuidedBar: View {
         }
     }
 
+    /// Barre guidée en piloté : le profil choisi est le **changement** entre
+    /// les deux côtés (« avant » = parc actuel) ; sans profil, un seul côté
+    /// piloté, mesuré comme un « avant » ordinaire.
+    private func startPilot(_ final: GuidedPlanDraft) {
+        // Sans sauvegarde, la sonde attendrait un clic à l'écran titre.
+        guard final.saveName != nil else {
+            message = localization.L(L10n.PerformancePilot.noSave)
+            return
+        }
+        var before = final
+        before.launchProfileId = nil
+        let gesture = final.launchProfileId
+            .flatMap { id in viewModel.modProfiles.first { $0.id == id } }
+            .map { GuidedPilotGesture.applyProfile(baseProfileIds: $0.enabledModIds) }
+        Task {
+            let started = await viewModel.pilot.start(draft: before, gesture: gesture)
+            message = started ? nil : localization.L(L10n.PerformancePilot.startRefused)
+        }
+    }
+
     private func defaultName() -> String {
         String(format: localization.L(L10n.Performance.measureDefaultName),
                Date().formatted(date: .abbreviated, time: .shortened))
@@ -163,17 +214,21 @@ struct PerformanceGuidedSheet: View {
     @ObservedObject var localization: LocalizationStore
     @State var draft: GuidedPlanDraft
     let canLaunch: Bool
+    /// « Mesure pilotée » : pas de « préparer seulement », le profil devient
+    /// le côté « après ».
+    let piloted: Bool
     let onConfirm: (GuidedPlanDraft, Bool) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var saveFolder = ""
     @State private var profileId: UUID?
 
     init(viewModel: StarHubTHViewModel, localization: LocalizationStore, draft: GuidedPlanDraft,
-         canLaunch: Bool, onConfirm: @escaping (GuidedPlanDraft, Bool) -> Void) {
+         canLaunch: Bool, piloted: Bool, onConfirm: @escaping (GuidedPlanDraft, Bool) -> Void) {
         self.viewModel = viewModel
         self.localization = localization
         _draft = State(initialValue: draft)
         self.canLaunch = canLaunch
+        self.piloted = piloted
         self.onConfirm = onConfirm
     }
 
@@ -205,7 +260,7 @@ struct PerformanceGuidedSheet: View {
                 ForEach(viewModel.modProfiles) { Text($0.name).tag(UUID?.some($0.id)) }
             }
             if profileId != nil {
-                Text(localization.L(L10n.Performance.guidedProfileNote))
+                Text(localization.L(piloted ? L10n.PerformancePilot.profileNote : L10n.Performance.guidedProfileNote))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -215,10 +270,14 @@ struct PerformanceGuidedSheet: View {
             }
             WrapHStack(spacing: AppDesign.Spacing.sm) {
                 Button(localization.L(L10n.Performance.confirmCancel), role: .cancel) { dismiss() }
-                Button(localization.L(L10n.Performance.guidedPrepareOnly)) { confirm(launch: false) }
+                if !piloted {
+                    Button(localization.L(L10n.Performance.guidedPrepareOnly)) { confirm(launch: false) }
+                }
                 if canLaunch {
-                    Button(localization.L(L10n.Performance.guidedLaunch)) { confirm(launch: true) }
-                        .keyboardShortcut(.defaultAction)
+                    Button(localization.L(piloted ? L10n.PerformancePilot.action : L10n.Performance.guidedLaunch)) {
+                        confirm(launch: true)
+                    }
+                    .keyboardShortcut(.defaultAction)
                 }
             }
         }

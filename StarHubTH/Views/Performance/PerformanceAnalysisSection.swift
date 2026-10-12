@@ -284,6 +284,10 @@ struct PerformanceAnalysisSection: View {
             message = localization.L(L10n.Performance.gameRunning)
             return
         }
+        if let piloted = pilotStart(for: gesture) {
+            startPilot(piloted.draft, gesture: piloted.gesture)
+            return
+        }
         switch gesture {
         case .pause(let mod, let thenMeasure):
             if mod.isEnabled { viewModel.toggleMod(mod) }
@@ -320,6 +324,47 @@ struct PerformanceAnalysisSection: View {
         case .prepare: return true
         case .pause(_, let then), .revertConfig(_, _, let then): return then != nil
         case .backups: return false
+        }
+    }
+
+    /// Sonde ≥ 0.9.25 : un geste qui porte une mesure d'après se joue en
+    /// piloté — « avant » frais, geste entre les deux côtés, « après »,
+    /// rapport (spec §2.2, §8). Le geste ne part donc pas ici.
+    private func pilotStart(for gesture: PendingAction) -> (draft: GuidedPlanDraft, gesture: GuidedPilotGesture)? {
+        guard case .enabled(_, let version) = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods),
+              GuidedProtocol.supportsPilot(version) else { return nil }
+        switch gesture {
+        case .pause(let mod, let then?):
+            return (beforeDraft(then), .pauseMod(folderName: mod.folderName, modId: pilotModId(mod)))
+        case .revertConfig(let mod, let sha, let then?):
+            return (beforeDraft(then), .revertConfig(modId: pilotModId(mod), sha: sha))
+        case .pause, .revertConfig, .prepare, .backups:
+            return nil
+        }
+    }
+
+    /// Le côté « avant » de la paire pilotée : mêmes nom et lieu que la mesure
+    /// d'après, sauvegarde chargée seule (la première, comme la feuille).
+    private func beforeDraft(_ then: GuidedPlanDraft) -> GuidedPlanDraft {
+        GuidedPlanDraft(name: then.name, role: .before, location: then.location, pairedWith: nil,
+                        saveName: viewModel.saves.first?.folderName)
+    }
+
+    /// Un identifiant que `ProbePerformanceActions.target` résout vers ce
+    /// dossier : un pack n'a pas d'identifiant propre, ses composants si.
+    private func pilotModId(_ mod: ModItem) -> String {
+        mod.components.first { !$0.uniqueId.isEmpty }?.uniqueId ?? mod.uniqueId
+    }
+
+    private func startPilot(_ draft: GuidedPlanDraft, gesture: GuidedPilotGesture) {
+        guard draft.saveName != nil else {
+            viewModel.reloadSaves()
+            message = localization.L(L10n.PerformancePilot.noSave)
+            return
+        }
+        Task {
+            let started = await viewModel.pilot.start(draft: draft, gesture: gesture)
+            message = started ? nil : localization.L(L10n.PerformancePilot.startRefused)
         }
     }
 

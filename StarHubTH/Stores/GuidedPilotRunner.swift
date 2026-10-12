@@ -120,6 +120,9 @@ public final class GuidedPilotRunner {
     /// la sortie du jeu se croisent au-delà d'un `await` — un seul geste.
     @ObservationIgnored private var working = false
     @ObservationIgnored private var loop: Task<Void, Never>?
+    /// Sommeil système empêché pendant la série (patron du benchmark) :
+    /// l'utilisateur n'est pas devant.
+    @ObservationIgnored private var activity: NSObjectProtocol?
 
     public init(stateDirectory: URL?, runtime: GuidedPilotRuntime) {
         self.stateDirectory = stateDirectory
@@ -157,6 +160,8 @@ public final class GuidedPilotRunner {
         beforePlanId = plan.id
         currentPlanId = plan.id
         persist()
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .idleSystemSleepDisabled], reason: "Mesure pilotée")
         runtime.log("Mesure pilotée « \(draft.name) » : côté avant lancé.")
         startLoop()
         return true
@@ -254,6 +259,7 @@ public final class GuidedPilotRunner {
             runtime.removePilotPlan()
             GuidedPilotStateStore.clear(in: stateDirectory)
             loop?.cancel()
+            endActivity()
             runtime.requestUserAttention()
             runtime.log("Mesure pilotée : rapport prêt.")
         case .applying:
@@ -304,11 +310,13 @@ public final class GuidedPilotRunner {
         runtime.removePilotPlan()
         persist()
         loop?.cancel()
+        endActivity()
         runtime.log("Mesure pilotée : \(reason).")
     }
 
     private func reset() {
         loop?.cancel()
+        endActivity()
         state = .initial
         interruptedWhileApplying = false
         beforePlanId = nil
@@ -316,6 +324,11 @@ public final class GuidedPilotRunner {
         lastKept = 0
         gameSeen = false
         GuidedPilotStateStore.clear(in: stateDirectory)
+    }
+
+    private func endActivity() {
+        if let activity { ProcessInfo.processInfo.endActivity(activity) }
+        activity = nil
     }
 
     private func persist() { GuidedPilotStateStore.save(state, in: stateDirectory) }

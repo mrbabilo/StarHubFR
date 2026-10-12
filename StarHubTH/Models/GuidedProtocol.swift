@@ -101,4 +101,12 @@ public enum GuidedProtocol {
         let numbers = parts.compactMap { $0 } + [0, 0, 0]
         return (numbers[0], numbers[1], numbers[2]) >= (0, 5, 0)
     }
+
+    /// Pilotage (P1) : la sonde qui exécute le plan en jeu. Distinct de la
+    /// borne de guidage (0.5.0) — ne pas les fusionner.
+    public static let pilotMinimumVersion = [0, 9, 25]
+
+    public static func supportsPilot(_ version: String) -> Bool {
+        ProbeLoadRecords.version(version, atLeast: pilotMinimumVersion)
+    }
 }
