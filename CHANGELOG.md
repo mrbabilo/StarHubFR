@@ -14,9 +14,10 @@ where the exact log format was verified.
 
 ### Added
 
-- **La paire de mesures guidées se joue d'un clic.** La sonde 0.9.25 conduit la session en jeu (warp au lieu, nuit sautée, sortie propre) et l'app enchaîne avant, changement, après, puis rapport ; un échec se nomme et propose le retour arrière (P1).
+- **La paire de mesures guidées se joue d'un clic.** La sonde 0.9.25 conduit la session (jeu mis devant, warp au lieu, nuit sautée, sortie propre) ; l'app enchaîne avant, changement, après, rapport. Depuis la barre (le profil choisi devient l'« après ») ou depuis « Isoler » (P1).
+- **Une série pilotée se rattrape.** Un échec se nomme ; le côté interrompu se relance, et le changement se défait — rapport lu ou app plantée en cours, l'état d'avant étant noté sur disque. Bissection et bascules attendent la fin de la série.
 - **« Benchmarker ce mod »** depuis la carte Chargements et la recommandation d'analyse : la feuille du benchmark s'ouvre avec ce mod en pause côté B (P2).
-- **Bandeau en jeu enrichi** : cible et minutes exclues dans le décompte, bruit de la mesure à la fin ; mini-stats en option (FPS, P50/P99 sur 60 s, mémoire), rafraîchies à la seconde.
+- **Bandeau en jeu enrichi** : cible et minutes exclues dans le décompte, bruit de la mesure à la fin ; mini-stats en option (FPS de la dernière seconde, P50/P99 des trames de la minute, mémoire), rafraîchies à la seconde.
 
 ### Changed
 
