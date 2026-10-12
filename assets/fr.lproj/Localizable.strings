@@ -1965,7 +1965,10 @@
 "perf_guided_outdated" = "Ta sonde (%@) ne sait pas guider une mesure : installe la version 0.5.0 ou plus récente.";
 "perf_guided_write_failed" = "Mesure non préparée : %@";
 "perf_guided_profile_apply_failed" = "Profil non appliqué — mesure non lancée.";
-"perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision : le parc et le jeu sont réservés jusqu'à la fin.";
+"perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision (Diagnostics › Performances) : le parc et le jeu sont réservés jusqu'à la fin.";
+"perf_pilot_need_profile" = "Choisis le profil à comparer : il devient le côté « après », le parc actuel le côté « avant ».";
+"perf_pilot_resume" = "Relancer ce côté";
+"perf_pilot_resume_help" = "Relance le côté qui n'a pas abouti, apparié au même « avant » ; le changement n'est pas rejoué.";
 "perf_benchmark_this_mod" = "Benchmarker ce mod";
 "perf_pilot_action" = "Mesure pilotée";
 "perf_pilot_action_help" = "La sonde joue la mesure seule : avant, changement choisi (profil), après, puis rapport. Sans profil, un seul côté.";
@@ -1974,8 +1977,8 @@
 "perf_pilot_step_before" = "avant (1/2)";
 "perf_pilot_step_after" = "après (2/2)";
 "perf_pilot_applying" = "Pilotage — changement entre les deux côtés…";
-"perf_pilot_failed_noMeasurement" = "Le jeu s'est fermé sans rendre sa mesure.";
-"perf_pilot_failed_stalled" = "Minutes gardées figées dix minutes — série arrêtée, aucun geste exécuté.";
+"perf_pilot_failed_noMeasurement" = "Ce côté n'a pas pu démarrer, ou n'a rendu aucune mesure.";
+"perf_pilot_failed_stalled" = "Minutes gardées figées dix minutes — série arrêtée, jeu fermé.";
 "perf_pilot_failed_applyFailed" = "Le changement entre les deux côtés n'a pas pu être appliqué — parc possiblement modifié, retour arrière proposé.";
 "perf_pilot_failed_revertFailed" = "Le réglage n'a pas pu être réécrit — retour arrière proposé.";
 "perf_pilot_failed_gameQuit" = "Le jeu a été fermé avant la fin de la mesure.";
@@ -1987,7 +1990,7 @@
 "perf_pilot_rollback_failed" = "Retour arrière non appliqué — parc laissé tel quel.";
 "perf_pilot_dismiss" = "Laisser tel quel";
 "perf_pilot_stop" = "Arrêter la série";
-"perf_pilot_stop_help" = "Arrête après ce côté sans appliquer le changement ; ferme le jeu toi-même.";
+"perf_pilot_stop_help" = "Arrête la série tout de suite : le côté en cours est abandonné, aucun changement appliqué ; ferme le jeu toi-même.";
 "perf_pilot_start_refused" = "Mesure pilotée non lancée : jeu ouvert, autre travail en cours ou profil non appliqué.";
 "perf_pilot_no_save" = "La mesure pilotée doit charger une sauvegarde seule : aucune trouvée.";
 "perf_guided_abandon_failed" = "Mesure non abandonnée : %@";

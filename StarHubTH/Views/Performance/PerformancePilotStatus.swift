@@ -46,6 +46,17 @@ struct PerformancePilotStatus: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(text).font(AppDesign.Font.footnote).fixedSize(horizontal: false, vertical: true)
             WrapHStack(spacing: AppDesign.Spacing.sm) {
+                if pilot.canResume {
+                    Button(localization.L(L10n.PerformancePilot.resume)) {
+                        Task {
+                            let resumed = await pilot.resume()
+                            message = resumed ? nil : localization.L(L10n.PerformancePilot.startRefused)
+                        }
+                    }
+                    .help(localization.L(L10n.PerformancePilot.resumeHelp))
+                    .clickableCursor()
+                    .disabled(viewModel.isGameRunning())
+                }
                 if pilot.canRollback {
                     Button(localization.L(L10n.PerformancePilot.rollback)) {
                         Task {

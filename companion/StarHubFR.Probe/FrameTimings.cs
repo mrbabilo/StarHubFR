@@ -70,6 +70,9 @@ internal static class FrameTimings
     /// <summary>La durée de la dernière trame vue de MonoGame (`TickMs`),
     /// lue par les mini-stats — aucune mesure neuve ici.</summary>
     internal static double LastFrameMs => TickMs.Count == 0 ? 0 : TickMs[^1];
+    /// <summary>Les trames de la minute en cours (0 à 60 s, remise à zéro à
+    /// chaque ligne écrite) : la fenêtre des mini-stats, sans mesure neuve.</summary>
+    internal static IReadOnlyList<float> WindowTickMs => TickMs;
     private static double WindowStartMs;
     private static int Gen0, Gen1, Gen2;
     private const double WindowMs = 60_000;

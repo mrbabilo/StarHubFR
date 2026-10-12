@@ -45,7 +45,8 @@ public enum GuidedProtocol {
     public static let fallbackLocation = "Farm"
 
     /// Tuiles d'arrivée du warp piloté, une par lieu proposé (spec P1 §5 —
-    /// validées à l'écran : personnage posé sur tuile libre, pas dans un mur).
+    /// **à valider à l'écran** sur le parc réel — SVE redessine Farm et Town,
+    /// FarmHouse dépend du niveau de la maison : tuile libre, pas dans un mur).
     public static let warpAnchors: [String: (x: Int, y: Int)] = [
         "Farm": (64, 15), "FarmHouse": (4, 11), "Town": (30, 55),
         "Beach": (28, 34), "Forest": (30, 87), "Mountain": (18, 24),

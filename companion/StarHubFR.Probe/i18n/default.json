@@ -19,5 +19,5 @@
   "config.textures.name": "Measure resident textures",
   "config.textures.tooltip": "Tracks the memory kept in loaded textures, by provider (opt-in). Takes effect at the next launch of the game.",
   "config.ministats.name": "Show mini stats",
-  "config.ministats.tooltip": "Live FPS, P50/P99 over 60 s and working set, top-right, once per second (opt-in). Takes effect at the next launch of the game."
+  "config.ministats.tooltip": "Live FPS (last second), P50/P99 frame times over the current minute and working set, top-right, once per second (opt-in). Takes effect at the next launch of the game."
 }

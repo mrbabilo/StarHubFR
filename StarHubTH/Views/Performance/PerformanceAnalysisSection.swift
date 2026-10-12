@@ -276,6 +276,11 @@ struct PerformanceAnalysisSection: View {
     /// la sonde la mène en jeu).
     private func perform(_ gesture: PendingAction) {
         pending = nil
+        // Série pilotée en vol ou à trancher : ni son plan écrasé, ni son parc touché.
+        if viewModel.pilot.busyReasonKey != nil {
+            message = localization.L(L10n.PerformancePilot.locked)
+            return
+        }
         switch gesture {
         case .prepare(let draft):
             prepareMeasure(draft)
@@ -338,9 +343,11 @@ struct PerformanceAnalysisSection: View {
     /// rapport (spec §2.2, §8). Le geste ne part donc pas ici.
     private func pilotStart(for gesture: PendingAction) -> (draft: GuidedPlanDraft, gesture: GuidedPilotGesture)? {
         guard case .enabled(_, let version) = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods),
-              GuidedProtocol.supportsPilot(version) else { return nil }
+              GuidedProtocol.supportsPilot(version),
+              // Vanilla : le jeu partirait sans SMAPI, la série attendrait en vain.
+              UserDefaults.standard.string(forKey: UDKey.launchProfile) != "Vanilla" else { return nil }
         switch gesture {
-        case .pause(let mod, let then?):
+        case .pause(let mod, let then?) where mod.isEnabled:
             return (beforeDraft(then), .pauseMod(folderName: mod.folderName, modId: pilotModId(mod)))
         case .revertConfig(let mod, let sha, let then?):
             return (beforeDraft(then), .revertConfig(modId: pilotModId(mod), sha: sha))
@@ -356,8 +363,7 @@ struct PerformanceAnalysisSection: View {
                         saveName: viewModel.saves.first?.folderName)
     }
 
-    /// Un identifiant que `ProbePerformanceActions.target` résout vers ce
-    /// dossier : un pack n'a pas d'identifiant propre, ses composants si.
+    /// Un identifiant que `target` résout vers ce dossier (un pack n'en a pas, ses composants si).
     private func pilotModId(_ mod: ModItem) -> String {
         mod.components.first { !$0.uniqueId.isEmpty }?.uniqueId ?? mod.uniqueId
     }
@@ -366,6 +372,10 @@ struct PerformanceAnalysisSection: View {
         guard draft.saveName != nil else {
             viewModel.reloadSaves()
             message = localization.L(L10n.PerformancePilot.noSave)
+            return
+        }
+        if let refusal = GuidedPilotLive.refusal(for: gesture, viewModel) {
+            message = PerformanceBenchmarkSheet.text(for: refusal, localization: localization)
             return
         }
         Task {

@@ -6,7 +6,8 @@ using StardewValley;
 
 namespace StarHubFR.Probe;
 
-/// <summary>P1 T5 — opt-in : FPS courant, P50/P99 glissants sur 60 s, jeu de
+/// <summary>P1 T5 — opt-in : FPS de la dernière seconde, P50/P99 des trames
+/// de la minute en cours (fenêtre de `FrameTimings`, 0 à 60 s), jeu de
 /// travail du processus — coin haut droit, rafraîchi à la seconde. Observation
 /// instantanée : ne partage pas le compteur « minutes gardées » (la mesure
 /// close vit son propre rythme, 30–35 s de décalage connu).
@@ -17,7 +18,8 @@ namespace StarHubFR.Probe;
 internal static class MiniStats
 {
     private static int ticksSinceRender;
-    private static readonly Queue<double> frameMs = new();
+    private static int framesAtLastRender;
+    private static readonly Stopwatch sinceRender = Stopwatch.StartNew();
     private static string text = "";
 
     /// <summary>Deux événements que `GuidedBanner` utilise déjà : dessiné
@@ -31,26 +33,34 @@ internal static class MiniStats
         helper.Events.Display.RenderedActiveMenu += (_, e) => Draw(e.SpriteBatch);
     }
 
+    /// <summary>À chaque tick de mise à jour ; le texte se recalcule une fois
+    /// par seconde. Option coupée : plus rien à l'écran.</summary>
     public static void OnTicked(bool enabled)
     {
+        if (!enabled) { text = ""; return; }
         if (!MiniStatsRule.ShouldRender(++ticksSinceRender, enabled)) return;
         ticksSinceRender = 0;
-        frameMs.Enqueue(FrameTimings.LastFrameMs);
-        while (frameMs.Count > 3600) frameMs.Dequeue();   // ~60 s à 60 FPS
-        text = Build();
+        var window = FrameTimings.WindowTickMs;
+        // FPS de la dernière seconde : les trames ajoutées depuis le dernier
+        // rendu, sur le temps réellement écoulé. Fenêtre remise à zéro entre
+        // deux (nouvelle minute) : seules les trames de la nouvelle comptent.
+        int frames = window.Count >= framesAtLastRender ? window.Count - framesAtLastRender : window.Count;
+        double seconds = sinceRender.Elapsed.TotalSeconds;
+        framesAtLastRender = window.Count;
+        sinceRender.Restart();
+        text = Build(window, seconds > 0 ? frames / seconds : 0);
     }
 
-    internal static string Build()
+    internal static string Build(IReadOnlyList<float> window, double fps)
     {
-        var sorted = new List<double>(frameMs); sorted.Sort();
+        var sorted = new List<float>(window); sorted.Sort();
         double p50 = Percentile(sorted, 0.50);
         double p99 = Percentile(sorted, 0.99);
         double ws = Process.GetCurrentProcess().WorkingSet64 / (1024.0 * 1024.0);
-        double fps = p50 <= 0 ? 0 : 1000.0 / p50;
         return $"FPS {fps:F0}  P50 {p50:F1} ms  P99 {p99:F1} ms  RAM {ws:F0} MB";
     }
 
-    private static double Percentile(List<double> sorted, double q)
+    private static double Percentile(List<float> sorted, double q)
     {
         if (sorted.Count == 0) return 0;
         int index = (int)Math.Clamp(q * (sorted.Count - 1), 0, sorted.Count - 1);

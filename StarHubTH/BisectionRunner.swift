@@ -101,7 +101,8 @@ final class BisectionRunner: ObservableObject {
     }
 
     func start() {
-        guard !isApplying, !vm.isBenchmarkActive, !SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: snapshotDirectory) else { return }
+        guard !isApplying, !vm.isBenchmarkActive, !SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: snapshotDirectory),
+              !vm.refuseDuringPilot() else { return }   // pilotage en vol ou à trancher (P1 §7)
         guard !vm.isGameRunning() else { gameStillRunning = true; return }
         gameStillRunning = false
         restoreIncomplete = false

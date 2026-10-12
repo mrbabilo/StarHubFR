@@ -8,6 +8,22 @@ public enum GuidedPilotGesture: Codable, Equatable, Sendable {
     case revertConfig(modId: String, sha: String)
 }
 
+/// L'état d'avant le geste, relevé **juste avant** lui et persisté avec la
+/// série : le retour arrière ne dépend pas de la mémoire de l'app (un
+/// plantage pendant `applying` le laisse possible). Dossiers actifs pour une
+/// pause ou un profil ; texte du `config.json` pour un revert.
+public struct GuidedPilotUndo: Codable, Equatable, Sendable {
+    public var enabledFolders: [String]?
+    public var configPath: String?
+    public var configText: String?
+
+    public init(enabledFolders: [String]? = nil, configPath: String? = nil, configText: String? = nil) {
+        self.enabledFolders = enabledFolders
+        self.configPath = configPath
+        self.configText = configText
+    }
+}
+
 /// État du pilotage d'une paire de mesures guidées (spec P1 §7). Machine pure :
 /// le runner applique les transitions, rien d'autre.
 public struct GuidedPilotPlan: Codable, Equatable, Sendable {
@@ -37,6 +53,13 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
     public private(set) var gestureRan = false
     public private(set) var startedAt: Date?
     public private(set) var lastProgressAt: Date?
+    /// Relevé avant le geste (`recordUndo`) ; `nil` = rien à défaire.
+    public private(set) var undo: GuidedPilotUndo?
+    /// Le plan « avant » : le « après » s'y apparie, reprise comprise.
+    public private(set) var beforePlanId: UUID?
+    /// Le côté en vol au plantage de l'app — `nil` pendant `applying` : le
+    /// geste a pu partir à moitié, seul le retour arrière vaut.
+    public private(set) var interruptedStep: Step?
 
     public init() {}
 
@@ -49,6 +72,36 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
         startedAt = now
         lastProgressAt = now
         phase = .running(step: .before)
+    }
+
+    public mutating func setBeforePlan(_ id: UUID) {
+        guard phase == .running(step: .before) else { return }
+        beforePlanId = id
+    }
+
+    public mutating func recordUndo(_ undo: GuidedPilotUndo?) {
+        guard phase == .applying else { return }
+        self.undo = undo
+    }
+
+    /// Le côté à relancer : celui qui a échoué sans que le geste ne rate
+    /// (jeu fermé, minutes figées, arrêt), ou celui en vol au plantage.
+    public var resumableStep: Step? {
+        switch phase {
+        case .failed(.gameQuit), .failed(.stalled), .failed(.noMeasurement), .failed(.stopped):
+            return gestureRan ? .after : .before
+        case .interrupted:
+            return interruptedStep
+        default:
+            return nil
+        }
+    }
+
+    public mutating func resume(now: Date) {
+        guard let step = resumableStep else { return }
+        phase = .running(step: step)
+        interruptedStep = nil
+        lastProgressAt = now
     }
 
     public mutating func noteProgress(now: Date) {
@@ -97,7 +150,8 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
     public mutating func interrupt() {
         switch phase {
         case .idle, .reporting, .failed, .interrupted: return
-        case .running, .applying: phase = .interrupted
+        case .running(let step): interruptedStep = step; phase = .interrupted
+        case .applying: interruptedStep = nil; phase = .interrupted
         }
     }
 
@@ -106,5 +160,6 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
         phase = .idle
         beforeDraft = nil; gesture = nil; gestureRan = false
         startedAt = nil; lastProgressAt = nil
+        undo = nil; beforePlanId = nil; interruptedStep = nil
     }
 }

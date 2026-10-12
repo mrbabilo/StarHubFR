@@ -47,9 +47,13 @@ struct PerformanceBenchmarkSheet: View {
         guard let sideB, save(saveA) != nil, kind == .same || save(saveB) != nil else {
             return localization.L(L10n.Benchmark.refSaveMissing)
         }
-        switch BenchmarkSides.refusal(sideB, mods: viewModel.mods, baseProfileIds: baseIds) {
-        case nil:
-            return nil
+        return BenchmarkSides.refusal(sideB, mods: viewModel.mods, baseProfileIds: baseIds)
+            .map { Self.text(for: $0, localization: localization) }
+    }
+
+    /// Partagé avec la mesure pilotée : mêmes refus, mêmes mots.
+    static func text(for refusal: BenchmarkRefusal, localization: LocalizationStore) -> String {
+        switch refusal {
         case .probeMissing:
             return localization.L(L10n.Benchmark.refProbeMissing)
         case .probeTooOld(let version):

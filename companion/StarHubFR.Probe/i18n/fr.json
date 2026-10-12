@@ -19,5 +19,5 @@
   "config.textures.name": "Mesurer les textures résidentes",
   "config.textures.tooltip": "Suit la mémoire retenue dans les textures chargées, par fournisseur (opt-in). Prend effet au prochain lancement du jeu.",
   "config.ministats.name": "Afficher les mini-stats",
-  "config.ministats.tooltip": "FPS courant, P50/P99 sur 60 s et mémoire de travail, coin haut droit, une fois par seconde (opt-in). Prend effet au prochain lancement du jeu."
+  "config.ministats.tooltip": "FPS de la dernière seconde, P50/P99 des trames de la minute en cours et mémoire de travail, coin haut droit, une fois par seconde (opt-in). Prend effet au prochain lancement du jeu."
 }

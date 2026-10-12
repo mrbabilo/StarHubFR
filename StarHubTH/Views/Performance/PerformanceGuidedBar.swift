@@ -166,19 +166,25 @@ struct PerformanceGuidedBar: View {
     }
 
     /// Barre guidée en piloté : le profil choisi est le **changement** entre
-    /// les deux côtés (« avant » = parc actuel) ; sans profil, un seul côté
-    /// piloté, mesuré comme un « avant » ordinaire.
+    /// les deux côtés (« avant » = parc actuel) — exigé : sans lui, il n'y
+    /// aurait qu'un côté, pas la paire promise (spec §8).
     private func startPilot(_ final: GuidedPlanDraft) {
         // Sans sauvegarde, la sonde attendrait un clic à l'écran titre.
         guard final.saveName != nil else {
             message = localization.L(L10n.PerformancePilot.noSave)
             return
         }
+        guard let profile = final.launchProfileId.flatMap({ id in viewModel.modProfiles.first { $0.id == id } }) else {
+            message = localization.L(L10n.PerformancePilot.needProfile)
+            return
+        }
         var before = final
         before.launchProfileId = nil
-        let gesture = final.launchProfileId
-            .flatMap { id in viewModel.modProfiles.first { $0.id == id } }
-            .map { GuidedPilotGesture.applyProfile(baseProfileIds: $0.enabledModIds) }
+        let gesture = GuidedPilotGesture.applyProfile(baseProfileIds: profile.enabledModIds)
+        if let refusal = GuidedPilotLive.refusal(for: gesture, viewModel) {
+            message = PerformanceBenchmarkSheet.text(for: refusal, localization: localization)
+            return
+        }
         Task {
             let started = await viewModel.pilot.start(draft: before, gesture: gesture)
             message = started ? nil : localization.L(L10n.PerformancePilot.startRefused)

@@ -11,6 +11,11 @@ import Foundation
         var launched = 0
         var gestures: [GuidedPilotGesture] = []
         var undone: [GuidedPilotGesture] = []
+        var undoData: [GuidedPilotUndo?] = []
+        var captured: GuidedPilotUndo? = GuidedPilotUndo(enabledFolders: ["A", "S"])
+        var gestureRefused = false
+        var activations = 0
+        var gameFront = false
         var gestureSucceeds = true
         var undoSucceeds = true
         var profileApplied: [UUID] = []
@@ -31,10 +36,13 @@ import Foundation
     private func runtime(_ fake: Fake) -> GuidedPilotRuntime {
         .init(isGameRunning: { fake.gameRunning },
               isOtherWorkBusy: { fake.otherBusy },
+              refusesGesture: { _ in fake.gestureRefused },
+              activateGame: { fake.activations += 1; return fake.gameFront },
               launchGame: { fake.launched += 1; return true },
               applyLaunchProfile: { fake.profileApplied.append($0); return fake.profileSucceeds },
               performGesture: { fake.gestures.append($0); return fake.gestureSucceeds },
-              undoGesture: { fake.undone.append($0); return fake.undoSucceeds },
+              captureUndo: { _ in fake.captured },
+              undoGesture: { fake.undone.append($0); fake.undoData.append($1); return fake.undoSucceeds },
               writePlan: { fake.writtenPlans.append($0) },
               removePilotPlan: { fake.planRemovals += 1 },
               measurementState: { id in
@@ -263,6 +271,7 @@ import Foundation
         plan.begin(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"),
                    now: Date(timeIntervalSince1970: 0))
         plan.sideFinished(now: Date(timeIntervalSince1970: 60))
+        plan.recordUndo(GuidedPilotUndo(enabledFolders: ["A", "S"]))   // relevé avant le geste
         GuidedPilotStateStore.save(plan, in: dir)
         let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
         runner.checkForInterruptedSession()
@@ -313,5 +322,138 @@ import Foundation
         runner.dismiss()
         #expect(runner.state.phase == .idle)
         #expect(GuidedPilotStateStore.hasPending(in: dir) == false)
+    }
+
+    // MARK: — Revue finale
+
+    /// C1 — le jeu part derrière StarHubFR (processus bash) : sans activation,
+    /// chaque minute est « hors focus » et la série finit en « stalled ».
+    @Test func bringsTheGameToFrontUntilItIs() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: nil)
+        fake.gameRunning = true
+        await runner.pollOnce()
+        #expect(fake.activations == 1)
+        fake.gameFront = true
+        await runner.pollOnce()
+        #expect(fake.activations == 2)
+        await runner.pollOnce()   // devant : on ne vole plus le focus
+        #expect(fake.activations == 2)
+    }
+
+    /// … et pas au-delà d'une minute : l'utilisateur a pu passer à autre chose.
+    @Test func stopsActivatingAfterAMinute() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: nil)
+        fake.gameRunning = true
+        fake.now += 61
+        await runner.pollOnce()
+        #expect(fake.activations == 0)
+    }
+
+    /// I1 — pause à dépendants, profil sans la sonde, identifiants partagés :
+    /// refusés avant tout effet, comme le benchmark.
+    @Test func refusesAnUnsafeGesture() async {
+        let fake = Fake()
+        fake.gestureRefused = true
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        #expect(await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"])) == false)
+        #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
+    }
+
+    /// I2 — l'état d'avant le geste est relevé **avant** lui et persisté : un
+    /// redémarrage de l'app retrouve de quoi défaire un profil.
+    @Test func undoDataSurvivesARestart() async {
+        let fake = Fake()
+        fake.gestureSucceeds = false
+        let dir = temporaryDirectory()
+        let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        let restarted = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
+        restarted.checkForInterruptedSession()
+        #expect(restarted.canRollback)
+        await restarted.restoreOrRollback()
+        #expect(fake.undoData == [GuidedPilotUndo(enabledFolders: ["A", "S"])])
+        #expect(restarted.state.phase == .idle)
+    }
+
+    /// Rien relevé : aucun bouton qui échouerait à coup sûr.
+    @Test func noUndoDataMeansNoRollback() async {
+        let fake = Fake()
+        fake.gestureSucceeds = false
+        fake.captured = nil
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        #expect(runner.state.phase == .failed(.applyFailed))
+        #expect(runner.canRollback == false)
+    }
+
+    /// I7 — paire réussie : le parc est côté « après » ; revenir reste proposé.
+    @Test func reportOffersRollback() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        fake.states[fake.writtenPlans[1].id] = .finished
+        await runner.pollOnce()
+        #expect(runner.state.phase == .reporting)
+        #expect(runner.canRollback)
+        await runner.restoreOrRollback()
+        #expect(fake.undone.count == 1 && runner.state.phase == .idle)
+    }
+
+    /// I8 — jeu fermé côté « après » : la reprise relance ce côté, apparié
+    /// au même « avant », sans rejouer le geste.
+    @Test func resumeRelaunchesTheAfterSide() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        fake.gameRunning = true
+        await runner.pollOnce()
+        fake.gameRunning = false
+        await runner.gameExited()
+        #expect(runner.state.phase == .failed(.gameQuit))
+        #expect(runner.canResume)
+        #expect(await runner.resume())
+        #expect(runner.state.phase == .running(step: .after))
+        #expect(fake.gestures.count == 1 && fake.launched == 3)
+        let retry = fake.writtenPlans[2]
+        #expect(retry.role == .after && retry.pairedWith == fake.writtenPlans[0].id)
+        fake.states[retry.id] = .finished
+        await runner.pollOnce()
+        #expect(runner.state.phase == .reporting)
+    }
+
+    @Test func resumeRelaunchesTheBeforeSide() async {
+        let fake = Fake()
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        fake.now += 601
+        await runner.pollOnce()
+        #expect(runner.state.phase == .failed(.stalled))
+        #expect(await runner.resume())
+        #expect(runner.state.phase == .running(step: .before))
+        #expect(fake.writtenPlans[1].role == .before && fake.gestures.isEmpty)
+    }
+
+    /// Geste raté : le parc est incertain — retour arrière, pas reprise.
+    @Test func noResumeAfterAFailedGesture() async {
+        let fake = Fake()
+        fake.gestureSucceeds = false
+        let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        #expect(runner.canResume == false)
+        #expect(await runner.resume() == false)
     }
 }

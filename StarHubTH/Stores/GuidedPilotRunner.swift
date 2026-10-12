@@ -1,77 +1,6 @@
 import Foundation
 import Observation
 
-/// Ce que la sonde a rendu pour un plan guidé : rien, mesure en cours, mesure close.
-public enum PilotMeasurementState: Equatable, Sendable {
-    case none, running, finished
-}
-
-/// Tout ce que le runner touche hors de lui-même (spec P1 §7) : le ViewModel
-/// branche le réel (T7), les tests un faux. Closures isolées au main : le VM
-/// qu'elles capturent l'est, et une closure `async` non isolée s'exécuterait
-/// hors du main.
-public struct GuidedPilotRuntime {
-    public var isGameRunning: @MainActor () -> Bool
-    /// Benchmark, bissection, profil qui s'applique, plan guidé manuel en
-    /// attente : deux travaux de masse sur le parc ne se croisent jamais.
-    public var isOtherWorkBusy: @MainActor () -> Bool
-    public var launchGame: @MainActor () -> Bool
-    /// Le profil de la mesure, appliqué **avant** le « avant » (spec §7) —
-    /// hors geste : un échec bloque le lancement, sans retour arrière à offrir.
-    public var applyLaunchProfile: @MainActor (UUID) async -> Bool
-    /// Le geste entre les deux côtés, jeu fermé ; vrai = appliqué en entier.
-    public var performGesture: @MainActor (GuidedPilotGesture) async -> Bool
-    /// L'inverse du geste (réactivation, réécriture du réglage d'avant).
-    public var undoGesture: @MainActor (GuidedPilotGesture) async -> Bool
-    public var writePlan: @MainActor (GuidedPlan) throws -> Void
-    /// Efface `guided-plan.json` s'il est piloté : resté sur disque, il
-    /// conduirait un lancement manuel ultérieur.
-    public var removePilotPlan: @MainActor () -> Void
-    public var measurementState: @MainActor (UUID) async -> PilotMeasurementState
-    /// Minutes gardées du côté en cours : la progression du watchdog.
-    public var keptMinutes: @MainActor (UUID) async -> Int
-    public var quitGame: @MainActor () async -> Void
-    public var now: @MainActor () -> Date
-    public var sleep: @MainActor (TimeInterval) async -> Void
-    public var requestUserAttention: @MainActor () -> Void
-    public var log: @MainActor (String) -> Void
-
-    public init(isGameRunning: @escaping @MainActor () -> Bool,
-                isOtherWorkBusy: @escaping @MainActor () -> Bool,
-                launchGame: @escaping @MainActor () -> Bool,
-                applyLaunchProfile: @escaping @MainActor (UUID) async -> Bool,
-                performGesture: @escaping @MainActor (GuidedPilotGesture) async -> Bool,
-                undoGesture: @escaping @MainActor (GuidedPilotGesture) async -> Bool,
-                writePlan: @escaping @MainActor (GuidedPlan) throws -> Void,
-                removePilotPlan: @escaping @MainActor () -> Void,
-                measurementState: @escaping @MainActor (UUID) async -> PilotMeasurementState,
-                keptMinutes: @escaping @MainActor (UUID) async -> Int,
-                quitGame: @escaping @MainActor () async -> Void,
-                now: @escaping @MainActor () -> Date = Date.init,
-                sleep: @escaping @MainActor (TimeInterval) async -> Void = { seconds in
-                    // Annulée : la boucle relit `Task.isCancelled` et sort.
-                    do { try await Task.sleep(for: .seconds(seconds)) } catch {}
-                },
-                requestUserAttention: @escaping @MainActor () -> Void,
-                log: @escaping @MainActor (String) -> Void) {
-        self.isGameRunning = isGameRunning
-        self.isOtherWorkBusy = isOtherWorkBusy
-        self.launchGame = launchGame
-        self.applyLaunchProfile = applyLaunchProfile
-        self.performGesture = performGesture
-        self.undoGesture = undoGesture
-        self.writePlan = writePlan
-        self.removePilotPlan = removePilotPlan
-        self.measurementState = measurementState
-        self.keptMinutes = keptMinutes
-        self.quitGame = quitGame
-        self.now = now
-        self.sleep = sleep
-        self.requestUserAttention = requestUserAttention
-        self.log = log
-    }
-}
-
 /// P1 — la paire de mesures guidées jouée d'un clic (spec §7) : plan « avant »
 /// piloté, lancement, attente de la mesure close **et** du jeu fermé, geste,
 /// plan « après », lancement, rapport. La machine d'états est
@@ -100,22 +29,36 @@ public final class GuidedPilotRunner {
         isActive || state.phase == .interrupted ? Self.busyKey : nil
     }
 
-    /// Le parc est possiblement côté « après » : retour arrière à proposer.
+    /// Le parc est possiblement côté « après » et l'état d'avant est relevé :
+    /// retour arrière à proposer — rapport compris (la paire finit sur le
+    /// côté « après »). Sans relevé, aucun bouton qui échouerait à coup sûr.
     public var canRollback: Bool {
+        guard state.undo != nil else { return false }
         switch state.phase {
-        case .failed, .interrupted: return state.gestureRan || interruptedWhileApplying
+        case .failed, .interrupted, .reporting: return state.gestureRan || interruptedWhileApplying
         default: return false
         }
     }
 
+    /// Le côté en échec (jeu fermé, minutes figées, arrêt) ou en vol au
+    /// plantage se relance ; un geste raté ou à moitié parti ne se reprend pas.
+    public var canResume: Bool {
+        state.resumableStep != nil && !(state.phase == .interrupted && interruptedWhileApplying)
+    }
+
     @ObservationIgnored private let stateDirectory: URL?
     @ObservationIgnored private let runtime: GuidedPilotRuntime
-    @ObservationIgnored private var beforePlanId: UUID?
     @ObservationIgnored private var currentPlanId: UUID?
     @ObservationIgnored private var lastKept = 0
     /// Le jeu du côté en cours a été vu ouvert : seule sa fermeture compte
     /// comme une sortie (la notification d'un jeu précédent arrive en retard).
     @ObservationIgnored private var gameSeen = false
+    /// Lancement du côté en cours, et jeu passé devant : on ne cherche à
+    /// l'activer que la première minute (ensuite, l'utilisateur a pu passer
+    /// à autre chose exprès — patron `BenchmarkRunner.focusRetrySeconds`).
+    @ObservationIgnored private var sideLaunchedAt: Date?
+    @ObservationIgnored private var gameBroughtFront = false
+    public static let focusRetrySeconds: TimeInterval = 60
     /// Un sondage, un lancement ou un retour arrière en cours : la boucle et
     /// la sortie du jeu se croisent au-delà d'un `await` — un seul geste.
     @ObservationIgnored private var working = false
@@ -135,7 +78,8 @@ public final class GuidedPilotRunner {
     /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
     @discardableResult
     public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?) async -> Bool {
-        guard !working, canStart, !runtime.isGameRunning(), !runtime.isOtherWorkBusy() else { return false }
+        guard !working, canStart, !runtime.isGameRunning(), !runtime.isOtherWorkBusy(),
+              gesture.map(runtime.refusesGesture) != true else { return false }
         working = true
         defer { working = false }
         if let profile = draft.launchProfileId {
@@ -157,12 +101,42 @@ public final class GuidedPilotRunner {
         }
         reset()
         state.begin(draft: draft, gesture: gesture, now: runtime.now())
-        beforePlanId = plan.id
-        currentPlanId = plan.id
+        state.setBeforePlan(plan.id)
+        sideLaunched(plan.id)
         persist()
-        activity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiated, .idleSystemSleepDisabled], reason: "Mesure pilotée")
+        beginActivity()
         runtime.log("Mesure pilotée « \(draft.name) » : côté avant lancé.")
+        startLoop()
+        return true
+    }
+
+    /// Relance le côté en échec ou interrompu, apparié au même « avant » ;
+    /// le geste n'est pas rejoué (il a réussi, ou n'a pas eu lieu).
+    @discardableResult
+    public func resume() async -> Bool {
+        guard !working, canResume, let step = state.resumableStep, let draft = state.beforeDraft,
+              !runtime.isGameRunning(), !runtime.isOtherWorkBusy() else { return false }
+        let pairedWith = step == .after ? state.beforePlanId : nil
+        if step == .after, pairedWith == nil { return false }
+        working = true
+        defer { working = false }
+        let plan = makePlan(draft, role: step == .after ? .after : .before, pairedWith: pairedWith)
+        do { try runtime.writePlan(plan) } catch {
+            runtime.log("Mesure pilotée : plan non écrit (\(error.localizedDescription)).")
+            return false
+        }
+        guard runtime.launchGame() else {
+            runtime.removePilotPlan()
+            runtime.log("Mesure pilotée : lancement du jeu refusé.")
+            return false
+        }
+        state.resume(now: runtime.now())
+        interruptedWhileApplying = false
+        if step == .before { state.setBeforePlan(plan.id) }
+        sideLaunched(plan.id)
+        persist()
+        beginActivity()
+        runtime.log("Mesure pilotée : côté \(step == .after ? "après" : "avant") relancé.")
         startLoop()
         return true
     }
@@ -174,7 +148,13 @@ public final class GuidedPilotRunner {
         guard !working, case .running(let step) = state.phase, let id = currentPlanId else { return }
         working = true
         defer { working = false }
-        if runtime.isGameRunning() { gameSeen = true }
+        if runtime.isGameRunning() {
+            gameSeen = true
+            if !gameBroughtFront, let launched = sideLaunchedAt,
+               runtime.now().timeIntervalSince(launched) <= Self.focusRetrySeconds {
+                gameBroughtFront = runtime.activateGame()
+            }
+        }
         let kept = await runtime.keptMinutes(id)
         guard isStill(step, id) else { return }
         if kept > lastKept {
@@ -224,7 +204,7 @@ public final class GuidedPilotRunner {
         working = true
         defer { working = false }
         if canRollback, let gesture = state.gesture {
-            guard await runtime.undoGesture(gesture) else {
+            guard await runtime.undoGesture(gesture, state.undo) else {
                 runtime.log("Mesure pilotée : retour arrière non appliqué.")
                 return
             }
@@ -272,20 +252,22 @@ public final class GuidedPilotRunner {
 
     private func applyGestureAndLaunchAfter() async {
         guard let gesture = state.gesture, let draft = state.beforeDraft else { return }
+        // Relevé **avant** le geste et persisté : un plantage pendant
+        // `applying` laisse le retour arrière possible (Review Focus 4).
+        state.recordUndo(runtime.captureUndo(gesture))
+        persist()
         guard await runtime.performGesture(gesture) else {
             state.gestureFailed(Self.failure(for: gesture), now: runtime.now())
             terminate("geste entre les deux côtés non appliqué")
             return
         }
         state.gestureApplied(now: runtime.now())
-        let plan = makePlan(draft, role: .after, pairedWith: beforePlanId)
+        let plan = makePlan(draft, role: .after, pairedWith: state.beforePlanId)
         do { try runtime.writePlan(plan) } catch {
             fail(.noMeasurement, "plan « après » non écrit (\(error.localizedDescription))")
             return
         }
-        currentPlanId = plan.id
-        lastKept = 0
-        gameSeen = false
+        sideLaunched(plan.id)
         guard runtime.launchGame() else {
             fail(.noMeasurement, "lancement du côté après refusé")
             return
@@ -319,11 +301,29 @@ public final class GuidedPilotRunner {
         endActivity()
         state = .initial
         interruptedWhileApplying = false
-        beforePlanId = nil
         currentPlanId = nil
         lastKept = 0
         gameSeen = false
+        sideLaunchedAt = nil
+        gameBroughtFront = false
         GuidedPilotStateStore.clear(in: stateDirectory)
+    }
+
+    private func sideLaunched(_ planId: UUID) {
+        currentPlanId = planId
+        lastKept = 0
+        gameSeen = false
+        gameBroughtFront = false
+        sideLaunchedAt = runtime.now()
+    }
+
+    /// Écran gardé allumé aussi : une mise en veille de l'écran ou un
+    /// verrouillage rendrait la fenêtre du jeu inactive (minutes « hors focus »).
+    private func beginActivity() {
+        guard activity == nil else { return }
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .idleSystemSleepDisabled, .idleDisplaySleepDisabled],
+            reason: "Mesure pilotée")
     }
 
     private func endActivity() {

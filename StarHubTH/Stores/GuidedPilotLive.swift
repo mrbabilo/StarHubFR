@@ -22,13 +22,6 @@ extension StarHubTHViewModel {
 enum GuidedPilotLive {
     @MainActor private static var runners: [ObjectIdentifier: GuidedPilotRunner] = [:]
     @MainActor private static var exitObservers: [ObjectIdentifier: AnyCancellable] = [:]
-    /// Ce qu'un geste écrase et qui ne se relit pas après coup : les dossiers
-    /// actifs avant un profil, le `config.json` avant un revert. En mémoire
-    /// seulement — après un plantage de l'app, ces deux retours arrière sont
-    /// refusés (« retour arrière non appliqué ») ; la pause, elle, s'inverse
-    /// toujours.
-    @MainActor private static var foldersBeforeProfile: [String]?
-    @MainActor private static var configBeforeRevert: (url: URL, text: String)?
 
     /// Créé à la demande (patron `benchmark`). La sortie du jeu sonde tout de
     /// suite, onglet affiché ou non ; la boucle interne du runner (15 s)
@@ -43,6 +36,20 @@ enum GuidedPilotLive {
             Task { await created.gameExited() }
         }
         return created
+    }
+
+    /// Les refus du benchmark pour le même mécanisme (`applyEnabledFolders`
+    /// travaille par UniqueID) : pause à dépendants, profil sans la sonde,
+    /// identifiants partagés. Le revert d'un réglage ne bascule rien.
+    static func refusal(for gesture: GuidedPilotGesture, _ viewModel: StarHubTHViewModel) -> BenchmarkRefusal? {
+        switch gesture {
+        case .pauseMod(let folder, _):
+            return BenchmarkSides.refusal(.pauseMod(folderName: folder), mods: viewModel.mods)
+        case .applyProfile(let ids):
+            return BenchmarkSides.refusal(.profile(enabledModIds: ids), mods: viewModel.mods)
+        case .revertConfig:
+            return nil
+        }
     }
 
     /// Sans le créer : une garde de bascule ne doit pas instancier le pilotage.
@@ -65,6 +72,11 @@ enum GuidedPilotLive {
                     || SloDiagnosticExclusion.blocksOtherPerformanceWork(snapshotDirectory: AppSupport.directory)
                     || manualPlanPending
             },
+            refusesGesture: { [weak viewModel] gesture in
+                guard let viewModel else { return true }
+                return refusal(for: gesture, viewModel) != nil
+            },
+            activateGame: { bringGameToFront() },
             // `fromBenchmark` : lancement sans modale ni refus « série en
             // cours » — c'est la série qui lance.
             launchGame: { [weak viewModel] in viewModel?.launchGame(honoringCloseAfterLaunch: false, fromBenchmark: true) ?? false },
@@ -77,9 +89,13 @@ enum GuidedPilotLive {
                 guard let viewModel, !viewModel.isGameRunning() else { return false }
                 return await perform(gesture, viewModel)
             },
-            undoGesture: { [weak viewModel] gesture in
-                guard let viewModel, !viewModel.isGameRunning() else { return false }
-                return await undo(gesture, viewModel)
+            captureUndo: { [weak viewModel] gesture in
+                guard let viewModel else { return nil }
+                return capture(gesture, viewModel)
+            },
+            undoGesture: { [weak viewModel] gesture, saved in
+                guard let viewModel, !viewModel.isGameRunning(), let saved else { return false }
+                return await undo(gesture, saved, viewModel)
             },
             writePlan: { try $0.write(to: files.guidedPlanURL) },
             removePilotPlan: { [weak viewModel] in
@@ -114,13 +130,9 @@ enum GuidedPilotLive {
         case .pauseMod(let folder, _):
             return await apply(BenchmarkSides.foldersA(viewModel.mods).filter { $0 != folder }, viewModel)
         case .applyProfile(let ids):
-            foldersBeforeProfile = BenchmarkSides.foldersA(viewModel.mods)
             return await apply(BenchmarkSides.foldersA(BenchmarkSides.stateA(viewModel.mods, baseProfileIds: ids)), viewModel)
         case .revertConfig(let modId, let sha):
             guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.mods) else { return false }
-            let url = configURL(mod, viewModel)
-            // Illisible ou absent : pas de retour arrière possible pour ce réglage.
-            do { configBeforeRevert = (url, try String(contentsOf: url, encoding: .utf8)) } catch { configBeforeRevert = nil }
             let outcome = ProbePerformanceActions.revertConfig(
                 of: mod, toSha: sha, configsDirectory: ProbeFiles().configsDirectory, gameDir: viewModel.gameDir,
                 gameRunning: viewModel.isGameRunning(), backups: ModConfigBackupManager.shared)
@@ -128,23 +140,45 @@ enum GuidedPilotLive {
         }
     }
 
-    private static func undo(_ gesture: GuidedPilotGesture, _ viewModel: StarHubTHViewModel) async -> Bool {
+    /// L'état d'avant, relevé juste avant le geste (persisté avec la série) :
+    /// les dossiers actifs — une pause ne réactive donc qu'un mod qui l'était.
+    private static func capture(_ gesture: GuidedPilotGesture, _ viewModel: StarHubTHViewModel) -> GuidedPilotUndo? {
         switch gesture {
-        case .pauseMod(let folder, _):
-            var folders = BenchmarkSides.foldersA(viewModel.mods)
-            if !folders.contains(folder) { folders.append(folder) }
+        case .pauseMod, .applyProfile:
+            return GuidedPilotUndo(enabledFolders: BenchmarkSides.foldersA(viewModel.mods))
+        case .revertConfig(let modId, _):
+            guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.mods) else { return nil }
+            let url = configURL(mod, viewModel)
+            // Illisible ou absent : pas de retour arrière possible pour ce réglage.
+            do {
+                return GuidedPilotUndo(configPath: url.path, configText: try String(contentsOf: url, encoding: .utf8))
+            } catch { return nil }
+        }
+    }
+
+    private static func undo(_ gesture: GuidedPilotGesture, _ saved: GuidedPilotUndo,
+                             _ viewModel: StarHubTHViewModel) async -> Bool {
+        switch gesture {
+        case .pauseMod, .applyProfile:
+            guard let folders = saved.enabledFolders else { return false }
             return await apply(folders, viewModel)
-        case .applyProfile:
-            guard let before = foldersBeforeProfile else { return false }
-            guard await apply(before, viewModel) else { return false }
-            foldersBeforeProfile = nil
-            return true
         case .revertConfig:
-            guard let saved = configBeforeRevert else { return false }
-            do { try saved.text.write(to: saved.url, atomically: true, encoding: .utf8) } catch { return false }
-            configBeforeRevert = nil
+            guard let path = saved.configPath, let text = saved.configText else { return false }
+            do { try text.write(toFile: path, atomically: true, encoding: .utf8) } catch { return false }
             return true
         }
+    }
+
+    /// Le jeu part d'un `Process` bash : sans ce geste, StarHubFR garde le
+    /// premier plan (patron `BenchmarkRunner.bringGameToFront`, activation
+    /// coopérative de macOS 14). Vrai quand le jeu est déjà devant.
+    private static func bringGameToFront() -> Bool {
+        guard let game = NSWorkspace.shared.runningApplications
+            .first(where: { GameProcess.isGame(localizedName: $0.localizedName) }) else { return false }
+        if game.isActive { return true }
+        NSApp.yieldActivation(to: game)
+        game.activate()
+        return false
     }
 
     /// Le chemin du benchmark et de la bissection : pas de modale, un résultat.

@@ -26,6 +26,9 @@ extension L10n {
         static let stopHelp = "perf_pilot_stop_help"
         static let startRefused = "perf_pilot_start_refused"
         static let noSave = "perf_pilot_no_save"
+        static let needProfile = "perf_pilot_need_profile"
+        static let resume = "perf_pilot_resume"
+        static let resumeHelp = "perf_pilot_resume_help"
     }
 }
 
