@@ -1966,6 +1966,7 @@
   "perf_guided_write_failed": "Mesure non préparée : %@",
   "perf_guided_profile_apply_failed": "Profil non appliqué — mesure non lancée.",
   "perf_pilot_locked": "Une mesure pilotée est en cours ou attend une décision : le parc et le jeu sont réservés jusqu'à la fin.",
+  "perf_benchmark_this_mod": "Benchmarker ce mod",
   "perf_pilot_action": "Mesure pilotée",
   "perf_pilot_action_help": "La sonde joue la mesure seule : avant, changement choisi (profil), après, puis rapport. Sans profil, un seul côté.",
   "perf_pilot_profile_note": "Le profil choisi devient le côté « après » : l'avant se mesure sur le parc actuel.",

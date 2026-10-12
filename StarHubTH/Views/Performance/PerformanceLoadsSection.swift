@@ -15,7 +15,9 @@ struct PerformanceLoadsSection: View {
     /// la carte « Sonde » : `@AppStorage` re-rend celle-ci quand il change.
     @AppStorage(UDKey.probeLoadEarlyConsent) private var consentShown: Bool?
     @State private var message: String?
-    @State private var showBenchmark = false
+    /// La feuille du benchmark vit dans `PerformanceView` (une seule, partagée
+    /// avec l'analyse) : dossier à mettre en pause, ou `nil`.
+    let openBenchmark: (String?) -> Void
     @State private var qualityExpanded = false
     @AppStorage(UDKey.performanceLoadsDetail) private var detailKind = ProbeLoadRecord.Kind.launch.rawValue
 
@@ -32,7 +34,7 @@ struct PerformanceLoadsSection: View {
             HStack {
                 header
                 Spacer()
-                Button(localization.L(L10n.Benchmark.open)) { showBenchmark = true }
+                Button(localization.L(L10n.Benchmark.open)) { openBenchmark(nil) }
                     .clickableCursor()
                     .disabled(viewModel.benchmark.isActive)
             }
@@ -51,9 +53,6 @@ struct PerformanceLoadsSection: View {
                 quality
             }
             if let message { note(message) }
-        }
-        .sheet(isPresented: $showBenchmark) {
-            PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization, isPresented: $showBenchmark)
         }
         .confirmationDialog(confirmTitle,
                             isPresented: Binding(get: { pendingPause != nil },
@@ -111,9 +110,11 @@ struct PerformanceLoadsSection: View {
             PerformanceLoadsTimeline(localization: localization, breakdown: shown)
             if !shown.top.isEmpty {
                 PerformanceLoadsTopMods(viewModel: viewModel, localization: localization, breakdown: shown,
-                                        displayName: displayName) { mod, siblings in
-                    pendingPause = PendingPause(mod: mod, siblings: siblings)
-                }
+                                        displayName: displayName,
+                                        requestPause: { mod, siblings in
+                                            pendingPause = PendingPause(mod: mod, siblings: siblings)
+                                        },
+                                        requestBenchmark: { openBenchmark($0.folderName) })
             }
         }
     }

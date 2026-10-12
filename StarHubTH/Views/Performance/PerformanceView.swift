@@ -13,6 +13,11 @@ struct PerformanceView: View {
     var sloDiagnostic: SloDiagnosticSessionStore
     var stardropiumDiagnostic: SloDiagnosticSessionStore
     @State private var comparing = false
+    /// Une seule feuille de benchmark pour l'onglet (chargements, analyse) :
+    /// le dossier pré-rempli s'efface à la fermeture — rouverte du bouton
+    /// générique, elle repart vierge (Review Focus 5).
+    @State private var showBenchmark = false
+    @State private var benchmarkPrefill: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -39,11 +44,15 @@ struct PerformanceView: View {
                     if comparing, let report = store.report {
                         PerformanceCard {
                             PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
-                                                       store: store, report: report)
+                                                       store: store, report: report,
+                                                       onBenchmark: { openBenchmark($0) })
                         }.id("analysis")
                     }
                     if store.status == .ready || store.status == .needTwo {
-                        PerformanceCard { PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store) }.id("loads")
+                        PerformanceCard {
+                            PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store,
+                                                    openBenchmark: { openBenchmark($0) })
+                        }.id("loads")
                     } else if viewModel.benchmark.interrupted != nil {
                         PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
                     }
@@ -85,6 +94,10 @@ struct PerformanceView: View {
                 .padding(AppDesign.Spacing.lg)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+        .sheet(isPresented: $showBenchmark, onDismiss: { benchmarkPrefill = nil }) {
+            PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization,
+                                      isPresented: $showBenchmark, prefilledPause: benchmarkPrefill)
         }
         .task {
             await refreshSlo(resume: true)
@@ -205,6 +218,11 @@ struct PerformanceView: View {
             await stardropiumDiagnostic.resumeIfNeeded(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
         }
         await stardropiumDiagnostic.reload(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
+    }
+
+    private func openBenchmark(_ pauseFolder: String?) {
+        benchmarkPrefill = pauseFolder
+        showBenchmark = true
     }
 
     private func sloRuntime() -> SloDiagnosticRuntime {

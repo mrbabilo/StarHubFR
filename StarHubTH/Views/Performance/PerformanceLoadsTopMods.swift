@@ -10,6 +10,7 @@ struct PerformanceLoadsTopMods: View {
     let breakdown: ProbeLoadBreakdown
     let displayName: (String) -> String
     let requestPause: (ModItem, [String]) -> Void
+    let requestBenchmark: (ModItem) -> Void
 
     private static let nameWidth: CGFloat = 150
     private static let valueWidth: CGFloat = 56
@@ -56,6 +57,7 @@ struct PerformanceLoadsTopMods: View {
                 .helpIfPresent(partsText(total))
             Text(PerformanceLoadsSection.duration(total.ms)).monospacedDigit()
                 .frame(width: Self.valueWidth, alignment: .trailing)
+            benchmarkAction(head: head, blockers: blockers)
             action(head: head, blockers: blockers)
         }
         .font(AppDesign.Font.footnote)
@@ -82,6 +84,26 @@ struct PerformanceLoadsTopMods: View {
             .clickableCursor()
             .help(localization.L(L10n.Performance.actionPause))
             .accessibilityLabel(localization.L(L10n.Performance.actionPause))
+        } else {
+            Color.clear.frame(width: 18, height: 18)
+        }
+    }
+
+    /// P2 — le benchmark des chargements, côté B = ce mod en pause. Caché
+    /// quand la pause est refusée (dépendants) : la feuille refuserait aussi.
+    @ViewBuilder
+    private func benchmarkAction(head: ModItem?, blockers: ProbePerformanceActions.ProbePauseBlockers) -> some View {
+        if let head, head.isEnabled, blockers.dependents.isEmpty {
+            Button { requestBenchmark(head) } label: {
+                Image(systemName: "speedometer")
+                    .frame(width: 18, height: 18)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.borderless)
+            .clickableCursor()
+            .disabled(viewModel.benchmark.isActive)
+            .help(localization.L(L10n.Performance.benchmarkThisMod))
+            .accessibilityLabel(localization.L(L10n.Performance.benchmarkThisMod))
         } else {
             Color.clear.frame(width: 18, height: 18)
         }

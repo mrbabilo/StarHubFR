@@ -28,3 +28,8 @@ extension L10n {
         static let noSave = "perf_pilot_no_save"
     }
 }
+
+/// P2 — « Benchmarker ce mod » (L10n.swift verrouillé par le cliquet).
+extension L10n.Performance {
+    static let benchmarkThisMod = "perf_benchmark_this_mod"
+}

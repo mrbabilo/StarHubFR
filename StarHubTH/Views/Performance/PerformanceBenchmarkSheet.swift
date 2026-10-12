@@ -6,6 +6,8 @@ struct PerformanceBenchmarkSheet: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var isPresented: Bool
+    /// « Benchmarker ce mod » : côté B = ce dossier en pause, dès l'ouverture.
+    var prefilledPause: String? = nil
 
     private enum Kind: Hashable { case pause, profile, same }
     @State private var kind: Kind = .same
@@ -156,6 +158,10 @@ struct PerformanceBenchmarkSheet: View {
             viewModel.reloadSaves()
             benchmarkProfileId = viewModel.ensureBenchmarkProfile()
             pickDefaultSaveA()
+            if let prefilledPause {
+                kind = .pause
+                pauseFolder = prefilledPause
+            }
         }
         // Le mod à mettre en pause se choisit parmi ceux de A.
         .onChange(of: baseIsBenchmark) { _, _ in pauseFolder = "" }

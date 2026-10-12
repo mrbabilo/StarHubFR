@@ -8,6 +8,8 @@ struct PerformanceAnalysisSection: View {
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
     let report: ProbePerformanceReport
+    /// P2 — ouvre la feuille du benchmark, côté B = ce dossier en pause.
+    let onBenchmark: (String) -> Void
     @State private var pending: PendingAction?
     @State private var message: String?
 
@@ -170,6 +172,10 @@ struct PerformanceAnalysisSection: View {
                    button: L10n.Performance.actionPause,
                    gesture: ProbePerformanceActions.target(modId: modId, in: mods)
                        .map { PendingAction.pause($0, thenMeasure: nil) })
+            if let mod = ProbePerformanceActions.target(modId: modId, in: mods), mod.isEnabled {
+                Button(localization.L(L10n.Performance.benchmarkThisMod)) { onBenchmark(mod.folderName) }
+                    .clickableCursor().disabled(viewModel.benchmark.isActive)
+            }
         case .revertVersion(let modId):
             action(String(format: localization.L(L10n.Performance.recRevertVersion), name(modId)),
                    button: L10n.Performance.actionBackups,
