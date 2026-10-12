@@ -18,7 +18,11 @@ namespace StarHubFR.Probe;
 internal static class Guided
 {
     internal sealed record Plan(int Version, string Id, string Name, string Role, string? Location,
-                                string? PairedWith, string? CreatedAt, string? SaveName = null);
+                                string? PairedWith, string? CreatedAt, string? SaveName = null,
+                                bool? AutoPilot = null, Warp? Warp = null);
+    /// <summary>Coordonnées du warp piloté (spec P1 §5) : brutes, la table
+    /// vit côté app.</summary>
+    internal sealed record Warp(int X, int Y);
     private sealed record ExcludedLine(string At, string Reason);
     private sealed record Line(int Version, string PlanId, string Name, string Role, string? PairedWith,
         string Session, string Location, string? Start, string? End, IReadOnlyList<string> KeptAt,

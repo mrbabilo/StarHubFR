@@ -60,6 +60,10 @@ public sealed class ModEntry : Mod
         // n'était appelé qu'au `SaveLoaded` — trop tard d'un chargement.
         Guided.RefreshPlan();
         GuidedBanner.Initialize(helper);
+        // P1 : le pilotage — warp au monde prêt, nuit, sortie (plan AutoPilot).
+        helper.Events.GameLoop.SaveLoaded += (_, _) => AutoPilot.OnSaveLoaded();
+        helper.Events.GameLoop.UpdateTicked += (_, _) => AutoPilot.OnTick();
+        helper.Events.GameLoop.ReturnedToTitle += (_, _) => AutoPilot.OnReturnedToTitle();
         // Avant Loads.Initialize : l'enregistrement de lancement lit Benchmark.RunId.
         Benchmark.Initialize(helper, Monitor);
         // D5-A : un plan en attente désarme la mesure des patches pour la
