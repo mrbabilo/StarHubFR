@@ -3,7 +3,7 @@ import Foundation
 /// Ce qu'une mesure guidée à préparer doit porter (D5-A). `saveName` voyage
 /// dans le plan (auto-chargement par la sonde) ; `launchProfileId` ne voyage
 /// pas — l'app l'applique elle-même quand elle lance le jeu.
-public struct GuidedPlanDraft: Equatable, Sendable {
+public struct GuidedPlanDraft: Equatable, Codable, Sendable {
     public var name: String
     public var role: ProbeMeasurement.Role
     public var location: String

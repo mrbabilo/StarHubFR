@@ -95,6 +95,7 @@ let package = Package(
                 "Models/ProbeCosts.swift",
                 "Models/ProbeMeasurements.swift",
                 "Models/GuidedPlan.swift",
+                "Models/GuidedPilotPlan.swift",
                 "Models/BenchmarkPlan.swift",
                 "Models/BenchmarkSnapshot.swift",
                 "Models/BenchmarkVerdict.swift",
@@ -1639,6 +1640,11 @@ let package = Package(
             name: "GameEnvironmentStoreTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/GameEnvironmentStoreTests"
+        ),
+        .testTarget(
+            name: "GuidedPilotTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/GuidedPilotTests"
         ),
     ],
     // ⚠️ Le bump en tools-version 6.0 bascule **toutes** les cibles en mode
