@@ -96,6 +96,7 @@ let package = Package(
                 "Models/ProbeMeasurements.swift",
                 "Models/GuidedPlan.swift",
                 "Models/GuidedPilotPlan.swift",
+                "Models/GuidedPilotStateStore.swift",
                 "Models/BenchmarkPlan.swift",
                 "Models/BenchmarkSnapshot.swift",
                 "Models/BenchmarkVerdict.swift",
