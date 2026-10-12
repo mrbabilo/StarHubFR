@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **La paire de mesures guidées se joue d'un clic.** La sonde 0.9.25 conduit la session en jeu (warp au lieu, nuit sautée, sortie propre) et l'app enchaîne avant, changement, après, puis rapport ; un échec se nomme et propose le retour arrière (P1).
+- **« Benchmarker ce mod »** depuis la carte Chargements et la recommandation d'analyse : la feuille du benchmark s'ouvre avec ce mod en pause côté B (P2).
+- **Bandeau en jeu enrichi** : cible et minutes exclues dans le décompte, bruit de la mesure à la fin ; mini-stats en option (FPS, P50/P99 sur 60 s, mémoire), rafraîchies à la seconde.
+
 ### Changed
 
 - **Les alertes système ne se recalculent plus à chaque affichage.** La liste des problèmes de santé du parc est résolue une fois par événement qui la change (scan, journal, verdicts, liste noire, langue) au lieu d'être déroulée à chaque rendu — badge, accueil et écran d'alertes lisent la même liste figée entre deux événements (F3).

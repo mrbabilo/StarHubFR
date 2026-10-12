@@ -508,6 +508,18 @@ lus sur le parc réel, sans décompiler ni lire un journal.
 
 > ✅ **Les 3 items de ce lot sont livrés** (D5-A, D5-B, D5-C). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
+#### D6 — Mesure pilotée et benchmark contextualisé
+
+- [ ] **D6** — *(code livré le 2026-10-12, validation écran en attente)* La paire
+      de mesures guidées se joue d'un clic : la sonde 0.9.25 conduit la session
+      (warp, nuit sautée, sortie), `GuidedPilotRunner` enchaîne avant → geste →
+      après → rapport, reprise après plantage (P1) ; « Benchmarker ce mod » depuis
+      les chargements et l'analyse (P2). Spec et plan :
+      `docs/superpowers/specs|plans/2026-10-11-mesure-pilotee*`. **Reste à
+      l'auteur** : les 7 scénarios écran de la spec §10, le calibrage A/B des
+      mini-stats, la recopie de la DLL 0.9.25 dans `Mods/`. Récit à l'archive
+      après validation.
+
 ---
 
 ### Découverte de nouveaux mods — **Axe G** · livré en **v1.25.0**
