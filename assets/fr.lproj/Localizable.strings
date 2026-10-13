@@ -1966,6 +1966,11 @@
 "perf_guided_write_failed" = "Mesure non préparée : %@";
 "perf_guided_profile_apply_failed" = "Profil non appliqué — mesure non lancée.";
 "perf_pilot_locked" = "Une mesure pilotée est en cours ou attend une décision (Diagnostics › Performances) : le parc et le jeu sont réservés jusqu'à la fin.";
+"perf_pilot_stage_launching" = "Lancement du jeu";
+"perf_pilot_stage_loading_mods" = "Chargement de SMAPI et des mods (plusieurs minutes avec un gros parc)";
+"perf_pilot_stage_loading_save" = "Écran titre atteint — chargement de la sauvegarde";
+"perf_pilot_stage_measuring" = "Sauvegarde chargée — mesure au lieu choisi";
+"perf_pilot_elapsed" = "depuis %@";
 "perf_pilot_game_in_background" = "La fenêtre du jeu n'est pas au premier plan : les minutes ne comptent pas tant qu'elle est inactive. Laisse-la devant jusqu'à la fin.";
 "perf_pilot_bring_game_front" = "Remettre le jeu au premier plan";
 "perf_pilot_ref_series" = "Une série pilotée est déjà en cours ou attend une décision : vois sa ligne d'état ci-dessus.";

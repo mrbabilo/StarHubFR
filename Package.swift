@@ -101,6 +101,7 @@ let package = Package(
                 "Stores/GuidedPilotRuntime.swift",
                 "Models/GuidedPilotProbeReads.swift",
                 "Models/GuidedPilotSaveChoice.swift",
+                "Models/GuidedPilotProgress.swift",
                 "Models/BenchmarkPlan.swift",
                 "Models/BenchmarkSnapshot.swift",
                 "Models/BenchmarkVerdict.swift",

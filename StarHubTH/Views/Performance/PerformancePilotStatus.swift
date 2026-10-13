@@ -28,22 +28,8 @@ struct PerformancePilotStatus: View {
                         .help(localization.L(L10n.PerformancePilot.stopHelp))
                         .clickableCursor()
                 }
-                // Fenêtre du jeu derrière une autre : les minutes ne comptent
-                // pas — le dire, sans voler le focus de soi-même.
-                TimelineView(.periodic(from: .now, by: 5)) { _ in
-                    if GuidedPilotLive.gameIsInBackground() {
-                        SplitRow {
-                            Text(localization.L(L10n.PerformancePilot.gameInBackground))
-                                .font(AppDesign.Font.footnote).foregroundStyle(.orange)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } trailing: {
-                            Button(localization.L(L10n.PerformancePilot.bringGameFront)) {
-                                GuidedPilotLive.bringGameToFront()
-                            }
-                            .clickableCursor()
-                        }
-                    }
-                }
+                PerformancePilotStages(viewModel: viewModel, localization: localization, store: store,
+                                       launchedAt: pilot.currentSideLaunchedAt)
             case .applying:
                 Text(localization.L(L10n.PerformancePilot.applying)).font(AppDesign.Font.footnote)
             case .reporting:

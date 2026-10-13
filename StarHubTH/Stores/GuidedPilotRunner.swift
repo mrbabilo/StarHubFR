@@ -64,6 +64,8 @@ public final class GuidedPilotRunner {
     @ObservationIgnored private var sideLaunchedAt: Date?
     @ObservationIgnored private var gameBroughtFront = false
     public static let focusRetrySeconds: TimeInterval = 60
+    /// Le lancement du côté en cours : les étapes affichées se datent dessus.
+    public var currentSideLaunchedAt: Date? { sideLaunchedAt }
     /// Une sortie de jeu plus tardive que ce délai après le lancement du côté
     /// est la sienne, même jamais vu ouvert (quitté avant le premier sondage) ;
     /// plus tôt, c'est la notification retardée (3 s) du jeu précédent.
