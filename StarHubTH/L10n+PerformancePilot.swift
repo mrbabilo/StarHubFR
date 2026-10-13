@@ -31,6 +31,8 @@ extension L10n {
         static let resumeHelp = "perf_pilot_resume_help"
         static let notPersisted = "perf_pilot_not_persisted"
         static let needsProbeUpdate = "perf_pilot_needs_probe_update"
+        static let gameInBackground = "perf_pilot_game_in_background"
+        static let bringGameFront = "perf_pilot_bring_game_front"
         static let refSeries = "perf_pilot_ref_series"
         static let refBenchmark = "perf_pilot_ref_benchmark"
         static let refBisection = "perf_pilot_ref_bisection"

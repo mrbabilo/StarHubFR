@@ -100,10 +100,10 @@ internal static class GuidedBanner
         // (« 5:00 · 5:00 · 5:00… », retour d'écran du 2026-10-04). 5:00 →
         // 0:00 en temps de présence réel au lieu cible — l'horloge murale
         // compterait le temps passé ailleurs ou en pause. Disparait au
-        // plancher atteint (l'état « prêt » prend le relais). Pas de décompte
-        // en pilotage : « tu peux quitter le jeu des yeux » (P1 T5).
+        // plancher atteint (l'état « prêt » prend le relais). Pilotage
+        // compris : sans lui, rien ne bouge à l'écran (retour du 2026-10-13).
         string shown = status;
-        if (state is State.Starting or State.Counting && count < GuidedRule.MinimumMinutes)
+        if (state is State.Starting or State.Counting or State.PilotCounting && count < GuidedRule.MinimumMinutes)
         {
             int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
             shown = $"{shown} · {remaining / 60}:{remaining % 60:00}";

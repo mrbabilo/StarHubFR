@@ -4,7 +4,7 @@
   "state.counting": "stay here and play normally — {{count}}/{{target}} min kept (+{{excluded}} excluded)",
   "state.countingReady": "stay here and play normally — {{count}}/{{target}} min kept (+{{excluded}} excluded): stops as soon as it is stable",
   "state.pilotStep": "auto-pilot step {{step}}/2 · heading to {{place}}",
-  "state.pilotCounting": "auto-pilot step {{step}}/2 · {{count}}/{{target}} min — you can look away",
+  "state.pilotCounting": "auto-pilot step {{step}}/2 · {{count}}/{{target}} min — keep the game window in front (don't click elsewhere)",
   "state.elsewhere": "go to {{place}}: minutes only count there",
   "state.menu": "close the menu: the minute only counts if it closes quickly",
   "state.night": "new day: the measurement resumes on its own",

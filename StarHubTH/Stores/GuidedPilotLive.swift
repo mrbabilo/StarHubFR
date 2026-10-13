@@ -187,9 +187,9 @@ enum GuidedPilotLive {
     /// Le jeu part d'un `Process` bash : sans ce geste, StarHubFR garde le
     /// premier plan (patron `BenchmarkRunner.bringGameToFront`, activation
     /// coopérative de macOS 14). Vrai quand le jeu est déjà devant.
-    private static func bringGameToFront() -> Bool {
-        guard let game = NSWorkspace.shared.runningApplications
-            .first(where: { GameProcess.isGame(localizedName: $0.localizedName) }) else { return false }
+    @discardableResult
+    static func bringGameToFront() -> Bool {
+        guard let game = gameProcess() else { return false }
         if game.isActive { return true }
         NSApp.yieldActivation(to: game)
         game.activate()
@@ -208,6 +208,16 @@ enum GuidedPilotLive {
             .appendingPathComponent("Mods", isDirectory: true)
             .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
             .appendingPathComponent("config.json")
+    }
+
+    /// Jeu ouvert mais pas au premier plan : chaque minute est « hors focus »
+    /// (MonoGame ralentit, les trames ne valent rien) — à dire à l'écran.
+    static func gameIsInBackground() -> Bool {
+        gameProcess().map { !$0.isActive } ?? false
+    }
+
+    private static func gameProcess() -> NSRunningApplication? {
+        NSWorkspace.shared.runningApplications.first { GameProcess.isGame(localizedName: $0.localizedName) }
     }
 
     /// Watchdog : fermeture demandée, puis forcée 10 s plus tard (patron

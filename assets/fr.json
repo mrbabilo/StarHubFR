@@ -1966,6 +1966,8 @@
   "perf_guided_write_failed": "Mesure non préparée : %@",
   "perf_guided_profile_apply_failed": "Profil non appliqué — mesure non lancée.",
   "perf_pilot_locked": "Une mesure pilotée est en cours ou attend une décision (Diagnostics › Performances) : le parc et le jeu sont réservés jusqu'à la fin.",
+  "perf_pilot_game_in_background": "La fenêtre du jeu n'est pas au premier plan : les minutes ne comptent pas tant qu'elle est inactive. Laisse-la devant jusqu'à la fin.",
+  "perf_pilot_bring_game_front": "Remettre le jeu au premier plan",
   "perf_pilot_ref_series": "Une série pilotée est déjà en cours ou attend une décision : vois sa ligne d'état ci-dessus.",
   "perf_pilot_ref_benchmark": "Un benchmark des chargements tourne ou a été interrompu : termine-le ou restaure-le d'abord (carte Chargements).",
   "perf_pilot_ref_bisection": "Une bissection tourne ou a été interrompue : termine-la ou restaure-la d'abord.",

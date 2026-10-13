@@ -4,7 +4,7 @@
   "state.counting": "reste ici et joue normalement — {{count}}/{{target}} min gardées (+{{excluded}} exclues)",
   "state.countingReady": "reste ici et joue normalement — {{count}}/{{target}} min gardées (+{{excluded}} exclues) : arrêt dès que c'est stable",
   "state.pilotStep": "pilotage étape {{step}}/2 · en route vers {{place}}",
-  "state.pilotCounting": "pilotage étape {{step}}/2 · {{count}}/{{target}} min — tu peux quitter le jeu des yeux",
+  "state.pilotCounting": "pilotage étape {{step}}/2 · {{count}}/{{target}} min — garde la fenêtre du jeu devant (ne clique pas ailleurs)",
   "state.elsewhere": "va à {{place}} : les minutes ne comptent que là-bas",
   "state.menu": "referme le menu : la minute ne compte que s'il se referme vite",
   "state.night": "nouvelle journée : la mesure reprend seule",

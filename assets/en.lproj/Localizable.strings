@@ -1966,6 +1966,8 @@
 "perf_guided_write_failed" = "Measurement not prepared: %@";
 "perf_guided_profile_apply_failed" = "Profile not applied — measurement not launched.";
 "perf_pilot_locked" = "A guided pilot measurement is running or awaiting a decision (Diagnostics › Performance): mods and the game are reserved until it ends.";
+"perf_pilot_game_in_background" = "The game window is not in front: minutes don't count while it is inactive. Leave it in front until the end.";
+"perf_pilot_bring_game_front" = "Bring the game to front";
 "perf_pilot_ref_series" = "A pilot series is already running or awaiting a decision: see its status line above.";
 "perf_pilot_ref_benchmark" = "A loading benchmark is running or was interrupted: finish or restore it in the Loads card first.";
 "perf_pilot_ref_bisection" = "A bisection is running or was interrupted: finish or restore it first.";
