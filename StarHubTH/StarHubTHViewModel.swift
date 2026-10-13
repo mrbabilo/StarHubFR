@@ -3808,6 +3808,8 @@ final class StarHubTHViewModel {
         // **Avant** les deux refus : la pastille de la vitrine n'attend pas le
         // scan.
         recentNexusInstalls.insert(modId)
+        // Image + catégorie dès l'install, comme la saisie manuelle (hotkey hub, 2026-10-14).
+        if nexusModExtras[String(modId)] == nil { fetchMetadata(forNexusModId: String(modId)) { _ in } }
 
         guard installedFolderPaths.count == 1,
               let folderPath = installedFolderPaths.first else { return }
@@ -3831,10 +3833,8 @@ final class StarHubTHViewModel {
         log(String(format: localization.L(L10n.VM.nexusIdLearned), folderName, id))
     }
 
-    /// Fetches one mod's metadata and updates `nexusCategories` /
-    /// `nexusModExtras` at once (per-mod id editor). `completion` est
-    /// `@MainActor @Sendable` (P5-L4) : reste synchrone sur main pour ses
-    /// appelants.
+    /// One mod's metadata into `nexusCategories` / `nexusModExtras` (id editor,
+    /// learned install id). `completion` `@MainActor @Sendable` (P5-L4).
     func fetchMetadata(forNexusModId modId: String,
                        completion: @escaping @MainActor @Sendable (NexusUpdateChecker.SingleFetchResult) -> Void) {
         NexusUpdateChecker.shared.fetchSingleMod(modId: modId) { [weak self] result in
