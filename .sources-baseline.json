@@ -130,6 +130,11 @@
     "name": "Generic Mod Config Menu",
     "version": "1.16.0"
   },
+  "mod/hotkey-hub": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": "0.1.0"
+  },
   "mod/internationalization": {
     "changelog_reviewed": "0.8.0",
     "gitHubRepo": null,

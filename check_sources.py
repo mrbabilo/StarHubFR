@@ -209,7 +209,9 @@ def probe_smapi_mod(spec):
         "gameVersion": "1.6.15",
         "platform": "Mac",        # sensible à la casse : « mac » vide le lot
         "includeExtendedMetadata": True,
-        "mods": [{"id": spec["uniqueId"],
+        # Sans UniqueID connu (archive non lue), smapi.io résout quand même par
+        # la clé Nexus : l'`id` n'est qu'un écho (mesuré sur 53820, 2026-10-14).
+        "mods": [{"id": spec.get("uniqueId") or f"nexus.{spec['nexusId']}",
                   "updateKeys": [f"Nexus:{spec['nexusId']}"],
                   "installedVersion": "0.0.1"}],
     }
@@ -618,6 +620,16 @@ SOURCES = [
              "est plus riche (118 raccourcis sans indice de nom que son "
              "heuristique rate)",
      "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
+
+    {"key": "mod/hotkey-hub", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 53820, "uniqueId": None,
+     "role": "panneau de raccourcis en jeu (tangsuanz, 0.1.0, paru le "
+             "2026-10-13) : scanne les mods installés, liste tous les "
+             "raccourcis dans une vue cherchable — recouvre l'axe C4 comme "
+             "Keybind Radar. Non décompilé ; manifeste Nexus : Hotkeys/"
+             "Hotkeys.dll, vue StardewUI (HotkeyHub.sml), i18n default + zh. "
+             "UniqueID non relevé (archive non téléchargée)",
+     "used_by": "docs/SOURCES.md §5"},
 
     {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 52709, "uniqueId": "Sky.SaveSaver",
