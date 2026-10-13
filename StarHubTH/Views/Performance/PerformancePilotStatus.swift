@@ -53,6 +53,10 @@ struct PerformancePilotStatus: View {
     private func decision(_ text: String, pilot: GuidedPilotRunner) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(text).font(AppDesign.Font.footnote).fixedSize(horizontal: false, vertical: true)
+            if let note = PerformancePilotReport.parcNote(pilot, localization) {
+                Text(note).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             WrapHStack(spacing: AppDesign.Spacing.sm) {
                 if pilot.canResume {
                     Button(localization.L(L10n.PerformancePilot.resume)) {
@@ -66,7 +70,7 @@ struct PerformancePilotStatus: View {
                     .disabled(viewModel.isGameRunning())
                 }
                 if pilot.canRollback {
-                    Button(localization.L(L10n.PerformancePilot.rollback)) {
+                    Button(PerformancePilotReport.rollbackTitle(pilot, localization)) {
                         Task {
                             await pilot.restoreOrRollback()
                             message = pilot.state.phase == .idle
@@ -77,10 +81,13 @@ struct PerformancePilotStatus: View {
                     .clickableCursor()
                     .disabled(viewModel.isGameRunning())
                 }
-                Button(localization.L(L10n.PerformancePilot.dismiss)) {
+                let keep = PerformancePilotReport.keepTitle(pilot, localization)
+                Button(keep) {
                     pilot.dismiss()
                     message = nil
                 }
+                .lineLimit(1)
+                .help(keep)
                 .clickableCursor()
             }
         }

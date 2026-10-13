@@ -28,9 +28,8 @@ struct PerformancePilotReport: View {
                 Text(localization.L(L10n.PerformancePilot.ready))
                     .font(AppDesign.Font.footnote).fixedSize(horizontal: false, vertical: true)
             }
-            if pilot.canRollback, let label = pilot.state.changeLabel {
-                Text(String(format: localization.L(L10n.PerformancePilot.parcNow), label))
-                    .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+            if let note = Self.parcNote(pilot, localization) {
+                Text(note).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             WrapHStack(spacing: AppDesign.Spacing.sm) {
@@ -38,7 +37,7 @@ struct PerformancePilotReport: View {
                     .clickableCursor()
                     .disabled(pairReport == nil)
                 if pilot.canRollback {
-                    Button(localization.L(L10n.PerformancePilot.backToBefore)) {
+                    Button(Self.rollbackTitle(pilot, localization)) {
                         Task {
                             await pilot.restoreOrRollback()
                             message = pilot.state.phase == .idle
@@ -49,12 +48,13 @@ struct PerformancePilotReport: View {
                     .clickableCursor()
                     .disabled(viewModel.isGameRunning())
                 }
-                Button(keepTitle) {
+                let keep = Self.keepTitle(pilot, localization)
+                Button(keep) {
                     pilot.dismiss()
                     message = nil
                 }
                 .lineLimit(1)
-                .help(keepTitle)
+                .help(keep)
                 .clickableCursor()
             }
         }
@@ -82,11 +82,23 @@ struct PerformancePilotReport: View {
         return report
     }
 
-    /// Le parc reste côté B : le bouton dit lequel il garde.
-    private var keepTitle: String {
+    /// Partagés avec les sorties en échec (`PerformancePilotStatus.decision`) :
+    /// tant que le parc est sur B, chaque bouton dit sur quel profil il reste.
+    static func parcNote(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String? {
+        guard pilot.canRollback, pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel else { return nil }
+        return String(format: localization.L(L10n.PerformancePilot.parcNow), label)
+    }
+
+    static func keepTitle(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String {
         guard pilot.canRollback else { return localization.L(L10n.PerformancePilot.close) }
-        guard let label = pilot.state.changeLabel else { return localization.L(L10n.PerformancePilot.dismiss) }
+        guard pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel else {
+            return localization.L(L10n.PerformancePilot.dismiss)
+        }
         return String(format: localization.L(L10n.PerformancePilot.keepProfile), label)
+    }
+
+    static func rollbackTitle(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String {
+        localization.L(pilot.state.changeLabel == nil ? L10n.PerformancePilot.rollback : L10n.PerformancePilot.backToBefore)
     }
 
     private func row(_ result: ProbeMetricResult, quality: ProbeComparisonQuality?) -> some View {

@@ -96,6 +96,12 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
         self.undo = undo
     }
 
+    /// Le geste a réussi : le parc est côté « après » (le profil nommé). Un
+    /// geste raté l'a laissé à moitié — rien à nommer.
+    public var parcIsOnAfterSide: Bool {
+        gestureRan && phase != .failed(.applyFailed) && phase != .failed(.revertFailed)
+    }
+
     /// Le côté à relancer : celui qui a échoué sans que le geste ne rate
     /// (jeu fermé, minutes figées, arrêt), ou celui en vol au plantage.
     public var resumableStep: Step? {

@@ -7,6 +7,10 @@ struct PerformanceMeasurementStatus: View {
     /// Fin de série pilotée : la Synthèse passe sur « Comparer » (`scroll` : y mener).
     var revealComparison: (_ scroll: Bool) -> Void
 
+    private var bundledProbeVersion: String? {
+        ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL).flatMap(ProbeBundle.version(ofFolder:))
+    }
+
     var body: some View {
         let probe = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
@@ -25,6 +29,11 @@ struct PerformanceMeasurementStatus: View {
                                 GuidedProtocol.pilotMinimumVersion.map(String.init).joined(separator: ".")))
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
+                } else if case .update = ProbeBundle.action(bundled: bundledProbeVersion, presence: probe) {
+                    // L'app embarque une sonde plus récente : sans cette carte,
+                    // la mise à jour ne se proposait que dans le volet replié
+                    // « Réglages » (0.9.26 jamais déployée, 2026-10-13).
                     PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
                 }
             }

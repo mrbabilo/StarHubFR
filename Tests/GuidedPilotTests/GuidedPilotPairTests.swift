@@ -30,6 +30,21 @@ import Foundation
         #expect(plan.afterPlanId == nil && plan.changeLabel == nil && plan.beforePlanId == nil)
     }
 
+    /// Le parc n'est dit « sur B » que si le geste a réussi : un geste raté
+    /// l'a laissé à moitié, les boutons ne doivent pas nommer le profil.
+    @Test func theParcIsOnSideBOnlyAfterASuccessfulGesture() {
+        var plan = begun()
+        #expect(!plan.parcIsOnAfterSide)
+        plan.sideFinished(now: Date(timeIntervalSince1970: 60))
+        var failed = plan
+        failed.gestureFailed(.applyFailed, now: Date(timeIntervalSince1970: 61))
+        #expect(failed.gestureRan && !failed.parcIsOnAfterSide)
+        plan.gestureApplied(now: Date(timeIntervalSince1970: 61))
+        #expect(plan.parcIsOnAfterSide)
+        plan.sideFailed(.gameQuit, now: Date(timeIntervalSince1970: 90))
+        #expect(plan.parcIsOnAfterSide)   // B a échoué, le parc est resté sur B
+    }
+
     /// Un état écrit avant ces champs (sans `afterPlanId` ni `changeLabel`)
     /// se relit toujours : la reprise après plantage n'est pas perdue.
     @Test func aStateSavedWithoutTheNewFieldsStillDecodes() throws {
