@@ -93,7 +93,7 @@ public final class GuidedPilotRunner {
     /// Faux = refusé avant tout effet (jeu ouvert, série en cours, profil ou
     /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
     @discardableResult
-    public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, changeLabel: String? = nil) async -> Bool {
+    public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, changeLabel: String?) async -> Bool {
         guard !working, canStart else { return refuse(.seriesPending) }
         if let refusal = preflight() { return refuse(refusal) }
         if let gesture, runtime.refusesGesture(gesture) { return refuse(.gestureRefused) }
@@ -279,7 +279,7 @@ public final class GuidedPilotRunner {
         switch state.phase {
         case .reporting:
             runtime.removePilotPlan()
-            GuidedPilotStateStore.clear(in: stateDirectory)
+            persist()   // X135 : gardé jusqu'à la décision, le parc est côté B
             loop?.cancel()
             endActivity()
             runtime.requestUserAttention()

@@ -13,6 +13,28 @@ public enum ProbePerformanceActions {
         return mods.first { matches($0) || ($0.children ?? []).contains(where: matches) }
     }
 
+    /// X134 — le mod qui **porte** le `config.json` de `modId` : le composant
+    /// lui-même dans un pack (son dossier `Tête/Composant`), jamais la tête,
+    /// qui n'a pas de réglage à elle. La pause, elle, passe par `target`.
+    public static func configOwner(modId: String, in mods: [ModItem]) -> ModItem? {
+        func matches(_ item: ModItem) -> Bool {
+            !item.uniqueId.isEmpty && item.uniqueId.caseInsensitiveCompare(modId) == .orderedSame
+        }
+        for mod in mods {
+            if let child = (mod.children ?? []).first(where: matches) { return child }
+            if matches(mod) { return mod }
+        }
+        return nil
+    }
+
+    /// Le `config.json` réel du mod (actif, en pause, composant d'un pack en
+    /// pause) ; `nil` si son dossier n'existe pas — rien à écrire.
+    public static func configURL(of mod: ModItem, gameDir: String) -> URL? {
+        let modsRoot = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods", isDirectory: true)
+        return ModFolderPaths.realFolder(modsRoot: modsRoot, logical: mod.folderName)?
+            .appendingPathComponent("config.json")
+    }
+
     public struct ProbePauseBlockers: Equatable, Sendable {
         /// Mods actifs qui exigent celui-ci : non vide = pas de geste.
         public let dependents: [String]
@@ -71,10 +93,7 @@ public enum ProbePerformanceActions {
               let oldData = fm.contents(atPath: configsDirectory.appendingPathComponent("\(sha).json").path),
               let old = String(data: oldData, encoding: .utf8)
         else { return .contentMissing }
-        let target = URL(fileURLWithPath: gameDir)
-            .appendingPathComponent("Mods", isDirectory: true)
-            .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
-            .appendingPathComponent("config.json")
+        guard let target = configURL(of: mod, gameDir: gameDir) else { return .writeFailed(mod.folderName) }
         let loaded = fm.contents(atPath: target.path).flatMap { String(data: $0, encoding: .utf8) }
 
         do {

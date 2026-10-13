@@ -143,7 +143,7 @@ enum GuidedPilotLive {
         case .applyProfile(let ids):
             return await apply(BenchmarkSides.foldersA(BenchmarkSides.stateA(viewModel.mods, baseProfileIds: ids)), viewModel)
         case .revertConfig(let modId, let sha):
-            guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.mods) else { return false }
+            guard let mod = ProbePerformanceActions.configOwner(modId: modId, in: viewModel.mods) else { return false }
             let outcome = ProbePerformanceActions.revertConfig(
                 of: mod, toSha: sha, configsDirectory: ProbeFiles().configsDirectory, gameDir: viewModel.gameDir,
                 gameRunning: viewModel.isGameRunning(), backups: ModConfigBackupManager.shared)
@@ -158,8 +158,8 @@ enum GuidedPilotLive {
         case .pauseMod, .applyProfile:
             return GuidedPilotUndo(enabledFolders: BenchmarkSides.foldersA(viewModel.mods))
         case .revertConfig(let modId, _):
-            guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.mods) else { return nil }
-            let url = configURL(mod, viewModel)
+            guard let mod = ProbePerformanceActions.configOwner(modId: modId, in: viewModel.mods),
+                  let url = ProbePerformanceActions.configURL(of: mod, gameDir: viewModel.gameDir) else { return nil }
             // Absent : le retour arrière le retirera (`configText` nil).
             // Illisible : rien de sûr à remettre, pas de retour arrière.
             guard FileManager.default.fileExists(atPath: url.path) else { return GuidedPilotUndo(configPath: url.path) }
@@ -201,13 +201,6 @@ enum GuidedPilotLive {
         await withCheckedContinuation { continuation in
             viewModel.applyEnabledFolders(folders) { continuation.resume(returning: $0 == .complete) }
         }
-    }
-
-    private static func configURL(_ mod: ModItem, _ viewModel: StarHubTHViewModel) -> URL {
-        URL(fileURLWithPath: viewModel.gameDir)
-            .appendingPathComponent("Mods", isDirectory: true)
-            .appendingPathComponent(mod.physicalFolderName, isDirectory: true)
-            .appendingPathComponent("config.json")
     }
 
     /// Jeu ouvert mais pas au premier plan : chaque minute est « hors focus »

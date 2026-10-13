@@ -101,4 +101,35 @@ struct ProbePerformanceActionsTests {
                                    encoding: .utf8)
         #expect(untouched == "{\"Bloom\":false}")
     }
+
+    /// X134 : le réglage d'un composant de pack vit dans le dossier du
+    /// composant — 78 packs du parc en portent un. Le revert écrivait à la
+    /// racine du pack, annonçait `.reverted`, et le composant restait inchangé.
+    @Test func packComponentRevertWritesTheComponentConfig() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("perf-pack-\(UUID().uuidString)")
+        let game = root.appendingPathComponent("game")
+        let component = game.appendingPathComponent("Mods/.Cape Stardew 1.6/Cape Stardew", isDirectory: true)
+        let configs = root.appendingPathComponent("configs", isDirectory: true)
+        try FileManager.default.createDirectory(at: component, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: configs, withIntermediateDirectories: true)
+        try "{\"A\":false}".write(to: component.appendingPathComponent("config.json"), atomically: true, encoding: .utf8)
+        try "{\"A\":true}".write(to: configs.appendingPathComponent("abc123.json"), atomically: true, encoding: .utf8)
+        // Pack en pause : le point vit sur l'entrée de tête.
+        var head = mod("Cape Stardew 1.6", id: "", enabled: false,
+                       children: [mod("Cape Stardew 1.6/Cape Stardew", id: "Cape.Stardew", enabled: false)])
+        head.isGroup = true
+        let owner = try #require(ProbePerformanceActions.configOwner(modId: "cape.stardew", in: [head]))
+        #expect(owner.folderName == "Cape Stardew 1.6/Cape Stardew")
+        #expect(ProbePerformanceActions.configURL(of: owner, gameDir: game.path)?.resolvingSymlinksInPath()
+                == component.appendingPathComponent("config.json").resolvingSymlinksInPath())
+        let outcome = ProbePerformanceActions.revertConfig(
+            of: owner, toSha: "abc123", configsDirectory: configs, gameDir: game.path, gameRunning: false,
+            backups: ModConfigBackupManager(backupsBasePath: root.appendingPathComponent("backups")))
+        #expect(outcome == .reverted)
+        #expect(try String(contentsOf: component.appendingPathComponent("config.json"), encoding: .utf8) == "{\"A\":true}")
+        #expect(!FileManager.default.fileExists(atPath: game.appendingPathComponent("Mods/.Cape Stardew 1.6/config.json").path))
+        // Un mod à plat se résout sur lui-même.
+        let flat = mod("Radiance", id: "phuicmt.SDVRadiance")
+        #expect(ProbePerformanceActions.configOwner(modId: "phuicmt.SDVRadiance", in: [flat, head])?.folderName == "Radiance")
+    }
 }

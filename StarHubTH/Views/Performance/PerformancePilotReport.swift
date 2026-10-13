@@ -83,18 +83,30 @@ struct PerformancePilotReport: View {
     }
 
     /// Partagés avec les sorties en échec (`PerformancePilotStatus.decision`) :
-    /// tant que le parc est sur B, chaque bouton dit sur quel profil il reste.
+    /// tant que le parc est sur B, chaque bouton dit ce qu'il garde — le
+    /// profil, le mod en pause ou le réglage d'avant (départ « Isoler »).
     static func parcNote(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String? {
-        guard pilot.canRollback, pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel else { return nil }
-        return String(format: localization.L(L10n.PerformancePilot.parcNow), label)
+        guard pilot.canRollback, pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel,
+              let keys = changeKeys(pilot.state.gesture) else { return nil }
+        return String(format: localization.L(keys.now), label)
     }
 
     static func keepTitle(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String {
         guard pilot.canRollback else { return localization.L(L10n.PerformancePilot.close) }
-        guard pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel else {
+        guard pilot.state.parcIsOnAfterSide, let label = pilot.state.changeLabel,
+              let keys = changeKeys(pilot.state.gesture) else {
             return localization.L(L10n.PerformancePilot.dismiss)
         }
-        return String(format: localization.L(L10n.PerformancePilot.keepProfile), label)
+        return String(format: localization.L(keys.keep), label)
+    }
+
+    private static func changeKeys(_ gesture: GuidedPilotGesture?) -> (now: String, keep: String)? {
+        switch gesture {
+        case .applyProfile: return (L10n.PerformancePilot.parcNow, L10n.PerformancePilot.keepProfile)
+        case .pauseMod: return (L10n.PerformancePilot.parcNowPause, L10n.PerformancePilot.keepPause)
+        case .revertConfig: return (L10n.PerformancePilot.parcNowConfig, L10n.PerformancePilot.keepConfig)
+        case nil: return nil
+        }
     }
 
     static func rollbackTitle(_ pilot: GuidedPilotRunner, _ localization: LocalizationStore) -> String {

@@ -3774,6 +3774,25 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X135** ✅ *(corrigé le 2026-10-14, audit du delta « mesure pilotée »)* — **Le retour arrière d'une série pilotée disparaissait au redémarrage de l'app.**
+      `GuidedPilotRunner.sideFinished` effaçait `guided-pilot-state.json` dès
+      `.reporting`, alors que la série finit côté B et que `canRollback` vaut
+      vrai au rapport : le relevé d'avant (`undo`) ne vivait plus qu'en
+      mémoire. Quitter l'app avant de trancher laissait le parc sur le profil
+      B, sans rien qui le dise (test rouge : `phase=idle canRollback=false`
+      après redémarrage). Correctif : l'état est persisté au rapport et
+      effacé par `dismiss` ou un retour arrière réussi (`reset`).
+- [x] **X134** ✅ *(corrigé le 2026-10-14, audit du delta « mesure pilotée »)* — **« Revenir au réglage d'avant » d'un composant de pack écrivait au mauvais endroit.**
+      `ProbePerformanceActions.target(modId:)` rend l'entrée de **tête** (bon
+      pour une pause, le point vit sur elle) ; `revertConfig` écrivait donc
+      `Mods/<pack>/config.json`, rendait `.reverted`, et le `config.json` du
+      composant restait inchangé — la mesure « après » jugeait un réglage qui
+      n'avait pas bougé. `GuidedPilotLive.capture` lisait le même mauvais
+      chemin. Mesuré : 78 packs du parc portent un `config.json` de composant
+      (Cape Stardew, East Scarp, Mineral Town…). Correctif :
+      `configOwner(modId:)` (le composant, jamais la tête) et
+      `configURL(of:gameDir:)` (`ModFolderPaths.realFolder`, pack en pause
+      compris) ; dossier introuvable = `.writeFailed`, rien fabriqué.
 - [x] **X133** ✅ *(corrigé le 2026-10-11, audit du module Performances)* — **Installer la sonde depuis la carte SLO échouait en silence.**
       `PerformanceSloDiagnosticSection.installProbe` avalait toute erreur
       (`catch { return }`) et ne refusait pas le geste jeu ouvert ; le volet

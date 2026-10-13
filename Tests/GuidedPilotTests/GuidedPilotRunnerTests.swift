@@ -93,7 +93,7 @@ import Foundation
     @Test func writtenPlansCarryPilotFieldsAndPairing() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         let before = fake.writtenPlans[0], after = fake.writtenPlans[1]
@@ -113,7 +113,7 @@ import Foundation
     @Test func noGestureWhileGameStillRunning() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.gameRunning = true
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
@@ -128,7 +128,7 @@ import Foundation
     @Test func gameQuitWithoutMeasurementFailsAndNeverGestures() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.gameRunning = true
         await runner.pollOnce()     // jeu vu
         fake.gameRunning = false
@@ -144,7 +144,7 @@ import Foundation
     @Test func exitOfAnUnseenGameIsIgnored() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         await runner.gameExited()
         #expect(runner.state.phase == .running(step: .before))
     }
@@ -152,7 +152,7 @@ import Foundation
     @Test func stalledWatchdogAbortsBeforeGesturing() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.now += 601   // aucune progression
         await runner.pollOnce()
         #expect(runner.state.phase == .failed(.stalled))
@@ -163,7 +163,7 @@ import Foundation
     @Test func progressResetsTheWatchdog() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.now += 500
         fake.kept[fake.writtenPlans[0].id] = 1
         await runner.pollOnce()
@@ -176,7 +176,7 @@ import Foundation
         let fake = Fake()
         fake.gestureSucceeds = false
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .failed(.applyFailed))
@@ -188,7 +188,7 @@ import Foundation
         let fake = Fake()
         fake.gestureSucceeds = false
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .revertConfig(modId: "m", sha: "abc"))
+        await runner.start(draft: draft(), gesture: .revertConfig(modId: "m", sha: "abc"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .failed(.revertFailed))
@@ -201,14 +201,14 @@ import Foundation
         let fake = Fake()
         let profile = UUID()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        #expect(await runner.start(draft: draft(profile: profile), gesture: nil))
+        #expect(await runner.start(draft: draft(profile: profile), gesture: nil, changeLabel: nil))
         #expect(fake.profileApplied == [profile])
         #expect(fake.launched == 1)
 
         let failing = Fake()
         failing.profileSucceeds = false
         let refused = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(failing))
-        #expect(await refused.start(draft: draft(profile: profile), gesture: nil) == false)
+        #expect(await refused.start(draft: draft(profile: profile), gesture: nil, changeLabel: nil) == false)
         #expect(failing.launched == 0 && failing.writtenPlans.isEmpty)
         #expect(refused.lastRefusal == .profileNotApplied)
         #expect(refused.state.phase == .idle)
@@ -219,11 +219,11 @@ import Foundation
         let fake = Fake()
         fake.gameRunning = true
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        #expect(await runner.start(draft: draft(), gesture: nil) == false)
+        #expect(await runner.start(draft: draft(), gesture: nil, changeLabel: nil) == false)
         #expect(fake.launched == 0)
         #expect(runner.lastRefusal == .gameRunning)
         fake.gameRunning = false
-        #expect(await runner.start(draft: draft(), gesture: nil))
+        #expect(await runner.start(draft: draft(), gesture: nil, changeLabel: nil))
         #expect(runner.lastRefusal == nil)
     }
 
@@ -233,7 +233,7 @@ import Foundation
         let fake = Fake()
         fake.otherBusy = "stardropium-diagnostic"
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        #expect(await runner.start(draft: draft(), gesture: nil) == false)
+        #expect(await runner.start(draft: draft(), gesture: nil, changeLabel: nil) == false)
         #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
         // Le refus se nomme : « non lancée » seul laissait chercher à l'aveugle.
         #expect(runner.lastRefusal == .otherWork("stardropium-diagnostic"))
@@ -242,7 +242,7 @@ import Foundation
     @Test func singleSideWithoutGestureReportsAfterOneRun() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: nil)
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .reporting)
@@ -253,7 +253,7 @@ import Foundation
     @Test func concurrentPollsGestureOnce() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         fake.suspendReads = true
         async let first: Void = runner.pollOnce()
@@ -268,7 +268,7 @@ import Foundation
     @Test func stopFailsWithoutGesture() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         runner.stop()
         #expect(runner.state.phase == .failed(.stopped))
         fake.states[fake.writtenPlans[0].id] = .finished
@@ -300,7 +300,7 @@ import Foundation
         let fake = Fake()
         let dir = temporaryDirectory()
         let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         fake.gestureSucceeds = false
         await runner.pollOnce()
@@ -315,7 +315,7 @@ import Foundation
         fake.undoSucceeds = false
         let dir = temporaryDirectory()
         let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         fake.gestureSucceeds = false
         await runner.pollOnce()
@@ -324,11 +324,33 @@ import Foundation
         #expect(GuidedPilotStateStore.hasPending(in: dir))
     }
 
+    /// X135 : la série finit côté B ; quitter l'app avant de trancher ne
+    /// doit pas effacer le retour arrière ni la paire à afficher.
+    @Test func aReportSurvivesAnAppRestart() async {
+        let fake = Fake()
+        let dir = temporaryDirectory()
+        let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]), changeLabel: "BENCH+")
+        fake.states[fake.writtenPlans[0].id] = .finished
+        await runner.pollOnce()
+        fake.states[fake.writtenPlans[1].id] = .finished
+        await runner.pollOnce()
+        #expect(runner.state.phase == .reporting && runner.canRollback)
+        let restarted = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
+        restarted.checkForInterruptedSession()
+        #expect(restarted.state.phase == .reporting)
+        #expect(restarted.canRollback)
+        #expect(restarted.state.afterPlanId == fake.writtenPlans[1].id)
+        #expect(restarted.state.changeLabel == "BENCH+")
+        restarted.dismiss()
+        #expect(GuidedPilotStateStore.hasPending(in: dir) == false)
+    }
+
     @Test func dismissReturnsToIdleAndClearsDisk() async {
         let fake = Fake()
         let dir = temporaryDirectory()
         let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: nil)
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         runner.dismiss()
@@ -343,7 +365,7 @@ import Foundation
     @Test func bringsTheGameToFrontUntilItIs() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: nil)
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
         fake.gameRunning = true
         await runner.pollOnce()
         #expect(fake.activations == 1)
@@ -358,7 +380,7 @@ import Foundation
     @Test func stopsActivatingAfterAMinute() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: nil)
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
         fake.gameRunning = true
         fake.now += 61
         await runner.pollOnce()
@@ -371,7 +393,7 @@ import Foundation
         let fake = Fake()
         fake.gestureRefused = true
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        #expect(await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"])) == false)
+        #expect(await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]), changeLabel: nil) == false)
         #expect(fake.launched == 0 && fake.writtenPlans.isEmpty)
         #expect(runner.lastRefusal == .gestureRefused)
     }
@@ -383,7 +405,7 @@ import Foundation
         fake.gestureSucceeds = false
         let dir = temporaryDirectory()
         let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         let restarted = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
@@ -400,7 +422,7 @@ import Foundation
         fake.gestureSucceeds = false
         fake.captured = nil
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .failed(.applyFailed))
@@ -411,7 +433,7 @@ import Foundation
     @Test func reportOffersRollback() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]))
+        await runner.start(draft: draft(), gesture: .applyProfile(baseProfileIds: ["x"]), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         fake.states[fake.writtenPlans[1].id] = .finished
@@ -427,7 +449,7 @@ import Foundation
     @Test func resumeRelaunchesTheAfterSide() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         fake.gameRunning = true
@@ -450,7 +472,7 @@ import Foundation
     @Test func resumeRelaunchesTheBeforeSide() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.now += 601
         await runner.pollOnce()
         #expect(runner.state.phase == .failed(.stalled))
@@ -464,7 +486,7 @@ import Foundation
         let fake = Fake()
         fake.gestureSucceeds = false
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(runner.canResume == false)
@@ -478,7 +500,7 @@ import Foundation
     @Test func earlyQuitAfterTheGraceIsAQuit() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.now += GuidedPilotRunner.staleExitSeconds + 1
         await runner.gameExited()
         #expect(runner.state.phase == .failed(.gameQuit))
@@ -489,7 +511,7 @@ import Foundation
     @Test func finishedSideWithGameStillOpenQuitsTheGameOnce() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"))
+        await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"), changeLabel: nil)
         fake.gameRunning = true
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
@@ -512,10 +534,10 @@ import Foundation
         let missing = FileManager.default.temporaryDirectory
             .appendingPathComponent("absent-\(UUID().uuidString)/sous", isDirectory: true)
         let runner = GuidedPilotRunner(stateDirectory: missing, runtime: runtime(fake))
-        await runner.start(draft: draft(), gesture: nil)
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
         #expect(runner.persistenceFailed)
         let healthy = GuidedPilotRunner(stateDirectory: temporaryDirectory(), runtime: runtime(Fake()))
-        await healthy.start(draft: draft(), gesture: nil)
+        await healthy.start(draft: draft(), gesture: nil, changeLabel: nil)
         #expect(healthy.persistenceFailed == false)
     }
 }

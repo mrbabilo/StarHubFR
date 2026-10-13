@@ -255,7 +255,7 @@ struct PerformanceAnalysisSection: View {
         guard let change = report.diff?.changes.first(where: {
                   $0.modId.caseInsensitiveCompare(modId) == .orderedSame }),
               case .configChanged(let old?, _) = change.kind,
-              let mod = ProbePerformanceActions.target(modId: modId, in: mods)
+              let mod = ProbePerformanceActions.configOwner(modId: modId, in: mods)
         else { return nil }
         return .revertConfig(mod, sha: old, thenMeasure: thenMeasure)
     }
@@ -296,7 +296,7 @@ struct PerformanceAnalysisSection: View {
             return
         }
         if let piloted = pilotStart(for: gesture) {
-            startPilot(piloted.draft, gesture: piloted.gesture)
+            startPilot(piloted.draft, gesture: piloted.gesture, changeLabel: piloted.label)
             return
         }
         switch gesture {
@@ -341,16 +341,16 @@ struct PerformanceAnalysisSection: View {
     /// Sonde ≥ 0.9.25 : un geste qui porte une mesure d'après se joue en
     /// piloté — « avant » frais, geste entre les deux côtés, « après »,
     /// rapport (spec §2.2, §8). Le geste ne part donc pas ici.
-    private func pilotStart(for gesture: PendingAction) -> (draft: GuidedPlanDraft, gesture: GuidedPilotGesture)? {
+    private func pilotStart(for gesture: PendingAction) -> (draft: GuidedPlanDraft, gesture: GuidedPilotGesture, label: String)? {
         guard case .enabled(_, let version) = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods),
               GuidedProtocol.supportsPilot(version),
               // Vanilla : le jeu partirait sans SMAPI, la série attendrait en vain.
               UserDefaults.standard.string(forKey: UDKey.launchProfile) != "Vanilla" else { return nil }
         switch gesture {
         case .pause(let mod, let then?) where mod.isEnabled:
-            return (beforeDraft(then), .pauseMod(folderName: mod.folderName, modId: pilotModId(mod)))
+            return (beforeDraft(then), .pauseMod(folderName: mod.folderName, modId: pilotModId(mod)), mod.name)
         case .revertConfig(let mod, let sha, let then?):
-            return (beforeDraft(then), .revertConfig(modId: pilotModId(mod), sha: sha))
+            return (beforeDraft(then), .revertConfig(modId: pilotModId(mod), sha: sha), mod.name)
         case .pause, .revertConfig, .prepare, .backups:
             return nil
         }
@@ -369,7 +369,7 @@ struct PerformanceAnalysisSection: View {
         mod.components.first { !$0.uniqueId.isEmpty }?.uniqueId ?? mod.uniqueId
     }
 
-    private func startPilot(_ draft: GuidedPlanDraft, gesture: GuidedPilotGesture) {
+    private func startPilot(_ draft: GuidedPlanDraft, gesture: GuidedPilotGesture, changeLabel: String) {
         guard draft.saveName != nil else {
             viewModel.reloadSaves()
             message = localization.L(L10n.PerformancePilot.noSave)
@@ -380,7 +380,7 @@ struct PerformanceAnalysisSection: View {
             return
         }
         Task {
-            let started = await viewModel.pilot.start(draft: draft, gesture: gesture)
+            let started = await viewModel.pilot.start(draft: draft, gesture: gesture, changeLabel: changeLabel)
             message = started ? nil : PerformancePilotStatus.refusalText(viewModel.pilot.lastRefusal, localization: localization)
         }
     }
