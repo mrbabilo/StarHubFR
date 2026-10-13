@@ -37,7 +37,9 @@ struct PerformanceImpactSection: View {
         // L'onglet reste monté : relire au retour dans l'app seulement s'il est
         // affiché (patron `PerformanceView`).
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            if viewModel.navigationStore.diagnosticsSegment == .performance { Task { await reload() } }
+            if viewModel.navigationStore.diagnosticsSegment == .performance {
+                Task { await PerformanceReloadLog.run(viewModel, cause: "retour dans l'app, impact par mod") { await reload() } }
+            }
         }
     }
 

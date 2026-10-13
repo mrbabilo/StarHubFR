@@ -54,7 +54,9 @@ struct PerformanceMeasurementStatus: View {
                     }
                     .task(id: context.date) {
                         if viewModel.navigationStore.diagnosticsSegment == .performance {
-                            await store.reload(gameDir: viewModel.gameDir)
+                            await PerformanceReloadLog.run(viewModel, cause: "minuterie de mesure, 15 s") {
+                                await store.reload(gameDir: viewModel.gameDir)
+                            }
                         }
                     }
                 }

@@ -64,7 +64,9 @@ struct PerformancePilotReport: View {
         .task(id: pairKey) {
             guard let before = pilot.state.beforePlanId, let after = pilot.state.afterPlanId else { return }
             if !store.showPilotPair(before: before, after: after) {
-                await store.reload(gameDir: viewModel.gameDir)
+                await PerformanceReloadLog.run(viewModel, cause: "fin de série pilotée") {
+                    await store.reload(gameDir: viewModel.gameDir)
+                }
                 store.showPilotPair(before: before, after: after)
             }
         }

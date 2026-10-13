@@ -103,25 +103,27 @@ struct PerformanceView: View {
                                       isPresented: $showBenchmark, prefilledPause: benchmarkPrefill)
         }
         .task {
-            await refreshSlo(resume: true)
-            if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
-            if environment.status == .idle { await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir) }
+            await PerformanceReloadLog.run(viewModel, cause: "ouverture de l'onglet") {
+                await refreshSlo(resume: true)
+                if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
+                if environment.status == .idle { await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir) }
+            }
         }
         // L'onglet reste monté : relire à chaque retour, sinon une session
         // jouée depuis n'apparaît jamais (le cache taille + date de l'index
         // rend la relecture quasi gratuite quand rien n'a bougé).
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
             if segment == .performance {
-                Task {
-                    await refreshSlo(resume: true)
-                    await store.reload(gameDir: viewModel.gameDir)
-                    await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
-                }
+                Task { await reloadAll(cause: "retour sur l'onglet") }
             }
         }
         .onChange(of: viewModel.mods) { _, _ in
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
-            Task { await refreshSlo(resume: false) }
+            Task {
+                await PerformanceReloadLog.run(viewModel, cause: "parc modifié, diagnostics SLO seuls") {
+                    await refreshSlo(resume: false)
+                }
+            }
         }
         // Jeu quitté : la session close entre dans les analyses — mais
         // seulement si l'onglet est affiché ; caché, quinze mutations
@@ -130,21 +132,19 @@ struct PerformanceView: View {
         .onReceive(GameExit.publisher) {
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
             Task {
-                await sloDiagnostic.gameExited(runtime: sloRuntime())
-                await stardropiumDiagnostic.gameExited(runtime: sloRuntime())
-                await store.reload(gameDir: viewModel.gameDir)
-                await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+                await PerformanceReloadLog.run(viewModel, cause: "fermeture du jeu") {
+                    await sloDiagnostic.gameExited(runtime: sloRuntime())
+                    await stardropiumDiagnostic.gameExited(runtime: sloRuntime())
+                    await store.reload(gameDir: viewModel.gameDir)
+                    await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+                }
             }
         }
         // Le jeu se joue app en arrière-plan, onglet ouvert : relire au retour
         // dans l'app, sinon la mesure démarrée n'entre jamais dans les sélecteurs.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if viewModel.navigationStore.diagnosticsSegment == .performance {
-                Task {
-                    await refreshSlo(resume: true)
-                    await store.reload(gameDir: viewModel.gameDir)
-                    await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
-                }
+                Task { await reloadAll(cause: "retour dans l'app") }
             }
         }
     }
@@ -208,6 +208,14 @@ struct PerformanceView: View {
                           measurement.name, duration, count)
         }
         return String(format: localization.L(L10n.Performance.sideSegment), date, duration, count)
+    }
+
+    private func reloadAll(cause: String) async {
+        await PerformanceReloadLog.run(viewModel, cause: cause) {
+            await refreshSlo(resume: true)
+            await store.reload(gameDir: viewModel.gameDir)
+            await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+        }
     }
 
     private func refreshSlo(resume: Bool) async {
