@@ -22,6 +22,7 @@ where the exact log format was verified.
 ### Changed
 
 - **Les alertes système ne se recalculent plus à chaque affichage.** La liste des problèmes de santé du parc est résolue une fois par événement qui la change (scan, journal, verdicts, liste noire, langue) au lieu d'être déroulée à chaque rendu — badge, accueil et écran d'alertes lisent la même liste figée entre deux événements (F3).
+- **Chaque relecture de l'onglet Performances laisse une ligne au journal**, avec sa cause et sa durée, pour retrouver ce qui le rafraîchit.
 - **L'export d'un lot de traduction ne bloque plus l'interface.** Construction du lot et encodage JSON passent hors du fil principal, y compris pour la navette ZIP qui enchaîne un lot par mod sélectionné (F3).
 
 ### Fixed
@@ -33,6 +34,8 @@ where the exact log format was verified.
 - **Un mod installé depuis Nexus a son image et sa catégorie tout de suite.** L'app retenait l'id Nexus mais attendait la vérification suivante pour remplir la fiche ; elle les demande désormais à l'installation.
 - **Revenir au réglage d'avant d'un composant de pack réécrit son vrai `config.json`.** L'app écrivait à la racine du pack et annonçait le retour fait ; le composant gardait son réglage (X134).
 - **Le retour arrière d'une série pilotée survit à un redémarrage de l'app.** L'état était effacé dès le rapport : le parc restait sur B sans rien pour y revenir (X135).
+- **Une série pilotée dit sur quoi le parc est resté.** Échec, interruption ou départ « Isoler » : les boutons nomment le profil, le mod en pause ou le réglage d'avant, et les étapes ne parlent plus de profil pour une pause.
+- **La mise à jour de la sonde se voit en tête de Performances.** Elle n'était proposée que dans le volet replié « Réglages » quand l'app embarquait une sonde plus récente.
 - **Sonde 0.9.27 : plus de faux « Aucune trame mesurée » au retour au titre** après une mesure close.
 - **Stardropium et UltraSmooth partagent bien `passTimeForObjects` par défaut.** Le catalogue la disait conditionnelle depuis UltraSmooth 2.4.9 ; il est remesuré sur Stardropium 0.2.9-alpha et UltraSmooth 2.4.16, versions du parc.
 
