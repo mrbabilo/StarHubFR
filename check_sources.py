@@ -622,13 +622,13 @@ SOURCES = [
      "used_by": "docs/audit-keybind-radar-savesaver.md, docs/SOURCES.md §5"},
 
     {"key": "mod/hotkey-hub", "kind": "smapi-mod", "probe": probe_smapi_mod,
-     "nexusId": 53820, "uniqueId": None,
+     "nexusId": 53820, "uniqueId": "tangsuan.Hotkeys",
      "role": "panneau de raccourcis en jeu (tangsuanz, 0.1.0, paru le "
-             "2026-10-13) : scanne les mods installés, liste tous les "
-             "raccourcis dans une vue cherchable — recouvre l'axe C4 comme "
-             "Keybind Radar. Non décompilé ; manifeste Nexus : Hotkeys/"
-             "Hotkeys.dll, vue StardewUI (HotkeyHub.sml), i18n default + zh. "
-             "UniqueID non relevé (archive non téléchargée)",
+             "2026-10-13), recouvre l'axe C4 comme Keybind Radar ; décompilé "
+             "le 2026-10-14, en pause sur le parc. Parcourt tout Mods/ sur "
+             "disque (dossiers pointés exclus) et parse chaque config.json au "
+             "SaveLoaded, synchrone ; déclenche par Helper.Input.Press ; ni "
+             "réseau ni Harmony. Dépend de StardewUI 0.6.1+. UpdateKeys vide",
      "used_by": "docs/SOURCES.md §5"},
 
     {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,
