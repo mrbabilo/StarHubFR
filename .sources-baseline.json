@@ -131,6 +131,7 @@
     "version": "1.16.0"
   },
   "mod/hotkey-hub": {
+    "changelog_reviewed": "0.1.0",
     "gitHubRepo": null,
     "name": null,
     "version": "0.1.0"
@@ -166,10 +167,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.3.1",
+    "changelog_reviewed": "2.3.2",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.3.1"
+    "version": "2.3.2"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -212,10 +213,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.16",
+    "changelog_reviewed": "2.4.17",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.16"
+    "version": "2.4.17"
   },
   "nexus/api-v1": {
     "bytes": 53,
