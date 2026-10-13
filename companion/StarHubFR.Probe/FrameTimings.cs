@@ -225,7 +225,14 @@ internal static class FrameTimings
             double wall = (Clock.Elapsed.TotalMilliseconds - WindowStartMs) / 1000;
             if (wall <= 0 || FrameIntervalMs.Count == 0)
             {
-                Monitor.Log($"Aucune trame mesurée en {wall:0.0} s : les minuteurs du jeu ne sont pas interceptés.", LogLevel.Warn);
+                // Une fenêtre vide après des trames vues est normale : retour
+                // au titre ou fermeture (26 s sans dessin à la sortie d'une
+                // mesure pilotée, 2026-10-13). Seul un jeu qui n'a jamais
+                // rendu de trame dit que les minuteurs ne sont pas interceptés.
+                if (Announced)
+                    Monitor.Log($"Fenêtre sans trame ({wall:0.0} s) : retour au titre ou fermeture, rien d'écrit.", LogLevel.Trace);
+                else
+                    Monitor.Log($"Aucune trame mesurée en {wall:0.0} s : les minuteurs du jeu ne sont pas interceptés.", LogLevel.Warn);
                 ResetWindow();
                 Guided.CloseWindow(null);
                 return;
