@@ -72,13 +72,18 @@ import Foundation
     @Test func fullPairRunsBothSidesAndCallsAttention() async {
         let fake = Fake()
         let runner = GuidedPilotRunner(stateDirectory: nil, runtime: runtime(fake))
-        #expect(await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i")))
+        #expect(await runner.start(draft: draft(), gesture: .pauseMod(folderName: "S", modId: "i"),
+                                   changeLabel: "BENCH+"))
         fake.states[fake.writtenPlans[0].id] = .finished
         await runner.pollOnce()
         #expect(fake.gestures.count == 1)
         fake.states[fake.writtenPlans[1].id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .reporting)
+        // La fin de série affiche cette paire-là, nommée (retour du 2026-10-13).
+        #expect(runner.state.beforePlanId == fake.writtenPlans[0].id)
+        #expect(runner.state.afterPlanId == fake.writtenPlans[1].id)
+        #expect(runner.state.changeLabel == "BENCH+")
         #expect(fake.attention == 1)
         #expect(fake.launched == 2)
     }
@@ -439,6 +444,7 @@ import Foundation
         fake.states[retry.id] = .finished
         await runner.pollOnce()
         #expect(runner.state.phase == .reporting)
+        #expect(runner.state.afterPlanId == retry.id)   // la relance, pas le côté abandonné
     }
 
     @Test func resumeRelaunchesTheBeforeSide() async {

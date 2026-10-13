@@ -16,6 +16,8 @@ public enum BenchmarkRefusal: Equatable, Sendable {
     case dependents([String])
     case duplicateIds([String])
     case unknownMod
+    /// Le profil ne change aucun dossier actif : A et B seraient le même parc.
+    case noChange
 }
 
 public enum BenchmarkSides {
@@ -120,7 +122,9 @@ public enum BenchmarkSides {
             }
             return dependents.isEmpty ? nil : .dependents(dependents.sorted())
         case .profile(let ids):
-            return ids.contains(where: isProbe) ? nil : .probeInSideB
+            guard ids.contains(where: isProbe) else { return .probeInSideB }
+            let a = foldersA(mods)
+            return Set(foldersB(sideB, foldersA: a, mods: mods)) == Set(a) ? .noChange : nil
         }
     }
 

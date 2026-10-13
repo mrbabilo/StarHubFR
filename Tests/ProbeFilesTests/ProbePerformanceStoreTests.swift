@@ -148,6 +148,18 @@ import Foundation
         #expect(s.afterId == "m:\(afterId.uuidString)")
         await s.reload()
         #expect(s.afterId == "m:\(afterId.uuidString)")
+        // Fin de série pilotée : la paire se désigne par ses plans, même
+        // quand une autre paire a pris la sélection entre-temps.
+        let others = s.sides.filter { $0.measurement == nil }
+        try #require(others.count >= 2)
+        await s.select(before: others[0].id, after: others[1].id).value
+        #expect(s.afterId == others[1].id)   // sinon le test ne prouve rien
+        #expect(s.showPilotPair(before: beforeId, after: afterId))
+        await s.configDiffsLoaded()
+        #expect(s.beforeId == "m:\(beforeId.uuidString)")
+        #expect(s.afterId == "m:\(afterId.uuidString)")
+        #expect(s.report?.after.id == s.afterId)
+        #expect(!s.showPilotPair(before: beforeId, after: UUID()))   // côté pas encore relu
     }
 }
 

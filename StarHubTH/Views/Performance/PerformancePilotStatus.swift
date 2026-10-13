@@ -8,6 +8,7 @@ struct PerformancePilotStatus: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
+    var revealComparison: (_ scroll: Bool) -> Void
     @State private var message: String?
 
     var body: some View {
@@ -33,7 +34,8 @@ struct PerformancePilotStatus: View {
             case .applying:
                 Text(localization.L(L10n.PerformancePilot.applying)).font(AppDesign.Font.footnote)
             case .reporting:
-                decision(localization.L(L10n.PerformancePilot.ready), pilot: pilot)
+                PerformancePilotReport(viewModel: viewModel, localization: localization, store: store, pilot: pilot,
+                                       revealComparison: revealComparison, message: $message)
             case .failed(let failure):
                 decision(localization.L(Self.failureKey(failure)), pilot: pilot)
             case .interrupted:
@@ -46,7 +48,8 @@ struct PerformancePilotStatus: View {
         }
     }
 
-    /// Fin de série : retour arrière si le parc a pu changer, sinon fermer.
+    /// Échec ou interruption : relancer, retour arrière si le parc a pu
+    /// changer, sinon fermer (la fin réussie a sa vue, `PerformancePilotReport`).
     private func decision(_ text: String, pilot: GuidedPilotRunner) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(text).font(AppDesign.Font.footnote).fixedSize(horizontal: false, vertical: true)

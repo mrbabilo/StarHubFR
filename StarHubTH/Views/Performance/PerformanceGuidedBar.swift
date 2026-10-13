@@ -186,7 +186,7 @@ struct PerformanceGuidedBar: View {
             return
         }
         Task {
-            let started = await viewModel.pilot.start(draft: before, gesture: gesture)
+            let started = await viewModel.pilot.start(draft: before, gesture: gesture, changeLabel: profile.name)
             message = started ? nil : PerformancePilotStatus.refusalText(viewModel.pilot.lastRefusal,
                                                                          localization: localization)
         }
@@ -266,8 +266,12 @@ struct PerformanceGuidedSheet: View {
                 Text(localization.L(L10n.Performance.guidedProfileParc)).tag(UUID?.none)
                 ForEach(viewModel.modProfiles) { Text($0.name).tag(UUID?.some($0.id)) }
             }
-            if profileId != nil {
-                Text(localization.L(piloted ? L10n.PerformancePilot.profileNote : L10n.Performance.guidedProfileNote))
+            // Piloté : le bloc A/B se lit avant le départ — deux lancements
+            // du jeu, rien à faire (retour d'écran du 2026-10-13).
+            if piloted || profileId != nil {
+                Text(localization.L(!piloted ? L10n.Performance.guidedProfileNote
+                                    : profileId == nil ? L10n.PerformancePilot.needProfile
+                                    : L10n.PerformancePilot.profileNote))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

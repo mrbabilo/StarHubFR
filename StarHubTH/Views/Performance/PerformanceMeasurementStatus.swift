@@ -4,6 +4,8 @@ struct PerformanceMeasurementStatus: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
+    /// Fin de série pilotée : la Synthèse passe sur « Comparer » (`scroll` : y mener).
+    var revealComparison: (_ scroll: Bool) -> Void
 
     var body: some View {
         let probe = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
@@ -48,7 +50,8 @@ struct PerformanceMeasurementStatus: View {
                     }
                 }
             }
-            PerformancePilotStatus(viewModel: viewModel, localization: localization, store: store)
+            PerformancePilotStatus(viewModel: viewModel, localization: localization, store: store,
+                                   revealComparison: revealComparison)
             if store.status == .loading { ProgressView(localization.L(L10n.Performance.loading)).controlSize(.small) }
             if viewModel.isBenchmarkActive {
                 Text(localization.L(L10n.PerformanceEvidence.benchmarkBusy)).font(AppDesign.Font.footnote)

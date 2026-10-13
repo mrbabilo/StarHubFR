@@ -57,6 +57,12 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
     public private(set) var undo: GuidedPilotUndo?
     /// Le plan « avant » : le « après » s'y apparie, reprise comprise.
     public private(set) var beforePlanId: UUID?
+    /// Le plan « après » : avec `beforePlanId`, la paire que la fin de série
+    /// affiche, sans deviner parmi les mesures closes.
+    public private(set) var afterPlanId: UUID?
+    /// Le nom du changement entre les côtés (le profil), pour les boutons de
+    /// fin de série. Optionnel : un état écrit avant lui se relit.
+    public private(set) var changeLabel: String?
     /// Le côté en vol au plantage de l'app — `nil` pendant `applying` : le
     /// geste a pu partir à moitié, seul le retour arrière vaut.
     public private(set) var interruptedStep: Step?
@@ -65,18 +71,24 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
 
     public static let initial = GuidedPilotPlan()
 
-    public mutating func begin(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, now: Date) {
+    public mutating func begin(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, changeLabel: String? = nil,
+                               now: Date) {
         guard phase == .idle else { return }
         beforeDraft = draft
         self.gesture = gesture
+        self.changeLabel = changeLabel
         startedAt = now
         lastProgressAt = now
         phase = .running(step: .before)
     }
 
-    public mutating func setBeforePlan(_ id: UUID) {
-        guard phase == .running(step: .before) else { return }
-        beforePlanId = id
+    /// Le plan du côté en vol ; ignoré hors d'un côté (`applying` compris).
+    public mutating func setSidePlan(_ id: UUID) {
+        switch phase {
+        case .running(step: .before): beforePlanId = id
+        case .running(step: .after): afterPlanId = id
+        default: break
+        }
     }
 
     public mutating func recordUndo(_ undo: GuidedPilotUndo?) {
@@ -160,6 +172,6 @@ public struct GuidedPilotPlan: Codable, Equatable, Sendable {
         phase = .idle
         beforeDraft = nil; gesture = nil; gestureRan = false
         startedAt = nil; lastProgressAt = nil
-        undo = nil; beforePlanId = nil; interruptedStep = nil
+        undo = nil; beforePlanId = nil; afterPlanId = nil; changeLabel = nil; interruptedStep = nil
     }
 }

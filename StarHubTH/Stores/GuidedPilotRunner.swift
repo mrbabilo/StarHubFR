@@ -93,7 +93,7 @@ public final class GuidedPilotRunner {
     /// Faux = refusé avant tout effet (jeu ouvert, série en cours, profil ou
     /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
     @discardableResult
-    public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?) async -> Bool {
+    public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, changeLabel: String? = nil) async -> Bool {
         guard !working, canStart else { return refuse(.seriesPending) }
         if let refusal = preflight() { return refuse(refusal) }
         if let gesture, runtime.refusesGesture(gesture) { return refuse(.gestureRefused) }
@@ -110,8 +110,8 @@ public final class GuidedPilotRunner {
         let plan = makePlan(draft, role: .before, pairedWith: nil)
         guard launch(plan) else { return false }
         reset()
-        state.begin(draft: draft, gesture: gesture, now: runtime.now())
-        state.setBeforePlan(plan.id)
+        state.begin(draft: draft, gesture: gesture, changeLabel: changeLabel, now: runtime.now())
+        state.setSidePlan(plan.id)
         sideLaunched(plan.id)
         persist()
         beginActivity()
@@ -136,7 +136,7 @@ public final class GuidedPilotRunner {
         lastRefusal = nil
         state.resume(now: runtime.now())
         interruptedWhileApplying = false
-        if step == .before { state.setBeforePlan(plan.id) }
+        state.setSidePlan(plan.id)
         sideLaunched(plan.id)
         persist()
         beginActivity()
@@ -305,6 +305,7 @@ public final class GuidedPilotRunner {
         }
         state.gestureApplied(now: runtime.now())
         let plan = makePlan(draft, role: .after, pairedWith: state.beforePlanId)
+        state.setSidePlan(plan.id)
         do { try runtime.writePlan(plan) } catch {
             fail(.noMeasurement, "plan « après » non écrit (\(error.localizedDescription))")
             return
@@ -345,9 +346,7 @@ public final class GuidedPilotRunner {
         interruptedWhileApplying = false
         currentPlanId = nil
         lastKept = 0
-        gameSeen = false
-        sideLaunchedAt = nil
-        gameBroughtFront = false
+        gameSeen = false; sideLaunchedAt = nil; gameBroughtFront = false
         persistenceFailed = false
         lastRefusal = nil
         GuidedPilotStateStore.clear(in: stateDirectory)

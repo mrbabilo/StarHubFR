@@ -18,6 +18,17 @@ extension L10n {
         static let failedStopped = "perf_pilot_failed_stopped"
         static let interrupted = "perf_pilot_interrupted"
         static let ready = "perf_pilot_ready"
+        static let verdictIdentical = "perf_pilot_verdict_identical"
+        static let verdictSmoother = "perf_pilot_verdict_smoother"
+        static let verdictLessSmooth = "perf_pilot_verdict_less_smooth"
+        static let verdictMixed = "perf_pilot_verdict_mixed"
+        static let verdictNoDifference = "perf_pilot_verdict_no_difference"
+        static let verdictInconclusive = "perf_pilot_verdict_inconclusive"
+        static let parcNow = "perf_pilot_parc_now"
+        static let keepProfile = "perf_pilot_keep_profile"
+        static let backToBefore = "perf_pilot_back_to_before"
+        static let showDetail = "perf_pilot_show_detail"
+        static let close = "perf_pilot_close"
         static let rollback = "perf_pilot_rollback"
         static let rollbackHelp = "perf_pilot_rollback_help"
         static let rollbackFailed = "perf_pilot_rollback_failed"
@@ -53,4 +64,10 @@ extension L10n {
 /// P2 — « Benchmarker ce mod » (L10n.swift verrouillé par le cliquet).
 extension L10n.Performance {
     static let benchmarkThisMod = "perf_benchmark_this_mod"
+}
+
+/// Refus partagé benchmark / mesure pilotée (fichier à part : `L10n.swift`
+/// est verrouillé par le cliquet de taille).
+extension L10n.Benchmark {
+    static let refNoChange = "bench_ref_no_change"
 }

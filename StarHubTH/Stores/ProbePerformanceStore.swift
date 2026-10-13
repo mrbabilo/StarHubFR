@@ -136,6 +136,17 @@ final class ProbePerformanceStore {
         return (before, after)
     }
 
+    /// P1 — la paire d'une série pilotée, désignée par ses deux plans : la fin
+    /// de série la montre sans dépendre de `freshGuidedPair` (qui ne voit que
+    /// les mesures neuves d'une relecture). Faux tant qu'un côté n'est pas relu.
+    @discardableResult
+    func showPilotPair(before: UUID, after: UUID) -> Bool {
+        guard let a = sides.first(where: { $0.measurement?.id == before }),
+              let b = sides.first(where: { $0.measurement?.id == after }) else { return false }
+        if beforeId != a.id || afterId != b.id { select(before: a.id, after: b.id) }
+        return true
+    }
+
     /// Calcul hors MainActor ; seule la dernière sélection publie son rapport.
     @discardableResult
     func select(before: String?, after: String?) -> Task<Void, Never> {

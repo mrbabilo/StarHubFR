@@ -25,7 +25,10 @@ struct PerformanceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     navigation(proxy)
-                    PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store)
+                    PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store) { scroll in
+                        comparing = true
+                        if scroll { proxy.scrollTo("summary", anchor: .top) }
+                    }
                     PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
                     Picker(localization.L(L10n.Performance.inGameTitle), selection: $comparing) {
                         Text(localization.L(L10n.PerformanceEvidence.lastSession)).tag(false)

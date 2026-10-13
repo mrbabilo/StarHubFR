@@ -63,6 +63,20 @@ import Testing
         #expect(BenchmarkSides.refusal(.pauseMod(folderName: "[CP] SVE"), mods: [probe, cp, pack]) == nil)
     }
 
+    /// Retour d'écran du 2026-10-13 : le parc était déjà sur le profil choisi,
+    /// la série a joué deux fois le même parc (inventaires identiques) et ne
+    /// pouvait rien montrer. Un profil qui ne change aucun dossier est refusé.
+    @Test func aProfileThatChangesNoFolderIsRefused() {
+        let probe = mod("Probe", id: "mrbabilo.StarHubFR.Probe", version: "0.7.0")
+        let cp = mod("CP", id: "Pathoschild.ContentPatcher")
+        let off = mod("Off", id: "x.off", enabled: false)
+        let ids = ["mrbabilo.StarHubFR.Probe", "pathoschild.contentpatcher"]
+        #expect(BenchmarkSides.refusal(.profile(enabledModIds: ids), mods: [probe, cp, off]) == .noChange)
+        // Le cas voisin : un seul dossier de différence suffit à comparer.
+        #expect(BenchmarkSides.refusal(.profile(enabledModIds: ids + ["x.off"]), mods: [probe, cp, off]) == nil)
+        #expect(BenchmarkSides.refusal(.profile(enabledModIds: [ids[0]]), mods: [probe, cp, off]) == nil)
+    }
+
     /// Un framework en pack : l'entrée de tête n'a pas d'identifiant, les
     /// dépendants visent un composant (correction 9 de la relecture).
     @Test func aGroupedFrameworkWithDependentsIsRefused() {
