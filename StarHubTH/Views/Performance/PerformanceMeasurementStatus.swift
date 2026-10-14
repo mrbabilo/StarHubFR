@@ -41,22 +41,25 @@ struct PerformanceMeasurementStatus: View {
             // la relecture démarre sans attendre que `store.plan` le voie.
             let piloting = viewModel.pilot.isActive
             if store.plan != nil || piloting, viewModel.isGameRunning() {
-                TimelineView(.periodic(from: .now, by: 15)) { context in
-                    Group {
-                        // En pilotage, la ligne d'état du pilote porte le compte.
-                        if piloting {
-                            Color.clear.frame(width: 0, height: 0)
-                        } else {
-                            Text(String(format: localization.L(L10n.PerformanceEvidence.guidedProgress),
-                                        store.guidedMinuteCount))
-                                .font(AppDesign.Font.footnote)
-                        }
+                Group {
+                    // En pilotage, la ligne d'état du pilote porte le compte.
+                    if piloting {
+                        Color.clear.frame(width: 0, height: 0)
+                    } else {
+                        Text(String(format: localization.L(L10n.PerformanceEvidence.guidedProgress),
+                                    store.guidedMinuteCount))
+                            .font(AppDesign.Font.footnote)
                     }
-                    .task(id: context.date) {
-                        if viewModel.navigationStore.diagnosticsSegment == .performance {
-                            await PerformanceReloadLog.run(viewModel, cause: "minuterie de mesure, 15 s") {
-                                await store.reload(gameDir: viewModel.gameDir)
-                            }
+                }
+                // Une boucle liée à la présence du bloc, pas `TimelineView(.periodic(from: .now…))` :
+                // `.now` se réévaluait à chaque rendu, la relecture en provoquait un, et
+                // l'onglet se relisait en boucle toutes les ~3 s pendant la mesure.
+                .task {
+                    while true {
+                        do { try await Task.sleep(for: .seconds(15)) } catch { return }   // bloc retiré
+                        guard viewModel.navigationStore.diagnosticsSegment == .performance else { continue }
+                        await PerformanceReloadLog.run(viewModel, cause: "minuterie de mesure, 15 s") {
+                            await store.reload(gameDir: viewModel.gameDir)
                         }
                     }
                 }

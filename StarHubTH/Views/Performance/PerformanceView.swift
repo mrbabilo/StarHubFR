@@ -35,7 +35,9 @@ struct PerformanceView: View {
                         Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
                     }.pickerStyle(.menu)
                     if comparing { selectors }
-                    if store.isComputing { Text(localization.L(L10n.PerformanceEvidence.computing)).font(AppDesign.Font.footnote) }
+                    // Place toujours réservée : la ligne apparaissait puis disparaissait, et le texte dessous sautait.
+                    Text(localization.L(L10n.PerformanceEvidence.computing)).font(AppDesign.Font.footnote)
+                        .opacity(store.isComputing ? 1 : 0).accessibilityHidden(!store.isComputing)
                     PerformanceCard {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary)

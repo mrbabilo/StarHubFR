@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **L'onglet Performances ne se relit plus toutes les 3 s pendant une mesure guidée.** La minuterie de 15 s se réarmait à chaque affichage, et chaque relecture en provoquait un. La ligne « Actualisation en cours » garde sa place : le texte dessous ne saute plus.
+
 ## [1.63.0] - 2026-10-14
 
 ### Added
