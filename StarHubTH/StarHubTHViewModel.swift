@@ -3412,6 +3412,7 @@ final class StarHubTHViewModel {
         // par celui qui reste (sinon mises à jour et X62 sur la page d'un autre) ;
         // le renommé le réapprend de ses `UpdateKeys`.
         nexusMetadata.migrateFolderName(from: old, to: new, shared: shared)
+        groups.update { $0.migrate(from: old, to: new, shared: shared) }   // I-T21
 
         // 6. Registre : sinon « vu pour la première fois », date perdue. En
         // collision, le renommé repart neuf (date copiée = inventée).
@@ -7402,8 +7403,7 @@ final class StarHubTHViewModel {
         if ModRemovalPurge.purge(&blacklistedMods, removing: folder) {
             Self.saveBlacklistedMods(blacklistedMods)
         }
-        // Sinon croissance indéfinie.
-        errorHistory.forget(mod: folder)
+        errorHistory.forget(mod: folder)   // sinon croissance indéfinie
         if let store = TranslationBaseline.defaultDirectory() {
             try? TranslationBaseline.remove(modFolderName: folder, in: store)
         }
@@ -7415,8 +7415,8 @@ final class StarHubTHViewModel {
             Self.saveModActivationTimestamps(modActivationTimestamps)
         }
         nexusMetadata.purgeMod(folderName: folder)
-        // Retrait sûr même avec un id Nexus partagé (58 cas) :
-        // `installedNexusIds()` fait l'union avec le disque.
+        groups.update { $0.purge(folder) }   // I-T21
+        // Retrait sûr malgré un id Nexus partagé (58 cas) : `installedNexusIds()` unit avec le disque.
         if let id = Int(resolvedNexusModId(for: mod)) {
             recentNexusInstalls.remove(id)
         }

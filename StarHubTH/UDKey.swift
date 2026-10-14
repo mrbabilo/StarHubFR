@@ -129,6 +129,8 @@ public enum UDKey {
     public static let nexusAccount = "nexusAccount"
     public static let favoriteMods = "favoriteMods"
     public static let blacklistedMods = "blacklistedMods"
+    /// I-T21 — « Regrouper par » de la liste des mods (`ModGrouping`).
+    public static let modListGrouping = "modListGrouping"
     public static let defaultProfileId = "defaultProfileId"
     public static let didSeedDefaultProfile = "didSeedDefaultProfile"
     public static let saveNotes = "SaveNotes_v2"
