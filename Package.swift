@@ -132,6 +132,7 @@ let package = Package(
                 "Models/ModListKeyStep.swift",
                 "Models/ModListSelection.swift",
                 "Models/ModGroups.swift",
+                "Models/ModGroupPages.swift",
                 "Models/KeyboardShortcutCatalog.swift",
                 "Models/TextScale.swift",
                 "Models/CompatibilityResolution.swift",
