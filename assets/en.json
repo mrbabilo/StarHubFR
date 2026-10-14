@@ -947,6 +947,8 @@
   "mods_probe_options_harmony_help": "Chronometers every other mod's Harmony patches. Observation cost: compare two sessions, on and off. Disarmed for a guided measurement or a benchmark.",
   "mods_probe_options_textures": "Measure resident textures",
   "mods_probe_options_textures_help": "Tracks memory kept in loaded textures, per mod or content pack that provides them (base game apart).",
+  "mods_probe_options_ministats": "In-game mini-stats",
+  "mods_probe_options_ministats_help": "FPS, P50/P99 frame time and memory in the top-right corner of the game, refreshed every second.",
   "mods_probe_options_launch_note": "Takes effect at the next launch of the game.",
   "mods_probe_options_corrupted": "The probe's config.json is unreadable.",
   "mods_probe_options_repair": "Repair",

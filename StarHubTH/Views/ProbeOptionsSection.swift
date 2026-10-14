@@ -13,20 +13,20 @@ struct ProbeOptionsSection: View {
 
     @State private var harmony = ProbeOptions.defaultHarmonyPatches
     @State private var textures = ProbeOptions.defaultTextures
+    @State private var miniStats = ProbeOptions.defaultMiniStats
     /// Le fichier existe mais est illisible : le geste « réparer » réécrit
     /// depuis les défauts (jamais une option fausse posée en silence).
     @State private var corrupted = false
     @State private var unavailable = false
 
     private var configURL: URL? {
-        guard !vm.gameDir.isEmpty else { return nil }
-        let modsRoot = URL(fileURLWithPath: vm.gameDir, isDirectory: true)
-            .appendingPathComponent("Mods", isDirectory: true)
-        let presence: ModPresence = mod.isEnabled
+        ProbeOptionsFile.url(gameDir: vm.gameDir, presence: mod.isEnabled
             ? .enabled(folderName: mod.folderName, version: mod.version)
-            : .paused(folderName: mod.folderName, version: mod.version)
-        guard let folder = ProbeBundle.target(modsRoot: modsRoot, presence: presence) else { return nil }
-        return folder.appendingPathComponent("config.json")
+            : .paused(folderName: mod.folderName, version: mod.version))
+    }
+
+    private var options: ProbeOptions {
+        ProbeOptions(measureHarmonyPatches: harmony, measureTextures: textures, showMiniStats: miniStats)
     }
 
     var body: some View {
@@ -41,11 +41,15 @@ struct ProbeOptionsSection: View {
                 Toggle(isOn: $harmony) {
                     optionLabel(L10n.Mods.probeOptionsHarmony, L10n.Mods.probeOptionsHarmonyHelp)
                 }
-                .onChange(of: harmony) { _, newValue in write(harmony: newValue, textures: textures) }
+                .onChange(of: harmony) { _, _ in write() }
                 Toggle(isOn: $textures) {
                     optionLabel(L10n.Mods.probeOptionsTextures, L10n.Mods.probeOptionsTexturesHelp)
                 }
-                .onChange(of: textures) { _, newValue in write(harmony: harmony, textures: newValue) }
+                .onChange(of: textures) { _, _ in write() }
+                Toggle(isOn: $miniStats) {
+                    optionLabel(L10n.Mods.probeOptionsMiniStats, L10n.Mods.probeOptionsMiniStatsHelp)
+                }
+                .onChange(of: miniStats) { _, _ in write() }
                 Text(localization.L(L10n.Mods.probeOptionsLaunchNote))
                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -57,7 +61,7 @@ struct ProbeOptionsSection: View {
                             .foregroundColor(AppDesign.Color.warning)
                         Spacer()
                         Button(localization.L(L10n.Mods.probeOptionsRepair)) {
-                            write(harmony: harmony, textures: textures, repair: true)
+                            write(repair: true)
                         }
                         .buttonStyle(.bordered).controlSize(.small)
                     }
@@ -79,36 +83,22 @@ struct ProbeOptionsSection: View {
     }
 
     private func load() {
-        guard let url = configURL else {
-            unavailable = true
-            return
-        }
-        guard let data = FileManager.default.contents(atPath: url.path) else {
-            unavailable = true
-            return
-        }
-        switch ProbeOptions.read(data) {
-        case .success(let options):
+        switch ProbeOptionsFile.load(configURL) {
+        case .options(let options):
             harmony = options.measureHarmonyPatches
             textures = options.measureTextures
-        case .failure:
-            corrupted = true
+            miniStats = options.showMiniStats
+        case .corrupted: corrupted = true
+        case .unavailable: unavailable = true
         }
     }
 
-    /// L'écriture : ouvre les droits (le parc pose parfois ses dossiers en
-    /// 0555), réécrit **canoniquement** — et en cas de corruption, `repair`
-    /// part des valeurs affichées et rend un JSON valable.
-    private func write(harmony: Bool, textures: Bool, repair: Bool = false) {
+    /// En cas de corruption, `repair` part des valeurs affichées et rend un
+    /// JSON valable (`ProbeOptionsFile.write`).
+    private func write(repair: Bool = false) {
         guard let url = configURL else { return }
-        let fm = FileManager.default
-        ModZipInstaller.grantOwnerWriteAccess(in: url.deletingLastPathComponent())
         do {
-            let data = try ProbeOptions.rewritten(
-                original: repair ? nil : fm.contents(atPath: url.path),
-                measureHarmonyPatches: harmony,
-                measureTextures: textures)
-            try data.write(to: url, options: .atomic)
+            try ProbeOptionsFile.write(options, to: url, repair: repair)
             corrupted = false
         } catch {
             vm.log("Options de la sonde non écrites : \(error)", level: .warning)

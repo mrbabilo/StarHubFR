@@ -18,8 +18,12 @@ struct PerformanceMeasurementStatus: View {
             case .absent, .paused:
                 PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
             case .enabled(_, let version):
-                Label(String(format: localization.L(L10n.Performance.probeEnabled), version), systemImage: "waveform.path")
-                    .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                HStack {
+                    Label(String(format: localization.L(L10n.Performance.probeEnabled), version), systemImage: "waveform.path")
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                    Spacer()
+                    ProbeMiniStatsToggle(viewModel: viewModel, localization: localization, presence: probe)
+                }
                 if case .outdated = GuidedProtocol.readiness(probeVersion: version, isEnabled: true) {
                     PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
                 } else if !GuidedProtocol.supportsPilot(version) {

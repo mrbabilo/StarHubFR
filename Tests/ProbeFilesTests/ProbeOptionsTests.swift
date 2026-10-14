@@ -36,16 +36,14 @@ struct ProbeOptionsTests {
     @Test func rewritingProducesValidJSONAndKeepsUnknownFields() throws {
         let original = Data(#"{"MeasureHarmonyPatches": true, "MeasureTextures": false, "FutureOption": 3}"#.utf8)
         let data = try ProbeOptions.rewritten(original: original,
-                                              measureHarmonyPatches: false,
-                                              measureTextures: true)
+                                              options: ProbeOptions(measureHarmonyPatches: false, measureTextures: true))
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["MeasureHarmonyPatches"] as? Bool == false)
         #expect(object["MeasureTextures"] as? Bool == true)
         #expect(object["FutureOption"] as? Int == 3)
         // Stable : réécrire la même chose rend les mêmes octets.
         let again = try ProbeOptions.rewritten(original: data,
-                                               measureHarmonyPatches: false,
-                                               measureTextures: true)
+                                               options: ProbeOptions(measureHarmonyPatches: false, measureTextures: true))
         #expect(again == data)
     }
 
@@ -54,9 +52,25 @@ struct ProbeOptionsTests {
     @Test func rewritingABrokenFileRepairsIt() throws {
         let broken = Data("{ \"MeasureTextures\": true\n \"MeasureHarmonyPatches\": true }".utf8)
         let data = try ProbeOptions.rewritten(original: broken,
-                                              measureHarmonyPatches: true,
-                                              measureTextures: true)
+                                              options: ProbeOptions(measureHarmonyPatches: true, measureTextures: true))
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(object.count == 2)
+        #expect(object.count == 3)
+    }
+
+    /// Les mini-stats en jeu (FPS, P50/P99, mémoire), option de la sonde 0.9.25+ :
+    /// lues, coupées par défaut, réécrites sans toucher aux deux autres.
+    @Test func miniStatsAreReadAndWrittenLikeTheOtherOptions() throws {
+        let on = try ProbeOptions.read(Data(#"{"ShowMiniStats": true}"#.utf8)).get()
+        #expect(on.showMiniStats)
+        let absent = try ProbeOptions.read(Data(#"{"MeasureTextures": true}"#.utf8)).get()
+        #expect(absent.showMiniStats == ProbeOptions.defaultMiniStats)
+        let original = Data(#"{"MeasureHarmonyPatches": true, "MeasureTextures": true, "ShowMiniStats": false}"#.utf8)
+        let data = try ProbeOptions.rewritten(original: original,
+                                              options: ProbeOptions(measureHarmonyPatches: true, measureTextures: true,
+                                                                    showMiniStats: true))
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["ShowMiniStats"] as? Bool == true)
+        #expect(object["MeasureHarmonyPatches"] as? Bool == true)
+        #expect(object.count == 3)
     }
 }

@@ -947,6 +947,8 @@
 "mods_probe_options_harmony_help" = "Chronomètre les patches Harmony des autres mods. Coût d'observation : compare deux sessions, avec et sans. Désarmée pour une mesure guidée ou un benchmark.";
 "mods_probe_options_textures" = "Mesurer les textures résidentes";
 "mods_probe_options_textures_help" = "Suit la mémoire retenue dans les textures chargées, par mod ou pack qui les fournit (jeu de base à part).";
+"mods_probe_options_ministats" = "Mini-stats en jeu";
+"mods_probe_options_ministats_help" = "FPS, temps de trame P50/P99 et mémoire en haut à droite du jeu, rafraîchis chaque seconde.";
 "mods_probe_options_launch_note" = "Prend effet au prochain lancement du jeu.";
 "mods_probe_options_corrupted" = "Le fichier config.json de la sonde est illisible.";
 "mods_probe_options_repair" = "Réparer";

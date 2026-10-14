@@ -75,3 +75,8 @@ extension L10n {
         static let loadDelta = "perf_evidence_loadDelta"
     }
 }
+
+extension L10n.Mods {
+    static let probeOptionsMiniStats = "mods_probe_options_ministats"
+    static let probeOptionsMiniStatsHelp = "mods_probe_options_ministats_help"
+}
