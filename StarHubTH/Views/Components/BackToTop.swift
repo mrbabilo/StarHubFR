@@ -11,7 +11,11 @@ import SwiftUI
 /// vue AppKit qui écoute le défilement de son `NSScrollView`
 /// (`boundsDidChangeNotification` du `contentView`) et compare les cadres en
 /// coordonnées de fenêtre, quel que soit le sens des axes. L'état SwiftUI ne
-/// s'écrit que quand le booléen change. Le premier rattachement écrit une
+/// s'écrit que quand le booléen change. Un défilement programmé
+/// (`ScrollViewProxy.scrollTo`, les ancres) ne poste pas cette notification
+/// (constat de l'auteur, 2026-10-14) : la page incrémente `recheck` après
+/// chaque saut, et la vue remesure aussitôt puis une fois l'animation finie.
+/// Le premier rattachement écrit une
 /// ligne au journal : sans `NSScrollView` trouvée, le bouton ne peut pas
 /// apparaître, et le journal le dit.
 enum BackToTop {
@@ -22,14 +26,16 @@ enum BackToTop {
 extension View {
     /// Sur la tête de page : `scrolledPast` passe à `true` quand son bas
     /// remonte au-dessus du haut de la zone visible.
-    func backToTopMarker(scrolledPast: Binding<Bool>, log: @escaping (String) -> Void = { _ in }) -> some View {
+    func backToTopMarker(scrolledPast: Binding<Bool>, recheck: Int = 0,
+                         log: @escaping (String) -> Void = { _ in }) -> some View {
         id(BackToTop.anchor)
-            .background(ScrollPastWatcher(scrolledPast: scrolledPast, log: log))
+            .background(ScrollPastWatcher(scrolledPast: scrolledPast, recheck: recheck, log: log))
     }
 }
 
 private struct ScrollPastWatcher: NSViewRepresentable {
     @Binding var scrolledPast: Bool
+    let recheck: Int
     let log: (String) -> Void
 
     func makeNSView(context: Context) -> WatcherView {
@@ -45,11 +51,15 @@ private struct ScrollPastWatcher: NSViewRepresentable {
         nsView.onChange = { past in
             if past != scrolledPast { scrolledPast = past }
         }
+        guard recheck != nsView.recheck else { return }
+        nsView.recheck = recheck
+        nsView.evaluateSoon()
     }
 
     final class WatcherView: NSView {
         var onChange: ((Bool) -> Void)?
         var log: ((String) -> Void)?
+        var recheck = 0
         private var logged = false
         private var observed: NSView?
 
@@ -92,6 +102,15 @@ private struct ScrollPastWatcher: NSViewRepresentable {
             if let token { NotificationCenter.default.removeObserver(token) }
             token = nil
             observed = nil
+        }
+
+        /// Après un saut programmé : maintenant, puis l'animation finie.
+        func evaluateSoon() {
+            evaluate()
+            Task { @MainActor [weak self] in
+                do { try await Task.sleep(for: .milliseconds(400)) } catch { return }   // tâche annulée
+                self?.evaluate()
+            }
         }
 
         /// Le bas de la tête de page est-il au-dessus du haut visible ? En

@@ -5,6 +5,14 @@ import SwiftUI
 /// « Autres outils de mesure », menu « Autres mesures… ». Sorties du fichier
 /// principal pour tenir sous le plafond de 400 lignes (lot D).
 extension PerformanceView {
+    /// Tout saut programmé passe ici : `scrollTo` ne poste pas la
+    /// notification de défilement d'AppKit, le retour en haut doit se
+    /// remesurer (`scrollRecheck`).
+    func jump(to id: String, _ proxy: ScrollViewProxy, animated: Bool = true) {
+        withAnimation(reduceMotion || !animated ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+        scrollRecheck += 1
+    }
+
     func navigation(_ proxy: ScrollViewProxy) -> some View {
         let comparisonAnchors = [("analysis", L10n.Performance.sectionAnalysis),
                                  ("game", L10n.Performance.inGameTitle)]
@@ -19,7 +27,7 @@ extension PerformanceView {
                 ForEach(anchors, id: \.0) { id, key in
                     Button(localization.L(key)) {
                         if id == "game" { comparing = true }
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+                        jump(to: id, proxy)
                     }.fixedSize().help(localization.L(key))
                 }
             }
@@ -27,7 +35,7 @@ extension PerformanceView {
                 ForEach(anchors, id: \.0) { id, key in
                     Button(localization.L(key)) {
                         if id == "game" { comparing = true }
-                        proxy.scrollTo(id, anchor: .top)
+                        jump(to: id, proxy, animated: false)
                     }
                 }
             }.fixedSize()
@@ -38,7 +46,7 @@ extension PerformanceView {
     /// vers leur carte (pleine si installés, sinon « Autres outils »).
     func otherMeasures(_ proxy: ScrollViewProxy) -> [(title: String, action: () -> Void)] {
         let scroll: (String) -> Void = { id in
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+            jump(to: id, proxy)
         }
         return [
             (localization.L(L10n.Benchmark.title), { openBenchmark(nil) }),

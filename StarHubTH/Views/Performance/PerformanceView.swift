@@ -28,6 +28,8 @@ struct PerformanceView: View {
     @State private var lastSeenSession: String?
     /// La rangée d'ancres est sortie de l'écran : le retour en haut s'affiche.
     @State private var scrolledPastTop = false
+    /// Incrémenté à chaque saut programmé : le retour en haut se remesure.
+    @State var scrollRecheck = 0
     @AppStorage(UDKey.probeLoadEarlyConsent) var loadEarlyConsent: Bool?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
@@ -35,16 +37,16 @@ struct PerformanceView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                    navigation(proxy).backToTopMarker(scrolledPast: $scrolledPastTop) { viewModel.log($0) }
+                    navigation(proxy).backToTopMarker(scrolledPast: $scrolledPastTop, recheck: scrollRecheck) { viewModel.log($0) }
                     PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store) {
                         settingsExpanded = true
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo("settings", anchor: .top) }
+                        jump(to: "settings", proxy)
                     }
                     PerformanceStatusLine(viewModel: viewModel, localization: localization, store: store,
                                           sloDiagnostic: sloDiagnostic, stardropiumDiagnostic: stardropiumDiagnostic)
                     PerformancePilotStatus(viewModel: viewModel, localization: localization, store: store) { scroll in
                         comparing = true
-                        if scroll { proxy.scrollTo("summary", anchor: .top) }
+                        if scroll { jump(to: "summary", proxy, animated: false) }
                     }
                     PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store,
                                          otherMeasures: otherMeasures(proxy))
@@ -130,9 +132,7 @@ struct PerformanceView: View {
             .overlay(alignment: .bottomTrailing) {
                 if scrolledPastTop {
                     BackToTopButton(title: localization.L(L10n.Performance.backToTop)) {
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
-                            proxy.scrollTo(BackToTop.anchor, anchor: .top)
-                        }
+                        jump(to: BackToTop.anchor, proxy)
                     }
                     .transition(reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.8)))
                 }
@@ -213,7 +213,7 @@ struct PerformanceView: View {
         }
         // Après le rendu qui déplie : l'ancre doit exister pour être atteinte.
         Task { @MainActor in
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(focus.anchor, anchor: .top) }
+            jump(to: focus.anchor, proxy)
         }
     }
 
