@@ -15,7 +15,8 @@ where the exact log format was verified.
 ### Added
 
 - **Ranger les mods dans ses propres groupes.** « Regrouper par » : aucun, mes groupes ou catégorie. Bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, et tout un groupe s'active ou se met en pause d'un geste, dans le cadrage affiché (I-T21).
-- **Mettre une sélection à la corbeille.** Un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent et ceux qui ne se suppriment pas (sonde, mods de SMAPI) (I-T21).
+- **Mettre une sélection à la corbeille.** Un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent et ceux qui ne se suppriment pas (sonde, mods de SMAPI). Un refus, jeu ouvert, garde la sélection (I-T21).
+- **Les groupes ne se perdent pas.** Un fichier de groupes illisible est mis de côté, un fichier d'une version plus récente reste intact ; un saut depuis Journaux ouvre le groupe replié du mod (I-T21).
 - **La paire de mesures guidées se joue d'un clic.** La sonde 0.9.25 conduit la session (jeu mis devant, warp au lieu, nuit sautée, sortie propre) ; l'app enchaîne avant, changement, après, rapport. Depuis la barre (le profil choisi devient l'« après ») ou depuis « Isoler » (P1).
 - **Une série pilotée se rattrape.** Un échec se nomme ; le côté interrompu se relance, et le changement se défait — rapport lu ou app plantée en cours, l'état d'avant étant noté sur disque. Bissection et bascules attendent la fin de la série.
 - **« Benchmarker ce mod »** depuis la carte Chargements et la recommandation d'analyse : la feuille du benchmark s'ouvre avec ce mod en pause côté B (P2).
