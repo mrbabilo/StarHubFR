@@ -3388,7 +3388,7 @@ final class StarHubTHViewModel {
         return .renamed(newFolderName: new)
     }
 
-    /// Les douze surfaces indexées par nom de dossier — cœur du geste.
+    /// Les treize surfaces indexées par nom de dossier (groupes I-T21 compris) — cœur du geste.
     private func migrateFolderKeyedStores(from old: String, to new: String,
                                           shared: Bool) {
         // 1-5. Préférences câblées par X55 (hors id Nexus, voir plus bas).

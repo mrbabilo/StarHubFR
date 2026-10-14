@@ -879,6 +879,36 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         courant (règle X57).
       - **Écartés** : le glisser-déposer, les groupes depuis des sous-dossiers
         (le parc n'en a aucun), les groupes imbriqués.
+      - **Écarts à la spec, tranchés à la revue finale** (2026-10-14) :
+        - un `mod_groups.json` d'un **format plus récent** (champ `version`
+          > 1) reste **en place**, intact, et rien n'est écrit (la spec disait
+          « mis de côté » : la version récente ne l'aurait plus retrouvé). Les
+          changements de groupes ne durent alors que la session, signalés au
+          journal seulement ;
+        - le pied de page groupé compte les **mods visibles** (sections
+          repliées exclues), et une page faite seulement de bandeaux repliés
+          n'affiche aucune plage ;
+        - un refus (jeu ouvert, mesure en cours) **garde la sélection**.
+      - **Reste, mineurs de la revue finale** (aucun n'est une perte de
+        données) :
+        - la fenêtre d'échec de la corbeille nomme les mods restés en place,
+          pas leur erreur ; le journal porte un compte sans noms (spec §3.2) ;
+        - tout refusé : « Mettre 0 mods à la corbeille ? » s'ouvre au lieu
+          d'un bouton grisé avec infobulle (spec §3.4) ;
+        - pluriels « 1 mods » (convention `_one`) ; « Donne un nom au
+          groupe. » tutoie, l'app vouvoie ;
+        - clavier sans sélection en mode groupé : ↓ part de `(page - 1) × 12`
+          dans l'ordre navigable, pas du premier mod de la page ;
+        - après un repli qui retire des pages, la page courante reste trop
+          haute (« › » actif sans effet, premier « ‹ » muet) ;
+        - dépendants nommés à tort quand une autre copie du même `UniqueID`
+          reste installée (erreur du côté sûr) ;
+        - `ModGroupStore` créé paresseusement pendant un rendu : avec un
+          fichier illisible, le journal s'écrit en plein rendu ;
+        - test manquant : composant de pack sélectionné qui dépend d'un mod à
+          plat sélectionné (le code est juste).
+        Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
+        (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
