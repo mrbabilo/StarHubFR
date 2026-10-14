@@ -861,6 +861,24 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil
       décrit un **état**, un groupe décrit un **rangement** — les deux se
       complètent sans se remplacer. · **M**
+      *Cadré le 2026-10-14 avec l'auteur* (spec et plan locaux :
+      `docs/superpowers/specs|plans/2026-10-14-i-t21-groupes-et-corbeille*`).
+      Décisions :
+      - **Lot 1** : « Mettre à la corbeille » dans la barre de multi-sélection.
+        Un seul événement de corbeille, les dépendants actifs restants nommés
+        (`ContentPackFor` compris), sonde et mods SMAPI refusés et nommés. La
+        garde « jeu ouvert » s'applique aussi à la suppression unitaire.
+      - **Lot 2** : groupes à soi, un seul par mod, entrées de tête seules,
+        clé `folderName`, dans `mod_groups.json` (un fichier illisible est mis
+        de côté, jamais écrasé). « Regrouper par : Aucun / Mes groupes /
+        Catégorie ».
+      - **Liste** : 12 places par page ; un groupe replié en prend une, une
+        section coupée reprend en « (suite) ». Un groupe replié sort de la
+        sélection effective et de la navigation clavier.
+      - **« Tout activer » d'un groupe** vise ses membres dans le cadrage
+        courant (règle X57).
+      - **Écartés** : le glisser-déposer, les groupes depuis des sous-dossiers
+        (le parc n'en a aucun), les groupes imbriqués.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
