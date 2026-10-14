@@ -19,7 +19,7 @@ struct DiagnosticsHealthView: View {
     var body: some View {
         // Dans un `ScrollView` : la bissection dépliée (liste des mods) peut
         // dépasser la fenêtre ; la carte, elle, borne son propre corps.
-        ScrollView {
+        BackToTopScrollView(localization) {
             VStack(spacing: 0) {
                 if let diag = viewModel.smapiDiagnostics, !diag.isEmpty {
                     SmapiHealthCard(vm: viewModel, localization: localization,

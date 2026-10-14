@@ -67,11 +67,24 @@ private struct ScrollPastWatcher: NSViewRepresentable {
         /// ne doit jamais prendre un clic.
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
         private var token: NSObjectProtocol?
+        /// Filet : un saut programmé d'une page (`scrollTo` de ses propres
+        /// ancres) ne poste pas la notification ; on remesure deux fois par
+        /// seconde tant que la vue est dans une fenêtre. Mesure de deux cadres,
+        /// état écrit seulement au changement.
+        private var timer: Timer?
         private var last: Bool?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             attach()
+            timer?.invalidate()
+            timer = nil
+            guard window != nil else { return }
+            let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.evaluate() }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
         }
 
         override func viewDidMoveToSuperview() {
@@ -128,6 +141,53 @@ private struct ScrollPastWatcher: NSViewRepresentable {
 
         deinit {
             if let token { NotificationCenter.default.removeObserver(token) }
+            timer?.invalidate()
+        }
+    }
+}
+
+/// Un `ScrollView` vertical de page avec son retour en haut : remplace
+/// `ScrollView { … }` mot pour mot. Le bouton apparaît au-delà de
+/// `threshold` points défilés — jamais sur une page qui ne défile pas assez.
+/// Une marge basse de contenu lui laisse la place de ne rien couvrir.
+struct BackToTopScrollView<Content: View>: View {
+    @ObservedObject var localization: LocalizationStore
+    var showsIndicators = true
+    var threshold: CGFloat = 300
+    @ViewBuilder let content: Content
+    @State private var scrolledPast = false
+    @State private var recheck = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(_ localization: LocalizationStore, showsIndicators: Bool = true, threshold: CGFloat = 300,
+         @ViewBuilder content: () -> Content) {
+        self.localization = localization
+        self.showsIndicators = showsIndicators
+        self.threshold = threshold
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: showsIndicators) {
+                content.overlay(alignment: .top) {
+                    Color.clear.frame(height: threshold).allowsHitTesting(false)
+                        .backToTopMarker(scrolledPast: $scrolledPast, recheck: recheck)
+                }
+            }
+            .contentMargins(.bottom, BackToTopButton.reservedHeight, for: .scrollContent)
+            .overlay(alignment: .bottomTrailing) {
+                if scrolledPast {
+                    BackToTopButton(title: localization.L(L10n.Main.backToTop)) {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                            proxy.scrollTo(BackToTop.anchor, anchor: .top)
+                        }
+                        recheck += 1
+                    }
+                    .transition(reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: scrolledPast)
         }
     }
 }
@@ -136,6 +196,8 @@ private struct ScrollPastWatcher: NSViewRepresentable {
 /// `ScrollView`. Cible de 32 pt : le `.help` s'y affiche (piège des petits
 /// glyphes), et le libellé reste lu par VoiceOver.
 struct BackToTopButton: View {
+    /// Bouton (32) et sa marge (`Spacing.lg` ×2) : la place à laisser sous le contenu.
+    static let reservedHeight: CGFloat = 32 + 2 * AppDesign.Spacing.lg
     let title: String
     let action: () -> Void
 

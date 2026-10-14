@@ -15,7 +15,7 @@ struct UpdatesView: View {
         VStack(spacing: 0) {
             pageHeader
             Divider()
-            ScrollView {
+            BackToTopScrollView(localization) {
                 VStack(alignment: .leading, spacing: 20) {
                     // ── Nexus Mods updates ─────────────────────────────────
                     VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {

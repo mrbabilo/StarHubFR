@@ -97,7 +97,7 @@ struct ModDetailView: View {
                 if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             }
             tabBar
-            ScrollView {
+            BackToTopScrollView(localization) {
                 content
                     .frame(maxWidth: (focusMode && isTranslating) ? .infinity : 700, alignment: .leading)
                     .padding(AppDesign.Spacing.xl)

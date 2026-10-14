@@ -129,7 +129,7 @@ struct ModConfigBackupsView: View {
     // MARK: - List
 
     private var list: some View {
-        ScrollView {
+        BackToTopScrollView(localization) {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(backups) { backup in
                     ModConfigBackupRow(

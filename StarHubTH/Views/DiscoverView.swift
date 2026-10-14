@@ -53,7 +53,7 @@ struct DiscoverView: View {
         VStack(spacing: 0) {
             pageHeader(toolbar: toolbar)
             Divider()
-            ScrollView {
+            BackToTopScrollView(localization) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     if let error = vm.lastDiscoveryError { discoveryErrorBanner(error) }
                     if let search = vm.discoverySearch {

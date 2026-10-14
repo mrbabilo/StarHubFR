@@ -49,12 +49,12 @@ struct SystemAlertsView: View {
             case .alerts:
                 alertsList(issues)
             case .keybinds:
-                ScrollView {
+                BackToTopScrollView(localization) {
                     KeybindReportSection(vm: vm, localization: localization, currentTab: $currentTab)
                         .padding(AppDesign.Spacing.lg)
                 }
             case .conflicts:
-                ScrollView {
+                BackToTopScrollView(localization) {
                     VStack(spacing: AppDesign.Spacing.lg) {
                         ModConflictSection(vm: vm, localization: localization)
                         // A5-T7 — hors pastille : un recouvrement n'est pas un conflit.
@@ -79,7 +79,7 @@ struct SystemAlertsView: View {
         if issues.isEmpty {
             emptyState
         } else {
-            ScrollView {
+            BackToTopScrollView(localization) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                     summary(issues)
                     LazyVStack(alignment: .leading, spacing: 0) {

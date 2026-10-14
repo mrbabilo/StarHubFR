@@ -66,7 +66,7 @@ struct FrenchTranslationsView: View {
             }
             Divider()
             ScrollViewReader { proxy in
-                ScrollView {
+                BackToTopScrollView(localization) {
                     let groups = self.groups(all)
                     LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                         if !all.isEmpty {

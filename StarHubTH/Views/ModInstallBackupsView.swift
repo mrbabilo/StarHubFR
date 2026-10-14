@@ -273,7 +273,7 @@ struct ModInstallBackupsView: View {
         // chercher, c'est déjà avoir choisi. Sans recherche, non — sinon
         // celui qui n'a qu'un mod se retrouve avec un chevron inerte.
         let autoExpand = !search.trimmingCharacters(in: .whitespaces).isEmpty && shown.count == 1
-        return ScrollView {
+        return BackToTopScrollView(localization) {
             // Paresseuse : tout déplier ferait construire des milliers de
             // lignes d'un coup sur un parc réel.
             LazyVStack(spacing: AppDesign.Spacing.sm) {

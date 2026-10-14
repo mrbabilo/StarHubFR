@@ -94,7 +94,7 @@ struct SavesView: View {
                 // La liste, sortie du `Form` : le compte et la note de
                 // récupération vivent dans le footer fixe ci-dessous, plus
                 // dans un header/footer de Section.
-                ScrollView(showsIndicators: false) {
+                BackToTopScrollView(localization, showsIndicators: false) {
                     // La liste en une carte : les lignes et leurs branches de
                     // sauvegardes de secours restent paresseuses.
                     LazyVStack(spacing: 0) {

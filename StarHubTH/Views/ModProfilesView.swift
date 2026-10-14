@@ -158,7 +158,7 @@ struct ModProfilesView: View {
             Divider()
 
             // ── Liste ────────────────────────────────────────────────────
-            ScrollView(showsIndicators: false) {
+            BackToTopScrollView(localization, showsIndicators: false) {
                 if vm.modProfiles.isEmpty {
                     VStack(spacing: AppDesign.Spacing.lg) {
                         IconTile(icon: "person.2.slash", tint: AppDesign.Color.accent, size: 64)

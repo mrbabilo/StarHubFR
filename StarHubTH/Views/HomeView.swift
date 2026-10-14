@@ -185,7 +185,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        BackToTopScrollView(localization, showsIndicators: false) {
             VStack(alignment: .center, spacing: AppDesign.Spacing.xl) {
 
                 // ── BANDEAU NEXUS + AVATAR ──

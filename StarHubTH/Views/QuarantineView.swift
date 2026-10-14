@@ -29,7 +29,7 @@ struct QuarantineView: View {
             Divider()
 
             ScrollViewReader { proxy in
-                ScrollView {
+                BackToTopScrollView(localization) {
                     VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                         // En entier, jamais tronqué par l'en-tête : c'est la
                         // promesse que rien n'est supprimé directement.

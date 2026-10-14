@@ -314,7 +314,7 @@ struct LogsView: View {
                     // ball) instead of virtualizing. LazyVStack only builds rows
                     // as they scroll into view, so growing the set to thousands
                     // is instant. `.id` per row keeps `proxy.scrollTo` working.
-                    ScrollView {
+                    BackToTopScrollView(localization) {
                         LazyVStack(spacing: 0) {
                             if groupByMod {
                                 ForEach(views.modGroups) { group in

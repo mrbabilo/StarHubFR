@@ -53,7 +53,7 @@ struct SettingsView: View {
             .padding(.vertical, AppDesign.Spacing.md)
             Divider()
             ScrollViewReader { proxy in
-                ScrollView {
+                BackToTopScrollView(localization) {
                     VStack(alignment: .leading, spacing: AppDesignCore.Spacing.xxl) {
                         ForEach(SettingsSectionOrder.sections(in: group), id: \.self) { section in
                             sectionView(section).id(section)

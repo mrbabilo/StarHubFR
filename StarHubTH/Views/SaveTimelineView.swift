@@ -83,7 +83,7 @@ struct SaveTimelineView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
+                BackToTopScrollView(localization) {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(backups) { backup in
                             // Pas d'index comme id : la liste est triée par

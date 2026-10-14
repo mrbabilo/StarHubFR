@@ -2133,7 +2133,7 @@
 "perf_loads_empty" = "Lance le jeu, charge une sauvegarde, puis reviens ici.";
 "bench_panel_open" = "Panneau";
 "perf_loads_needs_probe" = "Les chargements sont mesurés par la sonde StarHubFR : installe-la depuis la carte « Sonde » en haut de la page.";
-"perf_back_to_top" = "Retour en haut";
+"main_back_to_top" = "Retour en haut";
 "perf_impact_open_page" = "Voir dans Performances";
 "perf_probe_updated_relaunch" = "Sonde %@ installée. Elle mesurera au prochain lancement du jeu.";
 "perf_new_session_line" = "Nouvelle session lue : %@";

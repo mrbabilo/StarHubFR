@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Performances : retour rapide en haut de page.** Un bouton flottant, en bas à droite, apparaît dès que la rangée de navigation sort de l'écran et y ramène d'un clic.
+- **Retour rapide en haut de page sur toutes les pages qui défilent.** Un bouton flottant, en bas à droite, apparaît une fois la page descendue (sur Performances, dès que la rangée de navigation sort de l'écran) et ramène en haut d'un clic.
 - **Performances : une seule ligne d'état en tête.** Série pilotée, mesure guidée, benchmark, diagnostic SLO ou Stardropium et chargement se lisaient sur quatre lignes concurrentes ; une seule les dit désormais, par priorité, avec « En direct / En pause » et « Ramener le jeu » au même endroit.
 - **La carte Sonde ne s'affiche en tête que si une action est due** (installer, réactiver, mettre à jour) ; sinon une ligne « Sonde active » avec un lien « Réglages » qui déplie « Sonde et réglages de mesure » en bas. La bannière « charger la sonde en premier » remonte en tête tant qu'elle attend une réponse.
 - **Les tuiles du Résumé expliquent ce qu'elles mesurent** au survol (temps entre deux images, images les plus lentes, 16,7 ms = 60 images par seconde).

@@ -164,7 +164,7 @@ struct ModConfigEditorView: View {
                     }
                 } else {
                     ScrollViewReader { proxy in
-                    ScrollView {
+                    BackToTopScrollView(localization) {
                         VStack(spacing: 20) {
                             if schemaReading == .unreadable {
                                 schemaUnreadableBanner

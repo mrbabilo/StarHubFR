@@ -322,7 +322,7 @@ struct ModListView: View {
             Divider()
 
             // ── Scrollable list — ↑ ↓ Début Fin Entrée (ModListView+Keyboard) ──
-            ScrollViewReader { proxy in ScrollView(showsIndicators: false) {
+            ScrollViewReader { proxy in BackToTopScrollView(localization, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.xxl) {
                     if filtered.isEmpty {
                         if vm.scanStore.mods.isEmpty {

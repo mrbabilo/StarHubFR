@@ -16,7 +16,7 @@ struct AppChangelogView: View {
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, AppDesign.Spacing.md)
             Divider()
-            ScrollView {
+            BackToTopScrollView(localization) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     if let failure {
                         StateCard(icon: AppDesign.Status.warning.symbol, text: failure, actionTitle: nil) {}

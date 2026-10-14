@@ -45,7 +45,7 @@ struct MaintenanceView: View {
                 // corbeille sont deux vérités indépendantes.
                 if !report.isEmpty || !vm.trashEvents.isEmpty || keepNexusArchives
                     || !vm.nexusArchives.isEmpty {
-                    ScrollView {
+                    BackToTopScrollView(localization) {
                         VStack(alignment: .leading, spacing: 18) {
                             if report.isEmpty {
                                 nothingToDoInline

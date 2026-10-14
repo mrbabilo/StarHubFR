@@ -131,7 +131,7 @@ struct PerformanceView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if scrolledPastTop {
-                    BackToTopButton(title: localization.L(L10n.Performance.backToTop)) {
+                    BackToTopButton(title: localization.L(L10n.Main.backToTop)) {
                         jump(to: BackToTop.anchor, proxy)
                     }
                     .transition(reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.8)))

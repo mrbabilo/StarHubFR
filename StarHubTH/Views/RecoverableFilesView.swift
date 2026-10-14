@@ -48,7 +48,7 @@ struct RecoverableFilesView: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                ScrollView {
+                BackToTopScrollView(localization) {
                     // Une carte, lignes paresseuses : les seules copies de
                     // l'Entretien peuvent se compter par dizaines.
                     LazyVStack(spacing: 0) {
