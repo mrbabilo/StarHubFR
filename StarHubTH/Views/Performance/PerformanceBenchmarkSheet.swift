@@ -143,7 +143,7 @@ struct PerformanceBenchmarkSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let refusal {
-                Text(refusal).font(AppDesign.Font.footnote).foregroundColor(.orange)
+                Text(refusal).font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.warning)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {

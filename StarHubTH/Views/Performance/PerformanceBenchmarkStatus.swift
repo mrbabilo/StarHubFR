@@ -3,7 +3,7 @@ import SwiftUI
 /// Série en cours, résultat ou reprise d'un benchmark interrompu. Le détail
 /// vivant (étapes, durées, jalons) vit dans le panneau flottant
 /// (`BenchmarkPanelContent`) ; cette ligne reste le filet quand le panneau
-/// est fermé.
+/// est fermé, et « Panneau » le rouvre (lot A, S4).
 struct PerformanceBenchmarkStatus: View {
     var runner: BenchmarkRunner
     @ObservedObject var localization: LocalizationStore
@@ -24,6 +24,7 @@ struct PerformanceBenchmarkStatus: View {
                     Text(String(format: localization.L(L10n.Benchmark.progress), index + 1, runner.runs.count,
                                 localization.L(runKey(runner.runs[index].side))))
                     Spacer()
+                    Button(localization.L(L10n.Benchmark.panelOpen)) { runner.showPanel() }.clickableCursor()
                     Button(localization.L(L10n.Benchmark.stop)) { runner.stop() }.clickableCursor()
                 }
             case .restoring:
@@ -42,7 +43,7 @@ struct PerformanceBenchmarkStatus: View {
             if !runner.touchedSaves.isEmpty {
                 Text(String(format: localization.L(L10n.Benchmark.saveTouched),
                             runner.touchedSaves.joined(separator: ", ")))
-                    .foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+                    .foregroundColor(AppDesign.Color.warning).fixedSize(horizontal: false, vertical: true)
             }
         }
         .font(AppDesign.Font.footnote)

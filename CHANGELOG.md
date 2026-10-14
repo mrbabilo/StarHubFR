@@ -12,6 +12,23 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Performances : une seule ligne d'état en tête.** Série pilotée, mesure guidée, benchmark, diagnostic SLO ou Stardropium et chargement se lisaient sur quatre lignes concurrentes ; une seule les dit désormais, par priorité, avec « En direct / En pause » et « Ramener le jeu » au même endroit.
+- **La carte Sonde ne s'affiche en tête que si une action est due** (installer, réactiver, mettre à jour) ; sinon une ligne « Sonde active » avec un lien « Réglages » qui déplie « Sonde et réglages de mesure » en bas. La bannière « charger la sonde en premier » remonte en tête tant qu'elle attend une réponse.
+- **Les tuiles du Résumé expliquent ce qu'elles mesurent** au survol (temps entre deux images, images les plus lentes, 16,7 ms = 60 images par seconde).
+- **Couleurs des états alignées sur la charte** (en direct, en pause, avertissements, changements de version et de réglage).
+
+### Fixed
+
+- **Le benchmark des chargements reste accessible sans session jouée.** La carte Chargements et son bouton « Benchmark… » disparaissaient tant qu'aucune session de la sonde n'était lue ; la carte s'affiche dès la lecture, avec la phrase qui convient (sonde absente, jamais lancée, trop ancienne).
+- **Le panneau flottant du benchmark se rouvre.** Fermé pendant une série, il n'avait aucun bouton de rappel ; « Panneau » le rouvre depuis la ligne d'état et la carte Chargements.
+- **La note « évite de mesurer avec Profiler » n'apparaît plus** quand Profiler n'est pas installé.
+
+### Removed
+
+- 37 textes d'interface de l'onglet Performances que plus rien n'affichait depuis la refonte du 6 octobre.
+
 ## [1.64.1] - 2026-10-14
 
 ### Fixed

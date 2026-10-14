@@ -816,7 +816,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; reste **I-T21** ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; restent **I-T21** et **I-T22** (audit Performances, lots B à D) ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -903,6 +903,33 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
+- [ ] **I-T22** — *(lot A livré le 2026-10-14 ; lots B à D à faire ; validation
+      écran du lot A en attente)* Audit UX/UI de l'onglet **Performances**
+      (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
+      `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
+      `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
+      (`PerformanceStatusLine`), carte Sonde en tête seulement si une action
+      est due + lien « Réglages », carte Chargements et « Benchmark… »
+      visibles dès la lecture du store, « Panneau » rouvre le panneau du
+      benchmark, aides des tuiles recâblées, 8 couleurs nues → jetons, 37 clés
+      L10n orphelines retirées. **Reste** : **B** (SLO/Stardropium repliés si
+      absents et placés après Chargements ; quatre détails sous une carte ;
+      texte vide du Résumé ; icônes/couleurs des verdicts unifiées), **C** (une
+      seule conclusion, « confiance » renommée ; bloc Mesurer avec pilotée en
+      premier et « Autres mesures… » ; motifs de refus visibles avant le clic ;
+      feuille benchmark en deux temps ; un `.borderedProminent` par état),
+      **D** (entrées depuis liste, fiche, palette, Santé via
+      `NavigationStore` ; ⌘F ne quitte plus la page ; textes longs réécrits).
+      Hypothèses à confirmer par l'auteur : cinq mesures distinctes présentées
+      ensemble (pas de geste unique), guidée manuelle gardée en second. · **M**
+      *Scénarios GUI du lot A à rejouer* : sonde installée sans session jouée →
+      carte Chargements visible, « Benchmark… » actif ; benchmark lancé puis
+      panneau fermé → « Panneau » le rouvre ; sonde à jour → une ligne « Sonde
+      active » + « Réglages » qui déplie le bas ; mesure guidée avec le jeu en
+      arrière-plan → une seule ligne « En pause … N minutes » ; pilotage →
+      étape, minutes, « En direct/En pause », « Ramener le jeu », jalons, Stop
+      sur la même ligne d'état ; survol d'une tuile du Résumé → aide ; Profiler
+      absent → aucune note Profiler.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.

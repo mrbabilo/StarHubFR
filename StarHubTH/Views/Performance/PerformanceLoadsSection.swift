@@ -29,6 +29,11 @@ struct PerformanceLoadsSection: View {
 
     static let contentPatcherId = "Pathoschild.ContentPatcher"
 
+    private var probeAbsent: Bool {
+        if case .absent = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods) { return true }
+        return false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             HStack {
@@ -36,14 +41,18 @@ struct PerformanceLoadsSection: View {
                 Spacer()
                 Button(localization.L(L10n.Benchmark.open)) { openBenchmark(nil) }
                     .clickableCursor()
-                    .disabled(viewModel.benchmark.isActive)
+                    .disabled(viewModel.benchmark.isActive || probeAbsent)
             }
             note(localization.L(L10n.Performance.loadsSubtitle))
             PerformanceBenchmarkStatus(runner: viewModel.benchmark, localization: localization)
-            if !store.probeWritesLoads {
-                note(localization.L(L10n.Performance.loadsUpdateProbe))
+            // Lot A (S4) : la carte s'affiche dès que le store a lu — sonde
+            // absente, jamais lancée, ou trop ancienne pour écrire les
+            // chargements, chaque cas a sa phrase.
+            if probeAbsent {
+                note(localization.L(L10n.Performance.loadsNeedsProbe))
             } else if store.loads.isEmpty {
-                note(localization.L(L10n.Performance.loadsEmpty))
+                note(localization.L(store.status == .noProbe ? L10n.Performance.loadsEmpty
+                                                              : L10n.Performance.loadsUpdateProbe))
             } else {
                 WrapHStack(spacing: AppDesign.Spacing.md) {
                     if let b = store.lastLaunch { tile(L10n.Performance.loadsLaunch, b, store.launchComparison) }

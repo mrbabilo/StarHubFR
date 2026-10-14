@@ -18,6 +18,9 @@ struct PerformanceView: View {
     /// générique, elle repart vierge (Review Focus 5).
     @State private var showBenchmark = false
     @State private var benchmarkPrefill: String?
+    /// « Sonde et réglages », en bas : déplié par le lien de la ligne sonde.
+    @State private var settingsExpanded = false
+    @AppStorage(UDKey.probeLoadEarlyConsent) private var loadEarlyConsent: Bool?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -25,7 +28,13 @@ struct PerformanceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     navigation(proxy)
-                    PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store) { scroll in
+                    PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store) {
+                        settingsExpanded = true
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo("settings", anchor: .top) }
+                    }
+                    PerformanceStatusLine(viewModel: viewModel, localization: localization, store: store,
+                                          sloDiagnostic: sloDiagnostic, stardropiumDiagnostic: stardropiumDiagnostic)
+                    PerformancePilotStatus(viewModel: viewModel, localization: localization, store: store) { scroll in
                         comparing = true
                         if scroll { proxy.scrollTo("summary", anchor: .top) }
                     }
@@ -35,12 +44,11 @@ struct PerformanceView: View {
                         Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
                     }.pickerStyle(.menu)
                     if comparing { selectors }
-                    let live = PerformanceLiveIndicator(viewModel: viewModel, localization: localization, store: store)
-                    live
+                    let live = PerformanceStatusLine.isLive(viewModel, store)
                     PerformanceCard {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary)
-                    }.liveRefreshFlash(live.isLive ? store.lastLoadedAt : nil, reduceMotion: reduceMotion).id("summary")
+                    }.liveRefreshFlash(live ? store.lastLoadedAt : nil, reduceMotion: reduceMotion).id("summary")
                     PerformanceSloDiagnosticSection(
                         viewModel: viewModel, localization: localization,
                         store: sloDiagnostic, runtime: sloRuntime)
@@ -52,7 +60,9 @@ struct PerformanceView: View {
                                                        onBenchmark: { openBenchmark($0) })
                         }.id("analysis")
                     }
-                    if store.status == .ready || store.status == .needTwo {
+                    // Lot A (S4) : la carte vit dès que le store a lu, sonde ou
+                    // pas — le benchmark n'exige que la sonde, pas une session.
+                    if store.status != .idle && store.status != .loading {
                         PerformanceCard {
                             PerformanceLoadsSection(viewModel: viewModel, localization: localization, store: store,
                                                     openBenchmark: { openBenchmark($0) })
@@ -87,9 +97,11 @@ struct PerformanceView: View {
                             PerformanceEnvironmentSection(localization: localization, store: environment)
                         }
                     }.id("details")
-                    DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings)) {
-                        PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
-                    }
+                    DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings), isExpanded: $settingsExpanded) {
+                        PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store,
+                                                loadOrderBannerHoisted: PerformanceMeasurementStatus.hoistsLoadOrderBanner(
+                                                    viewModel, store, consent: loadEarlyConsent))
+                    }.id("settings")
                     if store.unreadableLines > 0 {
                         Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))
                             .font(AppDesign.Font.footnote).foregroundStyle(.secondary)

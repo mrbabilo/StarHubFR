@@ -120,8 +120,14 @@ final class BenchmarkRunner {
         phase = .preparing
         activity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated, .idleSystemSleepDisabled], reason: "Benchmark des chargements")
-        BenchmarkPanelController.shared.show(runner: self, localization: viewModel.localization)
+        showPanel()
         Task { await run(setup) }
+    }
+
+    /// Le panneau flottant de la série : ouvert au départ, rouvert à la
+    /// demande depuis l'onglet Performances quand l'utilisateur l'a fermé.
+    func showPanel() {
+        BenchmarkPanelController.shared.show(runner: self, localization: viewModel.localization)
     }
 
     /// Le lancement en cours finit ; la série s'arrête ensuite et restaure.

@@ -2,10 +2,10 @@ import SwiftUI
 
 /// La carte « Sonde », en tête de l'onglet Performances : ses réglages
 /// d'abord — où en est la sonde StarHubFR (absente, en pause, active et sa
-/// version), son installation, sa place en tête du chargement — puis pourquoi ne pas
-/// installer Profiler — elle fait le même travail, sans seuil, et les deux
-/// faussent mutuellement leurs mesures (D1 clos le 2026-10-03). La
-/// détection vient de `ModPresence` (Core, testé).
+/// version), son installation, sa place en tête du chargement — et, seulement
+/// si Profiler est présent, pourquoi s'en passer : la sonde fait le même
+/// travail, et les deux faussent mutuellement leurs mesures (D1 clos le
+/// 2026-10-03). La détection vient de `ModPresence` (Core, testé).
 struct PerformanceProbeSection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -15,6 +15,9 @@ struct PerformanceProbeSection: View {
     /// D4-T3 — l'installation ou la mise à jour en attente de confirmation.
     @State private var pending: ProbeBundle.Action?
     @State private var failure: String?
+    /// La bannière « sonde en premier » est déjà en tête de page
+    /// (`PerformanceMeasurementStatus.hoistsLoadOrderBanner`) : ne pas la répéter.
+    var loadOrderBannerHoisted = false
 
     private var bundledFolder: URL? { ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL) }
     private var action: ProbeBundle.Action {
@@ -46,7 +49,7 @@ struct PerformanceProbeSection: View {
                     .foregroundColor(AppDesign.Color.success)
             }
             installButton
-            if case .enabled = probe {
+            if case .enabled = probe, !loadOrderBannerHoisted {
                 PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,
                                            consent: $loadEarlyConsent)
             }
@@ -67,7 +70,6 @@ struct PerformanceProbeSection: View {
             case .absent:
                 EmptyView()
             }
-            note(localization.L(L10n.Performance.probeNoProfiler))
         }
         .confirmationDialog(localization.L(L10n.Performance.probeInstallConfirmTitle),
                             isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),

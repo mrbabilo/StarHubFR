@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// P1 — la ligne d'état de la mesure pilotée, sous l'état de la sonde :
-/// étape et minutes gardées pendant la série, message nommé à l'échec,
-/// retour arrière proposé quand le parc a pu changer (spec §8). Aucun
-/// panneau flottant : l'utilisateur n'a rien à surveiller.
+/// P1 — les **résultats** de la mesure pilotée : rapport à la fin, message
+/// nommé à l'échec, retour arrière proposé quand le parc a pu changer
+/// (spec §8). L'état pendant la série (étape, minutes, jalons, Stop) vit dans
+/// `PerformanceStatusLine` (lot A, S1). Aucun panneau flottant.
 struct PerformancePilotStatus: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -15,24 +15,8 @@ struct PerformancePilotStatus: View {
         let pilot = viewModel.pilot
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
             switch pilot.state.phase {
-            case .idle:
+            case .idle, .running, .applying:
                 EmptyView()
-            case .running(let step):
-                SplitRow {
-                    Text(String(format: localization.L(L10n.PerformancePilot.status),
-                                localization.L(step == .before ? L10n.PerformancePilot.stepBefore
-                                                               : L10n.PerformancePilot.stepAfter),
-                                store.guidedMinuteCount))
-                        .font(AppDesign.Font.footnote)
-                } trailing: {
-                    Button(localization.L(L10n.PerformancePilot.stop)) { pilot.stop() }
-                        .help(localization.L(L10n.PerformancePilot.stopHelp))
-                        .clickableCursor()
-                }
-                PerformancePilotStages(viewModel: viewModel, localization: localization, store: store,
-                                       launchedAt: pilot.currentSideLaunchedAt)
-            case .applying:
-                Text(localization.L(L10n.PerformancePilot.applying)).font(AppDesign.Font.footnote)
             case .reporting:
                 PerformancePilotReport(viewModel: viewModel, localization: localization, store: store, pilot: pilot,
                                        revealComparison: revealComparison, message: $message)

@@ -3,8 +3,8 @@ import SwiftUI
 /// Les étapes du côté piloté en cours, cochées au fil de l'eau, avec le temps
 /// écoulé : un parc de ~900 mods met des minutes à charger, et sans elles
 /// l'utilisateur croit que rien ne se passe (retour du 2026-10-13). Une fois la
-/// mesure commencée, seule reste l'alerte « jeu derrière » — les minutes ne
-/// comptent que fenêtre active.
+/// mesure commencée, les jalons s'effacent ; « jeu derrière » est dit par
+/// `PerformanceLiveIndicator` dans la même ligne d'état.
 struct PerformancePilotStages: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -12,7 +12,7 @@ struct PerformancePilotStages: View {
     let launchedAt: Date?
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.periodic(from: .distantPast, by: 1)) { context in
             let stage = launchedAt.map {
                 GuidedPilotProgress.stage(launchedAt: $0, gameRunning: viewModel.isGameRunning(), loads: store.loads)
             } ?? .launching
@@ -24,17 +24,6 @@ struct PerformancePilotStages: View {
                                     Self.duration(context.date.timeIntervalSince(launchedAt))))
                             .font(AppDesign.Font.footnote).foregroundStyle(.secondary).monospacedDigit()
                     }
-                } else if GuidedPilotLive.gameIsInBackground() {
-                    SplitRow {
-                        Text(localization.L(L10n.PerformancePilot.gameInBackground))
-                            .font(AppDesign.Font.footnote).foregroundStyle(.orange)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } trailing: {
-                        Button(localization.L(L10n.PerformancePilot.bringGameFront)) {
-                            GuidedPilotLive.bringGameToFront()
-                        }
-                        .clickableCursor()
-                    }
                 }
             }
         }
@@ -44,7 +33,7 @@ struct PerformancePilotStages: View {
         HStack(spacing: AppDesign.Spacing.xs) {
             Group {
                 if stage < current {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(AppDesign.Color.success)
                 } else if stage == current {
                     ProgressView().controlSize(.mini)
                 } else {

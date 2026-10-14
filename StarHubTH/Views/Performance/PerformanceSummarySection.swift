@@ -67,6 +67,19 @@ struct PerformanceSummarySection: View {
         .frame(width: 225, alignment: .leading)
         .padding(AppDesign.Spacing.sm)
         .background(AppDesign.Color.controlBg, in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
+        .helpIfPresent(help(result.metric))
+    }
+
+    /// Ce que mesure la tuile, au survol : textes écrits pour D4-T4, décâblés
+    /// par la refonte du 2026-10-06, recâblés au lot A (F8).
+    private func help(_ metric: ProbeMetric) -> String? {
+        switch metric {
+        case .frameP50:
+            return localization.L(L10n.Performance.tileHelpFrame) + "\n" + localization.L(L10n.Performance.tileLegend)
+        case .frameP99: return localization.L(L10n.Performance.tileHelpP99)
+        case .heap: return localization.L(L10n.Performance.tileHelpHeap)
+        case .work, .fps, .workingSet, .committed: return nil
+        }
     }
 
     private func singleMetric(_ metric: ProbeMetric, summary: ProbePerformanceSummary) -> some View {
@@ -76,6 +89,7 @@ struct PerformanceSummarySection: View {
             Text("\(number(summary.metrics[metric]?.median)) \(PerformanceMetricText.unit(metric, localization))").monospacedDigit()
         }
         .font(AppDesign.Font.body)
+        .helpIfPresent(help(metric))
     }
 
     private func source(_ side: ProbeSide, key: String) -> some View {

@@ -70,8 +70,8 @@ struct PerformanceChangesSection: View {
             switch kind {
             case .added: return ("plus.circle.fill", AppDesign.Color.info)
             case .removed: return ("minus.circle.fill", .secondary)
-            case .versionChanged: return ("arrow.triangle.2.circlepath", .indigo)
-            case .configChanged: return ("slider.horizontal.3", .teal)
+            case .versionChanged: return ("arrow.triangle.2.circlepath", AppDesign.Color.info)
+            case .configChanged: return ("slider.horizontal.3", AppDesign.Color.info)
             }
         }()
         return PerformanceBadge(label: kindLabel(kind), systemImage: icon, tint: tint)

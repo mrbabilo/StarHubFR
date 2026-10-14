@@ -167,7 +167,7 @@ struct BenchmarkPanelContent: View {
             if !runner.touchedSaves.isEmpty {
                 Text(String(format: localization.L(L10n.Benchmark.saveTouched),
                             runner.touchedSaves.joined(separator: ", ")))
-                    .foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+                    .foregroundColor(AppDesign.Color.warning).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
