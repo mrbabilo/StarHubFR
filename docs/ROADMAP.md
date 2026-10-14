@@ -903,8 +903,8 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
-- [ ] **I-T22** — *(lots A et B livrés le 2026-10-14 ; lots C et D à faire ;
-      validation écran des lots A et B en attente)* Audit UX/UI de l'onglet **Performances**
+- [ ] **I-T22** — *(lots A, B et C livrés le 2026-10-14 ; lot D à faire ;
+      validation écran des lots A à C en attente)* Audit UX/UI de l'onglet **Performances**
       (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
       `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
       `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
@@ -917,11 +917,16 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       ligne chacun dans « Autres outils de mesure » repliée ; les quatre volets
       de fin de page sous une carte « Détails et réglages » ; texte vide du
       Résumé selon la présence de la sonde ; un seul jeu d'icônes de verdict.
-      **Reste** : **C** (une
-      seule conclusion, « confiance » renommée ; bloc Mesurer avec pilotée en
-      premier et « Autres mesures… » ; motifs de refus visibles avant le clic ;
-      feuille benchmark en deux temps ; un `.borderedProminent` par état),
-      **D** (entrées depuis liste, fiche, palette, Santé via
+      **Lot C** : bloc « Mesurer » (`PerformanceGuidedBar.measureBlock`) —
+      pilotée en bouton principal quand elle peut partir, guidée manuelle en
+      second, « Autres mesures… » (benchmark, SLO, Stardropium), motif du
+      grisage dit avant le clic (série, benchmark, Vanilla, jeu ouvert) ; une
+      seule conclusion (tuiles sans le mot quand la direction suffit,
+      Chronologie sans doublon du temps habituel, badge « Preuve : … »,
+      `PerformanceAnalysisTexts` extrait) ; gestes de l'Analyse grisés avec
+      « Fermez le jeu d'abord » ; feuille benchmark en deux temps (« Options »
+      replié, sauvegarde B suit A) ; un seul `.borderedProminent` par zone.
+      **Reste** : **D** (entrées depuis liste, fiche, palette, Santé via
       `NavigationStore` ; ⌘F ne quitte plus la page ; textes longs réécrits).
       Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
       distinctes présentées ensemble (pas de geste unique), outils tiers repliés
@@ -939,7 +944,18 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       outils de mesure (repliée) » avec deux lignes et leurs liens Nexus ;
       ancres sans « Diagnostic chargements » ni « Mémoire Stardropium » ; sonde
       absente → le Résumé dit « installe la sonde ci-dessus » ; mode Comparer →
-      mêmes flèches dans les tuiles, l'Analyse et les Chargements.
+      mêmes flèches dans les tuiles, l'Analyse et les Chargements. *Lot C* :
+      sonde prête, jeu fermé, profil SMAPI → « Lancer le jeu pour mesurer »
+      prominent (pilotée), « Je joue la mesure moi-même » à côté, menu « Autres
+      mesures… » à trois lignes ; profil Vanilla → la guidée est prominent et
+      une ligne grise explique l'absence de la pilotée ; jeu ouvert → même
+      ligne « Fermez le jeu d'abord » ; benchmark en cours → les deux boutons
+      gris et la ligne qui le dit ; mode Comparer → tuiles avec flèche + Δ sans
+      phrase, la conclusion lue dans l'Analyse, badge « Preuve : … » ;
+      Chronologie sur « Temps habituel » sans verdict, sur « Images les plus
+      lentes » avec ; jeu ouvert en mode Comparer → « Mettre en pause » gris
+      avec « Fermez le jeu d'abord » ; feuille Benchmark → trois choix, la
+      sauvegarde, la durée en gras, « Options » replié, tient à 560 pt.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.

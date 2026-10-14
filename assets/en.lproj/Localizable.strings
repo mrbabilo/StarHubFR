@@ -1910,9 +1910,9 @@
 "perf_reason_menu" = "menu open";
 "perf_reason_night" = "night";
 "perf_reason_loading" = "loading";
-"perf_confidence_high" = "Repeated result";
-"perf_confidence_medium" = "Usable comparison";
-"perf_confidence_low" = "Limited comparison";
+"perf_confidence_high" = "Evidence: strong";
+"perf_confidence_medium" = "Evidence: medium";
+"perf_confidence_low" = "Evidence: weak";
 "perf_evidence_minutes" = "%1$lld and %2$lld comparable minutes%3$@";
 "perf_evidence_single_change" = "One known change: %@. A lead to check, not a proven cause.";
 "perf_evidence_change_count" = "%lld changes in between";
@@ -2000,6 +2000,10 @@
 "perf_benchmark_this_mod" = "Benchmark this mod";
 "perf_pilot_action" = "Guided pilot measurement";
 "perf_pilot_action_help" = "The probe plays the measurement by itself: before, the chosen change (profile), after, then the report. Without a profile, a single side.";
+"perf_guided_manual" = "I play the measurement myself";
+"perf_other_measures" = "Other measurements…";
+"perf_pilot_ref_vanilla" = "“Vanilla” launch profile: the piloted measurement needs SMAPI. Change the profile in Settings.";
+"bench_options" = "Options";
 "perf_pilot_profile_note" = "A/B comparison: A = your current mod list, B = the chosen profile. The game launches twice (switching profiles needs a restart); everything runs on its own — keep the game window in front. The result appears here at the end.";
 "perf_pilot_status" = "Auto-pilot — step %1$@ · %2$d min kept";
 "perf_pilot_step_before" = "A, current mod list (1/2)";
@@ -2171,7 +2175,7 @@
 "bench_locked" = "A benchmark is running: mods and the game are reserved until the series ends.";
 "bench_open" = "Benchmark…";
 "bench_title" = "Load benchmark";
-"bench_intro" = "A is the starting state: your current mods or the BENCHMARK profile. B is the change to test. The game launches alternately as A and as B, then the app compares launch and load times. At the end, your mods are put back as they were.";
+"bench_intro" = "The game launches in state A, then in state B, and the app compares launch and load times. Your mods are put back as they were.";
 "bench_state_a" = "Starting state (A)";
 "bench_state_a_parc" = "Your current mods";
 "bench_state_a_benchmark" = "BENCHMARK profile";

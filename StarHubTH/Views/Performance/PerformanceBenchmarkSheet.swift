@@ -20,6 +20,8 @@ struct PerformanceBenchmarkSheet: View {
     /// active pour A (le parc revient à la fin).
     @State private var baseIsBenchmark = false
     @State private var benchmarkProfileId: UUID?
+    /// Lot C (G6) : d'abord « que veux-tu tester ? », le reste sous « Options ».
+    @State private var optionsExpanded = false
 
     private static let parcKey = "parc"
 
@@ -100,10 +102,6 @@ struct PerformanceBenchmarkSheet: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(localization.L(L10n.Benchmark.title)).font(AppDesign.Font.headline(.semibold))
             note(localization.L(L10n.Benchmark.intro))
-            Picker(localization.L(L10n.Benchmark.stateA), selection: $baseIsBenchmark) {
-                Text(localization.L(L10n.Benchmark.stateAParc)).tag(false)
-                Text(localization.L(L10n.Benchmark.stateABenchmark)).tag(true)
-            }
             Picker(localization.L(L10n.Benchmark.sideB), selection: $kind) {
                 Text(localization.L(L10n.Benchmark.sideSame)).tag(Kind.same)
                 Text(localization.L(L10n.Benchmark.sidePause)).tag(Kind.pause)
@@ -130,12 +128,21 @@ struct PerformanceBenchmarkSheet: View {
                     .clickableCursor()
                 }
             }
-            Stepper(String(format: localization.L(L10n.Benchmark.perSide), perSide), value: $perSide,
-                    in: BenchmarkSequence.minimumPerSide...5)
             savePicker(L10n.Benchmark.saveA, selection: $saveA)
-            if kind != .same { savePicker(L10n.Benchmark.saveB, selection: $saveB) }
-            note(String(format: localization.L(L10n.Benchmark.duration), runCount,
+            Text(String(format: localization.L(L10n.Benchmark.duration), runCount,
                         Int((Double(runCount) * 3.5).rounded())))
+                .font(AppDesign.Font.footnote(.semibold)).fixedSize(horizontal: false, vertical: true)
+            DisclosureGroup(localization.L(L10n.Benchmark.options), isExpanded: $optionsExpanded) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                    Picker(localization.L(L10n.Benchmark.stateA), selection: $baseIsBenchmark) {
+                        Text(localization.L(L10n.Benchmark.stateAParc)).tag(false)
+                        Text(localization.L(L10n.Benchmark.stateABenchmark)).tag(true)
+                    }
+                    Stepper(String(format: localization.L(L10n.Benchmark.perSide), perSide), value: $perSide,
+                            in: BenchmarkSequence.minimumPerSide...5)
+                    if kind != .same { savePicker(L10n.Benchmark.saveB, selection: $saveB) }
+                }.padding(.top, AppDesign.Spacing.xs)
+            }.font(AppDesign.Font.footnote)
             ForEach(cacheMods, id: \.self) { name in
                 Label(String(format: localization.L(L10n.Benchmark.cacheWarning), name),
                       systemImage: AppDesign.Status.warning.symbol)
@@ -164,6 +171,7 @@ struct PerformanceBenchmarkSheet: View {
             viewModel.reloadSaves()
             benchmarkProfileId = viewModel.ensureBenchmarkProfile()
             pickDefaultSaveA()
+            if saveB.isEmpty { saveB = saveA }
             if let prefilledPause {
                 kind = .pause
                 pauseFolder = prefilledPause
@@ -172,6 +180,8 @@ struct PerformanceBenchmarkSheet: View {
         // Le mod à mettre en pause se choisit parmi ceux de A.
         .onChange(of: baseIsBenchmark) { _, _ in pauseFolder = "" }
         .onChange(of: viewModel.saves) { _, _ in if save(saveA) == nil { pickDefaultSaveA() } }
+        // B suit A tant que l'utilisateur n'a pas choisi autre chose (Options).
+        .onChange(of: saveA) { old, new in if saveB.isEmpty || saveB == old { saveB = new } }
         .onChange(of: profileId) { _, _ in if let key = sideBKey { saveB = remembered(key) ?? saveB } }
     }
 

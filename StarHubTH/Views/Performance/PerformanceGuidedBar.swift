@@ -1,11 +1,17 @@
 import SwiftUI
 
-/// D5-A — la mesure guidée en tête de l'onglet : bouton, plan en attente,
-/// étape suivante du protocole ; ou pourquoi la sonde ne peut pas guider.
+/// D5-A — le bloc « Mesurer » en tête de l'onglet : l'action principale
+/// (pilotée quand elle est possible, sinon guidée), la guidée manuelle en
+/// second, « Autres mesures… » pour le benchmark et les outils tiers, le plan
+/// en attente, l'étape suivante du protocole ; et, grisé, **pourquoi** rien
+/// ne démarre, avant le clic (lot C, S2/G5/P1).
 struct PerformanceGuidedBar: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     var store: ProbePerformanceStore
+    /// Les autres façons de mesurer, fournies par la page : benchmark des
+    /// chargements, diagnostics SLO et Stardropium (vers leur carte).
+    var otherMeasures: [(title: String, action: () -> Void)] = []
     @State private var draft: GuidedPlanDraft?
     /// La feuille ouverte par « Mesure pilotée » : même choix, autre issue.
     @State private var piloted = false
@@ -30,9 +36,27 @@ struct PerformanceGuidedBar: View {
         }.map { GuidedProtocol.supportsPilot($0.version) } ?? false
     }
 
-    /// Série en vol, benchmark ou jeu ouvert : aucune mesure ne démarre.
+    /// Série en vol ou benchmark : aucune mesure ne démarre.
     private var startBlocked: Bool {
         viewModel.isBenchmarkActive || viewModel.pilot.busyReasonKey != nil
+    }
+
+    /// Le motif qui grise les boutons, dit avant le clic (G5).
+    private var blockReason: String? {
+        if viewModel.pilot.busyReasonKey != nil { return localization.L(L10n.PerformancePilot.refSeries) }
+        if viewModel.isBenchmarkActive { return localization.L(L10n.PerformancePilot.refBenchmark) }
+        return nil
+    }
+
+    private var pilotPossible: Bool { pilotSupported && launchProfile != "Vanilla" }
+
+    /// Pourquoi la mesure pilotée n'est pas l'action principale (G5) — la
+    /// sonde trop ancienne est déjà dite en tête de page.
+    private var pilotMissingReason: String? {
+        guard pilotSupported else { return nil }
+        if launchProfile == "Vanilla" { return localization.L(L10n.PerformancePilot.refVanilla) }
+        if viewModel.isGameRunning() { return localization.L(L10n.Performance.gameRunning) }
+        return nil
     }
 
     var body: some View {
@@ -79,29 +103,59 @@ struct PerformanceGuidedBar: View {
                 }
                 .clickableCursor()
                 .disabled(startBlocked)
+                if let blockReason { note(blockReason) }
             }
         case .idle:
-            AdaptiveLabels {
-                HStack(spacing: AppDesign.Spacing.sm) {
-                    Button {
-                        piloted = false
-                        draft = GuidedPlanDraft(name: defaultName(), role: .before,
-                                                location: GuidedProtocol.fallbackLocation, pairedWith: nil)
-                    } label: { Label(primaryTitle, systemImage: "play.circle") }
-                    .help(primaryTitle).clickableCursor().disabled(startBlocked)
-                    if pilotSupported && launchProfile != "Vanilla" {
-                        Button {
-                            piloted = true
-                            draft = GuidedPlanDraft(name: defaultName(), role: .before,
-                                                    location: GuidedProtocol.fallbackLocation, pairedWith: nil)
-                        } label: { Label(localization.L(L10n.PerformancePilot.action), systemImage: "autostart") }
+            measureBlock
+        }
+    }
+
+    /// Un seul bouton principal par état (P1) : la pilotée quand elle peut
+    /// partir (jeu fermé, profil SMAPI, sonde ≥ 0.9.25), sinon la guidée.
+    @ViewBuilder
+    private var measureBlock: some View {
+        let pilotNow = pilotPossible && !viewModel.isGameRunning()
+        AdaptiveLabels {
+            HStack(spacing: AppDesign.Spacing.sm) {
+                if pilotNow {
+                    Button { open(piloted: true) } label: { Label(primaryTitle, systemImage: "autostart") }
+                        .buttonStyle(.borderedProminent)
                         .help(localization.L(L10n.PerformancePilot.actionHelp))
-                        .clickableCursor()
-                        .disabled(startBlocked || viewModel.isGameRunning())
+                        .clickableCursor().disabled(startBlocked)
+                    Button { open(piloted: false) } label: {
+                        Label(localization.L(L10n.PerformancePilot.manual), systemImage: "play.circle")
                     }
+                    .buttonStyle(.bordered).help(localization.L(L10n.PerformancePilot.manual))
+                    .clickableCursor().disabled(startBlocked)
+                } else {
+                    Button { open(piloted: false) } label: { Label(primaryTitle, systemImage: "play.circle") }
+                        .buttonStyle(.borderedProminent)
+                        .help(primaryTitle).clickableCursor().disabled(startBlocked)
+                    if pilotSupported {
+                        Button { open(piloted: true) } label: {
+                            Label(localization.L(L10n.PerformancePilot.action), systemImage: "autostart")
+                        }
+                        .buttonStyle(.bordered).help(localization.L(L10n.PerformancePilot.actionHelp))
+                        .clickableCursor().disabled(true)
+                    }
+                }
+                if !otherMeasures.isEmpty {
+                    Menu(localization.L(L10n.PerformancePilot.otherMeasures)) {
+                        ForEach(Array(otherMeasures.enumerated()), id: \.offset) { _, measure in
+                            Button(measure.title, action: measure.action)
+                        }
+                    }.fixedSize().disabled(startBlocked)
                 }
             }
         }
+        if let blockReason { note(blockReason) }
+        else if !pilotNow, let pilotMissingReason { note(pilotMissingReason) }
+    }
+
+    private func open(piloted: Bool) {
+        self.piloted = piloted
+        draft = GuidedPlanDraft(name: defaultName(), role: .before,
+                                location: GuidedProtocol.fallbackLocation, pairedWith: nil)
     }
 
     private var primaryTitle: String {

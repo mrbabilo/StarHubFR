@@ -22,6 +22,10 @@ where the exact log format was verified.
 - **Les quatre volets de fin de page** (historique des mods, textures, environnement, sonde et réglages) tiennent sous une seule carte « Détails et réglages ».
 - **Un seul jeu d'icônes pour les verdicts** (flèches, égal, point d'interrogation) dans le Résumé, l'Analyse, la Chronologie et les Chargements ; « aucune différence » et « on ne peut pas conclure » en gris.
 - **Le Résumé vide dit la bonne chose** : « installe la sonde » quand elle manque, « lance le jeu » quand elle est là.
+- **Un bloc « Mesurer » en tête.** La mesure pilotée est le bouton principal quand elle peut partir (jeu fermé, profil SMAPI, sonde à jour) ; « Je joue la mesure moi-même » reste à côté ; « Autres mesures… » mène au benchmark des chargements et aux outils SLO et Stardropium. Un bouton grisé dit pourquoi, avant le clic.
+- **Une seule conclusion.** Les tuiles du Résumé gardent glyphe, teinte et écart ; la phrase du verdict vit dans « Analyse et conclusion », juste dessous ; la Chronologie ne répète plus le verdict du temps habituel. Le badge de l'Analyse dit « Preuve : forte / moyenne / faible », distinct de la qualité d'une métrique.
+- **Les gestes de l'Analyse disent « Fermez le jeu d'abord »** sous le bouton grisé quand le jeu tourne, au lieu de refuser après la confirmation.
+- **La feuille du benchmark va à l'essentiel** : le changement à tester, la sauvegarde, la durée ; état de départ, nombre de passes et sauvegarde B sous « Options ».
 
 ### Fixed
 

@@ -1910,9 +1910,9 @@
 "perf_reason_menu" = "menu ouvert";
 "perf_reason_night" = "nuit";
 "perf_reason_loading" = "chargement";
-"perf_confidence_high" = "Résultat répété";
-"perf_confidence_medium" = "Comparaison exploitable";
-"perf_confidence_low" = "Comparaison limitée";
+"perf_confidence_high" = "Preuve : forte";
+"perf_confidence_medium" = "Preuve : moyenne";
+"perf_confidence_low" = "Preuve : faible";
 "perf_evidence_minutes" = "%1$lld et %2$lld minutes comparables%3$@";
 "perf_evidence_single_change" = "Un seul changement connu : %@. Piste à vérifier, pas cause prouvée.";
 "perf_evidence_change_count" = "%lld changements entre les deux";
@@ -2000,6 +2000,10 @@
 "perf_benchmark_this_mod" = "Benchmarker ce mod";
 "perf_pilot_action" = "Mesure pilotée";
 "perf_pilot_action_help" = "La sonde joue la mesure seule : avant, changement choisi (profil), après, puis rapport. Sans profil, un seul côté.";
+"perf_guided_manual" = "Je joue la mesure moi-même";
+"perf_other_measures" = "Autres mesures…";
+"perf_pilot_ref_vanilla" = "Profil de lancement « Vanilla » : la mesure pilotée a besoin de SMAPI. Change le profil dans Réglages.";
+"bench_options" = "Options";
 "perf_pilot_profile_note" = "Comparatif A/B : A = le parc actuel, B = le profil choisi. Le jeu se lance deux fois (changer de profil exige un redémarrage) ; tout se fait seul, laisse la fenêtre du jeu au premier plan. Le résultat s'affiche ici à la fin.";
 "perf_pilot_status" = "Pilotage — étape %1$@ · %2$d min gardées";
 "perf_pilot_step_before" = "A, parc actuel (1/2)";
@@ -2171,7 +2175,7 @@
 "bench_locked" = "Un benchmark est en cours : le parc et le jeu sont réservés jusqu'à la fin de la série.";
 "bench_open" = "Benchmark…";
 "bench_title" = "Benchmark des chargements";
-"bench_intro" = "A, c'est l'état de départ : ton parc actuel ou le profil BENCHMARK. B, le changement à tester. Le jeu se lance tour à tour en A et en B, puis l'app compare les temps de lancement et de chargement. À la fin, ton parc est remis comme avant.";
+"bench_intro" = "Le jeu se lance dans l'état A, puis dans l'état B, et l'app compare les temps de lancement et de chargement. Ton parc est remis comme avant.";
 "bench_state_a" = "État de départ (A)";
 "bench_state_a_parc" = "Ton parc actuel";
 "bench_state_a_benchmark" = "Profil BENCHMARK";

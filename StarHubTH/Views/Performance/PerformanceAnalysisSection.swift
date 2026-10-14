@@ -35,7 +35,7 @@ struct PerformanceAnalysisSection: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.Performance.sectionAnalysis)).font(AppDesign.Font.headline(.semibold))
             Text(String(format: localization.L(L10n.Performance.analysisPair),
-                        sideTitle(report.before), sideTitle(report.after)))
+                        PerformanceAnalysisTexts.sideTitle(report.before), PerformanceAnalysisTexts.sideTitle(report.after)))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
                 .lineLimit(2)
             conclusionLabel
@@ -49,7 +49,8 @@ struct PerformanceAnalysisSection: View {
                     .stroke(AppDesign.Color.accent.opacity(AppDesign.Opacity.medium), lineWidth: 1))
             DisclosureGroup(localization.L(L10n.PerformanceEvidence.details)) {
                 ForEach(Array(analysis.evidence.enumerated()), id: \.offset) { _, evidence in
-                    Text("· " + line(evidence)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                    Text("· " + PerformanceAnalysisTexts.evidence(evidence, localization, name: name))
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 }
             }
             Text(localization.L(L10n.Performance.contextual))
@@ -70,86 +71,18 @@ struct PerformanceAnalysisSection: View {
         }
     }
 
-    // MARK: Textes
+    // MARK: Textes (`PerformanceAnalysisTexts`)
 
-    private var conclusion: String {
-        report.metrics[.frameP50].map { PerformanceMetricText.outcome($0.outcome, localization) }
-            ?? localization.L(L10n.PerformanceEvidence.unavailable)
-    }
-
-    /// Le nom court d'un côté : le nom de la mesure guidée, sinon la date.
-    private func sideTitle(_ side: ProbeSide) -> String {
-        if let measurement = side.measurement { return measurement.name }
-        guard let start = side.start else { return "—" }
-        return start.formatted(date: .abbreviated, time: .shortened)
-    }
-
-    /// Même glyphe et même teinte que le verdict de tête : ils viennent du
-    /// même verdict (`ProbeAnalysis`, étape 1).
     private var conclusionLabel: some View {
-        let (icon, tint): (String, Color) = {
-            switch analysis.direction {
-            case .faster: return ("arrow.down.right", AppDesign.Color.success)
-            case .slower: return ("arrow.up.right", AppDesign.Color.warning)
-            case .noDifference: return ("equal", .secondary)
-            case .inconclusive: return ("questionmark", .secondary)
-            }
-        }()
-        return Label(conclusion, systemImage: icon)
-            .font(AppDesign.Font.body(.semibold)).foregroundColor(tint)
+        let visuals = PerformanceAnalysisTexts.directionVisuals(analysis.direction)
+        return Label(PerformanceAnalysisTexts.conclusion(report, localization), systemImage: visuals.icon)
+            .font(AppDesign.Font.body(.semibold)).foregroundColor(visuals.tint)
     }
 
     private var confidenceBadge: some View {
-        let (icon, tint): (String, Color) = {
-            switch analysis.confidence {
-            // Pas de vert : il dit « mieux », pas « sûr ».
-            case .high: return ("checkmark.seal.fill", AppDesign.Color.accent)
-            case .medium: return ("circle.lefthalf.filled", .secondary)
-            case .low: return ("exclamationmark.circle", .secondary)
-            }
-        }()
-        return PerformanceBadge(label: confidence, systemImage: icon, tint: tint)
-    }
-
-    private var confidence: String {
-        switch analysis.confidence {
-        case .high: return localization.L(L10n.Performance.confidenceHigh)
-        case .medium: return localization.L(L10n.Performance.confidenceMedium)
-        case .low: return localization.L(L10n.Performance.confidenceLow)
-        }
-    }
-
-    private func line(_ evidence: ProbeAnalysisResult.Evidence) -> String {
-        switch evidence {
-        case .comparableMinutes(let a, let b, let same):
-            let suffix = same ? ", " + localization.L(L10n.Performance.sameLocations).lowercased() : ""
-            return String(format: localization.L(L10n.Performance.evidenceMinutes), a, b, suffix)
-        case .singleChange(let modId):
-            return String(format: localization.L(L10n.Performance.evidenceSingleChange), name(modId))
-        case .changeCount(let count):
-            return String(format: localization.L(L10n.Performance.evidenceChangeCount), count)
-        case .directCost(let modId, let delta):
-            return String(format: localization.L(L10n.Performance.evidenceDirectCost), name(modId),
-                          delta.formatted(.number.precision(.fractionLength(2)).sign(strategy: .always())))
-        case .indirectShare(let share):
-            return String(format: localization.L(L10n.Performance.evidenceIndirect), Int((share * 100).rounded()))
-        case .probeChanged: return localization.L(L10n.Performance.evidenceProbe)
-        case .envelopesAsymmetric: return localization.L(L10n.Performance.evidenceEnvelopes)
-        case .cleanMeasurement: return localization.L(L10n.Performance.evidenceClean)
-        case .excludedMinutes(let a, let b):
-            return String(format: localization.L(L10n.Performance.evidenceExcluded), counts(a), counts(b))
-        case .frameWorkUnchanged: return localization.L(L10n.Performance.evidenceFrameWork)
-        case .noisyMeasurement: return localization.L(L10n.Performance.evidenceNoisy)
-        }
-    }
-
-    private func counts(_ exclusions: [ProbeExclusionReason: Int]) -> String {
-        exclusions.isEmpty ? "—" : exclusions.sorted { $0.value > $1.value }
-            .map { "\(reasonName($0.key)) ×\($0.value)" }.joined(separator: ", ")
-    }
-
-    private func reasonName(_ reason: ProbeExclusionReason) -> String {
-        PerformanceFormatting.reasonName(reason, localization)
+        let visuals = PerformanceAnalysisTexts.confidenceVisuals(analysis.confidence)
+        return PerformanceBadge(label: PerformanceAnalysisTexts.confidence(analysis.confidence, localization),
+                                systemImage: visuals.icon, tint: visuals.tint)
     }
 
     // MARK: Recommandation et gestes
@@ -217,21 +150,31 @@ struct PerformanceAnalysisSection: View {
     }
 
     /// Un geste sans cible (mod plus installé) ne s'affiche pas (Review Focus 5).
+    /// Jeu ouvert : le geste qui écrit dans `Mods/` reste visible, grisé, et
+    /// la ligne dit pourquoi — avant le clic, pas après (lot C, G4).
     private func action(_ title: String, detail: String? = nil, button: String, gesture: PendingAction?) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let blocked = gesture.map(Self.needsGameClosed) == true && viewModel.isGameRunning()
+        return VStack(alignment: .leading, spacing: 2) {
             SplitRow {
                 Text(title).font(AppDesign.Font.body(.medium))
             } trailing: {
                 if let gesture {
                     AdaptiveLabels {
                         Button { pending = gesture } label: { Label(localization.L(button), systemImage: "arrow.right.circle") }
-                            .help(localization.L(button)).clickableCursor()
+                            .help(localization.L(button)).clickableCursor().disabled(blocked)
                     }
                 }
             }
-            if let detail {
+            if let detail = blocked ? localization.L(L10n.Performance.gameRunning) : detail {
                 Text(detail).font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
+        }
+    }
+
+    private static func needsGameClosed(_ gesture: PendingAction) -> Bool {
+        switch gesture {
+        case .pause, .revertConfig: return true
+        case .prepare, .backups: return false
         }
     }
 

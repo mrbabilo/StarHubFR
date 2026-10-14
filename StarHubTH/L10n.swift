@@ -944,6 +944,7 @@ enum L10n {
         // Panneau de suivi flottant (visible pendant que le jeu tourne).
         static let panelTitle         = "bench_panel_title"
         static let panelOpen          = "bench_panel_open"
+        static let options            = "bench_options"
         static let preparingLine      = "bench_preparing_line"
         static let changePause        = "bench_change_pause"
         static let changeProfile      = "bench_change_profile"

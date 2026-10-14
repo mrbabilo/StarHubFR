@@ -19,8 +19,12 @@ struct PerformanceSmoothnessSection: View {
                 ForEach(ProbeMetric.allCases, id: \.self) { Text(PerformanceMetricText.name($0, localization)).tag($0) }
             }.pickerStyle(.menu)
             if let result = report.metrics[measure] {
-                Label(PerformanceMetricText.outcome(result.outcome, localization), systemImage: PerformanceMetricText.symbol(result.outcome))
-                    .foregroundStyle(PerformanceMetricText.tint(result.outcome))
+                // Lot C (S5) : le temps habituel porte déjà la conclusion dans
+                // « Analyse » ; ici seulement les autres métriques.
+                if measure != .frameP50 {
+                    Label(PerformanceMetricText.outcome(result.outcome, localization), systemImage: PerformanceMetricText.symbol(result.outcome))
+                        .foregroundStyle(PerformanceMetricText.tint(result.outcome))
+                }
                 coverage(result)
             }
             if let quality = report.quality[measure] {

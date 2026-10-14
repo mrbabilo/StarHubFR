@@ -58,13 +58,24 @@ struct PerformanceSummarySection: View {
             Text(PerformanceMetricText.name(result.metric, localization)).font(AppDesign.Font.footnote)
             Text("\(number(result.before)) → \(number(result.after)) \(PerformanceMetricText.unit(result.metric, localization))")
                 .font(AppDesign.Font.body(.semibold)).monospacedDigit()
-            Label(PerformanceMetricText.outcome(result.outcome, localization), systemImage: PerformanceMetricText.symbol(result.outcome))
-                .font(AppDesign.Font.footnote).foregroundStyle(PerformanceMetricText.tint(result.outcome))
-            if let delta = result.delta, result.outcome != .incomparable && result.outcome != .unavailable {
-                Text("Δ \(number(delta)) \(PerformanceMetricText.unit(result.metric, localization))"
-                     + (result.percent.map { " (\(number($0)) %)" } ?? ""))
-                    .font(AppDesign.Font.footnote).monospacedDigit()
+            // Lot C (S5) : la phrase du verdict vit dans « Analyse et
+            // conclusion », juste dessous ; la tuile garde glyphe, teinte et Δ.
+            // Un verdict sans direction (trop court, conditions différentes…)
+            // garde son mot : le glyphe seul ne le dirait pas.
+            let outcome = PerformanceMetricText.outcome(result.outcome, localization)
+            HStack(spacing: AppDesign.Spacing.xs) {
+                Image(systemName: PerformanceMetricText.symbol(result.outcome))
+                    .foregroundStyle(PerformanceMetricText.tint(result.outcome))
+                    .accessibilityLabel(outcome)
+                if let delta = result.delta, result.outcome != .incomparable && result.outcome != .unavailable {
+                    Text("Δ \(number(delta)) \(PerformanceMetricText.unit(result.metric, localization))"
+                         + (result.percent.map { " (\(number($0)) %)" } ?? ""))
+                        .monospacedDigit()
+                } else {
+                    Text(outcome).foregroundStyle(PerformanceMetricText.tint(result.outcome))
+                }
             }
+            .font(AppDesign.Font.footnote)
             if let quality { Text(PerformanceMetricText.quality(quality.level, localization)).font(AppDesign.Font.caption).foregroundStyle(.secondary) }
             if result.metric.isMemory { Text(localization.L(L10n.PerformanceEvidence.memoryNote)).font(AppDesign.Font.caption).foregroundStyle(.secondary) }
         }

@@ -38,7 +38,8 @@ struct PerformanceView: View {
                         comparing = true
                         if scroll { proxy.scrollTo("summary", anchor: .top) }
                     }
-                    PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store)
+                    PerformanceGuidedBar(viewModel: viewModel, localization: localization, store: store,
+                                         otherMeasures: otherMeasures(proxy))
                     Picker(localization.L(L10n.Performance.inGameTitle), selection: $comparing) {
                         Text(localization.L(L10n.PerformanceEvidence.lastSession)).tag(false)
                         Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
@@ -179,6 +180,21 @@ struct PerformanceView: View {
                 }
             }.fixedSize()
         }
+    }
+
+    /// « Autres mesures… » du bloc Mesurer : benchmark, puis les outils tiers
+    /// vers leur carte (pleine si installés, sinon « Autres outils »).
+    private func otherMeasures(_ proxy: ScrollViewProxy) -> [(title: String, action: () -> Void)] {
+        let scroll: (String) -> Void = { id in
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+        }
+        return [
+            (localization.L(L10n.Benchmark.title), { openBenchmark(nil) }),
+            (localization.L(L10n.PerformanceSloDiagnostic.title),
+             { scroll(Self.toolAbsent(sloDiagnostic) ? "tools" : "slo") }),
+            (localization.L(L10n.StardropiumMemory.title),
+             { scroll(Self.toolAbsent(stardropiumDiagnostic) ? "tools" : "stardropium") }),
+        ]
     }
 
     /// Le mod tiers n'est pas installé (ou se télécharge) : pas de carte
