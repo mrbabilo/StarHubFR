@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.64.1] - 2026-10-14
+
 ### Fixed
 
 - **Sonde 0.9.28 : le chrono de la mesure guidée ne se désynchronise plus.** Il comptait le temps passé au lieu, alors qu'une minute avec le jeu en arrière-plan est écartée en entier ; il suit désormais les minutes gardées et la minute en cours tant qu'elle peut compter.
