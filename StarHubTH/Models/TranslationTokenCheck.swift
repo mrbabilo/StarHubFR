@@ -60,11 +60,46 @@ public enum TranslationTokenCheck {
     public static func mismatches(source: String, target: String) -> [Mismatch] {
         let sourceCounts = counted(comparedTokens(source))
         let targetCounts = counted(comparedTokens(target))
-        return Set(sourceCounts.keys).union(targetCounts.keys).sorted().compactMap { token in
+        var out = Set(sourceCounts.keys).union(targetCounts.keys).sorted().compactMap { token -> Mismatch? in
             let expected = sourceCounts[token] ?? 0
             let found = targetCounts[token] ?? 0
             guard expected != found else { return nil }
             return Mismatch(token: token, expected: expected, found: found, isHard: isHard(token))
+        }
+        // Attendu : les `_` que la source **écrit** ; trouvé : ceux que le jeu
+        // **lira** dans la traduction. Pas le jeu des deux côtés : une source
+        // déjà coupée par son anglais (« you're » chez Sterling) refuserait la
+        // bonne correction française.
+        let expected = quickResponseSeparators(source, asWritten: true)
+        let found = quickResponseSeparators(target)
+        if expected != found {
+            out.append(Mismatch(token: quickResponseToken, expected: expected.reduce(0, +),
+                                found: found.reduce(0, +), isHard: true))
+        }
+        return out
+    }
+
+    /// La structure d'une réponse rapide `$y`, comparée comme une marque : ses
+    /// `_` comptés **tels que le jeu les lit**.
+    public static let quickResponseToken = "$y _"
+
+    /// Les `_` de chaque `$y`, dans l'ordre. Règle de `Dialogue.parseDialogueString`
+    /// (Stardew Valley.dll, relue le 2026-10-14) : le dialogue se découpe sur
+    /// `#` ; un segment dont le premier mot est `$y` garde le texte après sa
+    /// **première** apostrophe (tout le segment s'il n'en a pas), en retire le
+    /// dernier caractère, puis se coupe sur `_` en question, puis paires
+    /// réponse / réplique. Une apostrophe droite dans une source sans
+    /// guillemets (« j'aie », Sterling `winter_Mon6` du parc) déplace donc le
+    /// début de la réponse ; un `_` de trop ou de moins change les réponses, et
+    /// un nombre impair fait lire une réplique qui n'existe pas — le dialogue
+    /// plante. Le `’` typographique ne coupe rien.
+    /// `asWritten` : tous les `_` du segment, ceux que l'auteur a voulus.
+    static func quickResponseSeparators(_ text: String, asWritten: Bool = false) -> [Int] {
+        text.split(separator: "#", omittingEmptySubsequences: false).compactMap { segment -> Int? in
+            guard segment.split(separator: " ", maxSplits: 1).first == "$y" else { return nil }
+            if asWritten { return segment.filter { $0 == "_" }.count }
+            let start = segment.firstIndex(of: "'").map { segment.index(after: $0) } ?? segment.startIndex
+            return segment[start...].dropLast().filter { $0 == "_" }.count
         }
     }
 

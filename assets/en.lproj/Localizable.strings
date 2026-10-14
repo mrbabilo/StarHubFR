@@ -1035,6 +1035,7 @@
 "mods_translation_declare_version" = "Version (optional)";
 "mods_translation_declared" = "Translation declared";
 "mods_translation_editor_blocked" = "%lld game marker(s) missing: nothing was saved.";
+"mods_translation_quick_response" = "$y quick response: %lld “_” written, %lld read by the game — a straight apostrophe ' cuts it, use ’ instead";
 "mods_translation_editor_cancel" = "Cancel";
 "mods_translation_editor_failed" = "Nothing was saved.";
 "mods_translation_editor_glossary" = "Game terms";

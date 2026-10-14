@@ -401,7 +401,7 @@ struct TranslationEditorView: View {
                 // de quatre ou cinq marques distinctes, deux lignes ne
                 // suffisent déjà plus.
                 Text(String(format: localization.L(L10n.Mods.translationEditorBlocked), Int64(blocked.count))
-                     + "  " + blocked.map(\.token).joined(separator: "  "))
+                     + "  " + blocked.map { TranslationMismatchText.label($0, localization) }.joined(separator: "  "))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.red.opacity(0.85))
                     .lineLimit(3)

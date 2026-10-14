@@ -31,6 +31,7 @@ where the exact log format was verified.
 - **Installer la sonde depuis un diagnostic ne peut plus échouer en silence.** Les cartes SLO et Stardropium refusent le geste jeu ouvert et affichent l'échec, comme la carte Sonde et les Réglages le faisaient déjà (X133).
 - **La fin d'une mesure pilotée montre le comparatif A/B.** Verdict, temps de trame et mémoire de A à B, profil sur lequel le parc est resté, puis « Garder le profil » ou « Revenir au parc d'avant ». La feuille annonce les deux lancements du jeu.
 - **Une mesure pilotée refuse un profil identique au parc.** A et B seraient le même parc : la série ne démarre pas et l'écran dit pourquoi.
+- **Une réponse rapide `$y` cassée par la traduction est refusée à l'écriture.** Un « _ » perdu, ou une apostrophe droite dans une réponse sans guillemets, faisait perdre ses réponses au dialogue — cas réel : Sterling, Always Raining in the Valley. L'écran propose ’ à la place.
 - **Un mod installé depuis Nexus a son image et sa catégorie tout de suite.** L'app retenait l'id Nexus mais attendait la vérification suivante pour remplir la fiche ; elle les demande désormais à l'installation.
 - **Revenir au réglage d'avant d'un composant de pack réécrit son vrai `config.json`.** L'app écrivait à la racine du pack et annonçait le retour fait ; le composant gardait son réglage (X134).
 - **Le retour arrière d'une série pilotée survit à un redémarrage de l'app.** L'état était effacé dès le rapport : le parc restait sur B sans rien pour y revenir (X135).

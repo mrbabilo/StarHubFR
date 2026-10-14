@@ -1035,6 +1035,7 @@
 "mods_translation_declare_version" = "Version (facultatif)";
 "mods_translation_declared" = "Traduction déclarée";
 "mods_translation_editor_blocked" = "%lld marque(s) du jeu manquante(s) : rien n'a été enregistré.";
+"mods_translation_quick_response" = "réponse rapide $y : %lld « _ » écrits, %lld lus par le jeu — une apostrophe droite ' la coupe, mets ’ à la place";
 "mods_translation_editor_cancel" = "Annuler";
 "mods_translation_editor_failed" = "Rien n'a été enregistré.";
 "mods_translation_editor_glossary" = "Termes du jeu";
