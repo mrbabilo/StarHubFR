@@ -189,9 +189,10 @@
     "version": "1.1.0"
   },
   "mod/stardewoptimizer": {
+    "changelog_reviewed": "3.0.3",
     "gitHubRepo": null,
     "name": null,
-    "version": null
+    "version": "3.0.3"
   },
   "mod/stardropium": {
     "changelog_reviewed": "0.2.9-beta",

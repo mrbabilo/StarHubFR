@@ -80,13 +80,13 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.16",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.17",
                                             assemblyName: "UltraSmooth")
     private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.9-alpha",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.1",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.2",
                                          assemblyName: "SDV-Radiance")
-    private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "1.0.0",
+    private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "3.0.3",
                                                  assemblyName: "StardewOptimizer")
     private static let speedySolutions = Member(uniqueId: "SinZ.SpeedySolutions", measuredVersion: "1.1.0",
                                                 assemblyName: "SinZational Speedy Solutions")
@@ -125,12 +125,21 @@ extension PerformanceOverlap {
         // StardewOptimizer 1.0.0 (A5-T10) : `Monster.update` est posée par
         // **balayage dynamique** des deux côtés — UltraSmooth depuis 2.4.8
         // (`PatchMonsterUpdateMethods`), StardewOptimizer dans
-        // `MonsterAiThrottleModule`. Sa seule méthode commune avec Stardropium
-        // (`NPC.update`, module désactivé par défaut) ne fait pas une paire.
+        // `MonsterAiThrottleModule`. La 3.0.3 (2026-10-14,
+        // `docs/audit-stardewoptimizer-3.0.3.md`) ajoute `Debris.updateChunks`,
+        // `Furniture.draw`, `GameLocation.updateWater` et `GameMenu.changeTab`.
         PerformanceOverlap(
             first: stardewOptimizer, second: ultraSmooth,
-            sharedMethods: ["GameLocation.DayUpdate", "Monster.update", "NPC.update",
-                            "TemporaryAnimatedSprite.draw"],
+            sharedMethods: ["Debris.updateChunks", "Furniture.draw", "GameLocation.DayUpdate",
+                            "GameLocation.updateWater", "GameMenu.changeTab", "Monster.update",
+                            "NPC.update", "TemporaryAnimatedSprite.draw"],
+            conditionalMethods: [], conditionalOption: nil),
+        // `Furniture.draw` (3.0.3, `FurnitureDrawThrottle`, actif par défaut)
+        // rejoint `NPC.update` : la paire n'est plus du bruit. Avec Radiance,
+        // `GameLocation.updateWater` seule en reste un.
+        PerformanceOverlap(
+            first: stardropium, second: stardewOptimizer,
+            sharedMethods: ["Furniture.draw", "NPC.update"],
             conditionalMethods: [], conditionalOption: nil),
         PerformanceOverlap(
             first: radiance, second: stardropium,

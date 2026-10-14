@@ -38,6 +38,7 @@ where the exact log format was verified.
 - **Une série pilotée dit sur quoi le parc est resté.** Échec, interruption ou départ « Isoler » : les boutons nomment le profil, le mod en pause ou le réglage d'avant, et les étapes ne parlent plus de profil pour une pause.
 - **La mise à jour de la sonde se voit en tête de Performances.** Elle n'était proposée que dans le volet replié « Réglages » quand l'app embarquait une sonde plus récente.
 - **Sonde 0.9.27 : plus de faux « Aucune trame mesurée » au retour au titre** après une mesure close.
+- **Le catalogue des recouvrements suit StardewOptimizer 3.0.3, UltraSmooth 2.4.17 et Radiance 2.3.2.** StardewOptimizer partage huit méthodes avec UltraSmooth et devient une paire avec Stardropium (`Furniture.draw`, `NPC.update`).
 - **Stardropium et UltraSmooth partagent bien `passTimeForObjects` par défaut.** Le catalogue la disait conditionnelle depuis UltraSmooth 2.4.9 ; il est remesuré sur Stardropium 0.2.9-alpha et UltraSmooth 2.4.16, versions du parc.
 
 ## [1.62.0] - 2026-10-10

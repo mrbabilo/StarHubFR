@@ -85,19 +85,18 @@ struct PerformanceOverlapTests {
         }
     }
 
-    /// Remesure du 2026-10-10 au soir sur les versions du parc :
-    /// UltraSmooth 2.4.16, Radiance 2.3.1, Stardropium 0.2.9-alpha (la
-    /// version du manifeste installé, pas l'étiquette Nexus « 0.2.9-beta »),
-    /// StardewOptimizer 1.0.0.
+    /// Remesure du 2026-10-14 sur les versions du parc : UltraSmooth 2.4.17,
+    /// Radiance 2.3.2, Stardropium 0.2.9-alpha (la version du manifeste
+    /// installé, pas l'étiquette Nexus « 0.2.9-beta »), StardewOptimizer 3.0.3.
     @Test func lesVersionsMesureesSontCellesDuParc() {
         func measured(_ id: String) -> String? {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.4.16")
-        #expect(measured("phuicmt.SDVRadiance") == "2.3.1")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.4.17")
+        #expect(measured("phuicmt.SDVRadiance") == "2.3.2")
         #expect(measured("Arshia1381.Stardropium") == "0.2.9-alpha")
-        #expect(measured("baiyu.StardewOptimizer") == "1.0.0")
+        #expect(measured("baiyu.StardewOptimizer") == "3.0.3")
     }
 
     /// `GameLocation.passTimeForObjects` est patchée **par défaut** des deux
@@ -114,17 +113,26 @@ struct PerformanceOverlapTests {
     }
 
     @Test func stardewOptimizerRecouvreUltraSmoothEtStardropium() throws {
-        let so = PerformanceOverlap.catalog.first { $0.key.hasPrefix("baiyu.stardewoptimizer") }
-        let soUS = try #require(so)
+        // 3.0.3 (2026-10-14) : `Debris.updateChunks`, `Furniture.draw`,
+        // `GameLocation.updateWater` et `GameMenu.changeTab` rejoignent les
+        // quatre de la 1.0.0.
+        let soUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "baiyu.stardewoptimizer|palmhacker13.ultrasmooth"
+        })
         #expect(soUS.sharedMethods.sorted()
-                == ["GameLocation.DayUpdate", "Monster.update", "NPC.update",
-                    "TemporaryAnimatedSprite.draw"])
-        // Une seule méthode commune avec Stardropium : écartée comme bruit,
-        // comme `ScreenFade.UpdateFadeAlpha` avant elle.
-        let soDrop = PerformanceOverlap.catalog.first {
+                == ["Debris.updateChunks", "Furniture.draw", "GameLocation.DayUpdate",
+                    "GameLocation.updateWater", "GameMenu.changeTab", "Monster.update",
+                    "NPC.update", "TemporaryAnimatedSprite.draw"])
+        // `Furniture.draw` fait de Stardropium une paire : deux méthodes,
+        // là où `NPC.update` seule était écartée comme bruit.
+        let soDrop = try #require(PerformanceOverlap.catalog.first {
             $0.key == "arshia1381.stardropium|baiyu.stardewoptimizer"
-        }
-        #expect(soDrop == nil)
+        })
+        #expect(soDrop.sharedMethods.sorted() == ["Furniture.draw", "NPC.update"])
+        // Avec Radiance, `GameLocation.updateWater` seule : bruit.
+        #expect(!PerformanceOverlap.catalog.contains {
+            $0.key == "baiyu.stardewoptimizer|phuicmt.sdvradiance"
+        })
     }
 
     @Test func lesRecouplementsNouveauxDUltraSmooth2415SontAuCatalogue() throws {
