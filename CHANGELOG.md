@@ -12,23 +12,26 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Retour rapide en haut de page** sur toutes les pages qui défilent : un bouton flottant, en bas à droite, apparaît une fois la page descendue et ramène en haut d'un clic.
+- **Des chemins mènent à Performances** : le badge d'impact d'un mod dans la liste, « Voir dans Performances » dans sa fiche, la palette ⌘K et une ligne de Santé ouvrent l'onglet à la bonne section, le mod en tête de l'historique.
+- **De retour après une partie, l'onglet signale la nouvelle session lue.** En mode « Dernière session » avec deux sessions ou plus, une carte propose de comparer.
+
 ### Changed
 
-- **Retour rapide en haut de page sur toutes les pages qui défilent.** Un bouton flottant, en bas à droite, apparaît une fois la page descendue (sur Performances, dès que la rangée de navigation sort de l'écran) et ramène en haut d'un clic.
 - **Performances : une seule ligne d'état en tête.** Série pilotée, mesure guidée, benchmark, diagnostic SLO ou Stardropium et chargement se lisaient sur quatre lignes concurrentes ; une seule les dit désormais, par priorité, avec « En direct / En pause » et « Ramener le jeu » au même endroit.
-- **La carte Sonde ne s'affiche en tête que si une action est due** (installer, réactiver, mettre à jour) ; sinon une ligne « Sonde active » avec un lien « Réglages » qui déplie « Sonde et réglages de mesure » en bas. La bannière « charger la sonde en premier » remonte en tête tant qu'elle attend une réponse.
+- **La carte Sonde ne s'affiche en tête que si une action est due** (installer, réactiver, mettre à jour) ; sinon une ligne « Sonde active » et un lien « Réglages ». La bannière « charger la sonde en premier » remonte en tête tant qu'elle attend une réponse.
 - **Les tuiles du Résumé expliquent ce qu'elles mesurent** au survol (temps entre deux images, images les plus lentes, 16,7 ms = 60 images par seconde).
 - **Couleurs des états alignées sur la charte** (en direct, en pause, avertissements, changements de version et de réglage).
 - **Les outils tiers n'occupent une carte que s'ils sont installés.** « Diagnostic détaillé des chargements » (SLO) et « Mémoire — Stardropium » passent après les mesures de la sonde ; absents, ils tiennent une ligne chacun dans « Autres outils de mesure », repliée, avec le lien d'installation.
 - **Les quatre volets de fin de page** (historique des mods, textures, environnement, sonde et réglages) tiennent sous une seule carte « Détails et réglages ».
 - **Un seul jeu d'icônes pour les verdicts** (flèches, égal, point d'interrogation) dans le Résumé, l'Analyse, la Chronologie et les Chargements ; « aucune différence » et « on ne peut pas conclure » en gris.
 - **Le Résumé vide dit la bonne chose** : « installe la sonde » quand elle manque, « lance le jeu » quand elle est là.
-- **Un bloc « Mesurer » en tête.** La mesure pilotée est le bouton principal quand elle peut partir (jeu fermé, profil SMAPI, sonde à jour) ; « Je joue la mesure moi-même » reste à côté ; « Autres mesures… » mène au benchmark des chargements et aux outils SLO et Stardropium. Un bouton grisé dit pourquoi, avant le clic.
-- **Une seule conclusion.** Les tuiles du Résumé gardent glyphe, teinte et écart ; la phrase du verdict vit dans « Analyse et conclusion », juste dessous ; la Chronologie ne répète plus le verdict du temps habituel. Le badge de l'Analyse dit « Preuve : forte / moyenne / faible », distinct de la qualité d'une métrique.
+- **Un bloc « Mesurer » en tête.** La mesure pilotée est le bouton principal quand elle peut partir, la mesure guidée à côté ; « Autres mesures… » mène au benchmark et aux outils SLO et Stardropium. Un bouton grisé dit pourquoi, avant le clic.
+- **Une seule conclusion.** Les tuiles du Résumé gardent flèche et écart ; la phrase du verdict vit dans « Analyse et conclusion », juste dessous. Le badge dit « Preuve : forte / moyenne / faible », distinct de la qualité d'une métrique.
 - **Les gestes de l'Analyse disent « Fermez le jeu d'abord »** sous le bouton grisé quand le jeu tourne, au lieu de refuser après la confirmation.
 - **La feuille du benchmark va à l'essentiel** : le changement à tester, la sauvegarde, la durée ; état de départ, nombre de passes et sauvegarde B sous « Options ».
-- **Des chemins mènent à Performances.** Le badge d'impact d'un mod dans la liste, « Voir dans Performances » dans sa fiche, l'entrée « Performances » de la palette ⌘K et une ligne « dernière mesure en jeu » dans Santé ouvrent l'onglet à la bonne section, le mod en tête de l'historique. ⌘F sur Performances ne bascule plus vers le Journal.
-- **De retour après une partie, l'onglet signale la nouvelle session lue.** En mode « Dernière session » avec deux sessions ou plus, une carte propose de comparer.
 - **Après l'installation ou la mise à jour de la sonde**, une ligne rappelle qu'elle mesurera au prochain lancement du jeu.
 - **Textes raccourcis et précisés** : ce que SLO et Stardropium mesurent en plus de la sonde ; confirmations d'installation de la sonde, de « charger la sonde en premier » et de la mesure pilotée.
 
