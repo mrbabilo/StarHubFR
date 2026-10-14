@@ -339,6 +339,7 @@ let package = Package(
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
                 "Models/KeybindGrammar.swift",
+                "Models/KeybindFamilyGuess.swift",
                 "Models/KeybindScanner.swift",
                 "Models/KeybindContexts.swift",
                 "Models/KeybindScanner+Annotation.swift",
