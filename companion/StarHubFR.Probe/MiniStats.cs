@@ -57,7 +57,7 @@ internal static class MiniStats
         double p50 = Percentile(sorted, 0.50);
         double p99 = Percentile(sorted, 0.99);
         double ws = Process.GetCurrentProcess().WorkingSet64 / (1024.0 * 1024.0);
-        return $"FPS {fps:F0}  P50 {p50:F1} ms  P99 {p99:F1} ms  RAM {ws:F0} MB";
+        return $"FPS {fps:F0}   P50 {p50:F1} ms   P99 {p99:F1} ms\nRAM {ws:F0} MB";
     }
 
     private static double Percentile(List<float> sorted, double q)
@@ -67,13 +67,20 @@ internal static class MiniStats
         return sorted[index];
     }
 
+    /// <summary>Dans un cadre du jeu, en haut à gauche — sous le bandeau de
+    /// mesure s'il est là. Le texte nu en haut à droite chevauchait l'horloge
+    /// et sortait de l'écran (`viewport` au lieu de `uiViewport` : la RAM
+    /// coupée, retour d'écran du 2026-10-14).</summary>
     private static void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch batch)
     {
         if (text.Length == 0) return;
-        int x = Game1.viewport.Width - (int)Game1.dialogueFont.MeasureString(text).X - 16;
-        batch.DrawString(Game1.dialogueFont, text, new Microsoft.Xna.Framework.Vector2(x + 1, 17),
-            Microsoft.Xna.Framework.Color.Black * 0.6f);
-        batch.DrawString(Game1.dialogueFont, text, new Microsoft.Xna.Framework.Vector2(x, 16),
+        var font = Game1.smallFont;
+        var size = font.MeasureString(text);
+        int width = (int)Math.Ceiling(size.X) + 48;
+        int height = (int)Math.Ceiling(size.Y) + 40;
+        int y = GuidedBanner.Bottom > 0 ? GuidedBanner.Bottom + 8 : 16;
+        StardewValley.Menus.IClickableMenu.drawTextureBox(batch, 16, y, width, height,
             Microsoft.Xna.Framework.Color.White);
+        Utility.drawTextWithShadow(batch, text, font, new Microsoft.Xna.Framework.Vector2(40, y + 20), Game1.textColor);
     }
 }

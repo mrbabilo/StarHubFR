@@ -12,6 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sonde 0.9.28 : le chrono de la mesure guidée ne se désynchronise plus.** Il comptait le temps passé au lieu, alors qu'une minute avec le jeu en arrière-plan est écartée en entier ; il suit désormais les minutes gardées et la minute en cours tant qu'elle peut compter.
+- **Mini-stats lisibles.** Dans un cadre du jeu, en haut à gauche sous le bandeau de mesure, sur deux lignes : elles ne chevauchent plus l'horloge et la RAM n'est plus coupée au bord de l'écran.
+- **Performances dit quand la mesure est en pause.** Jeu en arrière-plan, « En direct » cède la place à « En pause — le jeu est en arrière-plan » : aucune minute neuve n'arrive avant son retour.
+
 ## [1.64.0] - 2026-10-14
 
 ### Added

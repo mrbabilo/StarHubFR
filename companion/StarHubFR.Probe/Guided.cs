@@ -33,10 +33,10 @@ internal static class Guided
     private static string ProbeVersion = "";
     private static string PlanPath => Path.Combine(ModEntry.OutputDir, "guided-plan.json");
     private static string OutputPath => Path.Combine(ModEntry.OutputDir, "guided-measurements.jsonl");
-    /// <summary>Ticks de présence au lieu cible depuis le début de la mesure
-    /// (60 par seconde) : le décompte du bandeau descend avec le temps
-    /// **réellement passé sur place**, pas avec l'horloge murale.</summary>
-    internal static int PresenceTicks;
+    /// <summary>Ticks au lieu cible dans la fenêtre en cours, et la garde
+    /// « première après le titre » : le chrono du bandeau en dépend.</summary>
+    internal static int WindowTargetTicks => targetTicks;
+    internal static bool InGameBefore => Guards.InGameBefore;
 
     private static readonly ComparableGuards Guards = new();
     private static readonly HashSet<string> Finished = new();
@@ -88,7 +88,6 @@ internal static class Guided
             && Game1.currentLocation?.NameOrUniqueName == rule.Target)
         {
             targetTicks++;
-            PresenceTicks++;
         }
         // Sauvegarde choisie dans la feuille : chargée seule à l'écran titre,
         // le geste du benchmark. Sans elle, le joueur clique comme toujours.
@@ -204,7 +203,6 @@ internal static class Guided
         LastIqrSharePercent = 0;
         RefusedKey = null;
         targetTicks = 0;
-        PresenceTicks = 0;
         titleTicks = 0;
         autoLoaded = false;
         patchesSeen = false;

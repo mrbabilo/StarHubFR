@@ -136,4 +136,33 @@ public class GuidedRuleTests
         Assert.Equal("firstAfterTitle", GuidedRule.ReasonName(MinuteReason.FirstAfterTitle));
         Assert.Equal("otherLocation", GuidedRule.ReasonName(MinuteReason.OtherLocation));
     }
+
+    // — Chrono du bandeau (retour d'écran du 2026-10-14) —
+
+    /// Le chrono suit les minutes gardables : il ne descend que pendant une
+    /// fenêtre encore gardable, et reprend la valeur des minutes gardées dès
+    /// qu'une fenêtre est perdue — jamais « 0:00 » avec des minutes manquantes.
+    [Fact]
+    public void TheClockFollowsKeptMinutesNotPresence()
+    {
+        Assert.Equal(300, GuidedRule.RemainingSeconds(keptCount: 0, windowElapsedSeconds: 0, windowCountable: true));
+        Assert.Equal(270, GuidedRule.RemainingSeconds(keptCount: 0, windowElapsedSeconds: 30, windowCountable: true));
+        // Fenêtre perdue (jeu en arrière-plan) : rien n'est décompté d'elle.
+        Assert.Equal(240, GuidedRule.RemainingSeconds(keptCount: 1, windowElapsedSeconds: 50, windowCountable: false));
+        Assert.Equal(0, GuidedRule.RemainingSeconds(keptCount: 5, windowElapsedSeconds: 10, windowCountable: true));
+        Assert.Equal(0, GuidedRule.RemainingSeconds(keptCount: 4, windowElapsedSeconds: 75, windowCountable: true));
+    }
+
+    /// Une fenêtre reste gardable tant qu'aucun tick n'a perdu le focus, que
+    /// la partie était déjà en cours avant elle, et qu'au plus la moitié
+    /// d'une minute s'est passée hors du lieu cible.
+    [Fact]
+    public void AWindowStaysCountableOnlyFocusedInGameAndMostlyAtTarget()
+    {
+        Assert.True(GuidedRule.WindowCountable(inactiveTicks: 0, ticks: 1200, targetTicks: 1200, inGameBefore: true));
+        Assert.False(GuidedRule.WindowCountable(inactiveTicks: 1, ticks: 1200, targetTicks: 1199, inGameBefore: true));
+        Assert.False(GuidedRule.WindowCountable(inactiveTicks: 0, ticks: 1200, targetTicks: 1200, inGameBefore: false));
+        Assert.True(GuidedRule.WindowCountable(inactiveTicks: 0, ticks: 2400, targetTicks: 600, inGameBefore: true));
+        Assert.False(GuidedRule.WindowCountable(inactiveTicks: 0, ticks: 2400, targetTicks: 500, inGameBefore: true));
+    }
 }

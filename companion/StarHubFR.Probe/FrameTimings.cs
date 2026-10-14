@@ -28,6 +28,10 @@ internal static class FrameTimings
     private static IMonitor Monitor = null!;
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
+    /// <summary>Fenêtre en cours, pour le chrono du bandeau (`GuidedRule.RemainingSeconds`).</summary>
+    internal static double WindowElapsedSeconds => (Clock.Elapsed.TotalMilliseconds - WindowStartMs) / 1000;
+    internal static int WindowTicks => UpdatesPerTick.Count;
+    internal static int WindowInactiveTicks => InactiveTicks;
     private static readonly Stopwatch Draw = new();
     private static readonly Stopwatch Update = new();
 

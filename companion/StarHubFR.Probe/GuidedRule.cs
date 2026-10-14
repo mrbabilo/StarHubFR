@@ -36,6 +36,10 @@ public sealed class ComparableGuards
     private bool previousInGame;
     private int? previousGameTime;
 
+    /// <summary>La minute précédente était en partie : la fenêtre en cours ne
+    /// sera pas « première après le titre » (chrono du bandeau).</summary>
+    public bool InGameBefore => previousInGame;
+
     public MinuteReason Classify(MinuteFacts m)
     {
         MinuteReason reason;
@@ -135,6 +139,30 @@ public sealed class GuidedRule
             Outcome = GuidedOutcome.Noisy;
         return reason;
     }
+
+    /// <summary>Le chrono du bandeau : les minutes gardées manquantes, moins la
+    /// part écoulée de la fenêtre en cours **si elle reste gardable**. Une
+    /// fenêtre perdue (jeu en arrière-plan, retour au titre) ne décompte rien :
+    /// compter la présence seule laissait le chrono à « 0:00 » quand des
+    /// minutes manquaient encore (retour d'écran du 2026-10-14).</summary>
+    public static int RemainingSeconds(int keptCount, double windowElapsedSeconds, bool windowCountable,
+                                       int minimumMinutes = MinimumMinutes)
+    {
+        int left = Math.Max(0, minimumMinutes - keptCount) * 60;
+        if (windowCountable) left -= (int)Math.Clamp(windowElapsedSeconds, 0, 60);
+        return Math.Max(0, left);
+    }
+
+    /// <summary>Ticks d'une fenêtre d'une minute, à 60 ticks par seconde.</summary>
+    public const int TicksPerWindow = 3600;
+
+    /// <summary>La fenêtre en cours peut-elle encore être gardée ? Les gardes
+    /// connues en cours de minute : aucun tick sans focus (`Unfocused`), la
+    /// partie déjà en cours avant elle (`FirstAfterTitle`), et au plus une
+    /// demi-minute hors du lieu cible (`OtherLocation`, ticks restants supposés
+    /// au lieu).</summary>
+    public static bool WindowCountable(int inactiveTicks, int ticks, int targetTicks, bool inGameBefore) =>
+        inactiveTicks == 0 && inGameBefore && (ticks - targetTicks) * 2 <= TicksPerWindow;
 
     /// <summary>IQR / médiane, quartiles de Tukey exactement comme `ProbeStats` (app).</summary>
     public static double? IqrShare(IReadOnlyList<double> values)

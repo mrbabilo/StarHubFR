@@ -17,6 +17,8 @@ extension L10n {
         static let liveUpdated = "perf_evidence_live_updated"
         static let liveRefreshing = "perf_evidence_live_refreshing"
         static let liveHint = "perf_evidence_live_hint"
+        static let livePaused = "perf_evidence_live_paused"
+        static let livePausedHint = "perf_evidence_live_paused_hint"
         static let improved = "perf_evidence_improved"
         static let worsened = "perf_evidence_worsened"
         static let memoryChanged = "perf_evidence_memoryChanged"

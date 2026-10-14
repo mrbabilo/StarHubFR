@@ -2380,6 +2380,8 @@
   "perf_evidence_live_updated": "updated %lld s ago",
   "perf_evidence_live_refreshing": "updating…",
   "perf_evidence_live_hint": "A measurement is running: figures refresh every 15 seconds.",
+  "perf_evidence_live_paused": "Paused — the game is in the background",
+  "perf_evidence_live_paused_hint": "The probe sets aside every minute without focus: bring the game back to the front to keep measuring. A minute started in the background does not count.",
   "perf_evidence_improved": "Observed improvement",
   "perf_evidence_worsened": "Observed slowdown",
   "perf_evidence_memoryChanged": "Memory changed",

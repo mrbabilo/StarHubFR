@@ -2380,6 +2380,8 @@
 "perf_evidence_live_updated" = "actualisé il y a %lld s";
 "perf_evidence_live_refreshing" = "actualisation…";
 "perf_evidence_live_hint" = "Une mesure est en cours : les chiffres s'actualisent toutes les 15 secondes.";
+"perf_evidence_live_paused" = "En pause — le jeu est en arrière-plan";
+"perf_evidence_live_paused_hint" = "La sonde écarte toute minute sans focus : remettez le jeu devant pour reprendre la mesure. Une minute commencée en arrière-plan ne compte pas.";
 "perf_evidence_improved" = "Amélioration observée";
 "perf_evidence_worsened" = "Dégradation observée";
 "perf_evidence_memoryChanged" = "Variation de mémoire";

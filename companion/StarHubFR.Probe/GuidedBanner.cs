@@ -56,8 +56,13 @@ internal static class GuidedBanner
         };
     }
 
+    /// <summary>Bas du bandeau dessiné à cette trame (0 : rien) — les
+    /// mini-stats se posent dessous.</summary>
+    internal static int Bottom { get; private set; }
+
     private static void Draw(SpriteBatch batch)
     {
+        Bottom = 0;
         if (I18n is null || !Context.IsWorldReady || Context.ScreenId != 0) return;
         var state = Current(out int count, out string placeId);
         if (state == State.Hidden) return;
@@ -97,15 +102,18 @@ internal static class GuidedBanner
         // Décompte en direct, **hors** du bloc de cache ET sans muter le
         // champ caché : `status` reste le texte de référence, `shown` porte
         // l'append de la trame — muter `status` ré-appendait à chaque trame
-        // (« 5:00 · 5:00 · 5:00… », retour d'écran du 2026-10-04). 5:00 →
-        // 0:00 en temps de présence réel au lieu cible — l'horloge murale
-        // compterait le temps passé ailleurs ou en pause. Disparait au
+        // (« 5:00 · 5:00 · 5:00… », retour d'écran du 2026-10-04). Le chrono
+        // suit les minutes gardées et la fenêtre en cours si elle reste
+        // gardable : compter la présence seule le désynchronisait dès que le
+        // jeu passait en arrière-plan (retour du 2026-10-14). Disparait au
         // plancher atteint (l'état « prêt » prend le relais). Pilotage
         // compris : sans lui, rien ne bouge à l'écran (retour du 2026-10-13).
         string shown = status;
         if (state is State.Starting or State.Counting or State.PilotCounting && count < GuidedRule.MinimumMinutes)
         {
-            int remaining = Math.Max(0, GuidedRule.MinimumMinutes * 60 - Guided.PresenceTicks / 60);
+            bool countable = GuidedRule.WindowCountable(FrameTimings.WindowInactiveTicks, FrameTimings.WindowTicks,
+                                                        Guided.WindowTargetTicks, Guided.InGameBefore);
+            int remaining = GuidedRule.RemainingSeconds(count, FrameTimings.WindowElapsedSeconds, countable);
             shown = $"{shown} · {remaining / 60}:{remaining % 60:00}";
         }
         var font = Game1.smallFont;
@@ -113,6 +121,7 @@ internal static class GuidedBanner
         int width = (int)Math.Ceiling(Math.Max(titleSize.X, statusSize.X)) + 48;
         int height = (int)Math.Ceiling(titleSize.Y + statusSize.Y) + 40;
         IClickableMenu.drawTextureBox(batch, 16, 16, width, height, Color.White);
+        Bottom = 16 + height;
         Utility.drawTextWithShadow(batch, title, font, new Vector2(40, 36), Game1.textColor);
         Utility.drawTextWithShadow(batch, shown, font, new Vector2(40, 36 + titleSize.Y), Game1.textColor);
     }

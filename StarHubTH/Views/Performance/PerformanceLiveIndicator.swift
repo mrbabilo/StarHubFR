@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Pendant une mesure (plan guidé ou série pilotée, jeu ouvert), les chiffres
@@ -12,21 +13,34 @@ struct PerformanceLiveIndicator: View {
 
     var body: some View {
         if isLive {
-            HStack(spacing: AppDesign.Spacing.xs) {
-                pulsingDot
-                Text(localization.L(L10n.PerformanceEvidence.live)).fontWeight(.semibold)
-                // Affichage seul : la seconde qui passe ne relit rien.
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text("· " + age(at: context.date)).foregroundStyle(.secondary).monospacedDigit()
+            // Affichage seul : la seconde qui passe ne relit rien.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let paused = !Self.gameIsFrontmost
+                HStack(spacing: AppDesign.Spacing.xs) {
+                    if paused {
+                        Circle().fill(Color.orange).frame(width: 8, height: 8)
+                        Text(localization.L(L10n.PerformanceEvidence.livePaused)).fontWeight(.semibold)
+                    } else {
+                        pulsingDot
+                        Text(localization.L(L10n.PerformanceEvidence.live)).fontWeight(.semibold)
+                        Text("· " + age(at: context.date)).foregroundStyle(.secondary).monospacedDigit()
+                    }
                 }
+                .help(localization.L(paused ? L10n.PerformanceEvidence.livePausedHint
+                                            : L10n.PerformanceEvidence.liveHint))
             }
             .font(AppDesign.Font.footnote)
-            .help(localization.L(L10n.PerformanceEvidence.liveHint))
             .accessibilityElement(children: .combine)
         } else {
             Text(localization.L(L10n.PerformanceEvidence.computing)).font(AppDesign.Font.footnote)
                 .opacity(store.isComputing ? 1 : 0).accessibilityHidden(!store.isComputing)
         }
+    }
+
+    /// Jeu en arrière-plan (l'onglet regardé, par exemple) : la sonde écarte
+    /// toute minute sans focus, rien de neuf n'arrive avant son retour.
+    static var gameIsFrontmost: Bool {
+        GameProcess.isGame(localizedName: NSWorkspace.shared.frontmostApplication?.localizedName)
     }
 
     /// Même règle que la minuterie de relecture (`PerformanceMeasurementStatus`).
