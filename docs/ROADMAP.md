@@ -856,7 +856,7 @@ d'onglet s'applique à chaque saut.
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
 de l'axe — l'un des rares domaines où le port devance nos écrans :
 
-- [ ] **I-T21** — Groupes/séparateurs pliables dans la liste (bannière, repli,
+- [ ] **I-T21** — *(code livré le 2026-10-14, lots 1 et 2 ; validation écran en attente)* Groupes/séparateurs pliables dans la liste (bannière, repli,
       activer/désactiver tout le groupe, déplacer un mod de groupe en groupe,
       génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil
       décrit un **état**, un groupe décrit un **rangement** — les deux se
