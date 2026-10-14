@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.65.0] - 2026-10-14
+
 ### Added
 
 - **Retour rapide en haut de page** sur toutes les pages qui défilent : un bouton flottant, en bas à droite, apparaît une fois la page descendue et ramène en haut d'un clic.
