@@ -12,9 +12,12 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.64.0] - 2026-10-14
+
 ### Added
 
 - **Les chiffres se voient vivre pendant une mesure.** Onglet Performances, jeu ouvert et mesure en cours : un point qui pulse, « En direct · actualisé il y a N s », et la Synthèse s'éclaire à chaque relecture. Rien ne bouge si « Réduire les animations » est actif.
+- **Mini-stats en jeu activables depuis l'app.** Interrupteur dans l'onglet Performances et sur la fiche de la sonde : FPS, temps de trame P50/P99 et mémoire en haut à droite du jeu. L'option, coupée par défaut, n'était réglable que dans le menu en jeu ; elle vaut pour le lancement suivant.
 
 ### Fixed
 
