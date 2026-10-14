@@ -161,6 +161,7 @@ let package = Package(
                 "Models/ModFolderRename.swift",
                 "Models/ModFolderBulkMove.swift",
                 "Models/ModTrash.swift",
+                "Models/ModTrashSelection.swift",
                 "Models/ModTrash+Quarantine.swift",
                 "Models/SettingsSectionOrder.swift",
                 "Models/NexusArchiveStore.swift",
@@ -1134,6 +1135,11 @@ let package = Package(
             name: "ModRemovalPurgeTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModRemovalPurgeTests"
+        ),
+        .testTarget(
+            name: "ModTrashSelectionTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModTrashSelectionTests"
         ),
         .testTarget(
             name: "MaintenanceInventoryTests",
