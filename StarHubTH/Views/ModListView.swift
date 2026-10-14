@@ -55,6 +55,7 @@ struct ModListView: View {
     /// habitude de parcours, pas un état de session.
     enum ModsListLayout: String { case list, grid }
     @AppStorage("modsListLayout") var listLayout: ModsListLayout = .list
+    @AppStorage(UDKey.modListGrouping) var groupingRaw = ModGrouping.none.rawValue   // I-T21
     /// Drives the confirmation dialog when the user picks "Enable All" or
     /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
     /// = disabling — kept as a single optional so the dialog binds cleanly.
@@ -225,7 +226,7 @@ struct ModListView: View {
     /// liste, dans le même ordre : anomalie, note, config gardée par le
     /// profil. Sur la carte ils ne s'ouvrent pas au clic (celui-ci mène à la
     /// fiche, qui les détaille) ; leur infobulle porte le texte entier.
-    private func gridAttributes(for mod: ModItem) -> [CardAttribute] {
+    func gridAttributes(for mod: ModItem) -> [CardAttribute] {
         var attributes: [CardAttribute] = []
         // La marque de la sonde d'abord : même famille visuelle que la
         // capsule de la rangée, sur la carte.
@@ -265,7 +266,7 @@ struct ModListView: View {
     ///
     /// L'identifiant passe par `sharedNexusId` : un pack **à plat** n'hérite
     /// pas de la capture de son premier composant.
-    private func gridPictureURL(for mod: ModItem) -> String? {
+    func gridPictureURL(for mod: ModItem) -> String? {
         // La sonde porte la couverture de l'app (celle du splash) : elle
         // n'a pas de page Nexus à illustrer sa carte.
         if mod.isStarHubProbe,
@@ -294,12 +295,13 @@ struct ModListView: View {
         let impactCounts = impactFilterCounts()
         let scoped = vm.scopedMods(from: filtered, scope: filters.scope)
         let display = displayMods(from: filtered)
-        let pages = totalPages(for: display)
+        let grouped = groupedLayout(display)   // I-T21 : vide hors « Regrouper par »
+        let pages = grouped.pages.isEmpty ? totalPages(for: display) : grouped.pages.count
         let page = effectivePage(totalPages: pages)
         let paged = pageMods(from: display, page: page)
         // L'instantané que le pager de la fiche lira (H-T4b) : le cadrage
         // ordonné **complet**, pas la tranche de page courante.
-        let displayIds = display.map(\.folderName)
+        let displayIds = grouped.navigable.map(\.folderName)
         VStack(spacing: 0) {
 
             // ── Sticky header ────────────────────────────────────────────
@@ -348,7 +350,7 @@ struct ModListView: View {
                         // Render the current page only. Une seule section sous
                         // « Tous » : la couper en Activés / En pause imposait un
                         // ordre que le tri choisi n'avait pas demandé.
-                        switch listLayout {
+                        if !grouped.pages.isEmpty { groupedPage(grouped.pages[page - 1]) } else { switch listLayout {
                         case .list:
                             ModSectionGroup(title: scopeSectionTitle, mods: paged, vm: vm, localization: localization, listState: listState)
                         case .grid:
@@ -362,57 +364,23 @@ struct ModListView: View {
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: AppDesign.Grid.minCardWidth),
                                                             spacing: AppDesign.Grid.gutter)],
                                           spacing: AppDesign.Grid.gutter) {
-                                    ForEach(paged) { mod in
-                                        let values = ModGridCardValues.card(
-                                            mod: mod,
-                                            versionPrefix: localization.L(L10n.Mods.versionPrefix),
-                                            pictureURL: gridPictureURL(for: mod))
-                                        let active = values.state == .active
-                                        let age = filters.sort == .lastNexusUpdate
-                                            ? vm.nexusLastUpdated(for: mod).map { NexusUpdateAge.line(for: $0) } : nil
-                                        ModCard(title: values.title,
-                                                subtitle: age.map { "\(values.subtitle) · \($0)" } ?? values.subtitle,
-                                                thumbnailURL: values.thumbnailURL,
-                                                // L'**état**, pas « installé » :
-                                                // les deux se posent (P6).
-                                                installedLabel: localization.L(active
-                                                    ? L10n.Mods.cardActive
-                                                    : L10n.Mods.cardPaused),
-                                                badgeTint: active
-                                                    ? AppDesign.Color.installed
-                                                    : AppDesign.Color.paused,
-                                                badgeSystemImage: active
-                                                    ? "checkmark.circle.fill"
-                                                    : "pause.circle.fill",
-                                                // Assignée, Nexus ou dominante
-                                                // d'un pack (`category(for:)`).
-                                                category: vm.category(for: mod),
-                                                neutralBadge: values.neutralBadge,
-                                                endorsements: vm.nexusEndorsementCount(for: mod),
-                                                endorsedByMe: ModEndorsement.isEndorsed(mod, viewModel: vm),
-                                                usesDefaultArtwork: true,
-                                                attributes: gridAttributes(for: mod),
-                                                pageState: vm.nexusPageState(for: mod)?.state,
-                                                L: localization.L,
-                                                action: { vm.navigationStore.setViewingModDetail(mod) })
-                                        .contextMenu { endorseMenuItem(mod) }
-                                    }
+                                    ForEach(paged) { mod in modGridCard(mod) }
                                 }
                             }
-                        }
+                        } }   // fin du rendu sans regroupement
                     }
                 }
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.lg)
             }
             .focusable().focusEffectDisabled()
-            .onKeyPress(keys: Self.navigationKeys) { handleListKey($0, display: display, page: page, proxy: proxy) } }
+            .onKeyPress(keys: Self.navigationKeys) { handleListKey($0, display: grouped.navigable, groupedPages: grouped.pages, page: page, proxy: proxy) } }
             if listLayout == .list { ModListSelectionBar(viewModel: vm, localization: localization, listState: listState) }
             // ── Sticky pagination footer ─────────────────────────────────
             // Pinned under the scrolling list, like LogsView's status bar.
             if !filtered.isEmpty && !display.isEmpty && pages > 1 {
                 Divider()
-                paginationFooter(total: display.count, shown: paged.count, page: page, totalPages: pages)
+                paginationFooter(total: display.count, shown: grouped.shown(page: page) ?? paged.count, page: page, totalPages: pages)
                     .padding(.horizontal, AppDesign.Spacing.xl)
                     .padding(.vertical, 10)
                     .background(Color(nsColor: .controlBackgroundColor))
@@ -431,6 +399,7 @@ struct ModListView: View {
         // (installation, suppression, activation d'un profil).
         .onChange(of: vm.scanStore.mods.count)    { _, _ in listState.filters.page = 1 }
         .onChange(of: filters.scope) { _, _ in problemKind = nil }
+        .sheet(item: $listState.groupNameRequest) { ModGroupNameSheet(request: $0, viewModel: viewModel, localization: localization) }
         // Clicking a mod name in the logs must land on that mod, not on the full
         // list. `selectedModID` alone only tints the row — with filters and
         // pagination the mod may not even be on the visible page — so scope the

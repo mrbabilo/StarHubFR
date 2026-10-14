@@ -13,27 +13,7 @@ struct ModSectionGroup: View {
 
     var body: some View {
         StandardSection(title: title) {
-            VStack(spacing: 0) {
-                ForEach(Array(mods.enumerated()), id: \.element.id) { idx, mod in
-                    if mod.isGroup, let children = mod.children {
-                        ModGroupRow(mod: mod, children: children, vm: vm, localization: localization, listState: listState)
-                    } else {
-                        ModListRow(mod: mod, vm: vm, localization: localization, listState: listState,
-                                   isChild: false, isGroupHeader: false, isExpanded: .constant(false))
-                            .contentShape(Rectangle())
-                            .onTapGesture { listState.clickRow(mod.folderName, viewModel: vm) }
-                    }
-                    
-                    if idx < mods.count - 1 {
-                        Rectangle()
-                            .fill(Color.primary.opacity(AppDesign.Opacity.subtle))
-                            .frame(height: 1)
-                            .padding(.leading, 48)
-                            .padding(.vertical, 2)
-                    }
-                }
-            }
-            .padding(.vertical, -8)
+            ModRowsStack(mods: mods, viewModel: vm, localization: localization, listState: listState)
         }
     }
 }
@@ -925,6 +905,7 @@ struct ModListRow: View {
                 }
             }
             if !isChild {
+                ModGroupMoveMenu(folders: [mod.folderName], viewModel: vm, localization: localization, listState: listState)
                 Divider()
                 Button(localization.L(L10n.Mods.deleteMod), role: .destructive) {
                     showDeleteConfirm = true

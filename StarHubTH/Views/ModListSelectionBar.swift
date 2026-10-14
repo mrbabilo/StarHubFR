@@ -73,6 +73,8 @@ struct ModListSelectionBar: View {
                             Label(localization.L(L10n.Mods.trashSelection), systemImage: "trash")
                         }
                         .help(localization.L(L10n.Mods.trashSelection))
+                        ModGroupMoveMenu(folders: listState.selectedMods(viewModel).map(\.folderName),
+                                         viewModel: viewModel, localization: localization, listState: listState)
                     }
                 }
                 Button {

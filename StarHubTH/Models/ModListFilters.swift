@@ -76,6 +76,8 @@ final class ModListState: ObservableObject {
     @Published var filters = ModListFilters()
     /// I-T20 — la sélection multiple ; survit à l'ouverture d'une fiche.
     @Published var selection = ModListSelection()
+    /// I-T21 — la feuille de nom de groupe demandée par un menu.
+    @Published var groupNameRequest: ModGroupNameRequest?
 
     /// Le cadrage ordonné courant (noms de dossier, premier niveau), tel que
     /// la liste vient de le rendre — liste **et** grille partagent ce flux.

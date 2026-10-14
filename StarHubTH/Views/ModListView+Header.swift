@@ -178,6 +178,8 @@ extension ModListView {
                              impactCounts: (high: Int, medium: Int)) -> some View {
         sortPicker
 
+        groupingPicker
+
         chipSeparator
 
         configFilterToggle

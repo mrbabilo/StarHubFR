@@ -108,3 +108,17 @@ extension ModGroupsState {
         collapsedCategories = try c.decodeIfPresent(Set<String>.self, forKey: .collapsedCategories) ?? []
     }
 }
+
+/// La feuille « Nouveau groupe / Renommer », portée par `ModListState` : un
+/// menu contextuel se ferme avant de pouvoir présenter une feuille.
+public enum ModGroupNameRequest: Identifiable, Equatable, Sendable {
+    case create(folders: [String])
+    case rename(UUID, current: String)
+
+    public var id: String {
+        switch self {
+        case .create(let folders): return "create|" + folders.joined(separator: "|")
+        case .rename(let id, _): return "rename|" + id.uuidString
+        }
+    }
+}

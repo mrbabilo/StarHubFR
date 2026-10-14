@@ -14,7 +14,9 @@ extension ModListView {
     /// ↑ ↓ déplacent la sélection dans le cadrage entier (la page suit), ⇧
     /// les étend ; Début / Fin sautent aux bouts, Entrée ouvre la fiche,
     /// Espace bascule la sélection, ⌘A prend tout le cadrage, Échap le vide.
-    func handleListKey(_ press: KeyPress, display: [ModItem], page: Int,
+    /// `groupedPages` (I-T21) : en mode groupé, la page d'un mod se lit dans
+    /// le découpage en sections, pas par `index / pageSize`.
+    func handleListKey(_ press: KeyPress, display: [ModItem], groupedPages: [[ModListPageSection]], page: Int,
                        proxy: ScrollViewProxy) -> KeyPress.Result {
         let order = display.map(\.folderName)
         let move: ModListKeyStep.Move
@@ -47,7 +49,9 @@ extension ModListView {
         vm.selectedModID = target.folderName
         listState.selection.click(target.folderName,
                                   kind: press.modifiers.contains(.shift) ? .extend : .plain, in: order)
-        if target.page != page { listState.filters.page = target.page }
+        let targetPage = groupedPages.isEmpty ? target.page
+            : (ModGroupPages.page(of: target.folderName, in: groupedPages) ?? target.page)
+        if targetPage != page { listState.filters.page = targetPage }
         // Après le rendu de la nouvelle page, sinon la ligne n'existe pas encore.
         Task { @MainActor in
             await Task.yield()
