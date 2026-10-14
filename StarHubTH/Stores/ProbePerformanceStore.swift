@@ -78,7 +78,7 @@ final class ProbePerformanceStore {
             ProbePerformanceSummary.latestSession(loaded.sides)
         }.value
         guard generation == loadGeneration, !Task.isCancelled else { return }
-        singleSummary = summary
+        singleSummary = ProbePerformanceSummary.keepingNumbers(summary, over: singleSummary)
         lastLoadedAt = Date()
         guidedMinuteCount = loaded.guidedMinuteCount
         sides = loaded.sides

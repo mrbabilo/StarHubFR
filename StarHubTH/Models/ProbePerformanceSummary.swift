@@ -27,6 +27,16 @@ public struct ProbePerformanceSummary: Equatable, Sendable {
         return single(side)
     }
 
+    /// Une relecture sans aucune minute gardée (jeu en arrière-plan, début de
+    /// partie) ne remplace pas des chiffres par « — » : la synthèse d'avant
+    /// reste affichée. Sans synthèse du tout (`nil` : pas de sonde, pas de
+    /// session), on suit la relecture.
+    public static func keepingNumbers(_ fresh: Self?, over previous: Self?) -> Self? {
+        guard let fresh, fresh.side.comparable.kept.isEmpty,
+              let previous, !previous.side.comparable.kept.isEmpty else { return fresh }
+        return previous
+    }
+
     public static func single(_ side: ProbeSide) -> Self {
         let metrics = Dictionary(uniqueKeysWithValues: ProbeMetric.allCases.map { metric in
             (metric, ProbeMetricComparison.summary(side.comparable.kept.compactMap { metric.value($0.minute) }))
