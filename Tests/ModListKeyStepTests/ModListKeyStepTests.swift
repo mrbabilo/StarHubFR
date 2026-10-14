@@ -11,6 +11,17 @@ struct ModListKeyStepTests {
         ModListKeyStep.target(from: current, move: move, in: order, currentPage: page, pageSize: 2)
     }
 
+    /// Revue finale (I-T21) : en mode groupé, la page affichée ne commence pas
+    /// à `(page - 1) × taille` — un bandeau replié y prend une place sans mod.
+    @Test func sansSelectionLesBornesDeLaPageGroupeeFontFoi() {
+        let next = ModListKeyStep.target(from: nil, move: .next, in: order, currentPage: 2, pageSize: 2,
+                                         pageBounds: 1...3)
+        let previous = ModListKeyStep.target(from: nil, move: .previous, in: order, currentPage: 2, pageSize: 2,
+                                             pageBounds: 1...3)
+        #expect(next?.folderName == "b")
+        #expect(previous?.folderName == "d")
+    }
+
     @Test func descendreEtMonterDUnCran() {
         #expect(step("b", .next)?.folderName == "c")
         #expect(step("c", .previous)?.folderName == "b")

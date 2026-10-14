@@ -38,11 +38,11 @@ struct ModGroupHeaderMenu: View {
         let paused = section.mods.filter { !$0.isEnabled }
         let active = section.mods.filter(\.isEnabled)
         Menu {
-            Button(String(format: localization.L(L10n.Mods.groupEnableAll), Int64(paused.count))) {
+            Button(localization.plural(L10n.Mods.groupEnableAll, paused.count)) {
                 viewModel.toggleMods(paused, enable: true)
             }
             .disabled(paused.isEmpty)
-            Button(String(format: localization.L(L10n.Mods.groupPauseAll), Int64(active.count))) {
+            Button(localization.plural(L10n.Mods.groupPauseAll, active.count)) {
                 viewModel.toggleMods(active, enable: false)
             }
             .disabled(active.isEmpty)

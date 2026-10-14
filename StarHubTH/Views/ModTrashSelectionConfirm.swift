@@ -8,14 +8,13 @@ enum ModTrashSelectionConfirm {
         let names = plan.trashable.map(\.name)
         var list = names.prefix(5).joined(separator: ", ")
         if names.count > 5 {
-            list += " " + String(format: localization.L(L10n.Mods.trashSelectionMore), Int64(names.count - 5))
+            list += " " + localization.plural(L10n.Mods.trashSelectionMore, names.count - 5)
         }
         lines.append(list)
         if !plan.dependents.isEmpty {
             var deps = plan.dependents.prefix(10).joined(separator: ", ")
             if plan.dependents.count > 10 {
-                deps += " " + String(format: localization.L(L10n.Mods.trashSelectionMore),
-                                     Int64(plan.dependents.count - 10))
+                deps += " " + localization.plural(L10n.Mods.trashSelectionMore, plan.dependents.count - 10)
             }
             lines.append(String(format: localization.L(L10n.Mods.trashSelectionDependents), deps))
         }

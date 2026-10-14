@@ -33,10 +33,15 @@ public enum ModTrashSelection {
             else { trashable.append(mod) }
         }
         let leaving = Set(trashable.map(\.folderName))
+        let staying = all.filter { !leaving.contains($0.folderName) }
+        // Un `UniqueID` qu'une autre copie **active** fournit encore n'est pas
+        // perdu (58 id partagés au parc) : ses dépendants ne perdent rien.
+        let stillProvided = Set(staying.flatMap { $0.isGroup ? ($0.children ?? []) : [$0] }
+            .filter(\.isEnabled).map { $0.uniqueId.lowercased() })
         let ids = Set(trashable.flatMap { [$0] + ($0.children ?? []) }
-            .map { $0.uniqueId.lowercased() }.filter { !$0.isEmpty })
+            .map { $0.uniqueId.lowercased() }.filter { !$0.isEmpty && !stillProvided.contains($0) })
         var dependents = Set<String>()
-        for head in all where !leaving.contains(head.folderName) {
+        for head in staying {
             for item in head.isGroup ? (head.children ?? []) : [head] where item.isEnabled {
                 if item.dependencies.contains(where: { $0.isRequired && ids.contains($0.uniqueId.lowercased()) }) {
                     dependents.insert(item.name)
@@ -44,5 +49,20 @@ public enum ModTrashSelection {
             }
         }
         return Plan(trashable: trashable, refused: refused, dependents: dependents.sorted())
+    }
+
+    /// Faux quand toute la sélection est refusée : le bouton se grise, sans
+    /// ouvrir une confirmation de zéro mod.
+    public static func hasTrashable(_ selected: [ModItem]) -> Bool {
+        selected.contains { !$0.isStarHubProbe && !$0.isSmapiBundled }
+    }
+
+    /// « Nom : erreur » pour chaque mod resté en place (spec §3.2), dans
+    /// l'ordre du lot.
+    public static func failures(_ trashable: [ModItem], failed: [(physical: String, error: Error)]) -> [String] {
+        trashable.compactMap { mod in
+            failed.first { $0.physical == mod.physicalFolderName }
+                .map { "\(mod.name) : \($0.error.localizedDescription)" }
+        }
     }
 }

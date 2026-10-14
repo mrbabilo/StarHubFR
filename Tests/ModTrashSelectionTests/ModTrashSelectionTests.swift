@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import StarHubTHCore
 
@@ -48,6 +49,41 @@ struct ModTrashSelectionTests {
         let plan = ModTrashSelection.plan(selected: [framework, flat], all: [framework, user, flat])
         #expect(plan.trashable.map(\.folderName) == ["RidgesideVillage", "Flat"])
         #expect(plan.dependents == ["Addon/Part"])
+    }
+
+    /// Revue finale : un composant de pack qui part avec sa tête n'est pas un
+    /// dépendant restant, même s'il dépend d'un mod à plat sélectionné.
+    @Test func aPackComponentLeavingWithItsHeadIsNotNamed() {
+        let flat = mod("Flat", id: "z.flat")
+        let addon = pack("Addon", [mod("Addon/Part", id: "y.part", requires: ["z.flat"])])
+        #expect(ModTrashSelection.plan(selected: [flat, addon], all: [flat, addon]).dependents.isEmpty)
+    }
+
+    /// Revue finale : une autre copie active du même `UniqueID` reste — le
+    /// dépendant ne perd rien. Une copie en pause, elle, ne le satisfait pas.
+    @Test func anotherActiveCopyOfTheSameIdKeepsTheDependentWhole() {
+        let cp = mod("ContentPatcher", id: "Pathoschild.ContentPatcher")
+        let copy = mod("ContentPatcher 2", id: "pathoschild.contentpatcher")
+        let sve = mod("[CP] SVE", id: "FlashShifter.SVE", requires: ["Pathoschild.ContentPatcher"])
+        #expect(ModTrashSelection.plan(selected: [cp], all: [cp, copy, sve]).dependents.isEmpty)
+        let paused = mod("ContentPatcher 2", id: "Pathoschild.ContentPatcher", enabled: false)
+        #expect(ModTrashSelection.plan(selected: [cp], all: [cp, paused, sve]).dependents == ["[CP] SVE"])
+    }
+
+    /// Revue finale : le bouton se grise quand rien ne peut partir.
+    @Test func onlyProbeAndSmapiModsMeansNothingToTrash() {
+        let probe = mod("StarHubFR Probe", id: "mrbabilo.StarHubFR.Probe")
+        let console = mod("ConsoleCommands", id: "SMAPI.ConsoleCommands")
+        #expect(!ModTrashSelection.hasTrashable([probe, console]))
+        #expect(ModTrashSelection.hasTrashable([probe, mod("Other", id: "x.other")]))
+    }
+
+    /// Revue finale (spec §3.2) : un échec nomme le mod et son erreur.
+    @Test func failuresNameTheModAndItsError() {
+        let other = mod("Other", id: "x.other", enabled: false)   // sur disque : `.Other`
+        let error = NSError(domain: "t", code: 1, userInfo: [NSLocalizedDescriptionKey: "Permission refusée"])
+        #expect(ModTrashSelection.failures([mod("A", id: "x.a"), other], failed: [(physical: ".Other", error: error)])
+                == ["Other : Permission refusée"])
     }
 
     @Test func probeAndSmapiModsAreRefusedNotTrashed() {

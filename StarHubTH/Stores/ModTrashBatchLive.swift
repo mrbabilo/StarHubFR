@@ -31,12 +31,16 @@ extension StarHubTHViewModel {
         let result = ModTrash.trash(modsPath: modsPath, trashRoot: ModTrash.root(gameDir: gameDir),
                                     stamp: ModTrash.makeStamp(), items: items)
         let moved = Set(result.moved)
-        for mod in plan.trashable where moved.contains(mod.physicalFolderName) { forgetStores(of: mod) }
-        log(String(format: localization.L(L10n.Mods.trashSelectionLog), Int64(moved.count)))
-        let failed = plan.trashable.filter { !moved.contains($0.physicalFolderName) }.map(\.name)
+        // Une ligne par mod parti, comme le geste unitaire, puis le compte.
+        for mod in plan.trashable where moved.contains(mod.physicalFolderName) {
+            forgetStores(of: mod)
+            log(String(format: localization.L(L10n.Mods.deletedLog), mod.name))
+        }
+        if !moved.isEmpty { log(localization.plural(L10n.Mods.trashSelectionLog, moved.count)) }
+        let failed = ModTrashSelection.failures(plan.trashable, failed: result.failed)
         if !failed.isEmpty {
             let message = String(format: localization.L(L10n.Mods.trashSelectionFailed),
-                                 failed.joined(separator: ", "))
+                                 "\n" + failed.joined(separator: "\n"))
             log(message, level: .error)
             showModal(message: message)
         }

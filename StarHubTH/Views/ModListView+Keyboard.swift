@@ -43,8 +43,17 @@ extension ModListView {
         case .end: move = .last
         default: return .ignored
         }
+        // En mode groupé, la page affichée commence après les mods des pages
+        // d'avant, pas à `(page - 1) × pageSize`.
+        var bounds: ClosedRange<Int>?
+        if groupedPages.indices.contains(page - 1) {
+            let start = ModGroupPages.modsBefore(page: page, in: groupedPages)
+            let shown = groupedPages[page - 1].reduce(0) { $0 + $1.mods.count }
+            bounds = start...(start + max(shown, 1) - 1)
+        }
         guard let target = ModListKeyStep.target(from: vm.selectedModID, move: move,
-                                                 in: order, currentPage: page, pageSize: pageSize)
+                                                 in: order, currentPage: page, pageSize: pageSize,
+                                                 pageBounds: bounds)
         else { return .handled }
         vm.selectedModID = target.folderName
         listState.selection.click(target.folderName,

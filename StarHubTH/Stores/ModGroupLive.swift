@@ -13,8 +13,11 @@ enum ModGroupLive {
     static func store(for viewModel: StarHubTHViewModel) -> ModGroupStore {
         let key = ObjectIdentifier(viewModel)
         if let existing = stores[key] { return existing }
-        let created = ModGroupStore(directory: AppSupport.directory,
-                                    log: { [weak viewModel] in viewModel?.log($0, level: .warning) })
+        // Le magasin naît souvent pendant le rendu de la liste : le journal,
+        // état observé, s'écrit au tour suivant, jamais en plein rendu.
+        let created = ModGroupStore(directory: AppSupport.directory, log: { [weak viewModel] message in
+            Task { @MainActor in viewModel?.log(message, level: .warning) }
+        })
         stores[key] = created
         return created
     }

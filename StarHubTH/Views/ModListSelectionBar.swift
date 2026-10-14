@@ -47,6 +47,7 @@ struct ModListSelectionBar: View {
     var body: some View {
         let count = listState.selection.members(in: order).count
         if count >= 2 {
+            let selected = listState.selectedMods(viewModel, order: order)
             Divider()
             HStack(spacing: AppDesign.Spacing.sm) {
                 Text(String(format: localization.L(L10n.Mods.selectionCount), Int64(count)))
@@ -69,13 +70,15 @@ struct ModListSelectionBar: View {
                         }
                         .help(localization.L(L10n.Mods.selectionPause))
                         Button(role: .destructive) {
-                            let selected = listState.selectedMods(viewModel, order: order)
                             trashPlan = ModTrashSelection.plan(selected: selected, all: viewModel.mods)
                         } label: {
                             Label(localization.L(L10n.Mods.trashSelection), systemImage: "trash")
                         }
-                        .help(localization.L(L10n.Mods.trashSelection))
-                        ModGroupMoveMenu(folders: listState.selectedMods(viewModel, order: order).map(\.folderName),
+                        // Tout refusé (sonde, mods de SMAPI) : grisé, l'infobulle dit pourquoi.
+                        .disabled(!ModTrashSelection.hasTrashable(selected))
+                        .help(localization.L(ModTrashSelection.hasTrashable(selected)
+                                             ? L10n.Mods.trashSelection : L10n.Mods.trashSelectionAllRefused))
+                        ModGroupMoveMenu(folders: selected.map(\.folderName),
                                          viewModel: viewModel, localization: localization, listState: listState)
                     }
                 }
@@ -89,7 +92,7 @@ struct ModListSelectionBar: View {
                 .accessibilityLabel(localization.L(L10n.Mods.selectionClear))
             }
             .confirmationDialog(
-                String(format: localization.L(L10n.Mods.trashSelectionTitle), Int64(trashPlan?.trashable.count ?? 0)),
+                localization.plural(L10n.Mods.trashSelectionTitle, trashPlan?.trashable.count ?? 0),
                 isPresented: Binding(get: { trashPlan != nil }, set: { if !$0 { trashPlan = nil } }),
                 titleVisibility: .visible, presenting: trashPlan
             ) { plan in

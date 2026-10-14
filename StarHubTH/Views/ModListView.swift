@@ -503,14 +503,15 @@ struct ModListView: View {
         return VStack(spacing: AppDesign.Spacing.sm) {
             HStack(spacing: 6) {
                 Button {
-                    if filters.page > 1 { listState.filters.page -= 1 }
+                    // `page` bornée : un repli laisse `filters.page` trop haute.
+                    if page > 1 { listState.filters.page = page - 1 }
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(AppDesign.Font.iconXS(.semibold))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(filters.page == 1)
+                .disabled(page == 1)
                 .iconHelp(localization.L(L10n.Mods.prevPageHint))
 
                 // Numbered page buttons with ellipsis logic.
@@ -540,19 +541,18 @@ struct ModListView: View {
                 }
 
                 Button {
-                    if filters.page < totalPages { listState.filters.page += 1 }
+                    if page < totalPages { listState.filters.page = page + 1 }
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(AppDesign.Font.iconXS(.semibold))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(filters.page == totalPages)
+                .disabled(page >= totalPages)
                 .iconHelp(localization.L(L10n.Mods.nextPageHint))
             }
 
-            // Une page de bandeaux repliés seuls n'a aucune plage à dire.
-            if shown > 0 {
+            if shown > 0 {   // une page de bandeaux repliés seuls n'a aucune plage
                 Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))

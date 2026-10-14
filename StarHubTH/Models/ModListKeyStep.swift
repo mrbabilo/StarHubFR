@@ -14,8 +14,13 @@ public enum ModListKeyStep {
     public enum Move: Sendable { case previous, next, first, last }
 
     /// `nil` quand rien ne bouge : liste vide, ou déjà au bout.
+    ///
+    /// `pageBounds` (I-T21) : les indices, dans `order`, des mods de la page
+    /// affichée quand elle ne se déduit pas de `(page - 1) × pageSize` — en
+    /// mode groupé, un bandeau replié y prend une place sans mod.
     public static func target(from current: String?, move: Move, in order: [String],
-                              currentPage: Int, pageSize: Int) -> (folderName: String, page: Int)? {
+                              currentPage: Int, pageSize: Int,
+                              pageBounds: ClosedRange<Int>? = nil) -> (folderName: String, page: Int)? {
         guard !order.isEmpty, pageSize > 0 else { return nil }
         let index: Int
         switch (move, current.flatMap { order.firstIndex(of: $0) }) {
@@ -30,8 +35,8 @@ public enum ModListKeyStep {
             guard i > 0 else { return nil }
             index = i - 1
         case (.next, nil), (.previous, nil):
-            let pageStart = min(max(0, (currentPage - 1) * pageSize), order.count - 1)
-            let pageEnd = min(pageStart + pageSize, order.count) - 1
+            let pageStart = min(max(0, pageBounds?.lowerBound ?? (currentPage - 1) * pageSize), order.count - 1)
+            let pageEnd = min(pageBounds.map { $0.upperBound + 1 } ?? pageStart + pageSize, order.count) - 1
             index = move == .next ? pageStart : pageEnd
         }
         return (order[index], index / pageSize + 1)

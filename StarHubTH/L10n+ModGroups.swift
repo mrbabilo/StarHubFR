@@ -34,3 +34,11 @@ extension L10n.Mods {
     static let groupSave = "mods_group_save"
     static let groupActions = "mods_group_actions"
 }
+
+extension LocalizationStore {
+    /// Un compte au pluriel : la clé `<clé>_one` pour 1 (convention du dépôt,
+    /// `perf_impact_dependents_one`), `%lld` sinon.
+    func plural(_ key: String, _ count: Int) -> String {
+        count == 1 ? localized(key + "_one") : String(format: localized(key), Int64(count))
+    }
+}

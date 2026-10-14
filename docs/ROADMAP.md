@@ -889,24 +889,18 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
           repliées exclues), et une page faite seulement de bandeaux repliés
           n'affiche aucune plage ;
         - un refus (jeu ouvert, mesure en cours) **garde la sélection**.
-      - **Reste, mineurs de la revue finale** (aucun n'est une perte de
-        données) :
-        - la fenêtre d'échec de la corbeille nomme les mods restés en place,
-          pas leur erreur ; le journal porte un compte sans noms (spec §3.2) ;
-        - tout refusé : « Mettre 0 mods à la corbeille ? » s'ouvre au lieu
-          d'un bouton grisé avec infobulle (spec §3.4) ;
-        - pluriels « 1 mods » (convention `_one`) ; « Donne un nom au
-          groupe. » tutoie, l'app vouvoie ;
-        - clavier sans sélection en mode groupé : ↓ part de `(page - 1) × 12`
-          dans l'ordre navigable, pas du premier mod de la page ;
-        - après un repli qui retire des pages, la page courante reste trop
-          haute (« › » actif sans effet, premier « ‹ » muet) ;
-        - dépendants nommés à tort quand une autre copie du même `UniqueID`
-          reste installée (erreur du côté sûr) ;
-        - `ModGroupStore` créé paresseusement pendant un rendu : avec un
-          fichier illisible, le journal s'écrit en plein rendu ;
-        - test manquant : composant de pack sélectionné qui dépend d'un mod à
-          plat sélectionné (le code est juste).
+      - **Mineurs de la revue finale, corrigés le 2026-10-14** : échec de
+        corbeille nommé avec son erreur et une ligne de journal par mod parti ;
+        bouton grisé quand toute la sélection est refusée ; pluriels `_one` et
+        vouvoiement ; clavier et pied de page bornés par la page groupée
+        affichée ; dépendants non nommés quand une autre copie active du même
+        `UniqueID` reste ; journal du magasin des groupes jamais écrit en plein
+        rendu ; test du composant de pack qui part avec sa tête.
+        **Reste** : un mod actif `X` et sa copie en pause `.X` partagent
+        `folderName`, donc la sélection ; les mettre à la corbeille emporte les
+        deux (la confirmation les nomme, « Tout restaurer » les rend). Corriger
+        demande une identité de ligne autre que `folderName` — piège connu,
+        signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
 
