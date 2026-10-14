@@ -26,6 +26,8 @@ struct PerformanceView: View {
     /// La session la plus récente lue à la dernière visite : une plus
     /// récente à cette visite se signale (lot D, G9).
     @State private var lastSeenSession: String?
+    /// La rangée d'ancres est sortie de l'écran : le retour en haut s'affiche.
+    @State private var scrolledPastTop = false
     @AppStorage(UDKey.probeLoadEarlyConsent) var loadEarlyConsent: Bool?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
@@ -33,7 +35,7 @@ struct PerformanceView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
-                    navigation(proxy)
+                    navigation(proxy).backToTopMarker(scrolledPast: $scrolledPastTop) { viewModel.log($0) }
                     PerformanceMeasurementStatus(viewModel: viewModel, localization: localization, store: store) {
                         settingsExpanded = true
                         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo("settings", anchor: .top) }
@@ -121,8 +123,21 @@ struct PerformanceView: View {
                     }
                 }
                 .padding(AppDesign.Spacing.lg)
+                // Place pour le retour en haut : il ne couvre pas la dernière carte.
+                .padding(.bottom, AppDesign.Spacing.xxl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .overlay(alignment: .bottomTrailing) {
+                if scrolledPastTop {
+                    BackToTopButton(title: localization.L(L10n.Performance.backToTop)) {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                            proxy.scrollTo(BackToTop.anchor, anchor: .top)
+                        }
+                    }
+                    .transition(reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: scrolledPastTop)
             .onAppear { consumeFocus(proxy) }
             .onChange(of: viewModel.navigationStore.pendingPerformanceFocus) { _, _ in consumeFocus(proxy) }
         }

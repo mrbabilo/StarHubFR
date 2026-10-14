@@ -2133,6 +2133,7 @@
   "perf_loads_empty": "Launch the game, load a save, then come back here.",
   "bench_panel_open": "Panel",
   "perf_loads_needs_probe": "Loads are measured by the StarHubFR probe: install it from the “Probe” card at the top of the page.",
+  "perf_back_to_top": "Back to top",
   "perf_impact_open_page": "Open in Performance",
   "perf_probe_updated_relaunch": "Probe %@ installed. It will measure at the next game launch.",
   "perf_new_session_line": "New session read: %@",

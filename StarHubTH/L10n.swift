@@ -1147,6 +1147,7 @@ enum L10n {
         static let loadsUpdateProbe = "perf_loads_update_probe"
         static let loadsEmpty = "perf_loads_empty"
         static let loadsNeedsProbe = "perf_loads_needs_probe"
+        static let backToTop = "perf_back_to_top"
         static let impactOpenPage = "perf_impact_open_page"
         static let probeUpdatedRelaunch = "perf_probe_updated_relaunch"
         static let newSessionLine = "perf_new_session_line"
