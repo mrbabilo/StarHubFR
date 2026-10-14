@@ -131,6 +131,7 @@ let package = Package(
                 "Models/ModDetailPager.swift",
                 "Models/ModListKeyStep.swift",
                 "Models/ModListSelection.swift",
+                "Models/ModGroups.swift",
                 "Models/KeyboardShortcutCatalog.swift",
                 "Models/TextScale.swift",
                 "Models/CompatibilityResolution.swift",
@@ -1140,6 +1141,11 @@ let package = Package(
             name: "ModTrashSelectionTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/ModTrashSelectionTests"
+        ),
+        .testTarget(
+            name: "ModGroupsTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ModGroupsTests"
         ),
         .testTarget(
             name: "MaintenanceInventoryTests",
