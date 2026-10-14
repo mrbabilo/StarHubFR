@@ -72,6 +72,7 @@ extension L10n {
         static let noSingle = "perf_evidence_noSingle"
         static let noSingleNoProbe = "perf_evidence_noSingle_noProbe"
         static let detailsCardTitle = "perf_details_card_title"
+        static let historyCount = "perf_details_history_count"
         static let toolsCardTitle = "perf_tools_card_title"
         static let workNote = "perf_evidence_workNote"
         static let p99Note = "perf_evidence_p99Note"

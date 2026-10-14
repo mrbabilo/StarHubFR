@@ -96,6 +96,16 @@ struct ModImpactScoreTests {
                                                            mod("Mod.Never", version: "1")])
         #expect(ModImpact.ranking(entries).map(\.modId) == ["Mod.High", "Mod.Low"])
         #expect(entries.first { $0.modId == "Mod.Never" }?.shown == nil)
+        // Le titre du volet : ni le mod en pause, ni le jamais mesuré.
+        #expect(ModImpact.measuredCount(entries) == 2)
+    }
+
+    /// Un négligeable est mesuré : il compte au titre, hors classement.
+    @Test func measuredCountKeepsNegligibleMods() {
+        var h = ModImpactHistory()
+        h.integrate(source("a", day: 1, ["Mod.Tiny": inGame("a", day: 1, version: "1", fps: 0.0001, spike: 0.001, alloc: 0.0001)]))
+        let entries = ModImpact.entries(history: h, mods: [mod("Mod.Tiny", version: "1"), mod("Mod.Never", version: "1")])
+        #expect(ModImpact.measuredCount(entries) == 1)
     }
 
     /// Un mod mesuré seulement sous le plancher est « négligeable », pas

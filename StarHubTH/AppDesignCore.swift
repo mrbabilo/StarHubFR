@@ -80,6 +80,11 @@ public enum AppDesignCore {
         /// 18 — hauteur réservée d'une ligne de métadonnées : sans elle, une
         /// carte sans catégorie servie décale toute sa rangée.
         public static let metaRowHeight: CGFloat = 18
+        /// 120 — un graphique de mesures (série, nuage, distribution) :
+        /// une seule hauteur d'une carte à l'autre (audit I-T22, P4).
+        public static let chartTall: CGFloat = 120
+        /// 80 — une jauge d'une seule barre, son axe compris.
+        public static let chartShort: CGFloat = 80
     }
 
     // MARK: - Shadow

@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Performances** : repliés, « Historique des mods » et « Mémoire retenue — textures » disent combien ils contiennent (mods mesurés, mods à textures) ; les graphiques de mesure partagent une seule hauteur.
+
 ## [1.65.0] - 2026-10-14
 
 ### Added

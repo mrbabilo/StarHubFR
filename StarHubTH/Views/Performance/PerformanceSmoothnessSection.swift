@@ -91,7 +91,7 @@ struct PerformanceSmoothnessSection: View {
             .chartXScale(domain: lowX...highX)
             .chartYScale(domain: 0...top)
             .chartXAxisLabel("min").chartYAxisLabel(unit)
-            .frame(height: 125)
+            .frame(height: AppDesign.Metrics.chartTall)
             .chartOverlay { proxy in
                 ChartHover(proxy: proxy) { point in
                     guard let x: Double = proxy.value(atX: point.x) else { hoveredId = nil; return }
@@ -121,7 +121,7 @@ struct PerformanceSmoothnessSection: View {
                 }
                 .chartYScale(domain: -0.6...1.6)
                 .chartYAxis { AxisMarks(values: [0, 1]) { value in AxisValueLabel(sideName(value.as(Int.self) == 1 ? .before : .after)) } }
-                .chartXAxisLabel(unit).frame(height: 110)
+                .chartXAxisLabel(unit).frame(height: AppDesign.Metrics.chartTall)
             }
         }
     }

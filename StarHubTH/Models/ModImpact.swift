@@ -185,6 +185,13 @@ public enum ModImpact {
             }
     }
 
+    /// Actifs et mesurés au moins une fois, négligeables compris : le compte
+    /// du titre « Historique des mods ». Les lignes du volet listent aussi les
+    /// actifs jamais mesurés, ce compte non.
+    public static func measuredCount(_ entries: [ModImpactEntry]) -> Int {
+        entries.reduce(0) { $0 + ($1.isEnabled && $1.shown != nil ? 1 : 0) }
+    }
+
     /// Actifs, mesurés, non négligeables, par note décroissante (départage :
     /// identifiant).
     public static func ranking(_ entries: [ModImpactEntry]) -> [ModImpactEntry] {

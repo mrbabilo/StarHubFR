@@ -150,6 +150,10 @@ struct PerformanceView: View {
                 await refreshSlo(resume: true)
                 if store.status == .idle { await store.reload(gameDir: viewModel.gameDir) }
                 if environment.status == .idle { await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir) }
+                // Les volets repliés ne montent pas leur contenu : leur titre
+                // compté a besoin de l'historique lu ici.
+                await viewModel.modImpactStore.reloadIfIdle(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(),
+                                                            gameDir: viewModel.gameDir)
             }
         }
         // L'onglet reste monté : relire à chaque retour, sinon une session
@@ -227,11 +231,11 @@ struct PerformanceView: View {
         PerformanceCard {
             Text(localization.L(L10n.PerformanceEvidence.detailsCardTitle))
                 .font(AppDesign.Font.headline(.semibold))
-            DisclosureGroup(localization.L(L10n.PerformanceEvidence.history), isExpanded: $historyExpanded) {
+            DisclosureGroup(historyTitle, isExpanded: $historyExpanded) {
                 PerformanceImpactSection(viewModel: viewModel, localization: localization, focus: historyFocus)
             }.id("mods")
             Divider()
-            DisclosureGroup(localization.L(L10n.PerformanceTextures.title)) {
+            DisclosureGroup(texturesTitle) {
                 PerformanceTextureSection(viewModel: viewModel, localization: localization)
             }.id("textures")
             Divider()
@@ -245,6 +249,24 @@ struct PerformanceView: View {
                                             viewModel, store, consent: loadEarlyConsent))
             }.id("settings")
         }.id("details")
+    }
+
+    /// Les volets repliés disent leur taille, une fois l'historique lu :
+    /// jamais un « 0 » d'avant lecture.
+    private var historyTitle: String {
+        let title = localization.L(L10n.PerformanceEvidence.history)
+        let impact = viewModel.modImpactStore
+        guard impact.status == .ready else { return title }
+        return String(format: localization.L(L10n.PerformanceEvidence.historyCount), title, impact.measuredCount)
+    }
+
+    /// Le même compte que « Tout afficher (N) » du volet ; le reliquat hors
+    /// mod installé n'y entre pas.
+    private var texturesTitle: String {
+        let title = localization.L(L10n.PerformanceTextures.title)
+        let impact = viewModel.modImpactStore
+        guard impact.status == .ready || impact.status == .noProbe else { return title }
+        return "\(title) (\(impact.textureRows.count))"
     }
 
     /// Lot B (S3) : les outils tiers absents, une ligne chacun, repliés.

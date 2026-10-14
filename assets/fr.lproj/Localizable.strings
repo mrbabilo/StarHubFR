@@ -2412,6 +2412,7 @@
 "perf_evidence_noSingle" = "Pas encore de mesure. Lance le jeu : la sonde mesure toute seule.";
 "perf_evidence_noSingle_noProbe" = "Pas encore de mesure. Installe la sonde ci-dessus, puis joue une session : les premiers chiffres apparaîtront ici.";
 "perf_details_card_title" = "Détails et réglages";
+"perf_details_history_count" = "%1$@ · %2$d mesurés";
 "perf_tools_card_title" = "Autres outils de mesure";
 "perf_evidence_workNote" = "Estimation : somme des temps habituels de mise à jour et de dessin, pas temps total exact de chaque image.";
 "perf_evidence_p99Note" = "Médiane des seuils des images les plus lentes relevés chaque minute ; ce n’est ni le maximum ni le seuil recalculé sur toute la session.";

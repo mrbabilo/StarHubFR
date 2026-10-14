@@ -6832,9 +6832,16 @@ sans lire une ligne de log.
       « compare deux moments » en mode Dernière session ; note « mesurera au
       prochain lancement » après installation de la sonde ; cinq textes longs
       réécrits (SLO, Stardropium, trois confirmations) ; `PerformanceView`
-      scindé (`PerformanceView+Sections`). Non fait, à instruire : comptes dans
-      les titres des volets, deux tailles de graphique, « ~N min » sur les
-      diagnostics tiers en cours.
+      scindé (`PerformanceView+Sections`). **Finitions du 2026-10-14** : comptes
+      dans les titres des volets « Historique des mods » (mods actifs mesurés,
+      `ModImpact.measuredCount`) et « Mémoire retenue — textures » ; hauteurs
+      125/120/110/80 ramenées à `Metrics.chartTall` (120) et `chartShort` (80),
+      150 (barres SLO en nombre variable), 170 (légende en bas) et 64 (bande de
+      points) gardés. **« ~N min » sur les diagnostics tiers : prémisse fausse**,
+      `SloDiagnosticPreparation` ne connaît aucune sauvegarde et les deux
+      diagnostics finissent quand le joueur quitte le jeu : aucune durée à
+      estimer. Repli possible, non décidé : « en cours depuis N min » depuis
+      `SloDiagnosticSnapshot.startedAt`.
       Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
       distinctes présentées ensemble (pas de geste unique), outils tiers repliés
       si absents, guidée manuelle gardée en second, carte Sonde à un seul

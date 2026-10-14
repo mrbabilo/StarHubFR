@@ -340,7 +340,7 @@ struct PerformanceSloDiagnosticSection: View {
                 if let median = report.warps?.medianMs {
                     RuleMark(y: .value("median", median)).lineStyle(StrokeStyle(dash: [4, 4]))
                 }
-            }.chartYAxisLabel("ms").frame(height: 120)
+            }.chartYAxisLabel("ms").frame(height: AppDesign.Metrics.chartTall)
         }
     }
 
@@ -352,7 +352,7 @@ struct PerformanceSloDiagnosticSection: View {
                 PointMark(x: .value("time", mark.at), y: .value(unit, mark.value))
                     .accessibilityLabel("\(mark.at.formatted(date: .omitted, time: .shortened)), \(PerformanceFormatting.number(mark.value)) \(unit)")
             }
-            .chartYAxisLabel(unit).frame(height: 120)
+            .chartYAxisLabel(unit).frame(height: AppDesign.Metrics.chartTall)
             .chartOverlay { proxy in
                 ChartHover(proxy: proxy) { point in
                     guard let date: Date = proxy.value(atX: point.x),
@@ -373,7 +373,7 @@ struct PerformanceSloDiagnosticSection: View {
                 BarMark(x: .value("MB", cache.snapshot.usedMB), y: .value("cache", "Image"))
                 RuleMark(x: .value("limit", cache.snapshot.limitMB))
                     .foregroundStyle(AppDesign.Color.warning)
-            }.chartXAxisLabel("MB").frame(height: 80)
+            }.chartXAxisLabel("MB").frame(height: AppDesign.Metrics.chartShort)
         }
     }
 

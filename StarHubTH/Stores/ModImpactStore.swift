@@ -22,6 +22,8 @@ final class ModImpactStore {
     private(set) var entries: [ModImpactEntry] = []
     private(set) var performanceRows: [ModImpactAxis: [ProbeImpactPresentation.Row]] = [:]
     private(set) var ranking: [ModImpactEntry] = []
+    /// Le compte du titre « Historique des mods » (`ModImpact.measuredCount`).
+    private(set) var measuredCount = 0
     /// D4-T6 — mémoire retenue en textures, hors note.
     private(set) var textureRows: [ProbeTexturePresentation.Row] = []
     private(set) var textureRemainder: ProbeTexturePresentation.Remainder?
@@ -134,6 +136,7 @@ final class ModImpactStore {
     private func derive(from history: ModImpactHistory, mods: [ModItem]) {
         entries = ModImpact.entries(history: history, mods: mods)
         ranking = ModImpact.ranking(entries)
+        measuredCount = ModImpact.measuredCount(entries)
         performanceRows = Dictionary(uniqueKeysWithValues: ModImpactAxis.allCases.map {
             ($0, ProbeImpactPresentation.rows(entries: entries, axis: $0))
         })
@@ -146,7 +149,7 @@ final class ModImpactStore {
     }
 
     private func clear() {
-        entries = []; ranking = []; performanceRows = [:]; entriesById = [:]; classesById = [:]
+        entries = []; ranking = []; measuredCount = 0; performanceRows = [:]; entriesById = [:]; classesById = [:]
         textureRows = []; textureRemainder = nil
     }
 }
