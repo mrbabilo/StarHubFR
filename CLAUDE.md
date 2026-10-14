@@ -56,6 +56,7 @@ Pièges techniques détaillés, **chers à retrouver**, vivent dans cavemem (con
 - Manifestes, i18n, Nexus, smapi.io, parsing → `caveman mem recall "starhubfr traps parsing"`
 - Build, release, tests, cliquets → `caveman mem recall "starhubfr traps build"`
 - UI, listes, sidebar, toggles de mods → `caveman mem recall "starhubfr traps ui"`
+- Sonde, parc, HUD en jeu, mesure guidée → `caveman mem recall "starhubfr traps sonde"`
 
 Sur hit, sortie = forme compacte ; `caveman mem recover <handle>` rend original octet pour octet.
 
