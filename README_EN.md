@@ -58,6 +58,7 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 
 *   **Load times** — game launch and save loading, compared with the previous state of your collection, with the heaviest mods.
 *   **Automatic benchmark** — the app runs several launches on its own, alternating both states, then puts your collection back as it was.
+*   **One-click guided measurement** — the probe drives the session (location, night, clean exit) before and after a change, and the app shows the A/B comparison; keep the change or go back to the previous collection, even after an interruption.
 *   **Smoothness and memory** — frame time, stutters, process memory and per-mod textures, minute by minute, with what separates two sessions (mods, versions, settings, scene).
 *   **No verdict by chance** — a difference only counts beyond the noise measured between your own sessions; otherwise it stays grey.
 *   **Guided, reversible diagnostics** — for Stardew Loading Optimizer and Stardropium, the app installs them if needed, turns measurements on for one play session, then restores settings and mods, even after an interruption.
@@ -68,7 +69,9 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 *   **Drag and drop an archive** (`.zip`, `.7z`, `.rar`) — structure detected (single mod or pack), format recognised from its bytes, safety limits (500 MB archive, 2 GB unpacked), conflicts and missing dependencies announced.
 *   **Content for another mod lands in the right place** — a file meant for a framework (an *ItemBags* bag, say) goes into its host mod, with the path shown and any existing file backed up first.
 *   **Enable without moving files** — one mod, a selection (click, ⌘, ⇧, ⌘A, then Space) or all at once. Mods shipped with SMAPI stay enabled.
+*   **Trash a selection** — one batch, restorable at once; the confirmation names the active mods that depend on it. Refused while the game is running.
 *   **Profiles** — several sets of mods, one click to switch.
+*   **Your own groups** — "Group by" your groups or by category: collapsible headers, "Put in group" on a row or a selection, a whole group enabled or paused in one go. A profile describes a state, a group an arrangement.
 *   **A list that sorts** — categories inferred from the manifest, filters (configurable, "set aside", uncategorised…), sorting by name, author, endorsements or oldest update; All, Enabled, Paused, **Problems** and **Updates** scopes.
 *   **Nexus endorsements** — each mod's thumb shows its endorsement count and endorses in one click.
 *   **"Set aside" mark** — take a mod out of circulation without uninstalling it: greyed out, gathered by a filter, importable into a profile.

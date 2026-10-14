@@ -39,20 +39,20 @@ Aucun autre gestionnaire de mods Stardew Valley n'offre de fonctions de traducti
 [/list]
 
 [size=4][b]⏱️ La performance mesurée en jeu[/b][/size]
-Une sonde optionnelle mesure le jeu pendant que vous jouez : coût par mod et par événement, mémoire retenue par les textures (attribuée pack par pack), carte des patchs Harmony, bornes min-max des options de config. L'onglet Performances compare deux sessions et mène un benchmark avant/après ; un écart n'est signalé que s'il dépasse le bruit mesuré entre vos propres sessions. Rien d'équivalent n'existe chez les autres gestionnaires.
+Une sonde optionnelle mesure le jeu pendant que vous jouez : coût par mod et par événement, mémoire retenue par les textures (attribuée pack par pack), carte des patchs Harmony, bornes min-max des options de config. L'onglet Performances compare deux sessions, mène un benchmark avant/après et une mesure guidée en un clic, la sonde conduisant la partie ; un écart n'est signalé que s'il dépasse le bruit mesuré entre vos propres sessions. Rien d'équivalent n'existe chez les autres gestionnaires.
 
 [size=4][b]🔐 L'intégrité des données d'abord[/b][/size]
 [list]
 [*]Clé API Nexus dans le trousseau macOS — pas d'obfuscation maison.
-[*]Suppression réversible : corbeille dédiée, remise en place possible, purge toujours explicite ; conservation optionnelle des archives pour réinstaller hors-ligne, à la version exacte.
+[*]Suppression réversible : corbeille dédiée, une sélection entière en un lot restaurable en bloc, purge toujours explicite ; conservation optionnelle des archives pour réinstaller hors-ligne, à la version exacte.
 [*]Application d'un profil protégée : refus net si le jeu tourne, reprise après un crash, retour en arrière après un geste de masse.
 [*]Extraction d'archives prudente : le format se lit dans les octets, pas dans l'extension ; plafond anti zip-bomb, chemins traversants rejetés.
 [*]Écran Entretien : inventaire mesuré de ce qui pèse et de ce qui est orphelin, purge sous confirmation — jamais automatique.
 [/list]
 
 [size=4][b]🧭 Et aussi[/b][/size]
-Interface bilingue français/anglais dont la parité est vérifiée à la compilation · guide de premier lancement en huit étapes · multi-sélection fine · palette de commandes (⌘K) · approbations Nexus d'un clic · quota Nexus visible · rapport de modlist exportable · vitrine des traductions françaises · éprouvé sur un parc réel de près de mille mods.
+Interface bilingue français/anglais dont la parité est vérifiée à la compilation · guide de premier lancement en huit étapes · multi-sélection fine · groupes pliables à soi · palette de commandes (⌘K) · approbations Nexus d'un clic · quota Nexus visible · rapport de modlist exportable · vitrine des traductions françaises · éprouvé sur un parc réel de près de mille mods.
 
 [hr]
-[b]Ce qui manque encore[/b] — et que nous assumons : groupes pliables dans la liste, export de profils, notarisation de l'app. Sur la feuille de route.
+[b]Ce qui manque encore[/b] — et que nous assumons : export de profils, notarisation de l'app. Sur la feuille de route.
 [b]Tout le détail, preuves à l'appui :[/b] [url=https://github.com/mrbabilo/StarHubFR]GitHub — StarHubFR[/url] (MIT).

@@ -59,6 +59,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 *   **Temps de chargement** — lancement et chargement de partie, comparés à l'état précédent de votre parc, avec les mods qui pèsent le plus.
 *   **Benchmark automatique** — l'app enchaîne seule plusieurs lancements en alternant les deux états, puis remet votre parc comme avant.
+*   **Mesure guidée en un clic** — la sonde conduit la partie (lieu, nuit, sortie propre) avant puis après un changement, et l'app rend le comparatif A/B ; vous gardez le changement ou revenez au parc d'avant, même après une interruption.
 *   **Fluidité et mémoire** — temps d'image, saccades, mémoire du processus et textures par mod, minute par minute, avec ce qui sépare deux sessions (mods, versions, réglages, scène).
 *   **Pas de verdict au hasard** — un écart ne compte qu'au-delà du bruit mesuré entre vos propres sessions ; sinon il reste gris.
 *   **Diagnostics guidés et réversibles** — pour Stardew Loading Optimizer et Stardropium, l'app installe si besoin, active les mesures le temps d'une partie, puis restaure réglages et mods, même après une interruption.
@@ -69,7 +70,9 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 *   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) — structure détectée (mod seul ou pack), format reconnu à ses octets, limites de sécurité (500 Mo d'archive, 2 Go décompressés), conflits et dépendances manquantes annoncés.
 *   **Le contenu d'un autre mod s'installe au bon endroit** — un fichier pour un framework (un sac *ItemBags*, par exemple) est placé dans son mod hôte, chemin montré et fichier existant sauvegardé d'abord.
 *   **Activer sans déplacer de fichiers** — un mod, une sélection (clic, ⌘, ⇧, ⌘A, puis Espace) ou tous à la fois. Les mods livrés avec SMAPI restent actifs.
+*   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent. Refusé jeu ouvert.
 *   **Profils** — plusieurs ensembles de mods, un clic pour passer de l'un à l'autre.
+*   **Groupes à soi** — « Regrouper par » vos groupes ou par catégorie : bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, tout un groupe activé ou mis en pause d'un geste. Un profil décrit un état, un groupe un rangement.
 *   **Une liste qui se trie** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, En pause, **Problèmes** et **Mises à jour**.
 *   **Approbations Nexus** — le pouce de chaque mod donne son nombre d'approbations et approuve d'un clic.
 *   **Marque « à écarter »** — un mod à retirer de la circulation sans le désinstaller : grisé, regroupé par un filtre, importable dans un profil.
