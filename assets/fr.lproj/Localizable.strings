@@ -2374,6 +2374,10 @@
 "perf_evidence_settings" = "Réglages de mesure";
 "perf_evidence_history" = "Historique des mods";
 "perf_evidence_computing" = "Actualisation en cours — derniers résultats affichés";
+"perf_evidence_live" = "En direct";
+"perf_evidence_live_updated" = "actualisé il y a %lld s";
+"perf_evidence_live_refreshing" = "actualisation…";
+"perf_evidence_live_hint" = "Une mesure est en cours : les chiffres s'actualisent toutes les 15 secondes.";
 "perf_evidence_improved" = "Amélioration observée";
 "perf_evidence_worsened" = "Dégradation observée";
 "perf_evidence_memoryChanged" = "Variation de mémoire";

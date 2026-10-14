@@ -35,13 +35,12 @@ struct PerformanceView: View {
                         Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
                     }.pickerStyle(.menu)
                     if comparing { selectors }
-                    // Place toujours réservée : la ligne apparaissait puis disparaissait, et le texte dessous sautait.
-                    Text(localization.L(L10n.PerformanceEvidence.computing)).font(AppDesign.Font.footnote)
-                        .opacity(store.isComputing ? 1 : 0).accessibilityHidden(!store.isComputing)
+                    let live = PerformanceLiveIndicator(viewModel: viewModel, localization: localization, store: store)
+                    live
                     PerformanceCard {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary)
-                    }.id("summary")
+                    }.liveRefreshFlash(live.isLive ? store.lastLoadedAt : nil, reduceMotion: reduceMotion).id("summary")
                     PerformanceSloDiagnosticSection(
                         viewModel: viewModel, localization: localization,
                         store: sloDiagnostic, runtime: sloRuntime)

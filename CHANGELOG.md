@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les chiffres se voient vivre pendant une mesure.** Onglet Performances, jeu ouvert et mesure en cours : un point qui pulse, « En direct · actualisé il y a N s », et la Synthèse s'éclaire à chaque relecture. Rien ne bouge si « Réduire les animations » est actif.
+
 ### Fixed
 
 - **L'onglet Performances ne se relit plus toutes les 3 s pendant une mesure guidée.** La minuterie de 15 s se réarmait à chaque affichage, et chaque relecture en provoquait un. La ligne « Actualisation en cours » garde sa place : le texte dessous ne saute plus.

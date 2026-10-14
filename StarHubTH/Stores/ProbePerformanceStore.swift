@@ -15,6 +15,8 @@ final class ProbePerformanceStore {
     private(set) var report: ProbePerformanceReport?
     private(set) var singleSummary: ProbePerformanceSummary?
     private(set) var isComputing = false
+    /// Fin de la dernière relecture : l'indicateur « En direct » en compte l'âge.
+    private(set) var lastLoadedAt: Date?
     private(set) var guidedMinuteCount = 0
     private(set) var beforeId: String?
     private(set) var afterId: String?
@@ -77,6 +79,7 @@ final class ProbePerformanceStore {
         }.value
         guard generation == loadGeneration, !Task.isCancelled else { return }
         singleSummary = summary
+        lastLoadedAt = Date()
         guidedMinuteCount = loaded.guidedMinuteCount
         sides = loaded.sides
         if let finished = loaded.finishedPlan {
