@@ -40,6 +40,7 @@ struct ModListSelectionBar: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
+    @State private var trashPlan: ModTrashSelection.Plan?
 
     var body: some View {
         let count = listState.selection.members(in: listState.displayOrder).count
@@ -49,11 +50,30 @@ struct ModListSelectionBar: View {
                 Text(String(format: localization.L(L10n.Mods.selectionCount), Int64(count)))
                     .font(AppDesign.Font.body.monospacedDigit())
                 Spacer()
-                Button(localization.L(L10n.Mods.selectionEnable)) {
-                    _ = listState.toggleSelection(viewModel, enable: true)
-                }
-                Button(localization.L(L10n.Mods.selectionPause)) {
-                    _ = listState.toggleSelection(viewModel, enable: false)
+                // Trois gestes à 560 pt : libellés complets s'ils tiennent,
+                // icônes et infobulles sinon (`AdaptiveLabels`, AGENTS §6).
+                AdaptiveLabels {
+                    HStack(spacing: AppDesign.Spacing.sm) {
+                        Button {
+                            _ = listState.toggleSelection(viewModel, enable: true)
+                        } label: {
+                            Label(localization.L(L10n.Mods.selectionEnable), systemImage: "play.circle")
+                        }
+                        .help(localization.L(L10n.Mods.selectionEnable))
+                        Button {
+                            _ = listState.toggleSelection(viewModel, enable: false)
+                        } label: {
+                            Label(localization.L(L10n.Mods.selectionPause), systemImage: "pause.circle")
+                        }
+                        .help(localization.L(L10n.Mods.selectionPause))
+                        Button(role: .destructive) {
+                            let selected = listState.selectedMods(viewModel)
+                            trashPlan = ModTrashSelection.plan(selected: selected, all: viewModel.mods)
+                        } label: {
+                            Label(localization.L(L10n.Mods.trashSelection), systemImage: "trash")
+                        }
+                        .help(localization.L(L10n.Mods.trashSelection))
+                    }
                 }
                 Button {
                     listState.selection.clear()
@@ -63,6 +83,24 @@ struct ModListSelectionBar: View {
                 .buttonStyle(.plain)
                 .help(localization.L(L10n.Mods.selectionClear))
                 .accessibilityLabel(localization.L(L10n.Mods.selectionClear))
+            }
+            .confirmationDialog(
+                String(format: localization.L(L10n.Mods.trashSelectionTitle), Int64(trashPlan?.trashable.count ?? 0)),
+                isPresented: Binding(get: { trashPlan != nil }, set: { if !$0 { trashPlan = nil } }),
+                titleVisibility: .visible, presenting: trashPlan
+            ) { plan in
+                if plan.trashable.isEmpty {
+                    Button(localization.L(L10n.Saves.cancel), role: .cancel) {}
+                } else {
+                    Button(localization.L(L10n.Mods.trashSelection), role: .destructive) {
+                        viewModel.trashMods(plan.trashable)
+                        listState.selection.clear()
+                    }
+                    Button(localization.L(L10n.Saves.cancel), role: .cancel) {}
+                }
+            } message: { plan in
+                Text(plan.trashable.isEmpty ? localization.L(L10n.Mods.trashSelectionAllRefused)
+                                            : ModTrashSelectionConfirm.message(plan, localization))
             }
             .disabled(viewModel.bulkToggleProgress != nil)
             .padding(.horizontal, AppDesign.Spacing.xl)

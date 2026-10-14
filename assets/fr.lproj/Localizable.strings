@@ -982,6 +982,12 @@
 "mods_trash_game_running" = "Fermez Stardew Valley pour mettre des mods à la corbeille.";
 "mods_trash_selection_log" = "%lld mods mis à la corbeille.";
 "mods_trash_selection_failed" = "Pas mis à la corbeille : %@";
+"mods_trash_selection" = "Mettre à la corbeille";
+"mods_trash_selection_title" = "Mettre %lld mods à la corbeille ?";
+"mods_trash_selection_more" = "et %lld autres";
+"mods_trash_selection_dependents" = "Ces mods actifs en dépendent : %@";
+"mods_trash_selection_refused" = "Non supprimés : %@";
+"mods_trash_selection_all_refused" = "La sonde StarHubFR et les mods de SMAPI ne se suppriment pas.";
 "mods_rename_shared_note" = "Ce qui décrit un mod en particulier ne suit pas : l'identifiant Nexus saisi à la main et la date d'installation restent à celui qui garde le nom. Rien ne dit lequel des deux ils désignaient — le mod renommé les réapprend de son propre manifeste.";
 "mods_rename_title" = "Renommer le dossier de ce mod";
 "mods_renamed_log" = "Dossier « %@ » renommé en « %@ »";

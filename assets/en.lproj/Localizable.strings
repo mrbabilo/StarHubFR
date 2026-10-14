@@ -982,6 +982,12 @@
 "mods_trash_game_running" = "Close Stardew Valley to move mods to the trash.";
 "mods_trash_selection_log" = "%lld mods moved to the trash.";
 "mods_trash_selection_failed" = "Not moved to the trash: %@";
+"mods_trash_selection" = "Move to Trash";
+"mods_trash_selection_title" = "Move %lld mods to the trash?";
+"mods_trash_selection_more" = "and %lld more";
+"mods_trash_selection_dependents" = "These active mods depend on them: %@";
+"mods_trash_selection_refused" = "Not deleted: %@";
+"mods_trash_selection_all_refused" = "The StarHubFR probe and SMAPI's own mods cannot be deleted.";
 "mods_rename_shared_note" = "Anything that describes one specific mod stays behind: the hand-entered Nexus id and the install date remain with whichever mod keeps the name. Nothing says which of the two they described — the renamed mod relearns them from its own manifest.";
 "mods_rename_title" = "Rename this mod's folder";
 "mods_renamed_log" = "Folder “%@” renamed to “%@”";
