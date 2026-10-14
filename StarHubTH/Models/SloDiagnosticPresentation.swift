@@ -48,6 +48,15 @@ public struct SloDiagnosticPresentation: Equatable, Sendable {
         }
     }
 
+    /// Minutes pleines depuis le lancement demandé, pour « Depuis le
+    /// lancement : N min » ; nul sans date ou sous la minute (rien à dire).
+    /// Pas de durée restante : le diagnostic finit quand le joueur quitte.
+    public static func elapsedMinutes(since: Date?, now: Date) -> Int? {
+        guard let since else { return nil }
+        let minutes = Int(now.timeIntervalSince(since) / 60)
+        return minutes >= 1 ? minutes : nil
+    }
+
     private static func unavailable(_ readiness: SloDiagnosticReadiness,
                                     directDownloadUnavailable: Bool, kind: PerformanceDiagnosticKind)
         -> SloDiagnosticPresentation {

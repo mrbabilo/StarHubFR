@@ -93,9 +93,8 @@ struct PerformanceSloDiagnosticSection: View {
 
     private var status: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            Label(statusTitle, systemImage: statusIcon)
-                .font(AppDesign.Font.body(.semibold))
-                .foregroundStyle(statusTint)
+            Label(statusTitle, systemImage: statusIcon).font(AppDesign.Font.body(.semibold)).foregroundStyle(statusTint)
+            PerformanceDiagnosticElapsed(localization: localization, store: store, kind: presentation.kind)
             Text(statusDetail).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let action = presentation.action {

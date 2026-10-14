@@ -2443,6 +2443,7 @@
 "perf_slo_waiting" = "Waiting for the game to start";
 "perf_slo_running" = "Diagnostic session in progress";
 "perf_slo_running_detail" = "Play normally, then quit the game. The report will appear here.";
+"perf_slo_elapsed" = "%lld min since launch";
 "perf_slo_restoring" = "Restoring settings and mod states";
 "perf_slo_recovery" = "Restoration needs your decision";
 "perf_slo_recovery_detail" = "A file or mod folder changed unexpectedly. Review the Mods folder before replacing the diagnostic config.";

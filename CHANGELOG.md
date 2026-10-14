@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Changed
 
 - **Performances** : repliés, « Historique des mods » et « Mémoire retenue — textures » disent combien ils contiennent (mods mesurés, mods à textures) ; les graphiques de mesure partagent une seule hauteur.
+- **Diagnostics SLO et Stardropium** : en attente du jeu ou en session, la carte dit depuis combien de minutes le jeu a été lancé.
 
 ## [1.65.0] - 2026-10-14
 

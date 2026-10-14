@@ -6840,8 +6840,9 @@ sans lire une ligne de log.
       points) gardés. **« ~N min » sur les diagnostics tiers : prémisse fausse**,
       `SloDiagnosticPreparation` ne connaît aucune sauvegarde et les deux
       diagnostics finissent quand le joueur quitte le jeu : aucune durée à
-      estimer. Repli possible, non décidé : « en cours depuis N min » depuis
-      `SloDiagnosticSnapshot.startedAt`.
+      estimer. Remplacé, sur décision de l'auteur, par « Depuis le lancement :
+      N min » (`SloDiagnosticSessionStore.sessionSince`, pris de
+      `launchRequestedAt`, survit à une reprise après relance de l'app).
       Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
       distinctes présentées ensemble (pas de geste unique), outils tiers repliés
       si absents, guidée manuelle gardée en second, carte Sonde à un seul

@@ -196,13 +196,17 @@ import Testing
         let original = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
                                                   probeFiles: ProbeFiles(directory: f.probe))
         let rt = runtime(f, box)
+        let launched = box.now
         await original.start(f.preparation, runtime: rt)
+        #expect(original.sessionSince == launched)
         box.running = false
         box.now = box.now.addingTimeInterval(30)
         let early = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,
                                                probeFiles: ProbeFiles(directory: f.probe))
         await early.resumeIfNeeded(mods: [], gameDir: f.game, runtime: rt)
         #expect(early.state == .waitingForGame)
+        // Reprise après relance de l'app : « depuis » part du lancement, pas de la reprise.
+        #expect(early.sessionSince == launched)
         #expect(SloDiagnosticSnapshotStore.hasPending(in: f.support))
         box.now = box.now.addingTimeInterval(61)
         let late = SloDiagnosticSessionStore(applicationSupport: f.support, logURL: f.log,

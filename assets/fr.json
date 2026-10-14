@@ -2443,6 +2443,7 @@
   "perf_slo_waiting": "Attente du lancement du jeu",
   "perf_slo_running": "Session de diagnostic en cours",
   "perf_slo_running_detail": "Joue normalement, puis quitte le jeu. Le rapport apparaîtra ici.",
+  "perf_slo_elapsed": "Depuis le lancement : %lld min",
   "perf_slo_restoring": "Restauration des réglages et des mods",
   "perf_slo_recovery": "La restauration demande ton choix",
   "perf_slo_recovery_detail": "Un fichier ou dossier de mod a changé. Vérifie le dossier Mods avant de remplacer la config de diagnostic.",

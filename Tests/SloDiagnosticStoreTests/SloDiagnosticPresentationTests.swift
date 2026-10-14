@@ -60,4 +60,16 @@ import Testing
             state: .recoveryBlocked(.configChanged),
             directDownloadUnavailable: false).action == .restore)
     }
+
+    /// « Depuis le lancement » : minutes pleines, rien sous la minute ni sans
+    /// date, rien non plus si l'horloge recule.
+    @Test func elapsedMinutesAreWholeAndSilentUnderAMinute() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        #expect(SloDiagnosticPresentation.elapsedMinutes(since: nil, now: start) == nil)
+        #expect(SloDiagnosticPresentation.elapsedMinutes(since: start, now: start.addingTimeInterval(59)) == nil)
+        #expect(SloDiagnosticPresentation.elapsedMinutes(since: start, now: start.addingTimeInterval(61)) == 1)
+        #expect(SloDiagnosticPresentation.elapsedMinutes(since: start, now: start.addingTimeInterval(3_659)) == 60)
+        #expect(SloDiagnosticPresentation.elapsedMinutes(since: start, now: start.addingTimeInterval(-120)) == nil)
+    }
 }
+

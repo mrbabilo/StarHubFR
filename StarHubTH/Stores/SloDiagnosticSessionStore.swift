@@ -20,6 +20,11 @@ public final class SloDiagnosticSessionStore {
     public private(set) var state: State = .idle
     public private(set) var lastReceipt: SloDiagnosticReportReceipt?
     public private(set) var memoryReceipt: StardropiumDiagnosticReceipt?
+    /// Le lancement du jeu demandé par la session en cours : « en cours
+    /// depuis N min ». Le diagnostic finit quand le joueur quitte le jeu,
+    /// aucune durée restante ne s'estime. Ne se lit qu'en attente ou en
+    /// session (`waitingForGame`, `running`).
+    public private(set) var sessionSince: Date?
     public let kind: PerformanceDiagnosticKind
     @ObservationIgnored let exclusionDirectory: URL?
     @ObservationIgnored let applicationSupport: URL?
@@ -171,6 +176,7 @@ public final class SloDiagnosticSessionStore {
             state = .failed(.configWrite); return
         }
         snapshot.launchRequestedAt = runtime.now()
+        sessionSince = snapshot.launchRequestedAt
         do { try SloDiagnosticSnapshotStore.save(snapshot, in: applicationSupport) }
         catch { guard await rollback(snapshot: snapshot, runtime: runtime) else { return }
             state = .failed(.snapshotWrite); return }
@@ -199,6 +205,7 @@ public final class SloDiagnosticSessionStore {
         guard validateRootAvailability(snapshot) == nil else {
             state = .recoveryBlocked(validateRootAvailability(snapshot)!); return
         }
+        sessionSince = snapshot.launchRequestedAt
         if runtime.isGameRunning() {
             var updated = snapshot
             if !updated.gameSeen {

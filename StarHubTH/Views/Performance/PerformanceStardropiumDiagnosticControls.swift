@@ -34,6 +34,7 @@ struct PerformanceStardropiumDiagnosticControls: View {
                     .font(AppDesign.Font.body(.semibold))
             }
             Text(localization.L(statusKey)).font(compact ? AppDesign.Font.footnote : AppDesign.Font.body(.semibold))
+            PerformanceDiagnosticElapsed(localization: localization, store: store, kind: presentation.kind)
             Text(localization.L(detailKey)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let action = presentation.action {

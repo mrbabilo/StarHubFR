@@ -19,6 +19,7 @@ extension L10n {
         static let waiting = "perf_slo_waiting"
         static let running = "perf_slo_running"
         static let runningDetail = "perf_slo_running_detail"
+        static let elapsed = "perf_slo_elapsed"
         static let restoring = "perf_slo_restoring"
         static let recovery = "perf_slo_recovery"
         static let recoveryDetail = "perf_slo_recovery_detail"
