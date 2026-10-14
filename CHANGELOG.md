@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Added
 
+- **Ranger les mods dans ses propres groupes.** « Regrouper par » : aucun, mes groupes ou catégorie. Bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, et tout un groupe s'active ou se met en pause d'un geste, dans le cadrage affiché (I-T21).
+- **Mettre une sélection à la corbeille.** Un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent et ceux qui ne se suppriment pas (sonde, mods de SMAPI) (I-T21).
 - **La paire de mesures guidées se joue d'un clic.** La sonde 0.9.25 conduit la session (jeu mis devant, warp au lieu, nuit sautée, sortie propre) ; l'app enchaîne avant, changement, après, rapport. Depuis la barre (le profil choisi devient l'« après ») ou depuis « Isoler » (P1).
 - **Une série pilotée se rattrape.** Un échec se nomme ; le côté interrompu se relance, et le changement se défait — rapport lu ou app plantée en cours, l'état d'avant étant noté sur disque. Bissection et bascules attendent la fin de la série.
 - **« Benchmarker ce mod »** depuis la carte Chargements et la recommandation d'analyse : la feuille du benchmark s'ouvre avec ce mod en pause côté B (P2).
@@ -31,6 +33,7 @@ where the exact log format was verified.
 - **Installer la sonde depuis un diagnostic ne peut plus échouer en silence.** Les cartes SLO et Stardropium refusent le geste jeu ouvert et affichent l'échec, comme la carte Sonde et les Réglages le faisaient déjà (X133).
 - **La fin d'une mesure pilotée montre le comparatif A/B.** Verdict, temps de trame et mémoire de A à B, profil sur lequel le parc est resté, puis « Garder le profil » ou « Revenir au parc d'avant ». La feuille annonce les deux lancements du jeu.
 - **Une mesure pilotée refuse un profil identique au parc.** A et B seraient le même parc : la série ne démarre pas et l'écran dit pourquoi.
+- **Supprimer un mod refuse désormais le jeu ouvert**, comme la corbeille d'une sélection : déplacer le dossier d'un mod chargé laissait SMAPI pointer dans le vide.
 - **Une mise à jour remplace un `config.json` jamais modifié.** Identique à celui que l'auteur livrait, il ne porte aucun réglage : garder celui de StardewOptimizer 1.0.0 lui faisait tourner les défauts abandonnés en 3.0.3. Le bilan le dit, l'ancien reste dans la sauvegarde ; tout fichier réglé à la main est gardé (X136).
 - **Une réponse rapide `$y` cassée par la traduction est refusée à l'écriture.** Un « _ » perdu, ou une apostrophe droite dans une réponse sans guillemets, faisait perdre ses réponses au dialogue — cas réel : Sterling, Always Raining in the Valley. L'écran propose ’ à la place.
 - **Un mod installé depuis Nexus a son image et sa catégorie tout de suite.** L'app retenait l'id Nexus mais attendait la vérification suivante pour remplir la fiche ; elle les demande désormais à l'installation.
