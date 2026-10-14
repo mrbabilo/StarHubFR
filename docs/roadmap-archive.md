@@ -6800,6 +6800,84 @@ sans lire une ligne de log.
       sélection partagent `toggleMods` (SMAPI protégé, empreintes avant pause).
       Mode liste seulement ; composants de pack non sélectionnables.
 
+- [x] **I-T22** — *(lots A à D livrés le 2026-10-14, commits `d0782137`,
+      `30e4d694`, `c6e16ca5`, `544cf184`)* Audit UX/UI de l'onglet **Performances**
+      (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
+      `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
+      `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
+      (`PerformanceStatusLine`), carte Sonde en tête seulement si une action
+      est due + lien « Réglages », carte Chargements et « Benchmark… »
+      visibles dès la lecture du store, « Panneau » rouvre le panneau du
+      benchmark, aides des tuiles recâblées, 8 couleurs nues → jetons, 37 clés
+      L10n orphelines retirées. **Lot B** : SLO/Stardropium en carte pleine
+      seulement si installés, placés après les mesures de la sonde, sinon une
+      ligne chacun dans « Autres outils de mesure » repliée ; les quatre volets
+      de fin de page sous une carte « Détails et réglages » ; texte vide du
+      Résumé selon la présence de la sonde ; un seul jeu d'icônes de verdict.
+      **Lot C** : bloc « Mesurer » (`PerformanceGuidedBar.measureBlock`) —
+      pilotée en bouton principal quand elle peut partir, guidée manuelle en
+      second, « Autres mesures… » (benchmark, SLO, Stardropium), motif du
+      grisage dit avant le clic (série, benchmark, Vanilla, jeu ouvert) ; une
+      seule conclusion (tuiles sans le mot quand la direction suffit,
+      Chronologie sans doublon du temps habituel, badge « Preuve : … »,
+      `PerformanceAnalysisTexts` extrait) ; gestes de l'Analyse grisés avec
+      « Fermez le jeu d'abord » ; feuille benchmark en deux temps (« Options »
+      replié, sauvegarde B suit A) ; un seul `.borderedProminent` par zone.
+      **Lot D** : `NavigationStore.openPerformance(anchor:modFolder:)` +
+      `pendingPerformanceFocus` consommé par `PerformanceView` (déplie
+      l'historique, mod en tête, défile) ; entrées : badge d'impact de la liste,
+      « Voir dans Performances » dans la fiche, entrée « Performances » de la
+      palette ⌘K, ligne « dernière mesure en jeu » dans Santé ; ⌘F ne quitte
+      plus Performances ; ligne « Nouvelle session lue » au retour ; carte
+      « compare deux moments » en mode Dernière session ; note « mesurera au
+      prochain lancement » après installation de la sonde ; cinq textes longs
+      réécrits (SLO, Stardropium, trois confirmations) ; `PerformanceView`
+      scindé (`PerformanceView+Sections`). Non fait, à instruire : comptes dans
+      les titres des volets, deux tailles de graphique, « ~N min » sur les
+      diagnostics tiers en cours.
+      Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
+      distinctes présentées ensemble (pas de geste unique), outils tiers repliés
+      si absents, guidée manuelle gardée en second, carte Sonde à un seul
+      endroit, entrées vers la page en dernier lot. · **M**
+      *Scénarios GUI du lot A à rejouer* : sonde installée sans session jouée →
+      carte Chargements visible, « Benchmark… » actif ; benchmark lancé puis
+      panneau fermé → « Panneau » le rouvre ; sonde à jour → une ligne « Sonde
+      active » + « Réglages » qui déplie le bas ; mesure guidée avec le jeu en
+      arrière-plan → une seule ligne « En pause … N minutes » ; pilotage →
+      étape, minutes, « En direct/En pause », « Ramener le jeu », jalons, Stop
+      sur la même ligne d'état ; survol d'une tuile du Résumé → aide ; Profiler
+      absent → aucune note Profiler. *Lot B* : parc sans SLO ni Stardropium →
+      Résumé, Analyse, Chargements, puis « Détails et réglages », puis « Autres
+      outils de mesure (repliée) » avec deux lignes et leurs liens Nexus ;
+      ancres sans « Diagnostic chargements » ni « Mémoire Stardropium » ; sonde
+      absente → le Résumé dit « installe la sonde ci-dessus » ; mode Comparer →
+      mêmes flèches dans les tuiles, l'Analyse et les Chargements. *Lot C* :
+      sonde prête, jeu fermé, profil SMAPI → « Lancer le jeu pour mesurer »
+      prominent (pilotée), « Je joue la mesure moi-même » à côté, menu « Autres
+      mesures… » à trois lignes ; profil Vanilla → la guidée est prominent et
+      une ligne grise explique l'absence de la pilotée ; jeu ouvert → même
+      ligne « Fermez le jeu d'abord » ; benchmark en cours → les deux boutons
+      gris et la ligne qui le dit ; mode Comparer → tuiles avec flèche + Δ sans
+      phrase, la conclusion lue dans l'Analyse, badge « Preuve : … » ;
+      Chronologie sur « Temps habituel » sans verdict, sur « Images les plus
+      lentes » avec ; jeu ouvert en mode Comparer → « Mettre en pause » gris
+      avec « Fermez le jeu d'abord » ; feuille Benchmark → trois choix, la
+      sauvegarde, la durée en gras, « Options » replié, tient à 560 pt.
+      *Lot D* : liste des mods, clic sur un badge d'impact → Performances,
+      « Historique des mods » déplié, ce mod en première ligne ; fiche d'un mod,
+      « Voir dans Performances » → même arrivée ; ⌘K « perf » → entrée
+      « Performances » ; Santé → ligne « dernière mesure en jeu » + « Ouvrir
+      Performances » ; ⌘F sur Performances → rien ne change d'onglet ; jouer
+      puis revenir → « Nouvelle session lue : … » sous le Picker, disparaît au
+      prochain changement d'onglet ; mode Dernière session avec deux sessions →
+      carte « compare deux moments » + bouton ; installer la sonde → ligne
+      « mesurera au prochain lancement ».
+      ✅ *Validé à l'écran par l'auteur le 2026-10-14* (scénarios ci-dessus,
+      quatre lots). CI verte sur chaque commit. **Non engagés** (relevés par
+      l'audit, laissés au jugement d'une prochaine passe) : nombre d'éléments
+      dans les titres des volets repliés, deux tailles de graphique au lieu de
+      quatre, durée estimée sur les diagnostics SLO/Stardropium en cours.
+
 
 ### Packs, distribution & pédagogie — Axe E
 
