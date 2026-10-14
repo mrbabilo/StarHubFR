@@ -8,6 +8,8 @@ struct PerformanceImpactSection: View {
     @ObservedObject var localization: LocalizationStore
     @State private var showAll = false
     @State private var axis: ModImpactAxis = .fps
+    /// Arrivée depuis la liste ou la fiche (lot D, S8) : ce mod en tête.
+    var focus: String?
 
     private var store: ModImpactStore { viewModel.modImpactStore }
     private var language: String { localization.currentLanguage }
@@ -48,7 +50,10 @@ struct PerformanceImpactSection: View {
     }
 
     private var list: some View {
-        let ranked = store.performanceRows[axis] ?? []
+        var ranked = store.performanceRows[axis] ?? []
+        if let focus, let index = ranked.firstIndex(where: { $0.id == focus }) {
+            ranked.insert(ranked.remove(at: index), at: 0)
+        }
         let shown = showAll ? ranked : Array(ranked.prefix(10))
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.PerformanceEvidence.historyNote)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)

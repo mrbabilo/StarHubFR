@@ -12,16 +12,22 @@ struct PerformanceView: View {
     var environment: SessionEnvironmentStore
     var sloDiagnostic: SloDiagnosticSessionStore
     var stardropiumDiagnostic: SloDiagnosticSessionStore
-    @State private var comparing = false
+    @State var comparing = false
     /// Une seule feuille de benchmark pour l'onglet (chargements, analyse) :
     /// le dossier pré-rempli s'efface à la fermeture — rouverte du bouton
     /// générique, elle repart vierge (Review Focus 5).
     @State private var showBenchmark = false
     @State private var benchmarkPrefill: String?
     /// « Sonde et réglages », en bas : déplié par le lien de la ligne sonde.
-    @State private var settingsExpanded = false
-    @AppStorage(UDKey.probeLoadEarlyConsent) private var loadEarlyConsent: Bool?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State var settingsExpanded = false
+    @State var historyExpanded = false
+    /// Le mod à mettre en tête de l'historique (arrivée depuis la liste, la fiche).
+    @State var historyFocus: String?
+    /// La session la plus récente lue à la dernière visite : une plus
+    /// récente à cette visite se signale (lot D, G9).
+    @State private var lastSeenSession: String?
+    @AppStorage(UDKey.probeLoadEarlyConsent) var loadEarlyConsent: Bool?
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -45,12 +51,28 @@ struct PerformanceView: View {
                         Text(localization.L(L10n.PerformanceEvidence.compare)).tag(true)
                     }.pickerStyle(.menu)
                     if comparing { selectors }
+                    if let newest = newestSide, let seen = lastSeenSession, newest.session != seen {
+                        Label(String(format: localization.L(L10n.Performance.newSessionLine),
+                                     PerformanceMetricText.source(newest)), systemImage: "sparkles")
+                            .font(AppDesign.Font.footnote(.semibold))
+                    }
                     let live = PerformanceStatusLine.isLive(viewModel, store)
                     PerformanceCard {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
                                                   single: comparing ? nil : store.singleSummary,
                                                   probeInstalled: probeInstalled)
                     }.liveRefreshFlash(live ? store.lastLoadedAt : nil, reduceMotion: reduceMotion).id("summary")
+                    if !comparing, store.sides.count >= 2 {
+                        PerformanceCard {
+                            SplitRow {
+                                Text(localization.L(L10n.Performance.analysisSingleHint))
+                                    .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                            } trailing: {
+                                Button(localization.L(L10n.PerformanceEvidence.compare)) { comparing = true }
+                                    .buttonStyle(.bordered).controlSize(.small).clickableCursor()
+                            }
+                        }
+                    }
                     if comparing, let report = store.report {
                         PerformanceCard {
                             PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
@@ -101,6 +123,8 @@ struct PerformanceView: View {
                 .padding(AppDesign.Spacing.lg)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .onAppear { consumeFocus(proxy) }
+            .onChange(of: viewModel.navigationStore.pendingPerformanceFocus) { _, _ in consumeFocus(proxy) }
         }
         .sheet(isPresented: $showBenchmark, onDismiss: { benchmarkPrefill = nil }) {
             PerformanceBenchmarkSheet(viewModel: viewModel, localization: localization,
@@ -119,7 +143,12 @@ struct PerformanceView: View {
         .onChange(of: viewModel.navigationStore.diagnosticsSegment) { _, segment in
             if segment == .performance {
                 Task { await reloadAll(cause: "retour sur l'onglet") }
+            } else {
+                lastSeenSession = newestSide?.session
             }
+        }
+        .onChange(of: store.lastLoadedAt) { _, _ in
+            if lastSeenSession == nil { lastSeenSession = newestSide?.session }
         }
         .onChange(of: viewModel.mods) { _, _ in
             guard viewModel.navigationStore.diagnosticsSegment == .performance else { return }
@@ -153,56 +182,23 @@ struct PerformanceView: View {
         }
     }
 
-    private func navigation(_ proxy: ScrollViewProxy) -> some View {
-        let comparisonAnchors = [("analysis", L10n.Performance.sectionAnalysis),
-                                 ("game", L10n.Performance.inGameTitle)]
-        let toolAnchors = (Self.toolAbsent(sloDiagnostic) ? [] : [("slo", L10n.PerformanceSloDiagnostic.title)])
-            + (Self.toolAbsent(stardropiumDiagnostic) ? [] : [("stardropium", L10n.StardropiumMemory.title)])
-        let anchors = [("summary", L10n.PerformanceEvidence.summary)]
-            + (comparing ? comparisonAnchors : [])
-            + [("loads", L10n.Performance.loadsTitle)] + toolAnchors
-            + [("details", L10n.PerformanceEvidence.detailsCardTitle)]
-        return ViewThatFits(in: .horizontal) {
-            HStack {
-                ForEach(anchors, id: \.0) { id, key in
-                    Button(localization.L(key)) {
-                        if id == "game" { comparing = true }
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
-                    }.fixedSize().help(localization.L(key))
-                }
-            }
-            Menu(localization.L(L10n.PerformanceEvidence.details)) {
-                ForEach(anchors, id: \.0) { id, key in
-                    Button(localization.L(key)) {
-                        if id == "game" { comparing = true }
-                        proxy.scrollTo(id, anchor: .top)
-                    }
-                }
-            }.fixedSize()
-        }
+    private var newestSide: ProbeSide? {
+        store.sides.max { ($0.start ?? .distantPast) < ($1.start ?? .distantPast) }
     }
 
-    /// « Autres mesures… » du bloc Mesurer : benchmark, puis les outils tiers
-    /// vers leur carte (pleine si installés, sinon « Autres outils »).
-    private func otherMeasures(_ proxy: ScrollViewProxy) -> [(title: String, action: () -> Void)] {
-        let scroll: (String) -> Void = { id in
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .top) }
+    /// L'intention posée par `NavigationStore.openPerformance` : déplier,
+    /// mettre le mod en tête, défiler. Consommée ici, jamais avant le
+    /// changement d'onglet (piège MainView).
+    private func consumeFocus(_ proxy: ScrollViewProxy) {
+        guard let focus = viewModel.navigationStore.pendingPerformanceFocus else { return }
+        viewModel.navigationStore.pendingPerformanceFocus = nil
+        if focus.anchor == "mods" {
+            historyExpanded = true
+            historyFocus = focus.modFolder
         }
-        return [
-            (localization.L(L10n.Benchmark.title), { openBenchmark(nil) }),
-            (localization.L(L10n.PerformanceSloDiagnostic.title),
-             { scroll(Self.toolAbsent(sloDiagnostic) ? "tools" : "slo") }),
-            (localization.L(L10n.StardropiumMemory.title),
-             { scroll(Self.toolAbsent(stardropiumDiagnostic) ? "tools" : "stardropium") }),
-        ]
-    }
-
-    /// Le mod tiers n'est pas installé (ou se télécharge) : pas de carte
-    /// pleine, une ligne dans « Autres outils de mesure ».
-    private static func toolAbsent(_ diagnostic: SloDiagnosticSessionStore) -> Bool {
-        switch diagnostic.state {
-        case .unavailable(.sloAbsent), .unavailable(.sloDownloading): return true
-        default: return false
+        // Après le rendu qui déplie : l'ancre doit exister pour être atteinte.
+        Task { @MainActor in
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(focus.anchor, anchor: .top) }
         }
     }
 
@@ -216,8 +212,8 @@ struct PerformanceView: View {
         PerformanceCard {
             Text(localization.L(L10n.PerformanceEvidence.detailsCardTitle))
                 .font(AppDesign.Font.headline(.semibold))
-            DisclosureGroup(localization.L(L10n.PerformanceEvidence.history)) {
-                PerformanceImpactSection(viewModel: viewModel, localization: localization)
+            DisclosureGroup(localization.L(L10n.PerformanceEvidence.history), isExpanded: $historyExpanded) {
+                PerformanceImpactSection(viewModel: viewModel, localization: localization, focus: historyFocus)
             }.id("mods")
             Divider()
             DisclosureGroup(localization.L(L10n.PerformanceTextures.title)) {
@@ -259,39 +255,6 @@ struct PerformanceView: View {
         }
     }
 
-    private var selectors: some View {
-        WrapHStack(spacing: AppDesign.Spacing.md) {
-            picker(L10n.Performance.before, selection: Binding(
-                get: { store.beforeId }, set: { store.select(before: $0, after: store.afterId) }))
-            picker(L10n.Performance.after, selection: Binding(
-                get: { store.afterId }, set: { store.select(before: store.beforeId, after: $0) }))
-        }
-    }
-
-    private func picker(_ key: String, selection: Binding<String?>) -> some View {
-        Picker(localization.L(key), selection: selection) {
-            ForEach(store.sides) { side in
-                Text(label(side)).tag(Optional(side.id))
-            }
-        }
-        .frame(maxWidth: 360)
-    }
-
-    /// Date, durée, minutes comparables, nom de mesure (spec §3b).
-    private func label(_ side: ProbeSide) -> String {
-        let date = side.start.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "?"
-        let duration = side.start.flatMap { start in side.end.map { end in
-            Duration.seconds(end.timeIntervalSince(start))
-                .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
-        } } ?? "?"
-        let count = side.comparable.kept.count
-        if let measurement = side.measurement {
-            return String(format: localization.L(L10n.Performance.sideMeasurement),
-                          measurement.name, duration, count)
-        }
-        return String(format: localization.L(L10n.Performance.sideSegment), date, duration, count)
-    }
-
     private func reloadAll(cause: String) async {
         await PerformanceReloadLog.run(viewModel, cause: cause) {
             await refreshSlo(resume: true)
@@ -313,12 +276,12 @@ struct PerformanceView: View {
         await stardropiumDiagnostic.reload(mods: viewModel.mods, gameDir: game, runtime: sloRuntime())
     }
 
-    private func openBenchmark(_ pauseFolder: String?) {
+    func openBenchmark(_ pauseFolder: String?) {
         benchmarkPrefill = pauseFolder
         showBenchmark = true
     }
 
-    private func sloRuntime() -> SloDiagnosticRuntime {
+    func sloRuntime() -> SloDiagnosticRuntime {
         let gameDir = viewModel.gameDir
         let modsRoot = URL(fileURLWithPath: gameDir).appendingPathComponent("Mods")
         return SloDiagnosticRuntime(

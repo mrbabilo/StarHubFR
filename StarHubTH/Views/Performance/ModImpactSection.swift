@@ -275,6 +275,9 @@ struct ModImpactSection: View {
                         ModImpactFormat.date(store.lastInGame) ?? localization.L(L10n.Performance.impactNever),
                         ModImpactFormat.date(store.lastLaunch) ?? localization.L(L10n.Performance.impactNever),
                         ModImpactFormat.date(store.lastSave) ?? localization.L(L10n.Performance.impactNever)))
+            Button(localization.L(L10n.Performance.impactOpenPage)) {
+                viewModel.navigationStore.openPerformance(anchor: "mods", modFolder: mod.folderName)
+            }.buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
         }
     }
 }

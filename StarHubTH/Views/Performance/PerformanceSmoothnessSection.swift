@@ -85,7 +85,7 @@ struct PerformanceSmoothnessSection: View {
                 if isFrame {
                     RuleMark(y: .value("60 FPS", 1000.0 / 60))
                         .foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(dash: [4, 4]))
-                        .annotation(position: .top, alignment: .trailing) { Text("60 FPS").font(.caption2).foregroundStyle(.secondary) }
+                        .annotation(position: .top, alignment: .trailing) { Text("60 FPS").font(AppDesign.Font.caption).foregroundStyle(.secondary) }
                 }
             }
             .chartXScale(domain: lowX...highX)

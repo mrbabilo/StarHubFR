@@ -104,7 +104,7 @@ struct ModListRow: View {
 
     /// The effective enabled state, honoring the optimistic `localIsOn` value
     /// so the visual styling reacts instantly when the toggle is flipped
-    /// (before `vm.scanStore.mods` catches up).
+    /// (before the ViewModel's `scanStore.mods` catches up).
     private var effectiveEnabled: Bool { localIsOn ?? mod.isEnabled }
 
     /// Largeurs des colonnes, à un seul endroit. **Fixes, pas minimales** :
@@ -174,7 +174,7 @@ struct ModListRow: View {
         // brute, la colonne restait vide sur toutes les lignes de pack.
         let installed = mod.effectiveInstallDate
         let langs = mod.languages
-        // `mod` vient de `vm.scanStore.mods`, donc de la même analyse que la mesure : sa
+        // `mod` vient du `scanStore.mods` du ViewModel, donc de la même analyse que la mesure : sa
         // clé physique désigne le dossier tel qu'il était sur le disque quand
         // le poids a été relevé. Un composant de pack n'en a pas — c'est
         // l'en-tête du pack qui porte le poids du dossier entier.
@@ -502,14 +502,14 @@ struct ModListRow: View {
                     }
                     if let pending = PendingModUpdates.current(vm).pending(for: mod) { PendingUpdateBadge(pending: pending,
                         help: String(format: localization.L(L10n.Updates.availableVersion), pending.availableVersion)) }
-                    // D5-C — l'impact mesuré, même famille que les badges
-                    // d'alerte : il prévient avant la fiche. La pastille est
-                    // O(1) (`entriesById` du store) ; en dehors des classes
-                    // élevée et moyenne, elle ne se dessine pas.
+                    // D5-C — l'impact mesuré, même famille que les badges d'alerte : il
+                    // prévient avant la fiche, O(1) (`entriesById`), classes élevée et
+                    // moyenne seulement ; un clic ouvre son historique (lot D, I-T22).
                     if let shown = vm.modImpactStore.entriesById[mod.folderName]?.shown,
                        let impactClass = shown.impactClass {
-                        ImpactListBadge(shown: shown, impactClass: impactClass,
-                                        localization: localization)
+                        Button { vm.navigationStore.openPerformance(anchor: "mods", modFolder: mod.folderName) } label: {
+                            ImpactListBadge(shown: shown, impactClass: impactClass, localization: localization)
+                        }.buttonStyle(.plain)
                     }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))

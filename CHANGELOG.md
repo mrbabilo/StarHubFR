@@ -26,6 +26,10 @@ where the exact log format was verified.
 - **Une seule conclusion.** Les tuiles du Résumé gardent glyphe, teinte et écart ; la phrase du verdict vit dans « Analyse et conclusion », juste dessous ; la Chronologie ne répète plus le verdict du temps habituel. Le badge de l'Analyse dit « Preuve : forte / moyenne / faible », distinct de la qualité d'une métrique.
 - **Les gestes de l'Analyse disent « Fermez le jeu d'abord »** sous le bouton grisé quand le jeu tourne, au lieu de refuser après la confirmation.
 - **La feuille du benchmark va à l'essentiel** : le changement à tester, la sauvegarde, la durée ; état de départ, nombre de passes et sauvegarde B sous « Options ».
+- **Des chemins mènent à Performances.** Le badge d'impact d'un mod dans la liste, « Voir dans Performances » dans sa fiche, l'entrée « Performances » de la palette ⌘K et une ligne « dernière mesure en jeu » dans Santé ouvrent l'onglet à la bonne section, le mod en tête de l'historique. ⌘F sur Performances ne bascule plus vers le Journal.
+- **De retour après une partie, l'onglet signale la nouvelle session lue.** En mode « Dernière session » avec deux sessions ou plus, une carte propose de comparer.
+- **Après l'installation ou la mise à jour de la sonde**, une ligne rappelle qu'elle mesurera au prochain lancement du jeu.
+- **Textes raccourcis et précisés** : ce que SLO et Stardropium mesurent en plus de la sonde ; confirmations d'installation de la sonde, de « charger la sonde en premier » et de la mesure pilotée.
 
 ### Fixed
 

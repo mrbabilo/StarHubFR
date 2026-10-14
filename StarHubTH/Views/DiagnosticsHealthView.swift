@@ -30,6 +30,19 @@ struct DiagnosticsHealthView: View {
                               actionTitle: nil) {}
                         .padding(AppDesignCore.Spacing.lg)
                 }
+                if let last = viewModel.modImpactStore.lastInGame {
+                    Divider()
+                    SplitRow {
+                        Text(String(format: localization.L(L10n.Performance.healthLastMeasure),
+                                    last.formatted(date: .abbreviated, time: .shortened)))
+                            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                    } trailing: {
+                        Button(localization.L(L10n.Performance.healthOpen)) {
+                            viewModel.navigationStore.openPerformance()
+                        }.buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
+                    }
+                    .padding(.horizontal, Self.padding).padding(.vertical, AppDesign.Spacing.sm)
+                }
                 Divider()
                 BisectionCard(vm: viewModel, localization: localization)
                     .padding(Self.padding)

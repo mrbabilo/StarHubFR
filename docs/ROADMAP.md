@@ -903,8 +903,8 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
-- [ ] **I-T22** — *(lots A, B et C livrés le 2026-10-14 ; lot D à faire ;
-      validation écran des lots A à C en attente)* Audit UX/UI de l'onglet **Performances**
+- [ ] **I-T22** — *(lots A à D livrés le 2026-10-14 ; **reste la validation
+      écran** des quatre lots par l'auteur, puis clôture à l'archive)* Audit UX/UI de l'onglet **Performances**
       (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
       `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
       `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
@@ -926,8 +926,18 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       `PerformanceAnalysisTexts` extrait) ; gestes de l'Analyse grisés avec
       « Fermez le jeu d'abord » ; feuille benchmark en deux temps (« Options »
       replié, sauvegarde B suit A) ; un seul `.borderedProminent` par zone.
-      **Reste** : **D** (entrées depuis liste, fiche, palette, Santé via
-      `NavigationStore` ; ⌘F ne quitte plus la page ; textes longs réécrits).
+      **Lot D** : `NavigationStore.openPerformance(anchor:modFolder:)` +
+      `pendingPerformanceFocus` consommé par `PerformanceView` (déplie
+      l'historique, mod en tête, défile) ; entrées : badge d'impact de la liste,
+      « Voir dans Performances » dans la fiche, entrée « Performances » de la
+      palette ⌘K, ligne « dernière mesure en jeu » dans Santé ; ⌘F ne quitte
+      plus Performances ; ligne « Nouvelle session lue » au retour ; carte
+      « compare deux moments » en mode Dernière session ; note « mesurera au
+      prochain lancement » après installation de la sonde ; cinq textes longs
+      réécrits (SLO, Stardropium, trois confirmations) ; `PerformanceView`
+      scindé (`PerformanceView+Sections`). Non fait, à instruire : comptes dans
+      les titres des volets, deux tailles de graphique, « ~N min » sur les
+      diagnostics tiers en cours.
       Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
       distinctes présentées ensemble (pas de geste unique), outils tiers repliés
       si absents, guidée manuelle gardée en second, carte Sonde à un seul
@@ -956,6 +966,15 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       lentes » avec ; jeu ouvert en mode Comparer → « Mettre en pause » gris
       avec « Fermez le jeu d'abord » ; feuille Benchmark → trois choix, la
       sauvegarde, la durée en gras, « Options » replié, tient à 560 pt.
+      *Lot D* : liste des mods, clic sur un badge d'impact → Performances,
+      « Historique des mods » déplié, ce mod en première ligne ; fiche d'un mod,
+      « Voir dans Performances » → même arrivée ; ⌘K « perf » → entrée
+      « Performances » ; Santé → ligne « dernière mesure en jeu » + « Ouvrir
+      Performances » ; ⌘F sur Performances → rien ne change d'onglet ; jouer
+      puis revenir → « Nouvelle session lue : … » sous le Picker, disparaît au
+      prochain changement d'onglet ; mode Dernière session avec deux sessions →
+      carte « compare deux moments » + bouton ; installer la sonde → ligne
+      « mesurera au prochain lancement ».
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.

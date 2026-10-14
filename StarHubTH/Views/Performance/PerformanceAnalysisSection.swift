@@ -52,9 +52,9 @@ struct PerformanceAnalysisSection: View {
                     Text("· " + PerformanceAnalysisTexts.evidence(evidence, localization, name: name))
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                 }
+                Text(localization.L(L10n.Performance.contextual))
+                    .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
-            Text(localization.L(L10n.Performance.contextual))
-                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             if let message {
                 Text(message).font(AppDesign.Font.footnote)
             }

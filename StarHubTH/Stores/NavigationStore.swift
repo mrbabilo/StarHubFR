@@ -129,6 +129,25 @@ final class NavigationStore {
         pendingLogSearchFocus = true
     }
 
+    /// Lot D de l'audit Performances (I-T22, S8) — l'onglet Performances
+    /// demandé depuis la liste, la fiche, Santé ou la palette : l'ancre à
+    /// montrer et, pour l'historique, le mod à mettre en tête. Consommé par
+    /// `PerformanceView` à son apparition et au changement (patron
+    /// `pendingLogFocus`) : la vue peut ne pas exister encore.
+    struct PerformanceFocus: Equatable {
+        let anchor: String
+        let modFolder: String?
+    }
+    var pendingPerformanceFocus: PerformanceFocus?
+
+    /// Ouvre « Diagnostic & Performances » sur l'onglet Performances, à
+    /// l'ancre voulue (`"summary"`, `"loads"`, `"mods"`…).
+    func openPerformance(anchor: String = "summary", modFolder: String? = nil) {
+        diagnosticsSegment = .performance
+        pendingPerformanceFocus = PerformanceFocus(anchor: anchor, modFolder: modFolder)
+        requestTab(.logs)
+    }
+
     /// I-T5 — « Sauvegardes de ce mod » : le dossier logique dont la page
     /// Sauvegardes doit s'ouvrir filtrée et dépliée. Consommé par
     /// `ModInstallBackupsView` à son apparition (patron `pendingLogFocus`).

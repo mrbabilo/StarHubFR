@@ -15,6 +15,9 @@ struct PerformanceProbeSection: View {
     /// D4-T3 — l'installation ou la mise à jour en attente de confirmation.
     @State private var pending: ProbeBundle.Action?
     @State private var failure: String?
+    /// Après une installation ou une mise à jour : la DLL n'est lue qu'au
+    /// lancement du jeu (lot D, G8).
+    @State private var installedNote: String?
     /// La bannière « sonde en premier » est déjà en tête de page
     /// (`PerformanceMeasurementStatus.hoistsLoadOrderBanner`) : ne pas la répéter.
     var loadOrderBannerHoisted = false
@@ -49,6 +52,7 @@ struct PerformanceProbeSection: View {
                     .foregroundColor(AppDesign.Color.success)
             }
             installButton
+            if let installedNote { note(installedNote) }
             if case .enabled = probe, !loadOrderBannerHoisted {
                 PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,
                                            consent: $loadEarlyConsent)
@@ -105,9 +109,17 @@ struct PerformanceProbeSection: View {
         guard !viewModel.isGameRunning() else {
             failure = localization.L(L10n.Performance.gameRunning); return
         }
+        let installing: String? = {
+            switch action {
+            case .install(let version): return version
+            case .update(_, let to): return to
+            case .unavailable, .upToDate, .newerInstalled: return nil
+            }
+        }()
         do {
             try ProbeBundle.installBundled(resourcesURL: Bundle.main.resourceURL,
                                            gameDir: viewModel.gameDir, mods: viewModel.mods)
+            installedNote = installing.map { String(format: localization.L(L10n.Performance.probeUpdatedRelaunch), $0) }
             Task { await viewModel.rescanInBackground(includeRepair: false) } // X125
         } catch {
             failure = String(format: localization.L(L10n.Performance.probeInstallFailed),

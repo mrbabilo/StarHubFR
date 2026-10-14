@@ -150,7 +150,9 @@ struct DiagnosticsView: View {
 
     @ViewBuilder
     private var searchShortcutOutsideJournal: some View {
-        if viewModel.navigationStore.diagnosticsSegment != .journal {
+        // Depuis Santé seulement : sur Performances, ⌘F ne change pas d'onglet
+        // (lot D de l'audit Performances, F11).
+        if viewModel.navigationStore.diagnosticsSegment == .health {
             Button("") { viewModel.navigationStore.focusLogSearch() }
                 .keyboardShortcut("f", modifiers: .command)
                 .opacity(0)

@@ -1871,7 +1871,7 @@
 "perf_probe_install" = "Installer la sonde %@";
 "perf_probe_update" = "Mettre à jour la sonde (%@ → %@)";
 "perf_probe_install_confirm_title" = "Installer la sonde StarHubFR ?";
-"perf_probe_install_confirm" = "StarHubFR copie la sonde livrée avec l'app dans Mods/%@. Elle n'optimise rien, ne touche à aucun autre mod et n'utilise pas le réseau ; vous pourrez la mettre en pause ou la supprimer comme n'importe quel mod. Une mise à jour garde son config.json.";
+"perf_probe_install_confirm" = "StarHubFR copie la sonde livrée avec l'app dans Mods/%@. Elle ne change rien d'autre et n'utilise pas le réseau ; mets-la en pause ou supprime-la comme n'importe quel mod. Une mise à jour garde son config.json.";
 "perf_probe_unavailable" = "Cette version de l'app n'embarque pas la sonde.";
 "perf_probe_install_failed" = "Installation de la sonde impossible : %@";
 "perf_unreadable" = "%lld ligne(s) illisible(s) ignorée(s)";
@@ -2004,7 +2004,7 @@
 "perf_other_measures" = "Autres mesures…";
 "perf_pilot_ref_vanilla" = "Profil de lancement « Vanilla » : la mesure pilotée a besoin de SMAPI. Change le profil dans Réglages.";
 "bench_options" = "Options";
-"perf_pilot_profile_note" = "Comparatif A/B : A = le parc actuel, B = le profil choisi. Le jeu se lance deux fois (changer de profil exige un redémarrage) ; tout se fait seul, laisse la fenêtre du jeu au premier plan. Le résultat s'affiche ici à la fin.";
+"perf_pilot_profile_note" = "A = le parc actuel, B = le profil choisi. Le jeu se lance deux fois tout seul : laisse sa fenêtre au premier plan. Le résultat s'affiche ici à la fin.";
 "perf_pilot_status" = "Pilotage — étape %1$@ · %2$d min gardées";
 "perf_pilot_step_before" = "A, parc actuel (1/2)";
 "perf_pilot_step_after" = "B, après le changement (2/2)";
@@ -2065,7 +2065,7 @@
 "perf_loads_load_note" = "Chargement des mods : %@ (%d sur %d vus).";
 "perf_loads_probe_not_first" = "La sonde n'est pas chargée en premier : le chargement des mods d'avant elle n'est pas mesuré, et leur démarrage inclut le travail d'autres mods.";
 "perf_loads_probe_first_action" = "Charger la sonde en premier";
-"perf_loads_probe_first_confirm" = "StarHubFR ajoutera la sonde à ModsToLoadEarly dans smapi-internal/config.user.json (une copie est gardée), et l'en retirera quand la sonde est en pause. Rien d'autre ne change dans l'ordre des mods.";
+"perf_loads_probe_first_confirm" = "StarHubFR ajoute la sonde à ModsToLoadEarly dans smapi-internal/config.user.json (une copie est gardée) et l'en retire quand la sonde est en pause. Rien d'autre ne change.";
 "perf_loads_probe_first_undo" = "Ne plus charger la sonde en premier";
 "perf_loads_probe_first_active" = "Sonde chargée en premier : le chargement et le démarrage de chaque mod sont mesurés.";
 "perf_loads_probe_first_pending" = "Sonde placée en tête : effet au prochain lancement du jeu.";
@@ -2133,6 +2133,12 @@
 "perf_loads_empty" = "Lance le jeu, charge une sauvegarde, puis reviens ici.";
 "bench_panel_open" = "Panneau";
 "perf_loads_needs_probe" = "Les chargements sont mesurés par la sonde StarHubFR : installe-la depuis la carte « Sonde » en haut de la page.";
+"perf_impact_open_page" = "Voir dans Performances";
+"perf_probe_updated_relaunch" = "Sonde %@ installée. Elle mesurera au prochain lancement du jeu.";
+"perf_new_session_line" = "Nouvelle session lue : %@";
+"perf_analysis_single_hint" = "Pour conclure, compare deux moments : avant et après un changement.";
+"perf_health_last_measure" = "Performances : dernière mesure en jeu %@";
+"perf_health_open" = "Ouvrir Performances";
 "perf_probe_settings_link" = "Réglages";
 "perf_loads_faster" = "%@ : %@ plus rapide depuis ce changement.";
 "perf_loads_slower" = "%@ : %@ plus lent depuis ce changement.";
@@ -2418,7 +2424,7 @@
 "perf_evidence_secondMeasurement" = "Mesurer une deuxième session";
 "perf_evidence_compareChange" = "Comparer avant et après un changement";
 "perf_slo_title" = "Diagnostic détaillé des chargements";
-"perf_slo_subtitle" = "Lance une session mesurée. StarHubFR active temporairement les mesures détaillées de SLO, puis restaure tes fichiers et l’état des mods.";
+"perf_slo_subtitle" = "Détaille où passe le temps d'un chargement (cartes, images, caches) : la sonde ne mesure que le total par mod. Les mesures détaillées de SLO sont activées pour une session, puis tes fichiers et l'état des mods sont restaurés.";
 "perf_slo_missing" = "Stardew Loading Optimizer n’est pas installé";
 "perf_slo_missing_detail" = "Installe SLO pour mesurer chargements, caches et transitions depuis cette page.";
 "perf_slo_downloading" = "Téléchargement de SLO en cours";
@@ -2473,7 +2479,7 @@
 "perf_slo_yes" = "Oui";
 "perf_slo_no" = "Non";
 "perf_stardropium_title" = "Mémoire — Stardropium";
-"perf_stardropium_source" = "Dernier journal SMAPI · indépendant des sessions Avant/Après de la sonde.";
+"perf_stardropium_source" = "Mesure la mémoire que Stardropium libère à chaque nettoyage : la sonde ne voit que la mémoire du jeu. Lu dans le dernier journal SMAPI, indépendant des sessions Avant/Après.";
 "perf_stardropium_session" = "Session démarrée le %@";
 "perf_stardropium_unknownDate" = "Date de session non disponible";
 "perf_stardropium_version" = "Stardropium %@ · %lld relevé(s)";

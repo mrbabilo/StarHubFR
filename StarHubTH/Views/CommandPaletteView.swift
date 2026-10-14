@@ -29,6 +29,13 @@ struct CommandPaletteView: View {
     private func buildEntries() -> [CommandPaletteEntry] {
         var out: [CommandPaletteEntry] = SidebarOrder.all
             .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
+        // L'onglet Performances n'est pas une destination de la barre
+        // latérale : une entrée à part (lot D de l'audit Performances).
+        out.append(CommandPaletteEntry(id: "dest:\(SidebarDestination.logs.rawValue)#performance",
+                                       kind: .destination,
+                                       title: localization.L(L10n.Logs.segmentPerformance),
+                                       subtitle: localization.L(L10n.Logs.logs),
+                                       icon: "gauge.with.dots.needle.67percent"))
         out += vm.scanStore.mods.flattenedMods.map(CommandPaletteEntry.forMod)
         out += vm.modProfiles.map {
             CommandPaletteEntry.forProfile(
@@ -224,7 +231,10 @@ struct CommandPaletteView: View {
         case .destination:
             // L'id est "dest:" + rawValue — on remonte à la destination.
             let raw = String(e.id.dropFirst("dest:".count))
-            if let d = SidebarDestination(rawValue: raw) { vm.requestTab(d) }
+            let navigation = vm.navigationStore
+            if raw.hasSuffix("#performance") {
+                navigation.openPerformance()
+            } else if let d = SidebarDestination(rawValue: raw) { navigation.requestTab(d) }
         case .mod:
             // Le canal B3-T4 déjà en place. Un mod disparu entre l'ouverture
             // et ↩ résout à nil : rien ne s'ouvre, plutôt qu'une fiche
