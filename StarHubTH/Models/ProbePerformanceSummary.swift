@@ -27,13 +27,15 @@ public struct ProbePerformanceSummary: Equatable, Sendable {
         return single(side)
     }
 
-    /// Une relecture sans aucune minute gardée (jeu en arrière-plan, début de
-    /// partie) ne remplace pas des chiffres par « — » : la synthèse d'avant
-    /// reste affichée. Sans synthèse du tout (`nil` : pas de sonde, pas de
-    /// session), on suit la relecture.
+    /// Une relecture sans aucune minute gardée (jeu en arrière-plan) ne
+    /// remplace pas des chiffres par « — » : la synthèse d'avant reste, **dans
+    /// la même session seulement** — jeu relancé, la nouvelle session montre
+    /// des tirets, jamais les chiffres d'une autre. Sans synthèse (`nil` : pas
+    /// de sonde, pas de session), on suit la relecture.
     public static func keepingNumbers(_ fresh: Self?, over previous: Self?) -> Self? {
         guard let fresh, fresh.side.comparable.kept.isEmpty,
-              let previous, !previous.side.comparable.kept.isEmpty else { return fresh }
+              let previous, !previous.side.comparable.kept.isEmpty,
+              previous.side.session == fresh.side.session else { return fresh }
         return previous
     }
 

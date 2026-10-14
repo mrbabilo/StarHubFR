@@ -14,13 +14,22 @@ struct ProbePerformanceSummaryTests {
     /// Retour du 2026-10-14 : jeu en arrière-plan, aucune minute neuve n'est
     /// gardée — la synthèse passait à « — ». Les chiffres d'avant restent.
     @Test func aRefreshWithoutKeptMinutesKeepsThePreviousNumbers() throws {
-        let previous = ProbePerformanceSummary.single(
-            PerformanceFixture.side("A", minutes: try (0..<10).map { try PerformanceFixture.minute(index: $0) }))
-        let empty = ProbePerformanceSummary.single(PerformanceFixture.side("B", minutes: []))
+        let previous = ProbePerformanceSummary.single(PerformanceFixture.side(
+            "A", session: "s1", minutes: try (0..<10).map { try PerformanceFixture.minute(index: $0) }))
+        let empty = ProbePerformanceSummary.single(PerformanceFixture.side("B", session: "s1", minutes: []))
         #expect(ProbePerformanceSummary.keepingNumbers(empty, over: previous) == previous)
         #expect(ProbePerformanceSummary.keepingNumbers(previous, over: empty) == previous)
         #expect(ProbePerformanceSummary.keepingNumbers(empty, over: nil) == empty)
         #expect(ProbePerformanceSummary.keepingNumbers(nil, over: previous) == nil)
+    }
+
+    /// Jeu relancé : la nouvelle session n'a encore rien de gardé — des
+    /// tirets, jamais les chiffres de la session d'avant.
+    @Test func aNewSessionWithoutKeptMinutesShowsDashes() throws {
+        let previous = ProbePerformanceSummary.single(PerformanceFixture.side(
+            "A", session: "s1", minutes: try (0..<10).map { try PerformanceFixture.minute(index: $0) }))
+        let relaunched = ProbePerformanceSummary.single(PerformanceFixture.side("B", session: "s2", minutes: []))
+        #expect(ProbePerformanceSummary.keepingNumbers(relaunched, over: previous) == relaunched)
     }
 
     @Test func defaultPairDoesNotCompareASegmentWithItsOwnMeasurement() throws {
