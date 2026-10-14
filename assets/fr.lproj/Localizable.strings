@@ -248,6 +248,7 @@
 "install_report_data_skipped_row" = "%1$@ — %2$d fichier(s) de données non remis (réglage) : ils restent dans la sauvegarde d'installation.";
 "install_report_summary_ghosts" = "%d fichiers d'anciennes versions retirés";
 "update_triage_ghosts" = "%d fichier(s) d'anciennes versions retiré(s) — ils restent dans la sauvegarde d'installation";
+"update_triage_default_configs" = "%d config.json par défaut, jamais modifié(s), remplacé(s) par celui de la version neuve — l'ancien reste dans la sauvegarde d'installation";
 "update_triage_retouches" = "%d retouche(s) gardée(s)";
 "update_triage_author_changed" = "dont %d que l'auteur a aussi modifiée(s) : sa nouvelle version n'a pas été posée";
 "update_triage_content" = "%d content.json retouché(s) gardé(s) : il peut viser des fichiers que l'auteur a retirés";

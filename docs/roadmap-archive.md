@@ -3774,6 +3774,24 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X136** ✅ *(corrigé le 2026-10-14, relevé en décompilant StardewOptimizer 3.0.3)* — **Un `config.json` jamais modifié était gardé à chaque mise à jour.**
+      La règle 1 du tri A1-T11 (`UpdateFileTriage.decide`) gardait tout
+      `config.json` d'office. Mesuré sur le parc : celui de StardewOptimizer
+      est identique, octet pour octet, à celui que l'auteur livrait en 1.0.0
+      (SHA-256 `d38c4ba7…832d5`, manifeste Nexus 186155) ; les installations
+      de la 2.0.0 puis de la 3.0.3 l'ont gardé, et le mod tournait avec six
+      modules agressifs que l'auteur a éteints par défaut en 3.0.3 — dont
+      `AutomateThrottle`, qui arrête Automate tant que le joueur bouge
+      (`docs/audit-stardewoptimizer-3.0.3.md`). Correctif (règle 1b) : ces
+      octets à ce chemin sortent d'une version de l'auteur (Nexus, ou le
+      journal local, qui décrit l'**archive livrée** et non le dossier
+      restauré — vérifié dans `ModHistoryRecorder`) **et** l'archive neuve en
+      livre un autre ⇒ le neuf, compté au bilan (`replacedDefaultConfigs`),
+      l'ancien reste dans la sauvegarde d'installation. Réglé à la main,
+      identique au neuf, plus livré, ou sans référence : gardé. Sans id Nexus
+      ni journal (dépôt d'archive hors Nexus), le chemin liste blanche garde
+      comme avant. Sabotage de la garde de provenance : le test des cas
+      voisins rougit.
 - [x] **X135** ✅ *(corrigé le 2026-10-14, audit du delta « mesure pilotée »)* — **Le retour arrière d'une série pilotée disparaissait au redémarrage de l'app.**
       `GuidedPilotRunner.sideFinished` effaçait `guided-pilot-state.json` dès
       `.reporting`, alors que la série finit côté B et que `canRollback` vaut

@@ -15,8 +15,13 @@ import Foundation
 /// `docs/superpowers/specs/2026-09-27-a1-t11-update-triage-design.md`.
 public enum UpdateFileTriage {
     public enum Decision: Equatable, Sendable {
-        /// Règle 1 — `config.json`, gardé d'office (comportement d'avant).
+        /// Règle 1 — `config.json` gardé : il porte peut-être des réglages.
         case keepConfig
+        /// Règle 1b (X136) — `config.json` identique, octet pour octet, à celui
+        /// d'une version de l'auteur, et l'archive neuve en livre un autre :
+        /// jamais modifié, il ne porte aucun réglage. Le neuf le remplace ;
+        /// l'ancien reste dans la sauvegarde d'installation.
+        case takeNewDefaultConfig
         /// Règle 2 — déposé par l'app chez cet hôte (traduction, sac).
         case keepDeposit
         /// Règle 3 — identique à une version de l'auteur, absent de l'archive
@@ -44,7 +49,7 @@ public enum UpdateFileTriage {
             case .keepConfig, .keepDeposit, .keepRetouch, .keepContentRetouch,
                  .keepUnverifiedTranslation, .keepLocal:
                 return true
-            case .removeGhost, .takeNew, .replaceStructural, .replaceUnverified:
+            case .removeGhost, .takeNew, .takeNewDefaultConfig, .replaceStructural, .replaceUnverified:
                 return false
             }
         }
@@ -151,7 +156,16 @@ public enum UpdateFileTriage {
                                index: AuthorFileIndex, reference: [String: Set<String>]?,
                                deposits: Set<String>) -> Decision {
         let name = ModFilePath.lastComponent(key)
-        if name == "config.json" { return .keepConfig }
+        if name == "config.json" {
+            // Garder figeait les défauts que l'auteur a abandonnés
+            // (StardewOptimizer 1.0.0 → 3.0.3, 2026-10-14). Seule preuve
+            // admise : ces octets à ce chemin sortent d'une version de
+            // l'auteur — Nexus, ou le journal, qui décrit l'archive livrée.
+            if let newSha = new[key], newSha != sha, index.isAuthorFile(key, sha: sha) {
+                return .takeNewDefaultConfig
+            }
+            return .keepConfig
+        }
         if deposits.contains(key) { return .keepDeposit }
         if new[key] == sha { return .takeNew }
         if index.isAuthorFile(key, sha: sha) {
@@ -191,6 +205,8 @@ public struct UpdateTriageProvider: Sendable {
 /// Ce que le bilan et le journal disent d'un tri. Chemins du disque, triés.
 public struct UpdateTriageReport: Codable, Equatable, Sendable {
     public var removedGhosts: [String] = []
+    /// X136 — `config.json` jamais modifiés, remplacés par ceux de la version neuve.
+    public var replacedDefaultConfigs: [String] = []
     public var keptRetouches: [String] = []
     public var retouchesAuthorChanged: [String] = []
     public var contentRetouches: [String] = []
@@ -206,7 +222,7 @@ public struct UpdateTriageReport: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case removedGhosts, keptRetouches, retouchesAuthorChanged, contentRetouches,
+        case removedGhosts, replacedDefaultConfigs, keptRetouches, retouchesAuthorChanged, contentRetouches,
              replacedStructural, replacedUnverified, keptUnverifiedTranslations,
              keptDeposits, keptLocal, authorNowShips, respectedDeletions, nexusIncomplete
     }
@@ -218,6 +234,7 @@ public struct UpdateTriageReport: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         func list(_ key: CodingKeys) throws -> [String] { try c.decodeIfPresent([String].self, forKey: key) ?? [] }
         removedGhosts = try list(.removedGhosts)
+        replacedDefaultConfigs = try list(.replacedDefaultConfigs)
         keptRetouches = try list(.keptRetouches)
         retouchesAuthorChanged = try list(.retouchesAuthorChanged)
         contentRetouches = try list(.contentRetouches)
@@ -243,6 +260,7 @@ public struct UpdateTriageReport: Codable, Equatable, Sendable {
     mutating func note(_ decision: UpdateFileTriage.Decision, path: String) {
         switch decision {
         case .keepConfig, .takeNew: break
+        case .takeNewDefaultConfig: replacedDefaultConfigs.append(path)
         case .keepDeposit: keptDeposits.append(path)
         case .removeGhost: removedGhosts.append(path)
         case .replaceStructural: replacedStructural.append(path)
@@ -263,6 +281,7 @@ public struct UpdateTriageReport: Codable, Equatable, Sendable {
     func sorted() -> UpdateTriageReport {
         var copy = self
         copy.removedGhosts.sort()
+        copy.replacedDefaultConfigs.sort()
         copy.keptRetouches.sort()
         copy.retouchesAuthorChanged.sort()
         copy.contentRetouches.sort()

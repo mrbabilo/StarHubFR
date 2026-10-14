@@ -26,6 +26,8 @@ struct UpdateTriageRows: View {
                             text: String(format: localization.L(key), paths.count), paths: paths))
         }
         add(L10n.UpdateTriage.ghosts, "trash", .secondary, report.removedGhosts)
+        add(L10n.UpdateTriage.defaultConfigs, "gearshape.arrow.triangle.2.circlepath", .orange,
+            report.replacedDefaultConfigs)
         add(L10n.UpdateTriage.retouches, "paintbrush", .green, report.keptRetouches)
         add(L10n.UpdateTriage.authorChanged, AppDesign.Status.warning.symbol, .orange, report.retouchesAuthorChanged)
         add(L10n.UpdateTriage.content, AppDesign.Status.warning.symbol, .orange, report.contentRetouches)
@@ -76,4 +78,9 @@ struct UpdateTriageRows: View {
             Spacer(minLength: 0)
         }
     }
+}
+
+/// X136 — `L10n.swift` est verrouillé par le cliquet de taille.
+extension L10n.UpdateTriage {
+    static let defaultConfigs = "update_triage_default_configs"
 }

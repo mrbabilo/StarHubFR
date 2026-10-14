@@ -162,6 +162,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 
 ### 5.5 Drag-and-drop install
 - **NE JAMAIS écraser** `config.json` ni `fr.json` d'un mod existant (conflit signalé).
+  **Seule exception (X136)** : à la mise à jour, un `config.json` identique octet pour octet à celui d'une version de l'auteur (empreinte Nexus ou journal local de l'archive livrée), quand l'archive neuve en livre un autre — jamais modifié, il ne porte aucun réglage ; le neuf le remplace, le bilan le dit, l'ancien reste dans la sauvegarde d'installation. Sans preuve d'empreinte : gardé.
 - Nouveau mod → désactivé par défaut (`Mods/.X`).
 - Update d'un mod **activé** → reste activé (`Mods/X`).
 

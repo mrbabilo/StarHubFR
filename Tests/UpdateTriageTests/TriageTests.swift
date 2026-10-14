@@ -69,6 +69,57 @@ struct TriageTests {
                               installedVersion: installedVersion, deposits: deposits)
     }
 
+    /// X136 — StardewOptimizer 1.0.0 → 3.0.3 sur le parc (2026-10-14) : le
+    /// `config.json` installé est celui que l'auteur livrait en 1.0.0, octet
+    /// pour octet (SHA-256 `d38c4ba7…`, manifeste Nexus 186155). Jamais modifié,
+    /// il ne porte aucun réglage : garder lui faisait tourner les défauts
+    /// abandonnés par l'auteur. Le neuf le remplace, et le bilan le dit.
+    @Test func anUntouchedShippedConfigTakesTheNewOne() {
+        let result = plan(installed: ["config.json": "d38c4ba7", "StardewOptimizer.dll": "dll1"],
+                          new: ["config.json": "cfg303", "StardewOptimizer.dll": "dll303"],
+                          versions: [version(["config.json": "d38c4ba7", "StardewOptimizer.dll": "dll1"])],
+                          installedVersion: "3.0.3")
+        #expect(result.decisions["config.json"] == .takeNewDefaultConfig)
+        #expect(!result.critical.contains("config.json"))
+        #expect(result.report.replacedDefaultConfigs == ["config.json"])
+        // Le journal local décrit l'archive livrée : il prouve aussi bien.
+        let local = plan(installed: ["config.json": "d38c4ba7"], new: ["config.json": "cfg303"],
+                         versions: [version(["config.json": "d38c4ba7"], local: true)])
+        #expect(local.decisions["config.json"] == .takeNewDefaultConfig)
+    }
+
+    /// Les cas voisins, qui ne doivent **pas** bouger : réglé à la main, même
+    /// fichier que le neuf, plus livré du tout, et sans aucune référence.
+    @Test func everyOtherConfigIsStillKept() {
+        let edited = plan(installed: ["config.json": "mine"], new: ["config.json": "cfg2"],
+                          versions: [version(["config.json": "cfg1"])])
+        #expect(edited.decisions["config.json"] == .keepConfig)
+        let same = plan(installed: ["config.json": "cfg1"], new: ["config.json": "cfg1"],
+                        versions: [version(["config.json": "cfg1"])])
+        #expect(same.decisions["config.json"] == .keepConfig)
+        let notShipped = plan(installed: ["config.json": "cfg1"], new: ["a.dll": "x"],
+                              versions: [version(["config.json": "cfg1"])])
+        #expect(notShipped.decisions["config.json"] == .keepConfig)
+        let unknown = plan(installed: ["config.json": "cfg1"], new: ["config.json": "cfg2"], versions: [])
+        #expect(unknown.decisions["config.json"] == .keepConfig)
+        // Un pack : le `config.json` d'un composant suit la même règle, par chemin.
+        let nested = plan(installed: ["Core/config.json": "mine"], new: ["Core/config.json": "cfg2"],
+                          versions: [version(["Core/config.json": "cfg1"])])
+        #expect(nested.decisions["Core/config.json"] == .keepConfig)
+        #expect(edited.report.replacedDefaultConfigs.isEmpty)
+    }
+
+    /// Un journal d'avant X136 se relit : le champ absent vaut vide.
+    @Test func anOlderReportWithoutTheFieldStillDecodes() throws {
+        let old = #"{"removedGhosts":["a.png"],"nexusIncomplete":false}"#
+        let report = try JSONDecoder().decode(UpdateTriageReport.self, from: Data(old.utf8))
+        #expect(report.removedGhosts == ["a.png"] && report.replacedDefaultConfigs.isEmpty)
+        var fresh = UpdateTriageReport()
+        fresh.replacedDefaultConfigs = ["config.json"]
+        let back = try JSONDecoder().decode(UpdateTriageReport.self, from: JSONEncoder().encode(fresh))
+        #expect(back.replacedDefaultConfigs == ["config.json"])
+    }
+
     @Test func aRetouchIsKeptAndSaysWhenTheAuthorChangedItToo() {
         let result = plan(installed: ["a.png": "mine", "b.png": "mine"],
                           new: ["a.png": "v1", "b.png": "v2"],

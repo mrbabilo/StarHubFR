@@ -248,6 +248,7 @@
 "install_report_data_skipped_row" = "%1$@ — %2$d data file(s) not put back (setting): they stay in the install backup.";
 "install_report_summary_ghosts" = "%d files from older versions removed";
 "update_triage_ghosts" = "%d file(s) from older versions removed — they stay in the install backup";
+"update_triage_default_configs" = "%d default config.json never edited, replaced by the new version's — the old one stays in the install backup";
 "update_triage_retouches" = "%d of your edit(s) kept";
 "update_triage_author_changed" = "including %d the author also changed: their new version was not installed";
 "update_triage_content" = "%d edited content.json kept: it may refer to files the author removed";

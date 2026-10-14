@@ -82,10 +82,10 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X135 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
+Les X1–X136 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
-**X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14.
+**X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour.
 **Aucun correctif ouvert.**
 
 ---
@@ -1787,6 +1787,8 @@ Et la restauration écrit dans **notre copie fraîche**, pas dans un dossier de 
 à 0555 : `restoreUserConfigs` n'a pas besoin d'ouvrir les droits (il fonctionne
 déjà ainsi pour `config.json`).
 
+> **X136 (2026-10-14)** — le tri A1-T11 gardait **tout** `config.json` (règle 1). Un fichier identique à celui d'une version de l'auteur ne porte pourtant aucun réglage : il prend désormais celui de l'archive neuve (règle 1b, voir l'archive).
+
 #### Les trois options
 
 | | Ce qu'on fait | Coût | Ce qu'on gagne / risque |
@@ -2006,6 +2008,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X136** | 2026-10-14 | À la mise à jour, un `config.json` jamais modifié — identique à celui livré par l'auteur — était gardé (règle 1 du tri A1-T11) : StardewOptimizer tournait avec les défauts agressifs de sa 1.0.0 après deux mises à jour. Règle 1b : empreinte d'auteur + archive neuve différente ⇒ le neuf, annoncé au bilan ; sinon gardé |
 | **X135** | 2026-10-14 | La fin d'une série pilotée effaçait l'état sur disque (`GuidedPilotStateStore.clear` à `.reporting`) : quitter l'app avant de trancher perdait le retour arrière, le parc restait côté B sans trace. État gardé jusqu'à `dismiss` ou retour arrière réussi |
 | **X134** | 2026-10-14 | « Revenir au réglage d'avant » d'un composant de pack écrivait `Mods/<pack>/config.json` (la tête, via `target`) et rendait `.reverted` — le réglage du composant restait inchangé, 78 packs du parc concernés. `configOwner` + `configURL` (dossier réel, pack en pause compris), pilotage et analyse |
 | **X133** | 2026-10-11 | Installer la sonde depuis la carte SLO échouait en silence (`catch { return }`) et sans garde jeu ; le volet Stardropium ignorait le jeu ouvert aussi — les deux jumeaux du geste (carte Sonde, Réglages) gardaient et affichaient. Garde + messages distincts, clés existantes réutilisées |
