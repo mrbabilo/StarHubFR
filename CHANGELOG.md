@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.63.0] - 2026-10-14
+
 ### Added
 
 - **Ranger les mods dans ses propres groupes.** « Regrouper par » : aucun, mes groupes ou catégorie. Bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, et tout un groupe s'active ou se met en pause d'un geste, dans le cadrage affiché (I-T21).
