@@ -18,14 +18,21 @@ extension ModListView {
             guard pages.indices.contains(page - 1) else { return nil }
             return pages[page - 1].reduce(0) { $0 + $1.mods.count }
         }
+
+        /// Le pied compte les mods visibles, dans l'ordre navigable : les mods
+        /// d'une section repliée n'ont aucune place dans la plage.
+        var total: Int? { pages.isEmpty ? nil : navigable.count }
+
+        func rangeStart(page: Int) -> Int? {
+            pages.isEmpty ? nil : ModGroupPages.modsBefore(page: page, in: pages) + 1
+        }
     }
 
     func groupedLayout(_ display: [ModItem]) -> GroupedLayout {
         let grouping = ModGrouping(rawValue: groupingRaw) ?? .none
         guard grouping != .none, !display.isEmpty else { return GroupedLayout(pages: [], navigable: display) }
         let sections = ModGroupPages.sections(display: display, mode: grouping, state: viewModel.groups.state,
-                                              category: { mod in viewModel.category(for: mod).map {
-                                                  (id: $0.id, name: $0.localizedName(localization.L)) } })
+                                              category: sectionCategory)
         return GroupedLayout(pages: ModGroupPages.pages(sections, pageSize: pageSize),
                              navigable: sections.filter { !$0.collapsed }.flatMap(\.mods))
     }
@@ -53,12 +60,23 @@ extension ModListView {
         }
     }
 
+    func sectionCategory(_ mod: ModItem) -> (id: Int, name: String)? {
+        viewModel.category(for: mod).map { (id: $0.id, name: $0.localizedName(localization.L)) }
+    }
+
     func toggleCollapse(_ section: ModListSectionModel) {
-        if case .group(let id) = section.key {
-            viewModel.groups.update { $0.setCollapsed(group: id, !section.collapsed) }
-        } else {
-            viewModel.groups.update { $0.setCollapsed(category: section.key.collapseKey, !section.collapsed) }
-        }
+        viewModel.groups.update { $0.setCollapsed(section.key, !section.collapsed) }
+    }
+
+    /// Un saut vers un mod (journaux, diagnostics) ouvre sa section si elle
+    /// est repliée : l'écran conduit au mod, pas à un bandeau.
+    func revealInGroups(_ mod: ModItem) {
+        let grouping = ModGrouping(rawValue: groupingRaw) ?? .none
+        guard grouping != .none,
+              let section = ModGroupPages.sections(display: [mod], mode: grouping, state: viewModel.groups.state,
+                                                   category: sectionCategory).first,
+              section.collapsed else { return }
+        viewModel.groups.update { $0.setCollapsed(section.key, false) }
     }
 
     /// « Regrouper par » : aucun, mes groupes, catégorie.

@@ -37,6 +37,47 @@ import Testing
         #expect(String(decoding: kept, as: UTF8.self) == "{ tronqué")
     }
 
+    /// Revue finale, point 4 : présent mais illisible n'est pas absent.
+    @Test func aFileThatCannotBeReadIsNeverOverwritten() throws {
+        let d = dir()
+        let file = d.appendingPathComponent("mod_groups.json")
+        try Data(#"{"groups":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"Vieux"}]}"#.utf8).write(to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.path)
+        defer {
+            for name in (try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? [] {
+                try? FileManager.default.setAttributes([.posixPermissions: 0o644],
+                                                       ofItemAtPath: d.appendingPathComponent(name).path)
+            }
+        }
+        let store = ModGroupStore(directory: d, log: { _ in })
+        store.update { _ = $0.createGroup(named: "A") }
+        let names = try FileManager.default.contentsOfDirectory(atPath: d.path)
+        for name in names {
+            try FileManager.default.setAttributes([.posixPermissions: 0o644],
+                                                  ofItemAtPath: d.appendingPathComponent(name).path)
+        }
+        let kept = names.contains { name in
+            (try? String(contentsOf: d.appendingPathComponent(name), encoding: .utf8))?.contains("Vieux") == true
+        }
+        #expect(kept)
+    }
+
+    /// Revue finale, point 3 : un format plus récent reste en place, intact,
+    /// pour la version qui l'a écrit.
+    @Test func aFileFromAFutureVersionStaysInPlaceUntouched() throws {
+        let d = dir()
+        let file = d.appendingPathComponent("mod_groups.json")
+        let future = #"{"version":2,"groups":[],"membership":{},"collapsedCategories":[],"colors":{"x":1}}"#
+        try Data(future.utf8).write(to: file)
+        var logged: [String] = []
+        let store = ModGroupStore(directory: d, log: { logged.append($0) })
+        #expect(!store.canPersist)
+        #expect(logged.count == 1)
+        store.update { _ = $0.createGroup(named: "A") }
+        #expect(String(decoding: try Data(contentsOf: file), as: UTF8.self) == future)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: d.path) == ["mod_groups.json"])
+    }
+
     @Test func noDirectoryMeansNothingWritten() {
         let store = ModGroupStore(directory: nil)
         store.update { _ = $0.createGroup(named: "A") }

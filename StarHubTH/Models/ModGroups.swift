@@ -70,6 +70,13 @@ public struct ModGroupsState: Codable, Equatable, Sendable {
         if value { collapsedCategories.insert(key) } else { collapsedCategories.remove(key) }
     }
 
+    /// Le repli d'une section par sa clé : un groupe à soi le porte, les
+    /// autres sections le gardent dans `collapsedCategories`.
+    public mutating func setCollapsed(_ key: ModSectionKey, _ value: Bool) {
+        if case .group(let id) = key { setCollapsed(group: id, value) }
+        else { setCollapsed(category: key.collapseKey, value) }
+    }
+
     /// Même règle que les favoris : `ModFolderRename.migrate` (copie quand
     /// l'ancien nom reste porté par un autre mod, clés `Pack/…` comprises).
     public mutating func migrate(from old: String, to new: String, shared: Bool) {
@@ -83,9 +90,11 @@ public struct ModGroupsState: Codable, Equatable, Sendable {
     }
 }
 
-// Décodage tolérant (Review Focus 4) : un fichier d'une version plus ancienne
-// ou plus récente se relit. En extension, pour garder l'initialiseur membre
-// à membre dont `createGroup` a besoin.
+// Décodage tolérant (Review Focus 4) : un fichier plus ancien se relit, champs
+// absents à leur défaut. Un fichier d'un format plus récent refuse de se relire
+// (`FutureFormat`) : relu sans ses champs, il serait réécrit amputé. En
+// extension, pour garder l'initialiseur membre à membre dont `createGroup` a
+// besoin.
 extension ModGroup {
     private enum CodingKeys: String, CodingKey { case id, name, collapsed }
 
@@ -98,14 +107,32 @@ extension ModGroup {
 }
 
 extension ModGroupsState {
-    private enum CodingKeys: String, CodingKey { case groups, membership, collapsedCategories }
+    /// Le format que cette version sait relire sans rien perdre ; sans champ
+    /// `version`, un fichier vaut 1.
+    public static let formatVersion = 1
+
+    public struct FutureFormat: Error, Equatable {
+        public let version: Int
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, groups, membership, collapsedCategories }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        let version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        guard version <= Self.formatVersion else { throw FutureFormat(version: version) }
         self.init()
         groups = try c.decodeIfPresent([ModGroup].self, forKey: .groups) ?? []
         membership = try c.decodeIfPresent([String: UUID].self, forKey: .membership) ?? [:]
         collapsedCategories = try c.decodeIfPresent(Set<String>.self, forKey: .collapsedCategories) ?? []
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.formatVersion, forKey: .version)
+        try c.encode(groups, forKey: .groups)
+        try c.encode(membership, forKey: .membership)
+        try c.encode(collapsedCategories, forKey: .collapsedCategories)
     }
 }
 

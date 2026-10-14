@@ -12,15 +12,16 @@ extension StarHubTHViewModel {
     }
 
     /// Un seul événement de corbeille pour tout le lot (« Tout restaurer »
-    /// le rend en bloc). Rend les noms qui n'ont pas pu partir.
+    /// le rend en bloc). Vrai si au moins un mod est parti : un refus garde la
+    /// sélection de l'appelant.
     @discardableResult
-    func trashMods(_ mods: [ModItem]) -> [String] {
+    func trashMods(_ mods: [ModItem]) -> Bool {
         let plan = ModTrashSelection.plan(selected: mods, all: self.mods)
-        guard !plan.trashable.isEmpty else { return [] }
-        if refuseDuringBenchmark() || refuseTrashWhileGameRuns() { return [] }
+        guard !plan.trashable.isEmpty else { return false }
+        if refuseDuringBenchmark() || refuseTrashWhileGameRuns() { return false }
         guard !gameDir.isEmpty else {
             showModal(message: localization.L(L10n.Settings.gameDirNotSet))
-            return []
+            return false
         }
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
         let items = plan.trashable.map {
@@ -45,6 +46,6 @@ extension StarHubTHViewModel {
             await self?.rescanInBackground()
             self?.syncActiveProfileIds()
         }
-        return failed
+        return !moved.isEmpty
     }
 }

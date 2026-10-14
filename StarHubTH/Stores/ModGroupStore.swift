@@ -47,9 +47,15 @@ final class ModGroupStore {
     }
 
     private static func load(_ url: URL?, log: (String) -> Void) -> (state: ModGroupsState, writable: Bool) {
-        guard let url, let data = FileManager.default.contents(atPath: url.path) else { return (ModGroupsState(), true) }
+        // Présent mais illisible (droits, erreur d'E/S) n'est pas absent :
+        // `contents(atPath:)` rendrait nil, et l'écriture suivante l'écraserait.
+        guard let url, FileManager.default.fileExists(atPath: url.path) else { return (ModGroupsState(), true) }
         do {
-            return (try JSONDecoder().decode(ModGroupsState.self, from: data), true)
+            return (try JSONDecoder().decode(ModGroupsState.self, from: try Data(contentsOf: url)), true)
+        } catch let future as ModGroupsState.FutureFormat {
+            // Laissé en place, intact, pour la version qui l'a écrit.
+            log("Groupes de mods d'un format plus récent (\(future.version)), laissés en place : changements non enregistrés.")
+            return (ModGroupsState(), false)
         } catch {
             let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
             let aside = url.deletingLastPathComponent()

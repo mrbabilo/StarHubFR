@@ -73,6 +73,7 @@ struct ModListView: View {
         // those) — `ModFocusResolver` accepts either.
         let resolved = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)
         listState.filters.focus(on: resolved?.name ?? modName)
+        if let resolved { revealInGroups(resolved) }   // I-T21 : jamais derrière un bandeau replié
         vm.navigationStore.pendingModFocus = nil
     }
 
@@ -375,12 +376,13 @@ struct ModListView: View {
             }
             .focusable().focusEffectDisabled()
             .onKeyPress(keys: Self.navigationKeys) { handleListKey($0, display: grouped.navigable, groupedPages: grouped.pages, page: page, proxy: proxy) } }
-            if listLayout == .list { ModListSelectionBar(viewModel: vm, localization: localization, listState: listState) }
+            if listLayout == .list { ModListSelectionBar(viewModel: vm, localization: localization, listState: listState, order: displayIds) }
             // ── Sticky pagination footer ─────────────────────────────────
             // Pinned under the scrolling list, like LogsView's status bar.
             if !filtered.isEmpty && !display.isEmpty && pages > 1 {
                 Divider()
-                paginationFooter(total: display.count, shown: grouped.shown(page: page) ?? paged.count, page: page, totalPages: pages)
+                paginationFooter(total: grouped.total ?? display.count, rangeStart: grouped.rangeStart(page: page) ?? (page - 1) * pageSize + 1,
+                                 shown: grouped.shown(page: page) ?? paged.count, page: page, totalPages: pages)
                     .padding(.horizontal, AppDesign.Spacing.xl)
                     .padding(.vertical, 10)
                     .background(Color(nsColor: .controlBackgroundColor))
@@ -496,8 +498,7 @@ struct ModListView: View {
     ///
     /// Shows up to 7 page slots with smart ellipsis: first, last, current,
     /// and neighbors — so the user can jump visually without typing.
-    private func paginationFooter(total: Int, shown: Int, page: Int, totalPages: Int) -> some View {
-        let rangeStart = (page - 1) * pageSize + 1
+    private func paginationFooter(total: Int, rangeStart: Int, shown: Int, page: Int, totalPages: Int) -> some View {
         let rangeEnd = rangeStart + shown - 1
         return VStack(spacing: AppDesign.Spacing.sm) {
             HStack(spacing: 6) {
@@ -550,9 +551,12 @@ struct ModListView: View {
                 .iconHelp(localization.L(L10n.Mods.nextPageHint))
             }
 
-            Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
-                .font(AppDesign.Font.iconXS)
-                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
+            // Une page de bandeaux repliés seuls n'a aucune plage à dire.
+            if shown > 0 {
+                Text(String(format: localization.L(L10n.Mods.pageShowing), rangeStart, rangeEnd, total))
+                    .font(AppDesign.Font.iconXS)
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
+            }
         }
         .padding(.top, AppDesign.Spacing.xs)
     }

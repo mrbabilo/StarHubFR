@@ -113,6 +113,12 @@ public enum ModGroupPages {
         sections.filter { !$0.collapsed }.flatMap { $0.mods.map(\.folderName) }
     }
 
+    /// Les mods des pages qui précèdent `page` (1-based) : le début de la
+    /// plage du pied, un bandeau replié ne portant aucun mod.
+    public static func modsBefore(page: Int, in pages: [[ModListPageSection]]) -> Int {
+        pages.prefix(max(0, page - 1)).joined().reduce(0) { $0 + $1.mods.count }
+    }
+
     public static func page(of folder: String, in pages: [[ModListPageSection]]) -> Int? {
         pages.firstIndex { $0.contains { $0.mods.contains { $0.folderName == folder } } }.map { $0 + 1 }
     }

@@ -52,6 +52,14 @@ public struct ModListSelection: Equatable, Sendable {
         order.filter(selected.contains)
     }
 
+    /// Les membres ; à défaut, la ligne courante — seulement si elle est
+    /// affichée : repliée ou filtrée, un geste ne la toucherait pas à vue.
+    public func effectiveMembers(in order: [String], current: String?) -> [String] {
+        let members = members(in: order)
+        guard members.isEmpty, let current, order.contains(current) else { return members }
+        return [current]
+    }
+
     /// Espace : un seul mod en pause dans la sélection, et tout s'active ;
     /// sinon tout se met en pause.
     public static func spaceEnables(_ mods: [ModItem]) -> Bool {

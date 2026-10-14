@@ -15,12 +15,11 @@ extension ModListState {
         return kind
     }
 
-    /// Les mods sélectionnés encore dans le cadrage ; à défaut, la ligne
-    /// courante — Espace bascule alors ce seul mod.
+    /// Les mods sélectionnés encore affichés ; à défaut, la ligne courante si
+    /// elle l'est — Espace bascule alors ce seul mod (`effectiveMembers`).
     @MainActor
-    func selectedMods(_ viewModel: StarHubTHViewModel) -> [ModItem] {
-        var ids = Set(selection.members(in: displayOrder))
-        if ids.isEmpty, let current = viewModel.selectedModID { ids = [current] }
+    func selectedMods(_ viewModel: StarHubTHViewModel, order: [String]? = nil) -> [ModItem] {
+        let ids = Set(selection.effectiveMembers(in: order ?? displayOrder, current: viewModel.selectedModID))
         return viewModel.mods.filter { ids.contains($0.folderName) }
     }
 
@@ -40,10 +39,13 @@ struct ModListSelectionBar: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var listState: ModListState
+    /// L'ordre affiché, passé par la liste : `displayOrder` n'est écrit
+    /// qu'après le rendu et ne redessinerait pas la barre au repli d'un groupe.
+    let order: [String]
     @State private var trashPlan: ModTrashSelection.Plan?
 
     var body: some View {
-        let count = listState.selection.members(in: listState.displayOrder).count
+        let count = listState.selection.members(in: order).count
         if count >= 2 {
             Divider()
             HStack(spacing: AppDesign.Spacing.sm) {
@@ -67,13 +69,13 @@ struct ModListSelectionBar: View {
                         }
                         .help(localization.L(L10n.Mods.selectionPause))
                         Button(role: .destructive) {
-                            let selected = listState.selectedMods(viewModel)
+                            let selected = listState.selectedMods(viewModel, order: order)
                             trashPlan = ModTrashSelection.plan(selected: selected, all: viewModel.mods)
                         } label: {
                             Label(localization.L(L10n.Mods.trashSelection), systemImage: "trash")
                         }
                         .help(localization.L(L10n.Mods.trashSelection))
-                        ModGroupMoveMenu(folders: listState.selectedMods(viewModel).map(\.folderName),
+                        ModGroupMoveMenu(folders: listState.selectedMods(viewModel, order: order).map(\.folderName),
                                          viewModel: viewModel, localization: localization, listState: listState)
                     }
                 }
@@ -95,8 +97,9 @@ struct ModListSelectionBar: View {
                     Button(localization.L(L10n.Saves.cancel), role: .cancel) {}
                 } else {
                     Button(localization.L(L10n.Mods.trashSelection), role: .destructive) {
-                        viewModel.trashMods(plan.trashable)
-                        listState.selection.clear()
+                        // Refusé (jeu ouvert, mesure) ou rien parti : la
+                        // sélection reste, le geste se refait tel quel.
+                        if viewModel.trashMods(plan.trashable) { listState.selection.clear() }
                     }
                     Button(localization.L(L10n.Saves.cancel), role: .cancel) {}
                 }

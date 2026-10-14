@@ -65,6 +65,16 @@ import Testing
                 dependencies: [], children: nil, isGroup: false)
     }
 
+    /// Revue finale, point 1 : la ligne courante ne sert de repli que visible.
+    @Test func theCurrentRowCountsOnlyWhenShown() {
+        var s = ModListSelection()
+        #expect(s.effectiveMembers(in: ["A", "B"], current: "C") == [])
+        #expect(s.effectiveMembers(in: ["A", "B"], current: "B") == ["B"])
+        #expect(s.effectiveMembers(in: ["A", "B"], current: nil) == [])
+        s.click("A", kind: .plain, in: ["A", "B"])
+        #expect(s.effectiveMembers(in: ["A", "B"], current: "B") == ["A"])
+    }
+
     @Test func spaceEnablesWhenAnySelectedModIsPaused() {
         #expect(ModListSelection.spaceEnables([mod("A", enabled: true), mod("B", enabled: false)]))
         #expect(!ModListSelection.spaceEnables([mod("A", enabled: true), mod("B", enabled: true)]))

@@ -77,6 +77,17 @@ struct ModGroupPagesTests {
 
     /// Un bandeau replié **coûte** sa place : treize groupes repliés ne tiennent
     /// pas sur une page de douze (le sabotage `used += 0` ne rougissait rien).
+    /// Revue finale, point 5 : le pied compte les mods des pages d'avant, pas
+    /// `(page - 1) × 12` — un bandeau replié prend une place sans mod.
+    @Test func modsBeforeAPageCountOnlyMods() {
+        let s = state([("A", ["a1"]), ("B", ["b1"]), ("C", (1...20).map { "c\($0)" })], collapsed: ["A", "B"])
+        let display = ["a1", "b1"].map { mod($0) } + (1...20).map { mod("c\($0)") }
+        let pages = ModGroupPages.pages(
+            ModGroupPages.sections(display: display, mode: .groups, state: s, category: { _ in nil }), pageSize: 12)
+        #expect(ModGroupPages.modsBefore(page: 1, in: pages) == 0)
+        #expect(ModGroupPages.modsBefore(page: 2, in: pages) == 10)
+    }
+
     @Test func collapsedHeadersFillPagesToo() {
         let names = (1...13).map { "G\($0)" }
         let s = state(names.map { ($0, ["m\($0)"]) }, collapsed: Set(names))

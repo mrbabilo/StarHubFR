@@ -62,7 +62,33 @@ struct ModGroupsStateTests {
         let older = #"{"groups":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"A"}]}"#
         let state = try JSONDecoder().decode(ModGroupsState.self, from: Data(older.utf8))
         #expect(state.groups.map(\.name) == ["A"] && state.groups[0].collapsed == false)
-        let newer = #"{"groups":[],"membership":{},"collapsedCategories":[],"colors":{}}"#
-        #expect(try JSONDecoder().decode(ModGroupsState.self, from: Data(newer.utf8)) == ModGroupsState())
+        let sameVersion = #"{"version":1,"groups":[],"membership":{},"collapsedCategories":[],"colors":{}}"#
+        #expect(try JSONDecoder().decode(ModGroupsState.self, from: Data(sameVersion.utf8)) == ModGroupsState())
+    }
+
+    /// Revue finale, point 3 : un format plus récent refuse de se relire —
+    /// relu sans ses champs, il serait réécrit amputé.
+    @Test func aFutureVersionRefusesToDecodeAndTheFileCarriesItsVersion() throws {
+        let future = #"{"version":2,"groups":[]}"#
+        #expect(throws: ModGroupsState.FutureFormat.self) {
+            try JSONDecoder().decode(ModGroupsState.self, from: Data(future.utf8))
+        }
+        let written = String(decoding: try JSONEncoder().encode(ModGroupsState()), as: UTF8.self)
+        #expect(written.contains(#""version":1"#))
+    }
+
+    /// Revue finale, point 6 : ouvrir une section par sa clé, quelle qu'elle soit.
+    @Test func sectionsOpenAndCloseByKey() throws {
+        var s = ModGroupsState()
+        let id = try s.createGroup(named: "A").get()
+        s.setCollapsed(.group(id), true)
+        #expect(s.groups[0].collapsed)
+        s.setCollapsed(.group(id), false)
+        #expect(!s.groups[0].collapsed)
+        s.setCollapsed(.ungrouped, true)
+        s.setCollapsed(.category(5), true)
+        #expect(s.collapsedCategories == ["group:none", "category:5"])
+        s.setCollapsed(.ungrouped, false)
+        #expect(s.collapsedCategories == ["category:5"])
     }
 }
