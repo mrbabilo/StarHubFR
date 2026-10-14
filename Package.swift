@@ -413,6 +413,7 @@ let package = Package(
                 "Stores/SaveAbsentModsStore.swift",
                 "Stores/SaveCleanupStore.swift",
                 "Stores/ProbePerformanceStore.swift",
+                "Stores/ModGroupStore.swift",
                 "Stores/SessionEnvironmentStore.swift",
                 "Stores/ContentPatcherLoadIndex.swift",
                 "Stores/ModImpactStore.swift",
