@@ -189,6 +189,7 @@ struct PerformanceView: View {
                     await stardropiumDiagnostic.gameExited(runtime: sloRuntime())
                     await store.reload(gameDir: viewModel.gameDir)
                     await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
+                    await reloadImpact()
                 }
             }
         }
@@ -257,7 +258,7 @@ struct PerformanceView: View {
         let title = localization.L(L10n.PerformanceEvidence.history)
         let impact = viewModel.modImpactStore
         guard impact.status == .ready else { return title }
-        return String(format: localization.L(L10n.PerformanceEvidence.historyCount), title, impact.measuredCount)
+        return "\(title) · \(localization.plural(L10n.PerformanceEvidence.historyCount, impact.measuredCount))"
     }
 
     /// Le même compte que « Tout afficher (N) » du volet ; le reliquat hors
@@ -265,7 +266,7 @@ struct PerformanceView: View {
     private var texturesTitle: String {
         let title = localization.L(L10n.PerformanceTextures.title)
         let impact = viewModel.modImpactStore
-        guard impact.status == .ready || impact.status == .noProbe else { return title }
+        guard impact.status == .ready else { return title }
         return "\(title) (\(impact.textureRows.count))"
     }
 
@@ -294,10 +295,18 @@ struct PerformanceView: View {
 
     private func reloadAll(cause: String) async {
         await PerformanceReloadLog.run(viewModel, cause: cause) {
+            await reloadImpact()
             await refreshSlo(resume: true)
             await store.reload(gameDir: viewModel.gameDir)
             await environment.reload(mods: viewModel.mods, gameDir: viewModel.gameDir)
         }
+    }
+
+    /// L'historique par mod, relu avec le reste : ses volets repliés ne
+    /// montent pas leur contenu, et leur titre compté vieillirait sans cela.
+    private func reloadImpact() async {
+        await viewModel.modImpactStore.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(),
+                                              gameDir: viewModel.gameDir)
     }
 
     private func refreshSlo(resume: Bool) async {

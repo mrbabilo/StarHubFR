@@ -35,18 +35,9 @@ struct PerformanceImpactSection: View {
                 list
             }
         }
-        .task { if store.status == .idle { await reload() } }
-        // L'onglet reste monté : relire au retour dans l'app seulement s'il est
-        // affiché (patron `PerformanceView`).
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            if viewModel.navigationStore.diagnosticsSegment == .performance {
-                Task { await PerformanceReloadLog.run(viewModel, cause: "retour dans l'app, impact par mod") { await reload() } }
-            }
-        }
-    }
-
-    private func reload() async {
-        await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir)
+        // Les relectures au retour (onglet, app, jeu quitté) sont celles de
+        // `PerformanceView.reloadAll` : une seule par événement.
+        .task { if store.status == .idle { await store.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(), gameDir: viewModel.gameDir) } }
     }
 
     private var list: some View {
