@@ -7392,7 +7392,7 @@ final class StarHubTHViewModel {
     /// un dossier réutilisé héritait du drapeau de config par profil. Un pack
     /// emporte ses composants, pas le voisin au nom proche
     /// (`ModRemovalPurge`). Chaque magasin réécrit **seulement s'il change**.
-    private func forgetStores(of mod: ModItem) {
+    func forgetStores(of mod: ModItem) {
         let folder = mod.folderName
         // X107 — ici, pas dans la seule branche de succès : un dossier déjà
         // absent laissait favori et « à écarter » orphelins.
@@ -7475,7 +7475,7 @@ final class StarHubTHViewModel {
                                                                  : L10n.Mods.smapiBundledDeleteRefused))
             return
         }
-        if refuseDuringBenchmark() { return }
+        if refuseDuringBenchmark() || refuseTrashWhileGameRuns() { return }
         guard !gameDir.isEmpty else {
             showModal(message: localization.L(L10n.Settings.gameDirNotSet))
             return

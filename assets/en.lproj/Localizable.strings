@@ -979,6 +979,9 @@
 "mods_rename_failed" = "The folder could not be renamed: %@";
 "mods_rename_field" = "New folder name";
 "mods_rename_game_running" = "Stardew Valley is running. Renaming an active mod's folder now will pull the rug out from under SMAPI until the game is next launched.";
+"mods_trash_game_running" = "Close Stardew Valley to move mods to the trash.";
+"mods_trash_selection_log" = "%lld mods moved to the trash.";
+"mods_trash_selection_failed" = "Not moved to the trash: %@";
 "mods_rename_shared_note" = "Anything that describes one specific mod stays behind: the hand-entered Nexus id and the install date remain with whichever mod keeps the name. Nothing says which of the two they described — the renamed mod relearns them from its own manifest.";
 "mods_rename_title" = "Rename this mod's folder";
 "mods_renamed_log" = "Folder “%@” renamed to “%@”";
