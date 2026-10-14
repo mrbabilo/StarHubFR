@@ -12,6 +12,8 @@ struct PerformanceStardropiumDiagnosticControls: View {
     /// avec son texte.
     @State private var installMessage: String?
     private typealias Keys = L10n.StardropiumDiagnostic
+    /// Lot B (S3) : Stardropium absent, ligne dans « Autres outils de mesure ».
+    var compact = false
 
     private var activity: SloDiagnosticNexusActivity {
         let id = PerformanceDiagnosticKind.stardropium.nexusId
@@ -27,13 +29,20 @@ struct PerformanceStardropiumDiagnosticControls: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            Text(localization.L(statusKey)).font(AppDesign.Font.body(.semibold))
+            if compact {
+                Label(localization.L(L10n.StardropiumMemory.title), systemImage: "memorychip")
+                    .font(AppDesign.Font.body(.semibold))
+            }
+            Text(localization.L(statusKey)).font(compact ? AppDesign.Font.footnote : AppDesign.Font.body(.semibold))
             Text(localization.L(detailKey)).font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if let action = presentation.action {
                 AdaptiveLabels {
                     Button { perform(action) } label: {
                         Label(localization.L(actionKey(action)), systemImage: actionIcon(action))
-                    }.buttonStyle(.borderedProminent).help(localization.L(actionKey(action)))
+                    }
+                    .performanceToolAction(compact: compact)
+                    .help(localization.L(actionKey(action)))
                 }
             }
             if let installMessage {

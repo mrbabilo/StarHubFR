@@ -16,6 +16,9 @@ struct PerformanceSloDiagnosticSection: View {
     @State private var selectedDetail: String?
     /// X133 : l'échec d'installation de la sonde s'affiche, jeu ouvert compris.
     @State private var probeFailure: String?
+    /// Lot B (S3) : SLO absent, la carte pleine cède la place à une ligne
+    /// dans « Autres outils de mesure » — titre, état, action.
+    var compact = false
 
     private var nexusActivity: SloDiagnosticNexusActivity {
         if viewModel.downloadingNexusModId == SloDiagnosticContract.nexusId {
@@ -35,16 +38,30 @@ struct PerformanceSloDiagnosticSection: View {
     }
 
     var body: some View {
-        PerformanceCard {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-                Label(localization.L(L10n.PerformanceSloDiagnostic.title),
-                      systemImage: "waveform.path.ecg.rectangle")
-                    .font(AppDesign.Font.headline(.semibold))
-                Text(localization.L(L10n.PerformanceSloDiagnostic.subtitle))
-                    .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                status
-                if case .report(let report) = store.state { reportView(report) }
+        Group {
+            if compact {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                    Label(localization.L(L10n.PerformanceSloDiagnostic.title),
+                          systemImage: "waveform.path.ecg.rectangle")
+                        .font(AppDesign.Font.body(.semibold))
+                    Text(localization.L(L10n.PerformanceSloDiagnostic.subtitle))
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    status
+                }
+            } else {
+                PerformanceCard {
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                        Label(localization.L(L10n.PerformanceSloDiagnostic.title),
+                              systemImage: "waveform.path.ecg.rectangle")
+                            .font(AppDesign.Font.headline(.semibold))
+                        Text(localization.L(L10n.PerformanceSloDiagnostic.subtitle))
+                            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        status
+                        if case .report(let report) = store.state { reportView(report) }
+                    }
+                }
             }
         }
         .sheet(isPresented: Binding(
@@ -86,7 +103,7 @@ struct PerformanceSloDiagnosticSection: View {
                     Button { perform(action) } label: {
                         Label(actionTitle(action), systemImage: actionIcon(action))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .performanceToolAction(compact: compact)
                     .help(actionTitle(action))
                 }
             }

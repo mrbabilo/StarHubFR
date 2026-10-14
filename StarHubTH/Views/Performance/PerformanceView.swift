@@ -47,12 +47,9 @@ struct PerformanceView: View {
                     let live = PerformanceStatusLine.isLive(viewModel, store)
                     PerformanceCard {
                         PerformanceSummarySection(localization: localization, report: comparing ? store.report : nil,
-                                                  single: comparing ? nil : store.singleSummary)
+                                                  single: comparing ? nil : store.singleSummary,
+                                                  probeInstalled: probeInstalled)
                     }.liveRefreshFlash(live ? store.lastLoadedAt : nil, reduceMotion: reduceMotion).id("summary")
-                    PerformanceSloDiagnosticSection(
-                        viewModel: viewModel, localization: localization,
-                        store: sloDiagnostic, runtime: sloRuntime)
-                        .id("slo")
                     if comparing, let report = store.report {
                         PerformanceCard {
                             PerformanceAnalysisSection(viewModel: viewModel, localization: localization,
@@ -78,30 +75,23 @@ struct PerformanceView: View {
                         PerformanceCard { PerformanceSmoothnessSection(localization: localization, report: report) }.id("game")
                         PerformanceCard { PerformanceCostsSection(viewModel: viewModel, localization: localization, report: report) }
                     }
-                    PerformanceStardropiumMemorySection(viewModel: viewModel, localization: localization,
-                                                       store: environment, diagnostic: stardropiumDiagnostic,
-                                                       runtime: sloRuntime)
-                        .id("stardropium")
-                    PerformanceCard {
-                        DisclosureGroup(localization.L(L10n.PerformanceEvidence.history)) {
-                            PerformanceImpactSection(viewModel: viewModel, localization: localization)
-                        }
-                    }.id("mods")
-                    PerformanceCard {
-                        DisclosureGroup(localization.L(L10n.PerformanceTextures.title)) {
-                            PerformanceTextureSection(viewModel: viewModel, localization: localization)
-                        }
-                    }.id("textures")
-                    PerformanceCard {
-                        DisclosureGroup(localization.L(L10n.Performance.envTitle)) {
-                            PerformanceEnvironmentSection(localization: localization, store: environment)
-                        }
-                    }.id("details")
-                    DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings), isExpanded: $settingsExpanded) {
-                        PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store,
-                                                loadOrderBannerHoisted: PerformanceMeasurementStatus.hoistsLoadOrderBanner(
-                                                    viewModel, store, consent: loadEarlyConsent))
-                    }.id("settings")
+                    // Lot B (S3) : les outils tiers n'ont une carte pleine que
+                    // s'ils sont installés, et après les mesures de la sonde ;
+                    // absents, une ligne chacun dans « Autres outils », repliée.
+                    if !Self.toolAbsent(sloDiagnostic) {
+                        PerformanceSloDiagnosticSection(
+                            viewModel: viewModel, localization: localization,
+                            store: sloDiagnostic, runtime: sloRuntime)
+                            .id("slo")
+                    }
+                    if !Self.toolAbsent(stardropiumDiagnostic) {
+                        PerformanceStardropiumMemorySection(viewModel: viewModel, localization: localization,
+                                                           store: environment, diagnostic: stardropiumDiagnostic,
+                                                           runtime: sloRuntime)
+                            .id("stardropium")
+                    }
+                    detailsCard
+                    toolsCard
                     if store.unreadableLines > 0 {
                         Text(String(format: localization.L(L10n.Performance.unreadable), store.unreadableLines))
                             .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
@@ -165,11 +155,12 @@ struct PerformanceView: View {
     private func navigation(_ proxy: ScrollViewProxy) -> some View {
         let comparisonAnchors = [("analysis", L10n.Performance.sectionAnalysis),
                                  ("game", L10n.Performance.inGameTitle)]
-        let anchors = [("summary", L10n.PerformanceEvidence.summary),
-                       ("slo", L10n.PerformanceSloDiagnostic.title)]
+        let toolAnchors = (Self.toolAbsent(sloDiagnostic) ? [] : [("slo", L10n.PerformanceSloDiagnostic.title)])
+            + (Self.toolAbsent(stardropiumDiagnostic) ? [] : [("stardropium", L10n.StardropiumMemory.title)])
+        let anchors = [("summary", L10n.PerformanceEvidence.summary)]
             + (comparing ? comparisonAnchors : [])
-            + [("loads", L10n.Performance.loadsTitle), ("stardropium", L10n.StardropiumMemory.title), ("mods", L10n.PerformanceEvidence.history),
-               ("details", L10n.PerformanceEvidence.details)]
+            + [("loads", L10n.Performance.loadsTitle)] + toolAnchors
+            + [("details", L10n.PerformanceEvidence.detailsCardTitle)]
         return ViewThatFits(in: .horizontal) {
             HStack {
                 ForEach(anchors, id: \.0) { id, key in
@@ -187,6 +178,68 @@ struct PerformanceView: View {
                     }
                 }
             }.fixedSize()
+        }
+    }
+
+    /// Le mod tiers n'est pas installé (ou se télécharge) : pas de carte
+    /// pleine, une ligne dans « Autres outils de mesure ».
+    private static func toolAbsent(_ diagnostic: SloDiagnosticSessionStore) -> Bool {
+        switch diagnostic.state {
+        case .unavailable(.sloAbsent), .unavailable(.sloDownloading): return true
+        default: return false
+        }
+    }
+
+    private var probeInstalled: Bool {
+        if case .absent = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods) { return false }
+        return true
+    }
+
+    /// Lot B (S7) : quatre volets repliés sous une seule carte.
+    private var detailsCard: some View {
+        PerformanceCard {
+            Text(localization.L(L10n.PerformanceEvidence.detailsCardTitle))
+                .font(AppDesign.Font.headline(.semibold))
+            DisclosureGroup(localization.L(L10n.PerformanceEvidence.history)) {
+                PerformanceImpactSection(viewModel: viewModel, localization: localization)
+            }.id("mods")
+            Divider()
+            DisclosureGroup(localization.L(L10n.PerformanceTextures.title)) {
+                PerformanceTextureSection(viewModel: viewModel, localization: localization)
+            }.id("textures")
+            Divider()
+            DisclosureGroup(localization.L(L10n.Performance.envTitle)) {
+                PerformanceEnvironmentSection(localization: localization, store: environment)
+            }
+            Divider()
+            DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings), isExpanded: $settingsExpanded) {
+                PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store,
+                                        loadOrderBannerHoisted: PerformanceMeasurementStatus.hoistsLoadOrderBanner(
+                                            viewModel, store, consent: loadEarlyConsent))
+            }.id("settings")
+        }.id("details")
+    }
+
+    /// Lot B (S3) : les outils tiers absents, une ligne chacun, repliés.
+    @ViewBuilder
+    private var toolsCard: some View {
+        if Self.toolAbsent(sloDiagnostic) || Self.toolAbsent(stardropiumDiagnostic) {
+            PerformanceCard {
+                DisclosureGroup(localization.L(L10n.PerformanceEvidence.toolsCardTitle)) {
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
+                        if Self.toolAbsent(sloDiagnostic) {
+                            PerformanceSloDiagnosticSection(
+                                viewModel: viewModel, localization: localization,
+                                store: sloDiagnostic, runtime: sloRuntime, compact: true)
+                        }
+                        if Self.toolAbsent(stardropiumDiagnostic) {
+                            PerformanceStardropiumDiagnosticControls(
+                                viewModel: viewModel, localization: localization,
+                                store: stardropiumDiagnostic, runtime: sloRuntime, compact: true)
+                        }
+                    }.padding(.top, AppDesign.Spacing.sm)
+                }
+            }.id("tools")
         }
     }
 

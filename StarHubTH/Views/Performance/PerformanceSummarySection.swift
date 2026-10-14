@@ -4,6 +4,8 @@ struct PerformanceSummarySection: View {
     @ObservedObject var localization: LocalizationStore
     var report: ProbePerformanceReport?
     var single: ProbePerformanceSummary?
+    /// Sans sonde, l'état vide dit d'installer, pas de lancer le jeu (lot B, G1).
+    var probeInstalled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
@@ -43,7 +45,9 @@ struct PerformanceSummarySection: View {
                 Text(localization.L(L10n.PerformanceEvidence.repeatAdvice))
                     .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
             } else {
-                Text(localization.L(L10n.PerformanceEvidence.noSingle)).foregroundStyle(.secondary)
+                Text(localization.L(probeInstalled ? L10n.PerformanceEvidence.noSingle
+                                                  : L10n.PerformanceEvidence.noSingleNoProbe))
+                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
         .fixedSize(horizontal: false, vertical: true)

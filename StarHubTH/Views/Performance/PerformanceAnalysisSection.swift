@@ -89,10 +89,10 @@ struct PerformanceAnalysisSection: View {
     private var conclusionLabel: some View {
         let (icon, tint): (String, Color) = {
             switch analysis.direction {
-            case .faster: return ("hare", AppDesign.Color.success)
-            case .slower: return ("tortoise", AppDesign.Color.warning)
-            case .noDifference: return ("equal", .primary)
-            case .inconclusive: return ("questionmark", .primary)
+            case .faster: return ("arrow.down.right", AppDesign.Color.success)
+            case .slower: return ("arrow.up.right", AppDesign.Color.warning)
+            case .noDifference: return ("equal", .secondary)
+            case .inconclusive: return ("questionmark", .secondary)
             }
         }()
         return Label(conclusion, systemImage: icon)

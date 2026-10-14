@@ -18,6 +18,10 @@ where the exact log format was verified.
 - **La carte Sonde ne s'affiche en tête que si une action est due** (installer, réactiver, mettre à jour) ; sinon une ligne « Sonde active » avec un lien « Réglages » qui déplie « Sonde et réglages de mesure » en bas. La bannière « charger la sonde en premier » remonte en tête tant qu'elle attend une réponse.
 - **Les tuiles du Résumé expliquent ce qu'elles mesurent** au survol (temps entre deux images, images les plus lentes, 16,7 ms = 60 images par seconde).
 - **Couleurs des états alignées sur la charte** (en direct, en pause, avertissements, changements de version et de réglage).
+- **Les outils tiers n'occupent une carte que s'ils sont installés.** « Diagnostic détaillé des chargements » (SLO) et « Mémoire — Stardropium » passent après les mesures de la sonde ; absents, ils tiennent une ligne chacun dans « Autres outils de mesure », repliée, avec le lien d'installation.
+- **Les quatre volets de fin de page** (historique des mods, textures, environnement, sonde et réglages) tiennent sous une seule carte « Détails et réglages ».
+- **Un seul jeu d'icônes pour les verdicts** (flèches, égal, point d'interrogation) dans le Résumé, l'Analyse, la Chronologie et les Chargements ; « aucune différence » et « on ne peut pas conclure » en gris.
+- **Le Résumé vide dit la bonne chose** : « installe la sonde » quand elle manque, « lance le jeu » quand elle est là.
 
 ### Fixed
 

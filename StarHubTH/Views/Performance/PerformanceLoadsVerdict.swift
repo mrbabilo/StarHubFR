@@ -64,8 +64,8 @@ struct PerformanceLoadsVerdict: View {
 
     private func style(_ verdict: ProbeLoadVerdict) -> (icon: String, color: Color) {
         switch verdict {
-        case .faster: return ("hare", AppDesign.Color.success)
-        case .slower: return ("tortoise", AppDesign.Color.warning)
+        case .faster: return ("arrow.down.right", AppDesign.Color.success)
+        case .slower: return ("arrow.up.right", AppDesign.Color.warning)
         case .noDifference: return ("equal", .secondary)
         case .grayZone: return ("questionmark", .secondary)
         }

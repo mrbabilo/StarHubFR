@@ -903,8 +903,8 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
-- [ ] **I-T22** — *(lot A livré le 2026-10-14 ; lots B à D à faire ; validation
-      écran du lot A en attente)* Audit UX/UI de l'onglet **Performances**
+- [ ] **I-T22** — *(lots A et B livrés le 2026-10-14 ; lots C et D à faire ;
+      validation écran des lots A et B en attente)* Audit UX/UI de l'onglet **Performances**
       (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
       `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
       `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
@@ -912,16 +912,21 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       est due + lien « Réglages », carte Chargements et « Benchmark… »
       visibles dès la lecture du store, « Panneau » rouvre le panneau du
       benchmark, aides des tuiles recâblées, 8 couleurs nues → jetons, 37 clés
-      L10n orphelines retirées. **Reste** : **B** (SLO/Stardropium repliés si
-      absents et placés après Chargements ; quatre détails sous une carte ;
-      texte vide du Résumé ; icônes/couleurs des verdicts unifiées), **C** (une
+      L10n orphelines retirées. **Lot B** : SLO/Stardropium en carte pleine
+      seulement si installés, placés après les mesures de la sonde, sinon une
+      ligne chacun dans « Autres outils de mesure » repliée ; les quatre volets
+      de fin de page sous une carte « Détails et réglages » ; texte vide du
+      Résumé selon la présence de la sonde ; un seul jeu d'icônes de verdict.
+      **Reste** : **C** (une
       seule conclusion, « confiance » renommée ; bloc Mesurer avec pilotée en
       premier et « Autres mesures… » ; motifs de refus visibles avant le clic ;
       feuille benchmark en deux temps ; un `.borderedProminent` par état),
       **D** (entrées depuis liste, fiche, palette, Santé via
       `NavigationStore` ; ⌘F ne quitte plus la page ; textes longs réécrits).
-      Hypothèses à confirmer par l'auteur : cinq mesures distinctes présentées
-      ensemble (pas de geste unique), guidée manuelle gardée en second. · **M**
+      Hypothèses **confirmées par l'auteur le 2026-10-14** : cinq mesures
+      distinctes présentées ensemble (pas de geste unique), outils tiers repliés
+      si absents, guidée manuelle gardée en second, carte Sonde à un seul
+      endroit, entrées vers la page en dernier lot. · **M**
       *Scénarios GUI du lot A à rejouer* : sonde installée sans session jouée →
       carte Chargements visible, « Benchmark… » actif ; benchmark lancé puis
       panneau fermé → « Panneau » le rouvre ; sonde à jour → une ligne « Sonde
@@ -929,7 +934,12 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       arrière-plan → une seule ligne « En pause … N minutes » ; pilotage →
       étape, minutes, « En direct/En pause », « Ramener le jeu », jalons, Stop
       sur la même ligne d'état ; survol d'une tuile du Résumé → aide ; Profiler
-      absent → aucune note Profiler.
+      absent → aucune note Profiler. *Lot B* : parc sans SLO ni Stardropium →
+      Résumé, Analyse, Chargements, puis « Détails et réglages », puis « Autres
+      outils de mesure (repliée) » avec deux lignes et leurs liens Nexus ;
+      ancres sans « Diagnostic chargements » ni « Mémoire Stardropium » ; sonde
+      absente → le Résumé dit « installe la sonde ci-dessus » ; mode Comparer →
+      mêmes flèches dans les tuiles, l'Analyse et les Chargements.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.

@@ -63,6 +63,19 @@ struct PerformanceDelta: View {
 }
 
 /// Pastille : glyphe et libellé sur fond teinté.
+extension View {
+    /// L'action d'un outil tiers : principale dans sa carte, discrète dans
+    /// « Autres outils de mesure » (lot B, S3).
+    @ViewBuilder
+    func performanceToolAction(compact: Bool) -> some View {
+        if compact {
+            buttonStyle(.bordered).controlSize(.small)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+}
+
 struct PerformanceBadge: View {
     let label: String
     let systemImage: String
