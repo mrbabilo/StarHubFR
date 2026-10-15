@@ -420,6 +420,7 @@ let package = Package(
                 "Stores/ModGroupStore.swift",
                 "Stores/KeybindFamilyStore.swift",
                 "Stores/KeybindPlanService.swift",
+                "Stores/KeybindPlanService+Outcome.swift",
                 "Stores/SessionEnvironmentStore.swift",
                 "Stores/ContentPatcherLoadIndex.swift",
                 "Stores/ModImpactStore.swift",

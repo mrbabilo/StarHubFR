@@ -7,26 +7,19 @@ import Observation
 ///
 /// Ordre d'`apply`, et pourquoi : jeu ouvert refusé (un mod C# réécrit sa
 /// config quand il veut) ; plan périmé refusé (le rapport a bougé depuis le
-/// calcul) ; **sauvegarde d'abord** — si elle échoue, rien n'est écrit ;
-/// puis un fichier à la fois, chacun isolé : un fichier en échec est sauté et
-/// nommé, les autres s'écrivent quand même — jamais tout ou rien, jamais un
-/// fichier à moitié réécrit.
+/// calcul) ; **sauvegarde d'abord** — si elle échoue, rien n'est écrit, et un
+/// fichier absent du lot n'est jamais écrit ; puis un fichier à la fois,
+/// chacun isolé : un fichier en échec est sauté et nommé, les autres
+/// s'écrivent quand même — jamais tout ou rien, jamais un fichier à moitié
+/// réécrit. Résultats et refus typés : `KeybindPlanService+Outcome.swift`.
 @MainActor
 @Observable
 final class KeybindPlanService {
-    struct AppliedResult: Equatable, Sendable {
-        let written: Int
-        /// `folderName` + raison en clair, affiché tel quel.
-        let skipped: [String]
-        /// Le lot de `ModConfigBackupManager` qui rend l'état d'avant plan.
-        let backupId: String?
-    }
-
-    enum State: Equatable {
-        case idle, computing, ready(KeybindPlan), applying, applied(AppliedResult), failed(String)
-    }
-
     private(set) var state: State = .idle
+    /// Un refus qui ne change pas l'état — jeu ouvert : le plan prêt (ou
+    /// l'annulation possible) reste, l'utilisateur ferme le jeu et réessaie.
+    /// Effacé à l'opération suivante.
+    private(set) var refusal: Failure?
 
     private static let configFile = "config.json"
 
@@ -35,14 +28,17 @@ final class KeybindPlanService {
     /// Les réglages sur lesquels le plan a été calculé : la signature
     /// anti-péremption comparée par `apply`.
     @ObservationIgnored private var plannedSettings: [KeybindScanner.SettingBinding]?
-    /// Le lot du dernier `apply` et les mods effectivement écrits — seuls
-    /// ceux-là sont restaurés : rendre un fichier sauté n'apporte rien et
-    /// pourrait écraser une édition faite depuis.
-    @ObservationIgnored private var lastApply: (backup: ModConfigBackup, written: Set<String>)?
+    /// Le lot du dernier `apply` et, par mod écrit, le chemin et le texte
+    /// exact écrits. Seuls ces mods sont restaurés, et seulement si le
+    /// fichier porte encore ce texte : `backUpConfigOncePerDay` ne crée pas
+    /// de nouveau lot quand celui du plan protège déjà le fichier — le lot du
+    /// plan reste « le dernier » alors que l'utilisateur a pu éditer depuis.
+    @ObservationIgnored private var lastApply: (backup: ModConfigBackup,
+                                                written: [String: (path: String, text: String)])?
 
-    /// `isGameRunning` n'a pas de valeur par défaut, contrairement au brief :
-    /// une sonde oubliée qui répondrait toujours « fermé » laisserait écrire
-    /// jeu ouvert sans que rien ne le signale.
+    /// `isGameRunning` n'a pas de valeur par défaut : une sonde oubliée qui
+    /// répondrait toujours « fermé » laisserait écrire jeu ouvert sans que
+    /// rien ne le signale.
     init(backupManager: ModConfigBackupManager = ModConfigBackupManager(),
          isGameRunning: @escaping @MainActor () -> Bool) {
         self.backupManager = backupManager
@@ -60,10 +56,9 @@ final class KeybindPlanService {
 
     /// Fusionne familles devinées + corrections (une correction gagne
     /// toujours), puis appelle le solveur.
-    /// `mods` : réservé à l'appelant (même lot que `apply`) ; le rapport porte
-    /// déjà tout ce que le calcul lit.
-    func compute(report: KeybindScanner.KeybindReport, mods: [ModItem],
-                 familyStore: KeybindFamilyStore, mode: KeybindPlanMode) {
+    func compute(report: KeybindScanner.KeybindReport, familyStore: KeybindFamilyStore,
+                 mode: KeybindPlanMode) {
+        refusal = nil
         state = .computing
         var families = Self.guessedFamilies(report)
         families.merge(familyStore.families) { _, correction in correction }
@@ -103,37 +98,27 @@ final class KeybindPlanService {
     // MARK: - Application
 
     /// `report` : le rapport **courant** de l'appelant, comparé à celui du
-    /// calcul. `rescan` est rejoué après toute écriture.
+    /// calcul. `excluding` : ids de `PlannedMove` retirés par l'utilisateur,
+    /// ni sauvegardés ni écrits. `rescan` est rejoué après la sauvegarde.
     func apply(report: KeybindScanner.KeybindReport, gameDir: String, mods: [ModItem],
-               rescan: @escaping @MainActor () -> Void) async {
-        guard case .ready(let plan) = state, let plannedSettings else {
-            state = .failed("aucun plan à appliquer")
-            return
-        }
-        guard !isGameRunning() else {
-            state = .failed("jeu ouvert : fermez Stardew Valley avant d'appliquer le plan")
-            return
-        }
-        guard report.settings == plannedSettings else {
-            state = .failed("plan périmé, recalculer")
-            return
-        }
-        guard !gameDir.isEmpty else {
-            state = .failed("dossier du jeu inconnu")
-            return
-        }
+               excluding: Set<String> = [], rescan: @escaping @MainActor () -> Void) async {
+        refusal = nil
+        guard case .ready(let plan) = state, let plannedSettings else { state = .failed(.noPlan); return }
+        guard !isGameRunning() else { refusal = .gameRunning; return }
+        guard report.settings == plannedSettings else { state = .failed(.stalePlan); return }
+        guard !gameDir.isEmpty else { state = .failed(.noGameDir); return }
         state = .applying
 
-        var skipped: [String] = []
+        var skipped: [Skip] = []
         var targets: [(mod: ModItem, moves: [PlannedMove])] = []
         let candidates = mods.flattenedMods.filter { !$0.isGroup }
-        for (modID, moves) in Self.grouped(plan.moves) {
+        for (modID, moves) in Self.grouped(plan.moves.filter { !excluding.contains($0.id) }) {
             // `X` actif et `.X` en pause partagent leur `folderName` : le plan
             // ne déplace que des réglages de mods actifs, c'est donc l'entrée
             // active qui a été scannée.
             let entries = candidates.filter { $0.folderName == modID }
             guard let mod = entries.first(where: \.isEnabled) ?? entries.first else {
-                skipped.append("\(modID) : mod introuvable dans le parc")
+                skipped.append(Skip(folderName: modID, reason: .modNotFound))
                 continue
             }
             targets.append((mod, moves))
@@ -150,22 +135,36 @@ final class KeybindPlanService {
             backup = try backupManager.createBackup(gameDir: gameDir, mods: targets.map(\.mod),
                                                     onlyEnabled: false)
         } catch {
-            state = .failed("sauvegarde impossible, rien n'a été écrit : \(error.localizedDescription)")
+            state = .failed(.backupFailed(error.localizedDescription))
             return
         }
 
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
-        var written = Set<String>()
+        let backupRoot = backupManager.backupsDirectory.appendingPathComponent(backup.folderName)
+        var written: [String: (path: String, text: String)] = [:]
         for (mod, moves) in targets {
             guard mod.isEnabled else {
-                skipped.append("\(mod.folderName) : mod en pause, configuration laissée telle quelle")
+                skipped.append(Skip(folderName: mod.folderName, reason: .paused))
                 continue
             }
-            let folder = (modsPath as NSString).appendingPathComponent(mod.physicalFolderName)
-            if let reason = Self.rewrite(folder: folder, moves: moves) {
-                skipped.append("\(mod.folderName) : \(reason)")
-            } else {
-                written.insert(mod.folderName)
+            // `createBackup` saute en silence un dossier sans fichier
+            // préservable — un dossier lié par symlink n'en livre aucun alors
+            // que l'écriture, elle, le traverserait. Sans copie, pas d'écriture.
+            guard let item = backup.items.first(where: { $0.modFolderName == mod.folderName }),
+                  item.files.contains(Self.configFile) else {
+                skipped.append(Skip(folderName: mod.folderName, reason: .noBackupCopy))
+                continue
+            }
+            let target = Target(
+                path: (modsPath as NSString).appendingPathComponent(mod.physicalFolderName + "/" + Self.configFile),
+                backedUp: backupRoot.appendingPathComponent(item.modFolderName)
+                    .appendingPathComponent(Self.configFile).path,
+                modRoot: (modsPath as NSString).appendingPathComponent(
+                    String(mod.physicalFolderName.split(separator: "/").first ?? ""))
+            )
+            switch Self.rewrite(target, moves: moves) {
+            case .success(let text): written[mod.folderName] = (target.path, text)
+            case .failure(let reason): skipped.append(Skip(folderName: mod.folderName, reason: reason))
             }
         }
 
@@ -186,14 +185,27 @@ final class KeybindPlanService {
         return order.map { ($0, byMod[$0] ?? []) }
     }
 
-    /// Réécrit le `config.json` de `folder` avec tous ses déplacements.
-    /// Rend `nil` si le fichier est écrit, sinon la raison du saut — et rien
-    /// n'est alors écrit : un seul déplacement en échec garde le fichier
-    /// intact plutôt qu'à moitié appliqué.
-    private static func rewrite(folder: String, moves: [PlannedMove]) -> String? {
-        let path = (folder as NSString).appendingPathComponent(configFile)
-        guard case .content(let loaded) = ModConfigWriteGuard.readDisk(atPath: path) else {
-            return "config.json absent ou illisible"
+    private struct Target {
+        let path: String
+        /// La copie de `config.json` dans le lot : le texte réécrit, et la
+        /// référence du garde.
+        let backedUp: String
+        /// Le dossier de tête du mod : la remontée des droits s'y arrête.
+        let modRoot: String
+    }
+
+    /// Réécrit le texte **sauvegardé** avec tous les déplacements du mod, et
+    /// l'écrit si le disque porte encore ce texte. Rend le texte écrit, ou la
+    /// raison du saut — rien n'est alors écrit.
+    private static func rewrite(_ target: Target, moves: [PlannedMove]) -> Result<String, Skip.Reason> {
+        let current: String
+        switch ModConfigWriteGuard.readDisk(atPath: target.path) {
+        case .missing: return .failure(.missing)   // jamais recréé
+        case .unreadable: return .failure(.unreadable)
+        case .content(let text): current = text
+        }
+        guard case .content(let loaded) = ModConfigWriteGuard.readDisk(atPath: target.backedUp) else {
+            return .failure(.noBackupCopy)
         }
         // Plusieurs alternatives perdantes d'un même réglage : chacune
         // s'applique sur le texte déjà réécrit par la précédente.
@@ -202,85 +214,77 @@ final class KeybindPlanService {
             switch KeybindPlanWriter.rewrittenText(original: text, keyPath: move.keyPath,
                                                    from: move.from, to: move.to) {
             case .success(let next): text = next
-            case .failure(let failure): return describe(failure, move)
+            case .failure(let failure): return .failure(.writerFailed(failure, keyPath: move.keyPath))
             }
         }
-        switch ModConfigWriteGuard.decide(loaded: loaded, onDisk: ModConfigWriteGuard.readDisk(atPath: path),
-                                          pending: text) {
+        // Le disque doit porter ce qui a été sauvegardé : sinon il a bougé
+        // depuis le lot, et l'écrire perdrait ce changement sans copie.
+        switch ModConfigWriteGuard.decide(loaded: loaded, onDisk: .content(current), pending: text) {
         case .proceed: break
-        case .externallyChanged: return "config.json modifié pendant l'application"
-        case .unverifiable: return "config.json illisible à la relecture"
+        case .externallyChanged: return .failure(.externallyChanged)
+        case .unverifiable: return .failure(.unreadable)
         }
         do {
-            try write(text, toFile: path, folder: folder)
-            return nil
+            // X7 : un dossier de mod en 0555 est ouvert le temps de l'écriture,
+            // puis rendu à ses droits d'origine (même règle que la restauration).
+            try RecoveredFileWriter.withWriteAccess(to: target.path, modRoot: target.modRoot) {
+                try text.write(toFile: target.path, atomically: true, encoding: .utf8)
+            }
+            return .success(text)
         } catch {
-            return "écriture impossible : \(error.localizedDescription)"
-        }
-    }
-
-    /// X7 : une part du parc a ses dossiers en `0555` (droits restitués par
-    /// l'archive). Sur un refus de droits, le dossier est ouvert une fois,
-    /// puis l'écriture est retentée.
-    private static func write(_ text: String, toFile path: String, folder: String) throws {
-        do {
-            try text.write(toFile: path, atomically: true, encoding: .utf8)
-        } catch let error as CocoaError where error.code == .fileWriteNoPermission {
-            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder)
-            try text.write(toFile: path, atomically: true, encoding: .utf8)
-        }
-    }
-
-    private static func describe(_ failure: KeybindPlanWriter.Failure, _ move: PlannedMove) -> String {
-        let setting = move.keyPath.joined(separator: ".")
-        switch failure {
-        case .unreadable: return "config.json illisible (JSON invalide)"
-        case .pathMissing: return "réglage \(setting) introuvable"
-        case .alternativeMissing: return "touche \(move.from.display) absente de \(setting)"
-        case .unsupportedValue: return "valeur de \(setting) non textuelle"
+            return .failure(.writeFailed(error.localizedDescription))
         }
     }
 
     // MARK: - Annulation
 
-    /// Restaure les mods écrits par le dernier `apply` depuis son lot, puis
-    /// rejoue `rescan`. Refusé si un autre lot a suivi.
+    /// Restaure, depuis le lot du dernier `apply`, le seul `config.json` des
+    /// mods écrits — et seulement s'il porte encore le texte écrit par le
+    /// plan. Refusé si un autre lot a suivi. `rescan` est rejoué ensuite.
     func undo(gameDir: String, mods: [ModItem], rescan: @escaping @MainActor () -> Void) async {
-        guard let lastApply else {
-            state = .failed("aucun plan appliqué à annuler")
-            return
-        }
-        guard !isGameRunning() else {
-            state = .failed("jeu ouvert : fermez Stardew Valley avant d'annuler le plan")
-            return
-        }
-        guard canUndo else {
-            state = .failed("une sauvegarde plus récente a suivi le plan : restaurez depuis l'écran des sauvegardes")
-            return
-        }
-        // Le lot porte aussi les traductions (`ModConfigFiles.preservable`) :
-        // seul `config.json` est rendu, le plan n'a rien écrit d'autre — une
-        // traduction retouchée depuis ne doit pas être ramenée en arrière.
-        let items = lastApply.backup.items
-            .filter { lastApply.written.contains($0.modFolderName) }
-            .map { item in
-                ModConfigBackupItem(modFolderName: item.modFolderName, parentFolderName: item.parentFolderName,
-                                    modDisplayName: item.modDisplayName,
-                                    files: item.files.filter { $0 == Self.configFile },
-                                    fileSizes: item.fileSizes.filter { $0.key == Self.configFile })
+        refusal = nil
+        guard let lastApply else { state = .failed(.nothingToUndo); return }
+        guard !isGameRunning() else { refusal = .gameRunning; return }
+        guard canUndo else { state = .failed(.notLatestBackup); return }
+
+        var skipped: [Skip] = []
+        var items: [ModConfigBackupItem] = []
+        for (folderName, write) in lastApply.written.sorted(by: { $0.key < $1.key }) {
+            guard let item = lastApply.backup.items.first(where: { $0.modFolderName == folderName }),
+                  item.files.contains(Self.configFile) else {
+                skipped.append(Skip(folderName: folderName, reason: .noBackupCopy))
+                continue
             }
-        let report: ModConfigRestoreReport
-        do {
-            report = try backupManager.restoreBackup(gameDir: gameDir, backup: lastApply.backup,
-                                                     selectedItems: items, currentMods: mods)
-        } catch {
-            state = .failed("annulation impossible : \(error.localizedDescription)")
-            return
+            guard case .content(let current) = ModConfigWriteGuard.readDisk(atPath: write.path),
+                  current == write.text else {
+                skipped.append(Skip(folderName: folderName, reason: .changedSinceApply))
+                continue
+            }
+            // Le lot porte aussi les traductions : seul `config.json` est
+            // rendu, le plan n'a rien écrit d'autre.
+            items.append(ModConfigBackupItem(modFolderName: item.modFolderName,
+                                             parentFolderName: item.parentFolderName,
+                                             modDisplayName: item.modDisplayName,
+                                             files: [Self.configFile],
+                                             fileSizes: item.fileSizes.filter { $0.key == Self.configFile }))
+        }
+        var restored = 0
+        if !items.isEmpty {
+            do {
+                let report = try backupManager.restoreBackup(gameDir: gameDir, backup: lastApply.backup,
+                                                             selectedItems: items, currentMods: mods)
+                restored = report.modsRestored
+                let suffix = "/" + Self.configFile
+                skipped += (report.skippedMods + report.skippedFiles.map {
+                    $0.hasSuffix(suffix) ? String($0.dropLast(suffix.count)) : $0
+                }).map { Skip(folderName: $0, reason: .restoreFailed) }
+            } catch {
+                state = .failed(.restoreFailed(error.localizedDescription))
+                return
+            }
         }
         self.lastApply = nil
-        let missed = report.skippedMods + report.skippedFiles
-        state = missed.isEmpty ? .idle : .failed("annulation partielle, non restaurés : "
-                                                 + missed.joined(separator: ", "))
+        state = .undone(UndoResult(restored: restored, skipped: skipped))
         rescan()
     }
 }

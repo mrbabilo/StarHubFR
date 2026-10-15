@@ -9,7 +9,7 @@ import Foundation
 /// to main for UI updates, consistent with the rest of the codebase.
 ///
 /// `@unchecked` : ce type n'a aucun état mutable stocké — tous les champs
-/// d'instance sont des `let` (chemins, `fm`, `indexLock`). Ce qui empêche un
+/// d'instance sont des `let` (chemins, `fm` ; `indexLock` statique). Ce qui empêche un
 /// `Sendable` ordinaire, ce n'est donc pas de la mémoire non protégée mais un
 /// seul membre : `fm` (`FileManager.default`) est de type `FileManager`, qui
 /// n'est **pas** `Sendable` dans ce SDK (`NSFileManager` ne porte pas
@@ -49,20 +49,20 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     private let backupsDirPath: URL
     private let metadataPath: URL
 
-    // Guards every metadata.json read-modify-write cycle below. Without it,
-    // two calls dispatched from different background queues (e.g. a manual
-    // "create backup" racing an auto-cleanup, or two rapid deletes) can each
-    // load the same old index, mutate their own copy, and the second
-    // `saveIndex` silently discards the first call's change.
-    private let indexLock = NSLock()
+    // Guards every metadata.json read-modify-write cycle below — **static**:
+    // one lock for every instance, because the plan of shortcuts holds its own
+    // manager on the same metadata.json as `.shared` (two locks = two calls
+    // loading the same old index, the second `saveIndex` silently discarding
+    // the first call's change, e.g. a plan backup racing an auto-cleanup).
+    private static let indexLock = NSLock()
 
     private static let minBackupsToKeep = 5
     private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60
 
-    /// `backupsBasePath` is exposed only so tests can point this manager at
-    /// an isolated temporary directory instead of the real Application
-    /// Support folder. Production code always uses `.shared`, which calls
-    /// this with `nil` and gets the exact same directory as before.
+    /// `backupsBasePath` lets tests point this manager at an isolated temporary
+    /// directory. With `nil`, the real folder — `.shared`, and the instance the
+    /// plan of shortcuts holds (`KeybindPlanLive`, no new `.shared`); both
+    /// share the same metadata.json, hence the static `indexLock`.
     public init(backupsBasePath overrideBasePath: URL? = nil) {
         // **Sous `StarHubFR/` depuis X105** (2026-09-10), comme le reste des
         // données : les 220 chemins absolus de son index sont repointés par
@@ -89,8 +89,8 @@ public final class ModConfigBackupManager: @unchecked Sendable {
     // MARK: - Index
 
     private func withIndexLock<T>(_ body: () -> T) -> T {
-        indexLock.lock()
-        defer { indexLock.unlock() }
+        Self.indexLock.lock()
+        defer { Self.indexLock.unlock() }
         return body()
     }
 

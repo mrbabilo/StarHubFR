@@ -2,122 +2,25 @@ import Foundation
 import Testing
 @testable import StarHubTHCore
 
-/// Le service écrit de vrais `config.json` : tout vit dans un dossier
-/// temporaire (faux `Mods/`, sauvegardes, magasin des familles) — jamais le
-/// vrai Application Support ni le vrai parc.
+/// `apply` : gardes, sauvegarde d'abord, un fichier à la fois. Montage :
+/// `KeybindPlanFixture`. Annulation : `KeybindPlanServiceUndoTests`.
 @MainActor
 @Suite struct KeybindPlanServiceTests {
-    final class Box: @unchecked Sendable {
-        var running = false
-        var rescans = 0
-    }
-
-    private struct Fixture {
-        let base: URL
-        let game: URL
-        let backups: ModConfigBackupManager
-        let families: KeybindFamilyStore
-        let mods: [ModItem]
-        let box: Box
-        let service: KeybindPlanService
-
-        func config(_ folder: String) -> URL {
-            game.appendingPathComponent("Mods/\(folder)/config.json")
-        }
-        func text(_ folder: String) throws -> String {
-            try String(contentsOf: config(folder), encoding: .utf8)
-        }
-        /// Le rapport tel que le scanner le rendrait sur le disque actuel.
-        func report() throws -> KeybindScanner.KeybindReport {
-            let scans = try mods.map { mod -> KeybindScanner.ModScan in
-                let tree = ConfigJSONTree.parse(try text(mod.folderName)) ?? .object(ConfigJSONTree.Object([]))
-                return .init(id: mod.folderName, name: mod.name, isActive: true, tree: tree)
-            }
-            return KeybindScanner.report(mods: scans, contexts: .empty,
-                                         gameControls: [.init(name: "action", buttons: ["E"])],
-                                         gamepadOff: true)
-        }
-        func cleanUp() {
-            // Un dossier 0555 empêcherait la suppression de son contenu.
-            if let walker = FileManager.default.enumerator(atPath: base.path) {
-                for case let relative as String in walker {
-                    try? FileManager.default.setAttributes(
-                        [.posixPermissions: 0o755],
-                        ofItemAtPath: base.appendingPathComponent(relative).path)
-                }
-            }
-            try? FileManager.default.removeItem(at: base)
-        }
-    }
-
-    /// `configs` : dossier → (famille corrigée, texte de `config.json`).
-    /// Les familles passent par le magasin : le test ne dépend pas des
-    /// listes de mots-clés de la déduction.
-    private func fixture(_ configs: [(String, KeybindFamily, String)],
-                         backupsBase: URL? = nil) throws -> Fixture {
-        let base = FileManager.default.temporaryDirectory
-            .appendingPathComponent("KeybindPlanServiceTests-\(UUID().uuidString)", isDirectory: true)
-        let game = base.appendingPathComponent("Game", isDirectory: true)
-        let support = base.appendingPathComponent("Support", isDirectory: true)
-        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
-        var mods: [ModItem] = []
-        let families = KeybindFamilyStore(directory: support)
-        for (folder, family, text) in configs {
-            let dir = game.appendingPathComponent("Mods/\(folder)", isDirectory: true)
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            try Data(text.utf8).write(to: dir.appendingPathComponent("config.json"))
-            mods.append(ModItem(uniqueId: "test.\(folder)", name: folder, folderName: folder,
-                                version: "1.0.0", author: "", description: "", nexusUrl: "",
-                                nexusModId: "", isEnabled: true, dependencies: [],
-                                hasConfigFile: true))
-            families.set(family, for: folder)
-        }
-        let backups = ModConfigBackupManager(
-            backupsBasePath: backupsBase ?? base.appendingPathComponent("Backups", isDirectory: true))
-        let box = Box()
-        let service = KeybindPlanService(backupManager: backups, isGameRunning: { box.running })
-        return Fixture(base: base, game: game, backups: backups, families: families,
-                       mods: mods, box: box, service: service)
-    }
-
-    /// Swim (action) et MailboxMenu (info) sur H : l'info cède.
-    private func conflictPair() throws -> Fixture {
-        try fixture([("Swim", .action, "{\n  \"DiveKey\": \"H\"\n}"),
-                     ("MailboxMenu", .info, "{\n  \"MenuKey\": \"H\",\n  \"Other\": 3\n}")])
-    }
-
-    private func readyPlan(_ f: Fixture) throws -> KeybindPlan {
-        f.service.compute(report: try f.report(), mods: f.mods, familyStore: f.families, mode: .conflictsOnly)
-        guard case .ready(let plan) = f.service.state else {
-            Issue.record("état attendu .ready, obtenu \(f.service.state)")
-            throw CancellationError()
-        }
-        return plan
-    }
-
-    private func value(_ f: Fixture, _ folder: String, _ key: String) throws -> String? {
-        guard case .object(let object) = try #require(ConfigJSONTree.parse(try f.text(folder))),
-              case .string(let raw)? = object.members[key] else { return nil }
-        return raw
-    }
 
     @Test func applyWritesLoserRescansAndBacksUp() async throws {
-        let f = try conflictPair()
+        let f = try KeybindPlanFixture.conflictPair()
         defer { f.cleanUp() }
         let swimBefore = try f.text("Swim")
-        let plan = try readyPlan(f)
+        let plan = try f.readyPlan()
         let move = try #require(plan.moves.first)
         #expect(plan.moves.count == 1 && move.modID == "MailboxMenu")
 
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply()
 
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
+        let result = try #require(f.applied())
         #expect(result.written == 1)
         #expect(result.skipped.isEmpty)
-        #expect(try value(f, "MailboxMenu", "MenuKey") == move.to.display)
+        #expect(try f.value("MailboxMenu", "MenuKey") == move.to.display)
         #expect(try f.text("MailboxMenu").contains("\"Other\": 3"))
         #expect(try f.text("Swim") == swimBefore)
         #expect(f.box.rescans == 1)
@@ -128,165 +31,41 @@ import Testing
         #expect(backups.first?.items.map(\.modFolderName) == ["MailboxMenu"])
     }
 
-    @Test func gameRunningRefusesApply() async throws {
-        let f = try conflictPair()
+    @Test func gameRunningRefusesApplyButKeepsThePlan() async throws {
+        let f = try KeybindPlanFixture.conflictPair()
         defer { f.cleanUp() }
         let before = try f.text("MailboxMenu")
-        _ = try readyPlan(f)
+        let plan = try f.readyPlan()
         f.box.running = true
 
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply()
 
-        guard case .failed = f.service.state else {
-            Issue.record("état attendu .failed, obtenu \(f.service.state)"); return
-        }
+        #expect(f.service.refusal == .gameRunning)
+        #expect(f.service.state == .ready(plan))
         #expect(try f.text("MailboxMenu") == before)
         #expect(f.backups.loadBackups().isEmpty)
         #expect(f.box.rescans == 0)
-    }
-
-    @Test func unreadableFileIsSkippedAndNamed() async throws {
-        // Deux conflits indépendants : MailboxMenu et LookupInfo perdent.
-        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
-                             ("MailboxMenu", .info, #"{"MenuKey": "H"}"#),
-                             ("Fishing", .action, #"{"CastKey": "J"}"#),
-                             ("LookupInfo", .info, #"{"LookupKey": "J"}"#)])
-        defer { f.cleanUp() }
-        let report = try f.report()
-        let plan = try readyPlan(f)
-        #expect(Set(plan.moves.map(\.modID)) == ["MailboxMenu", "LookupInfo"])
-        let lookupMove = try #require(plan.moves.first { $0.modID == "LookupInfo" })
-        // Corrompu entre le calcul et l'application.
-        try Data("{ \"MenuKey\": ".utf8).write(to: f.config("MailboxMenu"))
-
-        await f.service.apply(report: report, gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
-
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
-        #expect(result.written == 1)
-        #expect(result.skipped.count == 1)
-        #expect(result.skipped.first?.contains("MailboxMenu") == true)
-        #expect(try f.text("MailboxMenu") == "{ \"MenuKey\": ")
-        #expect(try value(f, "LookupInfo", "LookupKey") == lookupMove.to.display)
-        #expect(f.box.rescans == 1)
-    }
-
-    @Test func severalMovesOnOneSettingApplyOnTheEvolvingText() async throws {
-        // MailboxMenu perd H contre Swim et J contre Fishing : deux
-        // déplacements sur le même réglage, écrits l'un après l'autre.
-        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
-                             ("Fishing", .action, #"{"CastKey": "J"}"#),
-                             ("MailboxMenu", .info, #"{"MenuKey": "H, J"}"#)])
-        defer { f.cleanUp() }
-        let plan = try readyPlan(f)
-        let moves = plan.moves.filter { $0.modID == "MailboxMenu" }
-        try #require(moves.count == 2 && Set(moves.map(\.keyPath)) == [["MenuKey"]])
-
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
-
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
-        #expect(result.written == 1)
-        let alternatives = try #require(try value(f, "MailboxMenu", "MenuKey"))
-            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        #expect(Set(alternatives) == Set(moves.map(\.to.display)))
-    }
-
-    @Test func oneFailingMoveLeavesTheWholeFileIntact() async throws {
-        // Deux réglages perdants dans le même fichier ; le second (ordre du
-        // plan : ListKey puis MenuKey) n'a plus son alternative à l'application.
-        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
-                             ("Fishing", .action, #"{"CastKey": "J"}"#),
-                             ("MailboxMenu", .info, #"{"ListKey": "J", "MenuKey": "H"}"#)])
-        defer { f.cleanUp() }
-        let report = try f.report()
-        let plan = try readyPlan(f)
-        try #require(plan.moves.filter { $0.modID == "MailboxMenu" }.map(\.keyPath) == [["ListKey"], ["MenuKey"]])
-        let changed = #"{"ListKey": "J", "MenuKey": "K"}"#
-        try Data(changed.utf8).write(to: f.config("MailboxMenu"))
-
-        await f.service.apply(report: report, gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
-
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
-        #expect(result.written == 0)
-        #expect(result.skipped.count == 1)
-        #expect(result.skipped.first?.contains("MailboxMenu") == true)
-        #expect(try f.text("MailboxMenu") == changed)
+        // Jeu fermé : le même plan s'applique sans recalcul.
+        f.box.running = false
+        try await f.apply()
+        #expect(f.service.refusal == nil)
+        #expect(f.applied()?.written == 1)
     }
 
     @Test func stalePlanRefusesApply() async throws {
-        let f = try conflictPair()
+        let f = try KeybindPlanFixture.conflictPair()
         defer { f.cleanUp() }
         let before = try f.text("MailboxMenu")
-        _ = try readyPlan(f)
+        _ = try f.readyPlan()
         // Le parc a bougé entre le calcul et l'application.
         try Data(#"{"DiveKey": "K"}"#.utf8).write(to: f.config("Swim"))
 
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply()
 
-        #expect(f.service.state == .failed("plan périmé, recalculer"))
+        #expect(f.service.state == .failed(.stalePlan))
         #expect(try f.text("MailboxMenu") == before)
         #expect(f.backups.loadBackups().isEmpty)
         #expect(f.box.rescans == 0)
-    }
-
-    @Test func undoRestoresBytes() async throws {
-        let f = try conflictPair()
-        defer { f.cleanUp() }
-        let before = try f.text("MailboxMenu")
-        let i18n = f.config("MailboxMenu").deletingLastPathComponent().appendingPathComponent("i18n")
-        try FileManager.default.createDirectory(at: i18n, withIntermediateDirectories: true)
-        try Data(#"{"title": "avant"}"#.utf8).write(to: i18n.appendingPathComponent("fr.json"))
-        _ = try readyPlan(f)
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
-        #expect(try f.text("MailboxMenu") != before)
-        // Traduction retouchée après le plan : l'annulation n'y touche pas.
-        try Data(#"{"title": "après"}"#.utf8).write(to: i18n.appendingPathComponent("fr.json"))
-
-        await f.service.undo(gameDir: f.game.path, mods: f.mods, rescan: { f.box.rescans += 1 })
-
-        #expect(try f.text("MailboxMenu") == before)
-        #expect(try String(contentsOf: i18n.appendingPathComponent("fr.json"), encoding: .utf8)
-                == #"{"title": "après"}"#)
-        #expect(f.box.rescans == 2)
-        guard case .idle = f.service.state else {
-            Issue.record("état attendu .idle après annulation, obtenu \(f.service.state)"); return
-        }
-        // La restauration pose son propre filet : le lot du plan n'est plus
-        // le dernier, une seconde annulation est refusée.
-        await f.service.undo(gameDir: f.game.path, mods: f.mods, rescan: { f.box.rescans += 1 })
-        guard case .failed = f.service.state else {
-            Issue.record("seconde annulation attendue en échec, obtenu \(f.service.state)"); return
-        }
-        #expect(f.box.rescans == 2)
-    }
-
-    @Test func undoRefusedWhenAnotherBackupCameAfter() async throws {
-        let f = try conflictPair()
-        defer { f.cleanUp() }
-        _ = try readyPlan(f)
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
-        let applied = try f.text("MailboxMenu")
-        _ = try f.backups.createBackup(gameDir: f.game.path, mods: f.mods, onlyEnabled: false)
-
-        await f.service.undo(gameDir: f.game.path, mods: f.mods, rescan: { f.box.rescans += 1 })
-
-        guard case .failed = f.service.state else {
-            Issue.record("état attendu .failed, obtenu \(f.service.state)"); return
-        }
-        #expect(try f.text("MailboxMenu") == applied)
-        #expect(f.box.rescans == 1)
     }
 
     @Test func backupFailureWritesNothing() async throws {
@@ -295,66 +74,185 @@ import Testing
             .appendingPathComponent("KeybindPlanServiceTests-blocker-\(UUID().uuidString)")
         try Data("x".utf8).write(to: blocker)
         defer { try? FileManager.default.removeItem(at: blocker) }
-        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
-                             ("MailboxMenu", .info, #"{"MenuKey": "H"}"#)],
-                            backupsBase: blocker)
+        let f = try KeybindPlanFixture([("Swim", .action, #"{"DiveKey": "H"}"#),
+                                        ("MailboxMenu", .info, #"{"MenuKey": "H"}"#)],
+                                       backupsBase: blocker)
         defer { f.cleanUp() }
         let before = try f.text("MailboxMenu")
-        _ = try readyPlan(f)
+        _ = try f.readyPlan()
 
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply()
 
-        guard case .failed = f.service.state else {
-            Issue.record("état attendu .failed, obtenu \(f.service.state)"); return
+        guard case .failed(.backupFailed) = f.service.state else {
+            Issue.record("état attendu .failed(.backupFailed), obtenu \(f.service.state)"); return
         }
         #expect(try f.text("MailboxMenu") == before)
         #expect(f.box.rescans == 0)
     }
 
-    @Test func readOnlyModFolderIsChmodedThenWritten() async throws {
-        let f = try conflictPair()
+    @Test func corruptedFileIsSkippedAndNamed() async throws {
+        let f = try KeybindPlanFixture.twoConflicts()
         defer { f.cleanUp() }
-        let plan = try readyPlan(f)
-        let move = try #require(plan.moves.first)
+        let report = try f.report()
+        let plan = try f.readyPlan()
+        #expect(Set(plan.moves.map(\.modID)) == ["MailboxMenu", "LookupInfo"])
+        let lookupMove = try #require(plan.moves.first { $0.modID == "LookupInfo" })
+        // Corrompu entre le calcul et l'application.
+        try Data("{ \"MenuKey\": ".utf8).write(to: f.config("MailboxMenu"))
+
+        try await f.apply(report: report)
+
+        let result = try #require(f.applied())
+        #expect(result.written == 1)
+        #expect(result.skipped == [PlanSkip(folderName: "MailboxMenu",
+                                            reason: .writerFailed(.unreadable, keyPath: ["MenuKey"]))])
+        #expect(try f.text("MailboxMenu") == "{ \"MenuKey\": ")
+        #expect(try f.value("LookupInfo", "LookupKey") == lookupMove.to.display)
+        #expect(f.box.rescans == 1)
+    }
+
+    @Test func nonUTF8FileIsUnreadableAndSkipped() async throws {
+        let f = try KeybindPlanFixture.twoConflicts()
+        defer { f.cleanUp() }
+        let report = try f.report()
+        _ = try f.readyPlan()
+        let bytes = Data([0x7B, 0xFF, 0xFE, 0x7D])
+        try bytes.write(to: f.config("MailboxMenu"))
+
+        try await f.apply(report: report)
+
+        let result = try #require(f.applied())
+        #expect(result.skipped == [PlanSkip(folderName: "MailboxMenu", reason: .unreadable)])
+        #expect(result.written == 1)
+        #expect(try Data(contentsOf: f.config("MailboxMenu")) == bytes)
+    }
+
+    @Test func missingModIsSkippedAndNamed() async throws {
+        let f = try KeybindPlanFixture.twoConflicts()
+        defer { f.cleanUp() }
+        _ = try f.readyPlan()
+        let before = try f.text("LookupInfo")
+
+        try await f.apply(mods: f.mods.filter { $0.folderName != "LookupInfo" })
+
+        let result = try #require(f.applied())
+        #expect(result.skipped == [PlanSkip(folderName: "LookupInfo", reason: .modNotFound)])
+        #expect(result.written == 1)
+        #expect(try f.text("LookupInfo") == before)
+        #expect(f.backups.loadBackups().first?.items.map(\.modFolderName) == ["MailboxMenu"])
+    }
+
+    @Test func excludedMoveLeavesItsFileUntouched() async throws {
+        let f = try KeybindPlanFixture.twoConflicts()
+        defer { f.cleanUp() }
+        let plan = try f.readyPlan()
+        let excluded = try #require(plan.moves.first { $0.modID == "LookupInfo" })
+        let before = try f.text("LookupInfo")
+
+        try await f.apply(excluding: [excluded.id])
+
+        let result = try #require(f.applied())
+        #expect(result.written == 1 && result.skipped.isEmpty)
+        #expect(try f.text("LookupInfo") == before)
+        #expect(try f.text("MailboxMenu") != #"{"MenuKey": "H"}"#)
+        #expect(f.backups.loadBackups().first?.items.map(\.modFolderName) == ["MailboxMenu"])
+    }
+
+    @Test func symlinkedModFolderWithoutBackupCopyIsNeverWritten() async throws {
+        let f = try KeybindPlanFixture.twoConflicts()
+        defer { f.cleanUp() }
+        // LookupInfo vit ailleurs, `Mods/LookupInfo` n'est qu'un lien.
+        let real = f.base.appendingPathComponent("Elsewhere/LookupInfo", isDirectory: true)
+        try FileManager.default.createDirectory(at: real.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        let link = f.game.appendingPathComponent("Mods/LookupInfo")
+        try FileManager.default.moveItem(at: link, to: real)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        let before = try Data(contentsOf: real.appendingPathComponent("config.json"))
+        _ = try f.readyPlan()
+
+        try await f.apply()
+
+        let result = try #require(f.applied())
+        #expect(result.skipped == [PlanSkip(folderName: "LookupInfo", reason: .noBackupCopy)])
+        #expect(result.written == 1)
+        #expect(try Data(contentsOf: real.appendingPathComponent("config.json")) == before)
+    }
+
+    @Test func readOnlyModFolderIsOpenedWrittenThenRestored() async throws {
+        let f = try KeybindPlanFixture.conflictPair()
+        defer { f.cleanUp() }
+        let move = try #require(try f.readyPlan().moves.first)
         let folder = f.config("MailboxMenu").deletingLastPathComponent().path
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder)
 
-        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply()
 
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
-        #expect(result.written == 1)
-        #expect(result.skipped.isEmpty)
-        #expect(try value(f, "MailboxMenu", "MenuKey") == move.to.display)
+        let result = try #require(f.applied())
+        #expect(result.written == 1 && result.skipped.isEmpty)
+        #expect(try f.value("MailboxMenu", "MenuKey") == move.to.display)
+        // Le mod reste comme son auteur l'a empaqueté.
+        let mode = try FileManager.default.attributesOfItem(atPath: folder)[.posixPermissions] as? NSNumber
+        #expect(mode?.uint16Value == 0o555)
     }
 
     @Test func pausedModIsSkippedAndNamed() async throws {
-        let f = try conflictPair()
+        let f = try KeybindPlanFixture.conflictPair()
         defer { f.cleanUp() }
         let report = try f.report()
-        _ = try readyPlan(f)
+        _ = try f.readyPlan()
         // Mis en pause entre le calcul et l'application : le dossier porte un point.
-        let mods = Dictionary(uniqueKeysWithValues: f.mods.map { ($0.folderName, $0) })
-        var mailbox = try #require(mods["MailboxMenu"])
-        mailbox.isEnabled = false
         try FileManager.default.moveItem(at: f.game.appendingPathComponent("Mods/MailboxMenu"),
                                          to: f.game.appendingPathComponent("Mods/.MailboxMenu"))
-        let before = try String(contentsOf: f.game.appendingPathComponent("Mods/.MailboxMenu/config.json"),
-                                encoding: .utf8)
+        let paused = f.game.appendingPathComponent("Mods/.MailboxMenu/config.json")
+        let before = try String(contentsOf: paused, encoding: .utf8)
 
-        await f.service.apply(report: report, gameDir: f.game.path,
-                              mods: [try #require(mods["Swim"]), mailbox],
-                              rescan: { f.box.rescans += 1 })
+        try await f.apply(report: report, mods: [KeybindPlanFixture.mod("Swim"),
+                                                 KeybindPlanFixture.mod("MailboxMenu", enabled: false)])
 
-        guard case .applied(let result) = f.service.state else {
-            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
-        }
+        let result = try #require(f.applied())
         #expect(result.written == 0)
-        #expect(result.skipped.first?.contains("MailboxMenu") == true)
-        #expect(try String(contentsOf: f.game.appendingPathComponent("Mods/.MailboxMenu/config.json"),
-                           encoding: .utf8) == before)
+        #expect(result.skipped == [PlanSkip(folderName: "MailboxMenu", reason: .paused)])
+        #expect(try String(contentsOf: paused, encoding: .utf8) == before)
+    }
+
+    @Test func severalMovesOnOneSettingApplyOnTheEvolvingText() async throws {
+        // MailboxMenu perd H contre Swim et J contre Fishing : deux
+        // déplacements sur le même réglage, écrits l'un après l'autre.
+        let f = try KeybindPlanFixture([("Swim", .action, #"{"DiveKey": "H"}"#),
+                                        ("Fishing", .action, #"{"CastKey": "J"}"#),
+                                        ("MailboxMenu", .info, #"{"MenuKey": "H, J"}"#)])
+        defer { f.cleanUp() }
+        let moves = try f.readyPlan().moves.filter { $0.modID == "MailboxMenu" }
+        try #require(moves.count == 2 && Set(moves.map(\.keyPath)) == [["MenuKey"]])
+
+        try await f.apply()
+
+        #expect(f.applied()?.written == 1)
+        let alternatives = try #require(try f.value("MailboxMenu", "MenuKey"))
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        #expect(Set(alternatives) == Set(moves.map(\.to.display)))
+    }
+
+    @Test func oneFailingMoveLeavesTheWholeFileIntact() async throws {
+        // Deux réglages perdants dans le même fichier ; le second (ordre du
+        // plan : ListKey puis MenuKey) n'a plus son alternative à l'application.
+        let f = try KeybindPlanFixture([("Swim", .action, #"{"DiveKey": "H"}"#),
+                                        ("Fishing", .action, #"{"CastKey": "J"}"#),
+                                        ("MailboxMenu", .info, #"{"ListKey": "J", "MenuKey": "H"}"#)])
+        defer { f.cleanUp() }
+        let report = try f.report()
+        let plan = try f.readyPlan()
+        try #require(plan.moves.filter { $0.modID == "MailboxMenu" }.map(\.keyPath) == [["ListKey"], ["MenuKey"]])
+        let changed = #"{"ListKey": "J", "MenuKey": "K"}"#
+        try Data(changed.utf8).write(to: f.config("MailboxMenu"))
+
+        try await f.apply(report: report)
+
+        let result = try #require(f.applied())
+        #expect(result.written == 0)
+        #expect(result.skipped == [PlanSkip(folderName: "MailboxMenu",
+                                            reason: .writerFailed(.alternativeMissing, keyPath: ["MenuKey"]))])
+        #expect(try f.text("MailboxMenu") == changed)
     }
 }
