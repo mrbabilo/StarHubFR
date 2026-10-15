@@ -353,6 +353,7 @@ let package = Package(
                 "Models/KeybindDevicePlacement.swift",
                 "Models/KeybindOverview.swift",
                 "Models/KeybindPlanner.swift",
+                "Models/HelpGuide.swift",
                 "Models/KeybindPlanWriter.swift",
                 "Models/MacKeyCodeMap.swift",
                 "Models/SavePlayerFields.swift",
@@ -658,6 +659,11 @@ let package = Package(
             name: "KeybindTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/KeybindTests"
+        ),
+        .testTarget(
+            name: "HelpGuideTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/HelpGuideTests"
         ),
         .testTarget(
             name: "ModConfigBackupManagerTests",
