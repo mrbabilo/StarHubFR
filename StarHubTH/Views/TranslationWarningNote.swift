@@ -22,7 +22,6 @@ struct TranslationWarningNote: View {
                      + shown.map { TranslationMismatchText.label($0, localization) }.joined(separator: "  "))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
-                    .lineLimit(3)
                 Text(localization.L(L10n.Mods.translationEditorWarningsHint))
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
