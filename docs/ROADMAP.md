@@ -867,6 +867,9 @@ issu, livré et archivé.
       - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Survol d'un lien : curseur main.
       - (f) Interface passée en anglais : la fenêtre affiche le guide anglais.
       - (g) Un chemin du guide (`~/.config/…/SMAPI-latest.txt`) se sélectionne et se copie.
+      - (h) **En premier** : aide ouverte, Réglages Système › « Fermer les fenêtres à la fermeture d'une app » désactivé, ⌘Q puis relance. La fenêtre principale doit réapparaître normalement après l'écran de démarrage (la fenêtre d'aide n'est jamais restaurée).
+      - (i) ⌘? avec les réglages système par défaut, puis en AZERTY : il peut ouvrir la recherche du menu Aide au lieu de l'aide (raccourci système ⇧⌘/). S'il ne répond pas : retirer le raccourci, l'entrée du catalogue, son test et sa mention au CHANGELOG ; l'entrée de menu reste.
+      - (j) Palette ⌘K › « Aide StarHubFR » ouvre la fenêtre, qui reste au premier plan ; la fenêtre s'intitule « Aide StarHubFR » ; à 560 pt le « ? » reste visible ; VoiceOver annonce les titres de section comme en-têtes.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
