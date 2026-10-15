@@ -1,0 +1,6 @@
+---
+description: StarHubFR repository conventions
+alwaysApply: true
+---
+
+Read [AGENTS.md](AGENTS.md) before changing anything: build commands, conventions and known pitfalls of this repository. Contributor rules are in CONTRIBUTING.md; business vocabulary (mod, pack, profile, save) is in docs/DOMAINE.md.
