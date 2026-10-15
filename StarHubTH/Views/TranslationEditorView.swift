@@ -365,10 +365,10 @@ struct TranslationEditorView: View {
     /// casserait… »). À ~80 caractères par ligne sur les 520pt de large
     /// utiles du panneau (largeur du sheet 560, moins 2×20 de marge, à 10pt),
     /// ça fait jusqu'à 5 lignes ≈ 65pt, plus l'intitulé (14pt) et
-    /// l'espacement (3pt) : 82pt. Le blocage de tokens, avec sa marque
-    /// manquante sur 3 lignes (42pt) et son indice sur 2 lignes (26pt),
+    /// l'espacement (3pt) : 82pt. Le blocage de tokens, ses écarts et ceux
+    /// à vérifier sur 3 lignes (42pt) et son indice sur 2 lignes (26pt),
     /// atteint 71pt. 90pt couvre les deux avec une marge. Ni le message
-    /// d'échec ni l'indice n'ont de `lineLimit` : un texte plus long que
+    /// d'échec, ni le blocage, ni l'indice n'ont de `lineLimit` : un texte plus long que
     /// prévu déborde du cadre plutôt que d'être coupé — jamais invisible,
     /// jamais tronqué, toujours sélectionnable.
     @ViewBuilder private var statusNotice: some View {
@@ -394,17 +394,14 @@ struct TranslationEditorView: View {
             }
         } else if !blocked.isEmpty {
             VStack(alignment: .leading, spacing: 3) {
-                // Nommer les marques manquantes plutôt qu'en donner le
-                // nombre : le traducteur doit pouvoir juger si l'absence est
-                // voulue — une phrase française neutre n'a que faire d'un
-                // sélecteur de genre. `lineLimit(3)` plutôt que 2 : au-delà
-                // de quatre ou cinq marques distinctes, deux lignes ne
-                // suffisent déjà plus.
-                Text(String(format: localization.L(L10n.Mods.translationEditorBlocked), Int64(blocked.count))
-                     + "  " + blocked.map { TranslationMismatchText.label($0, localization) }.joined(separator: "  "))
+                // Nommer chaque marque et son sens (manquante, en trop)
+                // plutôt qu'en donner le nombre, puis ce qui n'est qu'à
+                // vérifier : la contrepartie d'une faute (le `$h` perdu sous
+                // un `#$h` ajouté) est souvent un simple avertissement. Pas
+                // de `lineLimit` : un libellé coupé cacherait une marque.
+                Text(TranslationMismatchText.blocked(blocked, english: row.english, draft: draft, localization))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.red.opacity(0.85))
-                    .lineLimit(3)
                 // Pas de `lineLimit` : c'est l'information la plus
                 // importante de tout l'écran — c'est elle qui explique le
                 // bouton juste en dessous — et à 155 caractères en français

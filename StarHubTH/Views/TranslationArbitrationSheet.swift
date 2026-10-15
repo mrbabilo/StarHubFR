@@ -225,12 +225,11 @@ private struct ModSection: View {
 
     private func reasonLabel(_ reason: TranslationLotImport.Rejection.Reason) -> String {
         switch reason {
+        // Mêmes noms que l'éditeur : un `#` nu y dit ce qu'il fait.
         case .missingHardMarkers(let markers):
-            return String(format: localization.L(L10n.Mods.translationLotReasonMissingMarkers),
-                          markers.joined(separator: ", "))
+            return TranslationMismatchText.listed(markers, L10n.Mods.translationLotReasonMissingMarkers, localization)
         case .extraHardMarkers(let markers):
-            return String(format: localization.L(L10n.Mods.translationLotReasonExtraMarkers),
-                          markers.joined(separator: ", "))
+            return TranslationMismatchText.listed(markers, L10n.Mods.translationLotReasonExtraMarkers, localization)
         case .unknownKey:
             return localization.L(L10n.Mods.translationLotReasonUnknownKey)
         case .sourceAltered:

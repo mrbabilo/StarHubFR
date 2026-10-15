@@ -60,14 +60,21 @@ struct TranslationTokenCheckTests {
     @Test func aBrokenPageBreakBlocks() {
         let source = "Bienvenue !$h#$b#Ma partie préférée.#$b#Ta journée ?"
         let target = "Bienvenue !$h#$b#Ma partie préférée.$b#Ta journée ?"
-        #expect(TranslationTokenCheck.mismatches(source: source, target: target).contains { $0.isHard })
+        let mismatches = TranslationTokenCheck.mismatches(source: source, target: target)
+        // Bloquent : le `$b` affiché tel quel, et le `#` nu qui ferme la page.
+        #expect(mismatches.filter(\.isHard).map(\.token) == ["$b", TranslationTokenCheck.bareHashToken])
+        // La contrepartie, le `#$b#` perdu, n'avertit qu'à elle seule.
+        #expect(mismatches.filter { !$0.isHard }
+                == [.init(token: "#$b#", expected: 2, found: 1, isHard: false)])
     }
 
     /// `#$h` à la place de `$h` : une page qui ne contient qu'un portrait.
     @Test func aPortraitTurnedIntoAPageBlocks() {
         let mismatches = TranslationTokenCheck.mismatches(source: "Je t'aime aussi !$h",
                                                           target: "Je t'aime aussi !#$h")
-        #expect(mismatches.contains { $0.isHard })
+        // Bloque : le `#$h` ajouté. Avertit : le portrait `$h` qu'il remplace.
+        #expect(mismatches.filter(\.isHard) == [.init(token: "#$h", expected: 0, found: 1, isHard: true)])
+        #expect(mismatches.filter { !$0.isHard } == [.init(token: "$h", expected: 1, found: 0, isHard: false)])
     }
 
     @Test func aDroppedPageBreakOnlyWarns() {

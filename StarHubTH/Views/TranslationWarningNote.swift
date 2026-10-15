@@ -19,7 +19,7 @@ struct TranslationWarningNote: View {
         if !shown.isEmpty {
             VStack(alignment: .leading, spacing: 3) {
                 Text(localization.L(L10n.Mods.translationEditorWarnings) + "  "
-                     + shown.map { TranslationMismatchText.label($0, localization) }.joined(separator: "  "))
+                     + TranslationMismatchText.grouped(shown, localization))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                 Text(localization.L(L10n.Mods.translationEditorWarningsHint))
