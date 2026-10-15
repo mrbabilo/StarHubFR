@@ -908,7 +908,7 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       propose de déplacer les raccourcis en conflit vers des touches libres
       (deux modes), s'applique en un geste, s'annule, et une alerte après
       bascule de profil y conduit. · **M**
-      Spec et plan locaux : `docs/superpowers/specs|plans/2026-10-15-raccourcis-auto*`.
+      Spec et plan `docs/superpowers/specs|plans/2026-10-15-raccourcis-auto*` (locaux, ignorés par git).
       Garde-fous livrés : la feuille est une liste (pas de vue clavier) ;
       « Non classé » n'ôte qu'une correction de l'utilisateur ; les touches de
       contrôle du jeu ne servent jamais, même comme base d'accord (avec les
@@ -918,11 +918,11 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
       ignorés et nommés ; l'annulation saute les fichiers modifiés après le plan.
       **À valider par l'auteur à l'écran** :
       - (a) Alertes système › Raccourcis › « Proposer un plan » ouvre la feuille, dans les deux modes.
-      - (b) Décocher une ligne, changer une famille (la correction survit au relancement), appliquer : verdict affiché, un nouveau scan montre moins de conflits.
-      - (c) « Annuler le plan » restaure les fichiers.
+      - (b) Décocher une ligne, changer une famille, appliquer. Doit survivre au relancement, à l'application et au nouveau scan : la correction de famille (`KeybindFamilyStore`). Ne survit pas, et ce n'est pas attendu : les lignes décochées (`@State` de `KeybindPlanSheet`), perdues à la fermeture de la feuille ou au relancement. Puis le bilan s'affiche et un nouveau scan montre moins de conflits.
+      - (c) « Annuler le plan » restaure les fichiers ; l'annulation n'est offerte que tant que la sauvegarde du plan est la plus récente, et les fichiers modifiés depuis le plan sont conservés et nommés.
       - (d) « Appliquer » grisé avec son motif quand le jeu est ouvert.
       - (e) Après une bascule de profil qui crée des conflits, la bannière sur Profils mène à la feuille.
-      - (f) Largeur 560 pt, en français.
+      - (f) Largeur 560 pt (pire cas, seuil de `SplitRow` ; minimum de la feuille 520 pt), en français.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
