@@ -2588,6 +2588,9 @@
 "keybind_plan_undone" = "%1$lld mods restaurés, %2$lld sautés";
 "keybind_plan_recompute" = "Recalculer";
 "keybind_plan_close" = "Fermer";
+"keybind_plan_profile_banner" = "%lld conflits de raccourcis après l'activation du profil";
+"keybind_plan_profile_banner_one" = "1 conflit de raccourcis après l'activation du profil";
+"keybind_plan_profile_banner_dismiss" = "Masquer jusqu'à la prochaine bascule";
 "keybind_plan_empty" = "Aucun conflit à résoudre";
 "keybind_plan_empty_full" = "Chaque raccourci est déjà dans sa famille";
 "keybind_plan_no_report" = "Lancez d'abord l'analyse des raccourcis.";

@@ -95,7 +95,6 @@ struct ModProfilesView: View {
         vm.showModal(message: lines.joined(separator: "\n\n"))
     }
 
-
     /// La phrase de confirmation de suppression. Hissée hors du `message:`
     /// le 2026-09-10 : la concaténation en une expression a fait franchir au
     /// `body` le seuil de saturation du type-checker (piège CLAUDE.md).
@@ -108,7 +107,6 @@ struct ModProfilesView: View {
         }
         return lines.joined(separator: "\n")
     }
-
 
     /// La rangée d'un profil. Extraite du `ForEach` le 2026-09-10 : la
     /// longue liste d'arguments avec closures saturaient le
@@ -156,7 +154,7 @@ struct ModProfilesView: View {
             .background(Color(nsColor: .controlBackgroundColor))
 
             Divider()
-
+            KeybindPlanProfileBanner(viewModel: vm, localization: localization)
             // ── Liste ────────────────────────────────────────────────────
             BackToTopScrollView(localization, showsIndicators: false) {
                 if vm.modProfiles.isEmpty {
@@ -172,8 +170,9 @@ struct ModProfilesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
                 } else {
-                    let flattened = vm.scanStore.mods.flattenedMods
-                    let installedIds = vm.scanStore.mods.allUniqueIds
+                    let scanned = vm.scanStore.mods
+                    let flattened = scanned.flattenedMods
+                    let installedIds = scanned.allUniqueIds
                     LazyVStack(spacing: AppDesign.Spacing.sm) {
                         ForEach(vm.modProfiles) { profile in
                             // Compte brut, hissé hors de l'initialiseur le

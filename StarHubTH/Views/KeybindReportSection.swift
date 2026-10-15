@@ -88,6 +88,7 @@ struct KeybindReportSection: View {
             }
         }
         .onAppear {
+            consumePlanFocus()
             // Le rapport publié survit au changement d'onglet (le service
             // vit sur le ViewModel), mais un rapport qui ne bougerait plus
             // jamais après le tout premier scan serait périmé dès qu'un mod
@@ -98,6 +99,7 @@ struct KeybindReportSection: View {
             // `header`.
             service.scanIfNeeded(mods: vm.scanStore.mods, gameDir: vm.gameDir)
         }
+        .onChange(of: planFocusPending) { _, _ in consumePlanFocus() }
         .sheet(isPresented: $showsPlan) { planSheet }
     }
 

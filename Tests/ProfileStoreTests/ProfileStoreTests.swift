@@ -123,4 +123,22 @@ import Foundation
         #expect(s.activeProfileId == a.id)
         #expect(s.activeProfile == nil)      // mais ne rend plus rien
     }
+
+    // MARK: - Le bandeau de raccourcis après bascule
+
+    @Test func switchBannerAbsentUntilAnActivationEnds() {
+        let s = ProfileStore()
+        #expect(!s.switchBannerPending)
+        s.endApplying(now: Date(timeIntervalSince1970: 100))
+        #expect(s.switchBannerPending)
+    }
+
+    @Test func dismissingHidesUntilTheNextSwitch() {
+        let s = ProfileStore()
+        s.endApplying(now: Date(timeIntervalSince1970: 100))
+        s.dismissSwitchBanner()
+        #expect(!s.switchBannerPending)
+        s.endApplying(now: Date(timeIntervalSince1970: 200))   // autre bascule
+        #expect(s.switchBannerPending)
+    }
 }

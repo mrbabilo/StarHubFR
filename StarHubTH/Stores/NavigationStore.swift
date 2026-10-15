@@ -148,6 +148,20 @@ final class NavigationStore {
         requestTab(.logs)
     }
 
+    /// Intention d'ouvrir la feuille « Plan de raccourcis » : posée avant le
+    /// changement d'onglet, consommée par `KeybindReportSection` à son
+    /// apparition et au changement (patron `pendingPerformanceFocus` — le
+    /// changement d'onglet remet les états de détail à nil, MainView).
+    var pendingKeybindPlanFocus = false
+
+    /// Ouvre « Alertes système » sur le rapport de raccourcis, feuille du plan
+    /// à l'arrivée.
+    func openKeybindPlan() {
+        alertsSegment = .keybinds
+        pendingKeybindPlanFocus = true
+        requestTab(.systemAlerts)
+    }
+
     /// I-T5 — « Sauvegardes de ce mod » : le dossier logique dont la page
     /// Sauvegardes doit s'ouvrir filtrée et dépliée. Consommé par
     /// `ModInstallBackupsView` à son apparition (patron `pendingLogFocus`).

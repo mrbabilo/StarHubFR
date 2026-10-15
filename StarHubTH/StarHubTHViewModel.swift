@@ -1505,7 +1505,7 @@ final class StarHubTHViewModel {
     // MARK: Profils — le store du domaine (cadrage §4, domaine 5). Les
     // décisions en Core (`ProfileActivation`, `ProfileConfigCapture`,
     // `ProfileRecovery`) ; le store est l'état.
-    private let profilesStore = ProfileStore()
+    let profilesStore = ProfileStore()
 
     var modProfiles: [ModProfile] { profilesStore.profiles }
     var activeProfileId: UUID? { profilesStore.activeProfileId }

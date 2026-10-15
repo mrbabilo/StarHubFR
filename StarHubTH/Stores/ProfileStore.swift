@@ -81,8 +81,30 @@ final class ProfileStore {
     }
 
     /// Fin d'activation : le drapeau et l'identité **ensemble**.
-    func endApplying() {
+    func endApplying(now: Date = Date()) {
         isApplying = false
         applyingId = nil
+        lastSwitchAt = now
+    }
+
+    // MARK: - Bandeau « conflits de raccourcis après la bascule »
+
+    /// Quand la dernière activation de cette session s'est achevée. Ici plutôt
+    /// que sur le ViewModel (verrouillé, F1-T2) ou la navigation : c'est un
+    /// fait du domaine profils, posé au seul point de fin d'activation
+    /// (`endApplying`, que passent activation, reprise et retour R5) — et il
+    /// n'est jamais persisté : « dans cette session » est le sens voulu.
+    private(set) var lastSwitchAt: Date?
+    /// La bascule dont l'utilisateur a fermé le bandeau.
+    private(set) var dismissedSwitchAt: Date?
+
+    /// Vrai tant qu'une bascule de la session n'a pas vu son bandeau fermé :
+    /// la bascule suivante porte un autre horodatage et le rouvre.
+    var switchBannerPending: Bool {
+        lastSwitchAt != nil && lastSwitchAt != dismissedSwitchAt
+    }
+
+    func dismissSwitchBanner() {
+        dismissedSwitchAt = lastSwitchAt
     }
 }

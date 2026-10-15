@@ -63,5 +63,8 @@ extension L10n {
         static let failureRestoreFailed = "keybind_plan_failure_restore_failed"
         static let noneMovable = "keybind_plan_none_movable"
         static let remaining = "keybind_plan_remaining"
+        /// Bandeau de la page Profils ; variante `_one` via `LocalizationStore.plural`.
+        static let profileBanner = "keybind_plan_profile_banner"
+        static let profileBannerDismiss = "keybind_plan_profile_banner_dismiss"
     }
 }

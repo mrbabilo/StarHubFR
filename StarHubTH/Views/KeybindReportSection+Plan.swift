@@ -16,6 +16,19 @@ extension KeybindReportSection {
         .help(localization.L(L10n.KeybindPlan.proposeHint))
     }
 
+    private var navigation: NavigationStore { vm.navigationStore }
+    var planFocusPending: Bool { navigation.pendingKeybindPlanFocus }
+
+    /// L'intention posée par `NavigationStore.openKeybindPlan` (bandeau de la
+    /// page Profils) : ouvrir la feuille. Sans rapport, rien à proposer — la
+    /// section montre déjà son propre état vide ; l'intention est rendue
+    /// quand même, pour ne pas ouvrir la feuille à retardement.
+    func consumePlanFocus() {
+        guard planFocusPending else { return }
+        navigation.pendingKeybindPlanFocus = false
+        if service.report != nil { showsPlan = true }
+    }
+
     /// Posée à la racine de `body`, jamais sur une branche conditionnelle :
     /// le rescan qui suit l'application bascule `isScanning`, qui démonte le
     /// verdict et les sections — une feuille attachée là se fermerait seule.

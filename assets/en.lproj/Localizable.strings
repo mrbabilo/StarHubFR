@@ -2588,6 +2588,9 @@
 "keybind_plan_undone" = "%1$lld mods restored, %2$lld skipped";
 "keybind_plan_recompute" = "Recompute";
 "keybind_plan_close" = "Close";
+"keybind_plan_profile_banner" = "%lld hotkey conflicts after activating the profile";
+"keybind_plan_profile_banner_one" = "1 hotkey conflict after activating the profile";
+"keybind_plan_profile_banner_dismiss" = "Hide until the next profile switch";
 "keybind_plan_empty" = "No conflict to resolve";
 "keybind_plan_empty_full" = "Every shortcut is already in its family";
 "keybind_plan_no_report" = "Run the shortcut analysis first.";
