@@ -266,6 +266,8 @@ let package = Package(
                 "Models/SmapiLocalMetadata.swift",
                 "Models/SmapiBlacklistScan.swift",
                 "Models/ModsFolderSizer.swift",
+                "Models/FolderArchive.swift",
+                "Stores/FolderArchiveStore.swift",
                 "Models/LastUpdateAge.swift",
                 "Models/FavoriteResolution.swift",
                 "Models/BlacklistResolution.swift",
@@ -1186,6 +1188,11 @@ let package = Package(
             name: "BlacklistResolutionTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/BlacklistResolutionTests"
+        ),
+        .testTarget(
+            name: "FolderArchiveTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/FolderArchiveTests"
         ),
         .testTarget(
             name: "ModsFolderSizerTests",

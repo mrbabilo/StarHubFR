@@ -5842,53 +5842,6 @@ final class StarHubTHViewModel {
     }
 
     // MARK: - Backup & Management
-    /// Zips `sourceDir` to a timestamped Desktop file (saves and mods).
-    private func zipToDesktop(sourceDir: String, filePrefix: String, successKey: String, errorKey: String) {
-        let desktopDir = "\(NSHomeDirectory())/Desktop"
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "")
-        let zipPath = "\(desktopDir)/\(filePrefix)_\(timestamp).zip"
-
-        // Zipping can take long: off main.
-        DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-            process.arguments = ["-r", zipPath, "."]
-            process.currentDirectoryURL = URL(fileURLWithPath: sourceDir)
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-                DispatchQueue.main.async {
-                    if process.terminationStatus == 0 {
-                        self.showModal(message: String(format: self.localization.L(successKey), zipPath))
-                    } else {
-                        self.showModal(message: self.localization.L(errorKey))
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.showModal(message: self.localization.L(L10n.VM.cannotRunZip))
-                }
-            }
-        }
-    }
-
-    func backupAllSaves() {
-        let savesDir = "\(NSHomeDirectory())/.config/StardewValley/Saves"
-        zipToDesktop(sourceDir: savesDir, filePrefix: "StardewSaves_Backup", successKey: L10n.VM.backupSavesSuccess, errorKey: L10n.VM.zipSavesError)
-    }
-
-    func backupAllMods() {
-        guard !gameDir.isEmpty else {
-            showModal(message: localization.L(L10n.Settings.gameDirNotSet))
-            return
-        }
-        let modsDir = (gameDir as NSString).appendingPathComponent("Mods")
-        zipToDesktop(sourceDir: modsDir, filePrefix: "StardewMods_Backup", successKey: L10n.VM.backupModsSuccess, errorKey: L10n.VM.zipModsError)
-    }
-    
     /// Cibles de « Vider les mods désactivés », relevées une fois pour la
     /// confirmation et `cleanDisabledMods(targets:)`.
     func disabledModTargets() -> [String] {
