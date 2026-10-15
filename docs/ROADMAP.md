@@ -864,7 +864,7 @@ issu, livré et archivé.
       - (b) Fenêtre principale fermée, le menu Aide ouvre quand même l'aide.
       - (c) Le « ? » de la barre d'outils, depuis Gestion des mods, Performances, Alertes système › Raccourcis clavier : la fenêtre défile à la bonne section ; une deuxième demande, fenêtre ouverte, la ramène au premier plan et défile.
       - (d) Recherche « mises a jour » (sans accent) : la section Mises à jour reste ; une recherche sans résultat affiche son message.
-      - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Survol d'un lien : curseur main.
+      - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Le curseur reste en I sur le texte, liens compris (choix assumé : la main couvrait tout le paragraphe).
       - (f) Interface passée en anglais : la fenêtre affiche le guide anglais.
       - (g) Un chemin du guide (`~/.config/…/SMAPI-latest.txt`) se sélectionne et se copie.
       - (h) **En premier** : aide ouverte, Réglages Système › « Fermer les fenêtres à la fermeture d'une app » désactivé, ⌘Q puis relance. La fenêtre principale doit réapparaître normalement après l'écran de démarrage (la fenêtre d'aide n'est jamais restaurée).

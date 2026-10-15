@@ -18,10 +18,17 @@ public struct HelpSection: Identifiable, Equatable, Sendable {
     /// L'ancre GitHub du titre, pour résoudre les liens internes.
     public let anchor: String
     public let blocks: [HelpBlock]
-
     /// Tout le texte de la section, pour la recherche : le texte *rendu*
-    /// (ni cibles de liens ni `**`), le code restant tel quel.
-    public var searchText: String {
+    /// (ni cibles de liens ni `**`), le code restant tel quel. Calculé une
+    /// fois : relire le Markdown à chaque frappe coûtait ~57 ms (mesuré le
+    /// 2026-10-15 sur GUIDE.md, trois filtrages par rendu).
+    public let searchText: String
+
+    public init(id: String, title: String, anchor: String, blocks: [HelpBlock]) {
+        self.id = id
+        self.title = title
+        self.anchor = anchor
+        self.blocks = blocks
         var parts = [Self.plain(title)]
         for block in blocks {
             switch block {
@@ -30,7 +37,7 @@ public struct HelpSection: Identifiable, Equatable, Sendable {
             case .bulletList(let items), .numberedList(let items): parts += items.map(Self.plain)
             }
         }
-        return parts.joined(separator: "\n")
+        searchText = parts.joined(separator: "\n")
     }
 
     /// Markdown en ligne → texte brut ; illisible, le morceau reste tel quel.

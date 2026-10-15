@@ -11,8 +11,9 @@ struct HelpWindow: View {
     @State private var missing = false
     @State private var query = ""
     @State private var target: String?
-
-    private var shown: [HelpSection] { HelpSearch.filter(sections, query: query) }
+    /// Les sections retenues par la recherche : filtrées une fois par
+    /// changement de requête ou de guide, pas à chaque lecture du rendu.
+    @State private var shown: [HelpSection] = []
 
     var body: some View {
         NavigationSplitView {
@@ -32,6 +33,7 @@ struct HelpWindow: View {
         .frame(minWidth: 640, minHeight: 480)
         .onAppear { load(); consumeRequest() }
         .onChange(of: localization.currentLanguage) { _, _ in load() }
+        .onChange(of: query) { _, _ in refilter() }
         .onChange(of: navigation.pendingHelpSection) { _, _ in consumeRequest() }
     }
 
@@ -68,16 +70,26 @@ struct HelpWindow: View {
         }
     }
 
+    /// Le défilement part au tour suivant : une demande qui vide aussi la
+    /// recherche fait réapparaître la section dans la même mise à jour, et
+    /// `scrollTo` ne trouve une vue qu'une fois celle-ci disposée.
     private func scroll(_ proxy: ScrollViewProxy) {
         guard let id = target else { return }
-        withAnimation { proxy.scrollTo(id, anchor: .top) }
         target = nil
+        Task { @MainActor in
+            withAnimation { proxy.scrollTo(id, anchor: .top) }
+        }
+    }
+
+    private func refilter() {
+        shown = HelpSearch.filter(sections, query: query)
     }
 
     private func handle(_ url: URL) -> OpenURLAction.Result {
         switch HelpLink.resolve(url, in: sections) {
         case .section(let id):
             query = ""
+            refilter()
             target = id
             return .handled
         case .external(let destination):
@@ -91,6 +103,7 @@ struct HelpWindow: View {
         guard let id = navigation.pendingHelpSection else { return }
         navigation.pendingHelpSection = nil
         query = ""
+        refilter()
         target = id
     }
 
@@ -99,6 +112,7 @@ struct HelpWindow: View {
         guard let url = Bundle.main.url(forResource: name, withExtension: "md", subdirectory: "Help") else {
             sections = []
             missing = true
+            refilter()
             return
         }
         do {
@@ -108,6 +122,7 @@ struct HelpWindow: View {
             sections = []
             missing = true
         }
+        refilter()
     }
 
     private static func onlineGuide(_ language: String) -> URL? {
@@ -175,11 +190,11 @@ private struct HelpSectionView: View {
         }
     }
 
-    /// Un texte qui porte un lien montre la main au survol : sur un texte
-    /// sélectionnable, AppKit remettrait le curseur I (`pointingHandCursor`).
-    @ViewBuilder private func line(_ markdown: String) -> some View {
-        let text = Text(HelpWindow.inline(markdown)).fixedSize(horizontal: false, vertical: true)
-        if markdown.contains("](") { text.pointingHandCursor() } else { text }
+    /// Pas de curseur main : `Text` ne situe pas ses liens, la main couvrait
+    /// tout le paragraphe — dont le chemin à sélectionner qu'il contient
+    /// parfois. Les liens restent soulignés et colorés, et cliquables.
+    private func line(_ markdown: String) -> some View {
+        Text(HelpWindow.inline(markdown)).fixedSize(horizontal: false, vertical: true)
     }
 }
 
