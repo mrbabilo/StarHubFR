@@ -2,11 +2,11 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "8261654",
-    "last_commit_at": "2026-10-11T01:49:25Z",
-    "pushed_at": "2026-10-11T01:49:25Z",
-    "release": "v1.2.7",
-    "released_at": "2026-10-11T01:45:30Z"
+    "last_commit": "8614788",
+    "last_commit_at": "2026-10-14T17:55:28Z",
+    "pushed_at": "2026-10-14T17:56:32Z",
+    "release": "v1.2.8",
+    "released_at": "2026-10-14T17:56:32Z"
   },
   "SMAPI": {
     "archived": false,
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "2298693",
-    "last_commit_at": "2026-10-13T23:20:10Z",
-    "pushed_at": "2026-10-13T23:20:12Z",
-    "release": "v1.62.0",
-    "released_at": "2026-10-10T12:47:14Z"
+    "last_commit": "7d108c5",
+    "last_commit_at": "2026-10-15T13:40:17Z",
+    "pushed_at": "2026-10-15T13:41:04Z",
+    "release": "v1.66.0",
+    "released_at": "2026-10-15T10:25:46Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -93,11 +93,11 @@
   "i18n-translator": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "98ba4ef",
-    "last_commit_at": "2026-10-13T23:15:47Z",
-    "pushed_at": "2026-10-13T23:25:47Z",
-    "release": "v2.5.0",
-    "released_at": "2026-10-13T22:23:46Z"
+    "last_commit": "f800e9a",
+    "last_commit_at": "2026-10-14T16:28:02Z",
+    "pushed_at": "2026-10-14T16:28:05Z",
+    "release": "v2.5.1",
+    "released_at": "2026-10-14T13:55:07Z"
   },
   "log-doctor": {
     "archived": false,
@@ -167,10 +167,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.3.2",
+    "changelog_reviewed": "2.3.3",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.3.2"
+    "version": "2.3.3"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -214,10 +214,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.4.17",
+    "changelog_reviewed": "2.5.0",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.17"
+    "version": "2.5.0"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -266,9 +266,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "e63d67c",
-    "last_commit_at": "2026-10-12T07:42:13Z",
-    "pushed_at": "2026-10-12T07:42:19Z"
+    "last_commit": "8cc6452",
+    "last_commit_at": "2026-10-15T01:56:07Z",
+    "pushed_at": "2026-10-15T01:56:08Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [

@@ -1176,6 +1176,25 @@ les trois sont **en pause** sur le parc.
 | `JuniGrid` | v1.2.5 | idées à peser : dépendance par l'id de page de la table *Requirements* (pas par mot-clé) ; refus d'installer quand deux mods partagent un nom d'affichage mais pas l'UniqueID, sans toucher à l'installé ; « réessayer » réutilise l'archive déjà téléchargée |
 | `fork/StarHubFR` | v1.58.0 → v1.61.1 | nos propres publications |
 
+### Relevé du 2026-10-15 — six écarts, une règle de jetons revue
+
+`check_sources.py` : 6 sources bougées. Les deux mods de performances ont un
+journal lu, **pas encore décompilés** : leurs nouvelles DLL ne sont ni sur le
+parc (les deux sont en pause, en 2.4.17 et 2.3.2) ni dans les archives gardées,
+et le téléchargement de l'API Nexus rend 403 sans compte Premium. À décompiler
+dès la mise à jour posée par l'app (l'ancienne DLL restera dans
+`Backups/ModInstalls`).
+
+| Source | Écart | Décision |
+|---|---|---|
+| `mod/ultrasmooth` | 2.4.17 → **2.5.0** (Nexus, 2026-10-15 12:12) | journal lu : version majeure — préchauffage d'un `GameMenu` « fantôme » pendant le chargement de partie, accrochage de l'outil à la grille, garde-fou des cinématiques, cache de recettes, accélération des huttes de Junimo, refonte du menu de config en 7 pages, F9 (benchmark interne) retiré. **À décompiler** : le préchauffage touche au chargement de partie, terrain du piège déjà connu du préchauffage SpaceCore ; le catalogue des recouvrements (A5-T7) sera à remesurer |
+| ↳ vérification de mise à jour | l'app ne proposait pas la 2.5.0 | **pas un défaut de l'app.** Dernière vérification à 12:45, 33 min après la parution ; à 15:50, smapi.io la propose, et un rejeu fidèle de la requête de l'app (946 entrées, 7 lots, ancres filtrées par `isExpressibleVersion`) la trouve, sans lot vidé. Prochaine vérification automatique au terme du TTL de 12 h ; le bouton « Vérifier » passe outre. ⚠️ Un premier rejeu qui envoyait les ancres brutes (« 1.01 », DeliciousInStardew) vidait le lot d'UltraSmooth : c'est le filtre de l'app qui l'évite — rejouer l'app, pas une approximation |
+| `mod/radiance` | 2.3.2 → 2.3.3 | journal lu : rendu à résolution réduite des effets quand la fréquence chute (réglage « Lighter soft effects »), étoiles sur l'eau la nuit, échelle de rendu automatique par défaut pour les nouvelles installations, gels corrigés sur les cartes graphiques lentes. À décompiler avec UltraSmooth |
+| `i18n-translator` | v2.5.0 → v2.5.1 | **règles des jetons revérifiées contre le jeu 1.6, Content Patcher et Mail Framework Mod** (`tokens.rs` +764 lignes, `protectedTokens.ts` +335). Beaucoup d'écarts passent de bloquants à simples avertissements — un `#$b#` perdu ou ajouté (le jeu découpe lui-même les longs textes), une page `#$e#`/`#$k#`, un jeton de valeur manquant comme `[FarmName]`, un `{0}` répété — et quelques cas deviennent bloquants : `#$b#` remplacé par `#`, tout changement de page dans un texte à `$1`, `$c` ou `$d` découpé, `[]` vide ajouté, clé ou nom traduit dans `[LocalizedText …]`. Les lettres ne comptent que le texte avant le premier `[#]`. **Notre `TranslationTokenCheck` bloque tout écart de compte** : plus strict qu'eux sur les cas devenus avertissements, et il bloque déjà une clé traduite (le jeton change de texte). Écart à peser, pas à recopier : à mesurer contre le jeu, comme nos règles `$y` (voir ROADMAP **C3-T9**) |
+| `JuniGrid` | v1.2.7 → v1.2.8 | dépendances : le numéro de page Nexus d'abord, les liens de la description d'un pack parent en quatrième source ; la version affichée ne vient plus que du paquet et **n'est plus réécrite dans le manifeste de l'auteur** (le défaut relevé à notre audit du 2026-10-01, abandonné chez eux) ; pastille et compteur de mises à jour lus sur la même preuve |
+| `save-editor` | `e63d67c` → `8cc6452` | édition des statistiques des babioles (niveau, cadences) par la graine de génération, recherche d'objets dans tous les coffres. Rien à reprendre : notre éditeur de parties ne touche ni aux objets ni aux coffres |
+| `fork/StarHubFR` | v1.62.0 → v1.66.0 | nos propres publications |
+
 ## 6. Mods du jeu observés — la convention `config.*`
 
 Références du domaine, pas des dépendances : aucun code de ces mods ne vit

@@ -173,6 +173,18 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 > ✅ **Les 8 items de ce lot sont clos** — 7 livrés, **C3-T2** pesé le 2026-10-02 et non engagé. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
+- [ ] **C3-T9** — *(ouvert le 2026-10-15)* Revoir ce qui **bloque** l'enregistrement
+      d'une traduction contre ce que le jeu fait vraiment. `TranslationTokenCheck`
+      bloque tout écart de compte de marques ; la référence i18n-translator 2.5.1
+      (règles revérifiées contre le jeu 1.6, Content Patcher et Mail Framework Mod)
+      n'en bloque plus qu'une partie : un `#$b#` perdu, une page `#$e#`, un
+      `[FarmName]` manquant deviennent des avertissements, tandis qu'un `#$b#`
+      remplacé par `#` ou une page changée dans un texte à `$1`/`$c` bloquent.
+      Mesurer chaque règle dans la DLL du jeu (comme `$y`, relu dans
+      `Dialogue.parseDialogueString` le 2026-10-14) avant d'en desserrer une, et
+      compter sur les traductions françaises du parc combien de lignes chaque
+      changement débloquerait. Détail : `docs/SOURCES.md`, relevé du 2026-10-15. · **M**
+
 
 #### C4 — Éditeur de config lisible
 
