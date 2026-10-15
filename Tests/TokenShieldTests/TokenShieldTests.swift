@@ -83,4 +83,9 @@ struct TokenShieldTests {
                     "aller-retour cassé sur \(source)")
         }
     }
+
+    /// La narration : seul le `%` est voilé, la phrase se traduit.
+    @Test func narrationShieldsOnlyThePercent() {
+        #expect(TokenShield.wrap("%It's a bus.") == "<x>%</x>It's a bus.")
+    }
 }

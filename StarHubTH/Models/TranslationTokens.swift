@@ -167,7 +167,11 @@ public enum TranslationTokens {
         // Le `#` de fermeture (`#$b#`) — sauf quand il ouvre le séparateur
         // suivant : dans `#$action#$b#`, le `#` appartient à `#$b#`, et
         // l'avaler dégradait celui-ci en `$b` en laissant un `#` orphelin.
-        if j < c.count, c[j] == "#", !(j + 1 < c.count && c[j + 1] == "$") {
+        // Le `#` fermant n'est laissé au suivant que si celui-ci est un vrai
+        // séparateur (`#$` + lettre ou chiffre) : devant `${`, il appartient
+        // à `#$b#`, sinon il passerait pour un `#` nu.
+        if j < c.count, c[j] == "#",
+           !(j + 2 < c.count && c[j + 1] == "$" && (c[j + 2].isLetter || c[j + 2].isNumber)) {
             j += 1
         }
         return j
@@ -226,16 +230,31 @@ public enum TranslationTokens {
     }
 
 
-    /// `%item`, `%farm` — substitution du jeu.
+    /// Les noms que le jeu remplace après un `%` (`Dialogue.percentTokens`,
+    /// jeu 1.6), plus `noturn`, et `item`/`action` des commandes de courrier
+    /// sans leur `%%`. Comparaison exacte et sensible à la casse : le jeu fait
+    /// `Replace("%spouse", …)`, `%Spouse` reste du texte. Les plus longs
+    /// d'abord : `%firstnameletter` ne doit pas se lire `%f…`. `kid1` et
+    /// `kid2` gardent leur chiffre : intervertir les deux enfants doit se voir.
+    static let percentNames: [String] = [
+        "firstnameletter", "revealtaste", "favorite", "noturn", "season", "spouse",
+        "action", "place", "noun", "name", "kid1", "kid2", "band", "book", "farm",
+        "fork", "item", "time", "year", "adj", "pet",
+    ]
+
+    /// `%farm`, `%kid1` — substitution du jeu ; ou `%` seul, marque de
+    /// narration en tête de page (`Dialogue.noPortraitPrefix`) : « %C'est un
+    /// bus. » montre la réplique sans portrait. Lire `%C` comme une variable
+    /// bloquait 501 lignes justes du parc (mesuré le 2026-10-15).
     private static func substitution(_ c: [Character], _ i: Int) -> Int? {
-        guard c[i] == "%", i + 1 < c.count, c[i + 1].isLetter else { return nil }
-        var j = i + 1
-        while j < c.count, c[j].isLetter { j += 1 }
-        // Les chiffres qui suivent appartiennent à la marque : `%kid1` et
-        // `%kid2` se réduisaient tous deux à `%kid`, si bien qu'intervertir le
-        // premier et le second enfant passait la comparaison sans un mot.
-        while j < c.count, c[j].isNumber { j += 1 }
-        return j
+        guard c[i] == "%" else { return nil }
+        for name in percentNames {
+            let end = i + 1 + name.count
+            if end <= c.count, String(c[(i + 1)..<end]) == name { return end }
+        }
+        let pageStart = i == 0 || c[i - 1] == "#"
+        guard pageStart, i + 1 < c.count, !c[i + 1].isWhitespace else { return nil }
+        return i + 1
     }
 
 

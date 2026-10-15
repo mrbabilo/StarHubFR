@@ -211,4 +211,36 @@ struct TranslationTokenComposedFormsTests {
         let segments = TranslationTokens.split(source)
         #expect(segments.map(\.text).joined() == source)
     }
+
+    /// `%` en tête de page, sans nom du jeu derrière, est la marque de
+    /// narration (`Dialogue.noPortraitPrefix`) : la marque, c'est le `%`
+    /// seul — jamais le premier mot de la phrase.
+    @Test func narrationPercentIsAMarkOnItsOwn() {
+        #expect(codeParts("%C'est un bus.") == ["%"])
+        #expect(codeParts("%It's a bus.") == ["%"])
+        #expect(codeParts("Oui.#$b#%Haley se penche.") == ["#$b#", "%"])
+    }
+
+    /// Ailleurs qu'en tête de page, un `%` sans nom du jeu est du texte.
+    @Test func aPercentWithoutAGameNameIsText() {
+        #expect(codeParts("Remise de 50% ce soir") == [])
+        #expect(codeParts("Tu vois %Tu ici") == [])
+        #expect(codeParts("Bonjour %Spouse") == [])   // le jeu remplace « %spouse » exact
+    }
+
+    /// Les noms du jeu restent des marques, chiffres compris.
+    @Test func gameNamesStayMarks() {
+        #expect(codeParts("Bienvenue à %farm !") == ["%farm"])
+        #expect(codeParts("Enfants %kid1 et %kid2") == ["%kid1", "%kid2"])
+        #expect(codeParts("Il se retourne.%noturn") == ["%noturn"])
+        #expect(codeParts("Avant %fork après") == ["%fork"])
+        #expect(codeParts("%farm est prospère") == ["%farm"])   // en tête : un nom, pas une narration
+    }
+
+    /// Le `#` fermant de `#$b#` n'est laissé au suivant que si celui-ci est un
+    /// vrai séparateur — pas un sélecteur de genre.
+    @Test func theClosingHashBeforeAGenderSelectorBelongsToTheSeparator() {
+        #expect(codeParts("Oui.#$b#${him^her}$ arrive") == ["#$b#", "${", "^", "}$"])
+        #expect(codeParts("#$action X#$b#Suite") == ["#$action", "#$b#"])
+    }
 }
