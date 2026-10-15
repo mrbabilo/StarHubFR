@@ -174,6 +174,54 @@ import Testing
         #expect(f.box.rescans == 1)
     }
 
+    @Test func severalMovesOnOneSettingApplyOnTheEvolvingText() async throws {
+        // MailboxMenu perd H contre Swim et J contre Fishing : deux
+        // déplacements sur le même réglage, écrits l'un après l'autre.
+        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
+                             ("Fishing", .action, #"{"CastKey": "J"}"#),
+                             ("MailboxMenu", .info, #"{"MenuKey": "H, J"}"#)])
+        defer { f.cleanUp() }
+        let plan = try readyPlan(f)
+        let moves = plan.moves.filter { $0.modID == "MailboxMenu" }
+        try #require(moves.count == 2 && Set(moves.map(\.keyPath)) == [["MenuKey"]])
+
+        await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
+                              rescan: { f.box.rescans += 1 })
+
+        guard case .applied(let result) = f.service.state else {
+            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
+        }
+        #expect(result.written == 1)
+        let alternatives = try #require(try value(f, "MailboxMenu", "MenuKey"))
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        #expect(Set(alternatives) == Set(moves.map(\.to.display)))
+    }
+
+    @Test func oneFailingMoveLeavesTheWholeFileIntact() async throws {
+        // Deux réglages perdants dans le même fichier ; le second (ordre du
+        // plan : ListKey puis MenuKey) n'a plus son alternative à l'application.
+        let f = try fixture([("Swim", .action, #"{"DiveKey": "H"}"#),
+                             ("Fishing", .action, #"{"CastKey": "J"}"#),
+                             ("MailboxMenu", .info, #"{"ListKey": "J", "MenuKey": "H"}"#)])
+        defer { f.cleanUp() }
+        let report = try f.report()
+        let plan = try readyPlan(f)
+        try #require(plan.moves.filter { $0.modID == "MailboxMenu" }.map(\.keyPath) == [["ListKey"], ["MenuKey"]])
+        let changed = #"{"ListKey": "J", "MenuKey": "K"}"#
+        try Data(changed.utf8).write(to: f.config("MailboxMenu"))
+
+        await f.service.apply(report: report, gameDir: f.game.path, mods: f.mods,
+                              rescan: { f.box.rescans += 1 })
+
+        guard case .applied(let result) = f.service.state else {
+            Issue.record("état attendu .applied, obtenu \(f.service.state)"); return
+        }
+        #expect(result.written == 0)
+        #expect(result.skipped.count == 1)
+        #expect(result.skipped.first?.contains("MailboxMenu") == true)
+        #expect(try f.text("MailboxMenu") == changed)
+    }
+
     @Test func stalePlanRefusesApply() async throws {
         let f = try conflictPair()
         defer { f.cleanUp() }
