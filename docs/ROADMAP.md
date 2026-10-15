@@ -816,7 +816,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; restent **I-T21** et **I-T23** ; I-T22 (audit UX de l'onglet Performances) livré et validé le 2026-10-14, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; reste **I-T21** ; I-T22 (audit UX de l'onglet Performances) livré et validé le 2026-10-14, I-T23 (plan de raccourcis) le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -903,26 +903,6 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
-
-- [ ] **I-T23** — *(code livré le 2026-10-15, validation écran en attente)* Plan de raccourcis : une feuille proposée depuis Alertes système
-      propose de déplacer les raccourcis en conflit vers des touches libres
-      (deux modes), s'applique en un geste, s'annule, et une alerte après
-      bascule de profil y conduit. · **M**
-      Spec et plan `docs/superpowers/specs|plans/2026-10-15-raccourcis-auto*` (locaux, ignorés par git).
-      Garde-fous livrés : la feuille est une liste (pas de vue clavier) ;
-      « Non classé » n'ôte qu'une correction de l'utilisateur ; les touches de
-      contrôle du jeu ne servent jamais, même comme base d'accord (avec les
-      contrôles par défaut, les chiffres sont les emplacements d'inventaire :
-      des déplacements de la famille info peuvent être listés « famille pleine ») ;
-      raccourcis à valeur entière et mods sans `config.json` sauvegardé sont
-      ignorés et nommés ; l'annulation saute les fichiers modifiés après le plan.
-      **À valider par l'auteur à l'écran** :
-      - (a) Alertes système › Raccourcis › « Proposer un plan » ouvre la feuille, dans les deux modes.
-      - (b) Décocher une ligne, changer une famille, appliquer. Doit survivre au relancement, à l'application et au nouveau scan : la correction de famille (`KeybindFamilyStore`). Ne survit pas, et ce n'est pas attendu : les lignes décochées (`@State` de `KeybindPlanSheet`), perdues à la fermeture de la feuille ou au relancement. Puis le bilan s'affiche et un nouveau scan montre moins de conflits.
-      - (c) « Annuler le plan » restaure les fichiers ; l'annulation n'est offerte que tant que la sauvegarde du plan est la plus récente, et les fichiers modifiés depuis le plan sont conservés et nommés.
-      - (d) « Appliquer » grisé avec son motif quand le jeu est ouvert.
-      - (e) Après une bascule de profil qui crée des conflits, la bannière sur Profils mène à la feuille.
-      - (f) Largeur 560 pt (pire cas, seuil de `SplitRow` ; minimum de la feuille 520 pt), en français.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
@@ -2316,6 +2296,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T19** | 2026-10-02 | En-tête des Mises à jour : un zéro jamais vérifié ou avec des mods sans verdict ne disait pas d'où il venait ; `UpdateCheckVerdict` (Core) + âge de la dernière passe complète |
 | **I-T20** | 2026-10-07 | Multi-sélection dans la liste : clic, ⌘clic, ⇧clic, ⇧↑↓, ⌘A, Échap, Espace ; bandeau dès deux mods, même chemin que « Tout » (`ModListSelection`) |
 | **I-T22** | 2026-10-14 | Audit UX de l'onglet Performances en quatre lots : une ligne d'état, bloc « Mesurer », outils tiers repliés si absents, une seule conclusion, motifs de grisage avant le clic, entrées depuis liste/fiche/palette/Santé (`NavigationStore.openPerformance`) ; validé à l'écran |
+| **I-T23** | 2026-10-15 | Plan de raccourcis : conflits déplacés vers des touches libres par famille (lettres action, chiffres info, F rares), deux modes, décochage, famille corrigée gardée (`KeybindFamilyStore`), sauvegarde avant écriture et annulation, bandeau après bascule de profil (`KeybindPlanner`) ; validé à l'écran |
 
 **10.3 Veille RimManager — actions livrées**
 

@@ -6886,6 +6886,36 @@ sans lire une ligne de log.
       dans les titres des volets repliés, deux tailles de graphique au lieu de
       quatre, durée estimée sur les diagnostics SLO/Stardropium en cours.
 
+- [x] **I-T23** — *(livré le 2026-10-15, commits `efd0175f` à `495fd784` ;
+      validé à l'écran par l'auteur le jour même)* **Plan de raccourcis** :
+      depuis Alertes système › Raccourcis, « Proposer un plan » ouvre une
+      feuille qui déplace les raccourcis clavier en conflit vers des touches
+      libres de leur famille — lettres pour les mods d'action, chiffres pour
+      l'informatif courant, touches F pour le rarement sollicité — ou range
+      tout par famille. Cadrage de l'auteur : déclenchement à la demande plus
+      bandeau sur Profils après une bascule qui crée des conflits ; conflits
+      seuls par défaut ; mods non classés jamais déplacés, famille éditable et
+      mémorisée ; manette hors solveur. Spike : 0 collision sur le profil
+      actif, 57 latentes sur le parc ; 18 lettres, 10 chiffres et 11 F libres.
+      Core : `KeybindFamilyGuess` (vote par jetons entiers — « Controller »
+      contenait « roll », « Weather » « eat »), `KeybindFamilyStore`
+      (`keybind_families.json`, patron `ModGroupStore`), `KeybindPlanner`
+      (pur), `KeybindPlanWriter` (alternative clavier remplacée seule, reste
+      d'une `KeybindList` préservé octet pour octet, droits 0555 rejoués),
+      `KeybindPlanService` (sauvegarde des seuls `config.json` touchés en un
+      lot, garde jeu ouvert et plan périmé, annulation qui saute les fichiers
+      modifiés depuis). UI : `KeybindPlanSheet` en liste (pas de vue clavier),
+      bilan qui nomme les conflits restants, `KeybindPlanProfileBanner`.
+      Règles retenues : touches du jeu jamais utilisées, même comme base d'un
+      accord ; accord refusé si sa touche de base est tenue par un autre mod ;
+      « Non classé » n'efface que la correction. 193 tests Keybind, suite
+      complète 4598 sans échec. **Reportés** : raccourcis à valeur entière
+      (sautés et nommés), gardien d'un conflit jamais déplacé même si un mod de
+      remap perd, `default_options` hors signature du plan, bandeau seulement
+      sur Profils, touche libérée non réutilisée dans le même plan, touche
+      simple posée sous l'accord d'un autre mod (co-déclenchement signalé au
+      bilan). · **M**
+
 
 ### Packs, distribution & pédagogie — Axe E
 
