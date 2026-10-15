@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.66.0] - 2026-10-15
+
 ### Added
 
 - **Plan de raccourcis** depuis Alertes système › Raccourcis : « Proposer un plan » déplace les raccourcis en conflit vers des touches libres de leur famille (lettres pour l'action, chiffres pour l'information, touches F pour le reste), ou range tout par famille. Lignes décochables, famille corrigeable, bilan, « Annuler le plan ».
@@ -19,7 +21,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Performances** : repliés, « Historique des mods » et « Mémoire retenue — textures » disent combien ils contiennent (mods mesurés, mods à textures) ; les graphiques de mesure partagent une seule hauteur.
+- **Performances** : repliés, « Historique des mods » et « Mémoire retenue — textures » disent combien ils contiennent (mods mesurés, mods à textures) ; les graphiques de mesure ne gardent que deux hauteurs.
 - **Diagnostics SLO et Stardropium** : en attente du jeu ou en session, la carte dit depuis combien de minutes le jeu a été lancé.
 
 ## [1.65.0] - 2026-10-14
