@@ -57,19 +57,51 @@ struct KeybindPlannerTests {
                                           families: ["Gallery": .action], mode: .fullLayout, chordCapable: [])
         #expect(settled.moves.isEmpty)
     }
-    @Test func familyFullFallsBackToChordOnlyWhenCapable() throws {
-        // 10 mods info sur 10 chiffres pleins + 1 en conflit : repli corde
-        // pour le réglage qui la supporte, sinon non déplacé.
+    @Test func familyFullOfSingleKeyHoldersProposesNoChord() throws {
+        // 10 mods info sur les 10 chiffres + InfoX battu sur D0 : chaque base
+        // de corde est tenue seule par un autre mod — `Ctrl + D0` ferait
+        // aussi tirer D0 (SMAPI lit D0 dans Ctrl + D0), un co-déclenchement
+        // que le rescan ne compterait pas comme conflit (R20). Non déplacé.
         var mods = (0...9).map { scan("Info\($0)", [("MenuKey", "D\($0)")]) }
         mods.append(scan("InfoX", [("ListKey", "D0")]))
         let r = report(mods)
         let families = Dictionary(uniqueKeysWithValues: mods.map { ($0.id, KeybindFamily.info) })
         let capable = KeybindPlanner.plan(report: r, families: families,
                                           mode: .conflictsOnly, chordCapable: ["InfoX/ListKey"])
-        #expect(capable.moves.contains { $0.modID == "InfoX" && $0.to.buttons.count == 2 })
+        #expect(!capable.moves.contains { $0.modID == "InfoX" })
+        #expect(capable.unmovable.contains { $0.modID == "InfoX" && $0.reason == .familyFull })
         let incapable = KeybindPlanner.plan(report: r, families: families,
                                             mode: .conflictsOnly, chordCapable: [])
         #expect(incapable.unmovable.contains { $0.modID == "InfoX" && $0.reason == .singleButtonFieldFull })
+    }
+    @Test func chordFallbackOnlyOnABaseNoOtherSettingHolds() throws {
+        // InfoX « D0, D1 » battu sur D0 par Swim ; D2–D9 tenus seuls par
+        // d'autres. Seule base libre : D1, que seul InfoX tient — la corde
+        // va sur Ctrl + D1, jamais sur Ctrl + D0 (D0 reste à Swim).
+        var mods = (2...9).map { scan("Info\($0)", [("MenuKey", "D\($0)")]) }
+        mods.append(scan("Swim", [("DiveKey", "D0")]))
+        mods.append(scan("InfoX", [("ListKey", "D0, D1")]))
+        var families = Dictionary(uniqueKeysWithValues: mods.map { ($0.id, KeybindFamily.info) })
+        families["Swim"] = .action
+        let plan = KeybindPlanner.plan(report: report(mods), families: families,
+                                       mode: .conflictsOnly, chordCapable: ["InfoX/ListKey"])
+        let move = try #require(plan.moves.first { $0.modID == "InfoX" })
+        #expect(move.from == KeybindCombo(buttons: ["D0"]))
+        #expect(move.to == KeybindCombo(buttons: ["LeftControl", "D1"]))
+    }
+    @Test func chordBaseProposedAloneEarlierInThePlanIsNotFree() throws {
+        // D0–D8 tenus ; InfoA (battu sur D5) prend D9, seul chiffre libre.
+        // InfoB (battu sur D6) : famille pleine, et Ctrl + D9 ferait tirer
+        // le D9 que le plan vient de donner à InfoA — non déplacé.
+        var mods = (0...8).map { scan("Info\($0)", [("MenuKey", "D\($0)")]) }
+        mods.append(scan("InfoA", [("ListKey", "D5")]))
+        mods.append(scan("InfoB", [("ListKey", "D6")]))
+        let families = Dictionary(uniqueKeysWithValues: mods.map { ($0.id, KeybindFamily.info) })
+        let plan = KeybindPlanner.plan(report: report(mods), families: families, mode: .conflictsOnly,
+                                       chordCapable: ["InfoA/ListKey", "InfoB/ListKey"])
+        #expect(plan.moves.first { $0.modID == "InfoA" }?.to == KeybindCombo(buttons: ["D9"]))
+        #expect(!plan.moves.contains { $0.modID == "InfoB" })
+        #expect(plan.unmovable.contains { $0.modID == "InfoB" && $0.reason == .familyFull })
     }
     @Test func planNeverProposesTheSameComboTwiceAndIsDeterministic() throws {
         let r = report([scan("MenuA", [("MenuKey", "H")]), scan("MenuB", [("ListKey", "H")]),

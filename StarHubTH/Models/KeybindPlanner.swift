@@ -283,11 +283,23 @@ extension KeybindPlanner {
             combo != candidate.from && !planned.contains(combo) && (activeUses[combo] ?? []).isEmpty
         }
 
+        /// Base de corde libre : aucun **autre** réglage ne la tient seule
+        /// (un autre réglage du même mod compte : il tirerait aussi), et le
+        /// plan ne l'a pas déjà donnée seule plus tôt. Le réglage lui-même
+        /// peut la tenir : `D1, Ctrl + D1` ne déclenche qu'une action.
+        func isFreeBase(_ key: String, for candidate: KeybindPlanner.Candidate) -> Bool {
+            guard let single = KeybindCombo(buttons: [key]), !planned.contains(single) else { return false }
+            return !(activeUses[single] ?? []).contains {
+                KeybindScanner.settingKey($0.modID, $0.keyPath) != candidate.settingKey
+            }
+        }
+
         /// Touche simple de la famille d'abord (mnémonique pour les lettres,
         /// ordre croissant pour chiffres et F) ; famille pleine → corde,
         /// seulement pour un champ qui en porte déjà une ou une liste — un
         /// champ `SButton` simple refuserait la corde et le mod retomberait
-        /// en silence sur son défaut.
+        /// en silence sur son défaut — et seulement sur une base libre
+        /// (`isFreeBase`, R20) : sinon `familyFull`, listé.
         mutating func place(_ candidate: KeybindPlanner.Candidate, family: KeybindFamily,
                             chordCapable: Bool) -> Result<KeybindCombo, Refusal> {
             let order = KeybindPlanner.preferredKeys(for: candidate, family: family)
@@ -304,10 +316,11 @@ extension KeybindPlanner {
             if candidate.reason == .familyPlacement, KeybindPlanner.isFamilyChord(candidate.from, family) {
                 return .success(candidate.from)
             }
-            // La corde se pose sur une touche de famille même tenue seule par
-            // un autre mod : seule la combinaison exacte doit être libre.
+            // R20 : SMAPI fait tirer `D1` sur `Ctrl + D1` — une corde dont la
+            // base est tenue seule par un autre réglage serait un
+            // co-déclenchement que le rescan ne compte pas comme conflit.
             for modifier in KeybindPlanner.chordModifiers {
-                for key in order {
+                for key in order where isFreeBase(key, for: candidate) {
                     guard let combo = KeybindCombo(buttons: [modifier, key]),
                           isFree(combo, for: candidate) else { continue }
                     planned.insert(combo)
