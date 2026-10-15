@@ -66,6 +66,10 @@ public final class FolderArchiveStore {
             phase = .failed(message: source.path)
             return
         }
+        guard !FolderArchive.destination(destinationFolder, isInside: source) else {
+            phase = .failed(message: destinationFolder.path)
+            return
+        }
         let archive = Self.unusedURL(in: destinationFolder, name: archiveName)
         let temporary = destinationFolder
             .appendingPathComponent(".starhubfr-archive-\(UUID().uuidString)", isDirectory: true)

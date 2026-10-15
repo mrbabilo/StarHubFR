@@ -92,6 +92,16 @@ public enum FolderArchive {
         return available >= requiredBytes(sourceBytes: sourceBytes)
     }
 
+    /// `true` quand la destination est la source ou un de ses sous-dossiers :
+    /// le dossier caché du temporaire naîtrait dans `Mods/` (le scanner y
+    /// verrait un mod en pause) et `zip -r .` s'archiverait lui-même.
+    /// `Mods2/`, voisin de `Mods/`, n'est pas dedans.
+    public static func destination(_ destination: URL, isInside source: URL) -> Bool {
+        let inner = destination.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+        let outer = source.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+        return inner.count >= outer.count && Array(inner.prefix(outer.count)) == outer
+    }
+
     /// Durée probable, en secondes, au débit donné (le défaut s'il est absurde).
     public static func estimatedSeconds(bytes: Int64, bytesPerSecond: Double) -> Double {
         let rate = bytesPerSecond > 0 ? bytesPerSecond : defaultBytesPerSecond

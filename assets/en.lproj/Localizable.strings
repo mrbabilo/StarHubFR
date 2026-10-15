@@ -21,6 +21,7 @@
 "archive_under_a_minute" = "under a minute";
 "archive_minutes" = "about %lld min";
 "archive_hours_minutes" = "about %1$lld h %2$02lld";
+"archive_inside_source" = "This folder is inside the one being backed up. Choose a folder outside it.";
 "backups_segment_config" = "Configuration";
 "backups_segment_files" = "Recoverable files";
 "backups_segment_install" = "Installs";

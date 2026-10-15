@@ -86,6 +86,7 @@ struct FolderArchiveSheet: View {
     @ViewBuilder
     private var plan: some View {
         let enough = sourceBytes.map { FolderArchive.hasEnoughSpace(sourceBytes: $0, available: available) } ?? false
+        let inside = destination.map { FolderArchive.destination($0, isInside: request.source) } ?? false
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             row("shippingbox", request.summary + " · " + bytesText(sourceBytes))
             HStack(alignment: .firstTextBaseline) {
@@ -94,6 +95,10 @@ struct FolderArchiveSheet: View {
                     .truncationMode(.middle)
                 Spacer(minLength: AppDesign.Spacing.sm)
                 Button(localization.L(L10n.Archive.choose)) { chooseDestination() }
+            }
+            if inside {
+                row("exclamationmark.triangle.fill", localization.L(L10n.Archive.insideSource))
+                    .foregroundStyle(AppDesign.Color.error)
             }
             if let sourceBytes {
                 spaceRow(sourceBytes: sourceBytes, enough: enough)
@@ -109,7 +114,7 @@ struct FolderArchiveSheet: View {
                 .keyboardShortcut(.cancelAction)
             Button(localization.L(L10n.Archive.start)) { start() }
                 .keyboardShortcut(.defaultAction)
-                .disabled(!enough || destination == nil)
+                .disabled(!enough || inside || destination == nil)
         }
     }
 
@@ -270,5 +275,6 @@ extension L10n {
         static let underAMinute = "archive_under_a_minute"
         static let minutes      = "archive_minutes"
         static let hoursMinutes = "archive_hours_minutes"
+        static let insideSource = "archive_inside_source"
     }
 }

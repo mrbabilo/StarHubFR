@@ -83,6 +83,16 @@ struct FolderArchivePlanTests {
                 == "StardewMods_2026-10-05_09-07-03.zip")
     }
 
+    @Test func aDestinationInsideTheSourceIsSeen() {
+        let mods = URL(fileURLWithPath: "/G/Mods", isDirectory: true)
+        #expect(FolderArchive.destination(mods, isInside: mods))
+        #expect(FolderArchive.destination(mods.appendingPathComponent("Backups"), isInside: mods))
+        #expect(FolderArchive.destination(URL(fileURLWithPath: "/G/Mods/./x/.."), isInside: mods))
+        // Voisin au même préfixe de nom : pas dedans.
+        #expect(!FolderArchive.destination(URL(fileURLWithPath: "/G/Mods2"), isInside: mods))
+        #expect(!FolderArchive.destination(URL(fileURLWithPath: "/G"), isInside: mods))
+    }
+
     /// Le temporaire de `zip` va dans un dossier caché (`-b`) ; les formats déjà
     /// compressés sont stockés tels quels (`-n`).
     @Test func theZipArgumentsHideTheTemporaryFile() {
@@ -130,6 +140,12 @@ struct FolderArchiveStoreTests {
         return dir
     }
 
+    /// Les sources pèsent jusqu'à 300 Mo : rien ne doit rester dans le
+    /// dossier temporaire après le test.
+    private func remove(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
+    }
+
     private func isolatedDefaults() -> UserDefaults {
         let name = "FolderArchiveStoreTests-\(UUID().uuidString)"
         return UserDefaults(suiteName: name)!
@@ -146,7 +162,9 @@ struct FolderArchiveStoreTests {
 
     @Test func anArchiveLandsWhereAskedAndNothingElseIsLeft() async throws {
         let source = try makeSource(bytes: 200_000)
+        defer { remove(source) }
         let destination = try makeDestination()
+        defer { remove(destination) }
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .mods, source: source, destinationFolder: destination,
                     archiveName: "t.zip", sourceBytes: 200_000)
@@ -162,7 +180,9 @@ struct FolderArchiveStoreTests {
 
     @Test func cancellingRemovesThePartialArchive() async throws {
         let source = try makeSource(bytes: 60_000_000)
+        defer { remove(source) }
         let destination = try makeDestination()
+        defer { remove(destination) }
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .saves, source: source, destinationFolder: destination,
                     archiveName: "t.zip", sourceBytes: 60_000_000)
@@ -177,10 +197,12 @@ struct FolderArchiveStoreTests {
     /// entrées du parc réel le 2026-10-15. La sauvegarde doit les emporter.
     @Test func pausedModsAreInTheArchive() async throws {
         let source = try makeSource(bytes: 1_000)
+        defer { remove(source) }
         let paused = source.appendingPathComponent(".Paused Mod")
         try FileManager.default.createDirectory(at: paused, withIntermediateDirectories: true)
         try Data("{}".utf8).write(to: paused.appendingPathComponent("manifest.json"))
         let destination = try makeDestination()
+        defer { remove(destination) }
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .mods, source: source, destinationFolder: destination,
                     archiveName: "t.zip", sourceBytes: 1_000)
@@ -201,7 +223,9 @@ struct FolderArchiveStoreTests {
     /// laisse derrière lui — c'est au store de le retirer.
     @Test func cancellingARunningZipRemovesItsTemporary() async throws {
         let source = try makeSource(bytes: 300_000_000)
+        defer { remove(source) }
         let destination = try makeDestination()
+        defer { remove(destination) }
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .mods, source: source, destinationFolder: destination,
                     archiveName: "t.zip", sourceBytes: 300_000_000)
@@ -217,8 +241,23 @@ struct FolderArchiveStoreTests {
         #expect(left.isEmpty)
     }
 
+    /// Archiver `Mods/` dans `Mods/Backups` ferait naître un dossier caché —
+    /// un « mod en pause » — dans la source, que `zip` lirait en cours d'écriture.
+    @Test func aDestinationInsideTheSourceIsRefused() async throws {
+        let source = try makeSource(bytes: 1_000)
+        defer { remove(source) }
+        let inside = source.appendingPathComponent("A", isDirectory: true)
+        let store = FolderArchiveStore(defaults: isolatedDefaults())
+        store.start(kind: .mods, source: source, destinationFolder: inside,
+                    archiveName: "t.zip", sourceBytes: 1_000)
+        guard case .failed = store.phase else { Issue.record("phase \(store.phase)"); return }
+        let left = try FileManager.default.contentsOfDirectory(atPath: inside.path)
+        #expect(left == ["data-0.bin"])
+    }
+
     @Test func aMissingSourceFailsWithoutLeavingAnything() async throws {
         let destination = try makeDestination()
+        defer { remove(destination) }
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .mods, source: destination.appendingPathComponent("absent"),
                     destinationFolder: destination, archiveName: "t.zip", sourceBytes: 0)
@@ -232,7 +271,9 @@ struct FolderArchiveStoreTests {
     /// Mo de parties mesure surtout le lancement de `zip`.
     @Test func aFinishedArchiveTeachesTheThroughput() async throws {
         let source = try makeSource(bytes: 2_000_000)
+        defer { remove(source) }
         let destination = try makeDestination()
+        defer { remove(destination) }
         let defaults = isolatedDefaults()
         let store = FolderArchiveStore(defaults: defaults, minimumLearningBytes: 1)
         #expect(store.bytesPerSecond == FolderArchive.defaultBytesPerSecond)
@@ -244,7 +285,9 @@ struct FolderArchiveStoreTests {
 
     @Test func aSmallArchiveDoesNotTeachTheThroughput() async throws {
         let source = try makeSource(bytes: 2_000_000)
+        defer { remove(source) }
         let destination = try makeDestination()
+        defer { remove(destination) }
         let defaults = isolatedDefaults()
         let store = FolderArchiveStore(defaults: defaults)
         store.start(kind: .saves, source: source, destinationFolder: destination,
