@@ -191,14 +191,14 @@ struct LocalLLMClientTests {
         LLMStub.route { _ in .json(Self.completion("", toolCalls: #"[{"id":"t1"}]"#)) }
         let outcome = await LocalLLMClient.translate(request(source: "Hello world"),
                                                      baseURL: base, session: stubbedSession())
-        #expect(outcome == .refusedTokens(missing: []))
+        #expect(outcome == .refusedTokens(markers: []))
     }
 
     @Test func translateRejectsEmptyContentAsRefusal() async {
         LLMStub.route { _ in .json(Self.completion("")) }
         let outcome = await LocalLLMClient.translate(request(source: "Hello world"),
                                                      baseURL: base, session: stubbedSession())
-        #expect(outcome == .refusedTokens(missing: []))
+        #expect(outcome == .refusedTokens(markers: []))
     }
 
     @Test func translateReportsTransportFailureAsEndpointError() async {
@@ -320,7 +320,7 @@ struct LocalLLMClientTests {
         LLMStub.route { _ in .json(Self.completion("Bonjour le monde")) }
         let outcome = await LocalLLMClient.translate(request(source: "Hello$b world"),
                                                      baseURL: base, session: stubbedSession())
-        #expect(outcome == .refusedTokens(missing: ["$b"]))
+        #expect(outcome == .refusedTokens(markers: ["$b"]))
         #expect(LLMStub.calls == 2)   // l'unique retry a eu lieu
     }
 
@@ -377,7 +377,7 @@ struct LocalLLMClientTests {
         let outcome = await LocalLLMClient.translate(
             request(source: "Use {{Gender}} and $b here"),
             baseURL: base, session: stubbedSession())
-        #expect(outcome == .refusedTokens(missing: ["$b"]))
+        #expect(outcome == .refusedTokens(markers: ["$b"]))
     }
 
     // MARK: - Corps de requête

@@ -15,8 +15,9 @@ public enum TranslationLotImport {
     /// la fusion porte ses propres propositions.
     public struct Rejection: Equatable, Sendable {
         public enum Reason: Equatable, Sendable {
-            case missingHardMarkers([String])
-            case extraHardMarkers([String])
+            /// Les écarts bloquants, avec leur sens et leurs comptes : un
+            /// rejet dit ce que dit l'éditeur, `$y` en clair compris.
+            case hardMismatches([TranslationTokenCheck.Mismatch])
             case unknownKey
             case sourceAltered
         }

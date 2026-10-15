@@ -144,7 +144,7 @@ public struct TranslationBatchRun {
     /// le texte EST la décision.
     public func summary(mod: String) -> String {
         "Lot \(mod) : \(translated) traduites (dont \(translatedByFallback) "
-            + "par le secours en ligne), \(refused.count) refusées (marques manquantes), "
+            + "par le secours en ligne), \(refused.count) refusées (marques du jeu), "
             + "\(errors) erreurs, \(softIgnored) termes glossaire ignorés"
             + (fallbackStop.map { ", secours coupé : \($0)" } ?? "")
     }

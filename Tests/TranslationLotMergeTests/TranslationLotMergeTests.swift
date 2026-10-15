@@ -153,8 +153,8 @@ struct TranslationLotMergeTests {
         #expect(review.proposals.map(\.key) == ["b"])
         #expect(review.rejections.count == 1)
         #expect(review.rejections.first?.key == "a")
-        #expect(review.rejections.first?.reason ==
-                .missingHardMarkers(["{{Name}}"]))
+        #expect(review.rejections.first?.reason == .hardMismatches([
+            TranslationTokenCheck.Mismatch(token: "{{Name}}", expected: 1, found: 0, isHard: true)]))
     }
 
     /// Une marque dure inventée : même écart, autre motif.
@@ -164,7 +164,21 @@ struct TranslationLotMergeTests {
         let review = try TranslationLotMerge.review(data, rows: current,
                                                     mod: "M", language: "fr")
         #expect(review.rejections.count == 1)
-        #expect(review.rejections.first?.reason == .extraHardMarkers(["{{bonus}}"]))
+        #expect(review.rejections.first?.reason == .hardMismatches([
+            TranslationTokenCheck.Mismatch(token: "{{bonus}}", expected: 0, found: 1, isHard: true)]))
+    }
+
+    /// Perdue et ajoutée dans la même entrée : le rejet porte les deux. Un
+    /// motif « manquantes » seul taisait la marque en trop.
+    @Test func aRejectionCarriesBothDirections() throws {
+        let current = rows([("a", "Hi {{Name}}", "")])
+        let data = try JSONEncoder().encode(lot([("a", "Hi {{Name}}", "Salut {{Nom}}")]))
+        let review = try TranslationLotMerge.review(data, rows: current,
+                                                    mod: "M", language: "fr")
+        guard case .hardMismatches(let found)? = review.rejections.first?.reason else {
+            Issue.record("rejet attendu"); return
+        }
+        #expect(found.map(\.token).sorted() == ["{{Name}}", "{{Nom}}"])
     }
 
     // MARK: - Dédoublonnage

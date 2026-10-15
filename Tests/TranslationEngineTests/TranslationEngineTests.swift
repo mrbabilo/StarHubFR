@@ -141,7 +141,7 @@ struct TranslationEngineTests {
         let outcome = await TranslationEngine.translate(
             request, localBaseURL: local, localSession: session(),
             fallback: key, fallbackSession: session())
-        #expect(outcome == .refusedTokens(missing: ["{{Name}}"]))
+        #expect(outcome == .refusedTokens(markers: ["{{Name}}"]))
     }
 
     /// Une marque dure **dupliquée** est une divergence, pas un détail : le
@@ -155,7 +155,7 @@ struct TranslationEngineTests {
         let outcome = await TranslationEngine.translate(
             request, localBaseURL: local, localSession: session(),
             fallback: key, fallbackSession: session())
-        #expect(outcome == .refusedTokens(missing: ["{{Name}}"]))
+        #expect(outcome == .refusedTokens(markers: ["{{Name}}"]))
     }
 
     /// Une clé refusée coupe le secours pour tout le lot : c'est la panne que

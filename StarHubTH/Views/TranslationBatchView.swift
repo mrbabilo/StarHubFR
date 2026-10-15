@@ -142,7 +142,7 @@ struct TranslationBatchView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !report.refusedRowIDs.isEmpty {
-                // Les clés refusées pour marques manquantes : c'est la liste
+                // Les clés refusées pour écart de marques : c'est la liste
                 // de ce qu'il reste à faire à la main, le rapport ne la
                 // résume pas en un chiffre.
                 VStack(alignment: .leading, spacing: 2) {

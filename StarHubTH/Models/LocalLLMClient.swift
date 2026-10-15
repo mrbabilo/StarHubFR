@@ -81,7 +81,10 @@ public enum LocalLLMClient {
 
     public enum Outcome: Equatable, Sendable {
         case translated(String)
-        case refusedTokens(missing: [String])   // après l'unique retry
+        /// Après l'unique relance. Les marques bloquantes en écart, **dans les
+        /// deux sens** — perdues ou ajoutées (C3-T9) ; vide quand le modèle n'a
+        /// rien rendu d'exploitable.
+        case refusedTokens(markers: [String])
         case endpointError(String)
     }
 
@@ -95,20 +98,20 @@ public enum LocalLLMClient {
         // L'unique relance : sur un écart bloquant, ou sur une marque de
         // valeur perdue (`@`, variable `%`) — la référence relance aussi pour
         // ces pertes. Le refus, lui, ne retient que les bloquants.
-        let firstHard = hardMissing(source: request.source, target: text)
+        let firstHard = hardDiverging(source: request.source, target: text)
         let second = await fetch(request, retry: retryHint(source: request.source, target: text),
                                  baseURL: baseURL, session: session)
         guard case .content(let retryText) = second else {
-            return firstHard.isEmpty ? .translated(text) : .refusedTokens(missing: firstHard)
+            return firstHard.isEmpty ? .translated(text) : .refusedTokens(markers: firstHard)
         }
-        let retryHard = hardMissing(source: request.source, target: retryText)
+        let retryHard = hardDiverging(source: request.source, target: retryText)
         let retryTriggerCount = retryTriggers(source: request.source, target: retryText).count
         // Le meilleur des deux : le moins de bloquants, puis le moins de
         // pertes ; à égalité, le premier.
         let takeRetry = retryHard.count < firstHard.count
             || (retryHard.count == firstHard.count && retryTriggerCount < triggers.count)
         let (best, hard) = takeRetry ? (retryText, retryHard) : (text, firstHard)
-        return hard.isEmpty ? .translated(best) : .refusedTokens(missing: hard)
+        return hard.isEmpty ? .translated(best) : .refusedTokens(markers: hard)
     }
 
     /// Le prompt système, déterministe — le texte anglais verrouillé par la
@@ -190,7 +193,7 @@ public enum LocalLLMClient {
         var outcome: Outcome {
             switch self {
             case .content(let text): .translated(text)
-            case .rejected: .refusedTokens(missing: [])
+            case .rejected: .refusedTokens(markers: [])
             case .failed(let message): .endpointError(message)
             }
         }
@@ -262,8 +265,9 @@ public enum LocalLLMClient {
         return .content(content)
     }
 
-    /// Les marques dures manquantes entre source et traduction.
-    private static func hardMissing(source: String, target: String) -> [String] {
+    /// Les marques dures en écart entre source et traduction, perdues ou
+    /// ajoutées.
+    private static func hardDiverging(source: String, target: String) -> [String] {
         TranslationTokenCheck.mismatches(source: source, target: target)
             .filter(\.isHard)
             .map(\.token)

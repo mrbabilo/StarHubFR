@@ -47,7 +47,7 @@ struct TranslationBatchRunTests {
         // L'écran propose de reprendre ces lignes à la main : un compteur ne
         // dirait pas lesquelles.
         var run = TranslationBatchRun(hasLocalEngine: true)
-        _ = run.record(rowID: "dialogue/greeting", outcome: .refusedTokens(missing: ["{{name}}"]),
+        _ = run.record(rowID: "dialogue/greeting", outcome: .refusedTokens(markers: ["{{name}}"]),
                        glossaryMatches: [], writeSucceeded: false, cancelled: false)
         #expect(run.report.refusedRowIDs == ["dialogue/greeting"])
         #expect(run.report.errors == 0)
@@ -147,7 +147,7 @@ struct TranslationBatchRunTests {
         _ = run.record(rowID: "a", outcome: .translated("Bonjour", by: .fallback),
                        glossaryMatches: [entry("scythe", "faux")],
                        writeSucceeded: true, cancelled: false)
-        _ = run.record(rowID: "b", outcome: .refusedTokens(missing: ["{{n}}"]),
+        _ = run.record(rowID: "b", outcome: .refusedTokens(markers: ["{{n}}"]),
                        glossaryMatches: [], writeSucceeded: false, cancelled: false)
         _ = run.record(rowID: "c", outcome: .quotaExhausted,
                        glossaryMatches: [], writeSucceeded: false, cancelled: false)

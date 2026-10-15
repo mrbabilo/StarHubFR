@@ -114,18 +114,12 @@ public enum TranslationLotMerge {
             let diverging = TranslationTokenCheck
                 .mismatches(source: row.english, target: target)
                 .filter(\.isHard)
-            let missing = diverging.filter { $0.found < $0.expected }.map(\.token)
-            guard missing.isEmpty else {
+            // Tous les écarts, dans les deux sens : un motif « manquantes »
+            // seul taisait les marques en trop de la même entrée.
+            guard diverging.isEmpty else {
                 rejections.append(TranslationLotImport.Rejection(
                     component: entry.component, key: entry.key,
-                    reason: .missingHardMarkers(missing)))
-                continue
-            }
-            let extra = diverging.filter { $0.found > $0.expected }.map(\.token)
-            guard extra.isEmpty else {
-                rejections.append(TranslationLotImport.Rejection(
-                    component: entry.component, key: entry.key,
-                    reason: .extraHardMarkers(extra)))
+                    reason: .hardMismatches(diverging)))
                 continue
             }
             let existing = row.french.trimmingCharacters(in: .whitespacesAndNewlines)

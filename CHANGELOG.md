@@ -15,6 +15,7 @@ where the exact log format was verified.
 ### Fixed
 
 - **Traduction : un `$` suivi d'une majuscule ne bloque plus.** Le jeu le lit comme du texte (faute de frappe de l'auteur : `$I`, `#$b#$There`) ; il se traduit comme le reste. 33 lignes françaises du parc débloquées.
+- **Traduction : les refus disent les deux sens.** Un lot rejeté nomme les marques manquantes et celles en trop, et explique `$y` en clair. Le rapport de lot ne dit plus « marques manquantes » pour une marque ajoutée. L'aide sous un blocage ne cite plus le sélecteur de genre, qui ne bloque plus.
 
 ## [1.67.0] - 2026-10-15
 

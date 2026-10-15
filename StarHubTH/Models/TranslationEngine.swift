@@ -11,7 +11,7 @@ public enum TranslationEngine {
 
     public enum Outcome: Equatable, Sendable {
         case translated(String, by: Source)
-        case refusedTokens(missing: [String])
+        case refusedTokens(markers: [String])
         case endpointError(String)
         /// Le quota du mois est épuisé chez le service de secours.
         case quotaExhausted
@@ -35,8 +35,8 @@ public enum TranslationEngine {
                                                   session: localSession) {
             case .translated(let text):
                 return .translated(text, by: .local)
-            case .refusedTokens(let missing):
-                guard let fallback else { return .refusedTokens(missing: missing) }
+            case .refusedTokens(let markers):
+                guard let fallback else { return .refusedTokens(markers: markers) }
                 return await viaFallback(request, fallback, fallbackSession,
                                          fallbackRetryDelay)
             case .endpointError(let message):
@@ -70,12 +70,12 @@ public enum TranslationEngine {
             // retenir que les manquantes laissait passer un doublon que
             // `saveTranslation` refuserait ensuite — la clé finissait alors
             // dans les erreurs au lieu de la liste de ce qui reste à faire.
-            let missing = TranslationTokenCheck
+            let diverging = TranslationTokenCheck
                 .mismatches(source: request.source, target: text)
                 .filter(\.isHard)
                 .map(\.token)
-            return missing.isEmpty ? .translated(text, by: .fallback)
-                                   : .refusedTokens(missing: missing)
+            return diverging.isEmpty ? .translated(text, by: .fallback)
+                                     : .refusedTokens(markers: diverging)
         case .quotaExhausted:
             return .quotaExhausted
         case .rateLimited:
