@@ -831,7 +831,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) : code livré le 2026-10-15, validation écran en attente ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -871,20 +871,6 @@ d'onglet s'applique à chaque saut.
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
 de l'axe — l'un des rares domaines où le port devance nos écrans. I-T21 en est
 issu, livré et archivé.
-
-- [ ] **I-T24** — *(code livré le 2026-10-15, validation écran en attente)* Aide intégrée : le guide utilisateur dans une fenêtre d'aide (sommaire, recherche), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K. · **M**
-      Spec et plan `docs/superpowers/specs|plans/2026-10-15-aide-integree*` (locaux, ignorés par git).
-      **À valider par l'auteur à l'écran** :
-      - (a) Menu Aide › Aide StarHubFR ouvre la fenêtre ; ⌘? aussi, **sur clavier AZERTY** (sinon : retirer le raccourci, garder l'entrée). ⌘/ ouvre toujours les raccourcis clavier.
-      - (b) Fenêtre principale fermée, le menu Aide ouvre quand même l'aide.
-      - (c) Le « ? » de la barre d'outils, depuis Gestion des mods, Performances, Alertes système › Raccourcis clavier : la fenêtre défile à la bonne section ; une deuxième demande, fenêtre ouverte, la ramène au premier plan et défile.
-      - (d) Recherche « mises a jour » (sans accent) : la section Mises à jour reste ; une recherche sans résultat affiche son message.
-      - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Le curseur reste en I sur le texte, liens compris (choix assumé : la main couvrait tout le paragraphe).
-      - (f) Interface passée en anglais : la fenêtre affiche le guide anglais.
-      - (g) Un chemin du guide (`~/.config/…/SMAPI-latest.txt`) se sélectionne et se copie.
-      - (h) **En premier** : aide ouverte, Réglages Système › « Fermer les fenêtres à la fermeture d'une app » désactivé, ⌘Q puis relance. La fenêtre principale doit réapparaître normalement après l'écran de démarrage (la fenêtre d'aide n'est jamais restaurée).
-      - (i) ⌘? avec les réglages système par défaut, puis en AZERTY : il peut ouvrir la recherche du menu Aide au lieu de l'aide (raccourci système ⇧⌘/). S'il ne répond pas : retirer le raccourci, l'entrée du catalogue, son test et sa mention au CHANGELOG ; l'entrée de menu reste.
-      - (j) Palette ⌘K › « Aide StarHubFR » ouvre la fenêtre, qui reste au premier plan ; la fenêtre s'intitule « Aide StarHubFR » ; à 560 pt le « ? » reste visible ; VoiceOver annonce les titres de section comme en-têtes.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
@@ -2282,6 +2268,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T21** | 2026-10-14 | Corbeille d'une multi-sélection (dépendants actifs nommés, sonde et SMAPI refusés, garde jeu ouvert) et groupes pliables à soi (`mod_groups.json`, « Regrouper par : Aucun / Mes groupes / Catégorie », tout activer d'un groupe) ; validé à l'écran le 2026-10-15 |
 | **I-T22** | 2026-10-14 | Audit UX de l'onglet Performances en quatre lots : une ligne d'état, bloc « Mesurer », outils tiers repliés si absents, une seule conclusion, motifs de grisage avant le clic, entrées depuis liste/fiche/palette/Santé (`NavigationStore.openPerformance`) ; validé à l'écran |
 | **I-T23** | 2026-10-15 | Plan de raccourcis : conflits déplacés vers des touches libres par famille (lettres action, chiffres info, F rares), deux modes, décochage, famille corrigée gardée (`KeybindFamilyStore`), sauvegarde avant écriture et annulation, bandeau après bascule de profil (`KeybindPlanner`) ; validé à l'écran |
+| **I-T24** | 2026-10-15 | Aide intégrée : guide utilisateur FR/EN dans une fenêtre (sommaire, recherche sur le texte rendu, liens internes), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K ; sections repérées par marqueur, parité contrôlée au build (`HelpGuide`, `HelpTopic`) ; validé à l'écran |
 
 **10.3 Veille RimManager — actions livrées**
 

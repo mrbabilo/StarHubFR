@@ -6934,6 +6934,20 @@ sans lire une ligne de log.
       dans les titres des volets repliés, deux tailles de graphique au lieu de
       quatre, durée estimée sur les diagnostics SLO/Stardropium en cours.
 
+- [x] **I-T24** — *(livré le 2026-10-15, commits `2a5d2937` à `7d108c54` ; validé à l'écran par l'auteur le jour même)* Aide intégrée : le guide utilisateur dans une fenêtre d'aide (sommaire, recherche), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K. · **M**
+      Spec et plan `docs/superpowers/specs|plans/2026-10-15-aide-integree*` (locaux, ignorés par git).
+      **À valider par l'auteur à l'écran** :
+      - (a) Menu Aide › Aide StarHubFR ouvre la fenêtre ; ⌘? aussi, **sur clavier AZERTY** (sinon : retirer le raccourci, garder l'entrée). ⌘/ ouvre toujours les raccourcis clavier.
+      - (b) Fenêtre principale fermée, le menu Aide ouvre quand même l'aide.
+      - (c) Le « ? » de la barre d'outils, depuis Gestion des mods, Performances, Alertes système › Raccourcis clavier : la fenêtre défile à la bonne section ; une deuxième demande, fenêtre ouverte, la ramène au premier plan et défile.
+      - (d) Recherche « mises a jour » (sans accent) : la section Mises à jour reste ; une recherche sans résultat affiche son message.
+      - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Le curseur reste en I sur le texte, liens compris (choix assumé : la main couvrait tout le paragraphe).
+      - (f) Interface passée en anglais : la fenêtre affiche le guide anglais.
+      - (g) Un chemin du guide (`~/.config/…/SMAPI-latest.txt`) se sélectionne et se copie.
+      - (h) **En premier** : aide ouverte, Réglages Système › « Fermer les fenêtres à la fermeture d'une app » désactivé, ⌘Q puis relance. La fenêtre principale doit réapparaître normalement après l'écran de démarrage (la fenêtre d'aide n'est jamais restaurée).
+      - (i) ⌘? avec les réglages système par défaut, puis en AZERTY : il peut ouvrir la recherche du menu Aide au lieu de l'aide (raccourci système ⇧⌘/). S'il ne répond pas : retirer le raccourci, l'entrée du catalogue, son test et sa mention au CHANGELOG ; l'entrée de menu reste.
+      - (j) Palette ⌘K › « Aide StarHubFR » ouvre la fenêtre, qui reste au premier plan ; la fenêtre s'intitule « Aide StarHubFR » ; à 560 pt le « ? » reste visible ; VoiceOver annonce les titres de section comme en-têtes.
+
 - [x] **I-T23** — *(livré le 2026-10-15, commits `efd0175f` à `495fd784` ;
       validé à l'écran par l'auteur le jour même)* **Plan de raccourcis** :
       depuis Alertes système › Raccourcis, « Proposer un plan » ouvre une
