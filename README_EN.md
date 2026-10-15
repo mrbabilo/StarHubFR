@@ -49,6 +49,7 @@ When the game crashes or a mod refuses to load, StarHubFR turns the SMAPI log in
 *   **A log you can read** — repetitive lines folded, grouping by mod (worst first), a badge when the log predates your session.
 *   **Errors tracked version by version** — a mod's page tells you whether its new version behaves worse than the previous one.
 *   **Every shortcut and its conflicts** — each key of your active mods, searchable by mod, setting or key; when capturing a key, the config editor says if another mod already uses it.
+*   **A plan to untangle shortcuts** — conflicts move to free keys, sorted by family: letters for actions, digits for information, F keys for the rest. Each line can be unchecked, the touched config.json files are backed up before writing, and "Undo the plan" restores them.
 *   **Conflicts predicted before you play** — two mods loading the same asset exclusively are flagged, and enabling them (one at a time, in bulk or through a profile) warns you and names the asset.
 *   **Find the faulty mod** — when nothing points to a culprit, the app pauses your mods by halves and asks one question per step. About ten tries are enough; everything comes back in one click.
 

@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Plan de raccourcis** depuis Alertes système › Raccourcis : « Proposer un plan » déplace les raccourcis en conflit vers des touches libres. Lignes décochables, la famille se corrige et le choix est gardé, un bilan après application, « Annuler le plan » restaure.
+- **Plan de raccourcis** depuis Alertes système › Raccourcis : « Proposer un plan » déplace les raccourcis en conflit vers des touches libres de leur famille (lettres pour l'action, chiffres pour l'information, touches F pour le reste), ou range tout par famille. Lignes décochables, famille corrigeable, bilan, « Annuler le plan ».
 - **Après un changement de profil qui crée des conflits de raccourcis**, une alerte sur Profils mène directement au plan.
 
 ### Changed

@@ -50,6 +50,7 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Un journal qui se lit** — lignes répétitives repliées, regroupement par mod (les plus problématiques en tête), badge si le journal date d'avant votre session.
 *   **Les erreurs suivies version par version** — la fiche d'un mod dit si sa nouvelle version se comporte moins bien que la précédente.
 *   **Tous vos raccourcis et leurs conflits** — chaque touche des mods actifs, cherchable par mod, réglage ou touche ; à la capture, l'éditeur de config dit si un autre mod l'utilise déjà.
+*   **Un plan pour démêler les raccourcis** — les conflits passent sur des touches libres, rangées par famille : lettres pour l'action, chiffres pour l'information, touches F pour le reste. Chaque ligne se décoche, les config.json touchés sont sauvegardés avant écriture et « Annuler le plan » les restaure.
 *   **Les conflits prévus avant de jouer** — deux mods qui chargent le même asset en exclusif sont signalés, et l'activation (seule, groupée ou par profil) prévient en nommant l'asset.
 *   **Retrouver le mod fautif** — quand rien ne désigne de coupable, l'app met vos mods en pause par moitiés et pose une question par étape. Une dizaine d'essais suffisent ; tout se remet en un clic.
 
