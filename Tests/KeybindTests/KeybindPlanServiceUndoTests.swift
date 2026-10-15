@@ -29,10 +29,11 @@ import Testing
                 == #"{"title": "après"}"#)
         #expect(f.box.rescans == 2)
         // La restauration pose son propre filet : le lot du plan n'est plus
-        // le dernier, et il n'y a plus rien à annuler.
+        // le dernier, et il n'y a plus rien à annuler. Un second « Annuler »
+        // (double clic) laisse le verdict affiché, sans rescan.
         #expect(!f.service.canUndo)
         await f.undo()
-        #expect(f.service.state == .failed(.nothingToUndo))
+        #expect(f.service.state == .undone(.init(restored: 1, skipped: [])))
         #expect(f.box.rescans == 2)
     }
 
@@ -110,5 +111,21 @@ import Testing
         #expect(f.service.state == .undone(.init(restored: 1, skipped: [])))
         #expect(try f.text("MailboxMenu") == repaired)
         #expect(try f.text("LookupInfo") == lookupBefore)
+    }
+
+    @Test func applyThatWroteNothingOffersNoUndo() async throws {
+        // Le seul mod du plan a été mis en pause : rien d'écrit, rien à annuler.
+        let f = try KeybindPlanFixture.conflictPair()
+        defer { f.cleanUp() }
+        let report = try f.report()
+        _ = try f.readyPlan()
+        try FileManager.default.moveItem(at: f.game.appendingPathComponent("Mods/MailboxMenu"),
+                                         to: f.game.appendingPathComponent("Mods/.MailboxMenu"))
+
+        try await f.apply(report: report, mods: [KeybindPlanFixture.mod("Swim"),
+                                                 KeybindPlanFixture.mod("MailboxMenu", enabled: false)])
+
+        #expect(f.applied()?.written == 0)
+        #expect(!f.service.canUndo)
     }
 }

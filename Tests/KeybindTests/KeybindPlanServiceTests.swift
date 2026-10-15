@@ -255,4 +255,47 @@ import Testing
                                             reason: .writerFailed(.alternativeMissing, keyPath: ["MenuKey"]))])
         #expect(try f.text("MailboxMenu") == changed)
     }
+
+    // MARK: - Revue finale
+
+    @Test func storedCorrectionBeatsTheGuess() async throws {
+        // Deux mods devinés info : à égalité, le plus petit modID garde
+        // (ZooInfo céderait). AlbumMenu corrigé en « rare » : c'est lui qui cède.
+        let f = try KeybindPlanFixture([("AlbumMenu", .rare, #"{"MenuKey": "H"}"#),
+                                        ("ZooInfo", .info, #"{"InfoKey": "H"}"#)])
+        defer { f.cleanUp() }
+        f.families.set(nil, for: "ZooInfo")
+        let guessed = KeybindPlanService.guessedFamilies(try f.report())
+        try #require(guessed["AlbumMenu"] == .info && guessed["ZooInfo"] == .info)
+
+        let plan = try f.readyPlan()
+
+        #expect(plan.moves.map(\.modID) == ["AlbumMenu"])
+        #expect(plan.moves.first?.family == .rare)
+    }
+
+    @Test func secondApplyKeepsTheVerdict() async throws {
+        // Double clic : le second « Appliquer » arrive sur `.applied` — il
+        // ne doit ni remplacer le verdict par « aucun plan » ni réécrire.
+        let f = try KeybindPlanFixture.conflictPair()
+        defer { f.cleanUp() }
+        _ = try f.readyPlan()
+        try await f.apply()
+        let first = try #require(f.applied())
+
+        try await f.apply()
+
+        #expect(f.service.state == .applied(first))
+        #expect(f.service.refusal == nil)
+        #expect(f.box.rescans == 1)
+        #expect(f.backups.loadBackups().count == 1)
+    }
+
+    @Test func listElementsLendTheirSettingNameToTheGuess() throws {
+        // `DumpKeys: [F5, F6]` s'aplatit en `DumpKeys.[0…1]` : la déduction
+        // doit lire « DumpKeys » (rare), pas « [0] ».
+        let f = try KeybindPlanFixture([("Gizmo", .action, #"{"DumpKeys": ["F5", "F6"]}"#)])
+        defer { f.cleanUp() }
+        #expect(KeybindPlanService.guessedFamilies(try f.report())["Gizmo"] == .rare)
+    }
 }

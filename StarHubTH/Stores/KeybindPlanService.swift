@@ -75,7 +75,9 @@ final class KeybindPlanService {
         var byMod: [String: (name: String, settingNames: [String], ownMode: Bool)] = [:]
         for setting in report.settings {
             var entry = byMod[setting.modID] ?? (setting.modName, [], false)
-            if let last = setting.keyPath.last { entry.settingNames.append(last) }
+            // Le nom du réglage, index de tableau retirés : `DumpKeys.[0]`
+            // se devine sur « DumpKeys », pas sur « [0] ».
+            if let last = KeybindPlanner.settingName(setting.keyPath).last { entry.settingNames.append(last) }
             if report.settingContexts[KeybindScanner.settingKey(setting.modID, setting.keyPath)] == .ownMode {
                 entry.ownMode = true
             }
@@ -100,8 +102,14 @@ final class KeybindPlanService {
     /// `report` : le rapport **courant** de l'appelant, comparé à celui du
     /// calcul. `excluding` : ids de `PlannedMove` retirés par l'utilisateur,
     /// ni sauvegardés ni écrits. `rescan` est rejoué après la sauvegarde.
+    /// Un second appel arrivé sur `.applying`/`.applied` (double clic mis en
+    /// file) rend la main sans rien toucher : le verdict affiché reste.
     func apply(report: KeybindScanner.KeybindReport, gameDir: String, mods: [ModItem],
                excluding: Set<String> = [], rescan: @escaping @MainActor () -> Void) async {
+        switch state {
+        case .applying, .applied: return
+        case .idle, .computing, .ready, .undone, .failed: break
+        }
         refusal = nil
         guard case .ready(let plan) = state, let plannedSettings else { state = .failed(.noPlan); return }
         guard !isGameRunning() else { refusal = .gameRunning; return }
@@ -168,7 +176,9 @@ final class KeybindPlanService {
             }
         }
 
-        lastApply = (backup, written)
+        // Rien d'écrit : rien à annuler. Le lot créé a de toute façon pris
+        // la place du précédent — l'ancien `lastApply` ne s'annule plus.
+        if written.isEmpty { lastApply = nil } else { lastApply = (backup, written) }
         state = .applied(AppliedResult(written: written.count, skipped: skipped,
                                        backupId: backup.folderName))
         rescan()
@@ -241,7 +251,10 @@ final class KeybindPlanService {
     /// Restaure, depuis le lot du dernier `apply`, le seul `config.json` des
     /// mods écrits — et seulement s'il porte encore le texte écrit par le
     /// plan. Refusé si un autre lot a suivi. `rescan` est rejoué ensuite.
+    /// Un second appel arrivé sur `.undone` (double clic mis en file) rend
+    /// la main sans rien toucher : le verdict affiché reste.
     func undo(gameDir: String, mods: [ModItem], rescan: @escaping @MainActor () -> Void) async {
+        if case .undone = state { return }
         refusal = nil
         guard let lastApply else { state = .failed(.nothingToUndo); return }
         guard !isGameRunning() else { refusal = .gameRunning; return }
