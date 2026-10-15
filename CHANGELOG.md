@@ -22,7 +22,7 @@ where the exact log format was verified.
 
 - **Traduction : seules les marques qui cassent le jeu bloquent l'enregistrement.** Portrait, `@`, saut de ligne ou de page : avertissement sous le champ. Commande perdue ou `#` seul en trop : blocage, chaque marque dite manquante ou en trop. Le `%` de narration n'est plus une variable.
 - **Sauvegarde des mods et des parties** : choix du dossier, poids et nombre de mods (en pause compris), place libre vérifiée, durée estimée, avancement en direct et annulation. Plus de fichier temporaire sur le Bureau.
-- **App signée par un certificat stable**. Le Trousseau redemande encore l'accès aux clés Nexus et DeepL à chaque mise à jour (« Toujours autoriser ») : sans compte Apple Developer, il retient l'empreinte de chaque version. Chaque release publie `SHA256SUMS` pour vérifier l'archive.
+- **App signée par un certificat stable**. Le Trousseau redemande encore l'accès aux clés Nexus et DeepL à chaque mise à jour (« Toujours autoriser ») : sans compte Apple Developer, il retient l'empreinte de chaque version. Chaque version publiée fournit `SHA256SUMS` pour vérifier l'archive.
 
 ## [1.66.0] - 2026-10-15
 
