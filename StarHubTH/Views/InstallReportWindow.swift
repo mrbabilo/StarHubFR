@@ -7,6 +7,7 @@ import SwiftUI
 enum AppWindowID {
     static let main = "main"
     static let installReport = "installReport"
+    static let help = "help"
 }
 
 /// La fenêtre de bilan post-installation — redimensionnable, là où l'écran

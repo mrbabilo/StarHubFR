@@ -48,6 +48,7 @@ public enum KeyboardShortcutCatalog {
                 ShortcutEntry(["⌘", "F"], L10n.Shortcuts.search),
                 ShortcutEntry(["⇥", ShortcutEntry.or, "⇧", "⇥"], L10n.Shortcuts.tab),
                 ShortcutEntry(["⌘", helpKey], L10n.Shortcuts.help),
+                ShortcutEntry(["⌘", "?"], L10n.Shortcuts.helpGuide),
             ]),
             ShortcutGroup(titleKey: L10n.Shortcuts.groupModList, entries: [
                 ShortcutEntry(["↑", ShortcutEntry.or, "↓"], L10n.Shortcuts.listMove),

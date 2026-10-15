@@ -2634,5 +2634,13 @@
   "keybind_plan_failure_not_latest_backup": "Une sauvegarde plus récente a suivi le plan : restaurez depuis « Sauvegardes des mods › Configuration ».",
   "keybind_plan_failure_restore_failed": "Restauration impossible — restaurez à la main depuis « Sauvegardes des mods › Configuration » : %@",
   "keybind_plan_none_movable": "Aucun déplacement possible : voir les réglages non déplaçables ci-dessous.",
-  "keybind_plan_remaining": "Conflits restants après la nouvelle analyse : %lld"
+  "keybind_plan_remaining": "Conflits restants après la nouvelle analyse : %lld",
+  "help_title": "Aide StarHubFR",
+  "help_contents": "Sommaire",
+  "help_search_prompt": "Chercher dans le guide",
+  "help_no_results": "Aucune section ne contient « %@ ».",
+  "help_page_button": "Aide sur cette page",
+  "help_missing": "Le guide utilisateur est absent de cette copie de l'app.",
+  "help_open_online": "Le lire sur GitHub",
+  "shortcuts_help_guide": "Ouvrir l'aide"
 }

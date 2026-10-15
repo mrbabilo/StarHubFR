@@ -237,8 +237,7 @@ struct StarHubTHApp: App {
                     .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
-                Button(localization.L(L10n.Shortcuts.title)) { vm.navigationStore.showsShortcutsHelp = true }
-                    .keyboardShortcut(KeyEquivalent(Character(KeyboardShortcutCatalog.helpKey)), modifiers: .command)
+                HelpCommands(navigation: vm.navigationStore, localization: localization)
             }
         }
 
@@ -248,6 +247,13 @@ struct StarHubTHApp: App {
         // seconde ouverture l'amène au premier plan et remplace le contenu.
         Window(localization.L(L10n.InstallReport.windowTitle), id: AppWindowID.installReport) {
             InstallReportWindow(vm: vm, localization: localization)
+        }
+        .windowResizability(.contentMinSize)
+
+        // L'aide intégrée — le guide utilisateur embarqué (spec 2026-10-15) :
+        // une fenêtre à part, à lire à côté de l'écran qu'elle explique.
+        Window(localization.L(L10n.Help.title), id: AppWindowID.help) {
+            HelpWindow(navigation: vm.navigationStore, localization: localization)
         }
         .windowResizability(.contentMinSize)
     }

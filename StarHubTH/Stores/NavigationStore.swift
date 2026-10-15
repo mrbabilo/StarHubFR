@@ -318,6 +318,11 @@ final class NavigationStore {
     /// canaux du ViewModel.
     var showsShortcutsHelp = false
 
+    /// La section que la fenêtre d'aide doit montrer (spec aide intégrée §4).
+    /// La section seulement : chaque entrée ouvre la fenêtre elle-même, car
+    /// la fenêtre principale peut être fermée.
+    var pendingHelpSection: String?
+
     /// L'onglet des Réglages (un par groupe). Ici et non en `@State` de la
     /// page : il survit à un aller-retour vers un autre écran.
     var settingsGroup: SettingsGroup = .game

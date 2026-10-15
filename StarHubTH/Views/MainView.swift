@@ -66,10 +66,10 @@ struct MainView: View {
     
 
     private var navigationTitleText: String {
-        if currentTab == .saves && vm.navigationStore.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
-        if currentTab == .saves && vm.navigationStore.editingSave != nil { return vm.navigationStore.editingSave!.playerName }
-        if currentTab == .mods && vm.navigationStore.editingModConfig != nil { return vm.navigationStore.editingModConfig!.name }
-        if currentTab == .mods && vm.navigationStore.viewingModDetail != nil { return vm.navigationStore.viewingModDetail!.name }
+        if currentTab == .saves && navigation.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
+        if currentTab == .saves && navigation.editingSave != nil { return navigation.editingSave!.playerName }
+        if currentTab == .mods && navigation.editingModConfig != nil { return navigation.editingModConfig!.name }
+        if currentTab == .mods && navigation.viewingModDetail != nil { return navigation.viewingModDetail!.name }
         // Le titre de base — exhaustif, **jamais de `default:`** : une
         // destination ajoutée sans titre est une erreur de build, pas une
         // fenêtre qui s'intitule « Accueil » sans qu'on le remarque.
@@ -96,7 +96,7 @@ struct MainView: View {
     /// la même raison.
     private func handleTabChange() {
             vm.navigationStore.setEditingSave(nil)
-            vm.navigationStore.viewingSaveTimeline = nil
+            navigation.viewingSaveTimeline = nil
             vm.navigationStore.setEditingModConfig(nil)
             vm.navigationStore.setViewingModDetail(nil)
 
@@ -143,7 +143,7 @@ struct MainView: View {
     private var destinationView: some View {
                     switch currentTab {
                     case .mods:
-                        if let mod = vm.navigationStore.editingModConfig {
+                        if let mod = navigation.editingModConfig {
                             // L'onglet visuel par défaut : c'est celui qui montre
                             // les réglages du mod, l'onglet de code étant le repli
                             // pour ce que l'écran ne sait pas rendre.
@@ -151,7 +151,7 @@ struct MainView: View {
                             // rapport de raccourcis, s'il y en a un.
                             ModConfigEditorView(vm: vm, localization: localization, mod: mod,
                                                 focusKeyPath: vm.navigationStore.pendingConfigFocusKeyPath)
-                        } else if let mod = vm.navigationStore.viewingModDetail {
+                        } else if let mod = navigation.viewingModDetail {
                             ModDetailView(vm: vm, localization: localization, mod: mod,
                                           sidebarVisibility: $columnVisibility)
                                 .id(mod.folderName)
@@ -163,9 +163,9 @@ struct MainView: View {
                     case .maintenance:
                         MaintenanceView(vm: vm, localization: localization)
                     case .saves:
-                        if let save = vm.navigationStore.viewingSaveTimeline {
+                        if let save = navigation.viewingSaveTimeline {
                             SaveTimelineView(vm: vm, localization: localization, save: save)
-                        } else if let save = vm.navigationStore.editingSave {
+                        } else if let save = navigation.editingSave {
                             SaveEditorView(vm: vm, localization: localization, save: save, currentTab: $currentTab)
                         } else {
                             SavesView(vm: vm, localization: localization)
@@ -208,14 +208,14 @@ struct MainView: View {
     private var navHistoryButtons: some View {
                     HStack(spacing: 8) {
                     Button(action: {
-                        if vm.navigationStore.editingSave != nil {
+                        if navigation.editingSave != nil {
                             vm.navigationStore.setEditingSave(nil)
-                        } else if vm.navigationStore.viewingSaveTimeline != nil {
-                            vm.navigationStore.viewingSaveTimeline = nil
-                        } else if vm.navigationStore.editingModConfig != nil {
+                        } else if navigation.viewingSaveTimeline != nil {
+                            navigation.viewingSaveTimeline = nil
+                        } else if navigation.editingModConfig != nil {
                             vm.navigationStore.setEditingModConfig(nil)
-                            if detailOpenedByJump, vm.navigationStore.viewingModDetail == nil { goBackInHistory() }
-                        } else if vm.navigationStore.viewingModDetail != nil {
+                            if detailOpenedByJump, navigation.viewingModDetail == nil { goBackInHistory() }
+                        } else if navigation.viewingModDetail != nil {
                             vm.navigationStore.setViewingModDetail(nil)
                             if detailOpenedByJump { goBackInHistory() }
                         } else {
@@ -226,7 +226,7 @@ struct MainView: View {
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navBack))
                     .help(localization.L(L10n.Main.navBack))
-                    .disabled(vm.navigationStore.editingSave == nil && vm.navigationStore.viewingSaveTimeline == nil && vm.navigationStore.editingModConfig == nil && vm.navigationStore.viewingModDetail == nil && tabHistory.count <= 1)
+                    .disabled(navigation.editingSave == nil && navigation.viewingSaveTimeline == nil && navigation.editingModConfig == nil && navigation.viewingModDetail == nil && tabHistory.count <= 1)
                     
                     Button(action: {
                         if let next = forwardHistory.popLast() {
@@ -306,7 +306,7 @@ struct MainView: View {
             .navigationTitle(navigationTitleText)
             .onChange(of: currentTab) { _, _ in handleTabChange() }
             // Fermées autrement : le saut est consommé.
-            .onChange(of: vm.navigationStore.viewingModDetail == nil && vm.navigationStore.editingModConfig == nil) { _, closed in
+            .onChange(of: navigation.viewingModDetail == nil && navigation.editingModConfig == nil) { _, closed in
                 if closed { detailOpenedByJump = false }
             }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }

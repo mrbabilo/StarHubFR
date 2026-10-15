@@ -2311,6 +2311,7 @@ enum L10n {
         static let search = "shortcuts_search"
         static let tab = "shortcuts_tab"
         static let help = "shortcuts_help"
+        static let helpGuide = "shortcuts_help_guide"
         static let listMove = "shortcuts_list_move"
         static let listEnds = "shortcuts_list_ends"
         static let listOpen = "shortcuts_list_open"

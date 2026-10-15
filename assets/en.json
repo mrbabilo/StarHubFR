@@ -2634,5 +2634,13 @@
   "keybind_plan_failure_not_latest_backup": "A newer backup followed the plan: restore from Mod Backups › Configuration.",
   "keybind_plan_failure_restore_failed": "Restore failed — restore by hand from Mod Backups › Configuration: %@",
   "keybind_plan_none_movable": "No move possible: see the settings that cannot move below.",
-  "keybind_plan_remaining": "Conflicts left after the new analysis: %lld"
+  "keybind_plan_remaining": "Conflicts left after the new analysis: %lld",
+  "help_title": "StarHubFR Help",
+  "help_contents": "Contents",
+  "help_search_prompt": "Search the guide",
+  "help_no_results": "No section contains “%@”.",
+  "help_page_button": "Help for this page",
+  "help_missing": "The user guide is missing from this copy of the app.",
+  "help_open_online": "Read it on GitHub",
+  "shortcuts_help_guide": "Open the help"
 }
