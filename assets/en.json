@@ -2642,5 +2642,8 @@
   "help_page_button": "Help for this page",
   "help_missing": "The user guide is missing from this copy of the app.",
   "help_open_online": "Read it on GitHub",
-  "shortcuts_help_guide": "Open Help"
+  "shortcuts_help_guide": "Open Help",
+  "mods_translation_editor_warnings": "To check:",
+  "mods_translation_editor_warnings_hint": "These markers differ from the English without breaking the game: portrait, player name, page layout.",
+  "mods_translation_bare_hash": "lone # (ends the conversation)"
 }

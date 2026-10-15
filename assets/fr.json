@@ -2642,5 +2642,8 @@
   "help_page_button": "Aide sur cette page",
   "help_missing": "Le guide utilisateur est absent de cette copie de l'app.",
   "help_open_online": "Le lire sur GitHub",
-  "shortcuts_help_guide": "Ouvrir l'aide"
+  "shortcuts_help_guide": "Ouvrir l'aide",
+  "mods_translation_editor_warnings": "À vérifier :",
+  "mods_translation_editor_warnings_hint": "Ces marques diffèrent de l'anglais sans casser le jeu : portrait, nom du joueur, mise en page.",
+  "mods_translation_bare_hash": "# seul (ferme la conversation)"
 }

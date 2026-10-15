@@ -414,7 +414,7 @@ struct TranslationEditorView: View {
                     .foregroundColor(.secondary)
             }
         } else {
-            EmptyView()
+            TranslationWarningNote(english: row.english, draft: draft, localization: localization)
         }
     }
 
