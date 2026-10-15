@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "7d108c5",
-    "last_commit_at": "2026-10-15T13:40:17Z",
-    "pushed_at": "2026-10-15T13:41:04Z",
-    "release": "v1.66.0",
-    "released_at": "2026-10-15T10:25:46Z"
+    "last_commit": "c967cee",
+    "last_commit_at": "2026-10-15T21:59:56Z",
+    "pushed_at": "2026-10-15T22:03:35Z",
+    "release": "v1.67.0",
+    "released_at": "2026-10-15T21:13:37Z"
   },
   "gmcm-source": {
     "archived": false,
