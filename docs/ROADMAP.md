@@ -816,7 +816,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) : code livré le 2026-10-15, validation écran en attente ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -856,6 +856,17 @@ d'onglet s'applique à chaque saut.
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
 de l'axe — l'un des rares domaines où le port devance nos écrans. I-T21 en est
 issu, livré et archivé.
+
+- [ ] **I-T24** — *(code livré le 2026-10-15, validation écran en attente)* Aide intégrée : le guide utilisateur dans une fenêtre d'aide (sommaire, recherche), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K. · **M**
+      Spec et plan `docs/superpowers/specs|plans/2026-10-15-aide-integree*` (locaux, ignorés par git).
+      **À valider par l'auteur à l'écran** :
+      - (a) Menu Aide › Aide StarHubFR ouvre la fenêtre ; ⌘? aussi, **sur clavier AZERTY** (sinon : retirer le raccourci, garder l'entrée). ⌘/ ouvre toujours les raccourcis clavier.
+      - (b) Fenêtre principale fermée, le menu Aide ouvre quand même l'aide.
+      - (c) Le « ? » de la barre d'outils, depuis Gestion des mods, Performances, Alertes système › Raccourcis clavier : la fenêtre défile à la bonne section ; une deuxième demande, fenêtre ouverte, la ramène au premier plan et défile.
+      - (d) Recherche « mises a jour » (sans accent) : la section Mises à jour reste ; une recherche sans résultat affiche son message.
+      - (e) Lien « section 10 » de la section 2 : défilement ; lien smapi.io/log : navigateur. Survol d'un lien : curseur main.
+      - (f) Interface passée en anglais : la fenêtre affiche le guide anglais.
+      - (g) Un chemin du guide (`~/.config/…/SMAPI-latest.txt`) se sélectionne et se copie.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.

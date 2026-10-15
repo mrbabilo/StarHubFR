@@ -57,6 +57,7 @@ python3 build_app.py; echo "exit=$?"   # compile toute l'app, vérifie les conve
 - **Vocabulaire métier** : lisez [`docs/DOMAINE.md`](docs/DOMAINE.md) avant de toucher aux mods, profils, sauvegardes ou traductions. Un mod en pause est un dossier préfixé d'un point (`Mods/.X`), jamais un dossier déplacé.
 - **Les tests n'écrivent jamais dans le vrai dossier de l'app** (`~/Library/Application Support/StarHubFR/`) : un magasin testé reçoit un dossier temporaire.
 - Pas de nouvelle dépendance externe sans en discuter d'abord dans une issue.
+- **Le guide utilisateur fait partie de l'app** : la fenêtre d'aide affiche `GUIDE.md` et `GUIDE_EN.md`. Un écran qui change de libellé ou de geste change les deux guides ; chaque section garde son marqueur `<!-- help: id -->`, sinon le build échoue.
 
 La carte du code — couches, flux, données sur disque, outillage — est dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Les pièges techniques connus (SwiftUI, processus, concurrence, analyse des manifestes) sont consignés dans [`AGENTS.md`](AGENTS.md), section 4.
 
@@ -109,6 +110,7 @@ If the build fails on `external macro implementation type 'SwiftUIMacros.StateMa
 - Read [`docs/DOMAINE.md`](docs/DOMAINE.md) before touching mods, profiles, saves or translations. A paused mod is a dot-prefixed folder (`Mods/.X`).
 - Tests never write to the real `~/Library/Application Support/StarHubFR/`.
 - The code map (layers, flows, on-disk data, tooling) is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), in French; known pitfalls are in [`AGENTS.md`](AGENTS.md), section 4.
+- The user guide is part of the app: the help window shows `GUIDE.md` and `GUIDE_EN.md`. A screen whose labels or gestures change updates both guides; each section keeps its `<!-- help: id -->` marker or the build fails.
 
 ## Pull requests
 

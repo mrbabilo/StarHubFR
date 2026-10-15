@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Aide intégrée** : le guide utilisateur se lit dans l'app, dans la langue de l'interface, avec sommaire et recherche (menu Aide › Aide StarHubFR, ⌘?, ou palette ⌘K). Le bouton « ? » de la barre d'outils ouvre directement la section qui explique la page affichée.
+
 ## [1.66.0] - 2026-10-15
 
 ### Added
