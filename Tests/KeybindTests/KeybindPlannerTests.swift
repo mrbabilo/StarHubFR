@@ -119,4 +119,92 @@ struct KeybindPlannerTests {
                                        mode: .conflictsOnly, chordCapable: [])
         #expect(plan.moves.map(\.to.buttons) == [["C"]])
     }
+
+    // MARK: - Ronde de correction 1
+
+    private func report(_ mods: [KeybindScanner.ModScan], contexts: KeybindContexts) -> KeybindScanner.KeybindReport {
+        KeybindScanner.report(mods: mods, contexts: contexts,
+                              gameControls: [.init(name: "action", buttons: ["E"])], gamepadOff: true)
+    }
+
+    @Test func eachLosingAlternativeGetsItsOwnMove() throws {
+        // « H, J » perd sur H (Swim) et sur J (Jump) : deux déplacements,
+        // deux cibles distinctes, aucun conflit résiduel muet.
+        let r = report([scan("Swim", [("DiveKey", "H")]), scan("Jump", [("JumpKey", "J")]),
+                        scan("MenuMod", [("MenuKey", "H, J")])])
+        let plan = KeybindPlanner.plan(report: r, families: ["Swim": .action, "Jump": .action, "MenuMod": .info],
+                                       mode: .conflictsOnly, chordCapable: [])
+        let moves = plan.moves.filter { $0.modID == "MenuMod" }
+        #expect(Set(moves.map(\.from.buttons)) == [["H"], ["J"]])
+        #expect(Set(moves.map(\.to)).count == 2)
+        #expect(Set(moves.map(\.id)).count == 2)
+        #expect(plan.unmovable.isEmpty)
+    }
+    @Test func neverLandsOnItsOwnOtherAlternative() throws {
+        // Kite « H, K » battu sur H : K (son initiale) est déjà son autre
+        // alternative — « K, K » serait une suppression déguisée.
+        let r = report([scan("Alpha", [("UseKey", "H")]), scan("Kite", [("FlyKey", "H, K")])])
+        let plan = KeybindPlanner.plan(report: r, families: ["Alpha": .action, "Kite": .action],
+                                       mode: .conflictsOnly, chordCapable: [])
+        let move = try #require(plan.moves.first { $0.modID == "Kite" })
+        #expect(move.from.buttons == ["H"])
+        #expect(move.to.buttons != ["K"])
+        #expect(move.to.buttons != ["H"])
+    }
+    @Test func fullLayoutNeverMovesASettingOntoItself() throws {
+        // Chiffres pleins, InfoX déjà sur une corde de sa famille : rien de
+        // mieux à proposer — pas de déplacement vers lui-même ni d'une corde
+        // vers une autre.
+        var mods = (0...9).map { scan("Info\($0)", [("MenuKey", "D\($0)")]) }
+        mods.append(scan("InfoX", [("ListKey", "LeftControl + D0")]))
+        let families = Dictionary(uniqueKeysWithValues: mods.map { ($0.id, KeybindFamily.info) })
+        let plan = KeybindPlanner.plan(report: report(mods), families: families,
+                                       mode: .fullLayout, chordCapable: ["InfoX/ListKey"])
+        #expect(!plan.moves.contains { $0.from == $0.to })
+        #expect(!plan.moves.contains { $0.modID == "InfoX" })
+    }
+    @Test func remapModIsNeverMoved() throws {
+        let remap = KeybindScanner.ModScan(id: "GCSR", name: "GCSR", isActive: true,
+                                           tree: tree([("SwapKey", "H")]),
+                                           uniqueId: "fawazt.GlobalConfigSettingsRewrite")
+        let r = report([scan("Swim", [("DiveKey", "H")]), remap])
+        let plan = KeybindPlanner.plan(report: r, families: ["Swim": .action, "GCSR": .info],
+                                       mode: .conflictsOnly, chordCapable: [])
+        #expect(plan.moves.isEmpty)
+        #expect(plan.unmovable.contains { $0.modID == "GCSR" && $0.reason == .remapMod })
+    }
+    @Test func declaredHeldSettingIsNeverMoved() throws {
+        let contexts = KeybindContexts(rules: ["Tip": [.init(keyPaths: ["ShowKey"], held: true)]])
+        let r = report([scan("Swim", [("DiveKey", "H")]), scan("Tip", [("ShowKey", "H")])], contexts: contexts)
+        let plan = KeybindPlanner.plan(report: r, families: ["Swim": .action, "Tip": .info],
+                                       mode: .conflictsOnly, chordCapable: [])
+        #expect(plan.moves.isEmpty)
+        #expect(plan.unmovable.contains { $0.modID == "Tip" && $0.reason == .heldModifier })
+    }
+    @Test func requiresChordedSettingIsNeverMoved() throws {
+        // SpellKey n'agit qu'en maintenant CastKey : sa combinaison jugée
+        // porte LeftAlt, absent du champ — `from` ne serait pas ce qu'il contient.
+        let contexts = KeybindContexts(rules: ["Wiz": [.init(keyPaths: ["SpellKey"], requires: "CastKey")]])
+        let r = report([scan("Wiz", [("CastKey", "LeftAlt"), ("SpellKey", "H")])], contexts: contexts)
+        let plan = KeybindPlanner.plan(report: r, families: ["Wiz": .action],
+                                       mode: .fullLayout, chordCapable: [])
+        #expect(!plan.moves.contains { $0.keyPath == ["SpellKey"] })
+        #expect(plan.unmovable.contains { $0.keyPath == ["SpellKey"] && $0.reason == .heldModifier })
+    }
+    @Test func inertSettingIsNeverMoved() throws {
+        let contexts = KeybindContexts(rules: ["Mail": [.init(keyPaths: ["MenuKey"], enabledBy: "MenuOnMailbox")]])
+        let r = report([scan("Mail", [("MenuKey", "F5"), ("MenuOnMailbox", "false")])], contexts: contexts)
+        let plan = KeybindPlanner.plan(report: r, families: ["Mail": .action],
+                                       mode: .fullLayout, chordCapable: [])
+        #expect(plan.moves.isEmpty)
+        #expect(plan.unmovable.contains { $0.modID == "Mail" && $0.reason == .inert })
+    }
+    @Test func contextResolvedSettingIsNeverMoved() throws {
+        let contexts = KeybindContexts(rules: ["Cal": [.init(keyPaths: ["OpenKey"], context: .ownMenu)]])
+        let r = report([scan("Cal", [("OpenKey", "F5")])], contexts: contexts)
+        let plan = KeybindPlanner.plan(report: r, families: ["Cal": .action],
+                                       mode: .fullLayout, chordCapable: [])
+        #expect(plan.moves.isEmpty)
+        #expect(plan.unmovable.contains { $0.modID == "Cal" && $0.reason == .contextResolved })
+    }
 }
