@@ -9,7 +9,7 @@ de le retoucher, et à dire ce qu'on a regardé quand on affirme qu'il va bien.
 Reprise de `skill/reference/audit.native.md` du projet
 [Impeccable](https://github.com/pbakaus/impeccable) (pbakaus), qui fournit un
 audit natif au code source pour SwiftUI/UIKit/Compose. **Rien n'est installé :
-seule la grille est reprise, et elle est retargetée.**
+seule la grille est reprise, et elle est réorientée.**
 
 Impeccable déclare quatre plateformes — `web`, `ios`, `android`, `adaptive`.
 macOS n'en fait pas partie, et ça se voit dans ses critères : cibles tactiles de
@@ -56,7 +56,7 @@ présents, ordre ou mise à l'échelle cassés) · **3** = bon, lacunes mineures
 **Chercher :**
 
 - **Listes non virtualisées** — le piège le plus cher du dépôt : ~2 000 lignes
-  de journal dans une `List` ont beach-ballé 8–10 s ; `LazyVStack` a corrigé.
+  de journal dans une `List` ont figé l'app 8 à 10 s (curseur arc-en-ciel) ; `LazyVStack` a corrigé.
 - **Propriétés calculées qui re-parcourent** : plusieurs propriétés balayant la
   même collection à chaque rendu. Une seule passe construit la vue.
 - **`body` trop dense** : sature le type-checker (compilation en minutes,

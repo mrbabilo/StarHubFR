@@ -58,7 +58,7 @@ Ce que StarHubFR fait, de bout en bout, sans quitter l'app :
 | **Glossaire du jeu** | noms de PNJ, objets, saisons — amorcé des traductions officielles, injecté dans chaque lot | C3-T4 |
 | **Lots de traduction** | export/import JSON et ZIP, fusion entre traducteurs avec écran d'arbitrage | C3-T5 |
 | **Delta de clés après mise à jour** | l'anglais d'un mod ne se fige plus : les clés ajoutées/retirées/renommées par une mise à jour sont rapportées, les renommages réconciliés | C2-T4 |
-| **Parseur i18n tolérant** | commentaires, virgules finales, clés dupliquées — comportement **mesuré contre la vraie DLL Newtonsoft du jeu**, pas déduit d'un schéma ; ~40 % des i18n réels refuseraient un lecteur strict | C1-T6, C3-T6 |
+| **Parseur i18n tolérant** | commentaires, virgules finales, clés dupliquées — comportement **mesuré contre la vraie DLL Newtonsoft du jeu**, pas déduit d'un schéma ; ~40 % des i18n réels sont refusés par un lecteur strict | C1-T6, C3-T6 |
 | **Vitrine FR** | page « Traductions FR » : cherche sur Nexus les traductions françaises des mods installés | C5-T1 |
 
 La promesse tenue : *traduire un mod moyen de bout en bout sans quitter
@@ -88,7 +88,7 @@ uniquement pour en extraire les versions. StarHubFR, lui :
 ## 4. Compatibilité : trois sources croisées, une liste noire
 
 - **API live smapi.io** (statut, `brokeIn`, mise à jour non officielle,
-  mod de remplacement), **fallback hors-ligne** `mods.jsonc`, et depuis
+  mod de remplacement), **repli hors ligne** `mods.jsonc`, et depuis
   A2-T5 une **troisième source locale** : `smapi-internal/metadata.json`
   du SMAPI installé — sans elle, 14 faux signaux sur le parc de référence
   pour 1 réel.
@@ -131,7 +131,7 @@ Personne d'autre ne regarde *dans* les sauvegardes :
 
 - **Fiche d'une sauvegarde** : nomme les mods en pause qui y ont laissé du
   contenu — objets, bâtiments, données (A1-T6) — et mettre en pause chiffre
-  ce qui resterait orphan (A1-T8).
+  ce qui resterait orphelin (A1-T8).
 - **Mods disparus** ayant écrit dans la sauvegarde : détection par clés
   `smapi/mod-data` (A1-T9).
 - **Nettoyage clé par clé** sous backup vérifié, écriture atomique, BOM
@@ -211,7 +211,7 @@ Un positionnement honnête vaut mieux qu'une liste parfaite :
 
 ## 11. Pourquoi ces avantages sont durables
 
-Ce ne sont pas des couches de paint sur un scanner : chaque axe repose sur
+Ce ne sont pas des couches de peinture sur un scanner : chaque axe repose sur
 des **mesures contre le réel** — comportement de Newtonsoft exécuté depuis
 la DLL du jeu, formats i18n du parc (UTF-16/32 réels), décompilation IL
 des mods C#, archive Nexus dépecée octet par octet. C'est le coût d'entrée
@@ -223,7 +223,7 @@ mieux.
 ---
 
 *Vérifications d'usage : les affirmations « absent chez le concurrent »
-datent des audits cités (2026-07-31 et 2026-10-04) ; les affirmation
+datent des audits cités (2026-07-31 et 2026-10-04) ; les affirmations
 « livré » sont celles du §11 de la roadmap, recoupées avec le code. Mettre
 ce fichier à jour à chaque audit concurrent neuf, pas seulement à chaque
 release.*

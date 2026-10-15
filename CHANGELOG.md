@@ -225,7 +225,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Le balayage « Traductions FR » ne re-cherche que ce qui a changé.** Un parc stable se relit depuis le cache en quelques secondes au lieu d'environ 90 minutes ; « tout re-balayer » reste au menu, et deux recherches en parallèle doublent la vitesse d'un passage complet.
+- **Le balayage « Traductions FR » ne relance la recherche que pour ce qui a changé.** Un parc stable se relit depuis le cache en quelques secondes au lieu d'environ 90 minutes ; « tout re-balayer » reste au menu, et deux recherches en parallèle doublent la vitesse d'un passage complet.
 - **Les traductions d'un mod au nom collé se retrouvent enfin.** L'index Nexus ignore le camelCase : `CarryableChests` ne rendait rien, « Carryable Chests » oui — 87 mods du parc étaient dans ce cas ; les suffixes d'archive (`Swim Mod-23169-…`) ne polluent plus la recherche.
 - **Une traduction déclarée suit ses mises à jour.** Déclarée sur la fiche d'un mod, une traduction posée à la main entre dans le balayage « Traductions FR » et gagne la pastille de mise à jour ; la date Nexus est adoptée dès que la recherche retrouve sa version, et un dépôt depuis l'app remplace la déclaration.
 - **Panneau flottant de suivi du benchmark.** Une fois le jeu lancé, un panneau flottant placé au-dessus de lui suit la série : chaque étape, son chrono, les jalons lus dans `loads.jsonl`, le verdict et l'arrêt.
@@ -374,7 +374,7 @@ where the exact log format was verified.
 
 - **Les mises à jour trient les fichiers par provenance.** Ce que l'auteur a retiré d'un mod disparaît à la mise à jour ; vos ajouts, vos retouches et vos suppressions sont gardés. Chaque installation entre dans un historique visible dans la fiche du mod.
 - **Curseurs, menus et libellés venus de GMCM.** Quand la sonde StarHubFR a tourné, l'éditeur de config reprend ce que chaque mod montre en jeu : un curseur borné pour les nombres, une liste pour les choix, le libellé et l'aide de l'option.
-- **Recouvrements mesurés en jeu.** Quand la sonde StarHubFR a tourné, la feuille Conflits et la fiche d'un mod montrent ce que les mods de performance ont réellement patché, et lequel patche le code de l'autre, au lieu du relevé décompilé.
+- **Recouvrements mesurés en jeu.** Quand la sonde StarHubFR a tourné, la feuille Conflits et la fiche d'un mod montrent ce que les mods de performance ont réellement modifié, et lequel modifie le code de l'autre, au lieu du relevé décompilé.
 - **Mods de performance qui font le même travail.** La fiche d'un mod et la feuille « Conflits entre mods » signalent les paires actives qui patchent les mêmes méthodes (UltraSmooth, Radiance, Stardropium…), sans compter comme alerte.
 - **Avertissements récurrents dans la carte de santé SMAPI.** Les mods dont le même avertissement revient souvent sont listés avec leur nombre de lignes, de messages différents et un exemple. Content Patcher y désigne le pack en cause. Ce n'est pas une alerte : la carte reste verte.
 
@@ -715,7 +715,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **Le téléchargement de SMAPI distingue les erreurs définitives des erreurs passagères.** Un 4xx (asset retiré, dépôt privé) et un 5xx (limitation de débit GitHub, coupure réseau passagère) reçoivent désormais des messages distincts : « fichier indisponible » contre « réessayez dans quelques minutes ». La session qui télécharge le zip de SMAPI depuis GitHub est aussi dédiée et éphémère, avec un timeout de 30 s par ressource et 60 s global — fini l'hôte lent qui laissait la requête sans réponse pendant 5 minutes.
+- **Le téléchargement de SMAPI distingue les erreurs définitives des erreurs passagères.** Un 4xx (asset retiré, dépôt privé) et un 5xx (limitation de débit GitHub, coupure réseau passagère) reçoivent désormais des messages distincts : « fichier indisponible » contre « réessayez dans quelques minutes ». La session qui télécharge le zip de SMAPI depuis GitHub est aussi dédiée et éphémère, avec un délai d'attente de 30 s par ressource et de 60 s au total — fini l'hôte lent qui laissait la requête sans réponse pendant 5 minutes.
 
 - **Le client smapi.io respecte une pause de limitation de débit entre les lots.** Un 429 ou 503 sur un lot déclenche une pause de 30 s : les lots suivants attendent au lieu de partir tout de suite, ce qui aggravait la situation. La pause est aussi levée dès qu'un lot réussit, et l'attente est `try?` (une annulation de l'app ne reste pas bloquée). Un appel `fetch` concurrent est sérialisé — un déclenchement automatique qui tomberait pendant une vérification manuelle attend la fin de la passe, et ne double pas la charge sur l'API publique.
 
@@ -723,7 +723,7 @@ where the exact log format was verified.
 
 - **La clé `nxm://` est mieux protégée contre les séparateurs d'URL.** L'échappement d'URL (percent-encoding) couvre désormais `&`, `=`, `+`, `;` et `%` — la clé est alphanumérique aujourd'hui, mais la liste noire ferme un trou latent si Nexus changeait le format.
 
-- **Une traduction espagnole ne passe plus pour française.** Le mot « traduction » est neutre, et un titre « Traduction espagnole de X » correspondait à l'ancien filtre de traduction française. La nouvelle règle pose un second jeu de marqueurs (variantes longues des autres langues) qui annule la correspondance française si l'une d'elles est aussi présente. Les codes ISO 2 lettres (`de`, `en`, `it`...) sont exclus : ils sont aussi des mots français courants, et déclencheraient de faux positifs.
+- **Une traduction espagnole ne passe plus pour française.** Le mot « traduction » est neutre, et un titre « Traduction espagnole de X » correspondait à l'ancien filtre de traduction française. La nouvelle règle pose un second jeu de marqueurs (variantes longues des autres langues) qui annule la correspondance française si l'une d'elles est aussi présente. Les codes ISO à deux lettres (`de`, `en`, `it`...) sont exclus : ils sont aussi des mots français courants, et déclencheraient de faux positifs.
 
 ## [1.37.2] - 2026-09-07
 

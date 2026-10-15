@@ -13,7 +13,7 @@
 
 Le 2026-09-11, un **constat d'arrêt** a fermé la phase d'extraction de logique
 pure : relevé sur le fichier, 337 fonctions dont 69 d'I/O et 151 qui mutent
-l'état publié, et un plus gros calcul pur restant de **13 lignes**. Les
+l'état publié, et le plus gros calcul pur restant de **13 lignes**. Les
 21 tranches précédentes avaient épuisé la matière ; les cinq dernières totalisent
 −20 lignes de ViewModel.
 
@@ -186,7 +186,7 @@ hors périmètre, elles ne dépendent d'aucun état observable.
 
 **La synthèse que l'inventaire produit : le VM vit aujourd'hui d'un
 *rafraîchissement par rebond*.** Sous `ObservableObject`, n'importe quelle
-écriture d'n'importe quelle propriété re-rend toute vue observatrice, qui relit
+écriture de n'importe quelle propriété re-rend toute vue observatrice, qui relit
 donc **toutes** les propriétés calculées — y compris celles dont les sources
 n'ont rien publié. Treize des trente-trois n'ont pas d'autre filet. Le cas 3 du
 spike supprime ce rebond : c'est le but, et c'est précisément ce qui fera
@@ -322,7 +322,7 @@ Commencer par ce qui n'est lu que chez soi, finir par ce que tout le monde lit.
 | 5 | **Profils** | `ProfileActivation`, `ProfileRecovery`, `ProfileFactory`, `ProfileConfigCapture` sont déjà en Core : il ne reste que l'état et l'orchestration |
 | 6 | **Traduction FR** | ~15 propriétés, logique close en Core depuis le 2026-09-11 |
 | 7 | **Nexus** | ~20 propriétés, cinq types déjà en Core, mais le domaine est enchevêtré avec le réseau et l'installation |
-| 8 | **Scan & parc** (`mods`, `scanProgress`, `duplicateIndex`, `modsFolderSizes`) | **En dernier, délibérément** : `mods` est lu par presque toutes les vues et par la moitié des autres domaines. C'est le seul dont l'extraction rate peut tout casser à la fois |
+| 8 | **Scan & parc** (`mods`, `scanProgress`, `duplicateIndex`, `modsFolderSizes`) | **En dernier, délibérément** : `mods` est lu par presque toutes les vues et par la moitié des autres domaines. C'est le seul dont l'extraction ratée peut tout casser à la fois |
 
 ### Domaine 1 — Sauvegardes, livré le 2026-09-11
 
@@ -569,7 +569,7 @@ le solde**, pas moi. À faire ainsi dès le domaine 3.
 
 **Le domaine 2 est clos pour son état.** Ce qui reste au ViewModel est de
 l'orchestration : `log(_:level:)`, `loadSmapiLog`, `parseSMAPILog`,
-`parseAndAppendSmapiLog`, `recordErrorHistory` — toutes des verbes, et les
+`parseAndAppendSmapiLog`, `recordErrorHistory` — tous des verbes, et les
 deux dernières lisent `mods`, donc le domaine Scan, extrait en dernier.
 
 **Vérification à l'écran — due, auteur.** Trois contrôles, tous sur la fiche
@@ -706,7 +706,7 @@ profil du trou est maintenant clair.** Ni un grep des `=`, ni un relevé des
 `.merge(…)`, `.setNote(…)`, six sites sur quatre fonctions. Le store gagne
 `add`, `removeProfile(with:)` et `mutateProfile(with:_:)` (inout, `false` si
 le profil manque). **La règle pour les domaines 6 à 8 : grepper tout ce qui
-méthode ou indice sur la propriété**, pas seulement les affectations — c'est
+passe par une méthode ou un indice sur la propriété**, pas seulement les affectations — c'est
 le compilateur qui l'a trouvé, trois domaines de suite.
 
 ⚠️ **Verrou de taille +17 lignes (10 252 → 10 269), deuxième domaine de suite
@@ -786,7 +786,7 @@ exercé :
    posée) sans nouvelle requête ;
 4. retirer une traduction — les propositions reviennent, le registre survit
    à un redémarrage ;
-5. deux recherches de suites sur deux mods différents — la seconde
+5. deux recherches de suite sur deux mods différents — la seconde
    n'hérite rien de la première (les deux moitiés se vident ensemble).
 
 ### Domaine 6 — Traduction FR, tranche 2 (la couverture de profil), livrée le 2026-09-12
@@ -914,8 +914,7 @@ malgré son voisinage d'affichage — voir le correctif du domaine 2 du même
 jour. Leçon de méthode : classer un relevé par **producteur**, jamais par
 préfixe de nom.
 
-**Vérification à l'écran — OK, auteur, 2026-09-12.** Les quatre contrôles sont passés, dont celui qui porte : le voyant ne s'éteint pas entre la passe smapi.io et la reprise Nexus. Ce qui a été exercé :
-fenêtre des mises à jour :
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les quatre contrôles sont passés, dont celui qui porte : le voyant ne s'éteint pas entre la passe smapi.io et la reprise Nexus. Ce qui a été exercé dans la fenêtre des mises à jour :
 
 1. « Vérifier » sur le parc complet — la progression avance, le bouton reste
    indisponible, l'erreur d'une passe précédente a disparu ;
@@ -980,8 +979,7 @@ Aucune vue touchée : les six qui lisent ces valeurs
 (`SettingsView`, `ModDetailView`, `DiscoverView`, `ProfileDiagnosticsView`,
 `MainView`) ne font que les lire — `disabled`, `help`, `if`.
 
-**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : retirer la clé n'emporte pas les mises à jour déjà relevées. Ce qui a été exercé :
-réglages :
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : retirer la clé n'emporte pas les mises à jour déjà relevées. Ce qui a été exercé dans les réglages :
 
 1. coller une clé d'API valide — « configurée » apparaît, le quota se
    remplit, et les boutons de recherche Nexus des fiches de mod
@@ -1065,8 +1063,7 @@ store : la remise à `nil` de `inFlight` n'est couverte par aucun test —
 `NexusFileDownload` est `final`, donc pas de doublure ; ce qui la tient est
 qu'elle n'a qu'**un** point d'écriture.
 
-**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : annuler ne remet pas l'état au repos avant que l'annulation ne soit rapportée. Ce qui a été exercé :
-de mod ou la liste des mises à jour (clé d'API premium requise pour le
+**Vérification à l'écran — OK, auteur, 2026-09-12.** Les trois contrôles sont passés, dont celui qui porte : annuler ne remet pas l'état au repos avant que l'annulation ne soit rapportée. Ce qui a été exercé depuis la fiche de mod ou la liste des mises à jour (clé d'API premium requise pour le
 téléchargement direct) :
 
 1. lancer un téléchargement — l'attente d'abord **sans barre** (le lien se
@@ -1096,7 +1093,7 @@ qu'il valait mieux écrire que de fabriquer un store qui n'épingle rien.
 catégorie apprise par la recherche à la demande ne survivrait pas au
 relancement. C'est faux. `fetchSingleMod`, que cette fonction appelle,
 persiste **déjà** catégorie et extra dans le cache partagé, sous le verrou,
-avec même une garde contre la clé effacée pendant le vol
+et même avec une garde contre la clé effacée pendant le vol
 (`metadataGeneration`). Le commentaire le dit en toutes lettres. Lire le
 chemin du ViewModel sans lire la fonction qu'il appelle m'avait fait voir un
 trou là où il n'y en a pas — un correctif écrit sur cette base aurait ajouté
@@ -1535,7 +1532,7 @@ ne couvre pas ce chantier.
   était son unique signal de rafraîchissement — l'ignorer seul aurait tué
   l'épinglage en silence).
 - **Le cliquet lui-même.** La règle des façades rendait 0 en ne décrivant
-  aucune propriété : numéros de ligne de la source strippée appliqués à la
+  aucune propriété : numéros de ligne de la source dépouillée de ses commentaires appliqués à la
   source brute (3 949 lignes d'écart), puis fenêtres avalant les `func`
   intercalées. Corrigée et vérifiée par sabotage. *Un compteur à zéro ressemble
   à un succès* — c'est le troisième outil de contrôle de ce dépôt pris en

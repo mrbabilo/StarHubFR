@@ -50,8 +50,8 @@ Mettre un mod en pause renomme son dossier en le **préfixant d'un point** : `Mo
 - **Un mod, une sélection ou tous.** Cliquez l'interrupteur d'une ligne ; sélectionnez plusieurs lignes (clic, ⌘clic, ⇧clic, ⌘A) puis Espace ; ou **Tout activer** sur la liste filtrée.
 - **Le Finder cache ces dossiers** (⇧⌘. les montre). Un mod « disparu » du jeu mais qui prend toujours de la place est presque toujours un mod en pause.
 - **Ne les supprimez pas à la main** : les dossiers à point de `Mods/` sont vos mods en pause, pas des fichiers cachés à nettoyer.
-- **Les mods livrés avec SMAPI** (ConsoleCommands, SaveBackup) et la sonde StarHubFR restent actifs ou ne se suppriment pas : l'app vous le dit si vous essayez.
-- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app chiffre ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie.
+- **Les mods livrés avec SMAPI** (ConsoleCommands, SaveBackup) restent actifs, et ni eux ni la sonde StarHubFR ne se suppriment depuis l'app : elle vous le dit si vous essayez.
+- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie.
 
 ## 4. Profils et groupes
 

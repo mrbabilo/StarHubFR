@@ -18,7 +18,7 @@ Le positionnement fait foi dans [`ROADMAP.md` §2](ROADMAP.md) :
 > gestionnaire de mods macOS **francophone**, qui prend au sérieux trois choses :
 > la santé de la modlist, la traduction FR, et la lisibilité de ce qui est installé.
 
-Deux conséquences structurantes :
+Trois conséquences structurantes :
 
 - **Un seul jeu.** `Mods/`, `manifest.json`, SMAPI et le domaine Stardew Valley de
   Nexus sont des hypothèses codées en dur, délibérément. Pas de couche
@@ -87,7 +87,7 @@ journaux ; **elle ne réimplémente rien de sa logique de chargement.**
   résoudre les dépendances. Il ne faut le confondre ni avec l'identifiant de la
   page Nexus, ni avec le nom du dossier. Les comparaisons d'identifiants se font
   **sans égard à la casse** : SMAPI fait de même, et deux auteurs écrivent
-  rarement le même identifiant pareil.
+  rarement un même identifiant avec la même casse.
 - **Ce que le chargeur tolère est bien plus large que ce que documente son
   schéma.** SMAPI lit les `manifest.json` et les `i18n/*.json` avec Newtonsoft en
   réglages par défaut : commentaires, virgules en trop, clés non quotées,
@@ -127,7 +127,7 @@ journaux ; **elle ne réimplémente rien de sa logique de chargement.**
 
 **Un mod en pause est un dossier préfixé par un point, resté dans `Mods/`**
 (`Mods/.NomDuMod`), parce que SMAPI ignore les dossiers pointés. L'upstream
-déplace le dossier vers `Mods_disabled/` ; nous avons migré vers le préfixe et
+déplace le dossier vers `Mods_disabled/` ; nous sommes passés au préfixe et
 gardons une migration idempotente depuis l'ancien schéma
 ([StarHubTHViewModel.swift:535](../StarHubTH/StarHubTHViewModel.swift#L535)).
 
@@ -147,7 +147,7 @@ que ce défaut ne revienne pas par duplication.
   sans marqueur (`ModFolderRepairer.swift`).
 - **Jamais la corbeille dans `Mods/`** : SMAPI lisait chaque événement comme un
   mod sans manifeste (X115). **Jamais le préfixe `_Trash_` pour son parent** :
-  « Vider la quarantaine » envoie au Mac tout `_Trash_*` du dossier du jeu.
+  « Vider la quarantaine » envoie à la corbeille du Mac tout `_Trash_*` du dossier du jeu.
 
 ## 4. Nexus Mods
 

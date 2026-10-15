@@ -28,7 +28,7 @@ python3 check_sources.py --changelog-reviewed mod/x=1.2.3   # note qu'on a lu so
 
 Même patron que `check_standards.py` / `.standards-baseline.json` : un relevé,
 une référence, un `--update` explicite visible dans le diff. Une différence
-majeure de sens : **un écart n'est pas une faute**. Une nouvelle version de
+de sens majeure : **un écart n'est pas une faute**. Une nouvelle version de
 SMAPI n'est pas un bug, c'est une chose à aller regarder.
 
 Les sources injoignables sont reportées séparément et **ne comptent pas comme
@@ -388,8 +388,8 @@ Deux usages, sans clé :
   mise à jour de l'app elle-même (`StarHubTHViewModel.checkForAppRelease`,
   décision en `Models/AppReleaseCheck.swift`). **Le fork, jamais l'upstream** :
   interroger AppleBoiy/StarHubTH proposerait ses releases, pas les nôtres.
-  `/releases/latest` exclut déjà drafts et prereleases côté GitHub ; le check
-  est throttlé à 24 h.
+  `/releases/latest` exclut déjà drafts et prereleases côté GitHub ; le contrôle
+  est limité à une fois toutes les 24 h.
 
 ⚠️ Sans jeton, l'API GitHub plafonne à **60 requêtes/heure par IP**. Le script
 passe par `gh` quand il est présent (5 000/h).
@@ -471,7 +471,7 @@ deux qui valaient instruction. Ne pas trier ces 204 commits sur leur libellé.
 | [**ModTRANS**](https://www.nexusmods.com/stardewvalley/mods/53388) — auteur non relevé au passage du jour | traducteur de mods par IA **externe** (Windows seul, `.exe` autonome) : OpenRouter cloud, `i18n` + texte codé en dur de `content.json` + `manifest.json`, « AI Judge » ×2, auto-déploiement dans `Mods/` ; v1 du 2026-10-04, 0 endossement | [`audit-modtrans.md`](audit-modtrans.md) (2026-10-04) : concurrent indirect de l'axe C — cloud d'abord contre IA locale, juges LLM contre jetons vérifiés. **Rien à porter** : leur file des lignes refusées existe déjà chez nous (`.blocked(mismatches)`), leur centre (`content.json` en dur) = notre C3-T2 pesé et non engagé. **Ne pas porter** : clé API en clair, injection sans grammaire de jetons, traduction du manifeste |
 | [**Morning Dew**](https://www.nexusmods.com/stardewvalley/mods/53612) — Nesryn Rose Juincy | gestionnaire **Windows seul** (WPF, .NET 8, `.exe` autonome de 66 Mo, sans dépôt ni licence déclarée) : bascule par préfixe point, lancement SMAPI, lecture du journal, mises à jour smapi.io + Nexus v1, jeux de mods, nettoyage en quarantaine ; v1.6.2 parue le 2026-10-08 | [`audit-morningdew.md`](audit-morningdew.md) (2026-10-09, décompilé, rien exécuté) : concurrent indirect, en dessous de nous sur tous les axes. **Idée à peser** : bascule groupée transactionnelle (retour automatique du lot au premier échec). **Ne pas porter** : conflits `Load` sans `Priority` (2 fausses erreurs sur 2, rejouées sur le parc), lecture JSON stricte et sensible à la casse avec échecs muets (25 fichiers), clé Nexus en clair |
 | [**StardewOptimizer**](https://www.nexusmods.com/stardewvalley/mods/53663) — baiyu (page : dcbnmkdshjbnfas) | mod SMAPI de performances (`baiyu.StardewOptimizer` 1.0.0) : 14 modules sous un hub (budget de 25 % du temps d'image), auto-désactivation par UniqueID sur 9 mods connus ; publié le 2026-10-09, `UpdateKeys` vide | [`audit-stardewoptimizer.md`](audit-stardewoptimizer.md) (2026-10-09, décompilé, rien exécuté, en pause sur le parc) : aucun réseau ni chargement dynamique, Windows seul gardé. **Faux** : « risqué désactivé par défaut » — 6 modules sur 14 actifs, dont un GC complet bloquant et un frein sur les internes d'Automate. Recoupe A5-T7 sur `NPC.update` (module désactivé par défaut). Reprise de code d'autres auteurs **non établie** |
-| [**Internationalization**](https://www.nexusmods.com/stardewvalley/mods/21317) — bcmpinc ([source](https://github.com/bcmpinc/StardewHack)) | éditeur de traductions i18n **en jeu** (`bcmpinc.Internationalization`) : serveur web local + navigateur, couverture rouge/jaune/vert, aperçu vivant par réflexion dans SMAPI ; né 2024-03, actif (14 commits 2026), 55 endossements. ⚠️ **LGPL-3.0** : idées relevables, code non reprise sans trancher | [`audit-internationalization.md`](audit-internationalization.md) (2026-10-04) : complément en jeu de notre axe C. **Idée candidate** : greffe sur octets bruts à la sauvegarde (commentaires et format d'origine préservés — notre `OrderedJSONWriter` perd les commentaires). **Ne pas porter** : `OpenWrite` sans troncature, backup mono-génération silencieux dans le dossier du mod ; `UpdateKeys: Nexus:0` cassé chez eux — alertes SMAPI en jeu muettes, mais smapi.io résout par `UniqueID` (0.8.0 au relevé) |
+| [**Internationalization**](https://www.nexusmods.com/stardewvalley/mods/21317) — bcmpinc ([source](https://github.com/bcmpinc/StardewHack)) | éditeur de traductions i18n **en jeu** (`bcmpinc.Internationalization`) : serveur web local + navigateur, couverture rouge/jaune/vert, aperçu vivant par réflexion dans SMAPI ; né 2024-03, actif (14 commits 2026), 55 endossements. ⚠️ **LGPL-3.0** : idées relevables, code non repris sans trancher | [`audit-internationalization.md`](audit-internationalization.md) (2026-10-04) : complément en jeu de notre axe C. **Idée candidate** : greffe sur octets bruts à la sauvegarde (commentaires et format d'origine préservés — notre `OrderedJSONWriter` perd les commentaires). **Ne pas porter** : `OpenWrite` sans troncature, backup mono-génération silencieux dans le dossier du mod ; `UpdateKeys: Nexus:0` cassé chez eux — alertes SMAPI en jeu muettes, mais smapi.io résout par `UniqueID` (0.8.0 au relevé) |
 | [**Nexus Mods App**](https://nexus-mods.github.io/NexusMods.App/developers/) | officiel, Rust/C# | documentation du protocole `nxm://` et des collections |
 | [node-nexus-api](https://github.com/Nexus-Mods/node-nexus-api) | client officiel Node | forme des réponses de l'API v1 |
 | [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) — tangsuanz | mod SMAPI en jeu (`tangsuan.Hotkeys` 0.1.0, paru le 2026-10-13, `UpdateKeys` vide, dépend de StardewUI 0.6.1+) | panneau des raccourcis de tous les mods installés, cherchable, un clic les déclenche (`Helper.Input.Press`) — recouvre l'axe C4 comme Keybind Radar. Décompilé le 2026-10-14 (5 467 lignes, en pause sur le parc, DLL identique au manifeste Nexus par SHA-256) : ni réseau ni Harmony, n'écrit que sa propre config ; **parcourt tout `Mods/` sur disque** (dossiers pointés exclus) et parse chaque `config.json` au `SaveLoaded`, sur le fil du jeu — un coût de chargement que la sonde attribuera ; rechargement à chaud StardewUI laissé actif ; réflexion sur les internes de GMCM (`ConfigManager`), gardée. Relevé : `mod/hotkey-hub` |
@@ -1014,11 +1014,11 @@ décompilées, dix services. Sur 1.6.15 :
 Contrat D2-T4 ajouté le 2026-10-07 : page Nexus **50153**, UniqueID
 `neoiw.StardewLoadingOptimizer`, version minimale 1.0.0. La session guidée ne
 modifie temporairement que `EnableDetailedDiagnostics=true` et
-`EnablePerformanceMeasurement=true`, puis restaure les octets d’origine. Son
-rapport ne retient qu’une session Probe postérieure au lancement dont
-l’inventaire contient SLO et `mrbabilo.StarHubFR.Probe`; le SHA-256 de config
-doit être celui écrit par l’app, ou une normalisation attestée par la ligne
-`[OPTIMIZER CONFIG]`. Cette corrélation évite d’attribuer au nouvel essai des
+`EnablePerformanceMeasurement=true`, puis restaure les octets d'origine. Son
+rapport ne retient qu'une session Probe postérieure au lancement dont
+l'inventaire contient SLO et `mrbabilo.StarHubFR.Probe`; le SHA-256 de config
+doit être celui écrit par l'app, ou une normalisation attestée par la ligne
+`[OPTIMIZER CONFIG]`. Cette corrélation évite d'attribuer au nouvel essai des
 fichiers plus anciens.
 
 - `SaveFileSlot` ctor postfix : `ActivateDelay = 0` — supprime le délai
@@ -1042,7 +1042,7 @@ fichiers plus anciens.
   que le préchauffage SpaceCore d'UltraSmooth qui figeait l'enregistrement
   des types) ;
 - warps accélérés (`ScreenFade.UpdateFadeAlpha`, multiplicateur 6,5×) ;
-- **son propre profilé de chargement** : `NativeTimingProbe` instrumente
+- **son propre profileur de chargement** : `NativeTimingProbe` instrumente
   ~30 méthodes natives (`SaveGame.Load`, `TryReadSaveFile`,
   `loadDataToFarmer`, `loadDataToLocations`, `GameLocation.loadMap`,
   `resetForPlayerEntry`, `WarpPathfindingCache.PopulateCache`,
@@ -1058,8 +1058,8 @@ fichiers plus anciens.
   `[SAVE PREFETCH …]`, `[NATIVE PHASE]`… à parser (chantier D2).
 
 Risques notés à la lecture : ses caches se réparent en silence
-(`[MAP CACHE DISPLAY REPAIR]`, `[IMAGE CACHE PRESSURE]` — les mêmes
-« pertes silencieuses contre on gagne quoi » que notre A1-T8/T9 traitent
+(`[MAP CACHE DISPLAY REPAIR]`, `[IMAGE CACHE PRESSURE]` — le même
+arbitrage entre pertes silencieuses et gain que notre A1-T8/T9 traitent
 côté app) ; le parc le garde **en pause** — les mesures D5-B décrivent le
 parc sans lui.
 
@@ -1205,7 +1205,7 @@ statique peut exister, et pourquoi elle survit aux remplacements de front.
 | Mod | Identité | Ce qu'on en tire |
 |---|---|---|
 | [**Generic Mod Config Menu**](https://www.nexusmods.com/stardewvalley/mods/5098) — spacechase0, 1.16.0 | `spacechase0.GenericModConfigMenu` · Nexus 5098 · [source](https://github.com/spacechase0/StardewValleyMods) (monorepo, **surveillé**) | **l'origine de la convention `config.*`** que notre éditeur lit pour ses libellés |
-| [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 2.1.0 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI. Sa 2.1.0 (changelog lu le 2026-09-10) écrit `data/mod_history.json` **dans son propre dossier** ; or notre mise à jour (`.overwriteWithBackup`) supprime le dossier avant réextraction, snapshot limité à `config.json` + `i18n/*.json` — ce fichier meurt. Regénérable (le mod redécouvre au lancement suivant), et l'ancien dossier entier reste dans la sauvegarde `beforeUpdate` : aucun changement de code, mais la **classe** « mod qui garde des données runtime dans son dossier » est à surveiller — un mod dont la donnée ne serait pas regénérable perdrait sur toute mise à jour StarHubFR. Journaux lus jusqu'à **2.1.6** (2026-09-23) : sa **2.1.3 rend les boutons souris M4/M5/M3 bindables** dans tous les champs raccourcis — les configs du parc vont porter des `MouseX1`/`MouseX2`/`MouseMiddle`, jetons que notre `SButtonTable` porte déjà (KeybindGrammar.swift) ; la 2.1.4 importe en plus les enregistrements GMCM **retardés** (Automate), que notre lecture statique des DLL voit de toute façon sans besoin de règle |
+| [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) — palmhacker13, 2.1.0 | `palmhacker13.ModernConfigMenu` · Nexus 49437 | la preuve que la convention survit à un changement de front : même i18n, autre UI. Sa 2.1.0 (changelog lu le 2026-09-10) écrit `data/mod_history.json` **dans son propre dossier** ; or notre mise à jour (`.overwriteWithBackup`) supprime le dossier avant réextraction, snapshot limité à `config.json` + `i18n/*.json` — ce fichier meurt. Régénérable (le mod redécouvre au lancement suivant), et l'ancien dossier entier reste dans la sauvegarde `beforeUpdate` : aucun changement de code, mais la **classe** « mod qui garde des données runtime dans son dossier » est à surveiller — un mod dont la donnée ne serait pas régénérable perdrait sur toute mise à jour StarHubFR. Journaux lus jusqu'à **2.1.6** (2026-09-23) : sa **2.1.3 rend les boutons souris M4/M5/M3 bindables** dans tous les champs raccourcis — les configs du parc vont porter des `MouseX1`/`MouseX2`/`MouseMiddle`, jetons que notre `SButtonTable` porte déjà (KeybindGrammar.swift) ; la 2.1.4 importe en plus les enregistrements GMCM **retardés** (Automate), que notre lecture statique des DLL voit de toute façon sans besoin de règle |
 | [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) — palmhacker13, 2.1.3 | `palmhacker13.UltraSmooth` · Nexus 50971 · dépend de MCM · **installé sur le parc** | **le corpus de test de l'éditeur** : 115 clés `config.*` (41 `.name`, 41 `.tooltip`, 11 `.button`, 16 de section, 4 `.choice`) plus une clé maison `.gmcmGuide` ; porte aussi un `i18n/th.json` (hub thaï). Perf : `us_analyze` est un **profil de soi** (top 5 de ses propres moteurs) ; l'outil profond est la boîte noire **`us_trace`** (60 s, rapport au journal SMAPI **et** fichier dans le dossier du mod) — aucun patch Harmony chez les autres mods. Audité : [`audit-perf-analyzers.md`](audit-perf-analyzers.md) |
 | [**Faster Menu Load**](https://www.nexusmods.com/stardewvalley/mods/41564) — ZeroXPatch, 1.5.0 | `ZeroXPatch.FasterMenuLoad` · Nexus 41564 | même auteur que le SMAPILogDoctor crédité §3 ; une des 13 dépendances du SLO ; **seul des cinq non installé** sur le parc |
 | [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) — neoiw, 1.0.0 (source : 0.5.0-rc.18) | `neoiw.StardewLoadingOptimizer` · Nexus 50153 | orchestrateur de 13 mods de performance ; son téléchargement « Source Code » est un **exemple complet d'intégration GMCM côté mod** (`GenericModConfigMenuIntegration.cs`). Sa 1.0.0 **décompilée le 2026-09-29** (analyse complète §5) : les 13 dépendances sont désormais `IsRequired: false` — le constat « manifeste intégriste » ci-dessous ne vaut plus que pour la 0.5.x auditée ; **en pause sur le parc** |
@@ -1265,8 +1265,8 @@ et refusée). La fixture des tests est produite par **le vrai producteur**
 (`dotnet build`) et porte les pièges du format : dernier TypeDef et
 dernière entrée de PropertyMap (plages qui finissent au bout de la
 table), enum d'un assembly référencé, struct à constantes sans `value__`,
-backing fields non littéraux. Chaque garde a été prouvé par sabotage —
-deux d'entre eux n'étaient observables que par des tests directs sur la
+backing fields non littéraux. Chaque garde a été prouvée par sabotage —
+deux d'entre elles n'étaient observables que par des tests directs sur la
 grammaire (le sabotage restait vert sur la fixture).
 
 Pourquoi cette source : **MCM (in-game) connaît les valeurs autorisées et

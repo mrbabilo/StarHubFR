@@ -261,7 +261,7 @@ backup se retrouve en moins de dix secondes.
 > supprimée) est marqué par la reprise, journalisé, et montré : badge à côté du
 > nom en ligne, badge sur la carte de grille, bandeau sur la fiche, popover au
 > clic, filtre « Problèmes ». Récit, mesures et l'angle resté ouvert (une `[MAJ]`
-> suggérée sur une page cachée serait intéléchargeable) dans
+> suggérée sur une page cachée serait non téléchargeable) dans
 > [`roadmap-archive.md`](roadmap-archive.md).
 
 #### A3 — Métadonnées Nexus
@@ -718,7 +718,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > retours d'écran pris dans la foulée : chevrons montés hors du hero
 > (blanc mort sur capture claire), interrupteur vert rétabli — le bouton
 > bleu essayé se lisait moins bien —, bouton Finder ajouté. Deux bugs
-> honorés au passage : `renamingFolder` fait survivre le poids mesuré à la
+> corrigés au passage : `renamingFolder` fait survivre le poids mesuré à la
 > bascule (Core, TDD), et l'enum d'onglets ferme le deep-link « traduis ce
 > mod » aux réordonnancements. **La case est cochée : le pilote Mods est
 > complet.**
@@ -745,7 +745,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > **Écart assumé** : coiffure, couleur de cheveux et peau sont lues dans la save mais **ne sont rendues que par le repli vectoriel**. Les teinter sur l'illustration est impraticable — ce sont des crops de l'affiche du jeu, où le brun des cheveux est celui du bois de la ferme derrière le personnage : aucun masque colorimétrique ne les sépare. Un portrait fidèle demanderait de recomposer la tête, pas de la teinter. → voir **H-T5c**.
 > **Abandonné en route** (2026-09-01) : les glyphes vectoriels dessinés à la main, illisibles à cette taille, et `SaveFarmPalette` avec eux.
 > **Corrigé à la revue** (2026-09-02) : lecture et écriture des champs du fermier par **enfant direct** de `<player>` (`SavePlayerFields`) — la première occurrence attrapait un monstre de quête imbriqué, ce qui affichait une fermière en homme et écrivait la santé du fermier dans le monstre ; `<whichFarm>` non entier reconnu comme ferme de mod (`SaveFarmType`) — `FrontierFarm` s'affichait « Ferme standard » ; icône personnalisée rendue au hero ; chevelure du repli replacée sur le crâne ; caches d'images sous `NSLock`.
-> Ferme en passant un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (VM pas god-object-ifié).
+> Corrige au passage un bug latent : `SaveManager.farmTypeName` retournait du thaï codé en dur depuis l'origine — désormais localisé via 10 clés `L10n.Saves.farmType*` + `heroFarmHelpFormat`. Architecture : `L10nResolver` protocole Core + `SaveFarmNameResolver` injecté (sans alourdir le ViewModel).
 
 
 > **Ce qui tourne aujourd'hui** : un modèle de gravité pur et testé —
@@ -925,9 +925,9 @@ produit. Trois verrous à lever *avant* d'écrire la moindre ligne :
 | **xnbcli** / conversion d'assets `.xnb` | **Écarté** | Outillage de moddeur, hors de la promesse « gérer et traduire ses mods ». *Nuance* : la lecture de `Content/Strings/*.xnb` reste pertinente pour le glossaire de **C3-T4**. |
 | **SMAPI-Android-Installer**, moteur de jeu open-source | **Écarté** | Sans rapport avec une app macOS de gestion de mods. |
 | Copier les **profils Stardrop** tels quels | **Écarté** | Le clonage sans dimension FR reproduit un concurrent sans raison d'exister ; **B3-T4** relie au contraire profil, diagnostic et couverture de traduction. |
-| *audit* Activation Stardop par **junctions/symlinks** (`SMAPI_MODS_PATH`) | **Écarté** | Choix d'architecture différent du prefixe `X`/`.X` natif SMAPI : plus complexe et dépendant des permissions OS. Notre convention reste plus simple et fiable. Cf. `docs/audit-stardrop.md`. |
-| *audit* **`SimpleObscure`** (chiffrement maison de la clé Nexus côté Stardop) | **Écarté** | Obfuscation : clé AES + IV stockées en clair à côté du ciphertext. Inférieure au **Keychain macOS** que StarHubFR utilise déjà. |
-| *audit* **Auto-update in-app façon Stardop** (move + restart) | **Écarté (pour l'instant)** | Fragile sur macOS. Si on l'ouvre un jour → **Sparkle**, pas ce bricolage. |
+| *audit* Activation Stardrop par **junctions/symlinks** (`SMAPI_MODS_PATH`) | **Écarté** | Choix d'architecture différent du préfixe `X`/`.X` natif SMAPI : plus complexe et dépendant des permissions OS. Notre convention reste plus simple et fiable. Cf. `docs/audit-stardrop.md`. |
+| *audit* **`SimpleObscure`** (chiffrement maison de la clé Nexus côté Stardrop) | **Écarté** | Obfuscation : clé AES + IV stockées en clair à côté du ciphertext. Inférieure au **Keychain macOS** que StarHubFR utilise déjà. |
+| *audit* **Auto-update in-app façon Stardrop** (move + restart) | **Écarté (pour l'instant)** | Fragile sur macOS. Si on l'ouvre un jour → **Sparkle**, pas ce bricolage. |
 | Collections Nexus (complétude d'un modpack) | **Reporté** | Fort couplage à des collections mouvantes ; à reconsidérer après **E1**. |
 
 *(La piste GMCM/Modern Config Menu a quitté cette section, a été instruite en **C4-T3**
@@ -1138,7 +1138,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         détachés — le constat datait d'avant) ; l'export construit et encode
         désormais dans une `Task.detached`, navette ZIP comprise ;
       - **constat périmé corrigé** : `scanProgress` n'est plus « publié par
-        mod » (note du 2026-09-02) — throttlé à ~12/s et publié sur main
+        mod » (note du 2026-09-02) — limité à ~12/s et publié sur main
         depuis `87de592` ; l'annotation est posée sur la note ;
       - la latence de frappe (F3) reste non tranchée régression/défaut
         préexistant : le témoin A/B `v1.11.1` exige une manipulation à
@@ -1154,7 +1154,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         préserver** (les déplacer hors main sans verrou referait la classe
         `EXC_BAD_ACCESS` qu'a eue le cache) ; registre
         (`installedModRegistryLock` + `defer`), mesure du poids
-        (`modsSizeLock` + drapeau de re-demande), `parseSMAPILog` (parsé en
+        (`modsSizeLock` + drapeau de re-demande), `parseSMAPILog` (analysé en
         fond, publié sur main) : tous au pattern ;
       - **une observation, sans défaut** : la quarantaine du réparateur est
         nommée à la seconde (`ModFolderRepairer.nowStamp`, pas d'UUID —
@@ -1242,7 +1242,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         retour 0**. Seul le décompte des objets attendus avant l'édition de
         liens a transformé cet échec muet en erreur.
         Le pire cas (30 s) est celui d'un changement de signature dans le
-        god-object de 8 389 lignes : le découper (**F1**) ferait baisser ce pire
+        objet central de 8 389 lignes : le découper (**F1**) ferait baisser ce pire
         cas, pas seulement le cas moyen.
         ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
         objet tant que P1 tient le critère.
@@ -1740,7 +1740,7 @@ du classement sont `content.json` (111) et les dossiers `assets/` (1 159) et
 `Portraits/` (96) : du contenu **livré**. C'est la quatrième fois que le parc se
 laisse mal mesurer par un critère de surface.
 
-**Vérité terrain, elle solide** : un fichier dont le **nom porte l'identifiant
+**Une vérité terrain, solide, celle-là** : un fichier dont le **nom porte l'identifiant
 d'une sauvegarde réelle** (`Zofia_443716371`, `TestOK_444827372`…) n'a pu être
 écrit que sur cette machine, par le mod. Il y en a **100, sur 52 mods** —
 `FarmTypeManager`, les 40 packs `[FTM] *`, `BetterCrafting/savedata/seenrecipes/`,
@@ -1921,7 +1921,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X17** | 2026-09-03 | Déposer un contenu reconnu dans un hôte en 0555 échouait sans recours |
 | **X18** | 2026-09-03 | Le framework qu'exige un content pack manquait à ses dépendances, à l'installation |
 | **X19** | 2026-09-03 | Une dépendance installée dans un pack était annoncée manquante |
-| **X20** | 2026-09-03 | L'ancrage d'après- installation visait un dossier qui n'existe pas, pour un composant de pack |
+| **X20** | 2026-09-03 | L'ancrage d'après-installation visait un dossier qui n'existe pas, pour un composant de pack |
 | **X21** | 2026-09-03 | L'app rendait la sauvegarde sans la marque d'octets que le jeu y met |
 | **X22** | 2026-09-03 | La restauration d'un composant de pack fabriquait un pack jumeau |
 | **X23** | 2026-09-03 | Supprimer une sauvegarde de composant laissait son dossier horodaté vide |
@@ -1995,7 +1995,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X95** | 2026-09-08 | « Voir la fiche » posait les pendings puis `currentTab = "Mods"` depuis… l'onglet Mods : aucune affectation ne change, le `.onChange` ne tourne jamais — fiche fantôme au prochain changement d'onglet et `pendingDetailTab` imposant « État » à la fiche suivante ; ouverture directe quand on y est déjà (`5e0187e`) |
 | **X96** | 2026-09-08 | Les paires de config s'affichaient au point plein vert (signal sûr) alors qu'elles ne viennent QUE de l'heuristique de nom — la config n'a pas de signal par valeur ; point creux (`3bf2a87`) |
 | **X97** | 2026-09-08 | Le garde d'écriture (config.json changé sous nos pieds), un fichier illisible ou un échec d'écriture rendaient `[]` → « Rien à reporter », indistingable du lot vide ; `KeyRenameReportOutcome` distingue appliqué / rien / annulé (`3bf2a87`) |
-| **X98** | 2026-09-08 | La fiche relisait le delta sur disque et rejouait tout le matcher de renommage à chaque republication du VM — O(retirées × ajoutées) Levenshtein sans pré-filtre sur le fil principal ; caches par uniqueId+révision et pré-filtre de longueur normalisée (`a89e204`) |
+| **X98** | 2026-09-08 | La fiche relisait le delta sur disque et rejouait tout le rapprochement des renommages à chaque republication du VM — O(retirées × ajoutées) Levenshtein sans pré-filtre sur le fil principal ; caches par uniqueId+révision et pré-filtre de longueur normalisée (`a89e204`) |
 | **X99** | 2026-09-08 | Supprimer un pack ne purgeait pas les deltas de ses composants : l'en-tête de groupe a `uniqueId` `""`, `remove` visait un fichier « .json » inexistant — fiches ressuscitant l'ancien install après réinstallation (X55 rompu pour ce store) ; `removeAll` passe les enfants (`d6633bd`) |
 | **X100** | 2026-09-08 | Un report de traduction dont la paire CHANGE de composant écrivait la forme brute de la nouvelle clé dans le fr.json de l'ANCIEN — orpheline chez l'ancien, cible non traduite, paire passée réconciliée en silence ; `RenameReport.routeByOldComponent` les écarte et l'écran les annonce (`d50d2e6`) |
 | **X101** | 2026-09-08 | Les préfixes de composants du report venaient de `mod.children` — nil sur la fiche d'un enfant imbriqué (les descendants d'un groupe vivent à plat sous l'en-tête) : clés qualifiées affichées mais « Rien à reporter » à jamais ; dérivés de l'arbre scanné par préfixe de folderName (`d50d2e6`) |

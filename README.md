@@ -123,7 +123,7 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 *   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod.
 *   **Sauvegardes des mods** — avant chaque écrasement, plus vos `config.json` et `fr.json`, et les fichiers qu'une mise à jour a emportés.
 *   **Parties** — détail, copie, suppression, et retouche de l'argent ou des statistiques.
-*   **Ce que vos mods laissent dans vos parties** — chiffré avant la mise en pause ; « Nettoyer… » retire les données de mods disparus, après une sauvegarde.
+*   **Ce que vos mods laissent dans vos parties** — mesuré avant la mise en pause ; « Nettoyer… » retire les données de mods disparus, après une sauvegarde.
 
 ### 🎮 Au quotidien
 
