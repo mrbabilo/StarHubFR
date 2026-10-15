@@ -43,6 +43,10 @@ struct KeybindPlanSheet: View {
     @State private var excluded: Set<String> = []
     @State private var gameRunning = false
     @State private var canUndo = false
+    /// Les déplacements cochés au clic d'« Appliquer » : le plan disparaît à
+    /// l'état `.applied`, et le service compte en **mods** (un mod réécrit en
+    /// entier ou sauté en entier) — le verdict compte en raccourcis.
+    @State private var submittedMoves: [PlannedMove] = []
     /// `nil` = ouverture par défaut : déplié quand aucun déplacement n'est
     /// possible (c'est alors toute la réponse), replié sinon.
     @State private var unmovableExpanded: Bool?
@@ -110,8 +114,7 @@ struct KeybindPlanSheet: View {
             case .ready(let plan):
                 planList(plan)
             case .applied(let result):
-                verdict(String(format: localization.L(L10n.KeybindPlan.applied), result.written, result.skipped.count),
-                        skipped: result.skipped)
+                verdict(appliedSummary(result), skipped: result.skipped)
             case .undone(let result):
                 verdict(String(format: localization.L(L10n.KeybindPlan.undone), result.restored, result.skipped.count),
                         skipped: result.skipped)
@@ -179,7 +182,7 @@ struct KeybindPlanSheet: View {
                           color: skipped.isEmpty ? AppDesign.Color.success : AppDesign.Color.warning,
                           text: summary)
                 ForEach(Array(skipped.enumerated()), id: \.offset) { _, skip in
-                    Text("· " + KeybindPlanText.skip(skip, localization.L))
+                    Text("· " + KeybindPlanText.skip(skip, name: modName(skip.folderName), localization.L))
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -196,8 +199,12 @@ struct KeybindPlanSheet: View {
                 Text(localization.L(L10n.Keybinds.scanning)).font(AppDesign.Font.caption).foregroundColor(.secondary)
             }
         } else if let report = scanService.report {
-            Text(report.collisions.isEmpty ? localization.L(L10n.Keybinds.empty)
-                 : String(format: localization.L(L10n.KeybindPlan.remaining), report.collisions.count))
+            // Même vert que la section : le plan ne touche ni aux conflits
+            // avec le jeu ni aux non reconnus — « aucun conflit » sur les
+            // seules collisions entre mods serait un vert mensonger.
+            let clear = report.problemCount == 0 && report.unrecognized.isEmpty && report.subsetOverlaps.isEmpty
+            Text(clear ? localization.L(L10n.Keybinds.empty)
+                 : String(format: localization.L(L10n.KeybindPlan.remaining), report.problemCount))
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
         }
     }
@@ -291,6 +298,19 @@ struct KeybindPlanSheet: View {
 
     /// Lit ce qui ne se lit pas dans `body` : le jeu (processus) et
     /// l'annulation possible (liste des sauvegardes sur disque).
+    /// Raccourcis écrits = déplacements soumis dont le mod n'est pas sauté.
+    private func appliedSummary(_ result: KeybindPlanService.AppliedResult) -> String {
+        let skippedMods = Set(result.skipped.map(\.folderName))
+        let written = submittedMoves.filter { !skippedMods.contains($0.modID) }.count
+        return String(format: localization.L(L10n.KeybindPlan.applied), written, submittedMoves.count - written)
+    }
+
+    /// Le nom du mod d'un saut, connu par les déplacements soumis ; le
+    /// dossier sinon (annulation après réouverture de la feuille).
+    private func modName(_ folderName: String) -> String {
+        submittedMoves.first { $0.modID == folderName }?.modName ?? folderName
+    }
+
     private func refreshEnvironment() {
         gameRunning = viewModel.isGameRunning()
         canUndo = service.canUndo
@@ -315,6 +335,7 @@ struct KeybindPlanSheet: View {
         // du calcul.
         guard let report = scanService.report, !scanService.isScanning else { return }
         let excluding = excluded
+        submittedMoves = (readyMoves ?? []).filter { !excluding.contains($0.id) }
         Task {
             await service.apply(report: report, gameDir: viewModel.gameDir, mods: viewModel.mods,
                                 excluding: excluding, rescan: rescan)

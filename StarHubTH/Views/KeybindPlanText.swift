@@ -41,9 +41,9 @@ enum KeybindPlanText {
         }
     }
 
-    /// Un mod sauté : son dossier, puis la raison.
-    static func skip(_ skip: KeybindPlanService.Skip, _ localize: Localize) -> String {
-        String(format: localize(L10n.KeybindPlan.skippedItem), skip.folderName, reason(skip.reason, localize))
+    /// Un mod sauté : son nom (le dossier à défaut), puis la raison.
+    static func skip(_ skip: KeybindPlanService.Skip, name: String, _ localize: Localize) -> String {
+        String(format: localize(L10n.KeybindPlan.skippedItem), name, reason(skip.reason, localize))
     }
 
     static func reason(_ reason: KeybindPlanService.Skip.Reason, _ localize: Localize) -> String {
