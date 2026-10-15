@@ -160,7 +160,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15 pour C3-T9** (règles de blocage des marques, à mesurer contre le jeu) ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15 pour C3-T9 et C3-T10** (règles de blocage des marques, à mesurer contre le jeu) ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -187,7 +187,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       **Livré** : `%` de narration et noms `%` du jeu reconnus ; portraits, `@`, `^`,
       `#$b#`/`#$e#`/`#$k#` et variables `%` en avertissement ; `#` nu de plus bloquant
       dans un dialogue ; IA relancée sur un `@`/une variable perdus. Parc : 3 477 lignes
-      bloquées avant, 372 après (mesure du 2026-10-15).
+      bloquées avant, 374 après (mesure du 2026-10-15).
       **À valider à l'écran** : (a) une ligne à portrait retiré s'enregistre et montre
       « À vérifier : marque(s) manquante(s) : $h » ; (b) `##` à la place de `#$b#` bloque
       avec « marque(s) en trop : # seul (ferme la conversation) » et montre le `#$b#`
@@ -196,7 +196,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       (e) `!#$h` pour `!$h` bloque avec « marque(s) en trop : #$h » et montre le `$h`
       manquant.
 
-- [ ] **C3-T10** — *(ouvert le 2026-10-15)* Environ 50 des 372 lignes encore bloquées
+- [ ] **C3-T10** — *(ouvert le 2026-10-15)* Environ 50 des 374 lignes encore bloquées
       viennent de fautes de frappe de l'**auteur**, dans la source anglaise : un `$X`
       ou `#$X` majuscule lu comme une commande (`#$b$You…` → `$Y` ; `$I` ×12 ;
       `#$I may` traduit `#$Je`), plus des `{{Random:…}}` bloqués sur des options
