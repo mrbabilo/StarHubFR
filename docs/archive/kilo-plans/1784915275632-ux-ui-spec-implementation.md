@@ -1,6 +1,6 @@
 # Plan d'implémentation — Spécification UX/UI StarHubFR (v2.0)
 
-**Source :** `docs/UX_UI_Specifications.md` (spec v2.0, 1307 lignes)
+**Source :** `docs/archive/UX_UI_Specifications.md` (spec v2.0, 1307 lignes)
 **Base :** commit `a3937f6` (release 1.6.0)
 **Découpage :** 5 phases → 5 PRs indépendantes, chacune déployable.
 

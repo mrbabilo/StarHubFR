@@ -1,6 +1,6 @@
 # Audit du delta du 2026-10-01 au 2026-10-09
 
-Passe du prompt `docs/prompt-audit.md`, phases 1 à 5, limitée à ce qui a
+Passe du prompt `docs/archive/prompts/prompt-audit.md`, phases 1 à 5, limitée à ce qui a
 changé depuis le 2026-10-01 (`dfb8fce4..`) — et, pour les phases 2 et 3,
 depuis leur dernier audit du 2026-09-07 (`c0b54852..`). Le reste du dépôt a
 été audité en septembre (tranches ①–④ du ViewModel, phases 1 à 5 :

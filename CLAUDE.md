@@ -20,7 +20,7 @@ Ordre d'utilité (chaque doc porte ce que code ne dit pas) :
 - **`docs/ROADMAP.md`** — ce qui **reste** à faire. ⚠️ Cases en retard sur code livré : vérifier `git log` avant tâche « à faire ». Identifiant absent roadmap = livré : chercher dans `docs/roadmap-archive.md` (mesures à ne pas refaire).
 - **`docs/SOURCES.md`** — carte hors-dépôt : API interrogées, dumps, code repris. Obligatoire avant client réseau (Nexus, smapi.io, DeepL, IA locale) ou parseur format externe. Valeurs relevées par `check_sources.py`.
 - **`docs/REFACTORING.md`** — plan refacto ViewModel. Règle F1-T2 : **fonctionnalité neuve n'entre plus dans `StarHubTHViewModel`** — naît dans propre type (stores dans `StarHubTH/Stores/`, types purs dans `StarHubTH/Models/`). État en retard : vérifier `git log`.
-- **`.kilo/plans/`** — archives ère Kilo : **raisonnement** derrière choix en place. Lire pour « pourquoi », jamais comme consigne (cases sans valeur, partie livrée autrement). Reste de `.kilo/` ignoré.
+- **`docs/archive/kilo-plans/`** — archives ère Kilo : **raisonnement** derrière choix en place. Lire pour « pourquoi », jamais comme consigne (cases sans valeur, partie livrée autrement). Reste de `.kilo/` ignoré.
 - **`docs/superpowers/`** — specs + plans récents, gitignorés (absents d'un clone frais).
 
 ## Build & test — LIRE avant de valider un changement
@@ -48,7 +48,7 @@ Build **scindé en deux systèmes** ; vérifier lequel couvre fichier touché.
 
 ## Traps — rappel par sujet (cavemem)
 
-Pièges techniques détaillés, **chers à retrouver**, vivent dans cavemem (conventions larges : `AGENTS.md` §4 ; raisonnement ancien : `.kilo/plans/`). **Rappeler bloc AVANT toucher domaine**, pas après accident :
+Pièges techniques détaillés, **chers à retrouver**, vivent dans cavemem (conventions larges : `AGENTS.md` §4 ; raisonnement ancien : `docs/archive/kilo-plans/`). **Rappeler bloc AVANT toucher domaine**, pas après accident :
 
 - SwiftUI / AppKit → `caveman mem recall "starhubfr traps swiftui"`
 - Process, Pipe, système de fichiers → `caveman mem recall "starhubfr traps process"`

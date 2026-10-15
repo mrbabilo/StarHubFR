@@ -3,7 +3,7 @@
 **Date** : 2026-09-07
 **Scope** : 16 fichiers Swift (~3 000 lignes) — secrets & clés, les neuf magasins
 de persistance, récupération de fichiers et les trois managers de sauvegarde/réparation
-**Reference** : `docs/prompt-audit.md` (phase 3), `AGENTS.md` §4.3/§4.6,
+**Reference** : `docs/archive/prompts/prompt-audit.md` (phase 3), `AGENTS.md` §4.3/§4.6,
 `docs/DOMAINE.md`, `docs/ROADMAP.md` §4 + archive
 **Précédent** : Phase 1 (cœur applicatif, achevée par tranches — voir
 `audit-phase1-2-2026-09-01.md` et l'index §11), Phase 2 réseau

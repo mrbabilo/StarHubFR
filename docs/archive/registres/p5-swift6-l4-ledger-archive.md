@@ -163,7 +163,7 @@ T4: mesure finale = celle de T3b (aucune édition de source depuis). Arithmétiq
   artefact de mesure tronquée, pas une découverte.
 T4: docs écrites (REFACTORING.md §9 : ligne de tableau + paragraphe de clôture
   avec les trois enseignements ; ROADMAP.md : case P5) et ledger archivé dans
-  `docs/p5-swift6-l4-ledger-archive.md`.
+  `docs/archive/registres/p5-swift6-l4-ledger-archive.md`.
 T4: ⏳ RESTE : vérification GUI de T1 par l'auteur (installation SMAPI réelle →
   désinstallation → réinstallation). La tranche n'est formellement close
   qu'après son verdict — comme L2 et L3.

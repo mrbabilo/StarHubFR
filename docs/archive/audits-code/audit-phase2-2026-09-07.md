@@ -4,7 +4,7 @@
 **Scope** : 25 fichiers Swift sous `StarHubTH/` (~5 443 lignes) couvrant les clients réseau du dépôt
 **Strategy** : Risk-top-down par tier (Nexus plumbing → identité → SMAPI → traduction), 8 zones en parallèle
 **Auditor** : kilo / MiniMax-M3 (deux sous-agents, Tier 1-2 + Tier 3-4)
-**Reference** : `AGENTS.md` (§4.4 Nexus, §4.7 subprocess), `docs/SOURCES.md`, `docs/DOMAINE.md`, `docs/ROADMAP.md` §4 (X<n> ouverts), `docs/roadmap-archive.md` (clos), `docs/prompt-audit.md` (protocole)
+**Reference** : `AGENTS.md` (§4.4 Nexus, §4.7 subprocess), `docs/SOURCES.md`, `docs/DOMAINE.md`, `docs/ROADMAP.md` §4 (X<n> ouverts), `docs/roadmap-archive.md` (clos), `docs/archive/prompts/prompt-audit.md` (protocole)
 **Précédent** : Phase 1.2 (1er sept 2026, ViewModel god-object, commit `8e1453a`)
 
 ---
@@ -62,7 +62,7 @@ Deux vagues parallèles, après lecture de `AGENTS.md` (règles §4.4 et §4.7) 
 - **Tier 1-2** (Nexus plumbing + identité) : 17 fichiers, ~3 550 lignes, subagent général.
 - **Tier 3-4** (SMAPI + DeepL + LLM local) : 8 fichiers, ~1 893 lignes, subagent général.
 
-Le protocole d'audit (par fichier : 🔴 / 🟠 / 🟡 / ✅ / 📋) est défini dans `docs/prompt-audit.md` lignes 130+. Les constats déjà couverts par les audits précédents (Phase 1.2, swift 2026-08-05, gestionnaires, stardrop, mods-config-perf) ne sont pas re-flagués.
+Le protocole d'audit (par fichier : 🔴 / 🟠 / 🟡 / ✅ / 📋) est défini dans `docs/archive/prompts/prompt-audit.md` lignes 130+. Les constats déjà couverts par les audits précédents (Phase 1.2, swift 2026-08-05, gestionnaires, stardrop, mods-config-perf) ne sont pas re-flagués.
 
 ---
 

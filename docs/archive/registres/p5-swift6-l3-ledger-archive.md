@@ -15,7 +15,7 @@ au fond (gel UI attrapé en revue, corrigé avant fusion).
 Spec: docs/superpowers/specs/2026-09-13-p5-swift6-design.md §L3 (l. 201-222) (lue)
 Base: c10a4fe3 (main, arbre propre, L1+L2 closes et poussées, CI verte)
 Héritage des rulings de la tranche L1-L2 (voir
-`docs/p5-swift6-ledger-archive.md`) : R2 (--update visible), R5 (mesure avant
+`docs/archive/registres/p5-swift6-ledger-archive.md`) : R2 (--update visible), R5 (mesure avant
 édition de source), R9 (jamais deux implémenteurs en parallèle), R10 (jamais
 de --amend), R11 (revues par subagents de cette session), R12 (attribution
 GLM 5.3 Flash — tous les agents tournent sur GLM).

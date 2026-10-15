@@ -4,7 +4,7 @@
 > Conventions, pièges techniques, commandes validées. Complète `CLAUDE.md`
 > (pointe vers skills + sources), `docs/DOMAINE.md` (vocabulaire métier),
 > `docs/SOURCES.md` (carte hors-dépôt : API, dumps, code repris) et
-> `.kilo/plans/` — plans ère Kilo, raisonnement derrière choix en place.
+> `docs/archive/kilo-plans/` — plans ère Kilo, raisonnement derrière choix en place.
 > Plans = **archives** : lire pour « pourquoi », jamais comme spec courante.
 
 ---

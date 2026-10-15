@@ -3,7 +3,7 @@
 **Date** : 2026-09-07
 **Scope** : `Tests/` — 171 fichiers Swift Testing, 2 359 `@Test`, 239 suites,
 145 cibles en miroir des modules Core — plus `run_tests.sh`
-**Reference** : `docs/prompt-audit.md` (phase 4), pièges de `CLAUDE.md`
+**Reference** : `docs/archive/prompts/prompt-audit.md` (phase 4), pièges de `CLAUDE.md`
 (« les tests n'écrivent jamais dans le vrai Application Support », « un cache
 global impose des tests `.serialized` »)
 **Précédents** : Phase 1 (cœur, par tranches), Phase 2 réseau
@@ -90,7 +90,7 @@ brief qui se conclut sans aucun correctif de logique. Un seul geste : une
 réindentation d'une ligne, et le rattrapage CHANGELOG des releases 1.37.1–1.37.3
 documenté ci-dessus.
 
-**Suite du brief** (`docs/prompt-audit.md`) : Phase 5 — `Package.swift`,
+**Suite du brief** (`docs/archive/prompts/prompt-audit.md`) : Phase 5 — `Package.swift`,
 `Info.plist`, `build_app.py`, `release.py`, `check_standards.py`,
 `.standards-baseline.json`, `check_sources.py`, `.sources-baseline.json`,
 `.mcp.json` — audités **en lecture** : que chaque script rende un code de

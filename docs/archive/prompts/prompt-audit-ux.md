@@ -72,7 +72,7 @@ Dans cet ordre :
      inventer une autre.** Son chiffre « 48 fichiers de `Views/` » date :
      il y en a 84 au 2026-09-24 (dont 25 sous `Views/Components/`).
   4. Les décisions déjà prises, pour ne pas les refaire :
-     - `docs/refonte-ui-phase1-h-t2-t3-ledger-archive.md` (d'où viennent les
+     - `docs/archive/registres/refonte-ui-phase1-h-t2-t3-ledger-archive.md` (d'où viennent les
        groupes de la barre latérale) ;
      - `docs/ROADMAP.md` §6 « Hors périmètre — et pourquoi » ;
      - `docs/roadmap-archive.md` (le livré, avec ses mesures) ;

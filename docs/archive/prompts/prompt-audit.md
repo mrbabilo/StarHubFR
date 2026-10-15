@@ -6,7 +6,7 @@
 >
 > Remesurée 2026-10-03 : ViewModel descendu à 7 741 lignes (extraction vers `Stores/` continue), 534 `.swift` sous `StarHubTH/`, 4 050 `@Test`, sonde C# `companion/` entre dans périmètre.
 >
-> Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X127 trouvés puis corrigés le jour même (`docs/audit-delta-2026-10-09.md`).
+> Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X127 trouvés puis corrigés le jour même (`docs/archive/audits-code/audit-delta-2026-10-09.md`).
 
 ---
 

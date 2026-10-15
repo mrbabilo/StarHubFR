@@ -3,7 +3,7 @@
 > **Ce document est périmé et n'est plus une source.** Il décrivait l'UI au
 > commit `a3937f6` (v1.6.0) ; l'app en est vingt releases plus loin, et aucun
 > document du dépôt ne le citait. Son contenu reste consultable dans
-> l'historique : `git log --follow -- docs/UX_UI_Specifications.md`.
+> l'historique : `git log --follow -- docs/archive/UX_UI_Specifications.md`.
 
 ## Où regarder à la place
 

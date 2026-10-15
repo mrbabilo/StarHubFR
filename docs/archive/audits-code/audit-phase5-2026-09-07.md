@@ -6,7 +6,7 @@
 `check_standards.py` (257 l.), `check_sources.py` (630 l.), `.mcp.json`, les
 deux baselines — **en lecture** pour tout, exécution seule pour les vérifications
 sans effet de bord (`swift build`, `swift test`, deux builds de fingerprint)
-**Reference** : `docs/prompt-audit.md` (phase 5), `AGENTS.md` §2 (« les deux
+**Reference** : `docs/archive/prompts/prompt-audit.md` (phase 5), `AGENTS.md` §2 (« les deux
 cliquets »), la mémoire des scripts rendant `exit 0` sur un échec
 **Précédents** : Phases 1–4 (`audit-phase{1-2,2,3,4}-2026-09-*.md`)
 **Avec ce document, les cinq phases du brief sont closes.**
@@ -123,7 +123,7 @@ font exactement ce que leurs en-têtes annoncent. Deux oublis réparés (X91 et 
 fingerprint LSP), un troisième candidat documenté comme bloqué par dépendance
 UI (`ModListFilters`).
 
-**Le brief d'audit fichier-par-fichier (`docs/prompt-audit.md`) est complet sur
+**Le brief d'audit fichier-par-fichier (`docs/archive/prompts/prompt-audit.md`) est complet sur
 ses cinq phases.** Les suites naturelles ne relèvent plus de l'audit : F1
 (descendre `FrenchTranslationScope` vers `Models/` débloquerait le test de
 `ModListFilters`), et la re-passe périodique des zones vivantes — la leçon des

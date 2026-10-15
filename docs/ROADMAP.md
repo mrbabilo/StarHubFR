@@ -2,7 +2,7 @@
 
 > **Sources** :
 >
-> 1. `docs/Recherche les meilleurs projets open-source pour S.md` (veille Perplexity : écosystème, comparaisons, risques) ;
+> 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
 > **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0).**
@@ -82,7 +82,7 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X136 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/audit-delta-2026-10-09.md`)
+Les X1–X136 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour.
@@ -569,7 +569,7 @@ comme les autres specs SDD).
 
 Approche validée : **le châssis d'abord** — design system extrait de
 Découvrir et bibliothèque de composants vivante (projet claude.ai/design,
-dossier `design/` versionné), puis navigation + accueil, puis reskin écran
+dossier `design/` versionné, archivé depuis dans `docs/archive/design/`), puis navigation + accueil, puis reskin écran
 par lot, une release par lot. Périmètre : visuel + navigation —
 **aucune fonctionnalité nouvelle**, aucun parcours interne refondu.
 
@@ -584,7 +584,7 @@ par lot, une release par lot. Périmètre : visuel + navigation —
 > de 675 à 519 lignes ; **plus aucune taille de police littérale** n'y
 > subsiste (2 avant, 0 après) — le critère de succès n°1, atteint pour cette
 > vue. Cliquet des conventions rendu **à sa valeur exacte d'avant le lot**,
-> sans `--update`. Bibliothèque visuelle versionnée dans `design/`
+> sans `--update`. Bibliothèque visuelle archivée dans `docs/archive/design/`
 > (artboards `.dc.html` + canevas) ; `UX_UI_Specifications.md` retiré au
 > profit d'un renvoi (1318 lignes → 21).
 >
@@ -1051,7 +1051,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
       *à faire après F1-T1 : auditer 11 902 lignes de VM monolithique coûte plus cher que
       d'auditer des types séparés.*
       ⚠️ **Une partie de l'inventaire existe déjà** :
-      [`audit-swift-2026-08-05.md`](audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
+      [`audit-swift-2026-08-05.md`](archive/audits-code/audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
       recensés, les 9 hauts corrigés au 2026-08-11 — couvre la surface de sécurité et une
       part de la performance. Il porte son propre avertissement de péremption (il a listé
       comme ouverts pendant cinq jours trois findings corrigés entre-temps) : `git log -S`
@@ -1820,7 +1820,7 @@ autorise A à préserver large plutôt que juste.
 - ~~**`UX_UI_Specifications.md` est périmé et orphelin.**~~ *(traité le 2026-08-28,
   H-T1)* Il s'épinglait au commit `a3937f6` (v1.6.0), soit 19 releases de retard, et
   aucun document du dépôt ne le citait. Ses 1318 lignes sont remplacées par un bandeau
-  de renvoi vers la ROADMAP, le code, les tests et `design/` ; le contenu reste dans
+  de renvoi vers la ROADMAP, le code, les tests et `docs/archive/design/` ; le contenu reste dans
   l'historique.
 
 ---

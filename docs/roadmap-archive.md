@@ -516,7 +516,7 @@ touchées).
       `NexusUpdateChecker.fetchModInfo:608`. Cinq tests unitaires, ~55 min.
       ▸ **Référence retenue** (rejetée comme code à importer, conservée comme
       inspiration conceptuelle) : `jathych/Stardew-Valley-Mod-Updater/check_mods.py:81-93`.
-      ▸ **Audit complet** : [`docs/spec-nexus-files-picker.md`](spec-nexus-files-picker.md).
+      ▸ **Audit complet** : [`docs/archive/spec-nexus-files-picker.md`](archive/spec-nexus-files-picker.md).
       ▸ **Origine** : veille concurrentielle 2026-08-31. · **S** · *à traiter avant
       B2-T5 (dates affichées) — même surface, risque de pollution du cache identique.*
 - [x] **X9** ✅ *(livré le 2026-08-31)* — **Le check compare le
@@ -6850,7 +6850,7 @@ sans lire une ligne de log.
 
 - [x] **I-T22** — *(lots A à D livrés le 2026-10-14, commits `d0782137`,
       `30e4d694`, `c6e16ca5`, `544cf184`)* Audit UX/UI de l'onglet **Performances**
-      (prompt `docs/prompt-audit-ux-performances.md` ; rapport local
+      (prompt `docs/archive/prompts/prompt-audit-ux-performances.md` ; rapport local
       `docs/superpowers/specs/2026-10-14-audit-ux-performances-phase1.md` et
       `…-phases2-4.md`). **Lot A** : une seule ligne d'état en tête
       (`PerformanceStatusLine`), carte Sonde en tête seulement si une action

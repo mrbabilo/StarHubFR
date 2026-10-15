@@ -858,8 +858,8 @@ en closure globale, cascade `readMaintenanceReport` entièrement
 `nonisolated`) ; ~34 avertissements stricts restent consignés comme dette
 L3/LS (workers des closures lourdes, captures `SaveGameInfo`/`BackupsRead`).
 ✅ **Vérifié à l'écran par l'auteur le 2026-09-13 — L2 close.** Détail du
-chantier (rulings, revues, tri des mineurs) : `p5-swift6-ledger-archive.md`
-(L1-L2) et `p5-swift6-l3-ledger-archive.md` (L3).
+chantier (rulings, revues, tri des mineurs) : `archive/registres/p5-swift6-ledger-archive.md`
+(L1-L2) et `archive/registres/p5-swift6-l3-ledger-archive.md` (L3).
 **Repris à la clôture de L3 (le même jour)** : 216 avertissements, 83
 bloquants — la baisse du compteur est **modeste** (−2 bloquants), et c'est
 à lire pour ce qu'elle dit : le gain de la tranche est ailleurs.
@@ -1035,7 +1035,7 @@ Ce qui reste après L4 : le ViewModel (11) et
 chacun). La **tranche d'isolation** (sortie d'acteur de `scanMods`,
 `downloadStore` `nonisolated(unsafe)` propriétaire, `SaveNotesStore.shared`
 reportée de L1) est ce qui cadre la suite. Détail du chantier :
-`p5-swift6-l4-ledger-archive.md`.
+`archive/registres/p5-swift6-l4-ledger-archive.md`.
 
 ### Arborescence — tranché le 2026-08-01 : un dossier `Stores/`
 
