@@ -20,6 +20,7 @@ where the exact log format was verified.
 
 - **Traduction : seules les marques qui cassent le jeu bloquent l'enregistrement.** Portrait, `@`, saut de ligne ou de page : avertissement sous le champ. Commande perdue ou `#` seul en trop : blocage, chaque marque dite manquante ou en trop. Le `%` de narration n'est plus une variable.
 - **Sauvegarde des mods et des parties** : choix du dossier, poids et nombre de mods (en pause compris), place libre vérifiée, durée estimée, avancement en direct et annulation. Plus de fichier temporaire sur le Bureau.
+- **App signée par un certificat stable** : à la première version signée, le Trousseau demande une dernière fois l'accès à la clé Nexus (« Toujours autoriser »), puis plus après les mises à jour. Chaque release publie `SHA256SUMS` pour vérifier l'archive.
 
 ## [1.66.0] - 2026-10-15
 

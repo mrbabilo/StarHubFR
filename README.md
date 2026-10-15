@@ -174,6 +174,10 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 
 Pour passer à une nouvelle version, quittez complètement l'app (⌘Q) avant de remplacer le bundle.
 
+Pour vérifier l'archive, téléchargez aussi `SHA256SUMS` depuis la même release, puis, dans le dossier des deux fichiers : `shasum -a 256 -c SHA256SUMS` doit répondre `OK`.
+
+L'app est signée par un certificat propre au projet (« StarHubFR Signature »). Il ne remplace pas la notarisation, mais macOS reconnaît l'app d'une version à l'autre : l'accès à la clé Nexus et les autorisations accordées restent acquis après une mise à jour.
+
 #### Lever la quarantaine avec Sentinel
 
 macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), d'Alin Lupascu, retire cette marque en un geste.
