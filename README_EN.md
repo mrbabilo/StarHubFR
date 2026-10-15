@@ -173,6 +173,10 @@ Each mod page has a **Translation** tab that shows the real state of its French 
 
 To move to a new version, quit the app completely (⌘Q) before replacing the bundle.
 
+To check the archive, also download `SHA256SUMS` from the same release, then, in the folder holding both files: `shasum -a 256 -c SHA256SUMS` should answer `OK`.
+
+The app is signed with a certificate of its own ("StarHubFR Signature"). It doesn't replace notarisation, but macOS recognises the app from one version to the next: access to the Nexus key and the permissions you granted stay in place after an update.
+
 #### Removing the quarantine with Sentinel
 
 macOS puts every downloaded app in "quarantine" and refuses to open the ones Apple hasn't notarised, which is the case for StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), by Alin Lupascu, removes that flag in one gesture.
