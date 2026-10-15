@@ -56,6 +56,8 @@ struct HelpWindow: View {
                     .frame(maxWidth: 760, alignment: .leading)
                     .frame(maxWidth: .infinity)
                 }
+                // Changement de langue : la vue est reconstruite, donc de retour en haut.
+                .id(localization.currentLanguage)
                 .onAppear { scroll(proxy) }
                 .onChange(of: target) { _, _ in scroll(proxy) }
             }
