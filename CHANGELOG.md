@@ -16,6 +16,10 @@ where the exact log format was verified.
 
 - **Aide intégrée** : le guide utilisateur se lit dans l'app, dans la langue de l'interface, avec sommaire et recherche (menu Aide › Aide StarHubFR, ⌘?, ou palette ⌘K). Le bouton « ? » de la barre d'outils ouvre directement la section qui explique la page affichée.
 
+### Changed
+
+- **Traduction : seules les marques qui cassent le jeu bloquent l'enregistrement.** Un portrait, le nom du joueur (`@`), un saut de ligne ou de page déplacés s'affichent en avertissement sous le champ ; une commande de dialogue perdue ou un `#` seul qui ferme la conversation bloquent toujours. Le `%` qui ouvre une réplique narrée n'est plus pris pour une variable.
+
 ## [1.66.0] - 2026-10-15
 
 ### Added

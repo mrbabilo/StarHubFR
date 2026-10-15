@@ -173,7 +173,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 > ✅ **Les 8 items de ce lot sont clos** — 7 livrés, **C3-T2** pesé le 2026-10-02 et non engagé. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
-- [ ] **C3-T9** — *(ouvert le 2026-10-15)* Revoir ce qui **bloque** l'enregistrement
+- [ ] **C3-T9** — *(code livré le 2026-10-15, validation écran en attente)* Revoir ce qui **bloque** l'enregistrement
       d'une traduction contre ce que le jeu fait vraiment. `TranslationTokenCheck`
       bloque tout écart de compte de marques ; la référence i18n-translator 2.5.1
       (règles revérifiées contre le jeu 1.6, Content Patcher et Mail Framework Mod)
@@ -184,6 +184,14 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       `Dialogue.parseDialogueString` le 2026-10-14) avant d'en desserrer une, et
       compter sur les traductions françaises du parc combien de lignes chaque
       changement débloquerait. Détail : `docs/SOURCES.md`, relevé du 2026-10-15. · **M**
+      **Livré** : `%` de narration et noms `%` du jeu reconnus ; portraits, `@`, `^`,
+      `#$b#`/`#$e#`/`#$k#` et variables `%` en avertissement ; `#` nu de plus bloquant
+      dans un dialogue ; IA relancée sur un `@`/une variable perdus. Parc : 3 477 lignes
+      bloquées avant, environ 420 après (mesure du 2026-10-15, à refaire après livraison).
+      **À valider à l'écran** : (a) une ligne à portrait retiré s'enregistre et montre
+      « À vérifier : $h » ; (b) `##` à la place de `#$b#` bloque avec « # seul (ferme la
+      conversation) » ; (c) la note ne s'affiche pas sur un brouillon vide et n'empêche
+      pas « Enregistrer » ; (d) largeur minimale de l'éditeur, texte français.
 
 
 #### C4 — Éditeur de config lisible
