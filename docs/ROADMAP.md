@@ -160,7 +160,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15 pour C3-T9 et C3-T10** (règles de blocage des marques, à mesurer contre le jeu) ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15** pour les règles de blocage des marques : **C3-T9** livré et validé à l'écran le jour même, à l'archive ; **C3-T10** ouvert ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -171,30 +171,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C3 — Éditeur `fr.json` assisté
 
-> ✅ **Les 8 items de ce lot sont clos** — 7 livrés, **C3-T2** pesé le 2026-10-02 et non engagé. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
-
-- [ ] **C3-T9** — *(code livré le 2026-10-15, validation écran en attente)* Revoir ce qui **bloque** l'enregistrement
-      d'une traduction contre ce que le jeu fait vraiment. `TranslationTokenCheck`
-      bloque tout écart de compte de marques ; la référence i18n-translator 2.5.1
-      (règles revérifiées contre le jeu 1.6, Content Patcher et Mail Framework Mod)
-      n'en bloque plus qu'une partie : un `#$b#` perdu, une page `#$e#`, un
-      `[FarmName]` manquant deviennent des avertissements, tandis qu'un `#$b#`
-      remplacé par `#` ou une page changée dans un texte à `$1`/`$c` bloquent.
-      Mesurer chaque règle dans la DLL du jeu (comme `$y`, relu dans
-      `Dialogue.parseDialogueString` le 2026-10-14) avant d'en desserrer une, et
-      compter sur les traductions françaises du parc combien de lignes chaque
-      changement débloquerait. Détail : `docs/SOURCES.md`, relevé du 2026-10-15. · **M**
-      **Livré** : `%` de narration et noms `%` du jeu reconnus ; portraits, `@`, `^`,
-      `#$b#`/`#$e#`/`#$k#` et variables `%` en avertissement ; `#` nu de plus bloquant
-      dans un dialogue ; IA relancée sur un `@`/une variable perdus. Parc : 3 477 lignes
-      bloquées avant, 374 après (mesure du 2026-10-15).
-      **À valider à l'écran** : (a) une ligne à portrait retiré s'enregistre et montre
-      « À vérifier : marque(s) manquante(s) : $h » ; (b) `##` à la place de `#$b#` bloque
-      avec « marque(s) en trop : # seul (ferme la conversation) » et montre le `#$b#`
-      perdu sous « À vérifier » ; (c) la note ne s'affiche pas sur un brouillon vide et
-      n'empêche pas « Enregistrer » ; (d) largeur minimale de l'éditeur, texte français ;
-      (e) `!#$h` pour `!$h` bloque avec « marque(s) en trop : #$h » et montre le `$h`
-      manquant.
+> ✅ **9 items de ce lot sont clos** — 8 livrés (**C3-T9** le 2026-10-15), **C3-T2** pesé le 2026-10-02 et non engagé ; **C3-T10** reste ouvert. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
 - [ ] **C3-T10** — *(ouvert le 2026-10-15)* Environ 50 des 374 lignes encore bloquées
       viennent de fautes de frappe de l'**auteur**, dans la source anglaise : un `$X`
@@ -2112,6 +2089,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C3-T6** | 2026-08-18 | I18nLenientParser garde la première occurrence d'une clé JSON dupliquée ; le jeu (Newtonsoft) garde la dernière. Trou… |
 | **C3-T7** | 2026-08-20 | Secours de traduction en ligne (DeepL) |
 | **C3-T8** | 2026-08-21 | Traduire une sélection de la source |
+| **C3-T9** | 2026-10-15 | Ne bloquer que les marques qui cassent le jeu (mesuré dans la DLL) : portraits, `@`, `#$b#`, variables `%` en avertissement ; `#` nu bloquant ; chaque écart dit manquant ou en trop ; IA relancée dans le bon sens. Parc 3 477 → 374 lignes bloquées ; validé à l'écran |
 | **C4-T4** | 2026-08-28 | §audit-config-menus — Lire le ConfigSchema de content.json (Content Patcher) : type, valeur par défaut, valeurs admis… |
 | **C4-T5** | 2026-08-28 | §audit-config-menus — Sortir l'éditeur de JSONSerialization. Défaut indépendant des menus de config, trouvé en instru… |
 | **C4-T6** | 2026-09-04 | Dire quand le fichier va être réécrit sous nos pieds |

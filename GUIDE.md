@@ -120,7 +120,7 @@ Un écart n'est affiché comme gain ou perte qu'au-delà du bruit mesuré entre 
 Ouvrez la fiche d'un mod, onglet **Traduction**.
 
 - **Anglais à gauche, français à droite**, clé par clé. Un mod sans `fr.json` en reçoit un au premier enregistrement.
-- **Les marqueurs du jeu** (noms de joueur, retours à la ligne, couleurs…) s'affichent en couleur et s'insèrent d'un clic. Un enregistrement qui en perd un est refusé : le jeu afficherait du texte cassé.
+- **Les marqueurs du jeu** (noms de joueur, retours à la ligne, couleurs…) s'affichent en couleur et s'insèrent d'un clic. Une marque qui casse le jeu (commande de dialogue, `#` seul, `{{…}}`) perdue ou ajoutée bloque l'enregistrement, et l'app dit laquelle est manquante ou en trop. Un portrait, le nom du joueur (`@`) ou un saut de page déplacés s'affichent sous le champ, « À vérifier », sans bloquer.
 - **Brouillon par IA locale** : avec [Ollama](https://ollama.com) ou [LM Studio](https://lmstudio.ai) sur votre Mac, l'app propose une traduction marquée « À relire ». Rien ne quitte votre machine. Le glossaire des noms officiels du jeu est imposé au modèle.
 - **Traductions FR** liste les traductions déjà publiées sur Nexus pour vos mods : souvent, il suffit d'en installer une.
 
@@ -134,6 +134,7 @@ Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour d
 - **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot.
 - **Un dossier illisible ou parasite a disparu de `Mods/`** — **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé.
 - **Une partie** — **Sauvegardes du jeu** : copie avant chaque modification.
+- **Une copie complète, à garder à part** — **Entretien** › Sauvegarder le dossier des mods (mods en pause compris), ou l'icône d'archive de **Sauvegardes du jeu** : un `.zip` dans le dossier de votre choix. L'app vérifie la place, estime la durée, montre l'avancement ; « Annuler » ne laisse rien derrière.
 
 Tout cela vit dans `~/Library/Application Support/StarHubFR/`.
 

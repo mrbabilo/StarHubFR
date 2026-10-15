@@ -2290,6 +2290,29 @@ touchées).
       Le panneau anglais est devenu un pont AppKit : SwiftUI rend un texte
       sélectionnable mais ne dit pas ce qui l'est avant macOS 15.
 
+- [x] **C3-T9** — *(livré le 2026-10-15, commits `ceb81a5a` à `d05e3417` ; validé à l'écran par l'auteur le jour même)* Revoir ce qui **bloque** l'enregistrement
+      d'une traduction contre ce que le jeu fait vraiment. `TranslationTokenCheck`
+      bloque tout écart de compte de marques ; la référence i18n-translator 2.5.1
+      (règles revérifiées contre le jeu 1.6, Content Patcher et Mail Framework Mod)
+      n'en bloque plus qu'une partie : un `#$b#` perdu, une page `#$e#`, un
+      `[FarmName]` manquant deviennent des avertissements, tandis qu'un `#$b#`
+      remplacé par `#` ou une page changée dans un texte à `$1`/`$c` bloquent.
+      Mesurer chaque règle dans la DLL du jeu (comme `$y`, relu dans
+      `Dialogue.parseDialogueString` le 2026-10-14) avant d'en desserrer une, et
+      compter sur les traductions françaises du parc combien de lignes chaque
+      changement débloquerait. Détail : `docs/SOURCES.md`, relevé du 2026-10-15. · **M**
+      **Livré** : `%` de narration et noms `%` du jeu reconnus ; portraits, `@`, `^`,
+      `#$b#`/`#$e#`/`#$k#` et variables `%` en avertissement ; `#` nu de plus bloquant
+      dans un dialogue ; IA relancée sur un `@`/une variable perdus. Parc : 3 477 lignes
+      bloquées avant, 374 après (mesure du 2026-10-15).
+      **À valider à l'écran** : (a) une ligne à portrait retiré s'enregistre et montre
+      « À vérifier : marque(s) manquante(s) : $h » ; (b) `##` à la place de `#$b#` bloque
+      avec « marque(s) en trop : # seul (ferme la conversation) » et montre le `#$b#`
+      perdu sous « À vérifier » ; (c) la note ne s'affiche pas sur un brouillon vide et
+      n'empêche pas « Enregistrer » ; (d) largeur minimale de l'éditeur, texte français ;
+      (e) `!#$h` pour `!$h` bloque avec « marque(s) en trop : #$h » et montre le `$h`
+      manquant.
+
 #### C4 — Éditeur de config lisible
 
 - [x] **C4-T4** — `§audit-config-menus` — **Lire le `ConfigSchema` de `content.json`**
