@@ -6800,6 +6800,54 @@ sans lire une ligne de log.
       sélection partagent `toggleMods` (SMAPI protégé, empreintes avant pause).
       Mode liste seulement ; composants de pack non sélectionnables.
 
+- [x] **I-T21** — *(code livré le 2026-10-14, lots 1 et 2, commits `e29a3875` à `98bde08b` ; validé à l'écran par l'auteur le 2026-10-15)* Groupes/séparateurs pliables dans la liste (bannière, repli,
+      activer/désactiver tout le groupe, déplacer un mod de groupe en groupe,
+      génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil
+      décrit un **état**, un groupe décrit un **rangement** — les deux se
+      complètent sans se remplacer. · **M**
+      *Cadré le 2026-10-14 avec l'auteur* (spec et plan locaux :
+      `docs/superpowers/specs|plans/2026-10-14-i-t21-groupes-et-corbeille*`).
+      Décisions :
+      - **Lot 1** : « Mettre à la corbeille » dans la barre de multi-sélection.
+        Un seul événement de corbeille, les dépendants actifs restants nommés
+        (`ContentPackFor` compris), sonde et mods SMAPI refusés et nommés. La
+        garde « jeu ouvert » s'applique aussi à la suppression unitaire.
+      - **Lot 2** : groupes à soi, un seul par mod, entrées de tête seules,
+        clé `folderName`, dans `mod_groups.json` (un fichier illisible est mis
+        de côté, jamais écrasé). « Regrouper par : Aucun / Mes groupes /
+        Catégorie ».
+      - **Liste** : 12 places par page ; un groupe replié en prend une, une
+        section coupée reprend en « (suite) ». Un groupe replié sort de la
+        sélection effective et de la navigation clavier.
+      - **« Tout activer » d'un groupe** vise ses membres dans le cadrage
+        courant (règle X57).
+      - **Écartés** : le glisser-déposer, les groupes depuis des sous-dossiers
+        (le parc n'en a aucun), les groupes imbriqués.
+      - **Écarts à la spec, tranchés à la revue finale** (2026-10-14) :
+        - un `mod_groups.json` d'un **format plus récent** (champ `version`
+          > 1) reste **en place**, intact, et rien n'est écrit (la spec disait
+          « mis de côté » : la version récente ne l'aurait plus retrouvé). Les
+          changements de groupes ne durent alors que la session, signalés au
+          journal seulement ;
+        - le pied de page groupé compte les **mods visibles** (sections
+          repliées exclues), et une page faite seulement de bandeaux repliés
+          n'affiche aucune plage ;
+        - un refus (jeu ouvert, mesure en cours) **garde la sélection**.
+      - **Mineurs de la revue finale, corrigés le 2026-10-14** : échec de
+        corbeille nommé avec son erreur et une ligne de journal par mod parti ;
+        bouton grisé quand toute la sélection est refusée ; pluriels `_one` et
+        vouvoiement ; clavier et pied de page bornés par la page groupée
+        affichée ; dépendants non nommés quand une autre copie active du même
+        `UniqueID` reste ; journal du magasin des groupes jamais écrit en plein
+        rendu ; test du composant de pack qui part avec sa tête.
+        **Reste** : un mod actif `X` et sa copie en pause `.X` partagent
+        `folderName`, donc la sélection ; les mettre à la corbeille emporte les
+        deux (la confirmation les nomme, « Tout restaurer » les rend). Corriger
+        demande une identité de ligne autre que `folderName` — piège connu,
+        signalé dans Alertes système, pas de migration des magasins.
+        Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
+        (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
+
 - [x] **I-T22** — *(lots A à D livrés le 2026-10-14, commits `d0782137`,
       `30e4d694`, `c6e16ca5`, `544cf184`)* Audit UX/UI de l'onglet **Performances**
       (prompt `docs/prompt-audit-ux-performances.md` ; rapport local

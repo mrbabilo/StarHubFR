@@ -816,7 +816,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; reste **I-T21** ; I-T22 (audit UX de l'onglet Performances) livré et validé le 2026-10-14, I-T23 (plan de raccourcis) le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -854,55 +854,8 @@ de `MainView` — le piège des états de détail remis à `nil` au changement
 d'onglet s'applique à chaque saut.
 **`§audit-stardrop-nativemac` — idées relevées le 2026-10-04**
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
-de l'axe — l'un des rares domaines où le port devance nos écrans :
-
-- [ ] **I-T21** — *(code livré le 2026-10-14, lots 1 et 2 ; validation écran en attente)* Groupes/séparateurs pliables dans la liste (bannière, repli,
-      activer/désactiver tout le groupe, déplacer un mod de groupe en groupe,
-      génération depuis la structure de sous-dossiers `[MODS] - …`). Un profil
-      décrit un **état**, un groupe décrit un **rangement** — les deux se
-      complètent sans se remplacer. · **M**
-      *Cadré le 2026-10-14 avec l'auteur* (spec et plan locaux :
-      `docs/superpowers/specs|plans/2026-10-14-i-t21-groupes-et-corbeille*`).
-      Décisions :
-      - **Lot 1** : « Mettre à la corbeille » dans la barre de multi-sélection.
-        Un seul événement de corbeille, les dépendants actifs restants nommés
-        (`ContentPackFor` compris), sonde et mods SMAPI refusés et nommés. La
-        garde « jeu ouvert » s'applique aussi à la suppression unitaire.
-      - **Lot 2** : groupes à soi, un seul par mod, entrées de tête seules,
-        clé `folderName`, dans `mod_groups.json` (un fichier illisible est mis
-        de côté, jamais écrasé). « Regrouper par : Aucun / Mes groupes /
-        Catégorie ».
-      - **Liste** : 12 places par page ; un groupe replié en prend une, une
-        section coupée reprend en « (suite) ». Un groupe replié sort de la
-        sélection effective et de la navigation clavier.
-      - **« Tout activer » d'un groupe** vise ses membres dans le cadrage
-        courant (règle X57).
-      - **Écartés** : le glisser-déposer, les groupes depuis des sous-dossiers
-        (le parc n'en a aucun), les groupes imbriqués.
-      - **Écarts à la spec, tranchés à la revue finale** (2026-10-14) :
-        - un `mod_groups.json` d'un **format plus récent** (champ `version`
-          > 1) reste **en place**, intact, et rien n'est écrit (la spec disait
-          « mis de côté » : la version récente ne l'aurait plus retrouvé). Les
-          changements de groupes ne durent alors que la session, signalés au
-          journal seulement ;
-        - le pied de page groupé compte les **mods visibles** (sections
-          repliées exclues), et une page faite seulement de bandeaux repliés
-          n'affiche aucune plage ;
-        - un refus (jeu ouvert, mesure en cours) **garde la sélection**.
-      - **Mineurs de la revue finale, corrigés le 2026-10-14** : échec de
-        corbeille nommé avec son erreur et une ligne de journal par mod parti ;
-        bouton grisé quand toute la sélection est refusée ; pluriels `_one` et
-        vouvoiement ; clavier et pied de page bornés par la page groupée
-        affichée ; dépendants non nommés quand une autre copie active du même
-        `UniqueID` reste ; journal du magasin des groupes jamais écrit en plein
-        rendu ; test du composant de pack qui part avec sa tête.
-        **Reste** : un mod actif `X` et sa copie en pause `.X` partagent
-        `folderName`, donc la sélection ; les mettre à la corbeille emporte les
-        deux (la confirmation les nomme, « Tout restaurer » les rend). Corriger
-        demande une identité de ligne autre que `folderName` — piège connu,
-        signalé dans Alertes système, pas de migration des magasins.
-        Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
-        (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
+de l'axe — l'un des rares domaines où le port devance nos écrans. I-T21 en est
+issu, livré et archivé.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
@@ -2295,6 +2248,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T18** | 2026-10-02 | Audit UX : en-tête commun et cartes sur toutes les pages (`PageChrome`), fiche en six onglets avec relevé Santé (`ModHealthChecklist`), Alertes en onglets, astérisques des descriptions 103 → 8 ; v1.53.0 |
 | **I-T19** | 2026-10-02 | En-tête des Mises à jour : un zéro jamais vérifié ou avec des mods sans verdict ne disait pas d'où il venait ; `UpdateCheckVerdict` (Core) + âge de la dernière passe complète |
 | **I-T20** | 2026-10-07 | Multi-sélection dans la liste : clic, ⌘clic, ⇧clic, ⇧↑↓, ⌘A, Échap, Espace ; bandeau dès deux mods, même chemin que « Tout » (`ModListSelection`) |
+| **I-T21** | 2026-10-14 | Corbeille d'une multi-sélection (dépendants actifs nommés, sonde et SMAPI refusés, garde jeu ouvert) et groupes pliables à soi (`mod_groups.json`, « Regrouper par : Aucun / Mes groupes / Catégorie », tout activer d'un groupe) ; validé à l'écran le 2026-10-15 |
 | **I-T22** | 2026-10-14 | Audit UX de l'onglet Performances en quatre lots : une ligne d'état, bloc « Mesurer », outils tiers repliés si absents, une seule conclusion, motifs de grisage avant le clic, entrées depuis liste/fiche/palette/Santé (`NavigationStore.openPerformance`) ; validé à l'écran |
 | **I-T23** | 2026-10-15 | Plan de raccourcis : conflits déplacés vers des touches libres par famille (lettres action, chiffres info, F rares), deux modes, décochage, famille corrigée gardée (`KeybindFamilyStore`), sauvegarde avant écriture et annulation, bandeau après bascule de profil (`KeybindPlanner`) ; validé à l'écran |
 
