@@ -419,6 +419,7 @@ let package = Package(
                 "Stores/ProbePerformanceStore.swift",
                 "Stores/ModGroupStore.swift",
                 "Stores/KeybindFamilyStore.swift",
+                "Stores/KeybindPlanService.swift",
                 "Stores/SessionEnvironmentStore.swift",
                 "Stores/ContentPatcherLoadIndex.swift",
                 "Stores/ModImpactStore.swift",
