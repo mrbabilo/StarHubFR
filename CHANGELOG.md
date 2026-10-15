@@ -18,7 +18,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Traduction : seules les marques qui cassent le jeu bloquent l'enregistrement.** Un portrait, le nom du joueur (`@`), un saut de ligne ou de page déplacés s'affichent en avertissement sous le champ ; une commande de dialogue perdue ou un `#` seul qui ferme la conversation bloquent toujours. Le `%` qui ouvre une réplique narrée n'est plus pris pour une variable.
+- **Traduction : seules les marques qui cassent le jeu bloquent l'enregistrement.** Portrait, `@`, saut de ligne ou de page : avertissement sous le champ. Commande perdue ou `#` seul en trop : blocage, chaque marque dite manquante ou en trop. Le `%` de narration n'est plus une variable.
 
 ## [1.66.0] - 2026-10-15
 

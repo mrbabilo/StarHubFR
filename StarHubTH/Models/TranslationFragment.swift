@@ -22,9 +22,10 @@ public enum TranslationFragment {
     public static func prepare(_ selection: String) -> Preparation {
         let trimmed = selection.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .empty }
-        // Toute marque reconnue est « dure » dans ce dépôt : le saut de ligne
-        // littéral et les apostrophes appariées, eux, ne sont pas reconnus —
-        // ils ne bloquent pas l'écriture et n'ont pas à bloquer ici.
+        // Toute marque reconnue reste hors de DeepL, qu'elle bloque
+        // l'écriture ou n'avertisse que (C3-T9) : DeepL la traduirait ou la
+        // déplacerait. Le saut de ligne littéral et les apostrophes
+        // appariées, eux, ne sont pas reconnus — rien à écarter ici.
         let markers = Array(Set(TranslationTokenCheck.extract(trimmed))).sorted()
         guard markers.isEmpty else { return .containsMarkers(markers) }
         return .ready(trimmed)

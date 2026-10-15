@@ -187,11 +187,22 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       **Livré** : `%` de narration et noms `%` du jeu reconnus ; portraits, `@`, `^`,
       `#$b#`/`#$e#`/`#$k#` et variables `%` en avertissement ; `#` nu de plus bloquant
       dans un dialogue ; IA relancée sur un `@`/une variable perdus. Parc : 3 477 lignes
-      bloquées avant, environ 420 après (mesure du 2026-10-15, à refaire après livraison).
+      bloquées avant, 372 après (mesure du 2026-10-15).
       **À valider à l'écran** : (a) une ligne à portrait retiré s'enregistre et montre
-      « À vérifier : $h » ; (b) `##` à la place de `#$b#` bloque avec « # seul (ferme la
-      conversation) » ; (c) la note ne s'affiche pas sur un brouillon vide et n'empêche
-      pas « Enregistrer » ; (d) largeur minimale de l'éditeur, texte français.
+      « À vérifier : marque(s) manquante(s) : $h » ; (b) `##` à la place de `#$b#` bloque
+      avec « marque(s) en trop : # seul (ferme la conversation) » et montre le `#$b#`
+      perdu sous « À vérifier » ; (c) la note ne s'affiche pas sur un brouillon vide et
+      n'empêche pas « Enregistrer » ; (d) largeur minimale de l'éditeur, texte français ;
+      (e) `!#$h` pour `!$h` bloque avec « marque(s) en trop : #$h » et montre le `$h`
+      manquant.
+
+- [ ] **C3-T10** — *(ouvert le 2026-10-15)* Environ 50 des 372 lignes encore bloquées
+      viennent de fautes de frappe de l'**auteur**, dans la source anglaise : un `$X`
+      ou `#$X` majuscule lu comme une commande (`#$b$You…` → `$Y` ; `$I` ×12 ;
+      `#$I may` traduit `#$Je`), plus des `{{Random:…}}` bloqués sur des options
+      pourtant bien traduites. Décider si `$` suivi d'une majuscule est du texte —
+      le relire dans `Dialogue` avant — : aujourd'hui l'IA ne peut jamais faire
+      passer ces lignes. · **S**
 
 
 #### C4 — Éditeur de config lisible

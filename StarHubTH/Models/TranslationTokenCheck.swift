@@ -42,7 +42,8 @@ public enum TranslationTokenCheck {
     /// remplacent qu'un nom, `^` et `#$b#`/`#$e#`/`#$k#` ne changent que la
     /// mise en page. Ce qui casse : une commande de dialogue, un jeton
     /// Content Patcher, un emplacement `{n}`, une commande de courrier ou
-    /// d'objet, et un `#` nu de plus (§ `bareHashToken`).
+    /// d'objet, un nom d'objet `%DISPLAY_NAME`/`%PRESERVED_DISPLAY_NAME`, et
+    /// un `#` nu de plus (§ `bareHashToken`).
     public static func isHard(_ token: String) -> Bool {
         if token.isEmpty { return false }
         if token == bareHashToken { return true }
@@ -54,6 +55,7 @@ public enum TranslationTokenCheck {
         if token.hasPrefix("%") {
             return token.hasPrefix("%item") || token.hasPrefix("%action")
                 || token == "%fork" || token == "%revealtaste"
+                || token == "%DISPLAY_NAME" || token == "%PRESERVED_DISPLAY_NAME"
         }
         if token.hasPrefix("$"), token != "${" {
             let body = token.dropFirst()

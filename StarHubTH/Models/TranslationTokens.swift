@@ -236,8 +236,10 @@ public enum TranslationTokens {
     /// `Replace("%spouse", …)`, `%Spouse` reste du texte. Les plus longs
     /// d'abord : `%firstnameletter` ne doit pas se lire `%f…`. `kid1` et
     /// `kid2` gardent leur chiffre : intervertir les deux enfants doit se voir.
+    /// `PRESERVED_DISPLAY_NAME` et `DISPLAY_NAME` : noms d'objet du jeu 1.6
+    /// (chaînes de `Stardew Valley.dll`), en majuscules.
     static let percentNames: [String] = [
-        "firstnameletter", "revealtaste", "favorite", "noturn", "season", "spouse",
+        "PRESERVED_DISPLAY_NAME", "firstnameletter", "DISPLAY_NAME", "revealtaste", "favorite", "noturn", "season", "spouse",
         "action", "place", "noun", "name", "kid1", "kid2", "band", "book", "farm",
         "fork", "item", "time", "year", "adj", "pet",
     ]
