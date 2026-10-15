@@ -1,68 +1,66 @@
-name: Bug SMAPI / installation
-description: Signaler une erreur d'installation de mod ou un problème lié à SMAPI
-title: "[Bug SMAPI/Installation] "
+name: SMAPI ou installation de mod · SMAPI or mod install
+description: Un mod ne s'installe pas, SMAPI ne s'installe pas, ou le jeu ne démarre plus après une action de StarHubFR.
 labels: ["bug", "installation"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de signaler ce bug. Plus votre rapport est précis, plus vite il pourra être corrigé.
+        Le journal SMAPI est la pièce la plus utile : déposez `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt`
+        sur https://smapi.io/log et collez le lien obtenu ci-dessous.
+        *The SMAPI log is the most useful piece: upload it to https://smapi.io/log and paste the link.*
   - type: textarea
     id: description
     attributes:
-      label: Description du problème
-      description: Que s'est-il passé lors de l'installation ou du lancement via SMAPI ?
+      label: Ce qui se passe · What happens
+      description: Quelle action dans StarHubFR, et quel résultat (message d'erreur, mod absent, jeu qui ne démarre pas…).
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Étapes de reproduction
-      description: Comment reproduire le problème étape par étape ?
+      label: Étapes pour reproduire · Steps to reproduce
       placeholder: |
-        1. Ouvrir StarHubFR
-        2. Installer le mod X
-        3. Lancer SMAPI
-        4. ...
+        1. Glisser l'archive … dans StarHubFR
+        2. Lancer le jeu via SMAPI
+        3. …
     validations:
       required: true
-  - type: textarea
-    id: expected
+  - type: input
+    id: smapi-log
     attributes:
-      label: Comportement attendu
-    validations:
-      required: true
-  - type: textarea
-    id: logs
+      label: Lien du journal SMAPI · SMAPI log link
+      placeholder: "https://smapi.io/log/…"
+  - type: input
+    id: archive
     attributes:
-      label: Logs SMAPI / StarHubFR
-      description: Collez ici les logs pertinents (SMAPI log, console StarHubFR, etc.)
-      render: shell
+      label: Archive ou mod concerné · Archive or mod
+      description: Nom du fichier (.zip, .7z, .rar) et lien Nexus si vous l'avez.
   - type: input
     id: starhubfr-version
     attributes:
       label: Version de StarHubFR
-      placeholder: "Ex: v1.28.0"
+      description: En bas des Réglages, ou menu StarHubFR › À propos.
+      placeholder: "v1.66.0"
     validations:
       required: true
   - type: input
     id: smapi-version
     attributes:
       label: Version de SMAPI
-      placeholder: "Ex: 4.1.0"
+      description: Première ligne du journal SMAPI.
+      placeholder: "4.3.2"
   - type: dropdown
-    id: os
+    id: store
     attributes:
-      label: Système d'exploitation
+      label: Version du jeu achetée sur · Game store
       options:
-        - macOS
-        - Windows
-        - Linux
-        - Autre
+        - Steam
+        - GOG
+        - Autre · Other
+  - type: input
+    id: macos-version
+    attributes:
+      label: Version de macOS
+      placeholder: "macOS 15.5"
     validations:
       required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Contexte additionnel
-      description: Archives concernées (.zip, .7z, .rar), autres mods installés, etc.

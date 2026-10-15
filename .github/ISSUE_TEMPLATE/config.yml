@@ -1,5 +1,11 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Question générale
-    url: https://github.com/mrbabilo/StarHubFR/discussions
-    about: Pour toute question qui n'est pas un bug ou une demande de fonctionnalité
+  - name: Vulnérabilité de sécurité · Security vulnerability
+    url: https://github.com/mrbabilo/StarHubFR/security/advisories/new
+    about: Signalement privé, jamais en issue publique. Private report, never a public issue.
+  - name: Problème d'un mod précis · Problem with a specific mod
+    url: https://www.nexusmods.com/stardewvalley/mods
+    about: Si le mod plante en jeu sans que StarHubFR y soit pour rien, la page Nexus du mod (onglet Bugs) est le bon endroit.
+  - name: Aide SMAPI · SMAPI help
+    url: https://smapi.io/troubleshoot
+    about: Dépannage officiel de SMAPI, indépendant de StarHubFR.

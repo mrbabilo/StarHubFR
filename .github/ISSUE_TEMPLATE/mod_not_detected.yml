@@ -1,62 +1,54 @@
-name: Mod non détecté
-description: Signaler un mod Stardew Valley que StarHubFR ne détecte pas ou détecte incorrectement
-title: "[Mod non détecté] "
+name: Mod non détecté · Mod not detected
+description: Un mod présent dans Mods/ n'apparaît pas dans StarHubFR, ou avec un mauvais nom, une mauvaise version ou une mauvaise mise à jour.
 labels: ["bug", "detection"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de signaler ce problème de détection. Merci de remplir les champs ci-dessous le plus précisément possible.
+        StarHubFR reconnaît un mod à son `manifest.json`. Le contenu de ce fichier règle la plupart des cas.
+        Un mod en pause est un dossier dont le nom commence par un point (`.X`) : il est normal qu'il soit grisé.
   - type: input
     id: mod-name
     attributes:
-      label: Nom du mod
-      description: Le nom exact du mod concerné
-      placeholder: "Ex: Stardew Valley Expanded"
+      label: Nom du mod · Mod name
+      placeholder: "Stardew Valley Expanded"
     validations:
       required: true
   - type: input
     id: nexus-link
     attributes:
-      label: Lien Nexus Mods
-      description: URL de la fiche Nexus du mod
-      placeholder: "https://www.nexusmods.com/stardewvalley/mods/..."
+      label: Lien Nexus Mods (si le mod y est)
+      placeholder: "https://www.nexusmods.com/stardewvalley/mods/…"
+  - type: input
+    id: folder
+    attributes:
+      label: Nom du dossier dans Mods/ · Folder name
+      description: Avec ses dossiers parents s'il est dans un sous-dossier.
+      placeholder: "Mods/[SVE]/Stardew Valley Expanded"
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Ce que StarHubFR affiche · What StarHubFR shows
+      description: Mod absent, nom ou version faux, mise à jour proposée à tort, autre.
     validations:
       required: true
   - type: textarea
     id: expected-behavior
     attributes:
-      label: Comportement attendu
-      description: Que devrait détecter ou afficher StarHubFR ?
+      label: Ce que vous attendiez · What you expected
     validations:
       required: true
   - type: textarea
-    id: actual-behavior
+    id: manifest
     attributes:
-      label: Comportement observé
-      description: Que se passe-t-il réellement (mod absent, mauvaise version, mauvais nom, etc.) ?
-    validations:
-      required: true
+      label: Contenu du manifest.json
+      description: Ouvrez le fichier `manifest.json` du mod dans un éditeur de texte et collez son contenu.
+      render: json
   - type: input
     id: starhubfr-version
     attributes:
       label: Version de StarHubFR
-      placeholder: "Ex: v1.28.0"
+      description: En bas des Réglages, ou menu StarHubFR › À propos.
+      placeholder: "v1.66.0"
     validations:
       required: true
-  - type: dropdown
-    id: os
-    attributes:
-      label: Système d'exploitation
-      options:
-        - macOS
-        - Windows
-        - Linux
-        - Autre
-    validations:
-      required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Contexte additionnel
-      description: Captures d'écran, logs, ou toute autre information utile

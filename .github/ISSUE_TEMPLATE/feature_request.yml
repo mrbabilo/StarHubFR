@@ -1,0 +1,26 @@
+name: Idée · Feature idea
+description: Une fonction qui manque, ou un écran qui pourrait mieux faire.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Décrivez d'abord le besoin, avant la solution : ce que vous essayez de faire et ce qui coince aujourd'hui.
+        *Describe the need first, then the solution.*
+  - type: textarea
+    id: need
+    attributes:
+      label: Le besoin · The need
+      description: Ce que vous voulez faire, et pourquoi c'est difficile ou impossible aujourd'hui.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Votre idée · Your idea
+      description: Comment vous l'imaginez dans l'app. Une capture ou un croquis aide.
+  - type: textarea
+    id: elsewhere
+    attributes:
+      label: Vu ailleurs · Seen elsewhere
+      description: Un autre gestionnaire (Vortex, Stardrop…) ou un mod qui le fait déjà, avec un lien.

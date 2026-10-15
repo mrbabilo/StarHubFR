@@ -1,64 +1,115 @@
 # Contribuer à StarHubFR
 
-Merci de votre intérêt pour StarHubFR, le hub de gestion et de traduction française pour mods Stardew Valley ! Ce document explique comment participer efficacement au projet.
+*[English version below](#contributing-to-starhubfr).*
 
-## Façons de contribuer
+Merci de votre intérêt pour StarHubFR, gestionnaire de mods Stardew Valley natif pour macOS. Ce guide dit comment signaler un problème, proposer une idée et faire accepter un changement de code.
 
-- **Signaler un bug** : mod non détecté, erreur d'installation, crash SMAPI, etc.
-- **Proposer une traduction** : améliorer ou compléter la couverture FR d'un mod.
-- **Corriger ou améliorer le code** : Swift, logique de scraping Nexus, interface.
-- **Améliorer la documentation** : README, guides, captures d'écran.
+## Signaler, proposer, demander
 
-## Avant de commencer
+Ouvrez une [issue](../../issues/new/choose) et choisissez le modèle qui correspond :
 
-1. Vérifiez les [issues existantes](../../issues) pour éviter les doublons.
-2. Pour un changement important (nouvelle fonctionnalité, refonte), ouvrez d'abord une issue de discussion avant de coder.
-3. Pour une correction mineure (typo, petit bug), une pull request directe est bienvenue.
+- **Bug de l'app** — un écran, un bouton ou une donnée qui ne va pas.
+- **SMAPI ou installation de mod** — une archive qui ne s'installe pas, un jeu qui ne démarre plus.
+- **Mod non détecté** — un mod absent de la liste, ou avec un mauvais nom, une mauvaise version.
+- **Idée** — une fonction qui manque.
+- **Question** — tout le reste.
 
-## Workflow de contribution
+Cherchez d'abord dans les [issues existantes](../../issues?q=is%3Aissue) : un doublon fait perdre du temps à tout le monde.
 
-1. Forkez le dépôt et créez une branche depuis `main` :
-   `git checkout -b fix/nom-court-descriptif`
-2. Faites vos modifications avec des commits clairs et atomiques (un commit = un changement logique).
-3. Lancez les tests localement avant de proposer votre PR :
-   `./run_tests.sh`
-4. Vérifiez les standards du projet :
-   `python3 check_standards.py`
-5. Ouvrez une pull request vers `main` avec :
-   - Un titre clair décrivant le changement.
-   - Une description du problème résolu ou de la fonctionnalité ajoutée.
-   - Des captures d'écran si l'interface est modifiée.
+**Une faille de sécurité ne s'ouvre jamais en issue publique** : voir [SECURITY.md](SECURITY.md).
 
-## Convention de commits
+## Traductions
 
-Utilisez des messages de commit en anglais ou en français, au format impératif court :
-- `fix: corrige la détection SMAPI sur macOS 15`
-- `feat: ajoute le filtre par catégorie de mod`
-- `docs: complète le guide d'installation`
+Deux choses distinctes portent ce nom :
 
-## Contribuer une traduction
+- **L'interface de l'app** (anglais et français) vit dans `assets/en.json` et `assets/fr.json`. Une correction de libellé est une contribution bienvenue : même clé dans les deux fichiers, français avec tous ses accents.
+- **Les traductions de mods** ne sont pas hébergées ici. L'onglet Traduction de l'app écrit le `fr.json` d'un mod sur votre Mac ; pour partager une traduction, publiez-la sur Nexus Mods avec l'accord de l'auteur du mod.
 
-Les traductions de mods sont au cœur de StarHubFR. Pour proposer ou corriger une traduction :
+## Préparer l'environnement
 
-1. Identifiez le mod concerné et sa fiche Nexus Mods.
-2. Suivez le format de traduction déjà utilisé par les autres mods du projet (voir le dossier `docs/` pour les conventions).
-3. Précisez dans votre PR le nom du mod, sa version, et la source de la traduction (traduction originale, adaptation, etc.).
-4. Respectez le droit d'auteur : ne proposez que des traductions que vous avez le droit de partager.
+- macOS 14 ou ultérieur.
+- **Xcode 16.4** complet, la version de la CI. Les seuls Command Line Tools ne suffisent pas.
+- Python 3, appelé `python3`.
 
-## Style de code Swift
+Si `xcode-select -p` pointe sur `/Library/Developer/CommandLineTools`, la compilation échoue sur `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found`, répété sur chaque `@State`. Ce n'est pas une erreur de code. Préfixez la commande :
 
-- Respectez le style déjà en place dans le projet (indentation, nommage).
-- Préférez des fonctions courtes et documentées avec des commentaires `///` pour les API publiques.
-- Évitez d'introduire de nouvelles dépendances externes sans discussion préalable.
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 build_app.py
+```
 
-## Rapporter un bug
+## Compiler et tester
 
-Utilisez le template d'issue "Bug SMAPI / installation" ou "Mod non détecté" selon le cas. Plus votre rapport est précis (version de StarHubFR, OS, logs SMAPI, étapes de reproduction), plus vite il pourra être traité.
+```bash
+python3 build_app.py; echo "exit=$?"   # compile toute l'app, vérifie les conventions, produit StarHubFR.app
+./run_tests.sh                         # tests du cœur (Swift Testing)
+./run_tests.sh --filter Keybind        # une seule famille de tests
+```
 
-## Code de conduite
+- Il n'y a pas de projet Xcode. `build_app.py` compile toutes les sources de `StarHubTH/` ; c'est le vrai contrôle d'un changement.
+- `Package.swift` ne décrit que le **cœur** testable (modèles, magasins, analyseurs). Les vues et le ViewModel ne s'y compilent pas, donc ne se testent pas.
+- Lisez le code de sortie de `build_app.py` directement : `python3 build_app.py | tail` rend celui de `tail`, vert même en cas d'échec.
 
-Ce projet suit un principe de respect mutuel : soyez bienveillant, constructif, et patient avec les autres contributeurs et utilisateurs, qui viennent d'horizons et de niveaux techniques variés.
+## Règles du code
 
-## Questions
+- **Une logique pure va dans le cœur** (`StarHubTH/Models/`, déclarée dans `Package.swift`), avec ses tests. Un état partagé va dans son propre magasin (`StarHubTH/Stores/`). Rien de neuf n'entre dans `StarHubTHViewModel`.
+- **Cliquet des conventions** : `check_standards.py`, lancé par `build_app.py`, échoue si un compteur augmente — fichier de plus de 400 lignes (taille verrouillée fichier par fichier), abréviation `vm`, nouveau `DispatchQueue`, nouveau singleton `.shared`. `python3 check_standards.py --report` donne l'état.
+- **Localisation** : chaque libellé existe dans `assets/en.json` et `assets/fr.json`, avec la même clé, référencé via `L10n.swift`. Le build échoue si les deux fichiers divergent.
+- **Vocabulaire métier** : lisez [`docs/DOMAINE.md`](docs/DOMAINE.md) avant de toucher aux mods, profils, sauvegardes ou traductions. Un mod en pause est un dossier préfixé d'un point (`Mods/.X`), jamais un dossier déplacé.
+- **Les tests n'écrivent jamais dans le vrai dossier de l'app** (`~/Library/Application Support/StarHubFR/`) : un magasin testé reçoit un dossier temporaire.
+- Pas de nouvelle dépendance externe sans en discuter d'abord dans une issue.
 
-Pour toute question qui ne rentre pas dans le cadre d'un bug ou d'une feature, ouvrez une issue avec le label `question` ou utilisez les Discussions du dépôt si elles sont activées.
+Les pièges techniques connus (SwiftUI, processus, concurrence, analyse des manifestes) sont consignés dans [`AGENTS.md`](AGENTS.md), section 4.
+
+## Proposer une pull request
+
+1. Pour un changement important, ouvrez d'abord une issue : on se met d'accord avant que vous écriviez le code.
+2. Forkez, puis créez une branche depuis `main`.
+3. Un commit par changement logique, au format `type(portée): description` — par exemple `fix(raccourcis): …`, `feat(performances): …`, `docs(readme): …`. Français ou anglais.
+4. Ajoutez une ligne au `CHANGELOG.md`, sous `## [Unreleased]`, en français : ce qui change pour l'utilisateur, en moins de 300 caractères.
+5. Joignez une capture d'écran si l'interface change, en français et à la largeur minimale de la fenêtre si possible.
+6. La CI (Xcode 16.4) doit être verte. Elle compile le cœur, lance les tests et vérifie les conventions, mais ne compile pas l'app entière : `python3 build_app.py` en local reste indispensable.
+
+Si un assistant IA a écrit un commit, terminez son message par un trailer `Co-Authored-By:` qui nomme le modèle réellement utilisé.
+
+## Comportement
+
+Soyez bienveillant et patient : les personnes qui ouvrent une issue ont des niveaux techniques très variés. Une critique porte sur le code, jamais sur la personne.
+
+---
+
+# Contributing to StarHubFR
+
+Thanks for your interest in StarHubFR, a native macOS mod manager for Stardew Valley. The French section above is the reference; this is a summary.
+
+## Report, suggest, ask
+
+Open an [issue](../../issues/new/choose) and pick a template: **App bug**, **SMAPI or mod install**, **Mod not detected**, **Feature idea** or **Question**. Search [existing issues](../../issues?q=is%3Aissue) first. **Never report a security flaw in a public issue**: see [SECURITY.md](SECURITY.md).
+
+## Translations
+
+- **The app's interface** lives in `assets/en.json` and `assets/fr.json`. Wording fixes are welcome: same key in both files.
+- **Mod translations** are not hosted here. The app's Translation tab writes a mod's `fr.json` on your Mac; to share one, publish it on Nexus Mods with the mod author's consent.
+
+## Set up, build, test
+
+You need macOS 14+, full **Xcode 16.4** (the CI version; Command Line Tools alone are not enough) and `python3`.
+
+```bash
+python3 build_app.py; echo "exit=$?"   # builds the whole app, checks conventions
+./run_tests.sh                         # core tests (Swift Testing)
+```
+
+If the build fails on `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found`, the active toolchain is the Command Line Tools: prefix the command with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`. There is no Xcode project; `Package.swift` only covers the testable core.
+
+## Code rules
+
+- Pure logic goes into the core (`StarHubTH/Models/`, listed in `Package.swift`) with tests; shared state gets its own store (`StarHubTH/Stores/`). Nothing new goes into `StarHubTHViewModel`.
+- `check_standards.py` fails when a counter grows: files over 400 lines (locked per file), the `vm` abbreviation, new `DispatchQueue`, new `.shared` singletons.
+- Every UI string exists in both `assets/en.json` and `assets/fr.json` under the same key; the build fails otherwise.
+- Read [`docs/DOMAINE.md`](docs/DOMAINE.md) before touching mods, profiles, saves or translations. A paused mod is a dot-prefixed folder (`Mods/.X`).
+- Tests never write to the real `~/Library/Application Support/StarHubFR/`.
+- Known pitfalls are listed in [`AGENTS.md`](AGENTS.md), section 4.
+
+## Pull requests
+
+Discuss large changes in an issue first. Branch from `main`, one commit per logical change (`type(scope): description`), add a line under `## [Unreleased]` in `CHANGELOG.md` (in French, user-facing), attach a screenshot for UI changes, and make sure CI is green. CI builds the core, runs the tests and checks conventions, but does not build the whole app: run `python3 build_app.py` locally. If an AI assistant wrote a commit, end it with a `Co-Authored-By:` trailer naming the model actually used.

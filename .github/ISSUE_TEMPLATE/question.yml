@@ -1,0 +1,19 @@
+name: Question
+description: Une question sur l'usage de StarHubFR qui n'est ni un bug ni une idée.
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Le [guide utilisateur](https://github.com/mrbabilo/StarHubFR/blob/main/GUIDE.md) répond déjà à la cohabitation avec d'autres gestionnaires, aux mods en pause (`.X`) et à la désinstallation.
+  - type: textarea
+    id: question
+    attributes:
+      label: Votre question · Your question
+    validations:
+      required: true
+  - type: input
+    id: starhubfr-version
+    attributes:
+      label: Version de StarHubFR
+      placeholder: "v1.66.0"
