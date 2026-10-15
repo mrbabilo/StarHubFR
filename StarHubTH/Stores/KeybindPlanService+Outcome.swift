@@ -7,7 +7,9 @@ extension KeybindPlanService {
 
     /// Pourquoi une opération entière est refusée.
     enum Failure: Equatable, Sendable {
-        /// Aucun plan prêt (jamais calculé, ou déjà appliqué : recalculer).
+        /// Aucun plan prêt (jamais calculé, ou consommé par une annulation
+        /// ou un échec : recalculer). Un `apply` arrivé sur `.applied` rend
+        /// la main sans ce refus.
         case noPlan
         /// Jeu ouvert : un mod C# réécrit sa config quand il veut. Ce refus
         /// passe par `refusal` et garde le plan prêt.
