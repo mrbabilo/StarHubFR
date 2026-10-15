@@ -1,5 +1,7 @@
 # Guide utilisateur — StarHubFR
 
+*[English version](GUIDE_EN.md).*
+
 Comment s'en servir au quotidien, et quoi faire quand quelque chose coince. Pour la liste complète de ce que l'app sait faire, voir le [README](README.md).
 
 **Sommaire**

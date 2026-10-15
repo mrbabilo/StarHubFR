@@ -23,7 +23,7 @@
 **StarHubFR is a native macOS mod manager for Stardew Valley, in French and English.**
 Install, organise and troubleshoot your mods without opening Finder or a terminal, even with several hundred mods.
 
-The **[user guide](GUIDE.md)** (in French) walks through first launch and everyday use: installing, pausing, profiles, updates, troubleshooting, shortcuts, performance, translation, recovering replaced files and uninstalling cleanly.
+The **[user guide](GUIDE_EN.md)** walks through first launch and everyday use: installing, pausing, profiles, updates, troubleshooting, shortcuts, performance, translation, recovering replaced files and uninstalling cleanly.
 
 ## Why StarHubFR
 
