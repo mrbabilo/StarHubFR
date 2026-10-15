@@ -156,7 +156,7 @@ public enum TranslationTokens {
 
     private static func dialogueSeparator(_ c: [Character], _ i: Int) -> Int? {
         guard i + 2 < c.count, c[i] == "#", c[i + 1] == "$",
-              c[i + 2].isLetter || c[i + 2].isNumber else { return nil }
+              opensCommand(c[i + 2]) else { return nil }
         // Une lettre par défaut ; le mot entier seulement s'il est attesté.
         var j = i + 3
         var word = i + 2
@@ -171,7 +171,7 @@ public enum TranslationTokens {
         // séparateur (`#$` + lettre ou chiffre) : devant `${`, il appartient
         // à `#$b#`, sinon il passerait pour un `#` nu.
         if j < c.count, c[j] == "#",
-           !(j + 2 < c.count && c[j + 1] == "$" && (c[j + 2].isLetter || c[j + 2].isNumber)) {
+           !(j + 2 < c.count && c[j + 1] == "$" && opensCommand(c[j + 2])) {
             j += 1
         }
         return j
@@ -215,10 +215,25 @@ public enum TranslationTokens {
     }
 
 
+    /// Le caractère après un `$` en fait-il une commande du jeu ?
+    ///
+    /// Un chiffre ou une lettre **minuscule** : toutes les commandes de
+    /// `Dialogue` le sont, et le jeu les compare à la casse près
+    /// (`parseDialogueString` aiguille sur `text2[1]`, `checkEmotions` cherche
+    /// `$h`, `$s`… par `Contains` ordinal — relu dans Stardew Valley.dll 1.6 le
+    /// 2026-10-15). `$I`, `$There.` tombent dans la branche « pas une
+    /// commande » et s'affichent tels quels : ce sont des fautes de frappe de
+    /// l'auteur (`#$b#$There` pour `#$b#There`), du texte pour le jeu, donc à
+    /// traduire. Les lire comme des marques bloquait 36 lignes françaises
+    /// justes du parc, que l'IA ne pouvait jamais faire passer.
+    private static func opensCommand(_ c: Character) -> Bool {
+        c.isNumber || (c.isLetter && !c.isUppercase)
+    }
+
+
     /// `$2`, `$h` — expression du portrait. Numérique autant que littérale.
     private static func portraitCommand(_ c: [Character], _ i: Int) -> Int? {
-        guard c[i] == "$", i + 1 < c.count,
-              c[i + 1].isLetter || c[i + 1].isNumber else { return nil }
+        guard c[i] == "$", i + 1 < c.count, opensCommand(c[i + 1]) else { return nil }
         // Un index à deux chiffres reste entier : `$10` se rendait `$1`, et le
         // `0` retombait dans le texte traduisible. Les formes littérales, elles,
         // tiennent en une lettre (`$b`, `$h`, `$s`) — consommer la suite

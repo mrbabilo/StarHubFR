@@ -243,4 +243,22 @@ struct TranslationTokenComposedFormsTests {
         #expect(codeParts("Oui.#$b#${him^her}$ arrive") == ["#$b#", "${", "^", "}$"])
         #expect(codeParts("#$action X#$b#Suite") == ["#$action", "#$b#"])
     }
+
+    /// `$` + majuscule n'est pas une commande : le jeu compare ses commandes à
+    /// la casse près et affiche le reste tel quel. Fautes de frappe d'auteur
+    /// relevées sur le parc (Mineral Town, Ridgeside, Always Raining).
+    @Test func aDollarBeforeAnUppercaseLetterIsText() {
+        #expect(codeParts("$I think so.") == [])
+        #expect(codeParts("Oui.#$I may.") == [])
+        #expect(codeParts("Bear with me.#$b#$There. Delicious.$10") == ["#$b#", "$10"])
+        #expect(codeParts("Hm.#$B#Then.") == [])
+    }
+
+    /// Le voisin qui doit rester une marque : minuscules et chiffres.
+    @Test func lowercaseAndDigitCommandsStayMarks() {
+        #expect(codeParts("Bonjour$h") == ["$h"])
+        #expect(codeParts("Oh$10") == ["$10"])
+        #expect(codeParts("Va.#$e#Fin") == ["#$e#"])
+        #expect(codeParts("#$action X#$b#Suite") == ["#$action", "#$b#"])
+    }
 }

@@ -212,4 +212,21 @@ struct TranslationTokenCheckGenderTests {
         #expect(!TranslationTokenCheck.mismatches(source: "${a^b}$",
                                                   target: "${a^b").isEmpty)
     }
+
+    @Test func anAuthorTypoAfterADollarDoesNotBlock() {
+        // `$I` est du texte pour le jeu : le traduire en `$Je` ne casse rien.
+        #expect(TranslationTokenCheck.mismatches(source: "Hm.#$I may.",
+                                                 target: "Hm.#$Je peux.").isEmpty)
+        #expect(TranslationTokenCheck.mismatches(source: "Bear.#$b#$There.$10",
+                                                 target: "Ours.#$b#$Voilà.$10").isEmpty)
+    }
+
+    @Test func anUppercasedPageBreakStillBlocks() {
+        // `#$B#` n'est pas `#$b#` : deux `#` nus, la conversation se ferme.
+        // Cas Kiarra du parc, Ridgeside Village.
+        let found = TranslationTokenCheck.mismatches(source: "Bon.#$b#Je vais.$4",
+                                                     target: "Bon.#$B#Je vais.$4")
+        #expect(found.contains { $0.token == TranslationTokenCheck.bareHashToken && $0.isHard })
+        #expect(found.contains { $0.token == "#$b#" && !$0.isHard })
+    }
 }

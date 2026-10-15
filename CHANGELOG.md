@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Traduction : un `$` suivi d'une majuscule ne bloque plus.** Le jeu le lit comme du texte (faute de frappe de l'auteur : `$I`, `#$b#$There`) ; il se traduit comme le reste. 33 lignes françaises du parc débloquées.
+
 ## [1.67.0] - 2026-10-15
 
 ### Added
