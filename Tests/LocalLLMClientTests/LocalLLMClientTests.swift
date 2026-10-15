@@ -254,11 +254,66 @@ struct LocalLLMClientTests {
         }
         _ = await LocalLLMClient.translate(request(source: "Hello$b world"),
                                            baseURL: base, session: stubbedSession())
+        // La clause exacte : le prompt de base cite déjà `$b`, un simple
+        // `contains("$b")` serait vrai sans relance nommée.
+        let system = try retrySystemPrompt()
+        #expect(system.contains("missing these markers: $b."), "le prompt du retry nomme la marque manquante")
+        #expect(!system.contains("extra markers"), "rien n'a été ajouté : pas de clause « en trop »")
+    }
+
+    /// Le prompt système de la relance (le second appel).
+    private func retrySystemPrompt() throws -> String {
         #expect(LLMStub.seenBodies.count == 2)
         let retryBody = try decodedBody(try #require(LLMStub.seenBodies.last))
         let messages = try #require(retryBody["messages"] as? [[String: Any]])
-        let system = try #require(messages.first?["content"] as? String)
-        #expect(system.contains("$b"), "le prompt du retry nomme la marque manquante")
+        return try #require(messages.first?["content"] as? String)
+    }
+
+    /// `##` à la place de `#$b#` : la relance nomme le `#$b#` perdu (un
+    /// avertissement à lui seul) **et** le `#` en trop — pas « manque : # »,
+    /// qui pousserait le modèle à garder la faute.
+    @Test func theRetryNamesALostPageBreakAndTheExtraHash() async throws {
+        LLMStub.route { _ in
+            LLMStub.calls == 1
+                ? .json(Self.completion("Oui.##Tu es là."))
+                : .json(Self.completion("Oui.#$b#Tu es là."))
+        }
+        let outcome = await LocalLLMClient.translate(request(source: "Yes.#$b#You're here."),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Oui.#$b#Tu es là."))
+        let system = try retrySystemPrompt()
+        #expect(system.contains("missing these markers: #$b#."))
+        #expect(system.contains("extra markers, absent from the source: #."))
+    }
+
+    /// `!#$h` pour `!$h` : la marque ajoutée est en trop, le portrait perdu
+    /// manque. Dire « manque : #$h » demandait au modèle de garder l'erreur.
+    @Test func theRetryNamesAPortraitTurnedIntoAPageAsExtra() async throws {
+        LLMStub.route { _ in
+            LLMStub.calls == 1
+                ? .json(Self.completion("Moi aussi !#$h"))
+                : .json(Self.completion("Moi aussi !$h"))
+        }
+        let outcome = await LocalLLMClient.translate(request(source: "Me too!$h"),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Moi aussi !$h"))
+        let system = try retrySystemPrompt()
+        #expect(system.contains("missing these markers: $h."))
+        #expect(system.contains("extra markers, absent from the source: #$h."))
+    }
+
+    /// La relance rend le `@` mais ajoute une marque dure : la première
+    /// réponse, sans bloquant, est gardée.
+    @Test func aRetryThatAddsAHardMarkKeepsTheFirstAnswer() async {
+        LLMStub.route { _ in
+            LLMStub.calls == 1
+                ? .json(Self.completion("Salut !"))
+                : .json(Self.completion("Salut @ !{{Name}}"))
+        }
+        let outcome = await LocalLLMClient.translate(request(source: "Hello @!"),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Salut !"))
+        #expect(LLMStub.calls == 2)
     }
 
     @Test func bothAttemptsMissingTokenRefusesWithTheTokenNamed() async {
@@ -303,7 +358,7 @@ struct LocalLLMClientTests {
         #expect(LLMStub.calls == 1)
     }
 
-    @Test func noRetryWhenNoHardTokenMissing() async {
+    @Test func aCleanAnswerIsNotRetried() async {
         LLMStub.route { _ in .json(Self.completion("Bonjour le monde")) }
         _ = await LocalLLMClient.translate(request(source: "Hello world"),
                                            baseURL: base, session: stubbedSession())

@@ -87,7 +87,7 @@ public enum LocalLLMClient {
 
     public static func translate(_ request: Request, baseURL: URL,
                                  session: URLSession) async -> Outcome {
-        let first = await fetch(request, retryMissing: nil, baseURL: baseURL, session: session)
+        let first = await fetch(request, retry: nil, baseURL: baseURL, session: session)
         guard case .content(let text) = first else { return first.outcome }
         let triggers = retryTriggers(source: request.source, target: text)
         guard !triggers.isEmpty else { return .translated(text) }
@@ -96,7 +96,8 @@ public enum LocalLLMClient {
         // valeur perdue (`@`, variable `%`) — la référence relance aussi pour
         // ces pertes. Le refus, lui, ne retient que les bloquants.
         let firstHard = hardMissing(source: request.source, target: text)
-        let second = await fetch(request, retryMissing: triggers, baseURL: baseURL, session: session)
+        let second = await fetch(request, retry: retryHint(source: request.source, target: text),
+                                 baseURL: baseURL, session: session)
         guard case .content(let retryText) = second else {
             return firstHard.isEmpty ? .translated(text) : .refusedTokens(missing: firstHard)
         }
@@ -113,10 +114,10 @@ public enum LocalLLMClient {
     /// Le prompt système, déterministe — le texte anglais verrouillé par la
     /// spec §6, puis les termes imposés et l'étiquette de section.
     public static func systemPrompt(for request: Request) -> String {
-        systemPrompt(for: request, retryMissing: nil)
+        systemPrompt(for: request, retry: nil)
     }
 
-    private static func systemPrompt(for request: Request, retryMissing: [String]?) -> String {
+    private static func systemPrompt(for request: Request, retry: RetryHint?) -> String {
         var prompt = """
         You are a translator for Stardew Valley mods. Output ONLY the French \
         translation of the given text — no explanation, no quotes, no commentary. \
@@ -132,12 +133,50 @@ public enum LocalLLMClient {
         if let sectionLabel = request.sectionLabel {
             prompt += "\nSection label (unreliable, context only): \(sectionLabel)"
         }
-        if let retryMissing, !retryMissing.isEmpty {
-            prompt += "\nThe previous attempt was missing these required markers: "
-                + retryMissing.joined(separator: ", ")
-                + ". Translate again and include each one exactly, character for character."
+        if let retry, !retry.isEmpty {
+            prompt += "\nThe previous attempt broke game markers. Translate again."
+            if !retry.missing.isEmpty {
+                prompt += " It was missing these markers: " + retry.missing.joined(separator: ", ")
+                    + ". Include each one exactly, character for character."
+            }
+            if !retry.extra.isEmpty {
+                prompt += " Remove these extra markers, absent from the source: "
+                    + retry.extra.joined(separator: ", ") + "."
+            }
+            if retry.quickResponse {
+                prompt += " Keep exactly the source's _ separators in the $y answers;"
+                    + " inside them, write ’ rather than '."
+            }
         }
         return prompt
+    }
+
+    /// Ce que la relance dit au modèle : **tous** les écarts, chacun dans son
+    /// sens. Pas les seuls déclencheurs (`retryTriggers`) : depuis C3-T9 la
+    /// contrepartie d'une faute est souvent un simple avertissement — `##`
+    /// pour `#$b#` perd un `#$b#` non bloquant — et la taire laissait la
+    /// relance dire « manque : # », c'est-à-dire garder l'erreur.
+    struct RetryHint: Equatable {
+        var missing: [String] = []
+        var extra: [String] = []
+        /// La structure `$y` : un pseudo-jeton (`quickResponseToken`), qui ne
+        /// dirait rien au modèle — la consigne est écrite en clair.
+        var quickResponse = false
+        var isEmpty: Bool { missing.isEmpty && extra.isEmpty && !quickResponse }
+    }
+
+    static func retryHint(source: String, target: String) -> RetryHint {
+        var hint = RetryHint()
+        for mismatch in TranslationTokenCheck.mismatches(source: source, target: target) {
+            if mismatch.token == TranslationTokenCheck.quickResponseToken {
+                hint.quickResponse = true
+            } else if mismatch.found < mismatch.expected {
+                hint.missing.append(mismatch.token)
+            } else {
+                hint.extra.append(mismatch.token)
+            }
+        }
+        return hint
     }
 
     // MARK: - Une requête, ses rejets
@@ -157,13 +196,13 @@ public enum LocalLLMClient {
         }
     }
 
-    private static func fetch(_ request: Request, retryMissing: [String]?,
+    private static func fetch(_ request: Request, retry: RetryHint?,
                               baseURL: URL, session: URLSession) async -> Fetch {
         var body: [String: Any] = [
             "model": request.model,
             "messages": [
                 ["role": "system",
-                 "content": systemPrompt(for: request, retryMissing: retryMissing)],
+                 "content": systemPrompt(for: request, retry: retry)],
                 ["role": "user", "content": request.source],
             ],
             "stream": false,
