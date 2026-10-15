@@ -199,3 +199,38 @@ public enum HelpLink: Equatable, Sendable {
         return .external(target)
     }
 }
+
+/// Filtre les sections sur le titre et le texte, sans casse ni accents.
+/// Même pliage que la palette ⌘K ; il ne décompose pas `œ`, et les guides
+/// n'en contiennent aucun (mesuré le 2026-10-15).
+public enum HelpSearch {
+    public static func filter(_ sections: [HelpSection], query: String) -> [HelpSection] {
+        let needle = CommandPaletteSearch.fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard !needle.isEmpty else { return sections }
+        return sections.filter { CommandPaletteSearch.fold($0.searchText).contains(needle) }
+    }
+}
+
+/// La page affichée → la section du guide qui l'explique (spec §3).
+/// `switch` exhaustif, sans `default` : une destination ajoutée sans section
+/// est une erreur de compilation.
+enum HelpTopic {
+    static let sectionIDs = ["first-launch", "install", "pause", "profiles", "updates",
+                             "troubleshooting", "shortcuts", "performance", "translate",
+                             "recover", "other-managers", "uninstall"]
+
+    static func section(for destination: SidebarDestination,
+                        diagnosticsSegment: DiagnosticsSegment,
+                        alertsSegment: AlertsSegment) -> String {
+        switch destination {
+        case .home, .settings, .appChangelog: return "first-launch"
+        case .mods, .discover: return "install"
+        case .updates: return "updates"
+        case .frenchTranslations: return "translate"
+        case .profiles: return "profiles"
+        case .saves, .backups, .maintenance, .quarantine: return "recover"
+        case .systemAlerts: return alertsSegment == .keybinds ? "shortcuts" : "troubleshooting"
+        case .logs: return diagnosticsSegment == .performance ? "performance" : "troubleshooting"
+        }
+    }
+}
