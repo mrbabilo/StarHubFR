@@ -52,6 +52,8 @@ struct KeybindReportSection: View {
     private static let autoExpandThreshold = 10
 
     @State private var expanded: [String: Bool] = [:]
+    @State var showsPlan = false
+    var noGameDir: Bool { vm.gameDir.isEmpty }
     private func expansion(_ key: String, defaultOpen: Bool) -> Binding<Bool> {
         Binding(get: { expanded[key] ?? defaultOpen }, set: { expanded[key] = $0 })
     }
@@ -66,7 +68,7 @@ struct KeybindReportSection: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                     header
-                    if vm.gameDir.isEmpty {
+                    if noGameDir {
                         statusRow(icon: "exclamationmark.triangle.fill", color: AppDesign.Color.warning,
                                   text: localization.L(L10n.Keybinds.noGameDir))
                     } else if service.isScanning {
@@ -80,7 +82,7 @@ struct KeybindReportSection: View {
                     }
                 }
                 .cardSurface(padding: AppDesign.Spacing.lg)
-                if !vm.gameDir.isEmpty, !service.isScanning, let report = service.report {
+                if !noGameDir, !service.isScanning, let report = service.report {
                     sections(report)
                 }
             }
@@ -96,6 +98,7 @@ struct KeybindReportSection: View {
             // `header`.
             service.scanIfNeeded(mods: vm.scanStore.mods, gameDir: vm.gameDir)
         }
+        .sheet(isPresented: $showsPlan) { planSheet }
     }
 
     /// Le titre est celui de l'onglet des Alertes système : la section ne
@@ -103,6 +106,7 @@ struct KeybindReportSection: View {
     private var header: some View {
         HStack(spacing: AppDesign.Spacing.sm) {
             Spacer(minLength: AppDesign.Spacing.sm)
+            planButton
             Button(action: { if let report = service.report { exportReport(report) } }) {
                 Label(localization.L(L10n.Keybinds.export), systemImage: "square.and.arrow.up")
                     .lineLimit(1)
@@ -119,7 +123,7 @@ struct KeybindReportSection: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()
-            .disabled(service.isScanning || vm.gameDir.isEmpty)
+            .disabled(service.isScanning || noGameDir)
             .layoutPriority(1)
         }
     }
@@ -210,15 +214,6 @@ struct KeybindReportSection: View {
         // Une exclusion muette est un mensonge par omission : les notes
         // restent visibles, regroupées en pied, compte avant les noms.
         KeybindExclusionNotes(report: report, localization: localization)
-    }
-
-    /// L'en-tête d'un groupe : glyphe de gravité, couleur du sens, titre.
-    private func groupLabel(_ format: String, _ count: Int, icon: String, tint: Color) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            Image(systemName: icon).foregroundColor(tint)
-            Text(String(format: localization.L(format), count))
-                .font(AppDesign.Font.body(.semibold))
-        }
     }
 
     /// Défaut 2 (tâche 6) : un mod qui lie la même touche dans deux
