@@ -352,6 +352,7 @@ let package = Package(
                 "Models/MacKeyboardGeometry.swift",
                 "Models/KeybindDevicePlacement.swift",
                 "Models/KeybindOverview.swift",
+                "Models/KeybindPlanner.swift",
                 "Models/MacKeyCodeMap.swift",
                 "Models/SavePlayerFields.swift",
                 "Models/SaveHeroPortrait.swift",
