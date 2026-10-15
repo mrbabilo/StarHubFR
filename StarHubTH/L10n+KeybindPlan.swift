@@ -22,10 +22,12 @@ extension L10n {
         static let applyHint = "keybind_plan_apply_hint"
         static let applyGameOpen = "keybind_plan_apply_game_open"
         static let allExcluded = "keybind_plan_all_excluded"
+        /// Comptes du verdict : variante `_one` via `LocalizationStore.plural`.
         static let applied = "keybind_plan_applied"
         static let undo = "keybind_plan_undo"
         static let undoHint = "keybind_plan_undo_hint"
         static let undone = "keybind_plan_undone"
+        static let skippedCount = "keybind_plan_skipped_count"
         static let recompute = "keybind_plan_recompute"
         static let close = "keybind_plan_close"
         static let empty = "keybind_plan_empty"
@@ -62,7 +64,10 @@ extension L10n {
         static let failureNotLatestBackup = "keybind_plan_failure_not_latest_backup"
         static let failureRestoreFailed = "keybind_plan_failure_restore_failed"
         static let noneMovable = "keybind_plan_none_movable"
+        /// Bilan après rescan (R20-R21) : variantes `_one` via `plural`.
         static let remaining = "keybind_plan_remaining"
+        static let remainingMore = "keybind_plan_remaining_more"
+        static let remainingOverlaps = "keybind_plan_remaining_overlaps"
         /// Bandeau de la page Profils ; variante `_one` via `LocalizationStore.plural`.
         static let profileBanner = "keybind_plan_profile_banner"
         static let profileBannerDismiss = "keybind_plan_profile_banner_dismiss"

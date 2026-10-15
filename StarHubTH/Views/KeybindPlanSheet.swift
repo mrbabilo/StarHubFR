@@ -50,6 +50,9 @@ struct KeybindPlanSheet: View {
     /// `nil` = ouverture par défaut : déplié quand aucun déplacement n'est
     /// possible (c'est alors toute la réponse), replié sinon.
     @State private var unmovableExpanded: Bool?
+    /// Posé au clic, avant la tâche : un second clic mis en file ne relance
+    /// rien (le service a sa propre garde, celle-ci grise les boutons).
+    @State private var busy = false
 
     init(viewModel: StarHubTHViewModel, localization: LocalizationStore) {
         self.viewModel = viewModel
@@ -116,7 +119,7 @@ struct KeybindPlanSheet: View {
             case .applied(let result):
                 verdict(appliedSummary(result), skipped: result.skipped)
             case .undone(let result):
-                verdict(String(format: localization.L(L10n.KeybindPlan.undone), result.restored, result.skipped.count),
+                verdict(counted(L10n.KeybindPlan.undone, result.restored, skipped: result.skipped.count),
                         skipped: result.skipped)
             case .failed(let failure):
                 statusRow(icon: "exclamationmark.triangle.fill", color: AppDesign.Color.warning,
@@ -186,26 +189,10 @@ struct KeybindPlanSheet: View {
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                remainingConflicts
+                KeybindPlanRemaining(report: scanService.report, isScanning: scanService.isScanning,
+                                     localization: localization)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder private var remainingConflicts: some View {
-        if scanService.isScanning {
-            HStack(spacing: AppDesign.Spacing.sm) {
-                ProgressView().controlSize(.small)
-                Text(localization.L(L10n.Keybinds.scanning)).font(AppDesign.Font.caption).foregroundColor(.secondary)
-            }
-        } else if let report = scanService.report {
-            // Même vert que la section : le plan ne touche ni aux conflits
-            // avec le jeu ni aux non reconnus — « aucun conflit » sur les
-            // seules collisions entre mods serait un vert mensonger.
-            let clear = report.problemCount == 0 && report.unrecognized.isEmpty && report.subsetOverlaps.isEmpty
-            Text(clear ? localization.L(L10n.Keybinds.empty)
-                 : String(format: localization.L(L10n.KeybindPlan.remaining), report.problemCount))
-                .font(AppDesign.Font.caption).foregroundColor(.secondary)
         }
     }
 
@@ -213,7 +200,9 @@ struct KeybindPlanSheet: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            if let refusal = service.refusal {
+            // « Jeu ouvert » ne vaut que tant qu'il l'est : `gameRunning` est
+            // relu au retour dans l'app, le refus s'efface avec lui.
+            if let refusal = service.refusal, refusal != .gameRunning || gameRunning {
                 Text(KeybindPlanText.failure(refusal, localization.L))
                     .font(AppDesign.Font.footnote).foregroundColor(AppDesign.Color.warning)
                     .fixedSize(horizontal: false, vertical: true)
@@ -234,7 +223,7 @@ struct KeybindPlanSheet: View {
         if canUndo {
             Button(localization.L(L10n.KeybindPlan.undo), action: undo)
                 .buttonStyle(.bordered)
-                .disabled(gameRunning || service.state == .applying)
+                .disabled(gameRunning || busy)
                 .help(localization.L(L10n.KeybindPlan.undoHint))
         }
         if showsRecompute {
@@ -272,7 +261,7 @@ struct KeybindPlanSheet: View {
     }
 
     private var canApply: Bool {
-        !gameRunning && scanService.report != nil && !scanService.isScanning && includedCount > 0
+        !busy && !gameRunning && scanService.report != nil && !scanService.isScanning && includedCount > 0
     }
 
     /// Pourquoi un bouton du pied est grisé, dit avant le clic.
@@ -302,7 +291,14 @@ struct KeybindPlanSheet: View {
     private func appliedSummary(_ result: KeybindPlanService.AppliedResult) -> String {
         let skippedMods = Set(result.skipped.map(\.folderName))
         let written = submittedMoves.filter { !skippedMods.contains($0.modID) }.count
-        return String(format: localization.L(L10n.KeybindPlan.applied), written, submittedMoves.count - written)
+        return counted(L10n.KeybindPlan.applied, written, skipped: submittedMoves.count - written)
+    }
+
+    /// « 1 raccourci écrit, 2 sautés » : chaque compte accordé (`_one`), la
+    /// partie « sautés » tue quand il n'y en a aucun.
+    private func counted(_ key: String, _ count: Int, skipped: Int) -> String {
+        let head = localization.plural(key, count)
+        return skipped == 0 ? head : head + ", " + localization.plural(L10n.KeybindPlan.skippedCount, skipped)
     }
 
     /// Le nom du mod d'un saut, connu par les déplacements soumis ; le
@@ -333,19 +329,24 @@ struct KeybindPlanSheet: View {
     private func apply() {
         // Le rapport **du clic** : c'est lui que le service compare à celui
         // du calcul.
-        guard let report = scanService.report, !scanService.isScanning else { return }
+        guard !busy, let report = scanService.report, !scanService.isScanning else { return }
+        busy = true
         let excluding = excluded
         submittedMoves = (readyMoves ?? []).filter { !excluding.contains($0.id) }
         Task {
             await service.apply(report: report, gameDir: viewModel.gameDir, mods: viewModel.mods,
                                 excluding: excluding, rescan: rescan)
+            busy = false
             refreshEnvironment()
         }
     }
 
     private func undo() {
+        guard !busy else { return }
+        busy = true
         Task {
             await service.undo(gameDir: viewModel.gameDir, mods: viewModel.mods, rescan: rescan)
+            busy = false
             refreshEnvironment()
         }
     }
