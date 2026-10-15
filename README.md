@@ -176,7 +176,7 @@ Pour passer à une nouvelle version, quittez complètement l'app (⌘Q) avant de
 
 #### Lever la quarantaine avec Sentinel
 
-macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel), d'Alin Lupascu, retire cette marque en un geste.
+macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), d'Alin Lupascu, retire cette marque en un geste.
 
 1. Installez Sentinel (macOS 13 ou ultérieur) :
    - avec [Homebrew](https://brew.sh) : `brew install --cask alienator88-sentinel` ;
@@ -256,6 +256,7 @@ StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — AP
 *   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — décompilation des mods pour en auditer les changements.
 *   [**dnfile**](https://github.com/malwarefrank/dnfile) (MIT) — oracle Python de notre lecteur de métadonnées .NET.
 *   [**7-Zip**](https://www.7-zip.org), [**The Unarchiver**](https://theunarchiver.com) (`unar`) et **unrar** — utilisés, s'ils sont installés, pour ouvrir les archives `.7z` et `.rar`.
+*   [**Sentinel**](https://github.com/alienator88/Sentinel) par **Alin Lupascu** (Apache-2.0 avec Commons Clause) — la levée de quarantaine conseillée pour installer l'app, qui n'est pas notarisée ; la capture de la procédure d'installation vient de son dépôt.
 
 **Inspirations**
 

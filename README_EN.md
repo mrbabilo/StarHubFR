@@ -175,7 +175,7 @@ To move to a new version, quit the app completely (⌘Q) before replacing the bu
 
 #### Removing the quarantine with Sentinel
 
-macOS puts every downloaded app in "quarantine" and refuses to open the ones Apple hasn't notarised, which is the case for StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel), by Alin Lupascu, removes that flag in one gesture.
+macOS puts every downloaded app in "quarantine" and refuses to open the ones Apple hasn't notarised, which is the case for StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), by Alin Lupascu, removes that flag in one gesture.
 
 1. Install Sentinel (macOS 13 or later):
    - with [Homebrew](https://brew.sh): `brew install --cask alienator88-sentinel`;
@@ -255,6 +255,7 @@ StarHubFR builds on the work of many projects. The full list — APIs queried, f
 *   [**ILSpy**](https://github.com/icsharpcode/ILSpy) (MIT) — decompiling mods to audit their changes.
 *   [**dnfile**](https://github.com/malwarefrank/dnfile) (MIT) — the Python oracle for our .NET metadata reader.
 *   [**7-Zip**](https://www.7-zip.org), [**The Unarchiver**](https://theunarchiver.com) (`unar`) and **unrar** — used, when installed, to open `.7z` and `.rar` archives.
+*   [**Sentinel**](https://github.com/alienator88/Sentinel) by **Alin Lupascu** (Apache-2.0 with Commons Clause) — the quarantine removal we recommend to install the app, which isn't notarised; the screenshot in the install procedure comes from its repository.
 
 **Inspiration**
 
