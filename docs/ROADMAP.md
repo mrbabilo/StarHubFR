@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-15 (v1.66.0).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -160,7 +160,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · ✅ **CLOS le 2026-10-02** *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15 pour C3-T9** (règles de blocage des marques, à mesurer contre le jeu) ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -363,7 +363,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D2 (sauf T2, abandonné, et T6), D4 sauf T6, et D5 livrés, à l'archive et au §11 depuis le 2026-10-08 ; restent **D2-T6**, **D4-T6** (T6b optionnel), la recette accessibilité/cycle de jeu de la refonte et quelques validations en jeu
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D2 (sauf T2, abandonné, et T6), D4 sauf T6, et D5 livrés, à l'archive et au §11 depuis le 2026-10-08 ; restent **D2-T6**, **D4-T6** (T6b optionnel), **D6** (validation écran), la recette accessibilité/cycle de jeu de la refonte et quelques validations en jeu
 
 **Refonte de la page et de l'analyse — livrée et parcours principal validé le
 2026-10-06** — résumé de dernière session, comparaison par métrique et par lieu
@@ -427,6 +427,9 @@ le journal réel le 2026-09-04.
       (2) `QueryCacheManager` identifie l'objet d'une condition par son seul
       `ItemId` (qualité, quantité, prix confondus dans une trame). Rien à coder
       chez nous. · **XS**
+      ⚠️ *UltraSmooth 2.5.0 est paru le 2026-10-15* (journal au relevé des
+      sources du jour) : les deux chemins sont à re-vérifier dans la 2.5.0
+      avant le test en jeu, à sa décompilation.
       *Préparé le 2026-10-08* : les deux chemins re-vérifiés inchangés dans la
       **2.4.10** du parc, protocole de vérification en jeu (grotte à
       chauves-souris uniquement — la grotte à champignons s'auto-protège, ses
@@ -528,8 +531,8 @@ lus sur le parc réel, sans décompiler ni lire un journal.
       après → rapport, reprise après plantage (P1) ; « Benchmarker ce mod » depuis
       les chargements et l'analyse (P2). Spec et plan :
       `docs/superpowers/specs|plans/2026-10-11-mesure-pilotee*`. **Reste à
-      l'auteur** : les 7 scénarios écran de la spec §10, le calibrage A/B des
-      mini-stats, la recopie de la DLL 0.9.25 dans `Mods/`. Récit à l'archive
+      l'auteur** : les 7 scénarios écran de la spec §10 et le calibrage A/B des
+      mini-stats (la sonde du parc est en 0.9.28 depuis le 2026-10-14). Récit à l'archive
       après validation.
 
 ---
@@ -971,7 +974,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 > Ce document-ci ne garde que les tâches ; le comment vit là-bas.
 
 - [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait
-      **10 084 lignes** (mesuré le 2026-09-14 ; **11 902** le 2026-09-10 et **4 296**
+      **7 999 lignes** au 2026-10-15 (**10 084** le 2026-09-14 ; **11 902** le 2026-09-10 et **4 296**
       au relevé initial du 2026-07-30 — la pente s'est inversée le 2026-09-10, quand
       le cliquet de taille par fichier a fermé les ~16 000 lignes de marge muette :
       **−1 818 lignes en quatre jours**, contre ~285 lignes/jour de croissance la
