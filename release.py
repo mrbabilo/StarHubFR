@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import os
 import sys
 import subprocess
@@ -61,6 +62,29 @@ def bump_build_number():
     print(f"[INFO] Numéro de build : {previous} → {previous + 1} (Info.plist modifié, à commiter).")
     return previous + 1
 
+def write_checksums(zip_path: str) -> str:
+    """Écrit `SHA256SUMS` à côté du zip, au format de `shasum -a 256`.
+
+    Publié avec la release : `shasum -a 256 -c SHA256SUMS` dans le dossier de
+    téléchargement prouve que l'archive est celle qui a été publiée.
+    """
+    digest = hashlib.sha256()
+    with open(zip_path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            digest.update(block)
+    sums_path = os.path.join(os.path.dirname(zip_path), "SHA256SUMS")
+    with open(sums_path, "w", encoding="utf-8") as f:
+        f.write(f"{digest.hexdigest()}  {os.path.basename(zip_path)}\n")
+    return sums_path
+
+
+def tag_signing_configured() -> bool:
+    """Vrai quand git sait signer un tag (`user.signingkey`, docs/SIGNING.md)."""
+    result = subprocess.run(["git", "config", "--get", "user.signingkey"],
+                            capture_output=True, text=True, check=False)
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def create_release() -> int:
     """Rend le code de sortie du script : 0 seulement si le bundle est prêt
     (X124 — chaque échec rendait 0, un `&&` ou une CI aurait enchaîné).
@@ -114,19 +138,33 @@ def create_release() -> int:
         print("[ERROR] ditto failed to create the zip archive.")
         return 1
 
+    sums_path = write_checksums(zip_path)
+
     print("[SUCCESS] Release bundle created successfully.")
-    print(f"[INFO] The bundle is ready at {zip_path}.")
+    print(f"[INFO] The bundle is ready at {zip_path}, checksum in {sums_path}.")
     print("-" * 40)
-    
+
+    tag = f"v{version}"
+    signed = tag_signing_configured()
+    if not signed:
+        print("[WARNING] git has no signing key: the tag will not be signed (docs/SIGNING.md).")
+
     upload = input("[PROMPT] Do you want to upload this release to GitHub? (y/n): ")
     if upload.lower() in ['y', 'yes']:
         print("[INFO] Uploading release...")
-        tag = f"v{version}"
+        if signed:
+            # Le tag signé naît ici, puis part seul : `gh release create`
+            # fabriquerait sinon un tag léger, non signé, côté GitHub.
+            for step in (["git", "tag", "-s", tag, "-m", f"StarHubFR {tag}"],
+                         ["git", "push", "origin", tag]):
+                if subprocess.run(step).returncode != 0:
+                    print(f"[ERROR] {' '.join(step)} failed.")
+                    return 1
         cmd = [
-            "gh", "release", "create", tag, zip_path,
+            "gh", "release", "create", tag, zip_path, sums_path,
             "--title", f"Release {tag}",
             "--notes", f"Automated release for StarHubFR {tag}."
-        ]
+        ] + (["--verify-tag"] if signed else [])
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode == 0:
             print(f"[SUCCESS] Uploaded {tag} successfully.")
@@ -135,7 +173,11 @@ def create_release() -> int:
             print(f"[ERROR] Upload failed:\n{res.stderr.strip()}")
             return 1
     else:
-        print("[INFO] Skipping upload.")
+        print("[INFO] Skipping upload. To publish by hand, with your own notes:")
+        if signed:
+            print(f'  git tag -s {tag} -m "StarHubFR {tag}" && git push origin {tag}')
+        print(f"  gh release create {tag} {zip_path} {sums_path} --title \"Release {tag}\" "
+              f"--notes-file <notes.md>{' --verify-tag' if signed else ''}")
     return 0
 
 if __name__ == "__main__":

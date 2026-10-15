@@ -19,6 +19,24 @@ SUPPORTED_LOCALES = {
     "en": "Centralized English Localization Strings",
     "fr": "Centralized French Localization Strings",
 }
+# Self-signed code-signing certificate, created once in Keychain Access
+# (docs/SIGNING.md). Override with STARHUBFR_SIGNING_IDENTITY.
+SIGNING_IDENTITY = os.environ.get("STARHUBFR_SIGNING_IDENTITY", "StarHubFR Signature")
+
+
+def signing_identity() -> str | None:
+    """The signing identity if the Keychain holds it *and* trusts it, else None.
+
+    `codesign` refuses an untrusted self-signed certificate ("no identity
+    found", checked 2026-10-15), so only the valid identities count:
+    `security find-identity -v` lists exactly those.
+    """
+    result = subprocess.run(["security", "find-identity", "-v", "-p", "codesigning"],
+                            capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        return None
+    quoted = f'"{SIGNING_IDENTITY}"'
+    return SIGNING_IDENTITY if any(quoted in line for line in result.stdout.splitlines()) else None
 
 def strings_escape(value: str) -> str:
     return (
@@ -535,9 +553,19 @@ def create_app_bundle():
             print("[ERROR] Swift compilation failed.")
             sys.exit(1)
         
-    # 5. Ad-hoc codesign to make it run locally without Gatekeeper blocking
-    print("[INFO] Signing application (Codesign)...")
-    codesign_cmd = ["codesign", "-s", "-", "-f", APP_DIR]
+    # 5. Codesign. With the self-signed identity when it is installed and
+    # trusted, ad-hoc otherwise. An ad-hoc signature changes with every build,
+    # so the Keychain asks again for the Nexus key after an update; a stable
+    # identity keeps the same designated requirement from one build to the
+    # next. Neither removes the Gatekeeper warning on another Mac: only a
+    # notarised Developer ID does (declined, 2026-10-15).
+    identity = signing_identity()
+    if identity:
+        print(f"[INFO] Signing application with « {identity} »...")
+    else:
+        print(f"[WARNING] Identity « {SIGNING_IDENTITY} » not found or not trusted: "
+              "ad-hoc signature (see docs/SIGNING.md).")
+    codesign_cmd = ["codesign", "-s", identity or "-", "-f", APP_DIR]
     codesign_result = subprocess.run(codesign_cmd, check=False)
     if codesign_result.returncode != 0:
         print("[ERROR] Codesign failed.")
