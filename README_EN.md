@@ -175,7 +175,7 @@ To move to a new version, quit the app completely (⌘Q) before replacing the bu
 
 To check the archive, also download `SHA256SUMS` from the same release, then, in the folder holding both files: `shasum -a 256 -c SHA256SUMS` should answer `OK`.
 
-The app is signed with a certificate of its own ("StarHubFR Signature"). It doesn't replace notarisation, but macOS recognises the app from one version to the next: access to the Nexus key and the permissions you granted stay in place after an update.
+The app is signed with a certificate of its own ("StarHubFR Signature"). It doesn't replace notarisation and isn't enough for the Keychain: after each update, macOS asks again for access to the Nexus and DeepL keys, once per key — answer "Always Allow" (your login password is required). Only an Apple Developer certificate would remove this prompt.
 
 #### Removing the quarantine with Sentinel
 

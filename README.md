@@ -176,7 +176,7 @@ Pour passer à une nouvelle version, quittez complètement l'app (⌘Q) avant de
 
 Pour vérifier l'archive, téléchargez aussi `SHA256SUMS` depuis la même release, puis, dans le dossier des deux fichiers : `shasum -a 256 -c SHA256SUMS` doit répondre `OK`.
 
-L'app est signée par un certificat propre au projet (« StarHubFR Signature »). Il ne remplace pas la notarisation, mais macOS reconnaît l'app d'une version à l'autre : l'accès à la clé Nexus et les autorisations accordées restent acquis après une mise à jour.
+L'app est signée par un certificat propre au projet (« StarHubFR Signature »). Il ne remplace pas la notarisation et ne suffit pas au Trousseau : après chaque mise à jour, macOS redemande l'accès aux clés Nexus et DeepL, une fois par clé — répondez « Toujours autoriser » (votre mot de passe de session est demandé). Seul un certificat Apple Developer lèverait cette demande.
 
 #### Lever la quarantaine avec Sentinel
 

@@ -8,9 +8,9 @@ même », ou Sentinel (voir le README). Ce qui suit ne lève pas cet avertisseme
 
 ## 1. Certificat auto-signé — identité stable de l'app
 
-Une signature ad hoc (`codesign -s -`) change à chaque build : le Trousseau
-redemande alors l'accès à la clé Nexus après une mise à jour. Avec un
-certificat, l'exigence de signature reste la même d'un build à l'autre.
+Une signature ad hoc (`codesign -s -`) change à chaque build. Avec un
+certificat, l'exigence de signature reste la même d'un build à l'autre — ce
+qui ne suffit pas au Trousseau (voir la limite plus bas).
 
 À faire **une fois**, sur la machine qui compile :
 
@@ -27,8 +27,15 @@ Sans l'étape 3, `codesign` refuse le certificat (« no identity found », véri
 le 2026-10-15) et `build_app.py` retombe sur la signature ad hoc en le disant.
 Un autre nom : variable `STARHUBFR_SIGNING_IDENTITY`.
 
-Au premier lancement signé par le certificat, le Trousseau demande une dernière
-fois l'accès à la clé Nexus : « Toujours autoriser ».
+**Limite : le Trousseau redemande l'accès à chaque nouveau build**, une fois
+par clé (Nexus, DeepL), « Toujours autoriser » compris. Mesuré le 2026-10-15
+avec `security dump-keychain -a` : la liste `applications` des entrées contient
+bien l'exigence du certificat, stable, mais leur liste de **partition** ne
+contient que des `cdhash:…` (310 et 179 entrées), jamais `teamid:`. Sans Team
+ID, macOS rattache la partition à l'empreinte exacte du binaire ; chaque build,
+chaque mise à jour en ajoute une. Seul un certificat Apple Developer (Team ID)
+lèverait la demande — écarté avec la notarisation. Le certificat garde son
+intérêt : exigence de signature stable, preuve d'origine.
 
 **Sauvegarder le certificat** (Exporter… en `.p12`, avec un mot de passe) : le
 perdre change l'identité, avec les mêmes redemandes qu'en ad hoc.
