@@ -29,16 +29,80 @@ struct TranslationTokenCheckTests {
         #expect(found.first?.token == "#$b#")
         #expect(found.first?.expected == 2)
         #expect(found.first?.found == 1)
-        #expect(found.first?.isHard == true)
+        // spec C3-T9 §3 : une fin de page perdue avertit, ne bloque plus.
+        #expect(found.first?.isHard == false)
     }
 
-    @Test func theHardListMatchesWhatBreaksTheModAtRuntime() {
-        #expect(TranslationTokenCheck.isHard("{{PlayerName}}"))
-        #expect(TranslationTokenCheck.isHard("${"))
-        #expect(TranslationTokenCheck.isHard("%item object 349 10 %%"))
-        #expect(TranslationTokenCheck.isHard("#$b#"))
-        #expect(TranslationTokenCheck.isHard("^"))
-        #expect(TranslationTokenCheck.isHard("@"))
+    @Test func whatBreaksTheGameBlocks() {
+        for token in ["{{PlayerName}}", "{0}", "%item object 349 10 %%", "%fork", "%revealtaste",
+                      "#$q", "#$action", "#$h", "#$1", "$q", "$b", "$e", "$k", "[128]", "[#]"] {
+            #expect(TranslationTokenCheck.isHard(token), "\(token) doit bloquer")
+        }
+    }
+
+    @Test func whatIsCosmeticWarns() {
+        for token in ["$h", "$s", "$u", "$l", "$a", "$0", "$13", "@", "^", "#$b#", "#$b",
+                      "#$e#", "#$k#", "%farm", "%kid1", "%spouse", "%noturn", "%"] {
+            #expect(!TranslationTokenCheck.isHard(token), "\(token) doit avertir")
+        }
+    }
+
+    /// `##` à la place de `#$b#` : un `#` nu ferme la conversation (relevé
+    /// dans `Dialogue` : seul `#$b#` pose la continuation `{`).
+    @Test func aBareHashReplacingAPageBreakBlocks() {
+        let source = "Oui, Gabe...#$b#Mais ça va !$h"
+        let target = "Oui, Gabe...##Mais ça va !$h"
+        let hard = TranslationTokenCheck.mismatches(source: source, target: target).filter(\.isHard)
+        #expect(hard.map(\.token) == [TranslationTokenCheck.bareHashToken])
+    }
+
+    /// `.$b#` sans son `#` d'ouverture : « $b » s'affiche et la page ferme.
+    @Test func aBrokenPageBreakBlocks() {
+        let source = "Bienvenue !$h#$b#Ma partie préférée.#$b#Ta journée ?"
+        let target = "Bienvenue !$h#$b#Ma partie préférée.$b#Ta journée ?"
+        #expect(TranslationTokenCheck.mismatches(source: source, target: target).contains { $0.isHard })
+    }
+
+    /// `#$h` à la place de `$h` : une page qui ne contient qu'un portrait.
+    @Test func aPortraitTurnedIntoAPageBlocks() {
+        let mismatches = TranslationTokenCheck.mismatches(source: "Je t'aime aussi !$h",
+                                                          target: "Je t'aime aussi !#$h")
+        #expect(mismatches.contains { $0.isHard })
+    }
+
+    @Test func aDroppedPageBreakOnlyWarns() {
+        let mismatches = TranslationTokenCheck.mismatches(source: "Salut.#$b#Ça va ?",
+                                                          target: "Salut. Ça va ?")
+        #expect(!mismatches.isEmpty)
+        #expect(!mismatches.contains { $0.isHard })
+    }
+
+    @Test func aPlayerNameAddedInASelectorOnlyWarns() {
+        let mismatches = TranslationTokenCheck.mismatches(source: "Merci, farmer !",
+                                                          target: "Merci, ${Fermier^Fermière^@}$ !")
+        #expect(!mismatches.contains { $0.isHard })
+    }
+
+    @Test func aLostPortraitOnlyWarns() {
+        let mismatches = TranslationTokenCheck.mismatches(source: "Super !$h", target: "Super !")
+        #expect(mismatches.map(\.token) == ["$h"])
+        #expect(!mismatches.contains { $0.isHard })
+    }
+
+    /// Hors dialogue, un `#` est du texte : « Infini # » n'est pas une faute.
+    @Test func aBareHashOutsideDialogueIsText() {
+        #expect(TranslationTokenCheck.mismatches(source: "Unlimited", target: "Infini #").isEmpty)
+    }
+
+    /// Le `#` de `#$b#` devant un sélecteur n'est pas un `#` nu (Task 1).
+    @Test func aSelectorAfterAPageBreakIsNotABareHash() {
+        let mismatches = TranslationTokenCheck.mismatches(source: "Oui.#$b#Tu es là.",
+                                                          target: "Oui.#$b#${Il^Elle}$ est là.")
+        #expect(!mismatches.contains { $0.isHard })
+    }
+
+    @Test func narrationKeptIsNotAMismatch() {
+        #expect(TranslationTokenCheck.mismatches(source: "%It's a bus.", target: "%C'est un bus.").isEmpty)
     }
 
     @Test func anIdenticalTargetHasNoMismatch() {

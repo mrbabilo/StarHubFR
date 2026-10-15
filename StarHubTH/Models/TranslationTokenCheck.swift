@@ -36,16 +36,49 @@ public enum TranslationTokenCheck {
         TranslationTokens.split(text).filter(\.isCode).map(\.text)
     }
 
-    /// Dur = significatif à l'exécution, donc bloquant.
-    ///
-    /// Tout ce que `TranslationTokens` reconnaît l'est : ce sont des marques que
-    /// le jeu interprète. Les formes **souples** — le saut de ligne littéral et
-    /// les apostrophes appariées — ne sont pas reconnues comme des marques par
-    /// le découpage et ne remontent donc jamais ici. C'est voulu : une
-    /// traduction qui replie ses lignes n'est pas fautive, et la refuser pour
-    /// cela est le défaut le plus coûteux de la référence.
+    /// Bloquant = casse le jeu ; le reste avertit (spec C3-T9 §3, règles
+    /// relevées dans `StardewValley.Dialogue`, jeu 1.6, le 2026-10-15) :
+    /// un portrait ne fait que choisir l'image, `@` et les variables `%` ne
+    /// remplacent qu'un nom, `^` et `#$b#`/`#$e#`/`#$k#` ne changent que la
+    /// mise en page. Ce qui casse : une commande de dialogue, un jeton
+    /// Content Patcher, un emplacement `{n}`, une commande de courrier ou
+    /// d'objet, et un `#` nu de plus (§ `bareHashToken`).
     public static func isHard(_ token: String) -> Bool {
-        !token.isEmpty
+        if token.isEmpty { return false }
+        if token == bareHashToken { return true }
+        if token == "@" || token == "^" || token == "%" { return false }
+        if token.hasPrefix("#$") {
+            let command = token.dropFirst(2).first
+            return !(command == "b" || command == "e" || command == "k")
+        }
+        if token.hasPrefix("%") {
+            return token.hasPrefix("%item") || token.hasPrefix("%action")
+                || token == "%fork" || token == "%revealtaste"
+        }
+        if token.hasPrefix("$"), token != "${" {
+            let body = token.dropFirst()
+            let portrait = body.allSatisfy(\.isNumber) || ["h", "s", "u", "l", "a"].contains(String(body))
+            return !portrait
+        }
+        return true
+    }
+
+    /// Un `#` qui n'appartient à aucune marque : un séparateur de page **sans**
+    /// continuation. Seul `#$b#` pose le `{` qui garde la boîte ouverte
+    /// (`Dialogue.parseDialogueString`) : un `#` nu de plus que l'anglais
+    /// ferme la conversation (`##` à la place de `#$b#`, `.$b#` privé de son
+    /// `#`). Mesuré le 2026-10-15 : 104 lignes du parc, toutes des fautes.
+    public static let bareHashToken = "#"
+
+    static func bareHashes(_ text: String) -> Int {
+        TranslationTokens.split(text).filter { !$0.isCode }
+            .reduce(0) { count, segment in count + segment.text.filter { $0 == "#" }.count }
+    }
+
+    /// Un texte de dialogue : il porte un séparateur `#$…` ou une commande
+    /// `$…`. Hors dialogue, `#` est du texte (« Infini # »).
+    static func isDialogue(_ text: String) -> Bool {
+        extract(text).contains { $0.hasPrefix("#$") || ($0.hasPrefix("$") && $0 != "${") }
     }
 
     /// Les divergences entre source et traduction, comparées en **multiensemble**.
@@ -75,6 +108,14 @@ public enum TranslationTokenCheck {
         if expected != found {
             out.append(Mismatch(token: quickResponseToken, expected: expected.reduce(0, +),
                                 found: found.reduce(0, +), isHard: true))
+        }
+        if isDialogue(source) {
+            let expectedHashes = bareHashes(source)
+            let foundHashes = bareHashes(target)
+            if foundHashes > expectedHashes {
+                out.append(Mismatch(token: bareHashToken, expected: expectedHashes,
+                                    found: foundHashes, isHard: true))
+            }
         }
         return out
     }
