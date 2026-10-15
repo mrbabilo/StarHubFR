@@ -133,6 +133,17 @@ struct FolderArchiveStoreTests {
         return root
     }
 
+    /// Le dossier temporaire du store contient-il déjà le fichier de `zip` ?
+    private func zipIsWriting(in destination: URL) -> Bool {
+        let fileManager = FileManager.default
+        let entries = (try? fileManager.contentsOfDirectory(atPath: destination.path)) ?? []
+        return entries.contains { name in
+            name.hasPrefix(".starhubfr-archive-")
+                && !((try? fileManager.contentsOfDirectory(
+                    atPath: destination.appendingPathComponent(name).path)) ?? []).isEmpty
+        }
+    }
+
     private func makeDestination() throws -> URL {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("archive-dst-\(UUID().uuidString)")
@@ -229,11 +240,15 @@ struct FolderArchiveStoreTests {
         let store = FolderArchiveStore(defaults: isolatedDefaults())
         store.start(kind: .mods, source: source, destinationFolder: destination,
                     archiveName: "t.zip", sourceBytes: 300_000_000)
+        // Attendre que `zip` écrive son temporaire — pas une ligne
+        // d'avancement : la CI n'en a reçu aucune avant la fin du zip, la
+        // boucle a couru ses 20 s et l'annulation est arrivée trop tard
+        // (run 38814455447). Le temporaire, lui, existe dès que `zip` écrit.
         let deadline = Date().addingTimeInterval(20)
-        while Date() < deadline {
-            if case .running(let progress?, _) = store.phase, progress.entriesDone > 0 { break }
+        while Date() < deadline, store.isRunning, !zipIsWriting(in: destination) {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
+        try #require(store.isRunning, "zip a fini avant l'annulation : la source est trop petite pour ce poste")
         store.cancel()
         await waitUntilDone(store)
         #expect(store.phase == .cancelled)
