@@ -7204,15 +7204,8 @@ final class StarHubTHViewModel {
             resume: { [weak self] in self?.toggleMods(candidates, enable: true, conflictChecked: true) }) { return }
         activationHistory.record(enable ? .bulkEnable : .bulkDisable, detail: "\(modsToMove.count)",
                                  mods: mods, activeProfileId: activeProfileId) // R5
-        // Moves depuis l'instantané (même primitive que le plan de profil).
-        let moves = modsToMove.map { mod in
-            ProfileApplyPlan.Move(
-                folderName: mod.folderName, modName: mod.name,
-                uniqueId: mod.uniqueId,
-                source: mod.physicalFolderName,
-                destination: enable ? mod.folderName : "." + mod.folderName,
-                direction: enable ? .enable : .disable)
-        }
+        // Même formule que le plan de profil et le retour R5 (F1-T2).
+        let moves = modsToMove.map { ProfileApplyPlan.Move.toggling($0, enable: enable) }
         executeBulkMoves(moves, enabling: enable) { [weak self] moved in
             guard let self else { return "" }
             return String(format: enable ? self.localization.L(L10n.Mods.enabledAllCount)

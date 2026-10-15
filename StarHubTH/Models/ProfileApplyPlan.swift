@@ -37,6 +37,21 @@ enum ProfileApplyPlan {
         let source: String
         let destination: String
         let direction: Direction
+
+        /// Le déplacement qui active ou met en pause `mod` — la **seule**
+        /// formule du dépôt. Elle existait en trois copies (le plan de profil,
+        /// le retour d'un instantané R5, le geste groupé du ViewModel).
+        ///
+        /// La destination part du nom **logique**, jamais du physique : un mod
+        /// en pause vit sous `.X`, et préfixer son nom physique donnerait `..X`.
+        static func toggling(_ mod: ModItem, enable: Bool) -> Move {
+            Move(folderName: mod.folderName,
+                 modName: mod.name,
+                 uniqueId: mod.uniqueId,
+                 source: mod.physicalFolderName,
+                 destination: enable ? mod.folderName : "." + mod.folderName,
+                 direction: enable ? .enable : .disable)
+        }
     }
 
     /// Les renommages qui feraient correspondre `Mods/` au profil.
@@ -56,25 +71,8 @@ enum ProfileApplyPlan {
         }
         let toEnable = installedMods.filter { !$0.isEnabled && isCovered($0, by: enabled) }
 
-        return toDisable.map { mod in
-            Move(folderName: mod.folderName,
-                 modName: mod.name,
-                 uniqueId: mod.uniqueId,
-                 source: mod.physicalFolderName,
-                 // Le nom **logique**, jamais le physique : les deux sont
-                 // égaux ici (seul un mod actif entre dans cette liste), mais
-                 // préfixer un nom physique donnerait `..X` le jour où la
-                 // condition du filtre bougerait.
-                 destination: "." + mod.folderName,
-                 direction: .disable)
-        } + toEnable.map { mod in
-            Move(folderName: mod.folderName,
-                 modName: mod.name,
-                 uniqueId: mod.uniqueId,
-                 source: mod.physicalFolderName,
-                 destination: mod.folderName,
-                 direction: .enable)
-        }
+        return toDisable.map { Move.toggling($0, enable: false) }
+            + toEnable.map { Move.toggling($0, enable: true) }
     }
 
     /// Les identifiants que ce profil **mettrait en pause**, composants de

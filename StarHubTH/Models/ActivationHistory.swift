@@ -115,14 +115,7 @@ enum ActivationRestore {
             $0.isEnabled && paused.contains($0.folderName) && !$0.isSmapiBundled
         }
         let toEnable = installed.filter { !$0.isEnabled && enabled.contains($0.folderName) }
-        return toDisable.map { mod in
-            ProfileApplyPlan.Move(folderName: mod.folderName, modName: mod.name,
-                                  uniqueId: mod.uniqueId, source: mod.physicalFolderName,
-                                  destination: "." + mod.folderName, direction: .disable)
-        } + toEnable.map { mod in
-            ProfileApplyPlan.Move(folderName: mod.folderName, modName: mod.name,
-                                  uniqueId: mod.uniqueId, source: mod.physicalFolderName,
-                                  destination: mod.folderName, direction: .enable)
-        }
+        return toDisable.map { ProfileApplyPlan.Move.toggling($0, enable: false) }
+            + toEnable.map { ProfileApplyPlan.Move.toggling($0, enable: true) }
     }
 }

@@ -149,6 +149,29 @@ private func simulate(_ moves: [ProfileApplyPlan.Move],
 
     /// Les mises en pause passent **avant** les activations : c'est ce qui
     /// libère un nom de dossier avant qu'un autre mod ne le réclame.
+    /// La formule unique d'un déplacement : destination tirée du nom
+    /// **logique** dans les deux sens. Préfixer le physique d'un mod en pause
+    /// donnerait `..X`.
+    @Test func togglingDerivesTheDestinationFromTheLogicalName() {
+        let paused = makeMod("X", enabled: false)
+        let back = ProfileApplyPlan.Move.toggling(paused, enable: true)
+        #expect(back.source == ".X")
+        #expect(back.destination == "X")
+        #expect(back.direction == .enable)
+
+        let active = makeMod("X", enabled: true)
+        let away = ProfileApplyPlan.Move.toggling(active, enable: false)
+        #expect(away.source == "X")
+        #expect(away.destination == ".X")
+        #expect(away.direction == .disable)
+        #expect(away.folderName == "X")
+        #expect(away.uniqueId == "x")
+
+        // Le cas que la formule garde : un mod déjà en pause (`.X` sur
+        // disque) ne devient jamais `..X`.
+        #expect(ProfileApplyPlan.Move.toggling(paused, enable: false).destination == ".X")
+    }
+
     @Test func modsAreSetAsideBeforeOthersAreBroughtBack() {
         let mods = [makeMod("Alpha", enabled: false), makeMod("Beta", enabled: true)]
         let profile = ModProfile(name: "Solo", enabledModIds: ["alpha"])
