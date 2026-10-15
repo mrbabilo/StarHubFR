@@ -168,10 +168,27 @@ Each mod page has a **Translation** tab that shows the real state of its French 
 
 1. Download the latest version from the [Releases](../../releases) page.
 2. Unzip it and drag `StarHubFR.app` into Applications.
-3. On first launch macOS may block the app, which isn't notarised: open **System Settings › Privacy & Security**, then **Open Anyway**.
-4. The app looks for the game folder; if it isn't found, point to it (for example `/Applications/Stardew Valley.app/Contents/MacOS`).
+3. On first launch macOS may block the app, which isn't notarised: open **System Settings › Privacy & Security**, then **Open Anyway**. If macOS still refuses, or says the app is "damaged", remove the quarantine with Sentinel (below).
+4. The app looks for the game; if it isn't found, point to the game application itself (`Stardew Valley.app`): the `Mods/` folder is found from there.
 
 To move to a new version, quit the app completely (⌘Q) before replacing the bundle.
+
+#### Removing the quarantine with Sentinel
+
+macOS puts every downloaded app in "quarantine" and refuses to open the ones Apple hasn't notarised, which is the case for StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel), by Alin Lupascu, removes that flag in one gesture.
+
+1. Install Sentinel (macOS 13 or later):
+   - with [Homebrew](https://brew.sh): `brew install --cask alienator88-sentinel`;
+   - or from the [Sentinel Releases](https://github.com/alienator88/Sentinel/releases) page, then drag `Sentinel.app` into **Applications** and run it from there.
+2. Drag `StarHubFR.app` (already in **Applications**) onto the left zone, **Allow unsigned app to launch**. With Sentinel's Finder extension, right-clicking the app does the same. Leave the right zone (*Sign app with*) and the Gatekeeper switch as they are.
+3. Open StarHubFR as usual.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3cc90bd1-7d9d-43ed-8a0f-7105d72d5eab" alt="Sentinel window: on the left, the “Allow unsigned app to launch” zone where StarHubFR.app is dropped" width="420">
+  <br><sub>Screenshot: <a href="https://github.com/alienator88/Sentinel">Sentinel repository</a>, Alin Lupascu.</sub>
+</p>
+
+Repeat after every new StarHubFR version: the quarantine comes back with each download. Only unquarantine an app that came from this repository's [Releases](../../releases) page. Sentinel can also turn Gatekeeper off for the whole Mac: that is **not** needed here, unquarantining this one app is enough.
 
 <p align="center">
   <img src="assets/banners/developers_banner.png" alt="For Developers" width="300">

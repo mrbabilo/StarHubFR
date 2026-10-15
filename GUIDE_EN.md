@@ -25,7 +25,7 @@ How to use it day to day, and what to do when something goes wrong. For the full
 ## 1. First launch
 
 1. Download the latest version from the [Releases](../../releases) page, unzip it and drag `StarHubFR.app` into **Applications**.
-2. The app is not notarized: on first launch, macOS may block it. Open **System Settings › Privacy & Security**, then **Open Anyway**.
+2. The app is not notarized: on first launch, macOS may block it. Open **System Settings › Privacy & Security**, then **Open Anyway**. If macOS still refuses or says the app is "damaged", drop `StarHubFR.app` on the **Allow unsigned app to launch** zone of [Sentinel](https://itsalin.com/appInfo/?id=sentinel) (`brew install --cask alienator88-sentinel`); the full procedure is in the [README](README_EN.md#removing-the-quarantine-with-sentinel). Repeat after every new version.
 3. The app looks for Stardew Valley. If it can't find it, point it to **the game application itself**; the `Mods/` folder is found from there.
 4. If SMAPI is not installed, the app offers to install it. Without SMAPI, the game loads no mods.
 

@@ -905,6 +905,8 @@ seul, et VoiceOver restitue chaque écran majeur sans piège.
 
 - [ ] **E2-T3** — Captures d'écran, page Nexus, distribution hors App Store (signature,
       notarisation, ou **Sentinel** pour lever la quarantaine côté utilisateur). · **M**
+      *Le 2026-10-15* : la levée de quarantaine par Sentinel est documentée pour l'utilisateur
+      (README FR/EN, guides) ; signature et notarisation restent ouvertes.
 
 #### E3 — Éditeur de sauvegardes *(à arbitrer avant engagement)*
 

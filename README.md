@@ -169,10 +169,27 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 
 1. Téléchargez la dernière version sur la page [Releases](../../releases).
 2. Décompressez l'archive et glissez `StarHubFR.app` dans Applications.
-3. Au premier lancement, macOS peut bloquer l'app, qui n'est pas notarisée : ouvrez **Réglages Système › Confidentialité et sécurité**, puis **Ouvrir quand même**.
-4. L'app cherche le dossier du jeu ; s'il n'est pas trouvé, indiquez-le (par exemple `/Applications/Stardew Valley.app/Contents/MacOS`).
+3. Au premier lancement, macOS peut bloquer l'app, qui n'est pas notarisée : ouvrez **Réglages Système › Confidentialité et sécurité**, puis **Ouvrir quand même**. Si macOS refuse encore, ou dit l'app « endommagée », levez la quarantaine avec Sentinel (ci-dessous).
+4. L'app cherche le jeu ; s'il n'est pas trouvé, désignez l'application du jeu elle-même (`Stardew Valley.app`) : le dossier `Mods/` est trouvé à partir de là.
 
 Pour passer à une nouvelle version, quittez complètement l'app (⌘Q) avant de remplacer le bundle.
+
+#### Lever la quarantaine avec Sentinel
+
+macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel), d'Alin Lupascu, retire cette marque en un geste.
+
+1. Installez Sentinel (macOS 13 ou ultérieur) :
+   - avec [Homebrew](https://brew.sh) : `brew install --cask alienator88-sentinel` ;
+   - ou depuis la page [Releases de Sentinel](https://github.com/alienator88/Sentinel/releases), puis glissez `Sentinel.app` dans **Applications** et lancez-le depuis là.
+2. Glissez `StarHubFR.app` (déjà dans **Applications**) sur la zone de gauche, **Allow unsigned app to launch**. Avec l'extension Finder de Sentinel, un clic droit sur l'app fait la même chose. Laissez la zone de droite (*Sign app with*) et l'interrupteur Gatekeeper tels quels.
+3. Ouvrez StarHubFR normalement.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3cc90bd1-7d9d-43ed-8a0f-7105d72d5eab" alt="Fenêtre de Sentinel : à gauche, la zone « Allow unsigned app to launch » où déposer StarHubFR.app" width="420">
+  <br><sub>Capture : <a href="https://github.com/alienator88/Sentinel">dépôt de Sentinel</a>, Alin Lupascu.</sub>
+</p>
+
+À refaire après chaque nouvelle version de StarHubFR : la quarantaine revient avec chaque téléchargement. Ne levez la quarantaine que d'une app venue de la page [Releases](../../releases) de ce dépôt. Sentinel sait aussi désactiver Gatekeeper pour tout le Mac : ce n'est **pas** nécessaire ici, la levée de quarantaine de la seule app suffit.
 
 <p align="center">
   <img src="assets/banners/developers_banner.png" alt="Pour les développeurs" width="300">
