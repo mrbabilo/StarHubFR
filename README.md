@@ -24,7 +24,7 @@
 **StarHubFR est un gestionnaire de mods Stardew Valley natif pour macOS, en français.**
 Installez, organisez et dépannez vos mods sans passer par le Finder ni le terminal, même avec plusieurs centaines de mods.
 
-Le **[guide utilisateur](GUIDE.md)** explique la cohabitation avec d'autres gestionnaires, la convention `X` / `.X` des mods en pause et la désinstallation propre de l'app.
+Le **[guide utilisateur](GUIDE.md)** accompagne le premier lancement et chaque usage courant : installer, mettre en pause, profils, mises à jour, dépannage, raccourcis, performances, traduction, retrouver un fichier remplacé, désinstaller proprement.
 
 ## Pourquoi StarHubFR
 
@@ -74,7 +74,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 *   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent. Refusé jeu ouvert.
 *   **Profils** — plusieurs ensembles de mods, un clic pour passer de l'un à l'autre.
 *   **Groupes à soi** — « Regrouper par » vos groupes ou par catégorie : bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, tout un groupe activé ou mis en pause d'un geste. Un profil décrit un état, un groupe un rangement.
-*   **Une liste qui se trie** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, En pause, **Problèmes** et **Mises à jour**.
+*   **Une liste qui se trie** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, Désactivés, **Problèmes** et **Mises à jour**.
 *   **Approbations Nexus** — le pouce de chaque mod donne son nombre d'approbations et approuve d'un clic.
 *   **Marque « à écarter »** — un mod à retirer de la circulation sans le désinstaller : grisé, regroupé par un filtre, importable dans un profil.
 

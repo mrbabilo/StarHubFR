@@ -23,7 +23,7 @@
 **StarHubFR is a native macOS mod manager for Stardew Valley, in French and English.**
 Install, organise and troubleshoot your mods without opening Finder or a terminal, even with several hundred mods.
 
-The **[user guide](GUIDE.md)** (in French) covers living alongside other mod managers, the `X` / `.X` convention for paused mods, and removing the app cleanly.
+The **[user guide](GUIDE.md)** (in French) walks through first launch and everyday use: installing, pausing, profiles, updates, troubleshooting, shortcuts, performance, translation, recovering replaced files and uninstalling cleanly.
 
 ## Why StarHubFR
 
@@ -73,7 +73,7 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 *   **Trash a selection** — one batch, restorable at once; the confirmation names the active mods that depend on it. Refused while the game is running.
 *   **Profiles** — several sets of mods, one click to switch.
 *   **Your own groups** — "Group by" your groups or by category: collapsible headers, "Put in group" on a row or a selection, a whole group enabled or paused in one go. A profile describes a state, a group an arrangement.
-*   **A list that sorts** — categories inferred from the manifest, filters (configurable, "set aside", uncategorised…), sorting by name, author, endorsements or oldest update; All, Enabled, Paused, **Problems** and **Updates** scopes.
+*   **A list that sorts** — categories inferred from the manifest, filters (configurable, "set aside", uncategorised…), sorting by name, author, endorsements or oldest update; All, Enabled, Disabled, **Problems** and **Updates** scopes.
 *   **Nexus endorsements** — each mod's thumb shows its endorsement count and endorses in one click.
 *   **"Set aside" mark** — take a mod out of circulation without uninstalling it: greyed out, gathered by a filter, importable into a profile.
 
