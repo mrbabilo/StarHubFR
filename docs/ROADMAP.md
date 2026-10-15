@@ -816,7 +816,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; reste **I-T21** ; I-T22 (audit UX de l'onglet Performances) livré et validé le 2026-10-14, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; restent **I-T21** et **I-T23** ; I-T22 (audit UX de l'onglet Performances) livré et validé le 2026-10-14, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -903,6 +903,26 @@ de l'axe — l'un des rares domaines où le port devance nos écrans :
         signalé dans Alertes système, pas de migration des magasins.
         Mesure de la spec §5 : **30 mods actifs** dépendent de Content Patcher
         (parc sur BENCH+) ; la confirmation en nomme 10, puis « et 20 autres ».
+
+- [ ] **I-T23** — *(code livré le 2026-10-15, validation écran en attente)* Plan de raccourcis : une feuille proposée depuis Alertes système
+      propose de déplacer les raccourcis en conflit vers des touches libres
+      (deux modes), s'applique en un geste, s'annule, et une alerte après
+      bascule de profil y conduit. · **M**
+      Spec et plan locaux : `docs/superpowers/specs|plans/2026-10-15-raccourcis-auto*`.
+      Garde-fous livrés : la feuille est une liste (pas de vue clavier) ;
+      « Non classé » n'ôte qu'une correction de l'utilisateur ; les touches de
+      contrôle du jeu ne servent jamais, même comme base d'accord (avec les
+      contrôles par défaut, les chiffres sont les emplacements d'inventaire :
+      des déplacements de la famille info peuvent être listés « famille pleine ») ;
+      raccourcis à valeur entière et mods sans `config.json` sauvegardé sont
+      ignorés et nommés ; l'annulation saute les fichiers modifiés après le plan.
+      **À valider par l'auteur à l'écran** :
+      - (a) Alertes système › Raccourcis › « Proposer un plan » ouvre la feuille, dans les deux modes.
+      - (b) Décocher une ligne, changer une famille (la correction survit au relancement), appliquer : verdict affiché, un nouveau scan montre moins de conflits.
+      - (c) « Annuler le plan » restaure les fichiers.
+      - (d) « Appliquer » grisé avec son motif quand le jeu est ouvert.
+      - (e) Après une bascule de profil qui crée des conflits, la bannière sur Profils mène à la feuille.
+      - (f) Largeur 560 pt, en français.
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
