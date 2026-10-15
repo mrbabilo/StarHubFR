@@ -309,7 +309,7 @@ struct MainView: View {
             .onChange(of: navigation.viewingModDetail == nil && navigation.editingModConfig == nil) { _, closed in
                 if closed { detailOpenedByJump = false }
             }
-            .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }
+            .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }.helpLauncher(navigation: navigation, currentTab: currentTab, localization: localization)
             .frame(minWidth: 560, minHeight: 400).focusSection()
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)

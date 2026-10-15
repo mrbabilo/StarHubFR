@@ -16,6 +16,7 @@ struct CommandPaletteView: View {
     @State private var query = ""
     @State private var selection = 0
     @FocusState private var fieldFocused: Bool
+    @Environment(\.openWindow) private var openWindow
 
     /// Le parc converti **une seule fois**, à l'ouverture.
     ///
@@ -36,6 +37,10 @@ struct CommandPaletteView: View {
                                        title: localization.L(L10n.Logs.segmentPerformance),
                                        subtitle: localization.L(L10n.Logs.logs),
                                        icon: "gauge.with.dots.needle.67percent"))
+        // L'aide intégrée : une fenêtre, pas une destination.
+        out.append(CommandPaletteEntry(id: "dest:help", kind: .destination,
+                                       title: localization.L(L10n.Help.title),
+                                       subtitle: nil, icon: "questionmark.circle"))
         out += vm.scanStore.mods.flattenedMods.map(CommandPaletteEntry.forMod)
         out += vm.modProfiles.map {
             CommandPaletteEntry.forProfile(
@@ -232,7 +237,10 @@ struct CommandPaletteView: View {
             // L'id est "dest:" + rawValue — on remonte à la destination.
             let raw = String(e.id.dropFirst("dest:".count))
             let navigation = vm.navigationStore
-            if raw.hasSuffix("#performance") {
+            if raw == "help" {
+                navigation.pendingHelpSection = nil
+                openWindow(id: AppWindowID.help)
+            } else if raw.hasSuffix("#performance") {
                 navigation.openPerformance()
             } else if let d = SidebarDestination(rawValue: raw) { navigation.requestTab(d) }
         case .mod:
