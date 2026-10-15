@@ -134,6 +134,52 @@ def check_core_boundary() -> None:
                   "Core est une couche logique : l'UI appartient aux vues.")
         sys.exit(1)
 
+# Aide intégrée (spec 2026-10-15) : les deux guides sont la source de la
+# fenêtre d'aide. Chaque section `## ` porte un marqueur `<!-- help: id -->`
+# juste au-dessus ; les deux langues doivent avoir les mêmes identifiants,
+# dans le même ordre — comme la parité des clés en/fr.
+HELP_GUIDES = ("GUIDE.md", "GUIDE_EN.md")
+HELP_MARKER = re.compile(r"^<!--\s*help:\s*([a-z0-9-]+)\s*-->$")
+
+def help_section_ids(path: str) -> list[str]:
+    ids: list[str] = []
+    pending: str | None = None
+    lines = pathlib.Path(path).read_text(encoding="utf-8").splitlines()
+    for number, line in enumerate(lines, 1):
+        stripped = line.strip()
+        marker = HELP_MARKER.match(stripped)
+        if marker:
+            pending = marker.group(1)
+            continue
+        if line.startswith("## "):
+            if pending is None:
+                print(f"[ERROR] {path}:{number} : la section « {line[3:].strip()} » "
+                      "n'a pas de marqueur <!-- help: … --> juste au-dessus.")
+                sys.exit(1)
+            ids.append(pending)
+            pending = None
+        elif stripped and pending is not None:
+            print(f"[ERROR] {path}:{number} : le marqueur « {pending} » "
+                  "n'est pas suivi d'un titre de section.")
+            sys.exit(1)
+    return ids
+
+def check_help_guides() -> None:
+    for guide in HELP_GUIDES:
+        if not os.path.exists(guide):
+            print(f"[ERROR] {guide} est introuvable : la fenêtre d'aide l'embarque.")
+            sys.exit(1)
+    french, english = (help_section_ids(guide) for guide in HELP_GUIDES)
+    for guide, ids in zip(HELP_GUIDES, (french, english)):
+        doubles = sorted({i for i in ids if ids.count(i) > 1})
+        if doubles:
+            print(f"[ERROR] {guide} : identifiant de section en double : {', '.join(doubles)}.")
+            sys.exit(1)
+    if french != english:
+        print("[ERROR] GUIDE.md et GUIDE_EN.md n'ont pas les mêmes sections, "
+              f"dans le même ordre :\n  fr : {french}\n  en : {english}")
+        sys.exit(1)
+
 def build_swiftc_command(swift_files: list[str], app_executable: str, module_cache_dir: str) -> list[str]:
     """Compilation whole-module — chemin de repli (`--whole-module`) et base de
     la table `compile_commands.json` servie à SourceKit-LSP.
@@ -415,6 +461,12 @@ def create_app_bundle():
     if os.path.exists(changelog_path):
         shutil.copy2(changelog_path, os.path.join(RESOURCES_DIR, "CHANGELOG.md"))
         print("[INFO] Copied CHANGELOG.md to App Resources")
+    # Aide intégrée : les deux guides, lus par la fenêtre d'aide.
+    help_dir = os.path.join(RESOURCES_DIR, "Help")
+    os.makedirs(help_dir, exist_ok=True)
+    for guide in HELP_GUIDES:
+        shutil.copy2(guide, os.path.join(help_dir, guide))
+    print("[INFO] Copied GUIDE.md and GUIDE_EN.md to App Resources/Help")
     # C4-T11 — les choix d'enum que les DLL C# déclarent par leurs types,
     # figé du parc par tools/gmcm_options.py (voir docs/SOURCES.md).
     gmcm_path = "assets/gmcm-options.json"
@@ -452,6 +504,7 @@ def create_app_bundle():
     # SwiftUI. Échec rapide, avant la compilation (§4.7 : l'outillage doit
     # rater quand il doit — épreuve faite le 2026-09-10, voir git log).
     check_core_boundary()
+    check_help_guides()
 
     # Keep the LSP compile database in sync with what we actually compile
     write_compile_commands(swift_files, app_executable, module_cache_dir)

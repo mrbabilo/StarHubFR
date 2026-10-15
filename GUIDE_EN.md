@@ -21,6 +21,7 @@ How to use it day to day, and what to do when something goes wrong. For the full
 
 ---
 
+<!-- help: first-launch -->
 ## 1. First launch
 
 1. Download the latest version from the [Releases](../../releases) page, unzip it and drag `StarHubFR.app` into **Applications**.
@@ -32,6 +33,7 @@ How to use it day to day, and what to do when something goes wrong. For the full
 
 To move to a new version of the app, quit it completely (⌘Q) before replacing `StarHubFR.app`.
 
+<!-- help: install -->
 ## 2. Installing mods
 
 **From an archive.** Drop a `.zip`, `.7z` or `.rar` on the drop zone of **Mod Management**. The app recognises a single mod or a pack, reports missing dependencies and conflicts, then installs.
@@ -45,6 +47,7 @@ Good to know:
 - **The old version is backed up** before it is replaced (see [section 10](#10-getting-back-what-was-replaced-or-deleted)).
 - **A file meant for another mod** (a bag for *ItemBags*, for example) is placed inside its host mod, and the app shows you where.
 
+<!-- help: pause -->
 ## 3. Enabling and pausing: the `X` / `.X` convention
 
 Pausing a mod renames its folder with a **leading dot**: `Mods/ColorfulVolume` becomes `Mods/.ColorfulVolume`. SMAPI does not load dot folders. Nothing is moved or deleted.
@@ -55,6 +58,7 @@ Pausing a mod renames its folder with a **leading dot**: `Mods/ColorfulVolume` b
 - **The mods shipped with SMAPI** (ConsoleCommands, SaveBackup) stay enabled, and neither they nor the StarHubFR probe can be deleted from the app: it tells you if you try.
 - **Before you pause a mod that writes into your saves**, the app measures what it left there. **Game Saves › Clean up…** removes the data of mods that are gone, after copying the save.
 
+<!-- help: profiles -->
 ## 4. Profiles and groups
 
 A **profile** describes a **state**: which mods are enabled. A **group** describes an **arrangement**: how the list is organised. The two work together.
@@ -65,6 +69,7 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 
 **"Set aside" mark.** For a mod you want out of circulation without uninstalling it: it stays greyed out and gathered under its own filter.
 
+<!-- help: updates -->
 ## 5. Updates
 
 **Mod Updates** checks your whole collection without an account or a key, through smapi.io. Each mod concerned carries a "↑ version" badge in the list.
@@ -74,6 +79,7 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 - **Mods without a verdict** are listed with their reason (no identifier, hidden page…). A Nexus ID typed by hand repairs a broken key.
 - **If smapi.io doesn't answer**, the app says so and offers to check Nexus directly.
 
+<!-- help: troubleshooting -->
 ## 6. When the game crashes or a mod won't load
 
 1. Launch the game through SMAPI, reproduce the problem, then open **Diagnostics & Performance › Health**. The app reads the SMAPI log and tells you what to do, in plain words: a dependency to install, a duplicated mod, a mod that doesn't support your game version.
@@ -83,6 +89,7 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 
 To ask for help, upload `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt` to [smapi.io/log](https://smapi.io/log) and share the link you get.
 
+<!-- help: shortcuts -->
 ## 7. Conflicting keyboard shortcuts
 
 **System Alerts › Keyboard shortcuts** lists every key used by your enabled mods, searchable by mod, setting or key. Two mods on the same key trigger together.
@@ -96,6 +103,7 @@ Uncheck a row to keep a key; correct the family of a mod that was guessed wrong,
 
 Close the game before applying: a mod reads its configuration at launch. After a profile switch that creates conflicts, an alert on **Mod Profiles** leads straight to the plan.
 
+<!-- help: performance -->
 ## 8. Measuring performance
 
 **Diagnostics & Performance › Performance** answers "is this mod slowing my game down?".
@@ -106,6 +114,7 @@ Close the game before applying: a mod reads its configuration at launch. After a
 
 A difference is shown as a gain or a loss only beyond the noise measured between your own sessions; below that, it stays grey. To stop the probe, pause it like any other mod.
 
+<!-- help: translate -->
 ## 9. Translating a mod into French
 
 Open a mod's page, **Translation** tab.
@@ -117,18 +126,18 @@ Open a mod's page, **Translation** tab.
 
 A translation written in the app lives in the mod's folder. Updating the mod doesn't overwrite it; the update preview tells you which keys need revisiting.
 
+<!-- help: recover -->
 ## 10. Getting back what was replaced or deleted
 
-| Situation | Where to look |
-|---|---|
-| An update replaced a mod and you want the old version | **Mod Backups** › Restore (the mod comes back paused) |
-| A `config.json` was rewritten (config editor, shortcut plan) | **Mod Backups** › Configuration Backups |
-| You moved mods to the trash from the app | **Maintenance** › Restore, or **Restore all** for a batch |
-| An unreadable or stray folder disappeared from `Mods/` | **Quarantine**: scans set aside what was in the way, nothing is deleted |
-| A save | **Game Saves**: a copy is made before each change |
+- **An update replaced a mod and you want the old version** — **Mod Backups** › Restore (the mod comes back paused).
+- **A `config.json` was rewritten** (config editor, shortcut plan) — **Mod Backups** › Configuration Backups.
+- **You moved mods to the trash from the app** — **Maintenance** › Restore, or **Restore all** for a batch.
+- **An unreadable or stray folder disappeared from `Mods/`** — **Quarantine**: scans set aside what was in the way, nothing is deleted.
+- **A save** — **Game Saves**: a copy is made before each change.
 
 All of this lives in `~/Library/Application Support/StarHubFR/`.
 
+<!-- help: other-managers -->
 ## 11. Alongside other mod managers
 
 StarHubFR, Vortex, Stardrop and the Nexus Mods App read **the same** `Mods/` folder of the game.
@@ -137,6 +146,7 @@ StarHubFR, Vortex, Stardrop and the Nexus Mods App read **the same** `Mods/` fol
 - **A mod installed by StarHubFR is an ordinary folder.** Other tools see it as if it had been placed there by hand.
 - **The game always starts through SMAPI**: a mod runs the same whichever tool installed it.
 
+<!-- help: uninstall -->
 ## 12. Uninstalling StarHubFR cleanly
 
 Paused mods live in dot folders inside `Mods/`. If you remove the app without bringing them back, the game won't load them any more and they will seem lost.

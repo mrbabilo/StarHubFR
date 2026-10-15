@@ -21,6 +21,7 @@ Comment s'en servir au quotidien, et quoi faire quand quelque chose coince. Pour
 
 ---
 
+<!-- help: first-launch -->
 ## 1. Premier lancement
 
 1. Téléchargez la dernière version sur la page [Releases](../../releases), décompressez-la et glissez `StarHubFR.app` dans **Applications**.
@@ -32,6 +33,7 @@ Comment s'en servir au quotidien, et quoi faire quand quelque chose coince. Pour
 
 Pour passer à une nouvelle version de l'app, quittez-la complètement (⌘Q) avant de remplacer `StarHubFR.app`.
 
+<!-- help: install -->
 ## 2. Installer des mods
 
 **Depuis une archive.** Glissez un `.zip`, `.7z` ou `.rar` sur la zone de dépôt de **Gestion des mods**. L'app reconnaît un mod seul ou un pack, annonce les dépendances manquantes et les conflits, puis installe.
@@ -45,6 +47,7 @@ Ce qu'il faut savoir :
 - **L'ancienne version est sauvegardée** avant d'être remplacée (voir [section 10](#10-retrouver-ce-qui-a-été-remplacé-ou-supprimé)).
 - **Un fichier destiné à un autre mod** (un sac pour *ItemBags*, par exemple) est rangé dans le mod hôte, et l'app vous montre où.
 
+<!-- help: pause -->
 ## 3. Activer, mettre en pause : la convention `X` / `.X`
 
 Mettre un mod en pause renomme son dossier en le **préfixant d'un point** : `Mods/ColorfulVolume` devient `Mods/.ColorfulVolume`. SMAPI ne charge pas les dossiers à point. Rien n'est déplacé ni supprimé.
@@ -55,6 +58,7 @@ Mettre un mod en pause renomme son dossier en le **préfixant d'un point** : `Mo
 - **Les mods livrés avec SMAPI** (ConsoleCommands, SaveBackup) restent actifs, et ni eux ni la sonde StarHubFR ne se suppriment depuis l'app : elle vous le dit si vous essayez.
 - **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie.
 
+<!-- help: profiles -->
 ## 4. Profils et groupes
 
 Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décrit un **rangement** : comment la liste est organisée. Les deux se complètent.
@@ -65,6 +69,7 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 
 **Marque « à écarter ».** Un mod que vous voulez sortir de la circulation sans le désinstaller : il reste grisé et regroupé sous son filtre.
 
+<!-- help: updates -->
 ## 5. Mises à jour
 
 **Mise à jour des mods** vérifie tout votre parc sans compte ni clé, par smapi.io. Chaque mod concerné porte une pastille « ↑ version » dans la liste.
@@ -74,6 +79,7 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 - **Les mods sans verdict** sont listés avec leur raison (pas d'identifiant, page masquée…). Un identifiant Nexus saisi à la main répare une clé cassée.
 - **Si smapi.io ne répond pas**, l'app le dit et propose de vérifier directement sur Nexus.
 
+<!-- help: troubleshooting -->
 ## 6. Quand le jeu plante ou qu'un mod refuse de charger
 
 1. Lancez le jeu via SMAPI, reproduisez le problème, puis ouvrez **Diagnostic & Performances › Santé**. L'app lit le journal SMAPI et dit quoi faire, en clair : dépendance à installer, mod en double, mod incompatible avec votre version du jeu.
@@ -83,6 +89,7 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 
 Pour demander de l'aide, déposez `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt` sur [smapi.io/log](https://smapi.io/log) et partagez le lien obtenu.
 
+<!-- help: shortcuts -->
 ## 7. Raccourcis clavier en conflit
 
 **Alertes système › Raccourcis clavier** liste chaque touche utilisée par vos mods actifs, cherchable par mod, réglage ou touche. Deux mods sur la même touche se déclenchent ensemble.
@@ -96,6 +103,7 @@ Décochez une ligne pour garder une touche ; corrigez la famille d'un mod mal de
 
 Fermez le jeu avant d'appliquer : un mod relit sa configuration au lancement. Après un changement de profil qui crée des conflits, une alerte sur **Profils de mods** mène directement au plan.
 
+<!-- help: performance -->
 ## 8. Mesurer les performances
 
 **Diagnostic & Performances › Performances** répond à « ce mod ralentit-il mon jeu ? ».
@@ -106,6 +114,7 @@ Fermez le jeu avant d'appliquer : un mod relit sa configuration au lancement. Ap
 
 Un écart n'est affiché comme gain ou perte qu'au-delà du bruit mesuré entre vos propres sessions ; en dessous, il reste gris. Pour arrêter la sonde, mettez-la en pause comme n'importe quel mod.
 
+<!-- help: translate -->
 ## 9. Traduire un mod en français
 
 Ouvrez la fiche d'un mod, onglet **Traduction**.
@@ -117,18 +126,18 @@ Ouvrez la fiche d'un mod, onglet **Traduction**.
 
 Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour du mod ne l'écrase pas ; l'aperçu de mise à jour dit quelles clés sont à reprendre.
 
+<!-- help: recover -->
 ## 10. Retrouver ce qui a été remplacé ou supprimé
 
-| Situation | Où regarder |
-|---|---|
-| Une mise à jour a remplacé un mod, vous voulez l'ancienne version | **Sauvegardes des mods** › Restaurer (le mod revient en pause) |
-| Un `config.json` a été réécrit (éditeur de config, plan de raccourcis) | **Sauvegardes des mods** › Sauvegardes de configuration |
-| Vous avez mis des mods à la corbeille depuis l'app | **Entretien** › Restaurer, ou **Tout restaurer** pour un lot |
-| Un dossier illisible ou parasite a disparu de `Mods/` | **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé |
-| Une partie | **Sauvegardes du jeu** : copie avant chaque modification |
+- **Une mise à jour a remplacé un mod, vous voulez l'ancienne version** — **Sauvegardes des mods** › Restaurer (le mod revient en pause).
+- **Un `config.json` a été réécrit** (éditeur de config, plan de raccourcis) — **Sauvegardes des mods** › Sauvegardes de configuration.
+- **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot.
+- **Un dossier illisible ou parasite a disparu de `Mods/`** — **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé.
+- **Une partie** — **Sauvegardes du jeu** : copie avant chaque modification.
 
 Tout cela vit dans `~/Library/Application Support/StarHubFR/`.
 
+<!-- help: other-managers -->
 ## 11. Avec d'autres gestionnaires de mods
 
 StarHubFR, Vortex, Stardrop et le Nexus Mods App lisent **le même dossier** `Mods/` du jeu.
@@ -137,6 +146,7 @@ StarHubFR, Vortex, Stardrop et le Nexus Mods App lisent **le même dossier** `Mo
 - **Un mod installé par StarHubFR est un dossier ordinaire.** Les autres outils le voient comme s'il avait été posé à la main.
 - **Le jeu se lance toujours par SMAPI** : un mod tourne pareil quel que soit l'outil qui l'a installé.
 
+<!-- help: uninstall -->
 ## 12. Désinstaller StarHubFR proprement
 
 Les mods en pause vivent dans des dossiers à point de `Mods/`. Si vous retirez l'app sans les remettre, le jeu ne les chargera plus et ils sembleront perdus.
