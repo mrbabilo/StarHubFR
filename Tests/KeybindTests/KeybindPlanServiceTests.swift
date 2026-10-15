@@ -195,14 +195,21 @@ import Testing
         let f = try conflictPair()
         defer { f.cleanUp() }
         let before = try f.text("MailboxMenu")
+        let i18n = f.config("MailboxMenu").deletingLastPathComponent().appendingPathComponent("i18n")
+        try FileManager.default.createDirectory(at: i18n, withIntermediateDirectories: true)
+        try Data(#"{"title": "avant"}"#.utf8).write(to: i18n.appendingPathComponent("fr.json"))
         _ = try readyPlan(f)
         await f.service.apply(report: try f.report(), gameDir: f.game.path, mods: f.mods,
                               rescan: { f.box.rescans += 1 })
         #expect(try f.text("MailboxMenu") != before)
+        // Traduction retouchée après le plan : l'annulation n'y touche pas.
+        try Data(#"{"title": "après"}"#.utf8).write(to: i18n.appendingPathComponent("fr.json"))
 
         await f.service.undo(gameDir: f.game.path, mods: f.mods, rescan: { f.box.rescans += 1 })
 
         #expect(try f.text("MailboxMenu") == before)
+        #expect(try String(contentsOf: i18n.appendingPathComponent("fr.json"), encoding: .utf8)
+                == #"{"title": "après"}"#)
         #expect(f.box.rescans == 2)
         guard case .idle = f.service.state else {
             Issue.record("état attendu .idle après annulation, obtenu \(f.service.state)"); return

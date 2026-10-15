@@ -28,6 +28,8 @@ final class KeybindPlanService {
 
     private(set) var state: State = .idle
 
+    private static let configFile = "config.json"
+
     @ObservationIgnored private let backupManager: ModConfigBackupManager
     @ObservationIgnored private let isGameRunning: @MainActor () -> Bool
     /// Les réglages sur lesquels le plan a été calculé : la signature
@@ -189,7 +191,7 @@ final class KeybindPlanService {
     /// n'est alors écrit : un seul déplacement en échec garde le fichier
     /// intact plutôt qu'à moitié appliqué.
     private static func rewrite(folder: String, moves: [PlannedMove]) -> String? {
-        let path = (folder as NSString).appendingPathComponent("config.json")
+        let path = (folder as NSString).appendingPathComponent(configFile)
         guard case .content(let loaded) = ModConfigWriteGuard.readDisk(atPath: path) else {
             return "config.json absent ou illisible"
         }
@@ -256,7 +258,17 @@ final class KeybindPlanService {
             state = .failed("une sauvegarde plus récente a suivi le plan : restaurez depuis l'écran des sauvegardes")
             return
         }
-        let items = lastApply.backup.items.filter { lastApply.written.contains($0.modFolderName) }
+        // Le lot porte aussi les traductions (`ModConfigFiles.preservable`) :
+        // seul `config.json` est rendu, le plan n'a rien écrit d'autre — une
+        // traduction retouchée depuis ne doit pas être ramenée en arrière.
+        let items = lastApply.backup.items
+            .filter { lastApply.written.contains($0.modFolderName) }
+            .map { item in
+                ModConfigBackupItem(modFolderName: item.modFolderName, parentFolderName: item.parentFolderName,
+                                    modDisplayName: item.modDisplayName,
+                                    files: item.files.filter { $0 == Self.configFile },
+                                    fileSizes: item.fileSizes.filter { $0.key == Self.configFile })
+            }
         let report: ModConfigRestoreReport
         do {
             report = try backupManager.restoreBackup(gameDir: gameDir, backup: lastApply.backup,
