@@ -201,6 +201,10 @@ StarHubFR est publié sous [licence MIT](LICENSE) : forkez, modifiez, améliorez
 
 StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — API interrogées, fichiers lus, code repris, état de chacun — est tenue à jour dans [`docs/SOURCES.md`](docs/SOURCES.md).
 
+**Le jeu**
+
+*   [**Stardew Valley**](https://www.stardewvalley.net) par **ConcernedApe** — le jeu, dont l'app lit sur votre installation les traductions officielles (glossaire de l'éditeur) et vos contrôles (conflits de raccourcis).
+
 **SMAPI et diagnostic**
 
 *   [**SMAPI**](https://github.com/pathoschild/SMAPI), [**Content Patcher**](https://github.com/Pathoschild/StardewMods/tree/develop/ContentPatcher), [**StardewXnbHack**](https://github.com/Pathoschild/StardewXnbHack) et la [**liste de compatibilité**](https://github.com/Pathoschild/SmapiCompatibilityList) par **Pathoschild** (MIT) — format des journaux et des manifestes vérifié dans les sources, points de mesure du chargement, schéma de config des packs, lecture des fichiers du jeu, verdicts hors ligne. L'installateur intégré télécharge les releases de SMAPI.
@@ -228,7 +232,7 @@ StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — AP
 **Performances**
 
 *   [**Profiler**](https://github.com/SinZ163/StardewMods/tree/main/Profiler) par **SinZ** (MIT) — minuteurs de trame et lecture des pauses du ramasse-miettes repris par la sonde ; sa visionneuse [Stardew Utilities](https://stardew.361zn.is) a guidé la lecture du chargement.
-*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) par **spajus**, [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) par **neoiw**, [**Stardropium**](https://www.nexusmods.com/stardewvalley/mods/52803) par **Arshia1381**, [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) par **palmhacker13** et [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) par **PHUICMT** — décompilés et étudiés pour savoir ce qu'ils changent au jeu, et donc ce que nos mesures doivent voir.
+*   [**FastLoads**](https://www.nexusmods.com/stardewvalley/mods/19454) par **spajus**, [**Stardew Loading Optimizer**](https://www.nexusmods.com/stardewvalley/mods/50153) par **neoiw**, [**Stardropium**](https://www.nexusmods.com/stardewvalley/mods/52803) par **Arshia1381**, [**UltraSmooth**](https://www.nexusmods.com/stardewvalley/mods/50971) par **palmhacker13**, [**SDV-Radiance**](https://www.nexusmods.com/stardewvalley/mods/49397) par **PHUICMT** et [**StardewOptimizer**](https://www.nexusmods.com/stardewvalley/mods/53663) par **baiyu** — décompilés et étudiés pour savoir ce qu'ils changent au jeu, et donc ce que nos mesures doivent voir.
 
 **Outils**
 
@@ -239,5 +243,6 @@ StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — AP
 **Inspirations**
 
 *   [**Stardrop**](https://github.com/Floogen/Stardrop) par **Floogen** et son port macOS [**Stardrop – Native MacOS**](https://www.nexusmods.com/stardewvalley/mods/53356) par **kautsaralbaa** — vérification en direct, notes, configurations par profil.
-*   [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) par **MLD210** et [**StarModsManager**](https://github.com/Arborsm/StarModsManager) par **Arborsm** — d'autres gestionnaires, lus pour leurs idées comme pour leurs pièges.
-*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) par **Wooa** et [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) par **Sky** — ils ont nourri le signal de conflit à la capture et le nettoyage guidé des parties.
+*   [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) par **MLD210** et [**StarModsManager**](https://github.com/Arborsm/StarModsManager) par **Arborsm** et [**Morning Dew**](https://www.nexusmods.com/stardewvalley/mods/53612) par **Nesryn Rose Juincy** — d'autres gestionnaires, lus pour leurs idées comme pour leurs pièges.
+*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) par **Wooa** et [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) par **tangsuanz** — deux regards en jeu sur les raccourcis des mods, qui ont nourri le signal de conflit à la capture et le plan de raccourcis.
+*   [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) par **Sky** — il a guidé le nettoyage des données que les mods laissent dans les parties.
