@@ -189,7 +189,7 @@ python3 release.py     # archive de release dans bundles/
 
 Il n'y a pas de projet Xcode : `build_app.py` compile toutes les sources, et `Package.swift` ne décrit que le cœur testé.
 
-Pour signaler un bug, proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Une faille de sécurité se signale en privé : [SECURITY.md](SECURITY.md).
+La carte du code est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Pour signaler un bug, proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Une faille de sécurité se signale en privé : [SECURITY.md](SECURITY.md).
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Crédits et Licence" width="300">

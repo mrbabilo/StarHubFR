@@ -190,7 +190,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 - **Pousser uniquement sur demande explicite de l'utilisateur.** Fetch + rebase avant : d'autres sessions poussent aussi sur `main`.
 - Commits : style conventional (`feat:`, `fix:`, `chore:`, `docs:`).
 - `CHANGELOG.md` : Keep a Changelog. Section `[Unreleased]` **intégrée à la prochaine release, jamais supprimée**.
-- Release : `release.py` bump version dans source + CHANGELOG. Bundle dans `bundles/`, préfixe `StarHubFR_v<version>.zip`.
+- Release : version affichée (`CFBundleShortVersionString`) et section du CHANGELOG changées **à la main** ; `printf 'n\n' | python3 release.py` incrémente `CFBundleVersion`, construit et zippe dans `bundles/StarHubFR_v<version>.zip` ; notes écrites à la main puis `gh release create --target <SHA complet>`.
 
 ---
 

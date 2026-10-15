@@ -188,7 +188,7 @@ python3 release.py     # release archive in bundles/
 
 There is no Xcode project: `build_app.py` compiles every source, and `Package.swift` only describes the tested core.
 
-To report a bug, suggest an idea or open a pull request: [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-starhubfr). Security flaws are reported privately: [SECURITY.md](SECURITY.md#security-policy).
+The code map is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (French). To report a bug, suggest an idea or open a pull request: [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-starhubfr). Security flaws are reported privately: [SECURITY.md](SECURITY.md#security-policy).
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Credits & License" width="300">
