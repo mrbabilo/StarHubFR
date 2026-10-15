@@ -22,11 +22,12 @@ struct HelpWindow: View {
                 }
                 .buttonStyle(.plain)
             }
-            .navigationTitle(localization.L(L10n.Help.contents))
             .navigationSplitViewColumnWidth(min: 180, ideal: 230)
         } detail: {
             content
+                .navigationTitle(localization.L(L10n.Help.title))
         }
+        .background(WindowRestorationDisabler())
         .searchable(text: $query, placement: .toolbar, prompt: localization.L(L10n.Help.searchPrompt))
         .frame(minWidth: 640, minHeight: 480)
         .onAppear { load(); consumeRequest() }
@@ -43,9 +44,11 @@ struct HelpWindow: View {
             .padding(AppDesign.Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         } else if shown.isEmpty {
-            Text(String(format: localization.L(L10n.Help.noResults), query))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if !query.isEmpty {
+                Text(String(format: localization.L(L10n.Help.noResults), query))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -165,6 +168,7 @@ private struct HelpSectionView: View {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .firstTextBaseline, spacing: AppDesign.Spacing.sm) {
                     Text(bullet(index)).foregroundStyle(.secondary).monospacedDigit()
+                        .accessibilityHidden(true)
                     line(item)
                 }
             }
@@ -177,4 +181,19 @@ private struct HelpSectionView: View {
         let text = Text(HelpWindow.inline(markdown)).fixedSize(horizontal: false, vertical: true)
         if markdown.contains("](") { text.pointingHandCursor() } else { text }
     }
+}
+
+/// La fenêtre d'aide ne doit pas être restaurée au relancement : le lancement
+/// retient la première fenêtre titrée comme fenêtre principale
+/// (`LaunchSplashController`), et une aide restaurée pourrait la devancer.
+/// (`.restorationBehavior(.disabled)` demande macOS 15.)
+private struct WindowRestorationDisabler: NSViewRepresentable {
+    final class Anchor: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.isRestorable = false
+        }
+    }
+    func makeNSView(context: Context) -> Anchor { Anchor() }
+    func updateNSView(_ nsView: Anchor, context: Context) {}
 }

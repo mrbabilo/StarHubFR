@@ -151,9 +151,9 @@ def help_section_ids(path: str) -> list[str]:
         if marker:
             pending = marker.group(1)
             continue
-        if line.startswith("## "):
+        if stripped.startswith("## "):
             if pending is None:
-                print(f"[ERROR] {path}:{number} : la section « {line[3:].strip()} » "
+                print(f"[ERROR] {path}:{number} : la section « {stripped[3:].strip()} » "
                       "n'a pas de marqueur <!-- help: … --> juste au-dessus.")
                 sys.exit(1)
             ids.append(pending)
@@ -423,7 +423,9 @@ def bundle_probe() -> None:
 def create_app_bundle():
     print(f"[INFO] Starting build process for {APP_DIR}...")
     generate_localizable_strings()
-    
+    # Les guides d'aide sont vérifiés avant toute copie vers Resources.
+    check_help_guides()
+
     # 1. Clean old build
     if os.path.exists(APP_DIR):
         shutil.rmtree(APP_DIR)
@@ -504,7 +506,6 @@ def create_app_bundle():
     # SwiftUI. Échec rapide, avant la compilation (§4.7 : l'outillage doit
     # rater quand il doit — épreuve faite le 2026-09-10, voir git log).
     check_core_boundary()
-    check_help_guides()
 
     # Keep the LSP compile database in sync with what we actually compile
     write_compile_commands(swift_files, app_executable, module_cache_dir)

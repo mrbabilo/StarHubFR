@@ -229,8 +229,8 @@ struct StarHubTHApp: App {
                 Button(localization.L(L10n.Palette.open)) { vm.requestPalette() }
                     .keyboardShortcut("k", modifiers: .command)
             }
-            // Le menu Aide ne proposait que « Aide StarHubFR » (indisponible) :
-            // il ouvre désormais l'écran des raccourcis clavier.
+            // Le menu Aide propose « Aide StarHubFR » (⌘?, le guide intégré),
+            // puis l'écran des raccourcis clavier (⌘/).
             // ⌘, : la convention macOS pour les réglages (audit UX 2026-10-02).
             CommandGroup(replacing: .appSettings) {
                 Button(localization.L(L10n.Settings.settings) + "…") { vm.requestTab(.settings) }

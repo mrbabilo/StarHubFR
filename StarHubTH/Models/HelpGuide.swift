@@ -19,16 +19,29 @@ public struct HelpSection: Identifiable, Equatable, Sendable {
     public let anchor: String
     public let blocks: [HelpBlock]
 
-    /// Tout le texte de la section, pour la recherche.
+    /// Tout le texte de la section, pour la recherche : le texte *rendu*
+    /// (ni cibles de liens ni `**`), le code restant tel quel.
     public var searchText: String {
-        var parts = [title]
+        var parts = [Self.plain(title)]
         for block in blocks {
             switch block {
-            case .paragraph(let text), .code(let text): parts.append(text)
-            case .bulletList(let items), .numberedList(let items): parts += items
+            case .paragraph(let text): parts.append(Self.plain(text))
+            case .code(let text): parts.append(text)
+            case .bulletList(let items), .numberedList(let items): parts += items.map(Self.plain)
             }
         }
         return parts.joined(separator: "\n")
+    }
+
+    /// Markdown en ligne → texte brut ; illisible, le morceau reste tel quel.
+    private static func plain(_ markdown: String) -> String {
+        do {
+            let rendered = try AttributedString(
+                markdown: markdown, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))
+            return String(rendered.characters)
+        } catch {
+            return markdown
+        }
     }
 }
 
