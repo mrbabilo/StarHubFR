@@ -269,6 +269,40 @@ struct LocalLLMClientTests {
         #expect(LLMStub.calls == 2)   // l'unique retry a eu lieu
     }
 
+    // MARK: - translate : relance sur une marque de valeur perdue (C3-T9)
+
+    /// `@` perdu : une relance, comme la référence pour les marques de valeur.
+    @Test func aLostPlayerNameTriggersTheRetry() async {
+        LLMStub.route { _ in
+            LLMStub.calls == 1
+                ? .json(Self.completion("Salut !"))
+                : .json(Self.completion("Salut @ !"))
+        }
+        let outcome = await LocalLLMClient.translate(request(source: "Hello @!"),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Salut @ !"))
+        #expect(LLMStub.calls == 2)
+    }
+
+    /// `@` encore perdu après la relance : accepté — un avertissement ne
+    /// refuse rien. La première réponse est gardée (égalité).
+    @Test func aStillLostPlayerNameIsAccepted() async {
+        LLMStub.route { _ in .json(Self.completion("Salut !")) }
+        let outcome = await LocalLLMClient.translate(request(source: "Hello @!"),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Salut !"))
+        #expect(LLMStub.calls == 2)
+    }
+
+    /// Un portrait perdu ne déclenche ni relance ni refus.
+    @Test func aLostPortraitIsAcceptedWithoutRetry() async {
+        LLMStub.route { _ in .json(Self.completion("Super !")) }
+        let outcome = await LocalLLMClient.translate(request(source: "Great!$h"),
+                                                     baseURL: base, session: stubbedSession())
+        #expect(outcome == .translated("Super !"))
+        #expect(LLMStub.calls == 1)
+    }
+
     @Test func noRetryWhenNoHardTokenMissing() async {
         LLMStub.route { _ in .json(Self.completion("Bonjour le monde")) }
         _ = await LocalLLMClient.translate(request(source: "Hello world"),

@@ -89,20 +89,25 @@ public enum LocalLLMClient {
                                  session: URLSession) async -> Outcome {
         let first = await fetch(request, retryMissing: nil, baseURL: baseURL, session: session)
         guard case .content(let text) = first else { return first.outcome }
-        let missing = hardMissing(source: request.source, target: text)
-        guard !missing.isEmpty else { return .translated(text) }
+        let triggers = retryTriggers(source: request.source, target: text)
+        guard !triggers.isEmpty else { return .translated(text) }
 
-        // L'unique retry, uniquement sur marques dures manquantes.
-        let second = await fetch(request, retryMissing: missing, baseURL: baseURL, session: session)
-        guard case .content(let retryText) = second else { return .refusedTokens(missing: missing) }
-        let retryMissingTokens = hardMissing(source: request.source, target: retryText)
-        // Le meilleur des deux : le moins de manquantes ; à égalité, le premier.
-        if retryMissingTokens.count < missing.count {
-            return retryMissingTokens.isEmpty
-                ? .translated(retryText)
-                : .refusedTokens(missing: retryMissingTokens)
+        // L'unique relance : sur un écart bloquant, ou sur une marque de
+        // valeur perdue (`@`, variable `%`) — la référence relance aussi pour
+        // ces pertes. Le refus, lui, ne retient que les bloquants.
+        let firstHard = hardMissing(source: request.source, target: text)
+        let second = await fetch(request, retryMissing: triggers, baseURL: baseURL, session: session)
+        guard case .content(let retryText) = second else {
+            return firstHard.isEmpty ? .translated(text) : .refusedTokens(missing: firstHard)
         }
-        return .refusedTokens(missing: missing)
+        let retryHard = hardMissing(source: request.source, target: retryText)
+        let retryTriggerCount = retryTriggers(source: request.source, target: retryText).count
+        // Le meilleur des deux : le moins de bloquants, puis le moins de
+        // pertes ; à égalité, le premier.
+        let takeRetry = retryHard.count < firstHard.count
+            || (retryHard.count == firstHard.count && retryTriggerCount < triggers.count)
+        let (best, hard) = takeRetry ? (retryText, retryHard) : (text, firstHard)
+        return hard.isEmpty ? .translated(best) : .refusedTokens(missing: hard)
     }
 
     /// Le prompt système, déterministe — le texte anglais verrouillé par la
@@ -222,6 +227,17 @@ public enum LocalLLMClient {
     private static func hardMissing(source: String, target: String) -> [String] {
         TranslationTokenCheck.mismatches(source: source, target: target)
             .filter(\.isHard)
+            .map(\.token)
+    }
+
+    /// Ce qui mérite l'unique relance : un écart bloquant, ou une marque de
+    /// valeur **perdue** — `@` (nom du joueur) ou une variable `%` (`%farm`).
+    private static func retryTriggers(source: String, target: String) -> [String] {
+        TranslationTokenCheck.mismatches(source: source, target: target)
+            .filter { mismatch in
+                mismatch.isHard || (mismatch.found < mismatch.expected
+                    && (mismatch.token == "@" || (mismatch.token.hasPrefix("%") && mismatch.token != "%")))
+            }
             .map(\.token)
     }
 
