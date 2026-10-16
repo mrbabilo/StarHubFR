@@ -7395,3 +7395,27 @@ sans lire une ligne de log.
         cas, pas seulement le cas moyen.
         ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
         objet tant que P1 tient le critère.
+
+### Expérience utilisateur — Axe I (suite, 2026-10-16)
+
+- [x] **I-T25** — *(livré le 2026-10-16, commits `2d404f36` et `02bc135f`)* Lot L0
+      (sûreté) de l'audit UX de toutes les vues
+      (`docs/superpowers/specs/2026-10-16-audit-ux-phases2-4.md`).
+      **R1** : supprimer une sauvegarde depuis « Sauvegardes des mods »
+      l'effaçait pour de bon (`removeItemGrantingWriteAccess`), sans la garde
+      « seule copie » que l'Entretien applique. Installations et
+      configurations passent par `trashBackup` (`BackupTrash.swift`) : le
+      dossier va dans la Corbeille du Mac, l'index est retouché ensuite. La
+      confirmation d'une sauvegarde d'installation nomme les fichiers dont
+      elle est la seule copie (`MaintenanceDiskReader`, sorti du ViewModel,
+      4 tests, sabotage rouge), lue hors du fil principal. Une sauvegarde
+      remise depuis la Corbeille revient sur le disque, **pas dans la liste**
+      (l'index l'a oubliée) : l'écran et l'aide le disent.
+      **R0** : la page restait parfois sur « 0 mods · 0 sauvegardes » jusqu'à
+      « Actualiser » (reproduit deux fois, données intactes). Lecture avant le
+      nettoyage, dans une tâche de la vue, aucun compte avant la première
+      lecture ; cause exacte non établie, non reproduite ensuite.
+      **E10** : « Désinstaller » SMAPI agissait au premier clic — rôle
+      destructif et confirmation (`SettingsSmapiSection`). **E5** : le pied
+      « Options de lancement » affichait son lien en Markdown brut.
+      ViewModel 7 925 → 7 879, `SettingsView` 520 → 471.

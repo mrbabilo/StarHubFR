@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **en veille** — l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté) livré, **I-T26 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -851,6 +851,69 @@ d'onglet s'applique à chaque saut.
 ([audit du concurrent natif](audit-stardrop-nativemac.md)) ; à cadrer avec le reste
 de l'axe — l'un des rares domaines où le port devance nos écrans. I-T21 en est
 issu, livré et archivé.
+
+**Audit UX du 2026-10-16 — toutes les vues** (skill `audit-ux`, rapports
+locaux `docs/superpowers/specs/2026-10-16-audit-ux-phase1.md` et
+`…-phases2-4.md`). Objectif de l'auteur : simplifier la navigation, minimiser
+les clics, regrouper logiquement, faciliter les parcours, proposer des
+fonctionnalités utiles. Méthode : l'app lancée et pilotée en lecture seule
+(430 captures, 17 parcours **mesurés** en clics), quatre rapports d'agents,
+relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
+écartées avec leur raison) ; le gain est dans les portes (une sur deux arrive
+à côté) et dans trois tâches impossibles aujourd'hui. **I-T25 (lot L0,
+sûreté) livré le 2026-10-16**, à l'archive. Les identifiants de fiche
+(N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
+
+- [ ] **I-T26 — L1 Préalables** : six extractions sans changement visible,
+      exigées par les plafonds (`MainView` 527, `ModListView` 666,
+      `SidebarComponents` 474, `UpdatesView` 440, `SystemAlertsView` 397,
+      `ModProfilesView`) : X0 = N-00 (historique de navigation en type pur :
+      ✕ = ‹ = ⌘[, « Fermer » dans l'éditeur de config), X1 `ProfileRow`,
+      X2 `bulkToggleMenu` **puis E1** (chevauchement de la barre de la liste
+      à 821 pt, contraire à `AGENTS.md` §6), X3 `SystemAlertsHeader`,
+      X4 `SidebarBadges` (sans `default:`), X5 `NexusUpdateRow` ; décodage
+      tolérant d'`ActivationHistory`. · **M**
+- [ ] **I-T27 — L2 Navigation** : N-01 (le pager garde l'onglet : revoir les
+      mods à problème, 1 clic par mod au lieu de 2), N-03 + N-05 (règle
+      d'arrivée unique `Models/DetailArrival.swift` ; bandeau critique →
+      Dépendances), N-02 (`.jumpToMod` ouvre la fiche, pas la liste), N-07
+      (menus Fichier et Jeu : ⌘R lancer, ⌘O installer, ⇧⌘U vérifier), N-01b
+      (une ligne de Mises à jour mène à la fiche), N-06 (collision de
+      raccourcis → le réglage). Après I-T26. · **L**
+- [ ] **I-T28 — L3 Regroupements** : R3 (Traductions FR : segment « À finir »,
+      cache Nexus unique avec la fiche, lot en menu — finir une traduction ∞
+      → 2 clics), R8 (versions de config dans l'éditeur), R2 (Alertes ↔ Santé :
+      âge du journal, liens, un seul compte 10/14), R7 (clé Nexus absente : un
+      encart, lien vers la section), R4 (colonne Configs d'un profil →
+      comparaison), R9 (« Activer » sur l'encart de dépendance), R5
+      (« Opération interrompue » sur l'Accueil ; garde de « Revenir » pendant
+      une bissection). · **L**
+- [ ] **I-T29 — L4 Fonctionnalités** : P5-1 (voir un profil **sans
+      l'activer** : ∞ → 2 clics ; `ProfileApplyPlan.moves` existe), P5-5a
+      (déposer une archive sur la fenêtre), P5-6a, P5-4 (écarter un faux
+      résultat de traduction), P5-10 (badge Traductions FR), P5-8, P5-9, N-11
+      (messages DeepL / IA → Réglages), N-09 (conseils de la Santé avec leur
+      bouton). · **L**
+- [ ] **I-T30 — L5 Écrans** : E6 (en-tête translucide qui chevauche l'éditeur
+      de traduction), E7 (onglet Dépendances : compte et poids des
+      optionnelles), E11 + C2b (Entretien), E3, E12, E13, E8, E9b–e, E2, C2 ;
+      phrase de rétention unique et liens Entretien ↔ Sauvegardes (suite de
+      R1). En clair **et** en sombre. · **L**
+- [ ] **I-T31 — L6 Décisions de l'auteur** (rapport §5, 14 décisions) :
+      Accueil allégé (revient sur I-T9), palette avec actions et ↩ sur un
+      profil ou une partie (reviennent sur I-T2 et I-T5), ⌘9 → Diagnostic,
+      Réglages au pied, style de lien, dépliage de pack au clavier, badges
+      « actifs seulement », garde « seule copie » sur les configurations,
+      rouvrir les axes C et A, bascule transactionnelle. Rien ne part sans
+      décision. · **M**
+- [ ] **I-T32 — L7 Finitions** : orthographes de style uniques, lexique
+      (« en pause » partout, « sauvegarde » à un seul sens, vouvoiement),
+      migrations littéral → jeton par écran (149 couleurs nues, 367
+      `padding` littéraux). · **M**
+
+Hors audit, à instruire : la fermeture inexpliquée de l'app pendant la capture
+(passage en grille de la liste, non reproduite) ; le coût de `vm.refresh()` à
+chaque arrivée sur l'Accueil (à mesurer avant N-04).
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
@@ -2050,6 +2113,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T22** | 2026-10-14 | Audit UX de l'onglet Performances en quatre lots : une ligne d'état, bloc « Mesurer », outils tiers repliés si absents, une seule conclusion, motifs de grisage avant le clic, entrées depuis liste/fiche/palette/Santé (`NavigationStore.openPerformance`) ; validé à l'écran |
 | **I-T23** | 2026-10-15 | Plan de raccourcis : conflits déplacés vers des touches libres par famille (lettres action, chiffres info, F rares), deux modes, décochage, famille corrigée gardée (`KeybindFamilyStore`), sauvegarde avant écriture et annulation, bandeau après bascule de profil (`KeybindPlanner`) ; validé à l'écran |
 | **I-T24** | 2026-10-15 | Aide intégrée : guide utilisateur FR/EN dans une fenêtre (sommaire, recherche sur le texte rendu, liens internes), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K ; sections repérées par marqueur, parité contrôlée au build (`HelpGuide`, `HelpTopic`) ; validé à l'écran |
+| **I-T25** | 2026-10-16 | Audit UX, lot L0 (sûreté) : supprimer une sauvegarde d'installation ou de configuration passe par la Corbeille du Mac (c'était définitif), garde « seule copie » de l'Entretien à la confirmation ; page des sauvegardes sans « 0 » avant sa lecture ; confirmation de « Désinstaller » SMAPI ; lien Markdown des Réglages rendu |
 
 **10.3 Veille RimManager — actions livrées**
 
