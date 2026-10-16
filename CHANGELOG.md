@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.68.0] - 2026-10-16
+
 ### Added
 
 - **Menu « Jeu » : Lancer le jeu (⌘R) et Vérifier les mises à jour (⇧⌘U).** Menu Fichier : « Installer des mods… » (⌘O) ouvre la feuille d'installation depuis n'importe quelle page.
