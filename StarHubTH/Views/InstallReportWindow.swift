@@ -301,7 +301,7 @@ private struct DeltaRow: View {
             }
             Spacer()
             Button(localization.L(L10n.Mods.updateDeltaOpenDetail)) {
-                vm.openReportDetail(for: delta.folderName)
+                vm.openReportDetail(for: delta.folderName, door: .installReport)
             }
             .buttonStyle(.link)
             .font(AppDesign.Font.caption)

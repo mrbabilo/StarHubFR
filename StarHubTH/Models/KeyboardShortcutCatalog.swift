@@ -49,6 +49,12 @@ public enum KeyboardShortcutCatalog {
                 ShortcutEntry(["⇥", ShortcutEntry.or, "⇧", "⇥"], L10n.Shortcuts.tab),
                 ShortcutEntry(["⌘", helpKey], L10n.Shortcuts.help),
                 ShortcutEntry(["⌘", "?"], L10n.Shortcuts.helpGuide),
+                // N-00 / N-07 (audit UX 2026-10-16).
+                ShortcutEntry(["⌘", "["], L10n.Main.navBack),
+                ShortcutEntry(["⌘", "]"], L10n.Main.navForward),
+                ShortcutEntry(["⌘", "R"], L10n.Main.launchGame),
+                ShortcutEntry(["⌘", "O"], L10n.ModInstall.installButton),
+                ShortcutEntry(["⇧", "⌘", "U"], L10n.Updates.nexusCheckButton),
             ]),
             ShortcutGroup(titleKey: L10n.Shortcuts.groupModList, entries: [
                 ShortcutEntry(["↑", ShortcutEntry.or, "↓"], L10n.Shortcuts.listMove),

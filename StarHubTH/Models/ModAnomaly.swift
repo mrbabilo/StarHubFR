@@ -81,6 +81,12 @@ public struct ModAnomaly: Equatable {
     /// Ce que la pastille affiche : le nombre d'incidents, ou rien quand
     /// l'anomalie n'est pas comptable (dépendance, manifeste).
     public var badgeCount: Int { errorCount + warningCount }
+
+    /// Le seul souci est une dépendance : le geste qui le règle (« Activer »,
+    /// « Chercher sur Nexus ») vit dans l'onglet Dépendances (N-05).
+    public var isDependencyOnly: Bool {
+        hasDependencyIssue && errorCount == 0 && duplicate == nil && !isUnloadable
+    }
 }
 
 public enum ModAnomalyReport {

@@ -55,7 +55,7 @@ struct PerformanceImpactSection: View {
                 ForEach(shown) { row in
                     VStack(alignment: .leading, spacing: 3) {
                         SplitRow {
-                            Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id) }
+                            Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id, door: .performance) }
                                 .buttonStyle(.hoverLink).help(row.name)
                         } trailing: { Text(valueText(row.value)).monospacedDigit() }
                         if let value = row.value {

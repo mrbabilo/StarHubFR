@@ -70,7 +70,7 @@ struct AppExtensionsSettingsSection: View {
                 // Un composant de pack (SVE) se résout aussi (H-T6c).
                 if let folder = presence.folderName {
                     Button(localization.L(L10n.Mods.openDetails)) {
-                        viewModel.navigationStore.openModDetail(folderName: folder)
+                        viewModel.navigationStore.openModDetail(folderName: folder, door: .extensionSettings)
                     }
                 }
                 action(ext, presence: presence)

@@ -262,7 +262,8 @@ struct SystemAlertsView: View {
     /// ni le mod fautif eux-mêmes (H-T6b).
     private func actionLabel(for action: HealthIssue.Action) -> String {
         switch action {
-        case .openMod: return localization.L(L10n.Health.actionOpenMod)
+        case .openMod, .openModDependencies: return localization.L(L10n.Health.actionOpenMod)
+        case .openModConfig: return localization.L(L10n.Health.actionOpenSetting)
         case .openLogs: return localization.L(L10n.Health.actionOpenLogs)
         case .revealInFinder: return localization.L(L10n.Health.actionRevealInFinder)
         case .renameFolder: return localization.L(L10n.Health.actionRenameFolder)
@@ -282,10 +283,11 @@ struct SystemAlertsView: View {
     private func perform(_ action: HealthIssue.Action) {
         switch action {
         case .openMod(let query):
-            vm.navigationStore.pendingModDetailFocus = query
-            // Une alerte parle de l'état du mod, pas de sa description.
-            vm.navigationStore.pendingDetailTab = .health
-            currentTab = .mods
+            vm.navigationStore.openModDetail(folderName: query, door: .alert(dependency: false))
+        case .openModDependencies(let query):
+            vm.navigationStore.openModDetail(folderName: query, door: .alert(dependency: true))
+        case .openModConfig(let folderName, let keyPath):
+            if vm.openModConfig(forFolder: folderName, keyPath: keyPath) { currentTab = .mods }
         case .openLogs(let searchText):
             // Onglet Journal, filtre et page d'un coup (D4-T4 §3a) : sans le
             // segment, la page s'ouvrirait sur Santé, sans filtre visible.

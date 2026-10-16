@@ -122,7 +122,7 @@ private struct UnverifiableRow: View {
         }
         if let mod = viewModel.scanStore.mods.mod(withUniqueId: row.uniqueId) {
             Button {
-                viewModel.navigationStore.openModDetail(folderName: mod.folderName, tab: .management)
+                viewModel.navigationStore.openModDetail(folderName: mod.folderName, door: .unverifiable)
             } label: {
                 HStack(spacing: 6) {
                     content

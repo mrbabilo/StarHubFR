@@ -5192,8 +5192,8 @@ final class StarHubTHViewModel {
         navigationStore.consumeReportDetailFocus()
     }
 
-    func openReportDetail(for folderName: String) {
-        navigationStore.openReportDetail(for: folderName)
+    func openReportDetail(for folderName: String, door: DetailDoor) {
+        navigationStore.openReportDetail(for: folderName, door: door)
     }
 
     // MARK: - Navigation demandée depuis la scène App (I-T1 / I-T2)

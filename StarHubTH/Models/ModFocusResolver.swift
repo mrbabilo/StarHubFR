@@ -48,6 +48,29 @@ public enum ModFocusResolver {
             ?? all.first { $0.name.localizedCaseInsensitiveContains(needle) }
     }
 
+    /// Le mod visé **seulement s'il est seul** à répondre au rang qui le
+    /// trouve. Ouvrir une fiche sur une correspondance ambiguë ouvrirait le
+    /// mauvais mod en silence — deux composants de SVE s'appellent « Stardew
+    /// Valley Expanded » —, là où la liste cadrée montrait les deux (N-02).
+    /// Mêmes rangs que `resolve` ; un dossier actif et sa copie en pause
+    /// (même `folderName`) comptent pour un.
+    public static func uniqueMatch(_ query: String, in mods: [ModItem]) -> ModItem? {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return nil }
+        if let byFolder = mods.first(where: { $0.folderName == needle }) { return byFolder }
+        let all = mods.flattenedMods + mods
+        let tiers: [(ModItem) -> Bool] = [
+            { $0.name == needle }, { loggedForm(of: $0.name) == needle },
+            { $0.folderName == needle }, { $0.name.localizedCaseInsensitiveContains(needle) },
+        ]
+        for tier in tiers {
+            let matches = all.filter(tier)
+            guard let first = matches.first else { continue }
+            return Set(matches.map(\.folderName)).count == 1 ? first : nil
+        }
+        return nil
+    }
+
     /// Le nom d'un mod tel que SMAPI l'écrit dans son journal : les crochets y
     /// deviennent des parenthèses, en-tête de ligne comme listes de section
     /// (`[C#] Sunberry Village` → `(C#) Sunberry Village`). Relevé sur le

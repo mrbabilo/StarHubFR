@@ -28,7 +28,11 @@ struct KeyboardShortcutCatalogTests {
         #expect(combos.contains("↑ | ↓"))
         #expect(combos.contains("⌘ A"))
         #expect(combos.contains("␣"))
-        #expect(groups.flatMap(\.entries).count == 9 + 5 + 8 + 3 + 2 + 4)
+        // N-00 / N-07 : Retour, Avancer, lancer, installer, vérifier.
+        #expect(combos.contains("⌘ ["))
+        #expect(combos.contains("⌘ R"))
+        #expect(combos.contains("⇧ ⌘ U"))
+        #expect(groups.flatMap(\.entries).count == 9 + 10 + 8 + 3 + 2 + 4)
     }
 
     /// Dans un même groupe, une combinaison ne peut pas vouloir dire deux

@@ -53,7 +53,7 @@ struct PerformanceTextureSection: View {
                 ForEach(shown) { row in
                     VStack(alignment: .leading, spacing: 3) {
                         SplitRow {
-                            Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id) }
+                            Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id, door: .performance) }
                                 .buttonStyle(.hoverLink).help(row.name)
                         } trailing: { Text(megabytes(row.mb)).monospacedDigit() }
                         ProgressView(value: row.mb, total: max(rows.first?.mb ?? 1, 1))

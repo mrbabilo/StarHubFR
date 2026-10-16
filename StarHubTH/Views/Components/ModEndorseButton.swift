@@ -58,12 +58,22 @@ struct ModEndorseButton: View {
             Button {
                 ModEndorsement.toggle(mod, viewModel: viewModel, localization: localization, reportRefusal: true)
             } label: {
-                Label(count.map { "\($0)" } ?? "—", systemImage: endorsed ? "hand.thumbsup.fill" : "hand.thumbsup")
-                    .font(AppDesign.Font.footnote.monospacedDigit())
-                    .foregroundColor(endorsed ? AppDesign.Color.info : .secondary)
-                    .lineLimit(1)
-                    .frame(minHeight: 18)
-                    .contentShape(.rect)
+                let text = count.map { "\($0)" } ?? "—"
+                let icon = endorsed ? "hand.thumbsup.fill" : "hand.thumbsup"
+                // En fenêtre étroite, le nombre se tronquait en « 👍 : » : il
+                // passe alors au-dessus du pouce (demande de l'auteur, 2026-10-16).
+                ViewThatFits(in: .horizontal) {
+                    Label(text, systemImage: icon).lineLimit(1).fixedSize()
+                    VStack(spacing: 0) {
+                        Text(text).font(AppDesign.Font.iconXS.monospacedDigit()).lineLimit(1)
+                        Image(systemName: icon)
+                    }
+                    .fixedSize()
+                }
+                .font(AppDesign.Font.footnote.monospacedDigit())
+                .foregroundColor(endorsed ? AppDesign.Color.info : .secondary)
+                .frame(minHeight: 18)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .disabled(actionable == nil || actionable.map { viewModel.endorsementStore.inFlight.contains($0) } == true)

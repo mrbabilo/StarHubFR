@@ -115,6 +115,7 @@ struct StarHubTHApp: App {
     // reçoit à l'init et ne la possède pas.
     @StateObject private var localization: LocalizationStore
     @State private var vm: StarHubTHViewModel
+    private var navigation: NavigationStore { vm.navigationStore }
 
     init() {
         // Une seule instance du store, habillée deux fois : les menus et le
@@ -227,9 +228,9 @@ struct StarHubTHApp: App {
                 }
                 Divider()
                 // N-00 : ⌘[ et ⌘], la convention macOS de Retour et Avancer.
-                Button(localization.L(L10n.Main.navBack)) { vm.navigationStore.requestHistoryStep(.back) }
+                Button(localization.L(L10n.Main.navBack)) { navigation.requestHistoryStep(.back) }
                     .keyboardShortcut("[", modifiers: .command)
-                Button(localization.L(L10n.Main.navForward)) { vm.navigationStore.requestHistoryStep(.forward) }
+                Button(localization.L(L10n.Main.navForward)) { navigation.requestHistoryStep(.forward) }
                     .keyboardShortcut("]", modifiers: .command)
                 Divider()
                 Button(localization.L(L10n.Palette.open)) { vm.requestPalette() }
@@ -238,12 +239,24 @@ struct StarHubTHApp: App {
             // Le menu Aide propose « Aide StarHubFR » (⌘?, le guide intégré),
             // puis l'écran des raccourcis clavier (⌘/).
             // ⌘, : la convention macOS pour les réglages (audit UX 2026-10-02).
+            // N-07 : les gestes de la séance sans passer par l'Accueil ni une page.
+            CommandGroup(after: .newItem) {
+                Button(localization.L(L10n.ModInstall.installButton) + "…") { navigation.requestInstall() }
+                    .keyboardShortcut("o", modifiers: .command)
+            }
+            CommandMenu(localization.L(L10n.Main.gameMenu)) {
+                Button(localization.L(L10n.Main.launchGame)) { _ = vm.launchGame() }
+                    .keyboardShortcut("r", modifiers: .command)
+                Button(localization.L(L10n.Updates.nexusCheckButton)) { vm.checkNexusUpdates() }
+                    .keyboardShortcut("u", modifiers: [.command, .shift])
+                    .disabled(vm.isCheckingNexusUpdates)
+            }
             CommandGroup(replacing: .appSettings) {
                 Button(localization.L(L10n.Settings.settings) + "…") { vm.requestTab(.settings) }
                     .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
-                HelpCommands(navigation: vm.navigationStore, localization: localization)
+                HelpCommands(navigation: navigation, localization: localization)
             }
         }
 
@@ -259,7 +272,7 @@ struct StarHubTHApp: App {
         // L'aide intégrée — le guide utilisateur embarqué (spec 2026-10-15) :
         // une fenêtre à part, à lire à côté de l'écran qu'elle explique.
         Window(localization.L(L10n.Help.title), id: AppWindowID.help) {
-            HelpWindow(navigation: vm.navigationStore, localization: localization)
+            HelpWindow(navigation: navigation, localization: localization)
         }
         .windowResizability(.contentMinSize)
     }

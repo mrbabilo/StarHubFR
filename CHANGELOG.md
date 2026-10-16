@@ -12,8 +12,21 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Menu « Jeu » : Lancer le jeu (⌘R) et Vérifier les mises à jour (⇧⌘U).** Menu Fichier : « Installer des mods… » (⌘O) ouvre la feuille d'installation depuis n'importe quelle page.
+- **Éditeur de configuration : bouton « Fermer » (⎋).** Il demande confirmation si des modifications ne sont pas enregistrées.
+
+### Changed
+
+- **La fiche d'un mod s'ouvre sur l'onglet utile.** Problème de dépendance : Dépendances ; mise à jour : Historique ; Traductions FR : Traduction. Le passage au mod suivant (⌃ ⌄) garde l'onglet affiché.
+- **Les liens vers un mod ouvrent sa fiche.** Journal, Santé et nom d'une ligne de Mises à jour mènent à la fiche, et non plus à la liste filtrée, quand le mod est identifié sans ambiguïté.
+- **Collision de raccourcis : « Ouvrir le réglage »** mène à la clé concernée dans l'éditeur, et la ligne affiche la touche en cause.
+- **Liste en vue réduite : le nombre d'approbations s'affiche au-dessus du pouce.**
+
 ### Fixed
 
+- **Le saut vers un réglage précis défile jusqu'à la clé.** L'éditeur s'ouvrait en haut, sans surligner la clé, depuis l'onglet Raccourcis comme depuis les Alertes.
 - **Sauvegardes des mods : supprimer passe par la Corbeille.** Installations et configurations étaient effacées pour de bon ; elles partent dans la Corbeille du Mac. Pour une sauvegarde d'installation, la confirmation nomme les fichiers dont elle est la seule copie.
 - **La page des sauvegardes ne dit plus « 0 » en chargeant.** Elle restait parfois sur « 0 mods · 0 sauvegardes » jusqu'à « Actualiser ».
 - **Réglages : « Désinstaller » SMAPI demande confirmation.** Un clic suffisait à retirer SMAPI.

@@ -116,4 +116,40 @@ struct ModFocusResolverTests {
                     mod("(TTG) Wallet Tools", folder: "B")]
         #expect(ModFocusResolver.resolve("(TTG) Wallet Tools", in: mods)?.folderName == "B")
     }
+
+    // MARK: - uniqueMatch (N-02, audit UX 2026-10-16)
+
+    /// Deux composants de SVE portent le même nom : ouvrir une fiche serait
+    /// ouvrir le mauvais en silence ; la liste cadrée les montre tous deux.
+    @Test func twoComponentsWithTheSameNameAreAmbiguous() {
+        let pack = mod("Stardew Valley Expanded", folder: "Stardew Valley Expanded", children: [
+            mod("Stardew Valley Expanded", folder: "Stardew Valley Expanded/[CP] Stardew Valley Expanded"),
+            mod("Stardew Valley Expanded", folder: "Stardew Valley Expanded/Stardew Valley Expanded Code"),
+        ])
+        #expect(ModFocusResolver.uniqueMatch("Stardew Valley Expanded", in: [pack])?.folderName
+                == "Stardew Valley Expanded")   // le dossier de tête, rang sûr
+        let twins = [mod("Wallet Tools", folder: "A"), mod("Wallet Tools", folder: "B")]
+        #expect(ModFocusResolver.uniqueMatch("Wallet Tools", in: twins) == nil)
+        #expect(ModFocusResolver.resolve("Wallet Tools", in: twins) != nil)
+    }
+
+    @Test func aSingleMatchOpens() {
+        let mods = [mod("Content Patcher"), mod("Content Patcher Animations")]
+        #expect(ModFocusResolver.uniqueMatch("Content Patcher", in: mods)?.folderName == "Content Patcher")
+        #expect(ModFocusResolver.uniqueMatch("Animations", in: mods)?.folderName == "Content Patcher Animations")
+    }
+
+    /// Une correspondance partielle partagée par deux mods reste ambiguë.
+    @Test func aPartialMatchSharedByTwoModsIsAmbiguous() {
+        let mods = [mod("Better Ranching"), mod("Better Crafting")]
+        #expect(ModFocusResolver.uniqueMatch("Better", in: mods) == nil)
+    }
+
+    /// Un mod actif et sa copie en pause partagent le même nom logique :
+    /// un seul mod, pas une ambiguïté.
+    @Test func anActiveModAndItsPausedCopyCountAsOne() {
+        let mods = [mod("Wallet Tools", folder: "WT"), mod("Wallet Tools", folder: "WT")]
+        #expect(ModFocusResolver.uniqueMatch("Wallet Tools", in: mods)?.folderName == "WT")
+    }
 }
+

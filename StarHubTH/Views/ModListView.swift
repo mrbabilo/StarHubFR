@@ -425,7 +425,7 @@ struct ModListView: View {
         }
         .sheet(isPresented: $showInstallSheet) {
             ModInstallView(vm: vm, localization: localization, currentTab: $currentTab, isPresented: $showInstallSheet)
-        }
+        }.modifier(InstallRequestConsumer(navigation: vm.navigationStore, showInstallSheet: $showInstallSheet))
         .confirmationDialog(
             bulkToggleTarget == true
                 ? localization.L(L10n.Mods.enableAllConfirm)

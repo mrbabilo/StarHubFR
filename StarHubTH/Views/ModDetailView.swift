@@ -91,8 +91,8 @@ struct ModDetailView: View {
             // est dans l'onglet État.
             if !(focusMode && isTranslating) {
                 heroBanner
-                if selectedTab != .health, let anomaly = vm.anomaly(for: live) {
-                    ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = .health }
+                if let anomaly = vm.anomaly(for: live), case let target = DetailArrival.tab(for: .anomalyBanner(dependencyOnly: anomaly.isDependencyOnly)), selectedTab != target {
+                    ModAnomalyBanner(anomaly: anomaly, vm: vm, localization: localization) { selectedTab = target }
                 }
                 if let pending = PendingModUpdates.current(vm).pending(for: live) { ModUpdateBanner(pending: pending, vm: vm, localization: localization) }
             }
@@ -329,16 +329,16 @@ struct ModDetailView: View {
         }
     }
 
-    /// ‹ › sur le cadrage courant (ordre complet, pas la page) ; éteints hors
-    /// cadrage. Dans la **barre de la fenêtre** : sur le hero, invisibles sur
+    /// ⌃ ⌄ sur le cadrage courant (ordre complet, pas la page) ; éteints hors
+    /// cadrage. Verticaux : ‹ › juste à côté sont Retour/Avancer (N-01). Dans la **barre de la fenêtre** : sur le hero, invisibles sur
     /// fond clair.
     private var pagerControls: some View {
         let neighbors = ModDetailPager.neighbors(of: mod.folderName,
                                                  in: vm.modList.displayOrder)
         return HStack(spacing: AppDesign.Spacing.xs) {
-            chevron(icon: "chevron.left", target: neighbors.previous,
+            chevron(icon: "chevron.up", target: neighbors.previous,
                     help: localization.L(L10n.Mods.pagerPrevious))
-            chevron(icon: "chevron.right", target: neighbors.next,
+            chevron(icon: "chevron.down", target: neighbors.next,
                     help: localization.L(L10n.Mods.pagerNext))
         }
     }
@@ -347,14 +347,14 @@ struct ModDetailView: View {
         Group {
             if let target, let destination = vm.scanStore.mods.first(where: { $0.folderName == target }) {
                 Button {
+                    vm.navigationStore.pendingDetailTab = selectedTab  // N-01 : le mod suivant garde l'onglet
                     vm.navigationStore.setViewingModDetail(destination)
                 } label: {
                     Image(systemName: icon)
                         .font(.system(size: AppDesign.Icon.sm))
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-                .iconHelp(help)
+                .buttonStyle(.plain).iconHelp(help)
             } else {
                 Image(systemName: icon)
                     .font(.system(size: AppDesign.Icon.sm))

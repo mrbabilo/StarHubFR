@@ -15,7 +15,8 @@ struct ModAnomalyBanner: View {
 
     var body: some View {
         ModAnomalySummary(anomaly: anomaly, vm: vm, localization: localization,
-                          actionTitle: localization.L(L10n.Mods.anomalySeeState),
+                          actionTitle: localization.L(anomaly.isDependencyOnly ? L10n.Mods.anomalySeeDependencies
+                                                                               : L10n.Mods.anomalySeeState),
                           action: onShowState)
             .frame(maxWidth: 700)
             .padding(.horizontal, 24)

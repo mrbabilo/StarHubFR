@@ -7442,3 +7442,37 @@ sans lire une ligne de log.
       1 025. **R5 préalable** : `ActivationHistory` se décode de façon
       tolérante — un instantané au geste inconnu est ignoré seul (3 tests).
 
+
+- [x] **I-T27** — *(livré le 2026-10-16)* Lot L2 (navigation) de l'audit UX de
+      toutes les vues. **N-03 + N-05** : la règle « sur quel onglet s'ouvre une
+      fiche » vivait dans chaque porte ; elle devient `DetailArrival` (Core,
+      5 tests, deux sabotages rouges) — `openModDetail(folderName:door:)`
+      exige sa porte (pas de valeur par défaut). Liste, palette, rapport
+      d'installation : Aperçu ; alerte ou bandeau de dépendance : Dépendances
+      (`HealthIssue.Action.openModDependencies`, `ModAnomaly.isDependencyOnly`) ;
+      mises à jour : Historique ; Traductions FR : Traduction ; non vérifiable :
+      Gestion. Vérifié à l'écran : Alertes → « Voir le mod » d'un mod privé de
+      sa dépendance arrive sur Dépendances, « Activer » en tête. **N-01** : le
+      pager garde l'onglet (⌃ ⌄ au lieu de ‹ ›, qui doublaient Retour/Avancer),
+      vérifié (Santé conservé d'un mod à l'autre). **N-02** :
+      `ModFocusResolver.uniqueMatch` (4 tests) — `.jumpToMod` ouvre la fiche
+      quand le nom désigne un seul mod, la liste cadrée sinon. **N-07** : menu
+      Fichier « Installer des mods… » ⌘O (`requestInstall`, consommé par
+      `InstallRequestConsumer` sur la feuille de la liste, vérifié depuis les
+      Alertes) ; menu « Jeu » : Lancer ⌘R, Vérifier les mises à jour ⇧⌘U.
+      **Reste de N-00** : « Fermer » (⎋) dans l'éditeur de config, confirmation
+      si le texte diffère de l'original ; bandeaux extraits dans
+      `ConfigEditorNotice` (1 025 → 1 016). **N-01b** : le nom d'une ligne de
+      Mises à jour ouvre la fiche (Historique), le lien externe devient « Page
+      du mod ↗ ». **N-06** : une ligne de collision affiche la touche (six
+      lignes identiques sans elle) et « Ouvrir le réglage » du premier mod.
+      **Défaut ancien trouvé à l'écran** : le saut à la clé précise (C4-T13)
+      ne défilait jamais — `highlightedRowId` est posé dans `onAppear`, avant
+      que le `ScrollViewReader` des rangées existe ; `onChange(…, initial:
+      true)` le rattrape, vérifié (Wallet Tools, « Use Axe » centré et
+      surligné). `MainView` gardait aussi la clé effacée quand l'éditeur
+      devait la consommer. Demande de l'auteur en cours de lot : en vue
+      réduite, le nombre d'approbations passe au-dessus du pouce
+      (`ViewThatFits`), vérifié à 821 pt. Non fait : compteur « n / N » du
+      pager, ⌥⌘↑↓, `pendingDetailTab` quand la fiche du même mod est déjà
+      ouverte.

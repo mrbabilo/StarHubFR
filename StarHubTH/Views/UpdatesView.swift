@@ -187,9 +187,8 @@ struct UpdatesView: View {
                                             // deux mods homonymes ouvriraient la
                                             // fiche du premier venu.
                                             Button {
-                                                vm.navigationStore.pendingModDetailFocus = row.folderName
-                                                vm.navigationStore.pendingDetailTab = .health
-                                                currentTab = .mods
+                                                vm.navigationStore.openModDetail(folderName: row.folderName,
+                                                                                 door: .affirmedUpdate)
                                             } label: {
                                                 OpenDetailIcon()
                                             }

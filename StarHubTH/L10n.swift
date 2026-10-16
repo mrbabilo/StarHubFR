@@ -26,7 +26,7 @@ enum L10n {
         static let groupSaves   = "main_group_saves"
         static let groupHealth  = "main_group_health"
         static let groupApp     = "main_group_app"
-        static let launchGame           = "main_launch_game"
+        static let launchGame           = "main_launch_game", gameMenu = "main_game_menu"
         static let launching            = "main_launching"
         // Launch step labels shown in the launch overlay.
         static let launchStepInit         = "main_launch_step_init"
@@ -419,7 +419,7 @@ enum L10n {
         static let tabHealth           = "mods_tab_health"
         static let tabHistory          = "mods_tab_history"
         static let tabManagement       = "mods_tab_management"
-        static let anomalySeeState      = "mods_anomaly_see_state"
+        static let anomalySeeState      = "mods_anomaly_see_state", anomalySeeDependencies = "mods_anomaly_see_dependencies"
         static let detailEnabled        = "mods_detail_enabled"
         static let revealInFinder       = "mods_reveal_in_finder"
         static let moreActions          = "mods_more_actions"
@@ -1359,7 +1359,7 @@ enum L10n {
         /// Libellés du bouton d'action d'une ligne (H-T6b) : `HealthIssue.
         /// Action` porte désormais une cible (fiche mod, ou journal filtré),
         /// jamais un onglet générique — le libellé doit dire laquelle.
-        static let actionOpenMod        = "health_action_open_mod"
+        static let actionOpenMod        = "health_action_open_mod", actionOpenSetting = "health_action_open_setting"
         static let actionOpenLogs       = "health_action_open_logs"
         // X13 — deux mods qui réclament le même nom logique de dossier.
         static let actionRevealInFinder = "health_action_reveal_in_finder"
@@ -1533,7 +1533,7 @@ enum L10n {
         static let configNoSettingsFound   = "config_no_settings_found"
         static let configNoSettingsFoundFor = "config_no_settings_found_for"
         static let configRawJson           = "config_raw_json"
-        static let configReset             = "config_reset"
+        static let configReset             = "config_reset", configDiscardTitle = "config_discard_title", configDiscard = "config_discard"
         static let configRestoreConfig     = "config_restore_config"
         static let configSaved             = "config_saved"
         static let configReadError         = "config_read_error"

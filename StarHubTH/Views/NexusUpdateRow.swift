@@ -22,9 +22,19 @@ struct NexusUpdateRow: View {
 
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                 HStack(spacing: 6) {
-                    Text(update.name)
+                    // N-01b : le nom mène à la fiche, onglet Historique (journal
+                    // Nexus, versions) — juger une mise à jour sans quitter l'app.
+                    if let mod = vm.modForNexusUpdate(update) {
+                        Button(update.name) {
+                            vm.navigationStore.openModDetail(folderName: mod.folderName, door: .nexusUpdate)
+                        }
+                        .buttonStyle(.hoverLink)
                         .font(AppDesign.Font.rowTitle(.semibold))
-                        .foregroundColor(.primary)
+                    } else {
+                        Text(update.name)
+                            .font(AppDesign.Font.rowTitle(.semibold))
+                            .foregroundColor(.primary)
+                    }
                     Text(isEnabled ? localization.L(L10n.Updates.enabled) : localization.L(L10n.Updates.disabled))
                         .font(AppDesign.Font.iconXXS(.medium))
                         .foregroundColor(isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning)

@@ -110,7 +110,7 @@ struct MainView: View {
                 mods: vm.scanStore.mods)
             if plan.clearsConfigFocus {
                 navigation.pendingConfigFocus = nil
-                navigation.pendingConfigFocusKeyPath = nil
+                if plan.openModConfig == nil { navigation.pendingConfigFocusKeyPath = nil }  // sinon l'éditeur la consomme (C4-T13)
             }
             if plan.clearsModDetailFocus { navigation.pendingModDetailFocus = nil }
             if plan.clearsPendingDetailTab { navigation.pendingDetailTab = nil }
@@ -343,10 +343,10 @@ struct MainView: View {
         .refreshesStatsWhenGameQuits(vm)
         .onReceive(NotificationCenter.default.publisher(for: .jumpToMod)) { notification in
             if let modName = notification.object as? String {
+                if let target = ModFocusResolver.uniqueMatch(modName, in: vm.scanStore.mods) {  // N-02 : la fiche,
+                    return navigation.openModDetail(folderName: target.folderName, door: .logJump)  // sauf ambiguïté
+                }
                 vm.selectedModID = ModFocusResolver.resolve(modName, in: vm.scanStore.mods)?.folderName
-                // Hand the request to the list itself: it may not be on screen
-                // yet (tabs are created on demand), so it picks this up on
-                // appear and scopes itself to the mod.
                 navigation.pendingModFocus = modName
                 currentTab = .mods
             }
@@ -473,10 +473,10 @@ struct MainView: View {
             if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.scanStore.mods) {
                 navigation.setViewingModDetail(target)
-                navigation.pendingDetailTab = .health
+                navigation.pendingDetailTab = DetailArrival.tab(for: navigation.reportDetailDoor)
             } else {
                 navigation.pendingModDetailFocus = folder
-                navigation.pendingDetailTab = .health
+                navigation.pendingDetailTab = DetailArrival.tab(for: navigation.reportDetailDoor)
                 currentTab = .mods
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la

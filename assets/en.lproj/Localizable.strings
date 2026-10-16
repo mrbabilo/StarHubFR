@@ -118,6 +118,8 @@
 "config_recheck_failed_msg" = "config.json could not be read back before saving, so there is no way to tell whether it changed since you opened it. Saving now may replace something written in the meantime.";
 "config_recheck_failed_title" = "config.json could not be re-read";
 "config_reset" = "Reset";
+"config_discard_title" = "Discard changes?";
+"config_discard" = "Discard";
 "config_reset_to_default" = "Back to the mod default (%@)";
 "config_restore_bak_failed" = "Could not restore config.json.bak: %@";
 "config_restore_config" = "Restore Config";
@@ -190,6 +192,7 @@
 "downloads_rate" = "%@/s";
 "health_action_open_logs" = "View in logs";
 "health_action_open_mod" = "View mod";
+"health_action_open_setting" = "Open the setting";
 "health_action_rename_folder" = "Rename a folder";
 "health_action_reveal_in_finder" = "Show in Finder";
 "health_benign_title_api" = "Optional integration";
@@ -433,7 +436,7 @@
 "logs_health_failed" = "Failed mods";
 "logs_health_healthy" = "All healthy";
 "logs_health_mods_count" = "%lld mods";
-"logs_health_open_mod" = "Show this mod in the Mods list";
+"logs_health_open_mod" = "Open this mod's page";
 "logs_health_packs_count" = "%lld packs";
 "logs_health_patched" = "Mods changing game code";
 "logs_health_reveal" = "Open SMAPI log in Finder";
@@ -495,6 +498,7 @@
 "main_group_saves" = "Games";
 "main_home" = "Home";
 "main_launch_game" = "Launch Game";
+"main_game_menu" = "Game";
 "main_launch_mods_found" = "%d mods found";
 "main_launch_step_done" = "Ready";
 "main_launch_step_duplicates" = "Checking for duplicates…";
@@ -737,6 +741,7 @@
 "mods_anomaly_compat" = "Reported broken by smapi.io: %@";
 "mods_anomaly_dependency" = "A required dependency is missing or paused";
 "mods_anomaly_see_state" = "See state";
+"mods_anomaly_see_dependencies" = "See dependencies";
 "mods_anomaly_duplicate_active" = "Installed %1$lld times, more than one of them on — SMAPI loads one and ignores the rest: %2$@";
 "mods_anomaly_duplicate_dormant" = "Installed %1$lld times; only one copy is on: %2$@";
 "mods_anomaly_errors" = "%d recent error(s) on this version";
@@ -1650,7 +1655,7 @@
 "updates_nexus_section" = "Nexus Mods Updates";
 "updates_nexus_updates_count" = "%lld update(s) available";
 "updates_no_alerts" = "No system alerts.";
-"updates_open_smapi_page" = "View entry";
+"updates_open_smapi_page" = "Mod page ↗";
 "updates_recheck_log" = "Check the log again";
 "updates_smapi_description" = "SMAPI has seen a newer version. What it changes isn't in the log: the mod's page says.";
 "updates_smapi_note" = "Seen at the game's last launch, in SMAPI's compatibility list — independently of Nexus.";

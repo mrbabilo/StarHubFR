@@ -231,9 +231,7 @@ struct FrenchTranslationsView: View {
     /// La fiche, onglet Traduction — là où vivent le retrait et le
     /// rattachement. L'intention traverse le changement d'onglet (patron B3-T4).
     private func openMod(_ mod: ModItem) {
-        vm.navigationStore.pendingModDetailFocus = mod.folderName
-        vm.navigationStore.pendingDetailTab = .translation
-        currentTab = .mods
+        vm.navigationStore.openModDetail(folderName: mod.folderName, door: .frenchTranslations)
     }
 }
 

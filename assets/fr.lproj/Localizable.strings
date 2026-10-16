@@ -118,6 +118,8 @@
 "config_recheck_failed_msg" = "config.json n'a pas pu être relu avant l'enregistrement : impossible de dire s'il a changé depuis son ouverture. Enregistrer maintenant risque de remplacer une écriture faite entre-temps.";
 "config_recheck_failed_title" = "config.json n'a pas pu être relu";
 "config_reset" = "Réinitialiser";
+"config_discard_title" = "Abandonner les modifications ?";
+"config_discard" = "Abandonner";
 "config_reset_to_default" = "Revenir au défaut du mod (%@)";
 "config_restore_bak_failed" = "Impossible de restaurer config.json.bak : %@";
 "config_restore_config" = "Restaurer la configuration";
@@ -190,6 +192,7 @@
 "downloads_rate" = "%@/s";
 "health_action_open_logs" = "Voir dans les journaux";
 "health_action_open_mod" = "Voir le mod";
+"health_action_open_setting" = "Ouvrir le réglage";
 "health_action_rename_folder" = "Renommer un dossier";
 "health_action_reveal_in_finder" = "Montrer dans le Finder";
 "health_benign_title_api" = "Intégration optionnelle";
@@ -433,7 +436,7 @@
 "logs_health_failed" = "Mods en échec";
 "logs_health_healthy" = "Tout est sain";
 "logs_health_mods_count" = "%lld mods";
-"logs_health_open_mod" = "Afficher ce mod dans la liste des mods";
+"logs_health_open_mod" = "Ouvrir la fiche de ce mod";
 "logs_health_packs_count" = "%lld packs";
 "logs_health_patched" = "Mods modifiant le code du jeu";
 "logs_health_reveal" = "Ouvrir le log SMAPI dans le Finder";
@@ -495,6 +498,7 @@
 "main_group_saves" = "Parties";
 "main_home" = "Accueil";
 "main_launch_game" = "Lancer le jeu";
+"main_game_menu" = "Jeu";
 "main_launch_mods_found" = "%d mods trouvés";
 "main_launch_step_done" = "Prêt";
 "main_launch_step_duplicates" = "Recherche de doublons…";
@@ -737,6 +741,7 @@
 "mods_anomaly_compat" = "Signalé cassé par smapi.io : %@";
 "mods_anomaly_dependency" = "Une dépendance requise manque, ou est en pause";
 "mods_anomaly_see_state" = "Voir l'état";
+"mods_anomaly_see_dependencies" = "Voir les dépendances";
 "mods_anomaly_duplicate_active" = "Installé %1$lld fois, dont plusieurs copies actives — SMAPI en charge une et ignore les autres : %2$@";
 "mods_anomaly_duplicate_dormant" = "Installé %1$lld fois ; une seule copie est active : %2$@";
 "mods_anomaly_errors" = "%d erreur(s) récente(s) sur cette version";
@@ -1650,7 +1655,7 @@
 "updates_nexus_section" = "Mises à jour Nexus Mods";
 "updates_nexus_updates_count" = "%lld mise(s) à jour disponible(s)";
 "updates_no_alerts" = "Aucune alerte système.";
-"updates_open_smapi_page" = "Voir la fiche";
+"updates_open_smapi_page" = "Page du mod ↗";
 "updates_recheck_log" = "Revérifier le journal";
 "updates_smapi_description" = "SMAPI a vu passer une version plus récente. Ce qu'elle change n'est pas dans le journal : la page du mod le dit.";
 "updates_smapi_note" = "Relevé au dernier lancement du jeu, dans la base de compatibilité de SMAPI — indépendamment de Nexus.";

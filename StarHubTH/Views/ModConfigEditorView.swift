@@ -23,6 +23,8 @@ struct ModConfigEditorView: View {
     let mod: ModItem
     
     @State private var configText: String = ""
+    @State private var confirmDiscard = false
+    private var navigation: NavigationStore { vm.navigationStore }
     @State private var originalText: String = ""
     @State private var isInvalidJson: Bool = false
     @State private var selectedTab: Int
@@ -209,7 +211,7 @@ struct ModConfigEditorView: View {
                         }
                         .padding(30)
                     }
-                    .onChange(of: highlightedRowId) { _, id in
+                    .onChange(of: highlightedRowId, initial: true) { _, id in  // initial : posé avant le montage des rangées
                         guard let id else { return }
                         withAnimation { proxy.scrollTo(id, anchor: .center) }
                     }
@@ -240,6 +242,7 @@ struct ModConfigEditorView: View {
             
             // Footer Action Bar — ~637 pt en FR : repli sur deux lignes si étroit
             SplitRow {
+                Button(localization.L(L10n.Main.close), action: close).keyboardShortcut(.cancelAction)
                 Button(action: { restoreConfigBackup() }) {
                     Label(localization.L(L10n.Settings.configRestoreConfig), systemImage: "arrow.counterclockwise")
                 }
@@ -264,7 +267,7 @@ struct ModConfigEditorView: View {
                 
                 Button(localization.L(L10n.Saves.saveChanges)) {
                     if saveConfig() {
-                        vm.navigationStore.setEditingModConfig(nil)
+                        navigation.setEditingModConfig(nil)
                     }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -277,6 +280,9 @@ struct ModConfigEditorView: View {
         .searchable(text: $searchText, prompt: Text(localization.L(L10n.Settings.configSearchPlaceholder)))
         .background(AppDesign.Color.windowBg)
         .onAppear(perform: loadConfig)
+        .confirmationDialog(localization.L(L10n.Settings.configDiscardTitle), isPresented: $confirmDiscard) {
+            Button(localization.L(L10n.Settings.configDiscard), role: .destructive) { navigation.requestHistoryStep(.back) }
+        }
         .alert(localization.L(blockedWrite == .unverifiable
                     ? L10n.Settings.configRecheckFailedTitle
                     : L10n.Settings.configChangedExtTitle),
@@ -284,7 +290,7 @@ struct ModConfigEditorView: View {
                                     set: { if !$0 { blockedWrite = nil } })) {
             Button(localization.L(L10n.Settings.configOverwriteAnyway), role: .destructive) {
                 blockedWrite = nil
-                if writeConfig() { vm.navigationStore.setEditingModConfig(nil) }
+                if writeConfig() { navigation.setEditingModConfig(nil) }
             }
             Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { blockedWrite = nil }
         } message: {
@@ -328,7 +334,7 @@ struct ModConfigEditorView: View {
     /// de trois secondes. La demande (navigationStore) est consommée ici
     /// quoi qu'il arrive : elle ne vaut qu'une fois.
     private func applyFocusIfNeeded() {
-        defer { vm.navigationStore.pendingConfigFocusKeyPath = nil }
+        defer { navigation.pendingConfigFocusKeyPath = nil }
         guard let target = focusKeyPath,
               let row = Self.row(matching: target, in: configRows) else { return }
         highlightedRowId = row.id
@@ -661,34 +667,19 @@ struct ModConfigEditorView: View {
     /// `config.json`** du parc sont en pause, et éditer la config d'un mod
     /// que le jeu n'a pas chargé ne risque rien.
     private var gameRunningBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "gamecontroller.fill")
-                .foregroundColor(.orange)
-            Text(localization.L(L10n.Settings.configGameRunning))
-                .font(AppDesign.Font.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }
-        .padding(12)
-        .background(Color.orange.opacity(0.08))
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+        ConfigEditorNotice(icon: "gamecontroller.fill", text: localization.L(L10n.Settings.configGameRunning))
+            .padding(.horizontal, 20).padding(.top, 12)
     }
 
     private var schemaUnreadableBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-            Text(localization.L(L10n.Settings.configSchemaUnreadable))
-                .font(AppDesign.Font.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }
-        .padding(12)
-        .background(Color.orange.opacity(0.08))
-        .cornerRadius(6)
+        ConfigEditorNotice(icon: "exclamationmark.triangle.fill",
+                           text: localization.L(L10n.Settings.configSchemaUnreadable)).cornerRadius(6)
+    }
+
+    /// N-00 — « Fermer » (⎋) suit la règle de Retour ; une saisie non
+    /// enregistrée demande d'abord confirmation (on n'en sortait que par ‹).
+    private func close() {
+        if configText != originalText { confirmDiscard = true } else { navigation.requestHistoryStep(.back) }
     }
 
     @ViewBuilder

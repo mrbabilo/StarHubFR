@@ -100,8 +100,6 @@ struct SavePausedFootprintSection: View {
     /// `SystemAlertsView`). La fiche s'ouvre sur « État » : c'est là qu'on
     /// réactive le mod.
     private func open(_ entry: PausedModFootprint) {
-        vm.navigationStore.pendingModDetailFocus = entry.folderName
-        vm.navigationStore.pendingDetailTab = .health
-        currentTab = .mods
+        vm.navigationStore.openModDetail(folderName: entry.folderName, door: .saveFootprint)
     }
 }

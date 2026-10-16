@@ -97,9 +97,7 @@ extension SmapiHealthCard {
                                links: [ModCompatibility.Link]) -> some View {
         HStack(spacing: 2) {
             actionButton(AppDesign.openDetailSymbol, help: L10n.Logs.healthOpenMod) {
-                vm.navigationStore.pendingModDetailFocus = folderName
-                vm.navigationStore.pendingDetailTab = .health
-                vm.navigationStore.requestTab(.mods)
+                vm.navigationStore.openModDetail(folderName: folderName, door: .compatibilityCard)
             }
             if let link = links.first, let url = URL(string: link.url) {
                 Button { NSWorkspace.shared.open(url) } label: {

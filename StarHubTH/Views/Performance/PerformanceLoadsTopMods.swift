@@ -43,7 +43,7 @@ struct PerformanceLoadsTopMods: View {
         let blockers = ProbePerformanceActions.pauseBlockers(modId: total.mod, in: viewModel.mods)
         return HStack(alignment: .center, spacing: AppDesign.Spacing.sm) {
             Button {
-                if let head { viewModel.navigationStore.openModDetail(folderName: head.folderName) }
+                if let head { viewModel.navigationStore.openModDetail(folderName: head.folderName, door: .performance) }
             } label: {
                 Text(isContentPatcherPreparing(total) ? localization.L(L10n.Performance.loadsCpPreparing)
                                                       : displayName(total.mod))

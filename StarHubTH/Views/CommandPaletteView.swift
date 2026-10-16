@@ -247,7 +247,7 @@ struct CommandPaletteView: View {
             // Le canal B3-T4 déjà en place. Un mod disparu entre l'ouverture
             // et ↩ résout à nil : rien ne s'ouvre, plutôt qu'une fiche
             // fantôme — et la palette se ferme quand même.
-            vm.openReportDetail(for: String(e.id.dropFirst("mod:".count)))
+            vm.openReportDetail(for: String(e.id.dropFirst("mod:".count)), door: .palette)
         case .profile:
             // I-T5 : ↩ active le profil, par le même chemin que le bouton
             // « Activer » (gardes jeu lancé, reprise R2, alerte d'empreintes

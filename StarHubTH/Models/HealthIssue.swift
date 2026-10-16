@@ -65,6 +65,12 @@ public struct HealthIssue: Identifiable, Equatable {
         /// deux sources ne connaissent le mod que par le nom sous lequel il
         /// a été chargé).
         case openMod(query: String)
+        /// Même mod, cause dépendance : la fiche s'ouvre sur l'onglet
+        /// Dépendances, où vit « Activer » (N-05).
+        case openModDependencies(query: String)
+        /// N-06 — l'éditeur de config du mod, sur la clé en cause (collision
+        /// de raccourcis) : la fiche ne montrait la touche nulle part.
+        case openModConfig(folderName: String, keyPath: [String])
         /// Ouvre les journaux, recherche pré-remplie sur `searchText` — pour
         /// les lignes qui ne désignent aucun mod résolvable (un outil externe
         /// comme RivaTuner, une notice bénigne sans mod nommé) : la fiche
@@ -104,6 +110,8 @@ public struct HealthIssue: Identifiable, Equatable {
         public var id: String {
             switch self {
             case .openMod(let q):   return "mod:\(q)"
+            case .openModDependencies(let q): return "deps:\(q)"
+            case .openModConfig(let f, let p): return "config:\(f):\(p.joined(separator: "."))"
             case .openLogs(let s):  return "logs:\(s)"
             case .revealInFinder(let p): return "finder:\(p.joined(separator: "|"))"
             case .renameFolder(let f):   return "rename:\(f)"

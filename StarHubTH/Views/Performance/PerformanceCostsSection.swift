@@ -52,6 +52,6 @@ struct PerformanceCostsSection: View {
 
     private func open(_ modId: String) {
         guard let mod = ProbePerformanceActions.target(modId: modId, in: viewModel.scanStore.mods) else { return }
-        viewModel.navigationStore.openModDetail(folderName: mod.folderName)
+        viewModel.navigationStore.openModDetail(folderName: mod.folderName, door: .performance)
     }
 }

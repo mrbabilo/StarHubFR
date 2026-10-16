@@ -174,12 +174,12 @@ final class NavigationStore {
         requestTab(.backups)
     }
 
-    /// La fiche d'un mod, onglet Santé par défaut, depuis une page qui ne peut
+    /// La fiche d'un mod, onglet choisi par `DetailArrival`, depuis une page qui ne peut
     /// pas écrire `currentTab` (onglet Performances) : l'intention traverse le
     /// changement d'onglet et `MainView` la consomme (patron B3-T4).
-    func openModDetail(folderName: String, tab: DetailTab = .health) {
+    func openModDetail(folderName: String, door: DetailDoor) {
         pendingModDetailFocus = folderName
-        pendingDetailTab = tab
+        pendingDetailTab = DetailArrival.tab(for: door)
         requestTab(.mods)
     }
 
@@ -192,7 +192,11 @@ final class NavigationStore {
 
     /// Consommé par MainView : la fiche est demandée (pose directe ou
     /// changement d'onglet), le canal peut retomber.
-    func openReportDetail(for folderName: String) {
+    /// La porte de cette demande (palette ou bilan) : l'onglet suit `DetailArrival`.
+    private(set) var reportDetailDoor: DetailDoor = .palette
+
+    func openReportDetail(for folderName: String, door: DetailDoor) {
+        reportDetailDoor = door
         reportDetailFocus = folderName
     }
 
@@ -226,6 +230,17 @@ final class NavigationStore {
 
     func requestHistoryStep(_ step: HistoryStep) { pendingHistoryStep = step }
     func consumePendingHistoryStep() { pendingHistoryStep = nil }
+
+    /// « Installer des mods… » (⌘O, menu Fichier — N-07) : la feuille vit
+    /// dans la liste des mods, qui consomme la demande à son apparition.
+    private(set) var pendingInstallRequest = false
+
+    func requestInstall() {
+        pendingInstallRequest = true
+        requestTab(.mods)
+    }
+
+    func consumeInstallRequest() { pendingInstallRequest = false }
 
     // MARK: - Poses à effet
 

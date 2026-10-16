@@ -48,7 +48,8 @@ struct HealthIssueResolverSmapiTests {
 
         let issues = HealthIssueResolver.smapiIssues(d)
         let row = issues.first { $0.title == "AnotherMod 1.0" }
-        #expect(row?.actions == [.openMod(query: "AnotherMod")])
+        // N-05 : skipped faute de dépendance, la fiche s'ouvre sur Dépendances.
+        #expect(row?.actions == [.openModDependencies(query: "AnotherMod")])
     }
 
     /// Contre-épreuve : un mod dont le nom se termine par un mot ordinaire
@@ -62,14 +63,14 @@ struct HealthIssueResolverSmapiTests {
         let d = SmapiDiagnostics.parse(logContent: log)
         let issues = HealthIssueResolver.smapiIssues(d)
         let row = issues.first { $0.title == "Content Patcher Animations 1.2" }
-        #expect(row?.actions == [.openMod(query: "Content Patcher Animations")])
+        #expect(row?.actions == [.openModDependencies(query: "Content Patcher Animations")])
     }
 
     /// La dépendance manquante défensive nomme aussi un vrai mod : même
     /// cible que failed/skipped.
     @Test func missingDependencyDefensiveCaseOpensTheModFiche() {
         let issues = HealthIssueResolver.smapiIssues(Self.diagnostics())
-        #expect(issues.first { $0.title == "RSV" }?.actions == [.openMod(query: "RSV")])
+        #expect(issues.first { $0.title == "RSV" }?.actions == [.openModDependencies(query: "RSV")])
     }
 
     /// `externalConflicts` nomme un outil externe (RivaTuner…), jamais un mod
@@ -444,8 +445,11 @@ struct HealthIssueResolverAggregateTests {
                                        tree: tree(["HotkeyOne": .string("F8 + LeftControl")]))
         let report = KeybindScanner.report(mods: [a, b])
         let issues = HealthIssueResolver.keybindIssues(report)
-        let collision = issues.first { $0.detail == nil }
-        #expect(collision?.actions == [.openMod(query: "Alpha Mod")])
+        let collision = issues.first { $0.id.hasPrefix("keybind-collision-") }
+        // N-06 : la touche en clair, le réglage du premier mod, puis sa fiche.
+        #expect(collision?.detail == "F8 + LeftControl")
+        #expect(collision?.actions == [.openModConfig(folderName: "b.Mod2", keyPath: ["HotkeyOne"]),
+                                       .openMod(query: "Alpha Mod")])
     }
 
     /// Même règle pour un conflit avec un contrôle par défaut du jeu.

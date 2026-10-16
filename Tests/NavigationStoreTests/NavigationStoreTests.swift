@@ -42,7 +42,7 @@ import Foundation
 
     @Test func consommerEffaceLeCanalDuBilan() {
         let s = NavigationStore()
-        s.openReportDetail(for: "ModA")
+        s.openReportDetail(for: "ModA", door: .installReport)
         #expect(s.reportDetailFocus == "ModA")
         s.consumeReportDetailFocus()
         #expect(s.reportDetailFocus == nil)
@@ -115,7 +115,7 @@ import Foundation
         let s = NavigationStore()
         s.requestTab(.mods)
         #expect(s.reportDetailFocus == nil)
-        s.openReportDetail(for: "ModB")
+        s.openReportDetail(for: "ModB", door: .installReport)
         #expect(s.pendingTabRequest == .mods)
         #expect(s.reportDetailFocus == "ModB")
     }
@@ -287,7 +287,7 @@ import Foundation
     /// demande traverse le changement d'onglet (patron B3-T4).
     @Test func openModDetailPosesTheFocusAndRequestsTheModsTab() {
         let s = NavigationStore()
-        s.openModDetail(folderName: "UltraSmooth")
+        s.openModDetail(folderName: "UltraSmooth", door: .performance)
         #expect(s.pendingModDetailFocus == "UltraSmooth")
         #expect(s.pendingDetailTab == .health)
         #expect(s.pendingTabRequest == .mods)
@@ -296,9 +296,9 @@ import Foundation
 
     /// Un mod sans verdict de mise à jour s'ouvre sur **Gestion**, là où se
     /// saisit l'identifiant Nexus qui lui manque (2026-10-08).
-    @Test func openModDetailCanAimAtAnotherTab() {
+    @Test func openModDetailFollowsTheDoorsArrivalRule() {
         let s = NavigationStore()
-        s.openModDetail(folderName: "Bird Cove", tab: .management)
+        s.openModDetail(folderName: "Bird Cove", door: .unverifiable)
         #expect(s.pendingModDetailFocus == "Bird Cove")
         #expect(s.pendingDetailTab == .management)
         #expect(s.pendingTabRequest == .mods)

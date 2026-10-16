@@ -30,7 +30,7 @@ public enum HealthIssueResolver {
                                       detail: enrichedDetail(reason: issue.reason,
                                                              mod: issue.name,
                                                              missingDeps: d.missingDeps),
-                                      actions: [.openMod(query: issue.name)]))
+                                      actions: [Self.openAction(issue.name, mod: issue.name, d)]))
         }
         // Garde par SYMÉTRIE avec celle de `missingDeps` juste en dessous :
         // jamais vérifié sur un vrai journal (aucun n'en montre le cas), donc
@@ -63,7 +63,7 @@ public enum HealthIssueResolver {
                                       // fiche (aucune fixture à la main
                                       // n'exerçait un nom versionné, d'où le
                                       // bogue passé inaperçu des tests).
-                                      actions: [.openMod(query: Self.skippedModQuery(issue.name))]))
+                                      actions: [Self.openAction(Self.skippedModQuery(issue.name), mod: issue.name, d)]))
         }
         // Cas défensif seulement : un mod dont la dépendance manquante n'a
         // été promue dans aucune des deux listes ci-dessus.
@@ -71,7 +71,7 @@ public enum HealthIssueResolver {
             issues.append(HealthIssue(id: "smapi-dep-\(dep.mod)-\(dep.missing)",
                                       severity: .critical, source: .smapi,
                                       title: dep.mod, detail: dep.missing,
-                                      actions: [.openMod(query: dep.mod)]))
+                                      actions: [.openModDependencies(query: dep.mod)]))
         }
         // Conflits externes et mods marqués « broken » par SMAPI : des
         // problèmes de chargement avérés au sens de `problemCount`
@@ -135,12 +135,9 @@ public enum HealthIssueResolver {
             let comboKey = collision.combo.buttons.joined(separator: "+")
             issues.append(HealthIssue(id: "keybind-collision-\(comboKey)-\(mods)",
                                       severity: .warning, source: .keybind,
-                                      title: mods, detail: nil,
-                                      // Une collision oppose au moins deux
-                                      // mods — un seul bouton ne peut désigner
-                                      // qu'UN fautif : le premier par ordre
-                                      // alphabétique, le même tri que `title`.
-                                      actions: [.openMod(query: modNames.first ?? mods)]))
+                                      title: mods, detail: collision.combo.buttons.joined(separator: " + "),  // N-06 : touche en clair ; réglage du 1er mod (tri de `title`), puis sa fiche
+                                      actions: [collision.uses.min { $0.modName < $1.modName }.map { .openModConfig(folderName: $0.modID, keyPath: $0.keyPath) },
+                                                .openMod(query: modNames.first ?? mods)].compactMap { $0 }))
         }
         for conflict in report.gameConflicts {
             let modNames = conflict.uses.map(\.modName).sorted()
@@ -394,6 +391,9 @@ public enum HealthIssueResolver {
     /// `message.contains(search)` : chercher le texte tronqué AVEC son
     /// ellipse ne matcherait jamais rien, un bouton qui ouvre un journal
     /// vide. Le retirer restaure un préfixe exact de la ligne d'origine.
+    /// N-05 — faute d'une dépendance, la fiche s'ouvre sur Dépendances (appariement d'`enrichedDetail`).
+    private static func openAction(_ query: String, mod: String, _ d: SmapiDiagnostics) -> HealthIssue.Action {
+        d.missingDeps.contains { $0.mod == mod } ? .openModDependencies(query: query) : .openMod(query: query) }
     /// `nil` quand il ne reste rien à chercher : un exemple vide, ou réduit à
     /// sa seule ellipse de troncature. Rendre `""` posait un bouton qui vide
     /// simplement le filtre des Journaux au lieu d'y mener.
