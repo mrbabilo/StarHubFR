@@ -2313,6 +2313,27 @@ touchées).
       (e) `!#$h` pour `!$h` bloque avec « marque(s) en trop : #$h » et montre le `$h`
       manquant.
 
+- [x] **C3-T10** — *(livré le 2026-10-15, commit `c967ceed` ; validé à l'écran par l'auteur le 2026-10-16, avec les suites de C3-T9 `15377717`)* Environ 50 des 374 lignes encore bloquées
+      viennent de fautes de frappe de l'**auteur**, dans la source anglaise : un `$X`
+      ou `#$X` majuscule lu comme une commande (`#$b$You…` → `$Y` ; `$I` ×12 ;
+      `#$I may` traduit `#$Je`), plus des `{{Random:…}}` bloqués sur des options
+      pourtant bien traduites. Décider si `$` suivi d'une majuscule est du texte —
+      le relire dans `Dialogue` avant — : aujourd'hui l'IA ne peut jamais faire
+      passer ces lignes. · **S**
+      **Livré** : `$` + majuscule est du texte (`TranslationTokens.opensCommand`).
+      Relu dans `Dialogue` (jeu 1.6) : `parseDialogueString` aiguille sur `text2[1]`
+      en minuscules et compare `$action`/`$query` exactement, `checkEmotions` cherche
+      `$h`… par `Contains` ordinal ; `$I`, `$There.` s'affichent tels quels. Mesuré :
+      36 lignes concernées, pas 50 ; parc 374 → **341** lignes bloquées (3 le restent
+      pour une autre marque). `#$B#` pour `#$b#` (Kiarra, Ridgeside) reste bloqué,
+      pour sa vraie raison : deux `#` nus. Aucune source ne perd son statut de
+      dialogue. `{{Random:…}}` **non engagé** : 8 sources sur le parc, aucune
+      imbriquée, une seule ligne bloquée (`ARV.MiaPie`) — rendre les options
+      traduisibles demanderait un découpage en trois comme le sélecteur de genre.
+      **Validé à l'écran** : Ridgeside `Alissa.MarriageDialogue.winter_14` — `$I`
+      apparaît comme du texte, l'enregistrement passe.
+
+
 #### C4 — Éditeur de config lisible
 
 - [x] **C4-T4** — `§audit-config-menus` — **Lire le `ConfigSchema` de `content.json`**

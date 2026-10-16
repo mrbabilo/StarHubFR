@@ -160,7 +160,7 @@ partiellement traduits ou pas du tout, sans ouvrir un seul fichier.
 
 ---
 
-### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **rouvert le 2026-10-15** pour les règles de blocage des marques : **C3-T9** livré et validé à l'écran le jour même, à l'archive ; **C3-T10** livré le même jour, à valider à l'écran ; clos le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
+### Hub de traduction FR, phase 2 : *édition & assistance* — **Axe C** · **refermé le 2026-10-16** — rouvert le 2026-10-15 pour les règles de blocage des marques : **C3-T9** et **C3-T10** livrés ce jour-là, validés à l'écran (C3-T9 le jour même, C3-T10 le 2026-10-16), à l'archive et au §11 ; clos une première fois le 2026-10-02 *(C4-T13 complété ; C3-T2 pesé et non engagé, décision au cas. Les items cochés sont à l'archive et au §11 ; les derniers — C3-T2, C4-T13, C5-T1 — depuis le 2026-10-08.)*
 
 C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
@@ -171,27 +171,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C3 — Éditeur `fr.json` assisté
 
-> ✅ **9 items de ce lot sont clos** — 8 livrés (**C3-T9** le 2026-10-15), **C3-T2** pesé le 2026-10-02 et non engagé ; **C3-T10**, livré, attend sa validation à l'écran. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
-
-- [x] **C3-T10** — *(livré le 2026-10-15)* Environ 50 des 374 lignes encore bloquées
-      viennent de fautes de frappe de l'**auteur**, dans la source anglaise : un `$X`
-      ou `#$X` majuscule lu comme une commande (`#$b$You…` → `$Y` ; `$I` ×12 ;
-      `#$I may` traduit `#$Je`), plus des `{{Random:…}}` bloqués sur des options
-      pourtant bien traduites. Décider si `$` suivi d'une majuscule est du texte —
-      le relire dans `Dialogue` avant — : aujourd'hui l'IA ne peut jamais faire
-      passer ces lignes. · **S**
-      **Livré** : `$` + majuscule est du texte (`TranslationTokens.opensCommand`).
-      Relu dans `Dialogue` (jeu 1.6) : `parseDialogueString` aiguille sur `text2[1]`
-      en minuscules et compare `$action`/`$query` exactement, `checkEmotions` cherche
-      `$h`… par `Contains` ordinal ; `$I`, `$There.` s'affichent tels quels. Mesuré :
-      36 lignes concernées, pas 50 ; parc 374 → **341** lignes bloquées (3 le restent
-      pour une autre marque). `#$B#` pour `#$b#` (Kiarra, Ridgeside) reste bloqué,
-      pour sa vraie raison : deux `#` nus. Aucune source ne perd son statut de
-      dialogue. `{{Random:…}}` **non engagé** : 8 sources sur le parc, aucune
-      imbriquée, une seule ligne bloquée (`ARV.MiaPie`) — rendre les options
-      traduisibles demanderait un découpage en trois comme le sélecteur de genre.
-      **À valider à l'écran** : Ridgeside `Alissa.MarriageDialogue.winter_14` — `$I`
-      apparaît comme du texte, l'enregistrement passe.
+> ✅ **Les 10 items de ce lot sont clos** — 9 livrés (**C3-T9** et **C3-T10** le 2026-10-15), **C3-T2** pesé le 2026-10-02 et non engagé. Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
 
 #### C4 — Éditeur de config lisible
@@ -2094,6 +2074,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C3-T7** | 2026-08-20 | Secours de traduction en ligne (DeepL) |
 | **C3-T8** | 2026-08-21 | Traduire une sélection de la source |
 | **C3-T9** | 2026-10-15 | Ne bloquer que les marques qui cassent le jeu (mesuré dans la DLL) : portraits, `@`, `#$b#`, variables `%` en avertissement ; `#` nu bloquant ; chaque écart dit manquant ou en trop ; IA relancée dans le bon sens. Parc 3 477 → 374 lignes bloquées ; validé à l'écran |
+| **C3-T10** | 2026-10-15 | `$` suivi d'une majuscule est du texte (relu dans `Dialogue` : commandes en minuscules) — fautes de frappe d'auteur `$I`, `$There.` ; parc 374 → 341 lignes bloquées ; `{{Random:…}}` non engagé ; validé à l'écran le 2026-10-16 |
 | **C4-T4** | 2026-08-28 | §audit-config-menus — Lire le ConfigSchema de content.json (Content Patcher) : type, valeur par défaut, valeurs admis… |
 | **C4-T5** | 2026-08-28 | §audit-config-menus — Sortir l'éditeur de JSONSerialization. Défaut indépendant des menus de config, trouvé en instru… |
 | **C4-T6** | 2026-09-04 | Dire quand le fichier va être réécrit sous nos pieds |
