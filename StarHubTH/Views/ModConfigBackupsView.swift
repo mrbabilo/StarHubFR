@@ -5,7 +5,9 @@ import SwiftUI
 /// présentateurs sur la même vue ne se présentent pas tous les deux
 /// (mesuré le 2026-09-02, dans les deux sens).
 private enum ModConfigBackupsConfirmation {
-    case restore(ModConfigBackup)
+    /// Les éléments voyagent avec la demande : relire la sélection au moment
+    /// de l'action restaurerait ce qu'une autre vue avait coché.
+    case restore(ModConfigBackup, [ModConfigBackupItem])
     case delete(ModConfigBackup)
     case cleanup(String)
 }
@@ -55,9 +57,9 @@ struct ModConfigBackupsView: View {
                                     set: { if !$0 { confirmation = nil } }),
                presenting: confirmation) { pending in
             switch pending {
-            case .restore(let backup):
+            case .restore(let backup, let items):
                 Button(localization.L(L10n.ModConfigBackups.restoreBackup), role: .destructive) {
-                    performRestore(backup)
+                    performRestore(backup, items)
                 }
                 Button(localization.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
             case .delete(let backup):
@@ -70,7 +72,7 @@ struct ModConfigBackupsView: View {
             }
         } message: { pending in
             switch pending {
-            case .restore: Text(localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup))
+            case .restore(_, let items): Text(restoreWarning(items))
             case .delete: EmptyView()
             case .cleanup(let message): Text(message)
             }
@@ -147,7 +149,9 @@ struct ModConfigBackupsView: View {
                         isExpanded: expandedBackupId == backup.id,
                         selectedItemIds: expandedBackupId == backup.id ? $selectedItemIds : .constant([]),
                         onToggleExpand: { toggleExpand(backup) },
-                        onRestoreSelected: { confirmation = .restore(backup) },
+                        onRestoreSelected: {
+                            confirmation = .restore(backup, backup.items.filter { selectedItemIds.contains($0.id) })
+                        },
                         onDelete: { confirmation = .delete(backup) }
                     )
                 }
@@ -167,8 +171,8 @@ struct ModConfigBackupsView: View {
             expandedBackupId = nil
             selectedItemIds = []
         } else {
-            expandedBackupId = backup.id  // filtré : seul le mod demandé est coché
-            selectedItemIds = Set(backup.items.filter { modFilter == nil || $0.modFolderName == modFilter }.map(\.id))
+            expandedBackupId = backup.id  // rien de coché, sauf le mod demandé par l'éditeur
+            selectedItemIds = Set(backup.items.filter { $0.modFolderName == modFilter }.map(\.id))
         }
     }
 
@@ -246,8 +250,16 @@ struct ModConfigBackupsView: View {
         return lines.joined(separator: "\n\n")
     }
 
-    private func performRestore(_ backup: ModConfigBackup) {
-        let selected = backup.items.filter { selectedItemIds.contains($0.id) }
+    /// La confirmation nomme ce qui sera remplacé : une sauvegarde de config
+    /// porte aussi les i18n, donc les traductions faites dans l'app.
+    private func restoreWarning(_ items: [ModConfigBackupItem]) -> String {
+        let lines = items.prefix(8).map { "• \($0.modDisplayName) — \($0.files.joined(separator: ", "))" }
+            + (items.count > 8 ? ["…"] : [])
+        return localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup) + "\n\n"
+            + localization.L(L10n.ModConfigBackups.restoreFiles) + "\n" + lines.joined(separator: "\n")
+    }
+
+    private func performRestore(_ backup: ModConfigBackup, _ selected: [ModConfigBackupItem]) {
         guard !selected.isEmpty else { return }
         isBusy = true
         let gameDir = vm.gameDir
@@ -302,98 +314,5 @@ struct ModConfigBackupsView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Row
-
-private struct ModConfigBackupRow: View {
-    var vm: StarHubTHViewModel
-    @ObservedObject var localization: LocalizationStore
-    let backup: ModConfigBackup
-    let isExpanded: Bool
-    @Binding var selectedItemIds: Set<UUID>
-    let onToggleExpand: () -> Void
-    let onRestoreSelected: () -> Void
-    let onDelete: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Button(action: onToggleExpand) {
-                    HStack(spacing: 10) {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(AppDesign.Font.footnote(.bold))
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(backup.formattedDate)
-                                .font(AppDesign.Font.body(.medium))
-                                .foregroundColor(.primary)
-                            Text("\(String(format: localization.L(L10n.ModConfigBackups.filesCount), backup.totalFiles)) · \(backup.formattedSize)")
-                                .font(AppDesign.Font.footnote)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .pointingHandCursor()
-
-                Spacer()
-
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red.opacity(0.8))
-                }
-                .buttonStyle(.plain)
-                .pointingHandCursor()
-                .help(localization.L(L10n.ModConfigBackups.deleteBackup))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(isHovered ? Color.primary.opacity(0.04) : Color.clear)
-            .onHover { isHovered = $0 }
-
-            if isExpanded {
-                Divider().padding(.leading, 14)
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(backup.items) { item in
-                        Toggle(isOn: Binding(
-                            get: { selectedItemIds.contains(item.id) },
-                            set: { isOn in
-                                if isOn { selectedItemIds.insert(item.id) } else { selectedItemIds.remove(item.id) }
-                            }
-                        )) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(item.modDisplayName)
-                                    .font(AppDesign.Font.caption(.medium))
-                                let subtitle = item.parentFolderName.map {
-                                    "\(item.files.joined(separator: ", ")) — \(String(format: localization.L(L10n.ModConfigBackups.partOfGroup), $0))"
-                                } ?? item.files.joined(separator: ", ")
-                                Text(subtitle)
-                                    .font(AppDesign.Font.iconXS)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-
-                    HStack {
-                        Spacer()
-                        Button(localization.L(L10n.ModConfigBackups.restoreBackup)) {
-                            onRestoreSelected()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(selectedItemIds.isEmpty)
-                    }
-                    .padding(.top, 4)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-            }
-        }
-        .cardSurface(padding: 0)
     }
 }

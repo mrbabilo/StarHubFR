@@ -596,6 +596,10 @@
 "mod_config_backups_part_of_group" = "Fait partie de %@";
 "mod_config_backups_restore" = "Restaurer";
 "mod_config_backups_restore_create_backup" = "Une sauvegarde de vos configurations actuelles sera créée en premier.";
+"mod_config_backups_check_all" = "Tout cocher";
+"mod_config_backups_check_none" = "Tout décocher";
+"mod_config_backups_restore_count" = "Restaurer (%lld)";
+"mod_config_backups_restore_files" = "Fichiers remplacés, traductions comprises :";
 "mod_config_backups_restore_failed" = "Échec de la restauration : %@";
 "mod_config_backups_restore_report_nothing" = "Rien n'a été restauré : pas un fichier n'a pu être écrit.";
 "mod_config_backups_restore_report_skipped_files" = "Fichiers sautés (absents de la sauvegarde, ou impossibles à écrire) : %@";
