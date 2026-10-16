@@ -118,11 +118,12 @@ struct DiagnosticsView: View {
     private var headerSummary: String {
         let smapi = viewModel.smapiInstalledVersion.map { "SMAPI \($0)" }
             ?? localization.L(L10n.Logs.headerNoSmapi)
-        guard let date = viewModel.smapiLogDate else {
+        // Même date que la ligne de source des Alertes (R2), dans la langue de l'app.
+        guard let source = SmapiLogSource(logDate: viewModel.smapiLogDate, isStale: false,
+                                          locale: Locale(identifier: localization.currentLanguage)) else {
             return "\(smapi) · \(localization.L(L10n.Logs.headerNoLog))"
         }
-        return "\(smapi) · " + String(format: localization.L(L10n.Logs.headerLogDate),
-                                         DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short))
+        return "\(smapi) · " + String(format: localization.L(L10n.Logs.headerLogDate), source.date)
     }
 
     /// Un onglet non affiché : invisible, sans clic ni raccourci (un bouton

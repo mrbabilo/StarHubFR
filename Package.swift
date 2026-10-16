@@ -371,6 +371,7 @@ let package = Package(
                 "SaveFarmerPalette.swift",
                 "SaveFarmNameResolver.swift",
                 "Models/HealthIssue.swift",
+                "Models/SmapiLogSource.swift",
                 "Models/HealthIssueResolver.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",

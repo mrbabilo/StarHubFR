@@ -210,17 +210,17 @@ struct SmapiHealthCard: View {
         .cornerRadius(AppDesignCore.Radius.sm)
     }
 
-    /// Orange "Stale log" pill + a relative time. Note: `Text(date, style: .relative)`
-    /// formats via the *system* locale, not the in-app L10n toggle — accepted as a
-    /// minor v1 inconsistency (it is a secondary detail in the badge).
+    /// Orange "Stale log" pill + the log's age, worded like the Alerts source
+    /// line (R2, `SmapiLogSource`) in the app's language.
     private var staleBadge: some View {
         HStack(spacing: AppDesignCore.Spacing.xs) {
             Image(systemName: "clock.badge.exclamationmark")
                 .font(AppDesign.Font.iconXS)
             Text(localization.L(L10n.Logs.healthStale))
                 .font(AppDesign.Font.iconXS(.medium))
-            if let date = vm.smapiLogDate {
-                Text(date, style: .relative).font(AppDesign.Font.iconXS)
+            if let age = SmapiLogSource(logDate: vm.smapiLogDate, isStale: true,
+                                        locale: Locale(identifier: localization.currentLanguage))?.staleAge {
+                Text(age).font(AppDesign.Font.iconXS)
             }
         }
         .padding(.horizontal, AppDesignCore.Spacing.sm)

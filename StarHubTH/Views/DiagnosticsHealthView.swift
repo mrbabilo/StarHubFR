@@ -21,6 +21,7 @@ struct DiagnosticsHealthView: View {
         // dépasser la fenêtre ; la carte, elle, borne son propre corps.
         BackToTopScrollView(localization) {
             VStack(spacing: 0) {
+                alertsLink
                 if let diag = viewModel.smapiDiagnostics, !diag.isEmpty {
                     SmapiHealthCard(vm: viewModel, localization: localization,
                                     availableHeight: max(240, viewHeight - bisectionHeight - 4 * Self.padding))
@@ -59,5 +60,27 @@ struct DiagnosticsHealthView: View {
             Color.clear.onAppear { viewHeight = proxy.size.height }
                 .onChange(of: proxy.size.height) { _, h in viewHeight = h }
         })
+    }
+
+    /// R2 — l'aller vers les Alertes, même compte que la pastille. Hors de la
+    /// carte, qui exige un journal lu : les collisions de raccourcis n'en
+    /// ont pas besoin pour exister.
+    @ViewBuilder
+    private var alertsLink: some View {
+        let count = viewModel.systemAlertCount
+        if count > 0 {
+            SplitRow {
+                Text(localization.plural(L10n.Health.openAlerts, count))
+                    .font(AppDesign.Font.footnote(.medium)).foregroundColor(AppDesign.Color.warning)
+            } trailing: {
+                Button(localization.L(L10n.Health.openAlertsAction)) {
+                    // Le segment d'abord : il survit au changement d'onglet.
+                    viewModel.navigationStore.alertsSegment = .alerts
+                    viewModel.navigationStore.requestTab(.systemAlerts)
+                }.buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
+            }
+            .padding(.horizontal, Self.padding).padding(.vertical, AppDesign.Spacing.sm)
+            Divider()
+        }
     }
 }

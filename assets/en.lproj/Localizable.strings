@@ -2702,3 +2702,9 @@
 "mods_translation_editor_warnings" = "To check:";
 "mods_translation_editor_warnings_hint" = "These markers differ from the English without breaking the game: portrait, player name, page layout.";
 "mods_translation_bare_hash" = "lone # (ends the conversation)";
+"alerts_log_source" = "From the SMAPI log of %@";
+"alerts_log_stale_age" = "stale, written %@ ago";
+"alerts_log_open_health" = "Full log report";
+"health_open_alerts" = "%lld alerts to handle";
+"health_open_alerts_one" = "1 alert to handle";
+"health_open_alerts_action" = "Show alerts";

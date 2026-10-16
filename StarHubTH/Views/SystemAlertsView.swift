@@ -5,7 +5,7 @@ import SwiftUI
 /// Liste unifiée des problèmes de santé du parc — erreurs SMAPI, conflits de
 /// raccourcis, conflits de mods — triée par gravité (tâche 7, H-T6).
 ///
-/// `vm.healthIssues` porte déjà la résolution et le tri (voir
+/// `viewModel.healthIssues` porte déjà la résolution et le tri (voir
 /// `StarHubTHViewModel.healthIssues` et `HealthIssueResolver`) : cette vue
 /// affiche, elle ne retrie ni ne refiltre jamais cette liste.
 ///
@@ -21,7 +21,7 @@ private struct RenameFolderSheet: Identifiable {
 }
 
 struct SystemAlertsView: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
 
@@ -35,9 +35,9 @@ struct SystemAlertsView: View {
 
     var body: some View {
         // Capturée UNE fois par rendu (revue globale, bloquant 7) ; depuis
-        // F3, `vm.healthIssues` est stockée — recalculée aux événements,
+        // F3, `viewModel.healthIssues` est stockée — recalculée aux événements,
         // jamais à l'accès. La capture locale reste le geste obvious.
-        let issues = vm.healthIssues
+        let issues = viewModel.healthIssues
         VStack(alignment: .leading, spacing: 0) {
             header(issues)
             segmentPicker(issues)
@@ -45,20 +45,20 @@ struct SystemAlertsView: View {
             // `switch`, pas des onglets montés : le rapport des raccourcis
             // lance une analyse à son apparition — monté d'office, il
             // rescannerait le parc à chaque visite des alertes.
-            switch vm.navigationStore.alertsSegment {
+            switch viewModel.navigationStore.alertsSegment {
             case .alerts:
                 alertsList(issues)
             case .keybinds:
                 BackToTopScrollView(localization) {
-                    KeybindReportSection(vm: vm, localization: localization, currentTab: $currentTab)
+                    KeybindReportSection(vm: viewModel, localization: localization, currentTab: $currentTab)
                         .padding(AppDesign.Spacing.lg)
                 }
             case .conflicts:
                 BackToTopScrollView(localization) {
                     VStack(spacing: AppDesign.Spacing.lg) {
-                        ModConflictSection(vm: vm, localization: localization)
+                        ModConflictSection(vm: viewModel, localization: localization)
                         // A5-T7 — hors pastille : un recouvrement n'est pas un conflit.
-                        PerformanceOverlapSection(vm: vm, localization: localization)
+                        PerformanceOverlapSection(vm: viewModel, localization: localization)
                     }
                     .padding(AppDesign.Spacing.lg)
                 }
@@ -101,8 +101,8 @@ struct SystemAlertsView: View {
     /// Les trois onglets, chacun avec le compte de ses alertes — les chiffres
     /// que portaient les anciens boutons d'en-tête.
     private func segmentPicker(_ issues: [HealthIssue]) -> some View {
-        Picker("", selection: Binding(get: { vm.navigationStore.alertsSegment },
-                                      set: { vm.navigationStore.alertsSegment = $0 })) {
+        Picker("", selection: Binding(get: { viewModel.navigationStore.alertsSegment },
+                                      set: { viewModel.navigationStore.alertsSegment = $0 })) {
             ForEach(AlertsSegment.allCases, id: \.self) { segment in
                 Text(segmentLabel(segment, issues)).tag(segment)
             }
@@ -117,7 +117,9 @@ struct SystemAlertsView: View {
     private func segmentLabel(_ segment: AlertsSegment, _ issues: [HealthIssue]) -> String {
         let (key, count): (String, Int)
         switch segment {
-        case .alerts:    (key, count) = (L10n.Health.tabAlerts, issues.count)
+        // R2 — `actionableCount`, comme la pastille et l'en-tête : les
+        // notices `.info` restent dans leur tuile, pas dans ce chiffre.
+        case .alerts:    (key, count) = (L10n.Health.tabAlerts, issues.actionableCount)
         case .keybinds:  (key, count) = (L10n.Keybinds.title, issues.count { $0.source == .keybind })
         case .conflicts: (key, count) = (L10n.Conflicts.title, issues.count { $0.source == .modConflict })
         }
@@ -174,6 +176,31 @@ struct SystemAlertsView: View {
                 SeverityBar.Segment(count: counts[$0] ?? 0, color: tint(for: $0))
             })
             .accessibilityLabel(localization.L(L10n.Health.distributionLabel))
+            logSourceLine
+        }
+    }
+
+    /// R2 — le journal dont dérivent les lignes SMAPI, son âge s'il est
+    /// périmé, et le chemin vers son rapport complet (Diagnostic, onglet
+    /// Santé). Rien sans journal lu : raccourcis et conflits s'en passent.
+    @ViewBuilder
+    private var logSourceLine: some View {
+        if let source = SmapiLogSource(logDate: viewModel.smapiLogDate, isStale: viewModel.smapiLogStale,
+                                       locale: Locale(identifier: localization.currentLanguage)) {
+            SplitRow {
+                Text(String(format: localization.L(L10n.Health.logSource), source.date)
+                     + (source.staleAge.map { " — " + String(format: localization.L(L10n.Health.logStaleAge), $0) } ?? ""))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundColor(source.staleAge == nil ? AppDesign.Color.secondary : AppDesign.Color.warning)
+            } trailing: {
+                Button(localization.L(L10n.Health.logOpenHealth)) {
+                    // Le segment d'abord : il survit au changement d'onglet.
+                    viewModel.navigationStore.diagnosticsSegment = .health
+                    currentTab = .logs
+                }
+                .buttonStyle(.hoverLink)
+                .font(AppDesign.Font.footnote)
+            }
         }
     }
 
@@ -193,7 +220,7 @@ struct SystemAlertsView: View {
     private func renameSheetContent(_ name: String) -> some View {
         VStack(spacing: 0) {
             ScrollView {
-                ModFolderRenameSection(vm: vm, localization: localization, folderName: name) { renameSheet = nil }
+                ModFolderRenameSection(vm: viewModel, localization: localization, folderName: name) { renameSheet = nil }
                     .padding(AppDesign.Spacing.lg)
             }
             Divider()
@@ -283,15 +310,15 @@ struct SystemAlertsView: View {
     private func perform(_ action: HealthIssue.Action) {
         switch action {
         case .openMod(let query):
-            vm.navigationStore.openModDetail(folderName: query, door: .alert(dependency: false))
+            viewModel.navigationStore.openModDetail(folderName: query, door: .alert(dependency: false))
         case .openModDependencies(let query):
-            vm.navigationStore.openModDetail(folderName: query, door: .alert(dependency: true))
+            viewModel.navigationStore.openModDetail(folderName: query, door: .alert(dependency: true))
         case .openModConfig(let folderName, let keyPath):
-            if vm.openModConfig(forFolder: folderName, keyPath: keyPath) { currentTab = .mods }
+            if viewModel.openModConfig(forFolder: folderName, keyPath: keyPath) { currentTab = .mods }
         case .openLogs(let searchText):
             // Onglet Journal, filtre et page d'un coup (D4-T4 §3a) : sans le
             // segment, la page s'ouvrirait sur Santé, sans filtre visible.
-            vm.navigationStore.openLog(search: searchText)
+            viewModel.navigationStore.openLog(search: searchText)
         case .revealInFinder(let paths):
             // Les deux dossiers sélectionnés **ensemble** : c'est ce qui montre
             // lequel porte le point de tête, donc lequel est en pause. Ouvrir
@@ -303,9 +330,9 @@ struct SystemAlertsView: View {
         case .repairManifest(let folderName):
             // Le rescan qui suit la copie fait disparaître la ligne — ou la
             // laisse si le manifeste du backup est cassé lui aussi.
-            vm.restoreManifest(folderName: folderName)
+            viewModel.restoreManifest(folderName: folderName)
         case .reinstallFromNexus(let nexusId):
-            vm.downloadModFromNexus(nexusId: nexusId)
+            viewModel.downloadModFromNexus(nexusId: nexusId)
         }
     }
 
@@ -336,14 +363,14 @@ struct SystemAlertsView: View {
     @ViewBuilder
     private var recheckLogButton: some View {
         HStack(spacing: AppDesign.Spacing.xs) {
-            Button(action: { vm.refreshSmapiLog() }) {
+            Button(action: { viewModel.refreshSmapiLog() }) {
                 Label(localization.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()
-            .disabled(vm.isRefreshingSmapiLog)
-            if vm.isRefreshingSmapiLog {
+            .disabled(viewModel.isRefreshingSmapiLog)
+            if viewModel.isRefreshingSmapiLog {
                 ProgressView().controlSize(.small)
             }
         }

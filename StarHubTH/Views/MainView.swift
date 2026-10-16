@@ -164,7 +164,7 @@ struct MainView: View {
                     case .updates:
                         UpdatesView(vm: vm, localization: localization, currentTab: $currentTab)
                     case .systemAlerts:
-                        SystemAlertsView(vm: vm, localization: localization, currentTab: $currentTab)
+                        SystemAlertsView(viewModel: vm, localization: localization, currentTab: $currentTab)
                     case .quarantine:
                         QuarantineView(vm: vm, localization: localization)
                     case .discover:

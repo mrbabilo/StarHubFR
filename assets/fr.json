@@ -2701,5 +2701,11 @@
   "shortcuts_help_guide": "Ouvrir l'aide",
   "mods_translation_editor_warnings": "À vérifier :",
   "mods_translation_editor_warnings_hint": "Ces marques diffèrent de l'anglais sans casser le jeu : portrait, nom du joueur, mise en page.",
-  "mods_translation_bare_hash": "# seul (ferme la conversation)"
+  "mods_translation_bare_hash": "# seul (ferme la conversation)",
+  "alerts_log_source": "D'après le journal SMAPI du %@",
+  "alerts_log_stale_age": "périmé, écrit il y a %@",
+  "alerts_log_open_health": "Rapport complet du journal",
+  "health_open_alerts": "%lld alertes à traiter",
+  "health_open_alerts_one": "1 alerte à traiter",
+  "health_open_alerts_action": "Voir les alertes"
 }
