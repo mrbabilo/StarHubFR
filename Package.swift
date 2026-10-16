@@ -329,6 +329,7 @@ let package = Package(
                 "Models/ModUpdateSnoozer.swift",
                 "Models/ProfileTranslationCoverage.swift",
                 "Models/TranslationWorklist.swift",
+                "Models/ConfigBackupBrowser.swift",
                 "Models/TranslationCoverageCache.swift",
                 "Models/DownloadProgress.swift",
                 "Models/FileRecovery.swift",
@@ -1537,6 +1538,11 @@ let package = Package(
             name: "TranslationWorklistTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationWorklistTests"
+        ),
+        .testTarget(
+            name: "ConfigBackupBrowserTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigBackupBrowserTests"
         ),
         .testTarget(
             name: "ProfileDiagnosticsTests",

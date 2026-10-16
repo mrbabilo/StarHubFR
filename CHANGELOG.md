@@ -25,6 +25,7 @@ where the exact log format was verified.
 - **Collision de raccourcis : « Ouvrir le réglage »** mène à la clé concernée dans l'éditeur, et la ligne affiche la touche en cause.
 - **Liste en vue réduite : le nombre d'approbations s'affiche au-dessus du pouce.**
 - **Éditeur de configuration : « Restaurer » à menu.** Un clic charge toujours la sauvegarde la plus récente ; le chevron propose les cinq dernières versions, toutes les sauvegardes du mod (segment Configuration, filtré) et le retour aux réglages par défaut.
+- **Sauvegardes de configuration : vue « Par mod » et recherche.** Chaque mod liste ses versions, de la plus récente à la plus ancienne, et chacune se restaure seule. La vue par date reste à un clic, filtrée par la même recherche.
 - **La fiche reprend les traductions déjà trouvées par la page Traductions FR**, sans relancer la recherche. Le lot pour traducteur passe dans un menu d'en-tête.
 
 ### Fixed

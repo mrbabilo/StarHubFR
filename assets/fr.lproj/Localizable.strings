@@ -600,6 +600,12 @@
 "mod_config_backups_check_none" = "Tout décocher";
 "mod_config_backups_restore_count" = "Restaurer (%lld)";
 "mod_config_backups_restore_files" = "Fichiers remplacés, traductions comprises :";
+"mod_config_backups_by_mod" = "Par mod";
+"mod_config_backups_by_date" = "Par date";
+"mod_config_backups_versions" = "%1$lld version(s) · la dernière le %2$@";
+"mod_config_backups_restore_version" = "Restaurer cette version";
+"mod_config_backups_search" = "Chercher un mod";
+"mod_config_backups_mods_count" = "%lld mod(s) sauvegardé(s)";
 "mod_config_backups_restore_failed" = "Échec de la restauration : %@";
 "mod_config_backups_restore_report_nothing" = "Rien n'a été restauré : pas un fichier n'a pu être écrit.";
 "mod_config_backups_restore_report_skipped_files" = "Fichiers sautés (absents de la sauvegarde, ou impossibles à écrire) : %@";

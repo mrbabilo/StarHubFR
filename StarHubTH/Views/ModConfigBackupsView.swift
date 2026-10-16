@@ -19,9 +19,20 @@ struct ModConfigBackupsView: View {
     @Binding var modFilter: String?
 
     @State private var backups: [ModConfigBackup] = []
-    private var shown: [ModConfigBackup] {
-        guard let modFilter else { return backups }
-        return backups.filter { $0.items.contains { $0.modFolderName == modFilter } }
+    /// Par mod d'abord : on vient chercher les versions d'un mod, pas une date.
+    @AppStorage("configBackupsByDate") private var byDate = false
+    @State private var search = ""
+    @State private var expandedMods: Set<String> = []
+
+    /// Ce que la recherche et le filtre de l'éditeur laissent d'une sauvegarde.
+    private func visibleItems(_ backup: ModConfigBackup) -> [ModConfigBackupItem] {
+        let needle = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return backup.items.filter { (modFilter == nil || $0.modFolderName == modFilter)
+            && ConfigBackupBrowser.matches($0, needle) }
+    }
+    private var shown: [ModConfigBackup] { backups.filter { !visibleItems($0).isEmpty } }
+    private var groups: [ConfigBackupBrowser.ModGroup] {
+        ConfigBackupBrowser.groups(from: backups, search: search).filter { modFilter == nil || $0.folderName == modFilter }
     }
     @State private var expandedBackupId: UUID?
     @State private var selectedItemIds: Set<UUID> = []
@@ -41,13 +52,20 @@ struct ModConfigBackupsView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            if shown.isEmpty {
+            if byDate ? shown.isEmpty : groups.isEmpty {
                 emptyState
-            } else {
+            } else if byDate {
                 list
+            } else {
+                ModConfigBackupsByMod(localization: localization, groups: groups, expanded: $expandedMods,
+                                      restore: { confirmation = .restore($0, [$1]) })
             }
         }
         .onAppear { reload() }
+        // Venu de l'éditeur : ce mod, déplié, dans la vue par mod.
+        .onChange(of: modFilter, initial: true) { _, folder in
+            if let folder { expandedMods.insert(folder); byDate = false }
+        }
         // Un seul présentateur pour les trois confirmations — voir
         // `ModConfigBackupsConfirmation`. `presenting:` porte la valeur ;
         // les actions lisent `pending`, jamais `confirmation` (déjà remis à
@@ -93,8 +111,10 @@ struct ModConfigBackupsView: View {
     /// Le titre est celui de la page et du segment : ici, le compte et le
     /// geste de création.
     private var header: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
         HStack {
-            Text(String(format: localization.L(L10n.ModConfigBackups.headerCount), Int64(shown.count)))
+            Text(byDate ? String(format: localization.L(L10n.ModConfigBackups.headerCount), Int64(shown.count))
+                        : String(format: localization.L(L10n.ModConfigBackups.modsCount), Int64(groups.count)))
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             if let modFilter {
                 Button { self.modFilter = nil } label: { Label(modFilter, systemImage: "xmark.circle.fill") }
@@ -118,6 +138,16 @@ struct ModConfigBackupsView: View {
             .controlSize(.small)
             .disabled(isBusy || createDisabledReason != nil)
             .help(createDisabledReason ?? "")
+        }
+        HStack(spacing: AppDesign.Spacing.md) {
+            Picker("", selection: $byDate) {
+                Text(localization.L(L10n.ModConfigBackups.byMod)).tag(false)
+                Text(localization.L(L10n.ModConfigBackups.byDate)).tag(true)
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            TextField(localization.L(L10n.ModConfigBackups.search), text: $search)
+                .textFieldStyle(.roundedBorder).frame(maxWidth: 260)
+        }
         }
         .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.vertical, AppDesign.Spacing.sm)
@@ -146,11 +176,12 @@ struct ModConfigBackupsView: View {
                         vm: vm,
                         localization: localization,
                         backup: backup,
+                        items: visibleItems(backup),
                         isExpanded: expandedBackupId == backup.id,
                         selectedItemIds: expandedBackupId == backup.id ? $selectedItemIds : .constant([]),
                         onToggleExpand: { toggleExpand(backup) },
                         onRestoreSelected: {
-                            confirmation = .restore(backup, backup.items.filter { selectedItemIds.contains($0.id) })
+                            confirmation = .restore(backup, visibleItems(backup).filter { selectedItemIds.contains($0.id) })  // pas ce que la recherche cache
                         },
                         onDelete: { confirmation = .delete(backup) }
                     )

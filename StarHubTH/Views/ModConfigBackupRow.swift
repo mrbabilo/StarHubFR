@@ -8,6 +8,8 @@ struct ModConfigBackupRow: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let backup: ModConfigBackup
+    /// Les éléments que la recherche laisse voir.
+    let items: [ModConfigBackupItem]
     let isExpanded: Bool
     @Binding var selectedItemIds: Set<UUID>
     let onToggleExpand: () -> Void
@@ -59,7 +61,7 @@ struct ModConfigBackupRow: View {
                     // n'est coché d'office (un clic écrasait tout le parc).
                     HStack(spacing: AppDesign.Spacing.sm) {
                         Button(localization.L(L10n.ModConfigBackups.checkAll)) {
-                            selectedItemIds = Set(backup.items.map(\.id))
+                            selectedItemIds = Set(items.map(\.id))
                         }
                         Button(localization.L(L10n.ModConfigBackups.checkNone)) { selectedItemIds = [] }
                         Spacer()
@@ -70,7 +72,7 @@ struct ModConfigBackupRow: View {
                     }
                     .buttonStyle(.bordered).controlSize(.small)
                     .padding(.bottom, 4)
-                    ForEach(backup.items) { item in
+                    ForEach(items) { item in
                         Toggle(isOn: Binding(
                             get: { selectedItemIds.contains(item.id) },
                             set: { isOn in
