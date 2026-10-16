@@ -7539,7 +7539,11 @@ sans lire une ligne de log.
       extrait de `ProfileConfigCompareView`). ⚠️ Écart de comptes **voulu** :
       la vue par mod compte toutes les sauvegardes d'un mod, le menu de
       l'éditeur seulement celles qui contiennent `config.json` (un élément peut
-      ne porter que des i18n). Décision laissée à l'auteur : restaurer
-      « config.json seulement », sans les i18n. Vérifié à l'écran : sûreté,
+      ne porter que des i18n). Tranché avec l'auteur le même jour :
+      restaurer = **`config.json` seulement** (`ModConfigBackupItem.configOnly`,
+      Core, 1 test, déjà le geste du planificateur de raccourcis, qui s'en sert
+      désormais). Les i18n restent sauvegardés pour `TranslationBackupFinder` ;
+      une version qui n'en porte que renvoie à « Fichiers récupérables », et sa
+      case est grisée dans la vue par date. Vérifié à l'écran : sûreté,
       recherche, vue par date filtrée, saut depuis l'éditeur, comparaison
       (cas « identique » seulement — aucun écart réel trouvé sur Wallet Tools).

@@ -275,11 +275,7 @@ final class KeybindPlanService {
             }
             // Le lot porte aussi les traductions : seul `config.json` est
             // rendu, le plan n'a rien écrit d'autre.
-            items.append(ModConfigBackupItem(modFolderName: item.modFolderName,
-                                             parentFolderName: item.parentFolderName,
-                                             modDisplayName: item.modDisplayName,
-                                             files: [Self.configFile],
-                                             fileSizes: item.fileSizes.filter { $0.key == Self.configFile }))
+            if let narrowed = item.configOnly { items.append(narrowed) }
         }
         var restored = 0
         if !items.isEmpty {

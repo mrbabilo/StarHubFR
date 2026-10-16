@@ -30,7 +30,8 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **Sauvegardes de configuration : rien n'est coché d'office.** Déplier une sauvegarde complète cochait ses 200 mods, et « Restaurer » les remettait tous. « Tout cocher », « Tout décocher » et « Restaurer (n) » passent en haut, et la confirmation nomme les fichiers remplacés, traductions comprises.
+- **Restaurer une configuration ne touche plus aux traductions.** Seul `config.json` est remis ; un ancien `default.json` décalait les textes d'un mod à jour, un ancien `fr.json` effaçait le travail fait depuis. Les traductions se récupèrent depuis « Fichiers récupérables ».
+- **Sauvegardes de configuration : rien n'est coché d'office.** Déplier une sauvegarde complète cochait ses 200 mods, et « Restaurer » les remettait tous. « Tout cocher », « Tout décocher » et « Restaurer (n) » passent en haut.
 - **« Repartir des réglages par défaut » sauvegarde d'abord `config.json`.** Le fichier était supprimé sans copie ; sans sauvegarde possible, il n'est plus supprimé.
 - **Le saut vers un réglage précis défile jusqu'à la clé.** L'éditeur s'ouvrait en haut, sans surligner la clé, depuis l'onglet Raccourcis comme depuis les Alertes.
 - **Sauvegardes des mods : supprimer passe par la Corbeille.** Installations et configurations étaient effacées pour de bon ; elles partent dans la Corbeille du Mac. Pour une sauvegarde d'installation, la confirmation nomme les fichiers dont elle est la seule copie.

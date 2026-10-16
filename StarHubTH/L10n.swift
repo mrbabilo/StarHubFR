@@ -878,6 +878,7 @@ enum L10n {
         static let byDate                    = "mod_config_backups_by_date"
         static let versions                  = "mod_config_backups_versions"
         static let restoreVersion            = "mod_config_backups_restore_version"
+        static let translationsOnly          = "mod_config_backups_translations_only"
         static let search                    = "mod_config_backups_search"
         static let modsCount                 = "mod_config_backups_mods_count"
         static let compare                   = "mod_config_backups_compare"

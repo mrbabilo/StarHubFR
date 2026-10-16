@@ -23,6 +23,20 @@ public struct ModConfigBackupItem: Identifiable, Codable, Equatable, Sendable {
         self.files = files
         self.fileSizes = fileSizes
     }
+
+    public static let configFile = "config.json"
+
+    /// L'élément réduit à son `config.json` — ce que rend toute restauration
+    /// de réglages ; `nil` s'il n'en porte pas. Les i18n restent dans la
+    /// sauvegarde pour la récupération des traductions (`TranslationBackupFinder`),
+    /// jamais réécrits par ici : un vieux `default.json` décalerait les clés du
+    /// mod à jour, un vieux `fr.json` effacerait le travail fait depuis.
+    public var configOnly: ModConfigBackupItem? {
+        guard files.contains(Self.configFile) else { return nil }
+        return ModConfigBackupItem(modFolderName: modFolderName, parentFolderName: parentFolderName,
+                                   modDisplayName: modDisplayName, files: [Self.configFile],
+                                   fileSizes: fileSizes.filter { $0.key == Self.configFile })
+    }
 }
 
 /// One backup pass: every enabled mod's `config.json`/`fr.json` files

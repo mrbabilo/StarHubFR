@@ -10,6 +10,9 @@ struct ModConfigBackupsByMod: View {
     @Binding var expanded: Set<String>
     let restore: (ModConfigBackup, ModConfigBackupItem) -> Void
     let compare: (ConfigBackupBrowser.Version) -> Void
+    /// Une version sans `config.json` ne porte que des traductions : elles se
+    /// récupèrent ailleurs, avec un aperçu.
+    let showRecoverable: () -> Void
 
     var body: some View {
         BackToTopScrollView(localization) {
@@ -50,15 +53,17 @@ struct ModConfigBackupsByMod: View {
                                 .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                         }
                     } trailing: {
-                        if version.item.files.contains("config.json") {
+                        if version.item.configOnly != nil {
                             Button(localization.L(L10n.ModConfigBackups.compare)) { compare(version) }
-                                .buttonStyle(.bordered).controlSize(.small)
+                            Button(localization.L(L10n.ModConfigBackups.restoreVersion)) {
+                                restore(version.backup, version.item)
+                            }
+                        } else {
+                            Button(localization.L(L10n.ModConfigBackups.translationsOnly), action: showRecoverable)
+                                .buttonStyle(.link).font(AppDesign.Font.footnote)
                         }
-                        Button(localization.L(L10n.ModConfigBackups.restoreVersion)) {
-                            restore(version.backup, version.item)
-                        }
-                        .buttonStyle(.bordered).controlSize(.small)
                     }
+                    .buttonStyle(.bordered).controlSize(.small)
                     .padding(.horizontal, 14).padding(.vertical, 6)
                 }
                 .padding(.bottom, 6)

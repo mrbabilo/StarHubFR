@@ -59,7 +59,8 @@ struct ModConfigBackupsView: View {
                 list
             } else {
                 ModConfigBackupsByMod(localization: localization, groups: groups, expanded: $expandedMods,
-                                      restore: { confirmation = .restore($0, [$1]) }, compare: { comparing = $0 })
+                                      restore: { confirmation = .restore($0, [$1].compactMap(\.configOnly)) }, compare: { comparing = $0 },
+                                      showRecoverable: { vm.navigationStore.backupsSegment = .files })
             }
         }
         .onAppear { reload() }
@@ -186,7 +187,7 @@ struct ModConfigBackupsView: View {
                         selectedItemIds: expandedBackupId == backup.id ? $selectedItemIds : .constant([]),
                         onToggleExpand: { toggleExpand(backup) },
                         onRestoreSelected: {
-                            confirmation = .restore(backup, visibleItems(backup).filter { selectedItemIds.contains($0.id) })  // pas ce que la recherche cache
+                            confirmation = .restore(backup, visibleItems(backup).filter { selectedItemIds.contains($0.id) }.compactMap(\.configOnly))
                         },
                         onDelete: { confirmation = .delete(backup) }
                     )
@@ -215,8 +216,7 @@ struct ModConfigBackupsView: View {
     private func createBackup() {
         guard !isBusy, createDisabledReason == nil else { return }
         isBusy = true
-        let gameDir = vm.gameDir
-        let mods = vm.enabledMods
+        let model = vm, gameDir = model.gameDir, mods = model.enabledMods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let manager = ModConfigBackupManager.shared
@@ -296,10 +296,10 @@ struct ModConfigBackupsView: View {
         }
     }
 
-    /// La confirmation nomme ce qui sera remplacé : une sauvegarde de config
-    /// porte aussi les i18n, donc les traductions faites dans l'app.
+    /// La confirmation nomme ce qui sera remplacé : `config.json` seul
+    /// (`ModConfigBackupItem.configOnly`), jamais les i18n de la sauvegarde.
     private func restoreWarning(_ items: [ModConfigBackupItem]) -> String {
-        let lines = items.prefix(8).map { "• \($0.modDisplayName) — \($0.files.joined(separator: ", "))" }
+        let lines = items.prefix(8).map { "• \($0.modDisplayName)" }
             + (items.count > 8 ? ["…"] : [])
         return localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup) + "\n\n"
             + localization.L(L10n.ModConfigBackups.restoreFiles) + "\n" + lines.joined(separator: "\n")

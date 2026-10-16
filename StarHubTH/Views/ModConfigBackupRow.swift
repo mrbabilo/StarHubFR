@@ -61,7 +61,7 @@ struct ModConfigBackupRow: View {
                     // n'est coché d'office (un clic écrasait tout le parc).
                     HStack(spacing: AppDesign.Spacing.sm) {
                         Button(localization.L(L10n.ModConfigBackups.checkAll)) {
-                            selectedItemIds = Set(items.map(\.id))
+                            selectedItemIds = Set(items.filter { $0.configOnly != nil }.map(\.id))
                         }
                         Button(localization.L(L10n.ModConfigBackups.checkNone)) { selectedItemIds = [] }
                         Spacer()
@@ -91,6 +91,7 @@ struct ModConfigBackupRow: View {
                             }
                         }
                         .toggleStyle(.checkbox)
+                        .disabled(item.configOnly == nil)  // traductions seulement : rien à restaurer ici
                     }
                 }
                 .padding(.horizontal, 14)

@@ -56,3 +56,19 @@ private func backup(_ day: Int, _ items: [ModConfigBackupItem]) -> ModConfigBack
         #expect(ConfigBackupComparison.compare(backup: "{oups", current: #"{"A": 1}"#) == .unparseable)
     }
 }
+
+/// Une restauration de réglages ne rend que `config.json`, jamais les i18n.
+@Suite struct ConfigOnlyRestoreTests {
+    @Test func narrowsToConfigJsonAndDropsTranslationOnlyItems() throws {
+        let full = ModConfigBackupItem(modFolderName: "M", parentFolderName: "P", modDisplayName: "Mod",
+                                       files: ["config.json", "i18n/fr.json", "i18n/default.json"],
+                                       fileSizes: ["config.json": 10, "i18n/fr.json": 20])
+        let narrowed = try #require(full.configOnly)
+        #expect(narrowed.files == ["config.json"])
+        #expect(narrowed.fileSizes == ["config.json": 10])
+        #expect(narrowed.modFolderName == "M" && narrowed.parentFolderName == "P")
+        let translationsOnly = ModConfigBackupItem(modFolderName: "T", parentFolderName: nil, modDisplayName: "T",
+                                                   files: ["i18n/fr.json"], fileSizes: [:])
+        #expect(translationsOnly.configOnly == nil)
+    }
+}
