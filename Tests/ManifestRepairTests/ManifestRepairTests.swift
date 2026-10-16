@@ -124,4 +124,41 @@ import Testing
                                            candidates: [backup])
         }
     }
+
+    // MARK: - Réparation proposée (F1, tranche 24)
+
+    /// Le backup d'abord : un mod qui a les deux sources se répare sans
+    /// réseau ni marche arrière de version.
+    @Test func plannedActionPrefersTheBackupOverNexus() throws {
+        let backup = try makeBackup(name: "Broken", manifest: healthyManifest, date: Date())
+        #expect(ManifestRepair.plannedAction(folderName: "Broken", nexusModId: "191",
+                                             candidates: [backup])
+                == .repairManifest(folderName: "Broken"))
+    }
+
+    /// Nexus en repli, sinon rien : un id vide, illisible ou absent (mod
+    /// hors de la liste) ne fabrique pas de bouton.
+    @Test func plannedActionFallsBackToNexusThenToNothing() throws {
+        // Un backup d'un **autre** mod ne compte pas pour celui-ci.
+        let other = try makeBackup(name: "Other", manifest: healthyManifest, date: Date())
+        #expect(ManifestRepair.plannedAction(folderName: "Broken", nexusModId: "191",
+                                             candidates: [other])
+                == .reinstallFromNexus(nexusId: 191))
+        for raw in ["", "abc", nil] as [String?] {
+            #expect(ManifestRepair.plannedAction(folderName: "Broken", nexusModId: raw,
+                                                 candidates: [other]) == nil)
+        }
+    }
+
+    /// La traduction d'un backup d'installation : deux chaînes voisines
+    /// (`originalFolderName`, `backupPath`) qu'une inversion confondrait.
+    @Test func aCandidateReadsTheBackupFieldsItNames() {
+        let date = Date(timeIntervalSince1970: 42)
+        let candidate = ManifestRepair.BackupCandidate(ModInstallBackup(
+            timestamp: date, originalFolderName: "Broken", backupPath: "/backups/1",
+            modMetadata: ModMetadata(name: "B", version: "1", author: "A", uniqueId: "A.B"),
+            reason: .beforeUpdate))
+        #expect(candidate == ManifestRepair.BackupCandidate(
+            timestamp: date, originalFolderName: "Broken", backupPath: "/backups/1"))
+    }
 }

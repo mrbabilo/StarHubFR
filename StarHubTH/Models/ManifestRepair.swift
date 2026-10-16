@@ -14,8 +14,9 @@ import Foundation
 ///    récente que la version sauvegardée : restaurer le dossier entier
 ///    ferait une marche arrière de version en écrasant des fichiers sains.
 /// 2. **la réinstallation Nexus** (dernière version) quand aucun backup ne
-///    porte le manifeste : c'est l'affaire du ViewModel, qui emprunte la
-///    file de téléchargement commune.
+///    porte le manifeste. Le choix vit ici (`plannedAction`) ; le
+///    téléchargement est l'affaire du ViewModel, qui emprunte la file
+///    commune.
 ///
 /// Le type ne connaît ni backups manager ni Nexus : il reçoit des
 /// candidats `(date, dossier d'origine, chemin du backup)` et rend des
@@ -38,6 +39,15 @@ public enum ManifestRepair {
             self.timestamp = timestamp
             self.originalFolderName = originalFolderName
             self.backupPath = backupPath
+        }
+
+        /// La seule traduction d'un backup d'installation en candidat :
+        /// l'alerte qui propose la réparation et le geste qui l'exécute
+        /// lisent les mêmes champs.
+        public init(_ backup: ModInstallBackup) {
+            self.init(timestamp: backup.timestamp,
+                      originalFolderName: backup.originalFolderName,
+                      backupPath: backup.backupPath)
         }
     }
 
@@ -75,6 +85,26 @@ public enum ManifestRepair {
                 return (path, candidate.timestamp)
             }
             .max(by: { $0.date < $1.date })
+    }
+
+    /// La réparation à proposer pour un manifeste illisible : le backup
+    /// d'abord, Nexus en repli, sinon aucune (la ligne garde la fiche seule).
+    ///
+    /// `nexusModId` est la chaîne brute du parc (« 191 », vide sans clé,
+    /// `nil` quand le mod n'est pas dans la liste) : la file de
+    /// téléchargement veut l'`Int`, une chaîne illisible vaut « pas d'id ».
+    public static func plannedAction(folderName: String,
+                                     nexusModId: String?,
+                                     candidates: [BackupCandidate],
+                                     fileManager: FileManager = .default) -> HealthIssue.Action? {
+        if backupManifest(folderName: folderName, candidates: candidates,
+                          fileManager: fileManager) != nil {
+            return .repairManifest(folderName: folderName)
+        }
+        if let nexusId = nexusModId.flatMap({ Int($0) }) {
+            return .reinstallFromNexus(nexusId: nexusId)
+        }
+        return nil
     }
 
     /// Copie le manifeste du backup le plus récent vers le dossier du mod.

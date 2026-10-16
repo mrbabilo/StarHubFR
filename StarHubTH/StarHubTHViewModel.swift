@@ -419,29 +419,15 @@ final class StarHubTHViewModel {
         // lecture des backups ne se fait que s'il y a une ligne à armer —
         // `healthIssues` est recalculé souvent, le parc sain ne paie rien.
         let manifestIssues: [HealthIssue] = scanStore.unreadableManifests.isEmpty ? [] : {
-            let candidates = ModInstallBackupManager.shared.loadBackups().map {
-                ManifestRepair.BackupCandidate(timestamp: $0.timestamp,
-                                               originalFolderName: $0.originalFolderName,
-                                               backupPath: $0.backupPath)
-            }
+            let candidates = ModInstallBackupManager.shared.loadBackups()
+                .map(ManifestRepair.BackupCandidate.init)
             return HealthIssueResolver.manifestUnreadableIssues(
                 scanStore.unreadableManifests.map { unreadable in
-                    // `nexusModId` est une chaîne brute (« 191 », vide sans
-                    // clé) : la file de téléchargement veut l'`Int`.
-                    let nexusId = installedMods
-                        .first { $0.folderName == unreadable.folderName }
-                        .flatMap { Int($0.nexusModId) }
-                    // Backup d'abord, Nexus en repli — même ordre que la
-                    // feuille de réparation.
-                    let action: HealthIssue.Action?
-                    if ManifestRepair.backupManifest(folderName: unreadable.folderName,
-                                                     candidates: candidates) != nil {
-                        action = .repairManifest(folderName: unreadable.folderName)
-                    } else if let nexusId {
-                        action = .reinstallFromNexus(nexusId: nexusId)
-                    } else {
-                        action = nil
-                    }
+                    let action = ManifestRepair.plannedAction(
+                        folderName: unreadable.folderName,
+                        nexusModId: installedMods
+                            .first { $0.folderName == unreadable.folderName }?.nexusModId,
+                        candidates: candidates)
                     return (folderName: unreadable.folderName,
                             message: unreadable.message, action: action)
                 },
@@ -3890,11 +3876,8 @@ final class StarHubTHViewModel {
     /// Le repli Nexus est porté par la ligne d'alerte, pas ici.
     func restoreManifest(folderName: String) {
         let modsRoot = (gameDir as NSString).appendingPathComponent("Mods")
-        let candidates = ModInstallBackupManager.shared.loadBackups().map {
-            ManifestRepair.BackupCandidate(timestamp: $0.timestamp,
-                                           originalFolderName: $0.originalFolderName,
-                                           backupPath: $0.backupPath)
-        }
+        let candidates = ModInstallBackupManager.shared.loadBackups()
+            .map(ManifestRepair.BackupCandidate.init)
         // Dossier **physique** (le point d'un mod en pause est sur l'entrée
         // de tête) : résolu depuis le parc, jamais recalculé ici.
         let physical = mods.flattenedMods
