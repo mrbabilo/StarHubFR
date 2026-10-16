@@ -866,11 +866,10 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
 
 - [ ] **I-T28 — L3 Regroupements** : ~~R3~~ (livré le 2026-10-16, à
       l'archive), ~~R8~~ (livré, à l'archive), ~~R2~~ (livré le 2026-10-17,
-      à l'archive), R7 (clé Nexus absente : un
-      encart, lien vers la section), R4 (colonne Configs d'un profil →
-      comparaison), R9 (« Activer » sur l'encart de dépendance), R5
-      (« Opération interrompue » sur l'Accueil ; garde de « Revenir » pendant
-      une bissection). · **L**
+      à l'archive). **Codés le 2026-10-17, gate vert, vérification à l'écran
+      en attente** : R7 (`1994b6df`, `2589d6d9` ; encart visible sans clé
+      Nexus seulement), R4 (`3a81c46b`), R9 (`dd2ff7de`), R5 (`12f02504`).
+      Reste ouvert pour l'écran ; archivage ensuite. · **L**
 - [ ] **I-T29 — L4 Fonctionnalités** : P5-1 (voir un profil **sans
       l'activer** : ∞ → 2 clics ; `ProfileApplyPlan.moves` existe), P5-5a
       (déposer une archive sur la fenêtre), P5-6a, P5-4 (écarter un faux
