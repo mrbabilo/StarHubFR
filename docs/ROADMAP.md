@@ -865,7 +865,7 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
 - [ ] **I-T28 — L3 Regroupements** : ~~R3~~ (livré le 2026-10-16, à
-      l'archive), R8 (versions de config dans l'éditeur), R2 (Alertes ↔ Santé :
+      l'archive), ~~R8~~ (livré, à l'archive), R2 (Alertes ↔ Santé :
       âge du journal, liens, un seul compte 10/14), R7 (clé Nexus absente : un
       encart, lien vers la section), R4 (colonne Configs d'un profil →
       comparaison), R9 (« Activer » sur l'encart de dépendance), R5

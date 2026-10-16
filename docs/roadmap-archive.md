@@ -7503,3 +7503,20 @@ sans lire une ligne de log.
       (`FrenchTranslationRow.swift`). Vérifié à 821 pt. Non fait : l'écriture
       fiche → balayage (une recherche de la fiche ne met pas à jour la page),
       la rangée de résultat partagée (charte), la garde Premium de la page (R7).
+
+- [x] **I-T28 · R8** — *(livré le 2026-10-16)* Le pied de l'éditeur de
+      config porte un « Restaurer » à menu (`ConfigRestoreMenu`) : un clic garde
+      le geste d'avant (la plus récente, chargée sans écrire) ; le chevron liste
+      les cinq dernières versions (`ModConfigBackupManager.backedUpFiles`,
+      paresseux, `mostRecentBackedUpFile` en est le premier élément ; 1 test),
+      « Toutes les sauvegardes de ce mod… » (`openConfigBackups` →
+      segment Configuration filtré, `pendingConfigBackupsFocus` consommé par
+      `BackupsView`, pastille ✕ ; une sauvegarde dépliée ne coche que ce mod)
+      et « Repartir des réglages par défaut… » (confirmation, même condition
+      que la fiche). Version antérieure : ≥ 6 gestes → 3. **Défaut trouvé** :
+      `resetModConfigToDefaults` supprimait `config.json` sans copie, en un clic
+      depuis la fiche ; il passe désormais par la sauvegarde du jour
+      (`backUpConfigOncePerDay`, factorisée avec le report de réglages) et ne
+      supprime rien si elle échoue. Vérifié à l'écran (Wallet Tools : 3
+      versions, saut filtré). Non vérifié à l'écran : « Repartir des
+      défauts » (écrit sur le parc).

@@ -500,30 +500,27 @@ public final class ModConfigBackupManager: @unchecked Sendable {
 
     // MARK: - Relecture d'un fichier sauvegardé
 
-    /// La copie la plus récente d'un fichier de config, sans passer par une
-    /// restauration.
-    ///
-    /// Ce que l'éditeur de config en fait : proposer un retour arrière en
-    /// **chargeant** le fichier dans l'écran, l'utilisateur gardant la main
-    /// sur l'écriture. C'est ce qui remplace le `config.json.bak` qu'il
-    /// déposait à côté du fichier — invisible depuis l'écran des sauvegardes,
-    /// et emporté par la prochaine sauvegarde générale.
-    ///
-    /// Une entrée d'index dont le fichier n'est plus sur le disque est
-    /// **sautée**, pas rendue : le dossier de sauvegardes se supprime à la
-    /// main, et un chemin mort ferait annoncer une restauration qui n'a pas eu
-    /// lieu.
+    /// La copie la plus récente d'un fichier de config, sans restauration :
+    /// l'éditeur la **charge** à l'écran, l'utilisateur garde la main sur
+    /// l'écriture (remplace l'ancien `config.json.bak`, invisible des
+    /// sauvegardes). Une entrée dont le fichier n'est plus sur le disque est
+    /// **sautée** : un chemin mort annoncerait une restauration fictive.
     public func mostRecentBackedUpFile(named relativePath: String,
                                        forMod modFolderName: String) -> (backup: ModConfigBackup, url: URL)? {
-        for backup in loadBackups() {
+        var newestFirst = backedUpFiles(named: relativePath, forMod: modFolderName).makeIterator()
+        return newestFirst.next()
+    }
+
+    /// Toutes, plus récente d'abord (menu « Restaurer », R8) ; paresseux.
+    public func backedUpFiles(named relativePath: String, forMod modFolderName: String)
+        -> some Sequence<(backup: ModConfigBackup, url: URL)> {
+        loadBackups().lazy.compactMap { backup in
             guard let item = backup.items.first(where: { $0.modFolderName == modFolderName }),
-                  item.files.contains(relativePath) else { continue }
-            let url = destinationDir(in: backupDirURL(named: backup.folderName),
-                                     leafFolderName: item.modFolderName)
-                .appendingPathComponent(relativePath)
-            if fm.fileExists(atPath: url.path) { return (backup, url) }
+                  item.files.contains(relativePath) else { return nil }
+            let url = self.destinationDir(in: self.backupDirURL(named: backup.folderName),
+                                          leafFolderName: item.modFolderName).appendingPathComponent(relativePath)
+            return self.fm.fileExists(atPath: url.path) ? (backup, url) : nil
         }
-        return nil
     }
 
     /// La sauvegarde **du jour** qui protège déjà ce fichier, s'il y en a une.

@@ -24,10 +24,12 @@ where the exact log format was verified.
 - **Les liens vers un mod ouvrent sa fiche.** Journal, Santé et nom d'une ligne de Mises à jour mènent à la fiche, et non plus à la liste filtrée, quand le mod est identifié sans ambiguïté.
 - **Collision de raccourcis : « Ouvrir le réglage »** mène à la clé concernée dans l'éditeur, et la ligne affiche la touche en cause.
 - **Liste en vue réduite : le nombre d'approbations s'affiche au-dessus du pouce.**
+- **Éditeur de configuration : « Restaurer » à menu.** Un clic charge toujours la sauvegarde la plus récente ; le chevron propose les cinq dernières versions, toutes les sauvegardes du mod (segment Configuration, filtré) et le retour aux réglages par défaut.
 - **La fiche reprend les traductions déjà trouvées par la page Traductions FR**, sans relancer la recherche. Le lot pour traducteur passe dans un menu d'en-tête.
 
 ### Fixed
 
+- **« Repartir des réglages par défaut » sauvegarde d'abord `config.json`.** Le fichier était supprimé sans copie ; sans sauvegarde possible, il n'est plus supprimé.
 - **Le saut vers un réglage précis défile jusqu'à la clé.** L'éditeur s'ouvrait en haut, sans surligner la clé, depuis l'onglet Raccourcis comme depuis les Alertes.
 - **Sauvegardes des mods : supprimer passe par la Corbeille.** Installations et configurations étaient effacées pour de bon ; elles partent dans la Corbeille du Mac. Pour une sauvegarde d'installation, la confirmation nomme les fichiers dont elle est la seule copie.
 - **La page des sauvegardes ne dit plus « 0 » en chargeant.** Elle restait parfois sur « 0 mods · 0 sauvegardes » jusqu'à « Actualiser ».

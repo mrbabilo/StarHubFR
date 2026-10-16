@@ -1535,6 +1535,9 @@ enum L10n {
         static let configRawJson           = "config_raw_json"
         static let configReset             = "config_reset", configDiscardTitle = "config_discard_title", configDiscard = "config_discard"
         static let configRestoreConfig     = "config_restore_config"
+        static let configRestoreVersion    = "config_restore_version"
+        static let configRestoreAllBackups = "config_restore_all_backups"
+        static let configRestoreDefaultsConfirm = "config_restore_defaults_confirm"
         static let configSaved             = "config_saved"
         static let configReadError         = "config_read_error"
         static let configSaveError         = "config_save_error"
@@ -1927,6 +1930,7 @@ enum L10n {
         static let pageSubtitle         = "backups_page_subtitle"
         static let segmentInstall = "backups_segment_install"
         static let segmentConfig  = "backups_segment_config"
+        static let configFilterClear = "backups_config_filter_clear"
         static let segmentFiles   = "backups_segment_files"
     }
 

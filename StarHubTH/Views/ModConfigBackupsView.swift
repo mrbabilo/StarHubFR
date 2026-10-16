@@ -13,8 +13,14 @@ private enum ModConfigBackupsConfirmation {
 struct ModConfigBackupsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// R8 — le mod venu de l'éditeur de config (« Toutes les sauvegardes de ce mod… »).
+    @Binding var modFilter: String?
 
     @State private var backups: [ModConfigBackup] = []
+    private var shown: [ModConfigBackup] {
+        guard let modFilter else { return backups }
+        return backups.filter { $0.items.contains { $0.modFolderName == modFilter } }
+    }
     @State private var expandedBackupId: UUID?
     @State private var selectedItemIds: Set<UUID> = []
     @State private var isBusy = false
@@ -33,7 +39,7 @@ struct ModConfigBackupsView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            if backups.isEmpty {
+            if shown.isEmpty {
                 emptyState
             } else {
                 list
@@ -86,9 +92,13 @@ struct ModConfigBackupsView: View {
     /// geste de création.
     private var header: some View {
         HStack {
-            Text(String(format: localization.L(L10n.ModConfigBackups.headerCount), Int64(backups.count)))
-                .font(AppDesign.Font.footnote)
-                .foregroundColor(.secondary)
+            Text(String(format: localization.L(L10n.ModConfigBackups.headerCount), Int64(shown.count)))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            if let modFilter {
+                Button { self.modFilter = nil } label: { Label(modFilter, systemImage: "xmark.circle.fill") }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .help(localization.L(L10n.Backups.configFilterClear))
+            }
 
             Spacer()
 
@@ -118,9 +128,7 @@ struct ModConfigBackupsView: View {
             Spacer()
             IconTile(icon: "archivebox", tint: AppDesign.Color.accent, size: 64)
             Text(localization.L(L10n.ModConfigBackups.noBackups))
-                .multilineTextAlignment(.center)
-                .font(AppDesign.Font.rowTitle)
-                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center).font(AppDesign.Font.rowTitle).foregroundColor(.secondary)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -131,7 +139,7 @@ struct ModConfigBackupsView: View {
     private var list: some View {
         BackToTopScrollView(localization) {
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(backups) { backup in
+                ForEach(shown) { backup in
                     ModConfigBackupRow(
                         vm: vm,
                         localization: localization,
@@ -151,12 +159,7 @@ struct ModConfigBackupsView: View {
     // MARK: - Actions
 
     private func reload() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let fetched = ModConfigBackupManager.shared.loadBackups()
-            DispatchQueue.main.async {
-                self.backups = fetched
-            }
-        }
+        Task { backups = await Task.detached(priority: .userInitiated) { ModConfigBackupManager.shared.loadBackups() }.value }
     }
 
     private func toggleExpand(_ backup: ModConfigBackup) {
@@ -164,8 +167,8 @@ struct ModConfigBackupsView: View {
             expandedBackupId = nil
             selectedItemIds = []
         } else {
-            expandedBackupId = backup.id
-            selectedItemIds = Set(backup.items.map { $0.id })
+            expandedBackupId = backup.id  // filtré : seul le mod demandé est coché
+            selectedItemIds = Set(backup.items.filter { modFilter == nil || $0.modFolderName == modFilter }.map(\.id))
         }
     }
 
@@ -176,9 +179,9 @@ struct ModConfigBackupsView: View {
         let mods = vm.enabledMods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                _ = try ModConfigBackupManager.shared.createBackup(gameDir: gameDir, mods: mods)
-                let deletedCount = ModConfigBackupManager.shared.cleanupOldBackups()
-                let fetched = ModConfigBackupManager.shared.loadBackups()
+                let manager = ModConfigBackupManager.shared
+                _ = try manager.createBackup(gameDir: gameDir, mods: mods)
+                let deletedCount = manager.cleanupOldBackups(), fetched = manager.loadBackups()
                 DispatchQueue.main.async {
                     self.backups = fetched
                     self.isBusy = false
@@ -218,13 +221,9 @@ struct ModConfigBackupsView: View {
         return String(format: localization.L(genericKey), error.localizedDescription)
     }
 
-    /// Ce que la restauration annonce.
-    ///
-    /// « Sauvegarde restaurée avec succès » ne se dit que d'une restauration
-    /// qui n'a rien sauté. Les trois cas où elle saute — mod plus installé,
-    /// dossier absent du magasin, fichier impossible à écrire — n'étaient que
-    /// journalisés en `print`, si bien que zéro fichier écrit s'annonçait comme
-    /// douze.
+    /// Ce que la restauration annonce : « restaurée avec succès » seulement
+    /// si rien n'a sauté (mod plus installé, dossier absent, écriture
+    /// refusée) — avant, zéro fichier écrit s'annonçait comme douze.
     private func restoreReportMessage(_ report: ModConfigRestoreReport) -> String {
         if report.isComplete {
             return localization.L(L10n.ModConfigBackups.backupRestored)

@@ -23,6 +23,7 @@
 "archive_hours_minutes" = "about %1$lld h %2$02lld";
 "archive_inside_source" = "This folder is inside the one being backed up. Choose a folder outside it.";
 "backups_segment_config" = "Configuration";
+"backups_config_filter_clear" = "Show all backups";
 "backups_segment_files" = "Recoverable files";
 "backups_segment_install" = "Installs";
 "bisect_answer_no" = "No, problem gone";
@@ -123,6 +124,9 @@
 "config_reset_to_default" = "Back to the mod default (%@)";
 "config_restore_bak_failed" = "Could not restore config.json.bak: %@";
 "config_restore_config" = "Restore Config";
+"config_restore_version" = "Version from %@";
+"config_restore_all_backups" = "All backups of this mod…";
+"config_restore_defaults_confirm" = "Start over from the default settings?";
 "config_restored_bak" = "Config loaded from config.json.bak — click Save Changes to apply it.";
 "config_restored_from_backup" = "Config loaded from the %@ backup — click Save Changes to apply it.";
 "config_save_error" = "Could not save config.json: %@";

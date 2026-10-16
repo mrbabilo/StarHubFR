@@ -174,6 +174,16 @@ final class NavigationStore {
         requestTab(.backups)
     }
 
+    /// R8 — les sauvegardes de **configuration** d'un mod, depuis l'éditeur ;
+    /// consommé par `BackupsView`.
+    var pendingConfigBackupsFocus: String?
+
+    func openConfigBackups(for folderName: String) {
+        backupsSegment = .config
+        pendingConfigBackupsFocus = folderName
+        requestTab(.backups)
+    }
+
     /// La fiche d'un mod, onglet choisi par `DetailArrival`, depuis une page qui ne peut
     /// pas écrire `currentTab` (onglet Performances) : l'intention traverse le
     /// changement d'onglet et `MainView` la consomme (patron B3-T4).

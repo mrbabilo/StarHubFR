@@ -5462,11 +5462,7 @@ final class StarHubTHViewModel {
             return .cancelled
         }
 
-        // Backup avant écriture, `onlyEnabled: false` (mod en pause possible).
-        do { try ModConfigBackupManager.shared.backUpConfigOncePerDay(for: mod, gameDir: gameDir) } catch {
-            log(String(format: localization.L(L10n.Settings.configBackupFailed),
-                       mod.name, error.localizedDescription), level: .warning)
-        }
+        backUpConfigOncePerDay(mod)  // avant écriture ; un échec est journalisé, pas bloquant
         // X7 : ouvrir les droits avant d'écrire dans le dossier du mod.
         ModZipInstaller.grantOwnerWriteAccess(in: configURL.deletingLastPathComponent())
         do {
@@ -6244,10 +6240,8 @@ final class StarHubTHViewModel {
             guard let storeURL = ProfileConfigStore.fileURL(profileId: profile.id),
                   let entry = ProfileConfigStore.load(from: storeURL)[mod.folderName]
             else { return nil }
-            return (profileName: profile.name,
-                    capturedAt: entry.capturedAt,
-                    bytes: entry.text.utf8.count,
-                    matchesDisk: entry.text == onDisk)
+            return (profileName: profile.name, capturedAt: entry.capturedAt,
+                    bytes: entry.text.utf8.count, matchesDisk: entry.text == onDisk)
         }
     }
 
@@ -6260,16 +6254,11 @@ final class StarHubTHViewModel {
     /// Ce qu'un profil retient et ses orphelins, **gardés** (spec §6.5).
     /// Seule fonction à les nommer.
     func profileConfigSummary(for profile: ModProfile) -> (total: Int, orphans: [String]) {
-        guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else {
-            return (0, [])
-        }
+        guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else { return (0, []) }
         let entries = ProfileConfigStore.load(from: url)
         // `folderName` logique : une pause ne vaut pas désinstallation.
         let installed = Set(mods.flattenedMods.map(\.folderName))
-        let orphans = entries.keys
-            .filter { !installed.contains($0) }
-            .sorted()
-        return (entries.count, orphans)
+        return (entries.count, entries.keys.filter { !installed.contains($0) }.sorted())
     }
 
     /// Écarts entre deux profils ; `nil` si un texte ne se parse pas (pas de
@@ -6283,10 +6272,20 @@ final class StarHubTHViewModel {
         return ConfigJSONDiff.compare(treeA, treeB)
     }
 
-    /// Supprime le `config.json` (valeurs par défaut inconnues, dans le C#).
-    /// SMAPI n'en réécrit un que pour les mods qui appellent
-    /// `helper.ReadConfig<T>()` (547/1015 en portent un).
-    /// - Returns: `true` si un fichier a été supprimé.
+    /// Le filet d'une écriture ou d'une suppression de `config.json`, une fois
+    /// par mod et par jour (`onlyEnabled: false` : mod en pause possible).
+    @discardableResult
+    private func backUpConfigOncePerDay(_ mod: ModItem) -> Bool {
+        do { try ModConfigBackupManager.shared.backUpConfigOncePerDay(for: mod, gameDir: gameDir); return true } catch {
+            log(String(format: localization.L(L10n.Settings.configBackupFailed), mod.name, error.localizedDescription),
+                level: .warning)
+            return false
+        }
+    }
+
+    /// Supprime le `config.json` (valeurs par défaut inconnues, dans le C#) ;
+    /// SMAPI le réécrit pour les mods qui appellent `helper.ReadConfig<T>()`.
+    /// `true` si un fichier a été supprimé — **jamais sans sauvegarde** (R8).
     @discardableResult
     func resetModConfigToDefaults(_ mod: ModItem) -> Bool {
         let modsPath = (gameDir as NSString).appendingPathComponent("Mods")
@@ -6297,8 +6296,8 @@ final class StarHubTHViewModel {
             log(String(format: localization.L(L10n.VM.profileConfigResetAbsent), mod.folderName), level: .info)
             return false
         }
-        // Lecture seule (X7) : droits ouverts jusqu'à la racine du mod, puis
-        // rendus.
+        guard backUpConfigOncePerDay(mod) else { return false }
+        // Lecture seule (X7) : droits ouverts jusqu'à la racine du mod, puis rendus.
         let modRoot = url.deletingLastPathComponent().path
         do {
             try RecoveredFileWriter.withWriteAccess(to: url.path, modRoot: modRoot) {

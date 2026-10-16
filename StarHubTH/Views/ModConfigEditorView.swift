@@ -243,10 +243,10 @@ struct ModConfigEditorView: View {
             // Footer Action Bar — ~637 pt en FR : repli sur deux lignes si étroit
             SplitRow {
                 Button(localization.L(L10n.Main.close), action: close).keyboardShortcut(.cancelAction)
-                Button(action: { restoreConfigBackup() }) {
-                    Label(localization.L(L10n.Settings.configRestoreConfig), systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.bordered)
+                ConfigRestoreMenu(localization: localization, mod: mod, canResetDefaults: vm.canManageProfileConfig(mod),
+                                  restoreLatest: restoreConfigBackup, loadVersion: loadBackedUp,
+                                  showAll: { navigation.openConfigBackups(for: mod.folderName) },
+                                  resetDefaults: { if vm.resetModConfigToDefaults(mod) { navigation.requestHistoryStep(.back) } })
                 
                 if isInvalidJson {
                     Text(localization.L(L10n.Settings.configInvalidJson))
@@ -255,11 +255,7 @@ struct ModConfigEditorView: View {
                         .padding(.leading, 8)
                 }
             } trailing: {
-                Button(action: {
-                    configText = originalText
-                    isInvalidJson = false
-                    parseToVisual()
-                }) {
+                Button(action: { configText = originalText; isInvalidJson = false; parseToVisual() }) {
                     Text(localization.L(L10n.Settings.configReset))
                 }
                 .buttonStyle(.bordered)
@@ -586,15 +582,19 @@ struct ModConfigEditorView: View {
         parseToVisual()
     }
 
+    /// Une version sauvegardée, chargée sans rien écrire (R8 : menu « Restaurer »).
+    private func loadBackedUp(_ url: URL, date: String) {
+        let model = vm
+        do { loadIntoEditor(try String(contentsOf: url, encoding: .utf8))
+            model.showModal(message: String(format: localization.L(L10n.Settings.configRestoredFromBackup), date))
+        } catch { model.showModal(message: String(format: localization.L(L10n.Settings.configLoadFailed), error.localizedDescription)) }
+    }
+
     private func restoreConfigBackup() {
         // 1. La sauvegarde la plus récente qui contient ce `config.json`.
         if let found = ModConfigBackupManager.shared.mostRecentBackedUpFile(named: "config.json",
-                                                                           forMod: mod.folderName),
-           let content = try? String(contentsOf: found.url, encoding: .utf8) {
-            loadIntoEditor(content)
-            vm.showModal(message: String(format: localization.L(L10n.Settings.configRestoredFromBackup),
-                                         found.backup.formattedDate))
-            return
+                                                                           forMod: mod.folderName) {
+            return loadBackedUp(found.url, date: found.backup.formattedDate)
         }
 
         // 2. Le `config.json.bak` voisin : plus personne n'en dépose, mais
@@ -602,8 +602,7 @@ struct ModConfigEditorView: View {
         let backupPath = configPath + ".bak"
         if FileManager.default.fileExists(atPath: backupPath) {
             do {
-                let content = try String(contentsOfFile: backupPath, encoding: .utf8)
-                loadIntoEditor(content)
+                loadIntoEditor(try String(contentsOfFile: backupPath, encoding: .utf8))
                 vm.showModal(message: localization.L(L10n.Settings.configRestoredBak))
                 return
             } catch {
@@ -622,8 +621,7 @@ struct ModConfigEditorView: View {
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
             do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                loadIntoEditor(content)
+                loadIntoEditor(try String(contentsOf: url, encoding: .utf8))
                 vm.showModal(message: String(format: localization.L(L10n.Settings.configLoadedFrom), url.lastPathComponent))
             } catch {
                 vm.showModal(message: String(format: localization.L(L10n.Settings.configLoadFailed), error.localizedDescription))

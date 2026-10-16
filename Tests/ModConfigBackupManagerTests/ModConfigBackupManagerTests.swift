@@ -488,6 +488,24 @@ struct TestEnvironment {
         #expect(text == "{\"volume\": 2}")
     }
 
+    /// R8 — le menu « Restaurer » de l'éditeur liste chaque version, la plus
+    /// récente d'abord.
+    @Test func backedUpFilesListsEveryVersionNewestFirst() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+
+        let modDir = env.modsDir.appendingPathComponent("StandaloneMod", isDirectory: true)
+        let mod = makeTestMod(folderName: "StandaloneMod")
+        for volume in 1...3 {
+            try writeTestFile(in: modDir, filename: "config.json", content: "{\"volume\": \(volume)}")
+            _ = try env.manager.createBackup(gameDir: env.gameDir, mods: [mod])
+        }
+
+        let texts = try env.manager.backedUpFiles(named: "config.json", forMod: "StandaloneMod")
+            .map { try String(contentsOf: $0.url, encoding: .utf8) }
+        #expect(texts == ["{\"volume\": 3}", "{\"volume\": 2}", "{\"volume\": 1}"])
+    }
+
     @Test func mostRecentBackedUpFileIgnoresAModThatWasNeverBackedUp() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }

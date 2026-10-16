@@ -14,6 +14,8 @@ import SwiftUI
 struct BackupsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// R8 — le mod demandé par l'éditeur de config ; vit le temps de la page.
+    @State private var configFilter: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,8 +26,8 @@ struct BackupsView: View {
                        subtitle: localization.L(L10n.Backups.pageSubtitle))
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.md)
-            Picker("", selection: Binding(get: { vm.navigationStore.backupsSegment },
-                                          set: { vm.navigationStore.backupsSegment = $0 })) {
+            Picker("", selection: Binding(get: { navigation.backupsSegment },
+                                          set: { navigation.backupsSegment = $0 })) {
                 ForEach(BackupsSegment.allCases, id: \.self) { segment in
                     Text(label(segment)).tag(segment)
                 }
@@ -37,17 +39,29 @@ struct BackupsView: View {
 
             Divider()
 
-            switch vm.navigationStore.backupsSegment {
+            switch navigation.backupsSegment {
             case .install:
                 ModInstallBackupsView(vm: vm, localization: localization)
             case .config:
-                ModConfigBackupsView(vm: vm, localization: localization)
+                ModConfigBackupsView(vm: vm, localization: localization, modFilter: $configFilter)
             case .files:
                 RecoverableFilesView(vm: vm, localization: localization)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppDesign.Color.windowBg)
+        .onAppear(perform: consumeConfigFocus)
+        .onChange(of: navigation.pendingConfigBackupsFocus) { _, _ in consumeConfigFocus() }
+    }
+
+    private var navigation: NavigationStore { vm.navigationStore }
+
+    /// Consommée une fois (patron `pendingLogFocus`) : revenir par la barre
+    /// latérale ne garde pas le filtre.
+    private func consumeConfigFocus() {
+        guard let folder = navigation.pendingConfigBackupsFocus else { return }
+        configFilter = folder
+        navigation.pendingConfigBackupsFocus = nil
     }
 
     private func label(_ segment: BackupsSegment) -> String {
