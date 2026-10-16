@@ -7547,3 +7547,20 @@ sans lire une ligne de log.
       case est grisée dans la vue par date. Vérifié à l'écran : sûreté,
       recherche, vue par date filtrée, saut depuis l'éditeur, comparaison
       (cas « identique » seulement — aucun écart réel trouvé sur Wallet Tools).
+
+- [x] **I-T28 · R2** — *(livré le 2026-10-17)* Alertes ↔ Santé, sans fusion
+      de pages. Le segment « Alertes (n) » compte `actionableCount`, comme la
+      pastille et l'en-tête (14 → 10 sur le parc de l'auteur : les 4 notices
+      `.info` restent dans leur tuile). Sous les tuiles : « D'après le journal
+      SMAPI du … — périmé, écrit il y a 2j 7h » et « Rapport complet du
+      journal » (→ Diagnostic, segment Santé). En tête de l'onglet Santé,
+      **hors de la carte** (elle exige un journal lu, pas les collisions de
+      raccourcis) : « 10 alertes à traiter » et « Voir les alertes ».
+      `SmapiLogSource` (Core, 5 tests, 4 sabotages rougis) porte la date et
+      l'âge dans la langue de l'app ; il remplace le formatage de
+      `DiagnosticsView.headerSummary` et le `Text(date, style: .relative)` du
+      badge « Log périmé », qui suivait la locale système. Écarts au spec :
+      extraction X3 (`SystemAlertsHeader`) inutile (fichier à 381), pas
+      d'`openHealth()` (`NavigationStore` à 400/400) ; `SystemAlertsView`
+      renomme `vm` en `viewModel` (cliquet 1521 → 1502). Vérifié à l'écran à
+      821 pt : compte, ligne de source repliée sous le lien, aller et retour.
