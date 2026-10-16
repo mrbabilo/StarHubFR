@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Code : trois règles sortent du ViewModel, testées.** La destination d'un mod qu'on active ou met en pause, la réparation proposée pour un manifeste illisible, le bilan d'un geste groupé : chacune existait en deux ou trois copies, une seule reste. Aucun changement visible.
+
 ### Fixed
 
 - **Traduction : un `$` suivi d'une majuscule ne bloque plus.** Le jeu le lit comme du texte (faute de frappe de l'auteur : `$I`, `#$b#$There`) ; il se traduit comme le reste. 33 lignes françaises du parc débloquées.

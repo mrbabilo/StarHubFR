@@ -6810,6 +6810,21 @@ sans lire une ligne de log.
       **attribué**, pas effet net (un mod de performances peut faire gagner
       ailleurs plus qu'il ne coûte ici : seul un A/B le dit).
 
+#### D6 — Mesure pilotée et benchmark contextualisé
+
+- [x] **D6** — *(code livré le 2026-10-12, commits `0f8be577` à `530cdbaa`, sorti en v1.63.0 ; validé à l'écran par l'auteur le 2026-10-16)* La paire
+      de mesures guidées se joue d'un clic : la sonde 0.9.25 conduit la session
+      (warp, nuit sautée, sortie), `GuidedPilotRunner` enchaîne avant → geste →
+      après → rapport, reprise après plantage (P1) ; « Benchmarker ce mod » depuis
+      les chargements et l'analyse (P2). Spec et plan :
+      `docs/superpowers/specs|plans/2026-10-11-mesure-pilotee*`. Validés à
+      l'écran : les 7 scénarios de la spec §10 (paire complète, nuit traversée,
+      arrêt manuel pendant « avant », plantage pendant `applying`, six lieux de
+      warp, bandeaux, mini-stats et leur calibrage A/B) ; sonde du parc en
+      0.9.28. Correctifs nés de l'usage avant validation : refus nommé, fenêtre
+      du jeu exigée au premier plan, étapes visibles au lancement, comparatif
+      A/B à la fin, retour arrière qui survit à un redémarrage (X134, X135).
+
 
 ### Expérience utilisateur — Axe I
 

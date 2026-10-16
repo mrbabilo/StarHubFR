@@ -371,7 +371,7 @@ SMAPI 3.0, voici son remplaçant » — et, avant d'activer un mod, savoir ce qu
 
 ---
 
-### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D2 (sauf T2, abandonné, et T6), D4 sauf T6, et D5 livrés, à l'archive et au §11 depuis le 2026-10-08 ; restent **D2-T6**, **D4-T6** (T6b optionnel), **D6** (validation écran), la recette accessibilité/cycle de jeu de la refonte et quelques validations en jeu
+### Performance mesurée — **Axe D** · **en cours** — D1 clos le 2026-10-03 (remplacé par la sonde) ; D2 (sauf T2, abandonné, et T6), D4 sauf T6, et D5 livrés, à l'archive et au §11 depuis le 2026-10-08 ; D6 livré en v1.63.0 et validé à l'écran le 2026-10-16, à l'archive et au §11 ; restent **D2-T6**, **D4-T6** (T6b optionnel), la recette accessibilité/cycle de jeu de la refonte et quelques validations en jeu
 
 **Refonte de la page et de l'analyse — livrée et parcours principal validé le
 2026-10-06** — résumé de dernière session, comparaison par métrique et par lieu
@@ -533,15 +533,7 @@ lus sur le parc réel, sans décompiler ni lire un journal.
 
 #### D6 — Mesure pilotée et benchmark contextualisé
 
-- [ ] **D6** — *(code livré le 2026-10-12, validation écran en attente)* La paire
-      de mesures guidées se joue d'un clic : la sonde 0.9.25 conduit la session
-      (warp, nuit sautée, sortie), `GuidedPilotRunner` enchaîne avant → geste →
-      après → rapport, reprise après plantage (P1) ; « Benchmarker ce mod » depuis
-      les chargements et l'analyse (P2). Spec et plan :
-      `docs/superpowers/specs|plans/2026-10-11-mesure-pilotee*`. **Reste à
-      l'auteur** : les 7 scénarios écran de la spec §10 et le calibrage A/B des
-      mini-stats (la sonde du parc est en 0.9.28 depuis le 2026-10-14). Récit à l'archive
-      après validation.
+> ✅ **D6 est livré** (v1.63.0) **et validé à l'écran le 2026-10-16.** Son récit vit dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 le dit.
 
 ---
 
@@ -2256,6 +2248,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **D5-A** | 2026-09-29 | Mesure guidée en jeu depuis l'onglet Performances (sonde 0.5.0 → 0.5.2), validée en jeu le 2026-09-29 ; textes 0.9.2 à confirmer |
 | **D5-B** | 2026-09-30 | Temps de chargement du jeu et des sauvegardes (sonde 0.6.0) ; validé en jeu le 2026-10-04, panneau de suivi et décompte à confirmer |
 | **D5-C** | 2026-10-01 | Score par mod tiré des mesures de la sonde (`ModImpactSources`, `ModImpactHistory`) ; badge et filtre de liste le 2026-10-04 |
+| **D6** | 2026-10-12 | Mesure pilotée d'un clic : la sonde 0.9.25 conduit la session (warp, nuit sautée, sortie), `GuidedPilotRunner` enchaîne avant, geste, après et rapport, reprise après plantage ; « Benchmarker ce mod » depuis les chargements et l'analyse. Sorti en v1.63.0, validé à l'écran le 2026-10-16 |
 
 **Packs, distribution & pédagogie — Axe E**
 
