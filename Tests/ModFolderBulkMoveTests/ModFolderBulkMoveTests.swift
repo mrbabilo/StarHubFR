@@ -316,4 +316,25 @@ private final class ScriptedMoves: FileManager, @unchecked Sendable {
         #expect(events.count == 6)
         #expect(activatedNames(of: events) == ["A", "B"])
     }
+
+    /// F1, tranche 25 — le verdict que lisent la bascule en masse et
+    /// l'application d'un profil. Les bornes comptent : un seul échec sur un
+    /// seul essai est un échec total, pas partiel ; zéro essai n'est pas un
+    /// échec.
+    @Test("verdict : aucun échec, tout échoué, partiel")
+    func theVerdictComparesFailuresToAttempts() {
+        func outcome(attempted: Int, failed: Int) -> BulkMoveOutcome {
+            BulkMoveOutcome(
+                attempted: attempted, movedCount: attempted - failed,
+                failures: (0..<failed).map {
+                    BulkMoveFailure(folderName: "M\($0)", modName: "M\($0)",
+                                    direction: .enable, criticalLog: nil, message: "")
+                })
+        }
+        #expect(outcome(attempted: 0, failed: 0).verdict == .noFailure)
+        #expect(outcome(attempted: 3, failed: 0).verdict == .noFailure)
+        #expect(outcome(attempted: 1, failed: 1).verdict == .allFailed)
+        #expect(outcome(attempted: 3, failed: 3).verdict == .allFailed)
+        #expect(outcome(attempted: 3, failed: 1).verdict == .partial)
+    }
 }

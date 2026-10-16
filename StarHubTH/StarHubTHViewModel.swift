@@ -6998,7 +6998,7 @@ final class StarHubTHViewModel {
                     profileName: profileName,
                     failedNames: failedNames,
                     missingIds: missingIds,
-                    attempted: outcome.attempted,
+                    verdict: outcome.verdict,
                     failureCount: outcome.failures.count)
                 self.showModal(message: summary)
                 self.log(String(format: "Profile \"%@\" applied: %lld move failure(s), %lld missing mod(s)",
@@ -7012,19 +7012,15 @@ final class StarHubTHViewModel {
     /// Alert text for a problematic profile application, naming mods (lists
     /// capped with "+N more").
     private func profileApplyMessage(profileName: String, failedNames: [String],
-                                     missingIds: [String], attempted: Int,
+                                     missingIds: [String], verdict: BulkMoveOutcome.Verdict,
                                      failureCount: Int) -> String {
         let listLimit = 8
         var sections: [String] = []
 
         // Move failures: headline, then names.
         if !failedNames.isEmpty {
-            let headline: String
-            if attempted == failureCount {
-                headline = String(format: localization.L(L10n.VM.applyProfileError), profileName, failureCount)
-            } else {
-                headline = String(format: localization.L(L10n.VM.applyProfilePartial), profileName, failureCount)
-            }
+            let key = verdict == .allFailed ? L10n.VM.applyProfileError : L10n.VM.applyProfilePartial
+            let headline = String(format: localization.L(key), profileName, failureCount)
             sections.append(self.truncatedList(headline: headline,
                                                names: failedNames, limit: listLimit))
         }
@@ -7306,11 +7302,12 @@ final class StarHubTHViewModel {
             self.bulkToggleProgress = nil
             self.syncActiveProfileIds()
             then?()
-            if outcome.failures.isEmpty {
+            switch outcome.verdict {
+            case .noFailure:
                 self.log(summary(movedCount))
-            } else if outcome.attempted == outcome.failures.count {
+            case .allFailed:
                 self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkToggleFailed), outcome.failures.count))
-            } else {
+            case .partial:
                 self.showModal(message: String(format: self.localization.L(L10n.Mods.bulkTogglePartial), movedCount, outcome.failures.count))
                 self.log(summary(movedCount), level: .warning)
             }

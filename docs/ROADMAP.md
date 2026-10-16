@@ -970,7 +970,7 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
 > Ce document-ci ne garde que les tâches ; le comment vit là-bas.
 
 - [ ] **F1** — **Découper le God module.** `StarHubTHViewModel.swift` fait
-      **7 928 lignes** au 2026-10-16 (**7 999** le 2026-10-15 ; tranches 23 et 24 de `REFACTORING.md` §5 : une décision y reste à extraire ; **10 084** le 2026-09-14 ; **11 902** le 2026-09-10 et **4 296**
+      **7 925 lignes** au 2026-10-16 (**7 999** le 2026-10-15 ; tranches 23 à 25 de `REFACTORING.md` §5 : le relevé des fonctions nées depuis le 2026-09-14 est épuisé ; **10 084** le 2026-09-14 ; **11 902** le 2026-09-10 et **4 296**
       au relevé initial du 2026-07-30 — la pente s'est inversée le 2026-09-10, quand
       le cliquet de taille par fichier a fermé les ~16 000 lignes de marge muette :
       **−1 818 lignes en quatre jours**, contre ~285 lignes/jour de croissance la

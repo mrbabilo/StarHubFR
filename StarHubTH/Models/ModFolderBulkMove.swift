@@ -23,6 +23,16 @@ struct BulkMoveOutcome: Sendable {
     /// `CRITICAL:` pré-calculée d'un rollback raté — `nil` pour un échec
     /// simple. `message` est `error.localizedDescription` pré-calculé.
     let failures: [BulkMoveFailure]
+
+    /// Le verdict d'un geste groupé : aucun échec, tout échoué, ou partiel.
+    /// Une seule règle pour la bascule en masse et l'application d'un
+    /// profil, qui comparaient chacun `attempted` au nombre d'échecs.
+    enum Verdict: Equatable, Sendable { case noFailure, allFailed, partial }
+
+    var verdict: Verdict {
+        if failures.isEmpty { return .noFailure }
+        return failures.count == attempted ? .allFailed : .partial
+    }
 }
 
 /// Un renommage en masse resté sur le carreau. `folderName` est le nom
