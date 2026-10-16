@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.67.1] - 2026-10-16
+
 ### Changed
 
 - **Code : trois règles sortent du ViewModel, testées.** La destination d'un mod qu'on active ou met en pause, la réparation proposée pour un manifeste illisible, le bilan d'un geste groupé : chacune existait en deux ou trois copies, une seule reste. Aucun changement visible.
