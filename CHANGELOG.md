@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **Sauvegardes des mods : supprimer passe par la Corbeille.** Une sauvegarde d'installation ou de configuration était effacée pour de bon ; elle part dans la Corbeille du Mac. Avant, l'app dit si elle est la seule copie d'un `config.json` ou d'une traduction absents du mod installé.
+- **Sauvegardes des mods : supprimer passe par la Corbeille.** Installations et configurations étaient effacées pour de bon ; elles partent dans la Corbeille du Mac. Pour une sauvegarde d'installation, la confirmation nomme les fichiers dont elle est la seule copie.
 - **La page des sauvegardes ne dit plus « 0 » en chargeant.** Elle restait parfois sur « 0 mods · 0 sauvegardes » jusqu'à « Actualiser ».
 - **Réglages : « Désinstaller » SMAPI demande confirmation.** Un clic suffisait à retirer SMAPI.
 - **Réglages : le lien vers le wiki s'affiche comme un lien**, et non plus en Markdown brut.

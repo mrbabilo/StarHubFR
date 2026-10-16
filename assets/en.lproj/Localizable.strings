@@ -577,7 +577,7 @@
 "mod_config_backups_create" = "Create Backup";
 "mod_config_backups_creating" = "Creating backup…";
 "mod_config_backups_delete" = "Move to Trash";
-"mod_config_backups_delete_confirm" = "Move this backup to the Mac's Trash? You can take it back out until the Trash is emptied.";
+"mod_config_backups_delete_confirm" = "Move this backup to the Mac's Trash? Its files can be recovered until the Trash is emptied, but it leaves this list.";
 "mod_config_backups_delete_failed" = "Delete failed: %@";
 "mod_config_backups_empty" = "No backups yet";
 "mod_config_backups_failed" = "Failed to create backup: %@";
@@ -619,7 +619,7 @@
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";
 "mod_install_delete_backup" = "Move to Trash";
 "mod_install_delete_confirm" = "Move Backup to Trash?";
-"mod_install_delete_confirm_msg" = "It goes to the Mac's Trash: you can take it back out until the Trash is emptied.";
+"mod_install_delete_confirm_msg" = "It goes to the Mac's Trash: its files can be recovered until the Trash is emptied, but it leaves this list.";
 "mod_install_delete_sole_copy" = "This is the only copy of: %@. These files are no longer in the installed mod.";
 "mod_install_dep_count" = "%d dependencies";
 "mod_install_dep_disabled" = "Installed but disabled";

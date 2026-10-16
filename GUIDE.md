@@ -131,6 +131,7 @@ Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour d
 
 - **Une mise à jour a remplacé un mod, vous voulez l'ancienne version** — **Sauvegardes des mods** › Restaurer (le mod revient en pause).
 - **Un `config.json` a été réécrit** (éditeur de config, plan de raccourcis) — **Sauvegardes des mods** › Sauvegardes de configuration.
+- **Vous avez supprimé une sauvegarde de mod ou de configuration** — elle est dans la Corbeille du Mac tant que vous ne l'avez pas vidée ; elle ne revient pas dans la liste de l'app.
 - **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot.
 - **Un dossier illisible ou parasite a disparu de `Mods/`** — **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé.
 - **Une partie** — **Sauvegardes du jeu** : copie avant chaque modification.

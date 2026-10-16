@@ -131,6 +131,7 @@ A translation written in the app lives in the mod's folder. Updating the mod doe
 
 - **An update replaced a mod and you want the old version** — **Mod Backups** › Restore (the mod comes back paused).
 - **A `config.json` was rewritten** (config editor, shortcut plan) — **Mod Backups** › Configuration Backups.
+- **You deleted a mod or configuration backup** — it is in the Mac's Trash until you empty it; it does not come back into the app's list.
 - **You moved mods to the trash from the app** — **Maintenance** › Restore, or **Restore all** for a batch.
 - **An unreadable or stray folder disappeared from `Mods/`** — **Quarantine**: scans set aside what was in the way, nothing is deleted.
 - **A save** — **Game Saves**: a copy is made before each change.

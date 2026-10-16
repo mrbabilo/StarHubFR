@@ -502,13 +502,13 @@ struct ModInstallBackupsView: View {
         }
     }
 
-    /// R1 — la règle « seule copie » de l'Entretien, lue au clic pour cette sauvegarde.
     private func askDelete(_ backup: ModInstallBackup) {
-        let model = vm
-        confirmation = .delete(backup, soleCopy: MaintenanceDiskReader.soleCopyFiles(
-            backupRoot: URL(fileURLWithPath: backup.backupPath), modFolder: backup.originalFolderName,
-            modsRoot: (model.gameDir as NSString).appendingPathComponent("Mods"),
-            hostTranslationPaths: model.installedTranslationRelativePaths()[backup.originalFolderName] ?? []))
+        guard busyBackupId == nil else { return }
+        busyBackupId = backup.id   // R1 : la règle « seule copie » parcourt la sauvegarde
+        Task {
+            let files = await soleCopy(of: backup)
+            (busyBackupId, confirmation) = (nil, .delete(backup, soleCopy: files))
+        }
     }
 
     private func performDelete(_ backup: ModInstallBackup) {

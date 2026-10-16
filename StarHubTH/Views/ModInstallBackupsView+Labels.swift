@@ -43,6 +43,19 @@ extension ModInstallBackupsView {
         return lines.joined(separator: "\n")
     }
 
+    /// R1 — la règle « seule copie » de l'Entretien pour cette sauvegarde, lue
+    /// hors du fil principal (un gros pack compte des milliers de fichiers).
+    func soleCopy(of backup: ModInstallBackup) async -> [MaintenanceInventory.UserFile] {
+        let model = vm
+        let modsRoot = (model.gameDir as NSString).appendingPathComponent("Mods")
+        let paths = model.installedTranslationRelativePaths()[backup.originalFolderName] ?? []
+        let root = URL(fileURLWithPath: backup.backupPath), folder = backup.originalFolderName
+        return await Task.detached(priority: .userInitiated) {
+            MaintenanceDiskReader.soleCopyFiles(backupRoot: root, modFolder: folder,
+                                                modsRoot: modsRoot, hostTranslationPaths: paths)
+        }.value
+    }
+
     /// Message de confirmation : la corbeille, et ce dont cette sauvegarde est
     /// la seule copie — ces fichiers ne sont plus dans le mod installé.
     func deleteMessage(soleCopy: [MaintenanceInventory.UserFile]) -> String {
