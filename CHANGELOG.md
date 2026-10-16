@@ -16,6 +16,7 @@ where the exact log format was verified.
 
 - **Menu « Jeu » : Lancer le jeu (⌘R) et Vérifier les mises à jour (⇧⌘U).** Menu Fichier : « Installer des mods… » (⌘O) ouvre la feuille d'installation depuis n'importe quelle page.
 - **Éditeur de configuration : bouton « Fermer » (⎋).** Il demande confirmation si des modifications ne sont pas enregistrées.
+- **Traductions FR : segment « À finir ».** Les traductions commencées mais incomplètes ou à revoir, triées au choix par clés restantes, % restant ou nom, avec « Traduire » qui ouvre la fiche. La recherche Nexus passe dans le segment « Sur Nexus ».
 
 ### Changed
 
@@ -23,6 +24,7 @@ where the exact log format was verified.
 - **Les liens vers un mod ouvrent sa fiche.** Journal, Santé et nom d'une ligne de Mises à jour mènent à la fiche, et non plus à la liste filtrée, quand le mod est identifié sans ambiguïté.
 - **Collision de raccourcis : « Ouvrir le réglage »** mène à la clé concernée dans l'éditeur, et la ligne affiche la touche en cause.
 - **Liste en vue réduite : le nombre d'approbations s'affiche au-dessus du pouce.**
+- **La fiche reprend les traductions déjà trouvées par la page Traductions FR**, sans relancer la recherche. Le lot pour traducteur passe dans un menu d'en-tête.
 
 ### Fixed
 

@@ -7476,3 +7476,30 @@ sans lire une ligne de log.
       (`ViewThatFits`), vérifié à 821 pt. Non fait : compteur « n / N » du
       pager, ⌥⌘↑↓, `pendingDetailTab` quand la fiche du même mod est déjà
       ouverte.
+      Le reste (⌘R, ⇧⌘U, arrivées depuis Mises à jour, Traductions FR et
+      Performances) vérifié à l'écran par l'auteur le 2026-10-16.
+
+- [x] **I-T28 · R3** — *(livré le 2026-10-16)* « Traductions FR » devient la
+      page du travail de traduction. **Segment « À finir »** : `TranslationWorklist`
+      (Core, 6 tests, sabotages rouges) prend **les prédicats mêmes** du filtre
+      « Trad. FR » de la liste (`.partial` ∪ `.stale`), au grain du mod de
+      premier niveau ; tri partagé avec le diagnostic de profil
+      (`ProfileTranslationCoverage.precedes`), un « à revoir » complet se
+      départageant par ses clés obsolètes. Les mods sans français sont
+      comptés (renvoi « Chercher sur Nexus »), pas listés. Mesuré sur le parc :
+      114 mods à finir, 172 sans français. Sur remarque de l'auteur (le tri par
+      clés ne se lisait pas comme un tri), menu « Trier par » : clés restantes,
+      % restant, nom (A-Z) — `TranslationWorklist.Order`, retenu par
+      `@AppStorage`. Finir une traduction depuis la page
+      : ∞ → 2 clics. **Témoin de mesure** : la passe de couverture ignorait
+      sans le noter un mod à `fr` sans `default.json` et le relisait à chaque
+      recalcul ; `FrenchCoveragePass.State.unmeasurable` le retient (vidé par
+      `invalidate`), et « N mods pas encore lus » retombe à 0 (vérifié : 275 →
+      0). **Cache commun** : la fiche, sans recherche propre, montre les
+      résultats du balayage par le même statut (`FrenchTranslationSweep.shownHits`,
+      jamais la traduction posée, une panne n'est pas « aucune ») — Tea,
+      ouverte depuis la page, arrive avec ses quatre résultats. **Lot pour
+      traducteur** en menu d'en-tête. Rangées Nexus extraites
+      (`FrenchTranslationRow.swift`). Vérifié à 821 pt. Non fait : l'écriture
+      fiche → balayage (une recherche de la fiche ne met pas à jour la page),
+      la rangée de résultat partagée (charte), la garde Premium de la page (R7).

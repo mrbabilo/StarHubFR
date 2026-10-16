@@ -66,6 +66,9 @@ enum FrenchCoveragePass {
     struct State: Equatable {
         var coverage: [String: TranslationCoverage.Coverage]
         var stale: Set<String>
+        /// Lus sans rien à mesurer (un `fr` sans `default.json`) : plus
+        /// relus, et pas « en attente » pour la liste « À finir » (R3).
+        var unmeasurable: Set<String> = []
         /// F6-T1 — le tampon de la dernière mesure posée (ou de la dernière
         /// invalidation) de chaque mod : une mesure plus ancienne n'y entre plus.
         fileprivate(set) var stamps: [String: Int] = [:]
@@ -89,6 +92,7 @@ enum FrenchCoveragePass {
         mutating func invalidate(_ key: String) {
             coverage.removeValue(forKey: key)
             stale.remove(key)
+            unmeasurable.remove(key)
             stamps[key] = tick()
         }
     }
@@ -110,20 +114,24 @@ enum FrenchCoveragePass {
     /// une garde par passe jetterait des mesures que rien n'a remplacées.
     static func merging(_ batch: [String: TranslationCoverage.Coverage],
                         stale: Set<String>,
+                        unmeasurable: Set<String> = [],
                         into current: State,
                         stamp: Int) -> State? {
         let isFresh = { (key: String) in stamp >= current.stamps[key, default: .min] }
         let fresh = batch.filter { isFresh($0.key) }
         let freshStale = stale.filter(isFresh)
-        guard !fresh.isEmpty || !freshStale.isEmpty else { return nil }
+        let freshEmpty = unmeasurable.filter(isFresh)
+        guard !fresh.isEmpty || !freshStale.isEmpty || !freshEmpty.isEmpty else { return nil }
         var next = current
         next.coverage.merge(fresh) { _, new in new }
+        next.unmeasurable.subtract(fresh.keys)
+        next.unmeasurable.formUnion(freshEmpty)
         // Un mod du lot qui n'y est plus signalé a cessé d'être suspect — le
         // retirer d'abord laisse `formUnion` ne faire grandir l'ensemble que de
         // ce que ce lot confirme. Réel depuis la re-mesure ciblée.
         next.stale.subtract(fresh.keys)
         next.stale.formUnion(freshStale)
-        for key in Set(fresh.keys).union(freshStale) { next.stamps[key] = stamp }
+        for key in Set(fresh.keys).union(freshStale).union(freshEmpty) { next.stamps[key] = stamp }
         return next
     }
 }

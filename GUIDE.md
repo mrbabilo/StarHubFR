@@ -122,7 +122,7 @@ Ouvrez la fiche d'un mod, onglet **Traduction**.
 - **Anglais à gauche, français à droite**, clé par clé. Un mod sans `fr.json` en reçoit un au premier enregistrement.
 - **Les marqueurs du jeu** (noms de joueur, retours à la ligne, couleurs…) s'affichent en couleur et s'insèrent d'un clic. Une marque qui casse le jeu (commande de dialogue, `#` seul, `{{…}}`) perdue ou ajoutée bloque l'enregistrement, et l'app dit laquelle est manquante ou en trop. Un portrait, le nom du joueur (`@`) ou un saut de page déplacés s'affichent sous le champ, « À vérifier », sans bloquer.
 - **Brouillon par IA locale** : avec [Ollama](https://ollama.com) ou [LM Studio](https://lmstudio.ai) sur votre Mac, l'app propose une traduction marquée « À relire ». Rien ne quitte votre machine. Le glossaire des noms officiels du jeu est imposé au modèle.
-- **Traductions FR** liste les traductions déjà publiées sur Nexus pour vos mods : souvent, il suffit d'en installer une.
+- **Traductions FR**, segment **À finir** : les traductions commencées et pas finies, ou à revoir, du plus gros reste au plus petit ; « Traduire » ouvre la fiche. Segment **Sur Nexus** : les traductions déjà publiées pour vos mods, souvent il suffit d'en installer une.
 
 Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour du mod ne l'écrase pas ; l'aperçu de mise à jour dit quelles clés sont à reprendre.
 

@@ -27,6 +27,18 @@ struct FrenchTranslationsView: View {
     @State private var showArbitration = false
     /// Section demandée par la légende de l'anneau : ouverte puis atteinte.
     @State private var revealKey: String?
+    /// R3 — fixé une fois à l'apparition (« À finir », sauf liste vide et
+    /// mesure finie) : la page ne bascule pas sous les yeux.
+    @State private var segment: Segment?
+
+    private enum Segment: Hashable { case worklist, nexus }
+
+    /// Les mêmes magasins que le filtre « Trad. FR » de la liste.
+    private var worklistState: ModListScoping.TranslationState {
+        let model = vm
+        return .init(coverage: model.frenchCoverageByMod, stale: model.staleTranslationMods,
+                     outdatedKeys: model.outdatedKeysByMod)
+    }
 
     /// Une ligne : le mod, son statut, et le `ModItem` vivant pour agir.
     private struct Row: Identifiable {
@@ -37,34 +49,40 @@ struct FrenchTranslationsView: View {
     }
 
     private var rows: [Row] {
-        let byFolder = Dictionary(vm.mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
+        let model = vm
+        let byFolder = Dictionary(model.mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
         return FrenchTranslationSweep.candidates(
-            among: vm.mods,
-            hasInstalledTranslation: { vm.tracksTranslation(for: $0) },
-            nexusModId: { Int(vm.resolvedNexusModId(for: $0)) })
+            among: model.mods,
+            hasInstalledTranslation: { model.tracksTranslation(for: $0) },
+            nexusModId: { Int(model.resolvedNexusModId(for: $0)) })
         .compactMap { candidate in
             guard let mod = byFolder[candidate.folderName] else { return nil }
             return Row(candidate: candidate, mod: mod,
                        status: FrenchTranslationSweep.status(
                            entry: store.entries[candidate.folderName],
-                           installed: vm.translation(for: mod) ?? vm.declaredTracked(for: mod)))
+                           installed: model.translation(for: mod) ?? model.declaredTracked(for: mod)))
         }
     }
 
     var body: some View {
         let all = rows
+        let mods = vm.mods, state = worklistState
+        let work = TranslationWorklist.items(in: mods, state: state)
+        let unmeasured = TranslationWorklist.unmeasuredCount(in: mods, pass: vm.frenchCoverage)
+        let shown = segment ?? (work.isEmpty && unmeasured == 0 ? .nexus : .worklist)
         VStack(alignment: .leading, spacing: 0) {
-            header(all)
+            header(all, shown: shown, workCount: work.count)
                 .padding(AppDesign.Spacing.lg)
             Divider()
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                TranslationLotShuttleView(viewModel: vm, localization: localization,
-                                          mergeStore: $mergeStore,
-                                          onMergeReady: { showArbitration = $0 })
-                    .padding(.horizontal, AppDesign.Spacing.lg)
-                    .padding(.top, AppDesign.Spacing.sm)
-            }
-            Divider()
+            if shown == .worklist {
+                BackToTopScrollView(localization) {
+                    FrenchTranslationsWorklist(localization: localization, items: work,
+                                               untranslated: TranslationWorklist.untranslatedCount(in: mods, state: state),
+                                               unmeasured: unmeasured,
+                                               open: { folder in openMod(folder) },
+                                               showNexus: { segment = .nexus })
+                }
+            } else {
             ScrollViewReader { proxy in
                 BackToTopScrollView(localization) {
                     let groups = self.groups(all)
@@ -85,7 +103,9 @@ struct FrenchTranslationsView: View {
                     .padding(AppDesign.Spacing.lg)
                 }
             }
+            }
         }
+        .onAppear { if segment == nil { segment = shown } }
         .sheet(isPresented: $showArbitration) {
             TranslationArbitrationSheet(store: mergeStore, viewModel: vm,
                                         localization: localization,
@@ -103,11 +123,13 @@ struct FrenchTranslationsView: View {
     // MARK: - En-tête
 
     @ViewBuilder
-    private func header(_ all: [Row]) -> some View {
+    private func header(_ all: [Row], shown: Segment, workCount: Int) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
             PageHeader(icon: "character.bubble.fill",
                        title: localization.L(L10n.FrTranslations.title)) {
-                if store.isRunning {
+                if shown == .worklist {
+                    EmptyView()
+                } else if store.isRunning {
                     Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
                         .controlSize(.small)
                 } else {
@@ -148,7 +170,22 @@ struct FrenchTranslationsView: View {
             Text(localization.L(L10n.FrTranslations.subtitle))
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if store.isRunning {
+            HStack(alignment: .top, spacing: AppDesign.Spacing.md) {
+                Picker("", selection: Binding(get: { shown }, set: { segment = $0 })) {
+                    Text(String(format: localization.L(L10n.FrTranslations.segmentWorklist), workCount))
+                        .tag(Segment.worklist)
+                    Text(String(format: localization.L(L10n.FrTranslations.segmentNexus), all.count))
+                        .tag(Segment.nexus)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                Spacer(minLength: 0)
+                TranslationLotShuttleView(viewModel: vm, localization: localization,
+                                          mergeStore: $mergeStore,
+                                          onMergeReady: { showArbitration = $0 })
+            }
+            if shown == .worklist {
+                EmptyView()
+            } else if store.isRunning {
                 HStack(spacing: AppDesign.Spacing.sm) {
                     ProgressView(value: Double(store.done), total: Double(max(store.total, 1)))
                         .frame(maxWidth: 220)
@@ -171,7 +208,7 @@ struct FrenchTranslationsView: View {
                 Text(String(format: localization.L(L10n.FrTranslations.never), all.count))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
-            if let reason = store.stopReason {
+            if shown == .nexus, let reason = store.stopReason {
                 Label(stopText(reason), systemImage: "exclamationmark.triangle.fill")
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(reason == .cancelled ? .secondary : AppDesign.Color.warning)
@@ -221,7 +258,7 @@ struct FrenchTranslationsView: View {
                     FrenchTranslationRow(vm: vm, localization: localization, mod: row.mod,
                                          candidate: row.candidate, status: row.status,
                                          entry: store.entries[row.candidate.folderName],
-                                         openMod: { openMod(row.mod) })
+                                         openMod: { openMod(row.mod.folderName) })
                 }
             }
             .id(key)
@@ -230,133 +267,7 @@ struct FrenchTranslationsView: View {
 
     /// La fiche, onglet Traduction — là où vivent le retrait et le
     /// rattachement. L'intention traverse le changement d'onglet (patron B3-T4).
-    private func openMod(_ mod: ModItem) {
-        vm.navigationStore.openModDetail(folderName: mod.folderName, door: .frenchTranslations)
-    }
-}
-
-/// Un groupe repliable ; son état vit ici, pas dans la page, pour que chaque
-/// section garde le sien.
-private struct FrenchTranslationSection<Content: View>: View {
-    let title: String
-    let style: (color: Color, icon: String)
-    let startsOpen: Bool
-    /// Vrai quand la légende de l'anneau désigne cette section : elle s'ouvre.
-    let reveal: Bool
-    @ViewBuilder let content: () -> Content
-    @State private var isOpen: Bool?
-
-    var body: some View {
-        DisclosureGroup(isExpanded: Binding(get: { isOpen ?? startsOpen }, set: { isOpen = $0 })) {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) { content() }
-                .padding(.top, AppDesign.Spacing.xs)
-        } label: {
-            Label {
-                Text(title).font(AppDesign.Font.body(.semibold))
-            } icon: {
-                Image(systemName: style.icon).foregroundStyle(style.color)
-            }
-        }
-        .onChange(of: reveal) { _, now in
-            if now { withMotion { isOpen = true } }
-        }
-    }
-}
-
-/// Un mod et ce que Nexus propose pour lui.
-private struct FrenchTranslationRow: View {
-    var vm: StarHubTHViewModel
-    @ObservedObject var localization: LocalizationStore
-    let mod: ModItem
-    let candidate: FrenchTranslationSweep.Candidate
-    let status: FrenchTranslationSweep.Status
-    let entry: FrenchTranslationSweep.Entry?
-    let openMod: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: AppDesign.Spacing.sm) {
-                Text(candidate.name).font(AppDesign.Font.body(.medium)).lineLimit(1)
-                if !candidate.isActive {
-                    Text(localization.L(L10n.FrTranslations.paused))
-                        .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.15)).cornerRadius(4)
-                }
-                if vm.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
-                Spacer()
-                Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
-                    .buttonStyle(.borderless).controlSize(.small).pointingHandCursor()
-            }
-            switch status {
-            case .available(let hits):
-                // Le plus sûr d'abord : confirmée, liée, puis par nom.
-                ForEach(hits.sorted { rank($0) < rank($1) }) { hitLine($0, action: L10n.FrTranslations.install) }
-            case .updateAvailable(let newer):
-                hitLine(newer, action: L10n.FrTranslations.update)
-            case .installed, .installedUnverified, .failed, .nothingFound, .notSearched:
-                EmptyView()
-            }
-        }
-        .cardSurface(padding: AppDesign.Spacing.sm)
-    }
-
-    private func confidence(_ hit: NexusModSearch.Hit) -> FrenchTranslationSweep.Confidence {
-        entry?.confidence(of: hit, hostName: candidate.name) ?? .nameOnly
-    }
-
-    private func rank(_ hit: NexusModSearch.Hit) -> Int {
-        switch confidence(hit) {
-        case .confirmed: return 0
-        case .linkedOnly: return 1
-        case .nameOnly: return 2
-        }
-    }
-
-    /// La marque d'un résultat qui demande à être vérifié ; rien quand le lien
-    /// et le titre concordent.
-    @ViewBuilder private func caution(_ hit: NexusModSearch.Hit) -> some View {
-        switch confidence(hit) {
-        case .confirmed:
-            EmptyView()
-        case .linkedOnly:
-            Text(localization.L(L10n.FrTranslations.linkedOnly))
-                .font(AppDesign.Font.iconXS).foregroundColor(AppDesign.Color.warning)
-                .help(localization.L(L10n.FrTranslations.linkedOnlyHelp))
-        case .nameOnly:
-            Text(localization.L(L10n.FrTranslations.byName))
-                .font(AppDesign.Font.iconXS).foregroundColor(AppDesign.Color.warning)
-                .help(localization.L(L10n.FrTranslations.byNameHelp))
-        }
-    }
-
-    private func hitLine(_ hit: NexusModSearch.Hit, action: String) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
-                    Text(hit.name).font(AppDesign.Font.footnote(.medium))
-                        .lineLimit(1).truncationMode(.middle)
-                    caution(hit)
-                }
-                Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
-                            hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
-                    .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
-            }
-            Spacer()
-            Button(localization.L(action)) { vm.installTranslation(hit, into: mod) }
-                .buttonStyle(.bordered).controlSize(.small)
-                .disabled(vm.translationHub.isBusy(mod.folderName))
-                .pointingHandCursor()
-            Button {
-                if let url = URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
-                    NSWorkspace.shared.open(url)
-                }
-            } label: {
-                Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                    .font(AppDesign.Font.footnote)
-            }
-            .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
-        }
-        .padding(.leading, AppDesign.Spacing.md)
+    private func openMod(_ folderName: String) {
+        vm.navigationStore.openModDetail(folderName: folderName, door: .frenchTranslations)
     }
 }

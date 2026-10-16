@@ -142,16 +142,20 @@ enum ProfileTranslationCoverage {
         // le plus le pourcentage du profil. À égalité, l'ordre alphabétique,
         // pour que deux affichages successifs ne se réordonnent pas sous les
         // yeux de l'utilisateur.
-        pending.sort {
-            $0.missingCount != $1.missingCount
-                ? $0.missingCount > $1.missingCount
-                : $0.name.lowercased() < $1.name.lowercased()
-        }
+        pending.sort { precedes(missing: $0.missingCount, name: $0.name,
+                                missing: $1.missingCount, name: $1.name) }
 
         return ProfileTranslationSummary(translatableCount: translatable,
                                          fullyTranslatedCount: fullyTranslated,
                                          totalKeys: totalKeys,
                                          translatedKeys: translatedKeys,
                                          pending: pending)
+    }
+
+    /// L'ordre « plus gros reste d'abord, puis nom » — partagé avec la liste
+    /// « À finir » de la page Traductions FR (`TranslationWorklist`).
+    static func precedes(missing a: Int, name aName: String,
+                         missing b: Int, name bName: String) -> Bool {
+        a != b ? a > b : aName.lowercased() < bName.lowercased()
     }
 }

@@ -504,43 +504,41 @@ final class StarHubTHViewModel {
         let root = gameDir
         guard !root.isEmpty else { return }
         // Lot figé avant la tâche détachée : relire `mods` déplacerait la course.
-        let snapshot = FrenchCoveragePass.targets(in: mods,
-                                                  known: Set(frenchCoverageByMod.keys))
+        let snapshot = FrenchCoveragePass.targets(in: mods, known: Set(frenchCoverageByMod.keys).union(frenchCoverage.unmeasurable))
         guard !snapshot.isEmpty else { return }
         let stamp = frenchCoverage.tick()
         frenchCoverageTask = Task.detached(priority: .utility) { [weak self] in
             let modsPath = (root as NSString).appendingPathComponent("Mods")
             var batch: [String: TranslationCoverage.Coverage] = [:]
-            var staleBatch: Set<String> = []
+            var staleBatch: Set<String> = [], emptyBatch: Set<String> = []
             for target in snapshot {
                 if Task.isCancelled { return }
                 let directory = URL(fileURLWithPath: modsPath)
                     .appendingPathComponent(target.physicalFolder)
-                guard let coverage = TranslationCoverage.coverage(forModAt: directory,
-                                                                  locale: "fr") else { continue }
+                guard let coverage = TranslationCoverage.coverage(forModAt: directory, locale: "fr")
+                else { emptyBatch.insert(target.key); continue }
                 batch[target.key] = coverage
                 if TranslationFreshness.staleness(forModAt: directory, locale: "fr") != nil {
                     staleBatch.insert(target.key)
                 }
                 if batch.count >= FrenchCoveragePass.batchSize {
-                    let published = batch
-                    let publishedStale = staleBatch
+                    let published = batch, publishedStale = staleBatch
                     batch.removeAll(keepingCapacity: true)
                     staleBatch.removeAll(keepingCapacity: true)
                     await self?.mergeFrenchCoverage(published, stale: publishedStale, stamp: stamp)
                 }
             }
             if Task.isCancelled { return }
-            await self?.mergeFrenchCoverage(batch, stale: staleBatch, stamp: stamp)
+            await self?.mergeFrenchCoverage(batch, stale: staleBatch, empty: emptyBatch, stamp: stamp)
         }
     }
 
     @MainActor
     private func mergeFrenchCoverage(_ batch: [String: TranslationCoverage.Coverage],
-                                     stale: Set<String>, stamp: Int) {
+                                     stale: Set<String>, empty: Set<String> = [], stamp: Int) {
         // F6-T1 : une mesure plus ancienne que la dernière posée tombe, par mod.
-        guard let next = FrenchCoveragePass.merging(batch, stale: stale, into: frenchCoverage,
-                                                    stamp: stamp) else { return }
+        guard let next = FrenchCoveragePass.merging(batch, stale: stale, unmeasurable: empty,
+                                                    into: frenchCoverage, stamp: stamp) else { return }
         frenchCoverage = next
     }
 

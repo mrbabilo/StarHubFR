@@ -1769,7 +1769,7 @@
 "mods_fingerprint_pause_confirm" = "Mettre en pause quand même";
 "mods_fingerprint_save_line" = "%@ : %@";
 "frtr_title" = "Traductions FR";
-"frtr_subtitle" = "Les traductions françaises disponibles sur Nexus pour vos mods installés, en pause compris, et les mises à jour de celles déjà installées.";
+"frtr_subtitle" = "Ce qu'il reste à traduire dans vos mods, et les traductions françaises disponibles sur Nexus — mods en pause compris.";
 "frtr_search" = "Chercher sur Nexus";
 "frtr_rescan" = "Re-balayer";
 "frtr_rescan_all" = "Tout re-balayer";
@@ -1792,6 +1792,16 @@
 "frtr_by_name" = "par nom, à vérifier";
 "frtr_by_name_help" = "Trouvée par le nom seulement : cette traduction ne déclare pas le mod comme prérequis sur Nexus. Vérifiez que c'est la bonne avant de l'installer.";
 "frtr_paused" = "en pause";
+"frtr_segment_worklist" = "À finir (%lld)";
+"frtr_segment_nexus" = "Sur Nexus (%lld)";
+"frtr_worklist_empty" = "Rien à finir : chaque traduction commencée est complète et à jour.";
+"frtr_worklist_measuring" = "Lecture des traductions en cours : %lld mod(s) pas encore lus.";
+"frtr_worklist_untranslated" = "%lld mod(s) traduisibles n'ont aucun français.";
+"frtr_worklist_search_nexus" = "Chercher sur Nexus";
+"frtr_sort_label" = "Trier par";
+"frtr_sort_keys" = "Clés restantes";
+"frtr_sort_percent" = "% restant";
+"frtr_sort_name" = "Nom (A-Z)";
 "frtr_install" = "Installer";
 "frtr_update" = "Mettre à jour";
 "frtr_open_mod" = "Fiche du mod";

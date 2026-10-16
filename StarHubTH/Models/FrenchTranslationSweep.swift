@@ -209,6 +209,20 @@ public enum FrenchTranslationSweep {
         return entry.hits.isEmpty ? .nothingFound : .available(entry.hits)
     }
 
+    /// R3 (audit UX du 2026-10-16) — les résultats que montre la fiche : sa
+    /// propre recherche d'abord, sinon ce que le balayage de la page
+    /// Traductions FR a trouvé, **par le même statut** (jamais la traduction
+    /// déjà posée, une panne n'est pas « aucune »). `nil` : rien à dire.
+    public static func shownHits(own: [NexusModSearch.Hit]?, entry: Entry?,
+                                 installed: InstalledTranslation?) -> [NexusModSearch.Hit]? {
+        if let own { return own }
+        switch status(entry: entry, installed: installed) {
+        case .available(let found): return found
+        case .nothingFound: return []
+        case .updateAvailable, .installed, .installedUnverified, .failed, .notSearched: return nil
+        }
+    }
+
     /// Les mods pour lesquels une recherche a trouvé la fiche `modId` : quand
     /// l'archive d'une traduction arrive par un lien Nexus, son nom ne dit
     /// souvent rien (« Patch FR/fr.json » pour Jakk's Quinn), mais la page

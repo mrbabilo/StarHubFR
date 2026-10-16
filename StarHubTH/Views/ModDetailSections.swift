@@ -242,7 +242,12 @@ struct TranslationSection: View {
     @State private var showDeclareSheet = false
 
     private var installed: InstalledTranslation? { vm.translation(for: mod) }
-    private var hits: [NexusModSearch.Hit] { vm.translationHits[mod.folderName] ?? [] }
+    /// R3 — sans recherche propre, ceux du balayage de la page (`shownHits`).
+    private var hits: [NexusModSearch.Hit]? {
+        let model = vm, folder = mod.folderName
+        return FrenchTranslationSweep.shownHits(own: model.translationHits[folder], entry: model.translationSweep.entries[folder],
+                                                installed: installed ?? model.declaredTracked(for: mod))
+    }
     private var isSearching: Bool { vm.searchingTranslations.contains(mod.folderName) }
     private var isBusy: Bool { vm.busyTranslations.contains(mod.folderName) }
     private var update: NexusModSearch.Hit? { vm.translationUpdateAvailable(for: mod) }
@@ -263,7 +268,7 @@ struct TranslationSection: View {
             }
             searchRow
             // Rien avant la recherche : vide se lirait « aucune traduction ».
-            if !isSearching, vm.translationHits[mod.folderName] != nil {
+            if !isSearching, let hits {
                 if hits.isEmpty {
                     Text(localization.L(L10n.Mods.translationNoneFound))
                         .font(AppDesign.Font.footnote)
@@ -448,7 +453,7 @@ struct TranslationSection: View {
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                 // Les deux moitiés : le bon candidat a été retiré des propositions.
-                let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + hits
+                let candidates = (vm.translationInstalledHits[mod.folderName] ?? []) + (hits ?? [])
                 if !candidates.isEmpty {
                     Menu(localization.L(L10n.Mods.linkToNexus)) {
                         ForEach(candidates.prefix(6)) { hit in
@@ -522,14 +527,10 @@ struct TranslationSection: View {
     private func candidate(_ hit: NexusModSearch.Hit) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(hit.name)
-                    .font(AppDesign.Font.footnote(.medium))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                Text(hit.name).font(AppDesign.Font.footnote(.medium)).lineLimit(1).truncationMode(.middle)
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
-                    .font(AppDesign.Font.iconXS)
-                    .foregroundColor(.secondary)
+                    .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
             }
             Spacer()
             // Même paire que les mises à jour : direct (Premium) et Nexus, onglet
@@ -560,7 +561,6 @@ struct TranslationSection: View {
         .padding(.vertical, 2)
     }
 }
-
 
 /// Retrouver la fiche Nexus d'un mod sans id (83 mesurés le 2026-08-26 :
 /// 55 sans résultat) : « aucun résultat » est une réponse, écrite en

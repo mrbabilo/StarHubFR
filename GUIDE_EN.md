@@ -122,7 +122,7 @@ Open a mod's page, **Translation** tab.
 - **English on the left, French on the right**, key by key. A mod without a `fr.json` gets one on the first save.
 - **The game's markers** (player names, line breaks, colours…) are shown in colour and inserted in one click. Losing or adding a marker that breaks the game (a dialogue command, a lone `#`, `{{…}}`) blocks the save, and the app says which one is missing or extra. A portrait, the player name (`@`) or a page break moved around shows under the field as "To check", without blocking.
 - **Draft by a local AI**: with [Ollama](https://ollama.com) or [LM Studio](https://lmstudio.ai) on your Mac, the app suggests a translation marked "To review". Nothing leaves your machine. The glossary of the game's official names is imposed on the model.
-- **French translations** lists the translations already published on Nexus for your mods: often, installing one is all it takes.
+- **French translations**, **To finish** segment: translations started but not finished, or to review, biggest remainder first; "Translate" opens the mod's page. **On Nexus** segment: translations already published for your mods, often installing one is all it takes.
 
 A translation written in the app lives in the mod's folder. Updating the mod doesn't overwrite it; the update preview tells you which keys need revisiting.
 

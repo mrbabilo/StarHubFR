@@ -21,40 +21,42 @@ struct TranslationLotShuttleView: View {
     @State private var message: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .trailing, spacing: 4) {
             shuttleRow
-            footer
+            footer.frame(maxWidth: 280, alignment: .trailing)
         }
     }
 
+    /// R3 — un menu d'en-tête plutôt qu'une bande permanente : l'usage est
+    /// rare. La feuille reste attachée à la vue, pas au contenu du menu.
     private var shuttleRow: some View {
-        HStack(spacing: AppDesign.Spacing.md) {
-            Label(localization.L(L10n.FrTranslations.shuttleTitle),
-                  systemImage: "shippingbox")
-                .font(AppDesign.Font.caption.weight(.medium))
-            Button {
-                showingPicker = true
-            } label: {
-                Label(localization.L(L10n.FrTranslations.shuttleExport),
-                      systemImage: "square.and.arrow.up")
-            }
-            .disabled(building)
-            .help(localization.L(L10n.FrTranslations.shuttleExportHint))
-            Button {
-                importArchive()
-            } label: {
-                Label(localization.L(L10n.FrTranslations.shuttleImport),
-                      systemImage: "square.and.arrow.down")
-            }
-            .disabled(building || mergeStore.busy)
-            .help(localization.L(L10n.FrTranslations.shuttleImportHint))
+        HStack(spacing: AppDesign.Spacing.sm) {
             if building {
                 ProgressView().controlSize(.small)
-                Text(localization.L(L10n.FrTranslations.shuttleBuilding))
-                    .font(AppDesign.Font.caption)
-                    .foregroundColor(.secondary)
+                    .help(localization.L(L10n.FrTranslations.shuttleBuilding))
             }
-            Spacer()
+            Menu {
+                Button {
+                    showingPicker = true
+                } label: {
+                    Label(localization.L(L10n.FrTranslations.shuttleExport),
+                          systemImage: "square.and.arrow.up")
+                }
+                .disabled(building)
+                .help(localization.L(L10n.FrTranslations.shuttleExportHint))
+                Button {
+                    importArchive()
+                } label: {
+                    Label(localization.L(L10n.FrTranslations.shuttleImport),
+                          systemImage: "square.and.arrow.down")
+                }
+                .disabled(building || mergeStore.busy)
+                .help(localization.L(L10n.FrTranslations.shuttleImportHint))
+            } label: {
+                Label(localization.L(L10n.FrTranslations.shuttleTitle), systemImage: "shippingbox")
+            }
+            .controlSize(.small)
+            .fixedSize()
         }
         .sheet(isPresented: $showingPicker) {
             LotPickerSheet(viewModel: viewModel, localization: localization, onDone: { message in
