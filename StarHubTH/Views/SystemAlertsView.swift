@@ -271,16 +271,34 @@ struct SystemAlertsView: View {
             // journaux » est le plus long des deux en français ; le voir
             // tronqué ou replié dirait moins que le titre tronqué à côté.
             ForEach(issue.actions) { action in
-                Button(actionLabel(for: action)) { perform(action) }
-                    .lineLimit(1)
-                    .fixedSize()
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
-                    .pointingHandCursor()
+                actionButtons(for: action)
             }
         }
         .padding(.vertical, AppDesign.Spacing.sm)
         .padding(.trailing, AppDesign.Spacing.md)
+    }
+
+    /// R7 — sans Premium, « Réinstaller » grisé, bouton Nexus à côté (règle de la fiche).
+    @ViewBuilder
+    private func actionButtons(for action: HealthIssue.Action) -> some View {
+        let premiumNexusId: Int? = if case .reinstallFromNexus(let id) = action, viewModel.nexusDirectDownloadUnavailable { id } else { nil }
+        Group {
+            Button(actionLabel(for: action)) { perform(action) }
+                .disabled(premiumNexusId != nil)
+                .help(premiumNexusId != nil ? localization.L(L10n.Mods.premiumOnlyHint) : "")
+            if let premiumNexusId {
+                Button {
+                    NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: premiumNexusId))
+                } label: {
+                    Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
+                }
+            }
+        }
+        .lineLimit(1)
+        .fixedSize()
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .pointingHandCursor()
     }
 
     /// Le libellé doit dire OÙ le bouton mène : l'ancien `openTab(String)`

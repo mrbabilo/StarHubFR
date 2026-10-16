@@ -15,7 +15,7 @@ where the exact log format was verified.
 ### Changed
 
 - **Clé API Nexus absente : un seul remède partout.** Mises à jour, Traductions FR, fiche d'un mod (traduction, compléments, fiche Nexus) proposent « Ouvrir les réglages Nexus », comme Découvrir, puis « Obtenir une clé API » en second.
-- **Traductions FR : « Installer » respecte le compte Premium.** Sans Premium, le bouton est grisé avec son explication, comme dans la fiche ; le bouton Nexus à côté prend le relais.
+- **Traductions FR : « Installer » respecte le compte Premium.** Sans Premium, le bouton est grisé avec son explication, comme dans la fiche ; le bouton Nexus à côté prend le relais. Même règle pour « Réinstaller depuis Nexus » dans les Alertes, qui gagne un bouton Nexus vers l'onglet Fichiers.
 - **Alertes système et Santé se renvoient l'une à l'autre.** Sous les tuiles des Alertes : la date du journal SMAPI, son âge s'il est périmé, et « Rapport complet du journal ». En tête de la Santé : « N alertes à traiter » et « Voir les alertes ». Le segment « Alertes » compte comme la pastille : les notices sans gravité restent dans leur tuile.
 
 ## [1.68.0] - 2026-10-16
