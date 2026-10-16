@@ -6,7 +6,7 @@ import SwiftUI
 private enum ModInstallBackupsConfirmation {
     case error(String)
     case restore(ModInstallBackup)
-    case delete(ModInstallBackup)
+    case delete(ModInstallBackup, soleCopy: [MaintenanceInventory.UserFile])
 }
 
 /// View for managing mod installation backups (complete mod folders).
@@ -17,6 +17,8 @@ struct ModInstallBackupsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @State private var backups: [ModInstallBackup] = []
+    /// Faux tant que la première lecture n'est pas finie : « 0 » n'est dit qu'après.
+    @State private var hasLoaded = false
     @State private var confirmation: ModInstallBackupsConfirmation?
     /// Compte rendu de la dernière restauration, calculé par
     /// `ModInstallBackupManager` (B4-T2), rendu en panneau (H-T6).
@@ -39,7 +41,9 @@ struct ModInstallBackupsView: View {
             Divider()
 
             // Content
-            if backups.isEmpty {
+            if !hasLoaded {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if backups.isEmpty {
                 emptyState
             } else if groups.isEmpty {
                 noMatchState
@@ -54,13 +58,14 @@ struct ModInstallBackupsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            // Prune expired backups before listing.
-            DispatchQueue.global(qos: .utility).async {
-                _ = backupManager.cleanupOldBackups()
-                DispatchQueue.main.async {
-                    loadBackups()
-                }
+        // Lire avant de nettoyer (qui supprime sous verrou, et peut durer), relire s'il
+        // a retiré quelque chose ; tâche de la vue : la page restait sur « 0 · 0 » (R0).
+        .task {
+            let manager = backupManager
+            backups = await Task.detached(priority: .userInitiated) { manager.loadBackups() }.value
+            hasLoaded = true
+            if await Task.detached(priority: .utility, operation: { manager.cleanupOldBackups() }).value > 0 {
+                backups = await Task.detached(priority: .userInitiated) { manager.loadBackups() }.value
             }
         }
         // I-T5 : la demande peut précéder la vue (changement d'onglet).
@@ -82,7 +87,7 @@ struct ModInstallBackupsView: View {
                     performRestore(backup)
                 }
                 Button(localization.L(L10n.ModInstall.cancel), role: .cancel) { }
-            case .delete(let backup):
+            case .delete(let backup, _):
                 Button(localization.L(L10n.ModInstall.deleteBackup), role: .destructive) {
                     performDelete(backup)
                 }
@@ -92,7 +97,7 @@ struct ModInstallBackupsView: View {
             switch pending {
             case .error(let message): Text(message)
             case .restore: Text(localization.L(L10n.ModInstall.restoreConfirmMessage))
-            case .delete: Text(localization.L(L10n.ModInstall.deleteConfirmMessage))
+            case .delete(_, let soleCopy): Text(deleteMessage(soleCopy: soleCopy))
             }
         }
     }
@@ -156,14 +161,6 @@ struct ModInstallBackupsView: View {
         .background(AppDesign.Color.controlBg)
     }
 
-    private func reasonText(for reason: BackupReason) -> String {
-        switch reason {
-        case .beforeInstall: return localization.L(L10n.ModInstall.backupReasonInstall)
-        case .beforeUpdate: return localization.L(L10n.ModInstall.backupReasonUpdate)
-        case .beforeRestore: return localization.L(L10n.ModInstall.backupReasonRestore)
-        case .beforeCleanup: return localization.L(L10n.ModInstall.backupReasonCleanup)
-        }
-    }
 
     private var emptyState: some View {
         VStack(spacing: 16) {
@@ -232,16 +229,12 @@ struct ModInstallBackupsView: View {
             Spacer(minLength: AppDesign.Spacing.sm)
             // Clé dédiée : mettre en minuscules le titre « Gérer les
             // sauvegardes » donnait « 12 gérer les sauvegardes ».
-            Text(String(format: localization.L(L10n.ModInstall.backupsModsCount),
-                        Int64(groups.count), Int64(backups.count)))
+            Text(hasLoaded ? String(format: localization.L(L10n.ModInstall.backupsModsCount),
+                                    Int64(groups.count), Int64(backups.count)) : "…")
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
-            Button {
-                loadBackups()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
+            Button(action: loadBackups) { Image(systemName: "arrow.clockwise") }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
@@ -410,7 +403,7 @@ struct ModInstallBackupsView: View {
                     .iconHelp(localization.L(L10n.ModInstall.restoreBackup))
 
                     Button {
-                        confirmation = .delete(backup)
+                        askDelete(backup)
                     } label: {
                         Image(systemName: "trash")
                             .font(AppDesign.Font.caption)
@@ -438,20 +431,12 @@ struct ModInstallBackupsView: View {
             }
             Divider()
             Button(localization.L(L10n.ModInstall.deleteBackup), role: .destructive) {
-                confirmation = .delete(backup)
+                askDelete(backup)
             }
         }
         .disabled(busyBackupId != nil)
     }
 
-    private func reasonIcon(for reason: BackupReason) -> String {
-        switch reason {
-        case .beforeInstall: return "plus.circle"
-        case .beforeUpdate: return "arrow.up.circle"
-        case .beforeRestore: return "arrow.uturn.backward.circle"
-        case .beforeCleanup: return "wand.and.stars"
-        }
-    }
 
     private var retentionInfoBanner: some View {
         HStack(spacing: 8) {
@@ -471,27 +456,6 @@ struct ModInstallBackupsView: View {
         backups = backupManager.loadBackups()
     }
 
-    /// Met le compte rendu en phrases, pour la ligne de journal. Le panneau
-    /// affiché sous la liste (`restoreReportPanel`) rend les mêmes sept
-    /// champs en lignes étiquetées ; cette fonction ne sert plus qu'au log
-    /// (elle a servi au message de l'alerte avant T9 H-T6).
-    private func restoreReportMessage(_ report: ModInstallRestoreReport) -> String {
-        var lines = [
-            String(format: localization.L(L10n.ModInstall.restoreReportWritten),
-                   report.modName, report.version, report.displayPath),
-            String(format: localization.L(L10n.ModInstall.restoreReportFiles), Int64(report.fileCount)),
-            localization.L(report.landedEnabled ? L10n.ModInstall.restoreReportActive
-                                      : L10n.ModInstall.restoreReportPaused)
-        ]
-        if !report.replacedVersions.isEmpty {
-            let key = report.replacedVersions.count == 1
-                ? L10n.ModInstall.restoreReportReplaced
-                : L10n.ModInstall.restoreReportReplacedMany
-            lines.append(String(format: localization.L(key),
-                                report.replacedVersions.joined(separator: ", ")))
-        }
-        return lines.joined(separator: "\n")
-    }
 
     private func performRestore(_ backup: ModInstallBackup) {
         guard busyBackupId == nil else { return }
@@ -538,12 +502,21 @@ struct ModInstallBackupsView: View {
         }
     }
 
+    /// R1 — la règle « seule copie » de l'Entretien, lue au clic pour cette sauvegarde.
+    private func askDelete(_ backup: ModInstallBackup) {
+        let model = vm
+        confirmation = .delete(backup, soleCopy: MaintenanceDiskReader.soleCopyFiles(
+            backupRoot: URL(fileURLWithPath: backup.backupPath), modFolder: backup.originalFolderName,
+            modsRoot: (model.gameDir as NSString).appendingPathComponent("Mods"),
+            hostTranslationPaths: model.installedTranslationRelativePaths()[backup.originalFolderName] ?? []))
+    }
+
     private func performDelete(_ backup: ModInstallBackup) {
         guard busyBackupId == nil else { return }
         busyBackupId = backup.id
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try backupManager.deleteBackup(backup)
+                try backupManager.trashBackup(backup)
                 DispatchQueue.main.async {
                     busyBackupId = nil
                     loadBackups()

@@ -292,7 +292,7 @@ public final class ModConfigBackupManager: @unchecked Sendable {
         return "\(formatter.string(from: timestamp))_\(UUID().uuidString)_backup"
     }
 
-    private func backupDirURL(named folderName: String) -> URL {
+    func backupDirURL(named folderName: String) -> URL {
         backupsDirPath.appendingPathComponent(folderName, isDirectory: true)
     }
 

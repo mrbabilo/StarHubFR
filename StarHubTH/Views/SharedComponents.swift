@@ -83,7 +83,7 @@ struct StandardSection<Content: View>: View {
             }
 
             if let footerText = footer, !footerText.isEmpty {
-                Text(verbatim: footerText)
+                Text(Self.footerMarkdown(footerText))
                     .font(AppDesign.Font.footnote)
                     .foregroundColor(.secondary)
                     .lineSpacing(2)
@@ -91,6 +91,19 @@ struct StandardSection<Content: View>: View {
                     .padding(.top, AppDesign.Spacing.xs)
                     .tint(.accentColor)
             }
+        }
+    }
+}
+
+extension StandardSection {
+    /// Les liens Markdown du pied (`settings_footer_launch`) s'affichaient bruts
+    /// sous `Text(verbatim:)` (audit UX E5) ; un texte sans balise reste tel quel.
+    static func footerMarkdown(_ text: String) -> AttributedString {
+        do {
+            return try AttributedString(markdown: text, options: .init(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace))
+        } catch {
+            return AttributedString(text)
         }
     }
 }

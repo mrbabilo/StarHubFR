@@ -288,7 +288,7 @@ struct ModConfigBackupsView: View {
     private func performDelete(_ backup: ModConfigBackup) {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try ModConfigBackupManager.shared.deleteBackup(backup)
+                try ModConfigBackupManager.shared.trashBackup(backup)
                 let fetched = ModConfigBackupManager.shared.loadBackups()
                 DispatchQueue.main.async {
                     self.backups = fetched

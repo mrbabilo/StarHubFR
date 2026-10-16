@@ -7664,7 +7664,7 @@ final class StarHubTHViewModel {
     /// une sauvegarde relative à sa racine : comparaison par suffixe,
     /// **bornée à l'hôte** (X75 : 59 faux). Voir
     /// `MaintenanceInventory.classifyUserFile`.
-    private func installedTranslationRelativePaths() -> [String: Set<String>] {
+    func installedTranslationRelativePaths() -> [String: Set<String>] {
         let registry = InstalledTranslationStore.load()
         var paths: [String: Set<String>] = [:]
         for (host, entry) in registry.byHost {
@@ -7697,7 +7697,7 @@ final class StarHubTHViewModel {
 
         for backup in installBackups {
             let root = URL(fileURLWithPath: backup.backupPath)
-            guard let (bytes, files) = Self.walkBackup(
+            guard let (bytes, files) = MaintenanceDiskReader.walkBackup(
                 root: root,
                 hostTranslationPaths: userTranslationPathsByHost[backup.originalFolderName] ?? [])
             else { continue }
@@ -7708,7 +7708,7 @@ final class StarHubTHViewModel {
                 id: session, modFolder: backup.originalFolderName,
                 timestamp: backup.timestamp, sizeBytes: bytes, userFiles: files)
             entries.append(entry)
-            let installed = Self.installedState(of: backup.originalFolderName,
+            let installed = MaintenanceDiskReader.installedState(of: backup.originalFolderName,
                                                 modsRoot: modsRoot, userFiles: files)
             protections[session] = MaintenanceInventory.protection(of: entry,
                                                                    installed: installed)
@@ -7718,7 +7718,7 @@ final class StarHubTHViewModel {
         let onDisk = Set((try? fm.contentsOfDirectory(atPath: installBackupsRoot.path))?
             .filter { !$0.hasPrefix(".") } ?? [])
         let configBytes = configBackups.reduce(Int64(0)) { total, backup in
-            total + (Self.walkBackup(root: configBackupsRoot
+            total + (MaintenanceDiskReader.walkBackup(root: configBackupsRoot
                 .appendingPathComponent(backup.folderName),
                 hostTranslationPaths: [])?.0 ?? 0)
         }
@@ -7734,52 +7734,6 @@ final class StarHubTHViewModel {
             stalePreferenceKeys: MaintenanceInventory.stalePreferenceKeys(
                 preferenceKeys, installedFolders: installedFolders),
             missingMods: missingMods)
-    }
-
-    /// Taille et fichiers utilisateur en **une** traversée, `nil` si absent.
-    /// Classification bornée à l'hôte (X75). `nonisolated` (L2).
-    nonisolated private static func walkBackup(root: URL, hostTranslationPaths: Set<String>)
-    -> (Int64, [MaintenanceInventory.UserFile])? {
-        let fm = FileManager.default
-        var isDir: ObjCBool = false
-        guard fm.fileExists(atPath: root.path, isDirectory: &isDir), isDir.boolValue
-        else { return nil }
-        guard let walker = fm.enumerator(at: root,
-                                         includingPropertiesForKeys: [.fileSizeKey,
-                                                                      .isRegularFileKey])
-        else { return nil }
-        var bytes: Int64 = 0
-        var files: [MaintenanceInventory.UserFile] = []
-        // ⚠️ `resolvingSymlinksInPath()` d'abord : l'énumérateur rend
-        // `/private/var…`.
-        let base = root.resolvingSymlinksInPath().path + "/"
-        for case let url as URL in walker {
-            let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
-            guard values?.isRegularFile == true else { continue }
-            bytes += Int64(values?.fileSize ?? 0)
-            let relative = url.resolvingSymlinksInPath().path
-                .replacingOccurrences(of: base, with: "")
-            if let kind = MaintenanceInventory.classifyUserFile(
-                relativePath: relative, hostTranslationPaths: hostTranslationPaths) {
-                files.append(.init(relativePath: relative, kind: kind))
-            }
-        }
-        return (bytes, files)
-    }
-
-    /// État actuel du mod, restreint aux chemins utiles ; `nil` si absent
-    /// (actif ou en pause). `nonisolated` (L2).
-    nonisolated private static func installedState(of folderName: String, modsRoot: String,
-                                       userFiles: [MaintenanceInventory.UserFile])
-    -> MaintenanceInventory.InstalledState {
-        let fm = FileManager.default
-        guard let current = ModRootResolver.physicalRoot(of: folderName, modsRoot: modsRoot) else {
-            return .init(presentFiles: nil)
-        }
-        let present = userFiles.filter {
-            fm.fileExists(atPath: (current as NSString).appendingPathComponent($0.relativePath))
-        }
-        return .init(presentFiles: Set(present.map(\.relativePath)))
     }
 
     /// Met à la corbeille les sauvegardes écartées par `keepPerMod` (règle

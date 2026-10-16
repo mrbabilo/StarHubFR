@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
-    @ObservedObject var smapiInstaller: SmapiInstaller
 
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
     @AppStorage("closeAfterLaunch") private var closeAfterLaunch: Bool = false
@@ -26,7 +25,6 @@ struct SettingsView: View {
     init(vm: StarHubTHViewModel, localization: LocalizationStore) {
         self.localization = localization
         self.vm = vm
-        self.smapiInstaller = vm.smapiInstaller
     }
 
     var body: some View {
@@ -135,7 +133,7 @@ struct SettingsView: View {
     private func sectionView(_ section: SettingsSection) -> some View {
         switch section {
         case .gameFolder:     gameFolderSection
-        case .smapi:          smapiSection
+        case .smapi:          SettingsSmapiSection(vm: vm, localization: localization)
         case .launch:         launchSection
         case .coreExtensions: coreExtensionsSection
         case .nexus:          nexusSection
@@ -368,53 +366,6 @@ struct SettingsView: View {
                 }
                 Spacer()
                 Button(localization.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var smapiSection: some View {
-        // SMAPI Settings
-        StandardSection(title: localization.L(L10n.Home.smapiManager), icon: ("shippingbox.fill", .indigo)) {
-            VStack(spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(localization.L(L10n.Home.smapiStatus))
-                            .font(AppDesign.Font.body)
-                        if let version = vm.smapiInstalledVersion {
-                            Text(String(format: localization.L(L10n.Home.smapiInstalled), version))
-                                .font(AppDesign.Font.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text(localization.L(L10n.Home.smapiNotInstalled))
-                                .font(AppDesign.Font.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                    if smapiInstaller.isInstalling {
-                        ProgressView()
-                            .controlSize(.small)
-                            .padding(.trailing, 4)
-                    } else if vm.smapiInstalledVersion == nil {
-                        Button(localization.L(L10n.Home.installSmapi)) { vm.installSmapi() }
-                    } else {
-                        Button(localization.L(L10n.Home.uninstall)) { vm.uninstallSmapi() }
-                    }
-                }
-
-                if smapiInstaller.isInstalling {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ProgressView(value: smapiInstaller.progress, total: 1.0)
-                            .progressViewStyle(.linear)
-                            .tint(.blue)
-                            .animation(Motion.animation(.easeInOut), value: smapiInstaller.progress)
-                        Text(localization.L(smapiInstaller.statusMessage))
-                            .font(AppDesign.Font.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 12)
-                }
             }
         }
     }

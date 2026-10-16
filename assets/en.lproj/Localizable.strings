@@ -255,6 +255,8 @@
 "home_tool_unar" = "The Unarchiver (unar)";
 "home_tool_unar_tooltip" = "The Unarchiver (unar) is used to extract .rar mod archives. Install it with Homebrew: brew install unar";
 "home_uninstall" = "Uninstall";
+"home_uninstall_confirm_title" = "Uninstall SMAPI?";
+"home_uninstall_confirm_message" = "The game will start without mods until SMAPI is reinstalled. Uninstalling downloads SMAPI's official tool.";
 "install_report_done" = "Done";
 "install_report_next_archive" = "Next archive (%d)";
 "install_report_summary_config" = "%d options to review";
@@ -574,8 +576,8 @@
 "mod_config_backups_cleanup_complete" = "%d old backup(s) removed (older than 30 days, keeping at least the 5 most recent).";
 "mod_config_backups_create" = "Create Backup";
 "mod_config_backups_creating" = "Creating backup…";
-"mod_config_backups_delete" = "Delete";
-"mod_config_backups_delete_confirm" = "Delete this backup? This cannot be undone.";
+"mod_config_backups_delete" = "Move to Trash";
+"mod_config_backups_delete_confirm" = "Move this backup to the Mac's Trash? You can take it back out until the Trash is emptied.";
 "mod_config_backups_delete_failed" = "Delete failed: %@";
 "mod_config_backups_empty" = "No backups yet";
 "mod_config_backups_failed" = "Failed to create backup: %@";
@@ -615,9 +617,10 @@
 "mod_install_conflicts_title" = "Conflicts";
 "mod_install_copy_command" = "Copy the command";
 "mod_install_corrupted" = "This archive appears to be corrupted and could not be read.";
-"mod_install_delete_backup" = "Delete";
-"mod_install_delete_confirm" = "Delete Backup?";
-"mod_install_delete_confirm_msg" = "This backup will be permanently deleted. This cannot be undone.";
+"mod_install_delete_backup" = "Move to Trash";
+"mod_install_delete_confirm" = "Move Backup to Trash?";
+"mod_install_delete_confirm_msg" = "It goes to the Mac's Trash: you can take it back out until the Trash is emptied.";
+"mod_install_delete_sole_copy" = "This is the only copy of: %@. These files are no longer in the installed mod.";
 "mod_install_dep_count" = "%d dependencies";
 "mod_install_dep_disabled" = "Installed but disabled";
 "mod_install_dep_download" = "Get it";
@@ -1522,7 +1525,7 @@
 "settings_fallback_title" = "Online fallback";
 "settings_fallback_unreachable" = "DeepL could not be reached";
 "settings_footer_appearance" = "The Developer Logs window is for inspecting SMAPI. When a mod crashes, you can copy the text to ask the developer.";
-"settings_footer_launch" = "If the game fails to launch, try selecting Vanilla. For more info, see: [wiki.stardewvalley.net/Modding](https://stardewvalleywiki.com/Modding)";
+"settings_footer_launch" = "If the game fails to launch, try selecting Vanilla. For more info, see: [stardewvalleywiki.com/Modding](https://stardewvalleywiki.com/Modding)";
 "settings_game_dir_not_set" = "Please select game folder first";
 "settings_glossary_info" = "%1$lld terms, built on %2$@";
 "settings_glossary_none" = "No glossary yet — Rebuild reads the terms from your installed game";
