@@ -26,9 +26,6 @@ struct ProfileConfigCompareView: View {
         vm.modProfiles.first(where: { $0.id == vm.activeProfileId })?.name ?? ""
     }
 
-    private var onlyA: [ConfigKeyDiff] { diffs.filter { $0.kind == .onlyInA } }
-    private var differs: [ConfigKeyDiff] { diffs.filter { $0.kind == .valueDiffers } }
-    private var onlyB: [ConfigKeyDiff] { diffs.filter { $0.kind == .onlyInB } }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -52,15 +49,7 @@ struct ProfileConfigCompareView: View {
             } else if diffs.isEmpty {
                 centered(localization.L(L10n.Mods.profileConfigDiffNone))
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        section(String(format: localization.L(L10n.Mods.profileConfigDiffOnlyA),
-                                       activeName), items: onlyA)
-                        section(localization.L(L10n.Mods.profileConfigDiffDiffers), items: differs)
-                        section(String(format: localization.L(L10n.Mods.profileConfigDiffOnlyB),
-                                       other.name), items: onlyB)
-                    }
-                }
+                ConfigDiffList(localization: localization, diffs: diffs, nameA: activeName, nameB: other.name)
             }
 
             Divider()
@@ -100,67 +89,5 @@ struct ProfileConfigCompareView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-    }
-
-    /// Une famille : en-tête + lignes. La sous-liste vient en paramètre —
-    /// trier les diffs par libellé localisé serait trier des données par
-    /// habillage. Une famille vide ne montre pas son en-tête : un titre
-    /// seul sous lequel rien ne vient se lit comme un écran cassé.
-    private func section(_ title: String, items: [ConfigKeyDiff]) -> some View {
-        Group {
-            if !items.isEmpty {
-                HStack {
-                    Text(title)
-                        .font(AppDesign.Font.footnote(.semibold))
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
-                .padding(.bottom, 6)
-                ForEach(items) { diff in
-                    if diff.kind == .valueDiffers {
-                        comparisonRow(diff)
-                    } else {
-                        row(diff)
-                    }
-                    Divider().padding(.leading, 20)
-                }
-            }
-        }
-    }
-
-    /// Une valeur d'un seul côté : le chemin en monospace, la valeur
-    /// dessous, sélectionnable — copier à la main reste possible même en
-    /// lecture seule.
-    private func row(_ diff: ConfigKeyDiff) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(diff.path)
-                .font(AppDesign.Font.monoIconXS)
-                .foregroundColor(.secondary)
-            Text((diff.valueA ?? diff.valueB) ?? "")
-                .font(AppDesign.Font.caption)
-                .textSelection(.enabled)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-    }
-
-    /// Les deux valeurs côte à côte, étiquetées par profil — c'est ce qui
-    /// permet de juger laquelle vient d'où.
-    private func comparisonRow(_ diff: ConfigKeyDiff) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(diff.path)
-                .font(AppDesign.Font.monoIconXS)
-                .foregroundColor(.secondary)
-            HStack(alignment: .top, spacing: 12) {
-                labelledValue(activeName, diff.valueA ?? "", color: .primary)
-                labelledValue(other.name, diff.valueB ?? "", color: .secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
     }
 }

@@ -606,6 +606,14 @@
 "mod_config_backups_restore_version" = "Restore this version";
 "mod_config_backups_search" = "Search for a mod";
 "mod_config_backups_mods_count" = "%lld mod(s) backed up";
+"mod_config_backups_compare" = "Compare";
+"mod_config_backups_compare_title" = "%1$@ — backup of %2$@ vs the current file";
+"mod_config_backups_compare_note" = "Read-only: this backup's settings, key by key, against the mod's current config.json.";
+"mod_config_backups_compare_missing" = "The config.json is missing on one side: in the backup, or on disk (mod uninstalled, or never run).";
+"mod_config_backups_compare_identical" = "This backup is identical to the current file.";
+"mod_config_backups_compare_unparseable" = "One of the two files does not read as JSON: no comparison possible.";
+"mod_config_backups_side_backup" = "Backup";
+"mod_config_backups_side_current" = "Current";
 "mod_config_backups_restore_failed" = "Restore failed: %@";
 "mod_config_backups_restore_report_nothing" = "Nothing was restored: not one file could be written.";
 "mod_config_backups_restore_report_skipped_files" = "Files skipped (missing from the backup, or impossible to write): %@";

@@ -330,6 +330,7 @@ let package = Package(
                 "Models/ProfileTranslationCoverage.swift",
                 "Models/TranslationWorklist.swift",
                 "Models/ConfigBackupBrowser.swift",
+                "Models/ConfigBackupComparison.swift",
                 "Models/TranslationCoverageCache.swift",
                 "Models/DownloadProgress.swift",
                 "Models/FileRecovery.swift",

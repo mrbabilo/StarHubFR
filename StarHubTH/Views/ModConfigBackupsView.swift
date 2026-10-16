@@ -23,6 +23,7 @@ struct ModConfigBackupsView: View {
     @AppStorage("configBackupsByDate") private var byDate = false
     @State private var search = ""
     @State private var expandedMods: Set<String> = []
+    @State private var comparing: ConfigBackupBrowser.Version?
 
     /// Ce que la recherche et le filtre de l'éditeur laissent d'une sauvegarde.
     private func visibleItems(_ backup: ModConfigBackup) -> [ModConfigBackupItem] {
@@ -58,10 +59,14 @@ struct ModConfigBackupsView: View {
                 list
             } else {
                 ModConfigBackupsByMod(localization: localization, groups: groups, expanded: $expandedMods,
-                                      restore: { confirmation = .restore($0, [$1]) })
+                                      restore: { confirmation = .restore($0, [$1]) }, compare: { comparing = $0 })
             }
         }
         .onAppear { reload() }
+        .sheet(item: $comparing) { version in
+            ConfigBackupCompareSheet(localization: localization, version: version,
+                                     currentURL: currentConfigURL(version.item.modFolderName))
+        }
         // Venu de l'éditeur : ce mod, déplié, dans la vue par mod.
         .onChange(of: modFilter, initial: true) { _, folder in
             if let folder { expandedMods.insert(folder); byDate = false }
@@ -281,6 +286,16 @@ struct ModConfigBackupsView: View {
         return lines.joined(separator: "\n\n")
     }
 
+    /// Le `config.json` actuel d'un mod (dossier physique : un mod en pause
+    /// vit dans `.X`) ; `nil` s'il n'est plus installé.
+    private func currentConfigURL(_ folder: String) -> URL? {
+        let model = vm
+        return model.scanStore.mods.flattenedMods.first { $0.folderName == folder }.map {
+            ProfileConfigStore.configURL(modsPath: (model.gameDir as NSString).appendingPathComponent("Mods"),
+                                         physicalFolderName: $0.physicalFolderName)
+        }
+    }
+
     /// La confirmation nomme ce qui sera remplacé : une sauvegarde de config
     /// porte aussi les i18n, donc les traductions faites dans l'app.
     private func restoreWarning(_ items: [ModConfigBackupItem]) -> String {
@@ -293,11 +308,11 @@ struct ModConfigBackupsView: View {
     private func performRestore(_ backup: ModConfigBackup, _ selected: [ModConfigBackupItem]) {
         guard !selected.isEmpty else { return }
         isBusy = true
-        let gameDir = vm.gameDir
+        let model = vm, gameDir = model.gameDir
         // Tous les mods, pas seulement les actifs : le filet pris avant
         // d'écraser doit couvrir les mods **en pause**, où vivent presque
         // toutes les configurations du parc.
-        let currentMods = vm.scanStore.mods
+        let currentMods = model.scanStore.mods
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let report = try ModConfigBackupManager.shared.restoreBackup(
@@ -310,18 +325,18 @@ struct ModConfigBackupsView: View {
                 DispatchQueue.main.async {
                     self.backups = fetched
                     self.isBusy = false
-                    self.vm.alertStore.show(self.restoreReportMessage(report))
-                    self.vm.log(self.restoreReportMessage(report),
+                    model.alertStore.show(self.restoreReportMessage(report))
+                    model.log(self.restoreReportMessage(report),
                                 level: report.isComplete ? .info : .warning)
                     // Des `config.json` viennent d'être réécrits, et le parc
                     // n'a pas bougé : sans ça, le rapport de raccourcis reste
                     // sur l'état d'avant la restauration (X66).
-                    self.vm.rescanKeybindsAfterConfigWrite()
+                    model.rescanKeybindsAfterConfigWrite()
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.isBusy = false
-                    self.vm.alertStore.show(self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.restoreFailed))
+                    model.alertStore.show(self.localizedMessage(for: error, genericKey: L10n.ModConfigBackups.restoreFailed))
                 }
             }
         }
@@ -330,8 +345,9 @@ struct ModConfigBackupsView: View {
     private func performDelete(_ backup: ModConfigBackup) {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try ModConfigBackupManager.shared.trashBackup(backup)
-                let fetched = ModConfigBackupManager.shared.loadBackups()
+                let manager = ModConfigBackupManager.shared
+                try manager.trashBackup(backup)
+                let fetched = manager.loadBackups()
                 DispatchQueue.main.async {
                     self.backups = fetched
                     if self.expandedBackupId == backup.id {

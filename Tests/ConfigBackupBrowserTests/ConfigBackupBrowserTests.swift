@@ -39,3 +39,20 @@ private func backup(_ day: Int, _ items: [ModConfigBackupItem]) -> ModConfigBack
         #expect(ConfigBackupBrowser.groups(from: backups, search: "  ").count == 3)
     }
 }
+
+/// La comparaison montrée avant de restaurer une version.
+@Suite struct ConfigBackupComparisonTests {
+    @Test func reportsWhatDiffersFromTheCurrentFile() {
+        let outcome = ConfigBackupComparison.compare(backup: #"{"Volume": 5, "Key": "F8"}"#,
+                                                     current: #"{"Volume": 7, "Key": "F8"}"#)
+        guard case .differs(let diffs) = outcome else { Issue.record("attendu .differs, reçu \(outcome)"); return }
+        #expect(diffs.map(\.path) == ["Volume"])
+        #expect(diffs.first?.valueA == "5")
+    }
+
+    @Test func identicalMissingAndUnparseableAreNamed() {
+        #expect(ConfigBackupComparison.compare(backup: #"{"A": 1}"#, current: #"{"A": 1}"#) == .identical)
+        #expect(ConfigBackupComparison.compare(backup: #"{"A": 1}"#, current: nil) == .missing)
+        #expect(ConfigBackupComparison.compare(backup: "{oups", current: #"{"A": 1}"#) == .unparseable)
+    }
+}

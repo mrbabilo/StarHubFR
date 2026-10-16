@@ -7520,3 +7520,26 @@ sans lire une ligne de log.
       supprime rien si elle échoue. Vérifié à l'écran (Wallet Tools : 3
       versions, saut filtré). Non vérifié à l'écran : « Repartir des
       défauts » (écrit sur le parc).
+
+- [x] **Sauvegardes de configuration, à la demande de l'auteur** — *(livré le
+      2026-10-16, hors audit : « la vue Configuration n'est pas pratique »)*.
+      **Sûreté** (`1d11b969`) : une sauvegarde complète dépliée cochait ses
+      211 mods et « Restaurer », sous la liste, les écrasait tous ; rien n'est
+      coché d'office, « Tout cocher / Tout décocher / Restaurer (n) » passent en
+      haut, la confirmation porte ses éléments (`.restore(backup, items)`) et
+      nomme les fichiers remplacés — une sauvegarde de config porte aussi les
+      i18n, donc les traductions faites dans l'app. **Par mod** (`a528dd3f`) :
+      `ConfigBackupBrowser` (Core, 3 tests) groupe par dossier logique, versions
+      de la plus récente à la plus ancienne ; vue par défaut, recherche commune
+      aux deux vues, « Restaurer cette version » restaure cet élément seul ; le
+      saut de l'éditeur (R8) arrive sur ce mod déplié. Mesuré : 216 mods, 13
+      sauvegardes ; « wallet » → 1 groupe, 3 versions. **Comparer** :
+      `ConfigBackupComparison` (Core, 2 tests) — sauvegarde contre `config.json`
+      actuel, rendu partagé avec la comparaison entre profils (`ConfigDiffList`
+      extrait de `ProfileConfigCompareView`). ⚠️ Écart de comptes **voulu** :
+      la vue par mod compte toutes les sauvegardes d'un mod, le menu de
+      l'éditeur seulement celles qui contiennent `config.json` (un élément peut
+      ne porter que des i18n). Décision laissée à l'auteur : restaurer
+      « config.json seulement », sans les i18n. Vérifié à l'écran : sûreté,
+      recherche, vue par date filtrée, saut depuis l'éditeur, comparaison
+      (cas « identique » seulement — aucun écart réel trouvé sur Wallet Tools).

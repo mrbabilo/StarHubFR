@@ -9,6 +9,7 @@ struct ModConfigBackupsByMod: View {
     let groups: [ConfigBackupBrowser.ModGroup]
     @Binding var expanded: Set<String>
     let restore: (ModConfigBackup, ModConfigBackupItem) -> Void
+    let compare: (ConfigBackupBrowser.Version) -> Void
 
     var body: some View {
         BackToTopScrollView(localization) {
@@ -49,6 +50,10 @@ struct ModConfigBackupsByMod: View {
                                 .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                         }
                     } trailing: {
+                        if version.item.files.contains("config.json") {
+                            Button(localization.L(L10n.ModConfigBackups.compare)) { compare(version) }
+                                .buttonStyle(.bordered).controlSize(.small)
+                        }
                         Button(localization.L(L10n.ModConfigBackups.restoreVersion)) {
                             restore(version.backup, version.item)
                         }
