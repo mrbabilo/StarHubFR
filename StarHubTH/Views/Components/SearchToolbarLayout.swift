@@ -38,9 +38,13 @@ struct SearchToolbarLayout: Layout {
             return Arrangement(oneLine: true, leading: ideal[0], search: search, trailing: ideal[2])
         }
         // Deux lignes : les outils d'abord (ils passent en icônes s'il le
-        // faut), le cadrage prend le reste (il a sa forme compacte).
+        // faut), le cadrage prend le reste (il a sa forme compacte). Les
+        // outils se mesurent contre la forme **compacte** du cadrage (sa
+        // taille sous une largeur nulle) : contre sa forme pleine (~850 pt),
+        // ils recevaient 0 pt à 821 et la grille recouvrait ⏻ (E1).
+        let leadingMin = subviews[0].sizeThatFits(ProposedViewSize(width: 0, height: nil))
         let trailing = subviews[2].sizeThatFits(
-            ProposedViewSize(width: max(0, width - ideal[0].width - gap), height: nil))
+            ProposedViewSize(width: max(0, width - leadingMin.width - gap), height: nil))
         let leading = subviews[0].sizeThatFits(
             ProposedViewSize(width: max(0, width - trailing.width - gap), height: nil))
         let search = subviews[1].sizeThatFits(ProposedViewSize(width: width, height: nil))

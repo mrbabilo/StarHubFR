@@ -16,12 +16,8 @@ struct MainView: View {
         self.keybindScanService = vm.keybindScanService
     }
 
-    // History Management
-    @State private var tabHistory: [SidebarDestination] = [.home]
-    @State private var forwardHistory: [SidebarDestination] = []
-    @State private var isNavigatingBackOrForward = false
-    /// Fiche/config ouverte par un saut d'onglet : le retour ramène à cet onglet, pas à la liste.
-    @State private var detailOpenedByJump = false
+    /// Piles, saut d'origine et règle de « Retour » : `NavigationHistory` (Core, N-00).
+    @State private var history = NavigationHistory()
     
     @AppStorage("appColorScheme") private var appColorScheme: String = "System"
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
@@ -95,10 +91,10 @@ struct MainView: View {
     /// Extrait du `.onChange` en même temps que `destinationView`, pour
     /// la même raison.
     private func handleTabChange() {
-            vm.navigationStore.setEditingSave(nil)
+            navigation.setEditingSave(nil)
             navigation.viewingSaveTimeline = nil
-            vm.navigationStore.setEditingModConfig(nil)
-            vm.navigationStore.setViewingModDetail(nil)
+            navigation.setEditingModConfig(nil)
+            navigation.setViewingModDetail(nil)
 
             // …sauf ce qu'une intention en attente demande d'ouvrir. Les
             // trois n'ont pas le même sort — la traduction survit (la vue la
@@ -108,30 +104,23 @@ struct MainView: View {
             // sabotages) : elle était ici, hors de portée d'un test.
             let plan = TabChangePlan.decide(
                 entering: currentTab,
-                pending: .init(translationFocus: vm.navigationStore.pendingTranslationFocus,
-                               configFocus: vm.navigationStore.pendingConfigFocus,
-                               modDetailFocus: vm.navigationStore.pendingModDetailFocus),
+                pending: .init(translationFocus: navigation.pendingTranslationFocus,
+                               configFocus: navigation.pendingConfigFocus,
+                               modDetailFocus: navigation.pendingModDetailFocus),
                 mods: vm.scanStore.mods)
             if plan.clearsConfigFocus {
-                vm.navigationStore.pendingConfigFocus = nil
-                vm.navigationStore.pendingConfigFocusKeyPath = nil
+                navigation.pendingConfigFocus = nil
+                navigation.pendingConfigFocusKeyPath = nil
             }
-            if plan.clearsModDetailFocus { vm.navigationStore.pendingModDetailFocus = nil }
-            if plan.clearsPendingDetailTab { vm.navigationStore.pendingDetailTab = nil }
-            detailOpenedByJump = plan.openModDetail != nil || plan.openModConfig != nil
+            if plan.clearsModDetailFocus { navigation.pendingModDetailFocus = nil }
+            if plan.clearsPendingDetailTab { navigation.pendingDetailTab = nil }
+            history.detailOpenedByJump = plan.openModDetail != nil || plan.openModConfig != nil
             // Conditionnel : les cinq `nil` sont déjà passés, et une
             // affectation `nil` de plus rejouerait deux `didSet`.
-            if let detail = plan.openModDetail { vm.navigationStore.setViewingModDetail(detail) }
-            if let config = plan.openModConfig { vm.navigationStore.setEditingModConfig(config) }
+            if let detail = plan.openModDetail { navigation.setViewingModDetail(detail) }
+            if let config = plan.openModConfig { navigation.setEditingModConfig(config) }
 
-            if !isNavigatingBackOrForward {
-                if tabHistory.last != currentTab {
-                    tabHistory.append(currentTab)
-                    forwardHistory.removeAll()
-                }
-            } else {
-                isNavigatingBackOrForward = false
-            }
+            history.didEnter(currentTab)
     }
 
     /// La vue de détail de l'onglet courant. Extraite du `body` le
@@ -150,7 +139,7 @@ struct MainView: View {
                             // C4-T13 — le réglage précis demandé par le
                             // rapport de raccourcis, s'il y en a un.
                             ModConfigEditorView(vm: vm, localization: localization, mod: mod,
-                                                focusKeyPath: vm.navigationStore.pendingConfigFocusKeyPath)
+                                                focusKeyPath: navigation.pendingConfigFocusKeyPath)
                         } else if let mod = navigation.viewingModDetail {
                             ModDetailView(vm: vm, localization: localization, mod: mod,
                                           sidebarVisibility: $columnVisibility)
@@ -193,13 +182,31 @@ struct MainView: View {
                     }
     }
 
-    private func goBackInHistory() {
-        detailOpenedByJump = false
-        guard tabHistory.count > 1 else { return }
-        isNavigatingBackOrForward = true
-        let current = tabHistory.removeLast()
-        forwardHistory.append(current)
-        currentTab = tabHistory.last ?? .home
+    /// Le détail du dessus, pour la règle de « Retour ».
+    private var openDetail: NavigationHistory.OpenDetail {
+        if navigation.editingSave != nil { return .saveEditor }
+        if navigation.viewingSaveTimeline != nil { return .saveTimeline }
+        if navigation.editingModConfig != nil {
+            return .modConfig(detailUnderneath: navigation.viewingModDetail != nil)
+        }
+        return navigation.viewingModDetail != nil ? .modDetail : .none
+    }
+
+    /// « Retour » : ‹ de la barre, ✕ d'une fiche, ⌘[ — une seule règle.
+    private func stepBack() {
+        let step = history.back(from: openDetail)
+        switch step.close {
+        case .saveEditor:   navigation.setEditingSave(nil)
+        case .saveTimeline: navigation.viewingSaveTimeline = nil
+        case .modConfig:    navigation.setEditingModConfig(nil)
+        case .modDetail:    navigation.setViewingModDetail(nil)
+        case .none:         break
+        }
+        if let page = step.goTo { currentTab = page }
+    }
+
+    private func stepForward() {
+        if let page = history.forward() { currentTab = page }
     }
 
     /// Les boutons d'historique (retour/avant). Extraits du `body` le
@@ -207,39 +214,19 @@ struct MainView: View {
     /// du type-checker.
     private var navHistoryButtons: some View {
                     HStack(spacing: 8) {
-                    Button(action: {
-                        if navigation.editingSave != nil {
-                            vm.navigationStore.setEditingSave(nil)
-                        } else if navigation.viewingSaveTimeline != nil {
-                            navigation.viewingSaveTimeline = nil
-                        } else if navigation.editingModConfig != nil {
-                            vm.navigationStore.setEditingModConfig(nil)
-                            if detailOpenedByJump, navigation.viewingModDetail == nil { goBackInHistory() }
-                        } else if navigation.viewingModDetail != nil {
-                            vm.navigationStore.setViewingModDetail(nil)
-                            if detailOpenedByJump { goBackInHistory() }
-                        } else {
-                            goBackInHistory()
-                        }
-                    }) {
+                    Button(action: stepBack) {
                         Image(systemName: "chevron.left")
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navBack))
                     .help(localization.L(L10n.Main.navBack))
-                    .disabled(navigation.editingSave == nil && navigation.viewingSaveTimeline == nil && navigation.editingModConfig == nil && navigation.viewingModDetail == nil && tabHistory.count <= 1)
+                    .disabled(!history.canGoBack(from: openDetail))
                     
-                    Button(action: {
-                        if let next = forwardHistory.popLast() {
-                            isNavigatingBackOrForward = true
-                            tabHistory.append(next)
-                            currentTab = next
-                        }
-                    }) {
+                    Button(action: stepForward) {
                         Image(systemName: "chevron.right")
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navForward))
                     .help(localization.L(L10n.Main.navForward))
-                    .disabled(forwardHistory.isEmpty)
+                    .disabled(!history.canGoForward)
                 }
     }
 
@@ -307,7 +294,12 @@ struct MainView: View {
             .onChange(of: currentTab) { _, _ in handleTabChange() }
             // Fermées autrement : le saut est consommé.
             .onChange(of: navigation.viewingModDetail == nil && navigation.editingModConfig == nil) { _, closed in
-                if closed { detailOpenedByJump = false }
+                if closed { history.detailOpenedByJump = false }
+            }
+            .onChange(of: navigation.pendingHistoryStep) { _, step in
+                guard let step else { return }
+                navigation.consumePendingHistoryStep()
+                if step == .back { stepBack() } else { stepForward() }
             }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }.helpLauncher(navigation: navigation, currentTab: currentTab, localization: localization)
             .frame(minWidth: 560, minHeight: 400).focusSection()
@@ -355,7 +347,7 @@ struct MainView: View {
                 // Hand the request to the list itself: it may not be on screen
                 // yet (tabs are created on demand), so it picks this up on
                 // appear and scopes itself to the mod.
-                vm.navigationStore.pendingModFocus = modName
+                navigation.pendingModFocus = modName
                 currentTab = .mods
             }
         }
@@ -480,11 +472,11 @@ struct MainView: View {
             guard let folder else { return }
             if currentTab == .mods,
                let target = ModFocusResolver.resolve(folder, in: vm.scanStore.mods) {
-                vm.navigationStore.setViewingModDetail(target)
-                vm.navigationStore.pendingDetailTab = .health
+                navigation.setViewingModDetail(target)
+                navigation.pendingDetailTab = .health
             } else {
-                vm.navigationStore.pendingModDetailFocus = folder
-                vm.navigationStore.pendingDetailTab = .health
+                navigation.pendingModDetailFocus = folder
+                navigation.pendingDetailTab = .health
                 currentTab = .mods
             }
             // Amener la fenêtre principale devant : la fiche s'y pose, la

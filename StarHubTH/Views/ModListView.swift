@@ -59,7 +59,7 @@ struct ModListView: View {
     /// Drives the confirmation dialog when the user picks "Enable All" or
     /// "Disable All" from the bulk-actions menu. `true` = enabling, `false`
     /// = disabling — kept as a single optional so the dialog binds cleanly.
-    @State private var bulkToggleTarget: Bool? = nil
+    @State var bulkToggleTarget: Bool? = nil
     /// Puce de type active sous le cadrage « Problèmes ».
     @State private var problemKind: ModProblemKind? = nil
 
@@ -627,40 +627,5 @@ struct ModListView: View {
                 : localization.L(L10n.Mods.disablingAllProgress),
             done: done,
             total: total)
-    }
-
-    /// Menu offering to enable or disable the framed mods at once. Each entry
-    /// is disabled individually when the **current framing** (search, category,
-    /// translation, scope — the same rule `toggleAllMods` applies, X57) has
-    /// nothing to move in that direction, so an available entry says exactly
-    /// what would move, and the user sees why an action isn't available
-    /// rather than a dead button.
-    ///
-    /// Takes the scoped list computed once per render by `body` (`display`)
-    /// rather than re-deriving it : the rule is the ViewModel's, the menu
-    /// only reads its result.
-    func bulkToggleMenu(scoped: [ModItem]) -> some View {
-        let anyDisabled = scoped.contains { !$0.isEnabled }
-        let anyEnabled = scoped.contains { $0.isEnabled }
-        return Menu {
-            Button {
-                bulkToggleTarget = true
-            } label: {
-                Label(localization.L(L10n.Mods.enableAll), systemImage: "checkmark.circle")
-            }
-            .disabled(!anyDisabled)
-
-            Button {
-                bulkToggleTarget = false
-            } label: {
-                Label(localization.L(L10n.Mods.disableAll), systemImage: "xmark.circle")
-            }
-            .disabled(!anyEnabled)
-        } label: {
-            Label(localization.L(L10n.Mods.toggleAllHint), systemImage: "power")
-                .labelStyle(.iconOnly)
-                .font(AppDesign.Font.body)
-        }
-        .help(localization.L(L10n.Mods.toggleAllHint))
     }
 }

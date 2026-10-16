@@ -186,6 +186,7 @@ let package = Package(
                 "Models/BisectionSnapshot.swift",
                 "Models/ModFocusResolver.swift",
                 "Models/TabChangePlan.swift",
+                "Models/NavigationHistory.swift",
                 "Models/TranslationDiffCache.swift",
                 "Models/LogEntry.swift",
                 "Models/SmapiLogParser.swift",
@@ -945,6 +946,11 @@ let package = Package(
             name: "TranslationDiffCacheTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/TranslationDiffCacheTests"
+        ),
+        .testTarget(
+            name: "NavigationHistoryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/NavigationHistoryTests"
         ),
         .testTarget(
             name: "TabChangePlanTests",

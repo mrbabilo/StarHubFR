@@ -239,7 +239,7 @@ struct ModDetailView: View {
                        subtitle: heroSubtitle,
                        imageURL: heroPictureURL,
                        closeHelp: localization.L(L10n.Main.close)) {
-                vm.navigationStore.setViewingModDetail(nil)
+                vm.navigationStore.requestHistoryStep(.back)  // N-00 : après un saut, ✕ ramène à l'origine
             }
             fineBand
             statStrip

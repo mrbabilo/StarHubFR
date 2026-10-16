@@ -218,6 +218,15 @@ final class NavigationStore {
         pendingTabRequest = nil
     }
 
+    /// « Retour » ou « Avancer » demandés hors de MainView — le ✕ d'une fiche,
+    /// ⌘[ et ⌘] du menu « Aller » — appliqués par MainView avec la règle de
+    /// `NavigationHistory` (N-00). Même canal que `pendingTabRequest`.
+    enum HistoryStep: Sendable { case back, forward }
+    private(set) var pendingHistoryStep: HistoryStep?
+
+    func requestHistoryStep(_ step: HistoryStep) { pendingHistoryStep = step }
+    func consumePendingHistoryStep() { pendingHistoryStep = nil }
+
     // MARK: - Poses à effet
 
     /// Les closures d'effet — I/O injectées (patron du dépôt) : le store

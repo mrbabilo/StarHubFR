@@ -7419,3 +7419,26 @@ sans lire une ligne de log.
       destructif et confirmation (`SettingsSmapiSection`). **E5** : le pied
       « Options de lancement » affichait son lien en Markdown brut.
       ViewModel 7 925 → 7 879, `SettingsView` 520 → 471.
+
+- [x] **I-T26** — *(livré le 2026-10-16)* Lot L1 (préalables) de l'audit UX de
+      toutes les vues. **Extractions** sans changement visible, exigées par les
+      plafonds de `check_standards.py` : `ProfileRow` (de `ModProfilesView`,
+      648 → 387), `NexusUpdateRow` (d'`UpdatesView`, 440 → 389),
+      `ModBulkToggleMenu` (de `ModListView`, 666 → 631), pieds de la barre
+      latérale `SidebarFooters` (de `SidebarComponents`, 474 → 200),
+      `SeverityBar` et `AllClearGlyph` (de `SystemAlertsView`, 397 → 352) ;
+      fichiers trop gros 45 → 42. **E1** : à 821 pt, la grille recouvrait le
+      menu ⏻ — `SearchToolbarLayout` mesurait les outils contre la forme
+      pleine du cadrage (~850 pt, d'où 0 pt pour eux), et ⏻ était le seul menu
+      sans `.fixedSize()` ; vérifié à l'écran (`V-E1-liste-821`). **N-00** :
+      l'historique de `MainView` (quatre `@State`) devient `NavigationHistory`
+      (Core, 8 tests, sabotages rouges) ; le ✕ d'une fiche passe par lui —
+      ouverte par un saut, elle ramène à l'origine (Alertes → « Voir le mod »
+      → ✕ = Alertes, vérifié à l'écran) ; Retour et Avancer entrent au menu
+      « Aller » (⌘[ ⌘], affichés ⌘^ et ⌘$ sur un clavier français). Le
+      drapeau « retour en cours » de l'ancien code ne changeait rien (prouvé
+      par un sabotage qui ne rougit aucun test) : retiré. Reste de N-00 en
+      I-T27 : « Fermer » (⎋) dans l'éditeur de config, fichier verrouillé à
+      1 025. **R5 préalable** : `ActivationHistory` se décode de façon
+      tolérante — un instantané au geste inconnu est ignoré seul (3 tests).
+

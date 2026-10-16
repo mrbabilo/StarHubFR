@@ -226,6 +226,12 @@ struct StarHubTHApp: App {
                     }
                 }
                 Divider()
+                // N-00 : ⌘[ et ⌘], la convention macOS de Retour et Avancer.
+                Button(localization.L(L10n.Main.navBack)) { vm.navigationStore.requestHistoryStep(.back) }
+                    .keyboardShortcut("[", modifiers: .command)
+                Button(localization.L(L10n.Main.navForward)) { vm.navigationStore.requestHistoryStep(.forward) }
+                    .keyboardShortcut("]", modifiers: .command)
+                Divider()
                 Button(localization.L(L10n.Palette.open)) { vm.requestPalette() }
                     .keyboardShortcut("k", modifiers: .command)
             }

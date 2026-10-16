@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté) livré, **I-T26 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté) et **I-T26** (préalables) livrés, **I-T27 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -861,23 +861,15 @@ fonctionnalités utiles. Méthode : l'app lancée et pilotée en lecture seule
 relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 écartées avec leur raison) ; le gain est dans les portes (une sur deux arrive
 à côté) et dans trois tâches impossibles aujourd'hui. **I-T25 (lot L0,
-sûreté) livré le 2026-10-16**, à l'archive. Les identifiants de fiche
+sûreté) et I-T26 (L1, préalables) livrés le 2026-10-16**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T26 — L1 Préalables** : six extractions sans changement visible,
-      exigées par les plafonds (`MainView` 527, `ModListView` 666,
-      `SidebarComponents` 474, `UpdatesView` 440, `SystemAlertsView` 397,
-      `ModProfilesView`) : X0 = N-00 (historique de navigation en type pur :
-      ✕ = ‹ = ⌘[, « Fermer » dans l'éditeur de config), X1 `ProfileRow`,
-      X2 `bulkToggleMenu` **puis E1** (chevauchement de la barre de la liste
-      à 821 pt, contraire à `AGENTS.md` §6), X3 `SystemAlertsHeader`,
-      X4 `SidebarBadges` (sans `default:`), X5 `NexusUpdateRow` ; décodage
-      tolérant d'`ActivationHistory`. · **M**
 - [ ] **I-T27 — L2 Navigation** : N-01 (le pager garde l'onglet : revoir les
       mods à problème, 1 clic par mod au lieu de 2), N-03 + N-05 (règle
       d'arrivée unique `Models/DetailArrival.swift` ; bandeau critique →
       Dépendances), N-02 (`.jumpToMod` ouvre la fiche, pas la liste), N-07
-      (menus Fichier et Jeu : ⌘R lancer, ⌘O installer, ⇧⌘U vérifier), N-01b
+      (menus Fichier et Jeu : ⌘R lancer, ⌘O installer, ⇧⌘U vérifier), « Fermer »
+      (⎋, confirmation si modifié) dans l'éditeur de config — reste de N-00, N-01b
       (une ligne de Mises à jour mène à la fiche), N-06 (collision de
       raccourcis → le réglage). Après I-T26. · **L**
 - [ ] **I-T28 — L3 Regroupements** : R3 (Traductions FR : segment « À finir »,
@@ -2114,6 +2106,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T23** | 2026-10-15 | Plan de raccourcis : conflits déplacés vers des touches libres par famille (lettres action, chiffres info, F rares), deux modes, décochage, famille corrigée gardée (`KeybindFamilyStore`), sauvegarde avant écriture et annulation, bandeau après bascule de profil (`KeybindPlanner`) ; validé à l'écran |
 | **I-T24** | 2026-10-15 | Aide intégrée : guide utilisateur FR/EN dans une fenêtre (sommaire, recherche sur le texte rendu, liens internes), bouton « ? » vers la section de la page, menu Aide ⌘?, palette ⌘K ; sections repérées par marqueur, parité contrôlée au build (`HelpGuide`, `HelpTopic`) ; validé à l'écran |
 | **I-T25** | 2026-10-16 | Audit UX, lot L0 (sûreté) : supprimer une sauvegarde d'installation ou de configuration passe par la Corbeille du Mac (c'était définitif), garde « seule copie » de l'Entretien à la confirmation ; page des sauvegardes sans « 0 » avant sa lecture ; confirmation de « Désinstaller » SMAPI ; lien Markdown des Réglages rendu |
+| **I-T26** | 2026-10-16 | Audit UX, lot L1 : extractions imposées par les plafonds (`ProfileRow`, `NexusUpdateRow`, `ModBulkToggleMenu`, pieds de la barre latérale, composants des Alertes ; 45 → 42 fichiers trop gros) ; E1 (barre de la liste à 821 pt sans chevauchement, vérifié à l'écran) ; N-00 (`NavigationHistory` en Core, 8 tests : le ✕ d'une fiche ouverte par un saut ramène à l'origine, Retour/Avancer au menu Aller) ; décodage tolérant d'`ActivationHistory` |
 
 **10.3 Veille RimManager — actions livrées**
 

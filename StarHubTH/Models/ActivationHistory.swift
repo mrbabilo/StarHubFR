@@ -72,6 +72,25 @@ public struct ActivationHistory: Codable, Equatable, Sendable {
 
     public init() {}
 
+    /// Lecture tolérante (R5, I-T26) : un instantané illisible — un geste qu'une
+    /// version plus récente aurait ajouté, comme `.bisection` — est ignoré seul.
+    /// Le décodage synthétisé rejetait l'historique **entier**.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard container.contains(.snapshots) else { return }
+        var list = try container.nestedUnkeyedContainer(forKey: .snapshots)
+        while !list.isAtEnd {
+            do {
+                snapshots.append(try list.decode(ActivationSnapshot.self))
+            } catch {
+                _ = try list.decode(SkippedElement.self)   // un échec n'avance pas le curseur
+            }
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case snapshots }
+    private struct SkippedElement: Decodable { init(from decoder: Decoder) throws {} }
+
     /// Ajoute en tête, sauf si l'état est celui du plus récent : un geste qui
     /// n'a rien changé n'a rien à défaire.
     public mutating func record(_ snapshot: ActivationSnapshot, now: Date) {
