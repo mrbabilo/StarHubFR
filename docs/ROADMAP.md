@@ -1040,209 +1040,6 @@ Ce n'est pas une release : c'est une contrainte qui traverse toutes les autres.
         résultats ramène à la page 1, le tri n'y touche pas, et `focus(on:)`
         lève tout filtre susceptible d'écarter. C'était le déblocage que X91
         avait laissé documenté. 2 370 tests verts.
-- [ ] **F2** — **Audit optimisation & sécurité.** Vitesse et mémoire au démarrage, au scan
-      (~900 mods) et **au build** (`python3 build_app.py`, `run_tests.sh`), concurrence
-      (`scanMods()` parallèle, verrous du registre), et surface de sécurité : extraction
-      d'archives (traversée de chemin, zip-bomb — déjà partiellement couverte), stockage
-      de la clé Nexus, gestion du protocole `nxm://`, écritures dans `Mods/`. · **M** ·
-      *à faire après F1-T1 : auditer 11 902 lignes de VM monolithique coûte plus cher que
-      d'auditer des types séparés.*
-      ⚠️ **Une partie de l'inventaire existe déjà** :
-      [`audit-swift-2026-08-05.md`](archive/audits-code/audit-swift-2026-08-05.md) — 309 lignes, ~72 findings
-      recensés, les 9 hauts corrigés au 2026-08-11 — couvre la surface de sécurité et une
-      part de la performance. Il porte son propre avertissement de péremption (il a listé
-      comme ouverts pendant cinq jours trois findings corrigés entre-temps) : `git log -S`
-      sur le symbole avant d'attaquer une ligne. **F2 le complète, il ne le refait pas.**
-      ▸ **Rattrapage de l'inventaire livré (2026-09-09)** — les 5 derniers ⛔️ de
-      l'audit 2026-08-05 sont refermés : remariage sans promotion du nouveau
-      conjoint (`3565e10`, XML mesuré contre les DLL du jeu), `updateSave`/
-      `updateInventory` hors verrou + `dismiss()` inconditionnel des feuilles de
-      sauvegarde (`dfc55c7`), « http » pris pour un nom de mod (`df2ce99`),
-      `lastError` **réfuté** (site supprimé avec `check()`). L'audit 2026-08-05
-      est désormais **clôturé** ; il reste la grille de patterns, pas un stock de
-      tâches.
-      ▸ **Tranche « écritures » livrée (2026-09-09)** — la grille `policy.ts` de
-      Vortex (jamais absorber `smapi-internal/`, jamais d'attribution racine,
-      jamais de `Content/`) passée sur les 151 sites d'écriture du dépôt, par
-      aire. Verdicts : `Content/` — aucune écriture ; `smapi-internal/` — seul
-      le marqueur de version délibéré (écrit après succès officiel, échec
-      journalisé) ; l'installeur ne pose jamais rien hors `Mods/<dossier>/` ;
-      attribution de contenu déposé — hôte obligatoirement installé, table de
-      règles à signature de clés, refus plutôt qu'assainissement, préfixe
-      vérifié après construction, chmod par `RecoveredFileWriter`, sauvegarde
-      de l'hôte par l'appelant (`ModInstallView:898`) ; rollback complet côté
-      `ManifestlessInstaller`. Écritures directes du VM, réparateur, magasins,
-      `nxm://` (`NxmLink.parse` strict), clé Nexus (SecItemAdd vérifié,
-      2026-08-11) : relus, rien à corriger. **Zéro nouveau défaut, une question
-      de conception sortie : `X103`** (permanence de la suppression des mods
-      vs corbeille/quarantaine et rétention des archives).
-      ▸ **Tranche « extraction d'archives » passée (2026-09-09)** — reprise à neuf
-      des gardes d'extraction, chaque prémisse éprouvée par l'expérience et non
-      par la seule lecture. **Zéro nouveau défaut, une prémisse réfutée, une
-      nuance documentée** :
-      - la prémisse du zip-slip de l'audit 2026-08-05 (« `unzip` extrait les
-        `../` tels quels ») **ne se reproduit pas** sur l'`/usr/bin/unzip`
-        actuel. Mesuré sur six archives fabriquées pour l'occasion : `..` en
-        tête et en milieu de chemin, chemin absolu, backslashes avec et sans
-        drapeau MS-DOS — l'outil élimine les composantes `..`, ampute les
-        chemins absolus (« stripped absolute path »), et rien ne sort jamais
-        du dossier de destination ;
-      - nuance : `containsTraversalPath` ne découpe que sur `/`, donc les
-        noms `..\..\x` passent le contrôle statique — mais l'extraction
-        reste saine (l'outil sanitise, cf. ci-dessus), et pré-rejeter ces
-        noms casserait de vraies archives Windows : le backslash est un
-        caractère de nom légal sur APFS. Documenté, délibérément non
-        « corrigé » ;
-      - la garde pré-extraction reste posée pour les **outils tiers**
-        (`unrar`/`unar`/`7zz`, versions non maîtrisées) : défense en
-        profondeur, à garder ;
-      - zip-bomb : le plafond 2 Go décompressé est bien lu **avant**
-        extraction dans les deux voies (`unzip -l` sous locale C,
-        `7zz l -slt` via `totalSizeFromSevenZipListing`), avec fail-open
-        assumé et documenté (en-tête 7z chiffré illisible) ;
-      - le rouge Phase 2 sur `SmapiInstaller` (scénario concurrent) est
-        **clos par le correctif X81** (racine temporaire par UUID +
-        `defer` de nettoyage) : plus aucun chemin statique partagé entre
-        deux `install()`, le test concurrentiel qu'appelait l'audit n'a
-        plus d'objet ;
-      - un écart résiduel noté, sans action aujourd'hui : le hub thaï
-        (`StarHubTHViewModel.swift:8666`) extrait directement dans
-        `Mods/` via le même `extractArchive` — zip-slip et détection de
-        format couverts, mais sans la garde symlinks ni le strip
-      `__MACOSX`. Source unique et curatée à ce jour ; à reprendre le
-      jour où le hub s'ouvre à d'autres sources.
-      ▸ **Tranche « perf & concurrence » passée (2026-09-09)** — re-vérification
-      des constats accumulés contre le code, puis balayage de la surface de
-      concurrence du scan. **Zéro nouveau défaut, un constat périmé corrigé** :
-      - `healthIssues` (`StarHubTHViewModel.swift:419`) reste une computed
-        `@MainActor` réévaluée à chaque accès, sans mémoïsation — le patron
-        est reconnu dans le code (la doc d'`affirmedUpdates` raconte l'avoir
-        publié *pour* l'éviter) et son traitement reste **porté en F3**
-        (arbitrage du 2026-08-01 : passe groupée, pas au fil de l'eau).
-        ✅ **Livré le 2026-10-10 (F3)** : propriété stockée, recalculée à
-        chacun des entonnoirs qui change une entrée (scan, journal SMAPI,
-        verdicts de conflits, liste noire, avertissements Pathoschild,
-        manifestes illisibles, langue — un 4ᵉ `setMods` vivait hors VM dans
-        `PerformanceView`, énuméré par grep) ; un test Core couvre le crochet
-        de langue (`onLanguageChange`) ;
-      - `exportTranslationLot`/`importTranslationLot`
-        (`StarHubTHViewModel.swift:1485`, `:1534`) restent synchrones sur le
-        fil principal — `TranslationLot.build` inline, sans `Task.detached`
-        ni progression, alors que le patron de la tâche détachée est déjà
-        celui du VM partout ailleurs (couverture FR, profil, mesures) ; F3.
-        ✅ **Livré le 2026-10-10 (F3)** : l'import était déjà hors fil depuis
-        les stores (`translationDiff` et `TranslationLotMergeStore.prepare`
-        détachés — le constat datait d'avant) ; l'export construit et encode
-        désormais dans une `Task.detached`, navette ZIP comprise ;
-      - **constat périmé corrigé** : `scanProgress` n'est plus « publié par
-        mod » (note du 2026-09-02) — limité à ~12/s et publié sur main
-        depuis `87de592` ; l'annotation est posée sur la note ;
-      - la latence de frappe (F3) reste non tranchée régression/défaut
-        préexistant : le témoin A/B `v1.11.1` exige une manipulation à
-        l'écran — interdite à l'agent, à l'auteur de jouer ;
-      - **surface de concurrence**, balayage complet des états mutés par
-        `scanMods()` (qui peut courir contre lui-même, queue globale
-        concurrente, cas admis au `manifestCache`) : le cache est verrouillé
-        des deux côtés (lecture `:2752`, écriture `:2894`) ; les trois index
-        de dépendances (`installedUniqueIds`, `installedModStates`,
-        `installedModsByUniqueId`) n'ont **pas** de verrou et n'en ont pas
-        besoin — écrits uniquement sous `main.async` (`:3099`, `:3770`),
-        lus par les rendus de vues : **confinement main, invariant à
-        préserver** (les déplacer hors main sans verrou referait la classe
-        `EXC_BAD_ACCESS` qu'a eue le cache) ; registre
-        (`installedModRegistryLock` + `defer`), mesure du poids
-        (`modsSizeLock` + drapeau de re-demande), `parseSMAPILog` (analysé en
-        fond, publié sur main) : tous au pattern ;
-      - **une observation, sans défaut** : la quarantaine du réparateur est
-        nommée à la seconde (`ModFolderRepairer.nowStamp`, pas d'UUID —
-        même forme que X81), donc deux réparations concurrentes dans la
-        même seconde partagent le même `_Trash_`. Conséquence nulle :
-        `moveToTrash` est fail-safe par item (échec → item laissé en place,
-        jamais d'abandon, la passe suivante le reprend), pas de perte
-        possible. Un suffixe UUID serait l'endurcissement trivial si le
-        réparateur prend un jour un état de passe.
-      **L'audit F2 est complet.** Restent ouverts ses deux sous-items de
-      build — **F2-T1** livré, **F2-T2** (le bottleneck `swiftc`, un choix
-      d'architecture) — et les **correctifs** de perf, dont le seau désigné
-      est **F3**.
-      Le périmètre « build » a son propre découpage — voir **F2-T1** (gains rapides déjà
-      identifiés) et **F2-T2** (le bottleneck réel, qui relève d'un choix d'architecture
-      et non d'un script Python).
-  - [x] **F2-T1** — **Quick wins sur la chaîne de build.** Mesure au 2026-09-01
-        (`python3 build_app.py` à froid puis à chaud) : `swiftc` whole-module consomme
-        **~99 %** du temps (2m22s sur les deux passes — il n'a pas de cache objet
-        utilisable quand tout le module est recompilé d'un coup). Les étapes
-        périphériques (`compile_commands.json`, `check_standards.py`, copie d'assets,
-        codesign) ne pèsent que ~1 s au total — mais c'est précisément la part que
-        des quick wins Python peuvent bouger sans toucher au compilateur. · **S**
-        **Livré** (2026-09-01) :
-        ▸ `build_app.py` saute la réécriture de `compile_commands.json` quand
-          l'ensemble des fichiers Swift (avec leur chemin absolu) est inchangé
-          depuis la dernière passe — fingerprint dans
-          `.build/compile_commands.fingerprint`. Évite ~200 ms + un réindex
-          SourceKit-LSP inutile à chaque build, et supprime le bruit dans la sortie.
-        ▸ `check_standards.py` cache le verdict par empreinte (mtime agrégé +
-          tailles par fichier) dans `.standards-source-freshness{.counts,.info}` :
-          un build chaud où rien n'a bougé passe de **860 ms à 49 ms (×17)** —
-          les 10 regex sur 211 fichiers sont skippés. `--report` et `--update`
-          court-circuitent le cache, qui n'a de sens que pour la vérification
-          silencieuse de `build_app.py`.
-        ▸ Lecture de `L10n.swift` passée sous `with open(...)` (correction
-          d'une fuite de FD), et strip des commentaires `//` avant le regex
-          `static let \w+ = "..."` — sans cela, un commentaire évoquant une clé
-          déjà connue la faisait ressembler à une déclaration, ce qui aurait
-          pu la déclarer « undeclared » sur certaines branches de doc.
-        ▸ `run_tests.sh` et `Package.swift` non touchés : `swift test` est déjà
-          incrémental (5 s chaud sur le parc de tests actuel), et le découpage
-          SPM existant n'a rien à gagner côté script sans le refactor de F1.
-        ▸ **Net sur le build complet** : gain marginal mesuré (~1 s sur
-          2m22s), le bottleneck `swiftc` ne bouge pas — c'est le propos de F2-T2.
-  - [x] **F2-T2** — **Compilation incrémentale de l'app.** ✅ *(livré le
-        2026-09-02, **défaut** depuis vérification au lancement)*
-        Constat de départ : `swiftc` invoqué sur les 211 fichiers en un seul
-        module produit un binaire monolithique et **n'a rien à réutiliser** au
-        build suivant, d'où l'égalité froid/chaud. `-incremental` ne s'applique
-        qu'au mode `-c` + link.
-        **Livré (piste P1)** : `build_app.py --incremental` écrit une table de
-        sorties par fichier (`.build/output-file-map.json`), compile en `.o`
-        individuels dans `.build/objects/` avec les `.swiftdeps` que swiftc
-        tient lui-même, puis lie. C'est le **chemin par défaut** ;
-        `--whole-module` rend l'ancien, comme filet et comme référence.
-        **Mesures** (8 cœurs), sur de vraies modifications de contenu et non de
-        simples `touch` — les deux ont été comparés, mêmes chiffres :
-
-        | cas | whole-module | incrémental | rapport |
-        |---|---|---|---|
-        | build complet à froid | 141,7 s | 59,4 s | ×2,4 |
-        | à chaud, rien touché | 141,7 s | 2,2 s | ×64 |
-        | un fichier feuille modifié | 141,7 s | 2,4 s | ×59 |
-        | corps du ViewModel modifié | 141,7 s | 5,4 s | ×26 |
-        | signature publique du ViewModel | 141,7 s | 30,1 s | ×4,7 |
-
-        Les 141,7 s reproduisent exactement les 2m22s mesurées en F2-T1 par une
-        autre session : les deux relevés se confirment.
-        **Critère de succès (build chaud sous 30 s) : tenu dans tous les cas**,
-        y compris le pire.
-        **Équivalence du binaire vérifiée** : même architecture, **70 791
-        symboles définis des deux côtés**, 5,9 Ko d'écart sur 30 Mo (+0,02 %),
-        signature valide.
-        **Pourquoi le basculement a attendu** : un binaire qui se lie n'est pas
-        un binaire qui démarre, et aucun agent ne lance l'app dans ce dépôt.
-        L'équivalence des symboles ne prouvait rien de plus qu'une équivalence
-        de symboles. Le défaut n'a bougé qu'après un lancement réel par
-        l'auteur, le 2026-09-02.
-        ⚠️ **Piège rencontré, à ne pas refaire** : swiftc compare les chemins de
-        l'`output-file-map` **comme des chaînes**. Clés absolues + arguments
-        relatifs = aucune correspondance, incrémental désactivé en silence
-        (« has no swiftDeps file »), objets écrits dans le répertoire courant —
-        214 `.o` et 214 `.swiftdeps` semés à la racine du dépôt, **et code de
-        retour 0**. Seul le décompte des objets attendus avant l'édition de
-        liens a transformé cet échec muet en erreur.
-        Le pire cas (30 s) est celui d'un changement de signature dans le
-        objet central de 8 389 lignes : le découper (**F1**) ferait baisser ce pire
-        cas, pas seulement le cas moyen.
-        ▸ **(P2)** SPM à deux cibles et **(P3)** cache partagé restent sans
-        objet tant que P1 tient le critère.
 
 ---
 
@@ -1888,8 +1685,8 @@ citent le code et les messages de commit, et un `grep` dessus dans l'archive
 rend le texte complet.
 
 ⚠️ **Deux exceptions à cette table.** Un item coché reste sur place quand le
-sortir perdrait son sens : les sous-items d'un parent ouvert (`F1-T1`, `F2-T1`,
-`F2-T2` — au §7, sous leur parent ; `F6-T2` est parti avec **F6**, clos le 2026-10-08) et `R4` au §10.3, qui n'existe que
+sortir perdrait son sens : les sous-items d'un parent ouvert (`F1-T1` — au §7, sous son parent ;
+`F6-T2` est parti avec **F6**, clos le 2026-10-08, `F2-T1` et `F2-T2` avec **F2**, clos le 2026-10-16) et `R4` au §10.3, qui n'existe que
 pour dire à la prochaine lecture de la veille que cette action-là est déjà
 livrée sous le nom `B3-T5`. Et un identifiant qui ne se trouve ni ici
 ni dans l'archive n'a jamais existé sous cette forme — vérifier la casse et le
@@ -2196,6 +1993,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | Item | Livré | Ce qui était en cause |
 |---|---|---|
 | **F9** | 2026-09-25 | `check_sources.py --fetch-changelogs` lit les changelogs Nexus par l'API v2 GraphQL sans clé (`modFiles.changelogText`) ; `--use-keychain` et la lecture du Trousseau retirés |
+| **F2** | 2026-10-16 | Audit optimisation & sécurité clos : inventaire 2026-08-05 rattrapé, grille d'écritures Vortex sur 151 sites, extraction d'archives, perf & concurrence (zéro nouveau défaut) ; **F2-T1** quick wins de build, **F2-T2** compilation incrémentale par défaut (×26 à ×64 à chaud) ; correctifs portés en F3 |
 | **F3** | 2026-09-12 | Le lag de frappe venait d'`inferTag` relancé par frappe (~150 regexes sans mémoïsation, ~0,7 s de fil principal par lettre, nommé par capture Instruments) — tag calculé une fois à l'init ; A/B trois témoins : défaut préexistant. **Passe groupée livrée le 2026-10-10** : `healthIssues` stockée et recalculée aux entonnoirs (§7, F2), export de lot hors fil principal |
 | **F5-T1** | 2026-09-10 | Données sous `~/Library/Application Support/StarHubFR/` derrière l'accesseur `AppSupport`, migration reprenable déclenchée par `static let` ; `Backups/` reste derrière (X105) |
 | **F5-T2** | 2026-09-10 | Identité `com.mrbabilo.StarHubFR` + schéma `nxm` ; 45 clés UserDefaults recopiées jamais écrasées, Trousseau basculé avec lecture de secours sur l'ancien service |
