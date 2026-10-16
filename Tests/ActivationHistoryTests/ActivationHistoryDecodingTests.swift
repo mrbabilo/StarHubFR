@@ -16,9 +16,16 @@ struct ActivationHistoryDecodingTests {
 
     @Test func anUnknownGestureSkipsOnlyItsSnapshot() throws {
         let kept = UUID()
-        let json = "{\"snapshots\":[\(snapshotJSON(gesture: "bisection")),\(snapshotJSON(gesture: "profile", id: kept))]}"
+        let json = "{\"snapshots\":[\(snapshotJSON(gesture: "someFutureGesture")),\(snapshotJSON(gesture: "profile", id: kept))]}"
         let history = try JSONDecoder().decode(ActivationHistory.self, from: Data(json.utf8))
         #expect(history.snapshots.map(\.id) == [kept])
+    }
+
+    /// R5 : la bissection et le benchmark laissent désormais leur instantané.
+    @Test func bisectionAndBenchmarkGesturesAreRead() throws {
+        let json = "{\"snapshots\":[\(snapshotJSON(gesture: "bisection")),\(snapshotJSON(gesture: "benchmark"))]}"
+        let history = try JSONDecoder().decode(ActivationHistory.self, from: Data(json.utf8))
+        #expect(history.snapshots.map(\.gesture) == [.bisection, .benchmark])
     }
 
     @Test func aReadableHistoryRoundTrips() throws {

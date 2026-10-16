@@ -8,6 +8,9 @@ import SwiftUI
 struct ActivationHistorySection: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// Observée pour la garde de « Revenir » : la bissection publie son état
+    /// en `ObservableObject`, que la lecture via le ViewModel ne suit pas.
+    @ObservedObject private var bisection: BisectionRunner
     @State private var showsAll = false
     @State private var pendingRestore: PendingRestore?
 
@@ -18,6 +21,12 @@ struct ActivationHistorySection: View {
     }
 
     private static let collapsedCount = 5
+
+    init(viewModel: StarHubTHViewModel, localization: LocalizationStore) {
+        self.viewModel = viewModel
+        self.localization = localization
+        self.bisection = viewModel.bisection
+    }
 
     var body: some View {
         let snapshots = viewModel.activationHistory.snapshots
@@ -87,10 +96,16 @@ struct ActivationHistorySection: View {
                     enabling: moves.filter { $0.direction == .enable }.count,
                     pausing: moves.filter { $0.direction == .disable }.count)
             }
-            .disabled(viewModel.bulkToggleProgress != nil || viewModel.isApplyingProfile)
-            .help(localization.L(L10n.ActivationHistory.restoreHelp))
+            // R5 — ni pendant une bascule ou une application de profil, ni
+            // pendant qu'une opération tient le parc sous son instantané.
+            .disabled(viewModel.bulkToggleProgress != nil || viewModel.isApplyingProfile || blocking != nil)
+            .help(blocking.map { String(format: localization.L(L10n.ActivationHistory.blocked),
+                                        localization.name(of: $0)) }
+                  ?? localization.L(L10n.ActivationHistory.restoreHelp))
         }
     }
+
+    private var blocking: ModSetOperations.Operation? { viewModel.modSetOperations.blocking }
 
     private func gestureLabel(_ snapshot: ActivationSnapshot) -> String {
         let detail = snapshot.detail ?? ""
@@ -99,6 +114,8 @@ struct ActivationHistorySection: View {
         case .bulkDisable: return String(format: localization.L(L10n.ActivationHistory.gestureBulkDisable), detail)
         case .profile: return String(format: localization.L(L10n.ActivationHistory.gestureProfile), detail)
         case .restore: return localization.L(L10n.ActivationHistory.gestureRestore)
+        case .bisection: return localization.L(L10n.ActivationHistory.gestureBisection)
+        case .benchmark: return localization.L(L10n.ActivationHistory.gestureBenchmark)
         }
     }
 

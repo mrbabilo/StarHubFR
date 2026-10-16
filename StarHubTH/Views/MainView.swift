@@ -178,7 +178,7 @@ struct MainView: View {
                     case .appChangelog:
                         AppChangelogView(vm: vm, localization: localization)
                     case .home:
-                        HomeView(vm: vm, localization: localization, currentTab: $currentTab)
+                        HomeView(viewModel: vm, localization: localization, currentTab: $currentTab)
                     }
     }
 

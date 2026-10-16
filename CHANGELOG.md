@@ -14,6 +14,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Accueil : un encart « Opération interrompue ».** La recherche du mod responsable, le benchmark A/B et la mesure pilotée laissés en plan s'y signalent, chacun avec « Tout remettre comme avant ».
+- **« Revenir à un état d'avant » depuis Gestion des mods** (menu ⏻). La recherche du mod responsable et le benchmark y laissent désormais leur état de départ. « Revenir » est grisé tant que l'une de ces opérations tient le parc.
 - **Dépendance requise : le geste est sur l'encart de la ligne.** « Activer Nature.RITS » pour une dépendance en pause, « Installer … » ou « Page Nexus de … » pour une dépendance manquante, sinon « Chercher … ». L'onglet Dépendances de la fiche propose les mêmes gestes.
 - **Profils : la colonne « Configs » ouvre la feuille du profil.** Nouvelle section « Configs mémorisées » : la liste complète, les mods désinstallés signalés, et « Comparer avec le profil actif » (ou « Comparer avec… » depuis l'actif), affiché dans la feuille avec « ‹ Retour ». La pastille FR ouvre la feuille sur la traduction.
 - **Clé API Nexus absente : un seul remède partout.** Mises à jour, Traductions FR, fiche d'un mod (traduction, compléments, fiche Nexus) proposent « Ouvrir les réglages Nexus », comme Découvrir, puis « Obtenir une clé API » en second.

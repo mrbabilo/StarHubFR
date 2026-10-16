@@ -146,6 +146,7 @@ final class BisectionRunner: ObservableObject {
         let snap = BisectionSnapshot(enabledFolders: enabledFolders, startedAt: Date())
         BisectionSnapshotStore.save(snap, in: snapshotDirectory)
         snapshot = snap
+        vm.activationHistory.record(.bisection, detail: nil, mods: mods, activeProfileId: vm.activeProfileId) // R5
 
         candidateFolders = Set(list.map(\.folderName))
         candidateCount = list.count
@@ -289,7 +290,6 @@ final class BisectionRunner: ObservableObject {
                 .split(separator: "/").first.map(String.init)
         })
     }
-
 
     /// Referme la recherche en acceptant son verdict : le mod trouvé reste en
     /// pause, tout le reste est déjà réactivé.

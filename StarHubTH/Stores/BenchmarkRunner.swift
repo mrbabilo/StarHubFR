@@ -170,6 +170,9 @@ final class BenchmarkRunner {
             await finish(.failed(.copy), snapshot: nil)
             return
         }
+        // R5 — le filet commun aussi : après la remise, on peut revenir ici.
+        viewModel.activationHistory.record(.benchmark, detail: nil, mods: viewModel.mods,
+                                           activeProfileId: viewModel.activeProfileId)
         // Relecture finale : aucun profil actif pendant la série — l'état B ne
         // doit jamais pouvoir être « adopté » dans un profil (l'instantané
         // porte l'id, la restauration le remet).

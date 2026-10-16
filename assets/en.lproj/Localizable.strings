@@ -2718,3 +2718,12 @@
 "deps_fix_install" = "Install %@";
 "deps_fix_open_page" = "Nexus page for %@";
 "deps_fix_search" = "Search %@";
+"interrupted_title" = "Interrupted operation";
+"interrupted_body" = "Some mods were left moved by an operation that didn't finish. Put them back as they were.";
+"interrupted_row_bisection" = "Search for the culprit mod";
+"interrupted_row_benchmark" = "A/B benchmark";
+"interrupted_row_pilot" = "Guided measurement";
+"activation_history_menu_entry" = "Go back to an earlier state…";
+"activation_history_blocked" = "Unavailable: “%@” holds the mod set. Finish it, or put everything back.";
+"activation_history_gesture_bisection" = "Before the search for the culprit mod";
+"activation_history_gesture_benchmark" = "Before the A/B benchmark";

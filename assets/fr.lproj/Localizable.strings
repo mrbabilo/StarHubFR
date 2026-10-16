@@ -2718,3 +2718,12 @@
 "deps_fix_install" = "Installer %@";
 "deps_fix_open_page" = "Page Nexus de %@";
 "deps_fix_search" = "Chercher %@";
+"interrupted_title" = "Opération interrompue";
+"interrupted_body" = "Des mods sont restés déplacés par une opération qui ne s'est pas terminée. Remettez-les comme avant.";
+"interrupted_row_bisection" = "Recherche du mod responsable";
+"interrupted_row_benchmark" = "Benchmark A/B";
+"interrupted_row_pilot" = "Mesure pilotée";
+"activation_history_menu_entry" = "Revenir à un état d'avant…";
+"activation_history_blocked" = "Indisponible : « %@ » tient le parc. Terminez-la, ou remettez tout comme avant.";
+"activation_history_gesture_bisection" = "Avant la recherche du mod responsable";
+"activation_history_gesture_benchmark" = "Avant le benchmark A/B";

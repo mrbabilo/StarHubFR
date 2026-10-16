@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct HomeView: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @ObservedObject var smapiInstaller: SmapiInstaller
     @ObservedObject private var bisection: BisectionRunner
     // Observé séparément, comme `smapiInstaller`/`bisection` juste au-dessus :
     // `report` est publié par `KeybindScanService`, un `ObservableObject`
-    // distinct de `vm` — sans cet abonnement, la bande d'attention ne se
+    // distinct de `viewModel` — sans cet abonnement, la bande d'attention ne se
     // redessinerait jamais quand le scan de raccourcis termine (tâche 7).
     @ObservedObject private var keybindScanService: KeybindScanService
     /// L'onglet courant de `MainView` : les compteurs de la bande mènent
@@ -18,46 +18,13 @@ struct HomeView: View {
     // Mirrors the key launchGame() reads, so the subtitle reflects the mode that fires.
     @AppStorage("launchProfile") private var launchProfile: String = "SMAPI"
 
-    init(vm: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>) {
+    init(viewModel: StarHubTHViewModel, localization: LocalizationStore, currentTab: Binding<SidebarDestination>) {
         self.localization = localization
-        self.vm = vm
-        self.smapiInstaller = vm.smapiInstaller
-        self.bisection = vm.bisection
-        self.keybindScanService = vm.keybindScanService
+        self.viewModel = viewModel
+        self.smapiInstaller = viewModel.smapiInstaller
+        self.bisection = viewModel.bisection
+        self.keybindScanService = viewModel.keybindScanService
         self._currentTab = currentTab
-    }
-
-    /// Une recherche laissée en plan a laissé des mods en pause. C'est détecté
-    /// au démarrage, mais la carte du Diagnostic ne vit que dans l'onglet
-    /// Journaux : sans ce rappel, l'utilisateur retrouve une liste à moitié en
-    /// pause sans que rien, nulle part, ne dise qu'un clic la remet en état.
-    /// L'accueil est l'écran d'arrivée : c'est là que ça doit se voir.
-    @ViewBuilder
-    private var interruptedSearchNotice: some View {
-        if let snapshot = bisection.interruptedSnapshot, bisection.state == nil {
-            StandardSection(title: localization.L(L10n.Bisect.interruptedTitle),
-                            icon: ("exclamationmark.triangle.fill", AppDesign.Color.warning)) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppDesign.Color.warning)
-                        Text(String(format: localization.L(L10n.Bisect.interruptedBody),
-                                    DateFormatter.localizedString(from: snapshot.startedAt,
-                                                                  dateStyle: .short,
-                                                                  timeStyle: .short)))
-                            .font(AppDesign.Font.caption)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Button(localization.L(L10n.Bisect.restore)) { bisection.restoreAndStop() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(bisection.isApplying)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 40)
-            .padding(.top, 20)
-        }
     }
 
     /// Les quatre chiffres qui décident de la suite. Toujours les quatre,
@@ -67,16 +34,16 @@ struct HomeView: View {
         // plutôt que d'en créer un cinquième (brief tâche 7) : `HomeAttention`
         // résout un niveau à partir d'un compte qu'on lui donne, il ne décide
         // pas de ce qui compose « alertes » — c'est déjà le rôle de cet
-        // appelant, par `vm.systemAlertCount`.
+        // appelant, par `viewModel.systemAlertCount`.
         let counters = HomeAttention.counters(
             updates: UpdateCount.pending(
-                outOfDate: vm.outOfDateMods,
-                nexusCount: vm.nexusUpdates.count) {
-                    vm.resolveModFolder(forLoggedName: $0)?.version
+                outOfDate: viewModel.outOfDateMods,
+                nexusCount: viewModel.nexusUpdates.count) {
+                    viewModel.resolveModFolder(forLoggedName: $0)?.version
                 },
-            alerts: vm.systemAlertCount,
-            quarantined: vm.maintenanceStore.quarantineItemCount,
-            mods: vm.scanStore.mods.count)
+            alerts: viewModel.systemAlertCount,
+            quarantined: viewModel.maintenanceStore.quarantineItemCount,
+            mods: viewModel.scanStore.mods.count)
         return HStack(spacing: AppDesign.Spacing.md) {
             ForEach(counters) { counter in
                 AttentionCounterTile(
@@ -86,7 +53,7 @@ struct HomeView: View {
                     tint: counter.level == .attention ? tint(for: counter.kind) : nil,
                     tab: counter.tab,
                     currentTab: $currentTab, // alertes : la liste, pas l'onglet mémorisé
-                    onOpen: counter.kind == .alerts ? { vm.navigationStore.alertsSegment = .alerts } : nil)
+                    onOpen: counter.kind == .alerts ? { viewModel.navigationStore.alertsSegment = .alerts } : nil)
             }
         }
     }
@@ -126,15 +93,15 @@ struct HomeView: View {
     /// La carte de lancement — ou l'état qui l'empêche, avec l'action qui le
     /// lève plutôt qu'un bouton grisé et muet (spec refonte §2, P1).
     @ViewBuilder private var launchCard: some View {
-        switch HomeLaunchState.resolve(gameDirIsEmpty: vm.gameDir.isEmpty,
-                                       smapiInstalled: vm.smapiInstalledVersion != nil,
+        switch HomeLaunchState.resolve(gameDirIsEmpty: viewModel.gameDir.isEmpty,
+                                       smapiInstalled: viewModel.smapiInstalledVersion != nil,
                                        profileIsVanilla: launchProfile == "Vanilla") {
         case .needsGameFolder:
             // Un bouton « Jouer » grisé ne dit pas quoi faire ; la carte
             // d'état porte l'action qui lève l'empêchement.
             StateCard(icon: "folder.badge.questionmark",
                       text: localization.L(L10n.Home.notSet),
-                      actionTitle: localization.L(L10n.Home.selectFolder)) { vm.selectGameDir() }
+                      actionTitle: localization.L(L10n.Home.selectFolder)) { viewModel.selectGameDir() }
         case .needsSmapi:
             // SMAPI reste installable **d'ici** : c'est le prérequis de tout
             // le reste. La progression l'accompagne, sinon l'installation se
@@ -143,7 +110,7 @@ struct HomeView: View {
                 StateCard(icon: "shippingbox",
                           text: localization.L(L10n.Home.smapiNotInstalled),
                           actionTitle: smapiInstaller.isInstalling
-                              ? nil : localization.L(L10n.Home.installSmapi)) { vm.installSmapi() }
+                              ? nil : localization.L(L10n.Home.installSmapi)) { viewModel.installSmapi() }
                 if smapiInstaller.isInstalling {
                     ProgressView(value: smapiInstaller.progress, total: 1.0)
                         .progressViewStyle(.linear)
@@ -163,7 +130,7 @@ struct HomeView: View {
     /// jeu en une ligne de méta — d'un coup d'œil (spec refonte §5).
     private func readyCard(_ mode: HomeLaunchMode) -> some View {
         VStack(spacing: AppDesign.Spacing.sm) {
-            Button(action: { vm.launchGame() }) {
+            Button(action: { viewModel.launchGame() }) {
                 Label(localization.L(L10n.Main.launchGame), systemImage: "play.fill")
                     .frame(maxWidth: 240)
             }
@@ -174,7 +141,7 @@ struct HomeView: View {
             HStack(spacing: AppDesign.Spacing.xs) {
                 Text(mode == .vanilla ? localization.L(L10n.Settings.vanillaGame) : localization.L(L10n.Settings.playSMAPI))
                 Text("•").foregroundStyle(AppDesign.Color.dimmedSecondary(0.5))
-                Text(vm.gameDir)
+                Text(viewModel.gameDir)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
@@ -189,7 +156,7 @@ struct HomeView: View {
             VStack(alignment: .center, spacing: AppDesign.Spacing.xl) {
 
                 // ── BANDEAU NEXUS + AVATAR ──
-                HomeHeroBanner(vm: vm, localization: localization)
+                HomeHeroBanner(vm: viewModel, localization: localization)
                     .padding(.horizontal, 40)
                     .padding(.top, 28)
 
@@ -197,7 +164,8 @@ struct HomeView: View {
                 // (Le rembourrage vit dans la branche : appliqué ici, il
                 // envelopperait l'`EmptyView` du cas courant et laisserait un
                 // blanc en haut de l'accueil quand il n'y a rien à signaler.)
-                interruptedSearchNotice
+                // R5 — recherche, benchmark ou mesure pilotée laissés en plan.
+                InterruptedOperationsNotice(viewModel: viewModel, localization: localization, bisection: bisection)
 
                 // ── ATTENTION STRIP ──
                 attentionStrip
@@ -214,7 +182,7 @@ struct HomeView: View {
             }
         }
         .background(AppDesign.Color.windowBg)
-        .onAppear { vm.refresh() }
+        .onAppear { viewModel.refresh() }
     }
 }
 

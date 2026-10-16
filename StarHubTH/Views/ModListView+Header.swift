@@ -143,7 +143,7 @@ extension ModListView {
 
         // Désactivé quand il n'y a rien à basculer, ou pendant une bascule
         // groupée déjà en cours.
-        ModBulkToggleMenu(scoped: display, localization: localization, target: $bulkToggleTarget)
+        ModBulkToggleMenu(scoped: display, viewModel: vm, localization: localization, target: $bulkToggleTarget)
             .disabled(vm.scanStore.mods.isEmpty || vm.bulkToggleProgress != nil)
 
         // A1-T1 — une dépendance requise manque : le geste vit dans la

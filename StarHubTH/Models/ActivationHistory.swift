@@ -14,8 +14,11 @@ import Foundation
 /// installé depuis — inconnu de l'instantané — garde son état actuel au lieu
 /// d'être mis en pause.
 public struct ActivationSnapshot: Codable, Equatable, Identifiable, Sendable {
+    /// `.bisection` et `.benchmark` (R5) : un build d'avant 1.68.0 rejette
+    /// l'historique entier qui les contient ; depuis, le décodage tolérant
+    /// d'`ActivationHistory` ignore l'instantané seul.
     public enum Gesture: String, Codable, Sendable {
-        case bulkEnable, bulkDisable, profile, restore
+        case bulkEnable, bulkDisable, profile, restore, bisection, benchmark
     }
 
     public let id: UUID
