@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Dépendance requise : le geste est sur l'encart de la ligne.** « Activer Nature.RITS » pour une dépendance en pause, « Installer … » ou « Page Nexus de … » pour une dépendance manquante, sinon « Chercher … ». L'onglet Dépendances de la fiche propose les mêmes gestes.
 - **Profils : la colonne « Configs » ouvre la feuille du profil.** Nouvelle section « Configs mémorisées » : la liste complète, les mods désinstallés signalés, et « Comparer avec le profil actif » (ou « Comparer avec… » depuis l'actif), affiché dans la feuille avec « ‹ Retour ». La pastille FR ouvre la feuille sur la traduction.
 - **Clé API Nexus absente : un seul remède partout.** Mises à jour, Traductions FR, fiche d'un mod (traduction, compléments, fiche Nexus) proposent « Ouvrir les réglages Nexus », comme Découvrir, puis « Obtenir une clé API » en second.
 - **Traductions FR : « Installer » respecte le compte Premium.** Sans Premium, le bouton est grisé avec son explication, comme dans la fiche ; le bouton Nexus à côté prend le relais. Même règle pour « Réinstaller depuis Nexus » dans les Alertes, qui gagne un bouton Nexus vers l'onglet Fichiers.

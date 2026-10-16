@@ -576,54 +576,18 @@ struct ModListRow: View {
                 let missingDeps = vm.getMissingDependencies(for: mod)
                 let disabledDeps = vm.getDisabledDependencies(for: mod)
                 if !missingDeps.isEmpty || !disabledDeps.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
+                    // R9 — le geste vit sur l'encart : activer la dépendance en
+                    // pause, l'installer, ouvrir sa page ou la chercher.
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                         if !missingDeps.isEmpty {
-                            HStack(spacing: AppDesign.Spacing.xs) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                // Chaque dépendance manquante est cliquable :
-                                // ouvre la recherche Nexus Mods pour ce nom.
-                                Text("\(localization.L(L10n.Mods.missingDependenciesPrefix)) ")
-                                    .foregroundColor(.secondary)
-                                ForEach(Array(missingDeps.enumerated()), id: \.offset) { idx, depId in
-                                    HStack(spacing: 2) {
-                                        if idx > 0 { Text(",") }
-                                        let modName = depId.smapiModName
-                                        let author = depId.smapiAuthor
-                                        // Au clic, propose deux recherches Nexus :
-                                        // par nom du mod (défaut) ou par auteur.
-                                        Menu {
-                                            Button {
-                                                openNexusSearch(for: modName)
-                                            } label: {
-                                                Label(String(format: localization.L(L10n.Mods.searchNexusByModName), modName),
-                                                      systemImage: "magnifyingglass")
-                                            }
-                                            if !author.isEmpty {
-                                                Button {
-                                                    openNexusAuthorSearch(for: author)
-                                                } label: {
-                                                    Label(String(format: localization.L(L10n.Mods.searchNexusByAuthor), author),
-                                                          systemImage: "person")
-                                                }
-                                            }
-                                        } label: {
-                                            Text(modName)
-                                                .underline()
-                                                .pointingHandCursor()
-                                        }
-                                        .menuStyle(.button)
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                            .foregroundColor(AppDesign.Color.error)
+                            dependencyLine(icon: "exclamationmark.triangle.fill", tint: AppDesign.Color.error,
+                                           text: localization.L(L10n.Mods.missingDependenciesPrefix), ids: missingDeps)
                         }
                         if !disabledDeps.isEmpty {
-                            HStack(spacing: AppDesign.Spacing.xs) {
-                                Image(systemName: "exclamationmark.octagon.fill")
-                                Text(String(format: localization.L(L10n.Mods.disabledRequiredDeps), disabledDeps.joined(separator: ", ")))
-                            }
-                            .foregroundColor(AppDesign.Color.warning)
+                            dependencyLine(icon: "exclamationmark.octagon.fill", tint: AppDesign.Color.warning,
+                                           text: String(format: localization.L(L10n.Mods.disabledRequiredDeps),
+                                                        disabledDeps.joined(separator: ", ")),
+                                           ids: disabledDeps)
                         }
                     }
                     .font(AppDesign.Font.footnote)
@@ -934,17 +898,17 @@ struct ModListRow: View {
         }
     }
 
-    /// Ouvre la recherche Nexus Mods pour une dépendance manquante.
-    /// Le terme de recherche utilise le nom lisible (ex. "Content Patcher"
-    /// plutôt que l'identifiant unique "Pathoschild.ContentPatcher") pour
-    /// exploiter l'indexation par nom de Nexus.
-    private func openNexusSearch(for searchTerm: String) {
-        NexusWebLinks.openSearch(for: searchTerm)
-    }
-
-    /// Ouvre la liste des mods d'un auteur sur Nexus Mods.
-    private func openNexusAuthorSearch(for author: String) {
-        NexusWebLinks.openAuthorSearch(for: author)
+    /// Une ligne de l'encart de dépendances : le constat, puis un geste par
+    /// dépendance. Repliable : à 821 pt, les noms ne se tronquent pas.
+    private func dependencyLine(icon: String, tint: Color, text: String, ids: [String]) -> some View {
+        WrapHStack(spacing: AppDesign.Spacing.xs, lineSpacing: AppDesign.Spacing.xs) {
+            Label(text, systemImage: icon)
+                .foregroundColor(tint)
+            ForEach(ids, id: \.self) { id in
+                DependencyFixActions(viewModel: vm, localization: localization, uniqueId: id,
+                                     pendingActivation: $pendingActivation, pendingConflict: $pendingConflict)
+            }
+        }
     }
 }
 

@@ -2714,3 +2714,7 @@
 "profiles_config_orphan_row" = "Mod uninstalled";
 "profiles_config_compare_unmanaged" = "This mod isn't managed per profile: its sheet, Management tab, turns tracking on.";
 "profiles_config_column_help" = "Opens the list of configs this profile keeps";
+"deps_fix_activate" = "Enable %@";
+"deps_fix_install" = "Install %@";
+"deps_fix_open_page" = "Nexus page for %@";
+"deps_fix_search" = "Search %@";

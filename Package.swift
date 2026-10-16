@@ -276,6 +276,7 @@ let package = Package(
                 "Models/FavoriteResolution.swift",
                 "Models/BlacklistResolution.swift",
                 "Models/ModDependencyStatus.swift",
+                "Models/DependencyFix.swift",
                 "Models/CoreModStatus.swift",
                 "Models/ModListFilters.swift",
                 "Models/XMLEntities.swift",

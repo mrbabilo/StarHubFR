@@ -141,20 +141,11 @@ struct DependencyRowView: View {
     @ViewBuilder
     private var actionButton: some View {
         switch node.status {
-        case .disabled(let depMod):
-            Button(localization.L(L10n.Mods.depEnable)) {
-                // Même porte qu'ailleurs : activer un mod signalé cassé se
-                // confirme. Une dépendance cassée est justement le cas où
-                // l'utilisateur a le plus besoin de le savoir avant de cliquer.
-                if vm.activationWarning(for: depMod) != nil {
-                    pendingActivation = depMod
-                } else if let other = vm.conflictWarning(for: depMod) {
-                    pendingConflict = ConflictActivation(mod: depMod, other: other)
-                } else {
-                    vm.toggleMod(depMod)
-                }
-            }
-                .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
+        case .disabled, .missing:
+            // R9 — les gestes de l'encart de la liste : activer, installer,
+            // ouvrir la page ou chercher, par les gardes de cette rangée.
+            DependencyFixActions(viewModel: vm, localization: localization, uniqueId: node.uniqueId,
+                                 pendingActivation: $pendingActivation, pendingConflict: $pendingConflict)
         case .active:
             let link = node.resolved.map { vm.nexusLink(for: $0) } ?? ""
             if !link.isEmpty {
@@ -164,53 +155,7 @@ struct DependencyRowView: View {
                 .buttonStyle(.borderless).controlSize(.small)
                 .foregroundColor(.accentColor).pointingHandCursor()
             }
-        case .missing:
-            let modName = node.uniqueId.smapiModName
-            let author = node.uniqueId.smapiAuthor
-            // A1-T1 — la page Nexus exacte quand le dump Pathoschild la
-            // connaît : pas de recherche à deviner. La recherche reste le
-            // dernier recours (mod hors dump).
-            let entry = vm.dependencyDirectory.entry(for: node.uniqueId)
-            Menu {
-                if let nexusId = entry?.nexusId {
-                    Button {
-                        vm.expectNexusMod(nexusId: nexusId, uniqueIds: [node.uniqueId])
-                        NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
-                    } label: {
-                        Label(localization.L(L10n.Mods.depsSheetOpenPage), systemImage: "safari")
-                    }
-                }
-                Button {
-                    openNexusSearch(for: modName)
-                } label: {
-                    Label(String(format: localization.L(L10n.Mods.searchNexusByModName), modName),
-                          systemImage: "magnifyingglass")
-                }
-                if !author.isEmpty {
-                    Button {
-                        openNexusAuthorSearch(for: author)
-                    } label: {
-                        Label(String(format: localization.L(L10n.Mods.searchNexusByAuthor), author),
-                              systemImage: "person")
-                    }
-                }
-            } label: {
-                Text(entry?.name ?? localization.L(L10n.Mods.depSearch))
-                    .underline(entry != nil)
-            }
-            .buttonStyle(.borderless).controlSize(.small)
-            .foregroundColor(.accentColor).pointingHandCursor()
         }
-    }
-
-    /// Ouvre la recherche Nexus Mods pour un terme donné (dépendance manquante).
-    private func openNexusSearch(for searchTerm: String) {
-        NexusWebLinks.openSearch(for: searchTerm)
-    }
-
-    /// Ouvre la liste des mods d'un auteur sur Nexus Mods.
-    private func openNexusAuthorSearch(for author: String) {
-        NexusWebLinks.openAuthorSearch(for: author)
     }
 }
 

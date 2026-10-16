@@ -2713,5 +2713,9 @@
   "profiles_config_compare_active": "Comparer avec le profil actif",
   "profiles_config_orphan_row": "Mod désinstallé",
   "profiles_config_compare_unmanaged": "Ce mod n'est pas géré par profil : sa fiche, onglet Gestion, active le suivi.",
-  "profiles_config_column_help": "Ouvre la liste des configs que ce profil retient"
+  "profiles_config_column_help": "Ouvre la liste des configs que ce profil retient",
+  "deps_fix_activate": "Activer %@",
+  "deps_fix_install": "Installer %@",
+  "deps_fix_open_page": "Page Nexus de %@",
+  "deps_fix_search": "Chercher %@"
 }
