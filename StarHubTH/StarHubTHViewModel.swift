@@ -6251,16 +6251,6 @@ final class StarHubTHViewModel {
         return ProfileConfigStore.load(from: url)[mod.folderName]?.text
     }
 
-    /// Ce qu'un profil retient et ses orphelins, **gardés** (spec §6.5).
-    /// Seule fonction à les nommer.
-    func profileConfigSummary(for profile: ModProfile) -> (total: Int, orphans: [String]) {
-        guard let url = ProfileConfigStore.fileURL(profileId: profile.id) else { return (0, []) }
-        let entries = ProfileConfigStore.load(from: url)
-        // `folderName` logique : une pause ne vaut pas désinstallation.
-        let installed = Set(mods.flattenedMods.map(\.folderName))
-        return (entries.count, entries.keys.filter { !installed.contains($0) }.sorted())
-    }
-
     /// Écarts entre deux profils ; `nil` si un texte ne se parse pas (pas de
     /// diff inventé).
     func profileConfigDiffs(mod: ModItem, other: ModProfile) -> [ConfigKeyDiff]? {

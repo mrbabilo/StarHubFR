@@ -2709,3 +2709,8 @@
 "health_open_alerts_one" = "1 alerte à traiter";
 "health_open_alerts_action" = "Voir les alertes";
 "nexus_access_open_settings" = "Ouvrir les réglages Nexus";
+"profiles_section_configs" = "CONFIGS MÉMORISÉES";
+"profiles_config_compare_active" = "Comparer avec le profil actif";
+"profiles_config_orphan_row" = "Mod désinstallé";
+"profiles_config_compare_unmanaged" = "Ce mod n'est pas géré par profil : sa fiche, onglet Gestion, active le suivi.";
+"profiles_config_column_help" = "Ouvre la liste des configs que ce profil retient";

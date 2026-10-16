@@ -15,14 +15,27 @@ import SwiftUI
 /// ne le disait. Cette troisième section a sa propre porte d'entrée (la
 /// pastille « FR » de la ligne du profil), sans quoi elle resterait invisible
 /// sur un profil sans le moindre défaut.
+///
+/// R4 : et les `config.json` qu'il retient, avec la comparaison entre
+/// profils — la feuille devient la fiche du profil. Chaque porte de la rangée
+/// (Anomalies, pastille FR, colonne Configs) l'ouvre sur sa section.
 struct ProfileDiagnosticsView: View {
-    var vm: StarHubTHViewModel
+    /// La section sur laquelle la feuille s'ouvre ; `nil` = en haut.
+    enum Focus: Hashable { case translation, configs }
+
+    private struct Comparison: Equatable {
+        let mod: ModItem
+        let other: ModProfile
+    }
+
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let profile: ModProfile
     @Binding var isPresented: Bool
     /// Ouvre la fiche d'un mod sur son onglet Traduction. Confié à l'appelant :
     /// c'est lui qui tient l'onglet courant de la fenêtre.
     let onOpenTranslation: (String) -> Void
+    var focus: Focus?
 
     /// Calculé une fois à l'ouverture : la résolution lit l'index des
     /// sauvegardes sur le disque, ce qu'on ne refait pas à chaque rendu.
@@ -32,8 +45,41 @@ struct ProfileDiagnosticsView: View {
     /// l'ouverture de la page des profils : cette feuille la lit, elle ne la
     /// calcule pas.
     @State private var translation: ProfileTranslationSummary?
+    @State private var configs = ProfileConfigOverview(storedFolders: [], installed: [])
+    /// La comparaison affichée **par-dessus** la liste, qui reste montée :
+    /// au retour, le défilement est là où on l'avait laissé.
+    @State private var comparison: Comparison?
 
     var body: some View {
+        ZStack {
+            content
+                .opacity(comparison == nil ? 1 : 0)
+                .allowsHitTesting(comparison == nil)
+                .accessibilityHidden(comparison != nil)
+            if let comparison {
+                ProfileConfigCompareView(vm: viewModel, localization: localization, mod: comparison.mod,
+                                         other: comparison.other,
+                                         isPresented: Binding(get: { true }, set: { if !$0 { self.comparison = nil } }),
+                                         embedded: true)
+                    .background(AppDesign.Color.windowBg)
+            }
+        }
+        .frame(width: 640, height: 500)
+        .onAppear { reload() }
+        // La restauration relance un scan **asynchrone** : recalculer juste
+        // après l'avoir lancée lit encore l'ancien `viewModel.scanStore.mods`, et le mod
+        // restauré resterait affiché comme manquant. On refait le calcul quand
+        // le parc a réellement changé.
+        .onChange(of: viewModel.scanStore.mods.count) { _, _ in reload() }
+        // Ajouter une dépendance au profil change le profil, pas le parc : le
+        // compte de mods est le signal qui l'annonce.
+        .onChange(of: viewModel.modProfiles) { _, _ in reload() }
+        // La mesure de la couverture tourne en fond : sans ceci, une feuille
+        // ouverte pendant la passe resterait sur son témoin d'attente.
+        .onChange(of: viewModel.profileTranslationSummaries) { _, _ in reload() }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(format: localization.L(L10n.Profiles.diagnosticTitle), profile.name))
@@ -53,6 +99,7 @@ struct ProfileDiagnosticsView: View {
 
             Divider()
 
+            ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if !missing.isEmpty {
@@ -70,7 +117,24 @@ struct ProfileDiagnosticsView: View {
                         }
                     }
                     translationSection
+                    if configs.total > 0 {
+                        sectionHeader(localization.L(L10n.Profiles.sectionConfigs))
+                            .id(Focus.configs)
+                        ProfileConfigsSection(viewModel: viewModel, localization: localization, profile: profile,
+                                              overview: configs) { mod, other in
+                            comparison = Comparison(mod: mod, other: other)
+                        }
+                    }
                 }
+            }
+            .onAppear {
+                guard let focus else { return }
+                // Un tour d'attente : la section n'existe qu'après `reload()`.
+                Task { @MainActor in
+                    await Task.yield()
+                    proxy.scrollTo(focus, anchor: .top)
+                }
+            }
             }
 
             Divider()
@@ -82,29 +146,17 @@ struct ProfileDiagnosticsView: View {
             }
             .padding(16)
         }
-        .frame(width: 560, height: 460)
-        .onAppear { reload() }
-        // La restauration relance un scan **asynchrone** : recalculer juste
-        // après l'avoir lancée lit encore l'ancien `vm.scanStore.mods`, et le mod
-        // restauré resterait affiché comme manquant. On refait le calcul quand
-        // le parc a réellement changé.
-        .onChange(of: vm.scanStore.mods.count) { _, _ in reload() }
-        // Ajouter une dépendance au profil change le profil, pas le parc : le
-        // compte de mods est le signal qui l'annonce.
-        .onChange(of: vm.modProfiles) { _, _ in reload() }
-        // La mesure de la couverture tourne en fond : sans ceci, une feuille
-        // ouverte pendant la passe resterait sur son témoin d'attente.
-        .onChange(of: vm.profileTranslationSummaries) { _, _ in reload() }
     }
 
     private func reload() {
         // Le profil est relu depuis le ViewModel : celui que la feuille porte
         // est une copie prise à l'ouverture, et ne verrait pas les dépendances
         // qu'on vient d'y ajouter.
-        let current = vm.modProfiles.first { $0.id == profile.id } ?? profile
-        missing = vm.missingMods(in: current)
-        gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: vm.scanStore.mods.flattenedMods)
-        translation = vm.translationSummary(for: current)
+        let current = viewModel.modProfiles.first { $0.id == profile.id } ?? profile
+        missing = viewModel.missingMods(in: current)
+        gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: viewModel.scanStore.mods.flattenedMods)
+        translation = viewModel.translationSummary(for: current)
+        configs = ProfileConfigOverview.load(profileId: current.id, installed: viewModel.scanStore.mods.flattenedMods)
     }
 
     /// Ce que le profil affichera en français une fois appliqué.
@@ -115,11 +167,12 @@ struct ProfileDiagnosticsView: View {
     /// en a pas.
     @ViewBuilder
     private var translationSection: some View {
-        if translation == nil, vm.isMeasuringProfileTranslation {
+        if translation == nil, viewModel.isMeasuringProfileTranslation {
             // La feuille peut s'ouvrir par la pastille d'anomalies avant que la
             // mesure ne soit finie : le dire vaut mieux qu'une section absente,
             // qu'on prendrait pour « rien à traduire ».
             sectionHeader(localization.L(L10n.Profiles.sectionTranslation))
+                .id(Focus.translation)
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text(localization.L(L10n.Profiles.translationMeasuring))
@@ -130,6 +183,7 @@ struct ProfileDiagnosticsView: View {
             .padding(.bottom, 12)
         } else if let summary = translation, !summary.isEmpty {
             sectionHeader(localization.L(L10n.Profiles.sectionTranslation))
+                .id(Focus.translation)
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(format: localization.L(L10n.Profiles.translationSummary),
                             Int64(summary.translatedKeys), Int64(summary.totalKeys),
@@ -234,12 +288,12 @@ struct ProfileDiagnosticsView: View {
                 // dossier et relance un scan : le voile de progression vit dans
                 // la fenêtre, donc derrière cette feuille. Sans ce témoin, le
                 // clic n'aurait aucun effet visible pendant plusieurs secondes.
-                if vm.isApplyingProfile {
+                if viewModel.isApplyingProfile {
                     ProgressView()
                         .controlSize(.small)
                 } else {
                     Button(localization.L(L10n.Profiles.addToProfile)) {
-                        vm.addModToProfile(id: profile.id, uniqueId: gap.uniqueId)
+                        viewModel.addModToProfile(id: profile.id, uniqueId: gap.uniqueId)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -286,7 +340,7 @@ struct ProfileDiagnosticsView: View {
             } else {
                 if mod.hasBackup {
                     Button(localization.L(L10n.Profiles.missingRestore)) {
-                        vm.restoreMissingModFromBackup(uniqueId: mod.uniqueId)
+                        viewModel.restoreMissingModFromBackup(uniqueId: mod.uniqueId)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -294,14 +348,14 @@ struct ProfileDiagnosticsView: View {
                 }
                 if let nexusId = mod.nexusModId, let id = Int(nexusId) {
                     Button(localization.L(L10n.ModInstall.depDownload)) {
-                        vm.downloadModFromNexus(nexusId: id)
+                        viewModel.downloadModFromNexus(nexusId: id)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     // L'API refuse tout lien direct à un compte non premium :
                     // proposer le bouton reviendrait à promettre un échec.
-                    .disabled(vm.isDownloadingFromNexus || vm.nexusDirectDownloadUnavailable)
-                    .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
+                    .disabled(viewModel.isDownloadingFromNexus || viewModel.nexusDirectDownloadUnavailable)
+                    .help(viewModel.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
                     .pointingHandCursor()
                 } else if !mod.hasBackup {
                     Text(localization.L(L10n.Profiles.missingUnknown))

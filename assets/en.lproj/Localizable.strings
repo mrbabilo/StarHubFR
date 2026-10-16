@@ -2709,3 +2709,8 @@
 "health_open_alerts_one" = "1 alert to handle";
 "health_open_alerts_action" = "Show alerts";
 "nexus_access_open_settings" = "Open Nexus settings";
+"profiles_section_configs" = "STORED CONFIGS";
+"profiles_config_compare_active" = "Compare with active profile";
+"profiles_config_orphan_row" = "Mod uninstalled";
+"profiles_config_compare_unmanaged" = "This mod isn't managed per profile: its sheet, Management tab, turns tracking on.";
+"profiles_config_column_help" = "Opens the list of configs this profile keeps";

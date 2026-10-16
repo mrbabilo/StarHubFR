@@ -12,6 +12,8 @@ struct ModProfilesView: View {
     @State private var renameText = ""
     @State private var profileToDelete: ModProfile?
     @State private var profileShowingMissing: ModProfile?
+    /// La section sur laquelle la feuille du profil s'ouvre (R4).
+    @State private var profileSheetFocus: ProfileDiagnosticsView.Focus?
     /// Profil pour lequel un import de favoris attend confirmation. Seulement
     /// renseigné quand le profil est **actif** : y importer active les mods sur
     /// le disque dans la foulée, ce qui n'est pas un simple changement de
@@ -132,7 +134,10 @@ struct ModProfilesView: View {
             onDuplicate: { vm.duplicateProfile(id: profile.id) },
             onImportFavorites: { importFavorites(into: profile) },
             onImportBlacklisted: { importBlacklisted(into: profile) },
-            onShowMissing: { profileShowingMissing = profile },
+            onShowDetails: { focus in
+                profileSheetFocus = focus
+                profileShowingMissing = profile
+            },
             onDelete: { profileToDelete = profile }
         )
     }
@@ -328,7 +333,7 @@ struct ModProfilesView: View {
         .task { vm.refreshProfileTranslationCoverage() }
         .sheet(item: $profileShowingMissing) { profile in
             ProfileDiagnosticsView(
-                vm: vm,
+                viewModel: vm,
                 localization: localization,
                 profile: profile,
                 isPresented: Binding(get: { profileShowingMissing != nil },
@@ -336,7 +341,8 @@ struct ModProfilesView: View {
                 onOpenTranslation: { folderName in
                     vm.openTranslation(forFolder: folderName)
                     currentTab = .mods
-                })
+                },
+                focus: profileSheetFocus)
         }
     }
 
@@ -350,7 +356,7 @@ struct ModProfilesView: View {
     /// `0` quand il n'y a rien à perdre — la confirmation se tait alors.
     private var deletionConfigCount: Int {
         guard let target = profileToDelete else { return 0 }
-        return vm.profileConfigSummary(for: target).total
+        return ProfileConfigOverview.load(profileId: target.id, installed: vm.mods.flattenedMods).total
     }
 
     /// Les profils qu'on peut activer à la place de celui qu'on supprime.

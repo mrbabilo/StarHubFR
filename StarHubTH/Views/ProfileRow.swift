@@ -23,12 +23,14 @@ struct ProfileRow: View {
     let onDuplicate: () -> Void
     let onImportFavorites: () -> Void
     let onImportBlacklisted: () -> Void
-    let onShowMissing: () -> Void
+    /// La feuille du profil, ouverte sur la section de la porte cliquée
+    /// (`nil` : Anomalies, en haut).
+    let onShowDetails: (ProfileDiagnosticsView.Focus?) -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
     /// Ce que ce profil retient des `config.json`, rempli à l'apparition et
     /// jamais recalculé au rendu : la mesure ouvre et décode un fichier.
-    @State private var configSummary: (total: Int, orphans: [String]) = (0, [])
+    @State private var configs = ProfileConfigOverview(storedFolders: [], installed: [])
 
     var body: some View {
         // A plain row (NOT a tappable button) so switching profiles — which
@@ -71,7 +73,6 @@ struct ProfileRow: View {
                 // libellé (« FR 86 % · 50 à traduire ») ne se replie pas en
                 // colonne.
                 translationBadge
-                configBadge
             }
 
             Spacer()
@@ -134,7 +135,7 @@ struct ProfileRow: View {
         .contentShape(Rectangle())
         .background(isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear)
         .onHover { isHovered = $0 }
-        .onAppear { configSummary = vm.profileConfigSummary(for: profile) }
+        .onAppear { configs = ProfileConfigOverview.load(profileId: profile.id, installed: vm.mods.flattenedMods) }
         .contextMenu {
             if !isActive {
                 Button(localization.L(L10n.Profiles.activate)) { onApply() }
@@ -161,9 +162,9 @@ struct ProfileRow: View {
     /// miniature, à hauteur réservée : une colonne sans données affiche
     /// « — », la rangée ne saute pas.
     ///
-    /// Seule « Anomalies » est un bouton : c'est la donnée qui mène au
-    /// diagnostic, la cible de clic est donc la colonne entière, pas un
-    /// glyph de 12 pt (a11y §7). « 0 » s'affiche neutre — un zéro est une
+    /// « Anomalies » et « Configs » sont des boutons : chacune ouvre la
+    /// feuille du profil sur sa section (R4), la cible de clic est donc la
+    /// colonne entière, pas un glyph de 12 pt (a11y §7). « 0 » s'affiche neutre — un zéro est une
     /// information ; « > 0 » porte glyph **et** couleur, jamais la couleur
     /// seule (P6).
     private var statColumns: some View {
@@ -171,7 +172,7 @@ struct ProfileRow: View {
             StatColumn(label: localization.L(L10n.Profiles.colMods),
                        value: "\(modCount)",
                        help: String(format: localization.L(L10n.Profiles.modCount), modCount))
-            Button(action: onShowMissing) {
+            Button { onShowDetails(nil) } label: {
                 StatColumn(label: localization.L(L10n.Profiles.colIssues),
                            value: "\(issueCount)",
                            attention: issueCount > 0,
@@ -180,39 +181,19 @@ struct ProfileRow: View {
             }
             .buttonStyle(.plain)
             .pointingHandCursor()
-            StatColumn(label: localization.L(L10n.Profiles.colConfigs),
-                       value: configSummary.total > 0 ? "\(configSummary.total)" : "—")
+            // Orange s'il retient des configs de mods désinstallés : la
+            // feuille les nomme (la ligne qui le disait sous la rangée est partie).
+            Button { onShowDetails(.configs) } label: {
+                StatColumn(label: localization.L(L10n.Profiles.colConfigs),
+                           value: configs.total > 0 ? "\(configs.total)" : "—",
+                           attention: !configs.orphans.isEmpty,
+                           help: localization.L(L10n.Profiles.configColumnHelp))
+            }
+            .buttonStyle(.plain)
+            .disabled(configs.total == 0)
+            .pointingHandCursor()
         }
         .fixedSize()
-    }
-
-    /// Les `config.json` que ce profil retient, et ceux dont le mod n'est
-    /// plus installé.
-    ///
-    /// Sa propre ligne, comme `translationBadge` : la rangée ne tient pas
-    /// un compteur de plus à la largeur minimale de la fenêtre. Les noms
-    /// d'orphelins sont tronqués à cinq — un profil peut en porter des
-    /// dizaines.
-    @ViewBuilder
-    private var configBadge: some View {
-        if configSummary.total > 0 {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(format: localization.L(L10n.Profiles.configStored),
-                            Int64(configSummary.total)))
-                    .font(AppDesign.Font.footnote)
-                    .foregroundColor(.secondary)
-                if !configSummary.orphans.isEmpty {
-                    let names = configSummary.orphans.prefix(5).joined(separator: ", ")
-                    let more = configSummary.orphans.count - 5
-                    Text(String(format: localization.L(L10n.Profiles.configOrphans),
-                                Int64(configSummary.orphans.count),
-                                more > 0 ? "\(names) +\(more)" : names))
-                        .font(AppDesign.Font.footnote)
-                        .foregroundColor(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
     }
 
     /// La part de français du profil, et ce qu'il reste à traduire.
@@ -228,7 +209,7 @@ struct ProfileRow: View {
     @ViewBuilder
     private var translationBadge: some View {
         if let summary = translation, !summary.isEmpty {
-            Button(action: onShowMissing) {
+            Button { onShowDetails(.translation) } label: {
                 HStack(spacing: 4) {
                     CoverageRing(fraction: Double(summary.displayPercent) / 100,
                                  tint: summary.pending.isEmpty ? AppDesign.Color.success : AppDesign.Color.accent)

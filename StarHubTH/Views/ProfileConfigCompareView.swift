@@ -15,6 +15,10 @@ struct ProfileConfigCompareView: View {
     let mod: ModItem
     let other: ModProfile
     @Binding var isPresented: Bool
+    /// R4 — dans la feuille d'un profil, la comparaison **remplace** son
+    /// contenu (pas de feuille sur feuille) : pas de taille propre, et le
+    /// bouton du pied ramène à la liste au lieu de fermer.
+    var embedded = false
 
     /// Rempli à l'apparition, jamais au rendu : chaque appel ouvre et
     /// décode les magasins des deux profils.
@@ -25,7 +29,6 @@ struct ProfileConfigCompareView: View {
     private var activeName: String {
         vm.modProfiles.first(where: { $0.id == vm.activeProfileId })?.name ?? ""
     }
-
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -56,12 +59,14 @@ struct ProfileConfigCompareView: View {
 
             HStack {
                 Spacer()
-                Button(localization.L(L10n.Main.ok)) { isPresented = false }
-                    .keyboardShortcut(.defaultAction)
+                Button(embedded ? "‹ " + localization.L(L10n.Main.navBack) : localization.L(L10n.Main.ok)) {
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
             }
             .padding(16)
         }
-        .frame(width: 720, height: 540)
+        .frame(width: embedded ? nil : 720, height: embedded ? nil : 540)
         .onAppear {
             // Rien mémorisé d'un côté : ce n'est ni une erreur ni un diff —
             // l'écran le dit, il ne l'invente pas.

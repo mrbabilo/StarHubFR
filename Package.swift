@@ -336,6 +336,7 @@ let package = Package(
                 "Models/FileRecovery.swift",
                 "Models/TranslationRecoveryDiff.swift",
                 "Models/ProfileConfigStore.swift",
+                "Models/ProfileConfigOverview.swift",
                 "Models/ConfigJSONTree.swift",
                 "Models/ConfigJSONMerge.swift",
                 "Models/ConfigJSONDiff.swift",
