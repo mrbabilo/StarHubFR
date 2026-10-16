@@ -37,9 +37,8 @@ struct UpdateCheckFailureBanner: View {
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text(localization.L(L10n.Updates.nexusAlternativeNoKey))
-                        .font(AppDesign.Font.footnote)
-                        .foregroundColor(.secondary)
+                    NexusAccessNote(message: localization.L(L10n.Updates.nexusAlternativeNoKey),
+                                    navigation: viewModel.navigationStore, localization: localization)
                 }
             }
         }

@@ -168,9 +168,9 @@ struct MainView: View {
                     case .quarantine:
                         QuarantineView(vm: vm, localization: localization)
                     case .discover:
-                        DiscoverView(vm: vm, localization: localization, currentTab: $currentTab)
+                        DiscoverView(vm: vm, localization: localization)
                     case .frenchTranslations:
-                        FrenchTranslationsView(vm: vm, localization: localization, currentTab: $currentTab)
+                        FrenchTranslationsView(viewModel: vm, localization: localization, currentTab: $currentTab)
                     case .settings:
                         SettingsView(vm: vm, localization: localization)
                     case .logs:

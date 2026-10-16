@@ -404,6 +404,7 @@ let package = Package(
                 "Stores/NexusAccountStore.swift",
                 "Stores/NexusDownloadStore.swift",
                 "Stores/NavigationStore.swift",
+                "Stores/NavigationStore+Settings.swift",
                 "Stores/ScanStore.swift",
                 "Models/DetailTab.swift",
                 "Models/TranslationDiffFilter.swift",

@@ -56,6 +56,15 @@ import Foundation
         #expect(s.pendingTabRequest == nil)
     }
 
+    /// R7 : « Ouvrir les réglages Nexus » pose la section **et** l'onglet —
+    /// sans la section, les Réglages s'ouvriraient sur leur dernier groupe.
+    @Test func openSettingsPoseSectionEtOnglet() {
+        let s = NavigationStore()
+        s.openSettings(.nexus)
+        #expect(s.pendingSettingsSection == .nexus)
+        #expect(s.pendingTabRequest == .settings)
+    }
+
     /// I-T5 : le saut vers les sauvegardes d'un mod pose les trois états
     /// d'un coup — sans le segment, il atterrirait sur « Configurations ».
     @Test func openBackupsPoseSegmentFiltreEtOnglet() {

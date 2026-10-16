@@ -14,11 +14,11 @@ import SwiftUI
 /// le mod de premier niveau, dossier physique compris — un mod en pause vit
 /// dans `Mods/.X`.
 struct FrenchTranslationsView: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @Binding var currentTab: SidebarDestination
 
-    private var store: FrenchTranslationSweepStore { vm.translationSweep }
+    private var store: FrenchTranslationSweepStore { viewModel.translationSweep }
 
     /// C3-T5 — la session de fusion des lots humains, portée par la vue :
     /// elle ne survit pas au changement d'onglet, comme les autres états de
@@ -35,7 +35,7 @@ struct FrenchTranslationsView: View {
 
     /// Les mêmes magasins que le filtre « Trad. FR » de la liste.
     private var worklistState: ModListScoping.TranslationState {
-        let model = vm
+        let model = viewModel
         return .init(coverage: model.frenchCoverageByMod, stale: model.staleTranslationMods,
                      outdatedKeys: model.outdatedKeysByMod)
     }
@@ -49,7 +49,7 @@ struct FrenchTranslationsView: View {
     }
 
     private var rows: [Row] {
-        let model = vm
+        let model = viewModel
         let byFolder = Dictionary(model.mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
         return FrenchTranslationSweep.candidates(
             among: model.mods,
@@ -66,9 +66,9 @@ struct FrenchTranslationsView: View {
 
     var body: some View {
         let all = rows
-        let mods = vm.mods, state = worklistState
+        let mods = viewModel.mods, state = worklistState
         let work = TranslationWorklist.items(in: mods, state: state)
-        let unmeasured = TranslationWorklist.unmeasuredCount(in: mods, pass: vm.frenchCoverage)
+        let unmeasured = TranslationWorklist.unmeasuredCount(in: mods, pass: viewModel.frenchCoverage)
         let shown = segment ?? (work.isEmpty && unmeasured == 0 ? .nexus : .worklist)
         VStack(alignment: .leading, spacing: 0) {
             header(all, shown: shown, workCount: work.count)
@@ -107,10 +107,10 @@ struct FrenchTranslationsView: View {
         }
         .onAppear { if segment == nil { segment = shown } }
         .sheet(isPresented: $showArbitration) {
-            TranslationArbitrationSheet(store: mergeStore, viewModel: vm,
+            TranslationArbitrationSheet(store: mergeStore, viewModel: viewModel,
                                         localization: localization,
                                         freshRows: { mod in
-                                            await vm.translationDiff(for: mod)
+                                            await viewModel.translationDiff(for: mod)
                                         },
                                         onWrote: { _ in },
                                         onClose: {
@@ -142,7 +142,7 @@ struct FrenchTranslationsView: View {
                     // Menu dans ce SDK.
                     HStack(spacing: 4) {
                         Button {
-                            store.run(all.map(\.candidate)) { vm.log($0) }
+                            store.run(all.map(\.candidate)) { viewModel.log($0) }
                         } label: {
                             Label(localization.L(L10n.FrTranslations.rescan),
                                   systemImage: "magnifyingglass")
@@ -153,7 +153,7 @@ struct FrenchTranslationsView: View {
                         .help(localization.L(L10n.FrTranslations.rescanHint))
                         Menu {
                             Button(localization.L(L10n.FrTranslations.rescanAll)) {
-                                store.run(all.map(\.candidate), forceAll: true) { vm.log($0) }
+                                store.run(all.map(\.candidate), forceAll: true) { viewModel.log($0) }
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
@@ -179,7 +179,7 @@ struct FrenchTranslationsView: View {
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
                 Spacer(minLength: 0)
-                TranslationLotShuttleView(viewModel: vm, localization: localization,
+                TranslationLotShuttleView(viewModel: viewModel, localization: localization,
                                           mergeStore: $mergeStore,
                                           onMergeReady: { showArbitration = $0 })
             }
@@ -208,10 +208,18 @@ struct FrenchTranslationsView: View {
                 Text(String(format: localization.L(L10n.FrTranslations.never), all.count))
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
+            // R7 — la clé absente a son remède commun ; un quota épuisé ou un
+            // arrêt demandé gardent leur constat (ils ne se règlent pas aux
+            // Réglages).
             if shown == .nexus, let reason = store.stopReason {
-                Label(stopText(reason), systemImage: "exclamationmark.triangle.fill")
-                    .font(AppDesign.Font.footnote)
-                    .foregroundColor(reason == .cancelled ? .secondary : AppDesign.Color.warning)
+                if reason == .noApiKey {
+                    NexusAccessNote(message: stopText(reason), navigation: viewModel.navigationStore,
+                                    localization: localization)
+                } else {
+                    Label(stopText(reason), systemImage: "exclamationmark.triangle.fill")
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(reason == .cancelled ? .secondary : AppDesign.Color.warning)
+                }
             }
         }
     }
@@ -255,7 +263,7 @@ struct FrenchTranslationsView: View {
                                      style: FrenchTranslationsOverview.style(for: key),
                                      startsOpen: open, reveal: revealKey == key) {
                 ForEach(rows) { row in
-                    FrenchTranslationRow(vm: vm, localization: localization, mod: row.mod,
+                    FrenchTranslationRow(viewModel: viewModel, localization: localization, mod: row.mod,
                                          candidate: row.candidate, status: row.status,
                                          entry: store.entries[row.candidate.folderName],
                                          openMod: { openMod(row.mod.folderName) })
@@ -268,6 +276,6 @@ struct FrenchTranslationsView: View {
     /// La fiche, onglet Traduction — là où vivent le retrait et le
     /// rattachement. L'intention traverse le changement d'onglet (patron B3-T4).
     private func openMod(_ folderName: String) {
-        vm.navigationStore.openModDetail(folderName: folderName, door: .frenchTranslations)
+        viewModel.navigationStore.openModDetail(folderName: folderName, door: .frenchTranslations)
     }
 }

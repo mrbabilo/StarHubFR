@@ -81,11 +81,8 @@ struct SupplementSection: View {
                     .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
-                    Text(localization.L(L10n.Mods.nexusNoApiKey))
-                        .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    NexusAccessNote(message: localization.L(L10n.Mods.nexusNoApiKey),
+                                    navigation: vm.navigationStore, localization: localization)
                 }
             }
             // Ce que le registre connaît déjà, sans Nexus.
@@ -512,11 +509,8 @@ struct TranslationSection: View {
             } else if !vm.hasNexusApiKey {
                 // Écrit, pas seulement en infobulle (non garantie sur un contrôle
                 // désactivé).
-                Text(localization.L(L10n.Mods.nexusNoApiKey))
-                    .font(AppDesign.Font.iconXS)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                NexusAccessNote(message: localization.L(L10n.Mods.nexusNoApiKey),
+                                navigation: vm.navigationStore, localization: localization)
             }
         }
     }
@@ -613,11 +607,8 @@ struct NexusIdentitySection: View {
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
                     // Écrit, pas seulement en infobulle.
-                    Text(localization.L(L10n.Mods.nexusNoApiKey))
-                        .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    NexusAccessNote(message: localization.L(L10n.Mods.nexusNoApiKey),
+                                    navigation: vm.navigationStore, localization: localization)
                 }
             }
             // Dit **avant** le clic : les 20 composants de pack sans id n'ont rien

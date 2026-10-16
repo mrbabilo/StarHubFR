@@ -12,10 +12,6 @@ struct DiscoverView: View {
 
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
-    /// L'onglet courant de `MainView` : sans clé d'API la vitrine ne peut
-    /// rien montrer, et le dire sans offrir le chemin des réglages laisse
-    /// l'utilisateur le chercher.
-    @Binding var currentTab: SidebarDestination
     @AppStorage("discoveryHideInstalled") private var hideInstalled = false
     @State private var searchText = ""
     @State private var detailRow: StarHubTHViewModel.DiscoveryRow?
@@ -269,7 +265,7 @@ struct DiscoverView: View {
                 // le diagnostic.
                 StateCard(icon: "key", text: localization.L(L10n.Discovery.noKey),
                           actionTitle: localization.L(L10n.Discovery.openSettings)) {
-                    vm.navigationStore.pendingSettingsSection = .nexus; currentTab = .settings
+                    vm.navigationStore.openSettings(.nexus)
                 }
             case .rateLimited:
                 StateCard(icon: "hourglass", text: localization.L(L10n.Discovery.rateLimited),
@@ -332,7 +328,7 @@ struct DiscoverView: View {
             // diagnostic.
             return ErrorBanner(text: text,
                                actionTitle: localization.L(L10n.Discovery.openSettings)) {
-                vm.navigationStore.pendingSettingsSection = .nexus; currentTab = .settings
+                vm.navigationStore.openSettings(.nexus)
             }
         }
         return ErrorBanner(text: text,

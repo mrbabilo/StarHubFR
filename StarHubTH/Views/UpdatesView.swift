@@ -47,26 +47,8 @@ struct UpdatesView: View {
                         // aucune mise à jour n'était visible, quand bien même
                         // l'app en avait trouvé.
                         if !vm.hasNexusApiKey {
-                            HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
-                                Image(systemName: "key.fill")
-                                    .foregroundColor(.secondary)
-                                    .font(AppDesign.Font.caption)
-                                    .padding(.top, 2)
-                                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                                    Text(localization.L(L10n.Updates.nexusApiKeyMissing))
-                                        .font(AppDesign.Font.caption)
-                                        .foregroundColor(.secondary)
-                                    Button {
-                                                                                    NSWorkspace.shared.open(NexusRequestBuilder.apiKeyPageURL)
-                                    } label: {
-                                        Text(localization.L(L10n.Updates.nexusGetKey))
-                                            .font(AppDesign.Font.caption(.medium))
-                                            .foregroundColor(.accentColor)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .pointingHandCursor()
-                                }
-                            }
+                            NexusAccessNote(message: localization.L(L10n.Updates.nexusApiKeyMissing),
+                                            navigation: vm.navigationStore, localization: localization)
                         }
 
                         if vm.isCheckingNexusUpdates {

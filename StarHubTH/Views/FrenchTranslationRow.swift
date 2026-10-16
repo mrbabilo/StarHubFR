@@ -33,7 +33,7 @@ struct FrenchTranslationSection<Content: View>: View {
 
 /// Un mod et ce que Nexus propose pour lui.
 struct FrenchTranslationRow: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let candidate: FrenchTranslationSweep.Candidate
@@ -51,7 +51,7 @@ struct FrenchTranslationRow: View {
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Color.secondary.opacity(0.15)).cornerRadius(4)
                 }
-                if vm.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
+                if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
                 Spacer()
                 Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
                     .buttonStyle(.borderless).controlSize(.small).pointingHandCursor()
@@ -111,9 +111,13 @@ struct FrenchTranslationRow: View {
                     .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
             }
             Spacer()
-            Button(localization.L(action)) { vm.installTranslation(hit, into: mod) }
+            // R7 — même garde que la fiche : sans Premium, lien direct refusé,
+            // le bouton Nexus à côté relaie (avant : actif, puis modale d'erreur).
+            let premiumOnly = viewModel.nexusDirectDownloadUnavailable
+            Button(localization.L(action)) { viewModel.installTranslation(hit, into: mod) }
                 .buttonStyle(.bordered).controlSize(.small)
-                .disabled(vm.translationHub.isBusy(mod.folderName))
+                .disabled(viewModel.translationHub.isBusy(mod.folderName) || premiumOnly)
+                .help(premiumOnly ? localization.L(L10n.Mods.premiumOnlyHint) : "")
                 .pointingHandCursor()
             Button {
                 if let url = URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {

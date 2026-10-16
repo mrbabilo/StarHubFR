@@ -2708,3 +2708,4 @@
 "health_open_alerts" = "%lld alertes à traiter";
 "health_open_alerts_one" = "1 alerte à traiter";
 "health_open_alerts_action" = "Voir les alertes";
+"nexus_access_open_settings" = "Ouvrir les réglages Nexus";
