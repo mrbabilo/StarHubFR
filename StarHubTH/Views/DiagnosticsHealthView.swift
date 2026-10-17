@@ -15,16 +15,18 @@ struct DiagnosticsHealthView: View {
     @State private var bisectionHeight: CGFloat = 0
 
     private static let padding: CGFloat = 12
+    private static let bisectionAnchor = "bisection"
 
     var body: some View {
         // Dans un `ScrollView` : la bissection dépliée (liste des mods) peut
         // dépasser la fenêtre ; la carte, elle, borne son propre corps.
-        BackToTopScrollView(localization) {
+        BackToTopScrollView(localization) { ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 alertsLink
                 if let diag = viewModel.smapiDiagnostics, !diag.isEmpty {
                     SmapiHealthCard(vm: viewModel, localization: localization,
-                                    availableHeight: max(240, viewHeight - bisectionHeight - 4 * Self.padding))
+                                    availableHeight: max(240, viewHeight - bisectionHeight - 4 * Self.padding),
+                                    showBisection: { withAnimation { proxy.scrollTo(Self.bisectionAnchor, anchor: .top) } })
                         .padding(Self.padding)
                 } else {
                     StateCard(icon: "stethoscope", text: localization.L(L10n.Logs.healthEmpty),
@@ -46,14 +48,14 @@ struct DiagnosticsHealthView: View {
                 }
                 Divider()
                 BisectionCard(vm: viewModel, localization: localization)
-                    .padding(Self.padding)
+                    .padding(Self.padding).id(Self.bisectionAnchor)
                     .background(GeometryReader { proxy in
                         Color.clear.onAppear { bisectionHeight = proxy.size.height }
                             .onChange(of: proxy.size.height) { _, h in bisectionHeight = h }
                     })
             }
             .frame(maxWidth: .infinity, alignment: .top)
-        }
+        } }
         .background(AppDesign.Color.windowBg)
         // Mesurée hors du `ScrollView`, qui offrirait sinon une hauteur infinie.
         .background(GeometryReader { proxy in

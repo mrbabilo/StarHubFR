@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Santé : chaque conseil porte son bouton.** « Ce que vous pouvez faire » installe la dépendance manquante, ouvre la fiche du mod en cause ou mène à « Trouver le mod responsable ». Grisé, avec la raison, quand la cible n'existe plus depuis le journal.
 - **Profils : une pastille quand un profil est dans un état anormal.** « Application interrompue », « Appliqué à moitié » ou « Configs non réécrites », chacune avec son remède d'un clic : reprendre, ou réécrire les configs une fois le jeu fermé.
 - **Parties : « Réactiver ces mods ».** La section des mods en pause d'une sauvegarde les remet en jeu d'un geste, packs entiers et dépendances requises compris si le chaînage est actif. « Revenir à un état d'avant » annule.
 - **Badge « Traductions FR » dans la barre latérale.** Il compte les mods actifs dont la traduction posée a une mise à jour, ou qui ont une traduction confirmée à installer. Lu sur le dernier balayage, il ne lance aucune recherche ; les résultats « par nom » n'y comptent pas.

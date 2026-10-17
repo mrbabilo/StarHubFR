@@ -2769,5 +2769,10 @@
   "profile_anomaly_desync": "Configs non réécrites",
   "profile_anomaly_desync_action": "Réécrire maintenant",
   "profile_anomaly_desync_help": "Ce profil a été activé jeu ouvert : les config.json mémorisés n'ont pas été remis sur le disque.",
-  "profile_anomaly_desync_game_running": "Fermez d'abord le jeu : il relit les config.json à son lancement, les réécrire maintenant ne servirait pas."
+  "profile_anomaly_desync_game_running": "Fermez d'abord le jeu : il relit les config.json à son lancement, les réécrire maintenant ne servirait pas.",
+  "health_suggestion_install": "Installer les dépendances manquantes…",
+  "health_suggestion_open_mod": "Ouvrir la fiche",
+  "health_suggestion_show_mods": "Voir ces mods",
+  "health_suggestion_dep_resolved": "Plus manquante dans le dossier Mods : le journal est plus ancien.",
+  "health_suggestion_mod_gone": "Introuvable dans le dossier Mods."
 }

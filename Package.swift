@@ -380,6 +380,7 @@ let package = Package(
                 "Models/HealthIssue.swift",
                 "Models/SmapiLogSource.swift",
                 "Models/HealthIssueResolver.swift",
+                "Models/HealthSuggestion.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",

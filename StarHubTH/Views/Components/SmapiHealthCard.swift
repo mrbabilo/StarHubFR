@@ -63,6 +63,9 @@ struct SmapiHealthCard: View {
     /// la hauteur déjà donnée). D4-T4 §3a : la carte a son onglet, elle ne
     /// partage plus la hauteur avec le journal (ancien budget des deux tiers).
     var availableHeight: CGFloat = 600
+    /// Le conseil « moitié/moitié » mène à la bissection, sous la carte (N-09).
+    var showBisection: () -> Void = {}
+    private var suggestions: [HealthSuggestion] { HealthSuggestion.list(from: diagnostics, localized: localization.L) }
 
     var body: some View {
         // Le budget couvre la carte **entière** : l'en-tête, son bandeau de
@@ -288,19 +291,9 @@ struct SmapiHealthCard: View {
     private var suggestionsBlock: some View {
         sectionCard(.accentColor) {
             sectionTitle(localization.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
-            VStack(alignment: .leading, spacing: AppDesignCore.Spacing.sm) {
-                ForEach(Array(suggestions.enumerated()), id: \.offset) { index, text in
-                    HStack(alignment: .top, spacing: AppDesignCore.Spacing.sm) {
-                        Text("\(index + 1).")
-                            .font(.system(size: AppDesign.Font.scaled(11), weight: .semibold, design: .rounded))
-                            .foregroundColor(.accentColor)
-                            .frame(width: 16, alignment: .trailing)
-                        Text(text)
-                            .font(AppDesign.Font.caption)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
+            HealthSuggestionsList(viewModel: vm, localization: localization, suggestions: suggestions,
+                                  showBlock: { scrollRequest = ScrollRequest(anchor: $0) },
+                                  showBisection: showBisection)
         }
     }
 

@@ -2770,3 +2770,8 @@
 "profile_anomaly_desync_action" = "Rewrite now";
 "profile_anomaly_desync_help" = "This profile was activated while the game was running: its remembered config.json files were not put back on disk.";
 "profile_anomaly_desync_game_running" = "Quit the game first: it reads config.json files when it starts, so rewriting them now would not help.";
+"health_suggestion_install" = "Install missing dependencies…";
+"health_suggestion_open_mod" = "Open the mod";
+"health_suggestion_show_mods" = "Show these mods";
+"health_suggestion_dep_resolved" = "No longer missing in the Mods folder: the log is older.";
+"health_suggestion_mod_gone" = "Not found in the Mods folder.";
