@@ -865,16 +865,8 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
 - [ ] **I-T31 — L6 Décisions de l'auteur** — **tranchées le 2026-10-18**
-      (rapport §5) ; à livrer dans cet ordre :
-      - **P5-7** relire le journal SMAPI à la fermeture du jeu (rouvre l'axe A) ;
-      - **P5-6b** badge « Mise à jour des mods » : actifs seulement, en-tête
-        « n à faire · m en pause » ;
-      - **garde « seule copie »** étendue aux sauvegardes de configuration ;
-      - **C4b** style de lien unique : `.link` natif (les `.hoverLink` migrent) ;
-      - **E9a** pack : clic = déplier **et** sélectionner, plus un chevron
-        bouton pour le clavier et VoiceOver ;
-      - **P5-5b** dépôt d'archive sur l'icône du Dock (`CFBundleDocumentTypes`,
-        rang `Alternate`) ;
+      (rapport §5). P5-7, P5-6b, garde « seule copie » des configurations, C4b,
+      E9a et P5-5b livrés, à l'archive. Reste, dans cet ordre :
       - **N-12** palette : ↩ sur un profil ouvre son aperçu, ⌘↩ l'active ;
       - **R6** partie : un seul menu d'actions, puis une page à trois segments ;
       - **N-08** palette : actions « Vérifier les mises à jour », « Installer

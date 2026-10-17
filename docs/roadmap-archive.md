@@ -7752,3 +7752,14 @@ sans lire une ligne de log.
       naturelle, dates et langues passent à l'infobulle de la bande. X6 fait
       d'abord (`ModListRow+Meta.swift`, −70 lignes). Vérifié à l'écran.
       **I-T30 clos.**
+- [x] **I-T31 · P5-7, P5-6b, garde configs, C4b, E9a, P5-5b** — *(livrés le
+      2026-10-18, `a582eb76`, `6df74d5a`)* Décisions de l'auteur du
+      2026-10-18. P5-7 : journal SMAPI relu à la fermeture du jeu
+      (`GameExitRefresh`, hors bissection et mesure pilotée). P5-6b : badge et
+      tuile des mises à jour sur les actifs, en-tête « n en attente · m en
+      pause » (`PendingUpdateCounts`). Garde « seule copie » étendue aux
+      sauvegardes de configuration (`ConfigBackupSoleCopy`, Core, testé).
+      C4b : `.link` natif partout, `HoverLinkStyle` retiré. E9a : chevron de
+      pack en bouton. P5-5b : archive déposée sur l'icône du Dock
+      (`CFBundleDocumentTypes`, rang `Alternate`, `ArchiveDrop+Live`).
+      Vérifiés à l'écran.
