@@ -137,9 +137,9 @@ struct SystemAlertsView: View {
         return PageHeader(icon: worst == nil ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
                           title: localization.L(L10n.Main.systemAlerts),
                           subtitle: issues.isEmpty ? nil
-                              : String(format: localization.L(L10n.Health.problemCount),
-                                       Int64(issues.actionableCount),
-                                       Int64(issues.filter { $0.severity == .critical }.count)),
+                              : String(format: localization.L(L10n.Health.problemCount),  // E8 : pluriels justes
+                                       localization.plural(L10n.Health.problems, issues.actionableCount),
+                                       localization.plural(L10n.Health.criticals, issues.filter { $0.severity == .critical }.count)),
                           tint: tint(for: worst)) {
             recheckLogButton
         }

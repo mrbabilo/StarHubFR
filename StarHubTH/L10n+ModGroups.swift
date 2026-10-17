@@ -33,6 +33,8 @@ extension L10n.Mods {
     static let groupNameTaken = "mods_group_name_taken"
     static let groupSave = "mods_group_save"
     static let groupActions = "mods_group_actions"
+    /// E8 — le nombre de composants d'un pack, au pluriel juste.
+    static let packComponents = "mods_pack_components"
 }
 
 extension LocalizationStore {

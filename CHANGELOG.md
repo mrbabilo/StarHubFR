@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Des pluriels justes, plus de « (s) ».** Un pack affiche « 1 mod » (et non « 1 mods », en anglais) ; les en-têtes disent « 10 problèmes · 1 critique », « 1 profil », « 1 mise à jour en attente ».
 - **Fiche d'un mod : la bande chiffrée lisible.** Date sur deux lignes au lieu d'être tronquée, « 226 442 » approbations avec séparateur ; sur un composant de pack, les colonnes vides cèdent leur place au lieu d'aligner des tirets.
 - **Traductions FR : deux résultats voisins se distinguent.** Titres sur deux lignes, coupés à la fin ; le menu ⋯ n'est plus rogné ; « Voir la fiche » en lien.
 - **Zip des parties : le compte dit vrai.** « 3 parties et 15 copies de secours » au lieu de « 18 parties » ; l'archive emporte toujours tout le dossier.

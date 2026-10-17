@@ -27,10 +27,11 @@ extension UpdatesView {
         let locale = Locale(identifier: localization.currentLanguage)
         switch verdict {
         case .pending(let count, let checkedAt?):
-            return String(format: localization.L(L10n.Updates.headerPendingChecked), Int64(count),
+            return String(format: localization.L(L10n.Updates.headerPendingChecked),  // E8
+                          localization.plural(L10n.Updates.headerPending, count),
                           UpdateCheckVerdict.ageText(since: checkedAt, now: now, locale: locale))
         case .pending(let count, nil):
-            return String(format: localization.L(L10n.Updates.headerPending), Int64(count))
+            return localization.plural(L10n.Updates.headerPending, count)
         case .upToDate(let checkedAt):
             return String(format: localization.L(L10n.Updates.headerUpToDateChecked),
                           UpdateCheckVerdict.ageText(since: checkedAt, now: now, locale: locale))

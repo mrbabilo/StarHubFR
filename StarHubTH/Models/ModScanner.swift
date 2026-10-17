@@ -351,7 +351,7 @@ final class ModScanner: @unchecked Sendable {
                     folderName: topLevelLogicalFolder,
                     version: "",
                     author: "Group",
-                    description: "\(foundMods.count) mods",
+                    description: "",  // E8 : la vue compte `children` (« 1 mod »), en L10n
                     nexusUrl: "",
                     nexusModId: "",
                     isEnabled: isEnabled,

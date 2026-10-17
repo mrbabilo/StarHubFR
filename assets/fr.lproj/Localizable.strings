@@ -212,7 +212,7 @@
 "mods_malicious_title" = "Ce mod est signalé comme malveillant";
 "mods_malicious_action" = "Supprimez ce mod et lancez une analyse antivirus complète.";
 "health_mod_warning_title" = "À savoir sur « %@ »";
-"health_problem_count" = "%1$lld problème(s) · %2$lld critique(s)";
+"health_problem_count" = "%1$@ · %2$@";
 "health_severity_critical" = "Critique";
 "health_severity_info" = "Information";
 "health_severity_warning" = "Avertissement";
@@ -1265,8 +1265,8 @@
 "palette_section_saves" = "Sauvegardes";
 "profiles_activate" = "Activer";
 "profiles_active" = "Actif";
-"profiles_header_summary" = "%1$lld profil(s) · actif : %2$@";
-"profiles_header_none_active" = "%lld profil(s)";
+"profiles_header_summary" = "%1$@ · actif : %2$@";
+"profiles_header_none_active" = "%lld profils";
 "profiles_active_label" = "Profil : %@";
 "profiles_add_profile" = "Ajouter un profil…";
 "profiles_add_to_profile" = "Ajouter au profil";
@@ -2347,8 +2347,8 @@
 "logs_header_no_smapi" = "SMAPI non installé";
 "logs_header_no_log" = "aucun journal lu";
 "logs_header_log_date" = "journal du %@";
-"updates_header_pending" = "%lld mise(s) à jour en attente";
-"updates_header_pending_checked" = "%lld mise(s) à jour en attente · vérifié %@";
+"updates_header_pending" = "%lld mises à jour en attente";
+"updates_header_pending_checked" = "%1$@ · vérifié %2$@";
 "updates_header_never_checked" = "Aucune mise à jour en attente · jamais vérifié";
 "updates_header_up_to_date_checked" = "Tout est à jour · vérifié %@";
 "updates_header_verifiable_checked" = "Tous les mods vérifiables sont à jour · vérifié %@";
@@ -2791,3 +2791,11 @@
 "archive_saves_backups" = "%lld copies de secours";
 "archive_saves_backups_one" = "1 copie de secours";
 "archive_saves_with_backups" = "%1$@ et %2$@";
+"mods_pack_components" = "%lld mods";
+"mods_pack_components_one" = "1 mod";
+"profiles_header_none_active_one" = "1 profil";
+"updates_header_pending_one" = "1 mise à jour en attente";
+"health_problems" = "%lld problèmes";
+"health_problems_one" = "1 problème";
+"health_criticals" = "%lld critiques";
+"health_criticals_one" = "1 critique";

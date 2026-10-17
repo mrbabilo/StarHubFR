@@ -560,7 +560,7 @@ struct ModListRow: View {
                     if mod.isGroup {
                         // Le nombre de composants ferme la ligne : il varie, et
                         // plus rien ne le suit dont il pourrait décaler la place.
-                        Text(mod.description)
+                        Text(localization.plural(L10n.Mods.packComponents, mod.children?.count ?? 0))
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(AppDesign.Color.dimmedSecondary(0.85))
                             .lineLimit(1)
