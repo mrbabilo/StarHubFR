@@ -11,6 +11,8 @@ struct MaintenanceStorageCard: View {
     @ObservedObject var localization: LocalizationStore
     /// Cran choisi : combien garder par mod, entrées condamnées, poids libéré.
     let onPurge: (_ keepPerMod: Int, _ doomed: Int, _ freedBytes: Int64) -> Void
+    /// R1 — la légende mène au segment de Sauvegardes qu'elle chiffre.
+    var openBackups: (BackupsSegment) -> Void = { _ in }
 
     /// Parts d'un même total (C2b) : le rose se lisait comme une erreur, les
     /// violets `Chart.part*` ne se lisaient pas ici (vu à l'écran). L'accent,
@@ -37,9 +39,9 @@ struct MaintenanceStorageCard: View {
             if report.backupBytes + report.configBackupBytes > 0 { bar }
             VStack(alignment: .leading, spacing: 3) {
                 row(localization.L(L10n.Maintenance.installBackups),
-                    "\(report.backups.count) · \(SharedFormatters.bytes(report.backupBytes))", dot: Self.installTint)
+                    "\(report.backups.count) · \(SharedFormatters.bytes(report.backupBytes))", dot: Self.installTint, open: .install)
                 row(localization.L(L10n.Maintenance.configBackups),
-                    "\(report.configBackupCount) · \(SharedFormatters.bytes(report.configBackupBytes))", dot: Self.configTint)
+                    "\(report.configBackupCount) · \(SharedFormatters.bytes(report.configBackupBytes))", dot: Self.configTint, open: .config)
                 if !report.orphanSessions.isEmpty {
                     row(localization.L(L10n.Maintenance.orphanSessions), String(report.orphanSessions.count), dot: nil)
                 }
@@ -54,6 +56,12 @@ struct MaintenanceStorageCard: View {
 
             Text(localization.L(L10n.Maintenance.freeSpaceTitle))
                 .font(AppDesign.Font.body(.semibold))
+            // R1 — la règle automatique, dite comme dans Sauvegardes, puis ce
+            // que le geste manuel ajoute.
+            Text(BackupRetentionSummary.automatic(localized: localization.L) + " "
+                 + localization.L(L10n.Maintenance.retentionManual))
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             // E11 — un seul geste de corbeille : choisir le cran, puis un
             // bouton. Un cran qui ne libère rien n'est pas proposé.
             let crans = [1, 3, 5].filter { report.freedBytes(keepPerMod: $0) > 0 }
@@ -105,8 +113,9 @@ struct MaintenanceStorageCard: View {
         .accessibilityHidden(true)
     }
 
-    private func row(_ label: String, _ value: String, dot: Color?) -> some View {
-        HStack(spacing: AppDesign.Spacing.xs) {
+    @ViewBuilder
+    private func row(_ label: String, _ value: String, dot: Color?, open segment: BackupsSegment? = nil) -> some View {
+        let line = HStack(spacing: AppDesign.Spacing.xs) {
             Circle()
                 .fill(dot ?? .clear)
                 .frame(width: 7, height: 7)
@@ -114,6 +123,14 @@ struct MaintenanceStorageCard: View {
             Text(label)
             Spacer()
             Text(value).monospacedDigit()
+            if segment != nil { Image(systemName: "chevron.right").font(AppDesign.Font.iconXS) }
+        }
+        if let segment {
+            Button { openBackups(segment) } label: { line.contentShape(Rectangle()) }
+                .buttonStyle(.plain).focusRing(cornerRadius: 4)
+                .pointingHandCursor()
+        } else {
+            line
         }
     }
 }

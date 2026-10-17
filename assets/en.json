@@ -734,7 +734,7 @@
   "mod_install_restore_report_replaced_many": "The versions it replaced (%@) are kept as backups.",
   "mod_install_restore_report_title": "Backup restored",
   "mod_install_restore_report_written": "%1$@ %2$@ was written to %3$@.",
-  "mod_install_retention_policy": "Backups are kept for up to 30 days (all within that window), plus the most recent backup per calendar month for longer history; at least the 5 most recent backups are always preserved.",
+  "mod_install_retention_policy": "Kept automatically: all backups under %1$lld days old, then the most recent of each month, and always the %2$lld most recent.",
   "mod_install_reveal_in_finder": "Show in Finder",
   "mod_install_selected": "%d selected",
   "mod_install_skip": "Skip this mod",
@@ -2783,5 +2783,8 @@
   "deps_indirect_one": "1 indirect dependency",
   "maintenance_keep_picker": "How many to keep per mod",
   "maintenance_trash_chosen": "Move to the Mac Trash… (%@)",
-  "maintenance_nothing_to_free": "Nothing to free: keeping 1 backup per mod would remove nothing."
+  "maintenance_nothing_to_free": "Nothing to free: keeping 1 backup per mod would remove nothing.",
+  "maintenance_retention_manual": "“Keep N per mod” removes more, by hand.",
+  "backups_free_space_link": "Free up space ›",
+  "backups_trash_link": "Deleted a mod? Mod trash ›"
 }

@@ -155,9 +155,9 @@ struct MaintenanceView: View {
 
     private func content(_ report: MaintenanceInventory.Report) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            MaintenanceStorageCard(report: report, localization: localization) { keep, doomed, freed in
+            MaintenanceStorageCard(report: report, localization: localization, onPurge: { keep, doomed, freed in
                 confirmation = .purge(keepPerMod: keep, doomed: doomed, freedBytes: freed)
-            }
+            }, openBackups: { vm.navigationStore.openBackups(segment: $0) })
             if !report.orphanSessions.isEmpty || !report.stalePreferenceKeys.isEmpty {
                 cleanSection(report)
             }
@@ -262,8 +262,7 @@ struct MaintenanceView: View {
                         // I-T8 — la remise vit dans « Sauvegardes des mods »,
                         // segment Fichiers récupérables : aperçu compris.
                         Button(localization.L(L10n.Maintenance.actionOpenRecovery)) {
-                            vm.navigationStore.backupsSegment = .files
-                            vm.requestTab(.backups)
+                            vm.navigationStore.openBackups(segment: .files)
                         }
                         .controlSize(.small)
                     }

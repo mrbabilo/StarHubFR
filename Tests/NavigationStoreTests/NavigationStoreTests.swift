@@ -75,6 +75,18 @@ import Foundation
         #expect(s.pendingTabRequest == .backups)
     }
 
+    /// R1 : la légende de l'Entretien ouvre son segment, sans filtre ; et
+    /// Sauvegardes renvoie à l'Entretien.
+    @Test func renvoisEntretienSauvegardes() {
+        let s = NavigationStore()
+        s.openBackups(segment: .config)
+        #expect(s.backupsSegment == .config)
+        #expect(s.pendingBackupsFocus == nil)
+        #expect(s.pendingTabRequest == .backups)
+        s.openMaintenance()
+        #expect(s.pendingTabRequest == .maintenance)
+    }
+
     /// I-T5 : le saut vers les sauvegardes d'un mod pose les trois états
     /// d'un coup — sans le segment, il atterrirait sur « Configurations ».
     @Test func openBackupsPoseSegmentFiltreEtOnglet() {

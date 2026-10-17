@@ -381,6 +381,7 @@ let package = Package(
                 "Models/SmapiLogSource.swift",
                 "Models/HealthIssueResolver.swift",
                 "Models/HealthSuggestion.swift",
+                "Models/BackupRetentionSummary.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
@@ -415,6 +416,7 @@ let package = Package(
                 "Stores/NexusDownloadStore.swift",
                 "Stores/NavigationStore.swift",
                 "Stores/NavigationStore+Settings.swift",
+                "Stores/NavigationStore+Backups.swift",
                 "Stores/ScanStore.swift",
                 "Models/DetailTab.swift",
                 "Models/TranslationDiffFilter.swift",
@@ -1687,6 +1689,11 @@ let package = Package(
             name: "HealthIssueTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HealthIssueTests"
+        ),
+        .testTarget(
+            name: "BackupRetentionSummaryTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BackupRetentionSummaryTests"
         ),
         .testTarget(
             name: "SidebarOrderTests",

@@ -184,10 +184,11 @@ struct ModInstallBackupsView: View {
 
     /// « Sauvegardes de ce mod » (I-T5) : filtre et déplie ce mod, une fois.
     private func consumePendingBackupsFocus() {
-        guard let folder = vm.navigationStore.pendingBackupsFocus else { return }
+        let navigation = vm.navigationStore
+        guard let folder = navigation.pendingBackupsFocus else { return }
         search = folder
         expandedGroups.insert(folder)
-        vm.navigationStore.pendingBackupsFocus = nil
+        navigation.pendingBackupsFocus = nil
     }
 
     private var searchAndSortBar: some View {
@@ -437,16 +438,15 @@ struct ModInstallBackupsView: View {
         .disabled(busyBackupId != nil)
     }
 
-
     private var retentionInfoBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle.fill")
-                .font(AppDesign.Font.body)
-                .foregroundColor(.accentColor.opacity(0.7))
-            Text(localization.L(L10n.ModInstall.retentionPolicy))
-                .font(AppDesign.Font.footnote)
-                .foregroundColor(.secondary)
-            Spacer()
+                .font(AppDesign.Font.body).foregroundColor(.accentColor.opacity(0.7))
+            Text(BackupRetentionSummary.automatic(localized: localization.L)) // R1 : la phrase unique
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+            Spacer() // R1 — un mod supprimé n'est pas ici : il est dans la corbeille des mods.
+            Button(localization.L(L10n.Maintenance.backupsTrashLink)) { vm.navigationStore.openMaintenance() }
+                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
         }
         .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.bottom, AppDesign.Spacing.sm)

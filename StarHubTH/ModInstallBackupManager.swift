@@ -64,8 +64,8 @@ public final class ModInstallBackupManager: @unchecked Sendable {
     // last `saveIndex` silently discards the others' changes.
     private let indexLock = NSLock()
 
-    private static let minBackupsToKeep = 5
-    private static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60 // 30 days
+    static let minBackupsToKeep = 5
+    static let maxBackupAge: TimeInterval = 30 * 24 * 60 * 60 // 30 days
 
     /// `backupsBasePath` is exposed only so tests can point this manager at
     /// an isolated temporary directory instead of the real Application
