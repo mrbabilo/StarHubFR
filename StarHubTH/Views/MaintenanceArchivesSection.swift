@@ -55,12 +55,22 @@ struct MaintenanceArchivesSection: View {
         }
     }
 
-    /// Un mod : son nom, puis une ligne par version conservée.
+    /// Un mod : son nom, puis une ligne par version conservée. N-09 S17 :
+    /// « Voir le mod » ouvre la fiche du mod installé sur Historique ; pas de
+    /// bouton quand il n'est plus installé (aucune fiche à ouvrir).
     private func groupCard(_ group: NexusArchiveGroup) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let installed = group.entries.first.flatMap { vm.scanStore.mods.mod(withUniqueId: $0.uniqueId) }
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(group.modName)
                     .font(AppDesign.Font.caption(.semibold))
+                if let installed {
+                    Button(localization.L(L10n.Health.actionOpenMod)) {
+                        vm.navigationStore.openModDetail(folderName: installed.folderName, door: .nexusUpdate)
+                    }
+                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                    .font(AppDesign.Font.footnote)
+                }
                 Spacer()
                 if group.entries.count > 1 {
                     Text(String(format: localization.L(L10n.Maintenance.archivesVersions),

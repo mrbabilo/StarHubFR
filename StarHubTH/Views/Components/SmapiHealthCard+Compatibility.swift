@@ -79,10 +79,13 @@ extension SmapiHealthCard {
                     }
                 }
                 if unknown > 0 {
+                    // N-09 : ce que « inconnu » veut dire, plutôt qu'un saut
+                    // vers une liste de 82 % du parc (S10, écarté).
                     Text(String(format: localization.L(L10n.Mods.compatHealthUnknown), unknown))
                         .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .help(localization.L(L10n.Mods.compatHealthUnknownHelp))
                 }
             }
         }

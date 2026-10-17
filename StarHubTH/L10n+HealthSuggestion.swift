@@ -1,4 +1,5 @@
-/// N-09 S9 (audit UX 2026-10-16) — les boutons des conseils de la Santé.
+/// N-09 (audit UX 2026-10-16) — les boutons des conseils de la Santé, et ce
+/// que veut dire « inconnu de smapi.io ».
 /// Fichier à part : `L10n.swift` est verrouillé par le cliquet de taille.
 extension L10n {
     enum HealthSuggestion {
@@ -8,4 +9,8 @@ extension L10n {
         static let depResolved = "health_suggestion_dep_resolved"
         static let modGone = "health_suggestion_mod_gone"
     }
+}
+
+extension L10n.Mods {
+    static let compatHealthUnknownHelp = "mods_compat_health_unknown_help"
 }

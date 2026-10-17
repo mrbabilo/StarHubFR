@@ -58,7 +58,7 @@ struct SystemAlertsView: View {
                     VStack(spacing: AppDesign.Spacing.lg) {
                         ModConflictSection(vm: viewModel, localization: localization)
                         // A5-T7 — hors pastille : un recouvrement n'est pas un conflit.
-                        PerformanceOverlapSection(vm: viewModel, localization: localization)
+                        PerformanceOverlapSection(viewModel: viewModel, localization: localization)
                     }
                     .padding(AppDesign.Spacing.lg)
                 }
@@ -270,7 +270,15 @@ struct SystemAlertsView: View {
             // gardent leur largeur, c'est le titre qui cède. « Voir dans les
             // journaux » est le plus long des deux en français ; le voir
             // tronqué ou replié dirait moins que le titre tronqué à côté.
-            ForEach(issue.actions) { action in
+            // Un conflit offre deux fiches (N-09 S7) : un menu nommé par mod,
+            // plutôt que deux « Voir la fiche » indiscernables.
+            let mods = issue.actions.filter { if case .openMod = $0 { true } else { false } }
+            if mods.count > 1 {
+                ModPairDetailMenu(folders: mods.compactMap { if case .openMod(let f) = $0 { f } else { nil } },
+                                  name: { ModFocusResolver.resolve($0, in: viewModel.scanStore.mods)?.name ?? $0 },
+                                  navigation: viewModel.navigationStore, localization: localization)
+            }
+            ForEach(mods.count > 1 ? issue.actions.filter { !mods.contains($0) } : issue.actions) { action in
                 actionButtons(for: action)
             }
         }
@@ -351,46 +359,6 @@ struct SystemAlertsView: View {
             viewModel.restoreManifest(folderName: folderName)
         case .reinstallFromNexus(let nexusId):
             viewModel.downloadModFromNexus(nexusId: nexusId)
-        }
-    }
-
-    // MARK: - État vide
-
-    /// État vide : bouclier vert qui s'installe, message rassurant, et ce qui
-    /// a été vérifié. Le journal date de la dernière partie — pas de bouton
-    /// dédié ici, le « Revérifier » de l'en-tête couvre déjà ce cas.
-    private var emptyState: some View {
-        VStack(spacing: AppDesign.Spacing.md) {
-            Spacer()
-            AllClearGlyph()
-            Text(localization.L(L10n.Updates.noAlerts))
-                .font(AppDesign.Font.headline(.semibold))
-            Text(localization.L(L10n.Health.allClearHint))
-                .font(AppDesign.Font.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 360)
-            Spacer()
-        }
-        .padding(AppDesign.Spacing.lg)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// Relit le journal SMAPI sans rescaner le parc — la page ne montre que
-    /// ce que dit le journal, c'est lui seul qu'il faut relire.
-    @ViewBuilder
-    private var recheckLogButton: some View {
-        HStack(spacing: AppDesign.Spacing.xs) {
-            Button(action: { viewModel.refreshSmapiLog() }) {
-                Label(localization.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
-            .controlSize(.small)
-            .pointingHandCursor()
-            .disabled(viewModel.isRefreshingSmapiLog)
-            if viewModel.isRefreshingSmapiLog {
-                ProgressView().controlSize(.small)
-            }
         }
     }
 }

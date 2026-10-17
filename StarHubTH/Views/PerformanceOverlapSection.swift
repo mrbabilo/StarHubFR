@@ -16,12 +16,12 @@ private func effectivePerformanceCatalog() -> [PerformanceOverlap] {
 /// Les paires écartées vivent dans leur propre clé `UserDefaults`, pour ne pas
 /// gonfler le compteur « N écarté(s) » des conflits juste au-dessus.
 struct PerformanceOverlapSection: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     @AppStorage(UDKey.dismissedPerformanceOverlaps) private var dismissedRaw = ""
 
     var body: some View {
-        let matches = PerformanceOverlapResolver.matches(in: vm.scanStore.mods.flattenedMods,
+        let matches = PerformanceOverlapResolver.matches(in: viewModel.scanStore.mods.flattenedMods,
                                                          catalog: effectivePerformanceCatalog())
             .filter(\.bothEnabled)
         let dismissed = PerformanceOverlapDismissals.decode(dismissedRaw)
@@ -67,6 +67,9 @@ struct PerformanceOverlapSection: View {
                     .font(AppDesign.Font.body(.medium))
                     .lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: AppDesign.Spacing.sm)
+                ModPairDetailMenu(folders: [match.firstMod.folderName, match.secondMod.folderName],
+                                  name: { $0 == match.firstMod.folderName ? match.firstMod.name : match.secondMod.name },
+                                  navigation: viewModel.navigationStore, localization: localization)
                 Button(localization.L(L10n.Conflicts.dismissButton)) {
                     dismissedRaw = PerformanceOverlapDismissals.dismissing(match.overlap.key, in: dismissedRaw)
                 }

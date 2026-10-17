@@ -15,6 +15,7 @@ extension ModConflictSection {
                     .lineLimit(1).truncationMode(.middle)
                 badge(localization.L(dormant ? L10n.Conflicts.predictedDormant : L10n.Conflicts.predictedBadge))
                 Spacer(minLength: AppDesign.Spacing.sm)
+                detailMenu([pair.first, pair.second])
                 dismissButton(for: pair)
             }
             Text(String(format: localization.L(L10n.Conflicts.predictedDetail), assets.joined(separator: ", ")))

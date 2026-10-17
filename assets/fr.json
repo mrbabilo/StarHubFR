@@ -2774,5 +2774,6 @@
   "health_suggestion_open_mod": "Ouvrir la fiche",
   "health_suggestion_show_mods": "Voir ces mods",
   "health_suggestion_dep_resolved": "Plus manquante dans le dossier Mods : le journal est plus ancien.",
-  "health_suggestion_mod_gone": "Introuvable dans le dossier Mods."
+  "health_suggestion_mod_gone": "Introuvable dans le dossier Mods.",
+  "mods_compat_health_unknown_help": "La liste de compatibilité de smapi.io recense surtout des mods C# ; la plupart des packs de contenu n'y figurent pas. Inconnu ne veut dire ni cassé ni sain : l'auteur du mod reste la seule source."
 }

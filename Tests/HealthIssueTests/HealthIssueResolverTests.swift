@@ -327,16 +327,16 @@ struct HealthIssueResolverAggregateTests {
         #expect(issues.first?.title == "Content Patcher · Stardew Valley Expanded")
     }
 
-    /// H-T6b : le bouton d'une ligne de conflit doit ouvrir la fiche d'un des
-    /// deux mods en cause, pas la liste entière (`Mods`). `ModConflictPair`
+    /// H-T6b : le bouton d'une ligne de conflit ouvre une fiche, pas la liste
+    /// entière (`Mods`) ; N-09 S7 : celle de chacun des deux. `ModConflictPair`
     /// n'indexe que des `folderName` — l'action doit en porter un, jamais un
     /// nom résolu (le résolveur de fiche attend un dossier ou un nom, jamais
     /// un libellé composé « A · B »).
-    @Test func conflictActionOpensOneOfTheTwoModsByFolderName() {
+    @Test func conflictActionsOpenBothModsByFolderName() {
         // `ModConflictPair` trie ses deux dossiers à la construction :
         // "cp.folder" < "sve.folder", donc `.first == "cp.folder"`.
         let issues = HealthIssueResolver.conflictIssues([ModConflictPair("sve.folder", "cp.folder")])
-        #expect(issues.first?.actions == [.openMod(query: "cp.folder")])
+        #expect(issues.first?.actions == [.openMod(query: "cp.folder"), .openMod(query: "sve.folder")])
     }
 
     /// Sans résolveur (défaut), le comportement d'avant est conservé —

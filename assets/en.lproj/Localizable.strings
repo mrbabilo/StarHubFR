@@ -2775,3 +2775,4 @@
 "health_suggestion_show_mods" = "Show these mods";
 "health_suggestion_dep_resolved" = "No longer missing in the Mods folder: the log is older.";
 "health_suggestion_mod_gone" = "Not found in the Mods folder.";
+"mods_compat_health_unknown_help" = "smapi.io's compatibility list mostly covers C# mods; most content packs aren't in it. Unknown means neither broken nor safe: the mod's author remains the only source.";

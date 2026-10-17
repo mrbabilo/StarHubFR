@@ -293,6 +293,11 @@ struct ModConflictSection: View {
         .pointingHandCursor()
     }
 
+    /// N-09 S8 — la fiche de chaque mod de la ligne, à côté d'« Écarter ».
+    func detailMenu(_ folders: [String]) -> some View {
+        ModPairDetailMenu(folders: folders, name: displayName, navigation: vm.navigationStore, localization: localization)
+    }
+
     func badge(_ text: String) -> some View {
         Text(text)
             .font(AppDesign.Font.iconXS(.semibold))
@@ -314,6 +319,7 @@ struct ModConflictSection: View {
                     badge(label)
                 }
                 Spacer(minLength: AppDesign.Spacing.sm)
+                detailMenu(folders(conflict))
                 // `nil` pour un `betweenPacks` à 3 packs ou plus : pas de
                 // bouton, voir le commentaire de tête de `pair(_:)`.
                 if let p = pair(conflict) {
@@ -344,6 +350,7 @@ struct ModConflictSection: View {
                 .font(AppDesign.Font.body(.medium))
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: AppDesign.Spacing.sm)
+            detailMenu(folders(conflict))
             if let p = pair(conflict) {
                 dismissButton(for: p)
             }
@@ -357,6 +364,7 @@ struct ModConflictSection: View {
                 .lineLimit(1).truncationMode(.middle)
             badge(localization.L(L10n.Conflicts.declaredByYou))
             Spacer(minLength: AppDesign.Spacing.sm)
+            detailMenu([pair.first, pair.second])
             dismissButton(for: pair)
         }
     }
@@ -369,6 +377,7 @@ struct ModConflictSection: View {
                     .lineLimit(1).truncationMode(.middle)
                 badge(localization.L(L10n.Conflicts.knownBadge))
                 Spacer(minLength: AppDesign.Spacing.sm)
+                detailMenu([pair.first, pair.second])
                 dismissButton(for: pair)
             }
             if let key = KnownIncompatibilities.reasonKey(for: pair, in: installedMods) {

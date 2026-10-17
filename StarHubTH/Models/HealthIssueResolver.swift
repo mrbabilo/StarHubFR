@@ -167,11 +167,11 @@ public enum HealthIssueResolver {
                         severity: .critical, source: .modConflict,
                         title: "\(displayName(pair.first)) · \(displayName(pair.second))",
                         detail: nil,
-                        // Un conflit oppose deux mods ; `pair.first` en
-                        // désigne un — c'est un `folderName`, ce qu'attend
+                        // Un conflit oppose deux mods : une fiche chacun
+                        // (N-09 S7). Des `folderName`, ce qu'attend
                         // `ModFocusResolver` pour un conflit (voir la
                         // documentation de `Action.openMod`).
-                        actions: [.openMod(query: pair.first)])
+                        actions: [.openMod(query: pair.first), .openMod(query: pair.second)])
         }
     }
 
