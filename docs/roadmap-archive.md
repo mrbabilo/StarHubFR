@@ -7693,3 +7693,18 @@ sans lire une ligne de log.
       composant `ModPairDetailMenu` (`2c608fd8`). S10 écarté au spec,
       remplacé par l'infobulle de « inconnu de smapi.io ». Vérifié à l'écran.
       **I-T29 clos.**
+- [x] **I-T30 · E6** — *(livré le 2026-10-17)* Éditeur de traduction : la
+      table défile avec la fiche (plus de cadre de 460 pt, un seul
+      ascenseur), en-tête de section épinglé opaque (voile d'accent sur
+      `windowBg`), fraîcheur de l'anglais dite une fois, par l'éditeur
+      (`8d4a93b4`). Le saut « Sections » vise le défilement de la page.
+      Vérifié à l'écran.
+- [x] **I-T30 · E7** — *(livré le 2026-10-17)* Onglet Dépendances : section
+      « À régler » en tête, geste en bouton plein ; sous-niveaux repliés
+      (« n dépendances indirectes ») ; « Dépendances (1 · 1 à régler) » ;
+      couleurs `installed` / `paused` / `error`, « Requis » neutre une fois
+      satisfait ; carte ouverte par un `Button`. `DependencyTreeBuilder.toFix`
+      (Core, testé, `2a98b137`) : **directes seulement**, le même ensemble
+      que l'anomalie de la fiche (écart à la spec « tous niveaux », accepté
+      par l'auteur). E7c (bandeau vers Dépendances) déjà livré par N-05.
+      Vérifié à l'écran.
