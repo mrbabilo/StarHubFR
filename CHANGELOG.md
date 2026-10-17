@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.69.0] - 2026-10-17
+
 ### Added
 
 - **Conflits, recouvrements, archives : « Voir le mod ».** Une ligne qui oppose deux mods ouvre la fiche de l'un ou de l'autre (menu nommé par mod) ; une archive Nexus d'Entretien ouvre la fiche du mod installé sur Historique. « Inconnu de smapi.io » dit ce qu'il veut dire en infobulle.
