@@ -43,7 +43,7 @@ Le **[guide utilisateur](GUIDE.md)** accompagne le premier lancement et chaque u
 
 Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le journal SMAPI en diagnostic lisible.
 
-*   **Des conseils, pas du jargon** — « installez telle dépendance », « ce mod est installé en double », « ce mod ne prend pas en charge votre version du jeu ». Chaque conseil porte son bouton : installer la dépendance, ouvrir la fiche du mod, aller à la recherche du coupable.
+*   **Des conseils, pas du jargon** — « installez telle dépendance », « ce mod est installé en double », « ce mod ne prend pas en charge votre version du jeu ». Chaque conseil s'accompagne d'un bouton : installer la dépendance, ouvrir la fiche du mod ou lancer la recherche du mod responsable.
 *   **L'état de santé en un coup d'œil** — versions de SMAPI et du jeu, mods chargés, ignorés ou en échec avec leur raison, dépendances manquantes.
 *   **Les mods à surveiller** — ceux qui modifient le code du jeu ou vos sauvegardes, ceux qui produisent le plus d'erreurs, avec ce que cela implique.
 *   **Les fausses alertes mises à part** — GOG Galaxy, intégration optionnelle absente, mod compagnon manquant : le message est cité, un bouton mène à ses lignes, et le mod n'est plus accusé à tort.
@@ -53,7 +53,7 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Un plan pour démêler les raccourcis** — les conflits passent sur des touches libres, rangées par famille : lettres pour l'action, chiffres pour l'information, touches F pour le reste. Chaque ligne se décoche, les config.json touchés sont sauvegardés avant écriture et « Annuler le plan » les restaure.
 *   **Les conflits prévus avant de jouer** — deux mods qui chargent le même asset en exclusif sont signalés, et l'activation (seule, groupée ou par profil) prévient en nommant l'asset.
 *   **Retrouver le mod fautif** — quand rien ne désigne de coupable, l'app met vos mods en pause par moitiés et pose une question par étape. Une dizaine d'essais suffisent ; tout se remet en un clic.
-*   **Chaque ligne mène quelque part** — un conflit, un recouvrement ou une alerte ouvre la fiche du mod en cause, sur l'onglet qui porte le geste qui le règle.
+*   **Un clic vers la solution** — depuis un conflit, un recouvrement ou une alerte, vous ouvrez directement la fiche du mod concerné, sur l'onglet où se trouve la correction.
 
 ### ⏱️ Performances
 
@@ -73,8 +73,8 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 *   **Le contenu d'un autre mod s'installe au bon endroit** — un fichier pour un framework (un sac *ItemBags*, par exemple) est placé dans son mod hôte, chemin montré et fichier existant sauvegardé d'abord.
 *   **Activer sans déplacer de fichiers** — un mod, une sélection (clic, ⌘, ⇧, ⌘A, puis Espace) ou tous à la fois. Les mods livrés avec SMAPI restent actifs.
 *   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent. Refusé jeu ouvert.
-*   **Profils** — plusieurs ensembles de mods, un clic pour passer de l'un à l'autre. Voir ce qu'un profil changerait avant de l'activer ; une pastille signale un profil appliqué à moitié ou interrompu, avec son remède.
-*   **Revenir à un état d'avant** — chaque bascule groupée, recherche ou benchmark laisse un instantané ; un clic remet le parc comme il était.
+*   **Profils** — plusieurs ensembles de mods, un clic pour passer de l'un à l'autre. Vous pouvez voir ce qu'un profil changerait avant de l'activer ; une pastille signale un profil appliqué à moitié ou interrompu, avec la marche à suivre.
+*   **Revenir à un état d'avant** — l'app enregistre l'état de vos mods avant chaque activation groupée, recherche ou benchmark ; un clic suffit pour y revenir.
 *   **Groupes à soi** — « Regrouper par » vos groupes ou par catégorie : bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, tout un groupe activé ou mis en pause d'un geste. Un profil décrit un état, un groupe un rangement.
 *   **Une liste qui se trie** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, Désactivés, **Problèmes** et **Mises à jour**.
 *   **Approbations Nexus** — le pouce de chaque mod donne son nombre d'approbations et approuve d'un clic.
@@ -85,7 +85,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 *   **Vérification sans compte** via [smapi.io](https://smapi.io/), à partir des manifestes. Un bouton « Arrêter » interrompt la vérification à tout moment.
 *   **Si smapi.io tombe** — l'app le dit et propose de vérifier directement sur Nexus : un tri sans clé ne revérifie que les pages modifiées, quelques dizaines de requêtes au lieu de plusieurs milliers.
 *   **Les mods sans verdict, expliqués** — ceux que ni smapi.io ni Nexus n'ont pu juger, chacun avec sa raison (aucun identifiant, page masquée ou supprimée…). Un identifiant saisi à la main remplace une clé cassée du manifeste.
-*   **Chaque mod dit qu'il a une mise à jour** — pastille « ↑ version » sur sa ligne et bandeau sur sa fiche. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus. Les mods en pause sont rangés à part, repliés.
+*   **Chaque mod dit qu'il a une mise à jour** — pastille « ↑ version » sur sa ligne et bandeau sur sa fiche. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus. Les mises à jour des mods en pause sont regroupées à part.
 *   **« Je l'ai déjà »** — pour l'auteur qui publie sans changer la version de son manifeste : la ligne enregistre la version réellement installée, puis disparaît.
 *   **Téléchargement dans l'app** — direct avec un compte Premium, ou par le lien `nxm://` avec un compte gratuit. La clé API reste dans le trousseau macOS.
 *   **Ce qu'une mise à jour change** — options de config ajoutées ou retirées, textes à traduire, traductions écartées ; les clés renommées sont reportées, jamais écrasées. L'aperçu prévient aussi quand des mods actifs lisent le code interne du mod remplacé.
@@ -100,10 +100,10 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 ### 📖 Fiche de mod
 
-*   **Six onglets** — Aperçu, Santé, Dépendances, Traduction, Historique, Gestion. La fiche s'ouvre sur celui qui sert : Dépendances pour une dépendance manquante, Historique pour une mise à jour.
+*   **Six onglets** — Aperçu, Santé, Dépendances, Traduction, Historique, Gestion. La fiche s'ouvre directement sur l'onglet utile : Dépendances pour une dépendance manquante, Historique pour une mise à jour.
 *   **La compatibilité d'abord** — le verdict de smapi.io et ce qu'en dit l'auteur, réunis dans une carte.
 *   **Santé** — un verdict et huit vérifications (liste noire SMAPI, chargement, smapi.io, journal, incompatibilités, raccourcis, doublons, page Nexus), avec « non vérifié » quand la donnée manque.
-*   **Dépendances** — « À régler » en tête (« Activer », « Installer » d'un clic), puis l'arbre complet replié par niveau, plus les mods dont celui-ci lit le code interne sans le déclarer.
+*   **Dépendances** — ce qui est à régler apparaît en premier, avec un bouton « Activer » ou « Installer », suivi de l'arbre complet, replié par niveau, plus les mods dont celui-ci lit le code interne sans le déclarer.
 *   **Description et journal des modifications** rendus en texte natif (gras, listes, liens, images, spoilers).
 *   **Identifiant Nexus et catégorie** modifiables sur place.
 
@@ -116,24 +116,24 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 *   **Le glossaire vient du jeu** — plus de mille noms d'objets, personnages et lieux, lus dans votre installation et imposés au modèle.
 *   **Les marqueurs du jeu protégés** — affichés en couleur, insérés d'un clic ; un enregistrement qui en perd un est refusé.
 *   **Le vrai taux de traduction** — 100 % seulement si toutes les clés sont faites ; clés vides, absentes ou obsolètes listées à part.
-*   **Page « Traductions FR »** — les traductions publiées sur Nexus pour vos mods, les mises à jour de celles installées, et « À finir » pour les traductions commencées. Un faux résultat s'écarte d'un pouce baissé ; un badge dans la barre latérale compte ce qui attend.
+*   **Page « Traductions FR »** — les traductions publiées sur Nexus pour vos mods, les mises à jour de celles installées, et « À finir » pour les traductions commencées. Un résultat erroné s'écarte d'un clic sur le pouce vers le bas ; un badge dans la barre latérale indique les traductions en attente.
 *   **À plusieurs** — export d'un lot ZIP pour un traducteur, fusion clé par clé à son retour.
 *   **Mode focus** — bandeaux et barre latérale masqués (Échap pour sortir).
 
 ### ⚙️ Configuration et sauvegardes
 
 *   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod.
-*   **Sauvegardes des mods** — avant chaque écrasement, plus vos `config.json` et `fr.json`, et les fichiers qu'une mise à jour a emportés. Les configurations se rangent par mod et se comparent avant de restaurer ; une suppression part à la Corbeille du Mac.
-*   **Entretien** — ce que StarHubFR occupe sur le disque, et « Libérer de la place » en un geste (garder 1, 3 ou 5 sauvegardes par mod).
+*   **Sauvegardes des mods** — avant chaque écrasement, plus vos `config.json` et `fr.json`, et les fichiers qu'une mise à jour a emportés. Les configurations sont classées par mod et peuvent être comparées avant restauration ; une sauvegarde supprimée va dans la Corbeille du Mac.
+*   **Entretien** — l'espace disque occupé par StarHubFR, et « Libérer de la place » en une seule action (en conservant 1, 3 ou 5 sauvegardes par mod).
 *   **Parties** — détail, copie, suppression, et retouche de l'argent ou des statistiques.
-*   **Ce que vos mods laissent dans vos parties** — mesuré avant la mise en pause ; « Réactiver ces mods » remet en jeu ceux qu'une partie utilise, et « Nettoyer… » retire les données de mods disparus, après une sauvegarde.
+*   **Ce que vos mods laissent dans vos parties** — mesuré avant la mise en pause ; « Réactiver ces mods » réactive ceux dont une partie a besoin, et « Nettoyer… » retire les données de mods disparus, après une sauvegarde.
 
 ### 🎮 Au quotidien
 
-*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; une opération laissée en plan s'y signale avec « Tout remettre comme avant ».
+*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; si une opération a été interrompue, l'accueil le signale et propose « Tout remettre comme avant ».
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR, filtrables par source et par niveau.
 *   **Les mods dont l'app a besoin** — listés dans les réglages, avec leur rôle, leur état et leur lien d'installation.
-*   **Accessible et lisible** — VoiceOver nomme chaque bouton, tout se parcourt au clavier, et la liste des mods se resserre quand la fenêtre est étroite.
+*   **Accessible et lisible** — VoiceOver annonce chaque bouton, toute l'app s'utilise au clavier, et la liste des mods s'adapte aux fenêtres étroites.
 
 <p align="center">
   <img src="assets/banners/screenshots_banner.png" alt="Captures d'écran" width="300">

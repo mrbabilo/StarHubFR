@@ -84,6 +84,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 - Clés référencées via `L10n.swift` (constantes `static let`).
 - `localizedString` rend clé brute si traduction absente (fallback) — pas de crash.
 - Après édition JSON : relancer `build_app.py` pour régénérer `.strings`.
+- **Français naturel, pas calqué sur l'anglais** (consigne de l'auteur, 2026-10-18) : libellés, aide, README, CHANGELOG et notes de version se rédigent en français, pas en traduction littérale. La tournure est visée, pas le vocabulaire déjà affiché par l'app (« Configs », « benchmark ») : ne pas le changer sans demande. Exemples dans le skill `localization`.
 
 ---
 

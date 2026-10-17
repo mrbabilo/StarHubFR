@@ -42,6 +42,8 @@ Build **scindé en deux systèmes** ; vérifier lequel couvre fichier touché.
 `assets/{en,fr}.json` = **source de vérité**. `build_app.py` valide **parité clés** entre les deux (build en erreur sinon) + génère `assets/*.lproj/Localizable.strings`. Clés référencées via `L10n.swift`.
 → Procédure complète : skill `localization`.
 
+**Français naturel, pas calqué sur l'anglais** (consigne de l'auteur, 2026-10-18) : tout texte français lu par l'utilisateur — libellés, aide (`GUIDE.md`), README, CHANGELOG, notes de version — s'écrit comme un texte rédigé en français, pas comme une traduction. C'est la **tournure** qui est visée, pas le vocabulaire en place (« Configs », « benchmark », « mod » restent) : ne pas franciser les libellés de l'app sans demande. → exemples : skill `localization`.
+
 ## Changelog & release
 
 `CHANGELOG.md` suit **Keep a Changelog** ; incrémenté chaque release via `release.py`. → skill `release`.
