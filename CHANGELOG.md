@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Éditeur de traduction : un seul ascenseur, des en-têtes lisibles.** La table défile avec la fiche au lieu d'un cadre de 460 pt ; l'en-tête de section épinglé est opaque, les clés ne passent plus au travers. La fraîcheur de l'anglais n'est plus dite deux fois.
+
 ## [1.69.0] - 2026-10-17
 
 ### Added

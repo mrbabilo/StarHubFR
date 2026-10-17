@@ -57,9 +57,6 @@ struct ModDetailView: View {
     /// cherchée hors main.
     @State private var backupTranslation: TranslationBackupFinder.Found?
 
-    /// Anglais touché après le français ? Mesuré hors main.
-    @State private var translationStaleness: TranslationFreshness.Staleness?
-
     /// Fichiers de traduction jamais ouverts par le jeu (`pt-BR.json` sans
     /// `pt.json`), cherchés hors main.
     @State private var unloadableLocaleFiles: [I18nLocaleResolver.UnloadableLocaleFile] = []
@@ -181,7 +178,6 @@ struct ModDetailView: View {
                     selectedTab = .translation
                 }
             }
-            translationStaleness = await vm.translationStaleness(for: mod)
             unloadableLocaleFiles = await vm.unloadableLocaleFiles(for: mod)
             // Seulement si rien de FR : sinon inutile de fouiller.
             guard !mod.languages.contains("fr") else { return }
@@ -842,7 +838,7 @@ struct ModDetailView: View {
     private var translationSection: some View {
         // Aussi sans français si une sauvegarde en contient un ou qu'un fichier
         // ne sera jamais lu.
-        if mod.languages.contains("fr") || backupTranslation != nil || translationStaleness != nil
+        if mod.languages.contains("fr") || backupTranslation != nil
             || !unloadableLocaleFiles.isEmpty {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(localization.L(L10n.Mods.translationSection))
@@ -873,16 +869,8 @@ struct ModDetailView: View {
                     }
                 }
 
-                if let stale = translationStaleness {
-                    // Le fait et ses deux dates, jamais un verdict.
-                    TranslationNote(
-                        stale.note(sourceNewerFormat: localization.L(L10n.Mods.translationSourceNewer),
-                                  sameDayFormat: localization.L(L10n.Mods.translationSourceNewerToday),
-                                  oneDayFormat: localization.L(L10n.Mods.translationSourceNewerOneDay),
-                                  dateText: stale.sourceDate.formatted(date: .abbreviated,
-                                                                       time: .omitted)),
-                        icon: "clock.badge.exclamationmark", color: .secondary)
-                }
+                // La fraîcheur (anglais touché après le français) n'est dite
+                // qu'une fois, par l'éditeur juste en dessous (E6).
                 if vm.outdatedKeyCount(for: mod) > 0 {
                     TranslationNote(String(format: localization.L(L10n.Mods.translationOutdatedKeys),
                                            vm.outdatedKeyCount(for: mod)),

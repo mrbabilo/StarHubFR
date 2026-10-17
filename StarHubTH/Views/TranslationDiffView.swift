@@ -496,43 +496,42 @@ struct TranslationDiffView: View {
                     .font(AppDesign.Font.footnote)
                 }
             } else {
+                // E6 : la table défile avec la page de la fiche — un seul
+                // ascenseur ; en-têtes épinglés et `scrollTo` visent celui-là.
                 ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            ForEach(groups) { group in
-                                Section {
-                                    if !collapsed.contains(group.id) {
-                                        ForEach(group.rows) { row in
-                                            Button { editing = row } label: { // bouton : atteignable au clavier (I-T6)
-                                            DiffRowView(row: row,
-                                                        emptyPlaceholder: localization.L(L10n.Mods.diffEmptyValue),
-                                                        previousEnglishLabel: localization.L(L10n.Mods.diffPreviousEnglish),
-                                                        needsReview: reviewNeededIDs.contains(row.id),
-                                                        reviewLabel: localization.L(L10n.Mods.translationReviewNeeded))
-                                                .contentShape(Rectangle())
-                                            }
-                                            .buttonStyle(.plain).focusRing()
-                                                .pointingHandCursor() // le curseur dit qu'une rangée s'ouvre
-                                            Divider()
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                        ForEach(groups) { group in
+                            Section {
+                                if !collapsed.contains(group.id) {
+                                    ForEach(group.rows) { row in
+                                        Button { editing = row } label: { // bouton : atteignable au clavier (I-T6)
+                                        DiffRowView(row: row,
+                                                    emptyPlaceholder: localization.L(L10n.Mods.diffEmptyValue),
+                                                    previousEnglishLabel: localization.L(L10n.Mods.diffPreviousEnglish),
+                                                    needsReview: reviewNeededIDs.contains(row.id),
+                                                    reviewLabel: localization.L(L10n.Mods.translationReviewNeeded))
+                                            .contentShape(Rectangle())
                                         }
+                                        .buttonStyle(.plain).focusRing()
+                                            .pointingHandCursor() // le curseur dit qu'une rangée s'ouvre
+                                        Divider()
                                     }
-                                } header: {
-                                    // Rien pour un mod sans commentaire : avant ce
-                                    // travail, un tel fichier n'affichait aucun
-                                    // en-tête, et c'est la majorité du parc. Dès
-                                    // qu'une section est titrée, tous les en-têtes
-                                    // s'affichent — y compris celui du bloc sans
-                                    // titre et celui de l'orphelin, qui séparent
-                                    // alors utilement le contenu au lieu de mentir
-                                    // sur une structure que le fichier n'a pas.
-                                    if fileHasTitledSections {
-                                        sectionHeader(group).id(group.id)
-                                    }
+                                }
+                            } header: {
+                                // Rien pour un mod sans commentaire : avant ce
+                                // travail, un tel fichier n'affichait aucun
+                                // en-tête, et c'est la majorité du parc. Dès
+                                // qu'une section est titrée, tous les en-têtes
+                                // s'affichent — y compris celui du bloc sans
+                                // titre et celui de l'orphelin, qui séparent
+                                // alors utilement le contenu au lieu de mentir
+                                // sur une structure que le fichier n'a pas.
+                                if fileHasTitledSections {
+                                    sectionHeader(group).id(group.id)
                                 }
                             }
                         }
                     }
-                    .frame(maxHeight: 460)
                     .onChange(of: scrollTarget) { _, target in
                         guard let target else { return }
                         withMotion { proxy.scrollTo(target, anchor: .top) }
@@ -627,7 +626,8 @@ struct TranslationDiffView: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.accentColor.opacity(AppDesign.Opacity.light))
+            // Opaque (E6) : épinglé, un voile seul laissait voir les clés passer dessous.
+            .background(Color.accentColor.opacity(AppDesign.Opacity.light).background(AppDesign.Color.windowBg))
             .overlay(alignment: .bottom) { Divider() }
         }
         .buttonStyle(.plain).focusRing()
