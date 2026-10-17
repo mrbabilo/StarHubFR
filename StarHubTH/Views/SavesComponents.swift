@@ -147,17 +147,8 @@ struct SaveCardView: View {
         }
         .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.lg)
         .onHover { isHovered = $0 }
-        .contextMenu {
-            Button(localization.L(L10n.Saves.edit)) { vm.navigationStore.setEditingSave(save) }
-            Button(localization.L(L10n.Saves.timeline)) { vm.navigationStore.viewingSaveTimeline = save }
-            Divider()
-            Button(localization.L(L10n.Saves.duplicate)) { vm.saveToDuplicate = save }
-            Button(localization.L(L10n.Saves.openFolder)) { vm.openSaveInFinder(info: save) }
-            Divider()
-            Button(localization.L(L10n.Saves.deleteSave), role: .destructive) {
-                confirmingDelete = true
-            }
-            .disabled(vm.isSaveOperationRunning)
+        .contextMenu {  // R6 : la même liste que le menu « … » de la rangée
+            SaveActionItems(save: save, viewModel: vm, localization: localization) { confirmingDelete = true }
         }
         // Supprimer une partie envoie tout son dossier à la corbeille. La
         // suppression d'une **sauvegarde de secours** confirmait déjà (audit
@@ -284,27 +275,10 @@ struct SaveRow: View {
 
             moneyColumns
 
-            Menu {
-                Button(action: { vm.navigationStore.setEditingSave(save) }) {
-                    Label(localization.L(L10n.Saves.saveManagement), systemImage: "pencil")
-                }
-                Button(action: { vm.navigationStore.viewingSaveTimeline = save }) {
-                    Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
-                }
-                Divider()
-                Button(action: { vm.openSaveInFinder(info: save) }) {
-                    Label(localization.L(L10n.Saves.openFolder), systemImage: "folder")
-                }
-                Button(action: { vm.saveToDuplicate = save }) {
-                    Label(localization.L(L10n.Saves.duplicate), systemImage: "doc.on.doc")
-                }
-                Divider()
-                Button(role: .destructive, action: { confirmingDelete = true }) {
-                    Label(localization.L(L10n.Saves.deleteSave), systemImage: "trash")
-                }
-                .disabled(vm.isSaveOperationRunning)
+            Menu {  // R6 : une seule liste d'actions (`SaveActionItems`)
+                SaveActionItems(save: save, viewModel: vm, localization: localization) { confirmingDelete = true }
             } label: {
-                Image(systemName: "info.circle")
+                Image(systemName: "ellipsis.circle")
                     .foregroundColor(.secondary)
                     .font(AppDesign.Font.rowTitle)
                     .frame(width: 18, height: 18)
@@ -312,12 +286,15 @@ struct SaveRow: View {
                     .padding(.trailing, 4)
             }
             .menuStyle(BorderlessButtonMenuStyle()).focusRing(cornerRadius: 4)
-            .iconHelp(localization.L(L10n.Saves.saveManagement))
+            .iconHelp(localization.L(L10n.Mods.moreActions))
             .frame(width: 30)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
+        .contextMenu {  // R6 : clic droit sur la rangée, même liste que « … »
+            SaveActionItems(save: save, viewModel: vm, localization: localization) { confirmingDelete = true }
+        }
         // Même garde que sur la carte : la partie part à la corbeille avec
         // tout son dossier. Un seul modificateur de présentation sur cette
         // vue — deux ne se présenteraient pas tous les deux.

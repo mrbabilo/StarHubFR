@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Sauvegardes du jeu : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
 - **Palette (⌘K) : ↩ sur un profil affiche son aperçu** sans rien activer ; ⌘↩ l'active. Le rappel figure sous le nom du profil.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».
 - **Alertes et Santé à jour dès la fermeture du jeu**, quelle que soit la page affichée : l'app relit le journal SMAPI sans attendre le retour à l'Accueil.
