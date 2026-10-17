@@ -474,9 +474,9 @@ struct LogsView: View {
 
                     // Severity dot: lets a problem mod be spotted while collapsed.
                     if group.errorCount > 0 {
-                        Circle().fill(AppDesign.Color.error).frame(width: 6, height: 6)
+                        Label("\(group.errorCount)", systemImage: "xmark.circle.fill").font(AppDesign.Font.iconXS).foregroundStyle(AppDesign.Color.error) // E9 : glyphe + compte
                     } else if group.warningCount > 0 {
-                        Circle().fill(AppDesign.Color.warning).frame(width: 6, height: 6)
+                        Label("\(group.warningCount)", systemImage: "exclamationmark.triangle.fill").font(AppDesign.Font.iconXS).foregroundStyle(AppDesign.Color.warning)
                     }
 
                     Spacer()

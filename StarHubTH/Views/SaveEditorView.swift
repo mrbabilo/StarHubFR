@@ -148,7 +148,7 @@ private struct SaveHeroBand: View {
             // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
             .frame(width: 18, height: 18)
             .contentShape(.rect)
-            .help(closeHelp)
+            .iconHelp(closeHelp)
         }
     }
 }
@@ -436,7 +436,7 @@ struct SaveEditorView: View {
                                         .foregroundColor(.red)
                                 }
                                 .buttonStyle(.plain).focusRing()
-                                .help(localization.L(L10n.Saves.clearSlotHint))
+                                .iconHelp(localization.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
                         } else if !item.name.isEmpty {
@@ -458,7 +458,7 @@ struct SaveEditorView: View {
                                         .foregroundColor(.red)
                                 }
                                 .buttonStyle(.plain).focusRing()
-                                .help(localization.L(L10n.Saves.clearSlotHint))
+                                .iconHelp(localization.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
                         }

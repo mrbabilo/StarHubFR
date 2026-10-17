@@ -151,7 +151,7 @@ struct SettingsView: View {
     private var nexusSection: some View {
         // ── Nexus Mods ──
         StandardSection(
-            title: localization.L(L10n.Settings.nexusMods), icon: ("globe", .orange),
+            title: localization.L(L10n.Settings.nexusMods), icon: ("globe", .blue),  // C2c : l'orange se lisait comme un avertissement
             footer: localization.L(L10n.Settings.nexusApiKeyHint)
         ) {
             VStack(alignment: .leading, spacing: 16) {

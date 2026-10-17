@@ -130,7 +130,7 @@ struct ProfileRow: View {
             }
             .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
             .fixedSize()
-            .help(localization.L(L10n.Mods.moreActions))
+            .iconHelp(localization.L(L10n.Mods.moreActions))
         }
         .padding(.vertical, AppDesign.Spacing.md)
         .padding(.horizontal, AppDesign.Spacing.lg)

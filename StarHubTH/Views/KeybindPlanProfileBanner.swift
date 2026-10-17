@@ -39,7 +39,7 @@ struct KeybindPlanProfileBanner: View {
                 }
                 .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .pointingHandCursor()
-                .help(localization.L(L10n.KeybindPlan.profileBannerDismiss))
+                .iconHelp(localization.L(L10n.KeybindPlan.profileBannerDismiss))
             }
             .padding(.horizontal, AppDesign.Spacing.xl)
             .padding(.vertical, AppDesign.Spacing.sm)

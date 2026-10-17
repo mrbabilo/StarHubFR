@@ -66,7 +66,7 @@ struct QuarantineView: View {
                             QuarantineOnDiskCard(entries: onDisk, localization: localization)
                         } else if report == nil {
                             VStack(spacing: AppDesign.Spacing.md) {
-                                IconTile(icon: "tray", tint: AppDesign.Color.success, size: 64)
+                                IconTile(icon: "tray", tint: AppDesign.Color.quarantine, size: 64)  // C2c : la teinte de la page, pas une réussite
                                 Text(localization.L(L10n.Quarantine.noQuarantine))
                                     .font(AppDesign.Font.body)
                                     .foregroundColor(AppDesign.Color.secondary)

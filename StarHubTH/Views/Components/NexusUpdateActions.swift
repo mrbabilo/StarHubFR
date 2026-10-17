@@ -38,7 +38,7 @@ struct NexusUpdateActions: View {
                     .buttonStyle(.plain).focusRing()
                     .foregroundStyle(.secondary)
                     .pointingHandCursor()
-                    .help(localization.L(L10n.Downloads.cancel))
+                    .iconHelp(localization.L(L10n.Downloads.cancel))
                 }
                 .help(localization.L(L10n.VM.nexusDlStarting).replacingOccurrences(of: "%lld", with: String(nexusId)))
             } else {

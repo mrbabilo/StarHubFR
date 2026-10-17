@@ -251,7 +251,7 @@ struct SaveRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).focusRing()
-                .help(localization.L(L10n.Saves.expandHint))
+                .iconHelp(localization.L(L10n.Saves.expandHint)).accessibilityValue(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
             } else {
                 Spacer().frame(width: 32)
             }
@@ -312,7 +312,7 @@ struct SaveRow: View {
                     .padding(.trailing, 4)
             }
             .menuStyle(BorderlessButtonMenuStyle()).focusRing(cornerRadius: 4)
-            .help(localization.L(L10n.Saves.saveManagement))
+            .iconHelp(localization.L(L10n.Saves.saveManagement))
             .frame(width: 30)
         }
         .padding(.vertical, 6)

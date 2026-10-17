@@ -145,7 +145,7 @@ struct FrenchTranslationsView: View {
                         .contentShape(.rect)
                         .controlSize(.small)
                         .disabled(all.isEmpty)
-                        .help(localization.L(L10n.FrTranslations.rescanAll))
+                        .iconHelp(localization.L(L10n.FrTranslations.rescanAll))
                     }
                 }
             }

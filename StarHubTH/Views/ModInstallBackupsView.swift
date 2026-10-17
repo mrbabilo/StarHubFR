@@ -296,7 +296,7 @@ struct ModInstallBackupsView: View {
                         .font(AppDesign.Font.iconXS(.semibold))
                         .foregroundColor(.secondary)
                         .frame(width: 12)
-                    IconTile(icon: "shippingbox", tint: .pink, size: 30)
+                    IconTile(icon: "shippingbox", tint: AppDesign.Color.accent, size: 30)  // C2a : un stock, pas une alerte
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.displayName)
                             .font(AppDesign.Font.body(.medium))
@@ -322,7 +322,7 @@ struct ModInstallBackupsView: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain).focusRing()
-            .pointingHandCursor()
+            .pointingHandCursor().accessibilityHint(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand)) // E9
 
             if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {

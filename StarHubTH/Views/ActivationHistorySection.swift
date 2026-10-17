@@ -86,7 +86,7 @@ struct ActivationHistorySection: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain).focusRing()
-            .help(localization.L(snapshot.pinned ? L10n.ActivationHistory.unpinHelp
+            .iconHelp(localization.L(snapshot.pinned ? L10n.ActivationHistory.unpinHelp
                                                  : L10n.ActivationHistory.pinHelp))
             VStack(alignment: .leading, spacing: 2) {
                 Text(gestureLabel(snapshot)).font(AppDesign.Font.body).lineLimit(2)

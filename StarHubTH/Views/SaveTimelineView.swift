@@ -277,7 +277,7 @@ struct BackupRow: View {
                     .buttonStyle(.plain).focusRing()
                     .foregroundColor(.secondary)
                     .padding(.trailing, AppDesign.Spacing.xs)
-                    .help(localization.L(L10n.Saves.editNoteHint))
+                    .iconHelp(localization.L(L10n.Saves.editNoteHint))
 
                     Button(action: {
                         vm.backupToBranch = backup
@@ -317,7 +317,7 @@ struct BackupRow: View {
                     .buttonStyle(.plain).focusRing()
                     .foregroundColor(AppDesign.Color.error.opacity(AppDesign.Opacity.secondary))
                     .padding(.leading, AppDesign.Spacing.sm)
-                    .help(localization.L(L10n.Saves.deleteBackupHint))
+                    .iconHelp(localization.L(L10n.Saves.deleteBackupHint))
                 }
             }
             .padding(AppDesign.Spacing.md)
