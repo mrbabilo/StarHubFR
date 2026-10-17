@@ -383,6 +383,7 @@ let package = Package(
                 "Models/FrenchCoveragePass.swift",
                 "Models/TranslationTarget.swift",
                 "Models/TranslationBatchRun.swift",
+                "Models/TranslationAssistFailure.swift",
                 "Models/DepositIdentity.swift",
                 "Models/TranslationPresence.swift",
                 "Models/ModListScoping.swift",

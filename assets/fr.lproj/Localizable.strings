@@ -2738,3 +2738,8 @@
 "profile_preview_conflicts_one" = "1 conflit que l'activation rendrait actif";
 "profile_preview_menu_entry" = "Aperçu…";
 "profile_preview_column_help" = "Voir ce que l'activation de ce profil ferait, sans rien activer";
+"translation_assist_open_settings" = "Ouvrir les réglages de traduction";
+"translation_assist_save_first" = "Enregistrez ou annulez d'abord la modification : ouvrir les Réglages ferme l'éditeur.";
+"recovery_open_from_detail" = "Voir dans Fichiers récupérables";
+"recovery_filtered_on" = "Fichiers du dossier « %@ » seulement";
+"recovery_show_all" = "Tout afficher";

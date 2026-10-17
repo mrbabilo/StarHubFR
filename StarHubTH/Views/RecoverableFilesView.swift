@@ -11,7 +11,7 @@ import SwiftUI
 /// Segment « Fichiers récupérables » de `BackupsView` depuis I-T8 (feuille
 /// ouverte depuis les sauvegardes d'installation auparavant).
 struct RecoverableFilesView: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     /// Le fichier dont l'aperçu est déplié. Un seul à la fois : la lecture se
@@ -24,6 +24,15 @@ struct RecoverableFilesView: View {
     /// dont le mod vit encore se remettent comme les autres (`resolved`).
     @State private var soleCopies: [MaintenanceInventory.SoleCopyFile] = []
     @State private var resolved: [String: RecoverableFile] = [:]
+    /// N-11 — le dossier du mod dont la fiche a mené ici ; `nil` = tout.
+    @State private var modFilter: String?
+
+    private var shownFiles: [RecoverableFile] {
+        viewModel.recoverableFiles.filter { modFilter == nil || $0.folderName == modFilter }
+    }
+    private var shownSoleCopies: [MaintenanceInventory.SoleCopyFile] {
+        soleCopies.filter { modFilter == nil || $0.modFolder == modFilter }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -38,10 +47,24 @@ struct RecoverableFilesView: View {
 
             Divider()
 
-            if vm.isScanningRecoverableFiles
-                || (vm.maintenanceReport == nil && vm.maintenanceStore.isBuilding) {
+            if let modFilter {
+                HStack {
+                    Text(String(format: localization.L(L10n.Recovery.filteredOn), modFilter))
+                        .font(AppDesign.Font.footnote(.medium))
+                    Spacer()
+                    Button(localization.L(L10n.Recovery.showAll)) { self.modFilter = nil }
+                        .buttonStyle(.hoverLink)
+                        .font(AppDesign.Font.footnote)
+                }
+                .padding(.horizontal, AppDesign.Spacing.xl)
+                .padding(.vertical, AppDesign.Spacing.sm)
+                Divider()
+            }
+
+            if viewModel.isScanningRecoverableFiles
+                || (viewModel.maintenanceReport == nil && viewModel.maintenanceStore.isBuilding) {
                 centered { ProgressView() }
-            } else if vm.recoverableFiles.isEmpty && soleCopies.isEmpty {
+            } else if shownFiles.isEmpty && shownSoleCopies.isEmpty {
                 centered {
                     Text(localization.L(L10n.Recovery.empty))
                         .font(AppDesign.Font.caption)
@@ -52,12 +75,12 @@ struct RecoverableFilesView: View {
                     // Une carte, lignes paresseuses : les seules copies de
                     // l'Entretien peuvent se compter par dizaines.
                     LazyVStack(spacing: 0) {
-                        ForEach(vm.recoverableFiles) { file in
+                        ForEach(shownFiles) { file in
                             row(file)
                             if previewing?.id == file.id { preview }
                             Divider().padding(.leading, 20)
                         }
-                        ForEach(soleCopies) { copy in
+                        ForEach(shownSoleCopies) { copy in
                             if let file = resolved[copy.id] {
                                 row(file)
                                 if previewing?.id == file.id { preview }
@@ -76,27 +99,29 @@ struct RecoverableFilesView: View {
 
             HStack {
                 Button(localization.L(L10n.ModInstall.refreshBackups)) {
-                    vm.scanRecoverableFiles()
-                    vm.buildMaintenanceReport()
+                    viewModel.scanRecoverableFiles()
+                    viewModel.buildMaintenanceReport()
                 }
-                .disabled(vm.isScanningRecoverableFiles)
+                .disabled(viewModel.isScanningRecoverableFiles)
                 Spacer()
             }
             .padding(16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            if vm.recoverableFiles.isEmpty { vm.scanRecoverableFiles() }
+            if viewModel.recoverableFiles.isEmpty { viewModel.scanRecoverableFiles() }
             // Garde anti-chevauchement dans `buildMaintenanceReport` ; le
             // rapport déjà posé sert pendant la refonte.
-            vm.buildMaintenanceReport()
+            viewModel.buildMaintenanceReport()
             refreshSoleCopies()
+            consumePendingFocus()
         }
-        .onChange(of: vm.maintenanceReport) { refreshSoleCopies() }
-        .onChange(of: vm.recoverableFiles) { refreshSoleCopies() }
+        .onChange(of: viewModel.navigationStore.pendingBackupsFocus) { consumePendingFocus() }
+        .onChange(of: viewModel.maintenanceReport) { refreshSoleCopies() }
+        .onChange(of: viewModel.recoverableFiles) { refreshSoleCopies() }
         .sheet(item: $comparing) { file in
             TranslationRecoveryDiffView(
-                vm: vm,
+                vm: viewModel,
                 localization: localization,
                 file: file,
                 isPresented: Binding(get: { comparing != nil },
@@ -143,7 +168,7 @@ struct RecoverableFilesView: View {
             // Rien à remplacer quand le fichier installé n'a rien perdu : le
             // proposer inviterait à écraser le plus récent par le plus ancien.
             if file.reason != .translationDiffers {
-                Button(localization.L(L10n.Recovery.recover)) { vm.recoverFile(file) }
+                Button(localization.L(L10n.Recovery.recover)) { viewModel.recoverFile(file) }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .pointingHandCursor()
@@ -170,9 +195,9 @@ struct RecoverableFilesView: View {
             }
             Spacer()
             Button(localization.L(L10n.Maintenance.actionReveal)) {
-                if let path = vm.maintenanceProtectedFilePath(session: copy.session,
+                if let path = viewModel.maintenanceProtectedFilePath(session: copy.session,
                                                               relativePath: copy.relativePath) {
-                    vm.revealProtectedBackup(atPath: path)
+                    viewModel.revealProtectedBackup(atPath: path)
                 }
             }
             .buttonStyle(.bordered)
@@ -183,11 +208,18 @@ struct RecoverableFilesView: View {
         .padding(.vertical, 10)
     }
 
+    /// N-11 : filtrer sur le mod de la fiche, une fois (patron I-T5).
+    private func consumePendingFocus() {
+        guard let folder = viewModel.navigationStore.pendingBackupsFocus else { return }
+        modFilter = folder
+        viewModel.navigationStore.pendingBackupsFocus = nil
+    }
+
     private func refreshSoleCopies() {
-        guard let report = vm.maintenanceReport else { return }
+        guard let report = viewModel.maintenanceReport else { return }
         soleCopies = MaintenanceInventory.soleCopyFiles(
-            in: report, excluding: Set(vm.recoverableFiles.map(\.id)))
-        resolved = vm.maintenanceRecoverableFiles(soleCopies)
+            in: report, excluding: Set(viewModel.recoverableFiles.map(\.id)))
+        resolved = viewModel.maintenanceRecoverableFiles(soleCopies)
     }
 
     private var preview: some View {

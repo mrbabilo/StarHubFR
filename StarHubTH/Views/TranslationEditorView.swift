@@ -6,7 +6,7 @@ import SwiftUI
 /// apparaît selon le contenu ferait sauter le champ de saisie d'une clé à
 /// l'autre — insupportable quand on en enchaîne des centaines.
 struct TranslationEditorView: View {
-    var vm: StarHubTHViewModel
+    var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let mod: ModItem
     let locale: String
@@ -35,7 +35,7 @@ struct TranslationEditorView: View {
     /// premier caractère retapé donnerait l'illusion qu'un problème de
     /// dossier ou de disque s'est réglé tout seul ; il ne se réarme qu'au
     /// prochain appel de `save()`, jamais avant.
-    @State private var failureMessage: String?
+    @State private var failureMessage: TranslationEditorNotice?
     /// La ligne qu'on voulait rejoindre quand un refus de marques a interrompu
     /// la navigation. Sans elle, « Enregistrer quand même » refermait la
     /// feuille et l'intention se perdait en silence : il fallait rouvrir et
@@ -182,7 +182,7 @@ struct TranslationEditorView: View {
         .frame(minWidth: 560, minHeight: 580)
         .onAppear {
             draft = row.french
-            glossaryMatches = vm.glossaryMatches(for: row.english, language: locale)
+            glossaryMatches = viewModel.glossaryMatches(for: row.english, language: locale)
         }
         // `.sheet(item:)` peut réutiliser cette vue en changeant seulement
         // `row` : `onAppear` ne se redéclencherait pas, et le brouillon de la
@@ -193,7 +193,7 @@ struct TranslationEditorView: View {
             blocked = []
             failureMessage = nil
             pendingNavigation = nil
-            glossaryMatches = vm.glossaryMatches(for: row.english, language: locale)
+            glossaryMatches = viewModel.glossaryMatches(for: row.english, language: locale)
         }
         // Retoucher la phrase remet le refus de tokens à zéro : l'accord porte
         // sur un couple source/cible précis, et la cible vient de changer.
@@ -267,27 +267,27 @@ struct TranslationEditorView: View {
         isTranslatingFragment = true
         defer { isTranslatingFragment = false }
         fragmentProposal = nil
-        switch await vm.translateFragment(sourceSelection, inside: row.english) {
+        switch await viewModel.translateFragment(sourceSelection, inside: row.english) {
         case .proposal(let text):
             fragmentProposal = text
         case .refusedMarkers(let markers):
-            failureMessage = String(format: localization.L(L10n.Mods.translationEditorSelectionMarkers),
-                                    markers.joined(separator: ", "))
+            failureMessage = .init(text: String(format: localization.L(L10n.Mods.translationEditorSelectionMarkers),
+                                                markers.joined(separator: ", ")))
         case .noFallback:
-            failureMessage = localization.L(L10n.Mods.translationEditorSelectionNoFallback)
+            failureMessage = localization.notice(.noFallback)
         case .nothingSelected:
             break
         case .fallbackStopped(let stop):
-            failureMessage = localization.L(stopMessage(stop))
+            failureMessage = localization.notice(.stopped(stop))
         case .failed:
-            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateFailed)
+            failureMessage = .init(text: localization.L(L10n.Mods.translationEditorPretranslateFailed))
         }
     }
 
     /// Les termes du jeu matchés dans la source, en `EN → FR` monospace :
     /// cliquer insère la forme française, la même mécanique que les chips de
     /// marques — l'IA locale impose ces mêmes termes dans son prompt, ce sont
-    /// les mêmes matchs (`vm.glossaryMatches`).
+    /// les mêmes matchs (`viewModel.glossaryMatches`).
     @ViewBuilder private var glossaryChips: some View {
         if glossaryMatches.isEmpty {
             EmptyView()
@@ -310,16 +310,6 @@ struct TranslationEditorView: View {
         }
     }
 
-    /// Trois causes d'arrêt du secours, trois phrases : un quota se règle chez
-    /// le service, un rythme en attendant, une clé dans les réglages.
-    private func stopMessage(_ stop: StarHubTHViewModel.BatchReport.FallbackStop) -> String {
-        switch stop {
-        case .quotaExhausted: L10n.Mods.translationEditorQuota
-        case .rateLimited: L10n.Mods.translationEditorRateLimited
-        case .unauthorized: L10n.Mods.translationEditorUnauthorized
-        }
-    }
-
     /// Demande une proposition à l'IA locale et la verse dans le brouillon.
     /// L'échec réutilise `failureMessage` — c'est une panne structurelle
     /// (serveur injoignable, non configuré), pas un désaccord sur le texte :
@@ -329,21 +319,21 @@ struct TranslationEditorView: View {
         // Rien à demander sans IA réglée : la panne serait annoncée comme un
         // serveur muet, alors qu'il n'y a pas de serveur. Le lot cache son
         // bouton dans ce cas (spec §7) ; ici il reste, mais il dit où aller.
-        guard vm.isTranslationAssistAvailable else {
-            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateNoAI)
+        guard viewModel.isTranslationAssistAvailable else {
+            failureMessage = localization.notice(.noEngine)
             return
         }
         isPreTranslating = true
         defer { isPreTranslating = false }
-        switch await vm.preTranslate(mod: mod, locale: locale, row: row) {
+        switch await viewModel.preTranslate(mod: mod, locale: locale, row: row) {
         case .proposal(let proposal):
             draft = proposal
         case .fallbackStopped(let stop):
             // Nommer la cause : sur ce chemin on reclique, et un message
             // générique ferait retenter une clé que le service ne rendra pas.
-            failureMessage = localization.L(stopMessage(stop))
+            failureMessage = localization.notice(.stopped(stop))
         case .failed:
-            failureMessage = localization.L(L10n.Mods.translationEditorPretranslateFailed)
+            failureMessage = .init(text: localization.L(L10n.Mods.translationEditorPretranslateFailed))
         }
     }
 
@@ -387,10 +377,17 @@ struct TranslationEditorView: View {
                 // chemins absolus, potentiellement longs) ni troncature :
                 // `.textSelection` porte sur le texte complet, jamais sur un
                 // « … » qui aurait avalé la moitié d'un chemin.
-                Text(failureMessage)
+                Text(failureMessage.text)
                     .font(AppDesign.Font.iconXS)
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
+                if let section = failureMessage.settings {
+                    // N-11. Ouvrir les Réglages ferme la feuille : grisé si un brouillon s'y perdrait.
+                    SettingsLinkButton(section: section, title: localization.L(L10n.TranslationAssist.openSettings),
+                                       navigation: viewModel.navigationStore) { isPresented = false }
+                        .disabled(draft != row.french)
+                        .help(draft != row.french ? localization.L(L10n.TranslationAssist.saveFirst) : "")
+                }
             }
         } else if !blocked.isEmpty {
             VStack(alignment: .leading, spacing: 3) {
@@ -425,7 +422,7 @@ struct TranslationEditorView: View {
         guard let target else { return }
         if draft != row.french {
             failureMessage = nil
-            switch vm.saveTranslation(mod: mod, locale: locale, row: row, value: draft) {
+            switch viewModel.saveTranslation(mod: mod, locale: locale, row: row, value: draft) {
             case .saved:
                 blocked = []
                 onSaved()
@@ -437,7 +434,7 @@ struct TranslationEditorView: View {
                 return
             case .failed(let message):
                 blocked = []
-                failureMessage = message
+                failureMessage = .init(text: message)
                 // Même raison que pour un refus de marques, et surtout : sans
                 // cette ligne, `.failed` était la seule branche à ne rien dire
                 // de l'intention. Elle laissait donc en place celle d'un aller
@@ -469,7 +466,7 @@ struct TranslationEditorView: View {
         // doit pas non plus disparaître avant qu'on sache si la nouvelle
         // tentative a réussi.
         failureMessage = nil
-        switch vm.saveTranslation(mod: mod, locale: locale, row: row, value: draft,
+        switch viewModel.saveTranslation(mod: mod, locale: locale, row: row, value: draft,
                                   acceptingTokenMismatch: acceptingMismatch) {
         case .saved:
             blocked = []
@@ -486,7 +483,7 @@ struct TranslationEditorView: View {
             blocked = mismatches
         case .failed(let message):
             blocked = []
-            failureMessage = message
+            failureMessage = .init(text: message)
         }
     }
 }

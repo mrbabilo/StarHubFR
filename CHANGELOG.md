@@ -18,6 +18,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Éditeur de traduction : « Ouvrir les réglages de traduction ».** Sans clé DeepL, clé refusée ou sans IA locale, le message d'échec mène aux Réglages. Grisé tant qu'une modification n'est pas enregistrée. Quota et rythme DeepL n'ont pas de bouton : ils ne se règlent pas là.
+- **Fiche d'un mod : « Voir dans Fichiers récupérables ».** La note « traduction dans une sauvegarde » ouvre la liste filtrée sur ce mod, avec « Tout afficher ».
 - **Accueil : un encart « Opération interrompue ».** La recherche du mod responsable, le benchmark A/B et la mesure pilotée laissés en plan s'y signalent, chacun avec « Tout remettre comme avant ».
 - **« Revenir à un état d'avant » depuis Gestion des mods** (menu ⏻). La recherche du mod responsable et le benchmark y laissent désormais leur état de départ. « Revenir » est grisé tant que l'une de ces opérations tient le parc.
 - **Dépendance requise : le geste est sur l'encart de la ligne.** « Activer Nature.RITS » pour une dépendance en pause, « Installer … » ou « Page Nexus de … » pour une dépendance manquante, sinon « Chercher … ». L'onglet Dépendances de la fiche propose les mêmes gestes.

@@ -853,26 +853,29 @@ struct ModDetailView: View {
                 // apparaître deux fois.
                 ForEach(Array(unloadableLocaleFiles.enumerated()), id: \.offset) { _, file in
                     if let expected = file.expectedName {
-                        translationNote(String(format: localization.L(L10n.Mods.translationUnloadableExpected),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationUnloadableExpected),
                                                file.fileName, expected),
                                         icon: AppDesign.Status.warning.symbol, color: .secondary)
                     } else {
-                        translationNote(String(format: localization.L(L10n.Mods.translationUnloadableUnknown),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationUnloadableUnknown),
                                                file.fileName),
                                         icon: AppDesign.Status.warning.symbol, color: .secondary)
                     }
                 }
 
                 if let backup = backupTranslation {
-                    translationNote(String(format: localization.L(L10n.Mods.translationInBackup),
-                                           backup.modifiedAt.formatted(date: .abbreviated,
-                                                                       time: .omitted)),
-                                    icon: "clock.arrow.circlepath", color: AppDesign.Color.warning)
+                    // N-11 : la sauvegarde se récupère dans Fichiers récupérables, filtrés sur ce mod.
+                    TranslationNote(String(format: localization.L(L10n.Mods.translationInBackup),
+                                           backup.modifiedAt.formatted(date: .abbreviated, time: .omitted)),
+                                    icon: "clock.arrow.circlepath", color: AppDesign.Color.warning,
+                                    link: localization.L(L10n.Recovery.openFromDetail)) {
+                        vm.navigationStore.openRecoverableFiles(for: mod.folderName)
+                    }
                 }
 
                 if let stale = translationStaleness {
                     // Le fait et ses deux dates, jamais un verdict.
-                    translationNote(
+                    TranslationNote(
                         stale.note(sourceNewerFormat: localization.L(L10n.Mods.translationSourceNewer),
                                   sameDayFormat: localization.L(L10n.Mods.translationSourceNewerToday),
                                   oneDayFormat: localization.L(L10n.Mods.translationSourceNewerOneDay),
@@ -881,7 +884,7 @@ struct ModDetailView: View {
                         icon: "clock.badge.exclamationmark", color: .secondary)
                 }
                 if vm.outdatedKeyCount(for: mod) > 0 {
-                    translationNote(String(format: localization.L(L10n.Mods.translationOutdatedKeys),
+                    TranslationNote(String(format: localization.L(L10n.Mods.translationOutdatedKeys),
                                            vm.outdatedKeyCount(for: mod)),
                                     icon: "clock.badge.exclamationmark",
                                     color: DiffStateStyle.tint(.outdated))
@@ -896,13 +899,13 @@ struct ModDetailView: View {
 
                     // Les vides d'abord : seul défaut qui casse l'affichage.
                     if !coverage.empty.isEmpty {
-                        translationNote(String(format: localization.L(L10n.Mods.translationEmpty),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationEmpty),
                                                coverage.empty.count),
                                         icon: "exclamationmark.triangle.fill",
                                         color: AppDesign.Color.warning)
                     }
                     if !coverage.missing.isEmpty {
-                        translationNote(String(format: localization.L(L10n.Mods.translationMissing),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationMissing),
                                                coverage.missing.count),
                                         icon: "text.badge.minus", color: .secondary)
                     }
@@ -911,12 +914,12 @@ struct ModDetailView: View {
                     // recopiées).
                     if coverage.total > 0,
                        Double(coverage.identicalToSource.count) / Double(coverage.total) > 0.2 {
-                        translationNote(String(format: localization.L(L10n.Mods.translationIdentical),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationIdentical),
                                                coverage.identicalToSource.count),
                                         icon: "equal.circle", color: .secondary)
                     }
                     if !coverage.orphan.isEmpty {
-                        translationNote(String(format: localization.L(L10n.Mods.translationOrphan),
+                        TranslationNote(String(format: localization.L(L10n.Mods.translationOrphan),
                                                coverage.orphan.count),
                                         icon: "questionmark.circle", color: .secondary)
                     }
@@ -927,18 +930,6 @@ struct ModDetailView: View {
                         .foregroundColor(.secondary)
                 }
             }
-        }
-    }
-
-    private func translationNote(_ text: String, icon: String, color: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: icon)
-                .font(AppDesign.Font.iconXS)
-                .foregroundColor(color)
-            Text(text)
-                .font(AppDesign.Font.footnote)
-                .foregroundColor(color == .secondary ? .secondary : color)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

@@ -2738,3 +2738,8 @@
 "profile_preview_conflicts_one" = "1 conflict that activating would make live";
 "profile_preview_menu_entry" = "Preview…";
 "profile_preview_column_help" = "See what activating this profile would do, without activating anything";
+"translation_assist_open_settings" = "Open translation settings";
+"translation_assist_save_first" = "Save or undo the change first: opening Settings closes the editor.";
+"recovery_open_from_detail" = "Show in Recoverable files";
+"recovery_filtered_on" = "Files from the “%@” folder only";
+"recovery_show_all" = "Show all";

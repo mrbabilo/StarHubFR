@@ -65,6 +65,16 @@ import Foundation
         #expect(s.pendingTabRequest == .settings)
     }
 
+    /// N-11 : la note « traduction dans une sauvegarde » de la fiche mène aux
+    /// Fichiers récupérables, filtrés sur le mod.
+    @Test func openRecoverableFilesPoseSegmentFiltreEtOnglet() {
+        let s = NavigationStore()
+        s.openRecoverableFiles(for: "Pack/Composant")
+        #expect(s.backupsSegment == .files)
+        #expect(s.pendingBackupsFocus == "Pack/Composant")
+        #expect(s.pendingTabRequest == .backups)
+    }
+
     /// I-T5 : le saut vers les sauvegardes d'un mod pose les trois états
     /// d'un coup — sans le segment, il atterrirait sur « Configurations ».
     @Test func openBackupsPoseSegmentFiltreEtOnglet() {

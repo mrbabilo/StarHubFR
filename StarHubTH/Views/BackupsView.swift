@@ -45,7 +45,7 @@ struct BackupsView: View {
             case .config:
                 ModConfigBackupsView(vm: vm, localization: localization, modFilter: $configFilter)
             case .files:
-                RecoverableFilesView(vm: vm, localization: localization)
+                RecoverableFilesView(viewModel: vm, localization: localization)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

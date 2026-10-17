@@ -547,7 +547,7 @@ struct TranslationDiffView: View {
                         let shown = groups.flatMap(\.rows)
                         let here = shown.firstIndex { $0.id == row.id }
                         TranslationEditorView(
-                            vm: vm,
+                            viewModel: vm,
                             localization: localization,
                             mod: mod, locale: "fr", row: row,
                             previous: here.flatMap { $0 > 0 ? shown[$0 - 1] : nil },

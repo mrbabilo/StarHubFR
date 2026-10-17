@@ -1,15 +1,19 @@
 import SwiftUI
 
 /// R7 (audit UX 2026-10-16) — le bouton qui ouvre les Réglages sur une
-/// section. Écrit pour Nexus ; les messages DeepL et IA locale (N-11) le
-/// reprendront avec leur section.
+/// section : clé Nexus (R7), DeepL et IA locale (N-11).
 struct SettingsLinkButton: View {
     let section: SettingsSection
     let title: String
     let navigation: NavigationStore
+    /// Avant de partir : une feuille se ferme (l'éditeur de traduction).
+    var onOpen: () -> Void = {}
 
     var body: some View {
-        Button(title) { navigation.openSettings(section) }
+        Button(title) {
+            onOpen()
+            navigation.openSettings(section)
+        }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .pointingHandCursor()

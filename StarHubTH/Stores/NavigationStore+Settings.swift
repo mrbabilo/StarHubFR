@@ -11,3 +11,14 @@ extension NavigationStore {
         requestTab(.settings)
     }
 }
+
+/// N-11 — les fichiers récupérables d'un mod, depuis sa fiche.
+extension NavigationStore {
+    /// Même canal que `openBackups(for:)` : seule la vue du segment affiché le
+    /// consomme (`RecoverableFilesView` ici), qui filtre sur ce dossier.
+    func openRecoverableFiles(for folderName: String) {
+        backupsSegment = .files
+        pendingBackupsFocus = folderName
+        requestTab(.backups)
+    }
+}
