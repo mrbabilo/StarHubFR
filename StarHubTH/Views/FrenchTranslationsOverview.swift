@@ -41,14 +41,21 @@ struct FrenchTranslationsOverview: View {
                     .foregroundStyle(Self.style(for: slice.key).color.gradient)
             }
             .chartLegend(.hidden)
+            // ⚠️ Jamais d'animation sur les secteurs, d'où qu'elle vienne
+            // (`withAnimation`, `.animation` d'un parent) : même trap Charts
+            // observé les 2026-10-16 et 17, le second pendant « Re-balayer »
+            // (les comptes changent en rafale, des secteurs naissent et
+            // meurent). Désassemblé : `Int(ceil(angle / 45))` sur un angle non
+            // fini — NaN probable sous interpolation. Le chiffre seul s'anime.
+            .transaction { $0.animation = nil }
             .frame(width: 104, height: 104)
             .overlay {
                 Text("\(total)")
                     .font(.system(size: AppDesign.Font.scaled(22), weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
+                    .animation(Motion.animation(.smooth), value: total)
             }
-            .animation(Motion.animation(.smooth), value: visible.map(\.count))
             .accessibilityLabel(L(L10n.FrTranslations.chartLabel))
 
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
