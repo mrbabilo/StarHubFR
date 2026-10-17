@@ -2760,3 +2760,13 @@
 "saves_paused_reactivate_packs" = "Enable these mods (%lld, %lld of them whole packs)";
 "saves_paused_reactivate_help" = "Puts these mods back in play, with their paused required dependencies when dependency chaining is on. “Go back to an earlier state” undoes it.";
 "saves_fingerprint_reading" = "Reading saves for what the mods being paused left in them…";
+"profile_anomaly_interrupted" = "Activation interrupted";
+"profile_anomaly_interrupted_action" = "Resume or keep…";
+"profile_anomaly_interrupted_help" = "This profile's activation was cut off: some folders moved, others did not. Choose to resume it or to keep the disk as it is.";
+"profile_anomaly_incomplete" = "Half applied";
+"profile_anomaly_incomplete_action" = "Resume";
+"profile_anomaly_incomplete_help" = "Some folders could not be moved during the last activation. Resume retries the missing ones.";
+"profile_anomaly_desync" = "Configs not rewritten";
+"profile_anomaly_desync_action" = "Rewrite now";
+"profile_anomaly_desync_help" = "This profile was activated while the game was running: its remembered config.json files were not put back on disk.";
+"profile_anomaly_desync_game_running" = "Quit the game first: it reads config.json files when it starts, so rewriting them now would not help.";

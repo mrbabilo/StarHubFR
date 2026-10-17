@@ -2760,3 +2760,13 @@
 "saves_paused_reactivate_packs" = "Réactiver ces mods (%lld, dont %lld packs entiers)";
 "saves_paused_reactivate_help" = "Remet ces mods en jeu, avec leurs dépendances requises en pause si le chaînage des dépendances est actif. « Revenir à un état d'avant » annule le geste.";
 "saves_fingerprint_reading" = "Lecture des sauvegardes : ce que les mods mis en pause y ont laissé…";
+"profile_anomaly_interrupted" = "Application interrompue";
+"profile_anomaly_interrupted_action" = "Reprendre ou garder…";
+"profile_anomaly_interrupted_help" = "L'application de ce profil a été coupée : une partie des dossiers a bougé, l'autre non. Choisissez de la reprendre ou de garder le disque tel quel.";
+"profile_anomaly_incomplete" = "Appliqué à moitié";
+"profile_anomaly_incomplete_action" = "Reprendre";
+"profile_anomaly_incomplete_help" = "Des dossiers n'ont pas pu être déplacés à la dernière application. Reprendre retente ceux qui manquent.";
+"profile_anomaly_desync" = "Configs non réécrites";
+"profile_anomaly_desync_action" = "Réécrire maintenant";
+"profile_anomaly_desync_help" = "Ce profil a été activé jeu ouvert : les config.json mémorisés n'ont pas été remis sur le disque.";
+"profile_anomaly_desync_game_running" = "Fermez d'abord le jeu : il relit les config.json à son lancement, les réécrire maintenant ne servirait pas.";

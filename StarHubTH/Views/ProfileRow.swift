@@ -73,6 +73,7 @@ struct ProfileRow: View {
                 // libellé (« FR 86 % · 50 à traduire ») ne se replie pas en
                 // colonne.
                 translationBadge
+                anomalyNotice
             }
 
             Spacer()
@@ -94,7 +95,7 @@ struct ProfileRow: View {
                 Button(localization.L(L10n.Profiles.activate)) { onApply() }
                     .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
-                    .disabled(vm.isApplyingProfile)
+                    .disabled(isApplying)
                     .pointingHandCursor()
             }
 
@@ -102,7 +103,7 @@ struct ProfileRow: View {
             Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
                 .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
-                .disabled(vm.isApplyingProfile)
+                .disabled(isApplying)
                 .pointingHandCursor()
 
             // Overflow: rename / delete. The default profile can't be deleted,
@@ -115,9 +116,9 @@ struct ProfileRow: View {
                 // actif **avant** que ses dossiers ne bougent, un import lancé
                 // dans cette fenêtre courserait les déplacements en cours.
                 Button(localization.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
-                    .disabled(vm.isApplyingProfile)
+                    .disabled(isApplying)
                 Button(localization.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
-                    .disabled(vm.isApplyingProfile)
+                    .disabled(isApplying)
                 if !vm.isDefaultProfile(profile.id) {
                     Divider()
                     Button(localization.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -140,17 +141,17 @@ struct ProfileRow: View {
         .contextMenu {
             if !isActive {
                 Button(localization.L(L10n.Profiles.activate)) { onApply() }
-                    .disabled(vm.isApplyingProfile)
+                    .disabled(isApplying)
             }
             Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
-                .disabled(vm.isApplyingProfile)
+                .disabled(isApplying)
             Button(localization.L(L10n.ProfilePreview.menuEntry)) { onShowDetails(.preview) }
             Button(localization.L(L10n.Profiles.rename)) { onRename() }
             Button(localization.L(L10n.Profiles.duplicate)) { onDuplicate() }
             Button(localization.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
-                .disabled(vm.isApplyingProfile)
+                .disabled(isApplying)
             Button(localization.L(L10n.Profiles.importBlacklisted)) { onImportBlacklisted() }
-                .disabled(vm.isApplyingProfile)
+                .disabled(isApplying)
             if !vm.isDefaultProfile(profile.id) {
                 Divider()
                 Button(localization.L(L10n.Profiles.delete), role: .destructive) { onDelete() }
@@ -201,6 +202,42 @@ struct ProfileRow: View {
             .pointingHandCursor()
         }
         .fixedSize()
+    }
+
+    /// Une activation déplace des dossiers : les gestes de la rangée attendent.
+    private var isApplying: Bool { vm.isApplyingProfile }
+
+    /// P5-9 — l'état anormal du profil et son remède, d'un clic. Rien quand
+    /// le profil est sain.
+    @ViewBuilder
+    private var anomalyNotice: some View {
+        let model = vm
+        if let anomaly = model.profileAnomaly(for: profile) {
+            let text = Self.anomalyText(anomaly)
+            HStack(spacing: AppDesign.Spacing.sm) {
+                Label(localization.L(text.label), systemImage: "exclamationmark.triangle.fill")
+                    .font(AppDesign.Font.footnote(.medium))
+                    .foregroundColor(AppDesign.Color.warning)
+                    .lineLimit(1)
+                    .help(localization.L(text.help))
+                Button(localization.L(text.action)) { model.remedy(anomaly, for: profile) }
+                    .buttonStyle(.bordered).controlSize(.small).focusRing(cornerRadius: 5)
+                    .disabled(isApplying)
+                    .pointingHandCursor()
+            }
+            .fixedSize()
+        }
+    }
+
+    private static func anomalyText(_ anomaly: ProfileAnomaly) -> (label: String, action: String, help: String) {
+        switch anomaly {
+        case .interruptedApply:
+            (L10n.ProfileAnomaly.interrupted, L10n.ProfileAnomaly.interruptedAction, L10n.ProfileAnomaly.interruptedHelp)
+        case .incompletelyApplied:
+            (L10n.ProfileAnomaly.incomplete, L10n.ProfileAnomaly.incompleteAction, L10n.ProfileAnomaly.incompleteHelp)
+        case .configsDesynced:
+            (L10n.ProfileAnomaly.desync, L10n.ProfileAnomaly.desyncAction, L10n.ProfileAnomaly.desyncHelp)
+        }
     }
 
     /// La part de français du profil, et ce qu'il reste à traduire.

@@ -405,6 +405,7 @@ let package = Package(
                 "Stores/AlertStore.swift",
                 "Stores/MaintenanceStore.swift",
                 "Stores/ProfileStore.swift",
+                "Models/ProfileAnomaly.swift",
                 "Stores/TranslationHubStore.swift",
                 "Stores/ProfileTranslationStore.swift",
                 "Stores/ModUpdateStore.swift",
