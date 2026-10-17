@@ -11,15 +11,7 @@ struct ArchiveDropTarget: ViewModifier {
     @ObservedObject var localization: LocalizationStore
     @State private var isTargeted = false
 
-    private var refusal: ArchiveDropRefusal? {
-        ArchiveDropRefusal.first(
-            installOpen: viewModel.pendingDropPresentation != nil
-                || viewModel.navigationStore.showsInstallSheet,
-            downloadBusy: NexusDownloadFlow.isBusy(isDownloading: viewModel.isDownloadingFromNexus,
-                                                   hasPendingZip: viewModel.pendingDownloadedZip != nil),
-            profileApplying: viewModel.isApplyingProfile,
-            operations: viewModel.modSetOperations)
-    }
+    private var refusal: ArchiveDropRefusal? { viewModel.archiveDropRefusal }
 
     func body(content: Content) -> some View {
         content
@@ -33,13 +25,7 @@ struct ArchiveDropTarget: ViewModifier {
     }
 
     /// Le chargement des URL est asynchrone : la garde se relit à l'arrivée.
-    private func present(_ urls: [URL]) {
-        guard refusal == nil, !urls.isEmpty else { return }
-        let (archives, rejected) = ModZipInstaller.partitionDroppedFiles(urls)
-        // Rien d'ouvrable : la feuille dit pourquoi, sur le premier fichier.
-        viewModel.dropQueuePush(archives.isEmpty ? Array(rejected.prefix(1)) : archives)
-        viewModel.queueNextDropArchive()
-    }
+    private func present(_ urls: [URL]) { viewModel.presentDroppedArchives(urls) }
 
     private var banner: some View {
         let refused = refusal
@@ -47,7 +33,7 @@ struct ArchiveDropTarget: ViewModifier {
             RoundedRectangle(cornerRadius: AppDesign.Radius.lg)
                 .strokeBorder(refused == nil ? Color.accentColor : AppDesign.Color.warning, lineWidth: 2)
                 .background(Color.accentColor.opacity(refused == nil ? 0.08 : 0))
-            Label(refused.map(message) ?? localization.L(L10n.ArchiveDrop.hint),
+            Label(refused.map { $0.message(localization) } ?? localization.L(L10n.ArchiveDrop.hint),
                   systemImage: refused == nil ? "arrow.down.doc.fill" : "nosign")
                 .font(AppDesign.Font.headline)
                 .multilineTextAlignment(.center)
@@ -57,16 +43,6 @@ struct ArchiveDropTarget: ViewModifier {
         }
         .padding(AppDesign.Spacing.md)
         .allowsHitTesting(false)
-    }
-
-    private func message(_ refusal: ArchiveDropRefusal) -> String {
-        switch refusal {
-        case .installOpen: localization.L(L10n.ArchiveDrop.refusedInstallOpen)
-        case .downloadBusy: localization.L(L10n.ArchiveDrop.refusedDownload)
-        case .profileApplying: localization.L(L10n.ArchiveDrop.refusedProfile)
-        case .operationRunning(let operation):
-            String(format: localization.L(L10n.ArchiveDrop.refusedOperation), localization.name(of: operation))
-        }
     }
 }
 

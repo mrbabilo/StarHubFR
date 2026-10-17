@@ -12,6 +12,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// déclenché par un clic `nxm://` — sont mises en attente, puis délivrées
     /// par `deliverPendingURLs()`.
     private var pendingURLs: [URL] = []
+    /// P5-5b — archives déposées sur l'icône du Dock, même attente que les
+    /// liens : la feuille d'installation ne s'ouvre que fenêtre révélée.
+    private var pendingArchives: [URL] = []
+    var onArchives: (([URL]) -> Void)? {
+        didSet { if isReady { flushPendingArchives() } }
+    }
 
     /// Faux tant que le lancement n'est pas terminé.
     ///
@@ -68,6 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 pendingURLs.append(url)
             }
         }
+        // P5-5b — le Dock remet les fichiers en un seul lot : le garder entier.
+        let archives = urls.filter(\.isFileURL)
+        guard !archives.isEmpty else { return }
+        if isReady, let handler = onArchives { handler(archives) } else { pendingArchives += archives }
     }
 
     /// Délivre les liens mis en attente, une fois la fenêtre principale à
@@ -77,6 +87,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func deliverPendingURLs() {
         isReady = true
         flushPendingURLs()
+        flushPendingArchives()
+    }
+
+    private func flushPendingArchives() {
+        guard let handler = onArchives, !pendingArchives.isEmpty else { return }
+        let buffered = pendingArchives
+        pendingArchives.removeAll()
+        handler(buffered)
     }
 
     /// Vide la queue vers le handler présent, sans toucher à `isReady`.
@@ -138,7 +156,8 @@ struct StarHubTHApp: App {
                 .onAppear {
                     // Route nxm:// links (buffered at cold launch) into the
                     // single shared ViewModel.
-                    appDelegate.onURL = { [vm] url in vm.handleNxmURL(url) }
+                    appDelegate.onURL = { [model = vm] url in model.handleNxmURL(url) }
+                    appDelegate.onArchives = { [model = vm, localization] in model.openDockArchives($0, localization: localization) }
                     // X65 — la livraison suit la **révélation de la fenêtre**,
                     // et rien d'autre. Elle était recopiée sur deux des trois
                     // chemins qui révèlent ; le troisième, le filet de sécurité

@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Installer en déposant une archive sur l'icône du Dock**, même app fermée : la feuille d'installation s'ouvre sur elle, comme pour un dépôt sur la fenêtre. StarHubFR ne devient pas l'app par défaut des fichiers `.zip`, `.7z` et `.rar`.
 - **Sauvegardes de configuration : la confirmation dit ce que vous perdriez.** Avant de mettre une sauvegarde à la Corbeille, elle nomme les fichiers que le dossier Mods n'a plus et dont elle est la dernière copie, comme pour les sauvegardes d'installation.
 
 ### Changed
