@@ -29,5 +29,15 @@ struct ModRowsStack: View {
             }
         }
         .padding(.vertical, -8)
+        // E2 — sous ce seuil, les colonnes fixes (~470 pt de méta) mettaient
+        // chaque valeur seule sur sa ligne : trois mods par écran à 821 pt.
+        .background(GeometryReader { proxy in
+            Color.clear.onAppear { compact = proxy.size.width < Self.compactWidth }
+                .onChange(of: proxy.size.width) { _, width in compact = width < Self.compactWidth }
+        })
+        .environment(\.modRowCompact, compact)
     }
+
+    @State private var compact = false
+    private static let compactWidth: CGFloat = 640
 }

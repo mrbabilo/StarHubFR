@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Gestion des mods en fenêtre étroite : des lignes plus serrées.** Sous ~640 pt de liste, catégorie, auteur et version prennent leur largeur naturelle ; la bande ne garde que poids, FR et attributs, les dates et les langues passent à l'infobulle. Au large, les colonnes restent alignées.
 - **VoiceOver nomme les boutons à icône seule** (fermer l'éditeur de partie, note, corbeilles, épingle, annuler un téléchargement, menus ⋯) ; les chevrons des parties et des sauvegardes de mods disent s'ils déplient. Journal groupé : ✕ 3 et ⚠ 2 au lieu d'un point de couleur seul.
 - **Des teintes qui disent le bon sens.** Les groupes de Sauvegardes des mods passent du rose à l'accent, la Quarantaine vide au violet de la page au lieu du vert, la section Nexus des Réglages au bleu au lieu de l'orange.
 - **Des pluriels justes, plus de « (s) ».** Un pack affiche « 1 mod » (et non « 1 mods », en anglais) ; les en-têtes disent « 10 problèmes · 1 critique », « 1 profil », « 1 mise à jour en attente ».

@@ -70,6 +70,8 @@ struct ModListRow: View {
     /// vide sans explication.
     @ObservedObject var listState: ModListState
     @State private var isHovered = false
+    /// E2 — ligne étroite : colonnes à leur largeur naturelle (`ModRowsStack`).
+    @Environment(\.modRowCompact) var compactRow
     var isChild: Bool = false
     var isGroupHeader: Bool = false
     @Binding var isExpanded: Bool
@@ -150,15 +152,7 @@ struct ModListRow: View {
                 .help(author)
         } else {
             // Un créneau tenu vide : la colonne suivante doit rester en place.
-            Color.clear.frame(height: 1)
-        }
-    }
-
-    /// Une valeur de la bande, précédée de son icône.
-    private func metaValue(_ icon: String, _ text: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon).font(AppDesign.Font.iconXXS)
-            Text(text).lineLimit(1)
+            Color.clear.frame(width: compactRow ? 0 : nil, height: 1)
         }
     }
 
@@ -189,14 +183,15 @@ struct ModListRow: View {
         }
         return AnyView(
             WrapHStack(spacing: 10) {
-                updatedSlot(updated)
-                installedSlot(installed)
+                // E2 : en étroit, dates et langues passent à l'infobulle.
+                if !compactRow { updatedSlot(updated); installedSlot(installed) }
                 weightSlot(size)
-                languagesLabel(langs)
+                if !compactRow { languagesLabel(langs) }
                 frenchSlot(langs: langs)
                 noteSlot
                 profileConfigSlot
             }
+            .helpIfPresent(compactRow ? compactMetaHelp(updated: updated, installed: installed, langs: langs) : nil)
         )
     }
 
@@ -284,56 +279,6 @@ struct ModListRow: View {
         .frame(width: 320, alignment: .leading)
     }
 
-    /// La couverture française **ferme** la bande, juste après les codes de
-    /// langue dont elle précise l'un des membres : les deux se lisent ensemble,
-    /// et le bout de ligne en fait un point d'arrivée du regard plutôt qu'un
-    /// préambule à franchir avant les dates.
-    @ViewBuilder
-    private func frenchSlot(langs: [String]) -> some View {
-        Group {
-            if langs.contains("fr") {
-                FrenchCoverageBadge(
-                    percent: vm.frenchCoverage(for: mod),
-                    // Un code de langue, pas une phrase : il ne se traduit pas,
-                    // exactement comme la liste des langues à côté.
-                    unmeasuredLabel: "FR",
-                    percentFormat: localization.L(L10n.Mods.frCoveragePercent)
-                )
-            }
-        }
-        .frame(width: ModListRow.Column.french, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func updatedSlot(_ updated: Date?) -> some View {
-        Group {
-            if let updated {
-                metaValue("clock.arrow.circlepath",
-                          updated.formatted(.relative(presentation: .named)))
-            }
-        }
-        .frame(width: ModListRow.Column.updated, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func installedSlot(_ installed: Date?) -> some View {
-        Group {
-            if let installed {
-                metaValue("tray.and.arrow.down",
-                          installed.formatted(date: .abbreviated, time: .omitted))
-            }
-        }
-        .frame(width: ModListRow.Column.installed, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func weightSlot(_ size: Int64?) -> some View {
-        Group {
-            if let size { ModWeightLabel(bytes: size) }
-        }
-        .frame(width: ModListRow.Column.weight, alignment: .leading)
-    }
-
     /// La marque de la sonde, même famille que les badges d'alerte : la
     /// capsule se lit avant le nom, teinte d'accent — elle dit « outil
     /// maison », pas « alerte ». La sonde ne se supprime pas : la corbeille
@@ -349,21 +294,6 @@ struct ModListRow: View {
         .foregroundColor(AppDesign.Color.accent)
         .clipShape(Capsule())
         .help(localization.L(L10n.Mods.probeBadgeHelp))
-    }
-
-    /// Jusqu'à 76 caractères de codes sur le parc réel : borné à ce que la
-    /// place permet, avec la liste entière à l'infobulle.
-    @ViewBuilder
-    private func languagesLabel(_ langs: [String]) -> some View {
-        let codes = langs.map { $0.uppercased() }.joined(separator: " ")
-        Group {
-            if !langs.isEmpty {
-                metaValue("globe", codes)
-                    .truncationMode(.tail)
-                    .help(codes)
-            }
-        }
-        .frame(width: ModListRow.Column.languages, alignment: .leading)
     }
 
     /// L'étoile de favori, sur les lignes de **premier niveau** seulement.
@@ -546,13 +476,13 @@ struct ModListRow: View {
                             InferredTagBadge(label: localization.L(L10n.ModTag.key(for: vm.inferredTagKey(for: mod))))
                         }
                     }
-                    .frame(width: ModListRow.Column.category, alignment: .leading)
+                    .frame(width: compactRow ? nil : ModListRow.Column.category, alignment: .leading)
 
-                    authorLabel
-                        .frame(width: ModListRow.Column.author, alignment: .leading)
-
+                    authorLabel // E2 : bornée, pas fixe, en étroit
+                        .frame(width: compactRow ? nil : ModListRow.Column.author, alignment: .leading)
+                        .frame(maxWidth: compactRow ? ModListRow.Column.author : nil, alignment: .leading)
                     VersionBadge(version: mod.isGroup ? vm.displayVersion(for: mod) : mod.version)
-                        .frame(width: ModListRow.Column.version, alignment: .leading)
+                        .frame(width: compactRow ? nil : ModListRow.Column.version, alignment: .leading)
                     if !isChild, listState.filters.sort == .lastNexusUpdate, let updated = vm.nexusLastUpdated(for: mod) {
                         Text(NexusUpdateAge.line(for: updated)).font(AppDesign.Font.footnote).foregroundColor(.secondary).lineLimit(1)
                     }
@@ -962,7 +892,7 @@ private struct VersionBadge: View {
 /// bruit — tandis que **22 dossiers portent 87 % des 16,8 Go**. La teinte les
 /// désigne sans qu'il faille lire 863 lignes, et reste assez rare pour valoir
 /// signal.
-private struct ModWeightLabel: View {
+struct ModWeightLabel: View {
     let bytes: Int64
 
     /// 22 mods du parc réel passent ce seuil, et ils portent 87 % du poids.
