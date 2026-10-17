@@ -7626,3 +7626,13 @@ sans lire une ligne de log.
       La note « traduction dans une sauvegarde » de la fiche ouvre les
       Fichiers récupérables filtrés sur le mod (`0b9d0355`). Vérifié à
       l'écran : éditeur sans clé DeepL.
+- [x] **I-T29 · P5-5a** — *(livré le 2026-10-17)* Une archive déposée sur la
+      zone de contenu de la fenêtre ouvre la feuille d'installation sur elle,
+      depuis n'importe quelle page ; plusieurs : la première, puis « Archive
+      suivante (n) ». Même tri aux octets et même file que le dépôt dans la
+      feuille (`DroppedFileURLs`, partagé). `ArchiveDropRefusal` (Core,
+      testé) refuse, raison au bandeau de survol, pendant une installation
+      ouverte, un téléchargement Nexus, une application de profil ou une
+      opération qui tient le parc. Le drapeau de la feuille ⌘O passe dans
+      `NavigationStore.showsInstallSheet` (`dcb31ddb`, `67f9c90c`). Vérifié
+      à l'écran. Dock et `Info.plist` : P5-5b, décision de l'auteur (L6).
