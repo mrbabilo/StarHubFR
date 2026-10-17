@@ -223,9 +223,7 @@ final class NavigationStore {
     /// `reportDetailFocus` ci-dessus, pour la même raison (patron B3-T4).
     private(set) var pendingTabRequest: SidebarDestination?
 
-    func requestTab(_ destination: SidebarDestination) {
-        pendingTabRequest = destination
-    }
+    func requestTab(_ destination: SidebarDestination) { pendingTabRequest = destination }
 
     /// Consommé par MainView une fois l'onglet appliqué.
     func consumePendingTabRequest() {
@@ -244,6 +242,8 @@ final class NavigationStore {
     /// « Installer des mods… » (⌘O, menu Fichier — N-07) : la feuille vit
     /// dans la liste des mods, qui consomme la demande à son apparition.
     private(set) var pendingInstallRequest = false
+    /// Cette feuille ouverte : le dépôt sur la fenêtre (P5-5a) ne la double pas.
+    var showsInstallSheet = false
 
     func requestInstall() {
         pendingInstallRequest = true

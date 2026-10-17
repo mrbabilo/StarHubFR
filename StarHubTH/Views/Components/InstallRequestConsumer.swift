@@ -5,7 +5,6 @@ import SwiftUI
 /// affichée : la demande précède souvent la vue (changement d'onglet).
 struct InstallRequestConsumer: ViewModifier {
     var navigation: NavigationStore
-    @Binding var showInstallSheet: Bool
 
     func body(content: Content) -> some View {
         content
@@ -16,6 +15,6 @@ struct InstallRequestConsumer: ViewModifier {
     private func consume() {
         guard navigation.pendingInstallRequest else { return }
         navigation.consumeInstallRequest()
-        showInstallSheet = true
+        navigation.showsInstallSheet = true
     }
 }

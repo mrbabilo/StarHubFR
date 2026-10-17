@@ -302,7 +302,7 @@ struct MainView: View {
                 if step == .back { stepBack() } else { stepForward() }
             }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }.helpLauncher(navigation: navigation, currentTab: currentTab, localization: localization)
-            .frame(minWidth: 560, minHeight: 400).focusSection()
+            .frame(minWidth: 560, minHeight: 400).focusSection().archiveDropTarget(viewModel: vm, localization: localization)
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
         }
@@ -457,7 +457,7 @@ struct MainView: View {
                 showDropInstall = true
             }
         }
-        .sheet(isPresented: Bindable(vm.navigationStore).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }
+        .sheet(isPresented: Bindable(navigation).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }
         .sheet(isPresented: $showDropInstall, onDismiss: {
             // PAS de discard ici : fichiers originaux de l'utilisateur.
             vm.clearDropPresentation()

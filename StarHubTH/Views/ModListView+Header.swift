@@ -11,6 +11,10 @@ import SwiftUI
 // se replie sur deux sinon — jamais tronquée (`AGENTS.md` §6).
 extension ModListView {
 
+    /// La feuille d'installation de la liste vit dans `NavigationStore` :
+    /// le dépôt sur la fenêtre (P5-5a) doit la voir ouverte.
+    var navigation: NavigationStore { vm.navigationStore }
+
     func listHeader(counts: (all: Int, enabled: Int, disabled: Int, issues: Int, updates: Int),
                     display: [ModItem],
                     categories: [(category: NexusCategory, count: Int)],
@@ -161,7 +165,7 @@ extension ModListView {
         }
 
         Button {
-            showInstallSheet = true
+            navigation.showsInstallSheet = true
         } label: {
             Label(localization.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
         }

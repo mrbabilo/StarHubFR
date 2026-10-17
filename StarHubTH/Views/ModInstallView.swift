@@ -346,7 +346,7 @@ struct ModInstallView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) {
-        loadDroppedFileURLs(from: providers) { urls in
+        DroppedFileURLs.load(from: providers) { urls in
             DispatchQueue.main.async {
                 // A dropped zip isn't the Nexus download: clear the pending source.
                 self.vm.pendingNexusSource = nil
@@ -383,29 +383,6 @@ struct ModInstallView: View {
                     self.vm.dropQueuePush(Array(archives.dropFirst()))
                     self.analyzeZip(first)
                 }
-            }
-        }
-    }
-
-    /// URL de chaque provider, dans l'ordre : chaque archive a sa fiche.
-    private func loadDroppedFileURLs(from providers: [NSItemProvider],
-                                     accumulated: [URL] = [],
-                                     completion: @escaping @MainActor @Sendable ([URL]) -> Void) {
-        guard let provider = providers.first else { completion(accumulated); return }
-        // `NSItemProvider` non `Sendable` : la file se transporte explicitement
-        // (P5-L6), consommée une à une sur l'acteur.
-        nonisolated(unsafe) let rest = Array(providers.dropFirst())
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            var urls = accumulated
-            if let data = item as? Data,
-               let url = URL(dataRepresentation: data, relativeTo: nil) {
-                urls.append(url)
-            }
-            let carried = urls
-            Task { @MainActor in
-                self.loadDroppedFileURLs(from: rest,
-                                         accumulated: carried,
-                                         completion: completion)
             }
         }
     }

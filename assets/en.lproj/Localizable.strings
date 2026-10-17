@@ -2743,3 +2743,8 @@
 "recovery_open_from_detail" = "Show in Recoverable files";
 "recovery_filtered_on" = "Files from the “%@” folder only";
 "recovery_show_all" = "Show all";
+"archive_drop_hint" = "Drop to open the installer";
+"archive_drop_refused_install_open" = "An installation is open: drop the archive on its sheet.";
+"archive_drop_refused_download" = "A Nexus download is waiting to be installed: drop the archive afterwards.";
+"archive_drop_refused_profile" = "A profile is being applied: drop the archive once it has finished.";
+"archive_drop_refused_operation" = "“%@” holds the mod set: drop the archive once it has finished.";

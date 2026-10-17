@@ -2742,5 +2742,10 @@
   "translation_assist_save_first": "Enregistrez ou annulez d'abord la modification : ouvrir les Réglages ferme l'éditeur.",
   "recovery_open_from_detail": "Voir dans Fichiers récupérables",
   "recovery_filtered_on": "Fichiers du dossier « %@ » seulement",
-  "recovery_show_all": "Tout afficher"
+  "recovery_show_all": "Tout afficher",
+  "archive_drop_hint": "Déposer pour ouvrir l'installation",
+  "archive_drop_refused_install_open": "Une installation est ouverte : déposez l'archive dans sa feuille.",
+  "archive_drop_refused_download": "Un téléchargement Nexus attend son installation : déposez l'archive après.",
+  "archive_drop_refused_profile": "Un profil s'applique : déposez l'archive une fois l'application finie.",
+  "archive_drop_refused_operation": "« %@ » tient le parc : déposez l'archive une fois l'opération finie."
 }

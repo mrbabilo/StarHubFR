@@ -278,6 +278,7 @@ let package = Package(
                 "Models/ModDependencyStatus.swift",
                 "Models/DependencyFix.swift",
                 "Models/ModSetOperations.swift",
+                "Models/ArchiveDropRefusal.swift",
                 "Models/CoreModStatus.swift",
                 "Models/ModListFilters.swift",
                 "Models/XMLEntities.swift",

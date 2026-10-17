@@ -46,7 +46,6 @@ struct ModListView: View {
     /// constante pour les deux dispositions. 12 depuis le 2026-09-09 (15
     /// auparavant), à la demande de l'auteur.
     let pageSize: Int = 12
-    @State var showInstallSheet = false
     /// A1-T1 — récapitulatif des dépendances requises absentes du disque.
     @State var showMissingDependencies = false
     /// La grille optionnelle du lot Mods (H-T4). Liste par défaut : 966 mods
@@ -327,7 +326,7 @@ struct ModListView: View {
                     if filtered.isEmpty {
                         if vm.scanStore.mods.isEmpty {
                             // Première utilisation : zone de drop XXL
-                            EmptyStateDropZone(vm: vm, localization: localization, onInstall: { showInstallSheet = true })
+                            EmptyStateDropZone(vm: vm, localization: localization, onInstall: { navigation.showsInstallSheet = true })
                                 .padding(.top, 40)
                         } else {
                             // Recherche sans résultat
@@ -423,9 +422,10 @@ struct ModListView: View {
             MissingDependenciesSheet(vm: vm, localization: localization,
                                      isPresented: $showMissingDependencies)
         }
-        .sheet(isPresented: $showInstallSheet) {
-            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab, isPresented: $showInstallSheet)
-        }.modifier(InstallRequestConsumer(navigation: vm.navigationStore, showInstallSheet: $showInstallSheet))
+        .sheet(isPresented: Bindable(navigation).showsInstallSheet) {
+            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab,
+                           isPresented: Bindable(navigation).showsInstallSheet)
+        }.modifier(InstallRequestConsumer(navigation: navigation))
         .confirmationDialog(
             bulkToggleTarget == true
                 ? localization.L(L10n.Mods.enableAllConfirm)
