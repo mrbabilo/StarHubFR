@@ -5929,11 +5929,6 @@ final class StarHubTHViewModel {
     /// Protected from deletion; otherwise a normal profile.
     func isDefaultProfile(_ id: UUID) -> Bool { defaultProfileId == id }
 
-    /// Profils dont la dernière application a échoué : leur contenu ne se
-    /// réécrit pas depuis le disque (l'accident). Sortie à la prochaine
-    /// application réussie ou adoption délibérée. Non persisté.
-    private var incompletelyAppliedProfileIds: Set<UUID> = []
-
     /// R2 — journal d'une application interrompue (crash) : **survit** au
     /// redémarrage et empêche `syncActiveProfileIds` d'adopter l'état
     /// partiel. Présenté via `pendingApplyRecovery`.
@@ -6555,34 +6550,17 @@ final class StarHubTHViewModel {
 
     // MARK: - Configs par profil : capture et restauration (B3-T5)
 
-    /// Profil actif dont le disque ne porte **pas** les configs (§6.3 :
-    /// bascule faite jeu ouvert), ou `nil`. Persisté : survit à une fermeture.
-    private static var profileConfigsDesyncedProfileId: UUID? {
-        get {
-            UserDefaults.standard.string(forKey: UDKey.profileConfigsDesyncedProfileId)
-                .flatMap(UUID.init(uuidString:))
-        }
-        set {
-            if let newValue {
-                UserDefaults.standard.set(newValue.uuidString,
-                                          forKey: UDKey.profileConfigsDesyncedProfileId)
-            } else {
-                UserDefaults.standard.removeObject(forKey: UDKey.profileConfigsDesyncedProfileId)
-            }
-        }
-    }
-
     /// Pose ou lève la marque de désynchronisation ; `entering` = profil qui
     /// devient actif (`nil` si on ne fait que quitter). Jeu ouvert : capture
     /// et restauration sautées, `entering` marqué pour que la prochaine
     /// capture refuse ce disque. Jeu fermé : marque levée.
     private func syncProfileConfigsDesyncMarker(entering: UUID?) {
         guard isGameRunning() else {
-            Self.profileConfigsDesyncedProfileId = nil
+            profilesStore.setConfigsDesynced(nil)
             return
         }
         if let entering {
-            Self.profileConfigsDesyncedProfileId = entering
+            profilesStore.setConfigsDesynced(entering)
         }
     }
 
@@ -6606,7 +6584,7 @@ final class StarHubTHViewModel {
         if let abstention = ProfileConfigCapture.abstention(
             capturing: profileId, profiles: modProfiles,
             gameRunning: isGameRunning(),
-            desyncedProfileId: Self.profileConfigsDesyncedProfileId,
+            desyncedProfileId: profilesStore.configsDesyncedId,
             journal: unresolvedApplyJournal) {
             switch abstention {
             case .gameRunning:
@@ -6644,7 +6622,7 @@ final class StarHubTHViewModel {
         guard !isGameRunning() else {
             log(localization.L(L10n.VM.profileConfigsSkippedGame), level: .warning)
             // R2 (spec §3.5) : desync marqué, sinon trou invisible.
-            Self.profileConfigsDesyncedProfileId = profileId
+            profilesStore.setConfigsDesynced(profileId)
             return
         }
         guard let url = ProfileConfigStore.fileURL(profileId: profileId) else { return }
@@ -6808,7 +6786,7 @@ final class StarHubTHViewModel {
                                                 isApplying: isApplyingProfile,
                                                 gameRunning: { self.isGameRunning() },
                                                 journal: unresolvedApplyJournal,
-                                                incomplete: incompletelyAppliedProfileIds)
+                                                incomplete: profilesStore.incompletelyAppliedIds)
         switch decision {
         case .refused:
             return
@@ -6974,10 +6952,10 @@ final class StarHubTHViewModel {
             }
             self.profileApplyProgress = nil
             if outcome.failures.isEmpty && missingIds.isEmpty {
-                self.incompletelyAppliedProfileIds.remove(profileId)
+                self.profilesStore.setIncompletelyApplied(profileId, false)
                 self.syncActiveProfileIds()
             } else {
-                self.incompletelyAppliedProfileIds.insert(profileId)
+                self.profilesStore.setIncompletelyApplied(profileId, true)
             }
             self.profilesStore.endApplying()
             if !outcome.failures.isEmpty || !missingIds.isEmpty {
@@ -7588,7 +7566,7 @@ final class StarHubTHViewModel {
         }
         saveProfiles()
         // État du disque adopté : plus d'écart à protéger.
-        incompletelyAppliedProfileIds.remove(id)
+        profilesStore.setIncompletelyApplied(id, false)
     }
 
     // MARK: - Entretien (X25)

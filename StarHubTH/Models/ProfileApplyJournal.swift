@@ -6,7 +6,7 @@ import Foundation
 /// La présence du fichier signifie une seule chose : la boucle de renommage
 /// d'`applyProfileToFilesystem` est morte en route (crash, force-quit). Les
 /// échecs de déplacement ordinaires — dossier tenu ouvert, collision — vivent
-/// dans `incompletelyAppliedProfileIds` et son alerte, pas ici : eux, la
+/// dans `ProfileStore.incompletelyAppliedIds` et son alerte, pas ici : eux, la
 /// boucle les a vus passer.
 ///
 /// `moves` sert au diagnostic (et au futur R5, qui en fera un retour

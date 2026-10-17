@@ -107,4 +107,45 @@ final class ProfileStore {
     func dismissSwitchBanner() {
         dismissedSwitchAt = lastSwitchAt
     }
+
+    // MARK: - États anormaux (P5-9)
+
+    // Sortis du ViewModel (règle F1-T2) pour que la rangée d'un profil puisse
+    // les montrer : jusqu'ici, le premier ne vivait que dans une modale de
+    // fin, le second que dans le journal.
+
+    /// Profils dont la dernière application a échoué : leur contenu ne se
+    /// réécrit pas depuis le disque (l'accident). Sortie à la prochaine
+    /// application réussie ou adoption délibérée. Non persisté : un crash est
+    /// couvert par le journal R2, et ce qu'une adoption du disque ferait d'un
+    /// état gardé n'est pas instruit (`ProfileRecovery.adoptDiskState`).
+    private(set) var incompletelyAppliedIds: Set<UUID> = []
+
+    func setIncompletelyApplied(_ id: UUID, _ incomplete: Bool) {
+        if incomplete {
+            incompletelyAppliedIds.insert(id)
+        } else {
+            incompletelyAppliedIds.remove(id)
+        }
+    }
+
+    /// Profil actif dont le disque ne porte **pas** les configs (§6.3 :
+    /// bascule faite jeu ouvert), ou `nil`. Persisté : survit à une fermeture.
+    private(set) var configsDesyncedId: UUID?
+    @ObservationIgnored private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        configsDesyncedId = defaults.string(forKey: UDKey.profileConfigsDesyncedProfileId)
+            .flatMap(UUID.init(uuidString:))
+    }
+
+    func setConfigsDesynced(_ id: UUID?) {
+        configsDesyncedId = id
+        if let id {
+            defaults.set(id.uuidString, forKey: UDKey.profileConfigsDesyncedProfileId)
+        } else {
+            defaults.removeObject(forKey: UDKey.profileConfigsDesyncedProfileId)
+        }
+    }
 }

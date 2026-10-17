@@ -141,4 +141,35 @@ import Foundation
         s.endApplying(now: Date(timeIntervalSince1970: 200))   // autre bascule
         #expect(s.switchBannerPending)
     }
+
+    // MARK: - États anormaux (P5-9)
+
+    /// Un domaine de préférences à soi : le test ne touche jamais celles de
+    /// l'utilisateur.
+    private func isolatedDefaults() -> UserDefaults {
+        let name = "ProfileStoreTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    /// La marque de désynchronisation survit à un redémarrage (un second
+    /// store relit les préférences) et se lève pour de bon.
+    @Test func desyncMarkerIsPersistedAndCleared() {
+        let defaults = isolatedDefaults()
+        let id = UUID()
+        ProfileStore(defaults: defaults).setConfigsDesynced(id)
+        #expect(ProfileStore(defaults: defaults).configsDesyncedId == id)
+        ProfileStore(defaults: defaults).setConfigsDesynced(nil)
+        #expect(ProfileStore(defaults: defaults).configsDesyncedId == nil)
+    }
+
+    @Test func incompleteApplicationIsMarkedThenCleared() {
+        let s = ProfileStore(defaults: isolatedDefaults())
+        let id = UUID()
+        s.setIncompletelyApplied(id, true)
+        #expect(s.incompletelyAppliedIds == [id])
+        s.setIncompletelyApplied(id, false)
+        #expect(s.incompletelyAppliedIds.isEmpty)
+    }
 }
