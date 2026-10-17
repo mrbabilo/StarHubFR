@@ -1,6 +1,9 @@
 import SwiftUI
 
 extension ModProfilesView {
+    var profiles: [ModProfile] { vm.modProfiles }
+    var navigation: NavigationStore { vm.navigationStore }
+
     /// « 3 profils · actif : Principal » — ce qui est chargé se lit avant la
     /// liste (en-tête de page, audit UX 2026-10-02).
     var headerSummary: String {

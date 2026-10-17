@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Palette (⌘K) : ↩ sur un profil ouvre son aperçu**, sans rien activer ; ⌘↩ l'active. Le sous-titre de la ligne le rappelle.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».
 - **Alertes et Santé à jour dès la fermeture du jeu**, quelle que soit la page affichée : l'app relit le journal SMAPI sans attendre le retour à l'Accueil.
 - **Un seul style de lien dans toute l'app**, le lien natif de macOS.

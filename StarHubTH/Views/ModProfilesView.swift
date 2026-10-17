@@ -160,7 +160,7 @@ struct ModProfilesView: View {
             KeybindPlanProfileBanner(viewModel: vm, localization: localization)
             // ── Liste ────────────────────────────────────────────────────
             BackToTopScrollView(localization, showsIndicators: false) {
-                if vm.modProfiles.isEmpty {
+                if profiles.isEmpty {
                     VStack(spacing: AppDesign.Spacing.lg) {
                         IconTile(icon: "person.2.slash", tint: AppDesign.Color.accent, size: 64)
                         Text(localization.L(L10n.Profiles.noProfiles))
@@ -177,7 +177,7 @@ struct ModProfilesView: View {
                     let flattened = scanned.flattenedMods
                     let installedIds = scanned.allUniqueIds
                     LazyVStack(spacing: AppDesign.Spacing.sm) {
-                        ForEach(vm.modProfiles) { profile in
+                        ForEach(profiles) { profile in
                             // Compte brut, hissé hors de l'initialiseur le
                             // 2026-09-10 : les littéraux [:] dans une longue
                             // liste d'arguments saturaient le type-checker
@@ -329,6 +329,7 @@ struct ModProfilesView: View {
         // mods des profils : elle se mesure ici, à l'ouverture de la page, et
         // jamais au scan — le lancement est déjà le moment le plus chargé.
         .task { vm.refreshProfileTranslationCoverage() }
+        .onAppear(perform: consumePreviewRequest).onChange(of: navigation.pendingProfilePreview) { _, _ in consumePreviewRequest() }
         .sheet(item: $profileSheet) { request in
             ProfileDiagnosticsView(
                 viewModel: vm,
@@ -364,7 +365,7 @@ struct ModProfilesView: View {
     /// aucun profil.
     private var deletionSuccessors: [ModProfile] {
         guard let target = profileToDelete, vm.activeProfileId == target.id else { return [] }
-        return vm.modProfiles.filter { $0.id != target.id }
+        return profiles.filter { $0.id != target.id }
     }
 
     private var trimmedNewProfileName: String {
@@ -387,5 +388,12 @@ struct ModProfilesView: View {
         guard !name.isEmpty else { return }
         vm.createProfile(name: name, seed: seed)
         newProfileName = ""
+    }
+
+    /// N-12 — l'aperçu demandé par la palette (↩), page déjà ouverte ou non.
+    private func consumePreviewRequest() {
+        guard let id = navigation.pendingProfilePreview else { return }
+        navigation.pendingProfilePreview = nil
+        profileSheet = profiles.first { $0.id == id }.map { .init(profile: $0, focus: .preview) }
     }
 }

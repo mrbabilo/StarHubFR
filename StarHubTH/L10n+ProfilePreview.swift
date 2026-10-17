@@ -13,3 +13,8 @@ extension L10n {
         static let columnHelp = "profile_preview_column_help"
     }
 }
+
+/// N-12 — le sous-titre d'un profil dans la palette.
+extension L10n.Palette {
+    static let profileHint = "palette_profile_hint"
+}

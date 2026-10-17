@@ -75,6 +75,16 @@ import Foundation
         #expect(s.pendingTabRequest == .backups)
     }
 
+    /// N-12 : ↩ sur un profil dans la palette demande son aperçu, page
+    /// Profils, sans rien activer.
+    @Test func openProfilePreviewPoseLeProfilEtLOnglet() {
+        let s = NavigationStore()
+        let id = UUID()
+        s.openProfilePreview(id)
+        #expect(s.pendingProfilePreview == id)
+        #expect(s.pendingTabRequest == .profiles)
+    }
+
     /// R1 : la légende de l'Entretien ouvre son segment, sans filtre ; et
     /// Sauvegardes renvoie à l'Entretien.
     @Test func renvoisEntretienSauvegardes() {

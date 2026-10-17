@@ -46,7 +46,7 @@ struct CommandPaletteView: View {
             CommandPaletteEntry.forProfile(
                 name: $0.name, id: $0.id,
                 subtitle: localization.L($0.id == vm.activeProfileId ? L10n.Profiles.active
-                                                                     : L10n.Profiles.activate))
+                                                                     : L10n.Palette.profileHint))
         }
         out += vm.saves.map {
             CommandPaletteEntry.forSave(playerName: $0.playerName,
@@ -116,6 +116,12 @@ struct CommandPaletteView: View {
                 .font(AppDesign.Font.headline)
                 .focused($fieldFocused)
                 .onSubmit { activate() }
+                // N-12 — ⌘↩ active un profil ; ↩ seul n'en ouvre que l'aperçu.
+                .onKeyPress(.return, phases: .down) { press in
+                    guard press.modifiers.contains(.command) else { return .ignored }
+                    activate(applyingProfile: true)
+                    return .handled
+                }
                 // ⚠️ Les gestionnaires sont posés **sur le champ**, pas sur le
                 // ZStack : le champ a le focus (c'est tout l'intérêt de
                 // `fieldFocused`), et une flèche tapée dedans y déplace le
@@ -225,7 +231,7 @@ struct CommandPaletteView: View {
     }
 
     /// Ouvre la sélection courante. Chaque nature passe par le ViewModel.
-    private func activate() {
+    private func activate(applyingProfile: Bool = false) {
         let rows = displayed
         guard rows.indices.contains(selection) else {
             close()
@@ -249,14 +255,14 @@ struct CommandPaletteView: View {
             // fantôme — et la palette se ferme quand même.
             vm.openReportDetail(for: String(e.id.dropFirst("mod:".count)), door: .palette)
         case .profile:
-            // I-T5 : ↩ active le profil, par le même chemin que le bouton
-            // « Activer » (gardes jeu lancé, reprise R2, alerte d'empreintes
-            // A1-T9 posée à la racine). Le profil déjà actif mène à l'onglet.
-            let raw = String(e.id.dropFirst("profile:".count))
-            if let id = UUID(uuidString: raw), id != vm.activeProfileId {
+            // N-12 (décision de l'auteur, revient sur I-T5) : ↩ ouvre l'aperçu,
+            // rien ne bouge ; ⌘↩ active, par le chemin du bouton « Activer »
+            // (gardes jeu lancé, reprise R2, alerte d'empreintes A1-T9).
+            guard let id = UUID(uuidString: String(e.id.dropFirst("profile:".count))) else { break }
+            if applyingProfile, id != vm.activeProfileId {
                 vm.applyProfile(id: id)
             } else {
-                vm.requestTab(.profiles)
+                vm.navigationStore.openProfilePreview(id)
             }
         case .save:
             vm.requestTab(.saves)

@@ -418,6 +418,7 @@ let package = Package(
                 "Stores/NavigationStore.swift",
                 "Stores/NavigationStore+Settings.swift",
                 "Stores/NavigationStore+Backups.swift",
+                "Stores/NavigationStore+Segments.swift",
                 "Stores/ScanStore.swift",
                 "Models/DetailTab.swift",
                 "Models/TranslationDiffFilter.swift",
