@@ -7611,3 +7611,10 @@ sans lire une ligne de log.
       ⏻ de la liste ouvre l'historique (« Revenir à un état d'avant… »).
       Vérifié à l'écran : menu et feuille. L'encart de l'Accueil n'apparaît
       qu'après une opération interrompue, non provoquée sur le parc.
+- [x] **I-T29 · P5-1** — *(livré le 2026-10-17)* Voir un profil sans
+      l'activer : la colonne « Mods » d'un profil (ou « Aperçu… » de son
+      menu) ouvre sa feuille sur ce que l'activation ferait — dossiers à
+      activer, à mettre en pause, conflits rendus actifs. Rien n'est renommé.
+      `ProfileApplyPreview` (Core, testé) part de `ProfileApplyPlan.moves`,
+      la garde de conflits de l'activation lit le même aperçu (`f5401bba`).
+      Vérifié à l'écran sur BENCHMARK : 0 à activer, 218 à mettre en pause.

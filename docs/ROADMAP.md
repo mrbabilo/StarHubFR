@@ -864,8 +864,7 @@ relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T29 — L4 Fonctionnalités** : P5-1 (voir un profil **sans
-      l'activer** : ∞ → 2 clics ; `ProfileApplyPlan.moves` existe), P5-5a
+- [ ] **I-T29 — L4 Fonctionnalités** (P5-1 livré, à l'archive) : P5-5a
       (déposer une archive sur la fenêtre), P5-6a, P5-4 (écarter un faux
       résultat de traduction), P5-10 (badge Traductions FR), P5-8, P5-9, N-11
       (messages DeepL / IA → Réglages), N-09 (conseils de la Santé avec leur
