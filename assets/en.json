@@ -2755,5 +2755,8 @@
   "fr_translations_dismissed_title": "Dismissed (%lld)",
   "fr_translations_dismissed_row": "%@ — for %@",
   "fr_translations_dismissed_restore": "Restore",
-  "fr_translations_dismissed_explanation": "These results do not come back, even after a rescan. Restore puts them back in their section."
+  "fr_translations_dismissed_explanation": "These results do not come back, even after a rescan. Restore puts them back in their section.",
+  "saves_paused_reactivate": "Enable these mods (%lld)",
+  "saves_paused_reactivate_packs": "Enable these mods (%lld, %lld of them whole packs)",
+  "saves_paused_reactivate_help": "Puts these mods back in play, with their paused required dependencies when dependency chaining is on. “Go back to an earlier state” undoes it."
 }

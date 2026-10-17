@@ -46,6 +46,7 @@ struct SavePausedFootprintSection: View {
                 Text(localization.L(L10n.Saves.pausedFootprintsNone))
                     .foregroundStyle(.secondary)
             case .loaded(let entries):
+                reactivateButton(entries)
                 ForEach(entries, id: \.folderName) { entry in
                     row(entry)
                 }
@@ -92,6 +93,25 @@ struct SavePausedFootprintSection: View {
         .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
         .help(localization.L(L10n.Saves.pausedFootprintsOpenHint))
+    }
+
+    /// P5-8 — tout remettre en jeu d'un geste : le moteur des bascules
+    /// groupées (`toggleMods`), avec sa garde de conflits et l'instantané R5
+    /// qui permet le retour. Aucune confirmation hors conflit.
+    @ViewBuilder
+    private func reactivateButton(_ entries: [PausedModFootprint]) -> some View {
+        let plan = SavePausedReactivation(footprints: entries, mods: vm.scanStore.mods,
+                                          chain: vm.chainToggleDependencies)
+        if !plan.mods.isEmpty {
+            let title = plan.wholePacks > 0
+                ? String(format: localization.L(L10n.Saves.pausedReactivatePacks),
+                         Int64(plan.mods.count), Int64(plan.wholePacks))
+                : String(format: localization.L(L10n.Saves.pausedReactivate), Int64(plan.mods.count))
+            Button(title, systemImage: "play.circle") { vm.toggleMods(plan.mods, enable: true) }
+                .buttonStyle(.bordered).controlSize(.small).focusRing(cornerRadius: 5)
+                .disabled(vm.bulkToggleProgress != nil)
+                .help(localization.L(L10n.Saves.pausedReactivateHelp))
+        }
     }
 
     /// Poser la cible **puis** changer d'onglet — jamais l'inverse :

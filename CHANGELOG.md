@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Parties : « Réactiver ces mods ».** La section des mods en pause d'une sauvegarde les remet en jeu d'un geste, packs entiers et dépendances requises compris si le chaînage est actif. « Revenir à un état d'avant » annule.
 - **Badge « Traductions FR » dans la barre latérale.** Il compte les mods actifs dont la traduction posée a une mise à jour, ou qui ont une traduction confirmée à installer. Lu sur le dernier balayage, il ne lance aucune recherche ; les résultats « par nom » n'y comptent pas.
 - **Traductions FR : écarter un faux résultat.** Le pouce baissé d'un résultat « par nom » ou « lié, à vérifier » le retire, même après un re-balayage ; un mod sans autre résultat passe à « Rien trouvé ». Le repli « Écartés (n) » en bas de page les rétablit.
 - **Installer en déposant une archive sur la fenêtre**, depuis n'importe quelle page : la feuille d'installation s'ouvre sur elle, puis « Archive suivante (n) ». Refusé, avec la raison, pendant une installation, un téléchargement Nexus ou une opération qui tient le parc.

@@ -2756,3 +2756,6 @@
 "fr_translations_dismissed_row" = "%@ — pour %@";
 "fr_translations_dismissed_restore" = "Rétablir";
 "fr_translations_dismissed_explanation" = "Ces résultats ne reviennent pas, même après un re-balayage. Rétablir les remet dans leur section.";
+"saves_paused_reactivate" = "Réactiver ces mods (%lld)";
+"saves_paused_reactivate_packs" = "Réactiver ces mods (%lld, dont %lld packs entiers)";
+"saves_paused_reactivate_help" = "Remet ces mods en jeu, avec leurs dépendances requises en pause si le chaînage des dépendances est actif. « Revenir à un état d'avant » annule le geste.";

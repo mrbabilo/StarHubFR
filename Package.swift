@@ -430,6 +430,7 @@ let package = Package(
                 "Models/DisabledModsMigration.swift",
                 "Models/SaveFingerprint.swift",
                 "Models/SaveFootprintEntries.swift",
+                "Models/SavePausedReactivation.swift",
                 "Models/SaveAbsentModsRemoval.swift",
                 "Stores/SaveFingerprintPauseStore.swift",
                 "Stores/ActivationHistoryStore.swift",
