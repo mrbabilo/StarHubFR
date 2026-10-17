@@ -134,7 +134,7 @@ struct LanguageFlagToggle: View {
                 .background(isActive ? Color.accentColor.opacity(0.22) : Color.clear)
                 .clipShape(Capsule())
         }
-        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
+        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule, inset: true)
         .pointingHandCursor()
         .help(help)
         .accessibilityLabel(help)
@@ -174,7 +174,7 @@ struct ThemeToggle: View {
                 .background(isActive ? Color.accentColor.opacity(0.18) : Color.clear)
                 .clipShape(Capsule())
         }
-        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
+        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule, inset: true)
         .pointingHandCursor()
         .help(help)
         .accessibilityLabel(help)

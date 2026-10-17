@@ -13,6 +13,10 @@ import SwiftUI
 struct FocusRing: ViewModifier {
     /// L'arrondi du bouton lui-même ; la bague l'agrandit de son écart.
     var cornerRadius: CGFloat
+    /// Dessinée **dans** le bouton, sans écart : pour les segments serrés
+    /// dans un conteneur qui découpe (sélecteurs thème et langue de la
+    /// barre), où une bague extérieure serait rognée et mordrait le voisin.
+    var inset = false
     @FocusState private var isFocused: Bool
     /// Fenêtre inactive : la bague système s'efface, celle-ci aussi.
     @Environment(\.controlActiveState) private var activeState
@@ -29,9 +33,9 @@ struct FocusRing: ViewModifier {
             .focused($isFocused)
             .focusEffectDisabled()
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius + Self.gap, style: .continuous)
+                RoundedRectangle(cornerRadius: inset ? cornerRadius : cornerRadius + Self.gap, style: .continuous)
                     .strokeBorder(Color.accentColor.opacity(0.85), lineWidth: Self.width)
-                    .padding(-(Self.gap + Self.width))
+                    .padding(inset ? 0 : -(Self.gap + Self.width))
                     .opacity(isFocused && activeState != .inactive ? 1 : 0)
                     .allowsHitTesting(false)
             }
@@ -41,7 +45,7 @@ struct FocusRing: ViewModifier {
 extension View {
     /// `cornerRadius` : 6 pour un bouton bordé de taille normale, 5 en
     /// `.small`, celui de sa forme pour une rangée ou une carte.
-    func focusRing(cornerRadius: CGFloat = 6) -> some View {
-        modifier(FocusRing(cornerRadius: cornerRadius))
+    func focusRing(cornerRadius: CGFloat = 6, inset: Bool = false) -> some View {
+        modifier(FocusRing(cornerRadius: cornerRadius, inset: inset))
     }
 }
