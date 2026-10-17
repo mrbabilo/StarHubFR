@@ -2780,5 +2780,8 @@
   "deps_to_fix_count": "%lld à régler",
   "deps_to_fix_count_one": "1 à régler",
   "deps_indirect": "%lld dépendances indirectes",
-  "deps_indirect_one": "1 dépendance indirecte"
+  "deps_indirect_one": "1 dépendance indirecte",
+  "maintenance_keep_picker": "Combien garder par mod",
+  "maintenance_trash_chosen": "Mettre dans la Corbeille du Mac… (%@)",
+  "maintenance_nothing_to_free": "Rien à libérer : garder 1 sauvegarde par mod ne retirerait rien."
 }

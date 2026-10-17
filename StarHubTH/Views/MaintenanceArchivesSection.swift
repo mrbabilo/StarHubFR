@@ -86,11 +86,13 @@ struct MaintenanceArchivesSection: View {
                         .font(AppDesign.Font.monoIconXS)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
-                    Spacer()
                     Button(localization.L(L10n.Maintenance.archivesReinstall)) {
                         vm.reinstallFromArchive(entry)
                     }
                     .controlSize(.small)
+                    // E11 — le destructif à l'écart de « Réinstaller ».
+                    Spacer()
+                    Divider().frame(height: 14)
                     Button(localization.L(L10n.Maintenance.archivesDelete), role: .destructive) {
                         onDelete(entry)
                     }

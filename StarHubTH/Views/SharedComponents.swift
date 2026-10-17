@@ -171,8 +171,16 @@ struct InfoPopoverButton: View {
 /// (passe de simplification 2026-10-03).
 enum SharedFormatters {
     static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+        byteFormatter.string(fromByteCount: value)
     }
+
+    /// « 0 ko » et non « Zéro ko » (E11) : un chiffre se compare, un mot non.
+    private static let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.allowsNonnumericFormatting = false
+        return formatter
+    }()
 }
 
 /// Paire étiquette/valeur empilée — deux copies identiques

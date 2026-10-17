@@ -2781,3 +2781,6 @@
 "deps_to_fix_count_one" = "1 to fix";
 "deps_indirect" = "%lld indirect dependencies";
 "deps_indirect_one" = "1 indirect dependency";
+"maintenance_keep_picker" = "How many to keep per mod";
+"maintenance_trash_chosen" = "Move to the Mac Trash… (%@)";
+"maintenance_nothing_to_free" = "Nothing to free: keeping 1 backup per mod would remove nothing.";

@@ -12,8 +12,12 @@ struct MaintenanceStorageCard: View {
     /// Cran choisi : combien garder par mod, entrées condamnées, poids libéré.
     let onPurge: (_ keepPerMod: Int, _ doomed: Int, _ freedBytes: Int64) -> Void
 
-    private static let installTint = Color.pink
-    private static let configTint = AppDesign.Color.accent
+    /// Parts d'un même total (C2b) : le rose se lisait comme une erreur.
+    private static let installTint = AppDesign.Chart.partStrong
+    private static let configTint = AppDesign.Chart.partMid
+
+    /// Le cran choisi (E11) ; replié sur le premier qui libère quelque chose.
+    @State private var keep = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
@@ -48,22 +52,30 @@ struct MaintenanceStorageCard: View {
 
             Text(localization.L(L10n.Maintenance.freeSpaceTitle))
                 .font(AppDesign.Font.body(.semibold))
-            WrapHStack(spacing: AppDesign.Spacing.sm, lineSpacing: AppDesign.Spacing.sm) {
-                ForEach([1, 3, 5], id: \.self) { keep in
-                    let freed = report.freedBytes(keepPerMod: keep)
-                    Button {
-                        let plan = MaintenanceInventory.plan(keepPerMod: keep,
-                                                             entries: report.backups,
-                                                             protections: report.protections)
-                        onPurge(keep, plan.doomed.count, plan.freedBytes)
-                    } label: {
-                        Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
-                                    keep, SharedFormatters.bytes(freed)))
+            // E11 — un seul geste de corbeille : choisir le cran, puis un
+            // bouton. Un cran qui ne libère rien n'est pas proposé.
+            let crans = [1, 3, 5].filter { report.freedBytes(keepPerMod: $0) > 0 }
+            if let chosen = crans.contains(keep) ? keep : crans.first {
+                WrapHStack(spacing: AppDesign.Spacing.sm, lineSpacing: AppDesign.Spacing.sm) {
+                    Picker(localization.L(L10n.Maintenance.keepPicker), selection: Binding(get: { chosen }, set: { keep = $0 })) {
+                        ForEach(crans, id: \.self) { cran in
+                            Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
+                                        cran, SharedFormatters.bytes(report.freedBytes(keepPerMod: cran)))).tag(cran)
+                        }
                     }
-                    .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
+                    .labelsHidden().fixedSize().controlSize(.small)
+                    Button(String(format: localization.L(L10n.Maintenance.trashChosen),
+                                  SharedFormatters.bytes(report.freedBytes(keepPerMod: chosen)))) {
+                        let plan = MaintenanceInventory.plan(keepPerMod: chosen, entries: report.backups,
+                                                             protections: report.protections)
+                        onPurge(chosen, plan.doomed.count, plan.freedBytes)
+                    }
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
-                    .disabled(freed <= 0)
                 }
+            } else {
+                StateCard(icon: "checkmark.circle", text: localization.L(L10n.Maintenance.nothingToFree),
+                          actionTitle: nil) {}
             }
             Text(localization.L(L10n.Maintenance.trashHint))
                 .font(.caption)
