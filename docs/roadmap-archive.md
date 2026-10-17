@@ -7682,3 +7682,14 @@ sans lire une ligne de log.
       `ProfileStore` (`ce2f3f1f`) ; `ProfileAnomaly` (Core, testé,
       `32accf1e`). Vérifié à l'écran sur les configs non réécrites ; les deux
       autres réutilisent des remèdes existants.
+- [x] **I-T29 · N-09** — *(livré le 2026-10-17)* Lignes de diagnostic qui
+      conduisent. S9 : chaque conseil de « Ce que vous pouvez faire » porte
+      son bouton (feuille des dépendances manquantes, fiche du mod, bloc des
+      mods défaillants, défilement jusqu'à la bissection sans la lancer),
+      grisé avec son motif quand le disque contredit le journal ;
+      `HealthSuggestion` (Core, testé, `3fffea16`). S7, S8, S17 : « Voir le
+      mod » sur un conflit d'Alertes (les deux fiches), les lignes de conflit
+      et de recouvrement, les archives Nexus d'Entretien (Historique) ;
+      composant `ModPairDetailMenu` (`2c608fd8`). S10 écarté au spec,
+      remplacé par l'infobulle de « inconnu de smapi.io ». Vérifié à l'écran.
+      **I-T29 clos.**
