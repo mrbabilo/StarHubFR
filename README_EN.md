@@ -42,7 +42,7 @@ The **[user guide](GUIDE_EN.md)** walks through first launch and everyday use: i
 
 When the game crashes or a mod refuses to load, StarHubFR turns the SMAPI log into a readable diagnosis.
 
-*   **Advice, not jargon** — "install this dependency", "this mod is installed twice", "this mod doesn't support your game version".
+*   **Advice, not jargon** — "install this dependency", "this mod is installed twice", "this mod doesn't support your game version". Each tip carries its button: install the dependency, open the mod's page, go to the culprit search.
 *   **Health at a glance** — SMAPI and game versions, mods loaded, skipped or failed with their reason, missing dependencies.
 *   **Mods to watch** — those that change the game's code or your saves, those that log the most errors, with what it means for you.
 *   **False alarms set aside** — GOG Galaxy, an optional integration missing, an absent companion mod: the message is quoted, a button jumps to its lines, and the mod is no longer blamed for nothing.
@@ -52,6 +52,7 @@ When the game crashes or a mod refuses to load, StarHubFR turns the SMAPI log in
 *   **A plan to untangle shortcuts** — conflicts move to free keys, sorted by family: letters for actions, digits for information, F keys for the rest. Each line can be unchecked, the touched config.json files are backed up before writing, and "Undo the plan" restores them.
 *   **Conflicts predicted before you play** — two mods loading the same asset exclusively are flagged, and enabling them (one at a time, in bulk or through a profile) warns you and names the asset.
 *   **Find the faulty mod** — when nothing points to a culprit, the app pauses your mods by halves and asks one question per step. About ten tries are enough; everything comes back in one click.
+*   **Every line leads somewhere** — a conflict, an overlap or an alert opens the mod's page on the tab that holds the fix.
 
 ### ⏱️ Performance
 
@@ -67,11 +68,12 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 
 ### 📦 Installing and organising
 
-*   **Drag and drop an archive** (`.zip`, `.7z`, `.rar`) — structure detected (single mod or pack), format recognised from its bytes, safety limits (500 MB archive, 2 GB unpacked), conflicts and missing dependencies announced.
+*   **Drag and drop an archive** (`.zip`, `.7z`, `.rar`) onto the window, from any page — structure detected (single mod or pack), format recognised from its bytes, safety limits (500 MB archive, 2 GB unpacked), conflicts and missing dependencies announced.
 *   **Content for another mod lands in the right place** — a file meant for a framework (an *ItemBags* bag, say) goes into its host mod, with the path shown and any existing file backed up first.
 *   **Enable without moving files** — one mod, a selection (click, ⌘, ⇧, ⌘A, then Space) or all at once. Mods shipped with SMAPI stay enabled.
 *   **Trash a selection** — one batch, restorable at once; the confirmation names the active mods that depend on it. Refused while the game is running.
-*   **Profiles** — several sets of mods, one click to switch.
+*   **Profiles** — several sets of mods, one click to switch. See what a profile would change before activating it; a badge flags a profile half-applied or interrupted, with its fix.
+*   **Go back to an earlier state** — every bulk toggle, search or benchmark leaves a snapshot; one click puts your mods back as they were.
 *   **Your own groups** — "Group by" your groups or by category: collapsible headers, "Put in group" on a row or a selection, a whole group enabled or paused in one go. A profile describes a state, a group an arrangement.
 *   **A list that sorts** — categories inferred from the manifest, filters (configurable, "set aside", uncategorised…), sorting by name, author, endorsements or oldest update; All, Enabled, Disabled, **Problems** and **Updates** scopes.
 *   **Nexus endorsements** — each mod's thumb shows its endorsement count and endorses in one click.
@@ -82,7 +84,7 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 *   **Checks with no account**, through [smapi.io](https://smapi.io/), from the manifests. A "Stop" button interrupts the check at any time.
 *   **If smapi.io goes down** — the app says so and offers to check directly on Nexus: a keyless sort only rechecks the pages that changed, a few dozen requests instead of several thousand.
 *   **Mods without a verdict, explained** — the ones neither smapi.io nor Nexus could judge, each with its reason (no Nexus ID, page hidden or removed…). A Nexus ID you entered by hand replaces a broken manifest key.
-*   **Each mod says it has an update** — an "↑ version" badge on its row and a banner on its page. Matching uses the manifest ID, never the Nexus ID.
+*   **Each mod says it has an update** — an "↑ version" badge on its row and a banner on its page. Matching uses the manifest ID, never the Nexus ID. Paused mods are listed apart, collapsed.
 *   **"I already have it"** — for authors who publish without bumping their manifest version: the row records the version you actually have, then goes away.
 *   **Download in the app** — directly with a Premium account, or through the `nxm://` link with a free one. The API key stays in the macOS Keychain.
 *   **What an update changes** — config options added or removed, new text to translate, author translations dropped; renamed keys are carried over, never overwritten. The preview also warns when active mods read the internal code of the mod being replaced.
@@ -97,10 +99,10 @@ The StarHubFR probe, a small SMAPI mod installed at your request, measures the g
 
 ### 📖 Mod page
 
-*   **Six tabs** — Overview, Health, Dependencies, Translation, History, Manage.
+*   **Six tabs** — Overview, Health, Dependencies, Translation, History, Manage. The page opens on the one you need: Dependencies for a missing dependency, History for an update.
 *   **Compatibility first** — smapi.io's verdict and what the author says about it, in one card.
 *   **Health** — a verdict and eight checks (SMAPI blocklist, loading, smapi.io, log, incompatibilities, shortcuts, duplicates, Nexus page), with "not checked" when data is missing.
-*   **Dependencies** — the full tree with status and actions, plus the mods whose internal code this one reads without declaring them.
+*   **Dependencies** — "To fix" first (one-click "Enable" or "Install"), then the full tree collapsed by level, plus the mods whose internal code this one reads without declaring them.
 *   **Description and changelog** rendered as native text (bold, lists, links, images, spoilers).
 *   **Nexus ID and category** editable in place.
 
@@ -113,23 +115,24 @@ Each mod page has a **Translation** tab that shows the real state of its French 
 *   **The glossary comes from the game** — over a thousand item, character and place names, read from your install and imposed on the model.
 *   **The game's markers are protected** — shown in colour, inserted in one click; a save that drops one is refused.
 *   **The real completion rate** — 100 % only when every key is done; empty, missing and outdated keys listed separately.
-*   **"French Translations" page** — translations published on Nexus for your mods, and updates to the ones you have.
+*   **"French Translations" page** — translations published on Nexus for your mods, updates to the ones you have, and "To finish" for translations already started. A wrong result is dismissed with a thumbs-down; a sidebar badge counts what is waiting.
 *   **Teamwork** — export a ZIP batch for a translator, merge it back key by key.
 *   **Focus mode** — banners and sidebar hidden (Esc to leave).
 
 ### ⚙️ Configuration and backups
 
 *   **Config editor** — a searchable tree of typed settings, or raw JSON validated live; dropdowns show the mod's own labels, translated.
-*   **Mod backups** — before every overwrite, plus your `config.json` and `fr.json`, and the files an update took away.
+*   **Mod backups** — before every overwrite, plus your `config.json` and `fr.json`, and the files an update took away. Configs are grouped by mod and compared before restoring; deleting one moves it to the Mac Trash.
+*   **Maintenance** — what StarHubFR takes up on disk, and "Free up space" in one step (keep 1, 3 or 5 backups per mod).
 *   **Saves** — details, copy, deletion, and editing money or character stats.
-*   **What your mods leave in your saves** — counted before pausing a mod; "Clean…" removes data from mods that are gone, after a backup.
+*   **What your mods leave in your saves** — counted before pausing a mod; "Enable these mods" brings back the ones a save uses, and "Clean up…" removes data from mods that are gone, after a backup.
 
 ### 🎮 Everyday use
 
-*   **A home page that gets to the point** — the counters that matter and **Launch Game**, vanilla or through SMAPI.
+*   **A home page that gets to the point** — the counters that matter and **Launch Game** (⌘R), vanilla or through SMAPI; an operation left halfway shows up there with "Put everything back".
 *   **Live logs** — SMAPI and StarHubFR output, filterable by source and level.
 *   **The mods the app relies on** — listed in Settings, with their role, state and install link.
-*   **Accessible and readable** — VoiceOver, and buttons that turn into icons when the window is narrow.
+*   **Accessible and readable** — VoiceOver names every button, everything is reachable by keyboard, and the mod list tightens when the window is narrow.
 
 <p align="center">
   <img src="assets/banners/screenshots_banner.png" alt="Screenshots" width="300">
