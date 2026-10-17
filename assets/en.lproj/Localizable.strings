@@ -290,7 +290,7 @@
 "update_triage_nexus_incomplete" = "Nexus history incomplete: files that could not be explained are kept";
 "update_triage_more_files" = "… and %d more";
 "activation_history_title" = "Go back to an earlier state";
-"activation_history_subtitle" = "Taken before every “Enable all”, selection toggle or applied profile. Kept 30 days unless pinned. Going back restores which mods are active or paused, and the profile active at the time with its configs.";
+"activation_history_subtitle" = "Taken before every “Enable all”, selection toggle, applied profile, culprit search or A/B benchmark. Kept 30 days unless pinned. Going back restores which mods are active or paused, and the profile active at the time with its configs.";
 "activation_history_empty" = "No snapshot yet: the next bulk action will take one.";
 "activation_history_show_all" = "Show all";
 "activation_history_show_less" = "Show less";

@@ -49,6 +49,8 @@ struct ProfileDiagnosticsView: View {
     /// La comparaison affichée **par-dessus** la liste, qui reste montée :
     /// au retour, le défilement est là où on l'avait laissé.
     @State private var comparison: Comparison?
+    /// Nombre de `reload()` faits : le défilement vers `focus` attend le premier.
+    @State private var loads = 0
 
     var body: some View {
         ZStack {
@@ -130,9 +132,10 @@ struct ProfileDiagnosticsView: View {
                     }
                 }
             }
-            .onAppear {
-                guard let focus else { return }
-                // Un tour d'attente : la section n'existe qu'après `reload()`.
+            // Après le premier `reload()`, pas à l'apparition : l'`onAppear`
+            // d'ici passait avant celui de la feuille, la section n'existait pas.
+            .onChange(of: loads) { _, count in
+                guard count == 1, let focus else { return }
                 Task { @MainActor in
                     await Task.yield()
                     proxy.scrollTo(focus, anchor: .top)
@@ -160,6 +163,7 @@ struct ProfileDiagnosticsView: View {
         gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: viewModel.scanStore.mods.flattenedMods)
         translation = viewModel.translationSummary(for: current)
         configs = ProfileConfigOverview.load(profileId: current.id, installed: viewModel.scanStore.mods.flattenedMods)
+        loads += 1
     }
 
     /// Ce que le profil affichera en français une fois appliqué.
