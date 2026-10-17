@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
-- **Installer en déposant une archive sur la fenêtre**, depuis n'importe quelle page : la feuille d'installation s'ouvre sur elle, puis « Archive suivante (n) ». Refusé, avec la raison, pendant une installation, un téléchargement Nexus, une application de profil, une recherche du mod responsable, un benchmark ou une mesure pilotée.
+- **Installer en déposant une archive sur la fenêtre**, depuis n'importe quelle page : la feuille d'installation s'ouvre sur elle, puis « Archive suivante (n) ». Refusé, avec la raison, pendant une installation, un téléchargement Nexus ou une opération qui tient le parc.
 - **Profils : voir un profil sans l'activer.** La colonne « Mods » d'un profil (ou « Aperçu… » de son menu) ouvre sa feuille sur ce que l'activation ferait : dossiers à activer, à mettre en pause, conflits qu'elle rendrait actifs. Rien n'est renommé.
 
 ### Changed

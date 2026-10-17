@@ -10,6 +10,9 @@ struct InstallRequestConsumer: ViewModifier {
         content
             .onAppear(perform: consume)
             .onChange(of: navigation.pendingInstallRequest) { _, _ in consume() }
+            // Le drapeau vit dans le store (P5-5a) : la liste démontée par un
+            // changement d'onglet ne doit pas laisser la fenêtre refuser les dépôts.
+            .onDisappear { navigation.showsInstallSheet = false }
     }
 
     private func consume() {
