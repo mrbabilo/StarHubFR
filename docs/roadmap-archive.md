@@ -7663,3 +7663,13 @@ sans lire une ligne de log.
       quand tous les résultats visent des mods en pause, 1 après
       l'activation d'un mod. Pas d'infobulle de date : `SidebarItem` n'en
       porte pas.
+- [x] **I-T29 · P5-8** — *(livré le 2026-10-17)* « Réactiver ces mods (n) »
+      en tête de la section des mods en pause d'une partie : dossiers de tête
+      (un composant réveille son pack, le libellé le dit), dépendances
+      requises en pause si le chaînage est actif, par le moteur des bascules
+      groupées (garde A5-T8, instantané R5). `SavePausedReactivation` (Core,
+      testé, `1e9262dd`). En vérifiant, trois défauts trouvés et corrigés :
+      barre d'avancement absente hors de Gestion des mods (`4c70ea10`),
+      `TogglePlan` relisant le parc par dépendance — 10 s de fil principal
+      mesurées au `sample` (`484604f3`), lecture des sauvegardes sans barre ni
+      cache avant une pause (`0ffe897c`). Vérifié à l'écran.
