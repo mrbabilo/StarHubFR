@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation) livrés, **I-T28 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation) et **I-T28** (regroupements) livrés, **I-T29 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -861,15 +861,9 @@ fonctionnalités utiles. Méthode : l'app lancée et pilotée en lecture seule
 relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 écartées avec leur raison) ; le gain est dans les portes (une sur deux arrive
 à côté) et dans trois tâches impossibles aujourd'hui. **I-T25 (lot L0,
-sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, à l'archive. Les identifiants de fiche
+sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T28 — L3 Regroupements** : ~~R3~~ (livré le 2026-10-16, à
-      l'archive), ~~R8~~ (livré, à l'archive), ~~R2~~ (livré le 2026-10-17,
-      à l'archive). **Codés le 2026-10-17, gate vert, vérification à l'écran
-      en attente** : R7 (`1994b6df`, `2589d6d9` ; encart visible sans clé
-      Nexus seulement), R4 (`3a81c46b`), R9 (`dd2ff7de`), R5 (`12f02504`).
-      Reste ouvert pour l'écran ; archivage ensuite. · **L**
 - [ ] **I-T29 — L4 Fonctionnalités** : P5-1 (voir un profil **sans
       l'activer** : ∞ → 2 clics ; `ProfileApplyPlan.moves` existe), P5-5a
       (déposer une archive sur la fenêtre), P5-6a, P5-4 (écarter un faux
@@ -2098,6 +2092,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T25** | 2026-10-16 | Audit UX, lot L0 (sûreté) : supprimer une sauvegarde d'installation ou de configuration passe par la Corbeille du Mac (c'était définitif), garde « seule copie » de l'Entretien à la confirmation ; page des sauvegardes sans « 0 » avant sa lecture ; confirmation de « Désinstaller » SMAPI ; lien Markdown des Réglages rendu |
 | **I-T26** | 2026-10-16 | Audit UX, lot L1 : extractions imposées par les plafonds (`ProfileRow`, `NexusUpdateRow`, `ModBulkToggleMenu`, pieds de la barre latérale, composants des Alertes ; 45 → 42 fichiers trop gros) ; E1 (barre de la liste à 821 pt sans chevauchement, vérifié à l'écran) ; N-00 (`NavigationHistory` en Core, 8 tests : le ✕ d'une fiche ouverte par un saut ramène à l'origine, Retour/Avancer au menu Aller) ; décodage tolérant d'`ActivationHistory` |
 | **I-T27** | 2026-10-16 | Audit UX, lot L2 (navigation) : règle d'arrivée unique `DetailArrival` (Core, 5 tests) — chaque porte ouvre la fiche sur l'onglet utile, problème de dépendance → Dépendances ; pager qui garde l'onglet ; `.jumpToMod` ouvre la fiche si le mod est unique ; menus Jeu (⌘R, ⇧⌘U) et Fichier (⌘O) ; « Fermer » (⎋) de l'éditeur de config ; nom d'une ligne de Mises à jour → fiche ; collision de raccourcis → le réglage, et le saut à la clé défile enfin |
+| **I-T28** | 2026-10-17 | Audit UX, lot L3 (regroupements) : « À finir » des Traductions FR (R3), versions de config dans l'éditeur (R8), Alertes ↔ Santé avec l'âge du journal et un seul compte (R2), `NexusAccessNote` pour la clé manquante et garde Premium (R7), colonne Configs → feuille du profil qui compare (R4), geste qui satisfait une dépendance sur l'encart (R9), « Opération interrompue » sur l'Accueil et « Revenir » gardé pendant une recherche ou un benchmark (R5) |
 
 **10.3 Veille RimManager — actions livrées**
 

@@ -7564,3 +7564,49 @@ sans lire une ligne de log.
       d'`openHealth()` (`NavigationStore` à 400/400) ; `SystemAlertsView`
       renomme `vm` en `viewModel` (cliquet 1521 → 1502). Vérifié à l'écran à
       821 pt : compte, ligne de source repliée sous le lien, aller et retour.
+
+- [x] **I-T28 · R7** — *(livré le 2026-10-17)* La clé Nexus manquante a un
+      seul remède partout : `NexusAccessNote` (message de l'écran, puis
+      « Ouvrir les réglages Nexus » et « Obtenir une clé API »), dans Mises à
+      jour (note et erreur sans clé), Traductions FR (arrêt `.noApiKey`) et les
+      trois recherches Nexus de la fiche. Découvrir passe par le même
+      `NavigationStore.openSettings(_:)` (Core, testé). `SettingsLinkButton`
+      attend N-11. Garde Premium : « Installer » de Traductions FR et
+      « Réinstaller depuis Nexus » des Alertes restent visibles, grisés avec
+      infobulle, le bouton Nexus à côté. Pas vu à l'écran : l'encart
+      n'apparaît que sans clé, état qu'on ne provoque pas (Trousseau). Pour le
+      voir : retirer la clé dans Réglages → Nexus, ouvrir Mises à jour.
+- [x] **I-T28 · R4** — *(livré le 2026-10-17)* La colonne « Configs » d'un
+      profil ouvre sa feuille sur la section « Configs mémorisées » : toute la
+      liste (la rangée n'en nommait que cinq orphelins), les mods désinstallés
+      en orange avec leur glyphe, et « Comparer avec le profil actif » (ou,
+      depuis l'actif, un menu des autres profils), grisé hors
+      `isProfileConfigManaged`. La comparaison s'affiche dans la feuille ;
+      « ‹ Retour » et ↩ reviennent à la liste au même défilement (la liste
+      reste montée, masquée et désactivée). `ProfileConfigOverview` (Core,
+      testé) remplace `profileConfigSummary` du ViewModel. Le défilement vers
+      la section attendait l'apparition ; il attend désormais le premier
+      `reload()`, sans quoi la section n'existait pas encore (`e4913149`).
+      Vérifié à l'écran sur BENCHMARK (9 configs) : colonne, comparaison, ↩ et
+      défilement gardé ; le défilement initial corrigé reste à revoir.
+- [x] **I-T28 · R9** — *(livré le 2026-10-17)* L'encart de dépendance d'une
+      ligne porte le geste qui la satisfait, en nommant la dépendance :
+      « Activer X », « Installer X », « Page Nexus de X » ou « Chercher X »
+      (par nom ou par auteur). `DependencyFix.action` (Core, testé) décide ;
+      l'encart et le geste lisent le même `DependencyIndex` (dernière copie
+      scannée par UniqueID), un test le vérifie sur un id partagé.
+      L'activation passe par les garde-fous d'avertissement et de conflit de
+      la ligne ; rien n'est proposé sur une ligne en pause. L'onglet
+      Dépendances de la fiche reprend le composant ; `ModListRow` perd
+      36 lignes. Vérifié à l'écran : « [AT] Vanilla Forage Crops and Bushes »
+      propose « Activer Alternative Textures » (seul cas du parc).
+- [x] **I-T28 · R5** — *(livré le 2026-10-17)* Encart « Opération
+      interrompue » sur l'Accueil pour la recherche du mod responsable, le
+      benchmark et la mesure pilotée, chacun avec son bouton de restauration
+      (`ModSetOperations`, Core, testé). La recherche et le benchmark laissent
+      un instantané dans l'historique (gestes `bisection`, `benchmark` ; le
+      décodage tolérant date de 1.68.0). « Revenir » est grisé pendant ces
+      opérations, et une ligne sous la liste nomme celle qui bloque. Le menu
+      ⏻ de la liste ouvre l'historique (« Revenir à un état d'avant… »).
+      Vérifié à l'écran : menu et feuille. L'encart de l'Accueil n'apparaît
+      qu'après une opération interrompue, non provoquée sur le parc.
