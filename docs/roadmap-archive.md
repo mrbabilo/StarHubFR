@@ -7618,3 +7618,11 @@ sans lire une ligne de log.
       `ProfileApplyPreview` (Core, testé) part de `ProfileApplyPlan.moves`,
       la garde de conflits de l'activation lit le même aperçu (`f5401bba`).
       Vérifié à l'écran sur BENCHMARK : 0 à activer, 218 à mettre en pause.
+- [x] **I-T29 · N-11** — *(livré le 2026-10-17)* Les refus de l'aide à la
+      traduction mènent aux Réglages : sans clé DeepL, clé refusée ou sans IA
+      locale, l'éditeur propose « Ouvrir les réglages de traduction », grisé
+      tant qu'une modification n'est pas enregistrée. Quota et rythme DeepL
+      n'ont pas de bouton. `TranslationAssistFailure` (Core, testé) décide.
+      La note « traduction dans une sauvegarde » de la fiche ouvre les
+      Fichiers récupérables filtrés sur le mod (`0b9d0355`). Vérifié à
+      l'écran : éditeur sans clé DeepL.
