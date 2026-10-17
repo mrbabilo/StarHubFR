@@ -35,12 +35,16 @@ struct NexusUpdateRow: View {
                             .font(AppDesign.Font.rowTitle(.semibold))
                             .foregroundColor(.primary)
                     }
-                    Text(isEnabled ? localization.L(L10n.Updates.enabled) : localization.L(L10n.Updates.disabled))
+                    // C1a : la pause n'est pas un avertissement — gris, avec son
+                    // glyphe (jamais la couleur seule), comme dans la liste.
+                    let tint = isEnabled ? AppDesign.Color.installed : AppDesign.Color.paused
+                    Label(localization.L(isEnabled ? L10n.Updates.enabled : L10n.Updates.disabled),
+                          systemImage: isEnabled ? "checkmark.circle.fill" : "pause.circle.fill")
                         .font(AppDesign.Font.iconXXS(.medium))
-                        .foregroundColor(isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning)
+                        .foregroundColor(tint)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background((isEnabled ? AppDesign.Color.installed : AppDesign.Color.warning).opacity(0.12))
+                        .background(tint.opacity(0.12))
                         .cornerRadius(4)
                 }
                 UpdateAlreadyInstalledNote(update: update, mods: vm.mods, localization: localization)
@@ -68,8 +72,51 @@ struct NexusUpdateRow: View {
         }
         .padding(.vertical, AppDesign.Spacing.sm)
         .padding(.horizontal, AppDesign.Spacing.md)
-        .background(isEnabled ? Color.primary.opacity(0.04) : AppDesign.Color.warning.opacity(0.06))
+        .background(Color.primary.opacity(0.04))
         .cornerRadius(10)
         .accessibilityElement(children: .contain).accessibilityLabel(update.name) // VoiceOver : groupe nommé par le mod
+    }
+}
+
+/// P5-6a — les mises à jour Nexus, mods actifs d'abord, mods en pause dans un
+/// groupe replié. Replié, jamais retiré : une mise à jour voulue avant de
+/// réactiver un mod reste à un clic, avec son compte affiché.
+struct NexusUpdateList: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+    /// Hors de la vue, pour la même raison que `updates.unverifiableExpanded` :
+    /// la page est recréée à chaque retour depuis une fiche.
+    @AppStorage("updates.pausedExpanded") private var pausedExpanded = false
+
+    var body: some View {
+        let groups = NexusUpdateGroups(viewModel.nexusUpdates) { viewModel.modForNexusUpdate($0)?.isEnabled }
+        // Sans mise à jour en pause, l'en-tête n'apprendrait rien.
+        if !groups.paused.isEmpty, !groups.active.isEmpty {
+            Text(String(format: localization.L(L10n.Updates.activeGroup), Int64(groups.active.count)))
+                .font(AppDesign.Font.caption(.semibold))
+                .foregroundColor(.secondary)
+        }
+        ForEach(groups.active) { update in
+            NexusUpdateRow(update: update, vm: viewModel, localization: localization)
+        }
+        if !groups.paused.isEmpty {
+            DisclosureGroup(isExpanded: $pausedExpanded) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                    Text(localization.L(L10n.Updates.pausedGroupExplanation))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(groups.paused) { update in
+                        NexusUpdateRow(update: update, vm: viewModel, localization: localization)
+                    }
+                }
+                .padding(.vertical, AppDesign.Spacing.xs)
+            } label: {
+                Label(String(format: localization.L(L10n.Updates.pausedGroup), Int64(groups.paused.count)),
+                      systemImage: "pause.circle.fill")
+                    .font(AppDesign.Font.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 }

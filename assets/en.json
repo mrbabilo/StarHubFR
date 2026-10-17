@@ -1664,8 +1664,8 @@
   "updates_error_description": "The game encountered errors during the last run. This might be caused by missing dependencies or outdated mods.",
   "updates_installed_version": "Installed:",
   "updates_latest_version": "Latest:",
-  "updates_mod_disabled": "Disabled",
-  "updates_mod_enabled": "Enabled",
+  "updates_mod_disabled": "Paused",
+  "updates_mod_enabled": "Active",
   "updates_nexus_already_have": "I already have it",
   "updates_nexus_already_have_help": "You already have this version, but the author didn't record it in their manifest. The row goes away. On a pack, this only covers the component it stands for.",
   "updates_nexus_api_key_missing": "Checking for updates works without a key. Add a Nexus API key to download from the app.",
@@ -2747,5 +2747,8 @@
   "archive_drop_refused_install_open": "An installation is open: drop the archive on its sheet.",
   "archive_drop_refused_download": "A Nexus download is waiting to be installed: drop the archive afterwards.",
   "archive_drop_refused_profile": "A profile is being applied: drop the archive once it has finished.",
-  "archive_drop_refused_operation": "“%@” holds the mod set: drop the archive once it has finished."
+  "archive_drop_refused_operation": "“%@” holds the mod set: drop the archive once it has finished.",
+  "updates_active_group": "Active mods (%lld)",
+  "updates_paused_group": "Paused mods (%lld)",
+  "updates_paused_group_explanation": "The game does not load these mods: their update can wait until you enable them again."
 }

@@ -95,8 +95,8 @@ struct UpdatesView: View {
                                                          error: err, listIsStale: true)
                             }
                             // Summary line + list of available updates.
-                            // Plus de note d'ordre : la liste est alphabétique,
-                            // ce qui se voit. La note existait pour un tri par
+                            // Plus de note d'ordre : la liste est alphabétique
+                            // dans chaque groupe (P5-6a), ce qui se voit. La note existait pour un tri par
                             // date de mise en ligne, qui lui ne se voyait pas —
                             // et que le passage à smapi.io avait de toute façon
                             // fait disparaître sans que la phrase suive.
@@ -106,9 +106,7 @@ struct UpdatesView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.top, AppDesign.Spacing.xs)
 
-                            ForEach(vm.nexusUpdates) { update in
-                                NexusUpdateRow(update: update, vm: vm, localization: localization)
-                            }
+                            NexusUpdateList(viewModel: vm, localization: localization)
                         }
 
                         // Mods sans verdict (jusqu'à 115 au parc) : les taire mentait ; repliés,

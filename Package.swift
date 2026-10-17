@@ -236,6 +236,7 @@ let package = Package(
                 "Models/NexusUpdateCheck.swift",
                 "Models/NexusCategoryResolver.swift",
                 "Models/NexusDownloadFlow.swift",
+                "Models/NexusUpdateGroups.swift",
                 "Models/NexusInstallIdRecording.swift",
                 "Models/NexusIdLearning.swift",
                 "Models/ModVersionAnchor.swift",

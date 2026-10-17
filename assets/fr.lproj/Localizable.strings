@@ -1664,8 +1664,8 @@
 "updates_error_description" = "Le jeu a rencontré des erreurs lors de la dernière exécution. Cela peut être dû à des dépendances manquantes ou des mods obsolètes.";
 "updates_installed_version" = "Installée :";
 "updates_latest_version" = "Dernière :";
-"updates_mod_disabled" = "Désactivé";
-"updates_mod_enabled" = "Activé";
+"updates_mod_disabled" = "En pause";
+"updates_mod_enabled" = "Actif";
 "updates_nexus_already_have" = "Je l'ai déjà";
 "updates_nexus_already_have_help" = "Vous avez déjà cette version, mais l'auteur ne l'a pas inscrite dans son manifest. La ligne s'efface. Sur un pack, cela ne vaut que pour le composant qu'elle représente.";
 "updates_nexus_api_key_missing" = "La vérification des mises à jour fonctionne sans clé. Ajoutez une clé API Nexus pour télécharger depuis l'app.";
@@ -2748,3 +2748,6 @@
 "archive_drop_refused_download" = "Un téléchargement Nexus attend son installation : déposez l'archive après.";
 "archive_drop_refused_profile" = "Un profil s'applique : déposez l'archive une fois l'application finie.";
 "archive_drop_refused_operation" = "« %@ » tient le parc : déposez l'archive une fois l'opération finie.";
+"updates_active_group" = "Mods actifs (%lld)";
+"updates_paused_group" = "Mods en pause (%lld)";
+"updates_paused_group_explanation" = "Le jeu ne charge pas ces mods : leur mise à jour peut attendre leur réactivation.";

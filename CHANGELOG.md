@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Mises à jour : les mods actifs d'abord.** Les mises à jour des mods en pause passent dans un groupe « Mods en pause (n) », replié par défaut et mémorisé. La pastille dit « En pause » en gris, sans fond orange.
 - **Éditeur de traduction : « Ouvrir les réglages de traduction ».** Sans clé DeepL, clé refusée ou sans IA locale, le message d'échec mène aux Réglages. Grisé tant qu'une modification n'est pas enregistrée. Quota et rythme DeepL n'ont pas de bouton : ils ne se règlent pas là.
 - **Fiche d'un mod : « Voir dans Fichiers récupérables ».** La note « traduction dans une sauvegarde » ouvre la liste filtrée sur ce mod, avec « Tout afficher ».
 - **Accueil : un encart « Opération interrompue ».** La recherche du mod responsable, le benchmark A/B et la mesure pilotée laissés en plan s'y signalent, chacun avec « Tout remettre comme avant ».
