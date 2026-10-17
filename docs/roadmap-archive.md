@@ -7725,3 +7725,11 @@ sans lire une ligne de log.
       testé, `df42a09b`). Le poids dans le sous-titre de Sauvegardes est
       écarté : le rapport d'Entretien n'existe qu'à l'ouverture de
       l'Entretien. Vérifié à l'écran.
+- [x] **I-T30 · E3, E12, E13** — *(livrés le 2026-10-17, `1ef07129`)* E3 :
+      bande chiffrée de la fiche en deux lignes, approbations avec
+      séparateur, colonnes « — » masquées sur un composant (`StatStrip
+      hidesEmpty`) ; la valeur « du pack » de la spec n'est pas faite. E12 :
+      menu ⋯ de Traductions FR entier, titres de résultat sur deux lignes
+      coupés à la fin, « Voir la fiche » en lien. E13 : la feuille de zip
+      des parties compte parties et copies de secours à part
+      (`FolderArchive.savesContent`, Core, testé). Vérifiés à l'écran.
