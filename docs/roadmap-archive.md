@@ -7746,3 +7746,9 @@ sans lire une ligne de log.
       sauvegarde en accent. C2c : Quarantaine vide en `quarantine` ;
       Réglages gardent leurs teintes par section (**décision de l'auteur**),
       sauf Nexus, orange → bleu. Vérifiés à l'écran.
+- [x] **I-T30 · E2** — *(livré le 2026-10-17, `a2618d92`)* Ligne de mod en
+      fenêtre étroite : `ModRowsStack` mesure sa largeur et pose
+      `modRowCompact` ; sous 640 pt les colonnes fixes cèdent à la largeur
+      naturelle, dates et langues passent à l'infobulle de la bande. X6 fait
+      d'abord (`ModListRow+Meta.swift`, −70 lignes). Vérifié à l'écran.
+      **I-T30 clos.**

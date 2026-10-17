@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation), **I-T28** (regroupements) et **I-T29** (fonctionnalités) livrés, **I-T30 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités) et **I-T30** (écrans) livrés, **I-T31 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -861,12 +861,9 @@ fonctionnalités utiles. Méthode : l'app lancée et pilotée en lecture seule
 relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 écartées avec leur raison) ; le gain est dans les portes (une sur deux arrive
 à côté) et dans trois tâches impossibles aujourd'hui. **I-T25 (lot L0,
-sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements) et I-T29 (L4, fonctionnalités) le 2026-10-17**, à l'archive. Les identifiants de fiche
+sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements), I-T29 (L4, fonctionnalités) et I-T30 (L5, écrans) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T30 — L5 Écrans** (E6, E7, E11 + C2b, suite de R1, E3, E12, E13,
-      E8, E9b–e, C2a, C2c livrés, à l'archive) : E2 (ligne de mod à 821 pt).
-      En clair **et** en sombre. · **L**
 - [ ] **I-T31 — L6 Décisions de l'auteur** (rapport §5, 14 décisions) :
       Accueil allégé (revient sur I-T9), palette avec actions et ↩ sur un
       profil ou une partie (reviennent sur I-T2 et I-T5), ⌘9 → Diagnostic,
@@ -2086,6 +2083,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T27** | 2026-10-16 | Audit UX, lot L2 (navigation) : règle d'arrivée unique `DetailArrival` (Core, 5 tests) — chaque porte ouvre la fiche sur l'onglet utile, problème de dépendance → Dépendances ; pager qui garde l'onglet ; `.jumpToMod` ouvre la fiche si le mod est unique ; menus Jeu (⌘R, ⇧⌘U) et Fichier (⌘O) ; « Fermer » (⎋) de l'éditeur de config ; nom d'une ligne de Mises à jour → fiche ; collision de raccourcis → le réglage, et le saut à la clé défile enfin |
 | **I-T28** | 2026-10-17 | Audit UX, lot L3 (regroupements) : « À finir » des Traductions FR (R3), versions de config dans l'éditeur (R8), Alertes ↔ Santé avec l'âge du journal et un seul compte (R2), `NexusAccessNote` pour la clé manquante et garde Premium (R7), colonne Configs → feuille du profil qui compare (R4), geste qui satisfait une dépendance sur l'encart (R9), « Opération interrompue » sur l'Accueil et « Revenir » gardé pendant une recherche ou un benchmark (R5) |
 | **I-T29** | 2026-10-17 | Audit UX, lot L4 (fonctionnalités) : voir un profil sans l'activer (P5-1), messages de traduction qui mènent aux Réglages (N-11), dépôt d'archive sur la fenêtre (P5-5a), mises à jour des mods en pause repliées (P5-6a), écarter un faux résultat FR (P5-4), badge Traductions FR (P5-10), « Réactiver ces mods » depuis une partie (P5-8), pastilles d'état anormal d'un profil (P5-9), lignes de diagnostic qui conduisent (N-09) |
+| **I-T30** | 2026-10-17 | Audit UX, lot L5 (écrans) : éditeur de traduction à un seul ascenseur (E6), « À régler » dans l'onglet Dépendances (E7), Entretien en un geste et barre en accent (E11 + C2b), phrase de rétention unique et renvois Entretien ↔ Sauvegardes (suite de R1), bande de fiche (E3), résultats FR (E12), compte du zip des parties (E13), pluriels (E8), noms VoiceOver (E9b–e), teintes de sens (C2a, C2c), ligne de mod étroite (E2) |
 
 **10.3 Veille RimManager — actions livrées**
 
