@@ -14,12 +14,12 @@ where the exact log format was verified.
 
 ### Added
 
-- **Installer en déposant une archive sur l'icône du Dock**, même app fermée : la feuille d'installation s'ouvre sur elle, comme pour un dépôt sur la fenêtre. StarHubFR ne devient pas l'app par défaut des fichiers `.zip`, `.7z` et `.rar`.
-- **Sauvegardes de configuration : la confirmation dit ce que vous perdriez.** Avant de mettre une sauvegarde à la Corbeille, elle nomme les fichiers que le dossier Mods n'a plus et dont elle est la dernière copie, comme pour les sauvegardes d'installation.
+- **Installer en déposant une archive sur l'icône du Dock**, même quand l'app est fermée : la feuille d'installation s'ouvre avec cette archive, comme pour un dépôt sur la fenêtre. StarHubFR ne devient pas pour autant l'app par défaut des fichiers `.zip`, `.7z` et `.rar`.
+- **Sauvegardes de configuration : avant la suppression, l'app signale ce qui serait perdu.** Si la sauvegarde est la dernière copie de certains fichiers, absents du dossier Mods, la confirmation les nomme, comme pour les sauvegardes d'installation.
 
 ### Changed
 
-- **Palette (⌘K) : ↩ sur un profil ouvre son aperçu**, sans rien activer ; ⌘↩ l'active. Le sous-titre de la ligne le rappelle.
+- **Palette (⌘K) : ↩ sur un profil affiche son aperçu** sans rien activer ; ⌘↩ l'active. Le rappel figure sous le nom du profil.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».
 - **Alertes et Santé à jour dès la fermeture du jeu**, quelle que soit la page affichée : l'app relit le journal SMAPI sans attendre le retour à l'Accueil.
 - **Un seul style de lien dans toute l'app**, le lien natif de macOS.

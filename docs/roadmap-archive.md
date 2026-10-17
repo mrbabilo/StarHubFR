@@ -7763,3 +7763,7 @@ sans lire une ligne de log.
       pack en bouton. P5-5b : archive déposée sur l'icône du Dock
       (`CFBundleDocumentTypes`, rang `Alternate`, `ArchiveDrop+Live`).
       Vérifiés à l'écran.
+- [x] **I-T31 · N-12** — *(livré le 2026-10-18, `a81bd95b`)* Palette : ↩ sur
+      un profil ouvre sa feuille d'aperçu, rien ne bouge ; ⌘↩ l'active
+      (revient sur I-T5, décision de l'auteur). Canal
+      `NavigationStore.openProfilePreview`, testé. Vérifié à l'écran.
