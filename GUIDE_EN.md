@@ -36,7 +36,7 @@ To move to a new version of the app, quit it completely (⌘Q) before replacing 
 <!-- help: install -->
 ## 2. Installing mods
 
-**From an archive.** Drop a `.zip`, `.7z` or `.rar` on the drop zone of **Mod Management**. The app recognises a single mod or a pack, reports missing dependencies and conflicts, then installs.
+**From an archive.** Drop a `.zip`, `.7z` or `.rar` onto the app's window, from any page, or use **File › Install mods…** (⌘O). The app recognises a single mod or a pack, reports missing dependencies and conflicts, then installs. Several archives dropped at once follow one another with "Next archive".
 
 **From Nexus.** With a Premium account, the **Install** button downloads directly. With a free account, the Nexus page opens: click **Mod Manager Download** and the app picks up the archive.
 
@@ -56,7 +56,8 @@ Pausing a mod renames its folder with a **leading dot**: `Mods/ColorfulVolume` b
 - **Finder hides these folders** (⇧⌘. shows them). A mod that has "vanished" from the game but still takes up space is almost always a paused mod.
 - **Don't delete them by hand**: the dot folders in `Mods/` are your paused mods, not hidden files to clean up.
 - **The mods shipped with SMAPI** (ConsoleCommands, SaveBackup) stay enabled, and neither they nor the StarHubFR probe can be deleted from the app: it tells you if you try.
-- **Before you pause a mod that writes into your saves**, the app measures what it left there. **Game Saves › Clean up…** removes the data of mods that are gone, after copying the save.
+- **Before you pause a mod that writes into your saves**, the app measures what it left there. **Game Saves › Clean up…** removes the data of mods that are gone, after copying the save; the other way round, **Enable these mods** brings back the paused mods a save uses, dependencies included.
+- **Going back.** Every bulk toggle, profile, culprit search or benchmark leaves a snapshot: **Mod Management › ⏻ › Go back to an earlier state…** puts your mods back as they were. An operation left halfway shows up on **Home**, with "Put everything back".
 
 <!-- help: profiles -->
 ## 4. Profiles and groups
@@ -65,6 +66,10 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 
 **Mod Profiles.** Create an empty profile, or copy the mods that are currently enabled. Switching profiles enables and pauses mods in one go. Each profile can keep its own mod settings (**Per-profile configuration**): when you switch profiles, you get that profile's `config.json` files back.
 
+**See before activating.** A profile's **Mods** column (or **Preview…** in its menu) shows what activating it would do: folders to enable, to pause, conflicts it would make active. Nothing is renamed. The **Configs** column lists the stored configurations and compares them with the active profile.
+
+**A profile that went wrong says so.** An orange badge on its row reads "Activation interrupted", "Half applied" or "Configs not rewritten", with the button that fixes it.
+
 **Groups.** In **Mod Management**, "Group by" your groups or by category. A group folds, enables or pauses in one gesture; "Put in group" places a row or a selection into a group.
 
 **"Set aside" mark.** For a mod you want out of circulation without uninstalling it: it stays greyed out and gathered under its own filter.
@@ -72,7 +77,7 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 <!-- help: updates -->
 ## 5. Updates
 
-**Mod Updates** checks your whole collection without an account or a key, through smapi.io. Each mod concerned carries a "↑ version" badge in the list.
+**Mod Updates** (⇧⌘U) checks your whole collection without an account or a key, through smapi.io. Each mod concerned carries a "↑ version" badge in the list. Updates for paused mods are listed apart, in a collapsed group.
 
 - **Before installing**, the preview tells you what the new version changes: config options added or removed, texts to translate, enabled mods that read its internal code.
 - **"I already have it"**: for a mod whose author publishes without changing the version in its manifest. The row records the version actually installed and disappears.
@@ -82,10 +87,11 @@ A **profile** describes a **state**: which mods are enabled. A **group** describ
 <!-- help: troubleshooting -->
 ## 6. When the game crashes or a mod won't load
 
-1. Launch the game through SMAPI, reproduce the problem, then open **Diagnostics & Performance › Health**. The app reads the SMAPI log and tells you what to do, in plain words: a dependency to install, a duplicated mod, a mod that doesn't support your game version.
+1. Launch the game through SMAPI, reproduce the problem, then open **Diagnostics & Performance › Health**. The app reads the SMAPI log and tells you what to do, in plain words: a dependency to install, a duplicated mod, a mod that doesn't support your game version. Each tip under "What you can do" carries its button; it is greyed out, with the reason, when the log predates your last change.
 2. **Log** shows the lines themselves, grouped by mod, the most troublesome first.
 3. If nothing points to a culprit, the **Find the mod causing the problem** card pauses your mods by halves and asks you one question per relaunch. About ten tries are enough; everything goes back as it was in one click.
-4. **System Alerts** gathers what needs your attention across your whole collection, in three tabs: **Alerts** (missing dependencies, duplicates, folders to repair), **Keyboard shortcuts** and **Mod conflicts** (two mods replacing the same content).
+4. **System Alerts** gathers what needs your attention across your whole collection, in three tabs: **Alerts** (missing dependencies, duplicates, folders to repair), **Keyboard shortcuts** and **Mod conflicts** (two mods replacing the same content). "View mod" opens the page of each mod involved.
+5. **A dependency is missing or paused?** The mod page's **Dependencies** tab puts it first, under "To fix", with "Enable" or "Install"; the same action sits on the row's notice in the list.
 
 To ask for help, upload `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt` to [smapi.io/log](https://smapi.io/log) and share the link you get.
 
@@ -121,8 +127,8 @@ Open a mod's page, **Translation** tab.
 
 - **English on the left, French on the right**, key by key. A mod without a `fr.json` gets one on the first save.
 - **The game's markers** (player names, line breaks, colours…) are shown in colour and inserted in one click. Losing or adding a marker that breaks the game (a dialogue command, a lone `#`, `{{…}}`) blocks the save, and the app says which one is missing or extra. A portrait, the player name (`@`) or a page break moved around shows under the field as "To check", without blocking.
-- **Draft by a local AI**: with [Ollama](https://ollama.com) or [LM Studio](https://lmstudio.ai) on your Mac, the app suggests a translation marked "To review". Nothing leaves your machine. The glossary of the game's official names is imposed on the model.
-- **French translations**, **To finish** segment: translations started but not finished, or to review, biggest remainder first; "Translate" opens the mod's page. **On Nexus** segment: translations already published for your mods, often installing one is all it takes.
+- **Draft by a local AI**: with [Ollama](https://ollama.com) or [LM Studio](https://lmstudio.ai) on your Mac, the app suggests a translation marked "To review". Nothing leaves your machine. The glossary of the game's official names is imposed on the model. With no engine set up, the failure message leads to **Open translation settings**.
+- **French translations**, **To finish** segment: translations started but not finished, or to review, biggest remainder first; "Translate" opens the mod's page. **On Nexus** segment: translations already published for your mods, often installing one is all it takes. A result that doesn't match is dismissed with a thumbs-down, and comes back through "Dismissed" at the bottom of the page. The sidebar badge counts the enabled mods that have a translation to install or update.
 
 A translation written in the app lives in the mod's folder. Updating the mod doesn't overwrite it; the update preview tells you which keys need revisiting.
 
@@ -130,9 +136,10 @@ A translation written in the app lives in the mod's folder. Updating the mod doe
 ## 10. Getting back what was replaced or deleted
 
 - **An update replaced a mod and you want the old version** — **Mod Backups** › Restore (the mod comes back paused).
-- **A `config.json` was rewritten** (config editor, shortcut plan) — **Mod Backups** › Configuration Backups.
+- **A `config.json` was rewritten** (config editor, shortcut plan) — in the editor, **Restore** offers the latest versions; or **Mod Backups** › Configuration, grouped by mod: "Compare" shows what differs before restoring.
 - **You deleted a mod or configuration backup** — it is in the Mac's Trash until you empty it; it does not come back into the app's list.
-- **You moved mods to the trash from the app** — **Maintenance** › Restore, or **Restore all** for a batch.
+- **You moved mods to the trash from the app** — **Maintenance** › Restore, or **Restore all** for a batch. **Mod Backups** leads there through "Mod trash ›".
+- **Backups take too much space** — **Maintenance** › Free up space: choose how many to keep per mod (1, 3 or 5); they go to the Mac Trash. The automatic rule, stated at the top of the Installations segment, already keeps everything under 30 days old.
 - **An unreadable or stray folder disappeared from `Mods/`** — **Quarantine**: scans set aside what was in the way, nothing is deleted.
 - **A save** — **Game Saves**: a copy is made before each change.
 - **A full copy, kept apart** — **Maintenance** › Back up the Mods folder (paused mods included), or the archive icon of **Game Saves**: a `.zip` in the folder of your choice. The app checks the space, estimates the time, shows the progress; "Cancel" leaves nothing behind.

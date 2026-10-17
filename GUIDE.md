@@ -36,7 +36,7 @@ Pour passer à une nouvelle version de l'app, quittez-la complètement (⌘Q) av
 <!-- help: install -->
 ## 2. Installer des mods
 
-**Depuis une archive.** Glissez un `.zip`, `.7z` ou `.rar` sur la zone de dépôt de **Gestion des mods**. L'app reconnaît un mod seul ou un pack, annonce les dépendances manquantes et les conflits, puis installe.
+**Depuis une archive.** Glissez un `.zip`, `.7z` ou `.rar` sur la fenêtre de l'app, depuis n'importe quelle page, ou passez par **Fichier › Installer des mods…** (⌘O). L'app reconnaît un mod seul ou un pack, annonce les dépendances manquantes et les conflits, puis installe. Plusieurs archives déposées d'un coup s'enchaînent avec « Archive suivante ».
 
 **Depuis Nexus.** Avec un compte Premium, le bouton **Installer** télécharge directement. Avec un compte gratuit, la page Nexus s'ouvre : cliquez **Mod Manager Download**, l'app récupère l'archive.
 
@@ -56,7 +56,8 @@ Mettre un mod en pause renomme son dossier en le **préfixant d'un point** : `Mo
 - **Le Finder cache ces dossiers** (⇧⌘. les montre). Un mod « disparu » du jeu mais qui prend toujours de la place est presque toujours un mod en pause.
 - **Ne les supprimez pas à la main** : les dossiers à point de `Mods/` sont vos mods en pause, pas des fichiers cachés à nettoyer.
 - **Les mods livrés avec SMAPI** (ConsoleCommands, SaveBackup) restent actifs, et ni eux ni la sonde StarHubFR ne se suppriment depuis l'app : elle vous le dit si vous essayez.
-- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie.
+- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie ; à l'inverse, **Réactiver ces mods** remet en jeu les mods en pause qu'une partie utilise, dépendances comprises.
+- **Revenir en arrière.** Chaque bascule groupée, profil, recherche du mod responsable ou benchmark laisse un instantané : **Gestion des mods › ⏻ › Revenir à un état d'avant…** remet le parc comme il était. Une opération laissée en plan s'annonce sur l'**Accueil**, avec « Tout remettre comme avant ».
 
 <!-- help: profiles -->
 ## 4. Profils et groupes
@@ -65,6 +66,10 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 
 **Profils de mods.** Créez un profil vide, ou copiez les mods actifs du moment. Passer d'un profil à l'autre active et met en pause les mods d'un geste. Chaque profil peut garder ses propres réglages de mods (**Configuration par profil**) : en changeant de profil, vous retrouvez les `config.json` de ce profil.
 
+**Voir avant d'activer.** La colonne **Mods** d'un profil (ou **Aperçu…** de son menu) montre ce que l'activation ferait : dossiers à activer, à mettre en pause, conflits qu'elle rendrait actifs. Rien n'est renommé. La colonne **Configs** liste les configurations mémorisées et les compare au profil actif.
+
+**Un profil qui s'est mal passé se signale.** Une pastille orange sur sa rangée dit « Application interrompue », « Appliqué à moitié » ou « Configs non réécrites », avec le bouton qui règle le cas.
+
 **Groupes.** Dans **Gestion des mods**, « Regrouper par » vos groupes ou par catégorie. Un groupe se replie, s'active ou se met en pause d'un geste ; « Ranger dans » place une ligne ou une sélection dans un groupe.
 
 **Marque « à écarter ».** Un mod que vous voulez sortir de la circulation sans le désinstaller : il reste grisé et regroupé sous son filtre.
@@ -72,7 +77,7 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 <!-- help: updates -->
 ## 5. Mises à jour
 
-**Mise à jour des mods** vérifie tout votre parc sans compte ni clé, par smapi.io. Chaque mod concerné porte une pastille « ↑ version » dans la liste.
+**Mise à jour des mods** (⇧⌘U) vérifie tout votre parc sans compte ni clé, par smapi.io. Chaque mod concerné porte une pastille « ↑ version » dans la liste. Les mises à jour des mods en pause sont rangées à part, dans un groupe replié.
 
 - **Avant d'installer**, l'aperçu dit ce que la nouvelle version change : options de config ajoutées ou retirées, textes à traduire, mods actifs qui lisent son code interne.
 - **« Je l'ai déjà »** : pour un mod dont l'auteur publie sans changer le numéro de son manifeste. La ligne enregistre la version réellement installée et disparaît.
@@ -82,10 +87,11 @@ Un **profil** décrit un **état** : quels mods sont actifs. Un **groupe** décr
 <!-- help: troubleshooting -->
 ## 6. Quand le jeu plante ou qu'un mod refuse de charger
 
-1. Lancez le jeu via SMAPI, reproduisez le problème, puis ouvrez **Diagnostic & Performances › Santé**. L'app lit le journal SMAPI et dit quoi faire, en clair : dépendance à installer, mod en double, mod incompatible avec votre version du jeu.
+1. Lancez le jeu via SMAPI, reproduisez le problème, puis ouvrez **Diagnostic & Performances › Santé**. L'app lit le journal SMAPI et dit quoi faire, en clair : dépendance à installer, mod en double, mod incompatible avec votre version du jeu. Chaque conseil de « Ce que vous pouvez faire » porte son bouton ; il est grisé, avec la raison, si le journal date d'avant votre dernier changement.
 2. **Journal** montre les lignes elles-mêmes, regroupées par mod, les plus problématiques en tête.
 3. Si rien ne désigne de coupable, la carte **Trouver le mod responsable** met vos mods en pause par moitiés et vous pose une question à chaque relance. Une dizaine d'essais suffisent ; tout se remet comme avant en un clic.
-4. **Alertes système** regroupe ce qui demande votre attention sur tout le parc, en trois onglets : **Alertes** (dépendances manquantes, doublons, dossiers à réparer), **Raccourcis clavier** et **Conflits entre mods** (deux mods qui remplacent le même contenu).
+4. **Alertes système** regroupe ce qui demande votre attention sur tout le parc, en trois onglets : **Alertes** (dépendances manquantes, doublons, dossiers à réparer), **Raccourcis clavier** et **Conflits entre mods** (deux mods qui remplacent le même contenu). « Voir le mod » ouvre la fiche de chacun des mods en cause.
+5. **Une dépendance manque ou est en pause ?** L'onglet **Dépendances** de la fiche la met en tête, sous « À régler », avec « Activer » ou « Installer » ; le même geste est sur l'encart de la ligne dans la liste.
 
 Pour demander de l'aide, déposez `~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt` sur [smapi.io/log](https://smapi.io/log) et partagez le lien obtenu.
 
@@ -121,8 +127,8 @@ Ouvrez la fiche d'un mod, onglet **Traduction**.
 
 - **Anglais à gauche, français à droite**, clé par clé. Un mod sans `fr.json` en reçoit un au premier enregistrement.
 - **Les marqueurs du jeu** (noms de joueur, retours à la ligne, couleurs…) s'affichent en couleur et s'insèrent d'un clic. Une marque qui casse le jeu (commande de dialogue, `#` seul, `{{…}}`) perdue ou ajoutée bloque l'enregistrement, et l'app dit laquelle est manquante ou en trop. Un portrait, le nom du joueur (`@`) ou un saut de page déplacés s'affichent sous le champ, « À vérifier », sans bloquer.
-- **Brouillon par IA locale** : avec [Ollama](https://ollama.com) ou [LM Studio](https://lmstudio.ai) sur votre Mac, l'app propose une traduction marquée « À relire ». Rien ne quitte votre machine. Le glossaire des noms officiels du jeu est imposé au modèle.
-- **Traductions FR**, segment **À finir** : les traductions commencées et pas finies, ou à revoir, du plus gros reste au plus petit ; « Traduire » ouvre la fiche. Segment **Sur Nexus** : les traductions déjà publiées pour vos mods, souvent il suffit d'en installer une.
+- **Brouillon par IA locale** : avec [Ollama](https://ollama.com) ou [LM Studio](https://lmstudio.ai) sur votre Mac, l'app propose une traduction marquée « À relire ». Rien ne quitte votre machine. Le glossaire des noms officiels du jeu est imposé au modèle. Sans moteur réglé, le message d'échec mène à **Ouvrir les réglages de traduction**.
+- **Traductions FR**, segment **À finir** : les traductions commencées et pas finies, ou à revoir, du plus gros reste au plus petit ; « Traduire » ouvre la fiche. Segment **Sur Nexus** : les traductions déjà publiées pour vos mods, souvent il suffit d'en installer une. Un résultat qui ne correspond pas s'écarte d'un pouce baissé, et revient par « Écartés » en bas de page. Le badge de la barre latérale compte les mods actifs qui ont une traduction à poser ou à mettre à jour.
 
 Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour du mod ne l'écrase pas ; l'aperçu de mise à jour dit quelles clés sont à reprendre.
 
@@ -130,9 +136,10 @@ Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour d
 ## 10. Retrouver ce qui a été remplacé ou supprimé
 
 - **Une mise à jour a remplacé un mod, vous voulez l'ancienne version** — **Sauvegardes des mods** › Restaurer (le mod revient en pause).
-- **Un `config.json` a été réécrit** (éditeur de config, plan de raccourcis) — **Sauvegardes des mods** › Sauvegardes de configuration.
+- **Un `config.json` a été réécrit** (éditeur de config, plan de raccourcis) — dans l'éditeur, **Restaurer** propose les dernières versions ; ou **Sauvegardes des mods** › Configuration, rangé par mod : « Comparer » montre ce qui diffère avant de restaurer.
 - **Vous avez supprimé une sauvegarde de mod ou de configuration** — elle est dans la Corbeille du Mac tant que vous ne l'avez pas vidée ; elle ne revient pas dans la liste de l'app.
-- **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot.
+- **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot. **Sauvegardes des mods** y mène par « Corbeille des mods › ».
+- **Les sauvegardes prennent trop de place** — **Entretien** › Libérer de la place : choisissez combien en garder par mod (1, 3 ou 5), elles partent à la Corbeille du Mac. La règle automatique, dite en tête du segment Installations, garde déjà tout ce qui a moins de 30 jours.
 - **Un dossier illisible ou parasite a disparu de `Mods/`** — **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé.
 - **Une partie** — **Sauvegardes du jeu** : copie avant chaque modification.
 - **Une copie complète, à garder à part** — **Entretien** › Sauvegarder le dossier des mods (mods en pause compris), ou l'icône d'archive de **Sauvegardes du jeu** : un `.zip` dans le dossier de votre choix. L'app vérifie la place, estime la durée, montre l'avancement ; « Annuler » ne laisse rien derrière.
