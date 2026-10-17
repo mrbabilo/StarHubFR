@@ -44,6 +44,12 @@ final class SaveFingerprintPauseStore {
     /// bascule ne doit pas y entrer : elle écraserait `pending`.
     var isBusy: Bool { isChecking || pending != nil }
 
+    /// La lecture des saves en cours, pour la barre de la fenêtre : sans
+    /// elle, le geste restait plusieurs secondes sans rien montrer
+    /// (constat de l'auteur, 2026-10-17). `total` à 0 tant que la liste des
+    /// saves n'est pas lue.
+    private(set) var checkProgress: (done: Int, total: Int)?
+
     /// La reprise de la bascule suspendue (le renommage, au VM) et sa
     /// clôture (la complétion de la file). Tenues hors de `pending` : ce
     /// sont des fils de conduite, pas de l'état affiché.
@@ -61,23 +67,35 @@ final class SaveFingerprintPauseStore {
         abort: @escaping @MainActor () -> Void
     ) {
         isChecking = true
-        DispatchQueue.global().async { [weak self] in
+        checkProgress = (0, 0)
+        Task { [weak self] in
             // fetchSaves() est conçu pour les files de fond (SaveManager).
-            let saves = SaveManager.shared.fetchSaves()
-                .map { (name: $0.folderName, url: $0.fileURL) }
-            let report = SaveFingerprintReport.scanSaves(at: saves, modIDs: modIDs)
-            DispatchQueue.main.async { [weak self] in
-                guard let self else {
-                    abort()
-                    return
+            let saves = await Task.detached(priority: .userInitiated) {
+                SaveManager.shared.fetchSaves().map { (name: $0.folderName, url: $0.fileURL, modified: $0.lastModified) }
+            }.value
+            self?.checkProgress = (0, saves.count)
+            // Par le cache des fiches : une save déjà lue et non réécrite ne
+            // se relit pas, la résolution des ids du plan est instantanée.
+            var scans: [(name: String, scan: SaveFingerprintScan)] = []
+            for (index, save) in saves.enumerated() {
+                if let scan = await SaveFingerprintScanCache.scan(
+                    folderName: save.name, modified: save.modified, url: save.url) {
+                    scans.append((save.name, scan))
                 }
-                self.isChecking = false
-                guard !report.isEmpty else {
-                    resume()
-                    return
-                }
-                self.suspend(subject: subject, report: report, resume: resume, abort: abort)
+                self?.checkProgress = (index + 1, saves.count)
             }
+            let report = SaveFingerprintReport.report(scans: scans, modIDs: modIDs)
+            guard let self else {
+                abort()
+                return
+            }
+            self.isChecking = false
+            self.checkProgress = nil
+            guard !report.isEmpty else {
+                resume()
+                return
+            }
+            self.suspend(subject: subject, report: report, resume: resume, abort: abort)
         }
     }
 

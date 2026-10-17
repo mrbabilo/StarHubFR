@@ -36,7 +36,7 @@ final class SavePausedFootprintStore {
         if case .idle = state { state = .scanning }
         let url = save.fileURL
         Task {
-            let scan = await SaveFingerprintScanCache.shared.scan(
+            let scan = await SaveFingerprintScanCache.scan(
                 folderName: save.folderName, modified: save.lastModified, url: url)
             let entries = scan.map { SavePausedFootprints.entries(scan: $0, mods: mods) }
             guard demande == generation else { return }

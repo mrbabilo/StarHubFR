@@ -2759,3 +2759,4 @@
 "saves_paused_reactivate" = "Enable these mods (%lld)";
 "saves_paused_reactivate_packs" = "Enable these mods (%lld, %lld of them whole packs)";
 "saves_paused_reactivate_help" = "Puts these mods back in play, with their paused required dependencies when dependency chaining is on. “Go back to an earlier state” undoes it.";
+"saves_fingerprint_reading" = "Reading saves for what the mods being paused left in them…";

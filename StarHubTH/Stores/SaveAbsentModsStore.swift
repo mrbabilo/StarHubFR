@@ -45,7 +45,7 @@ final class SaveAbsentModsStore {
         lue = (save.folderName, date)
         let url = save.fileURL
         Task {
-            let scan = await SaveFingerprintScanCache.shared.scan(
+            let scan = await SaveFingerprintScanCache.scan(
                 folderName: save.folderName, modified: date, url: url)
             let entries = scan.map { SaveAbsentMods.entries(scan: $0, mods: mods) }
             guard demande == generation else { return }

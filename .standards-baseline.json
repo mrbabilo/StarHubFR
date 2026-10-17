@@ -1,7 +1,7 @@
 {
   "abbreviation_vm": 1417,
   "bare_L_calls": 14,
-  "dispatch_queue": 127,
+  "dispatch_queue": 125,
   "file:StarHubTH/BisectionRunner.swift": 458,
   "file:StarHubTH/L10n.swift": 2497,
   "file:StarHubTH/ModConfigBackupManager.swift": 595,
@@ -48,7 +48,7 @@
   "models_importing_swiftui": 0,
   "non_final_classes": 4,
   "observable_stored_without_private_set": 46,
-  "our_shared_singletons": 100,
+  "our_shared_singletons": 97,
   "oversized_excess_lines": 19527,
   "oversized_files": 42,
   "print_calls": 33,

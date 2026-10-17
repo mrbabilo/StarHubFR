@@ -5,4 +5,6 @@ extension L10n.Saves {
     static let pausedReactivate = "saves_paused_reactivate"
     static let pausedReactivatePacks = "saves_paused_reactivate_packs"
     static let pausedReactivateHelp = "saves_paused_reactivate_help"
+    /// Avant une mise en pause : la lecture des parties (A1-T8).
+    static let fingerprintReading = "saves_fingerprint_reading"
 }

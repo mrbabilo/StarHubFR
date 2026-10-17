@@ -321,7 +321,7 @@ public struct SaveFingerprintReport: Equatable, Sendable {
         modIDs: Set<String>
     ) -> SaveFingerprintReport {
         guard !modIDs.isEmpty else { return SaveFingerprintReport() }
-        var perSave: [String: FingerprintCounts] = [:]
+        var scans: [(name: String, scan: SaveFingerprintScan)] = []
         for save in saveFiles {
             let data: Data
             do {
@@ -330,7 +330,20 @@ public struct SaveFingerprintReport: Equatable, Sendable {
                 continue // illisible → hors rapport (contrat du docstring)
             }
             guard let scan = SaveFingerprintScanner.scan(data) else { continue }
-            let resolved = SaveFingerprintResolution.resolve(scan, modIDs: modIDs)
+            scans.append((save.name, scan))
+        }
+        return report(scans: scans, modIDs: modIDs)
+    }
+
+    /// Le même rapport sur des scans déjà faits : la lecture d'une save
+    /// (~10 s pour 37 Mo) se garde en cache (`SaveFingerprintScanCache`), la
+    /// résolution des ids du plan, elle, est instantanée.
+    public static func report(scans: [(name: String, scan: SaveFingerprintScan)],
+                              modIDs: Set<String>) -> SaveFingerprintReport {
+        guard !modIDs.isEmpty else { return SaveFingerprintReport() }
+        var perSave: [String: FingerprintCounts] = [:]
+        for save in scans {
+            let resolved = SaveFingerprintResolution.resolve(save.scan, modIDs: modIDs)
             var total = FingerprintCounts()
             for (_, counts) in resolved { total.add(counts) }
             if !total.isEmpty { perSave[save.name] = total }

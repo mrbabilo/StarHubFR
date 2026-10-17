@@ -5,10 +5,13 @@ import Foundation
 /// scanner 37 Mo de XML a été mesuré à ~10 s (Zofia, 2026-09-23) — les
 /// sections d'une même fiche ne doivent pas le payer deux fois.
 ///
-/// Une entrée suffit : une seule fiche de sauvegarde est affichée à la fois,
-/// et l'ancienne entrée redeviendrait de toute façon un simple re-scan. Les
-/// demandes **concurrentes** (les sections montent ensemble au premier
-/// affichage) partagent le même travail en cours au lieu de lire deux fois.
+/// Une entrée **par sauvegarde** (2026-10-17) : la vérification avant mise
+/// en pause (`SaveFingerprintPauseStore`) relit toutes les parties à chaque
+/// geste, et une seule entrée lui faisait repayer ~10 s par partie, sans
+/// rien à l'écran. Une entrée vaut tant que la save n'est pas réécrite (date
+/// de modification). Les demandes **concurrentes** (les sections montent
+/// ensemble au premier affichage) partagent le même travail en cours au lieu
+/// de lire deux fois.
 actor SaveFingerprintScanCache {
     static let shared = SaveFingerprintScanCache()
 
@@ -17,14 +20,20 @@ actor SaveFingerprintScanCache {
         let modified: Date
     }
 
-    private var cache: (key: Key, scan: SaveFingerprintScan?)?
+    private var cache: [String: (key: Key, scan: SaveFingerprintScan?)] = [:]
     private var enCours: [Key: Task<SaveFingerprintScan?, Never>] = [:]
+
+    /// Le point d'entrée des appelants : le cache partagé, sans qu'ils
+    /// aient à nommer l'instance.
+    static func scan(folderName: String, modified: Date, url: URL) async -> SaveFingerprintScan? {
+        await shared.scan(folderName: folderName, modified: modified, url: url)
+    }
 
     /// Le scan de la sauvegarde nommée, ou `nil` si elle est illisible —
     /// l'appelant affiche « illisible », rien n'est inventé.
     func scan(folderName: String, modified: Date, url: URL) async -> SaveFingerprintScan? {
         let key = Key(folderName: folderName, modified: modified)
-        if let hit = cache, hit.key == key { return hit.scan }
+        if let hit = cache[folderName], hit.key == key { return hit.scan }
         if let tache = enCours[key] { return await tache.value }
         let tache = Task.detached(priority: .userInitiated) { () -> SaveFingerprintScan? in
             // Illisible → nil : l'appelant affiche « illisible », rien n'est
@@ -39,7 +48,7 @@ actor SaveFingerprintScanCache {
         enCours[key] = tache
         let resultat = await tache.value
         enCours[key] = nil
-        cache = (key, resultat)
+        cache[folderName] = (key, resultat)
         return resultat
     }
 }

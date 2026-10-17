@@ -135,7 +135,7 @@ struct SaveCleanupSheet: View {
     /// Le scan est déjà en cache (la section vient de le lire) : pas de
     /// relecture des 37 Mo.
     private func chargerCandidats() async {
-        guard let scan = await SaveFingerprintScanCache.shared.scan(
+        guard let scan = await SaveFingerprintScanCache.scan(
             folderName: save.folderName, modified: modified, url: save.fileURL)
         else { return }
         let prefixe = "smapi/mod-data/"
