@@ -7653,3 +7653,13 @@ sans lire une ligne de log.
       lisent `FrenchTranslationSweepStore.entry(for:)` (`6c9fe474`). Le geste
       sur la fiche attend le composant de ligne unifié. En vérifiant : crash
       de Charts au re-balayage, l'anneau animé (`3054bb39`). Vérifié à l'écran.
+- [x] **I-T29 · P5-10** — *(livré le 2026-10-17)* Badge « Traductions FR »
+      dans la barre : les mods **actifs** (décision de l'auteur 12) dont la
+      traduction posée a une mise à jour, ou qui ont une traduction
+      confirmée ; jamais un résultat par le nom. Lu sur le cache, ne lance
+      aucune recherche. `FrenchTranslationSweep.callsForAction` (Core,
+      testé) ; page et badge lisent les mêmes lignes
+      (`FrenchTranslationLines+Live`, `8f0893a6`). Vu à l'écran : 0 caché
+      quand tous les résultats visent des mods en pause, 1 après
+      l'activation d'un mod. Pas d'infobulle de date : `SidebarItem` n'en
+      porte pas.
