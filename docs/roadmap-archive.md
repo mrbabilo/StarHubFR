@@ -7644,3 +7644,12 @@ sans lire une ligne de log.
       pastille dit « Actif » / « En pause » avec son glyphe, plus de fond
       orange (`c38041a9`). Vérifié à l'écran. Badge des actifs seulement :
       P5-6b, décision de l'auteur (L6).
+- [x] **I-T29 · P5-4** — *(livré le 2026-10-17)* Traductions FR : un pouce
+      baissé écarte un résultat « par nom » ou « lié, à vérifier » ; il ne
+      revient pas au re-balayage, un mod sans autre résultat passe à « Rien
+      trouvé », et « Écartés (n) » en bas de page les rétablit.
+      `TranslationHitVerdicts` (Core, testé, `translation_hit_verdicts.json`)
+      se lit au statut via `Entry.excluding`, jamais au cache ; page et fiche
+      lisent `FrenchTranslationSweepStore.entry(for:)` (`6c9fe474`). Le geste
+      sur la fiche attend le composant de ligne unifié. En vérifiant : crash
+      de Charts au re-balayage, l'anneau animé (`3054bb39`). Vérifié à l'écran.
