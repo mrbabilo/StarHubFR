@@ -147,7 +147,7 @@ struct SmapiHealthCard: View {
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .iconHelp(localization.L(L10n.Logs.healthReveal))
 
@@ -157,7 +157,7 @@ struct SmapiHealthCard: View {
                             .font(AppDesign.Font.caption(.medium))
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain).iconHelp(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
+                    .buttonStyle(.plain).focusRing().iconHelp(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
                     .pointingHandCursor()
                 }
             }
@@ -169,7 +169,7 @@ struct SmapiHealthCard: View {
                             userExpanded = true
                             scrollRequest = ScrollRequest(anchor: item.anchor)
                         } label: { countChip(item.count, item.label, item.color) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .pointingHandCursor()
                     }
                 }
@@ -446,7 +446,7 @@ struct SmapiHealthCard: View {
                                     .font(AppDesign.Font.footnote)
                                     .foregroundColor(.accentColor)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.plain).focusRing()
                             .pointingHandCursor()
                             .iconHelp(localization.L(L10n.Logs.healthShowSection))
                         }
@@ -523,7 +523,7 @@ struct SmapiHealthCard: View {
                 .frame(width: 20, height: 20)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
         .iconHelp(localization.L(help))
     }

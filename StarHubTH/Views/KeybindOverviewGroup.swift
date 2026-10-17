@@ -84,7 +84,7 @@ struct KeybindOverviewGroup: View {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain).iconHelp(localization.L(L10n.Discovery.clearSearch))
+                .buttonStyle(.plain).focusRing().iconHelp(localization.L(L10n.Discovery.clearSearch))
             }
         }
         .padding(.horizontal, AppDesignCore.Spacing.sm)

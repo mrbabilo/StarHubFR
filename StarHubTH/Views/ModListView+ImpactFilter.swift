@@ -62,7 +62,7 @@ extension ModListView {
                     .stroke(isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
         .help(localization.L(L10n.Mods.impactFilterLabel))
     }

@@ -22,7 +22,7 @@ struct ModListSectionHeader: View {
                 Image(systemName: page.section.collapsed ? "chevron.right" : "chevron.down")
                     .frame(width: 18, height: 18).contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .accessibilityLabel(title)
             Text(title).font(AppDesign.Font.headline(.semibold)).lineLimit(1)
             Text(String(format: localization.L(L10n.Mods.groupCount),

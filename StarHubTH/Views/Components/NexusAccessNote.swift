@@ -14,7 +14,7 @@ struct SettingsLinkButton: View {
             onOpen()
             navigation.openSettings(section)
         }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
     }
@@ -59,7 +59,7 @@ struct NexusAccessNote: View {
                         Label(localization.L(L10n.Updates.nexusGetKey), systemImage: "arrow.up.right")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.hoverLink)
+                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
                 }
             }
         }

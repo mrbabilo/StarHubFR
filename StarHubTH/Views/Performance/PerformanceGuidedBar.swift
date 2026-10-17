@@ -119,23 +119,23 @@ struct PerformanceGuidedBar: View {
             HStack(spacing: AppDesign.Spacing.sm) {
                 if pilotNow {
                     Button { open(piloted: true) } label: { Label(primaryTitle, systemImage: "autostart") }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).focusRing()
                         .help(localization.L(L10n.PerformancePilot.actionHelp))
                         .clickableCursor().disabled(startBlocked)
                     Button { open(piloted: false) } label: {
                         Label(localization.L(L10n.PerformancePilot.manual), systemImage: "play.circle")
                     }
-                    .buttonStyle(.bordered).help(localization.L(L10n.PerformancePilot.manual))
+                    .buttonStyle(.bordered).focusRing().help(localization.L(L10n.PerformancePilot.manual))
                     .clickableCursor().disabled(startBlocked)
                 } else {
                     Button { open(piloted: false) } label: { Label(primaryTitle, systemImage: "play.circle") }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).focusRing()
                         .help(primaryTitle).clickableCursor().disabled(startBlocked)
                     if pilotSupported {
                         Button { open(piloted: true) } label: {
                             Label(localization.L(L10n.PerformancePilot.action), systemImage: "autostart")
                         }
-                        .buttonStyle(.bordered).help(localization.L(L10n.PerformancePilot.actionHelp))
+                        .buttonStyle(.bordered).focusRing().help(localization.L(L10n.PerformancePilot.actionHelp))
                         .clickableCursor().disabled(true)
                     }
                 }

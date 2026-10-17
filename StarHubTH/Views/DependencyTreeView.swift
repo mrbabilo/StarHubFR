@@ -152,7 +152,7 @@ struct DependencyRowView: View {
                 Button(localization.L(L10n.Mods.nexusOpenPage)) {
                     if let url = URL(string: link) { NSWorkspace.shared.open(url) }
                 }
-                .buttonStyle(.borderless).controlSize(.small)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4).controlSize(.small)
                 .foregroundColor(.accentColor).pointingHandCursor()
             }
         }

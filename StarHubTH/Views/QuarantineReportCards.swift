@@ -231,7 +231,7 @@ struct RepairReportCard: View {
                             .appendingPathComponent(item.relativePath)
                         NSWorkspace.shared.activateFileViewerSelecting([full])
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.footnote)
                 }
             }

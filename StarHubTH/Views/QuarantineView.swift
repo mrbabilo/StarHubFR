@@ -102,7 +102,7 @@ struct QuarantineView: View {
         Button(action: { vm.refresh() }) {
             Label(localization.L(L10n.Quarantine.rescan), systemImage: "arrow.clockwise")
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing(cornerRadius: 5)
         .controlSize(.small)
         .help(localization.L(L10n.Quarantine.rescan))
         // `refresh()` est le « rafraîchissement manuel » établi — celui des
@@ -117,7 +117,7 @@ struct QuarantineView: View {
         Button(action: openQuarantineFolder) {
             Label(localization.L(L10n.Quarantine.openFolder), systemImage: "folder.fill")
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing(cornerRadius: 5)
         .controlSize(.small)
         .help(localization.L(L10n.Quarantine.openFolder))
         .disabled(quarantineDir == nil)
@@ -125,7 +125,7 @@ struct QuarantineView: View {
         Button(role: .destructive, action: { showEmptyConfirmation = true }) {
             Label(localization.L(L10n.Quarantine.emptyTrash), systemImage: "trash.fill")
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing(cornerRadius: 5)
         .controlSize(.small)
         .help(localization.L(L10n.Quarantine.emptyTrash))
         .disabled(quarantineDir == nil)

@@ -294,7 +294,7 @@ struct ModDetailView: View {
                           systemImage: "chevron.backward")
                         .font(AppDesign.Font.footnote)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
             }
             categoryTag
@@ -354,7 +354,7 @@ struct ModDetailView: View {
                         .font(.system(size: AppDesign.Icon.sm))
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain).iconHelp(help)
+                .buttonStyle(.plain).focusRing().iconHelp(help)
             } else {
                 Image(systemName: icon)
                     .font(.system(size: AppDesign.Icon.sm))
@@ -452,7 +452,7 @@ struct ModDetailView: View {
         } label: {
             Label(label, systemImage: icon).font(.footnote.weight(.medium))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .help(label)
         .foregroundStyle(Color.accentColor)
         .pointingHandCursor()
@@ -488,7 +488,7 @@ struct ModDetailView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(.rect)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .pointingHandCursor()
                     }
                 }
@@ -602,7 +602,7 @@ struct ModDetailView: View {
                     vm.resetModConfigToDefaults(live)
                     refreshConfigHolders()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .padding(.top, 2)
 
@@ -695,12 +695,12 @@ struct ModDetailView: View {
                     .frame(maxWidth: 120)
                     .onSubmit { commitDraft() }
                 Button(localization.L(L10n.Mods.nexusSave)) { commitDraft() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .disabled(!isValidDraft)
                 if vm.nexusCustomModIds[mod.folderName] != nil {
                     Button(localization.L(L10n.Mods.nexusReset), role: .destructive) { resetDraft() }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                         .controlSize(.small)
                         .foregroundColor(AppDesign.Color.error)
                 }
@@ -1079,7 +1079,7 @@ struct ModDetailView: View {
                         Button(localization.L(L10n.Conflicts.dismissButton)) {
                             vm.dismissConflict(pair)
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                         .pointingHandCursor()

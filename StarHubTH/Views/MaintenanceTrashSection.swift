@@ -79,7 +79,7 @@ struct MaintenanceTrashSection: View {
                                     expandedTrashEvents.insert(event.folderName)
                                 }
                             }
-                            .buttonStyle(.link)
+                            .buttonStyle(.link).focusRing(cornerRadius: 4)
                             .controlSize(.small)
                         }
                     }

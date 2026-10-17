@@ -62,7 +62,7 @@ struct ModKeybindField: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .help(localization.L(L10n.Settings.configKeybindChange))
 
@@ -79,7 +79,7 @@ struct ModKeybindField: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Settings.configKeybindClear))
             }
         }

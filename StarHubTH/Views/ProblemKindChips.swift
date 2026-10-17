@@ -42,7 +42,7 @@ struct ProblemKindChips: View {
                                       lineWidth: isSelected ? 1.5 : 0))
             .contentShape(.capsule)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
         .pointingHandCursor()
         .help(L(L10n.Mods.problemFilterHint))
         .accessibilityAddTraits(isSelected ? .isSelected : [])

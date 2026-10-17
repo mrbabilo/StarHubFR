@@ -62,7 +62,7 @@ struct SaveAbsentModsSection: View {
                 } label: {
                     Label(localization.L(L10n.Saves.cleanupButton), systemImage: "trash")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
             }
         } header: {
             Text(localization.L(L10n.Saves.absentModsTitle))

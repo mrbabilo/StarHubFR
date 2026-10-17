@@ -54,7 +54,7 @@ struct FrenchTranslationRow: View {
                 if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
                 Spacer()
                 Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
-                    .buttonStyle(.borderless).controlSize(.small).pointingHandCursor()
+                    .buttonStyle(.borderless).controlSize(.small).pointingHandCursor().focusRing(cornerRadius: 4)
             }
             switch status {
             case .available(let hits):
@@ -120,7 +120,7 @@ struct FrenchTranslationRow: View {
             // le bouton Nexus à côté relaie (avant : actif, puis modale d'erreur).
             let premiumOnly = viewModel.nexusDirectDownloadUnavailable
             Button(localization.L(action)) { viewModel.installTranslation(hit, into: mod) }
-                .buttonStyle(.bordered).controlSize(.small)
+                .buttonStyle(.bordered).controlSize(.small).focusRing(cornerRadius: 5)
                 .disabled(viewModel.translationHub.isBusy(mod.folderName) || premiumOnly)
                 .help(premiumOnly ? localization.L(L10n.Mods.premiumOnlyHint) : "")
                 .pointingHandCursor()
@@ -132,7 +132,7 @@ struct FrenchTranslationRow: View {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
                     .font(AppDesign.Font.footnote)
             }
-            .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
+            .buttonStyle(.bordered).controlSize(.small).pointingHandCursor().focusRing(cornerRadius: 5)
             if dismissable {
                 Button {
                     if !viewModel.translationSweep.dismiss(hit, for: candidate) {
@@ -144,7 +144,7 @@ struct FrenchTranslationRow: View {
                     Image(systemName: "hand.thumbsdown")
                         .frame(width: 18, height: 18).contentShape(.rect)
                 }
-                .buttonStyle(.borderless).pointingHandCursor()
+                .buttonStyle(.borderless).pointingHandCursor().focusRing(cornerRadius: 4)
                 .help(localization.L(L10n.FrTranslations.notThisOne))
                 .accessibilityLabel(localization.L(L10n.FrTranslations.notThisOne))
             }
@@ -179,7 +179,7 @@ struct DismissedTranslationHits: View {
                                                   + "n'a pas pu s'écrire", level: .warning)
                                 }
                             }
-                            .buttonStyle(.borderless).controlSize(.small).pointingHandCursor()
+                            .buttonStyle(.borderless).focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
                         }
                     }
                 }

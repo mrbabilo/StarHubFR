@@ -48,7 +48,7 @@ private struct HiddenCodeLinkRow: View {
             HStack(spacing: 6) {
                 if let target {
                     Button(target.name) { viewModel.navigationStore.setViewingModDetail(target) }
-                        .buttonStyle(.link)
+                        .buttonStyle(.link).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.body(.medium))
                         .help(link.target)
                 } else {

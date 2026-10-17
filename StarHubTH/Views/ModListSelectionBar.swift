@@ -87,7 +87,7 @@ struct ModListSelectionBar: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .help(localization.L(L10n.Mods.selectionClear))
                 .accessibilityLabel(localization.L(L10n.Mods.selectionClear))
             }

@@ -67,7 +67,7 @@ struct ModDetailActionBar: View {
                 } label: {
                     Label(localization.L(L10n.Settings.configModSettings), systemImage: "gearshape")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing()
                 .help(localization.L(L10n.Settings.configModSettings))
                 .pointingHandCursor()
             }
@@ -112,7 +112,7 @@ struct ModDetailActionBar: View {
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
-            .menuStyle(.borderlessButton)
+            .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
             .menuIndicator(.hidden)
             .fixedSize()
             .frame(minWidth: 18, minHeight: 18)
@@ -129,7 +129,7 @@ struct ModDetailActionBar: View {
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .foregroundColor(.red)
                 .disabled(vm.pendingDeleteFolder != nil)
                 .help(localization.L(L10n.Mods.deleteMod))
@@ -192,7 +192,7 @@ struct ModDetailActionBar: View {
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.borderless).focusRing(cornerRadius: 4)
         .help(localization.L(label))
         .accessibilityLabel(localization.L(label))
         .accessibilityAddTraits(isOn ? .isSelected : [])

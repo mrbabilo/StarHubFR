@@ -207,7 +207,7 @@ struct MaintenanceView: View {
                       systemImage: "paintbrush")
                     .font(AppDesign.Font.body(.medium))
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()

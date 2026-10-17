@@ -145,7 +145,7 @@ struct SaveCardView: View {
             // animations » ne coupe pas proprement — cohérent avec les cartes
             // Mods du pilote.
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.lg)
         .onHover { isHovered = $0 }
         .contextMenu {
             Button(localization.L(L10n.Saves.edit)) { vm.navigationStore.setEditingSave(save) }
@@ -207,7 +207,7 @@ struct SaveTreeListView: View {
                     }
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             
             if hasChildren && isExpanded {
                 SaveTreeListView(vm: vm, localization: localization, nodes: node.children, depth: depth + 1)
@@ -250,7 +250,7 @@ struct SaveRow: View {
                         .frame(width: 32, height: 32)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .help(localization.L(L10n.Saves.expandHint))
             } else {
                 Spacer().frame(width: 32)
@@ -311,7 +311,7 @@ struct SaveRow: View {
                     .contentShape(.rect)
                     .padding(.trailing, 4)
             }
-            .menuStyle(BorderlessButtonMenuStyle())
+            .menuStyle(BorderlessButtonMenuStyle()).focusRing(cornerRadius: 4)
             .help(localization.L(L10n.Saves.saveManagement))
             .frame(width: 30)
         }

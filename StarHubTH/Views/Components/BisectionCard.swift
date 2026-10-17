@@ -55,7 +55,7 @@ struct BisectionCard: View {
             } else {
                 Text(localization.L(L10n.Bisect.intro)).font(AppDesign.Font.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true) // tronqué en fenêtre étroite sinon
-                Button(localization.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent)
+                Button(localization.L(L10n.Bisect.start)) { runner.start() }.buttonStyle(.borderedProminent).focusRing()
             }
         }
     }
@@ -98,7 +98,7 @@ struct BisectionCard: View {
                     NSPasteboard.general.setString(items.sorted().joined(separator: "\n"),
                                                    forType: .string)
                 }
-                .buttonStyle(.borderless).controlSize(.small)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4).controlSize(.small)
             }
         } label: {
             Text("\(localization.L(title)) (\(items.count))").font(AppDesign.Font.caption)
@@ -159,7 +159,7 @@ struct BisectionCard: View {
                     Button(localization.L(L10n.Bisect.answerNo)) { runner.answer(.fixed) }
                 } trailing: {
                     Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
-                        .buttonStyle(.borderless).foregroundColor(.secondary)
+                        .buttonStyle(.borderless).focusRing(cornerRadius: 4).foregroundColor(.secondary)
                 }
             }
         }
@@ -281,14 +281,14 @@ struct BisectionCard: View {
                 Button(localization.L(L10n.Bisect.showMod)) {
                     NotificationCenter.default.post(name: .jumpToMod, object: folder)
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.link).focusRing(cornerRadius: 4)
                 // Masqué plutôt que grisé quand le mod n'a pas de lien : rien à
                 // faire de l'information « ce mod n'est pas sur Nexus » ici.
                 if !nexus.isEmpty {
                     Button(localization.L(L10n.Bisect.openNexus)) {
                         if let url = URL(string: nexus) { NSWorkspace.shared.open(url) }
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                 }
             }
             .font(AppDesign.Font.caption)
@@ -333,7 +333,7 @@ struct BisectionCard: View {
                         } label: {
                             Image(systemName: "arrow.right.circle")
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .iconHelp(localization.L(L10n.Bisect.showMod))
                     }
                     if let sample = suspect.sample {
@@ -377,7 +377,7 @@ struct BisectionCard: View {
                                                       dateStyle: .short, timeStyle: .short)))
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
             Button(localization.L(L10n.Bisect.restore)) { runner.restoreAndStop() }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(runner.isApplying)
         }
     }

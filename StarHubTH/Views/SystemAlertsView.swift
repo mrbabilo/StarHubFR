@@ -198,7 +198,7 @@ struct SystemAlertsView: View {
                     viewModel.navigationStore.diagnosticsSegment = .health
                     currentTab = .logs
                 }
-                .buttonStyle(.hoverLink)
+                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.footnote)
             }
         }
@@ -283,7 +283,7 @@ struct SystemAlertsView: View {
     private func actionButtons(for action: HealthIssue.Action) -> some View {
         let premiumNexusId: Int? = if case .reinstallFromNexus(let id) = action, viewModel.nexusDirectDownloadUnavailable { id } else { nil }
         Group {
-            Button(actionLabel(for: action)) { perform(action) }
+            Button(actionLabel(for: action)) { perform(action) }.focusRing(cornerRadius: 4)
                 .disabled(premiumNexusId != nil)
                 .help(premiumNexusId != nil ? localization.L(L10n.Mods.premiumOnlyHint) : "")
             if let premiumNexusId {
@@ -291,7 +291,7 @@ struct SystemAlertsView: View {
                     NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: premiumNexusId))
                 } label: {
                     Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                }
+                }.focusRing(cornerRadius: 4)
             }
         }
         .lineLimit(1)
@@ -384,7 +384,7 @@ struct SystemAlertsView: View {
             Button(action: { viewModel.refreshSmapiLog() }) {
                 Label(localization.L(L10n.Updates.recheckLog), systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
             .disabled(viewModel.isRefreshingSmapiLog)

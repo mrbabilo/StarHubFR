@@ -179,13 +179,13 @@ private struct ReportContent: View {
                     // canal SANS discard : fichier original de l'utilisateur.
                     vm.queueNextDropArchive()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .keyboardShortcut(.defaultAction)
             } else {
                 Button(localization.L(L10n.InstallReport.done)) {
                     vm.dismissInstallReport()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing(cornerRadius: 8)
                 .keyboardShortcut(.defaultAction) // I-T5 : Entrée conclut le bilan
                 .controlSize(.large)
             }
@@ -303,7 +303,7 @@ private struct DeltaRow: View {
             Button(localization.L(L10n.Mods.updateDeltaOpenDetail)) {
                 vm.openReportDetail(for: delta.folderName, door: .installReport)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.link).focusRing(cornerRadius: 4)
             .font(AppDesign.Font.caption)
         }
     }

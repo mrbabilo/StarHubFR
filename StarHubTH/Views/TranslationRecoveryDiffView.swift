@@ -80,7 +80,7 @@ struct TranslationRecoveryDiffView: View {
                                               in: file)
                     isPresented = false
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(selected.isEmpty)
                 Spacer()
                 Button(localization.L(L10n.Main.ok)) { isPresented = false }
@@ -102,7 +102,7 @@ struct TranslationRecoveryDiffView: View {
         Button(localization.L(L10n.Recovery.selectAll)) {
             selected = selected.count == recoverable.count ? [] : Set(recoverable.map(\.key))
         }
-        .buttonStyle(.link)
+        .buttonStyle(.link).focusRing(cornerRadius: 4)
         .font(AppDesign.Font.footnote)
     }
 

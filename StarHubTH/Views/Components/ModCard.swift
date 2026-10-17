@@ -99,7 +99,7 @@ struct ModCard: View {
                 RoundedRectangle(cornerRadius: AppDesign.Radius.section)
                     .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.section)
     }
 
     /// Le rectangle gris couvre l'absence d'image, l'attente et l'échec de

@@ -26,7 +26,7 @@ struct KeybindConfigButton: View {
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(PlainButtonStyle()).focusRing()
         .pointingHandCursor()
         .help(settingsLabel)
         .accessibilityLabel(settingsLabel)

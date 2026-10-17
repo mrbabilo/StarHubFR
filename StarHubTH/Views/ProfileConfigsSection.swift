@@ -61,14 +61,14 @@ struct ProfileConfigsSection: View {
         let managed = viewModel.isProfileConfigManaged(mod)
         Group {
             if profile.id != viewModel.activeProfileId {
-                Button(localization.L(L10n.Profiles.configCompareActive)) { onCompare(mod, profile) }
+                Button(localization.L(L10n.Profiles.configCompareActive)) { onCompare(mod, profile) }.focusRing(cornerRadius: 5)
             } else {
                 Menu(localization.L(L10n.Mods.profileConfigCompare)) {
                     ForEach(others) { other in
                         Button(other.name) { onCompare(mod, other) }
                     }
                 }
-                .fixedSize()
+                .fixedSize().focusRing(cornerRadius: 5)
                 .disabled(others.isEmpty)
             }
         }

@@ -144,7 +144,7 @@ private struct SaveHeroBand: View {
                     .foregroundColor(.white.opacity(0.9))
                     .shadow(color: .black.opacity(0.6), radius: 2)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             // Cible 18×18 : le glyphe nu rendrait `.help` muet (a11y §7).
             .frame(width: 18, height: 18)
             .contentShape(.rect)
@@ -289,7 +289,7 @@ struct SaveEditorView: View {
                     Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
                         .font(AppDesign.Font.footnote(.medium))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .foregroundColor(.accentColor)
                 Spacer()
@@ -328,7 +328,7 @@ struct SaveEditorView: View {
                                                     .foregroundColor(iconPath == key ? .accentColor : .secondary)
                                             }
                                         }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(.plain).focusRing()
                                         .help(localization.L(label))
                                     }
                                 }
@@ -341,7 +341,7 @@ struct SaveEditorView: View {
                                     iconPath = path
                                 }
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                             .controlSize(.small)
                             
                             if !iconPath.isEmpty {
@@ -350,7 +350,7 @@ struct SaveEditorView: View {
                                     SaveNotesStore.shared.setNote(for: save.folderName,
                                         tag: noteTag, note: noteText, customIconPath: nil)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.plain).focusRing()
                                 .foregroundColor(.secondary)
                                 .controlSize(.small)
                             }
@@ -435,7 +435,7 @@ struct SaveEditorView: View {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.plain).focusRing()
                                 .help(localization.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
@@ -457,7 +457,7 @@ struct SaveEditorView: View {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.plain).focusRing()
                                 .help(localization.L(L10n.Saves.clearSlotHint))
                                 .padding(.leading, 8)
                             }
@@ -467,7 +467,7 @@ struct SaveEditorView: View {
                     Button(localization.L(L10n.Saves.saveInventory)) {
                         confirmedOrWarn(vm.saveInventory)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
                     .padding(.top, 8)
                 }
                 
@@ -502,7 +502,7 @@ struct SaveEditorView: View {
                     confirmedOrWarn(performSave)
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(BorderedProminentButtonStyle())
+                .buttonStyle(BorderedProminentButtonStyle()).focusRing()
             }
             .padding(20)
         }

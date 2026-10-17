@@ -28,7 +28,7 @@ struct FrenchTranslationsWorklist: View {
                     Text(String(format: localization.L(L10n.FrTranslations.worklistUntranslated), untranslated))
                         .foregroundColor(.secondary)
                     Button(localization.L(L10n.FrTranslations.worklistSearchNexus), action: showNexus)
-                        .buttonStyle(.link).pointingHandCursor()
+                        .buttonStyle(.link).focusRing(cornerRadius: 4).pointingHandCursor()
                 }
                 .font(AppDesign.Font.footnote)
             }
@@ -72,7 +72,7 @@ struct FrenchTranslationsWorklist: View {
                     .foregroundColor(AppDesign.Color.accent)
             }
             Button(localization.L(L10n.Profiles.translationOpen)) { open(item.folderName) }
-                .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5).controlSize(.small).pointingHandCursor()
         }
         .cardSurface(padding: AppDesign.Spacing.sm)
     }

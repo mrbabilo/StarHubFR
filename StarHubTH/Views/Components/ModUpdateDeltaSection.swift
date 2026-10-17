@@ -97,7 +97,7 @@ struct ModUpdateDeltaSection: View {
                         Button(localization.L(L10n.Mods.updateDeltaRenamedReportConfig)) {
                             showReportConfigConfirm = true
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.link).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.caption)
                         .pointingHandCursor()
                     }
@@ -105,7 +105,7 @@ struct ModUpdateDeltaSection: View {
                         Button(localization.L(L10n.Mods.updateDeltaRenamedReportTranslation)) {
                             showReportTranslationConfirm = true
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.link).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.caption)
                         .pointingHandCursor()
                     }
@@ -232,7 +232,7 @@ struct ModUpdateDeltaSection: View {
                 Button("\(keys.count - shown)…") {
                     more()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.link).focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.footnote)
                 .pointingHandCursor()
             }
@@ -249,7 +249,7 @@ struct ModUpdateDeltaSection: View {
                 Button(localization.L(L10n.Mods.updateDeltaOpenConfig)) {
                     onOpenConfig()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.link).focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.caption)
                 .pointingHandCursor()
             }
@@ -257,7 +257,7 @@ struct ModUpdateDeltaSection: View {
                 Button(localization.L(L10n.Mods.updateDeltaOpenTranslation)) {
                     onOpenTranslation()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.link).focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.caption)
                 .pointingHandCursor()
             }

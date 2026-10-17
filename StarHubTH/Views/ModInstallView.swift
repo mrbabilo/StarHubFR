@@ -100,7 +100,7 @@ struct ModInstallView: View {
                             .font(.system(size: AppDesign.Font.scaled(18)))
                             .foregroundColor(AppDesign.Color.dimmedSecondary(0.6))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     .iconHelp(localization.L(L10n.Saves.cancel))
                 }
@@ -111,7 +111,7 @@ struct ModInstallView: View {
                         guard !isAnalyzing, !isInstalling else { return }
                         showFilePicker = true
                     } label: { dropZone }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                 } else {
                     InstallPreview(
@@ -297,7 +297,7 @@ struct ModInstallView: View {
                     isPresented = false
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing(cornerRadius: 8)
             .controlSize(.large)
         }
         .padding(AppDesignCore.Spacing.xl)

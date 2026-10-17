@@ -92,7 +92,7 @@ struct ProfileRow: View {
                     .frame(width: 70, alignment: .center)
             } else if !isActive {
                 Button(localization.L(L10n.Profiles.activate)) { onApply() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .disabled(vm.isApplyingProfile)
                     .pointingHandCursor()
@@ -100,7 +100,7 @@ struct ProfileRow: View {
 
             // Manage → apply this profile and jump to the Mods page to edit it.
             Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(vm.isApplyingProfile)
                 .pointingHandCursor()
@@ -127,7 +127,7 @@ struct ProfileRow: View {
                     .font(.system(size: AppDesign.Font.scaled(15)))
                     .foregroundColor(.secondary)
             }
-            .menuStyle(.borderlessButton)
+            .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
             .fixedSize()
             .help(localization.L(L10n.Mods.moreActions))
         }
@@ -177,7 +177,7 @@ struct ProfileRow: View {
                            value: "\(modCount)",
                            help: localization.L(L10n.ProfilePreview.columnHelp))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .pointingHandCursor()
             Button { onShowDetails(nil) } label: {
                 StatColumn(label: localization.L(L10n.Profiles.colIssues),
@@ -186,7 +186,7 @@ struct ProfileRow: View {
                            help: String(format: localization.L(L10n.Profiles.issuesBadge),
                                         Int64(issueCount)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .pointingHandCursor()
             // Orange s'il retient des configs de mods désinstallés : la
             // feuille les nomme (la ligne qui le disait sous la rangée est partie).
@@ -196,7 +196,7 @@ struct ProfileRow: View {
                            attention: !configs.orphans.isEmpty,
                            help: localization.L(L10n.Profiles.configColumnHelp))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .disabled(configs.total == 0)
             .pointingHandCursor()
         }
@@ -234,7 +234,7 @@ struct ProfileRow: View {
                 .fixedSize()
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .pointingHandCursor()
             .help(String(format: localization.L(L10n.Profiles.frBadgeHint),
                          Int64(summary.translatableCount),

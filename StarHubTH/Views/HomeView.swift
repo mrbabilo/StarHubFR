@@ -134,7 +134,7 @@ struct HomeView: View {
                 Label(localization.L(L10n.Main.launchGame), systemImage: "play.fill")
                     .frame(maxWidth: 240)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing(cornerRadius: 8)
             .controlSize(.large)
             .tint(.green)
 
@@ -225,7 +225,7 @@ private struct AttentionCounterTile: View {
             .padding(.vertical, AppDesign.Spacing.md)
             .cardSurface(padding: 0)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.lg)
         // Un arrêt « Mise à jour des mods, 11 », pas le nom du symbole puis
         // le chiffre puis le libellé.
         .accessibilityLabel(label)

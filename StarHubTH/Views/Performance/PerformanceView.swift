@@ -73,7 +73,7 @@ struct PerformanceView: View {
                                     .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                             } trailing: {
                                 Button(localization.L(L10n.PerformanceEvidence.compare)) { comparing = true }
-                                    .buttonStyle(.bordered).controlSize(.small).clickableCursor()
+                                    .buttonStyle(.bordered).focusRing(cornerRadius: 5).controlSize(.small).clickableCursor()
                             }
                         }
                     }

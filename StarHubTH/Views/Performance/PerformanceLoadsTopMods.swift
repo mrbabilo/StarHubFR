@@ -50,7 +50,7 @@ struct PerformanceLoadsTopMods: View {
                     .lineLimit(3).multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.hoverLink)
+            .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
             .disabled(head == nil)
             .frame(width: Self.nameWidth, alignment: .leading)
             bar(total).frame(height: 10)
@@ -80,7 +80,7 @@ struct PerformanceLoadsTopMods: View {
                     .frame(width: 18, height: 18)
                     .contentShape(.rect)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.borderless).focusRing(cornerRadius: 4)
             .clickableCursor()
             .help(localization.L(L10n.Performance.actionPause))
             .accessibilityLabel(localization.L(L10n.Performance.actionPause))
@@ -99,7 +99,7 @@ struct PerformanceLoadsTopMods: View {
                     .frame(width: 18, height: 18)
                     .contentShape(.rect)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.borderless).focusRing(cornerRadius: 4)
             .clickableCursor()
             .disabled(viewModel.benchmark.isActive)
             .help(localization.L(L10n.Performance.benchmarkThisMod))

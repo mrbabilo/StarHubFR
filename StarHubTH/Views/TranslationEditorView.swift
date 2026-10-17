@@ -221,7 +221,7 @@ struct TranslationEditorView: View {
                                 .background(Color.accentColor.opacity(0.12))
                                 .cornerRadius(4)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing(cornerRadius: 4)
                         .pointingHandCursor()
                     }
                 }
@@ -252,7 +252,7 @@ struct TranslationEditorView: View {
                         .background(Color.accentColor.opacity(0.15))
                         .cornerRadius(4)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing(cornerRadius: 4)
                 .pointingHandCursor()
                 .help(proposal)
             }
@@ -301,7 +301,7 @@ struct TranslationEditorView: View {
                             .background(Color.green.opacity(0.12))
                             .cornerRadius(4)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing(cornerRadius: 4)
                     .pointingHandCursor()
                     .help("\(localization.L(L10n.Mods.translationEditorGlossary)) : \(entry.en) → \(entry.fr)")
                 }

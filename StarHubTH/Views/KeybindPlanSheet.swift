@@ -222,20 +222,20 @@ struct KeybindPlanSheet: View {
     @ViewBuilder private var footerButtons: some View {
         if canUndo {
             Button(localization.L(L10n.KeybindPlan.undo), action: undo)
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing()
                 .disabled(gameRunning || busy)
                 .help(localization.L(L10n.KeybindPlan.undoHint))
         }
         if showsRecompute {
             Button(localization.L(L10n.KeybindPlan.recompute), action: recompute)
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing()
                 .disabled(scanService.report == nil || scanService.isScanning)
         }
         Button(localization.L(L10n.KeybindPlan.close)) { dismiss() }
             .keyboardShortcut(.cancelAction)
         if readyMoves?.isEmpty == false {
             Button(localization.L(L10n.KeybindPlan.apply), action: apply)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(!canApply)
                 .help(localization.L(L10n.KeybindPlan.applyHint))
         }

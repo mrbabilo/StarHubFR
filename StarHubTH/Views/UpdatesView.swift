@@ -172,7 +172,7 @@ struct UpdatesView: View {
                                             } label: {
                                                 OpenDetailIcon()
                                             }
-                                            .buttonStyle(.plain)
+                                            .buttonStyle(.plain).focusRing()
                                             .pointingHandCursor()
                                             .help(localization.L(L10n.Updates.affirmedOpenModHelp))
                                             .accessibilityLabel(localization.L(L10n.Updates.affirmedOpenMod))
@@ -181,7 +181,7 @@ struct UpdatesView: View {
                                             } label: {
                                                 ActionIcon(symbol: "eye")
                                             }
-                                            .buttonStyle(.plain)
+                                            .buttonStyle(.plain).focusRing()
                                             .pointingHandCursor()
                                             .help(localization.L(L10n.Updates.affirmedRevealHelp))
                                             .accessibilityLabel(localization.L(L10n.Updates.affirmedReveal))
@@ -227,7 +227,7 @@ struct UpdatesView: View {
                                                 Text(localization.L(L10n.Updates.snoozedWake))
                                                     .font(AppDesign.Font.footnote)
                                             }
-                                            .buttonStyle(.plain)
+                                            .buttonStyle(.plain).focusRing()
                                             .pointingHandCursor()
                                         }
                                     }
@@ -319,7 +319,7 @@ struct UpdatesView: View {
                                                 .background(Color.primary.opacity(0.1))
                                                 .cornerRadius(6)
                                         }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(.plain).focusRing()
                                         .pointingHandCursor()
                                     }
                                 }

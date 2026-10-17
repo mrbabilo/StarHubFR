@@ -30,7 +30,7 @@ struct TranslationNote: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if let link {
                     Button(link, action: action)
-                        .buttonStyle(.hoverLink)
+                        .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.footnote)
                 }
             }

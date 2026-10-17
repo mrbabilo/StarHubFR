@@ -36,7 +36,7 @@ struct ModConfigBackupRow: View {
                         }
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
 
                 Spacer()
@@ -45,7 +45,7 @@ struct ModConfigBackupRow: View {
                     Image(systemName: "trash")
                         .foregroundColor(.red.opacity(0.8))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .help(localization.L(L10n.ModConfigBackups.deleteBackup))
             }
@@ -62,12 +62,12 @@ struct ModConfigBackupRow: View {
                     HStack(spacing: AppDesign.Spacing.sm) {
                         Button(localization.L(L10n.ModConfigBackups.checkAll)) {
                             selectedItemIds = Set(items.filter { $0.configOnly != nil }.map(\.id))
-                        }
-                        Button(localization.L(L10n.ModConfigBackups.checkNone)) { selectedItemIds = [] }
+                        }.focusRing(cornerRadius: 5)
+                        Button(localization.L(L10n.ModConfigBackups.checkNone)) { selectedItemIds = [] }.focusRing(cornerRadius: 5)
                         Spacer()
                         Button(String(format: localization.L(L10n.ModConfigBackups.restoreCount), selectedItemIds.count),
                                action: onRestoreSelected)
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.borderedProminent).focusRing()
                             .disabled(selectedItemIds.isEmpty)
                     }
                     .buttonStyle(.bordered).controlSize(.small)

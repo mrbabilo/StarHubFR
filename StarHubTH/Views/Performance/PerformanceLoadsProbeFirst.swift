@@ -46,7 +46,7 @@ struct PerformanceLoadsProbeFirst: View {
                    color: status == .notAsked ? AppDesign.Color.accent : AppDesign.Color.paused,
                    text: L10n.Performance.loadsProbeNotFirst) {
                 Button(localization.L(L10n.Performance.loadsProbeFirstAction)) { confirm = true }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing()
                     .clickableCursor()
             }
         case .active:

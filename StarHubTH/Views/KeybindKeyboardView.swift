@@ -300,7 +300,7 @@ struct KeybindSurfaceButton<Content: View>: View {
             }
         if used {
             Button { showing = true } label: { content.contentShape(shape) }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 // Survol : la touche se soulève un peu — une seule animation,
                 // qui respecte « réduire les animations » (`Motion`).

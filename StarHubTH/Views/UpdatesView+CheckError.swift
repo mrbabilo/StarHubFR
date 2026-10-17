@@ -129,7 +129,7 @@ private struct UnverifiableRow: View {
                 }
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .pointingHandCursor()
             .help(localization.L(row.blocker.labelKey))
             .accessibilityHint(localization.L(L10n.Mods.openDetails))

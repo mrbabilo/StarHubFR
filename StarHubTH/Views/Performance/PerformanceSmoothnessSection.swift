@@ -147,7 +147,7 @@ struct PerformanceSmoothnessSection: View {
                     ForEach(marks) { mark in
                         Button { selectedId = mark.id } label: {
                             Text(markText(mark)).frame(maxWidth: .infinity, alignment: .leading)
-                        }.buttonStyle(.plain).font(AppDesign.Font.footnote)
+                        }.buttonStyle(.plain).focusRing().font(AppDesign.Font.footnote)
                     }
                 }
             }.frame(maxHeight: 220)

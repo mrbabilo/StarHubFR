@@ -85,7 +85,7 @@ struct ActivationHistorySection: View {
                     .frame(width: 18, height: 18)
                     .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .help(localization.L(snapshot.pinned ? L10n.ActivationHistory.unpinHelp
                                                  : L10n.ActivationHistory.pinHelp))
             VStack(alignment: .leading, spacing: 2) {

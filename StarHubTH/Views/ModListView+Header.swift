@@ -108,7 +108,7 @@ extension ModListView {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 // Cible 18×18 + contentShape : un glyphe nu de ~12 pt rend
                 // `.help` muet (contrainte a11y du lot).
                 .frame(width: 18, height: 18)
@@ -160,7 +160,7 @@ extension ModListView {
                              Int64(vm.missingDependenciesPlan.count)),
                       systemImage: "shippingbox.and.arrow.backward")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing()
             .help(localization.L(L10n.Mods.depsSheetTitle))
         }
 
@@ -169,7 +169,7 @@ extension ModListView {
         } label: {
             Label(localization.L(L10n.ModInstall.installButton), systemImage: "plus.circle")
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.borderedProminent).focusRing()
         .help(localization.L(L10n.ModInstall.installButton))
     }
 
@@ -245,7 +245,7 @@ extension ModListView {
                 .background(Color.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
             .pointingHandCursor()
             .help(localization.L(L10n.Profiles.title))
             .accessibilityLabel(String(format: localization.L(L10n.Profiles.activeLabel), profile.name))

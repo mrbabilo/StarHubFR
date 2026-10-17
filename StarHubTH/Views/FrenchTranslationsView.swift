@@ -129,7 +129,7 @@ struct FrenchTranslationsView: View {
                             Label(localization.L(L10n.FrTranslations.rescan),
                                   systemImage: "magnifyingglass")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                         .controlSize(.small)
                         .disabled(all.isEmpty)
                         .help(localization.L(L10n.FrTranslations.rescanHint))
@@ -140,8 +140,8 @@ struct FrenchTranslationsView: View {
                         } label: {
                             Image(systemName: "ellipsis.circle")
                         }
-                        .menuStyle(.borderlessButton)
-                        .frame(width: 20, height: 20)
+                        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
+                        .frame(width: 20, height: 20).focusRing(cornerRadius: 4)
                         .contentShape(.rect)
                         .controlSize(.small)
                         .disabled(all.isEmpty)

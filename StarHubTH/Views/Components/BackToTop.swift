@@ -208,7 +208,7 @@ struct BackToTopButton: View {
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .background(.regularMaterial, in: Circle())
         .overlay(Circle().stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
         .shadow(color: .black.opacity(AppDesign.Opacity.medium), radius: 3, y: 1)

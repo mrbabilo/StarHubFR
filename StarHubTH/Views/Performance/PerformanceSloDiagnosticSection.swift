@@ -247,7 +247,7 @@ struct PerformanceSloDiagnosticSection: View {
                 Button(localization.L(L10n.PerformanceSloDiagnostic.launch)) {
                     pendingPreparation = nil
                     Task { await store.start(preparation, runtime: runtime()) }
-                }.buttonStyle(.borderedProminent)
+                }.buttonStyle(.borderedProminent).focusRing()
             }
         }.padding(AppDesign.Spacing.xl).frame(minWidth: 460, maxWidth: 620)
     }

@@ -109,7 +109,7 @@ struct ModHealthSummary: View {
 
         if entry.status.needsAttention {
             Button { onSelect(entry.check) } label: { content }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .helpIfPresent(hint(entry))
         } else {

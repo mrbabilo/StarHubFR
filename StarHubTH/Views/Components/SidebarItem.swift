@@ -56,7 +56,7 @@ struct SidebarItem: View {
                           : (isHovered ? Color.primary.opacity(AppDesign.Opacity.subtle) : Color.clear))
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
         .onHover { isHovered = $0 }
         .pointingHandCursor()
         .accessibilityLabel(accessibilityText)

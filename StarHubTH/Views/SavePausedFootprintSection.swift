@@ -89,7 +89,7 @@ struct SavePausedFootprintSection: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
         .help(localization.L(L10n.Saves.pausedFootprintsOpenHint))
     }

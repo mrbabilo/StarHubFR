@@ -269,7 +269,7 @@ struct SpoilerView: View {
                 .background(Color.primary.opacity(0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
 
             if isExpanded {
                 DescriptionBlocksView(blocks: blocks, vm: vm, localization: localization)

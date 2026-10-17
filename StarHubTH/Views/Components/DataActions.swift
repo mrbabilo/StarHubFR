@@ -15,13 +15,13 @@ struct SavesDataActions: View {
         Button(action: { vm.openSavesFolder() }) {
             Image(systemName: "folder").font(AppDesign.Font.caption)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing()
         .iconHelp(localization.L(L10n.Settings.savesFolder))
 
         Button(action: { archive = .saves(localization) }) {
             Image(systemName: "archivebox").font(AppDesign.Font.caption)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing()
         .iconHelp(localization.L(L10n.Settings.hintCompressSaves))
         .sheet(item: $archive) { FolderArchiveSheet(localization: localization, request: $0) }
     }
@@ -53,12 +53,12 @@ struct MaintenanceModActions: View {
                 } label: {
                     Label(localization.L(L10n.Settings.clearDisabledMods), systemImage: "trash")
                 }
-                .help(localization.L(L10n.Settings.clearDisabledMods))
+                .help(localization.L(L10n.Settings.clearDisabledMods)).focusRing(cornerRadius: 5)
 
                 Button(action: archiveMods) {
                     Label(localization.L(L10n.Settings.backupMods), systemImage: "archivebox")
                 }
-                .help(localization.L(L10n.Settings.hintCompressMods))
+                .help(localization.L(L10n.Settings.hintCompressMods)).focusRing(cornerRadius: 5)
             }
         }
         .buttonStyle(.bordered)

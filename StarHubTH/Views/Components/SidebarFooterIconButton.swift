@@ -24,7 +24,7 @@ struct SidebarFooterIconButton: View {
                 .clipShape(Capsule())
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
         .pointingHandCursor()
         .iconHelp(title)
         .accessibilityAddTraits(isActive ? .isSelected : [])

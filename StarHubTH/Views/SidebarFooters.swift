@@ -71,7 +71,7 @@ struct NexusDownloadFooter: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(AppDesign.Font.footnote)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .foregroundStyle(.secondary)
                     .pointingHandCursor()
                     .help(localization.L(L10n.Downloads.cancel))

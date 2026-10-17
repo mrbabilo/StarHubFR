@@ -44,7 +44,7 @@ struct EmptyStateDropZone: View {
                     .foregroundColor(AppDesign.Color.accent.opacity(isHovered ? AppDesign.Opacity.subtle : 0))
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(PlainButtonStyle()).focusRing(cornerRadius: AppDesign.Radius.lg)
         .accessibilityLabel(localization.L(L10n.ModInstall.emptyTitle))
         .accessibilityHint(localization.L(L10n.ModInstall.emptyHint))
         .onHover { isHovered = $0 }

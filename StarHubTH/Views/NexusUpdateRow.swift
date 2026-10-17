@@ -28,7 +28,7 @@ struct NexusUpdateRow: View {
                         Button(update.name) {
                             vm.navigationStore.openModDetail(folderName: mod.folderName, door: .nexusUpdate)
                         }
-                        .buttonStyle(.hoverLink)
+                        .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.rowTitle(.semibold))
                     } else {
                         Text(update.name)

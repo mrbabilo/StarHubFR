@@ -85,7 +85,7 @@ struct TranslationSectionIndexView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
     }
 

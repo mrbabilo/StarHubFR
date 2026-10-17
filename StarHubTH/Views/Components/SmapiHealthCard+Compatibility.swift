@@ -107,7 +107,7 @@ extension SmapiHealthCard {
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .iconHelp(link.label)
             }

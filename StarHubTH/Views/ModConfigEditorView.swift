@@ -258,7 +258,7 @@ struct ModConfigEditorView: View {
                 Button(action: { configText = originalText; isInvalidJson = false; parseToVisual() }) {
                     Text(localization.L(L10n.Settings.configReset))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing()
                 .disabled(configText == originalText)
                 
                 Button(localization.L(L10n.Saves.saveChanges)) {
@@ -267,7 +267,7 @@ struct ModConfigEditorView: View {
                     }
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(configText == originalText || isInvalidJson)
             }
             .padding(.horizontal, 20)
@@ -803,7 +803,7 @@ struct ModConfigEditorView: View {
                             // reste muet, la cible ne recevant pas le survol.
                             .frame(width: 18, height: 18)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(PlainButtonStyle()).focusRing()
                     .help(String(format: localization.L(L10n.Settings.configResetToDefault),
                                  defaultLabel(of: defaultControl, in: row)))
                     .accessibilityLabel(String(format: localization.L(L10n.Settings.configResetToDefault),

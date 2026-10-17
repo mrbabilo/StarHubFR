@@ -37,7 +37,7 @@ struct ModCompatibilityCard: View {
                 Spacer(minLength: AppDesign.Spacing.sm)
                 if case .attention = verdict {
                     Button(localization.L(L10n.ModCompat.seeHealth), action: onShowHealth)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                         .controlSize(.small)
                         .pointingHandCursor()
                 }

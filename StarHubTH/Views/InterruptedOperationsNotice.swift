@@ -29,7 +29,7 @@ struct InterruptedOperationsNotice: View {
                             Text(label(operation)).font(AppDesign.Font.body)
                         } trailing: {
                             Button(localization.L(L10n.Bisect.restore)) { restore(operation) }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                                 .controlSize(.small)
                                 .disabled(isRestoring(operation))
                         }

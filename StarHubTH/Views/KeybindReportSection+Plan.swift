@@ -9,7 +9,7 @@ extension KeybindReportSection {
             Label(localization.L(L10n.KeybindPlan.propose), systemImage: "wand.and.stars")
                 .lineLimit(1)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bordered).focusRing(cornerRadius: 5)
         .controlSize(.small)
         .pointingHandCursor()
         .disabled(service.report == nil || service.isScanning || noGameDir)

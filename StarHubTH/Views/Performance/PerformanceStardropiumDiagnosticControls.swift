@@ -169,7 +169,7 @@ struct PerformanceStardropiumDiagnosticControls: View {
                 Button(localization.L(L10n.PerformanceSloDiagnostic.launch)) {
                     preparation = nil
                     Task { await store.start(value, runtime: runtime()) }
-                }.buttonStyle(.borderedProminent)
+                }.buttonStyle(.borderedProminent).focusRing()
             }
         }.padding(AppDesign.Spacing.xl).frame(minWidth: 460, maxWidth: 620)
     }

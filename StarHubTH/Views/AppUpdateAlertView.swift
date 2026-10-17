@@ -32,7 +32,7 @@ struct AppUpdateAlertView: View {
                     }
                     vm.acknowledgeRelease(release)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
             }
         }
         .padding(24)

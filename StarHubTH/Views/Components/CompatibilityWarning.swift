@@ -91,7 +91,7 @@ struct CompatibilityBanner: View {
                             Button(link.label) {
                                 if let url = URL(string: link.url) { NSWorkspace.shared.open(url) }
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                             .controlSize(.small)
                             .pointingHandCursor()
                         }

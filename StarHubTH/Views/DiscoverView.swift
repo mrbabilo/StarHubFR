@@ -93,7 +93,7 @@ struct DiscoverView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .iconHelp(localization.L(L10n.Discovery.clearSearch))
             }
         } trailing: {
@@ -184,7 +184,7 @@ struct DiscoverView: View {
         HStack(spacing: 8) {
             ForEach(ModCatalog.SectionKind.allCases, id: \.self) { kind in
                 Button(title(for: kind)) { jumpTarget = kind }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                     .font(.caption)
             }
         }
@@ -346,9 +346,9 @@ private struct ProminentButton: ViewModifier {
 
     @ViewBuilder func body(content: Content) -> some View {
         if prominent {
-            content.buttonStyle(.borderedProminent)
+            content.buttonStyle(.borderedProminent).focusRing()
         } else {
-            content.buttonStyle(.bordered)
+            content.buttonStyle(.bordered).focusRing()
         }
     }
 }

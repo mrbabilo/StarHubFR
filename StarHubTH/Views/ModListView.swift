@@ -509,7 +509,7 @@ struct ModListView: View {
                     Image(systemName: "chevron.left")
                         .font(AppDesign.Font.iconXS(.semibold))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(page == 1)
                 .iconHelp(localization.L(L10n.Mods.prevPageHint))
@@ -535,7 +535,7 @@ struct ModListView: View {
                                         .fill(n == page ? Color.accentColor : Color.secondary.opacity(0.08))
                                 )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing(cornerRadius: 5)
                         .pointingHandCursor()
                     }
                 }
@@ -546,7 +546,7 @@ struct ModListView: View {
                     Image(systemName: "chevron.right")
                         .font(AppDesign.Font.iconXS(.semibold))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(page >= totalPages)
                 .iconHelp(localization.L(L10n.Mods.nextPageHint))

@@ -50,7 +50,7 @@ struct PerformanceOverlapSection: View {
                 HStack(spacing: AppDesign.Spacing.sm) {
                     Text(String(format: localization.L(L10n.Conflicts.dismissedCount), hidden))
                     Button(localization.L(L10n.PerformanceOverlaps.restore)) { dismissedRaw = "" }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                         .pointingHandCursor()
                 }
                 .font(AppDesign.Font.footnote)
@@ -70,7 +70,7 @@ struct PerformanceOverlapSection: View {
                 Button(localization.L(L10n.Conflicts.dismissButton)) {
                     dismissedRaw = PerformanceOverlapDismissals.dismissing(match.overlap.key, in: dismissedRaw)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(.secondary)
                 .pointingHandCursor()
@@ -180,7 +180,7 @@ struct PerformanceOverlapDetailRows: View {
                             Button(localization.L(L10n.Conflicts.dismissButton)) {
                                 dismissedRaw = PerformanceOverlapDismissals.dismissing(match.overlap.key, in: dismissedRaw)
                             }
-                            .buttonStyle(.borderless)
+                            .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                             .pointingHandCursor()

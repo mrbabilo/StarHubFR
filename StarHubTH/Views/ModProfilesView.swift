@@ -149,7 +149,7 @@ struct ModProfilesView: View {
             PageHeader(icon: "person.2.fill", title: localization.L(L10n.Profiles.title),
                        subtitle: headerSummary) {
                 Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
                     .pointingHandCursor()
             }
             .padding(.horizontal, AppDesign.Spacing.xl)
@@ -167,7 +167,7 @@ struct ModProfilesView: View {
                             .font(AppDesign.Font.body)
                             .foregroundColor(.secondary)
                         Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.borderedProminent).focusRing()
                             .pointingHandCursor()
                     }
                     .frame(maxWidth: .infinity)

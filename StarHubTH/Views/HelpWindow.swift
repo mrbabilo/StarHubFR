@@ -21,7 +21,7 @@ struct HelpWindow: View {
                 Button { target = section.id } label: {
                     Text(Self.inline(section.title)).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 230)
         } detail: {

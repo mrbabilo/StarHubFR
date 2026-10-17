@@ -94,7 +94,7 @@ struct MetricTile: View {
     var body: some View {
         if let action {
             Button(action: action) { content }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
                 .helpIfPresent(help)

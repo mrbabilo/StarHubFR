@@ -56,7 +56,7 @@ struct TranslationArbitrationSheet: View {
                         write()
                     }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
                     .disabled(writing || totalWritable == 0)
                 }
             }

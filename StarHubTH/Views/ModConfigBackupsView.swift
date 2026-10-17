@@ -124,7 +124,7 @@ struct ModConfigBackupsView: View {
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             if let modFilter {
                 Button { self.modFilter = nil } label: { Label(modFilter, systemImage: "xmark.circle.fill") }
-                    .buttonStyle(.bordered).controlSize(.small)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5).controlSize(.small)
                     .help(localization.L(L10n.Backups.configFilterClear))
             }
 
@@ -140,7 +140,7 @@ struct ModConfigBackupsView: View {
                     Text(localization.L(isBusy ? L10n.ModConfigBackups.creatingBackup : L10n.ModConfigBackups.createBackup))
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .disabled(isBusy || createDisabledReason != nil)
             .help(createDisabledReason ?? "")

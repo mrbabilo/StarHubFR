@@ -40,7 +40,7 @@ struct ModConfigBackupsByMod: View {
                 }
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain).pointingHandCursor()
+            .buttonStyle(.plain).focusRing().pointingHandCursor()
             .padding(.horizontal, 14).padding(.vertical, 10)
 
             if isOpen {
@@ -54,13 +54,13 @@ struct ModConfigBackupsByMod: View {
                         }
                     } trailing: {
                         if version.item.configOnly != nil {
-                            Button(localization.L(L10n.ModConfigBackups.compare)) { compare(version) }
+                            Button(localization.L(L10n.ModConfigBackups.compare)) { compare(version) }.focusRing(cornerRadius: 5)
                             Button(localization.L(L10n.ModConfigBackups.restoreVersion)) {
                                 restore(version.backup, version.item)
-                            }
+                            }.focusRing(cornerRadius: 5)
                         } else {
                             Button(localization.L(L10n.ModConfigBackups.translationsOnly), action: showRecoverable)
-                                .buttonStyle(.link).font(AppDesign.Font.footnote)
+                                .buttonStyle(.link).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
                         }
                     }
                     .buttonStyle(.bordered).controlSize(.small)

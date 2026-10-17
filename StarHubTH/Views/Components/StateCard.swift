@@ -21,7 +21,7 @@ struct StateCard: View {
             Text(text).font(AppDesign.Font.body).foregroundStyle(.secondary)
             Spacer(minLength: AppDesign.Spacing.sm)
             if let actionTitle {
-                Button(actionTitle, action: action).buttonStyle(.link)
+                Button(actionTitle, action: action).buttonStyle(.link).focusRing(cornerRadius: 4)
             }
         }
         .padding(AppDesign.Spacing.md)

@@ -49,7 +49,7 @@ struct DuplicateSaveSheet: View {
                     }
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(vm.isSaveOperationRunning)
             }
         }
@@ -123,7 +123,7 @@ struct BranchBackupSheet: View {
                     }
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .disabled(vm.isSaveOperationRunning)
             }
         }

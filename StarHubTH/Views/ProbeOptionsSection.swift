@@ -63,7 +63,7 @@ struct ProbeOptionsSection: View {
                         Button(localization.L(L10n.Mods.probeOptionsRepair)) {
                             write(repair: true)
                         }
-                        .buttonStyle(.bordered).controlSize(.small)
+                        .buttonStyle(.bordered).focusRing(cornerRadius: 5).controlSize(.small)
                     }
                 }
             }

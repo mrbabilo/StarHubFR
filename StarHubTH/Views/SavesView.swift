@@ -46,7 +46,7 @@ struct SavesView: View {
                         Image(systemName: "arrow.clockwise")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing()
                     .iconHelp(localization.L(L10n.Saves.reloadHint))
                     SavesDataActions(vm: vm, localization: localization) // sorti des Réglages
                 }
@@ -105,7 +105,7 @@ struct SavesView: View {
                                 Button(action: { vm.navigationStore.setEditingSave(save) }) {
                                     SaveRow(vm: vm, localization: localization, save: save, depth: 0, hasChildren: false, isExpanded: false, onToggleExpand: nil)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.plain).focusRing()
                             }
                         }
                     }
@@ -175,7 +175,7 @@ struct SavesView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .frame(width: 18, height: 18)
                 .contentShape(.rect)
                 .iconHelp(localization.L(L10n.Discovery.clearSearch))
@@ -211,7 +211,7 @@ struct SavesView: View {
                       text: sortLabel,
                       prominent: false)
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
     }
 
@@ -235,7 +235,7 @@ struct SavesView: View {
                       text: vm.saveFilterTag.isEmpty ? localization.L(L10n.Saves.filterTag) : vm.saveFilterTag,
                       prominent: !vm.saveFilterTag.isEmpty)
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
     }
 

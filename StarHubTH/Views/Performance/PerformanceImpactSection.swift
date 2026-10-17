@@ -56,7 +56,7 @@ struct PerformanceImpactSection: View {
                     VStack(alignment: .leading, spacing: 3) {
                         SplitRow {
                             Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id, door: .performance) }
-                                .buttonStyle(.hoverLink).help(row.name)
+                                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).help(row.name)
                         } trailing: { Text(valueText(row.value)).monospacedDigit() }
                         if let value = row.value {
                             ProgressView(value: value, total: max(ranked.first?.value ?? 1, 1))
@@ -76,7 +76,7 @@ struct PerformanceImpactSection: View {
             if ranked.count > 10 {
                 Button(showAll ? localization.L(L10n.Performance.impactShowLess)
                                : String(format: localization.L(L10n.Performance.impactShowAll), ranked.count)) { showAll.toggle() }
-                    .buttonStyle(.hoverLink)
+                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
             }
             footer
         }

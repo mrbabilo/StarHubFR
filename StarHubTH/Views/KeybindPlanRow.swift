@@ -106,7 +106,7 @@ struct KeybindPlanFamilyMenu: View {
                 .font(AppDesign.Font.caption)
                 .lineLimit(1)
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
         .help(localize(L10n.KeybindPlan.familyHint))
     }

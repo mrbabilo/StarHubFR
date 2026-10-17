@@ -19,7 +19,7 @@ struct PerformanceCostsSection: View {
                     Button { open(row.modId) } label: {
                         Text(PerformanceFormatting.modName(row.modId, viewModel: viewModel))
                             .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
-                    }.buttonStyle(.hoverLink).help(row.modId)
+                    }.buttonStyle(.hoverLink).focusRing(cornerRadius: 4).help(row.modId)
                     bar(row.before, side: .before, maximum: maximum)
                     bar(row.after, side: .after, maximum: maximum)
                     if let delta = row.delta {
@@ -30,7 +30,7 @@ struct PerformanceCostsSection: View {
             if report.costRows.count > 8 {
                 Button(showAll ? localization.L(L10n.Performance.impactShowLess)
                        : String(format: localization.L(L10n.Performance.impactShowAll), report.costRows.count)) { showAll.toggle() }
-                    .buttonStyle(.hoverLink)
+                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
             }
         }
     }

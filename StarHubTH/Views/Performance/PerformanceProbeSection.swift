@@ -44,7 +44,7 @@ struct PerformanceProbeSection: View {
                 Button(localization.L(L10n.Performance.probeEnable)) {
                     if let mod = mod(named: folderName) { viewModel.toggleMod(mod) }
                 }
-                .buttonStyle(.bordered).pointingHandCursor()
+                .buttonStyle(.bordered).focusRing().pointingHandCursor()
             case .enabled(_, let version):
                 Label(String(format: localization.L(L10n.Performance.probeEnabled), version),
                       systemImage: AppDesign.Status.ok.symbol)
@@ -88,7 +88,7 @@ struct PerformanceProbeSection: View {
     @ViewBuilder private var installButton: some View {
         if let title = title(action) {
             Button(title) { failure = nil; pending = action }
-                .buttonStyle(.borderedProminent).pointingHandCursor()
+                .buttonStyle(.borderedProminent).focusRing().pointingHandCursor()
         } else if action == .unavailable, probe == .absent {
             note(localization.L(L10n.Performance.probeUnavailable))
         }

@@ -98,7 +98,7 @@ struct AccountHeaderCard: View {
                             lineWidth: 1)
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(PlainButtonStyle()).focusRing(cornerRadius: FocusRing.capsule)
         .pointingHandCursor()
         .help(localization.L(L10n.Main.home))
         .accessibilityElement(children: .combine)

@@ -128,7 +128,7 @@ struct ModInstallBackupsView: View {
                         .font(AppDesign.Font.caption)
                         .foregroundColor(AppDesign.Color.secondary)
                 }
-                .buttonStyle(.plain).iconHelp(localization.L(L10n.Main.close))
+                .buttonStyle(.plain).focusRing().iconHelp(localization.L(L10n.Main.close))
                 .pointingHandCursor()
             }
             StatColumn(label: localization.L(L10n.ModInstall.labelName), value: report.modName)
@@ -153,7 +153,7 @@ struct ModInstallBackupsView: View {
                 NSWorkspace.shared.activateFileViewerSelecting(
                     [URL(fileURLWithPath: report.destinationPath)])
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing()
             .pointingHandCursor()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,7 +208,7 @@ struct ModInstallBackupsView: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain).iconHelp(localization.L(L10n.Discovery.clearSearch))
+                    .buttonStyle(.plain).focusRing().iconHelp(localization.L(L10n.Discovery.clearSearch))
                 }
             }
             .padding(.horizontal, 8)
@@ -235,7 +235,7 @@ struct ModInstallBackupsView: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
             Button(action: loadBackups) { Image(systemName: "arrow.clockwise") }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .iconHelp(localization.L(L10n.ModInstall.refreshBackups))
         }
@@ -320,7 +320,7 @@ struct ModInstallBackupsView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .pointingHandCursor()
 
             if isExpanded {
@@ -397,7 +397,7 @@ struct ModInstallBackupsView: View {
                         Image(systemName: "arrow.uturn.backward")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
                     .iconHelp(localization.L(L10n.ModInstall.restoreBackup))
@@ -408,7 +408,7 @@ struct ModInstallBackupsView: View {
                         Image(systemName: "trash")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .disabled(busyBackupId != nil)
                     .iconHelp(localization.L(L10n.ModInstall.deleteBackup))

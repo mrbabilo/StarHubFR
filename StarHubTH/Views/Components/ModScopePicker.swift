@@ -48,7 +48,7 @@ struct ModScopePicker: View {
                     .fill(selected ? Color.accentColor.opacity(0.22) : .clear))
                 .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: 5)
         .foregroundColor(selected ? .primary : .secondary)
         .help(title)
         .accessibilityLabel(title)

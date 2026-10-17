@@ -75,7 +75,7 @@ struct ModEndorseButton: View {
                 .frame(minHeight: 18)
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .disabled(actionable == nil || actionable.map { viewModel.endorsementStore.inFlight.contains($0) } == true)
             .help(helpText(count: count, endorsed: endorsed, actionable: actionable != nil))
             .accessibilityLabel(helpText(count: count, endorsed: endorsed, actionable: actionable != nil))

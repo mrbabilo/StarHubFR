@@ -40,7 +40,7 @@ struct DiagnosticsHealthView: View {
                     } trailing: {
                         Button(localization.L(L10n.Performance.healthOpen)) {
                             viewModel.navigationStore.openPerformance()
-                        }.buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
+                        }.buttonStyle(.hoverLink).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
                     }
                     .padding(.horizontal, Self.padding).padding(.vertical, AppDesign.Spacing.sm)
                 }
@@ -77,7 +77,7 @@ struct DiagnosticsHealthView: View {
                     // Le segment d'abord : il survit au changement d'onglet.
                     viewModel.navigationStore.alertsSegment = .alerts
                     viewModel.navigationStore.requestTab(.systemAlerts)
-                }.buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
+                }.buttonStyle(.hoverLink).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
             }
             .padding(.horizontal, Self.padding).padding(.vertical, AppDesign.Spacing.sm)
             Divider()

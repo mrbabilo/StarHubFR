@@ -75,13 +75,13 @@ struct OnboardingView: View {
             Spacer()
             if step == .welcome {
                 Button(localization.L(L10n.Onboarding.start)) { advance() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
             } else if step == .done {
                 Button(localization.L(L10n.Onboarding.finish), action: onFinish)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
             } else {
                 Button(localization.L(L10n.Onboarding.next)) { advance() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
             }
         }
         .padding(.horizontal, AppDesign.Spacing.lg)
@@ -216,7 +216,7 @@ struct OnboardingView: View {
             } else {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                     Button(localization.L(L10n.Home.installSmapi)) { viewModel.installSmapi() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).focusRing()
                         .disabled(smapiInstaller.isInstalling)
                     if smapiInstaller.isInstalling {
                         ProgressView(value: smapiInstaller.progress, total: 1.0)
@@ -256,7 +256,7 @@ struct OnboardingView: View {
                         viewModel.setNexusApiKey(trimmed)
                         apiKeyInput = ""
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
                     .disabled(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

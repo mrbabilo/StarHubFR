@@ -86,7 +86,7 @@ struct LocalAISettingsSection: View {
                                     .font(AppDesign.Font.footnote)
                                     .foregroundColor(.accentColor)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.plain).focusRing()
                             .pointingHandCursor()
                         }
                     }
@@ -110,7 +110,7 @@ struct LocalAISettingsSection: View {
                                         Button(name) { model = name }
                                     }
                                 }
-                                .menuStyle(.borderlessButton)
+                                .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
                                 .fixedSize()
                             }
                         }
@@ -292,7 +292,7 @@ struct LocalAISettingsSection: View {
                                 fallbackUsage = nil
                                 fallbackTestError = nil
                             }
-                            .buttonStyle(.link)
+                            .buttonStyle(.link).focusRing(cornerRadius: 4)
                         }
                     } else {
                         Text(localization.L(L10n.Settings.fallbackNeedsKey))
@@ -418,7 +418,7 @@ struct LocalAISettingsSection: View {
                     Button(localization.L(L10n.Settings.localAIInstallOllama)) {
                         NSWorkspace.shared.open(url)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .foregroundColor(.accentColor)
                     .font(AppDesign.Font.footnote)
                     .pointingHandCursor()

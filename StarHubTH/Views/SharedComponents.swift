@@ -154,7 +154,7 @@ struct InfoPopoverButton: View {
                 .foregroundColor(color)
                 .font(AppDesign.Font.caption)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(PlainButtonStyle()).focusRing()
         .pointingHandCursor()
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             Text(verbatim: text)

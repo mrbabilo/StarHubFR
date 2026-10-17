@@ -53,7 +53,7 @@ struct RecoverableFilesView: View {
                         .font(AppDesign.Font.footnote(.medium))
                     Spacer()
                     Button(localization.L(L10n.Recovery.showAll)) { self.modFilter = nil }
-                        .buttonStyle(.hoverLink)
+                        .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.footnote)
                 }
                 .padding(.horizontal, AppDesign.Spacing.xl)
@@ -155,21 +155,21 @@ struct RecoverableFilesView: View {
             // entier coûterait au traducteur ce qu'il a écrit depuis.
             if file.relativePath.hasPrefix("i18n/") {
                 Button(localization.L(L10n.Recovery.compareKeys)) { comparing = file }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
             }
             // L'aperçu avant l'écriture : on n'écrase pas un fichier du dossier
             // d'un mod sans avoir montré ce qu'on y met.
             Button(localization.L(L10n.Recovery.preview)) { togglePreview(file) }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .pointingHandCursor()
             // Rien à remplacer quand le fichier installé n'a rien perdu : le
             // proposer inviterait à écraser le plus récent par le plus ancien.
             if file.reason != .translationDiffers {
                 Button(localization.L(L10n.Recovery.recover)) { viewModel.recoverFile(file) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
             }
@@ -200,7 +200,7 @@ struct RecoverableFilesView: View {
                     viewModel.revealProtectedBackup(atPath: path)
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         }

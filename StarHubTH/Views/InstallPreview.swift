@@ -240,7 +240,7 @@ struct InstallPreview: View {
                         .font(AppDesign.Font.iconXS(.medium))
                         .foregroundColor(.accentColor)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
             }
 
@@ -342,7 +342,7 @@ struct InstallPreview: View {
             Button(localization.L(L10n.ModInstall.cancel)) {
                 onCancel()
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing()
             .disabled(isInstalling)
 
             Spacer()
@@ -360,7 +360,7 @@ struct InstallPreview: View {
                     onInstall(Array(selected))
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing()
             .keyboardShortcut(.defaultAction) // I-T5 : Entrée installe
             .disabled(selectedCount == 0 || isInstalling)
 
@@ -525,8 +525,8 @@ struct DependencyRow: View {
             }
             .foregroundColor(.accentColor)
         }
-        .menuStyle(.button)
-        .buttonStyle(.plain)
+        .menuStyle(.button).focusRing(cornerRadius: 4)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
     }
 
@@ -661,7 +661,7 @@ struct DetectedModRow: View {
                 Image(systemName: "info.circle")
                     .foregroundColor(.secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing()
             .iconHelp(localization.L(L10n.ModInstall.detailsHint))
         }
         .padding()

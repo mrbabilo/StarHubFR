@@ -53,7 +53,7 @@ struct HeroHeader: View {
                         .font(.system(size: AppDesign.Icon.sm))
                         .foregroundStyle(.white.opacity(AppDesign.Opacity.secondary))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(closeHelp)
                 .padding(AppDesign.Spacing.sm)
             }

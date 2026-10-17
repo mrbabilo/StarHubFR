@@ -16,7 +16,7 @@ struct ErrorBanner: View {
                 .foregroundStyle(Color.orange)
             Text(text).font(AppDesign.Font.caption)
             Spacer(minLength: AppDesign.Spacing.sm)
-            Button(actionTitle, action: action).buttonStyle(.link)
+            Button(actionTitle, action: action).buttonStyle(.link).focusRing(cornerRadius: 4)
         }
         .padding(.horizontal, AppDesign.Spacing.md)
         .padding(.vertical, AppDesign.Spacing.sm)

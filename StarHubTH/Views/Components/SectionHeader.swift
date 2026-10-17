@@ -20,7 +20,7 @@ struct SectionHeader: View {
                 .font(.caption).foregroundStyle(.secondary)
             if let moreTitle {
                 Button(moreTitle, action: more)
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                     .disabled(moreDisabled)
             }
         }

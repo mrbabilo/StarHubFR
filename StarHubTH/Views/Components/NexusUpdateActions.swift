@@ -35,7 +35,7 @@ struct NexusUpdateActions: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .foregroundStyle(.secondary)
                     .pointingHandCursor()
                     .help(localization.L(L10n.Downloads.cancel))
@@ -48,7 +48,7 @@ struct NexusUpdateActions: View {
                     } label: {
                         Label(localization.L(L10n.Mods.premiumUpdate), systemImage: "arrow.down.circle")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing()
                     // Désactivé quand on **sait** que le
                     // compte n'est pas premium : l'API
                     // refuse alors tout lien direct
@@ -77,7 +77,7 @@ struct NexusUpdateActions: View {
                         .background(Color.primary.opacity(0.1))
                         .cornerRadius(6)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(PlainButtonStyle()).focusRing()
                 .pointingHandCursor()
                 .help(localization.L(L10n.Mods.nexusUpdate))
                 .disabled(vm.isDownloadingFromNexus)
@@ -94,7 +94,7 @@ struct NexusUpdateActions: View {
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(PlainButtonStyle()).focusRing()
                 .pointingHandCursor()
                 .help(localization.L(L10n.Updates.nexusAlreadyHaveHelp))
 
@@ -135,7 +135,7 @@ struct NexusUpdateActions: View {
                         .cornerRadius(6)
                 }
                 .help(localization.L(L10n.Updates.snoozeButton))
-                .menuStyle(.borderlessButton)
+                .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .pointingHandCursor()

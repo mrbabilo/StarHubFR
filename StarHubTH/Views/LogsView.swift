@@ -180,7 +180,7 @@ struct LogsView: View {
                     if !searchText.isEmpty {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusRing()
                          .iconHelp(localization.L(L10n.Logs.clearSearchHint))
                     }
                 }
@@ -202,7 +202,7 @@ struct LogsView: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Logs.autoScrollHint))
 
                 // Copy
@@ -222,7 +222,7 @@ struct LogsView: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Logs.copyAll))
 
                 // Group by mod
@@ -236,7 +236,7 @@ struct LogsView: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Logs.groupByMod))
 
                 // Reload SMAPI log (loadSmapiLog replaces existing SMAPI entries)
@@ -252,7 +252,7 @@ struct LogsView: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Logs.refreshHint))
 
                 // Clear app logs (destructive — confirmed via dialog below)
@@ -488,7 +488,7 @@ struct LogsView: View {
                         .fill(Color.primary.opacity(0.05))
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing(cornerRadius: 4)
             .pointingHandCursor()
 
             if isExpanded {
@@ -520,7 +520,7 @@ struct LogsView: View {
             .foregroundColor(isSelected ? .white : .secondary)
             .cornerRadius(AppDesignCore.Radius.sm)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesignCore.Radius.sm)
     }
 
     @ViewBuilder
@@ -554,7 +554,7 @@ struct LogsView: View {
                             lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: 5)
     }
 }
 
@@ -609,7 +609,7 @@ struct LogGroupRow: View {
                         .fill(Color.primary.opacity(0.03))
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).focusRing(cornerRadius: 4)
             .pointingHandCursor()
             .help(localization.L(L10n.Logs.similarLinesHint))
 
@@ -670,7 +670,7 @@ struct LogEntryRow: View {
                             .background(Color.accentColor.opacity(AppDesignCore.Opacity.light))
                             .cornerRadius(AppDesignCore.Radius.sm)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing(cornerRadius: AppDesignCore.Radius.sm)
                     .pointingHandCursor()
                 }
 

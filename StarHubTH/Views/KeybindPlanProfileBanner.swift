@@ -31,13 +31,13 @@ struct KeybindPlanProfileBanner: View {
                     .fixedSize(horizontal: false, vertical: true)
             } trailing: {
                 Button(localization.L(L10n.KeybindPlan.propose)) { viewModel.navigationStore.openKeybindPlan() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
                 Button(action: { viewModel.profilesStore.dismissSwitchBanner() }) {
                     Image(systemName: "xmark")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .pointingHandCursor()
                 .help(localization.L(L10n.KeybindPlan.profileBannerDismiss))
             }

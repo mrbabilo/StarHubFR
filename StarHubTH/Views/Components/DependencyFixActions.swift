@@ -23,18 +23,18 @@ struct DependencyFixActions: View {
                                         nexusId: entry?.nexusId,
                                         directDownload: !viewModel.nexusDirectDownloadUnavailable) {
             case .activate(let mod):
-                Button(String(format: localization.L(L10n.Mods.depsFixActivate), mod.name)) { activate(mod) }
+                Button(String(format: localization.L(L10n.Mods.depsFixActivate), mod.name)) { activate(mod) }.focusRing(cornerRadius: 5)
             case .install(let nexusId):
                 Button(String(format: localization.L(L10n.Mods.depsFixInstall), name)) {
                     viewModel.expectAndDownloadNexusMod(nexusId: nexusId, uniqueId: uniqueId)
                 }
-                .disabled(viewModel.isDownloadingFromNexus)
+                .disabled(viewModel.isDownloadingFromNexus).focusRing(cornerRadius: 5)
             case .openPage(let nexusId):
                 // Sans Premium : la page, et l'archive reviendra par `nxm://`.
                 Button(String(format: localization.L(L10n.Mods.depsFixOpenPage), name)) {
                     viewModel.expectNexusMod(nexusId: nexusId, uniqueIds: [uniqueId])
                     NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
-                }
+                }.focusRing(cornerRadius: 5)
             case .search:
                 searchMenu(name)
             case nil:
@@ -78,6 +78,6 @@ struct DependencyFixActions: View {
             }
         } label: {
             Text(String(format: localization.L(L10n.Mods.depsFixSearch), name))
-        }
+        }.focusRing(cornerRadius: 5)
     }
 }

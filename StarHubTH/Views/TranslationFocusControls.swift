@@ -24,7 +24,7 @@ struct TranslationFocusControls: View {
                       systemImage: focusMode ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
             }
             .help(localization.L(L10n.Mods.translationFocusHint))
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
             if focusMode {
@@ -46,7 +46,7 @@ struct TranslationFocusControls: View {
                       systemImage: "arrow.up.left.and.arrow.down.right.circle")
             }
             .help(localization.L(L10n.Mods.translationFullscreenHint))
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         }

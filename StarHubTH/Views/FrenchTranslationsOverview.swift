@@ -71,7 +71,7 @@ struct FrenchTranslationsOverview: View {
                         }
                         .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                 }
             }

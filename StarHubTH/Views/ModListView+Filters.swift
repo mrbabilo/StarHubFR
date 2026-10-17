@@ -77,7 +77,7 @@ extension ModListView {
                     .stroke(Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
     }
 
@@ -123,7 +123,7 @@ extension ModListView {
                         .stroke(filters.configOnly ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
         .help(localization.L(L10n.Mods.configFilterLabel))
         // Sans texte visible, l'infobulle ne suffit pas : VoiceOver n'a plus
         // que ce libellé.
@@ -180,7 +180,7 @@ extension ModListView {
                     .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
         .disabled(empty && !active)
         .help(localization.L(empty ? L10n.Mods.filterFavoritesEmptyHint : L10n.Mods.filterFavoritesHint))
         .accessibilityLabel(localization.L(L10n.Mods.filterFavorites))
@@ -230,7 +230,7 @@ extension ModListView {
                     .stroke(active ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
         .disabled(empty && !active)
         .help(localization.L(empty ? L10n.Mods.filterBlacklistedEmptyHint : L10n.Mods.filterBlacklistedHint))
         .accessibilityLabel(localization.L(L10n.Mods.filterBlacklisted))
@@ -312,7 +312,7 @@ extension ModListView {
                     .stroke(isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
         .help(localization.L(L10n.Mods.frTranslationFilterLabel))
     }
@@ -413,7 +413,7 @@ extension ModListView {
                     .stroke(Color.secondary.opacity(AppDesign.Opacity.medium), lineWidth: 0.5)
             )
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
     }
 

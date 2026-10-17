@@ -113,7 +113,7 @@ struct KeybindReportSection: View {
                 Label(localization.L(L10n.Keybinds.export), systemImage: "square.and.arrow.up")
                     .lineLimit(1)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
             .disabled(service.report == nil)
@@ -122,7 +122,7 @@ struct KeybindReportSection: View {
                 Label(localization.L(L10n.Keybinds.rescan), systemImage: "arrow.clockwise")
                     .lineLimit(1)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
             .disabled(service.isScanning || noGameDir)

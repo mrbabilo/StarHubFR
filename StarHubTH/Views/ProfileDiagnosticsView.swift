@@ -273,7 +273,7 @@ struct ProfileDiagnosticsView: View {
                 onOpenTranslation(mod.folderName)
                 isPresented = false
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         }
@@ -323,7 +323,7 @@ struct ProfileDiagnosticsView: View {
                     Button(localization.L(L10n.Profiles.addToProfile)) {
                         viewModel.addModToProfile(id: profile.id, uniqueId: gap.uniqueId)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
                 }
@@ -370,7 +370,7 @@ struct ProfileDiagnosticsView: View {
                     Button(localization.L(L10n.Profiles.missingRestore)) {
                         viewModel.restoreMissingModFromBackup(uniqueId: mod.uniqueId)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
                 }
@@ -378,7 +378,7 @@ struct ProfileDiagnosticsView: View {
                     Button(localization.L(L10n.ModInstall.depDownload)) {
                         viewModel.downloadModFromNexus(nexusId: id)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     // L'API refuse tout lien direct à un compte non premium :
                     // proposer le bouton reviendrait à promettre un échec.

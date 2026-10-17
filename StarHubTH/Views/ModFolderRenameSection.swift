@@ -69,7 +69,7 @@ struct ModFolderRenameSection: View {
                         Spacer(minLength: 0)
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
             }
 

@@ -219,14 +219,14 @@ struct MainView: View {
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navBack))
                     .help(localization.L(L10n.Main.navBack))
-                    .disabled(!history.canGoBack(from: openDetail))
+                    .disabled(!history.canGoBack(from: openDetail)).focusRing()
                     
                     Button(action: stepForward) {
                         Image(systemName: "chevron.right")
                     }
                     .accessibilityLabel(localization.L(L10n.Main.navForward))
                     .help(localization.L(L10n.Main.navForward))
-                    .disabled(!history.canGoForward)
+                    .disabled(!history.canGoForward).focusRing()
                 }
     }
 

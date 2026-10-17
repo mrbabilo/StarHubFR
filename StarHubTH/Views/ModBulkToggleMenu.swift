@@ -52,7 +52,7 @@ struct ModBulkToggleMenu: View {
                 .labelStyle(.iconOnly)
                 .font(AppDesign.Font.body)
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
         .help(localization.L(L10n.Mods.toggleAllHint))
         .sheet(isPresented: $showsHistory) {

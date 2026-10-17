@@ -59,7 +59,7 @@ struct ModGroupHeaderMenu: View {
         } label: {
             Image(systemName: "ellipsis.circle")
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
         .fixedSize()
         .help(localization.L(L10n.Mods.groupActions))
         .accessibilityLabel(localization.L(L10n.Mods.groupActions))

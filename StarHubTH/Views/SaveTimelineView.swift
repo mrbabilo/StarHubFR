@@ -36,7 +36,7 @@ struct SaveTimelineView: View {
                 Button(action: { vm.navigationStore.viewingSaveTimeline = nil }) {
                     Label(localization.L(L10n.Saves.saves), systemImage: "chevron.left")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .controlSize(.small)
                 .pointingHandCursor()
                 PageHeader(icon: "clock.arrow.circlepath",
@@ -59,7 +59,7 @@ struct SaveTimelineView: View {
                             Text(localization.L(L10n.Saves.backupLabel))
                         }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .pointingHandCursor()
                     .disabled(vm.isSaveOperationRunning)
@@ -245,7 +245,7 @@ struct BackupRow: View {
                             vm.setNote(for: backup.folderPath.lastPathComponent, tag: noteTag, note: noteText)
                             isEditingNote = false
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                         .controlSize(.small)
                     }
                 } else if !noteText.isEmpty {
@@ -274,7 +274,7 @@ struct BackupRow: View {
                             .frame(width: 18, height: 18)
                             .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .foregroundColor(.secondary)
                     .padding(.trailing, AppDesign.Spacing.xs)
                     .help(localization.L(L10n.Saves.editNoteHint))
@@ -288,7 +288,7 @@ struct BackupRow: View {
                         }
                         .font(AppDesign.Font.caption(.medium))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     // La teinte « installé/actif » du dépôt, pas le vert
                     // système : la branche crée quelque chose de vivant,
@@ -304,7 +304,7 @@ struct BackupRow: View {
                         }
                         .font(AppDesign.Font.caption(.medium))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     .foregroundColor(AppDesign.Color.accent)
 
@@ -314,7 +314,7 @@ struct BackupRow: View {
                             .frame(width: 18, height: 18)
                             .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .foregroundColor(AppDesign.Color.error.opacity(AppDesign.Opacity.secondary))
                     .padding(.leading, AppDesign.Spacing.sm)
                     .help(localization.L(L10n.Saves.deleteBackupHint))

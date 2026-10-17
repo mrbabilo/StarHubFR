@@ -60,7 +60,7 @@ struct MaintenanceStorageCard: View {
                         Text(String(format: localization.L(L10n.Maintenance.keepPerMod),
                                     keep, SharedFormatters.bytes(freed)))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     .disabled(freed <= 0)
                 }

@@ -232,7 +232,7 @@ struct ModListRow: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .iconHelp(note)
                 .popover(isPresented: $showingNote, arrowEdge: .bottom) {
@@ -385,7 +385,7 @@ struct ModListRow: View {
                 .font(AppDesign.Font.footnote)
                 .foregroundColor(on ? AppDesign.Color.favorite : AppDesign.Color.dimmedSecondary(isHovered ? 0.6 : 0.25))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
         .help(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
         .accessibilityLabel(localization.L(on ? L10n.Mods.favoriteRemove : L10n.Mods.favoriteAdd))
@@ -477,7 +477,7 @@ struct ModListRow: View {
                         Button { showingNexusPage = true } label: {
                             NexusPageBadge(state: page.state, L: localization.L)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .pointingHandCursor()
                         .popover(isPresented: $showingNexusPage, arrowEdge: .bottom) {
                             attributePopover(
@@ -492,7 +492,7 @@ struct ModListRow: View {
                         Button { showingAnomaly = true } label: {
                             AnomalyBadge(anomaly: anomaly, vm: vm)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .pointingHandCursor()
                         .popover(isPresented: $showingAnomaly, arrowEdge: .bottom) {
                             attributePopover(title: localization.L(L10n.Mods.filterIssues),
@@ -509,7 +509,7 @@ struct ModListRow: View {
                        let impactClass = shown.impactClass {
                         Button { vm.navigationStore.openPerformance(anchor: "mods", modFolder: mod.folderName) } label: {
                             ImpactListBadge(shown: shown, impactClass: impactClass, localization: localization)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).focusRing()
                     }
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
@@ -634,7 +634,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(blacklisted ? .secondary : AppDesign.Color.dimmedSecondary(0.6))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .help(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
                     .accessibilityLabel(localization.L(blacklisted ? L10n.Mods.blacklistRemove : L10n.Mods.blacklistAdd))
                     .pointingHandCursor()
@@ -650,7 +650,7 @@ struct ModListRow: View {
                         .font(AppDesign.Font.rowTitle)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .help(localization.L(L10n.Mods.openFolder))
                 .accessibilityLabel(localization.L(L10n.Mods.openFolder))
                 .accessibilityHint(localization.L(L10n.Mods.openFolderA11yHint))
@@ -669,7 +669,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .help(localization.L(L10n.Settings.configModSettings))
                     .accessibilityLabel(localization.L(L10n.Settings.configModSettings))
                     .accessibilityHint(localization.L(L10n.Settings.configModSettingsA11yHint))
@@ -689,7 +689,7 @@ struct ModListRow: View {
                             .font(AppDesign.Font.rowTitle)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .help(localization.L(L10n.Mods.viewOnNexus))
                     .accessibilityLabel(localization.L(L10n.Mods.viewOnNexus))
                     .accessibilityHint(localization.L(L10n.Mods.viewOnNexusA11yHint))
@@ -706,7 +706,7 @@ struct ModListRow: View {
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .help(localization.L(L10n.Mods.openDetails))
                 .accessibilityLabel(localization.L(L10n.Mods.openDetails))
                 .accessibilityHint(localization.L(L10n.Mods.openDetailsHint))
@@ -733,7 +733,7 @@ struct ModListRow: View {
                                 .font(AppDesign.Font.rowTitle)
                                 .foregroundColor(.secondary)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).focusRing()
                         .disabled(vm.pendingDeleteFolder != nil)
                         .help(localization.L(L10n.Mods.deleteMod))
                         .accessibilityLabel(localization.L(L10n.Mods.deleteMod))

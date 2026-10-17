@@ -76,7 +76,7 @@ struct MissingDependenciesSheet: View {
             } label: {
                 Label(localization.L(L10n.Mods.depsSheetInstall), systemImage: "arrow.down.circle")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         } else if let nexusId = dep.nexusId {
@@ -86,7 +86,7 @@ struct MissingDependenciesSheet: View {
             } label: {
                 Label(localization.L(L10n.Mods.depsSheetOpenPage), systemImage: "safari")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         } else if let url = MissingDependencies.searchPage(for: dep.name) {
@@ -95,7 +95,7 @@ struct MissingDependenciesSheet: View {
             } label: {
                 Label(localization.L(L10n.Mods.depsSheetSearch), systemImage: "magnifyingglass")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         }
@@ -121,7 +121,7 @@ struct MissingDependenciesSheet: View {
                 } label: {
                     Label(localization.L(L10n.Mods.depsSheetInstallAll), systemImage: "arrow.down.circle")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).focusRing()
                 .pointingHandCursor()
             }
             Button {
@@ -129,7 +129,7 @@ struct MissingDependenciesSheet: View {
             } label: {
                 Text(localization.L(L10n.Mods.depsSheetClose))
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing()
             .keyboardShortcut(.cancelAction)
             .pointingHandCursor()
         }

@@ -287,7 +287,7 @@ struct ModConflictSection: View {
         Button(localization.L(L10n.Conflicts.dismissButton)) {
             vm.dismissConflict(pair)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.borderless).focusRing(cornerRadius: 4)
         .font(AppDesign.Font.iconXS)
         .foregroundColor(.secondary)
         .pointingHandCursor()

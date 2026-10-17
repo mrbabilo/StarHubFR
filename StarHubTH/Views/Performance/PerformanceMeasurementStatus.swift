@@ -43,7 +43,7 @@ struct PerformanceMeasurementStatus: View {
                     Label(String(format: localization.L(L10n.Performance.probeEnabled), version), systemImage: "waveform.path")
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                     Button(localization.L(L10n.Performance.probeSettingsLink), action: openSettings)
-                        .buttonStyle(.hoverLink).font(AppDesign.Font.footnote)
+                        .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
                     Spacer()
                     ProbeMiniStatsToggle(viewModel: viewModel, localization: localization, presence: probe)
                 }

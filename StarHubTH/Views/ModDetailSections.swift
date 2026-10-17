@@ -58,7 +58,7 @@ struct SupplementSection: View {
                           systemImage: "puzzlepiece.extension")
                         .font(AppDesign.Font.footnote)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(isSearching || !vm.hasNexusApiKey)
                 .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.supplementSearch)
@@ -77,7 +77,7 @@ struct SupplementSection: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
@@ -162,13 +162,13 @@ struct SupplementSection: View {
                         }
                     }
                 }
-                .menuStyle(.borderlessButton)
+                .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
                 .fixedSize()
                 .font(AppDesign.Font.iconXS)
                 .help(localization.L(L10n.Mods.linkToNexusHint))
             }
             Button(localization.L(L10n.Mods.addonRemove), role: .destructive) { vm.removeAddon(addon, from: mod) }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .foregroundColor(.red)
                 .font(AppDesign.Font.footnote)
         }
@@ -219,7 +219,7 @@ struct SupplementSection: View {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
                     .font(AppDesign.Font.footnote)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
         }
@@ -312,7 +312,7 @@ struct TranslationSection: View {
                 Button(localization.L(L10n.Mods.translationUpdate)) {
                     vm.installTranslation(newer, into: mod)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
                 .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
@@ -320,7 +320,7 @@ struct TranslationSection: View {
             Button(localization.L(L10n.Mods.translationUndeclare), role: .destructive) {
                 vm.undeclareTranslation(for: mod)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.borderless).focusRing(cornerRadius: 4)
             .foregroundColor(.red)
             .font(AppDesign.Font.footnote)
             .help(localization.L(L10n.Mods.translationUndeclareHint))
@@ -347,12 +347,12 @@ struct TranslationSection: View {
                     Button(localization.L(L10n.Mods.translationDeclare)) {
                         showDeclareSheet = true
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                     .controlSize(.small)
                     Button(localization.L(L10n.Mods.translationOpenNexus)) {
                         vm.searchTranslations(for: mod)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                     .controlSize(.small)
                     .disabled(isBusy)
                 }
@@ -431,13 +431,13 @@ struct TranslationSection: View {
                 Button(localization.L(L10n.Mods.translationUpdate)) {
                     vm.installTranslation(newer, into: mod)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
                 .help(vm.nexusDirectDownloadUnavailable ? localization.L(L10n.Mods.premiumOnlyHint) : "")
             }
             Button(localization.L(L10n.Mods.translationRemove), role: .destructive) { vm.removeTranslation(from: mod) }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
                 .foregroundColor(.red)
                 .disabled(isBusy)
                 .font(AppDesign.Font.footnote)
@@ -460,7 +460,7 @@ struct TranslationSection: View {
                             }
                         }
                     }
-                    .menuStyle(.borderlessButton)
+                    .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
                     .fixedSize()
                     .font(AppDesign.Font.iconXS)
                     .help(localization.L(L10n.Mods.linkToNexusHint))
@@ -480,7 +480,7 @@ struct TranslationSection: View {
                     .font(AppDesign.Font.footnote)
             }
             // `.bordered` : l'action ne doit pas ressembler à du texte.
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .disabled(isSearching || isBusy || !vm.hasNexusApiKey)
             // **Dire pourquoi il est gris.**
@@ -503,7 +503,7 @@ struct TranslationSection: View {
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .iconHelp(localization.L(L10n.Mods.searchClose))
                 .pointingHandCursor()
             } else if !vm.hasNexusApiKey {
@@ -538,7 +538,7 @@ struct TranslationSection: View {
                 Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
                     .font(AppDesign.Font.footnote)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .pointingHandCursor()
 
@@ -546,7 +546,7 @@ struct TranslationSection: View {
                         ? L10n.Mods.translationUpdate : L10n.Mods.translationInstall)) {
                 vm.installTranslation(hit, into: mod)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             // Sans Premium, lien direct refusé : le bouton Nexus relaie.
             .disabled(isBusy || vm.nexusDirectDownloadUnavailable)
@@ -583,7 +583,7 @@ struct NexusIdentitySection: View {
                     Label(localization.L(L10n.Mods.nexusIdentityShort), systemImage: "magnifyingglass")
                         .font(AppDesign.Font.footnote)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
                 .controlSize(.small)
                 .disabled(isSearching || !vm.hasNexusApiKey)
                 .help(vm.hasNexusApiKey ? localization.L(L10n.Mods.nexusIdentitySearch)
@@ -602,7 +602,7 @@ struct NexusIdentitySection: View {
                             .font(AppDesign.Font.footnote)
                             .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .iconHelp(localization.L(L10n.Mods.searchClose))
                     .pointingHandCursor()
                 } else if !vm.hasNexusApiKey {
@@ -683,14 +683,14 @@ struct NexusIdentitySection: View {
                 Image(systemName: "arrow.up.right.square")
                     .font(AppDesign.Font.footnote)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .iconHelp(localization.L(L10n.Mods.translationOpenNexus))
             .pointingHandCursor()
             Button(localization.L(L10n.Mods.nexusIdentityAdopt)) {
                 vm.adoptNexusIdentity(candidate, for: mod)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
             .controlSize(.small)
             .fixedSize()
             .pointingHandCursor()

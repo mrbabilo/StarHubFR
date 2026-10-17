@@ -218,7 +218,7 @@ struct SettingsView: View {
                             } label: {
                                 Text(localization.L(L10n.Settings.nexusSaveKey))
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.borderedProminent).focusRing()
                             .disabled(nexusApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }

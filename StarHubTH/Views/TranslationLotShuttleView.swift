@@ -221,7 +221,7 @@ struct TranslationLotShuttleView: View {
                         }
                     }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).focusRing()
                     .disabled(building || checked.isEmpty)
                 }
             }

@@ -209,7 +209,7 @@ struct TranslationDiffView: View {
                                 .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     .help(localization.L(L10n.Mods.translationBatchButton))
                     .accessibilityLabel(localization.L(L10n.Mods.translationBatchButton))
@@ -248,7 +248,7 @@ struct TranslationDiffView: View {
                                 .font(AppDesign.Font.iconXS(.medium))
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     // Le mode d'emploi complet — export puis chat puis
                     // réimport — tient ici plutôt que sur le bouton d'import :
@@ -265,7 +265,7 @@ struct TranslationDiffView: View {
                             .font(AppDesign.Font.iconXS(.medium))
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
                 .help(localization.L(L10n.Mods.translationLotImport))
                 .accessibilityLabel(localization.L(L10n.Mods.translationLotImport))
@@ -310,7 +310,7 @@ struct TranslationDiffView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
                     .popover(isPresented: $isShowingSectionIndex, arrowEdge: .bottom) {
                         TranslationSectionIndexView(
@@ -345,7 +345,7 @@ struct TranslationDiffView: View {
                         // « Tout déplier ».
                         collapsed = collapsed.isEmpty ? Set(allGroups.map(\.id)) : []
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.iconXS)
                 }
             }
@@ -381,7 +381,7 @@ struct TranslationDiffView: View {
             )
             .foregroundColor(derivedTint(criterion, override: tint))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing(cornerRadius: FocusRing.capsule)
         .pointingHandCursor()
     }
 
@@ -492,7 +492,7 @@ struct TranslationDiffView: View {
                         searchText = ""
                         filter = nil
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.footnote)
                 }
             } else {
@@ -511,7 +511,7 @@ struct TranslationDiffView: View {
                                                         reviewLabel: localization.L(L10n.Mods.translationReviewNeeded))
                                                 .contentShape(Rectangle())
                                             }
-                                            .buttonStyle(.plain)
+                                            .buttonStyle(.plain).focusRing()
                                                 .pointingHandCursor() // le curseur dit qu'une rangée s'ouvre
                                             Divider()
                                         }
@@ -630,7 +630,7 @@ struct TranslationDiffView: View {
             .background(Color.accentColor.opacity(AppDesign.Opacity.light))
             .overlay(alignment: .bottom) { Divider() }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).focusRing()
         .pointingHandCursor()
     }
 
