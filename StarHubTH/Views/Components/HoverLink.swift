@@ -1,34 +1,8 @@
 import SwiftUI
 
-/// Un lien qui se voit cliquable : main au survol, soulignement au survol,
-/// atténué pendant l'appui, gris et sans main quand il est désactivé. Le
-/// `.link` de SwiftUI n'a aucun état de survol sur macOS (retour du
-/// 2026-10-01, onglet Performances).
-struct HoverLinkStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HoverLinkLabel(configuration: configuration)
-    }
-
-    private struct HoverLinkLabel: View {
-        let configuration: ButtonStyleConfiguration
-        @Environment(\.isEnabled) private var isEnabled
-        @State private var hovering = false
-
-        var body: some View {
-            configuration.label
-                .foregroundStyle(isEnabled ? AppDesign.Color.accent : Color.secondary)
-                .underline(hovering && isEnabled)
-                .opacity(configuration.isPressed ? 0.6 : 1)
-                .contentShape(.rect)
-                .onHover { hovering = $0 }
-                .modifier(HandWhenEnabled(enabled: isEnabled))
-        }
-    }
-}
-
-extension ButtonStyle where Self == HoverLinkStyle {
-    static var hoverLink: HoverLinkStyle { HoverLinkStyle() }
-}
+/// C4b (décision de l'auteur, 2026-10-18) : un seul style de lien, le
+/// `.link` natif ; l'ancien `HoverLinkStyle` (soulignement au survol) est
+/// retiré. La main au survol reste, par `clickableCursor()`.
 
 /// La main seulement si le geste est possible : un bouton désactivé garde la
 /// flèche.

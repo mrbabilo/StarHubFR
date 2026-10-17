@@ -26,7 +26,7 @@ struct BackupsView: View {
                        subtitle: localization.L(L10n.Backups.pageSubtitle)) {
                 // R1 — le poids et le geste qui le réduit vivent dans l'Entretien.
                 Button(localization.L(L10n.Maintenance.backupsFreeSpaceLink)) { navigation.openMaintenance() }
-                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.footnote)
             }
                 .padding(.horizontal, AppDesign.Spacing.xl)

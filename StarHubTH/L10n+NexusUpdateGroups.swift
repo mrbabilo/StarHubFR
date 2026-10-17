@@ -5,4 +5,6 @@ extension L10n.Updates {
     static let activeGroup = "updates_active_group"
     static let pausedGroup = "updates_paused_group"
     static let pausedGroupExplanation = "updates_paused_group_explanation"
+    /// P5-6b — l'en-tête : « n en attente · m en pause ».
+    static let headerWithPaused = "updates_header_with_paused"
 }

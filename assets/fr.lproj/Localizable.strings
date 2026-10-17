@@ -2799,3 +2799,4 @@
 "health_problems_one" = "1 problème";
 "health_criticals" = "%lld critiques";
 "health_criticals_one" = "1 critique";
+"updates_header_with_paused" = "%1$@ · %2$lld en pause";

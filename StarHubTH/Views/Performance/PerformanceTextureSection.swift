@@ -54,7 +54,7 @@ struct PerformanceTextureSection: View {
                     VStack(alignment: .leading, spacing: 3) {
                         SplitRow {
                             Button(row.name) { viewModel.navigationStore.openModDetail(folderName: row.id, door: .performance) }
-                                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).help(row.name)
+                                .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4).help(row.name)
                         } trailing: { Text(megabytes(row.mb)).monospacedDigit() }
                         ProgressView(value: row.mb, total: max(rows.first?.mb ?? 1, 1))
                             .tint(AppDesign.Chart.before)
@@ -74,7 +74,7 @@ struct PerformanceTextureSection: View {
             if rows.count > 10 {
                 Button(showAll ? localization.L(L10n.Performance.impactShowLess)
                                : String(format: localization.L(L10n.Performance.impactShowAll), rows.count)) { showAll.toggle() }
-                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
             }
             VStack(alignment: .leading, spacing: 2) {
                 if let remainder = store.textureRemainder {

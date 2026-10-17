@@ -27,6 +27,13 @@ struct GameExitRefresh: ViewModifier {
 
     func body(content: Content) -> some View {
         content.onReceive(GameExit.publisher) {
+            // P5-7 — le journal de la session close, quelle que soit la page :
+            // sans cela, Alertes et Santé gardaient celui d'avant jusqu'au
+            // prochain rescan. La recherche du mod responsable et la mesure
+            // pilotée le relisent déjà elles-mêmes : ne pas doubler.
+            if viewModel.bisection.state == nil, !viewModel.pilot.isActive {
+                viewModel.refreshSmapiLog()
+            }
             Task {
                 await viewModel.modImpactStore.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(),
                                                       gameDir: viewModel.gameDir)

@@ -53,7 +53,7 @@ struct RecoverableFilesView: View {
                         .font(AppDesign.Font.footnote(.medium))
                     Spacer()
                     Button(localization.L(L10n.Recovery.showAll)) { self.modFilter = nil }
-                        .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                        .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.footnote)
                 }
                 .padding(.horizontal, AppDesign.Spacing.xl)

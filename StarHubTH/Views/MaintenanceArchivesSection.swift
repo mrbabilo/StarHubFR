@@ -68,7 +68,7 @@ struct MaintenanceArchivesSection: View {
                     Button(localization.L(L10n.Health.actionOpenMod)) {
                         vm.navigationStore.openModDetail(folderName: installed.folderName, door: .nexusUpdate)
                     }
-                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.footnote)
                 }
                 Spacer()

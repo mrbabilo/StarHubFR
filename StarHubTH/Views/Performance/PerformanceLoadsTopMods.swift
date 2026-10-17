@@ -50,7 +50,7 @@ struct PerformanceLoadsTopMods: View {
                     .lineLimit(3).multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+            .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
             .disabled(head == nil)
             .frame(width: Self.nameWidth, alignment: .leading)
             bar(total).frame(height: 10)

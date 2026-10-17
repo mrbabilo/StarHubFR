@@ -339,9 +339,9 @@ struct ModListRow: View {
             if !isChild {
                 ZStack {
                     if isGroupHeader {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(AppDesign.Font.iconXS(.bold))
-                            .foregroundColor(.secondary)
+                        // E9a : un vrai bouton (clavier, VoiceOver) ; le clic sur la ligne déplie aussi.
+                        Button { withMotion(.easeInOut(duration: 0.2)) { isExpanded.toggle() } } label: { Image(systemName: isExpanded ? "chevron.down" : "chevron.right").font(AppDesign.Font.iconXS(.bold)).foregroundColor(.secondary).frame(width: 18, height: 18).contentShape(.rect) }
+                            .buttonStyle(.plain).focusRing().iconHelp(localization.L(isExpanded ? L10n.Main.collapse : L10n.Main.expand))
                     }
                 }
                 .frame(width: 14, alignment: .center)

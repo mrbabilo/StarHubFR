@@ -198,7 +198,7 @@ struct SystemAlertsView: View {
                     viewModel.navigationStore.diagnosticsSegment = .health
                     currentTab = .logs
                 }
-                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.footnote)
             }
         }

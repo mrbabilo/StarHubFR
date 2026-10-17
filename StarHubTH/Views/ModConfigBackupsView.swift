@@ -8,7 +8,8 @@ private enum ModConfigBackupsConfirmation {
     /// Les éléments voyagent avec la demande : relire la sélection au moment
     /// de l'action restaurerait ce qu'une autre vue avait coché.
     case restore(ModConfigBackup, [ModConfigBackupItem])
-    case delete(ModConfigBackup)
+    /// Extension de R1 : les fichiers dont elle est la seule copie, lus avant d'ouvrir.
+    case delete(ModConfigBackup, soleCopy: [String])
     case cleanup(String)
 }
 
@@ -86,7 +87,7 @@ struct ModConfigBackupsView: View {
                     performRestore(backup, items)
                 }
                 Button(localization.L(L10n.ModConfigBackups.cancel), role: .cancel) { }
-            case .delete(let backup):
+            case .delete(let backup, _):
                 Button(localization.L(L10n.ModConfigBackups.deleteBackup), role: .destructive) {
                     performDelete(backup)
                 }
@@ -97,7 +98,7 @@ struct ModConfigBackupsView: View {
         } message: { pending in
             switch pending {
             case .restore(_, let items): Text(restoreWarning(items))
-            case .delete: EmptyView()
+            case .delete(_, let soleCopy): if !soleCopy.isEmpty { Text(soleCopyMessage(soleCopy)) }
             case .cleanup(let message): Text(message)
             }
         }
@@ -189,7 +190,7 @@ struct ModConfigBackupsView: View {
                         onRestoreSelected: {
                             confirmation = .restore(backup, visibleItems(backup).filter { selectedItemIds.contains($0.id) }.compactMap(\.configOnly))
                         },
-                        onDelete: { confirmation = .delete(backup) }
+                        onDelete: { askDelete(backup) }
                     )
                 }
             }
@@ -340,6 +341,26 @@ struct ModConfigBackupsView: View {
                 }
             }
         }
+    }
+
+    /// Même règle que les sauvegardes d'installation : la présence sur le
+    /// disque tranche, mod en pause compris. Lue hors du fil principal.
+    private func askDelete(_ backup: ModConfigBackup) {
+        let modsRoot = (vm.gameDir as NSString).appendingPathComponent("Mods")
+        Task {
+            let files = await Task.detached(priority: .userInitiated) {
+                ConfigBackupSoleCopy.files(in: backup) {
+                    FileManager.default.fileExists(atPath: (modsRoot as NSString).appendingPathComponent($0))
+                }
+            }.value
+            confirmation = .delete(backup, soleCopy: files)
+        }
+    }
+
+    private func soleCopyMessage(_ files: [String]) -> String {
+        let shown = files.prefix(8).joined(separator: ", ")
+        let more = files.count > 8 ? " " + String(format: localization.L(L10n.Logs.healthAndMore), Int64(files.count - 8)) : ""
+        return String(format: localization.L(L10n.ModInstall.deleteSoleCopy), shown + more)
     }
 
     private func performDelete(_ backup: ModConfigBackup) {

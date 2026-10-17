@@ -7,15 +7,13 @@ extension UpdatesView {
     /// permet d'affirmer vient de `UpdateCheckVerdict` ; la minute rafraîchit
     /// l'âge de la vérification, page ouverte.
     var pageHeader: some View {
-        let pending = UpdateCount.pending(outOfDate: vm.outOfDateMods,
-                                          nexusCount: vm.nexusUpdates.count) {
-            vm.resolveModFolder(forLoggedName: $0)?.version
-        }
-        let verdict = vm.updateCheckVerdict(pending: pending)
+        // P5-6b : le verdict sur le total, le sous-titre sépare actifs et pause.
+        let counts = vm.pendingUpdateCounts
+        let verdict = vm.updateCheckVerdict(pending: counts.total)
         return TimelineView(.periodic(from: .now, by: 60)) { context in
             PageHeader(icon: "arrow.triangle.2.circlepath",
                        title: localization.L(L10n.Main.modUpdates),
-                       subtitle: headerSubtitle(verdict, now: context.date),
+                       subtitle: headerSubtitle(verdict, counts: counts, now: context.date),
                        // Le vert est réservé au zéro mesuré sans réserve.
                        tint: headerTint(verdict))
         }
@@ -23,15 +21,15 @@ extension UpdatesView {
         .padding(.vertical, AppDesign.Spacing.md)
     }
 
-    private func headerSubtitle(_ verdict: UpdateCheckVerdict, now: Date) -> String {
+    private func headerSubtitle(_ verdict: UpdateCheckVerdict, counts: PendingUpdateCounts, now: Date) -> String {
         let locale = Locale(identifier: localization.currentLanguage)
         switch verdict {
-        case .pending(let count, let checkedAt?):
+        case .pending(_, let checkedAt?):
             return String(format: localization.L(L10n.Updates.headerPendingChecked),  // E8
-                          localization.plural(L10n.Updates.headerPending, count),
+                          pendingText(counts),
                           UpdateCheckVerdict.ageText(since: checkedAt, now: now, locale: locale))
-        case .pending(let count, nil):
-            return localization.plural(L10n.Updates.headerPending, count)
+        case .pending(_, nil):
+            return pendingText(counts)
         case .upToDate(let checkedAt):
             return String(format: localization.L(L10n.Updates.headerUpToDateChecked),
                           UpdateCheckVerdict.ageText(since: checkedAt, now: now, locale: locale))
@@ -73,5 +71,13 @@ extension UpdatesView {
         case .upToDate: return AppDesign.Color.success
         case .verifiableUpToDate, .neverChecked: return AppDesign.Color.accent
         }
+    }
+
+    /// « 1 mise à jour en attente · 5 en pause » ; sans mise à jour en pause,
+    /// la première moitié seule (P5-6b).
+    private func pendingText(_ counts: PendingUpdateCounts) -> String {
+        let active = localization.plural(L10n.Updates.headerPending, counts.active)
+        guard counts.paused > 0 else { return active }
+        return String(format: localization.L(L10n.Updates.headerWithPaused), active, Int64(counts.paused))
     }
 }

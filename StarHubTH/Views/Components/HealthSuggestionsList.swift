@@ -63,7 +63,7 @@ struct HealthSuggestionsList: View {
     private func button(_ title: String, refusal: String?, action: @escaping () -> Void) -> some View {
         HStack(spacing: AppDesignCore.Spacing.sm) {
             Button(localization.L(title), action: action)
-                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                 .font(AppDesign.Font.footnote)
                 .disabled(refusal != nil)
             if let refusal {

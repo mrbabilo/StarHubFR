@@ -36,11 +36,7 @@ struct HomeView: View {
         // pas de ce qui compose « alertes » — c'est déjà le rôle de cet
         // appelant, par `viewModel.systemAlertCount`.
         let counters = HomeAttention.counters(
-            updates: UpdateCount.pending(
-                outOfDate: viewModel.outOfDateMods,
-                nexusCount: viewModel.nexusUpdates.count) {
-                    viewModel.resolveModFolder(forLoggedName: $0)?.version
-                },
+            updates: viewModel.pendingUpdateCounts.active,  // P5-6b : comme le badge
             alerts: viewModel.systemAlertCount,
             quarantined: viewModel.maintenanceStore.quarantineItemCount,
             mods: viewModel.scanStore.mods.count)

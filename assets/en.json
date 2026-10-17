@@ -2798,5 +2798,6 @@
   "health_problems": "%lld problems",
   "health_problems_one": "1 problem",
   "health_criticals": "%lld critical",
-  "health_criticals_one": "1 critical"
+  "health_criticals_one": "1 critical",
+  "updates_header_with_paused": "%1$@ · %2$lld paused"
 }

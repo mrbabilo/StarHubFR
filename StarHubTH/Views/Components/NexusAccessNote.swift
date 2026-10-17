@@ -59,7 +59,7 @@ struct NexusAccessNote: View {
                         Label(localization.L(L10n.Updates.nexusGetKey), systemImage: "arrow.up.right")
                             .font(AppDesign.Font.caption)
                     }
-                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4)
+                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                 }
             }
         }

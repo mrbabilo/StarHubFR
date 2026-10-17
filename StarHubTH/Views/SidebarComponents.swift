@@ -18,10 +18,8 @@ struct SidebarNavGroups: View {
         let model = vm
         switch d {
         case .updates:
-            return (UpdateCount.pending(outOfDate: model.outOfDateMods,
-                                        nexusCount: model.nexusUpdates.count) {
-                model.resolveModFolder(forLoggedName: $0)?.version
-            }, AppDesign.Color.info)
+            // P5-6b : les mods actifs seulement (décision de l'auteur).
+            return (model.pendingUpdateCounts.active, AppDesign.Color.info)
         case .systemAlerts:
             return (model.systemAlertCount, AppDesign.Color.warning)
         case .quarantine:

@@ -382,6 +382,7 @@ let package = Package(
                 "Models/HealthIssueResolver.swift",
                 "Models/HealthSuggestion.swift",
                 "Models/BackupRetentionSummary.swift",
+                "Models/ConfigBackupSoleCopy.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
@@ -1689,6 +1690,11 @@ let package = Package(
             name: "HealthIssueTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HealthIssueTests"
+        ),
+        .testTarget(
+            name: "ConfigBackupSoleCopyTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigBackupSoleCopyTests"
         ),
         .testTarget(
             name: "BackupRetentionSummaryTests",

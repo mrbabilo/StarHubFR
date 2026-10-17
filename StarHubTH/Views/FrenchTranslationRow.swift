@@ -54,7 +54,7 @@ struct FrenchTranslationRow: View {
                 if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
                 Spacer()
                 Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
-                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
+                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
             }
             switch status {
             case .available(let hits):

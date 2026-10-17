@@ -446,7 +446,7 @@ struct ModInstallBackupsView: View {
                 .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             Spacer() // R1 — un mod supprimé n'est pas ici : il est dans la corbeille des mods.
             Button(localization.L(L10n.Maintenance.backupsTrashLink)) { vm.navigationStore.openMaintenance() }
-                .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
+                .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
         }
         .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.bottom, AppDesign.Spacing.sm)
