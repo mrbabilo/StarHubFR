@@ -33,11 +33,9 @@ struct BulkActivationConflictsTests {
                               candidates: [ModConflictPair],
                               enabling: Set<String>, disabling: Set<String> = [],
                               in mods: [ModItem]? = nil) -> [ModConflictPair] {
-        let mods = mods ?? parc
-        return verdicts.newConflicts(candidates: candidates,
-                                     activeBefore: mods.activeFolders(enabling: [], disabling: []),
-                                     activeAfter: mods.activeFolders(enabling: enabling, disabling: disabling),
-                                     topFolders: mods.topFolders)
+        // La formule que la garde et l'aperçu d'un profil appellent (P5-1).
+        (mods ?? parc).newConflicts(verdicts: verdicts, candidates: candidates,
+                                    enabling: enabling, disabling: disabling)
     }
 
     /// Sans geste, l'état « après » est l'état actuel — composants compris,

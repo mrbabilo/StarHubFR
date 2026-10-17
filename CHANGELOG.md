@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Profils : voir un profil sans l'activer.** La colonne « Mods » d'un profil (ou « Aperçu… » de son menu) ouvre sa feuille sur ce que l'activation ferait : dossiers à activer, à mettre en pause, conflits qu'elle rendrait actifs. Rien n'est renommé.
+
 ### Changed
 
 - **Accueil : un encart « Opération interrompue ».** La recherche du mod responsable, le benchmark A/B et la mesure pilotée laissés en plan s'y signalent, chacun avec « Tout remettre comme avant ».

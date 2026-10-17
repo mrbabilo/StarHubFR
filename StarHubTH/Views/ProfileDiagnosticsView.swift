@@ -18,10 +18,19 @@ import SwiftUI
 ///
 /// R4 : et les `config.json` qu'il retient, avec la comparaison entre
 /// profils — la feuille devient la fiche du profil. Chaque porte de la rangée
-/// (Anomalies, pastille FR, colonne Configs) l'ouvre sur sa section.
+/// (Anomalies, pastille FR, colonnes Configs et Mods) l'ouvre sur sa section.
+/// P5-1 : la colonne Mods mène à ce qu'activer le profil ferait.
 struct ProfileDiagnosticsView: View {
     /// La section sur laquelle la feuille s'ouvre ; `nil` = en haut.
-    enum Focus: Hashable { case translation, configs }
+    enum Focus: Hashable { case preview, translation, configs }
+
+    /// Le profil **et** sa section, dans l'item de `.sheet(item:)` : un
+    /// `@State` lu seulement dans la closure de la feuille y arrivait périmé.
+    struct Request: Identifiable {
+        let profile: ModProfile
+        let focus: Focus?
+        var id: UUID { profile.id }
+    }
 
     private struct Comparison: Equatable {
         let mod: ModItem
@@ -46,6 +55,8 @@ struct ProfileDiagnosticsView: View {
     /// calcule pas.
     @State private var translation: ProfileTranslationSummary?
     @State private var configs = ProfileConfigOverview(storedFolders: [], installed: [])
+    /// P5-1 — ce qu'activer le profil ferait, sur les mods de tête (le plan).
+    @State private var preview: ProfileApplyPreview?
     /// La comparaison affichée **par-dessus** la liste, qui reste montée :
     /// au retour, le défilement est là où on l'avait laissé.
     @State private var comparison: Comparison?
@@ -82,6 +93,8 @@ struct ProfileDiagnosticsView: View {
         // La mesure de la couverture tourne en fond : sans ceci, une feuille
         // ouverte pendant la passe resterait sur son témoin d'attente.
         .onChange(of: viewModel.profileTranslationSummaries) { _, _ in reload() }
+        // Une bascule ne change pas le compte : l'aperçu se refait à la fin du scan.
+        .onChange(of: viewModel.scanStore.scanProgress == nil) { _, _ in reload() }
     }
 
     private var content: some View {
@@ -121,6 +134,12 @@ struct ProfileDiagnosticsView: View {
                             Divider().padding(.leading, 20)
                         }
                     }
+                    if let preview {
+                        sectionHeader(localization.L(L10n.ProfilePreview.section))
+                            .id(Focus.preview)
+                        ProfilePreviewSection(localization: localization, preview: preview,
+                                              isScanning: viewModel.scanStore.scanProgress != nil)
+                    }
                     translationSection
                     if configs.total > 0 {
                         sectionHeader(localization.L(L10n.Profiles.sectionConfigs))
@@ -132,14 +151,13 @@ struct ProfileDiagnosticsView: View {
                     }
                 }
             }
-            // Après le premier `reload()`, pas à l'apparition : l'`onAppear`
-            // d'ici passait avant celui de la feuille, la section n'existait pas.
-            .onChange(of: loads) { _, count in
-                guard count == 1, let focus else { return }
-                Task { @MainActor in
-                    await Task.yield()
-                    proxy.scrollTo(focus, anchor: .top)
-                }
+            // Après le premier `reload()`, que la feuille fait à son apparition :
+            // ni `onAppear` (la section n'existait pas encore) ni `onChange`
+            // (posé après le premier chargement, il ne voyait aucun changement).
+            .task(id: loads) {
+                guard loads == 1, let focus else { return }
+                await Task.yield()
+                proxy.scrollTo(focus, anchor: .top)
             }
             }
 
@@ -163,6 +181,9 @@ struct ProfileDiagnosticsView: View {
         gaps = ProfileDiagnostics.dependencyGaps(in: current, installedMods: viewModel.scanStore.mods.flattenedMods)
         translation = viewModel.translationSummary(for: current)
         configs = ProfileConfigOverview.load(profileId: current.id, installed: viewModel.scanStore.mods.flattenedMods)
+        preview = ProfileApplyPreview.make(applying: current, to: viewModel.mods,
+                                           verdicts: viewModel.modConflictVerdicts,
+                                           candidates: viewModel.conflictCandidates)
         loads += 1
     }
 

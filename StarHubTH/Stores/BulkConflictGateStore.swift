@@ -42,11 +42,23 @@ final class BulkConflictGateStore {
                          enabling: [String], disabling: [String] = [],
                          subject: Subject,
                          resume: @escaping @MainActor () -> Void) -> Bool {
-        let pairs = verdicts.newConflicts(
-            candidates: candidates,
-            activeBefore: mods.activeFolders(enabling: [], disabling: []),
-            activeAfter: mods.activeFolders(enabling: Set(enabling), disabling: Set(disabling)),
-            topFolders: mods.topFolders)
+        suspend(mods.newConflicts(verdicts: verdicts, candidates: candidates,
+                                  enabling: Set(enabling), disabling: Set(disabling)),
+                subject: subject, resume: resume)
+    }
+
+    /// L'application d'un profil : les paires que son aperçu annonce
+    /// (`ProfileApplyPreview`, P5-1), calculées sur le plan que le disque suivra.
+    func suspendIfNeeded(applying profile: ModProfile, mods: [ModItem], verdicts: ModConflictVerdicts,
+                         candidates: [ModConflictPair],
+                         resume: @escaping @MainActor () -> Void) -> Bool {
+        suspend(ProfileApplyPreview.make(applying: profile, to: mods, verdicts: verdicts,
+                                         candidates: candidates).conflicts,
+                subject: .profile(name: profile.name), resume: resume)
+    }
+
+    private func suspend(_ pairs: [ModConflictPair], subject: Subject,
+                         resume: @escaping @MainActor () -> Void) -> Bool {
         guard !pairs.isEmpty else { return false }
         onResume = resume
         // Publiée au tour suivant : pour un profil, cette alerte suit celle
@@ -59,18 +71,6 @@ final class BulkConflictGateStore {
             self.pending = next
         }
         return true
-    }
-
-    /// L'application d'un profil : ses activations **et** ses mises en pause
-    /// (`ProfileApplyPlan.moves`, le plan que le disque suivra).
-    func suspendIfNeeded(applying profile: ModProfile, mods: [ModItem], verdicts: ModConflictVerdicts,
-                         candidates: [ModConflictPair],
-                         resume: @escaping @MainActor () -> Void) -> Bool {
-        let moves = ProfileApplyPlan.moves(applying: profile, to: mods)
-        return suspendIfNeeded(mods: mods, verdicts: verdicts, candidates: candidates,
-                               enabling: moves.filter { $0.direction == .enable }.map(\.folderName),
-                               disabling: moves.filter { $0.direction == .disable }.map(\.folderName),
-                               subject: .profile(name: profile.name), resume: resume)
     }
 
     /// Reprendre le geste. Idempotent au repos : fermer l'alerte après un

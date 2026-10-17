@@ -289,6 +289,17 @@ extension Array where Element == ModItem {
             .flattenedMods.map(\.folderName))
     }
 
+    /// A5-T8 — les paires en conflit qu'un geste groupé rendrait actives.
+    /// `enabling` et `disabling` sont des dossiers de tête. La garde et
+    /// l'aperçu d'un profil (P5-1) passent tous deux par ici.
+    func newConflicts(verdicts: ModConflictVerdicts, candidates: [ModConflictPair],
+                      enabling: Set<String>, disabling: Set<String>) -> [ModConflictPair] {
+        verdicts.newConflicts(candidates: candidates,
+                              activeBefore: activeFolders(enabling: [], disabling: []),
+                              activeAfter: activeFolders(enabling: enabling, disabling: disabling),
+                              topFolders: topFolders)
+    }
+
     /// Le dossier de tête de chaque dossier — composant ou mod simple : deux
     /// membres d'une paire qui partagent la même tête viennent du même pack.
     var topFolders: [String: String] {

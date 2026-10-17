@@ -319,6 +319,7 @@ let package = Package(
                 "Models/ProfileFactory.swift",
                 "Models/ProfileDiagnostics.swift",
                 "Models/ProfileApplyPlan.swift",
+                "Models/ProfileApplyPreview.swift",
                 "Models/ActivationHistory.swift",
                 "Models/ProfileActivation.swift",
                 "Models/ProfileConfigCapture.swift",

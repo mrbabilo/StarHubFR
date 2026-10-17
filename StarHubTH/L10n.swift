@@ -1793,7 +1793,6 @@ enum L10n {
         static let optional             = "profiles_optional"
         static let rename               = "profiles_rename"
         static let renameTitle          = "profiles_rename_title"
-        static let modCount             = "profiles_mod_count"
         // Libellés courts des colonnes de la rangée-carte (H-T5) : la phrase
         // complète reste au survol, la colonne tient ~85 pt à la fenêtre
         // minimale (820 pt).

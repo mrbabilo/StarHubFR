@@ -108,6 +108,7 @@ struct ProfileRow: View {
             // Overflow: rename / delete. The default profile can't be deleted,
             // so its menu only offers rename.
             Menu {
+                Button(localization.L(L10n.ProfilePreview.menuEntry)) { onShowDetails(.preview) }
                 Button(localization.L(L10n.Profiles.rename)) { onRename() }
                 Button(localization.L(L10n.Profiles.duplicate)) { onDuplicate() }
                 // Refusée pendant qu'un profil s'applique : le profil devient
@@ -143,6 +144,7 @@ struct ProfileRow: View {
             }
             Button(localization.L(L10n.Profiles.manageMods)) { onManage() }
                 .disabled(vm.isApplyingProfile)
+            Button(localization.L(L10n.ProfilePreview.menuEntry)) { onShowDetails(.preview) }
             Button(localization.L(L10n.Profiles.rename)) { onRename() }
             Button(localization.L(L10n.Profiles.duplicate)) { onDuplicate() }
             Button(localization.L(L10n.Profiles.importFavorites)) { onImportFavorites() }
@@ -162,16 +164,21 @@ struct ProfileRow: View {
     /// miniature, à hauteur réservée : une colonne sans données affiche
     /// « — », la rangée ne saute pas.
     ///
-    /// « Anomalies » et « Configs » sont des boutons : chacune ouvre la
-    /// feuille du profil sur sa section (R4), la cible de clic est donc la
+    /// Les trois colonnes sont des boutons : chacune ouvre la feuille du
+    /// profil sur sa section (R4, P5-1), la cible de clic est donc la
     /// colonne entière, pas un glyph de 12 pt (a11y §7). « 0 » s'affiche neutre — un zéro est une
     /// information ; « > 0 » porte glyph **et** couleur, jamais la couleur
     /// seule (P6).
     private var statColumns: some View {
         HStack(alignment: .top, spacing: AppDesign.Spacing.xl) {
-            StatColumn(label: localization.L(L10n.Profiles.colMods),
-                       value: "\(modCount)",
-                       help: String(format: localization.L(L10n.Profiles.modCount), modCount))
+            // P5-1 : voir le profil sans l'activer.
+            Button { onShowDetails(.preview) } label: {
+                StatColumn(label: localization.L(L10n.Profiles.colMods),
+                           value: "\(modCount)",
+                           help: localization.L(L10n.ProfilePreview.columnHelp))
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
             Button { onShowDetails(nil) } label: {
                 StatColumn(label: localization.L(L10n.Profiles.colIssues),
                            value: "\(issueCount)",

@@ -1319,7 +1319,6 @@
   "profiles_missing_restore": "Restaurer depuis une sauvegarde",
   "profiles_missing_restore_note": "Un mod restauré depuis une sauvegarde revient le plus souvent en pause : réactivez le profil pour que le jeu le charge.",
   "profiles_missing_unknown": "Aucune source connue",
-  "profiles_mod_count": "%lld mods",
   "profiles_new_profile_note": "Un profil vide démarre sans aucun mod — vous les ajoutez ensuite. La copie reprend les mods actifs en ce moment.",
   "profiles_no_profiles": "Aucun profil de mods pour le moment",
   "profiles_optional": "Optionnel",
@@ -2726,5 +2725,17 @@
   "activation_history_menu_entry": "Revenir à un état d'avant…",
   "activation_history_blocked": "Indisponible : « %@ » tient le parc. Terminez-la, ou remettez tout comme avant.",
   "activation_history_gesture_bisection": "Avant la recherche du mod responsable",
-  "activation_history_gesture_benchmark": "Avant le benchmark A/B"
+  "activation_history_gesture_benchmark": "Avant le benchmark A/B",
+  "profile_preview_section": "CE QUE L'ACTIVATION FERAIT",
+  "profile_preview_read_only": "Dossiers de Mods/ que l'activation renommerait. Rien ne bouge tant que le profil n'est pas activé.",
+  "profile_preview_nothing": "Activer ce profil ne renommerait aucun dossier : le parc lui correspond déjà.",
+  "profile_preview_scanning": "Analyse du dossier Mods en cours : l'aperçu attend sa fin.",
+  "profile_preview_to_enable": "%lld dossiers à activer",
+  "profile_preview_to_enable_one": "1 dossier à activer",
+  "profile_preview_to_disable": "%lld dossiers à mettre en pause",
+  "profile_preview_to_disable_one": "1 dossier à mettre en pause",
+  "profile_preview_conflicts": "%lld conflits que l'activation rendrait actifs",
+  "profile_preview_conflicts_one": "1 conflit que l'activation rendrait actif",
+  "profile_preview_menu_entry": "Aperçu…",
+  "profile_preview_column_help": "Voir ce que l'activation de ce profil ferait, sans rien activer"
 }

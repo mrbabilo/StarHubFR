@@ -1319,7 +1319,6 @@
   "profiles_missing_restore": "Restore from backup",
   "profiles_missing_restore_note": "A mod restored from a backup usually comes back paused: activate the profile again for the game to load it.",
   "profiles_missing_unknown": "No known source",
-  "profiles_mod_count": "%lld mods",
   "profiles_new_profile_note": "An empty profile starts with no mods — you add them afterwards. Copying takes the mods that are enabled right now.",
   "profiles_no_profiles": "No Mod Profiles yet",
   "profiles_optional": "Optional",
@@ -2726,5 +2725,17 @@
   "activation_history_menu_entry": "Go back to an earlier state…",
   "activation_history_blocked": "Unavailable: “%@” holds the mod set. Finish it, or put everything back.",
   "activation_history_gesture_bisection": "Before the search for the culprit mod",
-  "activation_history_gesture_benchmark": "Before the A/B benchmark"
+  "activation_history_gesture_benchmark": "Before the A/B benchmark",
+  "profile_preview_section": "WHAT ACTIVATING WOULD DO",
+  "profile_preview_read_only": "Folders in Mods/ that activating would rename. Nothing moves until the profile is activated.",
+  "profile_preview_nothing": "Activating this profile would rename no folder: the mods already match it.",
+  "profile_preview_scanning": "Scanning the Mods folder: the preview waits for it to finish.",
+  "profile_preview_to_enable": "%lld folders to enable",
+  "profile_preview_to_enable_one": "1 folder to enable",
+  "profile_preview_to_disable": "%lld folders to pause",
+  "profile_preview_to_disable_one": "1 folder to pause",
+  "profile_preview_conflicts": "%lld conflicts that activating would make live",
+  "profile_preview_conflicts_one": "1 conflict that activating would make live",
+  "profile_preview_menu_entry": "Preview…",
+  "profile_preview_column_help": "See what activating this profile would do, without activating anything"
 }

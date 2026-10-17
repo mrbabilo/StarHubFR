@@ -11,9 +11,8 @@ struct ModProfilesView: View {
     @State private var renamingProfile: ModProfile?
     @State private var renameText = ""
     @State private var profileToDelete: ModProfile?
-    @State private var profileShowingMissing: ModProfile?
-    /// La section sur laquelle la feuille du profil s'ouvre (R4).
-    @State private var profileSheetFocus: ProfileDiagnosticsView.Focus?
+    /// La feuille du profil et la section où elle s'ouvre (R4).
+    @State private var profileSheet: ProfileDiagnosticsView.Request?
     /// Profil pour lequel un import de favoris attend confirmation. Seulement
     /// renseigné quand le profil est **actif** : y importer active les mods sur
     /// le disque dans la foulée, ce qui n'est pas un simple changement de
@@ -135,8 +134,7 @@ struct ModProfilesView: View {
             onImportFavorites: { importFavorites(into: profile) },
             onImportBlacklisted: { importBlacklisted(into: profile) },
             onShowDetails: { focus in
-                profileSheetFocus = focus
-                profileShowingMissing = profile
+                profileSheet = .init(profile: profile, focus: focus)
             },
             onDelete: { profileToDelete = profile }
         )
@@ -331,18 +329,18 @@ struct ModProfilesView: View {
         // mods des profils : elle se mesure ici, à l'ouverture de la page, et
         // jamais au scan — le lancement est déjà le moment le plus chargé.
         .task { vm.refreshProfileTranslationCoverage() }
-        .sheet(item: $profileShowingMissing) { profile in
+        .sheet(item: $profileSheet) { request in
             ProfileDiagnosticsView(
                 viewModel: vm,
                 localization: localization,
-                profile: profile,
-                isPresented: Binding(get: { profileShowingMissing != nil },
-                                     set: { if !$0 { profileShowingMissing = nil } }),
+                profile: request.profile,
+                isPresented: Binding(get: { profileSheet != nil },
+                                     set: { if !$0 { profileSheet = nil } }),
                 onOpenTranslation: { folderName in
                     vm.openTranslation(forFolder: folderName)
                     currentTab = .mods
                 },
-                focus: profileSheetFocus)
+                focus: request.focus)
         }
     }
 
