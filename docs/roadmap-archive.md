@@ -7673,3 +7673,12 @@ sans lire une ligne de log.
       `TogglePlan` relisant le parc par dépendance — 10 s de fil principal
       mesurées au `sample` (`484604f3`), lecture des sauvegardes sans barre ni
       cache avant une pause (`0ffe897c`). Vérifié à l'écran.
+- [x] **I-T29 · P5-9** — *(livré le 2026-10-17)* Pastille orange sur la
+      rangée d'un profil quand il est dans un état anormal, avec son remède :
+      application interrompue (rouvre le dialogue de reprise), appliqué à
+      moitié (« Reprendre » relance l'application), configs non réécrites,
+      profil actif seulement (« Réécrire maintenant », refusé jeu ouvert).
+      Une seule pastille, la plus grave. États sortis du ViewModel vers
+      `ProfileStore` (`ce2f3f1f`) ; `ProfileAnomaly` (Core, testé,
+      `32accf1e`). Vérifié à l'écran sur les configs non réécrites ; les deux
+      autres réutilisent des remèdes existants.
