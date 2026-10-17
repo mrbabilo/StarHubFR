@@ -865,8 +865,8 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
 - [ ] **I-T30 — L5 Écrans** (E6, E7, E11 + C2b, suite de R1, E3, E12, E13,
-      E8 livrés, à l'archive) : E9b–e, E2, C2 (a, c). En clair **et** en
-      sombre. · **L**
+      E8, E9b–e, C2a, C2c livrés, à l'archive) : E2 (ligne de mod à 821 pt).
+      En clair **et** en sombre. · **L**
 - [ ] **I-T31 — L6 Décisions de l'auteur** (rapport §5, 14 décisions) :
       Accueil allégé (revient sur I-T9), palette avec actions et ↩ sur un
       profil ou une partie (reviennent sur I-T2 et I-T5), ⌘9 → Diagnostic,

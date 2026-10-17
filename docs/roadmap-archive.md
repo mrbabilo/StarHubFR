@@ -7738,3 +7738,11 @@ sans lire une ligne de log.
       d'un pack, la ligne compte ses composants par `plural`. En-têtes des
       Alertes, Profils et Mises à jour sans « (s) ». Les autres clés en
       « (s) » (~105) restent pour L7. Vérifié à l'écran.
+- [x] **I-T30 · E9b–e, C2a, C2c** — *(livrés le 2026-10-17, `ea3975f4`)*
+      E9 : `.iconHelp` (nom VoiceOver) sur les contrôles à icône seule ;
+      état annoncé des chevrons (arbre des parties, groupes de sauvegardes) ;
+      point de gravité du journal groupé → glyphe + compte. E9d couvert par
+      E7 ; E9a (pack dépliable) reste en L6. C2a : tuile de groupe de
+      sauvegarde en accent. C2c : Quarantaine vide en `quarantine` ;
+      Réglages gardent leurs teintes par section (**décision de l'auteur**),
+      sauf Nexus, orange → bleu. Vérifiés à l'écran.
