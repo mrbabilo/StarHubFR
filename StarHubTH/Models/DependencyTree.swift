@@ -77,4 +77,13 @@ enum DependencyTreeBuilder {
         }
         return rootKeys.compactMap(node)
     }
+
+    /// E7 (audit UX 2026-10-16) — « À régler » de l'onglet Dépendances : les
+    /// racines **requises** en pause ou manquantes. Directes seulement, comme
+    /// l'anomalie de la fiche (`hasDependencyIssue`) : libellé de l'onglet,
+    /// bandeau et section disent le même chiffre. Une requise plus profonde
+    /// se règle depuis la fiche de son parent, ou par l'activation en chaîne.
+    static func toFix(_ roots: [DependencyNode]) -> [DependencyNode] {
+        roots.filter { $0.isRequired && $0.status != .active }
+    }
 }

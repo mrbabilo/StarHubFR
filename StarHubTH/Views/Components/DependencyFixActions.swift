@@ -14,6 +14,9 @@ struct DependencyFixActions: View {
     let uniqueId: String
     @Binding var pendingActivation: ModItem?
     @Binding var pendingConflict: ConflictActivation?
+    /// E7 — « À régler » de l'onglet Dépendances : bouton plein. Le menu de
+    /// recherche reste en `.bordered`, ce n'est pas un geste qui règle.
+    var prominent = false
 
     var body: some View {
         let entry = viewModel.dependencyDirectory.entry(for: uniqueId)
@@ -23,18 +26,19 @@ struct DependencyFixActions: View {
                                         nexusId: entry?.nexusId,
                                         directDownload: !viewModel.nexusDirectDownloadUnavailable) {
             case .activate(let mod):
-                Button(String(format: localization.L(L10n.Mods.depsFixActivate), mod.name)) { activate(mod) }.focusRing(cornerRadius: 5)
+                Button(String(format: localization.L(L10n.Mods.depsFixActivate), mod.name)) { activate(mod) }
+                    .modifier(FixEmphasis(prominent: prominent)).focusRing(cornerRadius: 5)
             case .install(let nexusId):
                 Button(String(format: localization.L(L10n.Mods.depsFixInstall), name)) {
                     viewModel.expectAndDownloadNexusMod(nexusId: nexusId, uniqueId: uniqueId)
                 }
-                .disabled(viewModel.isDownloadingFromNexus).focusRing(cornerRadius: 5)
+                .disabled(viewModel.isDownloadingFromNexus).modifier(FixEmphasis(prominent: prominent)).focusRing(cornerRadius: 5)
             case .openPage(let nexusId):
                 // Sans Premium : la page, et l'archive reviendra par `nxm://`.
                 Button(String(format: localization.L(L10n.Mods.depsFixOpenPage), name)) {
                     viewModel.expectNexusMod(nexusId: nexusId, uniqueIds: [uniqueId])
                     NSWorkspace.shared.open(MissingDependencies.filesPage(nexusId: nexusId))
-                }.focusRing(cornerRadius: 5)
+                }.modifier(FixEmphasis(prominent: prominent)).focusRing(cornerRadius: 5)
             case .search:
                 searchMenu(name)
             case nil:
@@ -79,5 +83,14 @@ struct DependencyFixActions: View {
         } label: {
             Text(String(format: localization.L(L10n.Mods.depsFixSearch), name))
         }.focusRing(cornerRadius: 5)
+    }
+}
+
+/// Le style plein, posé sur le bouton lui-même : il l'emporte sur le
+/// `.bordered` de l'ensemble (deux styles ne se choisissent pas en ternaire).
+private struct FixEmphasis: ViewModifier {
+    let prominent: Bool
+    @ViewBuilder func body(content: Content) -> some View {
+        if prominent { content.buttonStyle(.borderedProminent) } else { content }
     }
 }

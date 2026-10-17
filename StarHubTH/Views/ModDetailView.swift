@@ -214,7 +214,7 @@ struct ModDetailView: View {
         Picker("", selection: $selectedTab) {
             Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
             Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
-            Text("\(localization.L(L10n.Profiles.dependencies)) (\(dependencyCount))")
+            Text(DependencyTreeView.tabTitle(viewModel: vm, mod: mod, localization: localization))
                 .tag(DetailTab.dependencies)
             // Toujours offerte : un mod sans i18n est précisément celui qui
             // reste à traduire, et l'éditeur sait afficher un état vide.
@@ -399,13 +399,6 @@ struct ModDetailView: View {
     /// figée**, et l'interrupteur contredisait le disque après une pause.
     private var live: ModItem {
         vm.scanStore.mods.first { $0.folderName == mod.folderName } ?? mod
-    }
-
-    /// Racines de l'arbre rendu (fusionnées pour un pack), pas
-    /// `mod.dependencies.count` (vide sur un en-tête).
-    private var dependencyCount: Int {
-        vm.dependencyTree(for: mod).count
-            + vm.hiddenCodeIndex.undeclaredLinks(for: mod, installed: vm.scanStore.mods).count // A5-T6
     }
 
     /// Category chip: Nexus category, else the inferred offline tag.

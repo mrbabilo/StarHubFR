@@ -15,6 +15,17 @@ private func resolver(_ mods: [ModItem]) -> (String) -> (mod: ModItem, isEnabled
 }
 
 struct DependencyTreeTests {
+    /// E7 — « À régler » : requises directes en pause ou manquantes ; ni les
+    /// optionnelles, ni les actives, ni la requise d'une dépendance.
+    @Test func toFixKeepsRequiredRootsThatAreNotActive() {
+        let paused = mod("Paused", enabled: false)
+        let active = mod("Active", deps: [req("DeepGhost")])
+        let a = mod("A", deps: [req("Paused"), req("Ghost"), req("Active"),
+                                ModDependency(uniqueId: "OptGhost", isRequired: false)])
+        let tree = DependencyTreeBuilder.build(a.dependencies, resolve: resolver([a, paused, active]))
+        #expect(DependencyTreeBuilder.toFix(tree).map(\.uniqueId) == ["Paused", "Ghost"])
+    }
+
     @Test func resolvesTransitiveDepthThree() {
         let c = mod("C")
         let b = mod("B", deps: [req("C")])

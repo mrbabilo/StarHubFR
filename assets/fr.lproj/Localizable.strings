@@ -2776,3 +2776,8 @@
 "health_suggestion_dep_resolved" = "Plus manquante dans le dossier Mods : le journal est plus ancien.";
 "health_suggestion_mod_gone" = "Introuvable dans le dossier Mods.";
 "mods_compat_health_unknown_help" = "La liste de compatibilité de smapi.io recense surtout des mods C# ; la plupart des packs de contenu n'y figurent pas. Inconnu ne veut dire ni cassé ni sain : l'auteur du mod reste la seule source.";
+"deps_to_fix" = "À régler";
+"deps_to_fix_count" = "%lld à régler";
+"deps_to_fix_count_one" = "1 à régler";
+"deps_indirect" = "%lld dépendances indirectes";
+"deps_indirect_one" = "1 dépendance indirecte";
