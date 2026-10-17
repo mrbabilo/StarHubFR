@@ -36,6 +36,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Activer un mod et « Réactiver ces mods » ne figent plus l'app.** Le calcul des dépendances relisait tout le parc pour chacune : jusqu'à 10 s sans réaction sur une partie, environ 250 ms par mod basculé. Il passe par un index fait une fois.
 - **Une bascule groupée montre sa progression d'où qu'elle parte.** « Réactiver ces mods » d'une partie, « Revenir à un état d'avant » ou un groupe déplaçaient les dossiers sans barre d'avancement, qui n'existait que dans Gestion des mods.
 - **Traductions FR : l'app ne plante plus pendant un re-balayage.** L'anneau de répartition ne s'anime plus quand les comptes changent ; seul le total central suit en douceur.
 

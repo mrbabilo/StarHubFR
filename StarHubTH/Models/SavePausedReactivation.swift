@@ -19,12 +19,13 @@ struct SavePausedReactivation: Equatable {
 
     init(footprints: [PausedModFootprint], mods parc: [ModItem], chain: Bool) {
         let topOf = parc.topFolders
-        let byFolder = Dictionary(parc.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
+        let index = TogglePlan.Index(parc)
+        let byFolder = index.byFolder
         var seen: Set<String> = []
         var ordered: [ModItem] = []
         for footprint in footprints {
             guard let top = topOf[footprint.folderName], let mod = byFolder[top], !mod.isEnabled else { continue }
-            let plan = TogglePlan.make(mod: mod, mods: parc, chain: chain)
+            let plan = TogglePlan.make(mod: mod, index: index, chain: chain)
             // L'amorce d'abord, puis ses dépendances dans un ordre stable.
             for folder in [plan.seedFolder] + plan.folders.subtracting([plan.seedFolder]).sorted() {
                 guard let target = byFolder[folder], !target.isEnabled, seen.insert(folder).inserted else { continue }

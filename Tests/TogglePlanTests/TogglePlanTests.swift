@@ -88,6 +88,18 @@ import Testing
 
     // MARK: - Chaînage
 
+    /// L'index (2026-10-17) garde la comparaison d'avant : une dépendance
+    /// déclarée dans une autre casse que l'UniqueID, et portée par un
+    /// composant de pack, réveille ce pack.
+    @Test func dependencyIdMatchesWithoutCaseThroughAPack() {
+        let child = mod("Core", id: "Pathoschild.ContentPatcher", enabled: false, folderName: "CP/Core")
+        let pack = mod("CP", id: "", enabled: false, isGroup: true, children: [child], folderName: "CP")
+        let app = mod("App", id: "app.main", enabled: false, deps: [dep("pathoschild.contentpatcher")],
+                      folderName: "App")
+        let plan = TogglePlan.make(mod: app, mods: [app, pack], chain: true)
+        #expect(plan.folders == ["App", "CP"])
+    }
+
     /// Activer : les dépendances requises manquantes ou en pause, deux
     /// niveaux de profondeur ; une dépendance déjà active est traversée
     /// sans être ajoutée — mais ce qui pend en dessous d'elle est rattrapé.

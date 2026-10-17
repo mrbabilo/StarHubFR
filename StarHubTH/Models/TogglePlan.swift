@@ -27,14 +27,20 @@ struct TogglePlan: Equatable {
     /// en pause, et met en pause récursivement les mods actifs qui exigent
     /// le dossier amorce.
     static func make(mod: ModItem, mods: [ModItem], chain: Bool) -> TogglePlan {
+        make(mod: mod, index: Index(mods), chain: chain)
+    }
+
+    /// Même plan, sur un index déjà construit : un geste qui planifie
+    /// plusieurs mods (`SavePausedReactivation`) ne le bâtit qu'une fois.
+    static func make(mod: ModItem, index: Index, chain: Bool) -> TogglePlan {
         // Déjà premier niveau (mod seul ou en-tête de pack) → tel quel.
         // Sinon, résoudre le pack qui porte cet UniqueID — le même
         // rapprochement que la traversée des dépendances plus bas.
         let seedFolder: String = {
-            if mods.contains(where: { $0.folderName == mod.folderName }) {
+            if index.byFolder[mod.folderName] != nil {
                 return mod.folderName
             }
-            return topLevelFolder(for: mod.uniqueId, in: mods) ?? mod.folderName
+            return index.topLevelFolder(for: mod.uniqueId) ?? mod.folderName
         }()
 
         // L'état visé est l'intention du clic : `mod` a été capturé par
@@ -45,7 +51,7 @@ struct TogglePlan: Equatable {
         // (règle d'avant) défaisait cette bascule et réactivait toute la
         // chaîne de dépendances.
         let targetState = !mod.isEnabled
-        let currentIsEnabled = mods.first(where: { $0.folderName == seedFolder })?.isEnabled ?? mod.isEnabled
+        let currentIsEnabled = index.byFolder[seedFolder]?.isEnabled ?? mod.isEnabled
         guard currentIsEnabled != targetState else {
             return TogglePlan(seedFolder: seedFolder, targetState: targetState, folders: [])
         }
@@ -53,28 +59,56 @@ struct TogglePlan: Equatable {
         var folders: Set<String> = [seedFolder]
         if chain {
             if targetState {
-                folders.formUnion(enableChain(from: seedFolder, mods: mods))
+                folders.formUnion(enableChain(from: seedFolder, index: index))
             } else {
-                folders.formUnion(disableChain(from: seedFolder, mods: mods, already: folders))
+                folders.formUnion(disableChain(from: seedFolder, index: index))
             }
         }
         return TogglePlan(seedFolder: seedFolder, targetState: targetState, folders: folders)
     }
 
-    /// Retourne l'amorce : le dossier de premier niveau qui porte un
-    /// UniqueID — mod seul, ou en-tête de pack dont un enfant déclare
-    /// l'identifiant. `nil` si rien ne correspond.
-    static func topLevelFolder(for uniqueId: String, in mods: [ModItem]) -> String? {
-        for m in mods {
-            if !m.isGroup && m.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame {
-                return m.folderName
-            } else if m.isGroup, let children = m.children {
-                if children.contains(where: { $0.uniqueId.caseInsensitiveCompare(uniqueId) == .orderedSame }) {
-                    return m.folderName
-                }
+    /// Les recherches du plan, faites une fois. Sans lui, chaque dépendance
+    /// relisait tout le parc trois fois (dossier, dépendances, UniqueID) :
+    /// ~250 ms par mod sur 1 039 mods, et 10 s de fil principal pour
+    /// « Réactiver ces mods » d'une partie (`sample` du 2026-10-17). Premier
+    /// trouvé dans l'ordre du parc, comme les parcours qu'il remplace.
+    struct Index {
+        let mods: [ModItem]
+        let byFolder: [String: ModItem]
+        /// UniqueID replié sans casse → dossier de premier niveau qui le
+        /// porte : mod seul, ou en-tête de pack dont un enfant le déclare.
+        private let topByUniqueId: [String: String]
+
+        init(_ mods: [ModItem]) {
+            self.mods = mods
+            byFolder = Dictionary(mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
+            var top: [String: String] = [:]
+            for mod in mods {
+                let ids = mod.isGroup ? (mod.children ?? []).map(\.uniqueId) : [mod.uniqueId]
+                for id in ids where top[Self.key(id)] == nil { top[Self.key(id)] = mod.folderName }
             }
+            topByUniqueId = top
         }
-        return nil
+
+        /// Le repli de `caseInsensitiveCompare`, la comparaison d'avant.
+        private static func key(_ uniqueId: String) -> String {
+            uniqueId.folding(options: .caseInsensitive, locale: nil)
+        }
+
+        /// L'amorce d'un UniqueID ; `nil` si rien ne le porte.
+        func topLevelFolder(for uniqueId: String) -> String? {
+            topByUniqueId[Self.key(uniqueId)]
+        }
+
+        /// Toutes les dépendances d'un dossier de premier niveau (les enfants
+        /// d'un pack s'additionnent).
+        func dependencies(of folderName: String) -> [ModDependency] {
+            guard let mod = byFolder[folderName] else { return [] }
+            if mod.isGroup, let children = mod.children {
+                return children.flatMap { $0.dependencies }
+            }
+            return mod.dependencies
+        }
     }
 
     /// Activer : toutes les dépendances **requises** manquantes ou en pause,
@@ -82,18 +116,18 @@ struct TogglePlan: Equatable {
     /// actives (`visited`, distinct de la liste à basculer) pour qu'un mod
     /// en pause deux niveaux plus bas d'une chaîne déjà active soit
     /// quand même rattrapé.
-    private static func enableChain(from seedFolder: String, mods: [ModItem]) -> Set<String> {
+    private static func enableChain(from seedFolder: String, index: Index) -> Set<String> {
         var folders: Set<String> = []
         var queue = [seedFolder]
         var visited: Set<String> = [seedFolder]
         while !queue.isEmpty {
             let currentFolder = queue.removeFirst()
-            let deps = dependencies(of: currentFolder, in: mods)
+            let deps = index.dependencies(of: currentFolder)
 
             for dep in deps where dep.isRequired {
-                if let depFolder = topLevelFolder(for: dep.uniqueId, in: mods), !visited.contains(depFolder) {
+                if let depFolder = index.topLevelFolder(for: dep.uniqueId), !visited.contains(depFolder) {
                     visited.insert(depFolder)
-                    let isDepFolderEnabled = mods.first(where: { $0.folderName == depFolder })?.isEnabled ?? false
+                    let isDepFolderEnabled = index.byFolder[depFolder]?.isEnabled ?? false
                     if !isDepFolderEnabled {
                         folders.insert(depFolder)
                     }
@@ -107,15 +141,14 @@ struct TogglePlan: Equatable {
     /// Mettre en pause : tous les mods **actifs** qui exigent le dossier
     /// amorce, transitivement. Un dépendant déjà en pause n'entre ni dans
     /// la liste ni dans la file.
-    private static func disableChain(from seedFolder: String, mods: [ModItem],
-                                     already: Set<String>) -> Set<String> {
+    private static func disableChain(from seedFolder: String, index: Index) -> Set<String> {
         var folders: Set<String> = []
         var queue = [seedFolder]
         while !queue.isEmpty {
             let currentFolder = queue.removeFirst()
 
             var providedUniqueIds: [String] = []
-            if let m = mods.first(where: { $0.folderName == currentFolder }) {
+            if let m = index.byFolder[currentFolder] {
                 if m.isGroup, let children = m.children {
                     providedUniqueIds = children.map { $0.uniqueId }
                 } else {
@@ -123,8 +156,8 @@ struct TogglePlan: Equatable {
                 }
             }
 
-            for otherMod in mods where otherMod.isEnabled && !folders.contains(otherMod.folderName) {
-                let otherDeps = dependencies(of: otherMod.folderName, in: mods)
+            for otherMod in index.mods where otherMod.isEnabled && !folders.contains(otherMod.folderName) {
+                let otherDeps = index.dependencies(of: otherMod.folderName)
                 let requiresCurrent = otherDeps.contains { dep in
                     dep.isRequired && providedUniqueIds.contains { $0.caseInsensitiveCompare(dep.uniqueId) == .orderedSame }
                 }
@@ -135,16 +168,6 @@ struct TogglePlan: Equatable {
             }
         }
         return folders
-    }
-
-    /// Toutes les dépendances d'un dossier de premier niveau (les enfants
-    /// d'un pack s'additionnent).
-    private static func dependencies(of folderName: String, in mods: [ModItem]) -> [ModDependency] {
-        guard let m = mods.first(where: { $0.folderName == folderName }) else { return [] }
-        if m.isGroup, let children = m.children {
-            return children.flatMap { $0.dependencies }
-        }
-        return m.dependencies
     }
 
     /// La republication en mémoire : seuls les dossiers basculés changent
