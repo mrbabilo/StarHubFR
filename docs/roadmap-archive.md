@@ -7733,3 +7733,8 @@ sans lire une ligne de log.
       coupés à la fin, « Voir la fiche » en lien. E13 : la feuille de zip
       des parties compte parties et copies de secours à part
       (`FolderArchive.savesContent`, Core, testé). Vérifiés à l'écran.
+- [x] **I-T30 · E8** — *(livré le 2026-10-17, `9043829c`)* « 1 mod » :
+      `ModScanner` ne pose plus « N mods » en anglais dans la description
+      d'un pack, la ligne compte ses composants par `plural`. En-têtes des
+      Alertes, Profils et Mises à jour sans « (s) ». Les autres clés en
+      « (s) » (~105) restent pour L7. Vérifié à l'écran.
