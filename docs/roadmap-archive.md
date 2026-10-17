@@ -7636,3 +7636,11 @@ sans lire une ligne de log.
       opération qui tient le parc. Le drapeau de la feuille ⌘O passe dans
       `NavigationStore.showsInstallSheet` (`dcb31ddb`, `67f9c90c`). Vérifié
       à l'écran. Dock et `Info.plist` : P5-5b, décision de l'auteur (L6).
+- [x] **I-T29 · P5-6a** — *(livré le 2026-10-17)* Mises à jour : les mods
+      actifs d'abord (« Mods actifs (n) » quand les deux groupes existent),
+      ceux en pause dans « Mods en pause (n) », replié par défaut et mémorisé
+      (`updates.pausedExpanded`). `NexusUpdateGroups` (Core, testé) partage
+      dans l'ordre d'arrivée ; un mod introuvable compte en pause. C1a : la
+      pastille dit « Actif » / « En pause » avec son glyphe, plus de fond
+      orange (`c38041a9`). Vérifié à l'écran. Badge des actifs seulement :
+      P5-6b, décision de l'auteur (L6).
