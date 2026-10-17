@@ -7716,3 +7716,12 @@ sans lire une ligne de log.
       « Réinstaller » (`b84c932c`). Barre de stockage : les violets
       `Chart.part*` de la spec **illisibles à l'écran** (retour de l'auteur),
       remplacés par l'accent plein / à 40 %. Vérifié à l'écran.
+- [x] **I-T30 · suite de R1** — *(livré le 2026-10-17)* Une phrase de
+      rétention, `BackupRetentionSummary` (Core, testé), tirée des constantes
+      de `cleanupOldBackups` : segment Installations, et Entretien avant
+      « Garder N par mod ». Renvois : légende de stockage de l'Entretien →
+      segment Installations ou Configuration ; Sauvegardes → « Libérer de la
+      place › » et « Corbeille des mods › » (`NavigationStore+Backups`,
+      testé, `df42a09b`). Le poids dans le sous-titre de Sauvegardes est
+      écarté : le rapport d'Entretien n'existe qu'à l'ouverture de
+      l'Entretien. Vérifié à l'écran.
