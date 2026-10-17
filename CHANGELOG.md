@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.70.0] - 2026-10-17
+
 ### Changed
 
 - **Gestion des mods en fenêtre étroite : des lignes plus serrées.** Sous ~640 pt de liste, catégorie, auteur et version prennent leur largeur naturelle ; la bande ne garde que poids, FR et attributs, les dates et les langues passent à l'infobulle. Au large, les colonnes restent alignées.
