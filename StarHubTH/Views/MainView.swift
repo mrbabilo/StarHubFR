@@ -302,7 +302,7 @@ struct MainView: View {
                 if step == .back { stepBack() } else { stepForward() }
             }
             .toolbar { ToolbarItem(placement: .navigation) { navHistoryButtons } }.helpLauncher(navigation: navigation, currentTab: currentTab, localization: localization)
-            .frame(minWidth: 560, minHeight: 400).focusSection().archiveDropTarget(viewModel: vm, localization: localization)
+            .frame(minWidth: 560, minHeight: 400).focusSection().archiveDropTarget(viewModel: vm, localization: localization).bulkToggleProgress(viewModel: vm, localization: localization)
             .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
             .toolbarBackground(.hidden, for: .windowToolbar)
         }

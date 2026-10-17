@@ -388,11 +388,6 @@ struct ModListView: View {
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
-        .overlay {
-            if let prog = vm.bulkToggleProgress, prog.total > 0 {
-                bulkToggleOverlay(done: prog.done, total: prog.total)
-            }
-        }
         // Les cinq `.onChange` par critère sont partis dans `ModListFilters` :
         // la règle y est portée par le type, donc un filtre ajouté plus tard ne
         // peut plus oublier sa remise à la page 1. Reste celui-ci, qui ne
@@ -614,18 +609,5 @@ struct ModListView: View {
         guard total > 0 else { return nil }
         return String(format: localization.L(L10n.Mods.pageWeight),
                       ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
-    }
-
-    /// Full-screen overlay shown while a bulk enable/disable-all operation is
-    /// moving mod folders. Blocks all interaction with the list so the user
-    /// can't start a conflicting toggle mid-operation. Shows a determinate
-    /// progress bar with the current/total count.
-    private func bulkToggleOverlay(done: Int, total: Int) -> some View {
-        ModalProgressOverlay(
-            label: vm.bulkToggleEnabling
-                ? localization.L(L10n.Mods.enablingAllProgress)
-                : localization.L(L10n.Mods.disablingAllProgress),
-            done: done,
-            total: total)
     }
 }
