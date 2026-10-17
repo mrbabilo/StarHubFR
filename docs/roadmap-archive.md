@@ -7586,9 +7586,10 @@ sans lire une ligne de log.
       reste montée, masquée et désactivée). `ProfileConfigOverview` (Core,
       testé) remplace `profileConfigSummary` du ViewModel. Le défilement vers
       la section attendait l'apparition ; il attend désormais le premier
-      `reload()`, sans quoi la section n'existait pas encore (`e4913149`).
-      Vérifié à l'écran sur BENCHMARK (9 configs) : colonne, comparaison, ↩ et
-      défilement gardé ; le défilement initial corrigé reste à revoir.
+      `reload()`, sans quoi la section n'existait pas encore (`e4913149`) ;
+      le focus voyage dans l'item de `.sheet(item:)` (`f5401bba`).
+      Vérifié à l'écran sur BENCHMARK (9 configs) : colonne, comparaison, ↩,
+      défilement gardé et défilement initial (2026-10-17).
 - [x] **I-T28 · R9** — *(livré le 2026-10-17)* L'encart de dépendance d'une
       ligne porte le geste qui la satisfait, en nommant la dépendance :
       « Activer X », « Installer X », « Page Nexus de X » ou « Chercher X »
