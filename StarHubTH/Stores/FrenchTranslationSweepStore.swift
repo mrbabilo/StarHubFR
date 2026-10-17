@@ -50,8 +50,29 @@ final class FrenchTranslationSweepStore {
     /// suivante.
     @ObservationIgnored private var generation = 0
 
+    /// P5-4 — les résultats que l'utilisateur a écartés, lus au statut.
+    private(set) var verdicts: TranslationHitVerdicts
+
     init() {
         entries = FrenchTranslationSweep.Storage.load()
+        verdicts = TranslationHitVerdicts.Storage.load()
+    }
+
+    /// Ce que la page et la fiche montrent d'un mod : son entrée, sans les
+    /// résultats écartés. `entries` reste l'observation brute.
+    func entry(for folderName: String) -> FrenchTranslationSweep.Entry? {
+        entries[folderName]?.excluding(verdicts.dismissedModIds(for: folderName))
+    }
+
+    /// « Ce n'est pas la bonne ». `false` si l'écart n'a pas pu s'écrire.
+    func dismiss(_ hit: NexusModSearch.Hit, for candidate: FrenchTranslationSweep.Candidate) -> Bool {
+        verdicts.dismiss(hit, for: candidate.folderName, modName: candidate.name, at: Date())
+        return TranslationHitVerdicts.Storage.save(verdicts)
+    }
+
+    func restore(_ dismissal: TranslationHitVerdicts.Dismissal) -> Bool {
+        verdicts.restore(dismissal)
+        return TranslationHitVerdicts.Storage.save(verdicts)
     }
 
     /// La date de la recherche la plus ancienne parmi ces mods — ce que la

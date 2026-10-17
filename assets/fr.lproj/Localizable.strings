@@ -2751,3 +2751,8 @@
 "updates_active_group" = "Mods actifs (%lld)";
 "updates_paused_group" = "Mods en pause (%lld)";
 "updates_paused_group_explanation" = "Le jeu ne charge pas ces mods : leur mise à jour peut attendre leur réactivation.";
+"fr_translations_not_this_one" = "Ce n'est pas la bonne traduction : l'écarter";
+"fr_translations_dismissed_title" = "Écartés (%lld)";
+"fr_translations_dismissed_row" = "%@ — pour %@";
+"fr_translations_dismissed_restore" = "Rétablir";
+"fr_translations_dismissed_explanation" = "Ces résultats ne reviennent pas, même après un re-balayage. Rétablir les remet dans leur section.";

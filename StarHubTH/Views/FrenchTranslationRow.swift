@@ -59,9 +59,11 @@ struct FrenchTranslationRow: View {
             switch status {
             case .available(let hits):
                 // Le plus sûr d'abord : confirmée, liée, puis par nom.
-                ForEach(hits.sorted { rank($0) < rank($1) }) { hitLine($0, action: L10n.FrTranslations.install) }
+                ForEach(hits.sorted { rank($0) < rank($1) }) {
+                    hitLine($0, action: L10n.FrTranslations.install, dismissable: confidence($0) != .confirmed)
+                }
             case .updateAvailable(let newer):
-                hitLine(newer, action: L10n.FrTranslations.update)
+                hitLine(newer, action: L10n.FrTranslations.update, dismissable: false)
             case .installed, .installedUnverified, .failed, .nothingFound, .notSearched:
                 EmptyView()
             }
@@ -98,7 +100,10 @@ struct FrenchTranslationRow: View {
         }
     }
 
-    private func hitLine(_ hit: NexusModSearch.Hit, action: String) -> some View {
+    /// `dismissable` : un résultat à vérifier (par le nom, ou lié sans que
+    /// le titre nomme le mod) peut s'écarter (P5-4) ; une traduction confirmée
+    /// ou la mise à jour d'une traduction posée, non.
+    private func hitLine(_ hit: NexusModSearch.Hit, action: String, dismissable: Bool) -> some View {
         HStack(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
@@ -128,7 +133,63 @@ struct FrenchTranslationRow: View {
                     .font(AppDesign.Font.footnote)
             }
             .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
+            if dismissable {
+                Button {
+                    if !viewModel.translationSweep.dismiss(hit, for: candidate) {
+                        viewModel.log("Traductions FR : l'écart de « \(hit.name) » n'a pas pu s'écrire", level: .warning)
+                    }
+                } label: {
+                    // Cible portée à 18×18 : sur un glyphe nu, l'infobulle ne
+                    // s'affiche jamais.
+                    Image(systemName: "hand.thumbsdown")
+                        .frame(width: 18, height: 18).contentShape(.rect)
+                }
+                .buttonStyle(.borderless).pointingHandCursor()
+                .help(localization.L(L10n.FrTranslations.notThisOne))
+                .accessibilityLabel(localization.L(L10n.FrTranslations.notThisOne))
+            }
         }
         .padding(.leading, AppDesign.Spacing.md)
+    }
+}
+
+/// P5-4 — les résultats écartés, en bas de la page, chacun rétablissable.
+/// Replié : la liste sert à rattraper un clic, pas à être lue.
+struct DismissedTranslationHits: View {
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        let dismissals = viewModel.translationSweep.verdicts.dismissals
+        if !dismissals.isEmpty {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                    Text(localization.L(L10n.FrTranslations.dismissedExplanation))
+                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(dismissals) { dismissal in
+                        HStack(spacing: AppDesign.Spacing.sm) {
+                            Text(String(format: localization.L(L10n.FrTranslations.dismissedRow),
+                                        dismissal.hitName, dismissal.modName))
+                                .font(AppDesign.Font.footnote).lineLimit(1).truncationMode(.middle)
+                            Spacer(minLength: 8)
+                            Button(localization.L(L10n.FrTranslations.dismissedRestore)) {
+                                if !viewModel.translationSweep.restore(dismissal) {
+                                    viewModel.log("Traductions FR : le rétablissement de « \(dismissal.hitName) » "
+                                                  + "n'a pas pu s'écrire", level: .warning)
+                                }
+                            }
+                            .buttonStyle(.borderless).controlSize(.small).pointingHandCursor()
+                        }
+                    }
+                }
+                .padding(.top, AppDesign.Spacing.xs)
+            } label: {
+                Label(String(format: localization.L(L10n.FrTranslations.dismissedTitle), Int64(dismissals.count)),
+                      systemImage: "hand.thumbsdown")
+                    .font(AppDesign.Font.body(.semibold))
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 }

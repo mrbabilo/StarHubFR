@@ -56,6 +56,7 @@ let package = Package(
                 "Models/NexusModDetailV2.swift",
                 "Models/NexusTranslationLinks.swift",
                 "Models/FrenchTranslationSweep.swift",
+                "Models/TranslationHitVerdicts.swift",
                 "Models/NexusSearchError.swift",
                 "Models/DiscoveryState.swift",
                 "Models/ModCatalog.swift",

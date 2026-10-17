@@ -2751,3 +2751,8 @@
 "updates_active_group" = "Active mods (%lld)";
 "updates_paused_group" = "Paused mods (%lld)";
 "updates_paused_group_explanation" = "The game does not load these mods: their update can wait until you enable them again.";
+"fr_translations_not_this_one" = "Not the right translation: dismiss it";
+"fr_translations_dismissed_title" = "Dismissed (%lld)";
+"fr_translations_dismissed_row" = "%@ — for %@";
+"fr_translations_dismissed_restore" = "Restore";
+"fr_translations_dismissed_explanation" = "These results do not come back, even after a rescan. Restore puts them back in their section.";

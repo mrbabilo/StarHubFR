@@ -38,6 +38,15 @@ public enum FrenchTranslationSweep {
             self.signature = signature
         }
 
+        /// P5-4 — l'entrée sans les résultats écartés (`TranslationHitVerdicts`),
+        /// ce que la page et la fiche montrent. Vidée, elle dit « rien trouvé » ;
+        /// le cache, lui, garde l'observation brute.
+        public func excluding(_ dismissed: Set<Int>) -> Entry {
+            guard !dismissed.isEmpty else { return self }
+            return Entry(hits: hits.filter { !dismissed.contains($0.modId) }, linkedModIds: linkedModIds,
+                         searchedAt: searchedAt, failed: failed, signature: signature)
+        }
+
         public func isLinked(_ hit: NexusModSearch.Hit) -> Bool {
             linkedModIds.contains(hit.modId)
         }

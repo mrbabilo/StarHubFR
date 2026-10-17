@@ -242,7 +242,7 @@ struct TranslationSection: View {
     /// R3 — sans recherche propre, ceux du balayage de la page (`shownHits`).
     private var hits: [NexusModSearch.Hit]? {
         let model = vm, folder = mod.folderName
-        return FrenchTranslationSweep.shownHits(own: model.translationHits[folder], entry: model.translationSweep.entries[folder],
+        return FrenchTranslationSweep.shownHits(own: model.translationHits[folder], entry: model.translationSweep.entry(for: folder),
                                                 installed: installed ?? model.declaredTracked(for: mod))
     }
     private var isSearching: Bool { vm.searchingTranslations.contains(mod.folderName) }

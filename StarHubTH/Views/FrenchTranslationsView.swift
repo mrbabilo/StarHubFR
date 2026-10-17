@@ -59,7 +59,7 @@ struct FrenchTranslationsView: View {
             guard let mod = byFolder[candidate.folderName] else { return nil }
             return Row(candidate: candidate, mod: mod,
                        status: FrenchTranslationSweep.status(
-                           entry: store.entries[candidate.folderName],
+                           entry: store.entry(for: candidate.folderName),
                            installed: model.translation(for: mod) ?? model.declaredTracked(for: mod)))
         }
     }
@@ -99,6 +99,7 @@ struct FrenchTranslationsView: View {
                         ForEach(groups, id: \.key) { group in
                             section(group.key, group.rows, open: group.open)
                         }
+                        DismissedTranslationHits(viewModel: viewModel, localization: localization)
                     }
                     .padding(AppDesign.Spacing.lg)
                 }
@@ -265,7 +266,7 @@ struct FrenchTranslationsView: View {
                 ForEach(rows) { row in
                     FrenchTranslationRow(viewModel: viewModel, localization: localization, mod: row.mod,
                                          candidate: row.candidate, status: row.status,
-                                         entry: store.entries[row.candidate.folderName],
+                                         entry: store.entry(for: row.candidate.folderName),
                                          openMod: { openMod(row.mod.folderName) })
                 }
             }
