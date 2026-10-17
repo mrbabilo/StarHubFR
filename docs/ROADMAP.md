@@ -864,13 +864,29 @@ relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements), I-T29 (L4, fonctionnalités) et I-T30 (L5, écrans) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T31 — L6 Décisions de l'auteur** (rapport §5, 14 décisions) :
-      Accueil allégé (revient sur I-T9), palette avec actions et ↩ sur un
-      profil ou une partie (reviennent sur I-T2 et I-T5), ⌘9 → Diagnostic,
-      Réglages au pied, style de lien, dépliage de pack au clavier, badges
-      « actifs seulement », garde « seule copie » sur les configurations,
-      rouvrir les axes C et A, bascule transactionnelle. Rien ne part sans
-      décision. · **M**
+- [ ] **I-T31 — L6 Décisions de l'auteur** — **tranchées le 2026-10-18**
+      (rapport §5) ; à livrer dans cet ordre :
+      - **P5-7** relire le journal SMAPI à la fermeture du jeu (rouvre l'axe A) ;
+      - **P5-6b** badge « Mise à jour des mods » : actifs seulement, en-tête
+        « n à faire · m en pause » ;
+      - **garde « seule copie »** étendue aux sauvegardes de configuration ;
+      - **C4b** style de lien unique : `.link` natif (les `.hoverLink` migrent) ;
+      - **E9a** pack : clic = déplier **et** sélectionner, plus un chevron
+        bouton pour le clavier et VoiceOver ;
+      - **P5-5b** dépôt d'archive sur l'icône du Dock (`CFBundleDocumentTypes`,
+        rang `Alternate`) ;
+      - **N-12** palette : ↩ sur un profil ouvre son aperçu, ⌘↩ l'active ;
+      - **R6** partie : un seul menu d'actions, puis une page à trois segments ;
+      - **N-08** palette : actions « Vérifier les mises à jour », « Installer
+        des mods… », « Lancer le jeu » ; ↩ sur une partie ouvre la partie ;
+      - **N-04** Accueil : bandeau et tuiles gardés, « À régler » et
+        « Récemment installés » ajoutés dessous ;
+      - **N-10** en dernier : ⌘9 = Diagnostic, Réglages en icône au pied de
+        la barre latérale.
+      Écartée : bascule groupée transactionnelle (l'instantané et « Revenir »
+      suffisent ; ne plus la rouvrir). Déjà tranchées : axe C non rouvert
+      (R3, P5-4, P5-10 livrés en I-T29), badge Traductions FR actifs
+      seulement. · **L**
 - [ ] **I-T32 — L7 Finitions** : orthographes de style uniques, lexique
       (« en pause » partout, « sauvegarde » à un seul sens, vouvoiement),
       migrations littéral → jeton par écran (149 couleurs nues, 367
