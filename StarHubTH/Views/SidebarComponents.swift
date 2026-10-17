@@ -15,17 +15,21 @@ struct SidebarNavGroups: View {
     /// `SidebarOrder` : il change à chaque scan. `nil` quand l'entrée ne
     /// compte rien.
     private func badge(_ d: SidebarDestination) -> (count: Int, color: Color)? {
+        let model = vm
         switch d {
         case .updates:
-            return (UpdateCount.pending(outOfDate: vm.outOfDateMods,
-                                        nexusCount: vm.nexusUpdates.count) {
-                vm.resolveModFolder(forLoggedName: $0)?.version
+            return (UpdateCount.pending(outOfDate: model.outOfDateMods,
+                                        nexusCount: model.nexusUpdates.count) {
+                model.resolveModFolder(forLoggedName: $0)?.version
             }, AppDesign.Color.info)
         case .systemAlerts:
-            return (vm.systemAlertCount, AppDesign.Color.warning)
+            return (model.systemAlertCount, AppDesign.Color.warning)
         case .quarantine:
-            return (vm.maintenanceStore.quarantineItemCount, AppDesign.Color.quarantine)
-        case .home, .mods, .discover, .frenchTranslations, .profiles, .saves,
+            return (model.maintenanceStore.quarantineItemCount, AppDesign.Color.quarantine)
+        case .frenchTranslations:
+            // P5-10 : mods actifs, mises à jour et traductions confirmées.
+            return (model.frenchTranslationBadgeCount, AppDesign.Color.accent)
+        case .home, .mods, .discover, .profiles, .saves,
              .backups, .maintenance, .logs, .settings,
              .appChangelog:
             return nil

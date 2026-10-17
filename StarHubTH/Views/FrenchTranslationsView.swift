@@ -40,29 +40,10 @@ struct FrenchTranslationsView: View {
                      outdatedKeys: model.outdatedKeysByMod)
     }
 
-    /// Une ligne : le mod, son statut, et le `ModItem` vivant pour agir.
-    private struct Row: Identifiable {
-        let candidate: FrenchTranslationSweep.Candidate
-        let mod: ModItem
-        let status: FrenchTranslationSweep.Status
-        var id: String { candidate.id }
-    }
-
-    private var rows: [Row] {
-        let model = viewModel
-        let byFolder = Dictionary(model.mods.map { ($0.folderName, $0) }, uniquingKeysWith: { first, _ in first })
-        return FrenchTranslationSweep.candidates(
-            among: model.mods,
-            hasInstalledTranslation: { model.tracksTranslation(for: $0) },
-            nexusModId: { Int(model.resolvedNexusModId(for: $0)) })
-        .compactMap { candidate in
-            guard let mod = byFolder[candidate.folderName] else { return nil }
-            return Row(candidate: candidate, mod: mod,
-                       status: FrenchTranslationSweep.status(
-                           entry: store.entry(for: candidate.folderName),
-                           installed: model.translation(for: mod) ?? model.declaredTracked(for: mod)))
-        }
-    }
+    /// Les lignes vivent sur le ViewModel : le badge de la barre (P5-10) lit
+    /// les mêmes.
+    private typealias Row = FrenchTranslationLine
+    private var rows: [Row] { viewModel.frenchTranslationLines }
 
     var body: some View {
         let all = rows

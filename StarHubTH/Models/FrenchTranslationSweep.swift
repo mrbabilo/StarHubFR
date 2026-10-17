@@ -232,6 +232,27 @@ public enum FrenchTranslationSweep {
         }
     }
 
+    /// P5-10 (audit UX du 2026-10-16) — ce mod compte-t-il au badge de la
+    /// barre ? Une mise à jour de la traduction posée, ou une traduction
+    /// nouvelle **confirmée** (liée, et son titre nomme le mod) : un résultat
+    /// par le nom se trompe une fois sur trois, le badge n'en compte aucun.
+    /// Mods actifs seulement (décision de l'auteur, 2026-10-17) : la page
+    /// liste aussi les mods en pause, mais un badge appelle un geste
+    /// maintenant. Lu sur le cache : le badge ne lance jamais de recherche.
+    ///
+    /// `entry` : celle que la page montre, résultats écartés retirés.
+    public static func callsForAction(_ status: Status, candidate: Candidate, entry: Entry?) -> Bool {
+        guard candidate.isActive else { return false }
+        switch status {
+        case .updateAvailable:
+            return true
+        case .available(let hits):
+            return hits.contains { entry?.confidence(of: $0, hostName: candidate.name) == .confirmed }
+        case .installed, .installedUnverified, .failed, .nothingFound, .notSearched:
+            return false
+        }
+    }
+
     /// Les mods pour lesquels une recherche a trouvé la fiche `modId` : quand
     /// l'archive d'une traduction arrive par un lien Nexus, son nom ne dit
     /// souvent rien (« Patch FR/fr.json » pour Jakk's Quinn), mais la page
