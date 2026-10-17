@@ -81,6 +81,16 @@ public enum FolderArchive {
     /// Place à exiger sur le disque de destination : la source plus 5 %, et
     /// jamais moins de 200 Mo de marge. Une archive ne dépasse pas sa source
     /// de plus que ses en-têtes ; la marge garde le disque utilisable.
+    /// E13 (audit UX 2026-10-16) — ce que contient `Saves/` : les parties, et
+    /// les copies de secours `<partie>.backup_<date>` que l'app pose à côté
+    /// (`SaveManager.backupSaveURL`). La feuille comptait les deux sous
+    /// « parties » : 18 annoncées, 3 dans la page.
+    public static func savesContent(names: [String]) -> (games: Int, backups: Int) {
+        let visible = names.filter { !$0.hasPrefix(".") }
+        let backups = visible.filter { $0.contains(".backup_") }.count
+        return (visible.count - backups, backups)
+    }
+
     public static func requiredBytes(sourceBytes: Int64) -> Int64 {
         sourceBytes + max(sourceBytes / 20, 200_000_000)
     }

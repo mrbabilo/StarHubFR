@@ -141,7 +141,7 @@ struct FrenchTranslationsView: View {
                             Image(systemName: "ellipsis.circle")
                         }
                         .menuStyle(.borderlessButton).focusRing(cornerRadius: 4)
-                        .frame(width: 20, height: 20).focusRing(cornerRadius: 4)
+                        .fixedSize() // E12 : un cadre de 20 pt rognait le chevron (« ⋯✓ »)
                         .contentShape(.rect)
                         .controlSize(.small)
                         .disabled(all.isEmpty)

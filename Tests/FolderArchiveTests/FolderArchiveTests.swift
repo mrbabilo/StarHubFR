@@ -46,6 +46,16 @@ struct FolderArchiveProgressTests {
 }
 
 struct FolderArchivePlanTests {
+    /// E13 — les copies de secours ne comptent plus comme des parties ; les
+    /// fichiers cachés (`.DS_Store`) ne comptent pas du tout.
+    @Test func savesContentSeparatesGamesFromBackupCopies() {
+        let names = ["Zofia_443716371", "Zofia_443716371.backup_20260722_002814",
+                     "TestOK_444827372_copy.backup_20260912_235311", "BENCH_450485299", ".DS_Store"]
+        let content = FolderArchive.savesContent(names: names)
+        #expect(content.games == 2)
+        #expect(content.backups == 2)
+    }
+
     /// 5 % de marge, jamais moins de 200 Mo : une archive ne dépasse pas sa
     /// source de plus que ses en-têtes, mais un disque plein à 100 % casse tout.
     @Test func theRequiredSpaceHasAMargin() {

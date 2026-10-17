@@ -366,7 +366,7 @@ struct ModDetailView: View {
     private var statStrip: some View {
         StatStrip(items: [
             .init(label: localization.L(L10n.Discovery.statEndorsements), value: vm.modDetailState.flatMap {
-                $0.modId == Int(vm.resolvedNexusModId(for: mod)) ? $0.endorsements : nil }.map { "\($0)" } ?? "—"),
+                $0.modId == Int(vm.resolvedNexusModId(for: mod)) ? $0.endorsements : nil }.map { $0.formatted() } ?? "—"),
             .init(label: localization.L(L10n.ModInstall.labelVersion),
                   value: vm.displayVersion(for: mod)),
             .init(label: localization.L(L10n.Mods.detailUpdated), value: updatedLine),
@@ -377,7 +377,7 @@ struct ModDetailView: View {
                       ? "—"
                       : mod.languages.map { $0.uppercased() }.joined(separator: " "),
                   help: mod.languages.isEmpty ? nil : mod.languages.joined(separator: " ")),
-        ])
+        ], hidesEmpty: !isTopLevel)  // E3 : un composant n'a pas de fiche Nexus ni de poids à lui
         // Même cadrage que la bande : 700 pt.
         .padding(.horizontal, AppDesign.Spacing.xl)
         .frame(maxWidth: 700, alignment: .leading)

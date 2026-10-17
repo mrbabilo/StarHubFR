@@ -1826,7 +1826,7 @@
   "frtr_sort_name": "Name (A-Z)",
   "frtr_install": "Install",
   "frtr_update": "Update",
-  "frtr_open_mod": "Mod page",
+  "frtr_open_mod": "View mod",
   "frtr_section_unverified": "Installed, update not verifiable (%lld)",
   "frtr_linked_only": "linked, check it",
   "frtr_linked_only_help": "This translation declares the mod as a requirement on Nexus, but its title does not name it: it may translate another mod that depends on this one. Check before installing.",
@@ -2786,5 +2786,9 @@
   "maintenance_nothing_to_free": "Nothing to free: keeping 1 backup per mod would remove nothing.",
   "maintenance_retention_manual": "“Keep N per mod” removes more, by hand.",
   "backups_free_space_link": "Free up space ›",
-  "backups_trash_link": "Deleted a mod? Mod trash ›"
+  "backups_trash_link": "Deleted a mod? Mod trash ›",
+  "archive_saves_summary_one": "1 saved game",
+  "archive_saves_backups": "%lld backup copies",
+  "archive_saves_backups_one": "1 backup copy",
+  "archive_saves_with_backups": "%1$@ and %2$@"
 }

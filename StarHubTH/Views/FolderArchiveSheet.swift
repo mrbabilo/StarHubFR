@@ -32,21 +32,18 @@ struct FolderArchiveRequest: Identifiable {
     static func saves(_ localization: LocalizationStore) -> FolderArchiveRequest {
         let source = URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent(".config/StardewValley/Saves", isDirectory: true)
-        let count = visibleFolderCount(in: source)
+        let names: [String]
+        do { names = try FileManager.default.contentsOfDirectory(atPath: source.path) } catch { names = [] }
+        // E13 — les parties et leurs copies de secours, comptées à part : seul
+        // le libellé change, l'archive emporte tout `Saves/` comme avant.
+        let content = FolderArchive.savesContent(names: names)
+        let games = localization.plural(L10n.Archive.savesSummary, content.games)
         return FolderArchiveRequest(
             kind: .saves, source: source, filePrefix: "StardewSaves",
-            summary: String(format: localization.L(L10n.Archive.savesSummary), Int64(count)),
+            summary: content.backups == 0 ? games
+                : String(format: localization.L(L10n.Archive.savesWithBackups), games,
+                         localization.plural(L10n.Archive.savesBackups, content.backups)),
             knownBytes: nil)
-    }
-
-    /// Dossiers visibles directement sous `folder` — une partie par dossier.
-    private static func visibleFolderCount(in folder: URL) -> Int {
-        do {
-            return try FileManager.default.contentsOfDirectory(atPath: folder.path)
-                .filter { !$0.hasPrefix(".") }.count
-        } catch {
-            return 0
-        }
     }
 }
 
@@ -260,6 +257,8 @@ extension L10n {
         static let savesTitle   = "archive_saves_title"
         static let modsSummary  = "archive_mods_summary"
         static let savesSummary = "archive_saves_summary"
+        static let savesBackups = "archive_saves_backups"          // E13
+        static let savesWithBackups = "archive_saves_with_backups"
         static let choose       = "archive_choose"
         static let spaceOK      = "archive_space_ok"
         static let spaceShort   = "archive_space_short"

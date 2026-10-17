@@ -54,7 +54,7 @@ struct FrenchTranslationRow: View {
                 if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
                 Spacer()
                 Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
-                    .buttonStyle(.borderless).controlSize(.small).pointingHandCursor().focusRing(cornerRadius: 4)
+                    .buttonStyle(.hoverLink).focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
             }
             switch status {
             case .available(let hits):
@@ -107,8 +107,10 @@ struct FrenchTranslationRow: View {
         HStack(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
+                    // E12 : fin coupée, sur deux lignes — au milieu, « NE » et
+                    // « NW » de deux résultats voisins disparaissaient.
                     Text(hit.name).font(AppDesign.Font.footnote(.medium))
-                        .lineLimit(1).truncationMode(.middle)
+                        .lineLimit(2).truncationMode(.tail)
                     caution(hit)
                 }
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,

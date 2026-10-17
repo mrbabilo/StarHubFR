@@ -20,17 +20,21 @@ struct StatStrip: View {
     }
 
     let items: [Item]
+    /// E3 — sur un composant de pack, les colonnes sans valeur (« — ») cèdent
+    /// leur place au lieu d'aligner une rangée de tirets. Un mod de premier
+    /// niveau les garde : le tiret y dit qu'une donnée manque.
+    var hidesEmpty = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            ForEach(items) { item in
+            ForEach(hidesEmpty ? items.filter { $0.value != "—" } : items) { item in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
                     Text(item.value)
                         .font(AppDesign.Font.body(.semibold))
-                        .lineLimit(1)
+                        .lineLimit(2) // E3 : « 1 juil. 2025 · il y a 3 mois » tient en deux lignes
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine) // « libellé, valeur » en un arrêt

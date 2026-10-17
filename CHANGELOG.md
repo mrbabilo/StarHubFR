@@ -14,6 +14,9 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Fiche d'un mod : la bande chiffrée lisible.** Date sur deux lignes au lieu d'être tronquée, « 226 442 » approbations avec séparateur ; sur un composant de pack, les colonnes vides cèdent leur place au lieu d'aligner des tirets.
+- **Traductions FR : deux résultats voisins se distinguent.** Titres sur deux lignes, coupés à la fin ; le menu ⋯ n'est plus rogné ; « Voir la fiche » en lien.
+- **Zip des parties : le compte dit vrai.** « 3 parties et 15 copies de secours » au lieu de « 18 parties » ; l'archive emporte toujours tout le dossier.
 - **Sauvegardes et Entretien se renvoient l'un à l'autre.** Une seule phrase dit la rétention automatique, sur les deux écrans. La légende de l'Entretien ouvre le segment Installations ou Configuration ; Sauvegardes mène à « Libérer de la place » et à la corbeille des mods.
 - **Entretien : « Libérer de la place » en un seul geste.** Un choix « Garder 1 / 3 / 5 par mod », limité aux crans qui libèrent quelque chose, puis « Mettre dans la Corbeille du Mac… ». Barre de stockage en bleu d'accent au lieu du rose, « Supprimer » d'une archive à l'écart de « Réinstaller ». Les tailles nulles s'écrivent « 0 ko ».
 - **Onglet Dépendances : « À régler » en tête.** Les requises en pause ou manquantes, avec « Activer » ou « Installer » en bouton plein ; l'arbre en dessous replie ses sous-niveaux. L'onglet dit « Dépendances (1 · 1 à régler) ». Couleurs d'état de l'app, la carte s'ouvre au clavier.

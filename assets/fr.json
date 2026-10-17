@@ -1826,7 +1826,7 @@
   "frtr_sort_name": "Nom (A-Z)",
   "frtr_install": "Installer",
   "frtr_update": "Mettre à jour",
-  "frtr_open_mod": "Fiche du mod",
+  "frtr_open_mod": "Voir la fiche",
   "frtr_section_unverified": "Installées, mise à jour non vérifiable (%lld)",
   "frtr_linked_only": "liée, à vérifier",
   "frtr_linked_only_help": "Cette traduction déclare le mod comme prérequis sur Nexus, mais son titre ne le nomme pas : elle traduit peut-être un autre mod qui dépend de celui-ci. Vérifiez avant de l'installer.",
@@ -2786,5 +2786,9 @@
   "maintenance_nothing_to_free": "Rien à libérer : garder 1 sauvegarde par mod ne retirerait rien.",
   "maintenance_retention_manual": "« Garder N par mod » retire davantage, à la main.",
   "backups_free_space_link": "Libérer de la place ›",
-  "backups_trash_link": "Un mod supprimé ? Corbeille des mods ›"
+  "backups_trash_link": "Un mod supprimé ? Corbeille des mods ›",
+  "archive_saves_summary_one": "1 partie",
+  "archive_saves_backups": "%lld copies de secours",
+  "archive_saves_backups_one": "1 copie de secours",
+  "archive_saves_with_backups": "%1$@ et %2$@"
 }
