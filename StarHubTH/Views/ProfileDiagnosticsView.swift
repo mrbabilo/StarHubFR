@@ -55,6 +55,9 @@ struct ProfileDiagnosticsView: View {
             content
                 .opacity(comparison == nil ? 1 : 0)
                 .allowsHitTesting(comparison == nil)
+                // Désactivé, son OK ne capte plus ↩ : le « ‹ Retour » de la
+                // comparaison est alors le seul `.defaultAction` de la feuille.
+                .disabled(comparison != nil)
                 .accessibilityHidden(comparison != nil)
             if let comparison {
                 ProfileConfigCompareView(vm: viewModel, localization: localization, mod: comparison.mod,

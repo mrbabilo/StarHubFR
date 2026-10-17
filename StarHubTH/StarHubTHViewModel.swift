@@ -1454,7 +1454,7 @@ final class StarHubTHViewModel {
 
     /// Index de dépendances (`DependencyIndex`, Core), reconstruits à chaque
     /// scan ; `duplicateIndex` nourrit les anomalies de ligne.
-    private var dependencyIndex = DependencyIndex.empty
+    private(set) var dependencyIndex = DependencyIndex.empty
     /// Scanner (cache mtime des manifestes + verrou dedans). **Une classe** :
     /// deux `scanMods()` concurrents doivent partager le même cache verrouillé
     /// (subscript non protégé = `EXC_BAD_ACCESS`, juillet 2026).

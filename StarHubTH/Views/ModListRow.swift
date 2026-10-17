@@ -898,13 +898,13 @@ struct ModListRow: View {
         }
     }
 
-    /// Une ligne de l'encart de dépendances : le constat, puis un geste par
-    /// dépendance. Repliable : à 821 pt, les noms ne se tronquent pas.
+    /// Une ligne de l'encart : le constat, puis un geste par dépendance — sauf
+    /// sur un mod en pause, qui dort. Repliable : à 821 pt, rien ne tronque.
     private func dependencyLine(icon: String, tint: Color, text: String, ids: [String]) -> some View {
         WrapHStack(spacing: AppDesign.Spacing.xs, lineSpacing: AppDesign.Spacing.xs) {
             Label(text, systemImage: icon)
                 .foregroundColor(tint)
-            ForEach(ids, id: \.self) { id in
+            ForEach(effectiveEnabled ? ids : [], id: \.self) { id in
                 DependencyFixActions(viewModel: vm, localization: localization, uniqueId: id,
                                      pendingActivation: $pendingActivation, pendingConflict: $pendingConflict)
             }

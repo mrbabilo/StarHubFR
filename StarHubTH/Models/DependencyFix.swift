@@ -14,19 +14,17 @@ enum DependencyFix: Equatable {
     /// Manquante, page inconnue (hors du dump Pathoschild) : la recherche.
     case search
 
-    /// `nil` quand rien n'est à faire : une copie active satisfait déjà la
-    /// dépendance, même si une autre dort en pause.
+    /// `nil` quand rien n'est à faire : le mod retenu est actif.
     ///
     /// - Parameters:
-    ///   - installed: le parc à plat (`flattenedMods`), pauses comprises.
+    ///   - resolved: le mod que `DependencyIndex` retient pour cet UniqueID
+    ///     (`resolve`), le même que juge l'encart (`disabled(for:)`) et que
+    ///     montre l'arbre : sur un id partagé (58 au parc), les trois
+    ///     s'accordent par construction.
     ///   - nexusId: la page connue de l'annuaire de dépendances.
     ///   - directDownload: `false` seulement pour un compte connu non Premium.
-    static func action(for uniqueId: String, installed: [ModItem],
-                       nexusId: Int?, directDownload: Bool) -> DependencyFix? {
-        let key = uniqueId.lowercased()
-        let copies = installed.filter { $0.uniqueId.lowercased() == key }
-        if copies.contains(where: \.isEnabled) { return nil }
-        if let paused = copies.first { return .activate(paused) }
+    static func action(resolved: ModItem?, nexusId: Int?, directDownload: Bool) -> DependencyFix? {
+        if let resolved { return resolved.isEnabled ? nil : .activate(resolved) }
         guard let nexusId else { return .search }
         return directDownload ? .install(nexusId: nexusId) : .openPage(nexusId: nexusId)
     }

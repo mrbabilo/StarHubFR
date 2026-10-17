@@ -41,6 +41,13 @@ struct ActivationHistorySection: View {
             Text(localization.L(L10n.ActivationHistory.subtitle))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            // Écrit, pas seulement en infobulle : elle n'est pas garantie sur
+            // un bouton grisé.
+            if let blocking {
+                Text(String(format: localization.L(L10n.ActivationHistory.blocked), localization.name(of: blocking)))
+                    .font(.caption).foregroundStyle(AppDesign.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let failure = viewModel.activationHistory.failure {
                 Text(String(format: localization.L(L10n.ActivationHistory.writeFailed), failure))
                     .font(.caption).foregroundStyle(AppDesign.Color.error)

@@ -19,7 +19,7 @@ struct DependencyFixActions: View {
         let entry = viewModel.dependencyDirectory.entry(for: uniqueId)
         let name = entry?.name ?? uniqueId.smapiModName
         Group {
-            switch DependencyFix.action(for: uniqueId, installed: viewModel.mods.flattenedMods,
+            switch DependencyFix.action(resolved: viewModel.dependencyIndex.resolve(uniqueId)?.mod,
                                         nexusId: entry?.nexusId,
                                         directDownload: !viewModel.nexusDirectDownloadUnavailable) {
             case .activate(let mod):
