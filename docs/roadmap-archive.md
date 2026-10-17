@@ -7708,3 +7708,11 @@ sans lire une ligne de log.
       que l'anomalie de la fiche (écart à la spec « tous niveaux », accepté
       par l'auteur). E7c (bandeau vers Dépendances) déjà livré par N-05.
       Vérifié à l'écran.
+- [x] **I-T30 · E11 + C2b** — *(livré le 2026-10-17)* Entretien, « Libérer
+      de la place » : un `Picker` des crans qui libèrent quelque chose et un
+      seul bouton `.bordered` « Mettre dans la Corbeille du Mac… (taille) »,
+      `StateCard` « Rien à libérer » sinon ; `SharedFormatters.bytes` écrit
+      « 0 ko » partout ; « Supprimer » d'une archive à l'écart de
+      « Réinstaller » (`b84c932c`). Barre de stockage : les violets
+      `Chart.part*` de la spec **illisibles à l'écran** (retour de l'auteur),
+      remplacés par l'accent plein / à 40 %. Vérifié à l'écran.

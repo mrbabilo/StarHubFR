@@ -12,9 +12,11 @@ struct MaintenanceStorageCard: View {
     /// Cran choisi : combien garder par mod, entrées condamnées, poids libéré.
     let onPurge: (_ keepPerMod: Int, _ doomed: Int, _ freedBytes: Int64) -> Void
 
-    /// Parts d'un même total (C2b) : le rose se lisait comme une erreur.
-    private static let installTint = AppDesign.Chart.partStrong
-    private static let configTint = AppDesign.Chart.partMid
+    /// Parts d'un même total (C2b) : le rose se lisait comme une erreur, les
+    /// violets `Chart.part*` ne se lisaient pas ici (vu à l'écran). L'accent,
+    /// en deux intensités.
+    private static let installTint = AppDesign.Color.accent
+    private static let configTint = AppDesign.Color.accent.opacity(0.4)
 
     /// Le cran choisi (E11) ; replié sur le premier qui libère quelque chose.
     @State private var keep = 1

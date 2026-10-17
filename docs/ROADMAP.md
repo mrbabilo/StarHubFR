@@ -864,8 +864,8 @@ relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements) et I-T29 (L4, fonctionnalités) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T30 — L5 Écrans** (E6, E7 livrés, à l'archive) : E11 + C2b
-      (Entretien), E3, E12, E13, E8, E9b–e, E2, C2 ;
+- [ ] **I-T30 — L5 Écrans** (E6, E7, E11 + C2b livrés, à l'archive) : E3,
+      E12, E13, E8, E9b–e, E2, C2 (a, c) ;
       phrase de rétention unique et liens Entretien ↔ Sauvegardes (suite de
       R1). En clair **et** en sombre. · **L**
 - [ ] **I-T31 — L6 Décisions de l'auteur** (rapport §5, 14 décisions) :

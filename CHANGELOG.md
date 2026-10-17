@@ -14,7 +14,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Entretien : « Libérer de la place » en un seul geste.** Un choix « Garder 1 / 3 / 5 par mod », limité aux crans qui libèrent quelque chose, puis « Mettre dans la Corbeille du Mac… ». Barre de stockage en violet, « Supprimer » d'une archive à l'écart de « Réinstaller ». Les tailles nulles s'écrivent « 0 ko ».
+- **Entretien : « Libérer de la place » en un seul geste.** Un choix « Garder 1 / 3 / 5 par mod », limité aux crans qui libèrent quelque chose, puis « Mettre dans la Corbeille du Mac… ». Barre de stockage en bleu d'accent au lieu du rose, « Supprimer » d'une archive à l'écart de « Réinstaller ». Les tailles nulles s'écrivent « 0 ko ».
 - **Onglet Dépendances : « À régler » en tête.** Les requises en pause ou manquantes, avec « Activer » ou « Installer » en bouton plein ; l'arbre en dessous replie ses sous-niveaux. L'onglet dit « Dépendances (1 · 1 à régler) ». Couleurs d'état de l'app, la carte s'ouvre au clavier.
 - **Éditeur de traduction : un seul ascenseur, des en-têtes lisibles.** La table défile avec la fiche au lieu d'un cadre de 460 pt ; l'en-tête de section épinglé est opaque, les clés ne passent plus au travers. La fraîcheur de l'anglais n'est plus dite deux fois.
 
