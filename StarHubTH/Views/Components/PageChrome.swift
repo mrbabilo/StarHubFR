@@ -41,6 +41,36 @@ extension PageHeader where Trailing == EmptyView {
     }
 }
 
+/// Contexte et actions d'une page dont le titre est déjà porté par la
+/// navigation. L'icône conserve le repère de domaine sans répéter le titre.
+struct PageContextBar<Trailing: View>: View {
+    let icon: String
+    var context: String? = nil
+    var tint: Color = AppDesign.Color.accent
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        SplitRow(spacing: AppDesign.Spacing.md) {
+            IconTile(icon: icon, tint: tint, size: 28)
+            if let context {
+                Text(context)
+                    .font(AppDesign.Font.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        } trailing: {
+            trailing()
+        }
+    }
+}
+
+extension PageContextBar where Trailing == EmptyView {
+    init(icon: String, context: String? = nil,
+         tint: Color = AppDesign.Color.accent) {
+        self.init(icon: icon, context: context, tint: tint) { EmptyView() }
+    }
+}
+
 /// Un symbole SF sur un carré arrondi en dégradé de sa teinte. Décoratif :
 /// le titre voisin dit ce que la tuile montre.
 struct IconTile: View {

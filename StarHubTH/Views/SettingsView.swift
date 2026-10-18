@@ -34,9 +34,9 @@ struct SettingsView: View {
         // `sectionView` reste exhaustif — jamais de `default:`.
         let group = vm.navigationStore.settingsGroup
         return VStack(spacing: 0) {
-            PageHeader(icon: "gearshape.fill", title: localization.L(L10n.Settings.settings),
-                       subtitle: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
-                       tint: .gray) {
+            PageContextBar(icon: "gearshape.fill",
+                           context: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
+                           tint: .gray) {
                 Picker(localization.L(L10n.Settings.settings),
                        selection: Bindable(vm.navigationStore).settingsGroup) {
                     ForEach(SettingsSectionOrder.groups, id: \.self) { g in

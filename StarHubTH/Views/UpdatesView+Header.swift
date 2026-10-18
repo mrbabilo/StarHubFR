@@ -11,11 +11,10 @@ extension UpdatesView {
         let counts = vm.pendingUpdateCounts
         let verdict = vm.updateCheckVerdict(pending: counts.total)
         return TimelineView(.periodic(from: .now, by: 60)) { context in
-            PageHeader(icon: "arrow.triangle.2.circlepath",
-                       title: localization.L(L10n.Main.modUpdates),
-                       subtitle: headerSubtitle(verdict, counts: counts, now: context.date),
-                       // Le vert est réservé au zéro mesuré sans réserve.
-                       tint: headerTint(verdict))
+            PageContextBar(icon: "arrow.triangle.2.circlepath",
+                           context: headerSubtitle(verdict, counts: counts, now: context.date),
+                           // Le vert est réservé au zéro mesuré sans réserve.
+                           tint: headerTint(verdict))
         }
         .padding(.horizontal, AppDesign.Spacing.xl)
         .padding(.vertical, AppDesign.Spacing.md)

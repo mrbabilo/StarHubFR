@@ -19,11 +19,9 @@ struct BackupsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // En-tête commun des pages (audit UX 2026-10-02) : un seul titre,
-            // ici ; les segments gardent leurs actions, pas un second titre.
-            PageHeader(icon: "arrow.uturn.backward.circle.fill",
-                       title: localization.L(L10n.ModInstall.manageBackups),
-                       subtitle: localization.L(L10n.Backups.pageSubtitle)) {
+            // Barre de contexte fixe ; les segments gardent leurs actions.
+            PageContextBar(icon: "arrow.uturn.backward.circle.fill",
+                           context: localization.L(L10n.Backups.pageSubtitle)) {
                 // R1 — le poids et le geste qui le réduit vivent dans l'Entretien.
                 Button(localization.L(L10n.Maintenance.backupsFreeSpaceLink)) { navigation.openMaintenance() }
                     .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)

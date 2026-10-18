@@ -135,8 +135,7 @@ struct MaintenanceView: View {
 
     /// En-tête commun des pages (audit UX 2026-10-02) : le total en sous-titre.
     private var header: some View {
-        PageHeader(icon: "internaldrive", title: localization.L(L10n.Maintenance.title),
-                   subtitle: vm.maintenanceReport.map {
+        PageContextBar(icon: "internaldrive", context: vm.maintenanceReport.map {
                        String(format: localization.L(L10n.Maintenance.headerTotal),
                               SharedFormatters.bytes($0.totalBytes))
                    }) {

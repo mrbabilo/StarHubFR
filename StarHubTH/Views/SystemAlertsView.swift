@@ -134,13 +134,12 @@ struct SystemAlertsView: View {
         // Le sous-titre compte `actionableCount` — une notice `.info` ne
         // compte jamais comme problème (revue globale, bloquant 1 : 7 notices
         // bénignes sur un parc sain annonçaient « 7 problèmes »).
-        return PageHeader(icon: worst == nil ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
-                          title: localization.L(L10n.Main.systemAlerts),
-                          subtitle: issues.isEmpty ? nil
-                              : String(format: localization.L(L10n.Health.problemCount),  // E8 : pluriels justes
-                                       localization.plural(L10n.Health.problems, issues.actionableCount),
-                                       localization.plural(L10n.Health.criticals, issues.filter { $0.severity == .critical }.count)),
-                          tint: tint(for: worst)) {
+        return PageContextBar(icon: worst == nil ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
+                              context: issues.isEmpty ? nil
+                                  : String(format: localization.L(L10n.Health.problemCount),  // E8 : pluriels justes
+                                           localization.plural(L10n.Health.problems, issues.actionableCount),
+                                           localization.plural(L10n.Health.criticals, issues.filter { $0.severity == .critical }.count)),
+                              tint: tint(for: worst)) {
             recheckLogButton
         }
         .padding(.horizontal, AppDesign.Spacing.lg)

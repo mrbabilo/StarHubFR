@@ -20,8 +20,9 @@ struct QuarantineView: View {
             // quarantaine, et ses trois gestes. ~624 pt de libellés FR pour
             // 500 à la fenêtre minimale : icônes seules (infobulles) quand ça
             // ne tient pas.
-            PageHeader(icon: "tray.full.fill", title: localization.L(L10n.Quarantine.title),
-                       subtitle: localization.L(L10n.Quarantine.subtitleShort)) {
+            PageContextBar(icon: "tray.full.fill",
+                           context: localization.L(L10n.Quarantine.subtitleShort),
+                           tint: AppDesign.Color.quarantine) {
                 AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) { actions(quarantineDir) } }
             }
             .padding(.horizontal, AppDesign.Spacing.xl)

@@ -27,8 +27,7 @@ struct SavesView: View {
             // barre latérale, le titre, ce qui existe ; disposition,
             // rechargement et données à droite.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-                PageHeader(icon: "folder.fill", title: localization.L(L10n.Saves.saves),
-                           subtitle: headerSummary) {
+                PageContextBar(icon: "folder.fill", context: headerSummary) {
                     Picker(localization.L(L10n.Saves.listViewHint), selection: $vm.saveViewMode) {
                         Image(systemName: "list.bullet")
                             .tag(SaveViewMode.list)

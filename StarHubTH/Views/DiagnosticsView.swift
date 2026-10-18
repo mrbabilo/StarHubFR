@@ -65,8 +65,7 @@ struct DiagnosticsView: View {
             // Santé, le slot trailing porte le menu du rapport de la liste de
             // mods — en haut, toujours à l'écran (la carte pleine hauteur
             // repoussait la section du bas sous le pli, 2026-10-04).
-            PageHeader(icon: "terminal.fill", title: localization.L(L10n.Logs.logs),
-                       subtitle: headerSummary) {
+            PageContextBar(icon: "terminal.fill", context: headerSummary) {
                 if viewModel.navigationStore.diagnosticsSegment == .health {
                     ModlistReportMenu(vm: viewModel, localization: localization)
                 }

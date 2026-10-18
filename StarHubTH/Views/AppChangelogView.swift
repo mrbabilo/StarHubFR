@@ -11,8 +11,8 @@ struct AppChangelogView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PageHeader(icon: "doc.text.fill", title: localization.L(L10n.Main.appChangelog),
-                       subtitle: String(format: localization.L(L10n.Main.changelogInstalled), appVersion))
+            PageContextBar(icon: "doc.text.fill",
+                           context: String(format: localization.L(L10n.Main.changelogInstalled), appVersion))
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, AppDesign.Spacing.md)
             Divider()

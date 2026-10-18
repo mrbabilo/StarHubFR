@@ -142,12 +142,10 @@ struct ModProfilesView: View {
 
     var body: some View {
         // Patron page de liste du dépôt (CLAUDE.md « UI ») : en-tête fixe
-        // au-dessus d'une liste qui défile. Le titre de page, retiré en
-        // septembre, revient avec l'en-tête commun des pages (audit UX
-        // 2026-10-02) : il porte désormais le profil actif.
+        // au-dessus d'une liste qui défile. La barre de contexte porte le
+        // profil actif sans répéter le titre de navigation.
         VStack(spacing: 0) {
-            PageHeader(icon: "person.2.fill", title: localization.L(L10n.Profiles.title),
-                       subtitle: headerSummary) {
+            PageContextBar(icon: "person.2.fill", context: headerSummary) {
                 Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                     .buttonStyle(.borderedProminent).focusRing()
                     .pointingHandCursor()

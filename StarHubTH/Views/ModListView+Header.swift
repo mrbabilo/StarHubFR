@@ -27,8 +27,8 @@ extension ModListView {
             // En-tête commun des pages (audit UX 2026-10-02) : le poids du
             // cadrage et le profil appliqué, autrefois en bout de rangée des
             // puces — pas d'information en plus, une place à eux.
-            PageHeader(icon: "puzzlepiece.extension.fill", title: localization.L(L10n.Mods.mods),
-                       subtitle: scopeWeightText(for: display)) {
+            PageContextBar(icon: "puzzlepiece.extension.fill",
+                           context: scopeWeightText(for: display)) {
                 activeProfileButton
             }
             // Rangée principale : cadrage (gauche) et action clé (droite), à
