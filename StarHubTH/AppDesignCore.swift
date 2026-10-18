@@ -56,6 +56,21 @@ public enum AppDesignCore {
         public static let secondary: Double = 0.8
     }
 
+    // MARK: - Surfaces
+    /// Fonds quasi neutres de l'interface. La légère composante froide évite
+    /// la dominante olive de `.background.secondary` sans colorer les cartes.
+    public enum SurfacePalette {
+        public static let surface = DynamicRGBColor(
+            light: RGBColor(red: 245.0 / 255.0, green: 245.0 / 255.0, blue: 247.0 / 255.0),
+            dark: RGBColor(red: 37.0 / 255.0, green: 37.0 / 255.0, blue: 39.0 / 255.0))
+        public static let surfaceRaised = DynamicRGBColor(
+            light: RGBColor(red: 1, green: 1, blue: 1),
+            dark: RGBColor(red: 44.0 / 255.0, green: 44.0 / 255.0, blue: 46.0 / 255.0))
+        public static let surfaceBorder = DynamicRGBColor(
+            light: RGBColor(red: 217.0 / 255.0, green: 217.0 / 255.0, blue: 222.0 / 255.0),
+            dark: RGBColor(red: 71.0 / 255.0, green: 71.0 / 255.0, blue: 75.0 / 255.0))
+    }
+
     // MARK: - Grid (LazyVGrid adaptative)
     /// Ce que la vitrine a codé en dur : une grille qui remplit la largeur
     /// disponible plutôt qu'une bande horizontale qui cache ses éléments.
@@ -125,5 +140,16 @@ public struct RGBColor: Equatable, Hashable, Sendable {
         self.green = green
         self.blue = blue
         self.opacity = opacity
+    }
+}
+
+/// Paire sRGB résolue par la couche UI selon l'apparence macOS effective.
+public struct DynamicRGBColor: Equatable, Hashable, Sendable {
+    public let light: RGBColor
+    public let dark: RGBColor
+
+    public init(light: RGBColor, dark: RGBColor) {
+        self.light = light
+        self.dark = dark
     }
 }
