@@ -45,7 +45,7 @@ struct SaveDetailView: View {
     /// disparus qu'elle cite encore, avec « Nettoyer… ».
     private var modsSegment: some View {
         VStack(spacing: 0) {
-            PageHeader(icon: "shippingbox", title: save.playerName, subtitle: save.farmName)
+            PageContextBar(icon: "shippingbox", context: save.farmName)
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, AppDesign.Spacing.md)
             Divider()

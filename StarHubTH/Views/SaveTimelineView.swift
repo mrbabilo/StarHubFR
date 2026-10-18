@@ -30,14 +30,12 @@ struct SaveTimelineView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // En-tête commun des pages (audit UX 2026-10-02) : retour, la
-            // partie et son nombre de sauvegardes, le geste qui en ajoute une.
+            // Contexte de la partie, nombre de sauvegardes et geste d'ajout.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                PageHeader(icon: "clock.arrow.circlepath",
-                           title: String(format: localization.L(L10n.Saves.timelineTitle), save.playerName),
-                           subtitle: String(format: localization.L(L10n.Saves.timelineSubtitle),
-                                            localization.plural(L10n.Saves.timelineBackupCount, backups.count),
-                                            save.farmName)) {
+                PageContextBar(icon: "clock.arrow.circlepath",
+                               context: String(format: localization.L(L10n.Saves.timelineSubtitle),
+                                                localization.plural(L10n.Saves.timelineBackupCount, backups.count),
+                                                save.farmName)) {
                     Button(action: {
                         Task {
                             if await vm.createBackup(info: save) {
