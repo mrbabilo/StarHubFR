@@ -65,7 +65,7 @@ struct TranslationEditorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Text(row.key)
                 .font(AppDesign.Font.monoCaption)
                 .foregroundColor(.secondary)
@@ -73,7 +73,7 @@ struct TranslationEditorView: View {
             if let component = row.component {
                 Text(component)
                     .font(AppDesign.Font.iconXS)
-                    .foregroundColor(AppDesign.Color.dimmedSecondary(0.8))
+                    .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.secondary))
             }
 
             Text(localization.L(L10n.Mods.translationEditorSource))
@@ -88,10 +88,10 @@ struct TranslationEditorView: View {
                 action: { Task { await translateSelection() } })
                 .frame(maxWidth: .infinity)
                 .frame(height: 88)
-                .background(Color.primary.opacity(0.04))
-                .cornerRadius(6)
+                .background(Color.primary.opacity(AppDesign.Opacity.subtle))
+                .cornerRadius(AppDesign.Radius.sm)
 
-            selectionRow.frame(height: 24, alignment: .leading)
+            selectionRow.frame(minHeight: 24, alignment: .leading)
 
             Text(localization.L(L10n.Mods.translationEditorTarget))
                 .font(AppDesign.Font.footnote(.semibold))
@@ -99,86 +99,19 @@ struct TranslationEditorView: View {
             TextEditor(text: $draft)
                 .font(AppDesign.Font.body)
                 .frame(minHeight: 90)
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.primary.opacity(0.15), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.sm)
+                    .stroke(Color.primary.opacity(AppDesign.Opacity.medium), lineWidth: 1))
 
-            tokenChips.frame(height: 46, alignment: .topLeading)
-            // Réserve **fixe**, comme au-dessus : une rangée qui n'existerait
-            // que sur les lignes à termes ferait danser le champ entre deux
-            // clés — exactement ce que l'en-tête du fichier interdit. 24pt :
-            // une seule rangée de chips, sans intitulé.
-            glossaryChips.frame(height: 24, alignment: .topLeading)
-            // 90pt, pas 36 : dimensionné sur le pire cas réaliste, pas la
-            // moyenne. Voir le calcul au-dessus de `statusNotice`.
-            statusNotice.frame(height: 90, alignment: .topLeading)
+            tokenChips.frame(minHeight: 46, alignment: .topLeading)
+            // Réserve minimale : la feuille ne danse pas quand une rangée
+            // apparaît, mais peut grandir si les termes doivent se replier.
+            glossaryChips.frame(minHeight: 24, alignment: .topLeading)
+            // 90pt minimum, pas plafond : le texte à 130 % reste entier.
+            statusNotice.frame(minHeight: 90, alignment: .topLeading)
 
-            HStack {
-                // Pré-traduire par l'IA locale : remplit le brouillon, rien
-                // de plus — l'« Enregistrer » explicite reste le seul chemin
-                // d'écriture, et cette voie ne pose jamais « à relire ».
-                Button {
-                    Task { await preTranslate() }
-                } label: {
-                    if isPreTranslating {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "wand.and.stars")
-                    }
-                }
-                .disabled(isPreTranslating)
-                .help(isPreTranslating
-                      ? localization.L(L10n.Mods.translationEditorPretranslating)
-                      : localization.L(L10n.Mods.translationEditorPretranslate))
-                .accessibilityLabel(localization.L(L10n.Mods.translationEditorPretranslate))
-
-                // Enchaîner les clés sans repasser par la liste : c'est le
-                // geste d'un traducteur qui en traite des centaines.
-                //
-                // **Aucun raccourci clavier, et c'est délibéré.** Le champ de
-                // traduction est un éditeur de texte le plus souvent au focus,
-                // et macOS y réserve toutes les combinaisons à flèches : `⌘←`
-                // va au début de la ligne, `⌥←` recule d'un mot, `⌃←` change
-                // d'espace de travail, `⇧⌘←` sélectionne jusqu'au bord. `⌥⌘←`
-                // restait, mais n'a pas tenu à l'essai non plus. Le bouton est
-                // le seul chemin — il vaut mieux que la promesse d'un raccourci
-                // qui ne répond pas.
-                //
-                // Le nom passe par `.help` **et** `.accessibilityLabel` : un
-                // chevron seul n'a pas de nom accessible, et l'infobulle n'en
-                // tient pas lieu. C'est la convention du dépôt.
-                Button {
-                    navigate(to: previous)
-                } label: {
-                    Image(systemName: "chevron.left")
-                }
-                .disabled(previous == nil)
-                .help(localization.L(L10n.Mods.translationEditorPrevious))
-                .accessibilityLabel(localization.L(L10n.Mods.translationEditorPrevious))
-
-                Button {
-                    navigate(to: next)
-                } label: {
-                    Image(systemName: "chevron.right")
-                }
-                .disabled(next == nil)
-                .help(localization.L(L10n.Mods.translationEditorNext))
-                .accessibilityLabel(localization.L(L10n.Mods.translationEditorNext))
-
-                Button(localization.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
-                Spacer()
-                Button(localization.L(L10n.Mods.translationEditorCancel)) { isPresented = false }
-                // N'apparaît **qu'après** un refus : offert d'emblée, il
-                // inviterait à contourner la vérification avant même de l'avoir
-                // lue. N'a de sens que pour un blocage de tokens — un `.failed`
-                // n'a rien à « forcer », le problème n'est pas dans le texte.
-                if !blocked.isEmpty {
-                    Button(localization.L(L10n.Mods.translationEditorSaveAnyway)) { save(acceptingMismatch: true) }
-                }
-                Button(localization.L(L10n.Mods.translationEditorSave)) { save() }
-                    .keyboardShortcut(.defaultAction)
-            }
+            footer
         }
-        .padding(20)
+        .padding(AppDesign.Spacing.lg)
         .frame(minWidth: 560, minHeight: 580)
         .onAppear {
             draft = row.french
@@ -202,26 +135,73 @@ struct TranslationEditorView: View {
         .onChange(of: draft) { _, _ in blocked = [] }
     }
 
+    /// Navigation à gauche, validation à droite. À la largeur minimale, le
+    /// second groupe passe sous le premier au lieu de comprimer ses libellés.
+    private var footer: some View {
+        SplitRow(spacing: AppDesign.Spacing.sm) {
+            // Pré-traduire remplit seulement le brouillon : Enregistrer reste
+            // le seul chemin d'écriture.
+            Button {
+                Task { await preTranslate() }
+            } label: {
+                if isPreTranslating {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "wand.and.stars")
+                }
+            }
+            .disabled(isPreTranslating)
+            .help(isPreTranslating
+                  ? localization.L(L10n.Mods.translationEditorPretranslating)
+                  : localization.L(L10n.Mods.translationEditorPretranslate))
+            .accessibilityLabel(localization.L(L10n.Mods.translationEditorPretranslate))
+
+            Button { navigate(to: previous) } label: { Image(systemName: "chevron.left") }
+                .disabled(previous == nil)
+                .help(localization.L(L10n.Mods.translationEditorPrevious))
+                .accessibilityLabel(localization.L(L10n.Mods.translationEditorPrevious))
+
+            Button { navigate(to: next) } label: { Image(systemName: "chevron.right") }
+                .disabled(next == nil)
+                .help(localization.L(L10n.Mods.translationEditorNext))
+                .accessibilityLabel(localization.L(L10n.Mods.translationEditorNext))
+
+            Button(localization.L(L10n.Mods.translationEditorKeepEnglish)) { draft = row.english }
+        } trailing: {
+            Button(localization.L(L10n.Mods.translationEditorCancel)) { isPresented = false }
+            // Proposé seulement après un refus de marques : un échec d'écriture
+            // structurel n'a rien à forcer.
+            if !blocked.isEmpty {
+                Button(localization.L(L10n.Mods.translationEditorSaveAnyway)) {
+                    save(acceptingMismatch: true)
+                }
+            }
+            Button(localization.L(L10n.Mods.translationEditorSave)) { save() }
+                .keyboardShortcut(.defaultAction)
+        }
+    }
+
     /// Les marques du jeu présentes dans la source, cliquables : les retaper à
     /// la main est la première cause de mod cassé.
     @ViewBuilder private var tokenChips: some View {
         if sourceTokens.isEmpty {
             EmptyView()
         } else {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                 Text(localization.L(L10n.Mods.translationEditorTokens))
                     .font(AppDesign.Font.iconXS(.semibold))
                     .foregroundColor(.secondary)
-                HStack(spacing: 6) {
+                WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.xs) {
                     ForEach(sourceTokens, id: \.self) { token in
                         Button { draft += token } label: {
                             Text(token)
                                 .font(AppDesign.Font.monoFootnote)
-                                .padding(.horizontal, 6).padding(.vertical, 3)
-                                .background(Color.accentColor.opacity(0.12))
-                                .cornerRadius(4)
+                                .padding(.horizontal, AppDesign.Spacing.sm)
+                                .padding(.vertical, AppDesign.Spacing.xs)
+                                .background(Color.accentColor.opacity(AppDesign.Opacity.light))
+                                .cornerRadius(AppDesign.Radius.sm)
                         }
-                        .buttonStyle(.plain).focusRing(cornerRadius: 4)
+                        .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
                         .pointingHandCursor()
                     }
                 }
@@ -233,7 +213,7 @@ struct TranslationEditorView: View {
     /// la source : l'action près de ce sur quoi elle porte, et une hauteur qui
     /// ne bouge pas selon qu'une pastille est là ou non.
     @ViewBuilder private var selectionRow: some View {
-        HStack(spacing: 8) {
+        SplitRow(spacing: AppDesign.Spacing.sm) {
             Button(localization.L(L10n.Mods.translationEditorTranslateSelection)) {
                 Task { await translateSelection() }
             }
@@ -242,21 +222,23 @@ struct TranslationEditorView: View {
                       || isTranslatingFragment)
             if isTranslatingFragment {
                 ProgressView().controlSize(.small)
-            } else if let proposal = fragmentProposal {
+            }
+        } trailing: {
+            if let proposal = fragmentProposal, !isTranslatingFragment {
                 // Même mécanique que les chips de glossaire : cliquer insère.
                 Button { draft += proposal } label: {
                     Text(proposal)
                         .font(AppDesign.Font.footnote)
                         .lineLimit(1)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.15))
-                        .cornerRadius(4)
+                        .padding(.horizontal, AppDesign.Spacing.sm)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(AppDesign.Opacity.medium))
+                        .cornerRadius(AppDesign.Radius.sm)
                 }
-                .buttonStyle(.plain).focusRing(cornerRadius: 4)
+                .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
                 .pointingHandCursor()
                 .help(proposal)
             }
-            Spacer()
         }
     }
 
@@ -292,16 +274,17 @@ struct TranslationEditorView: View {
         if glossaryMatches.isEmpty {
             EmptyView()
         } else {
-            HStack(spacing: 6) {
+            WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.xs) {
                 ForEach(glossaryMatches, id: \.en) { entry in
                     Button { draft += entry.fr } label: {
                         Text("\(entry.en) → \(entry.fr)")
                             .font(AppDesign.Font.monoFootnote)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color.green.opacity(0.12))
-                            .cornerRadius(4)
+                            .padding(.horizontal, AppDesign.Spacing.sm)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(AppDesign.Opacity.light))
+                            .cornerRadius(AppDesign.Radius.sm)
                     }
-                    .buttonStyle(.plain).focusRing(cornerRadius: 4)
+                    .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.sm)
                     .pointingHandCursor()
                     .help("\(localization.L(L10n.Mods.translationEditorGlossary)) : \(entry.en) → \(entry.fr)")
                 }
@@ -347,8 +330,9 @@ struct TranslationEditorView: View {
     /// un message générique — ou l'inverse, fait chercher une divergence de
     /// tokens dans une simple panne d'écriture disque.
     ///
-    /// **Hauteur de la zone (90pt) : dimensionnée sur le pire cas, pas la
-    /// moyenne.** Les messages de `.failed` embarquent des chemins absolus —
+    /// **Hauteur minimale de la zone (90pt) : dimensionnée sur le pire cas,
+    /// sans plafonner les textes agrandis.** Les messages de `.failed`
+    /// embarquent des chemins absolus —
     /// `StarHubTHViewModel.saveTranslation` en construit un jusqu'à ~315
     /// caractères sur un vrai chemin d'installation Steam et un nom de mod
     /// verbeux (« …est en layout B — créer un fichier à la racine

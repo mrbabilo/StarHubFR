@@ -879,13 +879,15 @@ restant : **I-T32b → I-T32c**.
 
 - [ ] **I-T32 — L7 Finitions visuelles et identité**, dont la première passe
       est livrée (récit à l'archive) :
-      - **I-T32b — Densité et adaptation.** Premier lot livré et validé à
+      - **I-T32b — Densité et adaptation.** Deux lots livrés et validés à
         l'écran le 2026-10-18 : Diagnostic n'a plus qu'un défilement vertical,
-        le texte des mods en pause garde sa pleine opacité, et les noms et
-        actions de Mises à jour s'adaptent à la largeur. Reste à migrer vers
-        `SplitRow`/`WrapHStack` les rangées fragiles de Diff et Éditeur de
-        traduction, métadonnées de fiche mod, chronologie et inventaire de
-        sauvegarde, archives d'entretien, corbeille et quarantaine. Corriger au
+        le texte des mods en pause garde sa pleine opacité, les noms et actions
+        de Mises à jour s'adaptent à la largeur, et Diff comme l'Éditeur de
+        traduction replient filtres, actions, marques et glossaire sans les
+        tronquer. Reste à migrer vers `SplitRow`/`WrapHStack` les rangées
+        fragiles des métadonnées de fiche mod, de la chronologie et de
+        l'inventaire de sauvegarde, des archives d'entretien, de la corbeille et
+        de la quarantaine. Corriger au
         passage l'état vide de liste selon le filtre actif, les libellés tronqués
         sans aide et les cartes Sonde redondantes. Poursuivre les migrations
         littéral → jeton (149 couleurs nues et 367 `padding` littéraux relevés

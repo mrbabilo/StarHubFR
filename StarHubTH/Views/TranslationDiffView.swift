@@ -176,8 +176,8 @@ struct TranslationDiffView: View {
     private var filterBar: some View {
         let counts = filterSummary.counts
         let reviewCount = filterSummary.reviewCount
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.xs) {
                 filterChip(nil, label: localization.L(L10n.Mods.diffStateAll), count: rows.count)
                 ForEach(TranslationCoverage.DiffRow.State.allCases, id: \.self) { state in
                     if let count = counts[state], count > 0 {
@@ -194,7 +194,13 @@ struct TranslationDiffView: View {
                                tint: .orange)
                 }
             }
-            HStack(spacing: 8) {
+            SplitRow(spacing: AppDesign.Spacing.sm) {
+                TextField(localization.L(L10n.Mods.diffSearch), text: $searchText)
+                    .textFieldStyle(.roundedBorder).font(AppDesign.Font.footnote)
+                    .frame(minWidth: 180)
+                    .searchFieldShortcut($searchFocused)
+            } trailing: {
+                AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) {
                 // Le lot : visible seulement s'il reste du travail pour lui
                 // et qu'une IA est configurée (spec §7) — sinon il n'aurait
                 // rien à proposer et cacher le bouton vaut mieux qu'un clic
@@ -203,14 +209,10 @@ struct TranslationDiffView: View {
                     Button {
                         isShowingBatch = true
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "wand.and.rays").font(AppDesign.Font.iconXS)
-                            Text(localization.L(L10n.Mods.translationBatchButton))
-                                .font(AppDesign.Font.iconXS(.medium))
-                        }
+                        Label(localization.L(L10n.Mods.translationBatchButton), systemImage: "wand.and.rays")
+                            .font(AppDesign.Font.iconXS(.medium))
                     }
-                    .buttonStyle(.plain).focusRing()
-                    .pointingHandCursor()
+                    .buttonStyle(.plain).focusRing().pointingHandCursor()
                     .help(localization.L(L10n.Mods.translationBatchButton))
                     .accessibilityLabel(localization.L(L10n.Mods.translationBatchButton))
                     .sheet(isPresented: $isShowingBatch) {
@@ -242,11 +244,8 @@ struct TranslationDiffView: View {
                     Button {
                         exportTranslationLot()
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "square.and.arrow.up").font(AppDesign.Font.iconXS)
-                            Text(localization.L(L10n.Mods.translationLotExport))
-                                .font(AppDesign.Font.iconXS(.medium))
-                        }
+                        Label(localization.L(L10n.Mods.translationLotExport), systemImage: "square.and.arrow.up")
+                            .font(AppDesign.Font.iconXS(.medium))
                     }
                     .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
@@ -259,14 +258,10 @@ struct TranslationDiffView: View {
                 Button {
                     importTranslationLot()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "square.and.arrow.down").font(AppDesign.Font.iconXS)
-                        Text(localization.L(L10n.Mods.translationLotImport))
-                            .font(AppDesign.Font.iconXS(.medium))
-                    }
+                    Label(localization.L(L10n.Mods.translationLotImport), systemImage: "square.and.arrow.down")
+                        .font(AppDesign.Font.iconXS(.medium))
                 }
-                .buttonStyle(.plain).focusRing()
-                .pointingHandCursor()
+                .buttonStyle(.plain).focusRing().pointingHandCursor()
                 .help(localization.L(L10n.Mods.translationLotImport))
                 .accessibilityLabel(localization.L(L10n.Mods.translationLotImport))
                 .sheet(isPresented: $showArbitration) {
@@ -288,17 +283,13 @@ struct TranslationDiffView: View {
                                                 },
                                                 onClose: { showArbitration = false })
                 }
-                TextField(localization.L(L10n.Mods.diffSearch), text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(AppDesign.Font.footnote)
-                    .searchFieldShortcut($searchFocused)
                 if hasSections {
                     Button {
                         isShowingSectionIndex = true
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "list.bullet.indent").font(AppDesign.Font.iconXS)
-                            Text(localization.L(L10n.Mods.diffSections)).font(AppDesign.Font.iconXS(.medium))
+                        Label {
+                            HStack(spacing: AppDesign.Spacing.xs) {
+                                Text(localization.L(L10n.Mods.diffSections))
                             // `groups.count`, pas les seuls groupes titrés : c'est
                             // exactement ce que le popover ci-dessous liste (blocs
                             // sans titre et orphelin compris). Annoncer les titrés
@@ -308,10 +299,15 @@ struct TranslationDiffView: View {
                             Text("\(groups.count)")
                                 .font(AppDesign.Font.iconXS(.semibold).monospacedDigit())
                                 .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "list.bullet.indent")
                         }
+                        .font(AppDesign.Font.iconXS(.medium))
                     }
                     .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
+                    .help(localization.L(L10n.Mods.diffSections))
                     .popover(isPresented: $isShowingSectionIndex, arrowEdge: .bottom) {
                         TranslationSectionIndexView(
                             groups: groups,
@@ -334,8 +330,8 @@ struct TranslationDiffView: View {
                 // groupes sans qu'aucun en-tête ne soit affiché (cf. `table`) —
                 // replier n'a de sens que là où quelque chose nomme ce qu'on replie.
                 if allGroups.count > 1 && fileHasTitledSections {
-                    Button(localization.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll
-                                                  : L10n.Mods.diffExpandAll)) {
+                    let title = localization.L(collapsed.isEmpty ? L10n.Mods.diffCollapseAll : L10n.Mods.diffExpandAll)
+                    Button {
                         // Sur `allGroups`, volontairement, pas `groups` : l'état de
                         // repliage est indépendant du filtre — c'est tout l'intérêt
                         // d'avoir des identités stables — donc « Tout replier » doit
@@ -344,10 +340,14 @@ struct TranslationDiffView: View {
                         // dépliées pendant que le bouton proposerait encore
                         // « Tout déplier ».
                         collapsed = collapsed.isEmpty ? Set(allGroups.map(\.id)) : []
+                    } label: {
+                        Label(title, systemImage: collapsed.isEmpty ? "rectangle.compress.vertical"
+                                                                   : "rectangle.expand.vertical")
                     }
-                    .buttonStyle(.link).focusRing(cornerRadius: 4)
-                    .font(AppDesign.Font.iconXS)
+                    .buttonStyle(.link).focusRing(cornerRadius: 4).font(AppDesign.Font.iconXS)
+                    .help(title)
                 }
+                } }
             }
         }
         .padding(.bottom, 10)
