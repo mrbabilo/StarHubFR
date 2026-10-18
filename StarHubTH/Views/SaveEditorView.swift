@@ -49,7 +49,7 @@ private struct SaveHeroBand: View {
                 Image(nsImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .blur(radius: 8, opaque: true)
+                    .blur(radius: 4, opaque: true)
             } else {
                 Rectangle().fill(.quaternary)
             }

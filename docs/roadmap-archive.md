@@ -7767,3 +7767,17 @@ sans lire une ligne de log.
       un profil ouvre sa feuille d'aperçu, rien ne bouge ; ⌘↩ l'active
       (revient sur I-T5, décision de l'auteur). Canal
       `NavigationStore.openProfilePreview`, testé. Vérifié à l'écran.
+- [x] **I-T31 · R6** — *(livré le 2026-10-18, `3e426ae3`, `5db69907`,
+      `7c3e8c7e`)* Une partie, une page. Temps 1 : un seul menu d'actions
+      (`SaveActionItems`), identique au « … », au clic droit sur la rangée et
+      sur la carte. Temps 2 : `SaveDetailView` à trois segments (Détails, Mods,
+      Historique), segments gardés montés et désactivés hors vue (la saisie
+      survit, Entrée n'enregistre que dans Détails) ; `viewingSaveTimeline` et
+      `NavigationHistory.saveTimeline` retirés, `NavigationStore.openSave`.
+      Retouches vues pendant la vérification : pluriels `_one` (empreintes,
+      temps relatif, compte de l'historique), bandeau flouté (l'illustration
+      porte « StarHubFR » en dur), lien d'historique en double retiré.
+      Vérifié à l'écran, chaque geste contrôlé contre l'heure du fichier de la
+      partie. Une écriture inexpliquée de BENCH pendant la vérification
+      (12:29, restaurée depuis la copie de secours) n'a pu être reproduite
+      par aucun geste.
