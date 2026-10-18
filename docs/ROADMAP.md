@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités) et **I-T30** (écrans) livrés, **I-T31 → I-T32** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités) et **I-T30** (écrans) livrés, **I-T31 → I-T33** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -878,10 +878,21 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
       migrations littéral → jeton par écran (149 couleurs nues, 367
       `padding` littéraux). · **M**
 
+- [ ] **I-T33 — Barre latérale lente sur Mise à jour des mods et Entretien**
+      (relevé par l'auteur le 2026-10-18). Mesuré, app au repos, `sample`
+      pendant la bascule : fil principal occupé 400–480 ms (Mise à jour),
+      ~270 ms (Entretien), ~85 ms (Profils, témoin) pour une animation de
+      ~0,3 s. Cause : layout, pas un rescan — un `VStack` non paresseux dans
+      `BackToTopScrollView` (`UpdatesView.swift`, `MaintenanceView.swift`)
+      remesuré en entier à chaque image, la largeur changeant ;
+      `WrapHStack` et `FocusRing` dans l'échantillon, sans cadre dominant.
+      Piste : `LazyVStack` pour les listes, puis même mesure (cible : près du
+      témoin). Risque connu : `@State` initialisé au montage paresseux.
+      Chaque build redemande le Trousseau au lancement : mesure avec
+      l'auteur devant l'écran. · **S**
+
 Hors audit, à instruire : la fermeture inexpliquée de l'app pendant la capture
-(passage en grille de la liste, non reproduite) ; la barre latérale lente à
-s'ouvrir et se fermer sur Mise à jour des mods et Entretien (relevé par
-l'auteur le 2026-10-18).
+(passage en grille de la liste, non reproduite).
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
