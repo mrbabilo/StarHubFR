@@ -356,6 +356,7 @@ let package = Package(
                 "Models/HiddenCodeDependencies.swift",
                 "Extensions/ModConfigFiles.swift",
                 "Models/HomeAttention.swift",
+                "Models/HomeAgenda.swift",
                 "Models/KeybindGrammar.swift",
                 "Models/KeybindFamilyGuess.swift",
                 "Models/KeybindScanner.swift",

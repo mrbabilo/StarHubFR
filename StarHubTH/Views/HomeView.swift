@@ -171,6 +171,11 @@ struct HomeView: View {
                 launchCard
                     .padding(.horizontal, 40)
 
+                // ── À RÉGLER, RÉCEMMENT INSTALLÉS (N-04) ──
+                HomeAgendaSections(viewModel: viewModel, localization: localization,
+                                   currentTab: $currentTab)
+                    .padding(.horizontal, 40)
+
                 // « Infos sur l'appli » et « Extensions principales » vivent
                 // aux Réglages seulement (I-T9) : ici elles noyaient le
                 // lancement et les compteurs sous de l'information de réglage.

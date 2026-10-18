@@ -252,6 +252,12 @@
 "home_not_installed" = "Not Installed";
 "home_not_installed_or_disabled" = "Not installed or disabled";
 "home_not_set" = "Not Set";
+"home_agenda_title" = "To fix";
+"home_agenda_empty" = "Nothing to fix: no active alerts.";
+"home_agenda_more" = "See %lld more alerts";
+"home_agenda_more_one" = "See 1 more alert";
+"home_recent_title" = "Recently installed";
+"home_recent_empty" = "No install dates known yet.";
 "home_select_folder" = "Select Folder…";
 "home_smapi_installed" = "Installed (v%@)";
 "home_smapi_manager" = "Mod Manager (SMAPI)";

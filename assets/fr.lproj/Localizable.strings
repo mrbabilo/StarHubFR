@@ -252,6 +252,12 @@
 "home_not_installed" = "Non installé";
 "home_not_installed_or_disabled" = "Non installé ou désactivé";
 "home_not_set" = "Non défini";
+"home_agenda_title" = "À régler";
+"home_agenda_empty" = "Rien à régler : aucune alerte en cours.";
+"home_agenda_more" = "Voir les %lld autres alertes";
+"home_agenda_more_one" = "Voir l'autre alerte";
+"home_recent_title" = "Récemment installés";
+"home_recent_empty" = "Aucune date d'installation connue pour l'instant.";
 "home_select_folder" = "Sélectionner un dossier…";
 "home_smapi_installed" = "Installé (v%@)";
 "home_smapi_manager" = "Gestionnaire de mods (SMAPI)";
