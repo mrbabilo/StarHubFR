@@ -36,7 +36,8 @@ struct SaveTimelineView: View {
                 PageHeader(icon: "clock.arrow.circlepath",
                            title: String(format: localization.L(L10n.Saves.timelineTitle), save.playerName),
                            subtitle: String(format: localization.L(L10n.Saves.timelineSubtitle),
-                                            Int64(backups.count), save.farmName)) {
+                                            localization.plural(L10n.Saves.timelineBackupCount, backups.count),
+                                            save.farmName)) {
                     Button(action: {
                         Task {
                             if await vm.createBackup(info: save) {
@@ -339,11 +340,11 @@ struct BackupRow: View {
             return localization.L(L10n.Saves.relativeJustNow)
         }
         if seconds < 3600 {
-            return String(format: localization.L(L10n.Saves.relativeMinutesAgo), Int64(seconds / 60))
+            return localization.plural(L10n.Saves.relativeMinutesAgo, Int(seconds / 60))
         }
         if seconds < 86400 {
-            return String(format: localization.L(L10n.Saves.relativeHoursAgo), Int64(seconds / 3600))
+            return localization.plural(L10n.Saves.relativeHoursAgo, Int(seconds / 3600))
         }
-        return String(format: localization.L(L10n.Saves.relativeDaysAgo), Int64(seconds / 86400))
+        return localization.plural(L10n.Saves.relativeDaysAgo, Int(seconds / 86400))
     }
 }

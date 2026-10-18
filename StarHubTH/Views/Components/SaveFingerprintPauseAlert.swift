@@ -62,8 +62,7 @@ enum FingerprintSummary {
         }
         let cachées = report.hiddenCount(beyond: limite)
         if cachées > 0 {
-            lignes.append(String(
-                format: localization.L(L10n.Mods.fingerprintMoreSaves), cachées))
+            lignes.append(localization.plural(L10n.Mods.fingerprintMoreSaves, cachées))
         }
         let tête = switch subject {
         case .mod(let mod):
@@ -84,24 +83,19 @@ enum FingerprintSummary {
     ) -> String {
         var familles: [String] = []
         if counts.objects > 0 {
-            familles.append(String(
-                format: localization.L(L10n.Mods.fingerprintObjects), counts.objects))
+            familles.append(localization.plural(L10n.Mods.fingerprintObjects, counts.objects))
         }
         if counts.buildings > 0 {
-            familles.append(String(
-                format: localization.L(L10n.Mods.fingerprintBuildings), counts.buildings))
+            familles.append(localization.plural(L10n.Mods.fingerprintBuildings, counts.buildings))
         }
         if counts.modDataKeys > 0 {
-            familles.append(String(
-                format: localization.L(L10n.Mods.fingerprintDataKeys), counts.modDataKeys))
+            familles.append(localization.plural(L10n.Mods.fingerprintDataKeys, counts.modDataKeys))
         }
         if counts.locations > 0 {
-            familles.append(String(
-                format: localization.L(L10n.Mods.fingerprintLocations), counts.locations))
+            familles.append(localization.plural(L10n.Mods.fingerprintLocations, counts.locations))
         }
         if counts.trees > 0 {
-            familles.append(String(
-                format: localization.L(L10n.Mods.fingerprintTrees), counts.trees))
+            familles.append(localization.plural(L10n.Mods.fingerprintTrees, counts.trees))
         }
         return familles.joined(separator: " · ")
     }

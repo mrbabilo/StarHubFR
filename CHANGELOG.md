@@ -27,6 +27,11 @@ where the exact log format was verified.
 - **Un seul style de lien dans toute l'app**, le lien natif de macOS.
 - **Packs : le chevron est un vrai bouton**, utilisable au clavier et avec VoiceOver ; un clic sur la ligne déplie toujours le pack.
 
+### Fixed
+
+- **Sauvegardes du jeu : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».
+- **Page d'une partie : le nom du fermier se lit sans gêne.** L'illustration du bandeau, qui contient le titre « StarHubFR », est floutée. Le lien vers l'historique, qui faisait double emploi avec le segment, disparaît.
+
 ## [1.70.0] - 2026-10-17
 
 ### Changed

@@ -4,4 +4,6 @@ extension L10n.Saves {
     static let segmentDetails = "save_segment_details"
     static let segmentMods = "save_segment_mods"
     static let segmentModsAction = "save_action_mods"
+    /// Le nombre de sauvegardes de l'historique, au pluriel juste (`plural`).
+    static let timelineBackupCount = "saves_timeline_backup_count"
 }

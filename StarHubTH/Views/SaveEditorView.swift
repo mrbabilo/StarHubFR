@@ -44,9 +44,12 @@ private struct SaveHeroBand: View {
     var body: some View {
         Group {
             if let img = Self.bandImage {
+                // Flouté : l'illustration porte en dur le titre « StarHubFR »
+                // et son sous-titre, qui se lisaient sous le nom du fermier.
                 Image(nsImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .blur(radius: 8, opaque: true)
             } else {
                 Rectangle().fill(.quaternary)
             }
@@ -281,21 +284,7 @@ struct SaveEditorView: View {
             .padding(.horizontal, 24)
             .frame(maxWidth: 700, alignment: .leading)
             .frame(maxWidth: .infinity)
-
-            // La bande fine reçoit l'exclu du strip : l'historique des
-            // sauvegardes, qui déménage de l'ancien en-tête.
-            HStack {
-                Button(action: { vm.navigationStore.saveSegment = .history }) {  // R6 : le segment
-                    Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
-                        .font(AppDesign.Font.footnote(.medium))
-                }
-                .buttonStyle(.plain).focusRing()
-                .pointingHandCursor()
-                .foregroundColor(.accentColor)
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, AppDesign.Spacing.sm)
+            // L'historique n'a plus de lien ici : c'est un segment de la page (R6).
 
             Divider()
 
