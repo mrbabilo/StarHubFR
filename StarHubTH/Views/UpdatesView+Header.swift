@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension UpdatesView {
-    /// Titre enrichi de la barre d'outils. Le compte vient de
+    /// En-tête commun des pages (audit UX 2026-10-02). Le compte vient de
     /// `UpdateCount.pending`, la fonction du badge de la barre latérale et de
     /// la tuile de l'accueil : trois endroits, un seul chiffre. Ce qu'un zéro
     /// permet d'affirmer vient de `UpdateCheckVerdict` ; la minute rafraîchit
@@ -11,12 +11,14 @@ extension UpdatesView {
         let counts = vm.pendingUpdateCounts
         let verdict = vm.updateCheckVerdict(pending: counts.total)
         return TimelineView(.periodic(from: .now, by: 60)) { context in
-            PageContextBar(icon: "arrow.triangle.2.circlepath",
-                           title: localization.L(L10n.Main.modUpdates),
-                           context: headerSubtitle(verdict, counts: counts, now: context.date),
-                           // Le vert est réservé au zéro mesuré sans réserve.
-                           tint: headerTint(verdict))
+            PageHeader(icon: "arrow.triangle.2.circlepath",
+                       title: localization.L(L10n.Main.modUpdates),
+                       subtitle: headerSubtitle(verdict, counts: counts, now: context.date),
+                       // Le vert est réservé au zéro mesuré sans réserve.
+                       tint: headerTint(verdict))
         }
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.vertical, AppDesign.Spacing.md)
     }
 
     private func headerSubtitle(_ verdict: UpdateCheckVerdict, counts: PendingUpdateCounts, now: Date) -> String {

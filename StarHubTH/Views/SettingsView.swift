@@ -34,10 +34,9 @@ struct SettingsView: View {
         // `sectionView` reste exhaustif — jamais de `default:`.
         let group = vm.navigationStore.settingsGroup
         return VStack(spacing: 0) {
-            PageContextBar(icon: "gearshape.fill",
-                           title: localization.L(L10n.Settings.settings),
-                           context: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
-                           tint: .gray) {
+            PageHeader(icon: "gearshape.fill", title: localization.L(L10n.Settings.settings),
+                       subtitle: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
+                       tint: .gray) {
                 Picker(localization.L(L10n.Settings.settings),
                        selection: Bindable(vm.navigationStore).settingsGroup) {
                     ForEach(SettingsSectionOrder.groups, id: \.self) { g in
@@ -48,6 +47,9 @@ struct SettingsView: View {
                 .labelsHidden()
                 .fixedSize()
             }
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.md)
+            Divider()
             ScrollViewReader { proxy in
                 BackToTopScrollView(localization) {
                     VStack(alignment: .leading, spacing: AppDesignCore.Spacing.xxl) {

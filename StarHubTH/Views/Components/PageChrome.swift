@@ -41,59 +41,6 @@ extension PageHeader where Trailing == EmptyView {
     }
 }
 
-/// Titre, contexte et actions d'une page dans la barre d'outils macOS.
-/// `navigationTitle` reste posé par `MainView` pour la fenêtre et
-/// l'accessibilité ; le placement `.principal` en fournit le rendu enrichi.
-struct PageContextBar<Trailing: View>: View {
-    let icon: String
-    let title: String
-    var context: String? = nil
-    var tint: Color = AppDesign.Color.accent
-    var isActive = true
-    @ViewBuilder var trailing: () -> Trailing
-
-    var body: some View {
-        EmptyView()
-            .toolbar {
-                if isActive {
-                    ToolbarItem(placement: .principal) {
-                        HStack(spacing: AppDesign.Spacing.sm) {
-                            IconTile(icon: icon, tint: tint, size: 28)
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(title)
-                                    .font(AppDesign.Font.body(.semibold))
-                                    .lineLimit(1)
-                                    // `navigationTitle` porte déjà ce nom à
-                                    // VoiceOver ; ne pas le faire annoncer deux fois.
-                                    .accessibilityHidden(true)
-                                if let context {
-                                    Text(context)
-                                        .font(AppDesign.Font.footnote)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                }
-                            }
-                        }
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        HStack(spacing: AppDesign.Spacing.sm) {
-                            trailing()
-                        }
-                    }
-                }
-            }
-    }
-}
-
-extension PageContextBar where Trailing == EmptyView {
-    init(icon: String, title: String, context: String? = nil,
-         tint: Color = AppDesign.Color.accent, isActive: Bool = true) {
-        self.init(icon: icon, title: title, context: context, tint: tint,
-                  isActive: isActive) { EmptyView() }
-    }
-}
-
 /// Un symbole SF sur un carré arrondi en dégradé de sa teinte. Décoratif :
 /// le titre voisin dit ce que la tuile montre.
 struct IconTile: View {

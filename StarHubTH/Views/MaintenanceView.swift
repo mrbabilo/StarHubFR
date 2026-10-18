@@ -133,10 +133,10 @@ struct MaintenanceView: View {
 
     // MARK: - Sections
 
-    /// Titre de barre d'outils : le total reste en sous-titre.
+    /// En-tête commun des pages (audit UX 2026-10-02) : le total en sous-titre.
     private var header: some View {
-        PageContextBar(icon: "internaldrive", title: localization.L(L10n.Maintenance.title),
-                       context: vm.maintenanceReport.map {
+        PageHeader(icon: "internaldrive", title: localization.L(L10n.Maintenance.title),
+                   subtitle: vm.maintenanceReport.map {
                        String(format: localization.L(L10n.Maintenance.headerTotal),
                               SharedFormatters.bytes($0.totalBytes))
                    }) {
@@ -149,6 +149,8 @@ struct MaintenanceView: View {
                 }
             }
         }
+        .padding(.horizontal, AppDesign.Spacing.xl)
+        .padding(.top, AppDesign.Spacing.md)
     }
 
     private func content(_ report: MaintenanceInventory.Report) -> some View {

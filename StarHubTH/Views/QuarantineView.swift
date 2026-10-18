@@ -16,16 +16,17 @@ struct QuarantineView: View {
         let quarantineDir = quarantinePath
 
         VStack(spacing: 0) {
-            // Barre d'outils : ce que fait la
+            // En-tête commun des pages (audit UX 2026-10-02) : ce que fait la
             // quarantaine, et ses trois gestes. ~624 pt de libellés FR pour
             // 500 à la fenêtre minimale : icônes seules (infobulles) quand ça
             // ne tient pas.
-            PageContextBar(icon: "tray.full.fill",
-                           title: localization.L(L10n.Quarantine.title),
-                           context: localization.L(L10n.Quarantine.subtitleShort),
-                           tint: AppDesign.Color.quarantine) {
+            PageHeader(icon: "tray.full.fill", title: localization.L(L10n.Quarantine.title),
+                       subtitle: localization.L(L10n.Quarantine.subtitleShort)) {
                 AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) { actions(quarantineDir) } }
             }
+            .padding(.horizontal, AppDesign.Spacing.xl)
+            .padding(.vertical, AppDesign.Spacing.md)
+            Divider()
 
             ScrollViewReader { proxy in
                 BackToTopScrollView(localization) {

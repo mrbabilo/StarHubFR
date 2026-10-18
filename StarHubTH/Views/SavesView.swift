@@ -23,11 +23,12 @@ struct SavesView: View {
         // contenu qui défile, pied fixe portant le compte honnête.
         VStack(spacing: 0) {
             // ── En-tête fixe ────────────────────────────────────────────
-            // Titre et contexte dans la barre d'outils ; disposition,
-            // rechargement et données y restent à droite.
+            // En-tête commun des pages (audit UX 2026-10-02) : la tuile de la
+            // barre latérale, le titre, ce qui existe ; disposition,
+            // rechargement et données à droite.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
-                PageContextBar(icon: "folder.fill", title: localization.L(L10n.Saves.saves),
-                               context: headerSummary) {
+                PageHeader(icon: "folder.fill", title: localization.L(L10n.Saves.saves),
+                           subtitle: headerSummary) {
                     Picker(localization.L(L10n.Saves.listViewHint), selection: $vm.saveViewMode) {
                         Image(systemName: "list.bullet")
                             .tag(SaveViewMode.list)
