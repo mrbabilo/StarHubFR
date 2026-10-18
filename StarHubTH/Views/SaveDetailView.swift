@@ -18,15 +18,19 @@ struct SaveDetailView: View {
     var body: some View {
         let navigation = viewModel.navigationStore
         VStack(spacing: 0) {
-            Picker("", selection: Bindable(navigation).saveSegment) {
+            HStack(spacing: 2) {
                 ForEach(SaveSegment.allCases, id: \.self) { segment in
-                    Text(label(segment)).tag(segment)
+                    segmentButton(segment, navigation: navigation)
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            .padding(2)
+            .background(RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(AppDesign.Opacity.subtle)))
+            .overlay(RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 0.5))
             .fixedSize()
             .padding(.vertical, AppDesign.Spacing.sm)
+            .zIndex(2)
             Divider()
             ZStack {
                 shown(.details, navigation.saveSegment) {
@@ -79,5 +83,26 @@ struct SaveDetailView: View {
         case .mods:    return localization.L(L10n.Saves.segmentMods)
         case .history: return localization.L(L10n.Saves.timeline)
         }
+    }
+
+    private func segmentButton(_ segment: SaveSegment,
+                               navigation: NavigationStore) -> some View {
+        let title = label(segment)
+        let selected = navigation.saveSegment == segment
+        return Button { navigation.saveSegment = segment } label: {
+            Text(title)
+                .font(AppDesign.Font.caption(selected ? .semibold : .regular))
+                .lineLimit(1)
+                .padding(.horizontal, AppDesign.Spacing.md)
+                .padding(.vertical, 3)
+                .background(RoundedRectangle(cornerRadius: 5)
+                    .fill(selected ? Color.accentColor.opacity(0.22) : .clear))
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .focusRing(cornerRadius: 5)
+        .foregroundColor(selected ? .primary : .secondary)
+        .help(title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
