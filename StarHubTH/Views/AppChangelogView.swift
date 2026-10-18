@@ -11,11 +11,8 @@ struct AppChangelogView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PageContextBar(icon: "doc.text.fill",
+            PageContextBar(icon: "doc.text.fill", title: localization.L(L10n.Main.appChangelog),
                            context: String(format: localization.L(L10n.Main.changelogInstalled), appVersion))
-                .padding(.horizontal, AppDesign.Spacing.xl)
-                .padding(.vertical, AppDesign.Spacing.md)
-            Divider()
             BackToTopScrollView(localization) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.lg) {
                     if let failure {

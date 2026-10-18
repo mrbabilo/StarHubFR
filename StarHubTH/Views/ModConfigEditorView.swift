@@ -141,7 +141,6 @@ struct ModConfigEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             ConfigEditorHeader(mod: mod, localization: localization, selectedTab: $selectedTab)
-            Divider()
             // Évalué **dans** le `body`, jamais mis en cache dans un `@State`
             // posé à l'ouverture : le jeu peut être lancé pendant que
             // l'éditeur est ouvert, et un instantané ne le verrait jamais.

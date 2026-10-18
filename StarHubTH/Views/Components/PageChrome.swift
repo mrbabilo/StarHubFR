@@ -41,33 +41,56 @@ extension PageHeader where Trailing == EmptyView {
     }
 }
 
-/// Contexte et actions d'une page dont le titre est déjà porté par la
-/// navigation. L'icône conserve le repère de domaine sans répéter le titre.
+/// Titre, contexte et actions d'une page dans la barre d'outils macOS.
+/// `navigationTitle` reste posé par `MainView` pour la fenêtre et
+/// l'accessibilité ; le placement `.principal` en fournit le rendu enrichi.
 struct PageContextBar<Trailing: View>: View {
     let icon: String
+    let title: String
     var context: String? = nil
     var tint: Color = AppDesign.Color.accent
+    var isActive = true
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
-        SplitRow(spacing: AppDesign.Spacing.md) {
-            IconTile(icon: icon, tint: tint, size: 28)
-            if let context {
-                Text(context)
-                    .font(AppDesign.Font.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+        EmptyView()
+            .toolbar {
+                if isActive {
+                    ToolbarItem(placement: .principal) {
+                        HStack(spacing: AppDesign.Spacing.sm) {
+                            IconTile(icon: icon, tint: tint, size: 28)
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(title)
+                                    .font(AppDesign.Font.body(.semibold))
+                                    .lineLimit(1)
+                                    // `navigationTitle` porte déjà ce nom à
+                                    // VoiceOver ; ne pas le faire annoncer deux fois.
+                                    .accessibilityHidden(true)
+                                if let context {
+                                    Text(context)
+                                        .font(AppDesign.Font.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                            }
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        HStack(spacing: AppDesign.Spacing.sm) {
+                            trailing()
+                        }
+                    }
+                }
             }
-        } trailing: {
-            trailing()
-        }
     }
 }
 
 extension PageContextBar where Trailing == EmptyView {
-    init(icon: String, context: String? = nil,
-         tint: Color = AppDesign.Color.accent) {
-        self.init(icon: icon, context: context, tint: tint) { EmptyView() }
+    init(icon: String, title: String, context: String? = nil,
+         tint: Color = AppDesign.Color.accent, isActive: Bool = true) {
+        self.init(icon: icon, title: title, context: context, tint: tint,
+                  isActive: isActive) { EmptyView() }
     }
 }
 

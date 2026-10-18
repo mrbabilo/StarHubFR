@@ -107,8 +107,10 @@ struct FrenchTranslationsView: View {
     @ViewBuilder
     private func header(_ all: [Row], shown: Segment, workCount: Int) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            if shown == .nexus {
-                PageContextBar(icon: "character.bubble.fill") {
+            PageContextBar(icon: "character.bubble.fill",
+                           title: localization.L(L10n.FrTranslations.title),
+                           context: localization.L(L10n.FrTranslations.subtitle)) {
+                if shown == .nexus {
                     if store.isRunning {
                         Button(localization.L(L10n.FrTranslations.cancel)) { store.cancel() }
                             .controlSize(.small)
@@ -148,9 +150,6 @@ struct FrenchTranslationsView: View {
                     }
                 }
             }
-            Text(localization.L(L10n.FrTranslations.subtitle))
-                .font(AppDesign.Font.caption).foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
             HStack(alignment: .top, spacing: AppDesign.Spacing.md) {
                 Picker("", selection: Binding(get: { shown }, set: { segment = $0 })) {
                     Text(String(format: localization.L(L10n.FrTranslations.segmentWorklist), workCount))

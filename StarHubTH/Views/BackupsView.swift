@@ -19,16 +19,15 @@ struct BackupsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Barre de contexte fixe ; les segments gardent leurs actions.
+            // Titre et contexte dans la barre d'outils ; segments dans la page.
             PageContextBar(icon: "arrow.uturn.backward.circle.fill",
+                           title: localization.L(L10n.ModInstall.manageBackups),
                            context: localization.L(L10n.Backups.pageSubtitle)) {
                 // R1 — le poids et le geste qui le réduit vivent dans l'Entretien.
                 Button(localization.L(L10n.Maintenance.backupsFreeSpaceLink)) { navigation.openMaintenance() }
                     .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                     .font(AppDesign.Font.footnote)
             }
-                .padding(.horizontal, AppDesign.Spacing.xl)
-                .padding(.top, AppDesign.Spacing.md)
             Picker("", selection: Binding(get: { navigation.backupsSegment },
                                           set: { navigation.backupsSegment = $0 })) {
                 ForEach(BackupsSegment.allCases, id: \.self) { segment in

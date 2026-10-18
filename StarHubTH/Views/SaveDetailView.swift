@@ -34,7 +34,8 @@ struct SaveDetailView: View {
                 }
                 shown(.mods, navigation.saveSegment) { modsSegment }
                 shown(.history, navigation.saveSegment) {
-                    SaveTimelineView(vm: viewModel, localization: localization, save: save)
+                    SaveTimelineView(vm: viewModel, localization: localization, save: save,
+                                     isActive: navigation.saveSegment == .history)
                 }
             }
         }
@@ -45,10 +46,9 @@ struct SaveDetailView: View {
     /// disparus qu'elle cite encore, avec « Nettoyer… ».
     private var modsSegment: some View {
         VStack(spacing: 0) {
-            PageContextBar(icon: "shippingbox", context: save.farmName)
-                .padding(.horizontal, AppDesign.Spacing.xl)
-                .padding(.vertical, AppDesign.Spacing.md)
-            Divider()
+            PageContextBar(icon: "shippingbox", title: save.playerName,
+                           context: save.farmName,
+                           isActive: viewModel.navigationStore.saveSegment == .mods)
             Form {
                 SavePausedFootprintSection(vm: viewModel, localization: localization, save: save, currentTab: $currentTab)
                 SaveAbsentModsSection(vm: viewModel, localization: localization, save: save)

@@ -35,6 +35,7 @@ struct SettingsView: View {
         let group = vm.navigationStore.settingsGroup
         return VStack(spacing: 0) {
             PageContextBar(icon: "gearshape.fill",
+                           title: localization.L(L10n.Settings.settings),
                            context: String(format: localization.L(L10n.Settings.appVersion), currentAppVersion),
                            tint: .gray) {
                 Picker(localization.L(L10n.Settings.settings),
@@ -47,9 +48,6 @@ struct SettingsView: View {
                 .labelsHidden()
                 .fixedSize()
             }
-            .padding(.horizontal, AppDesign.Spacing.xl)
-            .padding(.vertical, AppDesign.Spacing.md)
-            Divider()
             ScrollViewReader { proxy in
                 BackToTopScrollView(localization) {
                     VStack(alignment: .leading, spacing: AppDesignCore.Spacing.xxl) {

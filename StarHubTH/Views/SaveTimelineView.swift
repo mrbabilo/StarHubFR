@@ -21,9 +21,10 @@ private enum SaveTimelineConfirmation: Identifiable {
 }
 
 struct SaveTimelineView: View {
-     @Bindable var vm: StarHubTHViewModel
+    @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
+    let isActive: Bool
     
     @State private var backups: [SaveBackup] = []
     @State private var confirmation: SaveTimelineConfirmation?
@@ -33,9 +34,11 @@ struct SaveTimelineView: View {
             // Contexte de la partie, nombre de sauvegardes et geste d'ajout.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                 PageContextBar(icon: "clock.arrow.circlepath",
+                               title: save.playerName,
                                context: String(format: localization.L(L10n.Saves.timelineSubtitle),
                                                 localization.plural(L10n.Saves.timelineBackupCount, backups.count),
-                                                save.farmName)) {
+                                                save.farmName),
+                               isActive: isActive) {
                     Button(action: {
                         Task {
                             if await vm.createBackup(info: save) {
@@ -58,10 +61,6 @@ struct SaveTimelineView: View {
                     .disabled(vm.isSaveOperationRunning)
                 }
             }
-            .padding(.horizontal, AppDesign.Spacing.xl)
-            .padding(.vertical, AppDesign.Spacing.md)
-
-            Divider()
             
             // Content
             if backups.isEmpty {

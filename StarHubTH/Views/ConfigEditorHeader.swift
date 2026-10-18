@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Barre de contexte de l'éditeur : dossier et choix Visuel / Code. Le nom du
-/// mod reste porté par le titre de navigation.
+/// Barre d'outils de l'éditeur : nom, dossier et choix Visuel / Code.
 struct ConfigEditorHeader: View {
     let mod: ModItem
     @ObservedObject var localization: LocalizationStore
@@ -9,6 +8,7 @@ struct ConfigEditorHeader: View {
 
     var body: some View {
         PageContextBar(icon: "slider.horizontal.3",
+                       title: mod.name,
                        context: String(format: localization.L(L10n.Settings.configHeaderSubtitle), mod.folderName)) {
             Picker("", selection: $selectedTab) {
                 Text(localization.L(L10n.Settings.configVisualEditor)).tag(0)
@@ -18,7 +18,5 @@ struct ConfigEditorHeader: View {
             .labelsHidden()
             .fixedSize()
         }
-        .padding(.horizontal, AppDesign.Spacing.xl)
-        .padding(.vertical, AppDesign.Spacing.md)
     }
 }

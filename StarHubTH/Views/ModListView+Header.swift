@@ -24,10 +24,10 @@ extension ModListView {
                     impactCounts: (high: Int, medium: Int)) -> some View {
         let noCategory = categories.isEmpty && uncatCount == 0 && tagBuckets.isEmpty
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-            // En-tête commun des pages (audit UX 2026-10-02) : le poids du
+            // Titre de barre d'outils : le poids du
             // cadrage et le profil appliqué, autrefois en bout de rangée des
             // puces — pas d'information en plus, une place à eux.
-            PageContextBar(icon: "puzzlepiece.extension.fill",
+            PageContextBar(icon: "puzzlepiece.extension.fill", title: localization.L(L10n.Mods.mods),
                            context: scopeWeightText(for: display)) {
                 activeProfileButton
             }

@@ -141,20 +141,16 @@ struct ModProfilesView: View {
     }
 
     var body: some View {
-        // Patron page de liste du dépôt (CLAUDE.md « UI ») : en-tête fixe
-        // au-dessus d'une liste qui défile. La barre de contexte porte le
+        // Patron page de liste du dépôt (CLAUDE.md « UI ») : liste qui défile
+        // sous la barre d'outils. Son contexte porte le
         // profil actif sans répéter le titre de navigation.
         VStack(spacing: 0) {
-            PageContextBar(icon: "person.2.fill", context: headerSummary) {
+            PageContextBar(icon: "person.2.fill", title: localization.L(L10n.Profiles.title),
+                           context: headerSummary) {
                 Button(localization.L(L10n.Profiles.addProfile)) { presentNewProfileAlert() }
                     .buttonStyle(.borderedProminent).focusRing()
                     .pointingHandCursor()
             }
-            .padding(.horizontal, AppDesign.Spacing.xl)
-            .padding(.vertical, AppDesign.Spacing.md)
-            .background(Color(nsColor: .controlBackgroundColor))
-
-            Divider()
             KeybindPlanProfileBanner(viewModel: vm, localization: localization)
             // ── Liste ────────────────────────────────────────────────────
             BackToTopScrollView(localization, showsIndicators: false) {
