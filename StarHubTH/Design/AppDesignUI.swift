@@ -110,6 +110,19 @@ enum AppDesign {
     // MARK: - Colors (SwiftUI.Color)
     // Les 3 couleurs système dominantes (94 occurrences combinées dans le code).
     enum Color {
+        private static func dynamic(_ pair: DynamicRGBColor) -> SwiftUI.Color {
+            SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in
+                let rgb = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                    ? pair.dark
+                    : pair.light
+                return NSColor(
+                    srgbRed: CGFloat(rgb.red),
+                    green: CGFloat(rgb.green),
+                    blue: CGFloat(rgb.blue),
+                    alpha: CGFloat(rgb.opacity))
+            })
+        }
+
         static let primary    = SwiftUI.Color.primary
         static let secondary  = SwiftUI.Color.secondary
         static let accent     = SwiftUI.Color.accentColor
@@ -118,6 +131,9 @@ enum AppDesign {
         static let windowBg       = SwiftUI.Color(nsColor: .windowBackgroundColor)
         static let controlBg      = SwiftUI.Color(nsColor: .controlBackgroundColor)
         static let textBg         = SwiftUI.Color(nsColor: .textBackgroundColor)
+        static let surface        = dynamic(AppDesignCore.SurfacePalette.surface)
+        static let surfaceRaised  = dynamic(AppDesignCore.SurfacePalette.surfaceRaised)
+        static let surfaceBorder  = dynamic(AppDesignCore.SurfacePalette.surfaceBorder)
 
         // Status (utilisé ponctuellement : HomeView .green, UpdatesView .red, etc.)
         static let success    = SwiftUI.Color.green

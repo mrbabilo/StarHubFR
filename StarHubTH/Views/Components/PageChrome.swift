@@ -64,15 +64,15 @@ struct IconTile: View {
 }
 
 extension View {
-    /// La surface d'une carte : fond secondaire, liseré discret, ombre
+    /// La surface d'une carte : fond neutre, liseré discret, ombre
     /// légère. Une seule écriture pour toutes les cartes des pages.
     func cardSurface(padding: CGFloat = AppDesign.Spacing.md) -> some View {
         self
             .padding(padding)
-            .background(.background.secondary,
+            .background(AppDesign.Color.surface,
                         in: RoundedRectangle(cornerRadius: AppDesign.Radius.lg, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.lg, style: .continuous)
-                .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 0.5))
+                .stroke(AppDesign.Color.surfaceBorder, lineWidth: 0.5))
             .shadow(color: .black.opacity(AppDesign.Shadow.card.opacity),
                     radius: AppDesign.Shadow.card.radius, y: AppDesign.Shadow.card.y)
     }

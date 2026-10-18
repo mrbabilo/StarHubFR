@@ -26,9 +26,9 @@ struct StateCard: View {
         }
         .padding(AppDesign.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary,
+        .background(AppDesign.Color.surface,
                     in: RoundedRectangle(cornerRadius: AppDesign.Radius.section))
         .overlay(RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-            .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+            .stroke(AppDesign.Color.surfaceBorder, lineWidth: 1))
     }
 }

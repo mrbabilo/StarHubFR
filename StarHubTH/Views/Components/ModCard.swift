@@ -93,11 +93,13 @@ struct ModCard: View {
                 .padding(.bottom, AppDesign.Spacing.md)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background.secondary)
+            .background(AppDesign.Color.surfaceRaised)
             .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.section))
             .overlay(
                 RoundedRectangle(cornerRadius: AppDesign.Radius.section)
-                    .stroke(Color.primary.opacity(AppDesign.Opacity.light), lineWidth: 1))
+                    .stroke(AppDesign.Color.surfaceBorder, lineWidth: 1))
+            .shadow(color: .black.opacity(AppDesign.Shadow.card.opacity),
+                    radius: AppDesign.Shadow.card.radius, y: AppDesign.Shadow.card.y)
         }
         .buttonStyle(.plain).focusRing(cornerRadius: AppDesign.Radius.section)
     }
