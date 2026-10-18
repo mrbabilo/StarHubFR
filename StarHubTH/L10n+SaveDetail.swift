@@ -12,3 +12,8 @@ extension L10n.Saves {
 extension L10n.Palette {
     static let sectionActions = "palette_section_actions"
 }
+
+/// N-04 — rescanner le parc à la demande (menu Fichier, ⇧⌘R).
+extension L10n.Main {
+    static let rescanMods = "main_rescan_mods"
+}

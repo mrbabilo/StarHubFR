@@ -262,6 +262,10 @@ struct StarHubTHApp: App {
             CommandGroup(after: .newItem) {
                 Button(localization.L(L10n.ModInstall.installButton) + "…") { navigation.requestInstall() }
                     .keyboardShortcut("o", modifiers: .command)
+                // N-04 — un parc modifié dans le Finder : l'Accueil ne rescanne
+                // plus à chaque arrivée, il faut un geste explicite.
+                Button(localization.L(L10n.Main.rescanMods)) { vm.refresh() }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
             }
             CommandMenu(localization.L(L10n.Main.gameMenu)) {
                 Button(localization.L(L10n.Main.launchGame)) { _ = vm.launchGame() }
@@ -271,7 +275,7 @@ struct StarHubTHApp: App {
                     .disabled(vm.isCheckingNexusUpdates)
             }
             CommandGroup(replacing: .appSettings) {
-                Button(localization.L(L10n.Settings.settings) + "…") { vm.requestTab(.settings) }
+                Button(localization.L(L10n.Settings.settings) + "…") { navigation.requestTab(.settings) }
                     .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(replacing: .help) {

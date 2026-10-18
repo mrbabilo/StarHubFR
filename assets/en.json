@@ -502,6 +502,7 @@
   "main_group_saves": "Games",
   "main_home": "Home",
   "main_launch_game": "Launch Game",
+  "main_rescan_mods": "Refresh Mod List",
   "main_game_menu": "Game",
   "main_launch_mods_found": "%d mods found",
   "main_launch_step_done": "Ready",

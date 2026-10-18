@@ -32,6 +32,7 @@ let package = Package(
                 "Models/ProbeOptions.swift",
                 "Models/SidebarOrder.swift",
                 "Models/CommandPaletteSearch.swift",
+                "Models/FolderRescanPolicy.swift",
                 "Models/InventoryItem.swift",
                 "Models/NxmLink.swift",
                 "Models/NexusDownloadQueue.swift",
@@ -1711,6 +1712,11 @@ let package = Package(
             name: "CommandPaletteSearchTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/CommandPaletteSearchTests"
+        ),
+        .testTarget(
+            name: "FolderRescanPolicyTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/FolderRescanPolicyTests"
         ),
         .testTarget(
             name: "AppSupportMigrationTests",

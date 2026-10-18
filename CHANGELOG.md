@@ -30,6 +30,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Accueil : plus de rescan complet à chaque passage.** L'app relisait les 966 mods, les parties et Steam à chaque retour sur l'Accueil (13 s de calcul) ; elle ne le fait plus que si le dossier Mods ou Saves a changé. « Actualiser la liste des mods » (⇧⌘R, menu Fichier) le relance à la demande.
 - **Sauvegardes du jeu : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».
 - **Page d'une partie : le nom du fermier se lit sans gêne.** L'illustration du bandeau, qui contient le titre « StarHubFR », est floutée. Le lien vers l'historique, qui faisait double emploi avec le segment, disparaît.
 

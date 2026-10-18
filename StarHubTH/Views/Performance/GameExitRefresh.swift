@@ -34,6 +34,10 @@ struct GameExitRefresh: ViewModifier {
             if viewModel.bisection.state == nil, !viewModel.pilot.isActive {
                 viewModel.refreshSmapiLog()
             }
+            // N-04 — les parties de la séance (jour, argent) : l'Accueil ne
+            // rescanne plus à chaque arrivée, et le jeu écrit dans le dossier
+            // de la partie, pas dans Saves.
+            viewModel.reloadSaves()
             Task {
                 await viewModel.modImpactStore.reload(mods: viewModel.mods, gameRunning: viewModel.isGameRunning(),
                                                       gameDir: viewModel.gameDir)

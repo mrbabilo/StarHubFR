@@ -502,6 +502,7 @@
 "main_group_saves" = "Parties";
 "main_home" = "Accueil";
 "main_launch_game" = "Lancer le jeu";
+"main_rescan_mods" = "Actualiser la liste des mods";
 "main_game_menu" = "Jeu";
 "main_launch_mods_found" = "%d mods trouvés";
 "main_launch_step_done" = "Prêt";

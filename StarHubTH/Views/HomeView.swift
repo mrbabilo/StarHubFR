@@ -178,7 +178,14 @@ struct HomeView: View {
             }
         }
         .background(AppDesign.Color.windowBg)
-        .onAppear { viewModel.refresh() }
+        // N-04 — le lancement scanne déjà : on ne rescanne que si Mods ou
+        // Saves a changé hors de l'app (13 s de CPU par arrivée, mesuré).
+        .onAppear {
+            guard !viewModel.gameDir.isEmpty,
+                  FolderRescanPolicy.needsRescan(last: viewModel.scanStore.folderStamps,
+                                                 now: .read(gameDir: viewModel.gameDir)) else { return }
+            viewModel.refresh()
+        }
     }
 }
 

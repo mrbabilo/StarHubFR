@@ -62,11 +62,23 @@ final class ScanStore {
         self.onModsChanged = onModsChanged
     }
 
+    /// N-04 — les dates des dossiers Mods et Saves au dernier scan, que
+    /// l'Accueil compare avant de rescanner (`FolderRescanPolicy`). `nil` tant
+    /// qu'aucun scan d'un dossier de jeu n'a publié.
+    private(set) var folderStamps: FolderStamps?
+
     /// Pose le parc et **prévient**, sans garde d'égalité — fidèle au
     /// `didSet` d'origine, qui se déclenchait sur toute affectation.
-    func setMods(_ newMods: [ModItem], modsFolderWasReadable: Bool = true) {
+    ///
+    /// Les dates sont lues **à la publication**, réparations comprises : un
+    /// mod ajouté dans le Finder pendant les secondes du balayage ne relancera
+    /// pas l'Accueil, le prochain scan le rattrape.
+    /// Sans `gameDir` (bascule optimiste, dossier de jeu vidé), les dates en
+    /// place restent : le scan qui suit les remplace.
+    func setMods(_ newMods: [ModItem], modsFolderWasReadable: Bool = true, gameDir: String? = nil) {
         mods = newMods
         self.modsFolderWasReadable = modsFolderWasReadable
+        if let gameDir, !gameDir.isEmpty { folderStamps = FolderStamps.read(gameDir: gameDir) }
         onModsChanged?(mods)
     }
 

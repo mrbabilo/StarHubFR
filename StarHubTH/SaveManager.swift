@@ -290,8 +290,7 @@ public final class SaveManager: @unchecked Sendable {
     }
 
     public init() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        self.savesDir = homeDir.appendingPathComponent(".config/StardewValley/Saves")
+        self.savesDir = FolderStamps.savesDirectory
     }
     
     func fetchSaves() -> [SaveGameInfo] {

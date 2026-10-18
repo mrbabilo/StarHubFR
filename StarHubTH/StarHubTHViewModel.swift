@@ -2006,7 +2006,7 @@ final class StarHubTHViewModel {
 
             // Ordre alphabétique, packs et mods mêlés (2026-08-26) ; le tri « Nom »
             // le suppose.
-            self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable)
+            self.scanStore.setMods(scannedMods.alphabeticalListOrder, modsFolderWasReadable: modsFolderWasReadable, gameDir: gameDir)
             // A1-T2 — le signal des manifestes illisibles suit le même scan.
             self.scanStore.setUnreadableManifests(scanned.unreadableManifests)
             self.recomputeHealthIssues()
