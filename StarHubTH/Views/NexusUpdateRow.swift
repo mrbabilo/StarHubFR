@@ -10,16 +10,10 @@ struct NexusUpdateRow: View {
 
     var body: some View {
         let isEnabled = vm.modForNexusUpdate(update)?.isEnabled ?? false
-        HStack(alignment: .top, spacing: AppDesign.Spacing.lg) {
-            InitialsAvatar(
-                text: update.name,
-                initialsCount: 2,
-                size: 44,
-                fillColor: Color.accentColor.opacity(0.12),
-                textColor: .accentColor,
-                fontSize: 16
-            )
-
+        SplitRow(spacing: AppDesign.Spacing.lg) {
+            InitialsAvatar(text: update.name, initialsCount: 2, size: 44,
+                           fillColor: Color.accentColor.opacity(AppDesign.Opacity.light),
+                           textColor: .accentColor, fontSize: 16)
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
                 HStack(spacing: 6) {
                     // N-01b : le nom mène à la fiche, onglet Historique (journal
@@ -30,10 +24,15 @@ struct NexusUpdateRow: View {
                         }
                         .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
                         .font(AppDesign.Font.rowTitle(.semibold))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .help(update.name)
                     } else {
                         Text(update.name)
                             .font(AppDesign.Font.rowTitle(.semibold))
                             .foregroundColor(.primary)
+                            .lineLimit(2)
+                            .help(update.name)
                     }
                     // C1a : la pause n'est pas un avertissement — gris, avec son
                     // glyphe (jamais la couleur seule), comme dans la liste.
@@ -65,9 +64,7 @@ struct NexusUpdateRow: View {
                     }
                 }
             }
-
-            Spacer()
-
+        } trailing: {
             NexusUpdateActions(update: update, vm: vm, localization: localization)
         }
         .padding(.vertical, AppDesign.Spacing.sm)

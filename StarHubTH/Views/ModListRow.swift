@@ -751,9 +751,6 @@ struct ModListRow: View {
             }
             .padding(.vertical, AppDesign.Spacing.xs)
             .padding(.horizontal, AppDesign.Spacing.sm)
-            // Dim the content (not the toggle/accent bar) for disabled mods to
-            // create visual hierarchy — active mods draw the eye first.
-            .opacity(effectiveEnabled ? 1.0 : 0.72)
         }
         .background(
             // Hover: accent-tinted fill for a clearer "interactive" feel.

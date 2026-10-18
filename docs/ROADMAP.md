@@ -879,12 +879,10 @@ restant : **I-T32b → I-T32c**.
 
 - [ ] **I-T32 — L7 Finitions visuelles et identité**, dont la première passe
       est livrée (récit à l'archive) :
-      - **I-T32b — Densité et adaptation.** Un seul défilement vertical par
-        contexte, d'abord Diagnostic (`BackToTopScrollView` + défilement interne
-        de `SmapiHealthCard`). Ne plus réduire à 72 % l'opacité de toute une
-        ligne de mod en pause : texte lisible, état porté par interrupteur,
-        badge et accent. Sur Mises à jour, borner le nom à deux lignes et
-        condenser les actions quand la largeur manque. Migrer vers
+      - **I-T32b — Densité et adaptation.** Premier lot livré et validé à
+        l'écran le 2026-10-18 : Diagnostic n'a plus qu'un défilement vertical,
+        le texte des mods en pause garde sa pleine opacité, et les noms et
+        actions de Mises à jour s'adaptent à la largeur. Reste à migrer vers
         `SplitRow`/`WrapHStack` les rangées fragiles de Diff et Éditeur de
         traduction, métadonnées de fiche mod, chronologie et inventaire de
         sauvegarde, archives d'entretien, corbeille et quarantaine. Corriger au

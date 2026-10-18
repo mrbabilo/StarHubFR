@@ -6,27 +6,26 @@ import SwiftUI
 struct DiagnosticsHealthView: View {
     var viewModel: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    @State private var scrollRequest: ScrollRequest?
 
-    /// Hauteur de l'onglet, mesurée : la carte s'y dimensionne (voir
-    /// `SmapiHealthCard.availableHeight`).
-    @State private var viewHeight: CGFloat = 600
-    /// Hauteur réellement occupée par la bissection, qui passe d'un bouton à un
-    /// écran d'étape déplié : retranchée du budget de la carte.
-    @State private var bisectionHeight: CGFloat = 0
+    private struct ScrollRequest: Equatable {
+        let anchor: String
+        let id = UUID()
+    }
 
     private static let padding: CGFloat = 12
     private static let bisectionAnchor = "bisection"
 
     var body: some View {
-        // Dans un `ScrollView` : la bissection dépliée (liste des mods) peut
-        // dépasser la fenêtre ; la carte, elle, borne son propre corps.
+        // Un seul ascenseur pour tout l'onglet : la Santé et la bissection
+        // restent dans le même parcours, y compris quand leurs listes grandissent.
         BackToTopScrollView(localization) { ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 alertsLink
                 if let diag = viewModel.smapiDiagnostics, !diag.isEmpty {
                     SmapiHealthCard(vm: viewModel, localization: localization,
-                                    availableHeight: max(240, viewHeight - bisectionHeight - 4 * Self.padding),
-                                    showBisection: { withAnimation { proxy.scrollTo(Self.bisectionAnchor, anchor: .top) } })
+                                    showBlock: requestScroll,
+                                    showBisection: { requestScroll(Self.bisectionAnchor) })
                         .padding(Self.padding)
                 } else {
                     StateCard(icon: "stethoscope", text: localization.L(L10n.Logs.healthEmpty),
@@ -49,19 +48,21 @@ struct DiagnosticsHealthView: View {
                 Divider()
                 BisectionCard(vm: viewModel, localization: localization)
                     .padding(Self.padding).id(Self.bisectionAnchor)
-                    .background(GeometryReader { proxy in
-                        Color.clear.onAppear { bisectionHeight = proxy.size.height }
-                            .onChange(of: proxy.size.height) { _, h in bisectionHeight = h }
-                    })
             }
             .frame(maxWidth: .infinity, alignment: .top)
+            .task(id: scrollRequest?.id) {
+                guard let request = scrollRequest else { return }
+                // L'ouverture de la carte et la création de son ancre doivent
+                // précéder le saut demandé par son compteur.
+                await Task.yield()
+                withAnimation { proxy.scrollTo(request.anchor, anchor: .top) }
+            }
         } }
         .background(AppDesign.Color.windowBg)
-        // Mesurée hors du `ScrollView`, qui offrirait sinon une hauteur infinie.
-        .background(GeometryReader { proxy in
-            Color.clear.onAppear { viewHeight = proxy.size.height }
-                .onChange(of: proxy.size.height) { _, h in viewHeight = h }
-        })
+    }
+
+    private func requestScroll(_ anchor: String) {
+        scrollRequest = ScrollRequest(anchor: anchor)
     }
 
     /// R2 — l'aller vers les Alertes, même compte que la pastille. Hors de la

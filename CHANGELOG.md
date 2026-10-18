@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Diagnostic, mods en pause et mises à jour restent lisibles en fenêtre étroite.** La Santé partage désormais l'ascenseur de sa page, les lignes en pause ne sont plus entièrement estompées, et les actions d'une mise à jour passent sous son nom quand la largeur manque.
 - **Barre latérale plus fluide sur Mises à jour et Entretien.** Ces deux pages ne remesurent plus leurs longues listes hors écran à chaque image de l'animation ; défilement, replis et réglages restent inchangés.
 - **Une identité visuelle plus nette, en clair comme en sombre.** Les cartes adoptent des fonds neutres, celles des mods se détachent mieux, et la Quarantaine garde son repère violet.
 - **Navigation plus compacte et complète.** Diagnostic suit désormais Alertes et prend ⌘9 ; Réglages reste épinglé au pied de la barre latérale. Les libellés longs gagnent une version courte dans la barre, le menu Aller montre les 14 destinations et la palette les retrouve sous les deux noms. Le badge Alertes devient rouge dès qu'une alerte est critique.

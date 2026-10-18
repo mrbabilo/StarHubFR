@@ -32,15 +32,6 @@ struct SmapiHealthCard: View {
     /// nil = dépliée, même sur un journal sain : la carte a son onglet (D4-T4,
     /// demande de l'auteur du 2026-09-28). Le chevron garde le choix contraire.
     @State private var userExpanded: Bool? = nil
-    /// Le bloc qu'un compteur vient de demander (comme les tuiles des Alertes
-    /// système) : l'identifiant neuf à chaque clic rejoue le défilement.
-    @State private var scrollRequest: ScrollRequest?
-
-    private struct ScrollRequest: Equatable {
-        let anchor: String
-        let id = UUID()
-    }
-
     var diagnostics: SmapiDiagnostics { vm.smapiDiagnostics ?? SmapiDiagnostics() }
 
     private var isExpanded: Bool { userExpanded ?? true }
@@ -58,52 +49,24 @@ struct SmapiHealthCard: View {
             || !vm.compatibilityFlaggedMods.isEmpty
     }
 
-    /// Hauteur que la carte peut occuper **en entier**, mesurée par
-    /// `DiagnosticsHealthView` (dans une VStack, un GeometryReader ne voit que
-    /// la hauteur déjà donnée). D4-T4 §3a : la carte a son onglet, elle ne
-    /// partage plus la hauteur avec le journal (ancien budget des deux tiers).
-    var availableHeight: CGFloat = 600
+    /// Les compteurs demandent au défilement principal de l'onglet d'amener le
+    /// bloc visé à l'écran. La carte ne crée plus son propre ascenseur.
+    var showBlock: (String) -> Void = { _ in }
     /// Le conseil « moitié/moitié » mène à la bissection, sous la carte (N-09).
     var showBisection: () -> Void = {}
     private var suggestions: [HealthSuggestion] { HealthSuggestion.list(from: diagnostics, localized: localization.L) }
 
     var body: some View {
-        // Le budget couvre la carte **entière** : l'en-tête, son bandeau de
-        // compteurs et les marges en sortent au lieu de s'y ajouter.
-        card(maxBodyHeight: availableHeight - Self.headerAllowance)
+        card
     }
 
-    /// Rough height of the header block plus the card's outer padding, subtracted
-    /// from the budget so the card as a whole lands on its target share.
-    private static let headerAllowance: CGFloat = 116
-
-    private func card(maxBodyHeight: CGFloat) -> some View {
+    private var card: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             if isExpanded && (!isHealthy || hasDetails) {
                 Divider()
-                // The body scrolls inside a bounded height: on a large modlist
-                // it runs to thousands of points, which used to push the log
-                // list off-screen AND carry the collapse chevron out of view,
-                // making the card impossible to close. The header stays outside
-                // this ScrollView so it is always reachable.
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        problems
-                            .padding(AppDesignCore.Spacing.lg)
-                    }
-                    // `.task` et non `.onChange` : déplié par le clic, le corps
-                    // naît avec la demande déjà posée.
-                    .task(id: scrollRequest) {
-                        guard let anchor = scrollRequest?.anchor else { return }
-                        withAnimation { proxy.scrollTo(anchor, anchor: .top) }
-                    }
-                }
-                // A firm height, not a ceiling: the log list below also wants
-                // all the space it can get, so with `maxHeight` SwiftUI split
-                // the difference and the card only ever reached about half the
-                // window. `height` makes the card claim its share first.
-                .frame(height: max(200, maxBodyHeight))
+                problems
+                    .padding(AppDesignCore.Spacing.lg)
             }
         }
         // La surface commune des cartes, liseré à la couleur du verdict : l'état
@@ -170,7 +133,7 @@ struct SmapiHealthCard: View {
                     ForEach(severityCounts, id: \.label) { item in
                         Button {
                             userExpanded = true
-                            scrollRequest = ScrollRequest(anchor: item.anchor)
+                            showBlock(item.anchor)
                         } label: { countChip(item.count, item.label, item.color) }
                         .buttonStyle(.plain).focusRing()
                         .pointingHandCursor()
@@ -292,7 +255,7 @@ struct SmapiHealthCard: View {
         sectionCard(.accentColor) {
             sectionTitle(localization.L(L10n.Logs.healthSuggestionsTitle), icon: "lightbulb.fill", color: .accentColor)
             HealthSuggestionsList(viewModel: vm, localization: localization, suggestions: suggestions,
-                                  showBlock: { scrollRequest = ScrollRequest(anchor: $0) },
+                                  showBlock: showBlock,
                                   showBisection: showBisection)
         }
     }
