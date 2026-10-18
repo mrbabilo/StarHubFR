@@ -2801,3 +2801,6 @@
 "health_criticals_one" = "1 critique";
 "updates_header_with_paused" = "%1$@ · %2$lld en pause";
 "palette_profile_hint" = "↩ aperçu · ⌘↩ activer";
+"save_segment_details" = "Détails";
+"save_segment_mods" = "Mods";
+"save_action_mods" = "Mods de cette partie";

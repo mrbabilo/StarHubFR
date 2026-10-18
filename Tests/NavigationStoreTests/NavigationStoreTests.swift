@@ -26,7 +26,6 @@ import Foundation
         s.pendingDetailTab = .translation
         s.pendingTranslationDiffFilter = .state(.missing)
         s.pendingLogFocus = "erreur"
-        s.viewingSaveTimeline = makeSave("Farm_12345")
 
         #expect(s.pendingModFocus == "X")
         #expect(s.pendingTranslationFocus == "Y")
@@ -35,7 +34,17 @@ import Foundation
         #expect(s.pendingDetailTab == .translation)
         #expect(s.pendingTranslationDiffFilter == .state(.missing))
         #expect(s.pendingLogFocus == "erreur")
-        #expect(s.viewingSaveTimeline?.folderName == "Farm_12345")
+    }
+
+    /// R6 : une partie s'ouvre sur le segment demandé ; une autre ouverture
+    /// (clic sur la rangée) repart de Détails.
+    @Test func openSavePoseLeSegmentEtUneAutreOuvertureRepartDeDetails() {
+        let s = NavigationStore()
+        s.openSave(makeSave("Farm_12345"), segment: .history)
+        #expect(s.editingSave?.folderName == "Farm_12345")
+        #expect(s.saveSegment == .history)
+        s.setEditingSave(makeSave("Farm_2"))
+        #expect(s.saveSegment == .details)
     }
 
     // MARK: - Les deux canaux : posé par verbe, effacé par consommation.

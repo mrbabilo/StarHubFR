@@ -285,7 +285,7 @@ struct SaveEditorView: View {
             // La bande fine reçoit l'exclu du strip : l'historique des
             // sauvegardes, qui déménage de l'ancien en-tête.
             HStack {
-                Button(action: { vm.navigationStore.viewingSaveTimeline = save }) {
+                Button(action: { vm.navigationStore.saveSegment = .history }) {  // R6 : le segment
                     Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
                         .font(AppDesign.Font.footnote(.medium))
                 }
@@ -368,10 +368,6 @@ struct SaveEditorView: View {
                     
                     TextField(localization.L(L10n.Saves.saveNote), text: $noteText)
                 }
-                
-                SavePausedFootprintSection(vm: vm, localization: localization, save: save, currentTab: $currentTab)
-
-                SaveAbsentModsSection(vm: vm, localization: localization, save: save)
                 
                 Section(localization.L(L10n.Saves.characterInfo)) {
                     TextField(localization.L(L10n.Saves.characterName), text: $name)

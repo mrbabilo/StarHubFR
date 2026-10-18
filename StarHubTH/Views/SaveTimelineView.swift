@@ -33,12 +33,6 @@ struct SaveTimelineView: View {
             // En-tête commun des pages (audit UX 2026-10-02) : retour, la
             // partie et son nombre de sauvegardes, le geste qui en ajoute une.
             VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
-                Button(action: { vm.navigationStore.viewingSaveTimeline = nil }) {
-                    Label(localization.L(L10n.Saves.saves), systemImage: "chevron.left")
-                }
-                .buttonStyle(.borderless).focusRing(cornerRadius: 4)
-                .controlSize(.small)
-                .pointingHandCursor()
                 PageHeader(icon: "clock.arrow.circlepath",
                            title: String(format: localization.L(L10n.Saves.timelineTitle), save.playerName),
                            subtitle: String(format: localization.L(L10n.Saves.timelineSubtitle),

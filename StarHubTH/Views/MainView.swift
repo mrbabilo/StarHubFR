@@ -62,7 +62,6 @@ struct MainView: View {
     
 
     private var navigationTitleText: String {
-        if currentTab == .saves && navigation.viewingSaveTimeline != nil { return localization.L(L10n.Saves.timeline) }
         if currentTab == .saves && navigation.editingSave != nil { return navigation.editingSave!.playerName }
         if currentTab == .mods && navigation.editingModConfig != nil { return navigation.editingModConfig!.name }
         if currentTab == .mods && navigation.viewingModDetail != nil { return navigation.viewingModDetail!.name }
@@ -92,7 +91,6 @@ struct MainView: View {
     /// la même raison.
     private func handleTabChange() {
             navigation.setEditingSave(nil)
-            navigation.viewingSaveTimeline = nil
             navigation.setEditingModConfig(nil)
             navigation.setViewingModDetail(nil)
 
@@ -152,10 +150,8 @@ struct MainView: View {
                     case .maintenance:
                         MaintenanceView(vm: vm, localization: localization)
                     case .saves:
-                        if let save = navigation.viewingSaveTimeline {
-                            SaveTimelineView(vm: vm, localization: localization, save: save)
-                        } else if let save = navigation.editingSave {
-                            SaveEditorView(vm: vm, localization: localization, save: save, currentTab: $currentTab)
+                        if let save = navigation.editingSave {  // R6 : une page, trois segments
+                            SaveDetailView(viewModel: vm, localization: localization, save: save, currentTab: $currentTab)
                         } else {
                             SavesView(vm: vm, localization: localization)
                         }
@@ -185,7 +181,6 @@ struct MainView: View {
     /// Le détail du dessus, pour la règle de « Retour ».
     private var openDetail: NavigationHistory.OpenDetail {
         if navigation.editingSave != nil { return .saveEditor }
-        if navigation.viewingSaveTimeline != nil { return .saveTimeline }
         if navigation.editingModConfig != nil {
             return .modConfig(detailUnderneath: navigation.viewingModDetail != nil)
         }
@@ -197,7 +192,6 @@ struct MainView: View {
         let step = history.back(from: openDetail)
         switch step.close {
         case .saveEditor:   navigation.setEditingSave(nil)
-        case .saveTimeline: navigation.viewingSaveTimeline = nil
         case .modConfig:    navigation.setEditingModConfig(nil)
         case .modDetail:    navigation.setViewingModDetail(nil)
         case .none:         break

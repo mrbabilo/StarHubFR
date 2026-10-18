@@ -20,9 +20,9 @@ import Observation
 @MainActor
 final class NavigationStore {
 
-    /// La sauvegarde dont la timeline est ouverte. Remis à `nil` par
-    /// `MainView` au changement d'onglet (un des cinq états de détail).
-    var viewingSaveTimeline: SaveGameInfo?
+    /// R6 — le segment de la page d'une partie (`editingSave`) : Détails,
+    /// Mods ou Historique. Remis à Détails à chaque partie ouverte.
+    var saveSegment: SaveSegment = .details
 
     /// A mod the user asked to jump to (from a log line or the health card).
     ///
@@ -376,6 +376,7 @@ final class NavigationStore {
 
     func setEditingSave(_ save: SaveGameInfo?) {
         editingSave = save
+        if save != nil { saveSegment = .details }
         inventoryToEdit = []
         guard let save, let load = loadInventory else { return }
         let requestedId = save.id

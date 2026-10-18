@@ -64,7 +64,6 @@ struct NavigationHistoryTests {
         var history = visited(.mods, .saves)
         history.detailOpenedByJump = true
         #expect(history.back(from: .saveEditor) == .init(close: .saveEditor, goTo: nil))
-        #expect(history.back(from: .saveTimeline) == .init(close: .saveTimeline, goTo: nil))
     }
 
     @Test func forwardReturnsThePageLeftByBack() {

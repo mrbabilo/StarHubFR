@@ -15,7 +15,6 @@ public struct NavigationHistory: Equatable, Sendable {
     public enum OpenDetail: Equatable, Sendable {
         case none
         case saveEditor
-        case saveTimeline
         /// L'éditeur de config, avec ou sans fiche dessous.
         case modConfig(detailUnderneath: Bool)
         case modDetail
@@ -53,7 +52,7 @@ public struct NavigationHistory: Equatable, Sendable {
     /// ramène aussi à la page d'où il a été ouvert.
     public mutating func back(from open: OpenDetail) -> BackStep {
         switch open {
-        case .saveEditor, .saveTimeline:
+        case .saveEditor:
             return BackStep(close: open, goTo: nil)
         case .modConfig(let detailUnderneath):
             return BackStep(close: open,

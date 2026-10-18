@@ -5788,7 +5788,6 @@ final class StarHubTHViewModel {
         savesStore.endOperation()
         if restored {
             reloadSaves()
-            navigationStore.viewingSaveTimeline = nil
             navigationStore.setEditingSave(nil)
             showModal(message: localization.L(L10n.VM.restoreSuccess))
         } else {

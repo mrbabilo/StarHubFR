@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Sauvegardes du jeu : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Passer d'un segment à l'autre ne perd pas une modification en cours.
 - **Sauvegardes du jeu : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
 - **Palette (⌘K) : ↩ sur un profil affiche son aperçu** sans rien activer ; ⌘↩ l'active. Le rappel figure sous le nom du profil.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».

@@ -14,10 +14,13 @@ struct SaveActionItems: View {
 
     var body: some View {
         let navigation = viewModel.navigationStore
-        Button { navigation.setEditingSave(save) } label: {
+        Button { navigation.openSave(save, segment: .details) } label: {
             Label(localization.L(L10n.Saves.edit), systemImage: "pencil")
         }
-        Button { navigation.viewingSaveTimeline = save } label: {
+        Button { navigation.openSave(save, segment: .mods) } label: {
+            Label(localization.L(L10n.Saves.segmentModsAction), systemImage: "shippingbox")
+        }
+        Button { navigation.openSave(save, segment: .history) } label: {
             Label(localization.L(L10n.Saves.timeline), systemImage: "clock.arrow.circlepath")
         }
         Divider()

@@ -18,3 +18,17 @@ enum BackupsSegment: CaseIterable, Sendable {
 enum DiagnosticsSegment: CaseIterable, Sendable {
     case health, journal, performance
 }
+
+/// R6 — les trois segments de la page d'une partie.
+enum SaveSegment: CaseIterable, Sendable {
+    case details, mods, history
+}
+
+extension NavigationStore {
+    /// Ouvre une partie sur un segment : « Modifier », « Historique… » ou
+    /// « Mods de cette partie » du menu d'actions.
+    func openSave(_ save: SaveGameInfo, segment: SaveSegment) {
+        setEditingSave(save)
+        saveSegment = segment
+    }
+}
