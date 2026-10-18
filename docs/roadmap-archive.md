@@ -7781,3 +7781,13 @@ sans lire une ligne de log.
       partie. Une écriture inexpliquée de BENCH pendant la vérification
       (12:29, restaurée depuis la copie de secours) n'a pu être reproduite
       par aucun geste.
+- [x] **I-T31 · N-08** — *(livré le 2026-10-18, `615d770b`)* Palette,
+      décision de l'auteur qui revient sur I-T2. Trois actions (« Vérifier les
+      mises à jour », « Installer des mods… », « Lancer le jeu ») par les
+      chemins du menu ; une action ne sort que sur un début de titre et ne
+      passe en tête que mieux appariée que tout le reste
+      (`CommandPaletteSearch.displayed`, Core, testé). ↩ sur une partie ouvre
+      sa page sur Détails : `pendingSaveFocus`, consommé par `MainView` après
+      la remise à zéro du changement d'onglet ou par `SavesTab` sur l'onglet
+      même ; entrées identifiées par dossier. Sept tests, trois sabotages.
+      Vérifié à l'écran.
