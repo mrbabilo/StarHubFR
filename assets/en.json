@@ -1263,6 +1263,7 @@
   "palette_section_mods": "Mods",
   "palette_section_profiles": "Profiles",
   "palette_section_saves": "Saves",
+  "palette_section_actions": "Actions",
   "profiles_activate": "Activate",
   "profiles_active": "Active",
   "profiles_header_summary": "%1$@ · active: %2$@",

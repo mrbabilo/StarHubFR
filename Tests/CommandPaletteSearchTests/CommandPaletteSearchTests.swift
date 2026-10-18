@@ -131,9 +131,60 @@ struct CommandPaletteSearchTests {
         // Deux homonymes restent deux entrées distinctes (I-T5).
         #expect(CommandPaletteEntry.forProfile(name: "Ferme d'été", id: UUID()).id != p.id)
 
-        let s = CommandPaletteEntry.forSave(playerName: "David", farmName: "Rivedoux")
+        let s = CommandPaletteEntry.forSave(playerName: "David", farmName: "Rivedoux",
+                                            folderName: "David_123")
         #expect(s.kind == .save)
         #expect(s.title == "David")
         #expect(s.subtitle == "Rivedoux")
+        // N-08 : ↩ ouvre la partie désignée par son dossier — deux parties
+        // homonymes (une copie) restent distinctes.
+        #expect(s.id == "save:David_123")
+    }
+
+    // MARK: - N-08 : les actions
+
+    private func action(_ title: String) -> CommandPaletteEntry {
+        CommandPaletteEntry(id: "action:\(title)", kind: .action, title: title,
+                            subtitle: nil, icon: "bolt")
+    }
+
+    /// Une action ne sort que sur un début de titre : « mise » ne doit pas
+    /// trouver « Vérifier les mises à jour » par le milieu.
+    @Test func uneActionNeSortQueSurUnDebutDeTitre() {
+        let entries = [action("Vérifier les mises à jour")]
+        #expect(CommandPaletteSearch.displayed("verif", in: entries).count == 1)
+        #expect(CommandPaletteSearch.displayed("mise", in: entries).isEmpty)
+        #expect(CommandPaletteSearch.displayed("vmaj", in: entries).isEmpty)
+    }
+
+    /// « ver » : « Vertical Toolbar » correspond aussi bien que l'action —
+    /// ↩ doit ouvrir le mod, pas lancer une vérification.
+    @Test func aCorrespondanceEgaleLeModPasseDevantLAction() {
+        let r = CommandPaletteSearch.displayed(
+            "ver", in: [action("Vérifier les mises à jour"), mod("Vertical Toolbar")])
+        #expect(r.map(\.title) == ["Vertical Toolbar", "Vérifier les mises à jour"])
+    }
+
+    /// « lancer » : l'action correspond par le début, « Balancer » seulement
+    /// par le milieu — l'action passe en tête.
+    @Test func uneActionMieuxApparieePasseEnTete() {
+        let r = CommandPaletteSearch.displayed(
+            "lancer", in: [mod("Balancer"), action("Lancer le jeu")])
+        #expect(r.first?.title == "Lancer le jeu")
+    }
+
+    /// Requête vide : les pages seules, comme avant — pas d'action.
+    @Test func requeteVideNeMontreNiModNiAction() {
+        let r = CommandPaletteSearch.displayed("", in: [page("Accueil"), action("Lancer le jeu"),
+                                                        mod("Automate")])
+        #expect(r.map(\.title) == ["Accueil"])
+    }
+
+    /// L'affichage regroupe par nature sans doublonner les en-têtes : un mod
+    /// mieux apparié qu'une page sort quand même dans le groupe des mods.
+    @Test func lAffichageRegroupeParNature() {
+        let r = CommandPaletteSearch.displayed(
+            "re", in: [mod("Reflections"), page("Réglages"), mod("Better Rendering")])
+        #expect(r.map(\.kind) == [.destination, .mod, .mod])
     }
 }

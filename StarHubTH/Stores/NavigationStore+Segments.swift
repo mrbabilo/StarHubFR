@@ -31,4 +31,22 @@ extension NavigationStore {
         setEditingSave(save)
         saveSegment = segment
     }
+
+    /// N-08 — ↩ sur une partie dans la palette : sa page, sur Détails.
+    func requestSave(folderName: String) {
+        pendingSaveFocus = folderName
+        requestTab(.saves)
+    }
+
+    /// Consommé sur l'onglet des parties : par `MainView` à l'arrivée, après
+    /// la remise à zéro du changement d'onglet (poser `editingSave` avant
+    /// serait effacé), par `SavesTab` si l'on y est déjà. Une partie disparue
+    /// n'ouvre rien ; la demande tombe dans tous les cas.
+    func consumeSaveFocus(in saves: [SaveGameInfo]) {
+        guard let folderName = pendingSaveFocus else { return }
+        pendingSaveFocus = nil
+        if let save = saves.first(where: { $0.folderName == folderName }) {
+            openSave(save, segment: .details)
+        }
+    }
 }

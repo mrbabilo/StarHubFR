@@ -23,6 +23,8 @@ final class NavigationStore {
     /// R6 — le segment de la page d'une partie (`editingSave`) : Détails,
     /// Mods ou Historique. Remis à Détails à chaque partie ouverte.
     var saveSegment: SaveSegment = .details
+    /// N-08 — le dossier de la partie que la palette (↩) demande d'ouvrir.
+    var pendingSaveFocus: String?
 
     /// A mod the user asked to jump to (from a log line or the health card).
     ///

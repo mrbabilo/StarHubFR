@@ -7,3 +7,8 @@ extension L10n.Saves {
     /// Le nombre de sauvegardes de l'historique, au pluriel juste (`plural`).
     static let timelineBackupCount = "saves_timeline_backup_count"
 }
+
+/// N-08 — la section des gestes dans la palette.
+extension L10n.Palette {
+    static let sectionActions = "palette_section_actions"
+}

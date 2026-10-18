@@ -117,6 +117,7 @@ struct MainView: View {
             // affectation `nil` de plus rejouerait deux `didSet`.
             if let detail = plan.openModDetail { navigation.setViewingModDetail(detail) }
             if let config = plan.openModConfig { navigation.setEditingModConfig(config) }
+            if currentTab == .saves { navigation.consumeSaveFocus(in: vm.saves) }  // N-08, palette
 
             history.didEnter(currentTab)
     }
@@ -150,11 +151,7 @@ struct MainView: View {
                     case .maintenance:
                         MaintenanceView(vm: vm, localization: localization)
                     case .saves:
-                        if let save = navigation.editingSave {  // R6 : une page, trois segments
-                            SaveDetailView(viewModel: vm, localization: localization, save: save, currentTab: $currentTab)
-                        } else {
-                            SavesView(vm: vm, localization: localization)
-                        }
+                        SavesTab(viewModel: vm, localization: localization, currentTab: $currentTab)
                     case .profiles:
                         ModProfilesView(vm: vm, localization: localization, currentTab: $currentTab)
                     case .updates:

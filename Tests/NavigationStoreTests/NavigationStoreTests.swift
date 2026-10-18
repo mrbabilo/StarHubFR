@@ -94,6 +94,32 @@ import Foundation
         #expect(s.pendingTabRequest == .profiles)
     }
 
+    /// N-08 : ↩ sur une partie dans la palette demande sa page, onglet
+    /// Sauvegardes du jeu. La consommation ouvre Détails et efface la
+    /// demande — sinon elle rouvrirait la partie au prochain passage.
+    @Test func requestSavePoseLaPartieEtLOnglet() {
+        let s = NavigationStore()
+        s.requestSave(folderName: "Farm_A")
+        #expect(s.pendingSaveFocus == "Farm_A")
+        #expect(s.pendingTabRequest == .saves)
+
+        s.saveSegment = .history
+        s.consumeSaveFocus(in: [makeSave("Farm_B"), makeSave("Farm_A")])
+        #expect(s.editingSave?.folderName == "Farm_A")
+        #expect(s.saveSegment == .details)
+        #expect(s.pendingSaveFocus == nil)
+    }
+
+    /// Une partie disparue entre l'ouverture de la palette et ↩ : rien ne
+    /// s'ouvre, et la demande tombe quand même.
+    @Test func consumeSaveFocusSurUnePartieDisparueNOuvreRien() {
+        let s = NavigationStore()
+        s.requestSave(folderName: "Farm_Gone")
+        s.consumeSaveFocus(in: [makeSave("Farm_A")])
+        #expect(s.editingSave == nil)
+        #expect(s.pendingSaveFocus == nil)
+    }
+
     /// R1 : la légende de l'Entretien ouvre son segment, sans filtre ; et
     /// Sauvegardes renvoie à l'Entretien.
     @Test func renvoisEntretienSauvegardes() {

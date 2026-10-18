@@ -6,8 +6,12 @@ import SwiftUI
 /// et MainView applique. Un saut vers une fiche posé avant le changement
 /// d'onglet serait effacé par la remise à zéro des états de détail (B3-T4).
 ///
-/// **Elle n'écrit jamais** : naviguer seulement. Une frappe rapide ne doit pas
-/// pouvoir toucher à `Mods/`.
+/// **Elle n'écrit jamais dans `Mods/`.** Ses trois gestes (N-08, décision de
+/// l'auteur qui revient sur I-T2) sont ceux du menu : vérifier les mises à
+/// jour, ouvrir la feuille d'installation, lancer le jeu. Une action ne sort
+/// que sur un début de titre, et ne passe devant que mieux appariée que tout
+/// le reste (`CommandPaletteSearch.displayed`) : une frappe courte ouvre un
+/// mod, pas un geste.
 struct CommandPaletteView: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -49,32 +53,23 @@ struct CommandPaletteView: View {
                                                                      : L10n.Palette.profileHint))
         }
         out += vm.saves.map {
-            CommandPaletteEntry.forSave(playerName: $0.playerName,
-                                        farmName: $0.farmName)
+            CommandPaletteEntry.forSave(playerName: $0.playerName, farmName: $0.farmName,
+                                        folderName: $0.folderName)
+        }
+        // N-08 — les gestes du menu, leur raccourci en sous-titre.
+        out += [("check", localization.L(L10n.Updates.nexusCheckButton), "⇧⌘U", "arrow.triangle.2.circlepath"),
+                ("install", localization.L(L10n.ModInstall.installButton) + "…", "⌘O", "square.and.arrow.down"),
+                ("launch", localization.L(L10n.Main.launchGame), "⌘R", "play.fill")].map { id, title, keys, icon in
+            CommandPaletteEntry(id: "action:\(id)", kind: .action,
+                                title: title, subtitle: keys, icon: icon)
         }
         return out
     }
 
-    private var results: [CommandPaletteEntry] {
-        CommandPaletteSearch.rank(query, in: entries)
-    }
-
-    /// L'ordre **affiché**, et le seul que `selection` indexe.
-    ///
-    /// ⚠️ `rank` trie par force de correspondance d'abord : une destination
-    /// faiblement appariée sort après des mods bien appariés, et une nature
-    /// peut réapparaître plus bas. Grouper à l'affichage sans regrouper ici
-    /// ferait **doublonner les en-têtes**. On regroupe donc par nature en
-    /// gardant l'ordre du classement à l'intérieur de chaque groupe — `sorted`
-    /// n'étant pas stable en Swift, on trie sur la paire (nature, rang).
+    /// L'ordre **affiché**, regroupé par nature, et le seul que `selection`
+    /// indexe (`CommandPaletteSearch.displayed`, testé).
     private var displayed: [CommandPaletteEntry] {
-        results.enumerated()
-            .sorted { a, b in
-                a.element.kind != b.element.kind
-                    ? a.element.kind < b.element.kind
-                    : a.offset < b.offset
-            }
-            .map(\.element)
+        CommandPaletteSearch.displayed(query, in: entries)
     }
 
     var body: some View {
@@ -155,6 +150,7 @@ struct CommandPaletteView: View {
         case .mod:         return localization.L(L10n.Palette.sectionMods)
         case .profile:     return localization.L(L10n.Palette.sectionProfiles)
         case .save:        return localization.L(L10n.Palette.sectionSaves)
+        case .action:      return localization.L(L10n.Palette.sectionActions)
         }
     }
 
@@ -238,11 +234,11 @@ struct CommandPaletteView: View {
             return
         }
         let e = rows[selection]
+        let navigation = vm.navigationStore
         switch e.kind {
         case .destination:
             // L'id est "dest:" + rawValue — on remonte à la destination.
             let raw = String(e.id.dropFirst("dest:".count))
-            let navigation = vm.navigationStore
             if raw == "help" {
                 navigation.pendingHelpSection = nil
                 openWindow(id: AppWindowID.help)
@@ -262,10 +258,19 @@ struct CommandPaletteView: View {
             if applyingProfile, id != vm.activeProfileId {
                 vm.applyProfile(id: id)
             } else {
-                vm.navigationStore.openProfilePreview(id)
+                navigation.openProfilePreview(id)
             }
         case .save:
-            vm.requestTab(.saves)
+            // N-08 (revient sur I-T2) : la page de la partie, sur Détails.
+            navigation.requestSave(folderName: String(e.id.dropFirst("save:".count)))
+        case .action:
+            // Les chemins du menu, gardes comprises (vérification déjà en
+            // cours, dossier du jeu absent, benchmark).
+            switch e.id {
+            case "action:check":   vm.checkNexusUpdates()
+            case "action:install": navigation.requestInstall()
+            default:               _ = vm.launchGame()
+            }
         }
         close()
     }
