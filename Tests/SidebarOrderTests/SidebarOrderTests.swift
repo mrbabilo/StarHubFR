@@ -11,8 +11,8 @@ struct SidebarOrderTests {
     /// Écrit une fois ici, relu par les tests d'ordre et de couverture.
     private static let attendu: [SidebarDestination] = [
         .home, .mods, .discover, .updates, .frenchTranslations, .profiles, .saves,
-        .systemAlerts, .quarantine, .backups,
-        .maintenance, .logs, .settings, .appChangelog,
+        .systemAlerts, .logs, .quarantine, .backups,
+        .maintenance, .settings, .appChangelog,
     ]
 
     /// Non-régression : sans ce test, un réordonnancement silencieux passerait
@@ -39,20 +39,34 @@ struct SidebarOrderTests {
         for e in SidebarOrder.all {
             #expect(!e.icon.isEmpty, "\(e.destination) sans icône")
             #expect(!e.labelKey.isEmpty, "\(e.destination) sans clé")
+            #expect(!e.sidebarLabelKey.isEmpty, "\(e.destination) sans libellé latéral")
         }
     }
 
-    /// C5-T1 décale d'un rang tout ce qui suit « Mises à jour » : la
-    /// quarantaine prend ⌘9, les sauvegardes n'ont pas de numéro (I-T8 les
-    /// place après elle pour ne pas décaler ⌘8/⌘9).
+    /// Les quatre intitulés qui débordaient à 240 pt gardent leur titre long
+    /// ailleurs, mais portent une clé dédiée dans la barre.
+    @Test func lesLibellesLaterauxLongsOntLeurFormeCourte() {
+        func cle(_ destination: SidebarDestination) -> String? {
+            SidebarOrder.all.first { $0.destination == destination }?.sidebarLabelKey
+        }
+        #expect(cle(.updates) == "main_mod_updates_short")
+        #expect(cle(.systemAlerts) == "main_system_alerts_short")
+        #expect(cle(.logs) == "logs_logs_short")
+        #expect(cle(.backups) == "mod_install_manage_backups_short")
+        #expect(cle(.mods) == L10n.Mods.mods)
+    }
+
+    /// N-10 donne le dernier raccourci numérique au Diagnostic, plus fréquent
+    /// que les pages de secours qui le suivent.
     @Test func lesNeufPremieresPortentUnNumero() {
         #expect(SidebarOrder.shortcutIndex(of: .home) == 1)
         #expect(SidebarOrder.shortcutIndex(of: .mods) == 2)
         #expect(SidebarOrder.shortcutIndex(of: .frenchTranslations) == 5)
-        #expect(SidebarOrder.shortcutIndex(of: .quarantine) == 9)
+        #expect(SidebarOrder.shortcutIndex(of: .logs) == 9)
     }
 
-    @Test func laDixiemeNAPasDeNumero() {
+    @Test func lesPagesDeSecoursApresDiagnosticNontPasDeNumero() {
+        #expect(SidebarOrder.shortcutIndex(of: .quarantine) == nil)
         #expect(SidebarOrder.shortcutIndex(of: .backups) == nil)
     }
 
@@ -74,10 +88,10 @@ struct SidebarOrderTests {
                 == [.mods, .discover, .updates, .frenchTranslations])
         #expect(SidebarOrder.entries(in: .saves).map(\.destination) == [.profiles, .saves])
         #expect(SidebarOrder.entries(in: .health).map(\.destination)
-                == [.systemAlerts, .quarantine, .backups, .maintenance])
-        #expect(SidebarOrder.entries(in: .app).map(\.destination)
-                == [.logs, .settings])
-        #expect(SidebarOrder.entries(in: .footer).map(\.destination) == [.appChangelog])
+                == [.systemAlerts, .logs, .quarantine, .backups, .maintenance])
+        #expect(SidebarOrder.entries(in: .app).isEmpty)
+        #expect(SidebarOrder.entries(in: .footer).map(\.destination)
+                == [.settings, .appChangelog])
     }
 
     /// Les clés des destinations d'origine restent celles relevées le

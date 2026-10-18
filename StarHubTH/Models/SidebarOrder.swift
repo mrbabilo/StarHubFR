@@ -23,14 +23,18 @@ public struct SidebarEntry: Identifiable, Equatable, Sendable {
     public let destination: SidebarDestination
     public let icon: String
     public let labelKey: String
+    public let shortLabelKey: String?
     public let group: SidebarGroup
     public var id: SidebarDestination { destination }
+    public var sidebarLabelKey: String { shortLabelKey ?? labelKey }
 
     public init(_ destination: SidebarDestination, icon: String,
-                labelKey: String, group: SidebarGroup) {
+                labelKey: String, shortLabelKey: String? = nil,
+                group: SidebarGroup) {
         self.destination = destination
         self.icon = icon
         self.labelKey = labelKey
+        self.shortLabelKey = shortLabelKey
         self.group = group
     }
 }
@@ -62,7 +66,8 @@ public enum SidebarOrder {
         // Toujours visible, même à zéro : sans l'entrée, plus moyen de
         // déclencher une vérification Nexus à la main.
         SidebarEntry(.updates, icon: "arrow.triangle.2.circlepath",
-                     labelKey: L10n.Main.modUpdates, group: .library),
+                     labelKey: L10n.Main.modUpdates,
+                     shortLabelKey: L10n.Main.modUpdatesShort, group: .library),
         // C5-T1 — remplace l'entrée du hub thaï, toujours visible : la page
         // dit elle-même quand rien n'a encore été cherché.
         SidebarEntry(.frenchTranslations, icon: "character.bubble.fill",
@@ -78,24 +83,29 @@ public enum SidebarOrder {
         // Atteignable au vert aussi : la page porte « Revérifier le journal »,
         // et un journal muet avant une installation ne dit rien de l'après.
         SidebarEntry(.systemAlerts, icon: "exclamationmark.triangle.fill",
-                     labelKey: L10n.Main.systemAlerts, group: .health),
+                     labelKey: L10n.Main.systemAlerts,
+                     shortLabelKey: L10n.Main.systemAlertsShort, group: .health),
+        // N-10 — le diagnostic suit les alertes qu'il permet d'instruire et
+        // prend le dernier raccourci numérique, ⌘9.
+        SidebarEntry(.logs, icon: "terminal.fill",
+                     labelKey: L10n.Logs.logs,
+                     shortLabelKey: L10n.Logs.logsShort, group: .health),
         // Idem : l'entrée n'apparaissait autrefois qu'avec des éléments en
         // quarantaine — cachant la page précisément quand on veut lancer
         // l'analyse et la voir ne rien trouver.
         SidebarEntry(.quarantine, icon: "tray.full.fill",
                      labelKey: L10n.Main.quarantine, group: .health),
-        // I-T8 — une entrée pour les trois segments ; placée après la
-        // quarantaine pour que ⌘8 et ⌘9 ne bougent pas.
+        // I-T8 — une entrée pour les trois segments ; les pages plus rares
+        // suivent les neuf destinations pourvues d'un raccourci numérique.
         SidebarEntry(.backups, icon: "arrow.uturn.backward.circle.fill",
-                     labelKey: L10n.ModInstall.manageBackups, group: .health),
+                     labelKey: L10n.ModInstall.manageBackups,
+                     shortLabelKey: L10n.ModInstall.manageBackupsShort, group: .health),
         SidebarEntry(.maintenance, icon: "internaldrive",
                      labelKey: L10n.Maintenance.title, group: .health),
 
-        // APPLICATION.
-        SidebarEntry(.logs, icon: "terminal.fill",
-                     labelKey: L10n.Logs.logs, group: .app),
+        // Au pied épinglé : toujours visible, même quand la liste défile.
         SidebarEntry(.settings, icon: "gearshape.fill",
-                     labelKey: L10n.Settings.settings, group: .app),
+                     labelKey: L10n.Settings.settings, group: .footer),
         // Au pied de la barre, en bouton (2026-09-25) : dernière de la
         // liste, elle n'avait pas de raccourci à céder.
         SidebarEntry(.appChangelog, icon: "doc.text.fill",

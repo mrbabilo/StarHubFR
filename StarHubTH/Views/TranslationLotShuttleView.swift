@@ -161,10 +161,7 @@ struct TranslationLotShuttleView: View {
         }
 
         private var visible: [ModItem] {
-            searchText.isEmpty ? mods : mods.filter {
-                $0.name.localizedCaseInsensitiveContains(searchText)
-                    || $0.folderName.localizedCaseInsensitiveContains(searchText)
-            }
+            TranslationLotPickerScope.visibleMods(in: mods, searchText: searchText)
         }
 
         var body: some View {
@@ -182,11 +179,13 @@ struct TranslationLotShuttleView: View {
                     }
                     Spacer()
                     Text(String(format: localization.L(L10n.FrTranslations.shuttleChecked),
-                                Int64(checked.count), Int64(mods.count)))
+                                Int64(TranslationLotPickerScope.checkedCount(
+                                    in: visible, checked: checked)),
+                                Int64(visible.count)))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
-                List(mods) { mod in
+                List(visible) { mod in
                     Toggle(isOn: Binding(
                         get: { checked.contains(mod.folderName) },
                         set: { on in

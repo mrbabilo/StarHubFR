@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Navigation plus compacte et complète.** Diagnostic suit désormais Alertes et prend ⌘9 ; Réglages reste épinglé au pied de la barre latérale. Les libellés longs gagnent une version courte dans la barre, le menu Aller montre les 14 destinations et la palette les retrouve sous les deux noms. Le badge Alertes devient rouge dès qu'une alerte est critique.
 - **Accueil : « À régler » et « Récemment installés » sous les tuiles.** Les cinq alertes les plus graves y sont nommées, chacune mène à l'endroit où elle se règle ; les cinq derniers mods installés ouvrent leur fiche sur l'Aperçu.
 - **Sauvegardes du jeu : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Passer d'un segment à l'autre ne perd pas une modification en cours.
 - **Sauvegardes du jeu : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
@@ -31,6 +32,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Lot ZIP de traduction : la recherche filtre vraiment la liste.** Lignes, compteur et sélection portent désormais sur les mêmes résultats ; effacer le champ réaffiche tous les mods.
 - **Accueil : plus de rescan complet à chaque passage.** L'app relisait les 966 mods, les parties et Steam à chaque retour sur l'Accueil (13 s de calcul) ; elle ne le fait plus que si le dossier Mods ou Saves a changé. « Actualiser la liste des mods » (⇧⌘R, menu Fichier) le relance à la demande.
 - **Sauvegardes du jeu : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».
 - **Page d'une partie : le nom du fermier se lit sans gêne.** L'illustration du bandeau, qui contient le titre « StarHubFR », est floutée. Le lien vers l'historique, qui faisait double emploi avec le segment, disparaît.

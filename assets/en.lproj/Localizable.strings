@@ -476,6 +476,7 @@
 "logs_health_warnings_distinct" = "%lld different messages";
 "logs_history" = "System Logs";
 "logs_logs" = "Diagnostics & Performance";
+"logs_logs_short" = "Diagnostics";
 "logs_segment_health" = "Health";
 "logs_segment_journal" = "Log";
 "logs_health_empty" = "No SMAPI log read yet: launch the game once with SMAPI and the modlist's health will show here.";
@@ -524,6 +525,7 @@
 "main_launch_step_smapi_log" = "Reading the SMAPI log…";
 "main_launching" = "Loading StarHubFR…";
 "main_mod_updates" = "Mod Updates";
+"main_mod_updates_short" = "Updates";
 "main_nav_back" = "Back";
 "main_nav_forward" = "Forward";
 "main_ok" = "OK";
@@ -532,6 +534,7 @@
 "main_search" = "Search";
 "main_steam_account" = "Steam Account";
 "main_system_alerts" = "System Alerts";
+"main_system_alerts_short" = "Alerts";
 "maintenance_action_clean" = "Clean stale entries";
 "maintenance_action_open_recovery" = "Show in Mod Backups";
 "maintenance_action_remove_anyway" = "Remove anyway";
@@ -718,6 +721,7 @@
 "mod_install_landed_active_badge" = "Enabled";
 "mod_install_landed_paused_badge" = "Paused";
 "mod_install_manage_backups" = "Mod Backups";
+"mod_install_manage_backups_short" = "Mod Backups";
 "mod_install_mod_info" = "Mod Info";
 "mod_install_mods_in_zip" = "%d mod(s) in this file";
 "mod_install_new_version" = "New: v%@";

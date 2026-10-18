@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Un bouton icône du pied de la barre latérale, entre thème et langue :
-/// le journal des modifications (qui y tenait une ligne entière de la liste,
-/// sur deux lignes en français) et l'aide des raccourcis clavier. Deux
-/// pages qu'on ouvre rarement — une icône suffit, l'infobulle et VoiceOver
+/// les réglages, le journal des modifications (qui y tenait une ligne entière
+/// de la liste, sur deux lignes en français) et l'aide des raccourcis clavier.
+/// Trois pages qu'on ouvre rarement — une icône suffit, l'infobulle et VoiceOver
 /// portent le titre. Même habillage que `ThemeToggle`, dont il partage la
 /// rangée.
 struct SidebarFooterIconButton: View {
@@ -31,7 +31,7 @@ struct SidebarFooterIconButton: View {
     }
 }
 
-/// Les deux pages du pied : journal des modifications et raccourcis clavier.
+/// Les pages et aides du pied : réglages, journal et raccourcis clavier.
 struct SidebarFooterPages: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -39,6 +39,8 @@ struct SidebarFooterPages: View {
 
     var body: some View {
         HStack(spacing: AppDesign.Spacing.xs) {
+            SidebarFooterIconButton(icon: "gearshape.fill", title: localization.L(L10n.Settings.settings),
+                                    isActive: currentTab == .settings) { currentTab = .settings }
             SidebarFooterIconButton(icon: "doc.text", title: localization.L(L10n.Main.appChangelog),
                                     isActive: currentTab == .appChangelog) { currentTab = .appChangelog }
             SidebarFooterIconButton(icon: "keyboard", title: localization.L(L10n.Shortcuts.title)) {

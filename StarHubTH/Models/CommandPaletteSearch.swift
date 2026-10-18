@@ -34,22 +34,26 @@ public struct CommandPaletteEntry: Identifiable, Equatable, Sendable {
     public let kind: Kind
     public let title: String
     public let subtitle: String?
+    public let searchAlias: String?
     public let icon: String
 
     public init(id: String, kind: Kind, title: String,
-                subtitle: String?, icon: String) {
+                subtitle: String?, searchAlias: String? = nil, icon: String) {
         self.id = id
         self.kind = kind
         self.title = title
         self.subtitle = subtitle
+        self.searchAlias = searchAlias
         self.icon = icon
     }
 
     public static func forDestination(_ entry: SidebarEntry,
-                                      title: String) -> CommandPaletteEntry {
+                                      title: String,
+                                      shortTitle: String? = nil) -> CommandPaletteEntry {
         CommandPaletteEntry(id: "dest:\(entry.destination.rawValue)",
                             kind: .destination, title: title,
-                            subtitle: nil, icon: entry.icon)
+                            subtitle: nil, searchAlias: shortTitle,
+                            icon: entry.icon)
     }
 
     public static func forMod(_ mod: ModItem) -> CommandPaletteEntry {
@@ -136,27 +140,33 @@ public enum CommandPaletteSearch {
     private static func match(_ entry: CommandPaletteEntry,
                               query: String) -> Scored? {
         let title = fold(entry.title)
-        if title == query {
-            return Scored(entry: entry, match: .exact, position: 0,
-                          length: title.count)
+        if let score = textScore(title, query: query) {
+            return Scored(entry: entry, match: score.match,
+                          position: score.position, length: score.length)
         }
-        if title.hasPrefix(query) {
-            return Scored(entry: entry, match: .prefix, position: 0,
-                          length: title.count)
-        }
-        if let r = title.range(of: query) {
-            return Scored(entry: entry, match: .contains,
-                          position: title.distance(from: title.startIndex,
-                                                   to: r.lowerBound),
-                          length: title.count)
-        }
-        if isSubsequence(Array(query), of: Array(title)) {
-            return Scored(entry: entry, match: .subsequence, position: 0,
-                          length: title.count)
+        if let alias = entry.searchAlias.map(fold),
+           let score = textScore(alias, query: query) {
+            return Scored(entry: entry, match: score.match,
+                          position: score.position, length: score.length)
         }
         if let sub = entry.subtitle, fold(sub).contains(query) {
             return Scored(entry: entry, match: .subtitle, position: 0,
                           length: title.count)
+        }
+        return nil
+    }
+
+    private static func textScore(_ text: String, query: String)
+    -> (match: MatchKind, position: Int, length: Int)? {
+        if text == query { return (.exact, 0, text.count) }
+        if text.hasPrefix(query) { return (.prefix, 0, text.count) }
+        if let range = text.range(of: query) {
+            return (.contains,
+                    text.distance(from: text.startIndex, to: range.lowerBound),
+                    text.count)
+        }
+        if isSubsequence(Array(query), of: Array(text)) {
+            return (.subsequence, 0, text.count)
         }
         return nil
     }

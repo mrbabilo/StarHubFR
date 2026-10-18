@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - Sidebar Nav Groups
 
-/// Les quatre groupes d'entrées de la barre latérale — Bibliothèque, Parties,
-/// Santé & secours, Application. Extrait du corps de `MainView` (densité) et
+/// Les trois groupes d'entrées de la barre latérale — Bibliothèque, Parties,
+/// Santé & secours. Extrait du corps de `MainView` (densité) et
 /// posé dans le `ScrollView` de la colonne : en fenêtre basse, ce sont ces
 /// lignes qui défilent, pas les réglages du bas.
 struct SidebarNavGroups: View {
@@ -21,7 +21,10 @@ struct SidebarNavGroups: View {
             // P5-6b : les mods actifs seulement (décision de l'auteur).
             return (model.pendingUpdateCounts.active, AppDesign.Color.info)
         case .systemAlerts:
-            return (model.systemAlertCount, AppDesign.Color.warning)
+            let color = model.healthIssues.contains { $0.severity == .critical }
+                ? AppDesign.Color.error
+                : AppDesign.Color.warning
+            return (model.systemAlertCount, color)
         case .quarantine:
             return (model.maintenanceStore.quarantineItemCount, AppDesign.Color.quarantine)
         case .frenchTranslations:
@@ -43,7 +46,7 @@ struct SidebarNavGroups: View {
                 // veut dire « cet item ne compte rien », `0` « il compte, et
                 // il n'y a rien ». Pas de branche à écrire.
                 let b = badge(e.destination)
-                SidebarItem(icon: e.icon, label: localization.L(e.labelKey),
+                SidebarItem(icon: e.icon, label: localization.L(e.sidebarLabelKey),
                             tab: e.destination, badge: b?.count,
                             badgeColor: b?.color ?? AppDesign.Color.info,
                             currentTab: $currentTab)
@@ -62,7 +65,6 @@ struct SidebarNavGroups: View {
                   icon: "gamecontroller")
             group(.health, header: localization.L(L10n.Main.groupHealth),
                   icon: "cross.case")
-            group(.app, header: localization.L(L10n.Main.groupApp), icon: "gearshape")
         }
     }
 }

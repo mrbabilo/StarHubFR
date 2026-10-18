@@ -3818,6 +3818,15 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X137** ✅ *(corrigé le 2026-10-18, audit visuel de toutes les vues)* —
+      **La recherche du lot ZIP de traduction ne filtrait pas la liste affichée.**
+      `TranslationLotShuttleView` calculait bien `visible` et « Tout
+      sélectionner » agissait sur cette collection, mais `List(mods)` rendait
+      encore toute la modlist ; le compteur affichait aussi les sélections
+      cachées. Lignes, compteur et sélection utilisent désormais le même
+      périmètre filtré, par nom ou dossier, sans casse. Deux tests Core couvrent
+      recherche avec et sans résultat, effacement du champ et compteur limité
+      aux lignes visibles.
 - [x] **X136** ✅ *(corrigé le 2026-10-14, relevé en décompilant StardewOptimizer 3.0.3)* — **Un `config.json` jamais modifié était gardé à chaque mise à jour.**
       La règle 1 du tri A1-T11 (`UpdateFileTriage.decide`) gardait tout
       `config.json` d'office. Mesuré sur le parc : celui de StardewOptimizer
@@ -7802,3 +7811,13 @@ sans lire une ligne de log.
       Alertes) et « Récemment installés » (premier niveau, fiche sur
       l'Aperçu), `HomeAgenda` (Core). Dix tests, trois sabotages. Vérifié à
       l'écran.
+- [x] **I-T31 · N-10** — *(livré le 2026-10-18)* Diagnostic suit Alertes et
+      prend ⌘9 ; Quarantaine et les pages suivantes n'ont plus de raccourci
+      numérique. Réglages quitte le groupe Application et reste épinglé au
+      pied de la barre. « Mises à jour », « Alertes », « Diagnostic » et
+      « Sauvegardes mods » raccourcissent les lignes sans remplacer leurs
+      titres complets ; la palette cherche les deux formes. Le menu Aller
+      expose les 14 destinations, les neuf premières avec ⌘1…⌘9. Le badge
+      Alertes passe au rouge si une critique existe, sinon reste orange.
+      `SidebarOrder` et `CommandPaletteSearch` testés ; build SwiftUI complet,
+      parité FR/EN et cliquet de conventions validés. **I-T31 clos.**

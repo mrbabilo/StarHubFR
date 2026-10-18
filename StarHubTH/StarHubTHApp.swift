@@ -238,11 +238,14 @@ struct StarHubTHApp: App {
             CommandMenu(localization.L(L10n.Palette.goMenu)) {
                 // Construits depuis SidebarOrder — jamais réécrits ici, sinon
                 // le menu et la barre divergeraient au premier ajout.
-                ForEach(1...9, id: \.self) { n in
-                    if let e = SidebarOrder.entry(forShortcut: n) {
-                        Button(localization.L(e.labelKey)) { vm.requestTab(e.destination) }
-                            .keyboardShortcut(KeyEquivalent(Character("\(n)")),
+                ForEach(SidebarOrder.all) { entry in
+                    let open = { vm.requestTab(entry.destination) }
+                    if let shortcut = SidebarOrder.shortcutIndex(of: entry.destination) {
+                        Button(localization.L(entry.sidebarLabelKey), action: open)
+                            .keyboardShortcut(KeyEquivalent(Character("\(shortcut)")),
                                               modifiers: .command)
+                    } else {
+                        Button(localization.L(entry.sidebarLabelKey), action: open)
                     }
                 }
                 Divider()

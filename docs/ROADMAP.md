@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-15 (v1.66.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-18 (v1.70.0).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -82,10 +82,10 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X136 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
+Les X1–X137 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
-**X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour.
+**X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
 **Aucun correctif ouvert.**
 
 ---
@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables) et **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités) et **I-T30** (écrans) livrés, **I-T31 → I-T33** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans) et **I-T31** (décisions) livrés, **I-T32 → I-T33** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -864,19 +864,54 @@ relecture Fable 5.1. Conclusion : **aucune page ne fusionne** (21 fusions
 sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-16**, **I-T28 (L3, regroupements), I-T29 (L4, fonctionnalités) et I-T30 (L5, écrans) le 2026-10-17**, à l'archive. Les identifiants de fiche
 (N-xx, R-x, E-x, P5-x, X0–X6) renvoient au rapport.
 
-- [ ] **I-T31 — L6 Décisions de l'auteur** — **tranchées le 2026-10-18**
-      (rapport §5). P5-7, P5-6b, garde « seule copie » des configurations, C4b,
-      E9a, P5-5b, N-12, R6, N-08 et N-04 livrés, à l'archive. Reste :
-      - **N-10** en dernier : ⌘9 = Diagnostic, Réglages en icône au pied de
-        la barre latérale.
-      Écartée : bascule groupée transactionnelle (l'instantané et « Revenir »
-      suffisent ; ne plus la rouvrir). Déjà tranchées : axe C non rouvert
-      (R3, P5-4, P5-10 livrés en I-T29), badge Traductions FR actifs
-      seulement. · **L**
-- [ ] **I-T32 — L7 Finitions** : orthographes de style uniques, lexique
-      (« en pause » partout, « sauvegarde » à un seul sens, vouvoiement),
-      migrations littéral → jeton par écran (149 couleurs nues, 367
-      `padding` littéraux). · **M**
+**Audit visuel du 2026-10-18 — identité et finition de toutes les vues.**
+Méthode : inspection statique de **254 fichiers SwiftUI / 310 types `View`**,
+puis contrôle des **13 destinations principales** à la fenêtre minimale réelle
+de **820×700**, en modes clair et sombre. Conclusion : **pas de refonte de
+marque**. La direction retenue reste « macOS natif + identité StarHubFR
+discrète » ; l'écart vient surtout des surfaces sombres, de la densité et de
+rangées non adaptatives. Le défaut fonctionnel isolé **X137 est livré** ; les
+finitions deviennent les trois passes de **I-T32**. Ordre recommandé restant :
+**I-T32a → I-T33 → I-T32b → I-T32c** — I-T33 précède les
+retouches des deux listes concernées pour éviter de mesurer deux fois leur
+layout.
+
+- [ ] **I-T32 — L7 Finitions visuelles et identité**, en trois passes issues
+      de l'audit du 2026-10-18 :
+      - **I-T32a — Fondations visuelles.** Définir des surfaces neutres
+        dynamiques (`surface`, `surfaceRaised`, `surfaceBorder`) et remplacer
+        le chemin `.background.secondary` de `cardSurface` — environ 50 usages,
+        olive en mode sombre — sans uniformiser les matériaux qui ont une
+        fonction propre. Une page ne garde qu'**un titre visuel** : titre de
+        fenêtre/navigation conservé pour macOS et l'accessibilité, doublon
+        `PageHeader` retiré ou transformé en contenu. Aligner les couleurs de
+        domaine, notamment Quarantaine en violet dans en-tête comme état vide.
+        Poursuivre les migrations littéral → jeton (149 couleurs nues, 367
+        `padding` littéraux) et les orthographes de style uniques. · **M**
+      - **I-T32b — Densité et adaptation.** Un seul défilement vertical par
+        contexte, d'abord Diagnostic (`BackToTopScrollView` + défilement interne
+        de `SmapiHealthCard`). Ne plus réduire à 72 % l'opacité de toute une
+        ligne de mod en pause : texte lisible, état porté par interrupteur,
+        badge et accent. Sur Mises à jour, borner le nom à deux lignes et
+        condenser les actions quand la largeur manque. Migrer vers
+        `SplitRow`/`WrapHStack` les rangées fragiles de Diff et Éditeur de
+        traduction, métadonnées de fiche mod, chronologie et inventaire de
+        sauvegarde, archives d'entretien, corbeille et quarantaine. Corriger au
+        passage l'état vide de liste selon le filtre actif, les libellés tronqués
+        sans aide et les cartes Sonde redondantes. · **M**
+      - **I-T32c — Identité maîtrisée.** Garder le bandeau illustré de l'accueil,
+        mais réduire sa prise sur le premier écran et les informations de compte
+        répétées. Remplacer son slogan anglais incrusté par une ressource
+        localisable ou une illustration sans texte. Donner à `HeroHeader` un
+        vrai état de repli quand l'image manque. Conserver le bleu StarHubFR
+        dominant et réserver vert/orange/rouge aux états ; pas de thème pixel-art
+        global ni de refonte décorative. Unifier enfin le lexique (« en pause »
+        partout, « sauvegarde » à un seul sens, vouvoiement). · **S**
+      - **Validation du lot** : toutes les destinations à 820×700 et en largeur
+        courante, clair/sombre, taille de texte 130 % ; aucun titre doublé, aucun
+        texte principal tronqué sans infobulle, aucun défilement imbriqué dans
+        le contexte principal, contraste des mods en pause maintenu, accueil
+        cohérent en français comme en anglais. · **L au total**
 
 - [ ] **I-T33 — Barre latérale lente sur Mise à jour des mods et Entretien**
       (relevé par l'auteur le 2026-10-18). Mesuré, app au repos, `sample`
@@ -1839,6 +1874,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X137** | 2026-10-18 | La recherche du lot ZIP de traduction calculait les bons résultats pour « Tout sélectionner », mais la liste affichait encore tous les mods et le compteur portait sur toute la modlist. Lignes, compte et sélection partagent désormais le même périmètre filtré |
 | **X136** | 2026-10-14 | À la mise à jour, un `config.json` jamais modifié — identique à celui livré par l'auteur — était gardé (règle 1 du tri A1-T11) : StardewOptimizer tournait avec les défauts agressifs de sa 1.0.0 après deux mises à jour. Règle 1b : empreinte d'auteur + archive neuve différente ⇒ le neuf, annoncé au bilan ; sinon gardé |
 | **X135** | 2026-10-14 | La fin d'une série pilotée effaçait l'état sur disque (`GuidedPilotStateStore.clear` à `.reporting`) : quitter l'app avant de trancher perdait le retour arrière, le parc restait côté B sans trace. État gardé jusqu'à `dismiss` ou retour arrière réussi |
 | **X134** | 2026-10-14 | « Revenir au réglage d'avant » d'un composant de pack écrivait `Mods/<pack>/config.json` (la tête, via `target`) et rendait `.reverted` — le réglage du composant restait inchangé, 78 packs du parc concernés. `configOwner` + `configURL` (dossier réel, pack en pause compris), pilotage et analyse |
@@ -2098,6 +2134,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T28** | 2026-10-17 | Audit UX, lot L3 (regroupements) : « À finir » des Traductions FR (R3), versions de config dans l'éditeur (R8), Alertes ↔ Santé avec l'âge du journal et un seul compte (R2), `NexusAccessNote` pour la clé manquante et garde Premium (R7), colonne Configs → feuille du profil qui compare (R4), geste qui satisfait une dépendance sur l'encart (R9), « Opération interrompue » sur l'Accueil et « Revenir » gardé pendant une recherche ou un benchmark (R5) |
 | **I-T29** | 2026-10-17 | Audit UX, lot L4 (fonctionnalités) : voir un profil sans l'activer (P5-1), messages de traduction qui mènent aux Réglages (N-11), dépôt d'archive sur la fenêtre (P5-5a), mises à jour des mods en pause repliées (P5-6a), écarter un faux résultat FR (P5-4), badge Traductions FR (P5-10), « Réactiver ces mods » depuis une partie (P5-8), pastilles d'état anormal d'un profil (P5-9), lignes de diagnostic qui conduisent (N-09) |
 | **I-T30** | 2026-10-17 | Audit UX, lot L5 (écrans) : éditeur de traduction à un seul ascenseur (E6), « À régler » dans l'onglet Dépendances (E7), Entretien en un geste et barre en accent (E11 + C2b), phrase de rétention unique et renvois Entretien ↔ Sauvegardes (suite de R1), bande de fiche (E3), résultats FR (E12), compte du zip des parties (E13), pluriels (E8), noms VoiceOver (E9b–e), teintes de sens (C2a, C2c), ligne de mod étroite (E2) |
+| **I-T31** | 2026-10-18 | Audit UX, lot L6 (décisions de l'auteur) : journal relu à la fermeture du jeu, mises à jour actives, garde des configs, liens natifs, packs, dépôt sur le Dock, gestes de palette et profils, page des parties, Accueil sans rescan systématique ; N-10 clôt le lot avec Diagnostic en ⌘9, Réglages épinglé, navigation complète et libellés courts |
 
 **10.3 Veille RimManager — actions livrées**
 

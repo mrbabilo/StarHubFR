@@ -32,8 +32,14 @@ struct CommandPaletteView: View {
     @State private var entries: [CommandPaletteEntry] = []
 
     private func buildEntries() -> [CommandPaletteEntry] {
-        var out: [CommandPaletteEntry] = SidebarOrder.all
-            .map { CommandPaletteEntry.forDestination($0, title: localization.L($0.labelKey)) }
+        var out: [CommandPaletteEntry] = SidebarOrder.all.map { entry in
+            let shortTitle = entry.shortLabelKey.map { localization.L($0) }
+            return CommandPaletteEntry.forDestination(
+                entry,
+                title: localization.L(entry.labelKey),
+                shortTitle: shortTitle
+            )
+        }
         // L'onglet Performances n'est pas une destination de la barre
         // latérale : une entrée à part (lot D de l'audit Performances).
         out.append(CommandPaletteEntry(id: "dest:\(SidebarDestination.logs.rawValue)#performance",

@@ -308,6 +308,7 @@ let package = Package(
                 "Models/LocalModelAdvisor.swift",
                 "Models/OllamaCapabilities.swift",
                 "Models/TranslationLot.swift",
+                "Models/TranslationLotPickerScope.swift",
                 "Models/TranslationLotImport.swift",
                 "Models/TranslationLotMerge.swift",
                 "Models/TranslationLotArchive.swift",

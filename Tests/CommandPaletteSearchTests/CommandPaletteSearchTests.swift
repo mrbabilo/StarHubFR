@@ -123,6 +123,20 @@ struct CommandPaletteSearchTests {
         #expect(e.icon == "puzzlepiece.extension.fill")
     }
 
+    /// N-10 : le titre complet reste affiché, mais la forme courte de la
+    /// barre doit aussi retrouver la destination sans devenir un sous-titre.
+    @Test func uneDestinationSeChercheAussiParSonLibelleCourt() {
+        let entry = SidebarOrder.all.first { $0.destination == .updates }
+        #expect(entry != nil)
+        guard let entry else { return }
+        let e = CommandPaletteEntry.forDestination(
+            entry, title: "Mise à jour des mods", shortTitle: "Mises à jour")
+
+        #expect(CommandPaletteSearch.rank("Mises à jour", in: [e]).map(\.title)
+                == ["Mise à jour des mods"])
+        #expect(e.subtitle == nil)
+    }
+
     @Test func fabriqueDepuisUnProfilEtUneSauvegarde() {
         let id = UUID()
         let p = CommandPaletteEntry.forProfile(name: "Ferme d'été", id: id)
