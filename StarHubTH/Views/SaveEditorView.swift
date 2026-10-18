@@ -403,48 +403,39 @@ struct SaveEditorView: View {
                     ForEach(navigationStore.inventoryToEdit.indices, id: \.self) { index in
                         let item = navigationStore.inventoryToEdit[index]
                         if item.isObject {
-                            HStack {
-                                Text("\(item.name)")
-                                    .frame(width: 150, alignment: .leading)
-                                Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
-                                    .foregroundColor(.secondary)
-                                Spacer()
+                            SplitRow(spacing: AppDesign.Spacing.sm) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                    Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
+                                        .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                                }
+                            } trailing: {
                                 Text(localization.L(L10n.Saves.itemQuantity))
-                                TextField("", value: $navigationStore.inventoryToEdit[index].stack, formatter: NumberFormatter())
-                                    .frame(width: 60)
-                                    .textFieldStyle(.roundedBorder)
-                                
+                                TextField("", value: $navigationStore.inventoryToEdit[index].stack,
+                                          formatter: NumberFormatter())
+                                    .frame(width: 60).textFieldStyle(.roundedBorder)
                                 Button(role: .destructive, action: {
                                     navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
+                                }) { Image(systemName: "trash").foregroundColor(.red) }
                                 .buttonStyle(.plain).focusRing()
                                 .iconHelp(localization.L(L10n.Saves.clearSlotHint))
-                                .padding(.leading, 8)
                             }
                         } else if !item.name.isEmpty {
-                            HStack {
-                                Text("\(item.name)")
-                                    .frame(width: 150, alignment: .leading)
-                                if !item.itemId.isEmpty {
-                                    Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
-                                        .foregroundColor(.secondary)
+                            SplitRow(spacing: AppDesign.Spacing.sm) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                    if !item.itemId.isEmpty {
+                                        Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
+                                            .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                                    }
                                 }
-                                Spacer()
-                                Text(localization.L(L10n.Saves.nonObject))
-                                    .foregroundColor(.secondary)
-                                    
+                            } trailing: {
+                                Text(localization.L(L10n.Saves.nonObject)).foregroundColor(.secondary)
                                 Button(role: .destructive, action: {
                                     navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
+                                }) { Image(systemName: "trash").foregroundColor(.red) }
                                 .buttonStyle(.plain).focusRing()
                                 .iconHelp(localization.L(L10n.Saves.clearSlotHint))
-                                .padding(.leading, 8)
                             }
                         }
                     }

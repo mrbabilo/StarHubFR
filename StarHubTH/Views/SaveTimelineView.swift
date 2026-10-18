@@ -211,21 +211,21 @@ struct BackupRow: View {
 
             // Content Card
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                HStack {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     if !noteTag.isEmpty && !isEditingNote {
                         Text(noteTag)
                             .font(AppDesign.Font.rowTitle)
                     }
                     Text(relativeLabel)
                         .font(AppDesign.Font.rowTitle(.bold))
-                    Spacer()
+                } trailing: {
                     Text(formattedDate)
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
                 }
 
                 if isEditingNote {
-                    HStack {
+                    SplitRow(spacing: AppDesign.Spacing.sm) {
                         Picker("", selection: $noteTag) {
                             ForEach(availableTags, id: \.self) { tag in
                                 Text(tag.isEmpty ? "-" : tag).tag(tag)
@@ -235,7 +235,7 @@ struct BackupRow: View {
 
                         TextField(localization.L(L10n.Saves.saveNote), text: $noteText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-
+                    } trailing: {
                         Button(localization.L(L10n.Profiles.save)) {
                             vm.setNote(for: backup.folderPath.lastPathComponent, tag: noteTag, note: noteText)
                             isEditingNote = false
@@ -250,69 +250,56 @@ struct BackupRow: View {
                         .padding(.vertical, 2)
                 }
 
-                HStack {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     Text(localization.L(L10n.Saves.backupLabel))
                         .font(AppDesign.Font.caption)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, AppDesign.Spacing.sm)
+                        .padding(.vertical, AppDesign.Spacing.xs)
                         .background(Color.secondary.opacity(AppDesign.Opacity.light))
                         .cornerRadius(AppDesign.Radius.sm)
-
-                    Spacer()
-
-                    // Actions. Crayon et corbeille : cible 18×18 — un glyph
-                    // nu de 12 pt rend `.help` muet (a11y §7).
-                    Button(action: { isEditingNote.toggle() }) {
-                        Image(systemName: "pencil")
-                            .font(AppDesign.Font.caption)
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain).focusRing()
-                    .foregroundColor(.secondary)
-                    .padding(.trailing, AppDesign.Spacing.xs)
-                    .iconHelp(localization.L(L10n.Saves.editNoteHint))
-
-                    Button(action: {
-                        vm.backupToBranch = backup
-                    }) {
-                        HStack(spacing: AppDesign.Spacing.xs) {
-                            Image(systemName: "arrow.triangle.branch")
-                            Text(localization.L(L10n.Saves.branch))
+                } trailing: {
+                    AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) {
+                        // Crayon et corbeille : cible 18×18 ; un glyph nu de
+                        // 12 pt rend `.help` muet (a11y §7).
+                        Button(action: { isEditingNote.toggle() }) {
+                            Image(systemName: "pencil")
+                                .font(AppDesign.Font.caption)
+                                .frame(width: 18, height: 18)
+                                .contentShape(.rect)
                         }
-                        .font(AppDesign.Font.caption(.medium))
-                    }
-                    .buttonStyle(.plain).focusRing()
-                    .pointingHandCursor()
-                    // La teinte « installé/actif » du dépôt, pas le vert
-                    // système : la branche crée quelque chose de vivant,
-                    // la même sémantique que l'installé (éprouvée deux
-                    // thèmes).
-                    .foregroundColor(AppDesign.Color.installed)
-                    .padding(.trailing, AppDesign.Spacing.xs)
+                        .buttonStyle(.plain).focusRing()
+                        .foregroundColor(.secondary)
+                        .iconHelp(localization.L(L10n.Saves.editNoteHint))
 
-                    Button(action: onRestore) {
-                        HStack(spacing: AppDesign.Spacing.xs) {
-                            Image(systemName: "arrow.uturn.backward.circle.fill")
-                            Text(localization.L(L10n.Saves.restore))
+                        Button(action: { vm.backupToBranch = backup }) {
+                            Label(localization.L(L10n.Saves.branch), systemImage: "arrow.triangle.branch")
+                                .font(AppDesign.Font.caption(.medium))
                         }
-                        .font(AppDesign.Font.caption(.medium))
-                    }
-                    .buttonStyle(.plain).focusRing()
-                    .pointingHandCursor()
-                    .foregroundColor(AppDesign.Color.accent)
+                        .buttonStyle(.plain).focusRing().pointingHandCursor()
+                        // Même teinte que l'installé : la branche crée une
+                        // partie vivante.
+                        .foregroundColor(AppDesign.Color.installed)
+                        .help(localization.L(L10n.Saves.branch))
 
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(AppDesign.Font.caption)
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain).focusRing()
-                    .foregroundColor(AppDesign.Color.error.opacity(AppDesign.Opacity.secondary))
-                    .padding(.leading, AppDesign.Spacing.sm)
-                    .iconHelp(localization.L(L10n.Saves.deleteBackupHint))
+                        Button(action: onRestore) {
+                            Label(localization.L(L10n.Saves.restore), systemImage: "arrow.uturn.backward.circle.fill")
+                                .font(AppDesign.Font.caption(.medium))
+                        }
+                        .buttonStyle(.plain).focusRing().pointingHandCursor()
+                        .foregroundColor(AppDesign.Color.accent)
+                        .help(localization.L(L10n.Saves.restore))
+
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .font(AppDesign.Font.caption)
+                                .frame(width: 18, height: 18)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain).focusRing()
+                        .foregroundColor(AppDesign.Color.error.opacity(AppDesign.Opacity.secondary))
+                        .iconHelp(localization.L(L10n.Saves.deleteBackupHint))
+                    } }
                 }
             }
             .padding(AppDesign.Spacing.md)

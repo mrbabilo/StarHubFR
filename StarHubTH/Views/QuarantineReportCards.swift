@@ -19,9 +19,9 @@ struct QuarantineOnDiskCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(entries) { entry in
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: AppDesign.Spacing.xs) {
+                    SplitRow(spacing: AppDesign.Spacing.sm) {
                         Text(entry.name).font(AppDesign.Font.body)
-                        Spacer()
+                    } trailing: {
                         Text(entry.date.map { DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short) }
                              ?? entry.folder)
                             .font(AppDesign.Font.footnote)
@@ -32,7 +32,7 @@ struct QuarantineOnDiskCard: View {
                                     removedSummary(entry.removedItems)))
                             .font(AppDesign.Font.footnote)
                             .foregroundStyle(.secondary)
-                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(entry.reasons, id: \.self) { reason in
                         Text(reason)
@@ -99,7 +99,7 @@ struct RepairReportCard: View {
     }
 
     private var quarantinedCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Label(
                 String(format: localization.L(L10n.Quarantine.itemsQuarantined), Int64(report.quarantined.count)),
                 systemImage: "tray.and.arrow.down.fill"
@@ -152,7 +152,7 @@ struct RepairReportCard: View {
     }
 
     private var duplicatesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             Label(
                 String(format: localization.L(L10n.Quarantine.duplicatesFound), Int64(report.duplicates.count)),
                 systemImage: "exclamationmark.triangle.fill"
@@ -200,7 +200,7 @@ struct RepairReportCard: View {
     }
 
     private var reviewCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             // Constat, pas intervention : ces dossiers n'ont
             // PAS été déplacés — la section les montre pour
             // ce qu'ils sont, l'action reste à l'utilisateur.
@@ -216,7 +216,7 @@ struct RepairReportCard: View {
                 .foregroundColor(AppDesign.Color.secondary)
 
             ForEach(report.reviewItems, id: \.relativePath) { item in
-                HStack(alignment: .top, spacing: AppDesign.Spacing.sm) {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     Image(systemName: "folder")
                         .foregroundColor(AppDesign.Color.secondary)
                         .font(AppDesign.Font.iconXS)
@@ -224,15 +224,17 @@ struct RepairReportCard: View {
                     Text(item.relativePath)
                         .font(AppDesign.Font.monoCaption)
                         .foregroundColor(AppDesign.Color.primary)
-                    Spacer()
-                    Button(localization.L(L10n.ModInstall.revealInFinder)) {
+                        .fixedSize(horizontal: false, vertical: true)
+                } trailing: {
+                    let title = localization.L(L10n.ModInstall.revealInFinder)
+                    AdaptiveLabels { Button {
                         let full = URL(fileURLWithPath: gameDir)
                             .appendingPathComponent("Mods")
                             .appendingPathComponent(item.relativePath)
                         NSWorkspace.shared.activateFileViewerSelecting([full])
-                    }
+                    } label: { Label(title, systemImage: "folder") }
                     .buttonStyle(.link).focusRing(cornerRadius: 4)
-                    .font(AppDesign.Font.footnote)
+                    .font(AppDesign.Font.footnote).help(title) }
                 }
             }
         }

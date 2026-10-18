@@ -281,28 +281,26 @@ struct ModDetailView: View {
     /// composant ramène à son pack (sinon cul-de-sac).
     @ViewBuilder
     private var fineBand: some View {
-        HStack(spacing: AppDesign.Spacing.lg) {
-            if let pack = parentPack {
-                Button {
-                    vm.navigationStore.setViewingModDetail(pack)
-                } label: {
-                    Label(String(format: localization.L(L10n.Mods.backToPack), pack.name),
-                          systemImage: "chevron.backward")
-                        .font(AppDesign.Font.footnote)
+        SplitRow(spacing: AppDesign.Spacing.lg) {
+            WrapHStack(spacing: AppDesign.Spacing.lg, lineSpacing: AppDesign.Spacing.xs) {
+                if let pack = parentPack {
+                    let title = String(format: localization.L(L10n.Mods.backToPack), pack.name)
+                    AdaptiveLabels { Button { vm.navigationStore.setViewingModDetail(pack) } label: {
+                        Label(title, systemImage: "chevron.backward").font(AppDesign.Font.footnote)
+                    }
+                    .buttonStyle(.plain).focusRing().pointingHandCursor().help(title) }
                 }
-                .buttonStyle(.plain).focusRing()
-                .pointingHandCursor()
+                categoryTag
+                if mod.languages.contains("fr") { FrenchCoverageBadge(percent: vm.frenchCoverage(for: mod), unmeasuredLabel: "FR", percentFormat: localization.L(L10n.Mods.frCoveragePercent)) }
+                let link = vm.nexusLink(for: mod)
+                if !link.isEmpty {
+                    AdaptiveLabels { HStack(spacing: AppDesign.Spacing.lg) {
+                        linkButton(icon: "link", label: localization.L(L10n.Mods.nexusOpenPage), url: link)
+                        linkButton(icon: "ladybug", label: localization.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
+                    } }
+                }
             }
-            categoryTag
-            if mod.languages.contains("fr") { FrenchCoverageBadge(percent: vm.frenchCoverage(for: mod), unmeasuredLabel: "FR", percentFormat: localization.L(L10n.Mods.frCoveragePercent)) }
-            let link = vm.nexusLink(for: mod)
-            if !link.isEmpty {
-                AdaptiveLabels { HStack(spacing: AppDesign.Spacing.lg) { // ~547 pt en FR pour 512 : icônes seules
-                    linkButton(icon: "link", label: localization.L(L10n.Mods.nexusOpenPage), url: link)
-                    linkButton(icon: "ladybug", label: localization.L(L10n.Mods.detailBugs), url: link + "?tab=bugs")
-                } }
-            }
-            Spacer()
+        } trailing: {
             if let installed = vm.installedDate(for: mod) {
                 Text(installed.formatted(date: .abbreviated, time: .omitted))
                     .font(AppDesign.Font.footnote)
@@ -1196,4 +1194,3 @@ struct ModDetailView: View {
             .foregroundStyle(.secondary)
     }
 }
-

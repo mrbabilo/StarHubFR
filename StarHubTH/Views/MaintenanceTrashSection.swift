@@ -15,21 +15,21 @@ struct MaintenanceTrashSection: View {
     private static let trashPreviewCount = 8
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
             if !viewModel.trashEvents.isEmpty {
-                HStack {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     Text(localization.L(L10n.Maintenance.trashSectionTitle))
                         .font(AppDesign.Font.body(.semibold))
-                    Spacer()
-                    Button(localization.L(L10n.Maintenance.trashPurgeAll), role: .destructive) {
+                } trailing: {
+                    let title = localization.L(L10n.Maintenance.trashPurgeAll)
+                    AdaptiveLabels { Button(role: .destructive) {
                         onPurgeAll(viewModel.trashEvents.count)
-                    }
-                    .controlSize(.small)
-                    .foregroundColor(AppDesign.Color.error)
+                    } label: { Label(title, systemImage: "trash") }
+                    .controlSize(.small).foregroundColor(AppDesign.Color.error).help(title) }
                 }
                 ForEach(viewModel.trashEvents) { event in
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack {
+                        SplitRow(spacing: AppDesign.Spacing.sm) {
                             Image(systemName: "trash")
                                 .foregroundColor(.secondary)
                             Text(event.date.map {
@@ -37,13 +37,14 @@ struct MaintenanceTrashSection: View {
                             } ?? event.folderName)
                                 .font(AppDesign.Font.caption)
                                 .foregroundColor(.secondary)
-                            Spacer()
+                        } trailing: {
                             if event.entries.count > 1 {
-                                Button(String(format: localization.L(L10n.Maintenance.trashRestoreEvent),
-                                              Int64(event.entries.count))) {
+                                let title = String(format: localization.L(L10n.Maintenance.trashRestoreEvent),
+                                                   Int64(event.entries.count))
+                                AdaptiveLabels { Button {
                                     viewModel.restoreTrashEvent(event.folderName)
-                                }
-                                .controlSize(.small)
+                                } label: { Label(title, systemImage: "arrow.uturn.backward") }
+                                .controlSize(.small).help(title) }
                             }
                         }
                         // Un vidage des mods en pause pose ~720 entrées dans un
@@ -53,19 +54,23 @@ struct MaintenanceTrashSection: View {
                         let shown = expanded ? event.entries
                             : Array(event.entries.prefix(Self.trashPreviewCount))
                         ForEach(shown, id: \.self) { entry in
-                            HStack {
+                            SplitRow(spacing: AppDesign.Spacing.sm) {
                                 Text(entry)
                                     .font(AppDesign.Font.monoCaption)
-                                Spacer()
-                                Button(localization.L(L10n.Maintenance.trashRestore)) {
-                                    viewModel.restoreTrashEntry(event: event.folderName, entry: entry)
-                                }
-                                .controlSize(.small)
-                                Button(localization.L(L10n.Maintenance.trashPurgeOne), role: .destructive) {
-                                    onPurgeEntry(event.folderName, entry)
-                                }
-                                .controlSize(.small)
-                                .foregroundColor(AppDesign.Color.error)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } trailing: {
+                                AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) {
+                                    let restore = localization.L(L10n.Maintenance.trashRestore)
+                                    Button {
+                                        viewModel.restoreTrashEntry(event: event.folderName, entry: entry)
+                                    } label: { Label(restore, systemImage: "arrow.uturn.backward") }
+                                    .controlSize(.small).help(restore)
+                                    let purge = localization.L(L10n.Maintenance.trashPurgeOne)
+                                    Button(role: .destructive) {
+                                        onPurgeEntry(event.folderName, entry)
+                                    } label: { Label(purge, systemImage: "trash") }
+                                    .controlSize(.small).foregroundColor(AppDesign.Color.error).help(purge)
+                                } }
                             }
                         }
                         if event.entries.count > Self.trashPreviewCount {
@@ -83,9 +88,10 @@ struct MaintenanceTrashSection: View {
                             .controlSize(.small)
                         }
                     }
-                    .padding(10)
+                    .padding(AppDesign.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
+                    .background(Color.primary.opacity(AppDesign.Opacity.subtle),
+                                in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
                 }
                 Text(localization.L(L10n.Maintenance.trashHint2))
                     .font(.caption)

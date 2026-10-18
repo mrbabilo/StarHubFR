@@ -18,7 +18,7 @@ struct MaintenanceArchivesSection: View {
 
     var body: some View {
         if keepNexusArchives || !vm.nexusArchives.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                 header
                 if vm.nexusArchives.isEmpty {
                     Text(localization.L(keepNexusArchives
@@ -37,20 +37,21 @@ struct MaintenanceArchivesSection: View {
     }
 
     private var header: some View {
-        HStack {
+        SplitRow(spacing: AppDesign.Spacing.sm) {
             Text(localization.L(L10n.Maintenance.archivesTitle))
                 .font(AppDesign.Font.body(.semibold))
-            Spacer()
+        } trailing: {
             if !vm.nexusArchives.isEmpty {
-                Text(String(format: localization.L(L10n.Maintenance.archivesCount),
-                            vm.nexusArchives.count,
-                            SharedFormatters.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
-                    .font(AppDesign.Font.footnote)
-                    .foregroundColor(.secondary)
-                Button(localization.L(L10n.Maintenance.archivesPurge), role: .destructive,
-                       action: onPurgeAll)
-                    .controlSize(.small)
-                    .foregroundColor(AppDesign.Color.error)
+                WrapHStack(spacing: AppDesign.Spacing.sm, lineSpacing: AppDesign.Spacing.xs) {
+                    Text(String(format: localization.L(L10n.Maintenance.archivesCount),
+                                vm.nexusArchives.count,
+                                SharedFormatters.bytes(vm.nexusArchives.reduce(0) { $0 + $1.byteSize })))
+                        .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                    let title = localization.L(L10n.Maintenance.archivesPurge)
+                    AdaptiveLabels { Button(role: .destructive, action: onPurgeAll) {
+                        Label(title, systemImage: "trash")
+                    }.controlSize(.small).foregroundColor(AppDesign.Color.error).help(title) }
+                }
             }
         }
     }
@@ -61,17 +62,19 @@ struct MaintenanceArchivesSection: View {
     private func groupCard(_ group: NexusArchiveGroup) -> some View {
         let installed = group.entries.first.flatMap { vm.scanStore.mods.mod(withUniqueId: $0.uniqueId) }
         return VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(group.modName)
-                    .font(AppDesign.Font.caption(.semibold))
-                if let installed {
-                    Button(localization.L(L10n.Health.actionOpenMod)) {
-                        vm.navigationStore.openModDetail(folderName: installed.folderName, door: .nexusUpdate)
+            SplitRow(spacing: AppDesign.Spacing.sm) {
+                WrapHStack(spacing: AppDesign.Spacing.sm, lineSpacing: AppDesign.Spacing.xs) {
+                    Text(group.modName).font(AppDesign.Font.caption(.semibold))
+                    if let installed {
+                        let title = localization.L(L10n.Health.actionOpenMod)
+                        AdaptiveLabels { Button {
+                            vm.navigationStore.openModDetail(folderName: installed.folderName, door: .nexusUpdate)
+                        } label: { Label(title, systemImage: "arrow.up.right.square") }
+                        .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
+                        .font(AppDesign.Font.footnote).help(title) }
                     }
-                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
-                    .font(AppDesign.Font.footnote)
                 }
-                Spacer()
+            } trailing: {
                 if group.entries.count > 1 {
                     Text(String(format: localization.L(L10n.Maintenance.archivesVersions),
                                 Int64(group.entries.count), SharedFormatters.bytes(group.totalBytes)))
@@ -80,29 +83,32 @@ struct MaintenanceArchivesSection: View {
                 }
             }
             ForEach(group.entries) { entry in
-                HStack {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     Text("\(entry.version) · \(SharedFormatters.bytes(entry.byteSize)) · "
                          + entry.timestamp.formatted(date: .abbreviated, time: .omitted))
                         .font(AppDesign.Font.monoIconXS)
                         .foregroundColor(.secondary)
-                        .lineLimit(1)
-                    Button(localization.L(L10n.Maintenance.archivesReinstall)) {
-                        vm.reinstallFromArchive(entry)
-                    }
-                    .controlSize(.small)
-                    // E11 — le destructif à l'écart de « Réinstaller ».
-                    Spacer()
-                    Divider().frame(height: 14)
-                    Button(localization.L(L10n.Maintenance.archivesDelete), role: .destructive) {
-                        onDelete(entry)
-                    }
-                    .controlSize(.small)
-                    .foregroundColor(AppDesign.Color.error)
+                        .fixedSize(horizontal: false, vertical: true)
+                } trailing: {
+                    AdaptiveLabels { HStack(spacing: AppDesign.Spacing.sm) {
+                        let reinstall = localization.L(L10n.Maintenance.archivesReinstall)
+                        Button { vm.reinstallFromArchive(entry) } label: {
+                            Label(reinstall, systemImage: "arrow.clockwise")
+                        }.controlSize(.small).help(reinstall)
+                        // E11 — le destructif à l'écart de « Réinstaller ».
+                        Rectangle().fill(Color.secondary.opacity(AppDesign.Opacity.medium))
+                            .frame(width: 1, height: 14)
+                        let delete = localization.L(L10n.Maintenance.archivesDelete)
+                        Button(role: .destructive, action: { onDelete(entry) }) {
+                            Label(delete, systemImage: "trash")
+                        }.controlSize(.small).foregroundColor(AppDesign.Color.error).help(delete)
+                    } }
                 }
             }
         }
-        .padding(10)
+        .padding(AppDesign.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
+        .background(Color.primary.opacity(AppDesign.Opacity.subtle),
+                    in: RoundedRectangle(cornerRadius: AppDesign.Radius.md))
     }
 }

@@ -19,6 +19,8 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Entretien et quarantaine plus souples en fenêtre étroite.** Archives Nexus, événements de corbeille et éléments à examiner replient leurs actions sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
+- **Fiche mod et sauvegardes plus lisibles en fenêtre étroite.** Les métadonnées d'un mod, les cartes d'historique et les lignes d'inventaire se réorganisent sans tasser leurs libellés ni couper les noms d'objets.
 - **Diff et éditeur de traduction plus souples en fenêtre étroite.** Filtres, actions, marques du jeu et termes du glossaire passent proprement à la ligne ; recherche et validation gardent leur place sans tronquer les libellés.
 - **Diagnostic, mods en pause et mises à jour restent lisibles en fenêtre étroite.** La Santé partage désormais l'ascenseur de sa page, les lignes en pause ne sont plus entièrement estompées, et les actions d'une mise à jour passent sous son nom quand la largeur manque.
 - **Barre latérale plus fluide sur Mises à jour et Entretien.** Ces deux pages ne remesurent plus leurs longues listes hors écran à chaque image de l'animation ; défilement, replis et réglages restent inchangés.
