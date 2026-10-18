@@ -7791,3 +7791,14 @@ sans lire une ligne de log.
       la remise à zéro du changement d'onglet ou par `SavesTab` sur l'onglet
       même ; entrées identifiées par dossier. Sept tests, trois sabotages.
       Vérifié à l'écran.
+- [x] **I-T31 · N-04** — *(livré le 2026-10-18, `3739a025`, `e747901f`)*
+      Accueil, décision de l'auteur : bandeau et tuiles gardés. Préalable
+      mesuré : chaque arrivée coûtait 13,3 s de CPU et ~28 s d'activité
+      (rescan complet, doublon du lancement) ; désormais 0,6 s, rescan
+      seulement si Mods ou Saves a changé (`FolderRescanPolicy`, Core),
+      parties relues à la fermeture du jeu, « Actualiser la liste des mods »
+      (⇧⌘R). Sous les tuiles : « À régler » (alertes actionnables, critiques
+      d'abord, 5 au plus, chaque ligne conduit ; les écritures restent aux
+      Alertes) et « Récemment installés » (premier niveau, fiche sur
+      l'Aperçu), `HomeAgenda` (Core). Dix tests, trois sabotages. Vérifié à
+      l'écran.

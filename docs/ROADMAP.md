@@ -866,9 +866,7 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
 
 - [ ] **I-T31 — L6 Décisions de l'auteur** — **tranchées le 2026-10-18**
       (rapport §5). P5-7, P5-6b, garde « seule copie » des configurations, C4b,
-      E9a, P5-5b, N-12, R6 et N-08 livrés, à l'archive. Reste, dans cet ordre :
-      - **N-04** Accueil : bandeau et tuiles gardés, « À régler » et
-        « Récemment installés » ajoutés dessous ;
+      E9a, P5-5b, N-12, R6, N-08 et N-04 livrés, à l'archive. Reste :
       - **N-10** en dernier : ⌘9 = Diagnostic, Réglages en icône au pied de
         la barre latérale.
       Écartée : bascule groupée transactionnelle (l'instantané et « Revenir »
@@ -881,8 +879,9 @@ sûreté), I-T26 (L1, préalables) et I-T27 (L2, navigation) livrés le 2026-10-
       `padding` littéraux). · **M**
 
 Hors audit, à instruire : la fermeture inexpliquée de l'app pendant la capture
-(passage en grille de la liste, non reproduite) ; le coût de `vm.refresh()` à
-chaque arrivée sur l'Accueil (à mesurer avant N-04).
+(passage en grille de la liste, non reproduite) ; la barre latérale lente à
+s'ouvrir et se fermer sur Mise à jour des mods et Entretien (relevé par
+l'auteur le 2026-10-18).
 
 **Critère de succès** : les tâches représentatives s'exécutent au clavier
 seul, et VoiceOver restitue chaque écran majeur sans piège.
