@@ -33,6 +33,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Fiche d'une partie : les segments Mods et Historique répondent de nouveau.** Le contenu actif passe au-dessus de l'éditeur conservé en mémoire, sans perdre les modifications en cours.
 - **Lot ZIP de traduction : la recherche filtre vraiment la liste.** Lignes, compteur et sélection portent désormais sur les mêmes résultats ; effacer le champ réaffiche tous les mods.
 - **Accueil : plus de rescan complet à chaque passage.** L'app relisait les 966 mods, les parties et Steam à chaque retour sur l'Accueil (13 s de calcul) ; elle ne le fait plus que si le dossier Mods ou Saves a changé. « Actualiser la liste des mods » (⇧⌘R, menu Fichier) le relance à la demande.
 - **Sauvegardes du jeu : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».

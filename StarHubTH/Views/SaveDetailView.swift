@@ -61,6 +61,10 @@ struct SaveDetailView: View {
                        @ViewBuilder content: () -> some View) -> some View {
         let visible = segment == current
         return content()
+            // Les trois segments restent montés. Le segment actif doit donc
+            // passer au-dessus des contrôles macOS des segments cachés ;
+            // sinon l'éditeur peut continuer à occuper la couche interactive.
+            .zIndex(visible ? 1 : 0)
             .opacity(visible ? 1 : 0)
             .allowsHitTesting(visible)
             // Un segment caché ne doit pas garder ses raccourcis : Entrée
