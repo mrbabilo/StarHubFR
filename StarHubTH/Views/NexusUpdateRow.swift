@@ -90,32 +90,36 @@ struct NexusUpdateList: View {
 
     var body: some View {
         let groups = NexusUpdateGroups(viewModel.nexusUpdates) { viewModel.modForNexusUpdate($0)?.isEnabled }
-        // Sans mise à jour en pause, l'en-tête n'apprendrait rien.
-        if !groups.paused.isEmpty, !groups.active.isEmpty {
-            Text(String(format: localization.L(L10n.Updates.activeGroup), Int64(groups.active.count)))
-                .font(AppDesign.Font.caption(.semibold))
-                .foregroundColor(.secondary)
-        }
-        ForEach(groups.active) { update in
-            NexusUpdateRow(update: update, vm: viewModel, localization: localization)
-        }
-        if !groups.paused.isEmpty {
-            DisclosureGroup(isExpanded: $pausedExpanded) {
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
-                    Text(localization.L(L10n.Updates.pausedGroupExplanation))
-                        .font(AppDesign.Font.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    ForEach(groups.paused) { update in
-                        NexusUpdateRow(update: update, vm: viewModel, localization: localization)
-                    }
-                }
-                .padding(.vertical, AppDesign.Spacing.xs)
-            } label: {
-                Label(String(format: localization.L(L10n.Updates.pausedGroup), Int64(groups.paused.count)),
-                      systemImage: "pause.circle.fill")
-                    .font(AppDesign.Font.caption)
+        // I-T33 — les rangées hors écran ne participent plus à chaque passe
+        // de layout quand la barre latérale anime la largeur du contenu.
+        LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+            // Sans mise à jour en pause, l'en-tête n'apprendrait rien.
+            if !groups.paused.isEmpty, !groups.active.isEmpty {
+                Text(String(format: localization.L(L10n.Updates.activeGroup), Int64(groups.active.count)))
+                    .font(AppDesign.Font.caption(.semibold))
                     .foregroundColor(.secondary)
+            }
+            ForEach(groups.active) { update in
+                NexusUpdateRow(update: update, vm: viewModel, localization: localization)
+            }
+            if !groups.paused.isEmpty {
+                DisclosureGroup(isExpanded: $pausedExpanded) {
+                    LazyVStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
+                        Text(localization.L(L10n.Updates.pausedGroupExplanation))
+                            .font(AppDesign.Font.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        ForEach(groups.paused) { update in
+                            NexusUpdateRow(update: update, vm: viewModel, localization: localization)
+                        }
+                    }
+                    .padding(.vertical, AppDesign.Spacing.xs)
+                } label: {
+                    Label(String(format: localization.L(L10n.Updates.pausedGroup), Int64(groups.paused.count)),
+                          systemImage: "pause.circle.fill")
+                        .font(AppDesign.Font.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
     }

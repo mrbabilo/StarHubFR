@@ -16,7 +16,9 @@ struct UpdatesView: View {
             pageHeader
             Divider()
             BackToTopScrollView(localization) {
-                VStack(alignment: .leading, spacing: 20) {
+                // I-T33 — la largeur varie à chaque image de l'animation de
+                // barre latérale. Ne remesurer que les sections visibles.
+                LazyVStack(alignment: .leading, spacing: 20) {
                     // ── Nexus Mods updates ─────────────────────────────────
                     VStack(alignment: .leading, spacing: AppDesign.Spacing.md) {
                         HStack {

@@ -46,7 +46,9 @@ struct MaintenanceView: View {
                 if !report.isEmpty || !vm.trashEvents.isEmpty || keepNexusArchives
                     || !vm.nexusArchives.isEmpty {
                     BackToTopScrollView(localization) {
-                        VStack(alignment: .leading, spacing: 18) {
+                        // I-T33 — garde les sections à état comme vues
+                        // autonomes, mais diffère celles qui sont hors écran.
+                        LazyVStack(alignment: .leading, spacing: 18) {
                             if report.isEmpty {
                                 nothingToDoInline
                             } else {
@@ -154,7 +156,7 @@ struct MaintenanceView: View {
     }
 
     private func content(_ report: MaintenanceInventory.Report) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
+        LazyVStack(alignment: .leading, spacing: 18) {
             MaintenanceStorageCard(report: report, localization: localization, onPurge: { keep, doomed, freed in
                 confirmation = .purge(keepPerMod: keep, doomed: doomed, freedBytes: freed)
             }, openBackups: { vm.navigationStore.openBackups(segment: $0) })

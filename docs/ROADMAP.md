@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans) et **I-T31** (décisions) livrés, **I-T32 → I-T33** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32a** (surfaces) et **I-T33** (barre latérale) livrés, **I-T32b/c** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -871,23 +871,14 @@ de **820×700**, en modes clair et sombre. Conclusion : **pas de refonte de
 marque**. La direction retenue reste « macOS natif + identité StarHubFR
 discrète » ; l'écart vient surtout des surfaces sombres, de la densité et de
 rangées non adaptatives. Le défaut fonctionnel isolé **X137 est livré** ; les
-finitions deviennent les trois passes de **I-T32**. Ordre recommandé restant :
-**I-T32a → I-T33 → I-T32b → I-T32c** — I-T33 précède les
-retouches des deux listes concernées pour éviter de mesurer deux fois leur
-layout.
+finitions deviennent les trois passes de **I-T32**. **I-T32a est livré dans
+son périmètre retenu** : surfaces neutres dynamiques et relief des cartes ;
+l'auteur conserve les titres natif et de contenu en double. **I-T33 est livré**
+avant les retouches des deux listes concernées, comme prévu. Ordre recommandé
+restant : **I-T32b → I-T32c**.
 
-- [ ] **I-T32 — L7 Finitions visuelles et identité**, en trois passes issues
-      de l'audit du 2026-10-18 :
-      - **I-T32a — Fondations visuelles.** Définir des surfaces neutres
-        dynamiques (`surface`, `surfaceRaised`, `surfaceBorder`) et remplacer
-        le chemin `.background.secondary` de `cardSurface` — environ 50 usages,
-        olive en mode sombre — sans uniformiser les matériaux qui ont une
-        fonction propre. Une page ne garde qu'**un titre visuel** : titre de
-        fenêtre/navigation conservé pour macOS et l'accessibilité, doublon
-        `PageHeader` retiré ou transformé en contenu. Aligner les couleurs de
-        domaine, notamment Quarantaine en violet dans en-tête comme état vide.
-        Poursuivre les migrations littéral → jeton (149 couleurs nues, 367
-        `padding` littéraux) et les orthographes de style uniques. · **M**
+- [ ] **I-T32 — L7 Finitions visuelles et identité**, dont la première passe
+      est livrée (récit à l'archive) :
       - **I-T32b — Densité et adaptation.** Un seul défilement vertical par
         contexte, d'abord Diagnostic (`BackToTopScrollView` + défilement interne
         de `SmapiHealthCard`). Ne plus réduire à 72 % l'opacité de toute une
@@ -898,7 +889,9 @@ layout.
         traduction, métadonnées de fiche mod, chronologie et inventaire de
         sauvegarde, archives d'entretien, corbeille et quarantaine. Corriger au
         passage l'état vide de liste selon le filtre actif, les libellés tronqués
-        sans aide et les cartes Sonde redondantes. · **M**
+        sans aide et les cartes Sonde redondantes. Poursuivre les migrations
+        littéral → jeton (149 couleurs nues et 367 `padding` littéraux relevés
+        avant I-T32a) au fil des vues touchées. · **M**
       - **I-T32c — Identité maîtrisée.** Garder le bandeau illustré de l'accueil,
         mais réduire sa prise sur le premier écran et les informations de compte
         répétées. Remplacer son slogan anglais incrusté par une ressource
@@ -908,23 +901,10 @@ layout.
         global ni de refonte décorative. Unifier enfin le lexique (« en pause »
         partout, « sauvegarde » à un seul sens, vouvoiement). · **S**
       - **Validation du lot** : toutes les destinations à 820×700 et en largeur
-        courante, clair/sombre, taille de texte 130 % ; aucun titre doublé, aucun
-        texte principal tronqué sans infobulle, aucun défilement imbriqué dans
+        courante, clair/sombre, taille de texte 130 % ; aucun texte principal
+        tronqué sans infobulle, aucun défilement imbriqué dans
         le contexte principal, contraste des mods en pause maintenu, accueil
         cohérent en français comme en anglais. · **L au total**
-
-- [ ] **I-T33 — Barre latérale lente sur Mise à jour des mods et Entretien**
-      (relevé par l'auteur le 2026-10-18). Mesuré, app au repos, `sample`
-      pendant la bascule : fil principal occupé 400–480 ms (Mise à jour),
-      ~270 ms (Entretien), ~85 ms (Profils, témoin) pour une animation de
-      ~0,3 s. Cause : layout, pas un rescan — un `VStack` non paresseux dans
-      `BackToTopScrollView` (`UpdatesView.swift`, `MaintenanceView.swift`)
-      remesuré en entier à chaque image, la largeur changeant ;
-      `WrapHStack` et `FocusRing` dans l'échantillon, sans cadre dominant.
-      Piste : `LazyVStack` pour les listes, puis même mesure (cible : près du
-      témoin). Risque connu : `@State` initialisé au montage paresseux.
-      Chaque build redemande le Trousseau au lancement : mesure avec
-      l'auteur devant l'écran. · **S**
 
 Hors audit, à instruire : la fermeture inexpliquée de l'app pendant la capture
 (passage en grille de la liste, non reproduite).
@@ -2135,6 +2115,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T29** | 2026-10-17 | Audit UX, lot L4 (fonctionnalités) : voir un profil sans l'activer (P5-1), messages de traduction qui mènent aux Réglages (N-11), dépôt d'archive sur la fenêtre (P5-5a), mises à jour des mods en pause repliées (P5-6a), écarter un faux résultat FR (P5-4), badge Traductions FR (P5-10), « Réactiver ces mods » depuis une partie (P5-8), pastilles d'état anormal d'un profil (P5-9), lignes de diagnostic qui conduisent (N-09) |
 | **I-T30** | 2026-10-17 | Audit UX, lot L5 (écrans) : éditeur de traduction à un seul ascenseur (E6), « À régler » dans l'onglet Dépendances (E7), Entretien en un geste et barre en accent (E11 + C2b), phrase de rétention unique et renvois Entretien ↔ Sauvegardes (suite de R1), bande de fiche (E3), résultats FR (E12), compte du zip des parties (E13), pluriels (E8), noms VoiceOver (E9b–e), teintes de sens (C2a, C2c), ligne de mod étroite (E2) |
 | **I-T31** | 2026-10-18 | Audit UX, lot L6 (décisions de l'auteur) : journal relu à la fermeture du jeu, mises à jour actives, garde des configs, liens natifs, packs, dépôt sur le Dock, gestes de palette et profils, page des parties, Accueil sans rescan systématique ; N-10 clôt le lot avec Diagnostic en ⌘9, Réglages épinglé, navigation complète et libellés courts |
+| **I-T32a** | 2026-10-18 | Fondations visuelles : surfaces neutres dynamiques testées en clair/sombre, cartes communes et cartes de mods mieux détachées ; titres natif + contenu conservés en double par décision de l'auteur après essai à l'écran |
+| **I-T33** | 2026-10-18 | Barre latérale fluide sur Mises à jour et Entretien : sections et rangées Nexus hors écran rendues paresseuses, sans déplacer leurs états ; build, suite complète et vérification écran verts |
 
 **10.3 Veille RimManager — actions livrées**
 

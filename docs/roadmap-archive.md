@@ -7821,3 +7821,31 @@ sans lire une ligne de log.
       Alertes passe au rouge si une critique existe, sinon reste orange.
       `SidebarOrder` et `CommandPaletteSearch` testés ; build SwiftUI complet,
       parité FR/EN et cliquet de conventions validés. **I-T31 clos.**
+
+- [x] **I-T32a — Fondations visuelles** — *(livré et recadré le
+      2026-10-18, `d8cb0e75`, `7f5952c0`, décision finale `fd1223aa`)*.
+      `AppDesignCore.SurfacePalette` définit trois surfaces neutres dynamiques
+      (`surface`, `surfaceRaised`, `surfaceBorder`), testées en clair et sombre.
+      `cardSurface`, `StateCard` et `ModCard` les utilisent ; les cartes de mods
+      gardent un relief supérieur. La Quarantaine conserve son violet de
+      domaine. La tentative de supprimer les titres de contenu, puis de
+      rattacher leur icône et leur sous-titre au titre natif de la barre
+      d'outils, a été refusée à l'écran : décision produit finale, **garder les
+      deux titres**. Les commits de cette tentative ont été annulés sans
+      retirer les surfaces. Les migrations littéral → jeton restent à faire au
+      fil de I-T32b/c. Build SwiftUI et suite complète verts après le retour au
+      comportement retenu.
+
+- [x] **I-T33 — Barre latérale lente sur Mises à jour et Entretien** —
+      *(livré le 2026-10-18)*. Mesure avant correctif, app au repos : fil
+      principal occupé 400–480 ms sur Mises à jour, environ 270 ms sur
+      Entretien, contre environ 85 ms sur Profils pendant l'animation de
+      0,3 s. Le `sample` montrait le layout (`WrapHStack`, `FocusRing`), pas un
+      rescan : les `VStack` avides remesuraient aussi les descendants hors
+      écran à chaque changement de largeur. `UpdatesView` et `MaintenanceView`
+      passent leurs sections à `LazyVStack` ; `NexusUpdateList` rend aussi
+      paresseuses ses rangées actives et le groupe en pause. Les propriétaires
+      des `@State` restent inchangés. Build SwiftUI et suite complète verts ;
+      fluidité, défilement et replis vérifiés à l'écran par l'auteur. Pas de
+      second `sample` chiffré : verdict utilisateur suffisant pour clore le
+      défaut perçu.
