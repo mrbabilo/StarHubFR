@@ -19,13 +19,13 @@ struct PageHeader<Trailing: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(AppDesign.Font.viewTitle)
-                    .lineLimit(1)
+                    .truncatedHelp(title, mode: .middle)
                     .accessibilityAddTraits(.isHeader)
                 if let subtitle {
                     Text(subtitle)
                         .font(AppDesign.Font.footnote)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .truncatedHelp(subtitle, lines: 2)
                 }
             }
         } trailing: {
@@ -119,7 +119,7 @@ struct MetricTile: View {
                 Text(label)
                     .font(AppDesign.Font.footnote)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .truncatedHelp(label)
             }
             Spacer(minLength: 0)
         }

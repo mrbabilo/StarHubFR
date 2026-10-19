@@ -152,6 +152,7 @@ private struct HomeAgendaRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain).focusRing()
+        .help(subtitle.map { title + "\n" + $0 } ?? title)
         .accessibilityElement(children: .combine)
     }
 }

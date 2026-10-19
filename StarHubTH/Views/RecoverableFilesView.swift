@@ -48,13 +48,14 @@ struct RecoverableFilesView: View {
             Divider()
 
             if let modFilter {
-                HStack {
+                SplitRow {
                     Text(String(format: localization.L(L10n.Recovery.filteredOn), modFilter))
                         .font(AppDesign.Font.footnote(.medium))
-                    Spacer()
-                    Button(localization.L(L10n.Recovery.showAll)) { self.modFilter = nil }
+                } trailing: {
+                    let showAll = localization.L(L10n.Recovery.showAll)
+                    Button(showAll) { self.modFilter = nil }
                         .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
-                        .font(AppDesign.Font.footnote)
+                        .font(AppDesign.Font.footnote).help(showAll)
                 }
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.vertical, AppDesign.Spacing.sm)
@@ -98,14 +99,18 @@ struct RecoverableFilesView: View {
             Divider()
 
             HStack {
-                Button(localization.L(L10n.ModInstall.refreshBackups)) {
+                let refresh = localization.L(L10n.ModInstall.refreshBackups)
+                Button {
                     viewModel.scanRecoverableFiles()
                     viewModel.buildMaintenanceReport()
+                } label: {
+                    Label(refresh, systemImage: "arrow.clockwise")
                 }
+                .help(refresh)
                 .disabled(viewModel.isScanningRecoverableFiles)
                 Spacer()
             }
-            .padding(16)
+            .padding(AppDesign.Spacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -135,43 +140,52 @@ struct RecoverableFilesView: View {
     }
 
     private func row(_ file: RecoverableFile) -> some View {
-        HStack(spacing: 12) {
+        let compare = localization.L(L10n.Recovery.compareKeys)
+        let preview = localization.L(L10n.Recovery.preview)
+        let recover = localization.L(L10n.Recovery.recover)
+        return SplitRow(spacing: AppDesign.Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.modName)
                     .font(AppDesign.Font.body)
-                HStack(spacing: 6) {
+                    .truncatedHelp(file.modName, mode: .middle)
+                WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.xs) {
                     Text(file.relativePath)
                         .font(AppDesign.Font.monoIconXS)
+                        .truncatedHelp(file.relativePath, mode: .middle)
                     Text(reasonLabel(file.reason))
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppDesign.Color.warning)
                 }
                 .foregroundColor(.secondary)
             }
-
-            Spacer()
-
+        } trailing: {
             // Un fichier de traduction se compare clé à clé : le remplacer en
             // entier coûterait au traducteur ce qu'il a écrit depuis.
-            if file.relativePath.hasPrefix("i18n/") {
-                Button(localization.L(L10n.Recovery.compareKeys)) { comparing = file }
-                    .buttonStyle(.bordered).focusRing(cornerRadius: 5)
-                    .controlSize(.small)
-                    .pointingHandCursor()
-            }
-            // L'aperçu avant l'écriture : on n'écrase pas un fichier du dossier
-            // d'un mod sans avoir montré ce qu'on y met.
-            Button(localization.L(L10n.Recovery.preview)) { togglePreview(file) }
-                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
+            AdaptiveLabels {
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    if file.relativePath.hasPrefix("i18n/") {
+                        Button { comparing = file } label: {
+                            Label(compare, systemImage: "arrow.left.arrow.right")
+                        }
+                        .buttonStyle(.bordered).focusRing(cornerRadius: 5).help(compare)
+                    }
+                    // L'aperçu avant l'écriture : on n'écrase pas un fichier du dossier
+                    // d'un mod sans avoir montré ce qu'on y met.
+                    Button { togglePreview(file) } label: {
+                        Label(preview, systemImage: "eye")
+                    }
+                    .buttonStyle(.bordered).focusRing(cornerRadius: 5).help(preview)
+                    // Rien à remplacer quand le fichier installé n'a rien perdu : le
+                    // proposer inviterait à écraser le plus récent par le plus ancien.
+                    if file.reason != .translationDiffers {
+                        Button { viewModel.recoverFile(file) } label: {
+                            Label(recover, systemImage: "arrow.uturn.backward")
+                        }
+                        .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5).help(recover)
+                    }
+                }
                 .controlSize(.small)
                 .pointingHandCursor()
-            // Rien à remplacer quand le fichier installé n'a rien perdu : le
-            // proposer inviterait à écraser le plus récent par le plus ancien.
-            if file.reason != .translationDiffers {
-                Button(localization.L(L10n.Recovery.recover)) { viewModel.recoverFile(file) }
-                    .buttonStyle(.borderedProminent).focusRing(cornerRadius: 5)
-                    .controlSize(.small)
-                    .pointingHandCursor()
             }
         }
         .padding(.horizontal, 20)
@@ -180,28 +194,33 @@ struct RecoverableFilesView: View {
 
     /// Le mod n'est plus installé : rien où remettre le fichier, on le montre.
     private func goneRow(_ copy: MaintenanceInventory.SoleCopyFile) -> some View {
-        HStack(spacing: 12) {
+        let reveal = localization.L(L10n.Maintenance.actionReveal)
+        return SplitRow(spacing: AppDesign.Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(copy.modFolder)
                     .font(AppDesign.Font.body)
-                HStack(spacing: 6) {
+                    .truncatedHelp(copy.modFolder, mode: .middle)
+                WrapHStack(spacing: 6, lineSpacing: AppDesign.Spacing.xs) {
                     Text(copy.relativePath)
                         .font(AppDesign.Font.monoIconXS)
+                        .truncatedHelp(copy.relativePath, mode: .middle)
                     Text(localization.L(L10n.Maintenance.reasonGone))
                         .font(AppDesign.Font.iconXS)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppDesign.Color.warning)
                 }
                 .foregroundColor(.secondary)
             }
-            Spacer()
-            Button(localization.L(L10n.Maintenance.actionReveal)) {
+        } trailing: {
+            Button {
                 if let path = viewModel.maintenanceProtectedFilePath(session: copy.session,
                                                               relativePath: copy.relativePath) {
                     viewModel.revealProtectedBackup(atPath: path)
                 }
+            } label: {
+                Label(reveal, systemImage: "folder")
             }
             .buttonStyle(.bordered).focusRing(cornerRadius: 5)
-            .controlSize(.small)
+            .controlSize(.small).help(reveal)
             .pointingHandCursor()
         }
         .padding(.horizontal, 20)
@@ -228,7 +247,7 @@ struct RecoverableFilesView: View {
                 .font(AppDesign.Font.monoFootnote)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(AppDesign.Spacing.md)
         }
         .frame(height: 180)
         .background(Color(nsColor: .textBackgroundColor))

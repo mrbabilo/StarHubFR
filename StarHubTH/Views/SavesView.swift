@@ -246,7 +246,7 @@ struct SavesView: View {
                 .font(AppDesign.Font.footnote)
             Text(text)
                 .font(AppDesign.Font.caption(.medium))
-                .lineLimit(1)
+                .truncatedHelp(text)
             Image(systemName: "chevron.down")
                 .font(AppDesign.Font.iconXXS(.bold))
                 .foregroundColor(.secondary)

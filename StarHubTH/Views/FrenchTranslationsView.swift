@@ -171,10 +171,11 @@ struct FrenchTranslationsView: View {
                 HStack(spacing: AppDesign.Spacing.sm) {
                     ProgressView(value: Double(store.done), total: Double(max(store.total, 1)))
                         .frame(maxWidth: 220)
-                    Text(String(format: localization.L(L10n.FrTranslations.progress),
-                                store.done, store.total, store.currentNames.joined(separator: " · ")))
+                    let progress = String(format: localization.L(L10n.FrTranslations.progress),
+                                          store.done, store.total, store.currentNames.joined(separator: " · "))
+                    Text(progress)
                         .font(AppDesign.Font.footnote).foregroundColor(.secondary)
-                        .lineLimit(1).truncationMode(.middle)
+                        .truncatedHelp(progress, mode: .middle)
                 }
             } else if let oldest = store.oldestSearch(among: all.map(\.candidate)) {
                 // Un « à jour au » global mentirait dès qu'un passage

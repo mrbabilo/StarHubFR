@@ -138,8 +138,7 @@ struct HomeView: View {
                 Text(mode == .vanilla ? localization.L(L10n.Settings.vanillaGame) : localization.L(L10n.Settings.playSMAPI))
                 Text("•").foregroundStyle(AppDesign.Color.dimmedSecondary(0.5))
                 Text(viewModel.gameDir)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    .truncatedHelp(viewModel.gameDir, mode: .middle)
             }
             .font(AppDesign.Font.footnote)
             .foregroundStyle(.secondary)

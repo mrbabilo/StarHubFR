@@ -136,24 +136,27 @@ struct UpdatesView: View {
                                         .padding(.bottom, 2)
 
                                     ForEach(vm.affirmedUpdates) { row in
-                                        HStack(spacing: AppDesign.Spacing.sm) {
-                                            Text(row.name)
-                                                .font(AppDesign.Font.footnote(.medium))
-                                                .lineLimit(1)
-                                            // Les deux versions côte à côte : le
-                                            // numéro affirmé seul ne dit rien,
-                                            // c'est l'écart avec le disque qui
-                                            // trahit le clic malheureux.
-                                            Text(String(format: localization.L(L10n.Updates.affirmedVersion),
-                                                        row.affirmedVersion))
-                                                .font(AppDesign.Font.monoFootnote)
-                                                .foregroundStyle(.secondary)
-                                            Text(String(format: localization.L(L10n.Updates.affirmedOnDisk),
-                                                        row.manifestVersion))
-                                                .font(AppDesign.Font.monoFootnote)
-                                                .foregroundColor(row.disagreesWithDisk
-                                                                 ? AppDesign.Color.warning : .secondary)
-                                            Spacer(minLength: 8)
+                                        SplitRow(spacing: AppDesign.Spacing.sm) {
+                                            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                                                Text(row.name)
+                                                    .font(AppDesign.Font.footnote(.medium))
+                                                    .truncatedHelp(row.name, mode: .middle)
+                                                // Les deux versions restent ensemble et
+                                                // passent à la ligne avant les actions.
+                                                WrapHStack(spacing: AppDesign.Spacing.sm,
+                                                           lineSpacing: AppDesign.Spacing.xs) {
+                                                    Text(String(format: localization.L(L10n.Updates.affirmedVersion),
+                                                                row.affirmedVersion))
+                                                        .font(AppDesign.Font.monoFootnote)
+                                                        .foregroundStyle(.secondary)
+                                                    Text(String(format: localization.L(L10n.Updates.affirmedOnDisk),
+                                                                row.manifestVersion))
+                                                        .font(AppDesign.Font.monoFootnote)
+                                                        .foregroundColor(row.disagreesWithDisk
+                                                                         ? AppDesign.Color.warning : .secondary)
+                                                }
+                                            }
+                                        } trailing: {
                                             // Voir la fiche avant de décider :
                                             // c'est là que se lisent la version,
                                             // la compatibilité et l'historique du
@@ -215,22 +218,25 @@ struct UpdatesView: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                         .padding(.bottom, 2)
                                     ForEach(vm.snoozedUpdates) { row in
-                                        HStack(spacing: AppDesign.Spacing.sm) {
-                                            Text(row.name)
-                                                .font(AppDesign.Font.footnote(.medium))
-                                                .lineLimit(1)
-                                            Text(vm.snoozeExpiryLabel(for: row))
-                                                .font(AppDesign.Font.footnote)
-                                                .foregroundStyle(.secondary)
-                                            Spacer(minLength: 8)
+                                        SplitRow(spacing: AppDesign.Spacing.sm) {
+                                            VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+                                                Text(row.name)
+                                                    .font(AppDesign.Font.footnote(.medium))
+                                                    .truncatedHelp(row.name, mode: .middle)
+                                                Text(vm.snoozeExpiryLabel(for: row))
+                                                    .font(AppDesign.Font.footnote)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        } trailing: {
+                                            let wake = localization.L(L10n.Updates.snoozedWake)
                                             Button {
                                                 vm.unsnoozeUpdate(uniqueId: row.uniqueId)
                                             } label: {
-                                                Text(localization.L(L10n.Updates.snoozedWake))
+                                                Label(wake, systemImage: "bell")
                                                     .font(AppDesign.Font.footnote)
                                             }
                                             .buttonStyle(.plain).focusRing()
-                                            .pointingHandCursor()
+                                            .pointingHandCursor().help(wake)
                                         }
                                     }
                                 }

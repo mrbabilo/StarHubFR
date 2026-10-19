@@ -42,19 +42,28 @@ struct FrenchTranslationRow: View {
     let openMod: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: AppDesign.Spacing.sm) {
-                Text(candidate.name).font(AppDesign.Font.body(.medium)).lineLimit(1)
-                if !candidate.isActive {
-                    Text(localization.L(L10n.FrTranslations.paused))
-                        .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.15)).cornerRadius(4)
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
+            SplitRow(spacing: AppDesign.Spacing.sm) {
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    Text(candidate.name).font(AppDesign.Font.body(.medium))
+                        .truncatedHelp(candidate.name, mode: .middle)
+                    if !candidate.isActive {
+                        Text(localization.L(L10n.FrTranslations.paused))
+                            .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
+                            // Littéraux gardés : les jetons voisins valent 4 et 6,
+                            // les substituer changerait la pastille.
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Color.secondary.opacity(AppDesign.Opacity.medium)).cornerRadius(4)
+                    }
+                    if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
                 }
-                if viewModel.translationHub.isBusy(mod.folderName) { ProgressView().controlSize(.small) }
-                Spacer()
-                Button(localization.L(L10n.FrTranslations.openMod), action: openMod)
-                    .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
+            } trailing: {
+                let openTitle = localization.L(L10n.FrTranslations.openMod)
+                Button(action: openMod) {
+                    Label(openTitle, systemImage: "arrow.forward")
+                }
+                .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
+                .controlSize(.small).pointingHandCursor().help(openTitle)
             }
             switch status {
             case .available(let hits):
@@ -104,51 +113,60 @@ struct FrenchTranslationRow: View {
     /// le titre nomme le mod) peut s'écarter (P5-4) ; une traduction confirmée
     /// ou la mise à jour d'une traduction posée, non.
     private func hitLine(_ hit: NexusModSearch.Hit, action: String, dismissable: Bool) -> some View {
-        HStack(spacing: AppDesign.Spacing.sm) {
+        let actionTitle = localization.L(action)
+        let nexusTitle = localization.L(L10n.Mods.translationOpenNexus)
+        return SplitRow(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     // E12 : fin coupée, sur deux lignes — au milieu, « NE » et
                     // « NW » de deux résultats voisins disparaissaient.
                     Text(hit.name).font(AppDesign.Font.footnote(.medium))
-                        .lineLimit(2).truncationMode(.tail)
+                        .truncatedHelp(hit.name, lines: 2)
                     caution(hit)
                 }
                 Text(String(format: localization.L(L10n.Mods.translationFromNexus), hit.uploader,
                             hit.updatedAt.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"))
                     .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
             }
-            Spacer()
+        } trailing: {
             // R7 — même garde que la fiche : sans Premium, lien direct refusé,
             // le bouton Nexus à côté relaie (avant : actif, puis modale d'erreur).
             let premiumOnly = viewModel.nexusDirectDownloadUnavailable
-            Button(localization.L(action)) { viewModel.installTranslation(hit, into: mod) }
-                .buttonStyle(.bordered).controlSize(.small).focusRing(cornerRadius: 5)
-                .disabled(viewModel.translationHub.isBusy(mod.folderName) || premiumOnly)
-                .help(premiumOnly ? localization.L(L10n.Mods.premiumOnlyHint) : "")
-                .pointingHandCursor()
-            Button {
-                if let url = URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
-                    NSWorkspace.shared.open(url)
-                }
-            } label: {
-                Label(localization.L(L10n.Mods.translationOpenNexus), systemImage: "arrow.up.right.square")
-                    .font(AppDesign.Font.footnote)
-            }
-            .buttonStyle(.bordered).controlSize(.small).pointingHandCursor().focusRing(cornerRadius: 5)
-            if dismissable {
-                Button {
-                    if !viewModel.translationSweep.dismiss(hit, for: candidate) {
-                        viewModel.log("Traductions FR : l'écart de « \(hit.name) » n'a pas pu s'écrire", level: .warning)
+            AdaptiveLabels {
+                HStack(spacing: AppDesign.Spacing.sm) {
+                    Button { viewModel.installTranslation(hit, into: mod) } label: {
+                        Label(actionTitle, systemImage: "square.and.arrow.down")
                     }
-                } label: {
-                    // Cible portée à 18×18 : sur un glyphe nu, l'infobulle ne
-                    // s'affiche jamais.
-                    Image(systemName: "hand.thumbsdown")
-                        .frame(width: 18, height: 18).contentShape(.rect)
+                    .buttonStyle(.bordered).controlSize(.small).focusRing(cornerRadius: 5)
+                    .disabled(viewModel.translationHub.isBusy(mod.folderName) || premiumOnly)
+                    .help(premiumOnly ? localization.L(L10n.Mods.premiumOnlyHint) : actionTitle)
+                    .pointingHandCursor()
+                    Button {
+                        if let url = URL(string: "https://www.nexusmods.com/stardewvalley/mods/\(hit.modId)?tab=files") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        Label(nexusTitle, systemImage: "arrow.up.right.square")
+                            .font(AppDesign.Font.footnote)
+                    }
+                    .buttonStyle(.bordered).controlSize(.small).pointingHandCursor()
+                    .focusRing(cornerRadius: 5).help(nexusTitle)
+                    if dismissable {
+                        Button {
+                            if !viewModel.translationSweep.dismiss(hit, for: candidate) {
+                                viewModel.log("Traductions FR : l'écart de « \(hit.name) » n'a pas pu s'écrire", level: .warning)
+                            }
+                        } label: {
+                            // Cible portée à 18×18 : sur un glyphe nu, l'infobulle ne
+                            // s'affiche jamais.
+                            Image(systemName: "hand.thumbsdown")
+                                .frame(width: 18, height: 18).contentShape(.rect)
+                        }
+                        .buttonStyle(.borderless).pointingHandCursor().focusRing(cornerRadius: 4)
+                        .help(localization.L(L10n.FrTranslations.notThisOne))
+                        .accessibilityLabel(localization.L(L10n.FrTranslations.notThisOne))
+                    }
                 }
-                .buttonStyle(.borderless).pointingHandCursor().focusRing(cornerRadius: 4)
-                .help(localization.L(L10n.FrTranslations.notThisOne))
-                .accessibilityLabel(localization.L(L10n.FrTranslations.notThisOne))
             }
         }
         .padding(.leading, AppDesign.Spacing.md)
@@ -170,18 +188,23 @@ struct DismissedTranslationHits: View {
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(dismissals) { dismissal in
-                        HStack(spacing: AppDesign.Spacing.sm) {
-                            Text(String(format: localization.L(L10n.FrTranslations.dismissedRow),
-                                        dismissal.hitName, dismissal.modName))
-                                .font(AppDesign.Font.footnote).lineLimit(1).truncationMode(.middle)
-                            Spacer(minLength: 8)
-                            Button(localization.L(L10n.FrTranslations.dismissedRestore)) {
+                        let rowTitle = String(format: localization.L(L10n.FrTranslations.dismissedRow),
+                                              dismissal.hitName, dismissal.modName)
+                        SplitRow(spacing: AppDesign.Spacing.sm) {
+                            Text(rowTitle)
+                                .font(AppDesign.Font.footnote).truncatedHelp(rowTitle, mode: .middle)
+                        } trailing: {
+                            let restore = localization.L(L10n.FrTranslations.dismissedRestore)
+                            Button {
                                 if !viewModel.translationSweep.restore(dismissal) {
                                     viewModel.log("Traductions FR : le rétablissement de « \(dismissal.hitName) » "
                                                   + "n'a pas pu s'écrire", level: .warning)
                                 }
+                            } label: {
+                                Label(restore, systemImage: "arrow.uturn.backward")
                             }
-                            .buttonStyle(.borderless).focusRing(cornerRadius: 4).controlSize(.small).pointingHandCursor()
+                            .buttonStyle(.borderless).focusRing(cornerRadius: 4)
+                            .controlSize(.small).pointingHandCursor().help(restore)
                         }
                     }
                 }

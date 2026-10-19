@@ -230,11 +230,10 @@ struct ModInstallBackupsView: View {
             Spacer(minLength: AppDesign.Spacing.sm)
             // Clé dédiée : mettre en minuscules le titre « Gérer les
             // sauvegardes » donnait « 12 gérer les sauvegardes ».
-            Text(hasLoaded ? String(format: localization.L(L10n.ModInstall.backupsModsCount),
-                                    Int64(groups.count), Int64(backups.count)) : "…")
-                .font(AppDesign.Font.footnote)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
+            let count = hasLoaded ? String(format: localization.L(L10n.ModInstall.backupsModsCount), Int64(groups.count), Int64(backups.count)) : "…"
+            Text(count)
+                .font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                .lineLimit(1).help(hasLoaded ? count : "")
             Button(action: loadBackups) { Image(systemName: "arrow.clockwise") }
             .buttonStyle(.bordered).focusRing(cornerRadius: 5)
             .controlSize(.small)

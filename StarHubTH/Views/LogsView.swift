@@ -588,13 +588,13 @@ struct LogGroupRow: View {
                     VStack(alignment: .leading, spacing: 1) {
                         if let mod = entries.first?.modName {
                             Text(mod)
-                                .font(AppDesign.Font.iconXS(.medium))
-                                .foregroundColor(.accentColor)
+                                .font(AppDesign.Font.iconXS(.medium)).foregroundColor(.accentColor)
+                                .truncatedHelp(mod, mode: .middle)
                         }
-                        Text(entries.first?.message ?? "")
-                            .font(AppDesign.Font.monoCaption)
-                            .foregroundColor((entries.first?.level.color ?? .primary).opacity(0.75))
-                            .lineLimit(1)
+                        let message = entries.first?.message ?? ""
+                        Text(message)
+                            .font(AppDesign.Font.monoCaption).foregroundColor((entries.first?.level.color ?? .primary).opacity(0.75))
+                            .truncatedHelp(message)
                         Text(String(format: localization.L(L10n.Logs.similarLines), Int64(entries.count)))
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)

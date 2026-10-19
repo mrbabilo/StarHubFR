@@ -352,16 +352,16 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(localization.L(L10n.Home.gamePath))
                         .font(AppDesign.Font.body)
-                    if vm.gameDir.isEmpty {
+                    let gameDirectory = vm.gameDir
+                    if gameDirectory.isEmpty {
                         Text(localization.L(L10n.Home.notSet))
                             .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
                     } else {
-                        Text(vm.gameDir)
+                        Text(gameDirectory)
                             .font(AppDesign.Font.caption)
                             .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                            .truncatedHelp(gameDirectory, mode: .middle)
                     }
                 }
                 Spacer()

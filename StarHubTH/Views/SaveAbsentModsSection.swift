@@ -102,8 +102,7 @@ struct SaveAbsentModsSection: View {
     private func row(_ entry: AbsentModFootprint) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(entry.uid)
-                .lineLimit(1)
-                .truncationMode(.middle)
+                .truncatedHelp(entry.uid, mode: .middle)
             Text(String(format: localization.L(L10n.Saves.absentModsKeys), entry.keys))
                 .font(.caption)
                 .foregroundStyle(.secondary)

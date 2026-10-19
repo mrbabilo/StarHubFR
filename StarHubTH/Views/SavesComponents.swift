@@ -122,12 +122,12 @@ struct SaveCardView: View {
                         }
                         Text(save.playerName)
                             .font(AppDesign.Font.caption(.semibold))
-                            .lineLimit(1)
+                            .truncatedHelp(save.playerName, mode: .middle)
                     }
                     Text(save.farmName)
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(.secondary)
-                        .lineLimit(1)
+                        .truncatedHelp(save.farmName, mode: .middle)
                     Text(String(format: localization.L(L10n.Saves.yearDayFormat), save.year, localization.L(save.seasonName), save.day))
                         .font(AppDesign.Font.iconXS)
                         .foregroundColor(.secondary)
@@ -263,12 +263,12 @@ struct SaveRow: View {
                         .font(AppDesign.Font.rowTitle(.medium))
                         .foregroundColor(.primary)
                 }
-                Text(save.farmDayLine(format: localization.L(L10n.Saves.yearDayFormat),
-                                      localizedSeason: localization.L(save.seasonName)))
+                let farmDay = save.farmDayLine(format: localization.L(L10n.Saves.yearDayFormat),
+                                               localizedSeason: localization.L(save.seasonName))
+                Text(farmDay)
                     .font(AppDesign.Font.caption)
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .truncatedHelp(farmDay)
             }
 
             Spacer()

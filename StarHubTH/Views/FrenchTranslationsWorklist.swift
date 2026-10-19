@@ -24,11 +24,15 @@ struct FrenchTranslationsWorklist: View {
                     .font(AppDesign.Font.footnote).foregroundColor(.secondary)
             }
             if untranslated > 0 {
-                HStack(spacing: AppDesign.Spacing.sm) {
+                SplitRow(spacing: AppDesign.Spacing.sm) {
                     Text(String(format: localization.L(L10n.FrTranslations.worklistUntranslated), untranslated))
                         .foregroundColor(.secondary)
-                    Button(localization.L(L10n.FrTranslations.worklistSearchNexus), action: showNexus)
-                        .buttonStyle(.link).focusRing(cornerRadius: 4).pointingHandCursor()
+                } trailing: {
+                    let search = localization.L(L10n.FrTranslations.worklistSearchNexus)
+                    Button(action: showNexus) {
+                        Label(search, systemImage: "magnifyingglass")
+                    }
+                    .buttonStyle(.link).focusRing(cornerRadius: 4).pointingHandCursor().help(search)
                 }
                 .font(AppDesign.Font.footnote)
             }
@@ -51,10 +55,12 @@ struct FrenchTranslationsWorklist: View {
     }
 
     private func row(_ item: TranslationWorkItem) -> some View {
-        HStack(spacing: AppDesign.Spacing.md) {
+        let openTitle = localization.L(L10n.Profiles.translationOpen)
+        return SplitRow(spacing: AppDesign.Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: AppDesign.Spacing.sm) {
-                    Text(item.name).font(AppDesign.Font.body(.medium)).lineLimit(1)
+                    Text(item.name).font(AppDesign.Font.body(.medium))
+                        .truncatedHelp(item.name, mode: .middle)
                     if !item.isEnabled { pill(localization.L(L10n.FrTranslations.paused), .secondary) }
                     if item.isStale { pill(localization.L(L10n.Mods.frTranslationStale), AppDesign.Color.warning) }
                 }
@@ -64,15 +70,20 @@ struct FrenchTranslationsWorklist: View {
                         .font(AppDesign.Font.iconXS).foregroundColor(.secondary)
                 }
             }
-            Spacer()
+        } trailing: {
             if let coverage = item.coverage {
                 // Chasse fixe, comme la pastille de la liste des mods.
                 Text("\(coverage.displayPercent) %")
                     .font(.system(size: AppDesign.Font.scaled(11), weight: .medium, design: .monospaced))
                     .foregroundColor(AppDesign.Color.accent)
             }
-            Button(localization.L(L10n.Profiles.translationOpen)) { open(item.folderName) }
-                .buttonStyle(.bordered).focusRing(cornerRadius: 5).controlSize(.small).pointingHandCursor()
+            AdaptiveLabels {
+                Button { open(item.folderName) } label: {
+                    Label(openTitle, systemImage: "arrow.forward")
+                }
+                .buttonStyle(.bordered).focusRing(cornerRadius: 5)
+                .controlSize(.small).pointingHandCursor().help(openTitle)
+            }
         }
         .cardSurface(padding: AppDesign.Spacing.sm)
     }
@@ -80,7 +91,9 @@ struct FrenchTranslationsWorklist: View {
     private func pill(_ text: String, _ color: Color) -> some View {
         Text(text)
             .font(AppDesign.Font.iconXS).foregroundColor(color)
+            // Littéraux gardés : les jetons voisins valent 4 et 6, les
+            // substituer changerait la pastille.
             .padding(.horizontal, 5).padding(.vertical, 1)
-            .background(color.opacity(0.15)).cornerRadius(4)
+            .background(color.opacity(AppDesign.Opacity.medium)).cornerRadius(4)
     }
 }

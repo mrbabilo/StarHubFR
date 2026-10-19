@@ -28,18 +28,20 @@ struct AccountHeaderCard: View {
     private var enabledCount: Int { vm.scanStore.mods.filter(\.isEnabled).count }
 
     var body: some View {
+        let username = vm.steamUsername.isEmpty
+            ? localization.L(L10n.Main.playerFallback)
+            : vm.steamUsername
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 // ── Ligne identité ───────────────────────────────────────
                 HStack(spacing: 10) {
                     avatarView
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(vm.steamUsername.isEmpty
-                             ? localization.L(L10n.Main.playerFallback)
-                             : vm.steamUsername)
+                        Text(username)
                             .font(AppDesign.Font.body(.semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                         Text(localization.L(L10n.Main.steamAccount))
                             .font(AppDesign.Font.iconXS)
                             .foregroundColor(.secondary)
@@ -56,6 +58,7 @@ struct AccountHeaderCard: View {
                         Text(profile.name)
                             .font(AppDesign.Font.iconXS(.medium))
                             .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                     .foregroundColor(.accentColor)
                     .padding(.horizontal, 6)

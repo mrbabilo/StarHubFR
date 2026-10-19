@@ -444,7 +444,7 @@ struct ModListRow: View {
                     Text(mod.name)
                         .font(AppDesign.Font.body(.medium))
                         .foregroundColor(effectiveEnabled ? .primary : .secondary)
-                        .lineLimit(1)
+                        .truncatedHelp(mod.name, mode: .middle)
                     // Les glyphes d'état « à écarter » et « en pause » sont dans
                     // le HStack d'actions à gauche (à côté de l'étoile), pas
                     // dans la zone grisée : à 0.55 d'opacité, le grisé
@@ -458,7 +458,7 @@ struct ModListRow: View {
                     Text(mod.folderName)
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.dimmedSecondary(0.7))
-                        .lineLimit(1)
+                        .truncatedHelp(mod.folderName, mode: .middle)
                 }
                 
                 // Une seule forme pour les deux cas : un en-tête de pack rend
@@ -484,7 +484,9 @@ struct ModListRow: View {
                     VersionBadge(version: mod.isGroup ? vm.displayVersion(for: mod) : mod.version)
                         .frame(width: compactRow ? nil : ModListRow.Column.version, alignment: .leading)
                     if !isChild, listState.filters.sort == .lastNexusUpdate, let updated = vm.nexusLastUpdated(for: mod) {
-                        Text(NexusUpdateAge.line(for: updated)).font(AppDesign.Font.footnote).foregroundColor(.secondary).lineLimit(1)
+                        let age = NexusUpdateAge.line(for: updated)
+                        Text(age).font(AppDesign.Font.footnote).foregroundColor(.secondary)
+                            .truncatedHelp(age)
                     }
 
                     if mod.isGroup {
@@ -846,7 +848,7 @@ private struct InferredTagBadge: View {
     let label: String
     var body: some View {
         Text(label)
-            .lineLimit(1)
+            .truncatedHelp(label)
             .font(AppDesign.Font.iconXS(.medium))
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(Color.secondary.opacity(AppDesign.Opacity.medium))

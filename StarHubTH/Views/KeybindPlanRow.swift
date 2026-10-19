@@ -26,10 +26,11 @@ struct KeybindPlanRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(move.modName)
                     .font(AppDesign.Font.body(.medium))
-                    .lineLimit(1).truncationMode(.middle)
-                Text(move.keyPath.joined(separator: ".") + " · " + KeybindPlanText.why(move.reason, localize))
+                    .truncatedHelp(move.modName, mode: .middle)
+                let detail = move.keyPath.joined(separator: ".") + " · " + KeybindPlanText.why(move.reason, localize)
+                Text(detail)
                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
-                    .lineLimit(1).truncationMode(.middle)
+                    .truncatedHelp(detail, mode: .middle)
             }
         } trailing: {
             KeybindKeyChip(text: move.from.display).monospacedDigit()
@@ -57,9 +58,10 @@ struct KeybindPlanUnmovableRow: View {
     var body: some View {
         SplitRow(spacing: AppDesign.Spacing.sm) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(setting.modName + " · " + setting.keyPath.joined(separator: "."))
+                let title = setting.modName + " · " + setting.keyPath.joined(separator: ".")
+                Text(title)
                     .font(AppDesign.Font.caption(.medium))
-                    .lineLimit(1).truncationMode(.middle)
+                    .truncatedHelp(title, mode: .middle)
                 Text(KeybindPlanText.unmovable(setting.reason, localize))
                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
