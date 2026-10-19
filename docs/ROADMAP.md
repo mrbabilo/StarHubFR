@@ -885,13 +885,20 @@ restant : **I-T32b → I-T32c**.
         les noms et actions de Mises à jour s'adaptent à la largeur, Diff comme
         l'Éditeur de traduction replient filtres, actions, marques et glossaire,
         et les métadonnées de fiche mod, la chronologie et l'inventaire de
-        sauvegarde restent lisibles en fenêtre étroite. Reste à migrer vers
-        `SplitRow`/`WrapHStack` les rangées fragiles des archives d'entretien,
-        de la corbeille et de la quarantaine. Corriger au
-        passage l'état vide de liste selon le filtre actif, les libellés tronqués
-        sans aide et les cartes Sonde redondantes. Poursuivre les migrations
+        sauvegarde restent lisibles en fenêtre étroite. **Le 2026-10-19, le
+        reste est livré en code, sans validation à l'écran** : archives
+        d'entretien, corbeille et quarantaine replient leurs actions
+        (`6e9b4fed`), une liste de mods vide nomme le filtre en cause et la
+        carte Sonde n'est plus répétée (`25faad21`), et les noms, chemins et
+        messages tronqués gardent leur texte en infobulle par un seul
+        modificateur, `truncatedHelp` (`2fb83885`). Reste à valider ces trois
+        lots à l'écran, et à vérifier à VoiceOver que l'infobulle d'un texte
+        tronqué ne gêne pas : `.help` pose aussi l'aide d'accessibilité, donc
+        le texte est lu une seconde fois en indication différée. Poursuivre les migrations
         littéral → jeton (149 couleurs nues et 367 `padding` littéraux relevés
-        avant I-T32a) au fil des vues touchées. · **M**
+        avant I-T32a) au fil des vues touchées, à valeur égale seulement : un
+        jeton qui change la mesure (pastille 5/1 → 4/2, marge 20 → 24) change
+        le rendu, le littéral reste avec sa raison en commentaire. · **M**
       - **I-T32c — Identité maîtrisée.** Garder le bandeau illustré de l'accueil,
         mais réduire sa prise sur le premier écran et les informations de compte
         répétées. Remplacer son slogan anglais incrusté par une ressource

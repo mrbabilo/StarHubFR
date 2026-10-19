@@ -19,7 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Les dernières rangées denses restent lisibles en fenêtre étroite.** Fichiers récupérables, traductions, mises à jour écartées ou en veille replient leurs actions ; noms, chemins et messages tronqués gardent leur texte complet en infobulle.
+- **Les dernières rangées denses restent lisibles en fenêtre étroite.** Fichiers récupérables, traductions, mises à jour écartées ou en veille replient leurs actions. Dans toute l'app, un nom, un chemin ou un message coupé montre son texte entier au survol.
 - **Filtres de mods et carte Sonde plus clairs.** Une liste vide nomme désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
 - **Entretien et quarantaine plus souples en fenêtre étroite.** Archives Nexus, événements de corbeille et éléments à examiner replient leurs actions sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
 - **Fiche mod et sauvegardes plus lisibles en fenêtre étroite.** Les métadonnées d'un mod, les cartes d'historique et les lignes d'inventaire se réorganisent sans tasser leurs libellés ni couper les noms d'objets.
