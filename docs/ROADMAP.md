@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-18 (v1.70.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-19 (dernière version publiée : v1.70.0).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32** (finitions visuelles, a, b et c) et **I-T33** (barre latérale) livrés — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix est cadrée le 2026-10-19 en **I-T34**
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32** (finitions visuelles, a, b et c) et **I-T33** (barre latérale) livrés — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix est cadrée le 2026-10-19 en **I-T34** (lots 1 et 2 livrés et validés, écoute guidée à faire)
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la

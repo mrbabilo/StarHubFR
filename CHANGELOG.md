@@ -21,7 +21,7 @@ where the exact log format was verified.
 
 - **VoiceOver et clavier mieux servis.** Les sélecteurs à onglets et les boutons à icône seule annoncent ce qu'ils font, et Échap ferme désormais six fenêtres qui n'avaient aucune issue au clavier.
 - **Un vocabulaire français unifié.** L'app vouvoie partout, dit « en pause » pour un mod que le jeu ne charge pas, et réserve « sauvegarde » aux copies : une partie du jeu s'appelle désormais une partie, page Parties comprise.
-- **Fiches sans illustration plus lisibles.** Sans image, ou si elle ne se charge pas, la fiche d'un mod affiche un fond coloré au lieu d'une bande grise vide, et l'indicateur de chargement ne tourne plus indéfiniment sur une image illisible.
+- **Fiches sans illustration plus lisibles.** Sans image, ou si elle ne se charge pas, la fiche d'un mod affiche un fond coloré au lieu d'une bande grise vide.
 - **Les dernières rangées denses restent lisibles en fenêtre étroite.** Fichiers récupérables, traductions, mises à jour écartées ou en veille replient leurs actions. Dans toute l'app, un nom, un chemin ou un message coupé montre son texte entier au survol.
 - **Filtres de mods et carte Sonde plus clairs.** Une liste vide nomme désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
 - **Entretien et quarantaine plus souples en fenêtre étroite.** Archives Nexus, événements de corbeille et éléments à examiner replient leurs actions sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
@@ -32,8 +32,8 @@ where the exact log format was verified.
 - **Une identité visuelle plus nette, en clair comme en sombre.** Les cartes adoptent des fonds neutres, celles des mods se détachent mieux, et la Quarantaine garde son repère violet.
 - **Navigation plus compacte et complète.** Diagnostic suit désormais Alertes et prend ⌘9 ; Réglages reste épinglé au pied de la barre latérale. Les libellés longs gagnent une version courte dans la barre, le menu Aller montre les 14 destinations et la palette les retrouve sous les deux noms. Le badge Alertes devient rouge dès qu'une alerte est critique.
 - **Accueil : « À régler » et « Récemment installés » sous les tuiles.** Les cinq alertes les plus graves y sont nommées, chacune mène à l'endroit où elle se règle ; les cinq derniers mods installés ouvrent leur fiche sur l'Aperçu.
-- **Sauvegardes du jeu : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Passer d'un segment à l'autre ne perd pas une modification en cours.
-- **Sauvegardes du jeu : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
+- **Parties : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Passer d'un segment à l'autre ne perd pas une modification en cours.
+- **Parties : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
 - **Palette (⌘K) : trois actions et l'accès direct aux parties.** « Vérifier les mises à jour », « Installer des mods… » et « Lancer le jeu » s'y tapent comme une page ; une frappe courte ouvre toujours d'abord le mod qui correspond. ↩ sur une partie ouvre sa page.
 - **Palette (⌘K) : ↩ sur un profil affiche son aperçu** sans rien activer ; ⌘↩ l'active. Le rappel figure sous le nom du profil.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».
@@ -43,10 +43,11 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Fiche d'un mod : l'indicateur de chargement ne tourne plus sans fin** quand Nexus renvoie autre chose qu'une image ; la fiche affiche alors son fond de repli.
 - **Fiche d'une partie : les segments Mods et Historique répondent de nouveau.** Le contenu actif passe au-dessus de l'éditeur conservé en mémoire, sans perdre les modifications en cours.
 - **Lot ZIP de traduction : la recherche filtre vraiment la liste.** Lignes, compteur et sélection portent désormais sur les mêmes résultats ; effacer le champ réaffiche tous les mods.
 - **Accueil : plus de rescan complet à chaque passage.** L'app relisait les 966 mods, les parties et Steam à chaque retour sur l'Accueil (13 s de calcul) ; elle ne le fait plus que si le dossier Mods ou Saves a changé. « Actualiser la liste des mods » (⇧⌘R, menu Fichier) le relance à la demande.
-- **Sauvegardes du jeu : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».
+- **Parties : des pluriels justes.** Le segment Mods affiche « 1 objet » et « 1 lieu », l'Historique « Il y a 1 minute » et « 1 sauvegarde », au lieu de « 1 objets » ou « sauvegarde(s) ».
 - **Page d'une partie : le nom du fermier se lit sans gêne.** L'illustration du bandeau, qui contient le titre « StarHubFR », est floutée. Le lien vers l'historique, qui faisait double emploi avec le segment, disparaît.
 
 ## [1.70.0] - 2026-10-17
