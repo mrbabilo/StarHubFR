@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.71.0] - 2026-10-19
+
 ### Added
 
 - **Installer en déposant une archive sur l'icône du Dock**, même quand l'app est fermée : la feuille d'installation s'ouvre avec cette archive, comme pour un dépôt sur la fenêtre. StarHubFR ne devient pas pour autant l'app par défaut des fichiers `.zip`, `.7z` et `.rar`.
