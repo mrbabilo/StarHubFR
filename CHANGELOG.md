@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le catalogue des recouvrements suit UltraSmooth 2.6.2, Stardropium 0.3.0 et Radiance 2.3.4.** L'ancien relevé manquait les méthodes que ces mods trouvent par leur nom ou en parcourant les types du jeu : Stardropium et UltraSmooth en partagent vingt, dont deux sur l'écriture de la partie.
+
 ## [1.71.0] - 2026-10-19
 
 ### Added

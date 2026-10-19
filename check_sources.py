@@ -655,8 +655,8 @@ SOURCES = [
              "internes d'autres mods) ; paru et audité le 2026-09-25, delta "
              "0.1.3 puis 0.1.4-beta audités le 2026-09-26, actif sur le parc "
              "à côté d'UltraSmooth. UpdateKeys Nexus + GitHub depuis 0.1.4 ; "
-             "9 méthodes patchées en commun avec UltraSmooth 2.3.7 "
-             "(catalogue A5-T7)",
+             "20 méthodes patchées en commun avec UltraSmooth 2.6.2 "
+             "(catalogue A5-T7, remesuré le 2026-10-19)",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
 
     {"key": "mod/stardewoptimizer", "kind": "smapi-mod", "probe": probe_smapi_mod,

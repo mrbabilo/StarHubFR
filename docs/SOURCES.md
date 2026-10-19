@@ -1195,6 +1195,26 @@ dès la mise à jour posée par l'app (l'ancienne DLL restera dans
 | `save-editor` | `e63d67c` → `8cc6452` | édition des statistiques des babioles (niveau, cadences) par la graine de génération, recherche d'objets dans tous les coffres. Rien à reprendre : notre éditeur de parties ne touche ni aux objets ni aux coffres |
 | `fork/StarHubFR` | v1.62.0 → v1.66.0 | nos propres publications |
 
+### Relevé du 2026-10-19 — sept écarts, un catalogue rattrapé
+
+`check_sources.py` : 7 sources bougées. Les deux mods de performances sont
+décompilés et comparés, sans rien exécuter : UltraSmooth 2.5.0 et 2.6.1 depuis
+les sauvegardes d'installation, 2.6.2 et Stardropium 0.3.0 depuis le parc, où les
+deux sont en pause. Détail et verdict :
+[`audit-ultrasmooth-2.6.2.md`](audit-ultrasmooth-2.6.2.md).
+
+| Source | Écart | Décision |
+|---|---|---|
+| `mod/ultrasmooth` | 2.5.0 → **2.6.3** sur Nexus ; le parc porte **2.6.2** | journal lu de 2.6.0 à 2.6.3, delta 2.5.0 → 2.6.2 décompilé (la 2.4.17 n'est plus gardée, la 2.6.3 n'est pas installée). **Le piège SpaceCore des sauvegardes a un correctif** : un postfix sur `SpaceCore.Api.RegisterSerializerType` vide le cache de sérialiseurs à chaque type enregistré. Mais la 2.6.1 remettait `EnableSpaceCorePrewarm` à `true` par défaut (revenu à `false` en 2.6.2) : la clé reste interdite, le `config.json` du parc l'écrit à `false`. D2-T6 : les deux chemins sont intacts. Index spatial de la 2.4.17 inchangé, toujours actif sur le parc |
+| ↳ éditeur de config | « 60 FPS (Enhanced) » retiré en 2.6.2, rendu en 2.6.3 | la fixture de l'éditeur reste la capture 2.3.8 : rien à toucher. i18n : 320 → 345 clés `config.*` |
+| `mod/stardropium` | 0.2.9-beta → **0.3.0**, sans journal (Nexus s'arrête à 0.2.2-beta) | 13 fichiers : détection Android, préchargement des données retiré (la clé `true` du parc ne fait plus rien), cache Fashion Sense retiré, ralentisseurs de PNJ plus prudents, finalizer qui avale les `KeyNotFoundException` de `Grass.draw`. Ligne mémoire, message basse mémoire et clés D2-T5 intacts |
+| ↳ catalogue A5-T7 | remesuré sur UltraSmooth 2.6.2, Stardropium 0.3.0, Radiance 2.3.4 | **le relevé ne lisait que les `typeof(...)`** : cinq méthodes typées par `TypeByName` manquaient à Stardropium × UltraSmooth (traversée SpaceCore, itérateur `getSaveEnumerator`, deux setters TMXTile, index de Farm Type Manager), cinq balayages dynamiques et `Object.draw` à Radiance × UltraSmooth. `MachineGroup.Automate` entre en conditionnelle chez StardewOptimizer × UltraSmooth : l'audit 2.4.1 croyait UltraSmooth sur `MachineGroup.Tick`, qui n'existe pas. `PerformanceOverlap.swift` mis à jour |
+| `mod/radiance` | 2.3.3 → 2.3.4 | journal lu : correctifs de rendu, sans effet ici. La 2.3.4 décompilée pour le catalogue seulement, pas comparée à la 2.3.2 |
+| `JuniGrid` | v1.2.8 → v1.2.9 | recommandations d'auteur sur l'accueil Nexus (filtre GraphQL par téléverseur), fermeture des processus restants du jeu, blocage au démarrage. Rien à prendre |
+| `save-editor` | `8cc6452` → `ea39559` | page « Farm » (nom de la ferme et marge copiés dans **chaque** fermier, options de création verrouillées), lots par pièce. Leur `whichFarm: number \| string` confirme notre lecture (`SavePlayerFields.parse`) ; rien à prendre |
+| `ui-framework-source` | `pushed_at` seul | aucun commit dans le dossier suivi |
+| `fork/StarHubFR` | v1.67.0 → v1.71.0 | nos propres publications |
+
 ## 6. Mods du jeu observés — la convention `config.*`
 
 Références du domaine, pas des dépendances : aucun code de ces mods ne vit

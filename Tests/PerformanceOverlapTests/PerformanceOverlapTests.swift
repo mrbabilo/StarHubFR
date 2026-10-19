@@ -85,18 +85,47 @@ struct PerformanceOverlapTests {
         }
     }
 
-    /// Remesure du 2026-10-14 sur les versions du parc : UltraSmooth 2.4.17,
-    /// Radiance 2.3.2, Stardropium 0.2.9-alpha (la version du manifeste
-    /// installé, pas l'étiquette Nexus « 0.2.9-beta »), StardewOptimizer 3.0.3.
+    /// Remesure du 2026-10-19 sur les versions du parc : UltraSmooth 2.6.2
+    /// (Nexus publie déjà la 2.6.3, absente du parc : l'écran demandera une
+    /// remesure à son installation), Radiance 2.3.4, Stardropium 0.3.0,
+    /// StardewOptimizer 3.0.3.
     @Test func lesVersionsMesureesSontCellesDuParc() {
         func measured(_ id: String) -> String? {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.4.17")
-        #expect(measured("phuicmt.SDVRadiance") == "2.3.2")
-        #expect(measured("Arshia1381.Stardropium") == "0.2.9-alpha")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.6.2")
+        #expect(measured("phuicmt.SDVRadiance") == "2.3.4")
+        #expect(measured("Arshia1381.Stardropium") == "0.3.0")
         #expect(measured("baiyu.StardewOptimizer") == "3.0.3")
+    }
+
+    /// Ce que le relevé par `typeof(...)` seul ne voyait pas : des méthodes
+    /// typées par `TypeByName` (SpaceCore, l'itérateur de sauvegarde du jeu,
+    /// TMXTile, Farm Type Manager) et des balayages dynamiques. Les deux
+    /// premières touchent l'écriture de la partie.
+    @Test func lesMethodesTypeesParVariableSontAuCatalogue() throws {
+        let dropUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "arshia1381.stardropium|palmhacker13.ultrasmooth"
+        })
+        for m in ["SaveGamePatcher.FindAndRemoveModNodes", "SaveGame+<getSaveEnumerator>d__94.MoveNext",
+                  "TMXExtensions.SetFlip", "TMXExtensions.SetRotationValue",
+                  "ModEntry+Utility.GetTilesByProperty"] {
+            #expect(dropUS.sharedMethods.contains(m))
+        }
+        #expect(dropUS.sharedMethods.count == 20)
+        let radUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "palmhacker13.ultrasmooth|phuicmt.sdvradiance"
+        })
+        for m in ["Object.draw", "Critter.draw", "Critter.drawAboveFrontLayer",
+                  "Bat.drawAboveAllLayers", "Junimo.draw", "JunimoHarvester.draw"] {
+            #expect(radUS.sharedMethods.contains(m))
+        }
+        let soUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "baiyu.stardewoptimizer|palmhacker13.ultrasmooth"
+        })
+        #expect(soUS.conditionalMethods == ["MachineGroup.Automate"])
+        #expect(soUS.conditionalOption == "AutomateThrottle")
     }
 
     /// `GameLocation.passTimeForObjects` est patchée **par défaut** des deux

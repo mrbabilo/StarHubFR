@@ -9,17 +9,21 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; remesure du 2026-10-10 au soir sur les versions du parc :
-/// UltraSmooth 2.4.16, Radiance 2.3.1, Stardropium 0.2.9-alpha,
-/// StardewOptimizer 1.0.0 — la première mesure du 2026-09-26 portait
-/// 2.4.1 / 2.2.1 / 0.2.0-beta ; audit du delta dans
-/// `docs/audit-stardropium-0.2.9.md`) :
+/// (ilspycmd ; dernière remesure le 2026-10-19 sur les versions du parc :
+/// UltraSmooth 2.6.2, Radiance 2.3.4, Stardropium 0.3.0 — détail dans
+/// `docs/audit-ultrasmooth-2.6.2.md` ; la première mesure du 2026-09-26
+/// portait 2.4.1 / 2.2.1 / 0.2.0-beta) :
 /// une méthode compte quand les deux DLL posent un `harmony.Patch` dessus,
 /// **y compris par balayage dynamique des assemblies** (`Monster.update` est
 /// posée ainsi par UltraSmooth comme par StardewOptimizer — noté « balayage
 /// dynamique » dans les listes, invisible à la seule lecture des appels
-/// nommés). La comparaison porte sur `Type.méthode` sans les surcharges —
-/// « même nom de méthode », pas forcément même signature. Les paires à une
+/// nommés), et y compris quand le type visé vient d'une variable
+/// (`AccessTools.TypeByName`, code de SpaceCore, de TMXTile ou de Farm Type
+/// Manager) : le relevé par `typeof(...)` seul les avait manqués jusqu'au
+/// 2026-10-19. Les noms suivent le format court de la carte de la sonde
+/// (`ProbeHarmonyMap.shortName`). La comparaison porte sur `Type.méthode`
+/// sans les surcharges — « même nom de méthode », pas forcément même
+/// signature. Les paires à une
 /// seule méthode (`ScreenFade.UpdateFadeAlpha`, `Town.getMapLoader`,
 /// `Debris.updateChunks`, et StardewOptimizer × Stardropium sur
 /// `NPC.update`) sont écartées comme bruit.
@@ -80,11 +84,11 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.4.17",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.6.2",
                                             assemblyName: "UltraSmooth")
-    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.2.9-alpha",
+    private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.3.0",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.2",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.4",
                                          assemblyName: "SDV-Radiance")
     private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "3.0.3",
                                                  assemblyName: "StardewOptimizer")
@@ -107,20 +111,43 @@ extension PerformanceOverlap {
             // UltraSmooth 2.4.9 (`ClockTickOptimizer`, seul garde `EnableMod`) :
             // les deux mods y posent chacun un préfixe qui saute les objets
             // qu'ils jugent inertes — même passage de 10 minutes, deux règles.
+            // Remesure 2026-10-19 (UltraSmooth 2.6.2, Stardropium 0.3.0) : cinq
+            // méthodes hors du jeu, typées par `TypeByName`, manquaient. Deux
+            // touchent l'écriture de la partie : la traversée SpaceCore
+            // (`FindAndRemoveModNodes`, partagée depuis UltraSmooth 2.4.9) et
+            // l'itérateur `SaveGame.getSaveEnumerator` (UltraSmooth agrandit le
+            // tampon que Stardropium rend réutilisable). Puis les deux setters
+            // TMXTile du chargement de carte, et l'index de cases de Farm Type
+            // Manager (neuf côté UltraSmooth en 2.6.0, inerte sans FTM).
             sharedMethods: ["ArgUtility.SplitBySpaceAndGet", "Bush.draw", "FarmAnimal.draw",
                             "FishingRod.distanceToLand", "FruitTree.draw", "Furniture.draw",
                             "Game1.getTimeOfDayString", "GameLocation.passTimeForObjects",
                             "Grass.draw", "HoeDirt.draw", "ItemQueryResolver.TryResolve",
-                            "LightSource.Draw", "NPC.update",
-                            "PathFindController.findPathForNPCSchedules", "Tree.draw"],
+                            "LightSource.Draw", "ModEntry+Utility.GetTilesByProperty", "NPC.update",
+                            "PathFindController.findPathForNPCSchedules",
+                            "SaveGame+<getSaveEnumerator>d__94.MoveNext",
+                            "SaveGamePatcher.FindAndRemoveModNodes", "TMXExtensions.SetFlip",
+                            "TMXExtensions.SetRotationValue", "Tree.draw"],
             conditionalMethods: ["GameLocation.timeUpdate"],
             conditionalOption: "EnableExperimentalFeatures"),
         PerformanceOverlap(
             first: radiance, second: ultraSmooth,
-            // `SpriteBatch.Draw` : neuve côté UltraSmooth 2.4.15.
-            sharedMethods: ["Bush.draw", "Game1.drawMouseCursor", "GameLocation.updateWater",
-                            "Grass.draw", "SpriteBatch.Draw", "TemporaryAnimatedSprite.update",
-                            "Tree.draw"],
+            // `SpriteBatch.Draw` : neuve côté UltraSmooth 2.4.15 ; `Object.draw`
+            // en 2.6.0 (culling des objets posés). Les autres ajouts du
+            // 2026-10-19 sont des **balayages dynamiques** que la lecture des
+            // appels nommés ne voyait pas : les deux mods parcourent les
+            // sous-classes de `Critter` (abstraite) — `Critter.draw` et
+            // `Critter.drawAboveFrontLayer` désignent leurs surcharges, onze
+            // types de `BellsAndWhistles` (Radiance nomme `Cloud` à part) ;
+            // UltraSmooth parcourt les monstres
+            // (`Bat.drawAboveAllLayers`, nommée chez Radiance) et les
+            // personnages (`Junimo.draw`, `JunimoHarvester.draw`, que Radiance
+            // couvre par sa liste des personnages à ombre propre).
+            sharedMethods: ["Bat.drawAboveAllLayers", "Bush.draw", "Critter.draw",
+                            "Critter.drawAboveFrontLayer", "Game1.drawMouseCursor",
+                            "GameLocation.updateWater", "Grass.draw", "Junimo.draw",
+                            "JunimoHarvester.draw", "Object.draw", "SpriteBatch.Draw",
+                            "TemporaryAnimatedSprite.update", "Tree.draw"],
             conditionalMethods: [], conditionalOption: nil),
         // StardewOptimizer 1.0.0 (A5-T10) : `Monster.update` est posée par
         // **balayage dynamique** des deux côtés — UltraSmooth depuis 2.4.8
@@ -128,12 +155,17 @@ extension PerformanceOverlap {
         // `MonsterAiThrottleModule`. La 3.0.3 (2026-10-14,
         // `docs/audit-stardewoptimizer-3.0.3.md`) ajoute `Debris.updateChunks`,
         // `Furniture.draw`, `GameLocation.updateWater` et `GameMenu.changeTab`.
+        // `MachineGroup.Automate` (code d'Automate) : UltraSmooth la patche par
+        // défaut (`AutomateHibernateOptimizer` ; la `MachineGroup.Tick` qu'il
+        // cherche d'abord n'existe pas), StardewOptimizer derrière
+        // `AutomateThrottle` (repli faute de cible dans `MachineManager`) et
+        // `AutomateZoneThrottle`, tous deux éteints par défaut en 3.0.3.
         PerformanceOverlap(
             first: stardewOptimizer, second: ultraSmooth,
             sharedMethods: ["Debris.updateChunks", "Furniture.draw", "GameLocation.DayUpdate",
                             "GameLocation.updateWater", "GameMenu.changeTab", "Monster.update",
                             "NPC.update", "TemporaryAnimatedSprite.draw"],
-            conditionalMethods: [], conditionalOption: nil),
+            conditionalMethods: ["MachineGroup.Automate"], conditionalOption: "AutomateThrottle"),
         // `Furniture.draw` (3.0.3, `FurnitureDrawThrottle`, actif par défaut)
         // rejoint `NPC.update` : la paire n'est plus du bruit. Avec Radiance,
         // `GameLocation.updateWater` seule en reste un.

@@ -2,11 +2,11 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "8614788",
-    "last_commit_at": "2026-10-14T17:55:28Z",
-    "pushed_at": "2026-10-14T17:56:32Z",
-    "release": "v1.2.8",
-    "released_at": "2026-10-14T17:56:32Z"
+    "last_commit": "10f426f",
+    "last_commit_at": "2026-10-19T05:34:17Z",
+    "pushed_at": "2026-10-19T05:37:19Z",
+    "release": "v1.2.9",
+    "released_at": "2026-10-19T05:38:17Z"
   },
   "SMAPI": {
     "archived": false,
@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "c967cee",
-    "last_commit_at": "2026-10-15T21:59:56Z",
-    "pushed_at": "2026-10-15T22:03:35Z",
-    "release": "v1.67.0",
-    "released_at": "2026-10-15T21:13:37Z"
+    "last_commit": "1a43fbe",
+    "last_commit_at": "2026-10-19T14:38:51Z",
+    "pushed_at": "2026-10-19T14:39:40Z",
+    "release": "v1.71.0",
+    "released_at": "2026-10-19T14:39:49Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -167,10 +167,10 @@
     "version": "2.0.0"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.3.3",
+    "changelog_reviewed": "2.3.4",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.3.3"
+    "version": "2.3.4"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -195,10 +195,10 @@
     "version": "3.0.3"
   },
   "mod/stardropium": {
-    "changelog_reviewed": "0.2.9-beta",
+    "changelog_reviewed": "0.3.0",
     "gitHubRepo": null,
     "name": null,
-    "version": "0.2.9-beta"
+    "version": "0.3.0"
   },
   "mod/stardropium-src": {
     "archived": false,
@@ -214,10 +214,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.5.0",
+    "changelog_reviewed": "2.6.3",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.5.0"
+    "version": "2.6.3"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -266,9 +266,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "8cc6452",
-    "last_commit_at": "2026-10-15T01:56:07Z",
-    "pushed_at": "2026-10-15T01:56:08Z"
+    "last_commit": "ea39559",
+    "last_commit_at": "2026-10-17T06:10:02Z",
+    "pushed_at": "2026-10-17T06:10:09Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [
@@ -319,7 +319,7 @@
     "default_branch": "master",
     "last_commit": "753b496",
     "last_commit_at": "2026-10-08T21:10:01Z",
-    "pushed_at": "2026-10-12T17:32:31Z",
+    "pushed_at": "2026-10-16T11:21:17Z",
     "release": "UIFramework/v1.8.3",
     "released_at": "2026-09-29T11:48:35Z"
   }

@@ -415,9 +415,10 @@ le journal réel le 2026-09-04.
       (2) `QueryCacheManager` identifie l'objet d'une condition par son seul
       `ItemId` (qualité, quantité, prix confondus dans une trame). Rien à coder
       chez nous. · **XS**
-      ⚠️ *UltraSmooth 2.5.0 est paru le 2026-10-15* (journal au relevé des
-      sources du jour) : les deux chemins sont à re-vérifier dans la 2.5.0
-      avant le test en jeu, à sa décompilation.
+      *Re-vérifié le 2026-10-19 dans la 2.6.2 du parc* : les deux chemins
+      sont inchangés, `FarmCave` toujours hors des exclusions
+      ([audit](audit-ultrasmooth-2.6.2.md)). Nexus publie la 2.6.3, pas
+      encore décompilée.
       *Préparé le 2026-10-08* : les deux chemins re-vérifiés inchangés dans la
       **2.4.10** du parc, protocole de vérification en jeu (grotte à
       chauves-souris uniquement — la grotte à champignons s'auto-protège, ses
