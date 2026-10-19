@@ -886,7 +886,7 @@ struct ModConfigEditorView: View {
             .frame(maxWidth: .infinity)
 
         case .choice(let selected, let among):
-            Picker("", selection: Binding(
+            Picker(row.label, selection: Binding(
                 get: {
                     guard case .choice(let live, _) = current(row) else { return selected }
                     return live

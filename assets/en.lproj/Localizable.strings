@@ -2830,3 +2830,16 @@
 "save_segment_details" = "Details";
 "save_segment_mods" = "Mods";
 "save_action_mods" = "This save's mods";
+"a11y_install_conflict_choice" = "If the mod is already installed";
+"a11y_detail_tabs" = "Mod page section";
+"a11y_alerts_segment" = "Alert type";
+"a11y_lot_decision" = "Version to keep";
+"a11y_fr_translations_list" = "List shown";
+"a11y_config_editor_mode" = "Editing mode";
+"a11y_keybind_filter" = "Keybinds shown";
+"a11y_backups_segment" = "Backup type";
+"a11y_diagnostics_segment" = "Diagnostics section";
+"a11y_config_backups_grouping" = "Group backups by";
+"a11y_translation_update_choice" = "French translation during the update";
+"a11y_load_detail" = "Load shown";
+"a11y_keybind_plan_include" = "Include the move for %@";

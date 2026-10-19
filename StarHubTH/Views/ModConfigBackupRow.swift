@@ -47,7 +47,7 @@ struct ModConfigBackupRow: View {
                 }
                 .buttonStyle(.plain).focusRing()
                 .pointingHandCursor()
-                .help(localization.L(L10n.ModConfigBackups.deleteBackup))
+                .iconHelp(localization.L(L10n.ModConfigBackups.deleteBackup))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)

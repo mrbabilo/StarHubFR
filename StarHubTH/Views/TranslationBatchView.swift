@@ -41,7 +41,7 @@ struct TranslationBatchView: View {
                     ProgressView().controlSize(.small)
                     HStack {
                         Spacer()
-                        Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }
+                        Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }.keyboardShortcut(.cancelAction)
                     }
                 }
             }
@@ -60,7 +60,7 @@ struct TranslationBatchView: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }
+                Button(localization.L(L10n.Mods.translationBatchCancel)) { onClose() }.keyboardShortcut(.cancelAction)
                 Button(localization.L(L10n.Mods.translationBatchButton)) {
                     started = true
                     vm.startBatch(mod: mod, locale: locale, rows: rows)

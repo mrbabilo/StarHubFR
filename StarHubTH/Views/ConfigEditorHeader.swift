@@ -11,7 +11,7 @@ struct ConfigEditorHeader: View {
     var body: some View {
         PageHeader(icon: "slider.horizontal.3", title: mod.name,
                    subtitle: String(format: localization.L(L10n.Settings.configHeaderSubtitle), mod.folderName)) {
-            Picker("", selection: $selectedTab) {
+            Picker(localization.L(L10n.A11y.configEditorMode), selection: $selectedTab) {
                 Text(localization.L(L10n.Settings.configVisualEditor)).tag(0)
                 Text(localization.L(L10n.Settings.configCodeEditor)).tag(1)
             }

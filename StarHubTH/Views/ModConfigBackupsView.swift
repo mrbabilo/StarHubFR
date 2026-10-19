@@ -147,7 +147,7 @@ struct ModConfigBackupsView: View {
             .help(createDisabledReason ?? "")
         }
         HStack(spacing: AppDesign.Spacing.md) {
-            Picker("", selection: $byDate) {
+            Picker(localization.L(L10n.A11y.configBackupsGrouping), selection: $byDate) {
                 Text(localization.L(L10n.ModConfigBackups.byMod)).tag(false)
                 Text(localization.L(L10n.ModConfigBackups.byDate)).tag(true)
             }

@@ -74,7 +74,7 @@ struct NexusDownloadFooter: View {
                     .buttonStyle(.plain).focusRing()
                     .foregroundStyle(.secondary)
                     .pointingHandCursor()
-                    .help(localization.L(L10n.Downloads.cancel))
+                    .iconHelp(localization.L(L10n.Downloads.cancel))
                 }
                 .foregroundStyle(.secondary)
 

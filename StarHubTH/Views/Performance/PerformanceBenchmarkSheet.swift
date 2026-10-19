@@ -156,6 +156,7 @@ struct PerformanceBenchmarkSheet: View {
             HStack {
                 Spacer()
                 Button(localization.L(L10n.Benchmark.cancel)) { isPresented = false }.clickableCursor()
+                    .keyboardShortcut(.cancelAction)
                 Button(localization.L(L10n.Benchmark.start)) { start() }
                     .clickableCursor()
                     .disabled(refusal != nil)

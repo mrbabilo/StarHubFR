@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32** (finitions visuelles, a, b et c) et **I-T33** (barre latérale) livrés — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32** (finitions visuelles, a, b et c) et **I-T33** (barre latérale) livrés — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix est cadrée le 2026-10-19 en **I-T34**
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -877,6 +877,31 @@ l'auteur conserve les titres natif et de contenu en double. **I-T33 est livré**
 avant les retouches des deux listes concernées, comme prévu. **I-T32b et
 I-T32c sont livrés et validés à l'écran le 2026-10-19, lot validé : I-T32 est
 clos** (récit à l'archive).
+
+- [ ] **I-T34 — Clavier seul et VoiceOver, relevé du 2026-10-19.** Relevé
+      statique (rapport local `docs/superpowers/specs/2026-10-19-accessibilite-releve.md`)
+      depuis I-T3/I-T6 : 363 fichiers créés sans relevé dédié.
+      - **Lot 1 — Noms VoiceOver**, *livré et validé à VoiceOver par l'auteur le 2026-10-19* :
+        15 sélecteurs `labelsHidden` titrés (`L10n.A11y`, 13 chaînes, deux
+        titres repris : catégorie, étiquette), choix de l'éditeur de config au
+        nom de son option, case du plan de raccourcis au nom du mod, quatre
+        boutons à icône nommés par `iconHelp` (corbeille d'une sauvegarde de
+        config, annulation du téléchargement Nexus, avatars de l'éditeur de
+        partie, index des sections du Diff, qui ne lisait que son compte).
+      - **Lot 2 — Sorties clavier**, *livré et validé au clavier par l'auteur le 2026-10-19* :
+        Échap ferme six feuilles qui n'avaient pas de sortie
+        (`.cancelAction` sur « Annuler », ou `onExitCommand` quand Entrée
+        tient déjà le bouton de fermeture ; jamais pendant le nettoyage d'une
+        partie). « Copier la ligne » du journal reste au clic droit :
+        « Tout copier », la sélection du texte et le menu de VoiceOver
+        (VO-Maj-M) couvrent le besoin, et rendre 2 000 lignes focusables
+        coûterait cher au défilement.
+      - **Lot 3 — Écoute guidée par l'auteur** : tâches représentatives au
+        clavier seul et à VoiceOver (mettre un mod en pause, mettre à jour,
+        installer une traduction, lancer une mesure, restaurer une
+        sauvegarde) ; trancher aussi le clic sur le graphique de fluidité
+        (sans équivalent clavier) et la relecture des infobulles de
+        `truncatedHelp`. · **M**
 
 **Suites d'I-T32, hors lot** : poursuivre les migrations littéral → jeton
 (149 couleurs nues et 367 `padding` littéraux relevés avant I-T32a) au fil des

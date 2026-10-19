@@ -23,6 +23,7 @@ struct KeybindPlanRow: View {
                 .toggleStyle(.checkbox)
                 .labelsHidden()
                 .help(localize(L10n.KeybindPlan.includeHint))
+                .accessibilityLabel(String(format: localize(L10n.A11y.keybindPlanInclude), move.modName))
             VStack(alignment: .leading, spacing: 1) {
                 Text(move.modName)
                     .font(AppDesign.Font.body(.medium))

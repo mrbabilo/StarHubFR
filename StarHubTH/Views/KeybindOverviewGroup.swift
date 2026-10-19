@@ -61,7 +61,7 @@ struct KeybindOverviewGroup: View {
     }
 
     private var filterPicker: some View {
-        Picker("", selection: $filter) {
+        Picker(localization.L(L10n.A11y.keybindFilter), selection: $filter) {
             Text(localization.L(L10n.Keybinds.filterAll)).tag(KeybindScanner.OverviewFilter.all)
             Text(localization.L(L10n.Keybinds.filterBound)).tag(KeybindScanner.OverviewFilter.bound)
             Text(localization.L(L10n.Keybinds.filterConflicts)).tag(KeybindScanner.OverviewFilter.conflicts)

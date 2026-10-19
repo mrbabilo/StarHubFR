@@ -2830,3 +2830,16 @@
 "save_segment_details" = "Détails";
 "save_segment_mods" = "Mods";
 "save_action_mods" = "Mods de cette partie";
+"a11y_install_conflict_choice" = "Si le mod est déjà installé";
+"a11y_detail_tabs" = "Rubrique de la fiche";
+"a11y_alerts_segment" = "Type d'alerte";
+"a11y_lot_decision" = "Version à garder";
+"a11y_fr_translations_list" = "Liste affichée";
+"a11y_config_editor_mode" = "Mode d'édition";
+"a11y_keybind_filter" = "Raccourcis affichés";
+"a11y_backups_segment" = "Type de sauvegarde";
+"a11y_diagnostics_segment" = "Rubrique du diagnostic";
+"a11y_config_backups_grouping" = "Regrouper les sauvegardes par";
+"a11y_translation_update_choice" = "Traduction française pendant la mise à jour";
+"a11y_load_detail" = "Chargement affiché";
+"a11y_keybind_plan_include" = "Inclure le déplacement de %@";

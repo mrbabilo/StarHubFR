@@ -226,7 +226,7 @@ struct BackupRow: View {
 
                 if isEditingNote {
                     SplitRow(spacing: AppDesign.Spacing.sm) {
-                        Picker("", selection: $noteTag) {
+                        Picker(localization.L(L10n.Saves.tag), selection: $noteTag) {
                             ForEach(availableTags, id: \.self) { tag in
                                 Text(tag.isEmpty ? "-" : tag).tag(tag)
                             }

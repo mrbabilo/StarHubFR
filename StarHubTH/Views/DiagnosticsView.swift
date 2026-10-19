@@ -73,7 +73,7 @@ struct DiagnosticsView: View {
             }
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.md)
-            Picker("", selection: segment) {
+            Picker(localization.L(L10n.A11y.diagnosticsSegment), selection: segment) {
                 ForEach(DiagnosticsSegment.allCases, id: \.self) { value in
                     Text(label(value)).tag(value)
                 }

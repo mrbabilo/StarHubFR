@@ -96,6 +96,7 @@ struct ModGroupNameSheet: View {
             HStack {
                 Spacer()
                 Button(localization.L(L10n.Saves.cancel), role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
                 Button(localization.L(L10n.Mods.groupSave), action: save).keyboardShortcut(.defaultAction)
             }
         }

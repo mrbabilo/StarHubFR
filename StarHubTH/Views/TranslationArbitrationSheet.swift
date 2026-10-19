@@ -250,7 +250,7 @@ private struct DivergenceRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                Picker("", selection: Binding(
+                Picker(localization.L(L10n.A11y.lotDecision), selection: Binding(
                     get: { decision },
                     set: { store.lean(review.id, identity: identity, incoming: $0) })) {
                     Text(localization.L(L10n.Mods.translationLotMergeUndecided))

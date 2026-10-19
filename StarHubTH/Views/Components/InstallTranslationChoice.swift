@@ -27,7 +27,7 @@ struct InstallTranslationChoice: View {
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.info)
                         .fixedSize(horizontal: false, vertical: true)
-                    Picker("", selection: choice) {
+                    Picker(localization.L(L10n.A11y.translationUpdateChoice), selection: choice) {
                         Text(localization.L(L10n.ModInstall.translationKeepLocal)).tag(TranslationUpdate.Choice.keepLocal)
                         Text(localization.L(L10n.ModInstall.translationTakeAuthor)).tag(TranslationUpdate.Choice.takeAuthor)
                         Text(localization.L(L10n.ModInstall.translationMerge)).tag(TranslationUpdate.Choice.merge)

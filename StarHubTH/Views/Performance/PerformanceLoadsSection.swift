@@ -110,7 +110,7 @@ struct PerformanceLoadsSection: View {
         if let shown {
             Divider()
             if both {
-                Picker("", selection: $detailKind) {
+                Picker(localization.L(L10n.A11y.loadDetail), selection: $detailKind) {
                     Text(localization.L(L10n.Performance.loadsDetailLaunch)).tag(ProbeLoadRecord.Kind.launch.rawValue)
                     Text(localization.L(L10n.Performance.loadsDetailSave)).tag(ProbeLoadRecord.Kind.save.rawValue)
                 }

@@ -68,6 +68,9 @@ struct SaveCleanupSheet: View {
         .frame(width: 460)
         .task { await chargerCandidats() }
         .interactiveDismissDisabled(store.phase == .enCours)
+        // Échap ferme comme « Annuler » ou « Fermer », qui portent déjà
+        // Entrée ; jamais pendant l'écriture.
+        .onExitCommand { if store.phase != .enCours { dismiss() } }
     }
 
     @ViewBuilder

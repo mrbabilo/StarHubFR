@@ -70,6 +70,8 @@ struct ModBulkToggleMenu: View {
                 .padding(AppDesign.Spacing.md)
             }
             .frame(minWidth: 560, idealWidth: 640, minHeight: 360, idealHeight: 520)
+            // « OK » porte Entrée ; Échap ferme aussi.
+            .onExitCommand { showsHistory = false }
         }
     }
 }

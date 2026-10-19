@@ -318,7 +318,7 @@ struct SaveEditorView: View {
                                             }
                                         }
                                         .buttonStyle(.plain).focusRing()
-                                        .help(localization.L(label))
+                                        .iconHelp(localization.L(label))
                                     }
                                 }
                             }

@@ -307,7 +307,7 @@ struct TranslationDiffView: View {
                     }
                     .buttonStyle(.plain).focusRing()
                     .pointingHandCursor()
-                    .help(localization.L(L10n.Mods.diffSections))
+                    .iconHelp(localization.L(L10n.Mods.diffSections)).accessibilityValue("\(groups.count)")
                     .popover(isPresented: $isShowingSectionIndex, arrowEdge: .bottom) {
                         TranslationSectionIndexView(
                             groups: groups,

@@ -153,7 +153,7 @@ struct FrenchTranslationsView: View {
                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(alignment: .top, spacing: AppDesign.Spacing.md) {
-                Picker("", selection: Binding(get: { shown }, set: { segment = $0 })) {
+                Picker(localization.L(L10n.A11y.frTranslationsList), selection: Binding(get: { shown }, set: { segment = $0 })) {
                     Text(String(format: localization.L(L10n.FrTranslations.segmentWorklist), workCount))
                         .tag(Segment.worklist)
                     Text(String(format: localization.L(L10n.FrTranslations.segmentNexus), all.count))

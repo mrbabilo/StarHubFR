@@ -101,7 +101,7 @@ struct SystemAlertsView: View {
     /// Les trois onglets, chacun avec le compte de ses alertes — les chiffres
     /// que portaient les anciens boutons d'en-tête.
     private func segmentPicker(_ issues: [HealthIssue]) -> some View {
-        Picker("", selection: Binding(get: { viewModel.navigationStore.alertsSegment },
+        Picker(localization.L(L10n.A11y.alertsSegment), selection: Binding(get: { viewModel.navigationStore.alertsSegment },
                                       set: { viewModel.navigationStore.alertsSegment = $0 })) {
             ForEach(AlertsSegment.allCases, id: \.self) { segment in
                 Text(segmentLabel(segment, issues)).tag(segment)

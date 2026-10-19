@@ -31,7 +31,7 @@ struct BackupsView: View {
             }
                 .padding(.horizontal, AppDesign.Spacing.xl)
                 .padding(.top, AppDesign.Spacing.md)
-            Picker("", selection: Binding(get: { navigation.backupsSegment },
+            Picker(localization.L(L10n.A11y.backupsSegment), selection: Binding(get: { navigation.backupsSegment },
                                           set: { navigation.backupsSegment = $0 })) {
                 ForEach(BackupsSegment.allCases, id: \.self) { segment in
                     Text(label(segment)).tag(segment)

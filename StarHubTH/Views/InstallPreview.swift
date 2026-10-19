@@ -575,7 +575,7 @@ struct ConflictRow: View {
             }
             .foregroundColor(.secondary)
 
-            Picker("", selection: $resolution) {
+            Picker(localization.L(L10n.A11y.installConflictChoice), selection: $resolution) {
                 Text(localization.L(L10n.ModInstall.backupBeforeOverwrite)).tag(ConflictResolution.overwriteWithBackup)
                 Text(localization.L(L10n.ModInstall.renameMod)).tag(ConflictResolution.rename)
                 Text(localization.L(L10n.ModInstall.skipMod)).tag(ConflictResolution.skip)

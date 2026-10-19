@@ -33,6 +33,7 @@ struct ReportConflictSheet: View {
             HStack {
                 Spacer()
                 Button(localization.L(L10n.Saves.cancel)) { close() }
+                    .keyboardShortcut(.cancelAction)
                 Button(localization.L(L10n.Conflicts.reportConfirm)) {
                     if let targetFolder = target {
                         vm.declareConflict(ModConflictPair(modFolderName, targetFolder), note: note)

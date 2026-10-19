@@ -211,7 +211,7 @@ struct ModDetailView: View {
     }
 
     private var tabPicker: some View {
-        Picker("", selection: $selectedTab) {
+        Picker(localization.L(L10n.A11y.detailTabs), selection: $selectedTab) {
             Text(localization.L(L10n.Mods.tabOverview)).tag(DetailTab.overview)
             Text(localization.L(L10n.Mods.tabHealth)).tag(DetailTab.health)
             Text(DependencyTreeView.tabTitle(viewModel: vm, mod: mod, localization: localization))
@@ -654,7 +654,7 @@ struct ModDetailView: View {
     /// Picker on the mod's own category; "Automatic" clears the override.
     private var categoryPicker: some View {
         let overrideId = vm.customCategoryId(for: mod)
-        return Picker("", selection: Binding<Int?>(
+        return Picker(localization.L(L10n.Mods.categoryLabel), selection: Binding<Int?>(
             get: { overrideId },
             set: { newValue in vm.setCustomCategory(for: mod, categoryId: newValue) }
         )) {
