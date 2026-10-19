@@ -7,12 +7,21 @@ import SwiftUI
 /// Celui de la v1.6.0, retiré par H-T3 (l'identité avait migré vers
 /// `AccountHeaderCard`) et remis à la demande de l'auteur le 2026-09-24 :
 /// l'accueil garde sous lui la bande d'attention et la carte de lancement.
+///
+/// I-T32c (2026-10-19) : tout reste, mais plus petit — le bandeau plafonné en
+/// hauteur, l'avatar et le nom réduits —, pour que la bande d'attention et le
+/// lancement remontent dans le premier écran. Le slogan anglais incrusté dans
+/// l'image reste, par décision de l'auteur.
 struct HomeHeroBanner: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
 
     /// Diamètre du disque ; l'avatar le déborde de moitié sous le bandeau.
-    private static let disc: CGFloat = 100
+    private static let disc: CGFloat = 64
+
+    /// Hauteur maximale du bandeau : à pleine largeur, l'image (3 : 1)
+    /// atteignait plus de 300 pt et repoussait le lancement sous le pli.
+    private static let bannerMaxHeight: CGFloat = 180
 
     /// Le bandeau embarqué (`assets/custom_ui`), lu une fois — même source
     /// que le héros de sauvegarde. Absent : l'avatar reste, sans bandeau.
@@ -33,6 +42,7 @@ struct HomeHeroBanner: View {
                         .overlay(RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.primary.opacity(0.08), lineWidth: 1))
                         .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
+                        .frame(maxHeight: Self.bannerMaxHeight)
                 }
                 avatarDisc
                     .offset(y: Self.disc / 2)
@@ -42,7 +52,7 @@ struct HomeHeroBanner: View {
             Text(vm.steamUsername.isEmpty
                  ? localization.L(L10n.Main.playerFallback)
                  : vm.steamUsername)
-                .font(.system(size: AppDesign.Font.scaled(24), weight: .bold))
+                .font(.system(size: AppDesign.Font.scaled(17), weight: .bold))
                 .lineLimit(1)
             Text(String(format: localization.L(L10n.Settings.appVersion), Self.appVersion))
                 .font(AppDesign.Font.rowTitle)
@@ -60,24 +70,24 @@ struct HomeHeroBanner: View {
             Circle()
                 .fill(Color(nsColor: .windowBackgroundColor))
                 .frame(width: Self.disc, height: Self.disc)
-                .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
+                .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 4)
             if let path = vm.steamAvatarPath, let avatar = NSImage(contentsOfFile: path) {
                 Image(nsImage: avatar)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: Self.disc - 8, height: Self.disc - 8)
+                    .frame(width: Self.disc - 6, height: Self.disc - 6)
                     .clipShape(Circle())
             } else {
                 Image(systemName: "person.fill")
-                    .font(.system(size: AppDesign.Font.scaled(44)))
+                    .font(.system(size: AppDesign.Font.scaled(28)))
                     .foregroundColor(.secondary)
             }
             Image(systemName: "leaf.fill")
-                .font(.system(size: AppDesign.Font.scaled(22)))
+                .font(.system(size: AppDesign.Font.scaled(14)))
                 .foregroundColor(.green)
                 .background(Circle().fill(Color(nsColor: .windowBackgroundColor))
-                    .frame(width: 28, height: 28))
-                .offset(x: 32, y: 32)
+                    .frame(width: 18, height: 18))
+                .offset(x: 21, y: 21)
         }
         .frame(width: Self.disc, height: Self.disc)
         .accessibilityHidden(true)

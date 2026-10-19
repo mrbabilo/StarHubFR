@@ -67,6 +67,11 @@ struct CachedAsyncImage: View {
             if let nsImage = NSImage(data: data) {
                 AsyncImageCache.setNSImage(nsImage, for: url)
                 image = Image(nsImage: nsImage)
+            } else {
+                // Octets illisibles (page d'erreur HTML servie en 200) : sans
+                // cette branche, le ProgressView tournait indéfiniment et
+                // masquait le repli de l'appelant.
+                loadError = URLError(.cannotDecodeContentData)
             }
         } catch {
             loadError = error

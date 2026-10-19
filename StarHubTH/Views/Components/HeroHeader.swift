@@ -20,7 +20,7 @@ struct HeroHeader: View {
     let onClose: () -> Void
 
     var body: some View {
-        Rectangle().fill(.quaternary)
+        fallback
             .frame(height: AppDesign.Metrics.heroHeight)
             .overlay {
                 if let imageURL {
@@ -56,6 +56,22 @@ struct HeroHeader: View {
                 .buttonStyle(.plain).focusRing()
                 .iconHelp(closeHelp)
                 .padding(AppDesign.Spacing.sm)
+            }
+    }
+
+    /// Ce qui reste quand l'image manque (pas d'URL, page sans illustration,
+    /// téléchargement en échec) : un fond teinté de l'accent et le glyphe des
+    /// mods, plutôt qu'une bande grise vide sous un titre blanc (I-T32c).
+    /// L'image, quand elle arrive, le recouvre entièrement (`scaledToFill`).
+    private var fallback: some View {
+        LinearGradient(colors: [AppDesign.Color.accent.opacity(0.55), AppDesign.Color.accent.opacity(0.85)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay(alignment: .trailing) {
+                Image(systemName: "puzzlepiece.extension.fill")
+                    .font(.system(size: AppDesign.Metrics.heroHeight * 0.55))
+                    .foregroundStyle(.white.opacity(AppDesign.Opacity.medium))
+                    .padding(.trailing, AppDesign.Spacing.xl)
+                    .accessibilityHidden(true)
             }
     }
 }

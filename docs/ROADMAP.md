@@ -886,27 +886,34 @@ restant : **I-T32b → I-T32c**.
         l'Éditeur de traduction replient filtres, actions, marques et glossaire,
         et les métadonnées de fiche mod, la chronologie et l'inventaire de
         sauvegarde restent lisibles en fenêtre étroite. **Le 2026-10-19, le
-        reste est livré en code, sans validation à l'écran** : archives
+        reste est livré et validé à l'écran par l'auteur** : archives
         d'entretien, corbeille et quarantaine replient leurs actions
         (`6e9b4fed`), une liste de mods vide nomme le filtre en cause et la
         carte Sonde n'est plus répétée (`25faad21`), et les noms, chemins et
         messages tronqués gardent leur texte en infobulle par un seul
-        modificateur, `truncatedHelp` (`2fb83885`). Reste à valider ces trois
-        lots à l'écran, et à vérifier à VoiceOver que l'infobulle d'un texte
-        tronqué ne gêne pas : `.help` pose aussi l'aide d'accessibilité, donc
-        le texte est lu une seconde fois en indication différée. Poursuivre les migrations
+        modificateur, `truncatedHelp` (`2fb83885`). Une seule réserve, à garder
+        pour la recette VoiceOver : `.help` pose aussi l'aide d'accessibilité,
+        donc un texte tronqué est relu en indication différée. Poursuivre les migrations
         littéral → jeton (149 couleurs nues et 367 `padding` littéraux relevés
         avant I-T32a) au fil des vues touchées, à valeur égale seulement : un
         jeton qui change la mesure (pastille 5/1 → 4/2, marge 20 → 24) change
         le rendu, le littéral reste avec sa raison en commentaire. · **M**
-      - **I-T32c — Identité maîtrisée.** Garder le bandeau illustré de l'accueil,
-        mais réduire sa prise sur le premier écran et les informations de compte
-        répétées. Remplacer son slogan anglais incrusté par une ressource
-        localisable ou une illustration sans texte. Donner à `HeroHeader` un
-        vrai état de repli quand l'image manque. Conserver le bleu StarHubFR
-        dominant et réserver vert/orange/rouge aux états ; pas de thème pixel-art
-        global ni de refonte décorative. Unifier enfin le lexique (« en pause »
-        partout, « sauvegarde » à un seul sens, vouvoiement). · **S**
+      - **I-T32c — Identité maîtrisée.** *Livré et validé à l'écran par
+        l'auteur le 2026-10-19.* Le bandeau de l'accueil est plafonné à 180 pt ;
+        avatar (64 pt), nom (17 pt) et version restent, réduits — l'auteur a
+        choisi de tout garder, plus petit. Le slogan anglais incrusté dans
+        `nexus_banner_final.png` reste, par décision de l'auteur.
+        `HeroHeader` a un repli : fond teinté de l'accent et glyphe des mods
+        quand l'image manque ; `CachedAsyncImage` signale un échec quand les
+        octets reçus ne sont pas une image (l'indicateur tournait sans fin).
+        Lexique français unifié dans `fr.json` et `GUIDE.md` : vouvoiement
+        partout (environ 80 chaînes, surtout Performances), « en pause » pour un
+        mod que le jeu ne charge pas (le cadrage « Désactivés » devient « En
+        pause »), « partie » pour une partie du jeu et « sauvegarde » pour une
+        copie (environ 80 chaînes ; la page « Sauvegardes du jeu » devient
+        « Parties », comme la barre latérale). L'anglais n'est pas touché. Bleu
+        dominant conservé ; reste ouvert : le bouton de lancement est vert,
+        couleur réservée aux états selon la règle — à trancher par l'auteur. · **S**
       - **Validation du lot** : toutes les destinations à 820×700 et en largeur
         courante, clair/sombre, taille de texte 130 % ; aucun texte principal
         tronqué sans infobulle, aucun défilement imbriqué dans

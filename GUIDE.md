@@ -56,7 +56,7 @@ Mettre un mod en pause renomme son dossier en le **préfixant d'un point** : `Mo
 - **Le Finder cache ces dossiers** (⇧⌘. les montre). Un mod « disparu » du jeu mais qui prend toujours de la place est presque toujours un mod en pause.
 - **Ne les supprimez pas à la main** : les dossiers à point de `Mods/` sont vos mods en pause, pas des fichiers cachés à nettoyer.
 - **Les mods livrés avec SMAPI** (ConsoleCommands, SaveBackup) restent actifs, et ni eux ni la sonde StarHubFR ne se suppriment depuis l'app : elle vous le dit si vous essayez.
-- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Sauvegardes du jeu › Nettoyer…** retire les données des mods disparus, après une copie de la partie . Dans l'autre sens, **Réactiver ces mods** réactive les mods en pause dont une partie a besoin, avec leurs dépendances.
+- **Avant de mettre en pause un mod qui écrit dans vos parties**, l'app mesure ce qu'il y a laissé. **Parties › Nettoyer…** retire les données des mods disparus, après une copie de la partie. Dans l'autre sens, **Réactiver ces mods** réactive les mods en pause dont une partie a besoin, avec leurs dépendances.
 - **Revenir en arrière.** L'app enregistre l'état de vos mods avant chaque activation groupée, changement de profil, recherche du mod responsable ou benchmark. Pour y revenir : **Gestion des mods › ⏻ › Revenir à un état d'avant…**. Si une de ces opérations a été interrompue, l'**Accueil** vous le signale et propose « Tout remettre comme avant ».
 
 <!-- help: profiles -->
@@ -141,8 +141,8 @@ Une traduction écrite dans l'app vit dans le dossier du mod. Une mise à jour d
 - **Vous avez mis des mods à la corbeille depuis l'app** — **Entretien** › Restaurer, ou **Tout restaurer** pour un lot. Le lien « Corbeille des mods › » de **Sauvegardes des mods** y conduit aussi.
 - **Les sauvegardes prennent trop de place** — **Entretien** › Libérer de la place : choisissez combien en conserver par mod (1, 3 ou 5) ; les autres sont placées dans la Corbeille du Mac. Indépendamment de ce choix, l'app conserve automatiquement toutes les sauvegardes de moins de 30 jours, comme l'indique le segment Installations.
 - **Un dossier illisible ou parasite a disparu de `Mods/`** — **Quarantaine** : les analyses y mettent de côté ce qui gênait, rien n'est supprimé.
-- **Une partie** — **Sauvegardes du jeu** : copie avant chaque modification.
-- **Une copie complète, à garder à part** — **Entretien** › Sauvegarder le dossier des mods (mods en pause compris), ou l'icône d'archive de **Sauvegardes du jeu** : un `.zip` dans le dossier de votre choix. L'app vérifie la place, estime la durée, montre l'avancement ; « Annuler » ne laisse rien derrière.
+- **Une partie** — **Parties** : copie avant chaque modification.
+- **Une copie complète, à garder à part** — **Entretien** › Sauvegarder le dossier des mods (mods en pause compris), ou l'icône d'archive de **Parties** : un `.zip` dans le dossier de votre choix. L'app vérifie la place, estime la durée, montre l'avancement ; « Annuler » ne laisse rien derrière.
 
 Tout cela vit dans `~/Library/Application Support/StarHubFR/`.
 
@@ -161,7 +161,7 @@ StarHubFR, Vortex, Stardrop et le Nexus Mods App lisent **le même dossier** `Mo
 Les mods en pause vivent dans des dossiers à point de `Mods/`. Si vous retirez l'app sans les remettre, le jeu ne les chargera plus et ils sembleront perdus.
 
 1. Dans **Gestion des mods**, choisissez le cadrage **Tous**, puis **Tout activer** ; ou supprimez vous-même les mods en pause dont vous ne voulez plus.
-2. Vérifiez que le cadrage **Désactivés** est vide.
+2. Vérifiez que le cadrage **En pause** est vide.
 3. Mettez en pause ou supprimez le dossier `Mods/StarHubFR Probe` si vous aviez installé la sonde. La mettre en pause depuis l'app la retire aussi de la liste de chargement prioritaire de SMAPI.
 4. Quittez StarHubFR et mettez `StarHubFR.app` à la corbeille. Le dossier `Mods/` est alors un dossier SMAPI ordinaire.
 
