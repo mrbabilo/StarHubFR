@@ -899,9 +899,9 @@ restant : **I-T32b → I-T32c**.
         jeton qui change la mesure (pastille 5/1 → 4/2, marge 20 → 24) change
         le rendu, le littéral reste avec sa raison en commentaire. · **M**
       - **I-T32c — Identité maîtrisée.** *Livré et validé à l'écran par
-        l'auteur le 2026-10-19.* Le bandeau de l'accueil est plafonné à 180 pt ;
-        avatar (64 pt), nom (17 pt) et version restent, réduits — l'auteur a
-        choisi de tout garder, plus petit. Le slogan anglais incrusté dans
+        l'auteur le 2026-10-19.* Le bandeau de l'accueil ne change pas : réduit
+        (180 pt, avatar 64 pt, nom 17 pt), il a été annulé le jour même à la
+        demande de l'auteur. Le slogan anglais incrusté dans
         `nexus_banner_final.png` reste, par décision de l'auteur.
         `HeroHeader` a un repli : fond teinté de l'accent et glyphe des mods
         quand l'image manque ; `CachedAsyncImage` signale un échec quand les

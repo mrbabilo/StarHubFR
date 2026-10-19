@@ -20,7 +20,6 @@ where the exact log format was verified.
 ### Changed
 
 - **Un vocabulaire français unifié.** L'app vouvoie partout, dit « en pause » pour un mod que le jeu ne charge pas, et réserve « sauvegarde » aux copies : une partie du jeu s'appelle désormais une partie, page Parties comprise.
-- **Accueil plus compact.** Le bandeau, l'avatar et le nom prennent moins de place ; la bande d'attention et le bouton de lancement remontent dans le premier écran.
 - **Fiches sans illustration plus lisibles.** Sans image, ou si elle ne se charge pas, la fiche d'un mod affiche un fond coloré au lieu d'une bande grise vide, et l'indicateur de chargement ne tourne plus indéfiniment sur une image illisible.
 - **Les dernières rangées denses restent lisibles en fenêtre étroite.** Fichiers récupérables, traductions, mises à jour écartées ou en veille replient leurs actions. Dans toute l'app, un nom, un chemin ou un message coupé montre son texte entier au survol.
 - **Filtres de mods et carte Sonde plus clairs.** Une liste vide nomme désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
