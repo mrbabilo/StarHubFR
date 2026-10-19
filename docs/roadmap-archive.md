@@ -7849,3 +7849,37 @@ sans lire une ligne de log.
       fluidité, défilement et replis vérifiés à l'écran par l'auteur. Pas de
       second `sample` chiffré : verdict utilisateur suffisant pour clore le
       défaut perçu.
+
+- [x] **I-T32b — Densité et adaptation** — *(livré et validé à l'écran les
+      18 et 19 octobre 2026 ; derniers lots `6e9b4fed`, `25faad21`,
+      `2fb83885`)*. Diagnostic n'a plus qu'un défilement vertical ; le texte des
+      mods en pause garde sa pleine opacité ; noms et actions de Mises à jour,
+      Diff et éditeur de traduction (filtres, actions, marques, glossaire),
+      métadonnées de fiche mod, chronologie et inventaire de partie, archives
+      d'entretien, corbeille et quarantaine passent par `SplitRow` /
+      `WrapHStack` en fenêtre étroite. Une liste de mods vide nomme le filtre en
+      cause et propose de réinitialiser le cadrage ; la carte Sonde n'est plus
+      répétée dans Performances. Les textes tronqués gardent leur texte entier
+      en infobulle par un seul modificateur, `truncatedHelp(_:lines:mode:)`
+      (31 sites), qui garde le mode de coupe de chaque site (`hit.name` reste à
+      deux lignes coupées en fin, E12). La revue du diff (8 constats) a écarté
+      deux pistes : changer la règle de repli de `SplitRow` (comportement voulu,
+      déjà validé) et remplacer `AdaptiveLabels` (convention du dépôt). Elle a
+      aussi relevé qu'une migration littéral → jeton changeait des mesures
+      (pastilles 5/1 → 4/2, marges 20 → 24, rayon 4 → 6) : littéraux remis.
+
+- [x] **I-T32c — Identité maîtrisée** — *(livré le 2026-10-19, `5cb37c57`,
+      bandeau annulé `aa2accde` ; lot I-T32 validé à l'écran par l'auteur le
+      même jour)*. Décisions de l'auteur : le slogan anglais incrusté dans
+      `nexus_banner_final.png` reste ; le bandeau de l'accueil, d'abord réduit
+      (180 pt, avatar 64 pt, nom 17 pt), est revenu à sa taille d'origine.
+      `HeroHeader` affiche un fond teinté de l'accent et le glyphe des mods quand
+      l'image manque ; `CachedAsyncImage` passe en échec quand les octets reçus
+      ne sont pas une image — l'indicateur de chargement tournait sans fin et
+      cachait ce repli. Lexique français unifié dans `fr.json` (environ 170
+      chaînes) et `GUIDE.md` : vouvoiement partout (les écrans de Performances
+      tutoyaient), « en pause » pour un mod que le jeu ne charge pas (cadrage
+      « Désactivés » devenu « En pause », « Tout mettre en pause »),
+      « partie » pour une partie du jeu et « sauvegarde » pour une copie (page
+      « Parties », comme la barre latérale). L'anglais n'est pas touché ; les
+      « désactivé » qui désignent une option ou la manette restent.

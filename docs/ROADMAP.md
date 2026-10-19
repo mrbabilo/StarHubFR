@@ -811,7 +811,7 @@ de sidebar, Découvrir inchangé au closage.
 
 ---
 
-### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32a** (surfaces) et **I-T33** (barre latérale) livrés, **I-T32b/c** à faire — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
+### Expérience utilisateur : navigation & accessibilité — **Axe I** · **rouvert le 2026-10-16** par l'audit UX de toutes les vues : **I-T25** (sûreté), **I-T26** (préalables), **I-T27** (navigation), **I-T28** (regroupements), **I-T29** (fonctionnalités), **I-T30** (écrans), **I-T31** (décisions), **I-T32** (finitions visuelles, a, b et c) et **I-T33** (barre latérale) livrés — avant : l'audit UX du 2026-10-02 est livré (I-T18, I-T19, à l'archive), I-T20 aussi (2026-10-07, à l'archive) ; I-T21 (groupes et corbeille d'une sélection), I-T22 (audit UX de l'onglet Performances) et I-T23 (plan de raccourcis) livrés et validés à l'écran, à l'archive ; **I-T24** (aide intégrée) livré et validé à l'écran le 2026-10-15, à l'archive ; l'accessibilité clavier et voix reste à cadrer
 
 Ce que H pose en **règles** (cibles ≥ 18×18, jamais la couleur seule, contraste
 vérifié), I le transforme en **capacités** : naviguer au clavier, piloter à la
@@ -874,51 +874,18 @@ rangées non adaptatives. Le défaut fonctionnel isolé **X137 est livré** ; le
 finitions deviennent les trois passes de **I-T32**. **I-T32a est livré dans
 son périmètre retenu** : surfaces neutres dynamiques et relief des cartes ;
 l'auteur conserve les titres natif et de contenu en double. **I-T33 est livré**
-avant les retouches des deux listes concernées, comme prévu. Ordre recommandé
-restant : **I-T32b → I-T32c**.
+avant les retouches des deux listes concernées, comme prévu. **I-T32b et
+I-T32c sont livrés et validés à l'écran le 2026-10-19, lot validé : I-T32 est
+clos** (récit à l'archive).
 
-- [ ] **I-T32 — L7 Finitions visuelles et identité**, dont la première passe
-      est livrée (récit à l'archive) :
-      - **I-T32b — Densité et adaptation.** Trois lots livrés et validés à
-        l'écran les 18 et 19 octobre 2026 : Diagnostic n'a plus qu'un
-        défilement vertical, le texte des mods en pause garde sa pleine opacité,
-        les noms et actions de Mises à jour s'adaptent à la largeur, Diff comme
-        l'Éditeur de traduction replient filtres, actions, marques et glossaire,
-        et les métadonnées de fiche mod, la chronologie et l'inventaire de
-        sauvegarde restent lisibles en fenêtre étroite. **Le 2026-10-19, le
-        reste est livré et validé à l'écran par l'auteur** : archives
-        d'entretien, corbeille et quarantaine replient leurs actions
-        (`6e9b4fed`), une liste de mods vide nomme le filtre en cause et la
-        carte Sonde n'est plus répétée (`25faad21`), et les noms, chemins et
-        messages tronqués gardent leur texte en infobulle par un seul
-        modificateur, `truncatedHelp` (`2fb83885`). Une seule réserve, à garder
-        pour la recette VoiceOver : `.help` pose aussi l'aide d'accessibilité,
-        donc un texte tronqué est relu en indication différée. Poursuivre les migrations
-        littéral → jeton (149 couleurs nues et 367 `padding` littéraux relevés
-        avant I-T32a) au fil des vues touchées, à valeur égale seulement : un
-        jeton qui change la mesure (pastille 5/1 → 4/2, marge 20 → 24) change
-        le rendu, le littéral reste avec sa raison en commentaire. · **M**
-      - **I-T32c — Identité maîtrisée.** *Livré et validé à l'écran par
-        l'auteur le 2026-10-19.* Le bandeau de l'accueil ne change pas : réduit
-        (180 pt, avatar 64 pt, nom 17 pt), il a été annulé le jour même à la
-        demande de l'auteur. Le slogan anglais incrusté dans
-        `nexus_banner_final.png` reste, par décision de l'auteur.
-        `HeroHeader` a un repli : fond teinté de l'accent et glyphe des mods
-        quand l'image manque ; `CachedAsyncImage` signale un échec quand les
-        octets reçus ne sont pas une image (l'indicateur tournait sans fin).
-        Lexique français unifié dans `fr.json` et `GUIDE.md` : vouvoiement
-        partout (environ 80 chaînes, surtout Performances), « en pause » pour un
-        mod que le jeu ne charge pas (le cadrage « Désactivés » devient « En
-        pause »), « partie » pour une partie du jeu et « sauvegarde » pour une
-        copie (environ 80 chaînes ; la page « Sauvegardes du jeu » devient
-        « Parties », comme la barre latérale). L'anglais n'est pas touché. Bleu
-        dominant conservé ; reste ouvert : le bouton de lancement est vert,
-        couleur réservée aux états selon la règle — à trancher par l'auteur. · **S**
-      - **Validation du lot** : toutes les destinations à 820×700 et en largeur
-        courante, clair/sombre, taille de texte 130 % ; aucun texte principal
-        tronqué sans infobulle, aucun défilement imbriqué dans
-        le contexte principal, contraste des mods en pause maintenu, accueil
-        cohérent en français comme en anglais. · **L au total**
+**Suites d'I-T32, hors lot** : poursuivre les migrations littéral → jeton
+(149 couleurs nues et 367 `padding` littéraux relevés avant I-T32a) au fil des
+vues touchées, **à valeur égale seulement** — un jeton qui change la mesure
+change le rendu ; le littéral reste alors, avec sa raison en commentaire. À
+trancher par l'auteur : le bouton de lancement de l'accueil est vert, couleur
+que la règle d'identité réserve aux états. Pour la recette VoiceOver : `.help`
+pose aussi l'aide d'accessibilité, donc un texte tronqué y est relu en
+indication différée.
 
 Hors audit, à instruire : la fermeture inexpliquée de l'app pendant la capture
 (passage en grille de la liste, non reproduite).
@@ -2131,6 +2098,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T31** | 2026-10-18 | Audit UX, lot L6 (décisions de l'auteur) : journal relu à la fermeture du jeu, mises à jour actives, garde des configs, liens natifs, packs, dépôt sur le Dock, gestes de palette et profils, page des parties, Accueil sans rescan systématique ; N-10 clôt le lot avec Diagnostic en ⌘9, Réglages épinglé, navigation complète et libellés courts |
 | **I-T32a** | 2026-10-18 | Fondations visuelles : surfaces neutres dynamiques testées en clair/sombre, cartes communes et cartes de mods mieux détachées ; titres natif + contenu conservés en double par décision de l'auteur après essai à l'écran |
 | **I-T33** | 2026-10-18 | Barre latérale fluide sur Mises à jour et Entretien : sections et rangées Nexus hors écran rendues paresseuses, sans déplacer leurs états ; build, suite complète et vérification écran verts |
+| **I-T32b** | 2026-10-19 | Densité et adaptation : Diagnostic à un seul défilement, mods en pause lisibles, rangées de Mises à jour, Diff, éditeur de traduction, fiche mod, chronologie, inventaire, Entretien, corbeille et quarantaine repliées en fenêtre étroite ; liste vide qui nomme son filtre ; textes tronqués avec infobulle (`truncatedHelp`) ; validé à l'écran |
+| **I-T32c** | 2026-10-19 | Identité maîtrisée : repli de `HeroHeader` sans image, lexique français unifié (vouvoiement, « en pause », « partie » contre « sauvegarde ») ; bandeau d'accueil et slogan conservés par décision de l'auteur ; lot I-T32 validé à l'écran, I-T32 clos |
 
 **10.3 Veille RimManager — actions livrées**
 
