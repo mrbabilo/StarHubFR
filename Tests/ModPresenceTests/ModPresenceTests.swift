@@ -43,4 +43,42 @@ import Testing
                 == .enabled(folderName: "Pack/Profiler", version: "1.0.0"))
         #expect(ModPresence.resolve(uniqueId: ModPresence.profilerId, in: [pack]).folderName == "Pack/Profiler")
     }
+
+    @Test func anAbsentOrPausedProbeNeedsTheActionCard() {
+        #expect(PerformanceProbePresentation.showsActionCard(
+            presence: .absent, bundledVersion: nil))
+        #expect(PerformanceProbePresentation.showsActionCard(
+            presence: .paused(folderName: "Probe", version: "0.9.28"),
+            bundledVersion: "0.9.28"))
+    }
+
+    @Test func anOutdatedOrUpgradeableProbeNeedsTheActionCard() {
+        #expect(PerformanceProbePresentation.showsActionCard(
+            presence: .enabled(folderName: "Probe", version: "0.4.13"),
+            bundledVersion: "0.9.28"))
+        #expect(PerformanceProbePresentation.showsActionCard(
+            presence: .enabled(folderName: "Probe", version: "0.9.24"),
+            bundledVersion: "0.9.24"))
+        #expect(PerformanceProbePresentation.showsActionCard(
+            presence: .enabled(folderName: "Probe", version: "0.9.25"),
+            bundledVersion: "0.9.28"))
+    }
+
+    @Test func aCurrentProbeUsesOnlyTheCompactStatusAndSettings() {
+        #expect(!PerformanceProbePresentation.showsActionCard(
+            presence: .enabled(folderName: "Probe", version: "0.9.28"),
+            bundledVersion: "0.9.28"))
+        #expect(!PerformanceProbePresentation.showsActionCard(
+            presence: .enabled(folderName: "Probe", version: "0.10.0"),
+            bundledVersion: "0.9.28"))
+    }
+
+    @Test func aProbeNeedingActionHidesTheCompactSettingsLink() {
+        #expect(!PerformanceProbePresentation.showsCompactStatus(
+            presence: .enabled(folderName: "Probe", version: "0.9.25"),
+            bundledVersion: "0.9.28"))
+        #expect(PerformanceProbePresentation.showsCompactStatus(
+            presence: .enabled(folderName: "Probe", version: "0.9.28"),
+            bundledVersion: "0.9.28"))
+    }
 }

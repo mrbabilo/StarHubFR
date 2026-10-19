@@ -975,6 +975,9 @@
 "mods_nexus_save" = "Save";
 "mods_nexus_section" = "Nexus Mods";
 "mods_nexus_update" = "Nexus update";
+"mods_clear_filters" = "Reset filters";
+"mods_no_active_filter_results" = "No mod matches this combination of filters.";
+"mods_no_filter_results" = "No mod matches the “%@” filter.";
 "mods_no_mod_found" = "No mod found for \"%@\"";
 "mods_no_update_check" = "No update check: no Nexus page attached.";
 "mods_note_hint" = "Free annotation kept in the active profile — it changes with it. Saved when you click elsewhere.";

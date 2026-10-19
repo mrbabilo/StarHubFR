@@ -34,33 +34,37 @@ struct PerformanceMeasurementStatus: View {
 
     var body: some View {
         let probe = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
+        let showsActionCard = PerformanceProbePresentation.showsActionCard(
+            presence: probe, bundledVersion: bundledProbeVersion)
+        let showsCompactStatus = PerformanceProbePresentation.showsCompactStatus(
+            presence: probe, bundledVersion: bundledProbeVersion)
         VStack(alignment: .leading, spacing: AppDesign.Spacing.xs) {
             switch probe {
             case .absent, .paused:
                 PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
             case .enabled(_, let version):
-                HStack(spacing: AppDesign.Spacing.sm) {
-                    Label(String(format: localization.L(L10n.Performance.probeEnabled), version), systemImage: "waveform.path")
-                        .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
-                    Button(localization.L(L10n.Performance.probeSettingsLink), action: openSettings)
-                        .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4).font(AppDesign.Font.footnote)
-                    Spacer()
-                    ProbeMiniStatsToggle(viewModel: viewModel, localization: localization, presence: probe)
+                let readiness = GuidedProtocol.readiness(probeVersion: version, isEnabled: true)
+                if showsCompactStatus {
+                    HStack(spacing: AppDesign.Spacing.sm) {
+                        Label(String(format: localization.L(L10n.Performance.probeEnabled), version),
+                              systemImage: "waveform.path")
+                            .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
+                        Button(localization.L(L10n.Performance.probeSettingsLink), action: openSettings)
+                            .buttonStyle(.link).clickableCursor().focusRing(cornerRadius: 4)
+                            .font(AppDesign.Font.footnote)
+                        Spacer()
+                        ProbeMiniStatsToggle(viewModel: viewModel, localization: localization, presence: probe)
+                    }
                 }
-                if case .outdated = GuidedProtocol.readiness(probeVersion: version, isEnabled: true) {
-                    PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
-                } else if !GuidedProtocol.supportsPilot(version) {
+                if case .ready = readiness, !GuidedProtocol.supportsPilot(version) {
                     // Guidage possible, pilotage non : sans ce mot, le bouton
                     // « Mesure pilotée » resterait caché sans explication.
                     Text(String(format: localization.L(L10n.PerformancePilot.needsProbeUpdate),
                                 GuidedProtocol.pilotMinimumVersion.map(String.init).joined(separator: ".")))
                         .font(AppDesign.Font.footnote).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
-                } else if case .update = ProbeBundle.action(bundled: bundledProbeVersion, presence: probe) {
-                    // L'app embarque une sonde plus récente : sans cette carte,
-                    // la mise à jour ne se proposait que dans le volet replié
-                    // « Réglages » (0.9.26 jamais déployée, 2026-10-13).
+                }
+                if showsActionCard {
                     PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store)
                 } else if Self.hoistsLoadOrderBanner(viewModel, store, consent: loadEarlyConsent) {
                     PerformanceLoadsProbeFirst(viewModel: viewModel, localization: localization, store: store,

@@ -243,13 +243,23 @@ struct PerformanceView: View {
             DisclosureGroup(localization.L(L10n.Performance.envTitle)) {
                 PerformanceEnvironmentSection(localization: localization, store: environment)
             }
-            Divider()
-            DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings), isExpanded: $settingsExpanded) {
-                PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store,
-                                        loadOrderBannerHoisted: PerformanceMeasurementStatus.hoistsLoadOrderBanner(
-                                            viewModel, store, consent: loadEarlyConsent))
-            }.id("settings")
+            if !probeActionCardVisible {
+                Divider()
+                DisclosureGroup(localization.L(L10n.PerformanceEvidence.settings), isExpanded: $settingsExpanded) {
+                    PerformanceProbeSection(viewModel: viewModel, localization: localization, store: store,
+                                            loadOrderBannerHoisted: PerformanceMeasurementStatus.hoistsLoadOrderBanner(
+                                                viewModel, store, consent: loadEarlyConsent))
+                }.id("settings")
+            }
         }.id("details")
+    }
+
+    private var probeActionCardVisible: Bool {
+        let presence = ModPresence.resolve(uniqueId: ModPresence.probeId, in: viewModel.mods)
+        let bundled = ProbeBundle.bundledFolder(resourcesURL: Bundle.main.resourceURL)
+            .flatMap(ProbeBundle.version(ofFolder:))
+        return PerformanceProbePresentation.showsActionCard(
+            presence: presence, bundledVersion: bundled)
     }
 
     /// Les volets repliés disent leur taille, une fois l'historique lu :

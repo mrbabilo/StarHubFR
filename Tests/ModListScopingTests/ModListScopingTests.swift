@@ -31,6 +31,45 @@ struct ModListScopingTests {
         return f
     }
 
+    // MARK: - État vide du cadrage
+
+    @Test func aSingleActiveFilterNamesTheEmptyState() {
+        var f = ModListFilters()
+        f.configOnly = true
+        #expect(f.emptyCause == .config)
+
+        f.clearFiltering()
+        f.scope = .disabled
+        #expect(f.emptyCause == .scope(.disabled))
+    }
+
+    @Test func severalActiveFiltersDoNotBlameOnlyOneOfThem() {
+        var f = ModListFilters()
+        f.search = "Automate"
+        f.favoritesOnly = true
+        #expect(f.emptyCause == .combined)
+    }
+
+    @Test func clearingFilteringKeepsTheChosenSort() {
+        var f = ModListFilters()
+        f.search = "Automate"
+        f.scope = .issues
+        f.category = .uncategorized
+        f.configOnly = true
+        f.favoritesOnly = true
+        f.blacklistedOnly = true
+        f.frenchTranslation = .stale
+        f.impactScope = .high
+        f.sort = .installDate
+        f.page = 7
+
+        f.clearFiltering()
+
+        #expect(f.emptyCause == nil)
+        #expect(f.sort == .installDate)
+        #expect(f.page == 1)
+    }
+
     // MARK: - matchesSelfOrAnyChild
 
     @Test func aStandaloneModIsTestedOnItself() {

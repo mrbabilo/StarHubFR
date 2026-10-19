@@ -37,3 +37,27 @@ public enum ModPresence: Equatable, Sendable {
         }
     }
 }
+
+/// Décide si Performances doit montrer la carte Sonde complète en tête.
+/// Quand elle est visible, le volet inférieur ne la répète pas.
+enum PerformanceProbePresentation {
+    static func showsActionCard(presence: ModPresence, bundledVersion: String?) -> Bool {
+        switch presence {
+        case .absent, .paused:
+            return true
+        case .enabled(_, let version):
+            if case .outdated = GuidedProtocol.readiness(probeVersion: version, isEnabled: true) {
+                return true
+            }
+            guard GuidedProtocol.supportsPilot(version) else { return true }
+            if case .update = ProbeBundle.action(bundled: bundledVersion, presence: presence) {
+                return true
+            }
+            return false
+        }
+    }
+
+    static func showsCompactStatus(presence: ModPresence, bundledVersion: String?) -> Bool {
+        !showsActionCard(presence: presence, bundledVersion: bundledVersion)
+    }
+}

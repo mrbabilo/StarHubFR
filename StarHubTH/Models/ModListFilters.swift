@@ -59,6 +59,20 @@ enum ModSortOrder: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Ce qui explique une liste vide. Une combinaison ne désigne jamais un seul
+/// filtre comme coupable : c'est leur intersection qui ne rend rien.
+enum ModListEmptyCause: Equatable {
+    case search(String)
+    case scope(ModFilter)
+    case category
+    case config
+    case favorites
+    case blacklisted
+    case translation
+    case impact
+    case combined
+}
+
 // MARK: -
 
 /// Porteur observable du cadrage de la liste, **séparé du ViewModel**.
@@ -151,6 +165,35 @@ struct ModListFilters: Equatable {
 
     /// Page courante (1-based).
     var page: Int = 1
+
+    /// Cause unique lisible par l'état vide, ou combinaison si plusieurs axes
+    /// sont actifs. `sort` et `page` n'amincissent pas le résultat.
+    var emptyCause: ModListEmptyCause? {
+        var causes: [ModListEmptyCause] = []
+        if !search.isEmpty { causes.append(.search(search)) }
+        if scope != .all { causes.append(.scope(scope)) }
+        if category != .all { causes.append(.category) }
+        if configOnly { causes.append(.config) }
+        if favoritesOnly { causes.append(.favorites) }
+        if blacklistedOnly { causes.append(.blacklisted) }
+        if frenchTranslation != .off { causes.append(.translation) }
+        if impactScope != .off { causes.append(.impact) }
+        if causes.count > 1 { return .combined }
+        return causes.first
+    }
+
+    /// Retire tout ce qui peut exclure un mod, sans changer le tri choisi.
+    mutating func clearFiltering() {
+        search = ""
+        scope = .all
+        category = .all
+        configOnly = false
+        favoritesOnly = false
+        blacklistedOnly = false
+        frenchTranslation = .off
+        impactScope = .off
+        page = 1
+    }
 
     /// Ramène la liste à un état où un mod donné est forcément visible : tout
     /// filtre susceptible de l'écarter est levé. Utilisé par le saut vers un

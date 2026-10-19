@@ -19,6 +19,7 @@ where the exact log format was verified.
 
 ### Changed
 
+- **Filtres de mods et carte Sonde plus clairs.** Une liste vide nomme désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
 - **Entretien et quarantaine plus souples en fenêtre étroite.** Archives Nexus, événements de corbeille et éléments à examiner replient leurs actions sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
 - **Fiche mod et sauvegardes plus lisibles en fenêtre étroite.** Les métadonnées d'un mod, les cartes d'historique et les lignes d'inventaire se réorganisent sans tasser leurs libellés ni couper les noms d'objets.
 - **Diff et éditeur de traduction plus souples en fenêtre étroite.** Filtres, actions, marques du jeu et termes du glossaire passent proprement à la ligne ; recherche et validation gardent leur place sans tronquer les libellés.

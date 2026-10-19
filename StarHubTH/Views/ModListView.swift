@@ -329,23 +329,20 @@ struct ModListView: View {
                             EmptyStateDropZone(vm: vm, localization: localization, onInstall: { navigation.showsInstallSheet = true })
                                 .padding(.top, 40)
                         } else {
-                            // Recherche sans résultat
-                            VStack(spacing: AppDesign.Spacing.lg) {
-                                Image(systemName: "puzzlepiece.extension")
-                                    .font(AppDesign.Font.emptyStateGlyph)
-                                    .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
-                                Text(String(format: localization.L(L10n.Mods.noModFound), filters.search))
-                                    .multilineTextAlignment(.center)
-                                    .font(AppDesign.Font.rowTitle)
-                                    .foregroundColor(.secondary)
+                            ModListFilteredEmptyState(cause: filters.emptyCause,
+                                                      filters: filters,
+                                                      localization: localization) {
+                                listState.filters.clearFiltering()
+                                problemKind = nil
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
                         }
                     } else if display.isEmpty {
-                        // Scope eliminated every mod (e.g. "Disabled" picked but
-                        // everything is enabled, or "Issues" with no problems).
-                        if filters.scope == .issues { noIssuesMessage } else { emptyScopeMessage }
+                        ModListFilteredEmptyState(cause: problemKind == nil ? filters.emptyCause : .combined,
+                                                  filters: filters,
+                                                  localization: localization) {
+                            listState.filters.clearFiltering()
+                            problemKind = nil
+                        }
                     } else {
                         // Render the current page only. Une seule section sous
                         // « Tous » : la couper en Activés / En pause imposait un
@@ -454,37 +451,6 @@ struct ModListView: View {
             Text(kept.isEmpty ? base : base + "\n\n" + String(format: localization.L(L10n.Mods.disableAllKeptSmapi),
                                                                kept.map(\.name).joined(separator: ", ")))
         }
-    }
-
-    /// Placeholder shown when the current scope has no mods to display
-    /// (e.g. "Disabled" selected but every mod is enabled).
-    private var emptyScopeMessage: some View {
-        VStack(spacing: AppDesign.Spacing.md) {
-            Image(systemName: "checkmark.seal")
-                .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(AppDesign.Color.dimmedSecondary(AppDesign.Opacity.disabled))
-            Text(localization.L(filters.scope == .enabled
-                      ? L10n.Mods.disabled
-                      : L10n.Mods.enabled))
-                .font(AppDesign.Font.rowTitle)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 40)
-    }
-
-    /// Placeholder shown when the "Issues" scope has no problematic mods.
-    private var noIssuesMessage: some View {
-        VStack(spacing: AppDesign.Spacing.md) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(AppDesign.Font.emptyScopeGlyph)
-                .foregroundColor(AppDesign.Color.success.opacity(0.6))
-            Text(localization.L(L10n.Mods.filterIssues))
-                .font(AppDesign.Font.rowTitle)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 40)
     }
 
     /// Prev/Next navigation + numbered page buttons shown below the mod list
