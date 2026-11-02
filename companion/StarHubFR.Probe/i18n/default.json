@@ -14,10 +14,10 @@
   "state.noisy": "measurement done, but too noisy: replay it with less variety in places",
   "refused.splitscreen": "guided measurement unavailable: split screen",
   "refused.noticks": "guided measurement unavailable: the game's timers aren't intercepted",
-  "config.harmony.name": "Measure Harmony patches",
-  "config.harmony.tooltip": "Chronometers every other mod's Harmony patches (opt-in). Takes effect at the next launch of the game; a guided measurement or a benchmark disarms it for the session.",
-  "config.textures.name": "Measure resident textures",
-  "config.textures.tooltip": "Tracks the memory kept in loaded textures, by provider (opt-in). Takes effect at the next launch of the game.",
-  "config.ministats.name": "Show mini stats",
-  "config.ministats.tooltip": "Live FPS (last second), P50/P99 frame times over the current minute and working set, top-right, once per second (opt-in). Takes effect at the next launch of the game."
+  "config.measureHarmonyPatches.name": "Measure Harmony patches",
+  "config.measureHarmonyPatches.tooltip": "Chronometers every other mod's Harmony patches (opt-in). Takes effect at the next launch of the game; a guided measurement or a benchmark disarms it for the session.",
+  "config.measureTextures.name": "Measure resident textures",
+  "config.measureTextures.tooltip": "Tracks the memory kept in loaded textures, by provider (opt-in). Takes effect at the next launch of the game.",
+  "config.showMiniStats.name": "Show mini stats",
+  "config.showMiniStats.tooltip": "Live FPS (last second), P50/P99 frame times over the current minute and working set, top-right, once per second (opt-in). Takes effect at the next launch of the game."
 }

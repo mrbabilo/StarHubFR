@@ -20,6 +20,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Sonde 0.9.29 : ses réglages ont enfin leur nom et leur aide dans l'éditeur de configuration**, en français comme en anglais. Ses textes existaient, mais sous des clés qui ne reprenaient pas les noms des champs de son `config.json` : l'éditeur affichait `MeasureHarmonyPatches` brut. Mettez la sonde à jour depuis l'onglet Performances.
 - **Le catalogue des recouvrements suit UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.
 - **Les modifications de l'app ne se perdent plus quand PureBinarySave est actif.** Ce mod charge sa copie `.bin` de la partie dès qu'elle existe, sans regarder le fichier que l'app venait de modifier. Après une modification de l'app (éditeur de partie, inventaire, retrait des mods absents, copie de partie), les fichiers `.bin` de la partie partent à la Corbeille, et le mod les recrée depuis la partie modifiée. L'app refuse de modifier une partie dont la seule copie complète est le `.bin`.
 - **Une alerte critique quand PureBinarySave tourne sans SpaceCore.** Dans cette configuration, sur Mac, le mod a été vu ne jamais mettre à jour son `.bin` : chaque chargement ramenait la partie au jour où il l'avait convertie.

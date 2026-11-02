@@ -57,15 +57,15 @@ internal static class ConfigMenu
             AddBool(addBool, api,
                 () => config.MeasureHarmonyPatches,
                 value => config.MeasureHarmonyPatches = value,
-                "config.harmony");
+                "config.measureHarmonyPatches");
             AddBool(addBool, api,
                 () => config.MeasureTextures,
                 value => config.MeasureTextures = value,
-                "config.textures");
+                "config.measureTextures");
             AddBool(addBool, api,
                 () => config.ShowMiniStats,
                 value => config.ShowMiniStats = value,
-                "config.ministats");
+                "config.showMiniStats");
             monitor.Log("Menu de configuration GMCM posé.", LogLevel.Trace);
         }
         catch (Exception ex)
