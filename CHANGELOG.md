@@ -15,6 +15,10 @@ where the exact log format was verified.
 ### Fixed
 
 - **Le catalogue des recouvrements suit UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.
+- **Les modifications de l'app ne se perdent plus quand PureBinarySave est actif.** Ce mod charge sa copie `.bin` de la partie dès qu'elle existe, sans regarder le fichier que l'app venait de modifier. Après une modification de l'app (éditeur de partie, inventaire, retrait des mods absents, copie de partie), les fichiers `.bin` de la partie partent à la Corbeille, et le mod les recrée depuis la partie modifiée. L'app refuse de modifier une partie dont la seule copie complète est le `.bin`.
+- **Une alerte critique quand PureBinarySave tourne sans SpaceCore.** Dans cette configuration, sur Mac, le mod a été vu ne jamais mettre à jour son `.bin` : chaque chargement ramenait la partie au jour où il l'avait convertie.
+- **Les erreurs répétées comptent de nouveau toutes avec UltraSmooth.** UltraSmooth remplace dans le journal SMAPI les lignes identiques au-delà de cinq par une ligne de résumé : l'app la lisait comme une entrée à part, imputée à un mod « Optimizer », et ne comptait l'erreur que cinq fois. Le résumé rend maintenant ses répétitions à l'erreur qu'il cite.
+- **La sonde signale UltraSmooth comme incompatible avec ses mesures.** Son étalement du changement d'heure, actif par défaut, appelle lui-même les mods à la place de SMAPI : la sonde ne les chronomètre plus, et leur coût passe au compte d'UltraSmooth. L'alerte conseille d'éteindre cette option pendant les mesures, et s'écarte comme toute paire.
 
 ## [1.71.1] - 2026-10-19
 

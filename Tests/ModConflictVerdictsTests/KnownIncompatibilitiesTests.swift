@@ -67,4 +67,14 @@ struct KnownIncompatibilitiesTests {
         #expect(KnownIncompatibilities.reasonKey(for: pair, in: parc) == "conflicts_known_probe_profiler")
         #expect(KnownIncompatibilities.reasonKey(for: ModConflictPair("A", "B"), in: parc) == nil)
     }
+
+    /// X139 — UltraSmooth appelle lui-même les gestionnaires `TimeChanged`
+    /// (`EnableTimeChangedPacing`) : la sonde ne les mesure plus.
+    @Test func probeAndUltraSmoothFormAKnownPair() {
+        let mods = [mod("StarHubFR Probe", id: "mrbabilo.StarHubFR.Probe"),
+                    mod("UltraSmooth", id: "palmhacker13.UltraSmooth")]
+        let pair = ModConflictPair("StarHubFR Probe", "UltraSmooth")
+        #expect(KnownIncompatibilities.pairs(in: mods) == [pair])
+        #expect(KnownIncompatibilities.reasonKey(for: pair, in: mods) == "conflicts_known_probe_ultrasmooth")
+    }
 }

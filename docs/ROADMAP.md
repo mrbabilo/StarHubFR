@@ -86,43 +86,37 @@ Les X1–X137 vivent à l'archive, indexés au §11. X120–X127 (audit du delta
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
-**Trois correctifs ouverts** (décompilation du 2026-11-02,
-[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), tous trois nés de
-mods tiers que l'app ne voit pas encore :
+**X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal) livré le 2026-11-02.
+**Deux correctifs ouverts** (décompilation du 2026-11-02,
+[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), nés de mods tiers :
 
 - [ ] **X138 — Une partie modifiée par l'app perd ses modifications quand
       PureBinarySave est actif.** Ce mod (Nexus 54266) charge `<partie>.bin`
-      dès qu'il existe, sans regarder le XML. L'éditeur de partie, l'éditeur
-      d'inventaire, le retrait des mods absents et le renommage d'une copie
-      écrivent dans le XML : le chargement suivant les ignore, la sauvegarde
-      suivante les écrase, et rien ne prévient l'utilisateur. Même effet, sans
-      l'app, quand on remet le mod en marche après des jours de jeu sans lui :
-      le `.bin` périmé gagne. **Sans SpaceCore, c'est permanent** (observé sur
-      Mac Apple Silicon) : le mod n'a pas réécrit son `.bin` au coucher, et chaque chargement ramène la
-      partie au jour de sa migration (relevés de la sonde du 2026-11-01). Le
-      plus simple à livrer en premier : prévenir quand PureBinarySave est actif
-      sans SpaceCore. Pistes à trancher pour le reste : après une écriture de l'app,
-      retirer le `.bin` de la partie (le mod le recrée au coucher suivant) ;
-      refuser l'édition et dire pourquoi ; prévenir à la réactivation du mod
-      quand le XML est plus récent que le `.bin`. Une copie de partie garde
-      aussi un `.bin` à l'ancien nom, inutile. Pendant les secondes qui
-      suivent le coucher, le XML n'est qu'un talon : la page Parties y lit un
-      fermier « Unknown ».
+      dès qu'il existe, sans regarder le XML. **Livré le 2026-11-02**
+      (`PureBinarySave`) : une alerte critique quand le mod est actif sans
+      SpaceCore actif (observé sur Mac Apple Silicon : le `.bin` n'est pas
+      réécrit au coucher, chaque chargement ramène la partie au jour de sa
+      migration) ; l'éditeur de partie, l'éditeur d'inventaire et la copie de
+      partie refusent une partie dont le XML n'est qu'un talon ou est plus
+      ancien que le `.bin` ; après une écriture complète de l'app (éditeurs,
+      retrait des mods absents, copie), les `.bin` de la partie partent à la
+      Corbeille et le mod les recrée depuis le XML. **Reste** : prévenir à la
+      réactivation du mod quand un `.bin` est plus ancien que le XML (des
+      jours joués sans lui disparaissent sinon) ; dire pourquoi l'édition est
+      refusée (aujourd'hui l'échec générique) ; la page Parties lit un fermier
+      « Unknown » pendant la fenêtre du talon ; l'ancien `.bin` d'une copie
+      reste dans son dossier, inutile.
 - [ ] **X139 — La sonde ne voit plus le coût du changement d'heure avec
       UltraSmooth.** Son `EnableTimeChangedPacing` (actif par défaut) appelle
       lui-même les gestionnaires `TimeChanged` des mods et en reporte une partie
       à ses propres mises à jour : le corps de `ManagedEvent<T>.Raise`, où la
       sonde mesure, ne tourne plus pour cet évènement. Ce coût est imputé à
-      UltraSmooth. Déduit du code, à confirmer par une capture avant de
-      décider : signaler la mesure comme partielle quand UltraSmooth est actif,
-      ou mesurer aussi les gestionnaires qu'il appelle.
-- [ ] **X140 — UltraSmooth réécrit le journal SMAPI.** Son
-      `EnableSmapiOptimizer` (actif par défaut) écrit le journal en différé et
-      remplace, au-delà de cinq, les lignes identiques consécutives par une
-      ligne de résumé sans en-tête, que `SmapiLogParser` rattache au message
-      précédent. Une erreur répétée à chaque image est donc sous-comptée dans
-      les diagnostics. À évaluer : reconnaître la ligne de résumé et lui rendre
-      son compte.
+      UltraSmooth. **Posé le 2026-11-02** : la paire sonde × UltraSmooth est
+      une incompatibilité connue (`KnownIncompatibilities`), qui conseille
+      d'éteindre l'option pendant les mesures ; elle s'écarte comme toute
+      paire. **Reste** : c'est déduit du code, une capture doit le confirmer ;
+      ensuite trancher entre garder cette alerte, marquer la mesure comme
+      partielle, ou mesurer aussi les gestionnaires qu'UltraSmooth appelle.
 
 ---
 
@@ -1897,6 +1891,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X140** | 2026-11-02 | La ligne de résumé qu'UltraSmooth écrit à la place des lignes répétées du journal SMAPI devenait une entrée trace datée « UltraSmooth » et imputée à un mod « Optimizer » ; l'erreur répétée ne comptait que cinq fois par série. Le lecteur reconnaît le résumé et rend ses répétitions à la dernière entrée quand la citation la désigne |
 | **X137** | 2026-10-18 | La recherche du lot ZIP de traduction calculait les bons résultats pour « Tout sélectionner », mais la liste affichait encore tous les mods et le compteur portait sur toute la modlist. Lignes, compte et sélection partagent désormais le même périmètre filtré |
 | **X136** | 2026-10-14 | À la mise à jour, un `config.json` jamais modifié — identique à celui livré par l'auteur — était gardé (règle 1 du tri A1-T11) : StardewOptimizer tournait avec les défauts agressifs de sa 1.0.0 après deux mises à jour. Règle 1b : empreinte d'auteur + archive neuve différente ⇒ le neuf, annoncé au bilan ; sinon gardé |
 | **X135** | 2026-10-14 | La fin d'une série pilotée effaçait l'état sur disque (`GuidedPilotStateStore.clear` à `.reporting`) : quitter l'app avant de trancher perdait le retour arrière, le parc restait côté B sans trace. État gardé jusqu'à `dismiss` ou retour arrière réussi |

@@ -51,6 +51,10 @@ public struct HealthIssue: Identifiable, Equatable {
         /// absent du jeu, et la ligne porte le geste qui le ramène
         /// (`ManifestRepair` : backup, sinon Nexus).
         case manifestUnreadable
+        /// X138 — PureBinarySave actif sans SpaceCore : ses parties reviennent
+        /// au jour de leur conversion (`PureBinarySave.issues`). `critical` :
+        /// des journées de jeu se perdent à chaque chargement.
+        case pureBinarySave
     }
 
     /// Une cible, pas seulement un onglet — c'est tout le manque de l'ancien

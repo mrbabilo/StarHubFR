@@ -14,8 +14,22 @@ public enum SmapiLogParser {
     /// d'exécution — et rejoint l'entrée précédente plutôt que d'en créer une.
     public static func parse(_ text: String) -> [LogEntry] {
         var entries: [LogEntry] = []
+        // La citation d'un résumé d'UltraSmooth peut couper une trace en deux :
+        // sa fin, à la ligne suivante, n'est pas une continuation.
+        var insideSummaryQuote = false
 
         for line in text.components(separatedBy: .newlines) {
+            if insideSummaryQuote {
+                insideSummaryQuote = !line.hasSuffix("\"")
+                continue
+            }
+            if let summary = UltraSmoothSummary(line) {
+                insideSummaryQuote = !summary.quoteIsClosed
+                if let last = entries.last, summary.repeats(last) {
+                    entries += (0..<summary.count).map { _ in last.copy() }
+                }
+                continue
+            }
             guard line.hasPrefix("[") else {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 // Une continuation sans entrée à laquelle se rattacher n'a
@@ -140,6 +154,45 @@ public enum SmapiLogParser {
         return errors
     }
 
+    /// X140 — la ligne qu'UltraSmooth (`EnableSmapiOptimizer`, actif par
+    /// défaut) écrit à la place des lignes identiques consécutives au-delà de
+    /// cinq : `[UltraSmooth SMAPI Optimizer] Suppressed N duplicate log lines:
+    /// "<ligne citée>"`, la citation coupée à 80 caractères suivis de « ... ».
+    /// Lue comme une ligne de SMAPI, elle devenait une entrée datée
+    /// « UltraSmooth », imputée à un mod « Optimizer », et l'erreur répétée ne
+    /// comptait que cinq fois.
+    struct UltraSmoothSummary {
+        static let prefix = "[UltraSmooth SMAPI Optimizer] Suppressed "
+        let count: Int
+        /// La première ligne de la citation, sans « ... » final.
+        let quotedLine: String
+        let quoteIsClosed: Bool
+
+        init?(_ line: String) {
+            guard line.hasPrefix(Self.prefix) else { return nil }
+            let rest = line.dropFirst(Self.prefix.count)
+            guard let space = rest.firstIndex(of: " "), let count = Int(rest[..<space]),
+                  let open = rest.firstIndex(of: "\"") else { return nil }
+            var quote = String(rest[rest.index(after: open)...])
+            quoteIsClosed = quote.hasSuffix("\"")
+            if quoteIsClosed { quote.removeLast() }
+            if quote.hasSuffix("...") { quote.removeLast(3) }
+            self.count = count
+            quotedLine = quote
+        }
+
+        /// Les lignes supprimées sont des copies de la dernière écrite : la
+        /// citation doit donc en être le début, en-tête compris. Sinon on ne
+        /// sait pas ce qui manque, et on n'invente rien.
+        func repeats(_ entry: LogEntry) -> Bool {
+            guard let quoted = SmapiLogParser.header(of: quotedLine) else { return false }
+            let source = quoted.source == "SMAPI" || quoted.source == "game" ? nil : quoted.source
+            return quoted.timestamp == entry.timestamp && quoted.level == entry.level
+                && (source == nil || source == entry.modName)
+                && entry.message.hasPrefix(quoted.message)
+        }
+    }
+
     private static func level(from raw: String) -> LogLevel {
         switch raw.uppercased() {
         case "ERROR": return .error
@@ -226,5 +279,13 @@ extension SmapiLogParser {
     /// est la version **disponible**, ce que l'écran dit explicitement.
     private static func urlHead(_ tail: String) -> String {
         String(tail.prefix { !$0.isWhitespace })
+    }
+}
+
+private extension LogEntry {
+    /// Une autre ligne au même contenu : `id` est neuf, comme pour toute entrée.
+    func copy() -> LogEntry {
+        LogEntry(timestamp: timestamp, message: message, level: level, source: source,
+                 modName: modName, modNameIsInferred: modNameIsInferred)
     }
 }

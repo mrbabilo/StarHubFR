@@ -60,8 +60,8 @@ final class SaveCleanupStore {
         let hadBOM = relu.hadBOM
         manager.invalidateParseCache()
         do {
-            try SaveManager.bytes(Data(résultat.content.utf8), preservingBOM: hadBOM)
-                .write(to: url, options: .atomic)
+            try PureBinarySave.write(SaveManager.bytes(Data(résultat.content.utf8), preservingBOM: hadBOM),
+                                     to: url)
         } catch {
             return .échec(.écriture)
         }

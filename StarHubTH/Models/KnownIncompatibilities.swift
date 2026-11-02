@@ -11,8 +11,13 @@ public enum KnownIncompatibilities {
     /// (postfix sur `DebugTimings`, écoute des pauses GC) : actifs ensemble,
     /// chacun ajoute son coût à ce que l'autre mesure. Aucun plantage mesuré ;
     /// déclarée incompatible par l'auteur le 2026-09-29.
+    /// UltraSmooth (`EnableTimeChangedPacing`, actif par défaut) déclenche
+    /// lui-même les gestionnaires `TimeChanged` hors de `ManagedEvent.Raise`,
+    /// là où la sonde mesure : leur coût passe au compte d'UltraSmooth. Déduit
+    /// de la 2.7.2 décompilée (X139), pas encore vu dans une capture.
     static let rules: [(first: String, second: String, reasonKey: String)] = [
         ("mrbabilo.StarHubFR.Probe", "SinZ.Profiler", "conflicts_known_probe_profiler"),
+        ("mrbabilo.StarHubFR.Probe", "palmhacker13.UltraSmooth", "conflicts_known_probe_ultrasmooth"),
     ]
 
     /// Les paires présentes dans le parc (composants de pack compris).

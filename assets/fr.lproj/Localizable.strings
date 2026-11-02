@@ -1936,6 +1936,7 @@
 "conflicts_predicted_dormant" = "Prévu · en pause";
 "conflicts_predicted_detail" = "Les deux chargent %@ en exclusif : Content Patcher n'appliquera ni l'un ni l'autre.";
 "conflicts_known_probe_profiler" = "Les deux chronomètrent les mêmes points de la trame : chacun ajoute son coût à ce que l'autre mesure, et les temps relevés sont gonflés. Mettez Profiler en pause pendant les mesures de la sonde.";
+"conflicts_known_probe_ultrasmooth" = "UltraSmooth appelle lui-même les mods qui réagissent au changement d'heure (son option EnableTimeChangedPacing, active par défaut) : la sonde ne les chronomètre plus, et leur coût est mis au compte d'UltraSmooth. Désactivez cette option dans la config d'UltraSmooth pendant les mesures de la sonde.";
 "logs_segment_performance" = "Performances";
 "perf_no_probe" = "Aucune donnée de la sonde StarHubFR : installez-la depuis la carte « Sonde » en haut de la page, puis jouez une session.";
 "perf_need_two" = "Il faut deux sessions de la sonde pour comparer.";
@@ -2642,6 +2643,8 @@
 "updates_outcome_ambiguous_page" = "Page Nexus partagée par des versions différentes";
 "updates_outcome_not_reached" = "Pas vérifié sur Nexus (clé d'API absente, limite ou arrêt)";
 "health_manifest_unreadable_title" = "Manifeste illisible : %@";
+"health_pure_binary_save_title" = "PureBinarySave tourne sans SpaceCore";
+"health_pure_binary_save_detail" = "Dans cette configuration, sur Mac, PureBinarySave a été vu ne jamais mettre à jour son fichier .bin au coucher : chaque chargement ramène alors la partie au jour de sa conversion. Mettez-le en pause : le jeu recharge la partie XML, qui reste à jour. N'utilisez pas sa commande de retour au XML, qui reconstruit la partie depuis l'ancien .bin.";
 "health_action_repair_manifest" = "Restaurer le manifeste";
 "health_action_reinstall_nexus" = "Réinstaller depuis Nexus";
 "keybind_plan_title" = "Plan de raccourcis";

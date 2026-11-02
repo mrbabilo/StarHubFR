@@ -441,7 +441,7 @@ final class StarHubTHViewModel {
                                                    keybindReport: keybindReport,
                                                    conflicts: live,
                                                    folderCollisions: collisionIssues + warningIssues
-                                                       + maliciousIssues + manifestIssues,
+                                                       + maliciousIssues + manifestIssues + PureBinarySave.issues(installedMods, localization.L),
                                                    displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })

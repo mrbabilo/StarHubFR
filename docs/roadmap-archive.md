@@ -3818,6 +3818,20 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X140** ✅ *(corrigé le 2026-11-02, relevé en décompilant UltraSmooth 2.7.2)* —
+      **UltraSmooth réécrit le journal SMAPI.** Son `EnableSmapiOptimizer`
+      (actif par défaut) remplace, au-delà de cinq, les lignes identiques
+      consécutives par `[UltraSmooth SMAPI Optimizer] Suppressed N duplicate
+      log lines: "<ligne coupée à 80 caractères>..."`. Cette ligne commence
+      par un crochet : `SmapiLogParser` en faisait une entrée trace datée
+      « UltraSmooth » et imputée à un mod « Optimizer », et l'erreur répétée
+      ne comptait que cinq fois par série. Le lecteur reconnaît le résumé
+      (`UltraSmoothSummary`) et ajoute N copies de la dernière entrée,
+      seulement quand la citation la désigne (horodatage, niveau, source et
+      début du message) ; une citation coupée au milieu d'une trace est
+      sautée jusqu'à son guillemet de fin. Cinq tests
+      (`UltraSmoothLogSummaryTests`). Audit :
+      [`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md).
 - [x] **X137** ✅ *(corrigé le 2026-10-18, audit visuel de toutes les vues)* —
       **La recherche du lot ZIP de traduction ne filtrait pas la liste affichée.**
       `TranslationLotShuttleView` calculait bien `visible` et « Tout

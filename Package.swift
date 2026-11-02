@@ -75,6 +75,7 @@ let package = Package(
                 "Models/ContentPatcherConflicts.swift",
                 "Models/ModConflictVerdicts.swift",
                 "Models/KnownIncompatibilities.swift",
+                "Models/PureBinarySave.swift",
                 "Models/PerformanceOverlap.swift",
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",
@@ -457,6 +458,11 @@ let package = Package(
                 "Models/ChangelogExcerpt.swift",
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "PureBinarySaveTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/PureBinarySaveTests"
         ),
         .testTarget(
             name: "ModProblemKindsTests",

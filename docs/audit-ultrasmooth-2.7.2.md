@@ -161,6 +161,13 @@ Vérifié dans les deux codes, rien exécuté :
   voit un document presque vide : la page Parties (`parseSaveFile` lit ce
   fichier, pas `SaveGameInfo`) affiche un fermier « Unknown » sans argent ni
   date, et l'empreinte de la partie (`SaveFingerprint`) ne trouve aucun mod.
+- **Corrigé en partie le 2026-11-02 (X138).** Après une écriture complète de
+  l'app, les `.bin` de la partie partent à la Corbeille et le mod les recrée
+  depuis le XML. Les éditeurs et la copie refusent une partie dont le XML n'est
+  qu'un talon ou est plus ancien que le `.bin` de plus de 3 s. Une alerte
+  critique signale PureBinarySave actif sans SpaceCore actif. Reste ouvert : la
+  réactivation après des jours sans le mod, et la lecture pendant la fenêtre du
+  talon.
 - **Sauvegardes et restaurations : saines.** Elles copient le dossier entier,
   `.bin` compris, et une restauration remplace tout le dossier.
 - **Poids.** Le cache d'assets vit dans le dossier de la partie : il entre dans
@@ -201,6 +208,10 @@ codes ; aucune mesure ne l'a encore montrée.
 
 Le module existait déjà en 2.7.0 ; aucun audit précédent ne l'avait relevé.
 
+**Posé le 2026-11-02 (X139)** : la paire sonde × UltraSmooth est une
+incompatibilité connue de l'app, qui conseille d'éteindre l'option pendant les
+mesures. La déduction reste à confirmer par une capture.
+
 ### Le journal SMAPI réécrit (X140)
 
 `EnableSmapiOptimizer` (actif par défaut et sur le parc) remplace l'écriture du
@@ -210,11 +221,16 @@ fichier `SMAPI-latest.txt` :
   100 ms au plus ; seules les lignes qui contiennent « Fatal » ou « Crash » sont
   écrites tout de suite. Un arrêt brutal peut perdre la fin du journal ;
 - **au-delà de cinq lignes identiques consécutives**, les suivantes sont
-  remplacées par une ligne de résumé, sans horodatage ni niveau.
+  remplacées par une ligne de résumé, sans horodatage ni niveau, qui commence
+  par `[UltraSmooth SMAPI Optimizer] Suppressed N duplicate log lines:` et cite
+  la ligne répétée, coupée à 80 caractères.
 
-`SmapiLogParser` rattache une ligne sans en-tête à l'entrée précédente : le
-résumé devient la suite du dernier message répété. Une erreur répétée à chaque
-image ne compte donc que cinq fois par série dans les diagnostics de l'app.
+Cette ligne commence par un crochet, comme un en-tête SMAPI : `SmapiLogParser`
+en faisait une entrée à part, de niveau trace, datée « UltraSmooth » et imputée
+à un mod « Optimizer ». Une erreur répétée à chaque image ne comptait donc que
+cinq fois par série dans les diagnostics de l'app. **Corrigé (X140)** : le
+lecteur reconnaît le résumé et rend à la dernière entrée ses N répétitions,
+seulement quand la citation désigne bien cette entrée.
 
 Le même module fait aussi sauter certaines images à la mise à jour des
 surveillances de fichiers de SMAPI quand le moteur de cadence est actif.

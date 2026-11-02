@@ -570,7 +570,7 @@ public final class SaveManager: @unchecked Sendable {
     func updateSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) -> Bool {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
-        guard backupSave(info: info) else { return false }
+        guard PureBinarySave.allowsEditing(info.fileURL), backupSave(info: info) else { return false }
 
         // Marque relevée **avant** la lecture, qui la consomme.
         let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
@@ -607,8 +607,8 @@ public final class SaveManager: @unchecked Sendable {
         
         do {
             guard let payload = content.data(using: .utf8) else { return false }
-            try Self.bytes(payload, preservingBOM: hadBOM)
-                .write(to: info.fileURL, options: .atomic)
+            try PureBinarySave.write(Self.bytes(payload, preservingBOM: hadBOM),
+                                     to: info.fileURL)
             return true
         } catch {
             print("Failed to write updated save: \(error)")
@@ -876,7 +876,7 @@ public final class SaveManager: @unchecked Sendable {
             var modified = replaceFirstTag(tag: "name", with: newPlayerName, in: content)
             modified = replaceFirstTag(tag: "farmName", with: newFarmName, in: modified)
             guard let payload = modified.data(using: .utf8) else { return }
-            try Self.bytes(payload, preservingBOM: hadBOM).write(to: url, options: .atomic)
+            try PureBinarySave.write(Self.bytes(payload, preservingBOM: hadBOM), to: url)
         }
 
         if fm.fileExists(atPath: saveGameInfoURL.path) {
@@ -892,8 +892,8 @@ public final class SaveManager: @unchecked Sendable {
     /// branchFromBackup).
     /// Rend le nom du dossier créé (celui que le jeu charge), ou nil en échec.
     private func cloneSaveFolder(sourceFolder: URL, baseName: String, suffix: String, newPlayerName: String, newFarmName: String, context: String) -> String? {
-        // Invalidation ici, pas chez un seul des deux appelants.
-        invalidateParseCache()
+        invalidateParseCache()  // ici, pas chez un seul des deux appelants
+        guard PureBinarySave.allowsEditing(sourceFolder.appendingPathComponent(baseName)) else { return nil }  // X138
         let fm = FileManager.default
         let parentDir = sourceFolder.deletingLastPathComponent()
 
@@ -1105,8 +1105,8 @@ public final class SaveManager: @unchecked Sendable {
     func updateInventory(info: SaveGameInfo, items: [InventoryItem]) -> Bool {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
-        // Backup first
-        guard backupSave(info: info) else { return false }
+        // Backup first ; une partie dont le `.bin` porte la seule copie complète : refusée (X138).
+        guard PureBinarySave.allowsEditing(info.fileURL), backupSave(info: info) else { return false }
         
         let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
         guard let data = try? Data(contentsOf: info.fileURL),
@@ -1152,8 +1152,8 @@ public final class SaveManager: @unchecked Sendable {
         
         do {
             let updatedXMLData = document.xmlData(options: .nodePrettyPrint)
-            try Self.bytes(updatedXMLData, preservingBOM: hadBOM)
-                .write(to: info.fileURL, options: .atomic)
+            try PureBinarySave.write(Self.bytes(updatedXMLData, preservingBOM: hadBOM),
+                                     to: info.fileURL)
             return true
         } catch {
             print("Failed to save updated inventory XML: \(error)")
