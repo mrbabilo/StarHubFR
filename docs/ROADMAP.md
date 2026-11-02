@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-10-19 (dernière version publiée : v1.70.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-02 (dernière version publiée : v1.71.1).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -86,7 +86,43 @@ Les X1–X137 vivent à l'archive, indexés au §11. X120–X127 (audit du delta
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
-**Aucun correctif ouvert.**
+**Trois correctifs ouverts** (décompilation du 2026-11-02,
+[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), tous trois nés de
+mods tiers que l'app ne voit pas encore :
+
+- [ ] **X138 — Une partie modifiée par l'app perd ses modifications quand
+      PureBinarySave est actif.** Ce mod (Nexus 54266) charge `<partie>.bin`
+      dès qu'il existe, sans regarder le XML. L'éditeur de partie, l'éditeur
+      d'inventaire, le retrait des mods absents et le renommage d'une copie
+      écrivent dans le XML : le chargement suivant les ignore, la sauvegarde
+      suivante les écrase, et rien ne prévient l'utilisateur. Même effet, sans
+      l'app, quand on remet le mod en marche après des jours de jeu sans lui :
+      le `.bin` périmé gagne. **Sans SpaceCore, c'est permanent** (observé sur
+      Mac Apple Silicon) : le mod n'a pas réécrit son `.bin` au coucher, et chaque chargement ramène la
+      partie au jour de sa migration (relevés de la sonde du 2026-11-01). Le
+      plus simple à livrer en premier : prévenir quand PureBinarySave est actif
+      sans SpaceCore. Pistes à trancher pour le reste : après une écriture de l'app,
+      retirer le `.bin` de la partie (le mod le recrée au coucher suivant) ;
+      refuser l'édition et dire pourquoi ; prévenir à la réactivation du mod
+      quand le XML est plus récent que le `.bin`. Une copie de partie garde
+      aussi un `.bin` à l'ancien nom, inutile. Pendant les secondes qui
+      suivent le coucher, le XML n'est qu'un talon : la page Parties y lit un
+      fermier « Unknown ».
+- [ ] **X139 — La sonde ne voit plus le coût du changement d'heure avec
+      UltraSmooth.** Son `EnableTimeChangedPacing` (actif par défaut) appelle
+      lui-même les gestionnaires `TimeChanged` des mods et en reporte une partie
+      à ses propres mises à jour : le corps de `ManagedEvent<T>.Raise`, où la
+      sonde mesure, ne tourne plus pour cet évènement. Ce coût est imputé à
+      UltraSmooth. Déduit du code, à confirmer par une capture avant de
+      décider : signaler la mesure comme partielle quand UltraSmooth est actif,
+      ou mesurer aussi les gestionnaires qu'il appelle.
+- [ ] **X140 — UltraSmooth réécrit le journal SMAPI.** Son
+      `EnableSmapiOptimizer` (actif par défaut) écrit le journal en différé et
+      remplace, au-delà de cinq, les lignes identiques consécutives par une
+      ligne de résumé sans en-tête, que `SmapiLogParser` rattache au message
+      précédent. Une erreur répétée à chaque image est donc sous-comptée dans
+      les diagnostics. À évaluer : reconnaître la ligne de résumé et lui rendre
+      son compte.
 
 ---
 

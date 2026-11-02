@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Le catalogue des recouvrements suit UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.
+
 ## [1.71.1] - 2026-10-19
 
 ### Fixed

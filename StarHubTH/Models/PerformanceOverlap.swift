@@ -9,10 +9,11 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; dernière remesure le 2026-10-19 sur les versions du parc :
-/// UltraSmooth 2.6.2, Radiance 2.3.4, Stardropium 0.3.0 — détail dans
-/// `docs/audit-ultrasmooth-2.6.2.md` ; la première mesure du 2026-09-26
-/// portait 2.4.1 / 2.2.1 / 0.2.0-beta) :
+/// (ilspycmd ; dernière remesure le 2026-11-02 sur les versions du parc :
+/// UltraSmooth 2.7.2, Radiance 2.4.5, Stardropium 0.3.0 — détail dans
+/// `docs/audit-ultrasmooth-2.7.2.md` ; la précédente, du 2026-10-19, portait
+/// 2.6.2 / 2.3.4 / 0.3.0, la première, du 2026-09-26, 2.4.1 / 2.2.1 /
+/// 0.2.0-beta) :
 /// une méthode compte quand les deux DLL posent un `harmony.Patch` dessus,
 /// **y compris par balayage dynamique des assemblies** (`Monster.update` est
 /// posée ainsi par UltraSmooth comme par StardewOptimizer — noté « balayage
@@ -26,7 +27,11 @@ import Foundation
 /// signature. Les paires à une
 /// seule méthode (`ScreenFade.UpdateFadeAlpha`, `Town.getMapLoader`,
 /// `Debris.updateChunks`, et StardewOptimizer × Stardropium sur
-/// `NPC.update`) sont écartées comme bruit.
+/// `NPC.update`) sont écartées comme bruit. PureBinarySave 1.0.7 n'entre dans
+/// aucune paire : `GameLocation.reloadMap` seule avec Stardropium,
+/// `Game1.loadForNewGame` seule avec Loading Optimizer (dont les six autres
+/// communes sont derrière `EnableDetailedDiagnostics`, éteint par défaut), et
+/// la traversée SpaceCore qu'UltraSmooth patche, il l'appelle sans la patcher.
 ///
 /// La clé est l'`UniqueID`, pas le `folderName` de `ModConflictPair` : un nom
 /// de dossier change d'un parc à l'autre, l'identifiant du manifeste non.
@@ -84,11 +89,11 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.6.2",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.7.2",
                                             assemblyName: "UltraSmooth")
     private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.3.0",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.3.4",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.4.5",
                                          assemblyName: "SDV-Radiance")
     private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "3.0.3",
                                                  assemblyName: "StardewOptimizer")
@@ -143,10 +148,18 @@ extension PerformanceOverlap {
             // (`Bat.drawAboveAllLayers`, nommée chez Radiance) et les
             // personnages (`Junimo.draw`, `JunimoHarvester.draw`, que Radiance
             // couvre par sa liste des personnages à ombre propre).
+            // Remesure 2026-11-02 (UltraSmooth 2.7.2, Radiance 2.4.5) : Radiance
+            // patche désormais l'éclairage que `LightMapOptimizer` d'UltraSmooth
+            // patchait déjà (`LightSource.Draw`, lueur des lampes depuis leur
+            // ampoule ; `GameLocation.drawLightGlows`, lueur des fenêtres).
+            // UltraSmooth détecte Radiance et dit lui céder l'éclairage, mais
+            // pose ses deux préfixes quand même, gardés par `EnableLightCulling`
+            // (vrai par défaut).
             sharedMethods: ["Bat.drawAboveAllLayers", "Bush.draw", "Critter.draw",
                             "Critter.drawAboveFrontLayer", "Game1.drawMouseCursor",
-                            "GameLocation.updateWater", "Grass.draw", "Junimo.draw",
-                            "JunimoHarvester.draw", "Object.draw", "SpriteBatch.Draw",
+                            "GameLocation.drawLightGlows", "GameLocation.updateWater",
+                            "Grass.draw", "Junimo.draw", "JunimoHarvester.draw",
+                            "LightSource.Draw", "Object.draw", "SpriteBatch.Draw",
                             "TemporaryAnimatedSprite.update", "Tree.draw"],
             conditionalMethods: [], conditionalOption: nil),
         // StardewOptimizer 1.0.0 (A5-T10) : `Monster.update` est posée par
@@ -173,9 +186,12 @@ extension PerformanceOverlap {
             first: stardropium, second: stardewOptimizer,
             sharedMethods: ["Furniture.draw", "NPC.update"],
             conditionalMethods: [], conditionalOption: nil),
+        // `LightSource.Draw` : neuve côté Radiance en 2.4.x (lueur des lampes
+        // posée sur l'ampoule) ; Stardropium y pose son culling de lumières
+        // (`EnableLightCulling`, vrai par défaut).
         PerformanceOverlap(
             first: radiance, second: stardropium,
-            sharedMethods: ["Bush.draw", "Grass.draw", "Layer.Draw", "Tree.draw"],
+            sharedMethods: ["Bush.draw", "Grass.draw", "Layer.Draw", "LightSource.Draw", "Tree.draw"],
             conditionalMethods: [], conditionalOption: nil),
         // `LoadRawImageData` est une méthode de SMAPI, pas du jeu : les deux
         // mods y greffent chacun leur cache d'images décodées.

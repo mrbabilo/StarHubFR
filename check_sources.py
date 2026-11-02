@@ -552,11 +552,12 @@ SOURCES = [
      "role": "moteur de sauvegarde binaire de l'auteur d'UltraSmooth (1.0.7, "
              "paru le 2026-10-22, en pause sur le parc) : la partie s'écrit "
              "d'abord dans un .bin, le XML vanilla n'est recopié que ~6 s après "
-             "le réveil, et plus du tout en mode disque pur — ce que l'app lit "
-             "et édite dans le XML peut être en retard ou ignoré. Porte aussi "
-             "des accélérations de chargement Content Patcher (catalogue A5-T7). "
-             "Page lue le 2026-11-02, non décompilé",
-     "used_by": "docs/SOURCES.md §5 (relevé du 2026-11-02)"},
+             "le réveil, et plus du tout en mode disque pur ; le chargement "
+             "lit le .bin dès qu'il existe, sans comparer de date — ce que "
+             "l'app écrit dans le XML est ignoré puis écrasé (X138). Décompilé "
+             "le 2026-11-02 ; hors du catalogue A5-T7 (une méthode commune au "
+             "plus avec chaque mod de perf)",
+     "used_by": "docs/audit-ultrasmooth-2.7.2.md, docs/SOURCES.md §5"},
 
     {"key": "mod/faster-menu-load", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 41564, "uniqueId": "ZeroXPatch.FasterMenuLoad",
@@ -694,8 +695,8 @@ SOURCES = [
              "internes d'autres mods) ; paru et audité le 2026-09-25, delta "
              "0.1.3 puis 0.1.4-beta audités le 2026-09-26, actif sur le parc "
              "à côté d'UltraSmooth. UpdateKeys Nexus + GitHub depuis 0.1.4 ; "
-             "20 méthodes patchées en commun avec UltraSmooth 2.6.2 "
-             "(catalogue A5-T7, remesuré le 2026-10-19)",
+             "20 méthodes patchées en commun avec UltraSmooth 2.7.2 "
+             "(catalogue A5-T7, remesuré le 2026-11-02)",
      "used_by": "docs/audit-stardropium.md, docs/SOURCES.md §5"},
 
     {"key": "mod/stardewoptimizer", "kind": "smapi-mod", "probe": probe_smapi_mod,

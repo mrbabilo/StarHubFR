@@ -85,17 +85,16 @@ struct PerformanceOverlapTests {
         }
     }
 
-    /// Remesure du 2026-10-19 sur les versions du parc : UltraSmooth 2.6.2
-    /// (Nexus publie déjà la 2.6.3, absente du parc : l'écran demandera une
-    /// remesure à son installation), Radiance 2.3.4, Stardropium 0.3.0,
-    /// StardewOptimizer 3.0.3.
+    /// Remesure du 2026-11-02 sur les versions du parc : UltraSmooth 2.7.2,
+    /// Radiance 2.4.5 ; Stardropium 0.3.0 et StardewOptimizer 3.0.3 n'ont pas
+    /// bougé depuis celle du 2026-10-19.
     @Test func lesVersionsMesureesSontCellesDuParc() {
         func measured(_ id: String) -> String? {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.6.2")
-        #expect(measured("phuicmt.SDVRadiance") == "2.3.4")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.7.2")
+        #expect(measured("phuicmt.SDVRadiance") == "2.4.5")
         #expect(measured("Arshia1381.Stardropium") == "0.3.0")
         #expect(measured("baiyu.StardewOptimizer") == "3.0.3")
     }
@@ -176,5 +175,30 @@ struct PerformanceOverlapTests {
             $0.key == "palmhacker13.ultrasmooth|phuicmt.sdvradiance"
         })
         #expect(radUS.sharedMethods.contains("SpriteBatch.Draw"))
+    }
+
+    /// Radiance 2.4.x patche l'éclairage : `LightSource.Draw` rejoint ses
+    /// paires avec UltraSmooth et Stardropium, `drawLightGlows` la première.
+    @Test func lEclairageDeRadiance245RejointSesPaires() throws {
+        let radUS = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "palmhacker13.ultrasmooth|phuicmt.sdvradiance"
+        })
+        #expect(radUS.sharedMethods.contains("LightSource.Draw"))
+        #expect(radUS.sharedMethods.contains("GameLocation.drawLightGlows"))
+        #expect(radUS.sharedMethods.count == 15)
+        let radDrop = try #require(PerformanceOverlap.catalog.first {
+            $0.key == "arshia1381.stardropium|phuicmt.sdvradiance"
+        })
+        #expect(radDrop.sharedMethods.sorted()
+                == ["Bush.draw", "Grass.draw", "Layer.Draw", "LightSource.Draw", "Tree.draw"])
+    }
+
+    /// PureBinarySave 1.0.7 ne recoupe aucun mod du catalogue sur plus d'une
+    /// méthode dans sa configuration par défaut : il n'y entre pas.
+    @Test func pureBinarySaveNEntreDansAucunePaire() {
+        #expect(!PerformanceOverlap.catalog.contains {
+            $0.first.uniqueId == "palmhacker13.PureBinarySave"
+                || $0.second.uniqueId == "palmhacker13.PureBinarySave"
+        })
     }
 }
