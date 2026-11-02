@@ -2723,6 +2723,7 @@
 "keybind_plan_none_movable" = "Aucun déplacement possible : voir les réglages non déplaçables ci-dessous.";
 "keybind_plan_remaining" = "Conflits restants après la nouvelle analyse : %lld";
 "help_title" = "Aide StarHubFR";
+"help_report_bug" = "Signaler un bug sur GitHub…";
 "help_contents" = "Sommaire";
 "help_search_prompt" = "Chercher dans le guide";
 "help_no_results" = "Aucune section ne contient « %@ ».";

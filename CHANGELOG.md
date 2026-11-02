@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **Signaler un bug sur GitHub depuis l'app** (menu Aide). Le formulaire de bug du dépôt s'ouvre dans le navigateur, avec la version de StarHubFR, celle de macOS et le processeur déjà remplis. Rien d'autre n'est envoyé : vous relisez le formulaire avant de l'envoyer.
 - **Les boutons de Taum's Inventory Hotkeys ne passent plus pour des conflits.** Ses boutons rejouent les raccourcis d'autres mods : l'analyse des raccourcis les sort des collisions et le dit en pied de page. Elle signale aussi un bouton qui ne déclenche plus rien, parce qu'aucun mod actif n'utilise sa touche. Ses propres commandes, lues seulement sur ses boutons de l'inventaire, ne sont plus en conflit avec les contrôles du jeu.
 - **Les clés d'API et mots de passe sont masqués dans l'éditeur de configuration.** Keybind Sheet, par exemple, garde ses clés de traduction en clair dans son `config.json`. L'onglet JSON brut les montre encore.
 

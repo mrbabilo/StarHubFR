@@ -2723,6 +2723,7 @@
   "keybind_plan_none_movable": "No move possible: see the settings that cannot move below.",
   "keybind_plan_remaining": "Conflicts left after the new analysis: %lld",
   "help_title": "StarHubFR Help",
+  "help_report_bug": "Report a Bug on GitHub…",
   "help_contents": "Contents",
   "help_search_prompt": "Search the guide",
   "help_no_results": "No section contains “%@”.",

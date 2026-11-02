@@ -9,5 +9,7 @@ extension L10n {
         static let pageButton = "help_page_button"
         static let missing = "help_missing"
         static let openOnline = "help_open_online"
+        /// Le formulaire de bug du dépôt, versions préremplies (`BugReportLink`).
+        static let reportBug = "help_report_bug"
     }
 }

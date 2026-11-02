@@ -34,7 +34,7 @@ body:
     id: starhubfr-version
     attributes:
       label: Version de StarHubFR
-      description: En bas des Réglages, ou menu StarHubFR › À propos.
+      description: Remplie d'office depuis le menu Aide › Signaler un bug sur GitHub. Sinon, en bas des Réglages ou menu StarHubFR › À propos.
       placeholder: "v1.66.0"
     validations:
       required: true
@@ -42,6 +42,7 @@ body:
     id: macos-version
     attributes:
       label: Version de macOS
+      description: Remplie d'office depuis l'app, processeur compris.
       placeholder: "macOS 15.5"
     validations:
       required: true

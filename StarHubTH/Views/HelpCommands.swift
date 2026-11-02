@@ -17,5 +17,8 @@ struct HelpCommands: View {
         .keyboardShortcut("?", modifiers: .command)
         Button(localization.L(L10n.Shortcuts.title)) { navigation.showsShortcutsHelp = true }
             .keyboardShortcut(KeyEquivalent(Character(KeyboardShortcutCatalog.helpKey)), modifiers: .command)
+        Divider()
+        // Le navigateur ouvre le formulaire : l'utilisateur le relit et l'envoie.
+        Button(localization.L(L10n.Help.reportBug)) { NSWorkspace.shared.open(BugReportLink.current) }
     }
 }

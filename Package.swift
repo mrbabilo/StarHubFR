@@ -375,6 +375,7 @@ let package = Package(
                 "Models/KeybindOverview.swift",
                 "Models/KeybindPlanner.swift",
                 "Models/HelpGuide.swift",
+                "Models/BugReportLink.swift",
                 "Models/KeybindPlanWriter.swift",
                 "Models/MacKeyCodeMap.swift",
                 "Models/SavePlayerFields.swift",
@@ -1703,6 +1704,11 @@ let package = Package(
             name: "HealthIssueTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HealthIssueTests"
+        ),
+        .testTarget(
+            name: "BugReportLinkTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/BugReportLinkTests"
         ),
         .testTarget(
             name: "ConfigSecretFieldTests",
