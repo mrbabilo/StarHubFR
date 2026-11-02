@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Un bouton icône du pied de la barre latérale, entre thème et langue :
 /// les réglages, le journal des modifications (qui y tenait une ligne entière
-/// de la liste, sur deux lignes en français) et l'aide des raccourcis clavier.
-/// Trois pages qu'on ouvre rarement — une icône suffit, l'infobulle et VoiceOver
+/// de la liste, sur deux lignes en français), l'aide des raccourcis clavier et
+/// le signalement d'un bug sur GitHub. Des pages qu'on ouvre rarement — une icône suffit, l'infobulle et VoiceOver
 /// portent le titre. Même habillage que `ThemeToggle`, dont il partage la
 /// rangée.
 struct SidebarFooterIconButton: View {
@@ -31,7 +31,7 @@ struct SidebarFooterIconButton: View {
     }
 }
 
-/// Les pages et aides du pied : réglages, journal et raccourcis clavier.
+/// Les pages et aides du pied : réglages, journal, raccourcis clavier, bug.
 struct SidebarFooterPages: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
@@ -45,6 +45,10 @@ struct SidebarFooterPages: View {
                                     isActive: currentTab == .appChangelog) { currentTab = .appChangelog }
             SidebarFooterIconButton(icon: "keyboard", title: localization.L(L10n.Shortcuts.title)) {
                 vm.navigationStore.showsShortcutsHelp = true
+            }
+            // Comme le menu Aide : le formulaire du dépôt, versions préremplies.
+            SidebarFooterIconButton(icon: "ladybug", title: localization.L(L10n.Help.reportBug)) {
+                NSWorkspace.shared.open(BugReportLink.current)
             }
         }
     }
