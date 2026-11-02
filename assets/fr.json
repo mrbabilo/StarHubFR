@@ -1944,6 +1944,7 @@
   "perf_no_probe": "Aucune donnée de la sonde StarHubFR : installez-la depuis la carte « Sonde » en haut de la page, puis jouez une session.",
   "perf_need_two": "Il faut deux sessions de la sonde pour comparer.",
   "perf_loading": "Lecture des mesures de la sonde…",
+  "home_probe_update_body": "L'app livre une version de la sonde plus récente que celle de votre dossier Mods. Mettez-la à jour pour profiter de ses corrections ; elle prendra effet au prochain lancement du jeu.",
   "perf_probe_title": "Sonde StarHubFR",
   "perf_probe_absent": "La sonde StarHubFR n'est pas installée. C'est elle qui mesure le temps et la mémoire que coûte chaque mod, et la durée des chargements.",
   "perf_probe_paused": "La sonde est installée mais en pause (%@) : le jeu ne la charge pas.",

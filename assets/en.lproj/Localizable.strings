@@ -1944,6 +1944,7 @@
 "perf_no_probe" = "No data from the StarHubFR probe: install it from the “Probe” card at the top of the page, then play a session.";
 "perf_need_two" = "Two probe sessions are needed to compare.";
 "perf_loading" = "Reading the probe's measurements…";
+"home_probe_update_body" = "The app ships a newer version of the probe than the one in your Mods folder. Update it to get its fixes; it takes effect at the next launch of the game.";
 "perf_probe_title" = "StarHubFR probe";
 "perf_probe_absent" = "The StarHubFR probe is not installed. It measures the time and memory each mod costs, and how long loading takes.";
 "perf_probe_paused" = "The probe is installed but paused (%@): the game does not load it.";

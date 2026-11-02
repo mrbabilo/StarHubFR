@@ -162,6 +162,9 @@ struct HomeView: View {
                 // R5 — recherche, benchmark ou mesure pilotée laissés en plan.
                 InterruptedOperationsNotice(viewModel: viewModel, localization: localization, bisection: bisection)
 
+                // Une sonde plus récente livrée avec l'app : rien sinon.
+                HomeProbeUpdateNotice(viewModel: viewModel, localization: localization)
+
                 // ── ATTENTION STRIP ──
                 attentionStrip
                     .padding(.horizontal, 40)
