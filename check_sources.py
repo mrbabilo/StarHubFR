@@ -631,6 +631,34 @@ SOURCES = [
              "réseau ni Harmony. Dépend de StardewUI 0.6.1+. UpdateKeys vide",
      "used_by": "docs/SOURCES.md §5"},
 
+    {"key": "mod/keybind-sheet", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 54867,
+     "role": "panneau de raccourcis en jeu (bao7221, 1.0.1, paru le "
+             "2026-10-31), recouvre l'axe C4 : configs de tous les mods + 27 "
+             "raccourcis vanilla, conflits en trois couleurs. Traduction à la "
+             "volée par DeepL/Google/OpenAI/DeepSeek avec la clé de "
+             "l'utilisateur, cache local — emplacement à vérifier. Page lue "
+             "le 2026-11-02, non décompilé ; UniqueID non relevé",
+     "used_by": "docs/SOURCES.md §5"},
+
+    {"key": "mod/mld-keybind", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 54946,
+     "role": "table de raccourcis en jeu qui les RÉÉCRIT (MLD210, 0.2.0, "
+             "paru le 2026-11-02) : vanilla dans les options, mods par les "
+             "objets GMCM ; changements mis en attente jusqu'à Apply, "
+             "réinitialisation par une copie jetable de la classe de config. "
+             "Page lue le jour même, non décompilé ; UniqueID non relevé",
+     "used_by": "docs/SOURCES.md §5"},
+
+    {"key": "mod/taums-inventory-hotkeys", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 54533,
+     "role": "boutons de raccourcis dans l'inventaire (Taum, version Nexus "
+             "« 7 », paru le 2026-10-25), GMCM requis. Ses profils saisis à "
+             "la main vivent dans Mods/taums-inventory-hotkeys/profiles/ — "
+             "classe « données runtime » du §6, non régénérables. Page lue le "
+             "2026-11-02, non décompilé ; UniqueID non relevé",
+     "used_by": "docs/SOURCES.md §5"},
+
     {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 52709, "uniqueId": "Sky.SaveSaver",
      "role": "sanitation de sauvegardes au chargement (types orphelins, "
