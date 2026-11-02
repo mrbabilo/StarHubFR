@@ -134,32 +134,60 @@ public final class ProbeHarmonyMapCache: @unchecked Sendable {
 /// l'app), plus ≤ 13 ms pour les options d'un mod : sous le seuil de 100 ms
 /// de la spec D4-T7, donc fait au premier appel, sur le fil de l'appelant.
 /// Verrou explicite : le module Core compile en mode Swift 6.
+///
+/// Chaque capture lue est versée dans `GmcmCaptureArchive`, qui garde la
+/// dernière capture de chaque mod : un mod absent de la capture courante (en
+/// pause pendant la dernière session) se lit dans l'archive.
 public final class GmcmCaptureCache: @unchecked Sendable {
-    public static let shared = GmcmCaptureCache(files: ProbeFiles())
+    /// L'archive vit dans `Application Support/StarHubFR` ; hors de l'app
+    /// (tests), aucune : on n'y écrit jamais depuis un test.
+    public static let shared = GmcmCaptureCache(
+        files: ProbeFiles(),
+        archiveURL: AppSupport.isHostedByTheApp
+            ? AppSupport.directory?.appendingPathComponent("gmcm-capture-archive.json") : nil)
 
     private let files: ProbeFiles
+    private let archiveURL: URL?
     private let lock = NSLock()
     private var loaded = false
     private var stamp: ProbeFileStamp?
     private var current: GmcmCapture?
+    private var archive: GmcmCaptureArchive?
 
-    public init(files: ProbeFiles) {
+    public init(files: ProbeFiles, archiveURL: URL? = nil) {
         self.files = files
+        self.archiveURL = archiveURL
     }
 
     public func capture() -> GmcmCapture? {
-        lock.withLock {
-            let latest = ProbeFileStamp.of(files.gmcmOptionsURL)
-            if !loaded || latest != stamp {
-                loaded = true
-                stamp = latest
-                current = latest == nil ? nil : files.gmcmCapture()
+        lock.withLock { reload() }
+    }
+
+    private func reload() -> GmcmCapture? {
+        let latest = ProbeFileStamp.of(files.gmcmOptionsURL)
+        if !loaded || latest != stamp {
+            loaded = true
+            stamp = latest
+            current = latest == nil ? nil : files.gmcmCapture()
+            if let current, let archiveURL {
+                var kept = archive ?? GmcmCaptureArchive.load(from: archiveURL)
+                if kept.absorb(current) {
+                    do { try kept.save(to: archiveURL) } catch {
+                        // Non écrite : gardée en mémoire, réessayée à la capture suivante.
+                    }
+                }
+                archive = kept
             }
-            return current
         }
+        if archive == nil, let archiveURL { archive = GmcmCaptureArchive.load(from: archiveURL) }
+        return current
     }
 
     public func options(forMod uniqueId: String, installedVersion: String) -> GmcmModOptions? {
-        capture()?.options(forMod: uniqueId, installedVersion: installedVersion)
+        lock.withLock {
+            let current = reload()
+            return current?.options(forMod: uniqueId, installedVersion: installedVersion)
+                ?? archive?.options(forMod: uniqueId, installedVersion: installedVersion)
+        }
     }
 }

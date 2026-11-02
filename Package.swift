@@ -130,6 +130,7 @@ let package = Package(
                 "Models/ModImpactFormat.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmModOptions+Layout.swift",
+                "Models/GmcmCaptureArchive.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",
                 "Models/ModGridCardValues.swift",

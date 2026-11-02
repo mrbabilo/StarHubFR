@@ -9,7 +9,7 @@ import Foundation
 /// fichier actuel, une valeur éditée depuis la capture passerait pour un
 /// rapprochement faux.
 public struct GmcmCapture: Sendable {
-    struct RawOption: Decodable, Sendable {
+    struct RawOption: Codable, Sendable {
         let kind: String
         let name: String?
         let tooltip: String?
@@ -27,7 +27,7 @@ public struct GmcmCapture: Sendable {
         let section: String?
     }
 
-    struct RawMod: Decodable, Sendable {
+    struct RawMod: Codable, Sendable {
         let uniqueID: String
         let version: String?
         let configSnapshot: String?
@@ -44,7 +44,7 @@ public struct GmcmCapture: Sendable {
     /// La langue du jeu à la capture (`fr`) : celle des libellés GMCM.
     public let language: String?
     /// Minuscules → mod ; le premier gagne si SMAPI en listait deux.
-    private let modsById: [String: RawMod]
+    let modsById: [String: RawMod]
 
     public static func decode(_ data: Data) -> GmcmCapture? {
         do {
@@ -69,8 +69,15 @@ public struct GmcmCapture: Sendable {
     /// capture sans copie, copie illisible, ou version installée différente
     /// de la version capturée — une mise à jour peut avoir déplacé une clé.
     public func options(forMod uniqueId: String, installedVersion: String) -> GmcmModOptions? {
-        guard let mod = modsById[uniqueId.lowercased()],
-              let captured = mod.version,
+        modsById[uniqueId.lowercased()].flatMap {
+            Self.options(of: $0, language: language, installedVersion: installedVersion)
+        }
+    }
+
+    /// Les options vérifiées d'un mod capturé (`GmcmCaptureArchive` passe
+    /// aussi par ici, avec la langue de sa propre capture).
+    static func options(of mod: RawMod, language: String?, installedVersion: String) -> GmcmModOptions? {
+        guard let captured = mod.version,
               NexusUpdateChecker.compare(captured, installedVersion) == .orderedSame,
               let snapshot = mod.configSnapshot,
               let tree = ConfigJSONTree.parse(snapshot) else { return nil }
