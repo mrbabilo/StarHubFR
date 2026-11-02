@@ -54,12 +54,8 @@ internal static class GmcmExport
             Type? modType = AccessTools.TypeByName("GenericModConfigMenu.Mod");
             object? instance = modType is null ? null : AccessTools.Field(modType, "instance")?.GetValue(null);
             object? manager = instance is null ? null : AccessTools.Field(modType, "ConfigManager")?.GetValue(instance);
-            if (manager is null)
-            {
-                monitor.Log("Options GMCM : registre introuvable (GMCM absent ou structure changée).", LogLevel.Trace);
-                return;
-            }
-            var configs = (IEnumerable)AccessTools.Method(manager.GetType(), "GetAll").Invoke(manager, null)!;
+            var configs = manager is null ? Array.Empty<object>()
+                : (IEnumerable)AccessTools.Method(manager.GetType(), "GetAll").Invoke(manager, null)!;
             var mods = new List<ModOptions>();
             int optionCount = 0, bounded = 0;
             foreach (object config in configs)
@@ -77,6 +73,22 @@ internal static class GmcmExport
                 }
                 mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(),
                                         ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
+            }
+            // Un mod qui trouve MCM s'y inscrit au lieu de GMCM ; MCM reprend
+            // aussi les inscriptions GMCM, déjà lues ci-dessus.
+            var known = new HashSet<string>(mods.Select(m => m.UniqueID), StringComparer.OrdinalIgnoreCase);
+            foreach (var (manifest, options) in McmOptions())
+            {
+                if (!known.Add(manifest.UniqueID)) continue;
+                optionCount += options.Count;
+                bounded += options.Count(o => o.Min is not null || o.Max is not null);
+                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(),
+                                        ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
+            }
+            if (mods.Count == 0)
+            {
+                monitor.Log("Options GMCM : aucun registre lisible (GMCM et MCM absents ou structure changée).", LogLevel.Trace);
+                return;
             }
             string gmcmVersion = helper.ModRegistry.Get("spacechase0.GenericModConfigMenu")?.Manifest.Version.ToString() ?? "?";
             var export = new Export(DateTimeOffset.Now.ToString("o"), gmcmVersion, language, mods);
@@ -163,6 +175,80 @@ internal static class GmcmExport
             value,
             Str(Prop("Minimum")),
             Str(Prop("Maximum")),
+            Str(Prop("Interval")),
+            choices,
+            choiceLabels,
+            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
+            closureStrings.ToList());
+    }
+
+    /// <summary>
+    /// Le registre de ModernConfigMenu (MCM 2.3.4 : `ModEntry.Instance`,
+    /// champ privé `Registry`, `All` → `RegisteredMod.Manifest` et `Settings`),
+    /// lu par réflexion et en lecture seule, comme celui de GMCM. Noms relevés
+    /// en décompilant MCM 2.3.4 (2026-11-02), sans en copier de code. Structure
+    /// changée : vide, l'export GMCM reste.
+    /// </summary>
+    private static List<(IManifest Manifest, List<Option> Options)> McmOptions()
+    {
+        var found = new List<(IManifest, List<Option>)>();
+        try
+        {
+            Type? entry = AccessTools.TypeByName("ModernConfigMenu.ModEntry");
+            object? instance = entry is null ? null : AccessTools.Property(entry, "Instance")?.GetValue(null);
+            object? registry = instance is null ? null : AccessTools.Field(entry, "Registry")?.GetValue(instance);
+            if (registry is null || AccessTools.Property(registry.GetType(), "All")?.GetValue(registry) is not IEnumerable all)
+                return found;
+            foreach (object mod in all)
+            {
+                object? Of(string name) => AccessTools.Property(mod.GetType(), name)?.GetValue(mod);
+                if (Of("Manifest") is not IManifest manifest || Of("Settings") is not IEnumerable settings) continue;
+                var options = settings.Cast<object>().Select(ReadMcm).OfType<Option>().ToList();
+                if (options.Count > 0) found.Add((manifest, options));
+            }
+        }
+        catch
+        {
+            // Une version de MCM qui a changé de forme : rien de plus que GMCM.
+        }
+        return found;
+    }
+
+    private static Option? ReadMcm(object setting)
+    {
+        Type t = setting.GetType();
+        string? kind = GmcmExportRule.McmKind(t.Name);
+        if (kind is null) return null;
+        object? Prop(string name) => AccessTools.Property(t, name)?.GetValue(setting);
+        string? Str(object? o) => o is null ? null : Convert.ToString(o, System.Globalization.CultureInfo.InvariantCulture);
+
+        Delegate? getter = (Prop("Get") ?? Prop("GetKeybindList")) as Delegate;
+        var closureStrings = new SortedSet<string>(StringComparer.Ordinal);
+        string? value = null;
+        try { value = Str(getter?.DynamicInvoke()); } catch { }
+
+        List<string>? choices = (Prop("Choices") as string[])?.ToList();
+        List<string>? choiceLabels = null;
+        if (choices is not null && Prop("Format") is Func<string, string> format)
+        {
+            choiceLabels = choices.Select(choice =>
+            {
+                try { return format(choice) ?? choice; }
+                catch { return choice; }
+            }).ToList();
+        }
+        string? tooltip = null;
+        try { tooltip = Prop("Tooltip") as string; } catch { }
+
+        return new Option(
+            kind,
+            null,
+            Prop("NameGetter") is Func<string> name ? Safe(name) : null,
+            tooltip,
+            getter?.Method.ReturnType.Name,
+            value,
+            Str(Prop("Min")),
+            Str(Prop("Max")),
             Str(Prop("Interval")),
             choices,
             choiceLabels,

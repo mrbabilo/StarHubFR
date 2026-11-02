@@ -25,4 +25,24 @@ public class GmcmExportRuleTests
     [Fact]
     public void ForceAlwaysRewrites() =>
         Assert.True(GmcmExportRule.ShouldWrite(exportedMods: 167, exportedLanguage: "fr", registryMods: 167, language: "fr", force: true));
+
+    /// MCM (ModernConfigMenu) : ses réglages prennent le genre d'option GMCM
+    /// que l'app sait lire ; titres, boutons, images et liens ne se règlent pas.
+    [Theory]
+    [InlineData("ToggleSetting", "SimpleModOption")]
+    [InlineData("TextboxSetting", "SimpleModOption")]
+    [InlineData("KeybindSetting", "SimpleModOption")]
+    [InlineData("SliderSetting", "NumericModOption")]
+    [InlineData("DropdownSetting", "ChoiceModOption")]
+    public void McmSettingsMapToGmcmKinds(string setting, string kind) =>
+        Assert.Equal(kind, GmcmExportRule.McmKind(setting));
+
+    [Theory]
+    [InlineData("LabelSetting")]
+    [InlineData("ButtonSetting")]
+    [InlineData("PageLinkSetting")]
+    [InlineData("ImageSetting")]
+    [InlineData("ComplexSetting")]
+    public void McmDisplayOnlySettingsAreSkipped(string setting) =>
+        Assert.Null(GmcmExportRule.McmKind(setting));
 }
