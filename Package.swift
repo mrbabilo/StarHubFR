@@ -365,6 +365,7 @@ let package = Package(
                 "Models/KeybindContexts.swift",
                 "Models/KeybindScanner+Annotation.swift",
                 "Models/KeybindScanner+Classify.swift",
+                "Models/KeybindScanner+Relay.swift",
                 "Models/GameControlDefaults.swift",
                 "Models/GameControlPreferences.swift",
                 "Models/KeybindReportExport.swift",
@@ -388,6 +389,7 @@ let package = Package(
                 "Models/BackupRetentionSummary.swift",
                 "Models/ConfigBackupSoleCopy.swift",
                 "Models/ConfigRestoreWhileRunning.swift",
+                "Models/ConfigSecretField.swift",
                 "Models/AppSupportMigration.swift",
                 "Models/AppSupport.swift",
                 "Models/DefaultsMigration.swift",
@@ -1701,6 +1703,11 @@ let package = Package(
             name: "HealthIssueTests",
             dependencies: ["StarHubTHCore"],
             path: "Tests/HealthIssueTests"
+        ),
+        .testTarget(
+            name: "ConfigSecretFieldTests",
+            dependencies: ["StarHubTHCore"],
+            path: "Tests/ConfigSecretFieldTests"
         ),
         .testTarget(
             name: "ConfigRestoreWhileRunningTests",

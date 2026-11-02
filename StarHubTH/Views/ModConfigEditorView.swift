@@ -874,16 +874,13 @@ struct ModConfigEditorView: View {
             }
 
         case .text(let value):
-            TextField("", text: Binding(
+            ConfigTextField(isSecret: ConfigSecretField.isSecret(row.keyPath), text: Binding(
                 get: {
                     guard case .text(let live) = current(row) else { return value }
                     return live
                 },
                 set: { update(row, to: .text($0)) }
             ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .controlSize(.small)
-            .frame(maxWidth: .infinity)
 
         case .choice(let selected, let among):
             Picker(row.label, selection: Binding(

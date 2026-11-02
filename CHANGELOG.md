@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les boutons de Taum's Inventory Hotkeys ne passent plus pour des conflits.** Ses boutons rejouent les raccourcis d'autres mods : l'analyse des raccourcis les sort des collisions et le dit en pied de page. Elle signale aussi un bouton qui ne déclenche plus rien, parce qu'aucun mod actif n'utilise sa touche. Ses propres commandes, lues seulement sur ses boutons de l'inventaire, ne sont plus en conflit avec les contrôles du jeu.
+- **Les clés d'API et mots de passe sont masqués dans l'éditeur de configuration.** Keybind Sheet, par exemple, garde ses clés de traduction en clair dans son `config.json`. L'onglet JSON brut les montre encore.
+
 ### Fixed
 
 - **Le catalogue des recouvrements suit UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.

@@ -370,6 +370,8 @@
   "keybinds_modifiers_note": "Held modifier key (Ctrl, Shift, Alt), normal sharing, not conflicts: %@",
   "keybinds_inert_note": "Inactive because their activation key is unassigned or the option that enables them is off: %@",
   "keybinds_context_note": "Conflicts lifted by the context read in their code (own menu, mode, replay): %@",
+  "keybinds_relay_note": "Keys replayed for other mods, left out of collisions: %@",
+  "keybinds_dead_relay_note": "Buttons that trigger nothing, no active mod uses their key: %@",
   "keybinds_collisions_header": "Conflicts between mods (%lld)",
   "keybinds_counters": "%1$lld mods scanned · %2$lld shortcuts",
   "keybinds_empty": "No keybind conflicts detected.",

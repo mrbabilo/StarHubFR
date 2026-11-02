@@ -111,6 +111,7 @@ final class KeybindScanService: ObservableObject {
             var report = KeybindScanner.report(mods: inputs, contexts: Self.contexts,
                                                gameControls: game.controls, gamepadOff: game.gamepadOff)
             report.gameControlsSource = game.source
+            report.relays = KeybindScanner.relays(mods: inputs, contexts: Self.contexts, activeUses: report.activeUses)
             self.report = report
             self.isScanning = false
             if let pending = self.pendingRescan {

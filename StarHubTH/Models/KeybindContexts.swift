@@ -78,15 +78,19 @@ public struct KeybindContexts: Sendable, Equatable {
         /// Touche de modification **maintenue** (lue par `IsDown`) dont le
         /// nom ne le dit pas : relevé dans le code.
         public let held: Bool?
+        /// Touches que le mod **rejoue** pour d'autres mods (Taum's Inventory
+        /// Hotkeys) : il les simule, il ne les écoute pas. Hors collisions,
+        /// et contrôlées comme relais (`KeybindScanner.relays`).
+        public let emitted: Bool?
         /// Ce que le code montre, pour la relecture (pas affiché).
         public let evidence: String?
 
         public init(keyPaths: [String]? = nil, context: Context? = nil, requires: String? = nil,
                     enabledBy: String? = nil, unless: String? = nil,
-                    held: Bool? = nil, evidence: String? = nil) {
+                    held: Bool? = nil, emitted: Bool? = nil, evidence: String? = nil) {
             self.keyPaths = keyPaths; self.context = context; self.requires = requires
             self.enabledBy = enabledBy; self.unless = unless
-            self.held = held; self.evidence = evidence
+            self.held = held; self.emitted = emitted; self.evidence = evidence
         }
     }
 
@@ -108,9 +112,14 @@ public struct KeybindContexts: Sendable, Equatable {
 
     private func rule(_ uniqueId: String, _ keyPath: [String]) -> Rule? {
         guard let list = rules[uniqueId.lowercased()] else { return nil }
-        let path = keyPath.joined(separator: ".")
-        return list.first { $0.keyPaths?.contains(path) == true }
+        // Le chemin exact, ou sa forme (`Tabs.[].Keybinds`) pour un tableau.
+        let paths = [keyPath.joined(separator: "."), KeybindScanner.pathShape(keyPath)]
+        return list.first { $0.keyPaths?.contains(where: paths.contains) == true }
             ?? list.first { $0.keyPaths == nil }
+    }
+
+    public func isEmitted(uniqueId: String, keyPath: [String]) -> Bool {
+        rule(uniqueId, keyPath)?.emitted == true
     }
 
     public func isHeld(uniqueId: String, keyPath: [String]) -> Bool {

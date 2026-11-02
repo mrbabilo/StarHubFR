@@ -165,6 +165,28 @@
         "unless": "MultiSelect",
         "evidence": "MoveKey.JustPressed : sélection seulement si ModKey.IsDown() (SelectTargetAction, qui retient le bouton par Input.Suppress hors MultiSelect), sinon action sur une sélection déjà faite, bouton retenu aussi. Avec MultiSelect, le clic n'est plus retenu : il atteint le jeu."
       }
+    ],
+    "Taum.InventoryHotkeys": [
+      {
+        "keyPaths": [
+          "Tabs.[].Keybinds"
+        ],
+        "emitted": true,
+        "evidence": "Chaque bouton rejoue la première combinaison de son champ Keybinds (PendingKeybind, puis appui simulé deux images après la fermeture du menu) : ce sont les touches des mods ciblés, pas les siennes. Décompilé le 2026-11-02."
+      },
+      {
+        "keyPaths": [
+          "ActivateButton",
+          "EditButton",
+          "ToggleButton",
+          "ActivateMouse",
+          "EditMouse",
+          "ToggleMouse",
+          "OpenSettings"
+        ],
+        "context": "ownMenu",
+        "evidence": "Lues seulement sur la page Inventaire, quand le curseur ou la manette est sur un de ses boutons ; la touche est alors retenue (Input.Suppress)."
+      }
     ]
   }
 }

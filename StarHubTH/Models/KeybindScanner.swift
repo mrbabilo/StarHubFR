@@ -186,8 +186,8 @@ public enum KeybindScanner {
         /// Contexte d'écoute des réglages hors `anywhere`, et réglages inertes
         /// (clé `KeybindScanner.settingKey`) : l'éditeur décide comme le rapport.
         public var settingContexts: [String: KeybindContexts.Context] = [:]
-        public var inertSettings: Set<String> = []
-        public var heldSettings: Set<String> = []
+        public var inertSettings: Set<String> = [], heldSettings: Set<String> = []
+        public var relays = KeybindRelays()  // touches rejouées (`KeybindScanner+Relay`)
         /// La touche à maintenir d'un réglage (`requires` assigné), et les
         /// contrôles du jeu contre lesquels le rapport a jugé.
         public var settingChords: [String: [KeybindCombo]] = [:]
@@ -275,8 +275,8 @@ public enum KeybindScanner {
             let leaves = ConfigEditorModel.leaves(of: mod.tree)
             for leaf in leaves {
                 switch classify(leaf: leaf) {
-                case .keybind(let combos):
-                    keybindLeaves.append((leaf.keyPath, combos))
+                case .keybind(let combos):  // rejouées pour d'autres mods : pas les siennes
+                    if !contexts.isEmitted(uniqueId: mod.lookupKey, keyPath: leaf.keyPath) { keybindLeaves.append((leaf.keyPath, combos)) }
                 case .unrecognized(let raw):
                     unrecognizedLeaves.append((leaf.keyPath, raw))
                 case .notKeybind:

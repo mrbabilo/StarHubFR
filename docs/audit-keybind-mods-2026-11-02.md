@@ -25,8 +25,9 @@ et l'entrée hotkey hub de [`SOURCES.md`](SOURCES.md) §5.
   fausses collisions, contre UltraSmooth, Automate, MultiSave et d'autres. Ses
   boutons à la souris (`ActivateMouse`, `EditMouse`) sortent en conflit avec les
   contrôles du jeu alors qu'ils n'écoutent que sur ses propres éléments de
-  l'inventaire. Piste : une entrée dans `assets/keybind-contexts.json` et une
-  règle « touches émises » pour ce champ (hotkey hub relève de la même).
+  l'inventaire. Corrigé le jour même (plus bas). hotkey hub relève de la même
+  règle, mais ses champs (`CustomEntries`, `Overrides`) sont vides sur le parc
+  et n'ont pas été relus dans son code.
 - **Taum's : la mise à jour garde bien les profils.** Mesuré dans le journal
   d'installation : aux mises à jour du 2026-11-01 et du 2026-11-02, le tri
   A1-T11 a gardé les quatre profils modifiés comme retouches et le profil 6
@@ -73,15 +74,25 @@ et l'entrée hotkey hub de [`SOURCES.md`](SOURCES.md) §5.
 
 Ni l'un ni l'autre n'a de notion de contexte (menu ou jeu).
 
+## Livré le jour même
+
+- **Touches émises** : `Tabs[].Keybinds` de Taum's est déclaré « rejoué »
+  dans `assets/keybind-contexts.json` (`emitted`) ; ces touches sortent des
+  collisions et du catalogue, le pied de rapport nomme le mod, et un bouton
+  sans mod actif pour sa touche est signalé (`KeybindScanner.relays`). Ses
+  sept commandes sont en `ownMenu`.
+- **Secrets masqués** dans le formulaire de l'éditeur de config
+  (`ConfigSecretField`), sur des formes précises (`apikey`, `password`,
+  `accesstoken`…) : sur les 637 configs du parc, « secret » et « token »
+  seuls ne désignent que des lieux et des objets du jeu.
+- La règle orange de Keybind Sheet existait déjà : c'est le co-déclenchement
+  au geste long de C4-T7 (`SubsetOverlap`).
+
 ## Idées retenues, à peser
 
-- **La règle orange de Keybind Sheet** : une touche seule masquée par la
-  combinaison d'un autre mod qui la contient, calculée sur nos signatures.
 - **Les changements en attente de MLD** (Annuler, Tout jeter, Appliquer),
   écrits par fichier en une fois.
-- **Les défauts par réglage**, lus hors jeu sur la classe de config d'un mod.
-- **Le relais mort de Taum's**, réimaginé : signaler un bouton dont la
-  combinaison n'est liée par aucun mod actif.
+- **Les défauts par réglage**, relevés en jeu par la sonde (C4-T18).
 
 ## Cadre
 

@@ -47,6 +47,15 @@ struct KeybindExclusionNotes: View {
             out.append(String(format: localization.L(L10n.Keybinds.contextNote),
                               report.contextResolvedMods.joined(separator: ", ")))
         }
+        if !report.relays.emittingMods.isEmpty {
+            out.append(String(format: localization.L(L10n.Keybinds.relayNote),
+                              report.relays.emittingMods.joined(separator: ", ")))
+        }
+        if !report.relays.dead.isEmpty {
+            out.append(String(format: localization.L(L10n.Keybinds.deadRelayNote),
+                              report.relays.dead.map { "\($0.modName) (\($0.combo.display))" }
+                                  .joined(separator: ", ")))
+        }
         if !report.remapModsIgnored.isEmpty {
             // C4-T9 — le nom porte la fonction (« mod de remap »).
             out.append(String(format: localization.L(L10n.Keybinds.remapNote),

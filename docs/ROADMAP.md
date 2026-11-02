@@ -208,6 +208,22 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 > ✅ **Les 17 items de ce lot sont livrés** (C4-T13 le 2026-10-02). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 
+- [ ] **C4-T18 — Rétablir la valeur par défaut d'un réglage, relevée par la
+      sonde.** Idée tirée de MLD's Keybind (décompilé le 2026-11-02,
+      [`audit-keybind-mods-2026-11-02.md`](audit-keybind-mods-2026-11-02.md)),
+      sans sa mécanique : lui substitue une copie neuve à la config vivante
+      d'un autre mod, puis se rabat sur le `Reset` et le `Save` du mod. Hors
+      jeu, le défaut n'est pas lisible : `DotNetMetadata` ne décode pas les
+      corps de méthode, et le `config.json` le plus ancien n'est pas toujours
+      le défaut. En jeu, `GmcmExport` atteint déjà l'objet de config de chaque
+      mod inscrit à GMCM (`AccessPath`) : instancier une copie neuve du même
+      type, lire le même chemin, exporter la valeur à côté de la valeur
+      courante. Lecture seule, rien n'est écrit dans le mod. Limites : mods
+      inscrits à GMCM et chargés pendant la session ; un constructeur de config
+      à effets de bord s'exécuterait une fois de plus (à mesurer sur le parc).
+      Côté app : un bouton « Valeur par défaut » par réglage dans l'éditeur,
+      seulement quand l'export la porte.
+
 
 #### C5 — Vue d'ensemble des traductions françaises
 
