@@ -22,6 +22,9 @@ public struct GmcmCapture: Sendable {
         let choiceLabels: [String]?
         let accessPath: [String]?
         let closureStrings: [String]?
+        /// Le titre de section sous lequel le menu en jeu range l'option
+        /// (sonde ≥ 0.9.31) ; absent d'une capture plus ancienne.
+        let section: String?
     }
 
     struct RawMod: Decodable, Sendable {
@@ -124,9 +127,13 @@ public struct GmcmModOptions: Equatable, Sendable {
         public let choices: [String]?
         /// Valeur en minuscules → texte que GMCM affiche pour elle.
         public let choiceLabels: [String: String]
+        /// La section du menu en jeu, et le rang de l'option dans ce menu.
+        public let section: String?
+        public let order: Int
     }
 
     private struct Claim {
+        let section: String?
         let label: String?
         let tooltip: String?
         let bounds: Bounds?
@@ -154,14 +161,15 @@ public struct GmcmModOptions: Equatable, Sendable {
             let key = path.map { $0.lowercased() }
             if claims[key] == nil { order.append(key) }
             let choice = Self.choices(of: option, leaf: leaf)
-            claims[key, default: []].append(Claim(label: Self.nonEmpty(option.name),
+            claims[key, default: []].append(Claim(section: Self.nonEmpty(option.section),
+                                                  label: Self.nonEmpty(option.name),
                                                   tooltip: Self.nonEmpty(option.tooltip),
                                                   bounds: Self.bounds(of: option, leaf: leaf),
                                                   choices: choice?.values,
                                                   choiceLabels: choice?.labels ?? [:]))
         }
         var merged: [[String]: Entry] = [:]
-        for key in order {
+        for (rank, key) in order.enumerated() {
             guard let list = claims[key], let first = list.first else { continue }
             // Collision (doublons de page, 9 clés du parc) : le premier
             // libellé ; bornes et choix seulement s'ils concordent partout.
@@ -173,7 +181,8 @@ public struct GmcmModOptions: Equatable, Sendable {
                 tooltip: list.lazy.compactMap(\.tooltip).first,
                 bounds: Set(bounds).count == 1 ? bounds.first : nil,
                 choices: Set(choices).count == 1 ? choices.first : nil,
-                choiceLabels: Set(choices).count == 1 ? (choiceOwner ?? first).choiceLabels : [:])
+                choiceLabels: Set(choices).count == 1 ? (choiceOwner ?? first).choiceLabels : [:],
+                section: first.section, order: rank)
         }
         entries = merged
     }

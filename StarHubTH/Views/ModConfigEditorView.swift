@@ -177,7 +177,7 @@ struct ModConfigEditorView: View {
                                 Text(String(format: localization.L(L10n.Settings.configNoSettingsFoundFor), searchText))
                                     .foregroundColor(.secondary)
                                     .padding()
-                            } else if hasSchema {
+                            } else if hasSchema || configGroups.contains(where: { $0.section != nil }) {  // ou sections du menu en jeu
                                 // Le pack décrit ses options : ses sections
                                 // remplacent l'imbrication du JSON, qu'un
                                 // content pack n'a de toute façon pas (0 clé
@@ -364,12 +364,12 @@ struct ModConfigEditorView: View {
     /// très loin de la section où l'auteur l'avait rangé).
     private func parseToVisual() {
         guard let tree = ConfigJSONTree.parse(configText) else { return }
-        configGroups = ConfigEditorModel.groups(of: tree,
+        configGroups = GmcmModOptions.arranged(ConfigEditorModel.groups(of: tree,
                                                 describedBy: schemaReading?.options ?? [],
                                                 labeledBy: labelIndex,
                                                 stickyKeybinds: capturedKeybinds,
                                                 gmcmChoices: gmcmChoices,
-                                                gmcm: gmcm, appLanguage: localization.currentLanguage)
+                                                gmcm: gmcm, appLanguage: localization.currentLanguage), by: gmcm)
     }
 
     /// Lit le `ConfigSchema` du `content.json` voisin, s'il y en a un.

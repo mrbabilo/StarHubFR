@@ -346,7 +346,7 @@ public enum ConfigEditorModel {
                                 sticky: stickyKeybinds.contains(rowId(of: leaf.keyPath)),
                                 gmcmChoices: gmcmChoices, gmcm: gmcm, appLanguage: appLanguage)
             else { continue }
-            guard let section = option?.section else { unsectioned.append(row); continue }
+            guard let section = option?.section ?? gmcm?.entry(for: leaf.keyPath)?.section else { unsectioned.append(row); continue }
             if bySection[section] == nil { sectionOrder.append(section) }
             bySection[section, default: []].append(row)
         }

@@ -32,7 +32,8 @@ internal static class GmcmExport
 {
     private record Option(string Kind, string? FieldId, string? Name, string? Tooltip, string? ValueType,
                           string? Value, string? Min, string? Max, string? Interval, List<string>? Choices,
-                          List<string>? ChoiceLabels, List<string> AccessPath, List<string> ClosureStrings);
+                          List<string>? ChoiceLabels, List<string> AccessPath, List<string> ClosureStrings,
+                          string? Section);
     private record ModOptions(string UniqueID, string Name, string Version, string? ConfigSnapshot, List<Option> Options);
     private record Export(string CapturedAt, string GmcmVersion, string Language, List<ModOptions> Mods);
 
@@ -63,9 +64,18 @@ internal static class GmcmExport
                 var manifest = (IManifest)AccessTools.Property(config.GetType(), "ModManifest").GetValue(config)!;
                 var options = new List<Option>();
                 var all = (IEnumerable)AccessTools.Method(config.GetType(), "GetAllOptions").Invoke(config, null)!;
+                // Les options suivent leur titre de section dans le menu :
+                // l'éditeur de l'app les range sous le même titre.
+                string? section = null;
                 foreach (object option in all)
                 {
-                    Option? read = Read(option);
+                    if (option.GetType().Name == "SectionTitleModOption")
+                    {
+                        section = AccessTools.Property(option.GetType(), "Name")?.GetValue(option) is Func<string> title
+                            ? Safe(title) : null;
+                        continue;
+                    }
+                    Option? read = Read(option, section);
                     if (read is null) continue;
                     options.Add(read);
                     optionCount++;
@@ -129,7 +139,7 @@ internal static class GmcmExport
         }
     }
 
-    private static Option? Read(object option)
+    private static Option? Read(object option, string? section)
     {
         Type t = option.GetType();
         string kind = t.Name.Split('`')[0];
@@ -179,7 +189,8 @@ internal static class GmcmExport
             choices,
             choiceLabels,
             getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
-            closureStrings.ToList());
+            closureStrings.ToList(),
+            section);
     }
 
     /// <summary>
@@ -237,8 +248,8 @@ internal static class GmcmExport
                 catch { return choice; }
             }).ToList();
         }
-        string? tooltip = null;
-        try { tooltip = Prop("Tooltip") as string; } catch { }
+        string? tooltip = null, section = null;
+        try { tooltip = Prop("Tooltip") as string; section = Prop("Section") as string; } catch { }
 
         return new Option(
             kind,
@@ -253,7 +264,8 @@ internal static class GmcmExport
             choices,
             choiceLabels,
             getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
-            closureStrings.ToList());
+            closureStrings.ToList(),
+            section);
     }
 
     private static string? Safe(Func<string?> f)
