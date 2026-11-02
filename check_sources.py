@@ -547,6 +547,17 @@ SOURCES = [
              "boîte noire us_trace (60 s) — rien chez les autres mods",
      "used_by": "docs/audit-mods-config-perf.md, docs/audit-perf-analyzers.md"},
 
+    {"key": "mod/pure-binary-save", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 54266, "uniqueId": "palmhacker13.PureBinarySave",
+     "role": "moteur de sauvegarde binaire de l'auteur d'UltraSmooth (1.0.7, "
+             "paru le 2026-10-22, en pause sur le parc) : la partie s'écrit "
+             "d'abord dans un .bin, le XML vanilla n'est recopié que ~6 s après "
+             "le réveil, et plus du tout en mode disque pur — ce que l'app lit "
+             "et édite dans le XML peut être en retard ou ignoré. Porte aussi "
+             "des accélérations de chargement Content Patcher (catalogue A5-T7). "
+             "Page lue le 2026-11-02, non décompilé",
+     "used_by": "docs/SOURCES.md §5 (relevé du 2026-11-02)"},
+
     {"key": "mod/faster-menu-load", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 41564, "uniqueId": "ZeroXPatch.FasterMenuLoad",
      "role": "mod de perf ZeroXPatch — sa source vit dans le monorepo déjà suivi (log-doctor)",
