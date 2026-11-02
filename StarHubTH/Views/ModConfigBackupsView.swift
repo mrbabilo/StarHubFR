@@ -302,7 +302,15 @@ struct ModConfigBackupsView: View {
     private func restoreWarning(_ items: [ModConfigBackupItem]) -> String {
         let lines = items.prefix(8).map { "• \($0.modDisplayName)" }
             + (items.count > 8 ? ["…"] : [])
-        return localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup) + "\n\n"
+        // Jeu ouvert : un mod chargé défera la restauration à son prochain
+        // enregistrement. Prévenu, pas bloqué, comme l'éditeur de config.
+        let model = vm
+        let active = ConfigRestoreWhileRunning.activeNames(items, mods: model.scanStore.mods,
+                                                           gameRunning: model.isGameRunning())
+        let running = active.isEmpty ? "" : String(
+            format: localization.L(L10n.ModConfigBackups.restoreGameRunning),
+            active.joined(separator: ", ")) + "\n\n"
+        return running + localization.L(L10n.ModConfigBackups.restoreWarningCreateBackup) + "\n\n"
             + localization.L(L10n.ModConfigBackups.restoreFiles) + "\n" + lines.joined(separator: "\n")
     }
 

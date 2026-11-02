@@ -610,6 +610,7 @@
 "mod_config_backups_check_none" = "Uncheck all";
 "mod_config_backups_restore_count" = "Restore (%lld)";
 "mod_config_backups_restore_files" = "Settings replaced (config.json only, translations are never touched):";
+"mod_config_backups_restore_game_running" = "Stardew Valley is running. These mods are loaded and rewrite their config.json the next time they save their settings, which would undo this restore: %@. Quit the game first.";
 "mod_config_backups_by_mod" = "By mod";
 "mod_config_backups_by_date" = "By date";
 "mod_config_backups_versions" = "%1$lld version(s) · latest %2$@";

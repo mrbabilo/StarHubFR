@@ -610,6 +610,7 @@
 "mod_config_backups_check_none" = "Tout décocher";
 "mod_config_backups_restore_count" = "Restaurer (%lld)";
 "mod_config_backups_restore_files" = "Réglages remplacés (config.json seulement, les traductions ne sont jamais touchées) :";
+"mod_config_backups_restore_game_running" = "Stardew Valley est en cours d'exécution. Ces mods sont chargés et réécrivent leur config.json au prochain enregistrement de leurs réglages, ce qui déferait la restauration : %@. Fermez d'abord le jeu.";
 "mod_config_backups_by_mod" = "Par mod";
 "mod_config_backups_by_date" = "Par date";
 "mod_config_backups_versions" = "%1$lld version(s) · la dernière le %2$@";
