@@ -94,7 +94,8 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
       PureBinarySave est actif.** Ce mod (Nexus 54266) charge `<partie>.bin`
       dès qu'il existe, sans regarder le XML. **Livré le 2026-11-02**
       (`PureBinarySave`) : une alerte critique quand le mod est actif sans
-      SpaceCore actif (observé sur Mac Apple Silicon : le `.bin` n'est pas
+      SpaceCore actif, **avant 1.0.8** (l'auteur corrige ce cas en 1.0.8, journal
+      relevé le 2026-11-03) (observé sur Mac Apple Silicon : le `.bin` n'est pas
       réécrit au coucher, chaque chargement ramène la partie au jour de sa
       migration) ; l'éditeur de partie, l'éditeur d'inventaire et la copie de
       partie refusent une partie dont le XML n'est qu'un talon ou est plus

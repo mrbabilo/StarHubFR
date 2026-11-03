@@ -72,12 +72,17 @@ public enum PureBinarySave {
 
     /// Sans SpaceCore actif, le mod a été vu sur Mac ne jamais réécrire son
     /// `.bin` au coucher : chaque chargement ramène la partie au jour de sa
-    /// conversion (relevés de la sonde du 2026-11-01, cause non établie).
+    /// conversion (relevés de la sonde du 2026-11-01). Corrigé par l'auteur
+    /// en 1.0.8 (« profils sans SpaceCore ou macOS », journal relevé le
+    /// 2026-11-03) : l'alerte ne vise que les versions antérieures.
+    static let fixedIn = "1.0.8"
+
     public static func issues(_ mods: [ModItem], _ localized: (String) -> String) -> [HealthIssue] {
         func active(_ id: String) -> ModItem? {
             mods.first { $0.isEnabled && $0.uniqueId.caseInsensitiveCompare(id) == .orderedSame }
         }
-        guard let mod = active(uniqueId), active(spaceCoreId) == nil else { return [] }
+        guard let mod = active(uniqueId), active(spaceCoreId) == nil,
+              NexusUpdateChecker.compare(mod.version, fixedIn) == .orderedAscending else { return [] }
         return [HealthIssue(id: "pure-binary-save-without-spacecore", severity: .critical,
                             source: .pureBinarySave, title: localized(titleKey),
                             detail: localized(detailKey), actions: [.openMod(query: mod.name)])]

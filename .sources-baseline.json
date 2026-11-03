@@ -77,9 +77,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "75298a5",
-    "last_commit_at": "2026-10-19T16:42:41Z",
-    "pushed_at": "2026-10-19T16:43:58Z",
+    "last_commit": "e7dca7a",
+    "last_commit_at": "2026-11-02T22:07:40Z",
+    "pushed_at": "2026-11-02T22:54:43Z",
     "release": "v1.71.1",
     "released_at": "2026-10-19T16:44:08Z"
   },
@@ -178,10 +178,10 @@
     "version": "2.0.0"
   },
   "mod/pure-binary-save": {
-    "changelog_reviewed": "1.0.7",
+    "changelog_reviewed": "1.0.9",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.7"
+    "version": "1.0.9"
   },
   "mod/radiance": {
     "changelog_reviewed": "2.4.5",
@@ -236,10 +236,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.7.2",
+    "changelog_reviewed": "2.7.3",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.7.2"
+    "version": "2.7.3"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -290,7 +290,7 @@
     "default_branch": "main",
     "last_commit": "6546ce9",
     "last_commit_at": "2026-10-26T00:53:12Z",
-    "pushed_at": "2026-11-01T20:02:12Z"
+    "pushed_at": "2026-11-02T23:02:25Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [

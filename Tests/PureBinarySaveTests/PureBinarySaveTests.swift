@@ -100,4 +100,18 @@ struct PureBinarySaveTests {
         #expect(PureBinarySave.issues([pbs, mod("SpaceCore", id: "spacechase0.SpaceCore")], { $0 }).isEmpty)
         #expect(PureBinarySave.issues([mod("PureBinarySave", id: "palmhacker13.PureBinarySave", enabled: false)], { $0 }).isEmpty)
     }
+
+    /// 1.0.8 corrige l'écriture au coucher sans SpaceCore ou sur macOS
+    /// (journal de l'auteur, relevé le 2026-11-03) : plus d'alerte au-delà.
+    @Test func theFixedVersionsAreNotFlagged() {
+        func pbs(_ version: String) -> ModItem {
+            ModItem(uniqueId: "palmhacker13.PureBinarySave", name: "PureBinarySave", folderName: "PureBinarySave",
+                    version: version, author: "", description: "", nexusUrl: "", nexusModId: "",
+                    isEnabled: true, dependencies: [], languages: [])
+        }
+        #expect(PureBinarySave.issues([pbs("1.0.7")], { $0 }).count == 1)
+        #expect(PureBinarySave.issues([pbs("1.0.8")], { $0 }).isEmpty)
+        #expect(PureBinarySave.issues([pbs("1.0.9")], { $0 }).isEmpty)
+        #expect(PureBinarySave.issues([pbs("1.1.0")], { $0 }).isEmpty)
+    }
 }
