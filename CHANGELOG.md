@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.72.0] - 2026-11-03
+
 ### Added
 
 - **L'éditeur de configuration reprend la présentation du menu du jeu** (GMCM ou Modern Config Menu) : mêmes sections, même ordre, l'aide sous chaque réglage ; ce que le menu ne montre pas reste à la fin. L'app garde la dernière description de chaque mod : un mod en pause, ou absent de la dernière partie chargée, garde ses libellés et sa présentation.
