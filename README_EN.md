@@ -48,7 +48,7 @@ When the game crashes or a mod refuses to load, StarHubFR turns the SMAPI log in
 *   **False alarms set aside** — GOG Galaxy, an optional integration missing, an absent companion mod: the message is quoted, a button jumps to its lines, and the mod is no longer blamed for nothing.
 *   **A log you can read** — repetitive lines folded, grouping by mod (worst first), a badge when the log predates your session.
 *   **Errors tracked version by version** — a mod's page tells you whether its new version behaves worse than the previous one.
-*   **Every shortcut and its conflicts** — each key of your active mods, searchable by mod, setting or key; when capturing a key, the config editor says if another mod already uses it.
+*   **Every shortcut and its conflicts** — each key of your active mods, searchable by mod, setting or key; when capturing a key, the config editor says if another mod already uses it. Buttons that replay other mods' keys (Taum's Inventory Hotkeys) don't count as conflicts, and the ones that no longer trigger anything are pointed out.
 *   **A plan to untangle shortcuts** — conflicts move to free keys, sorted by family: letters for actions, digits for information, F keys for the rest. Each line can be unchecked, the touched config.json files are backed up before writing, and "Undo the plan" restores them.
 *   **Conflicts predicted before you play** — two mods loading the same asset exclusively are flagged, and enabling them (one at a time, in bulk or through a profile) warns you and names the asset.
 *   **Find the faulty mod** — when nothing points to a culprit, the app pauses your mods by halves and asks one question per step. About ten tries are enough; everything comes back in one click.
@@ -121,15 +121,15 @@ Each mod page has a **Translation** tab that shows the real state of its French 
 
 ### ⚙️ Configuration and backups
 
-*   **Config editor** — a searchable tree of typed settings, or raw JSON validated live; dropdowns show the mod's own labels, translated.
+*   **Config editor** — a searchable tree of typed settings, or raw JSON validated live; dropdowns show the mod's own labels, translated. When a mod describes itself to the in-game menu (GMCM or Modern Config Menu), the editor follows that menu: same names, same sections, same order, the help under each setting, and it remembers them while the mod is paused. API keys and passwords stay masked.
 *   **Mod backups** — before every overwrite, plus your `config.json` and `fr.json`, and the files an update took away. Configs are grouped by mod and compared before restoring; deleting one moves it to the Mac Trash.
 *   **Maintenance** — what StarHubFR takes up on disk, and "Free up space" in one step (keep 1, 3 or 5 backups per mod).
-*   **Saves** — details, copy, deletion, and editing money or character stats.
+*   **Saves** — details, copy, deletion, and editing money or character stats; with PureBinarySave, your edit is the one the game loads.
 *   **What your mods leave in your saves** — counted before pausing a mod; "Enable these mods" brings back the ones a save uses, and "Clean up…" removes data from mods that are gone, after a backup.
 
 ### 🎮 Everyday use
 
-*   **A home page that gets to the point** — the counters that matter and **Launch Game** (⌘R), vanilla or through SMAPI; an operation left halfway shows up there with "Put everything back".
+*   **A home page that gets to the point** — the counters that matter and **Launch Game** (⌘R), vanilla or through SMAPI; an operation left halfway shows up there with "Put everything back"; it also offers the probe update when the app ships a newer one.
 *   **Live logs** — SMAPI and StarHubFR output, filterable by source and level.
 *   **The mods the app relies on** — listed in Settings, with their role, state and install link.
 *   **Accessible and readable** — VoiceOver names every button, everything is reachable by keyboard, and the mod list tightens when the window is narrow.
@@ -212,7 +212,7 @@ python3 release.py     # release archive in bundles/
 
 There is no Xcode project: `build_app.py` compiles every source, and `Package.swift` only describes the tested core.
 
-The code map is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (French). To report a bug, suggest an idea or open a pull request: [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-starhubfr). Security flaws are reported privately: [SECURITY.md](SECURITY.md#security-policy).
+The code map is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (French). Report a bug from the app: **Help › Report a Bug on GitHub**, or the ladybug at the bottom of the sidebar; the form opens with the versions already filled in. To suggest an idea or open a pull request: [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-starhubfr). Security flaws are reported privately: [SECURITY.md](SECURITY.md#security-policy).
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Credits & License" width="300">
@@ -268,5 +268,5 @@ StarHubFR builds on the work of many projects. The full list — APIs queried, f
 
 *   [**Stardrop**](https://github.com/Floogen/Stardrop) by **Floogen** and its macOS port [**Stardrop – Native MacOS**](https://www.nexusmods.com/stardewvalley/mods/53356) by **kautsaralbaa** — live update checks, notes, per-profile configs.
 *   [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) by **MLD210** and [**StarModsManager**](https://github.com/Arborsm/StarModsManager) by **Arborsm** and [**Morning Dew**](https://www.nexusmods.com/stardewvalley/mods/53612) by **Nesryn Rose Juincy** — other managers, read for their ideas as much as their pitfalls.
-*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) by **Wooa** and [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) by **tangsuanz** — two in-game takes on mod shortcuts, which shaped the conflict signal at key capture and the shortcut plan.
+*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) by **Wooa** and [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) by **tangsuanz** — two in-game takes on mod shortcuts, which shaped the conflict signal at key capture and the shortcut plan; [**Keybind Sheet**](https://www.nexusmods.com/stardewvalley/mods/54867) by **bao7221**, [**MLD's Keybind**](https://www.nexusmods.com/stardewvalley/mods/54946) by **MLD210** and [**Taum's Inventory Hotkeys**](https://www.nexusmods.com/stardewvalley/mods/54533) by **Taum**, read for replayed keys and masked API keys.
 *   [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) by **Sky** — it guided the cleanup of data mods leave in your saves.

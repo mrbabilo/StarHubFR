@@ -49,7 +49,7 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Les fausses alertes mises à part** — GOG Galaxy, intégration optionnelle absente, mod compagnon manquant : le message est cité, un bouton mène à ses lignes, et le mod n'est plus accusé à tort.
 *   **Un journal qui se lit** — lignes répétitives repliées, regroupement par mod (les plus problématiques en tête), badge si le journal date d'avant votre session.
 *   **Les erreurs suivies version par version** — la fiche d'un mod dit si sa nouvelle version se comporte moins bien que la précédente.
-*   **Tous vos raccourcis et leurs conflits** — chaque touche des mods actifs, cherchable par mod, réglage ou touche ; à la capture, l'éditeur de config dit si un autre mod l'utilise déjà.
+*   **Tous vos raccourcis et leurs conflits** — chaque touche des mods actifs, cherchable par mod, réglage ou touche ; à la capture, l'éditeur de config dit si un autre mod l'utilise déjà. Les boutons qui rejouent les touches d'autres mods (Taum's Inventory Hotkeys) ne comptent pas comme des conflits, et ceux qui ne déclenchent plus rien sont signalés.
 *   **Un plan pour démêler les raccourcis** — les conflits passent sur des touches libres, rangées par famille : lettres pour l'action, chiffres pour l'information, touches F pour le reste. Chaque ligne se décoche, les config.json touchés sont sauvegardés avant écriture et « Annuler le plan » les restaure.
 *   **Les conflits prévus avant de jouer** — deux mods qui chargent le même asset en exclusif sont signalés, et l'activation (seule, groupée ou par profil) prévient en nommant l'asset.
 *   **Retrouver le mod fautif** — quand rien ne désigne de coupable, l'app met vos mods en pause par moitiés et pose une question par étape. Une dizaine d'essais suffisent ; tout se remet en un clic.
@@ -122,15 +122,15 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 
 ### ⚙️ Configuration et sauvegardes
 
-*   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod.
+*   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod. Quand le mod se décrit au menu du jeu (GMCM ou Modern Config Menu), l'éditeur reprend ce menu : mêmes noms, mêmes sections, même ordre, l'aide sous chaque réglage, et il s'en souvient quand le mod est en pause. Les clés d'API et mots de passe restent masqués.
 *   **Sauvegardes des mods** — avant chaque écrasement, plus vos `config.json` et `fr.json`, et les fichiers qu'une mise à jour a emportés. Les configurations sont classées par mod et peuvent être comparées avant restauration ; une sauvegarde supprimée va dans la Corbeille du Mac.
 *   **Entretien** — l'espace disque occupé par StarHubFR, et « Libérer de la place » en une seule action (en conservant 1, 3 ou 5 sauvegardes par mod).
-*   **Parties** — détail, copie, suppression, et retouche de l'argent ou des statistiques.
+*   **Parties** — détail, copie, suppression, et retouche de l'argent ou des statistiques ; avec PureBinarySave, la retouche est bien celle que le jeu charge.
 *   **Ce que vos mods laissent dans vos parties** — mesuré avant la mise en pause ; « Réactiver ces mods » réactive ceux dont une partie a besoin, et « Nettoyer… » retire les données de mods disparus, après une sauvegarde.
 
 ### 🎮 Au quotidien
 
-*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; si une opération a été interrompue, l'accueil le signale et propose « Tout remettre comme avant ».
+*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; si une opération a été interrompue, l'accueil le signale et propose « Tout remettre comme avant » ; il propose aussi la mise à jour de la sonde quand l'app en livre une plus récente.
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR, filtrables par source et par niveau.
 *   **Les mods dont l'app a besoin** — listés dans les réglages, avec leur rôle, leur état et leur lien d'installation.
 *   **Accessible et lisible** — VoiceOver annonce chaque bouton, toute l'app s'utilise au clavier, et la liste des mods s'adapte aux fenêtres étroites.
@@ -213,7 +213,7 @@ python3 release.py     # archive de release dans bundles/
 
 Il n'y a pas de projet Xcode : `build_app.py` compile toutes les sources, et `Package.swift` ne décrit que le cœur testé.
 
-La carte du code est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Pour signaler un bug, proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Une faille de sécurité se signale en privé : [SECURITY.md](SECURITY.md).
+La carte du code est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Un bug se signale depuis l'app : menu **Aide › Signaler un bug sur GitHub**, ou la coccinelle en bas de la barre latérale ; le formulaire s'ouvre avec les versions déjà remplies. Pour proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Une faille de sécurité se signale en privé : [SECURITY.md](SECURITY.md).
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Crédits et Licence" width="300">
@@ -269,5 +269,5 @@ StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — AP
 
 *   [**Stardrop**](https://github.com/Floogen/Stardrop) par **Floogen** et son port macOS [**Stardrop – Native MacOS**](https://www.nexusmods.com/stardewvalley/mods/53356) par **kautsaralbaa** — vérification en direct, notes, configurations par profil.
 *   [**JuniGrid**](https://www.nexusmods.com/stardewvalley/mods/53227) par **MLD210** et [**StarModsManager**](https://github.com/Arborsm/StarModsManager) par **Arborsm** et [**Morning Dew**](https://www.nexusmods.com/stardewvalley/mods/53612) par **Nesryn Rose Juincy** — d'autres gestionnaires, lus pour leurs idées comme pour leurs pièges.
-*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) par **Wooa** et [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) par **tangsuanz** — deux regards en jeu sur les raccourcis des mods, qui ont nourri le signal de conflit à la capture et le plan de raccourcis.
+*   [**Keybind Radar**](https://www.nexusmods.com/stardewvalley/mods/52710) par **Wooa** et [**hotkey hub**](https://www.nexusmods.com/stardewvalley/mods/53820) par **tangsuanz** — deux regards en jeu sur les raccourcis des mods, qui ont nourri le signal de conflit à la capture et le plan de raccourcis ; [**Keybind Sheet**](https://www.nexusmods.com/stardewvalley/mods/54867) par **bao7221**, [**MLD's Keybind**](https://www.nexusmods.com/stardewvalley/mods/54946) par **MLD210** et [**Taum's Inventory Hotkeys**](https://www.nexusmods.com/stardewvalley/mods/54533) par **Taum**, lus pour les touches rejouées et le masquage des clés d'API.
 *   [**SaveSaver**](https://www.nexusmods.com/stardewvalley/mods/52709) par **Sky** — il a guidé le nettoyage des données que les mods laissent dans les parties.
