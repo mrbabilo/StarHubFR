@@ -19,6 +19,22 @@ struct ModHistoryTests {
                          report: nil)
     }
 
+    /// X144 — le fichier posé est celui de la dernière installation : un dépôt
+    /// ou un nettoyage ne le change pas, une installation non reconnue l'efface.
+    @Test func theInstalledFileIsTheLastInstallation() {
+        func installation(_ kind: ModHistory.Kind, fileId: Int?) -> ModHistory.Entry {
+            ModHistory.Entry(date: Date(timeIntervalSince1970: 1_790_000_000), kind: kind,
+                             fromVersion: nil, toVersion: "1.0.3", archiveSHA256: nil,
+                             nexusFileId: fileId, source: nil, files: [], report: nil)
+        }
+        var history = ModHistory(uniqueId: "a.b", entries: [installation(.install, fileId: 1)])
+        history.append(installation(.update, fileId: 2))
+        history.append(installation(.addition, fileId: nil))
+        #expect(history.installedFile == ModHistory.InstalledFile(fileId: 2, version: "1.0.3"))
+        history.append(installation(.update, fileId: nil))
+        #expect(history.installedFile == nil)
+    }
+
     @Test func appendsAndReadsBack() throws {
         let directory = try tempDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

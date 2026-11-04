@@ -22,6 +22,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Une mise à jour ne renaît plus quand la page Nexus numérote autrement que le mod.** Taum's Inventory Hotkeys, par exemple, dit 1.0.3 dans son manifeste et « 9 » sur sa page : l'app proposait sans fin le fichier déjà installé. Elle le reconnaît maintenant grâce au journal du mod, y compris pour les installations passées.
 - **Avec PureBinarySave, un refus de modifier une partie dit maintenant pourquoi**, au lieu de l'échec générique.
 - **La page Parties ne montre plus un fermier « Unknown » juste après le coucher.** Tant que PureBinarySave n'a pas recopié la partie, l'app la lit dans son fichier `.bin`.
 - **Retirer les mods absents d'une partie ne ramène plus en arrière une partie gardée par PureBinarySave.** Si son `.bin` est plus récent, l'app refuse au lieu de l'écarter.

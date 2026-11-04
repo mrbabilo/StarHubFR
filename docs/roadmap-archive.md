@@ -3818,6 +3818,23 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X145** ✅ *(vérifié le 2026-11-05, sans correctif)* — **Les notes de Keybind
+      Sheet vivent dans un fichier livré.** Le mod réécrit `assets/catalog.json`.
+      Mesure sur le parc : son empreinte diffère de celle du journal, qui porte
+      la référence de la 1.0.1. Le tri A1-T11 le garde donc comme retouche
+      (règle 6), et signale si l'auteur a changé le sien. Sans référence (dépôt
+      manuel sans journal), la règle 7 pose la version neuve : l'ancien fichier
+      reste dans la sauvegarde d'installation, et le bilan le dit.
+- [x] **X144** ✅ *(corrigé le 2026-11-05, relevé en décompilant Taum's Inventory
+      Hotkeys)* — **Une mise à jour qui renaît.** Manifeste 1.0.3, libellés Nexus
+      « 7 », « 9 » : le libellé l'emporte toujours. Mesure : le journal montre la
+      même archive (`nexusFileId` 189589) réinstallée le 2026-11-02 à deux reprises
+      et le 2026-11-03, puis un « je l'ai déjà ». La protection X9 ne jouait pas :
+      elle lit `nexusFacts` dans l'ancre, or **aucune des 217 ancres du parc n'en
+      porte**, alors que 191 journaux connaissent leur fichier (reconnu à
+      l'empreinte de l'archive, chemin du dépôt manuel). `NexusFallbackCheck.rows`
+      lit le journal : si la page n'offre que le fichier posé et que le journal
+      décrit encore le mod, pas de ligne. Couvre aussi les installations passées.
 - [x] **X138** ✅ *(clos le 2026-11-04, relevé en décompilant PureBinarySave 1.0.7)* —
       **Une partie modifiée par l'app perdait ses modifications.** Le mod charge
       `<partie>.bin` dès qu'il existe, sans regarder le XML. Livré le 2026-11-02 :

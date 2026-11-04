@@ -81,6 +81,19 @@ public struct ModHistory: Codable, Equatable, Sendable {
         }
     }
 
+    /// Le fichier Nexus que la dernière installation a posé, et la version de
+    /// son manifeste. `nil` quand Nexus ne l'a pas reconnu.
+    public struct InstalledFile: Equatable, Sendable {
+        public let fileId: Int
+        public let version: String
+    }
+
+    public var installedFile: InstalledFile? {
+        guard let last = entries.last(where: { $0.kind == .install || $0.kind == .update }),
+              let fileId = last.nexusFileId, let version = last.toVersion else { return nil }
+        return InstalledFile(fileId: fileId, version: version)
+    }
+
     /// Clés des fichiers que l'app a déposés chez ce mod (règle 2).
     public var depositedKeys: Set<String> {
         Set(entries.filter { $0.kind == .addition }.flatMap { $0.files.map { ModFilePath.key($0.path) } })
@@ -117,6 +130,11 @@ public enum ModHistoryFile {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
+    }
+
+    static func installedFile(uniqueId: String) -> ModHistory.InstalledFile? {
+        guard case .history(let history) = load(uniqueId: uniqueId, directory: defaultDirectory()) else { return nil }
+        return history.installedFile
     }
 
     public static func load(uniqueId: String, directory: URL?) -> Loaded {

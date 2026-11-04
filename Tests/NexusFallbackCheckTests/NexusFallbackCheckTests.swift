@@ -273,6 +273,39 @@ struct NexusFallbackCheckTests {
         #expect(rows.isEmpty)
     }
 
+    /// X144 — Taum's Inventory Hotkeys : manifeste 1.0.3, libellés « 7 », « 9 ».
+    /// Le fichier vient d'un dépôt, l'ancre n'a pas de faits ; le journal, lui,
+    /// le reconnaît. Mesuré : la même archive réinstallée trois fois.
+    private func taum() -> NexusFallbackCheck.Target {
+        target([blocked("Taum.InventoryHotkeys", version: "1.0.3", errors: ["x"])], id: "54533")
+    }
+
+    @Test func leFichierDuJournalEteintLaLigneQuandLaPageNOffreQueLui() {
+        let rows = NexusFallbackCheck.rows(
+            for: taum(), pageVersion: "9", uploadedTime: nil,
+            pageFile: pageFile(189589, ts: 2_000, label: "9"),
+            installedFile: { _ in ModHistory.InstalledFile(fileId: 189589, version: "1.0.3") })
+        #expect(rows.isEmpty)
+    }
+
+    @Test func unAutreFichierQueCeluiDuJournalResteUneMiseAJour() {
+        let rows = NexusFallbackCheck.rows(
+            for: taum(), pageVersion: "10", uploadedTime: nil,
+            pageFile: pageFile(190000, ts: 3_000, label: "10"),
+            installedFile: { _ in ModHistory.InstalledFile(fileId: 189589, version: "1.0.3") })
+        #expect(rows.count == 1)
+    }
+
+    /// Le mod a changé depuis le journal (retour en arrière à la main) : le
+    /// journal ne décrit plus ce qui est posé, le libellé reprend la main.
+    @Test func unJournalQuiNeDecritPlusLeModNeDecidePas() {
+        let rows = NexusFallbackCheck.rows(
+            for: taum(), pageVersion: "9", uploadedTime: nil,
+            pageFile: pageFile(189589, ts: 2_000, label: "9"),
+            installedFile: { _ in ModHistory.InstalledFile(fileId: 189589, version: "1.0.2") })
+        #expect(rows.count == 1)
+    }
+
     @Test func unFichierRepubliePlusRecentDonneUneLigneMemeLibelle() {
         // La re-publication à numéro constant : aucun libellé ne bouge, mais
         // un nouveau fichier (nouvel id) est plus récent que celui qu'on

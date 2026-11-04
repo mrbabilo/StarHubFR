@@ -276,13 +276,20 @@ enum NexusFallbackCheck {
     ///   - pageFile: le MAIN le plus récent de la page, tel que `files.json`
     ///     le rend. C'est lui, et non le libellé, qui juge un mod dont l'app
     ///     a elle-même posé le fichier.
+    ///   - installedFile: ce que le journal dit du fichier posé (X144).
     static func rows(for target: Target,
                      pageVersion: String,
                      uploadedTime: Date?,
-                     pageFile: NexusModFile? = nil) -> [NexusUpdateChecker.ModUpdate] {
+                     pageFile: NexusModFile? = nil,
+                     installedFile: (String) -> ModHistory.InstalledFile? = ModHistoryFile.installedFile)
+    -> [NexusUpdateChecker.ModUpdate] {
         let version = pageVersion.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !version.isEmpty else { return [] }
         return target.mods.compactMap { mod in
+            // X144 — un dépôt manuel n'ancre pas de faits, mais le journal
+            // reconnaît l'archive : la page n'offre que le fichier qu'on tient.
+            if let pageFile, let held = installedFile(mod.uniqueId), held.fileId == pageFile.fileId,
+               held.version == mod.installedVersion { return nil }
             guard isUpgrade(mod: mod, pageVersion: version,
                             pageFile: pageFile, nexusId: target.nexusId) else { return nil }
             return NexusUpdateChecker.ModUpdate(

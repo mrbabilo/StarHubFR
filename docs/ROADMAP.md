@@ -82,15 +82,14 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X138 et X140–X143 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
+Les X1–X138 et X140–X145 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
 **X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
-**X138** (parties modifiées et PureBinarySave) clos le 2026-11-04.
-**Trois correctifs ouverts**, nés de mods tiers : X139 (décompilation du 2026-11-02,
-[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), X144 et X145
-([`audit-keybind-mods-2026-11-02.md`](audit-keybind-mods-2026-11-02.md)) :
+**X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05.
+**Un correctif ouvert**, né d'un mod tiers (décompilation du 2026-11-02,
+[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)) :
 
 - [ ] **X139 — La sonde ne voit plus le coût du changement d'heure avec
       UltraSmooth.** Son `EnableTimeChangedPacing` (actif par défaut) appelle
@@ -107,20 +106,6 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
       le journal de l'auteur dit l'étalement élargi à Content Patcher, Farm
       Type Manager, SpaceCore et Automate. La capture de confirmation compte
       donc davantage : la part de coût imputée à UltraSmooth peut grandir.
-- [ ] **X144 — Une mise à jour qui renaît pour Taum's Inventory Hotkeys.** Son
-      manifeste dit 1.0.3, sans `UpdateKeys` ; ses fichiers Nexus sont numérotés
-      « 6 », « 7 », « 9 », dont deux DLL différentes sous 1.0.3. Le journal
-      d'installation connaît le fichier posé (`nexusFileId` 189589), l'ancre de
-      version ne le porte pas : la protection X9 ne joue pas, et « 7 » ou « 9 »
-      l'emporte sur 1.0.3 dès que l'identifiant Nexus est connu. **À faire** :
-      comparer aussi le fichier installé quand l'ancre n'a pas de version
-      comparable.
-- [ ] **X145 — Les notes de Keybind Sheet vivent dans un fichier livré.** Les
-      notes saisies en jeu sont réécrites dans `assets/catalog.json`, que la
-      mise à jour suivante remplace. Le tri A1-T11 garde un fichier livré
-      modifié quand la référence d'auteur existe (mesuré sur les profils de
-      Taum's) ; **à vérifier** sur ce fichier, et sur une installation sans
-      référence, où il serait perdu.
 
 ---
 
@@ -1916,6 +1901,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X145** | 2026-11-05 | Notes de Keybind Sheet dans `assets/catalog.json`, fichier livré : vérifié, rien à corriger. Le tri A1-T11 le garde comme retouche quand le journal porte la référence ; sans référence, la version neuve le remplace et l'ancien reste dans la sauvegarde d'installation |
+| **X144** | 2026-11-05 | Une mise à jour renaissait quand le libellé de la page dépasse le manifeste (Taum's Inventory Hotkeys : même archive réinstallée trois fois). `NexusFallbackCheck.rows` lit le fichier posé dans le journal (`ModHistory.installedFile`) |
 | **X138** | 2026-11-04 | Une partie modifiée par l'app perdait ses modifications avec PureBinarySave. L'app écarte les `.bin` après écriture, refuse et explique quand le `.bin` porte la partie, lit la partie dans le `.bin` pendant le talon, et alerte quand un `.bin` retarde sur sa partie (`PureBinarySave+File`) |
 | **X143** | 2026-11-04 | La sonde lisait `KeybindSetting.Get`, réduit au premier bouton : un raccourci MCM à plusieurs touches ne concordait plus avec `config.json` et perdait son nom et son aide. Sonde 0.9.32, `GmcmExportRule.McmGetter` |
 | **X142** | 2026-11-02 | L'éditeur n'affichait ni nom ni aide pour PureBinarySave, UltraSmooth et la sonde : les deux premiers s'inscrivent à MCM au lieu de GMCM, et les clés i18n de la sonde ne suivaient pas son `config.json`. Sondes 0.9.29 et 0.9.30 |
