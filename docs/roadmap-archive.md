@@ -3832,9 +3832,19 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       et le 2026-11-03, puis un « je l'ai déjà ». La protection X9 ne jouait pas :
       elle lit `nexusFacts` dans l'ancre, or **aucune des 217 ancres du parc n'en
       porte**, alors que 191 journaux connaissent leur fichier (reconnu à
-      l'empreinte de l'archive, chemin du dépôt manuel). `NexusFallbackCheck.rows`
-      lit le journal : si la page n'offre que le fichier posé et que le journal
-      décrit encore le mod, pas de ligne. Couvre aussi les installations passées.
+      l'empreinte de l'archive). Cause : un compte non premium passe par `nxm://`,
+      et ce chemin laisse `resolvedFile` à `nil` par choix (pas de lecture de
+      `files.json` pour dater le fichier). `NexusFallbackCheck.rows` lit le journal :
+      si la page n'offre que le fichier posé et que le journal décrit encore le
+      mod, pas de ligne. Couvre aussi les installations passées. La voie est la
+      bonne : smapi.io répond « no valid versions » pour Taum's (54533) comme pour
+      ModCollectionAlbum (50802), ces mods passent donc par la reprise Nexus.
+      39 mods du parc ont au moins une réinstallation de la même archive, sans
+      que toutes viennent de ce défaut.
+      **Écarté** : juger aussi les `fileId` différents, id plus grand signifiant
+      mise à jour. Les fichiers MAIN en variantes (« MysticPortals 0.2.3 English »,
+      « UI Framework Example - csharp ») feraient renaître de fausses lignes. La
+      re-publication à numéro constant reste donc invisible sans compte premium.
 - [x] **X138** ✅ *(clos le 2026-11-04, relevé en décompilant PureBinarySave 1.0.7)* —
       **Une partie modifiée par l'app perdait ses modifications.** Le mod charge
       `<partie>.bin` dès qu'il existe, sans regarder le XML. Livré le 2026-11-02 :
