@@ -27,4 +27,16 @@ public static class GmcmExportRule
         "DropdownSetting" => "ChoiceModOption",
         _ => null,
     };
+
+    /// <summary>
+    /// La propriété qui lit la valeur d'un réglage MCM. `KeybindSetting` porte
+    /// aussi un `Get`, réduit au premier bouton de la liste : `config.json`
+    /// garde la liste entière, c'est elle qu'il faut comparer.
+    /// </summary>
+    public static string McmGetter(string settingType) => settingType switch
+    {
+        "KeybindSetting" => "GetKeybindList",
+        "ColorPickerSetting" => "Getter",
+        _ => "Get",
+    };
 }

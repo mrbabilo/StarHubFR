@@ -45,4 +45,17 @@ public class GmcmExportRuleTests
     [InlineData("ComplexSetting")]
     public void McmDisplayOnlySettingsAreSkipped(string setting) =>
         Assert.Null(GmcmExportRule.McmKind(setting));
+
+    // `KeybindSetting.Get` n'existe que pour le premier bouton de la liste :
+    // lu à sa place, « F5, LeftStick » sortait en « F5 » et ne concordait plus
+    // avec `config.json`.
+    [Theory]
+    [InlineData("ToggleSetting", "Get")]
+    [InlineData("TextboxSetting", "Get")]
+    [InlineData("SliderSetting", "Get")]
+    [InlineData("DropdownSetting", "Get")]
+    [InlineData("KeybindSetting", "GetKeybindList")]
+    [InlineData("ColorPickerSetting", "Getter")]
+    public void McmSettingsReadTheirValueThroughTheirOwnGetter(string setting, string getter) =>
+        Assert.Equal(getter, GmcmExportRule.McmGetter(setting));
 }

@@ -233,7 +233,7 @@ internal static class GmcmExport
         object? Prop(string name) => AccessTools.Property(t, name)?.GetValue(setting);
         string? Str(object? o) => o is null ? null : Convert.ToString(o, System.Globalization.CultureInfo.InvariantCulture);
 
-        Delegate? getter = (Prop("Get") ?? Prop("GetKeybindList")) as Delegate;
+        Delegate? getter = Prop(GmcmExportRule.McmGetter(t.Name)) as Delegate;
         var closureStrings = new SortedSet<string>(StringComparer.Ordinal);
         string? value = null;
         try { value = Str(getter?.DynamicInvoke()); } catch { }
