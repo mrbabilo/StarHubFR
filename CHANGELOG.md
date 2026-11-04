@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Changed
+
+- **Le catalogue des recouvrements suit UltraSmooth 2.7.5.** Ses deux nouveaux patches ne recoupent aucun autre mod de performance : les paires ne changent pas.
+
 ### Fixed
 
 - **L'éditeur retrouve le nom et l'aide des raccourcis à plusieurs touches inscrits à Modern Config Menu.** La sonde n'en lisait que la première touche : la valeur ne concordait plus avec `config.json`, et l'app écartait le réglage. Sonde 0.9.32 ; chargez une partie une fois pour que les textes arrivent.

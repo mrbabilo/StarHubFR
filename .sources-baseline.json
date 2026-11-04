@@ -77,9 +77,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "3ebffc2",
-    "last_commit_at": "2026-11-03T00:27:36Z",
-    "pushed_at": "2026-11-03T00:27:40Z",
+    "last_commit": "d0e2911",
+    "last_commit_at": "2026-11-04T20:56:55Z",
+    "pushed_at": "2026-11-04T21:00:12Z",
     "release": "v1.72.0",
     "released_at": "2026-11-03T00:27:52Z"
   },
@@ -240,7 +240,7 @@
     "changelog_reviewed": "2.7.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.7.4"
+    "version": "2.7.5"
   },
   "nexus/api-v1": {
     "bytes": 53,
