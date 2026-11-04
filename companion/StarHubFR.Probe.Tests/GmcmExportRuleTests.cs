@@ -46,6 +46,26 @@ public class GmcmExportRuleTests
     public void McmDisplayOnlySettingsAreSkipped(string setting) =>
         Assert.Null(GmcmExportRule.McmKind(setting));
 
+    // C4-T18 : une classe ne s'instancie que si ses membres sont ceux du
+    // `config.json`, pour ne jamais lancer le constructeur d'autre chose.
+    [Fact]
+    public void AClassWithTheKeysOfTheConfigCoversIt() =>
+        Assert.True(GmcmExportRule.CoversConfig(new[] { "Enabled", "Speed", "Extra" },
+                                                "{\"enabled\": true, \"Speed\": 2}"));
+
+    [Fact]
+    public void AClassMissingTooManyKeysDoesNotCoverTheConfig() =>
+        Assert.False(GmcmExportRule.CoversConfig(new[] { "Enabled" },
+                                                 "{\"Enabled\": true, \"Speed\": 2, \"Size\": 3}"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("{}")]
+    [InlineData("[1]")]
+    [InlineData("not json")]
+    public void WithoutAReadableConfigNothingIsCovered(string? snapshot) =>
+        Assert.False(GmcmExportRule.CoversConfig(new[] { "Enabled" }, snapshot));
+
     // `KeybindSetting.Get` n'existe que pour le premier bouton de la liste :
     // lu à sa place, « F5, LeftStick » sortait en « F5 » et ne concordait plus
     // avec `config.json`.

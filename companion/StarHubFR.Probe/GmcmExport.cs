@@ -34,7 +34,8 @@ internal static class GmcmExport
                           string? Value, string? Min, string? Max, string? Interval, List<string>? Choices,
                           List<string>? ChoiceLabels, List<string> AccessPath, List<string> ClosureStrings,
                           string? Section);
-    private record ModOptions(string UniqueID, string Name, string Version, string? ConfigSnapshot, List<Option> Options);
+    private record ModOptions(string UniqueID, string Name, string Version, string? ConfigSnapshot, List<Option> Options,
+                              string? DefaultConfig);
     private record Export(string CapturedAt, string GmcmVersion, string Language, List<ModOptions> Mods);
 
     /// <summary>Ce que la session a déjà exporté : la règle <see cref="GmcmExportRule"/> compare.</summary>
@@ -63,6 +64,7 @@ internal static class GmcmExport
             {
                 var manifest = (IManifest)AccessTools.Property(config.GetType(), "ModManifest").GetValue(config)!;
                 var options = new List<Option>();
+                var owners = new Dictionary<Type, int>();
                 var all = (IEnumerable)AccessTools.Method(config.GetType(), "GetAllOptions").Invoke(config, null)!;
                 // Les options suivent leur titre de section dans le menu :
                 // l'éditeur de l'app les range sous le même titre.
@@ -75,25 +77,27 @@ internal static class GmcmExport
                             ? Safe(title) : null;
                         continue;
                     }
-                    Option? read = Read(option, section);
+                    Option? read = Read(option, section, owners);
                     if (read is null) continue;
                     options.Add(read);
                     optionCount++;
                     if (read.Min is not null || read.Max is not null) bounded++;
                 }
-                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(),
-                                        ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
+                string? snapshot = ConfigSnapshot(helper, manifest.UniqueID, monitor);
+                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(), snapshot, options,
+                                        DefaultConfig(owners, snapshot, helper, monitor)));
             }
             // Un mod qui trouve MCM s'y inscrit au lieu de GMCM ; MCM reprend
             // aussi les inscriptions GMCM, déjà lues ci-dessus.
             var known = new HashSet<string>(mods.Select(m => m.UniqueID), StringComparer.OrdinalIgnoreCase);
-            foreach (var (manifest, options) in McmOptions())
+            foreach (var (manifest, options, owners) in McmOptions())
             {
                 if (!known.Add(manifest.UniqueID)) continue;
                 optionCount += options.Count;
                 bounded += options.Count(o => o.Min is not null || o.Max is not null);
-                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(),
-                                        ConfigSnapshot(helper, manifest.UniqueID, monitor), options));
+                string? snapshot = ConfigSnapshot(helper, manifest.UniqueID, monitor);
+                mods.Add(new ModOptions(manifest.UniqueID, manifest.Name, manifest.Version.ToString(), snapshot, options,
+                                        DefaultConfig(owners, snapshot, helper, monitor)));
             }
             if (mods.Count == 0)
             {
@@ -139,7 +143,49 @@ internal static class GmcmExport
         }
     }
 
-    private static Option? Read(object option, string? section)
+    /// <summary>
+    /// C4-T18 — le `config.json` qu'écrirait une config neuve : SMAPI fait
+    /// exactement `new T()` quand le fichier manque. La classe se retrouve par
+    /// les membres que lisent les getters. Son constructeur tourne une fois de
+    /// plus, seulement si ses membres sont ceux du `config.json`. Rien n'est
+    /// écrit dans le mod. Sérialisé avec les réglages de SMAPI : un
+    /// `KeybindList` sort alors comme dans le fichier.
+    /// </summary>
+    private static string? DefaultConfig(Dictionary<Type, int> owners, string? snapshot, IModHelper helper, IMonitor monitor)
+    {
+        object? json = AccessTools.Field(helper.Data.GetType(), "JsonHelper")?.GetValue(helper.Data);
+        MethodInfo? serialize = json is null ? null : AccessTools.Method(json.GetType(), "Serialize");
+        if (serialize is null) return null;
+        foreach (Type type in owners.OrderByDescending(owner => owner.Value).Select(owner => owner.Key))
+        {
+            if (!MayBeConfig(type)) continue;
+            var members = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(p => p.Name)
+                .Concat(type.GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name));
+            if (!GmcmExportRule.CoversConfig(members, snapshot)) continue;
+            try
+            {
+                // Le second paramètre est `Formatting` de Newtonsoft : 0, `None`.
+                MethodInfo typed = serialize.MakeGenericMethod(type);
+                object format = Enum.ToObject(typed.GetParameters()[1].ParameterType, 0);
+                return typed.Invoke(json, new[] { Activator.CreateInstance(type), format }) as string;
+            }
+            catch (Exception ex)
+            {
+                monitor.Log($"Options GMCM : config neuve de {type.FullName} impossible ({ex.Message}).", LogLevel.Trace);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Une classe simple du mod : ni le jeu, ni SMAPI, ni .NET, ni une fermeture.</summary>
+    private static bool MayBeConfig(Type type) =>
+        type.IsClass && !type.IsAbstract && !type.IsGenericType && !type.Name.Contains('<')
+        && type.BaseType == typeof(object) && type.GetConstructor(Type.EmptyTypes) is not null
+        && type.Assembly != typeof(object).Assembly && type.Assembly != typeof(IModHelper).Assembly
+        && type.Assembly != typeof(StardewValley.Game1).Assembly;
+
+    private static Option? Read(object option, string? section, Dictionary<Type, int> owners)
     {
         Type t = option.GetType();
         string kind = t.Name.Split('`')[0];
@@ -188,7 +234,7 @@ internal static class GmcmExport
             Str(Prop("Interval")),
             choices,
             choiceLabels,
-            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
+            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings, owners),
             closureStrings.ToList(),
             section);
     }
@@ -200,9 +246,9 @@ internal static class GmcmExport
     /// en décompilant MCM 2.3.4 (2026-11-02), sans en copier de code. Structure
     /// changée : vide, l'export GMCM reste.
     /// </summary>
-    private static List<(IManifest Manifest, List<Option> Options)> McmOptions()
+    private static List<(IManifest Manifest, List<Option> Options, Dictionary<Type, int> Owners)> McmOptions()
     {
-        var found = new List<(IManifest, List<Option>)>();
+        var found = new List<(IManifest, List<Option>, Dictionary<Type, int>)>();
         try
         {
             Type? entry = AccessTools.TypeByName("ModernConfigMenu.ModEntry");
@@ -214,8 +260,9 @@ internal static class GmcmExport
             {
                 object? Of(string name) => AccessTools.Property(mod.GetType(), name)?.GetValue(mod);
                 if (Of("Manifest") is not IManifest manifest || Of("Settings") is not IEnumerable settings) continue;
-                var options = settings.Cast<object>().Select(ReadMcm).OfType<Option>().ToList();
-                if (options.Count > 0) found.Add((manifest, options));
+                var owners = new Dictionary<Type, int>();
+                var options = settings.Cast<object>().Select(setting => ReadMcm(setting, owners)).OfType<Option>().ToList();
+                if (options.Count > 0) found.Add((manifest, options, owners));
             }
         }
         catch
@@ -225,7 +272,7 @@ internal static class GmcmExport
         return found;
     }
 
-    private static Option? ReadMcm(object setting)
+    private static Option? ReadMcm(object setting, Dictionary<Type, int> owners)
     {
         Type t = setting.GetType();
         string? kind = GmcmExportRule.McmKind(t.Name);
@@ -263,7 +310,7 @@ internal static class GmcmExport
             Str(Prop("Interval")),
             choices,
             choiceLabels,
-            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings),
+            getter is null ? new List<string>() : AccessPath(getter, 0, closureStrings, owners),
             closureStrings.ToList(),
             section);
     }
@@ -308,7 +355,8 @@ internal static class GmcmExport
         }
     }
 
-    private static List<string> AccessPath(Delegate getter, int depth, ISet<string> closureStrings)
+    private static List<string> AccessPath(Delegate getter, int depth, ISet<string> closureStrings,
+                                           Dictionary<Type, int> owners)
     {
         var path = new List<string>();
         if (depth > 3) return path;
@@ -350,7 +398,7 @@ internal static class GmcmExport
                         switch (captured)
                         {
                             case Delegate inner:
-                                path.AddRange(AccessPath(inner, depth + 1, closureStrings));
+                                path.AddRange(AccessPath(inner, depth + 1, closureStrings, owners));
                                 continue;
                             case MemberInfo info:
                                 path.Add(info.Name);
@@ -366,7 +414,11 @@ internal static class GmcmExport
                         FieldInfo f => f.Name,
                         _ => null
                     };
-                    if (name is not null && !name.StartsWith("<") && !name.StartsWith("CS$")) path.Add(name);
+                    if (name is not null && !name.StartsWith("<") && !name.StartsWith("CS$"))
+                    {
+                        path.Add(name);
+                        if (member?.DeclaringType is Type owner) owners[owner] = owners.GetValueOrDefault(owner) + 1;
+                    }
                 }
                 catch
                 {

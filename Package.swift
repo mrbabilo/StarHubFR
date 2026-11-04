@@ -131,6 +131,7 @@ let package = Package(
                 "Models/ModImpactFormat.swift",
                 "Models/GmcmCapture.swift",
                 "Models/GmcmModOptions+Layout.swift",
+                "Models/GmcmModOptions+Defaults.swift",
                 "Models/GmcmCaptureArchive.swift",
                 "Models/GmcmConfigMerge.swift",
                 "Models/ModConflictVerdictsStore.swift",

@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+
 namespace StarHubFR.Probe;
 
 /// <summary>
@@ -27,6 +32,30 @@ public static class GmcmExportRule
         "DropdownSetting" => "ChoiceModOption",
         _ => null,
     };
+
+    /// <summary>
+    /// Cette classe décrit-elle ce `config.json` ? Au moins 80 % des clés de
+    /// premier niveau y sont des membres, sans la casse. C'est la condition
+    /// pour lancer son constructeur (C4-T18) : une classe croisée dans le code
+    /// d'un getter n'est pas forcément une config, et un constructeur peut
+    /// avoir des effets.
+    /// </summary>
+    public static bool CoversConfig(IEnumerable<string> members, string? configJson)
+    {
+        if (configJson is null) return false;
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(configJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
+            var known = new HashSet<string>(members, StringComparer.OrdinalIgnoreCase);
+            var keys = document.RootElement.EnumerateObject().Select(key => key.Name).ToList();
+            return keys.Count > 0 && keys.Count(known.Contains) >= keys.Count * 0.8;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>
     /// La propriété qui lit la valeur d'un réglage MCM. `KeybindSetting` porte

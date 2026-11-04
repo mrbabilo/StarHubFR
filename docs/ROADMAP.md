@@ -195,25 +195,10 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C4 — Éditeur de config lisible
 
-> ✅ **Les 21 items de ce lot sont livrés** (C4-T13 le 2026-10-02, C4-T19 à C4-T22 le 2026-11-02). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **Les 22 items de ce lot sont livrés** (C4-T13 le 2026-10-02, C4-T19 à C4-T22 le 2026-11-02, C4-T18 le 2026-11-05). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 >
-> **À vérifier à l'écran** : l'éditeur rangé comme le menu du jeu (C4-T19) et le repli sur l'archive des captures (C4-T20). La lecture de MCM est prouvée par la capture du 2026-11-03 (sonde 0.9.31, MCM 2.3.4, PureBinarySave : 15 réglages, 4 sections, 15 aides). Restent à confirmer en jeu la lecture sous MCM 2.4.x et les raccourcis de la sonde 0.9.32.
+> **À vérifier à l'écran** : l'éditeur rangé comme le menu du jeu (C4-T19) et le repli sur l'archive des captures (C4-T20). La lecture de MCM est prouvée par la capture du 2026-11-03 (sonde 0.9.31, MCM 2.3.4, PureBinarySave : 15 réglages, 4 sections, 15 aides). Restent à confirmer en jeu la lecture sous MCM 2.4.x, les raccourcis de la sonde 0.9.32 et les valeurs par défaut de la 0.9.33 (C4-T18), avec le nombre de mods couverts.
 
-- [ ] **C4-T18 — Rétablir la valeur par défaut d'un réglage, relevée par la
-      sonde.** Idée tirée de MLD's Keybind (décompilé le 2026-11-02,
-      [`audit-keybind-mods-2026-11-02.md`](audit-keybind-mods-2026-11-02.md)),
-      sans sa mécanique : lui substitue une copie neuve à la config vivante
-      d'un autre mod, puis se rabat sur le `Reset` et le `Save` du mod. Hors
-      jeu, le défaut n'est pas lisible : `DotNetMetadata` ne décode pas les
-      corps de méthode, et le `config.json` le plus ancien n'est pas toujours
-      le défaut. En jeu, `GmcmExport` atteint déjà l'objet de config de chaque
-      mod inscrit à GMCM (`AccessPath`) : instancier une copie neuve du même
-      type, lire le même chemin, exporter la valeur à côté de la valeur
-      courante. Lecture seule, rien n'est écrit dans le mod. Limites : mods
-      inscrits à GMCM et chargés pendant la session ; un constructeur de config
-      à effets de bord s'exécuterait une fois de plus (à mesurer sur le parc).
-      Côté app : un bouton « Valeur par défaut » par réglage dans l'éditeur,
-      seulement quand l'export la porte.
 - [ ] **C4-T23 — Changements en attente dans l'éditeur** *(idée à peser)*. Idée
       tirée de MLD's Keybind : Annuler, Tout jeter et Appliquer, avec une seule
       écriture par fichier. Rien d'engagé.
@@ -1998,6 +1983,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T12** | 2026-09-24 | Le conflit se voit dès la capture : l'annotation « lié à » lit toutes les liaisons actives (`KeybindReport.activeUses`), plus les seules collisions — une touche portée par un seul autre mod est nommée tout de suite ; même mod exclu |
 | **C4-T14** | 2026-09-24 | Les entrées des listes déroulantes prennent le libellé que le mod publie : `config.<clé>.values.<valeur>` des packs CP (617 listes sur 1227, 59 packs en français) et `config.<clé>.<valeur>` des mods C# ; seules les valeurs admises sont cherchées |
 | **C5-T2** | 2026-09-23 | README : bannières rapatriées de `stardew-thai-translations` dans `assets/banners/`, changelog intégré « deux dernières versions », A1-T6/T8 décrits ; le hub thaï n'y figurait déjà plus |
+| **C4-T18** | 2026-11-05 | Valeur par défaut d'un réglage de mod C# : la sonde 0.9.33 exporte une config neuve, et l'éditeur en tire le badge « Modifié » et le bouton de retour (`GmcmModOptions+Defaults`) |
 | **C4-T22** | 2026-11-02 | Clés d'API et mots de passe masqués dans le formulaire de l'éditeur (`ConfigSecretField`), sur des formes précises de noms |
 | **C4-T21** | 2026-11-02 | Touches rejouées : `Tabs[].Keybinds` de Taum's Inventory Hotkeys sort des collisions (`emitted`), et un bouton sans mod actif pour sa touche est signalé (`KeybindScanner.relays`) |
 | **C4-T20** | 2026-11-02 | L'app garde la dernière capture de chaque mod (`GmcmCaptureArchive`) : un mod en pause ou absent de la dernière partie garde ses libellés et sa présentation |

@@ -4615,6 +4615,19 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       réglages, engrenage → éditeur sur la clé (C4-T13). Limite dite à
       l'écran : un clavier externe peut différer du dessin MacBook.
 
+- [x] **C4-T18** ✅ *(livré le 2026-11-05, idée tirée de MLD's Keybind)* — **Rétablir la
+      valeur par défaut d'un réglage.** Hors jeu, le défaut d'un mod C# n'est
+      pas lisible. La sonde 0.9.33 retrouve la classe de config par les membres
+      que lisent les getters GMCM ou MCM, l'instancie et l'exporte
+      (`DefaultConfig`) : c'est le `new T()` de SMAPI quand le fichier manque.
+      Le `JsonHelper` de SMAPI sérialise, un `KeybindList` sort donc comme dans
+      le fichier. Le constructeur ne tourne que si ses membres couvrent 80 % des
+      clés du `config.json` (`CoversConfig`) : une classe croisée dans un getter
+      n'est pas forcément une config. Aucune écriture dans le mod. Côté app,
+      `defaultControl` existait pour les packs : le badge « Modifié » et le bouton
+      de retour s'allument sans nouvelle interface, seulement si le type ne change
+      pas. Limites : mods inscrits à un menu et chargés pendant la session,
+      classe de config simple sans héritage. Non vérifié en jeu.
 - [x] **C4-T22** ✅ *(livré le 2026-11-02)* — **Secrets masqués.** Le formulaire
       de l'éditeur met en `SecureField` les champs reconnus (`apikey`,
       `password`, `accesstoken`…). « secret » et « token » seuls sont écartés :

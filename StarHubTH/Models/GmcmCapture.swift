@@ -32,6 +32,9 @@ public struct GmcmCapture: Sendable {
         let version: String?
         let configSnapshot: String?
         let options: [RawOption]
+        /// C4-T18 — le `config.json` d'une config neuve (sonde ≥ 0.9.33) ;
+        /// absent d'une capture plus ancienne, ou d'un mod sans classe reconnue.
+        let defaultConfig: String?
     }
 
     private struct RawCapture: Decodable {
@@ -81,7 +84,7 @@ public struct GmcmCapture: Sendable {
               NexusUpdateChecker.compare(captured, installedVersion) == .orderedSame,
               let snapshot = mod.configSnapshot,
               let tree = ConfigJSONTree.parse(snapshot) else { return nil }
-        return GmcmModOptions(language: language, options: mod.options, snapshot: tree)
+        return GmcmModOptions(language: language, options: mod.options, snapshot: tree, defaultConfig: mod.defaultConfig)
     }
 }
 
@@ -150,6 +153,7 @@ public struct GmcmModOptions: Equatable, Sendable {
 
     public let language: String?
     private let entries: [[String]: Entry]
+    let defaults: [[String]: ConfigJSONTree.Value]
 
     public var count: Int { entries.count }
 
@@ -157,8 +161,10 @@ public struct GmcmModOptions: Equatable, Sendable {
         entries[keyPath.map { $0.lowercased() }]
     }
 
-    init(language: String?, options: [GmcmCapture.RawOption], snapshot: ConfigJSONTree.Value) {
+    init(language: String?, options: [GmcmCapture.RawOption], snapshot: ConfigJSONTree.Value,
+         defaultConfig: String? = nil) {
         self.language = language
+        defaults = Self.defaults(from: defaultConfig)
         var order: [[String]] = []
         var claims: [[String]: [Claim]] = [:]
         let leaves = Self.leafIndex(of: snapshot)

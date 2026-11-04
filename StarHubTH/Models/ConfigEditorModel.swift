@@ -432,7 +432,7 @@ public enum ConfigEditorModel {
                    description: Self.pickText(schema: option?.description, i18n: resolved?.detail,
                                               gmcm: entry?.tooltip, gmcmFirst: gmcmFirst),
                    control: control,
-                   defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option),
+                   defaultControl: defaultControl(of: leaf.value, shownAs: control, option: option) ?? gmcm?.defaultControl(of: leaf, shownAs: control),
                    isOutsideAllowedValues: isOutside,
                    choiceLabels: choiceLabels,
                    bounds: Self.gmcmBounds(for: control, entry: entry))

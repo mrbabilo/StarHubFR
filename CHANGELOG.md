@@ -18,6 +18,7 @@ where the exact log format was verified.
 
 ### Added
 
+- **L'éditeur connaît les valeurs par défaut des mods C#.** Un réglage changé porte le badge « Modifié » et un bouton pour revenir à sa valeur d'origine, comme c'était déjà le cas pour les packs de contenu. Il faut la sonde 0.9.33 et une partie chargée, et le mod doit s'inscrire à GMCM ou à Modern Config Menu.
 - **Une alerte quand un fichier `.bin` de PureBinarySave retarde sur sa partie.** Des jours joués sans le mod disparaîtraient au prochain chargement avec lui, car il charge son `.bin` dès qu'il existe. L'alerte nomme les parties, dit le retard en jours de jeu, et son bouton met ces `.bin` à la Corbeille. Elle est critique si le mod est actif, simple avertissement s'il est en pause.
 
 ### Fixed
