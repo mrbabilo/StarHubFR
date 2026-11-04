@@ -3818,6 +3818,27 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X143** ✅ *(corrigé le 2026-11-04, relevé en relisant Modern Config Menu 2.4.0)* —
+      **Raccourcis MCM réduits à leur première touche.** `ReadMcm` lisait
+      `Get` avant `GetKeybindList`, or `KeybindSetting.Get` ne rend que le
+      premier bouton : « F5, LeftStick » sortait en « F5 », ne concordait plus
+      avec `config.json`, et l'éditeur perdait le nom et l'aide. La règle
+      `GmcmExportRule.McmGetter` choisit la propriété selon le type de réglage ;
+      `ColorPickerSetting` passe par `Getter`, sans effet à l'écran tant que les
+      couleurs sont des objets dans `config.json`. Sonde 0.9.32, non vérifié en jeu.
+- [x] **X142** ✅ *(corrigé le 2026-11-02, signalé par l'auteur à l'écran)* —
+      **Réglages sans nom ni aide avec Modern Config Menu.** PureBinarySave et
+      UltraSmooth s'inscrivent à MCM au lieu de GMCM quand il est présent : la
+      sonde 0.9.30 lit aussi son registre par réflexion (`McmOptions`). Les
+      clés i18n de la sonde ne suivaient pas les champs de son `config.json` :
+      renommées en 0.9.29 (`ConfigI18nKeysTests`). Depuis la 1.0.10,
+      PureBinarySave s'inscrit aux deux menus ; GMCM, lu d'abord, l'emporte.
+- [x] **X141** ✅ *(corrigé le 2026-11-02, relevé en décompilant MLD's Keybind)* —
+      **Restaurer des configs jeu ouvert.** Un mod chargé réécrit son
+      `config.json` et défait la restauration sans un mot. La confirmation nomme
+      les mods restaurés actifs pendant que le jeu tourne
+      (`ConfigRestoreWhileRunning`). Elle prévient, elle ne bloque pas. Audit :
+      [`audit-keybind-mods-2026-11-02.md`](audit-keybind-mods-2026-11-02.md).
 - [x] **X140** ✅ *(corrigé le 2026-11-02, relevé en décompilant UltraSmooth 2.7.2)* —
       **UltraSmooth réécrit le journal SMAPI.** Son `EnableSmapiOptimizer`
       (actif par défaut) remplace, au-delà de cinq, les lignes identiques
@@ -4551,6 +4572,27 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
       réglages, engrenage → éditeur sur la clé (C4-T13). Limite dite à
       l'écran : un clavier externe peut différer du dessin MacBook.
 
+- [x] **C4-T22** ✅ *(livré le 2026-11-02)* — **Secrets masqués.** Le formulaire
+      de l'éditeur met en `SecureField` les champs reconnus (`apikey`,
+      `password`, `accesstoken`…). « secret » et « token » seuls sont écartés :
+      sur les 637 configs du parc, ils ne désignent que des lieux et des objets.
+- [x] **C4-T21** ✅ *(livré le 2026-11-02)* — **Touches rejouées.**
+      `assets/keybind-contexts.json` déclare `emitted` les touches qu'un mod
+      rejoue pour d'autres (`Tabs[].Keybinds` de Taum's Inventory Hotkeys) :
+      elles sortent des collisions et du catalogue, le pied de rapport nomme le
+      mod, et `KeybindScanner.relays` signale un bouton sans mod actif pour sa
+      touche. Ses sept commandes passent en `ownMenu`.
+- [x] **C4-T20** ✅ *(livré le 2026-11-02, demande de l'auteur)* — **Archive des
+      captures.** `GmcmCaptureArchive` garde la dernière description de chaque
+      mod dans `gmcm-capture-archive.json` (Application Support) : un mod en
+      pause, ou absent de la dernière partie chargée, garde ses libellés et sa
+      présentation. Un format futur n'est jamais réécrit.
+- [x] **C4-T19** ✅ *(livré le 2026-11-02, demande de l'auteur)* — **L'éditeur
+      rangé comme le menu du jeu.** La sonde 0.9.31 exporte la section de chaque
+      réglage ; `GmcmModOptions+Layout` reprend sections et ordre, et ce que le
+      menu ne montre pas reste à la fin. Mesure : sur 75 mods C# actifs ayant
+      une config, 6 ont un i18n complet, 7 partiel, 29 n'ont leurs libellés que
+      par la capture, 33 n'ont aucune source.
 - [x] **C4-T13** ✅ *(complété le 2026-10-02 — l'axe C est clos)* — **Le
       saut au réglage précis et l'export.** Le 2026-09-24 avait livré la vue
       « tous les raccourcis », ses filtres et l'engrenage par ligne ; l'éditeur
@@ -7850,6 +7892,13 @@ sans lire une ligne de log.
       fil de I-T32b/c. Build SwiftUI et suite complète verts après le retour au
       comportement retenu.
 
+- [x] **I-T36 — Mise à jour de la sonde depuis l'accueil** ✅ *(livré le 2026-11-02,
+      demande de l'auteur)* — `HomeProbeUpdateNotice` propose la mise à jour dès
+      que l'app livre une sonde plus récente que celle du dossier Mods.
+- [x] **I-T35 — Signaler un bug sur GitHub** ✅ *(livré le 2026-11-02, demande de
+      l'auteur)* — menu Aide et coccinelle en bas de la barre latérale.
+      `BugReportLink` ouvre le formulaire `bug_app.yml` avec la version de
+      StarHubFR, celle de macOS et le processeur ; rien d'autre n'est envoyé.
 - [x] **I-T33 — Barre latérale lente sur Mises à jour et Entretien** —
       *(livré le 2026-10-18)*. Mesure avant correctif, app au repos : fil
       principal occupé 400–480 ms sur Mises à jour, environ 270 ms sur

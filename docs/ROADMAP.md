@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-02 (dernière version publiée : v1.71.1).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-04 (dernière version publiée : v1.72.0).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -82,13 +82,14 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X137 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
+Les X1–X137 et X140–X143 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
-**X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal) livré le 2026-11-02.
-**Deux correctifs ouverts** (décompilation du 2026-11-02,
-[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), nés de mods tiers :
+**X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
+**Quatre correctifs ouverts**, nés de mods tiers : X138 et X139 (décompilation du 2026-11-02,
+[`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)), X144 et X145
+([`audit-keybind-mods-2026-11-02.md`](audit-keybind-mods-2026-11-02.md)) :
 
 - [ ] **X138 — Une partie modifiée par l'app perd ses modifications quand
       PureBinarySave est actif.** Ce mod (Nexus 54266) charge `<partie>.bin`
@@ -118,6 +119,24 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
       paire. **Reste** : c'est déduit du code, une capture doit le confirmer ;
       ensuite trancher entre garder cette alerte, marquer la mesure comme
       partielle, ou mesurer aussi les gestionnaires qu'UltraSmooth appelle.
+      **Relu le 2026-11-04 sur la 2.7.5** : l'option reste vraie par défaut, et
+      le journal de l'auteur dit l'étalement élargi à Content Patcher, Farm
+      Type Manager, SpaceCore et Automate. La capture de confirmation compte
+      donc davantage : la part de coût imputée à UltraSmooth peut grandir.
+- [ ] **X144 — Une mise à jour qui renaît pour Taum's Inventory Hotkeys.** Son
+      manifeste dit 1.0.3, sans `UpdateKeys` ; ses fichiers Nexus sont numérotés
+      « 6 », « 7 », « 9 », dont deux DLL différentes sous 1.0.3. Le journal
+      d'installation connaît le fichier posé (`nexusFileId` 189589), l'ancre de
+      version ne le porte pas : la protection X9 ne joue pas, et « 7 » ou « 9 »
+      l'emporte sur 1.0.3 dès que l'identifiant Nexus est connu. **À faire** :
+      comparer aussi le fichier installé quand l'ancre n'a pas de version
+      comparable.
+- [ ] **X145 — Les notes de Keybind Sheet vivent dans un fichier livré.** Les
+      notes saisies en jeu sont réécrites dans `assets/catalog.json`, que la
+      mise à jour suivante remplace. Le tri A1-T11 garde un fichier livré
+      modifié quand la référence d'auteur existe (mesuré sur les profils de
+      Taum's) ; **à vérifier** sur ce fichier, et sur une installation sans
+      référence, où il serait perdu.
 
 ---
 
@@ -207,7 +226,9 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 #### C4 — Éditeur de config lisible
 
-> ✅ **Les 17 items de ce lot sont livrés** (C4-T13 le 2026-10-02). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+> ✅ **Les 21 items de ce lot sont livrés** (C4-T13 le 2026-10-02, C4-T19 à C4-T22 le 2026-11-02). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
+>
+> **À vérifier à l'écran** : l'éditeur rangé comme le menu du jeu (C4-T19) et le repli sur l'archive des captures (C4-T20). La lecture de MCM est prouvée par la capture du 2026-11-03 (sonde 0.9.31, MCM 2.3.4, PureBinarySave : 15 réglages, 4 sections, 15 aides). Restent à confirmer en jeu la lecture sous MCM 2.4.x et les raccourcis de la sonde 0.9.32.
 
 - [ ] **C4-T18 — Rétablir la valeur par défaut d'un réglage, relevée par la
       sonde.** Idée tirée de MLD's Keybind (décompilé le 2026-11-02,
@@ -224,6 +245,9 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
       à effets de bord s'exécuterait une fois de plus (à mesurer sur le parc).
       Côté app : un bouton « Valeur par défaut » par réglage dans l'éditeur,
       seulement quand l'export la porte.
+- [ ] **C4-T23 — Changements en attente dans l'éditeur** *(idée à peser)*. Idée
+      tirée de MLD's Keybind : Annuler, Tout jeter et Appliquer, avec une seule
+      écriture par fichier. Rien d'engagé.
 
 
 #### C5 — Vue d'ensemble des traductions françaises
@@ -1908,6 +1932,9 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X143** | 2026-11-04 | La sonde lisait `KeybindSetting.Get`, réduit au premier bouton : un raccourci MCM à plusieurs touches ne concordait plus avec `config.json` et perdait son nom et son aide. Sonde 0.9.32, `GmcmExportRule.McmGetter` |
+| **X142** | 2026-11-02 | L'éditeur n'affichait ni nom ni aide pour PureBinarySave, UltraSmooth et la sonde : les deux premiers s'inscrivent à MCM au lieu de GMCM, et les clés i18n de la sonde ne suivaient pas son `config.json`. Sondes 0.9.29 et 0.9.30 |
+| **X141** | 2026-11-02 | Restaurer des configs pendant que le jeu tourne ne prévenait de rien, alors qu'un mod chargé réécrit son `config.json` : la confirmation nomme les mods concernés (`ConfigRestoreWhileRunning`) |
 | **X140** | 2026-11-02 | La ligne de résumé qu'UltraSmooth écrit à la place des lignes répétées du journal SMAPI devenait une entrée trace datée « UltraSmooth » et imputée à un mod « Optimizer » ; l'erreur répétée ne comptait que cinq fois par série. Le lecteur reconnaît le résumé et rend ses répétitions à la dernière entrée quand la citation la désigne |
 | **X137** | 2026-10-18 | La recherche du lot ZIP de traduction calculait les bons résultats pour « Tout sélectionner », mais la liste affichait encore tous les mods et le compteur portait sur toute la modlist. Lignes, compte et sélection partagent désormais le même périmètre filtré |
 | **X136** | 2026-10-14 | À la mise à jour, un `config.json` jamais modifié — identique à celui livré par l'auteur — était gardé (règle 1 du tri A1-T11) : StardewOptimizer tournait avec les défauts agressifs de sa 1.0.0 après deux mises à jour. Règle 1b : empreinte d'auteur + archive neuve différente ⇒ le neuf, annoncé au bilan ; sinon gardé |
@@ -1999,6 +2026,10 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **C4-T12** | 2026-09-24 | Le conflit se voit dès la capture : l'annotation « lié à » lit toutes les liaisons actives (`KeybindReport.activeUses`), plus les seules collisions — une touche portée par un seul autre mod est nommée tout de suite ; même mod exclu |
 | **C4-T14** | 2026-09-24 | Les entrées des listes déroulantes prennent le libellé que le mod publie : `config.<clé>.values.<valeur>` des packs CP (617 listes sur 1227, 59 packs en français) et `config.<clé>.<valeur>` des mods C# ; seules les valeurs admises sont cherchées |
 | **C5-T2** | 2026-09-23 | README : bannières rapatriées de `stardew-thai-translations` dans `assets/banners/`, changelog intégré « deux dernières versions », A1-T6/T8 décrits ; le hub thaï n'y figurait déjà plus |
+| **C4-T22** | 2026-11-02 | Clés d'API et mots de passe masqués dans le formulaire de l'éditeur (`ConfigSecretField`), sur des formes précises de noms |
+| **C4-T21** | 2026-11-02 | Touches rejouées : `Tabs[].Keybinds` de Taum's Inventory Hotkeys sort des collisions (`emitted`), et un bouton sans mod actif pour sa touche est signalé (`KeybindScanner.relays`) |
+| **C4-T20** | 2026-11-02 | L'app garde la dernière capture de chaque mod (`GmcmCaptureArchive`) : un mod en pause ou absent de la dernière partie garde ses libellés et sa présentation |
+| **C4-T19** | 2026-11-02 | L'éditeur reprend sections et ordre du menu du jeu (sonde 0.9.31, `GmcmModOptions+Layout`) ; ce que le menu ne montre pas reste à la fin |
 | **C4-T17** | 2026-10-03 | Conflits de raccourcis selon le contexte : touche de modification maintenue, réglage inerte, contexte d'écoute relevé dans le code des mods (`assets/keybind-contexts.json`, `KeybindContexts`) ; l'éditeur décide comme le rapport ; parc 38 → 19 (SOURCES §6 ter) |
 | **C4-T16** | 2026-10-02 | Écran des raccourcis simplifié : une couleur par sorte de conflit (`ConflictKind`), cartes par gravité, tuiles qui mènent, inventaire « Liés » par défaut, touches en capuchon, relief et survol |
 | **C4-T15** | 2026-10-02 | Vue clavier / souris / manette du rapport de raccourcis, née de la maquette validée : géométrie MacBook ISO/ANSI (Core), placement par la règle de la capture, conflit du rapport, popover → éditeur sur la clé ; rien ne se perd (« Sans touche dédiée ») |
@@ -2171,6 +2202,8 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **I-T30** | 2026-10-17 | Audit UX, lot L5 (écrans) : éditeur de traduction à un seul ascenseur (E6), « À régler » dans l'onglet Dépendances (E7), Entretien en un geste et barre en accent (E11 + C2b), phrase de rétention unique et renvois Entretien ↔ Sauvegardes (suite de R1), bande de fiche (E3), résultats FR (E12), compte du zip des parties (E13), pluriels (E8), noms VoiceOver (E9b–e), teintes de sens (C2a, C2c), ligne de mod étroite (E2) |
 | **I-T31** | 2026-10-18 | Audit UX, lot L6 (décisions de l'auteur) : journal relu à la fermeture du jeu, mises à jour actives, garde des configs, liens natifs, packs, dépôt sur le Dock, gestes de palette et profils, page des parties, Accueil sans rescan systématique ; N-10 clôt le lot avec Diagnostic en ⌘9, Réglages épinglé, navigation complète et libellés courts |
 | **I-T32a** | 2026-10-18 | Fondations visuelles : surfaces neutres dynamiques testées en clair/sombre, cartes communes et cartes de mods mieux détachées ; titres natif + contenu conservés en double par décision de l'auteur après essai à l'écran |
+| **I-T36** | 2026-11-02 | L'accueil propose la mise à jour de la sonde dès que l'app en livre une plus récente (`HomeProbeUpdateNotice`) |
+| **I-T35** | 2026-11-02 | Signaler un bug sur GitHub depuis le menu Aide ou la coccinelle de la barre latérale (`BugReportLink`, formulaire `bug_app.yml`) |
 | **I-T33** | 2026-10-18 | Barre latérale fluide sur Mises à jour et Entretien : sections et rangées Nexus hors écran rendues paresseuses, sans déplacer leurs états ; build, suite complète et vérification écran verts |
 | **I-T32b** | 2026-10-19 | Densité et adaptation : Diagnostic à un seul défilement, mods en pause lisibles, rangées de Mises à jour, Diff, éditeur de traduction, fiche mod, chronologie, inventaire, Entretien, corbeille et quarantaine repliées en fenêtre étroite ; liste vide qui nomme son filtre ; textes tronqués avec infobulle (`truncatedHelp`) ; validé à l'écran |
 | **I-T32c** | 2026-10-19 | Identité maîtrisée : repli de `HeroHeader` sans image, lexique français unifié (vouvoiement, « en pause », « partie » contre « sauvegarde ») ; bandeau d'accueil et slogan conservés par décision de l'auteur ; lot I-T32 validé à l'écran, I-T32 clos |
