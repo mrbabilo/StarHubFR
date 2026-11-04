@@ -76,6 +76,7 @@ let package = Package(
                 "Models/ModConflictVerdicts.swift",
                 "Models/KnownIncompatibilities.swift",
                 "Models/PureBinarySave.swift",
+                "Models/PureBinarySave+File.swift",
                 "Models/PerformanceOverlap.swift",
                 "Models/ProbeJSON.swift",
                 "Models/ProbeSessions.swift",

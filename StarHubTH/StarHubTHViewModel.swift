@@ -441,7 +441,7 @@ final class StarHubTHViewModel {
                                                    keybindReport: keybindReport,
                                                    conflicts: live,
                                                    folderCollisions: collisionIssues + warningIssues
-                                                       + maliciousIssues + manifestIssues + PureBinarySave.issues(installedMods, localization.L),
+                                                       + maliciousIssues + manifestIssues + PureBinarySave.issues(installedMods, stale: savesStore.staleBinaries, localization.L),
                                                    displayName: { folderName in
             installedMods.first(where: { $0.folderName == folderName })?.name ?? folderName
         })
@@ -5593,8 +5593,10 @@ final class StarHubTHViewModel {
     nonisolated func reloadSaves() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let saves = SaveManager.shared.fetchSaves()
+            let stale = PureBinarySave.staleSaves(saves.map { (name: $0.playerName, url: $0.fileURL) })
             DispatchQueue.main.async {
-                self?.savesStore.replace(saves: saves)
+                self?.savesStore.replace(saves: saves, staleBinaries: stale)
+                self?.recomputeHealthIssues()
             }
         }
     }
@@ -5637,7 +5639,7 @@ final class StarHubTHViewModel {
                     self.reloadSaves()
                     self.showModal(message: self.localization.L(L10n.VM.saveSuccess))
                 } else {
-                    self.showModal(message: self.localization.L(L10n.VM.saveError))
+                    self.showModal(message: self.localization.L(PureBinarySave.refusalKey(for: info.fileURL) ?? L10n.VM.saveError))
                 }
             }
         }
@@ -5660,7 +5662,7 @@ final class StarHubTHViewModel {
                         self.navigationStore.inventoryToEdit = refetched
                     }
                 } else {
-                    self.showModal(message: self.localization.L(L10n.Saves.inventoryError))
+                    self.showModal(message: self.localization.L(PureBinarySave.refusalKey(for: save.fileURL) ?? L10n.Saves.inventoryError))
                 }
             }
         }
@@ -5730,14 +5732,12 @@ final class StarHubTHViewModel {
             reloadSaves()
             showModal(message: localization.L(L10n.VM.duplicateSaveSuccess))
         } else {
-            showModal(message: localization.L(L10n.VM.duplicateSaveError))
+            showModal(message: localization.L(PureBinarySave.refusalKey(for: info.fileURL) ?? L10n.VM.duplicateSaveError))
         }
         return duplicated
     }
     
-    func openSaveInFinder(info: SaveGameInfo) {
-        SaveManager.shared.openSaveInFinder(info: info)
-    }
+    func openSaveInFinder(info: SaveGameInfo) { SaveManager.shared.openSaveInFinder(info: info) }
 
     // MARK: - Backup Timeline
 

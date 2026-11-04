@@ -13,6 +13,8 @@ final class SaveCleanupStore {
 
     enum Raison: Equatable {
         case backup, lecture, écriture, aucuneClé, occupé
+        /// X138 — la clé de libellé du refus de `PureBinarySave`.
+        case refus(String)
     }
 
     enum Phase: Equatable {
@@ -37,6 +39,9 @@ final class SaveCleanupStore {
     nonisolated private static func exécuter(save: SaveGameInfo, mods: [ModItem]) -> Phase {
         let url = save.fileURL
         let manager = SaveManager.shared
+
+        // Un `.bin` plus récent porte la partie : écrire le XML l'écarterait.
+        if let clé = PureBinarySave.refusalKey(for: url) { return .échec(.refus(clé)) }
 
         // 1. Lecture + calcul, entièrement en mémoire.
         guard let lu = lire(url) else { return .échec(.lecture) }

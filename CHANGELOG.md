@@ -16,8 +16,16 @@ where the exact log format was verified.
 
 - **Le catalogue des recouvrements suit UltraSmooth 2.7.5.** Ses deux nouveaux patches ne recoupent aucun autre mod de performance : les paires ne changent pas.
 
+### Added
+
+- **Une alerte quand un fichier `.bin` de PureBinarySave retarde sur sa partie.** Des jours joués sans le mod disparaîtraient au prochain chargement avec lui, car il charge son `.bin` dès qu'il existe. L'alerte nomme les parties, dit le retard en jours de jeu, et son bouton met ces `.bin` à la Corbeille. Elle est critique si le mod est actif, simple avertissement s'il est en pause.
+
 ### Fixed
 
+- **Avec PureBinarySave, un refus de modifier une partie dit maintenant pourquoi**, au lieu de l'échec générique.
+- **La page Parties ne montre plus un fermier « Unknown » juste après le coucher.** Tant que PureBinarySave n'a pas recopié la partie, l'app la lit dans son fichier `.bin`.
+- **Retirer les mods absents d'une partie ne ramène plus en arrière une partie gardée par PureBinarySave.** Si son `.bin` est plus récent, l'app refuse au lieu de l'écarter.
+- **Une copie de partie ne garde plus les fichiers `.bin` de l'original**, qui ne servaient plus.
 - **L'éditeur retrouve le nom et l'aide des raccourcis à plusieurs touches inscrits à Modern Config Menu.** La sonde n'en lisait que la première touche : la valeur ne concordait plus avec `config.json`, et l'app écartait le réglage. Sonde 0.9.32 ; chargez une partie une fois pour que les textes arrivent.
 
 ## [1.72.0] - 2026-11-03

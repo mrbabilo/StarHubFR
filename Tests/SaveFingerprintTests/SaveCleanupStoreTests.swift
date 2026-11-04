@@ -36,6 +36,22 @@ import Testing
 
     private let verrou = SavesStore(tagForSave: { _ in "" })
 
+    /// X138 — un `.bin` plus récent porte la partie : écrire le XML l'écarterait
+    /// et ramènerait la partie en arrière.
+    @Test func unBinPlusRécentRefuseLeNettoyage() async throws {
+        let xml = Data(("<SaveGame>" + String(repeating: "<item />", count: 80) + "</SaveGame>").utf8)
+        let (_, fichier) = try dossierDeSave(xml)
+        let bin = fichier.deletingLastPathComponent().appendingPathComponent("Zofia_1.bin")
+        try Data("PPBS".utf8).write(to: bin)
+        try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(-60)],
+                                              ofItemAtPath: fichier.path)
+        let store = SaveCleanupStore()
+        await store.nettoyer(save: save(fichier), mods: [mod("a")], verrou: verrou)
+        #expect(store.phase == .échec(.refus(PureBinarySave.refusalNewerKey)))
+        #expect(FileManager.default.fileExists(atPath: bin.path))
+        #expect(try Data(contentsOf: fichier) == xml)
+    }
+
     private func backups(in racine: URL) throws -> [String] {
         try FileManager.default.contentsOfDirectory(atPath: racine.path)
             .filter { $0.hasPrefix("Zofia_1.backup_") }

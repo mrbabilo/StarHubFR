@@ -20,6 +20,9 @@ final class SavesStore {
     /// Les parties trouvées sur le disque, telles que `SaveManager.fetchSaves`
     /// les rend. Remplacée en bloc — jamais mutée élément par élément.
     private(set) var saves: [SaveGameInfo] = []
+    /// X138 — les parties dont le `.bin` de PureBinarySave retarde, relues avec
+    /// elles : seul le jeu ou l'app les fait bouger, pas la bascule du mod.
+    private(set) var staleBinaries: [PureBinarySave.StaleSave] = []
 
     /// Liste ou grille.
     var viewMode: SaveViewMode = .list
@@ -43,8 +46,9 @@ final class SavesStore {
         self.tagForSave = tagForSave
     }
 
-    func replace(saves: [SaveGameInfo]) {
+    func replace(saves: [SaveGameInfo], staleBinaries: [PureBinarySave.StaleSave] = []) {
         self.saves = saves
+        self.staleBinaries = staleBinaries
     }
 
     // MARK: - Le verrou d'écriture

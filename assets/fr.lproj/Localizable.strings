@@ -2649,6 +2649,14 @@
 "health_manifest_unreadable_title" = "Manifeste illisible : %@";
 "health_pure_binary_save_title" = "PureBinarySave tourne sans SpaceCore";
 "health_pure_binary_save_detail" = "Dans cette configuration, sur Mac, PureBinarySave a été vu ne jamais mettre à jour son fichier .bin au coucher : chaque chargement ramène alors la partie au jour de sa conversion. Mettez-le en pause : le jeu recharge la partie XML, qui reste à jour. N'utilisez pas sa commande de retour au XML, qui reconstruit la partie depuis l'ancien .bin.";
+"save_pure_binary_refusal_stub" = "PureBinarySave garde cette partie dans son fichier .bin : le fichier que l'app modifie n'en contient qu'un talon. Attendez que le mod recopie la partie, quelques secondes après le réveil en jeu, puis réessayez. En mode disque pur, il ne la recopie jamais.";
+"save_pure_binary_refusal_newer" = "Le fichier .bin de PureBinarySave est plus récent que celui que l'app modifie : le mod n'a pas fini de recopier la partie. Chargez-la en jeu, attendez quelques secondes, puis réessayez.";
+"health_pure_binary_stale_title_active" = "PureBinarySave va ramener des parties en arrière";
+"health_pure_binary_stale_title_paused" = "Réactiver PureBinarySave ramènerait des parties en arrière";
+"health_pure_binary_stale_detail" = "Ces parties ont avancé sans le mod, et il charge son fichier .bin dès qu'il existe : %@. Écartez ces .bin : ils partent à la Corbeille, et le mod les recrée depuis la partie.";
+"health_pure_binary_stale_entry" = "%@ (%d j de retard)";
+"health_action_set_aside_binaries" = "Écarter ces .bin";
+"health_pure_binary_game_running" = "Fermez le jeu avant d'écarter ces fichiers.";
 "health_action_repair_manifest" = "Restaurer le manifeste";
 "health_action_reinstall_nexus" = "Réinstaller depuis Nexus";
 "keybind_plan_title" = "Plan de raccourcis";

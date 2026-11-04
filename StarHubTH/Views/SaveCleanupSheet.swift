@@ -132,6 +132,7 @@ struct SaveCleanupSheet: View {
         case .écriture: return localization.L(L10n.Saves.cleanupErrWrite)
         case .aucuneClé: return localization.L(L10n.Saves.cleanupErrNone)
         case .occupé: return localization.L(L10n.Saves.cleanupErrBusy)
+        case .refus(let clé): return localization.L(clé)
         }
     }
 

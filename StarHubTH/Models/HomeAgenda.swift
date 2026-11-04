@@ -39,7 +39,8 @@ public enum HomeAgenda {
         issue.actions.first { action in
             switch action {
             case .openMod, .openModDependencies, .openModConfig, .openLogs: return true
-            case .revealInFinder, .renameFolder, .repairManifest, .reinstallFromNexus: return false
+            case .revealInFinder, .renameFolder, .repairManifest, .reinstallFromNexus,
+                 .setAsideStaleBinaries: return false
             }
         }
     }

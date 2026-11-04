@@ -3818,6 +3818,22 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X138** ✅ *(clos le 2026-11-04, relevé en décompilant PureBinarySave 1.0.7)* —
+      **Une partie modifiée par l'app perdait ses modifications.** Le mod charge
+      `<partie>.bin` dès qu'il existe, sans regarder le XML. Livré le 2026-11-02 :
+      alerte critique avant 1.0.8 sans SpaceCore, refus d'écrire quand le XML
+      n'est qu'un talon ou plus ancien que le `.bin`, `.bin` à la Corbeille après
+      une écriture complète. Livré le 2026-11-04 (`PureBinarySave+File`) : le
+      `.bin` se décode (`PPBS`, 28 octets d'en-tête, Brotli, vérifié sur une
+      partie du parc). La page Parties lit donc le fermier pendant le talon.
+      Une partie dont le `SaveGameInfo` a des jours de jeu d'avance sur
+      `SaveGameInfo.bin` lève une alerte, `warning` mod en pause, `critical` mod
+      actif, avec un geste qui écarte ces `.bin` après relecture. La date de jeu
+      et non celle du fichier, car le mod recopie le XML après le `.bin`, avec un
+      délai réglable. Les refus disent leur raison (`refusalKey`). Une copie
+      retire les `.bin` et caches à l'ancien nom. Le nettoyage des mods absents
+      n'avait pas la garde : il pouvait écarter un `.bin` plus récent. Non vérifié
+      en jeu ni à l'écran.
 - [x] **X143** ✅ *(corrigé le 2026-11-04, relevé en relisant Modern Config Menu 2.4.0)* —
       **Raccourcis MCM réduits à leur première touche.** `ReadMcm` lisait
       `Get` avant `GetKeybindList`, or `KeybindSetting.Get` ne rend que le

@@ -325,7 +325,7 @@ public final class SaveManager: @unchecked Sendable {
                                  modified: stamp.modified, size: stamp.size) {
             return hit
         }
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        guard let content = PureBinarySave.readableText(of: url) else { return nil }
 
         // Une passe sur les enfants directs de `<player>` (`SavePlayerFields`) :
         // la première occurrence peut être un monstre de quête.
@@ -910,7 +910,7 @@ public final class SaveManager: @unchecked Sendable {
         do {
             try fm.copyItem(at: sourceFolder, to: newFolderPath)
 
-            // Rename internal file
+            PureBinarySave.dropBinaries(named: baseName, in: newFolderPath)  // X138, avant le renommage
             let oldFilePath = newFolderPath.appendingPathComponent(baseName)
             let newFilePath = newFolderPath.appendingPathComponent(newSaveName)
             if fm.fileExists(atPath: oldFilePath.path) {

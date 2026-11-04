@@ -53,7 +53,8 @@ public struct HealthIssue: Identifiable, Equatable {
         case manifestUnreadable
         /// X138 — PureBinarySave actif sans SpaceCore : ses parties reviennent
         /// au jour de leur conversion (`PureBinarySave.issues`). `critical` :
-        /// des journées de jeu se perdent à chaque chargement.
+        /// des journées de jeu se perdent à chaque chargement. Aussi un `.bin`
+        /// qui retarde sur sa partie, `warning` tant que le mod est en pause.
         case pureBinarySave
     }
 
@@ -106,6 +107,9 @@ public struct HealthIssue: Identifiable, Equatable {
         /// téléchargement commune). Repli quand aucun backup ne porte le
         /// manifeste.
         case reinstallFromNexus(nexusId: Int)
+        /// X138 — met à la Corbeille les `.bin` qui retardent sur leur partie
+        /// (`PureBinarySave.setAsideStale`). `saves` : les fichiers de partie.
+        case setAsideStaleBinaries(saves: [String])
 
         /// Identité dérivée du contenu, comme celle de `HealthIssue` : une
         /// ligne peut offrir deux chemins (voir `actions`), et `ForEach` les
@@ -121,6 +125,7 @@ public struct HealthIssue: Identifiable, Equatable {
             case .renameFolder(let f):   return "rename:\(f)"
             case .repairManifest(let f): return "repair:\(f)"
             case .reinstallFromNexus(let i): return "reinstall:\(i)"
+            case .setAsideStaleBinaries(let s): return "stale-bin:\(s.joined(separator: "|"))"
             }
         }
     }

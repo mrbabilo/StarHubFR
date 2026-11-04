@@ -324,6 +324,7 @@ struct SystemAlertsView: View {
         // libellé dit lequel (backup local, ou Nexus).
         case .repairManifest: return localization.L(L10n.Health.actionRepairManifest)
         case .reinstallFromNexus: return localization.L(L10n.Health.actionReinstallNexus)
+        case .setAsideStaleBinaries: return localization.L(L10n.Health.actionSetAsideBinaries)
         }
     }
 
@@ -359,6 +360,13 @@ struct SystemAlertsView: View {
             viewModel.restoreManifest(folderName: folderName)
         case .reinstallFromNexus(let nexusId):
             viewModel.downloadModFromNexus(nexusId: nexusId)
+        case .setAsideStaleBinaries(let saves):
+            guard !viewModel.isGameRunning() else {
+                viewModel.showModal(message: localization.L(L10n.Health.pureBinaryGameRunning))
+                return
+            }
+            PureBinarySave.setAsideStale(saves)
+            viewModel.reloadSaves()  // relit les parties, et la ligne disparaît
         }
     }
 }
