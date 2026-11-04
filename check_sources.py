@@ -549,7 +549,7 @@ SOURCES = [
 
     {"key": "mod/pure-binary-save", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 54266, "uniqueId": "palmhacker13.PureBinarySave",
-     "role": "moteur de sauvegarde binaire de l'auteur d'UltraSmooth (1.0.9 "
+     "role": "moteur de sauvegarde binaire de l'auteur d'UltraSmooth (1.0.10 "
              "sur le parc, actif ; 1.0.8 corrige le .bin non réécrit sans "
              "SpaceCore ou sur macOS, l'alerte X138 s'arrête là) : la partie s'écrit "
              "d'abord dans un .bin, le XML vanilla n'est recopié que ~6 s après "

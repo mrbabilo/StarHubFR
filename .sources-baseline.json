@@ -77,11 +77,11 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "e7dca7a",
-    "last_commit_at": "2026-11-02T22:07:40Z",
-    "pushed_at": "2026-11-02T22:54:43Z",
-    "release": "v1.71.1",
-    "released_at": "2026-10-19T16:44:08Z"
+    "last_commit": "3ebffc2",
+    "last_commit_at": "2026-11-03T00:27:36Z",
+    "pushed_at": "2026-11-03T00:27:40Z",
+    "release": "v1.72.0",
+    "released_at": "2026-11-03T00:27:52Z"
   },
   "gmcm-source": {
     "archived": false,
@@ -161,15 +161,16 @@
     "version": "1.0.0"
   },
   "mod/mld-keybind": {
+    "changelog_reviewed": "0.2.0",
     "gitHubRepo": null,
     "name": null,
     "version": "0.2.0"
   },
   "mod/modern-config-menu": {
-    "changelog_reviewed": "2.3.4",
+    "changelog_reviewed": "2.4.1",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.3.4"
+    "version": "2.4.1"
   },
   "mod/profiler": {
     "changelog_reviewed": "2.0.0",
@@ -178,10 +179,10 @@
     "version": "2.0.0"
   },
   "mod/pure-binary-save": {
-    "changelog_reviewed": "1.0.9",
+    "changelog_reviewed": "1.0.10",
     "gitHubRepo": null,
     "name": null,
-    "version": "1.0.9"
+    "version": "1.0.10"
   },
   "mod/radiance": {
     "changelog_reviewed": "2.4.5",
@@ -236,10 +237,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.7.3",
+    "changelog_reviewed": "2.7.5",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.7.3"
+    "version": "2.7.4"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -288,9 +289,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "6546ce9",
-    "last_commit_at": "2026-10-26T00:53:12Z",
-    "pushed_at": "2026-11-02T23:02:25Z"
+    "last_commit": "584cdf0",
+    "last_commit_at": "2026-11-04T05:42:36Z",
+    "pushed_at": "2026-11-04T20:26:30Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [

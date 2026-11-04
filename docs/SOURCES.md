@@ -1242,6 +1242,23 @@ Config Menu 2.3.4 est actif.
 | `gmcm-source`, `ui-framework-source` | `pushed_at` seul | aucun commit dans les dossiers suivis |
 | `fork/StarHubFR` | v1.71.0 → v1.71.1 | notre propre publication |
 
+### Relevé du 2026-11-04 — cinq écarts, la sonde vérifiée en jeu
+
+`check_sources.py` : 5 sources bougées. Journaux lus par `--fetch-changelogs`,
+commits lus par l'API GitHub. Noms internes de Modern Config Menu 2.4.0 et
+inscriptions de PureBinarySave 1.0.10 relus dans les DLL du parc, rien exécuté.
+Sur le parc : Modern Config Menu 2.4.0, PureBinarySave 1.0.10 actifs, UltraSmooth
+2.7.4 en pause, sonde 0.9.31.
+
+| Source | Écart | Décision |
+|---|---|---|
+| `mod/pure-binary-save` | 1.0.9 → **1.0.10** | journal lu, inscriptions relues. Le mod s'inscrit désormais **aux deux menus**, MCM puis GMCM : 15 réglages et 4 sections de chaque côté. La sonde lit GMCM d'abord et ignore l'entrée MCM d'un mod déjà vu : deux titres de section changeront à la prochaine capture (« Asset Caching & World », « Diagnostics & A/B Testing »). La capture de la 1.0.9 (2026-11-03, sonde 0.9.31) est la **première preuve en jeu** de la lecture MCM : 15 réglages, 4 sections, 15 aides |
+| `mod/modern-config-menu` | 2.3.4 → **2.4.1** (parc 2.4.0) | journal lu : refonte visuelle, options complexes GMCM (2.4.0), clavier virtuel redimensionnable (2.4.1). `ModEntry.Instance`, `Registry`, `All`, `Manifest`, `Settings` et les champs lus sont intacts en 2.4.0 ; pas encore lus en jeu sur cette version. Deux lectures de la sonde corrigées en 0.9.32 : `KeybindSetting.Get` ne rend que le premier bouton (il faut `GetKeybindList`) et `ColorPickerSetting` expose `Getter`, pas `Get`. Le second ne change rien à l'écran : les couleurs du parc sont des objets dans `config.json`, et l'éditeur ne rapproche que des feuilles |
+| `mod/ultrasmooth` | 2.7.3 → **2.7.4** ; le journal Nexus va jusqu'à **2.7.5** | journal lu. 2.7.4 : correctifs de compatibilité (Fishing Assistant 3, Tractor Mod), ramassage d'objets. 2.7.5 : l'étalement du changement d'heure s'étend à Content Patcher, Farm Type Manager, SpaceCore et Automate, actif par défaut, ce qui confirme X139 ; sommeil profond des PNJ hors écran, minuteurs de sol et de cultures. Le catalogue A5-T7 reste mesuré sur 2.7.2 : **à remesurer sur 2.7.5** une fois installée, ces changements touchent les boucles de mise à jour |
+| `save-editor` | `6546ce9` → `584cdf0`, 23 commits | grossesse du conjoint, question du bébé, couples de joueurs (`farmerFriendships`, `NextBirthingDate`), chemins de sauvegarde copiables. Notre éditeur ne lit aucun de ces champs : rien à prendre |
+| `mod/mld-keybind` | journal jamais lu | aucun journal publié pour la 0.2.0 |
+| `fork/StarHubFR` | v1.71.1 → v1.72.0 | notre propre publication |
+
 ## 6. Mods du jeu observés — la convention `config.*`
 
 Références du domaine, pas des dépendances : aucun code de ces mods ne vit
