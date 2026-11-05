@@ -2,9 +2,9 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "4d1d936",
-    "last_commit_at": "2026-10-21T14:51:18Z",
-    "pushed_at": "2026-10-21T14:51:20Z",
+    "last_commit": "e305f62",
+    "last_commit_at": "2026-11-05T07:35:03Z",
+    "pushed_at": "2026-11-05T07:35:33Z",
     "release": "v1.2.9",
     "released_at": "2026-10-19T05:38:17Z"
   },
@@ -77,9 +77,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "d0e2911",
-    "last_commit_at": "2026-11-04T20:56:55Z",
-    "pushed_at": "2026-11-04T21:00:12Z",
+    "last_commit": "7e33ec9",
+    "last_commit_at": "2026-11-05T10:26:13Z",
+    "pushed_at": "2026-11-05T10:26:35Z",
     "release": "v1.72.0",
     "released_at": "2026-11-03T00:27:52Z"
   },
@@ -237,10 +237,10 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.7.5",
+    "changelog_reviewed": "2.7.6",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.7.5"
+    "version": "2.7.6"
   },
   "nexus/api-v1": {
     "bytes": 53,
@@ -291,7 +291,7 @@
     "default_branch": "main",
     "last_commit": "584cdf0",
     "last_commit_at": "2026-11-04T05:42:36Z",
-    "pushed_at": "2026-11-04T20:26:30Z"
+    "pushed_at": "2026-11-05T01:36:25Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [
