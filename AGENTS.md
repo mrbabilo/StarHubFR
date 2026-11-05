@@ -40,7 +40,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
 ```
 - **`DEVELOPER_DIR` OBLIGATOIRE** : `Testing` (Swift Testing, `import Testing`) exige **Xcode.app complet**, pas Command Line Tools.
 - Sans `DEVELOPER_DIR` : `no such module 'Testing'` — **limite d'environnement, pas régression**.
-- 4 371 `@Test`, 178 `@Suite` explicites, 245 cibles (relevé 2026-10-09).
+- 4 877 `@Test`, 213 `@Suite` explicites, 262 cibles (relevé 2026-11-05).
 - CI GitHub (Xcode 16.4, Swift 6.0) = juge : chaîne locale plus récente, écart de mode de langage invisible en local.
 
 ### `swift build` (Core seulement)
@@ -140,9 +140,9 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 ## 5. Architecture — points sensibles
 
 ### 5.1 `StarHubTHViewModel` = god-object
-- ~8 000 lignes (7 926 au 2026-10-09). `scanMods()`, `performToggle`, `applyProfileToFilesystem`, `toggleAllMods`, `deleteMod`, `cleanDisabledMods`, `syncInstalledModRegistry` y vivent encore.
+- ~7 800 lignes (7 843 au 2026-11-05). `scanMods()`, `performToggle`, `applyProfileToFilesystem`, `toggleAllMods`, `deleteMod`, `cleanDisabledMods`, `syncInstalledModRegistry` y vivent encore.
 - Scan de `Mods/` (dont `parseModFolder`) dans `Models/ModScanner.swift`, détenu par VM (`private let scanner`).
-- Refacto **en cours** (`docs/REFACTORING.md`) : état sort vers `StarHubTH/Stores/` (44 fichiers). Règle F1-T2 : fonctionnalité neuve naît dans son type (store ou type pur dans `Models/`), jamais dans VM. Taille VM verrouillée par cliquet.
+- Refacto **en cours** (`docs/REFACTORING.md`) : état sort vers `StarHubTH/Stores/` (64 fichiers). Règle F1-T2 : fonctionnalité neuve naît dans son type (store ou type pur dans `Models/`), jamais dans VM. Taille VM verrouillée par cliquet.
 
 ### 5.2 Registre des mods installés
 - Porté par `Stores/InstalledModRegistryStore.swift`. Clé UserDefaults `installedModRegistry` (blob JSON, ~90 Ko).
@@ -181,7 +181,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 - **Pagination** : 12 mods/page (`ModListView.pageSize`), saut de page direct.
 - **Boutons à libellé, fenêtre minimale** (consigne de l'auteur, 2026-09-25) : un bouton textuel reste lisible au volet le plus étroit (560 pt) **ou** se réduit à son icône, titre en infobulle. Jamais de libellé tronqué ou replié. Outil : `AdaptiveLabels` (`Label(titre, systemImage:)` + `.help(titre)` sur chaque bouton) ; un sélecteur segmenté pose deux variantes dans un `ViewThatFits` (`ModScopePicker`). ⚠️ Un segment macOS (`Picker(.segmented)`) rend du texte **ou** une image, jamais les deux : ni l'icône d'un `Label` ni une `Image` interpolée dans un `Text` n'y survivent. Icône + texte = boutons faits main (`ModScopePicker`).
 - **Rangée trop large, autres formes** (revue de tous les écrans, 2026-09-25) : `SplitRow { gauche } trailing: { droite }` remplace `HStack { … ; Spacer() ; … }` et passe la droite à la ligne ; `WrapHStack` (Layout) replie des puces ou des colonnes figées en gardant l'alignement d'une ligne à l'autre. Symptômes d'une rangée qui ne tient pas : un texte écrit lettre par lettre à la verticale, ou toute la colonne décentrée et coupée des deux côtés. Mesurer les libellés FR (`NSString.size(withAttributes:)`), pas à l'œil ; dans `WrapHStack`, un `Divider` est horizontal — tracer un `Rectangle` 1×16.
-- **Splash de lancement** : fenêtre séparée (`NSPanel`, `Views/LaunchSplashWindow.swift`), cover art, progression par phases, menus natifs masqués pendant chargement. Deux pièges AppKit ont tué l'app au lancement : `applicationShouldTerminateAfterLastWindowClosed` doit rendre `false`, et fenêtre principale masquée dans `applicationWillFinishLaunching`, pas `.onAppear`.
+- **Splash de lancement** : fenêtre séparée (`NSPanel`, `Views/LaunchSplashWindow.swift`), cover art, progression par phases ; les menus natifs restent en place, la fenêtre principale n'étant pas à l'écran. Deux pièges AppKit ont tué l'app au lancement : `applicationShouldTerminateAfterLastWindowClosed` doit rendre `false`, et fenêtre principale masquée dans `applicationWillFinishLaunching`, pas `.onAppear`.
 
 ---
 
@@ -198,7 +198,7 @@ python3 check_sources.py --offline       # sources externes, contrôles locaux s
 ## 8. Résumé — checklist avant de valider un changement
 
 1. [ ] `python3 build_app.py` passe (compile + parité L10n).
-2. [ ] `./run_tests.sh` passe (~4 400 tests).
+2. [ ] `./run_tests.sh` passe (~4 900 tests).
 3. [ ] Touché `en.json`/`fr.json` : parité clés + messages cohérents dans les deux langues.
 4. [ ] Touché chemin disque de mod : `physicalFolderName`, pas `folderName`.
 5. [ ] Nouveau code réseau : via `NexusRequestBuilder`.

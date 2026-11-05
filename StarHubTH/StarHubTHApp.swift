@@ -120,10 +120,8 @@ struct StarHubTHApp: App {
     /// a déjà une valeur »), laissant les vrais profils orphelins dans
     /// l'ancien plist. La reprise est idempotente : deux déclencheurs, un seul
     /// effet.
-    /// L'annotation explicite est porteuse : déclarée **avant** `@AppStorage`
-    /// (L.114), cette propriété garantit que la reprise s'exécute avant le
-    /// premier lecteur defaults de l'App — la déplacer dans `init()` inverserait
-    /// l'ordre pour le wrapper, qui lit `UserDefaults` à son initialisation.
+    /// Propriété à valeur initiale : elle s'évalue avant le corps d'`init()`,
+    /// donc avant `LocalizationStore`, premier lecteur defaults de l'App.
     private let bootstrapDefaults: Void = DefaultsMigration.runOnce
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -198,7 +196,7 @@ struct StarHubTHApp: App {
                         //
                         // Aujourd'hui inatteignable : `isLaunching` ne retombe
                         // qu'après un `DispatchQueue.global` suivi d'un
-                        // `asyncAfter(0.15)`, bien après ce `.onAppear`. La
+                        // `asyncAfter(0.45)`, bien après ce `.onAppear`. La
                         // branche ne dépend plus de ce délai pour être sûre.
                         // `finish()` est idempotent et documenté comme sûr
                         // avant tout `show()`. Il délivre lui-même les liens

@@ -140,4 +140,8 @@ public enum UDKey {
     public static let textScale = "textScale"
     public static let modUpdateSnoozes = "modUpdateSnoozes"
     public static let modVersionAnchors = "modVersionAnchors"
+    /// Débit de la dernière grosse archive (`FolderArchiveStore`).
+    public static let folderArchiveBytesPerSecond = "folderArchive.bytesPerSecond"
+    /// Dernier dossier où une archive de ce genre a abouti (`mods`, `saves`).
+    public static func folderArchiveDestination(_ kind: String) -> String { "folderArchive.destination.\(kind)" }
 }

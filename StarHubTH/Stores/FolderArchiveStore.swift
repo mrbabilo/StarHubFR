@@ -46,13 +46,13 @@ public final class FolderArchiveStore {
 
     /// Débit de la dernière grosse archive, le défaut sinon.
     public var bytesPerSecond: Double {
-        let stored = defaults.double(forKey: Key.bytesPerSecond)
+        let stored = defaults.double(forKey: UDKey.folderArchiveBytesPerSecond)
         return stored > 0 ? stored : FolderArchive.defaultBytesPerSecond
     }
 
     /// Dernier dossier où une archive de ce genre a abouti.
     public func lastDestination(for kind: Kind) -> URL? {
-        defaults.string(forKey: Key.destination(kind)).map { URL(fileURLWithPath: $0, isDirectory: true) }
+        defaults.string(forKey: UDKey.folderArchiveDestination(kind.rawValue)).map { URL(fileURLWithPath: $0, isDirectory: true) }
     }
 
     public func start(kind: Kind, source: URL, destinationFolder: URL,
@@ -118,9 +118,9 @@ public final class FolderArchiveStore {
         let seconds = Date().timeIntervalSince(startedAt)
         switch outcome {
         case .succeeded:
-            defaults.set(destinationFolder.path, forKey: Key.destination(kind))
+            defaults.set(destinationFolder.path, forKey: UDKey.folderArchiveDestination(kind.rawValue))
             if sourceBytes >= minimumLearningBytes, seconds > 0 {
-                defaults.set(Double(sourceBytes) / seconds, forKey: Key.bytesPerSecond)
+                defaults.set(Double(sourceBytes) / seconds, forKey: UDKey.folderArchiveBytesPerSecond)
             }
             phase = .finished(archive: archive, bytes: Self.size(of: archive), seconds: seconds)
         case .cancelled:
@@ -163,11 +163,6 @@ public final class FolderArchiveStore {
         } catch {
             return 0
         }
-    }
-
-    private enum Key {
-        static let bytesPerSecond = "folderArchive.bytesPerSecond"
-        static func destination(_ kind: Kind) -> String { "folderArchive.destination.\(kind.rawValue)" }
     }
 }
 
