@@ -3818,6 +3818,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X150** ✅ *(livré le 2026-11-05, audit des scripts)* — **`release.py`
+      taguait sans le numéro de build.** `bump_build_number` modifie `Info.plist`,
+      rien ne le commitait, puis la réponse `y` posait `git tag -s` sur `HEAD` : tag
+      en build N-1, zip en build N, notes réduites à « Automated release ». Chemin
+      jamais emprunté, les releases passent par `n`. Le script ne publie plus et
+      affiche les commandes à lancer après le commit d'`Info.plist`.
+- [x] **X149** ✅ *(livré le 2026-11-05, audit des scripts)* — **`--update` passait
+      à la trappe.** La branche `--changelog-reviewed` sort avant tout relevé : lancés
+      ensemble, seul le journal était noté, avec un code de sortie 0. Vécu pendant
+      le relevé du 2026-11-05. La combinaison est refusée par `ap.error`.
 - [x] **X148** ✅ *(livré le 2026-11-05, audit de la persistance neuve)* — **Le
       renommage oubliait trois magasins.** `migrateFolderKeyedStores` ne connaissait
       ni `KeybindFamilyStore` ni `TranslationHitVerdicts`, nés après X60, ni

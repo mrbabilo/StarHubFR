@@ -92,7 +92,8 @@ def create_release() -> int:
     print("[INFO] Starting release process...")
 
     # 0. Bump the build counter before building, so the bundle carries it.
-    if bump_build_number() is None:
+    build = bump_build_number()
+    if build is None:
         print("[ERROR] Release interrompue.")
         return 1
 
@@ -149,35 +150,18 @@ def create_release() -> int:
     if not signed:
         print("[WARNING] git has no signing key: the tag will not be signed (docs/SIGNING.md).")
 
-    upload = input("[PROMPT] Do you want to upload this release to GitHub? (y/n): ")
-    if upload.lower() in ['y', 'yes']:
-        print("[INFO] Uploading release...")
-        if signed:
-            # Le tag signé naît ici, puis part seul : `gh release create`
-            # fabriquerait sinon un tag léger, non signé, côté GitHub.
-            for step in (["git", "tag", "-s", tag, "-m", f"StarHubFR {tag}"],
-                         ["git", "push", "origin", tag]):
-                if subprocess.run(step).returncode != 0:
-                    print(f"[ERROR] {' '.join(step)} failed.")
-                    return 1
-        cmd = [
-            "gh", "release", "create", tag, zip_path, sums_path,
-            "--title", f"Release {tag}",
-            "--notes", f"Automated release for StarHubFR {tag}."
-        ] + (["--verify-tag"] if signed else [])
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode == 0:
-            print(f"[SUCCESS] Uploaded {tag} successfully.")
-            print(res.stdout.strip())
-        else:
-            print(f"[ERROR] Upload failed:\n{res.stderr.strip()}")
-            return 1
+    # X150 — pas de publication ici : le numéro de build vient d'être écrit
+    # dans `Info.plist`, un tag posé maintenant ne le contiendrait pas, et les
+    # notes d'une release s'écrivent à la main.
+    print("[INFO] Commit the build number, then publish by hand, with your own notes:")
+    print(f'  git commit Info.plist -m "chore(release): {version}, build {build}"')
+    if signed:
+        print(f'  git tag -s {tag} -m "StarHubFR {tag}"')
+        print(f"  git push origin main {tag}")
     else:
-        print("[INFO] Skipping upload. To publish by hand, with your own notes:")
-        if signed:
-            print(f'  git tag -s {tag} -m "StarHubFR {tag}" && git push origin {tag}')
-        print(f"  gh release create {tag} {zip_path} {sums_path} --title \"Release {tag}\" "
-              f"--notes-file <notes.md>{' --verify-tag' if signed else ''}")
+        print("  git push origin main")
+    print(f"  gh release create {tag} {zip_path} {sums_path} --title \"StarHubFR {version}\" "
+          f"--notes-file <notes.md>{' --verify-tag' if signed else ''}")
     return 0
 
 if __name__ == "__main__":

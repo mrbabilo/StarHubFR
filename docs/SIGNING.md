@@ -42,7 +42,7 @@ perdre change l'identité, avec les mêmes redemandes qu'en ad hoc.
 
 ## 2. Empreinte des releases — `SHA256SUMS`
 
-`release.py` écrit `bundles/SHA256SUMS` à côté du zip et le publie avec lui.
+`release.py` écrit `bundles/SHA256SUMS` à côté du zip ; il se publie avec lui.
 Pour vérifier un téléchargement, dans son dossier :
 
 ```bash
@@ -61,9 +61,10 @@ gh auth refresh -h github.com -s admin:ssh_signing_key
 gh ssh-key add ~/.ssh/starhubfr_signing.pub --type signing --title "StarHubFR tags"
 ```
 
-Ensuite `release.py` crée le tag signé (`git tag -s`), le pousse, puis publie la
-release sur ce tag (`gh release create --verify-tag`). Sans clé, il prévient et
-laisse GitHub créer un tag non signé, comme avant.
+Ensuite, après le commit d'`Info.plist`, `release.py` a affiché les commandes à
+lancer : le tag signé (`git tag -s`), son envoi, puis la release sur ce tag
+(`gh release create --verify-tag`). Sans clé, il prévient et GitHub crée un tag
+non signé.
 
 Vérifier un tag en local demande la liste des signataires :
 

@@ -924,6 +924,11 @@ def main():
                          "un changelog")
     args = ap.parse_args()
 
+    # X149 — la note de lecture sort avant tout relevé : `--update` passerait
+    # à la trappe en rendant 0.
+    if args.changelog_reviewed and args.update:
+        ap.error("--changelog-reviewed et --update se lancent séparément")
+
     if args.changelog_reviewed:
         base = load_baseline()
         for pair in args.changelog_reviewed:
