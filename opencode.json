@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "xcodebuild": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "xcodebuildmcp@2.7.0",
+          "mcp"
+        ]
+      }
+    }
+  }
+}
