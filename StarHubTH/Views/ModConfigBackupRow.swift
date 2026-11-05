@@ -18,6 +18,12 @@ struct ModConfigBackupRow: View {
 
     @State private var isHovered = false
 
+    /// Ce que le bouton restaurera : une case cochée peut être masquée par la
+    /// recherche, ou porter sur un élément sans config.
+    private var restorableCount: Int {
+        items.filter { selectedItemIds.contains($0.id) && $0.configOnly != nil }.count
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -65,10 +71,10 @@ struct ModConfigBackupRow: View {
                         }.focusRing(cornerRadius: 5)
                         Button(localization.L(L10n.ModConfigBackups.checkNone)) { selectedItemIds = [] }.focusRing(cornerRadius: 5)
                         Spacer()
-                        Button(String(format: localization.L(L10n.ModConfigBackups.restoreCount), selectedItemIds.count),
+                        Button(String(format: localization.L(L10n.ModConfigBackups.restoreCount), restorableCount),
                                action: onRestoreSelected)
                             .buttonStyle(.borderedProminent).focusRing()
-                            .disabled(selectedItemIds.isEmpty)
+                            .disabled(restorableCount == 0)
                     }
                     .buttonStyle(.bordered).controlSize(.small)
                     .padding(.bottom, 4)

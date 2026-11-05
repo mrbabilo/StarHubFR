@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **« Restaurer (n) » ne compte plus que les éléments réellement restaurés.** Les cases cochées puis masquées par la recherche, ou sans config à restaurer, faussaient le nombre et pouvaient laisser le bouton actif pour rien.
 - **Vous pouvez déposer un `.rar` sur l'icône du Dock sans app tierce.** macOS ne connaît pas ce format : l'app le déclare désormais elle-même, au lieu de compter sur une app comme The Unarchiver ou VLC.
 - **⌘O fonctionne depuis la fiche d'un mod et l'éditeur de config.** Rien ne se passait, puis la feuille d'installation s'ouvrait toute seule à la fermeture de la fiche.
 - **Le bruit affiché en fin de mesure correspond à ce qui décide de la stabilité.** Le bandeau donnait celui des trames, qui saute d'un palier de synchronisation à l'autre : une mesure stable pouvait afficher 50 %.

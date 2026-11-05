@@ -90,8 +90,8 @@ public final class GuidedPilotRunner {
 
     // MARK: — Commandes
 
-    /// Faux = refusé avant tout effet (jeu ouvert, série en cours, profil ou
-    /// plan non posé, lancement refusé) : le parc et le disque n'ont pas bougé.
+    /// Faux = rien lancé, aucun plan laissé. Le parc n'a pas bougé, sauf si la
+    /// mesure demande un profil : il peut rester appliqué, même en partie.
     @discardableResult
     public func start(draft: GuidedPlanDraft, gesture: GuidedPilotGesture?, changeLabel: String?) async -> Bool {
         guard !working, canStart else { return refuse(.seriesPending) }
