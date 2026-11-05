@@ -3818,6 +3818,15 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X148** ✅ *(livré le 2026-11-05, audit de la persistance neuve)* — **Le
+      renommage oubliait trois magasins.** `migrateFolderKeyedStores` ne connaissait
+      ni `KeybindFamilyStore` ni `TranslationHitVerdicts`, nés après X60, ni
+      `ModConflictVerdicts`, absent des douze surfaces d'origine. Après un
+      renommage, une correction de famille se perdait et un résultat écarté ou un
+      conflit écarté pouvait revenir. Politique en collision : familles et écarts de
+      traduction sont des préférences, copiées ; un verdict de conflit est une
+      affirmation, laissée en place. La suppression n'est pas touchée : écarts et
+      verdicts survivent exprès au mod (`orphans`, liste « Écartés »).
 - [x] **X147** ✅ *(livré le 2026-11-05, audit de `StarHubTHApp`)* — **Rouvrir la
       fenêtre principale interrompait une mesure.** Les trois
       `checkForInterruptedSession()` vivent dans le `.onAppear` de la scène

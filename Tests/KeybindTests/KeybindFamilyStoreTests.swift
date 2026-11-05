@@ -11,6 +11,20 @@ struct KeybindFamilyStoreTests {
         return dir
     }
 
+    /// X148 — la correction suit le dossier renommé, et survit au rechargement.
+    @Test func aCorrectionFollowsARenamedFolder() throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let family = try #require(KeybindFamily.allCases.first)
+        let store = KeybindFamilyStore(directory: dir)
+        store.set(family, for: "Old")
+
+        store.migrate(from: "Old", to: "New", shared: false)
+
+        let reloaded = KeybindFamilyStore(directory: dir)
+        #expect(reloaded.families == ["New": family])
+    }
+
     @Test func roundTripAndReload() throws {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }

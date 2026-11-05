@@ -171,6 +171,12 @@ public enum ModFolderRename {
         key == old ? new : new + key.dropFirst(old.count)
     }
 
+    /// Le nouveau nom de `key` si elle suit le dossier renommé, sinon `nil` :
+    /// pour un magasin qui ne tient pas ses noms en clés de dictionnaire.
+    static func following(_ key: String, from old: String, to new: String) -> String? {
+        movedKeys(in: [key], from: old).isEmpty ? nil : renamed(key, from: old, to: new)
+    }
+
     /// Ce qu'une clé **partagée** devient quand l'un des deux prétendants se
     /// renomme. Ne s'applique qu'à ce cas : hors collision, une clé suit son
     /// mod, quelle que soit sa nature.

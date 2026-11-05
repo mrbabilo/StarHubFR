@@ -70,6 +70,11 @@ final class FrenchTranslationSweepStore {
         return TranslationHitVerdicts.Storage.save(verdicts)
     }
 
+    /// X148 — `false` si les écarts déplacés n'ont pas pu s'écrire.
+    func migrateVerdicts(from old: String, to new: String, shared: Bool) -> Bool {
+        !verdicts.migrate(from: old, to: new, shared: shared) || TranslationHitVerdicts.Storage.save(verdicts)
+    }
+
     func restore(_ dismissal: TranslationHitVerdicts.Dismissal) -> Bool {
         verdicts.restore(dismissal)
         return TranslationHitVerdicts.Storage.save(verdicts)

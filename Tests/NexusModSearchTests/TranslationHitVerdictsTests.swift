@@ -9,6 +9,42 @@ struct TranslationHitVerdictsTests {
                            categoryName: "", uploader: "u", adultContent: false)
     }
 
+    /// X148 — l'écart suit le dossier renommé : le faux résultat ne revient pas.
+    @Test func aDismissalFollowsARenamedFolder() {
+        var verdicts = TranslationHitVerdicts()
+        verdicts.dismiss(hit(1), for: "Old", modName: "Mod", at: .now)
+        verdicts.dismiss(hit(2), for: "Neighbour", modName: "Autre", at: .now)
+
+        let changed = verdicts.migrate(from: "Old", to: "New", shared: false)
+
+        #expect(changed)
+        #expect(verdicts.dismissedModIds(for: "New") == [1])
+        #expect(verdicts.dismissedModIds(for: "Old").isEmpty)
+        #expect(verdicts.dismissedModIds(for: "Neighbour") == [2])
+    }
+
+    /// Une préférence : en collision, les deux mods la gardent.
+    @Test func aDismissalIsCopiedOnASharedName() {
+        var verdicts = TranslationHitVerdicts()
+        verdicts.dismiss(hit(1), for: "Old", modName: "Mod", at: .now)
+
+        verdicts.migrate(from: "Old", to: "New", shared: true)
+
+        #expect(verdicts.dismissedModIds(for: "New") == [1])
+        #expect(verdicts.dismissedModIds(for: "Old") == [1])
+    }
+
+    /// Un écart déjà posé sous le nouveau nom (mod désinstallé) n'est pas doublé.
+    @Test func aMigrationDoesNotDoubleAnExistingDismissal() {
+        var verdicts = TranslationHitVerdicts()
+        verdicts.dismiss(hit(1), for: "Old", modName: "Mod", at: .now)
+        verdicts.dismiss(hit(1), for: "New", modName: "Mod", at: .now)
+
+        verdicts.migrate(from: "Old", to: "New", shared: false)
+
+        #expect(verdicts.dismissals.count == 1)
+    }
+
     @Test func aDismissalIsPerModAndPerHit() {
         var verdicts = TranslationHitVerdicts()
         verdicts.dismiss(hit(1), for: "Swim", modName: "Swim Mod", at: .now)

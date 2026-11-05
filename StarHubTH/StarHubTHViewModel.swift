@@ -3372,7 +3372,7 @@ final class StarHubTHViewModel {
         return .renamed(newFolderName: new)
     }
 
-    /// Les treize surfaces indexées par nom de dossier (groupes I-T21 compris) — cœur du geste.
+    /// Les seize surfaces indexées par nom de dossier (I-T21 et X148 compris) — cœur du geste.
     private func migrateFolderKeyedStores(from old: String, to new: String,
                                           shared: Bool) {
         // 1-5. Préférences câblées par X55 (hors id Nexus, voir plus bas).
@@ -3397,11 +3397,11 @@ final class StarHubTHViewModel {
         // le renommé le réapprend de ses `UpdateKeys`.
         nexusMetadata.migrateFolderName(from: old, to: new, shared: shared)
         groups.update { $0.migrate(from: old, to: new, shared: shared) }   // I-T21
+        keybindFamilyStore.migrate(from: old, to: new, shared: shared)     // X148
+        if modConflictVerdicts.migrate(from: old, to: new, shared: shared) { saveConflictVerdicts() }
+        if !translationSweep.migrateVerdicts(from: old, to: new, shared: shared) { log("Écarts de traduction non enregistrés après renommage", level: .warning) }
 
-        // 6. Registre : sinon « vu pour la première fois », date perdue. En
-        // collision, le renommé repart neuf (date copiée = inventée).
-        // Sous verrou (`mutateIfChanged`, course du 2026-08-05) ; `_ =` : le
-        // `Bool` rendu ne sert pas.
+        // 6. Registre : date gardée ; en collision, le renommé repart neuf. Sous verrou.
         _ = installedModRegistryStore.mutateIfChanged {
             ModFolderRename.migrate(&$0, from: old, to: new,
                                     shared: shared, policy: .leaveBehind)

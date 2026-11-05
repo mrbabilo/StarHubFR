@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Renommer le dossier d'un mod ne fait plus oublier vos choix.** La famille de touches corrigée, les résultats de traduction écartés et les verdicts sur les conflits suivent désormais le mod.
 - **Rouvrir la fenêtre principale n'interrompt plus une mesure en cours.** Une mesure guidée s'arrêtait comme après un plantage, et un benchmark pouvait perdre son plan et laisser le parc verrouillé à la fin de la série.
 - **Un conflit prévu entre deux mods actifs apparaît désormais tout de suite dans le badge et sur l'accueil.** Après la mise à jour d'un mod, l'alerte pouvait n'arriver qu'à l'action suivante, alors que la page des conflits l'affichait déjà.
 

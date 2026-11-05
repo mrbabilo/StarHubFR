@@ -35,6 +35,15 @@ final class KeybindFamilyStore {
         persist()
     }
 
+    /// X148 — une correction suit le dossier renommé. Une préférence : en
+    /// collision, les deux mods la gardent.
+    func migrate(from old: String, to new: String, shared: Bool) {
+        var next = families
+        guard ModFolderRename.migrate(&next, from: old, to: new, shared: shared) else { return }
+        families = next
+        persist()
+    }
+
     private func persist() {
         guard let fileURL, writable else { return }
         do {

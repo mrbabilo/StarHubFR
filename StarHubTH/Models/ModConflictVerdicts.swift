@@ -56,6 +56,24 @@ public struct ModConflictVerdicts: Codable, Equatable, Sendable {
         verdicts[pair] = ModConflictVerdict(isDeclared: false, note: note, decidedAt: date)
     }
 
+    /// X148 — les verdicts suivent un dossier renommé. Un verdict est une
+    /// **affirmation** sur un mod : en collision, rien ne dit lequel il visait,
+    /// il reste en place (`SharedKeyPolicy.leaveBehind`).
+    @discardableResult
+    public mutating func migrate(from old: String, to new: String, shared: Bool) -> Bool {
+        guard !shared else { return false }
+        var changed = false
+        for (pair, verdict) in verdicts {
+            let first = ModFolderRename.following(pair.first, from: old, to: new)
+            let second = ModFolderRename.following(pair.second, from: old, to: new)
+            guard first != nil || second != nil else { continue }
+            verdicts[pair] = nil
+            verdicts[ModConflictPair(first ?? pair.first, second ?? pair.second)] = verdict
+            changed = true
+        }
+        return changed
+    }
+
     /// Trie les paires dans un ordre **total** — sur le couple `(first, second)`,
     /// pas le seul `first`. Trier sur lui seul laisserait l'ordre des paires qui
     /// le partagent au hasard du hachage, et le fichier JSON changerait à chaque

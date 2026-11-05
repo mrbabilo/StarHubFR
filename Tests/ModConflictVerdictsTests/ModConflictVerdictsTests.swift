@@ -5,6 +5,33 @@ import Foundation
 struct ModConflictVerdictsTests {
     private let t0 = Date(timeIntervalSince1970: 1_787_595_034)
 
+    /// X148 — un verdict suit le dossier renommé, composants de pack compris.
+    @Test func aVerdictFollowsARenamedFolder() {
+        var store = ModConflictVerdicts()
+        store.dismiss(ModConflictPair("Old", "Other"), note: "faux", at: t0)
+        store.declare(ModConflictPair("Old/Pack", "Other"), note: "", at: t0)
+        store.declare(ModConflictPair("OldNeighbour", "Other"), note: "", at: t0)
+
+        let changed = store.migrate(from: "Old", to: "New", shared: false)
+
+        #expect(changed)
+        #expect(store.verdict(for: ModConflictPair("New", "Other"))?.isDeclared == false)
+        #expect(store.verdict(for: ModConflictPair("New/Pack", "Other"))?.isDeclared == true)
+        #expect(store.verdict(for: ModConflictPair("Old", "Other")) == nil)
+        #expect(store.verdict(for: ModConflictPair("OldNeighbour", "Other")) != nil)
+    }
+
+    /// En collision, rien ne dit lequel des deux mods le verdict visait.
+    @Test func aVerdictStaysBehindOnASharedName() {
+        var store = ModConflictVerdicts()
+        store.dismiss(ModConflictPair("Old", "Other"), note: "", at: t0)
+
+        let changed = store.migrate(from: "Old", to: "New", shared: true)
+
+        #expect(changed == false)
+        #expect(store.verdict(for: ModConflictPair("Old", "Other")) != nil)
+    }
+
     /// **Une paire n'a pas d'ordre.** « A avec B » et « B avec A » sont le même
     /// signalement ; sans cela l'utilisateur en créerait deux sans le savoir.
     @Test func aPairIsUnordered() throws {

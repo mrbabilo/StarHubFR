@@ -46,6 +46,29 @@ public struct TranslationHitVerdicts: Codable, Equatable, Sendable {
         dismissals.removeAll { $0.id == dismissal.id }
     }
 
+    /// X148 — les écarts suivent un dossier renommé. Une **préférence** : en
+    /// collision, les deux mods la gardent (`SharedKeyPolicy.copy`). L'ordre
+    /// reste le même ; un écart déjà posé sous le nouveau nom n'est pas doublé.
+    @discardableResult
+    public mutating func migrate(from old: String, to new: String, shared: Bool) -> Bool {
+        var next: [Dismissal] = []
+        var changed = false
+        for dismissal in dismissals {
+            guard let folder = ModFolderRename.following(dismissal.folderName, from: old, to: new) else {
+                next.append(dismissal)
+                continue
+            }
+            changed = true
+            next.append(Dismissal(folderName: folder, modName: dismissal.modName, hitModId: dismissal.hitModId,
+                                  hitName: dismissal.hitName, dismissedAt: dismissal.dismissedAt))
+            if shared { next.append(dismissal) }
+        }
+        guard changed else { return false }
+        var seen: Set<String> = []
+        dismissals = next.filter { seen.insert($0.id).inserted }
+        return true
+    }
+
     // MARK: - Disque
 
     /// Une trace de l'utilisateur, pas un cache : dans Application Support,
