@@ -9,6 +9,20 @@ public class GuidedRuleTests
         new($"2026-09-29T10:{i:00}:00.0000000+02:00", wall, inactive, location, menu, ticks,
             gameTime ?? 600 + i * 10, frame, work, target ?? ticks, patches, config);
 
+    /// La trame saute d'un multiple de synchro à l'autre : le bandeau de fin
+    /// dit le bruit qui a décidé de la stabilité, pas celui-là.
+    [Fact]
+    public void NoisePercentIsTheWorkThatDecidedStability()
+    {
+        var rule = new GuidedRule("Farm");
+        double[] frames = { 16.7, 16.7, 33.3, 33.3, 33.3 };
+        double[] work = { 10.0, 10.2, 10.4, 10.6, 10.8 };
+        for (int i = 0; i < frames.Length; i++)
+            rule.Add(Minute(i, frame: frames[i], work: work[i]), MinuteReason.Kept);
+        Assert.Equal(GuidedOutcome.Stable, rule.Outcome);
+        Assert.Equal(4, rule.NoisePercent);
+    }
+
     // — Gardes communes (copie de ProbeComparableMinutes.filter) —
 
     [Fact]

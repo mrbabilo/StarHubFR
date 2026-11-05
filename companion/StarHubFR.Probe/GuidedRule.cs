@@ -134,6 +134,9 @@ public sealed class GuidedRule
     public bool JustReset { get; private set; }
     public double? FrameIqrShare => IqrShare(kept.Where(k => k.Frame.HasValue).Select(k => k.Frame!.Value).ToList());
     public double? WorkIqrShare => IqrShare(kept.Where(k => k.Work.HasValue).Select(k => k.Work!.Value).ToList());
+    /// <summary>Le bruit du bandeau de fin, en pourcent arrondi : celui du
+    /// travail, qui décide de la stabilité.</summary>
+    public int NoisePercent => (int)Math.Round((WorkIqrShare ?? 0) * 100);
     public int? GameTimeFrom => kept.Min(k => k.GameTime);
     public int? GameTimeTo => kept.Max(k => k.GameTime);
 
