@@ -3818,6 +3818,13 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X156** ✅ *(livré le 2026-11-05, audit de la configuration)* — **Le `.rar`
+      du Dock tenait à une app tierce.** `CFBundleDocumentTypes` citait
+      `com.rarlab.rar-archive`, absent de `CoreTypes` et d'Archive Utility ; sur
+      le poste, seuls The Unarchiver, VLC et Simple Comic le déclaraient. Sans
+      eux, le fichier reçoit un type dynamique. `Info.plist` l'importe ;
+      `.zip` et `.7z` restent déclarés par `CoreTypes`. Constat tiré des
+      déclarations, non reproduit sur un Mac sans ces apps.
 - [x] **X155** ✅ *(livré le 2026-11-05, audit des vues)* — **⌘O à retardement.**
       `requestInstall` demandait l'onglet Mods, déjà courant sous une fiche : pas
       de changement d'onglet, et `ModListView`, qui portait feuille et
