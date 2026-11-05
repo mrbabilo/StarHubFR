@@ -41,7 +41,7 @@ struct MainView: View {
     /// n'occupe la fenêtre : deux `.sheet` simultanés et l'un se perd en
     /// silence (spec §7.4).
     private var canPresentReleaseAlert: Bool {
-        !showDownloadedInstall && !showDropInstall && !showOnboarding
+        !showDownloadedInstall && !showDropInstall && !showOnboarding && !navigation.showsInstallSheet
     }
 
     /// Aucune feuille ni voile modal à l'écran : une superposition présentée
@@ -448,7 +448,7 @@ struct MainView: View {
                 showDropInstall = true
             }
         }
-        .sheet(isPresented: Bindable(navigation).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }
+        .sheet(isPresented: Bindable(navigation).showsShortcutsHelp) { ShortcutsHelpView(localization: localization) }.modifier(InstallRequestConsumer(viewModel: vm, localization: localization, currentTab: $currentTab, canPresent: canPresentReleaseAlert))
         .sheet(isPresented: $showDropInstall, onDismiss: {
             // PAS de discard ici : fichiers originaux de l'utilisateur.
             vm.clearDropPresentation()

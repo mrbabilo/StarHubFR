@@ -1,23 +1,31 @@
 import SwiftUI
 
-/// Ouvre la feuille d'installation de la liste quand le menu Fichier la
-/// demande (⌘O, N-07) — à l'apparition de la liste comme pendant qu'elle est
-/// affichée : la demande précède souvent la vue (changement d'onglet).
+/// La feuille d'installation et la demande du menu Fichier ou de la palette
+/// (⌘O, N-07). Posée sur `MainView`, pas sur la liste : celle-ci n'est pas
+/// montée sous une fiche ou l'éditeur de config, où ⌘O restait sans effet et
+/// où la feuille surgissait à la fermeture de la fiche (X155).
 struct InstallRequestConsumer: ViewModifier {
-    var navigation: NavigationStore
+    var viewModel: StarHubTHViewModel
+    @ObservedObject var localization: LocalizationStore
+    @Binding var currentTab: SidebarDestination
+    /// Faux si une autre feuille occupe la fenêtre : deux `.sheet` simultanés
+    /// et l'un se perd. La demande tombe alors, comme ⌘K.
+    let canPresent: Bool
+
+    private var navigation: NavigationStore { viewModel.navigationStore }
 
     func body(content: Content) -> some View {
         content
-            .onAppear(perform: consume)
             .onChange(of: navigation.pendingInstallRequest) { _, _ in consume() }
-            // Le drapeau vit dans le store (P5-5a) : la liste démontée par un
-            // changement d'onglet ne doit pas laisser la fenêtre refuser les dépôts.
-            .onDisappear { navigation.showsInstallSheet = false }
+            .sheet(isPresented: Bindable(navigation).showsInstallSheet) {
+                ModInstallView(vm: viewModel, localization: localization, currentTab: $currentTab,
+                               isPresented: Bindable(navigation).showsInstallSheet)
+            }
     }
 
     private func consume() {
         guard navigation.pendingInstallRequest else { return }
         navigation.consumeInstallRequest()
-        navigation.showsInstallSheet = true
+        if canPresent { navigation.showsInstallSheet = true }
     }
 }

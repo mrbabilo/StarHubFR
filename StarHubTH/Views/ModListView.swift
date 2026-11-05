@@ -414,10 +414,6 @@ struct ModListView: View {
             MissingDependenciesSheet(vm: vm, localization: localization,
                                      isPresented: $showMissingDependencies)
         }
-        .sheet(isPresented: Bindable(navigation).showsInstallSheet) {
-            ModInstallView(vm: vm, localization: localization, currentTab: $currentTab,
-                           isPresented: Bindable(navigation).showsInstallSheet)
-        }.modifier(InstallRequestConsumer(navigation: navigation))
         .confirmationDialog(
             bulkToggleTarget == true
                 ? localization.L(L10n.Mods.enableAllConfirm)

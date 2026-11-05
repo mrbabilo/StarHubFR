@@ -251,7 +251,7 @@ final class NavigationStore {
     func consumePendingHistoryStep() { pendingHistoryStep = nil }
 
     /// « Installer des mods… » (⌘O, menu Fichier — N-07) : la feuille vit
-    /// dans la liste des mods, qui consomme la demande à son apparition.
+    /// sur `MainView` (`InstallRequestConsumer`), qui consomme la demande.
     private(set) var pendingInstallRequest = false
     /// Cette feuille ouverte : le dépôt sur la fenêtre (P5-5a) ne la double pas.
     var showsInstallSheet = false

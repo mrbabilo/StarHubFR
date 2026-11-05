@@ -14,6 +14,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **⌘O fonctionne depuis la fiche d'un mod et l'éditeur de config.** Rien ne se passait, puis la feuille d'installation s'ouvrait toute seule à la fermeture de la fiche.
 - **Le bruit affiché en fin de mesure correspond à ce qui décide de la stabilité.** Le bandeau donnait celui des trames, qui saute d'un palier de synchronisation à l'autre : une mesure stable pouvait afficher 50 %.
 - **Sauvegardes de configuration : message corrigé quand la recherche ne trouve rien.** La page annonçait qu'il n'y avait aucune sauvegarde, alors qu'elles étaient seulement écartées par la recherche.
 - **Une mesure guidée est de nouveau refusée en écran partagé.** La sonde 0.9.37 le vérifie partie chargée : avant, elle ne regardait qu'au lancement du jeu, trop tôt pour le voir.

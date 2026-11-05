@@ -3818,6 +3818,14 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X155** ✅ *(livré le 2026-11-05, audit des vues)* — **⌘O à retardement.**
+      `requestInstall` demandait l'onglet Mods, déjà courant sous une fiche : pas
+      de changement d'onglet, et `ModListView`, qui portait feuille et
+      consommateur, n'était pas montée. La demande attendait la fermeture de la
+      fiche. Feuille et consommateur passent sur `MainView` ; fermer la fiche à
+      la place aurait perdu la saisie de l'éditeur. La demande tombe si une
+      autre feuille occupe la fenêtre, comme ⌘K. Constat tiré du code, non
+      reproduit à l'écran.
 - [x] **X154** ✅ *(livré le 2026-11-05, audit des vues)* — **La mesure « après »
       oubliait la ferme.** Le brouillon reprenait le lieu de la mesure « avant »,
       pas sa sauvegarde, et la feuille prenait `saves.first`, trié par
