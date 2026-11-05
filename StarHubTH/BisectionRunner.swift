@@ -95,9 +95,9 @@ final class BisectionRunner: ObservableObject {
     /// ViewModel (`lazy var bisection`), lui-même `@MainActor` depuis L2.
     nonisolated init(vm: StarHubTHViewModel) { self.vm = vm }
 
-    /// Au démarrage de l'app : une recherche laissée en plan ?
+    /// Au démarrage et à chaque réouverture de la fenêtre : une recherche en plan ? (X147)
     func checkForInterruptedSession() {
-        interruptedSnapshot = BisectionSnapshotStore.load(from: snapshotDirectory)
+        if state == nil, !isApplying { interruptedSnapshot = BisectionSnapshotStore.load(from: snapshotDirectory) }
     }
 
     func start() {

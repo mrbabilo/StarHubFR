@@ -207,10 +207,11 @@ public final class GuidedPilotRunner {
         terminate("série arrêtée")
     }
 
-    /// Au démarrage de l'app. Le disque n'est **pas** réécrit : un second
+    /// Au démarrage de l'app, et à chaque réouverture de la fenêtre : une série
+    /// en vol reste intacte (X147). Le disque n'est **pas** réécrit : un second
     /// redémarrage doit encore voir `.applying` et proposer le retour arrière.
     public func checkForInterruptedSession() {
-        guard let saved = GuidedPilotStateStore.load(from: stateDirectory) else { return }
+        guard !isActive, let saved = GuidedPilotStateStore.load(from: stateDirectory) else { return }
         interruptedWhileApplying = saved.phase == .applying
         var plan = saved
         plan.interrupt()

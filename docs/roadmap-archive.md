@@ -3818,6 +3818,16 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X147** ✅ *(livré le 2026-11-05, audit de `StarHubTHApp`)* — **Rouvrir la
+      fenêtre principale interrompait une mesure.** Les trois
+      `checkForInterruptedSession()` vivent dans le `.onAppear` de la scène
+      `Window`, qui se réinstancie au clic sur le Dock (mesure de l'auteur du
+      2026-09-05). Une mesure guidée passait de `.running` à `.interrupted` et
+      perdait son plan : test rouge `aRunningSeriesSurvivesTheInterruptionCheck`.
+      Un benchmark effaçait son plan et posait `interrupted`, que `finish` ne
+      remet pas à zéro : parc verrouillé jusqu'à un clic sur la restauration.
+      Chaque runner ignore désormais le contrôle pendant une série. Le passage
+      par `.onAppear` à la réouverture reste déduit, non observé à l'écran.
 - [x] **X146** ✅ *(livré le 2026-11-05, audit du ViewModel)* — **Les conflits
       prévus manquaient au badge et à l'accueil.** F3 (`e2046e27`) a mis
       `healthIssues` en cache ; `recomputeHealthIssues()` lit

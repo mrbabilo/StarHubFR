@@ -296,6 +296,21 @@ import Foundation
         #expect(again.canRollback)
     }
 
+    /// X147 — rouvrir la fenêtre principale repasse par ce contrôle : une
+    /// série en vol n'est pas un plantage, ni son état ni son plan ne bougent.
+    @Test func aRunningSeriesSurvivesTheInterruptionCheck() async {
+        let fake = Fake()
+        let dir = temporaryDirectory()
+        let runner = GuidedPilotRunner(stateDirectory: dir, runtime: runtime(fake))
+        await runner.start(draft: draft(), gesture: nil, changeLabel: nil)
+        #expect(runner.isActive)
+
+        runner.checkForInterruptedSession()
+
+        #expect(runner.isActive)
+        #expect(fake.planRemovals == 0)
+    }
+
     @Test func rollbackUndoesTheGestureAndClears() async {
         let fake = Fake()
         let dir = temporaryDirectory()

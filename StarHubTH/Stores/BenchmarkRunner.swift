@@ -80,8 +80,10 @@ final class BenchmarkRunner {
 
     /// Au démarrage de l'app : plan oublié effacé d'office (un lancement
     /// manuel ne doit jamais être détourné), instantané restant = série
-    /// interrompue.
+    /// interrompue. Rappelé à chaque réouverture de la fenêtre : une série en
+    /// vol garde son plan (X147).
     func checkForInterruptedSession() {
+        guard !isActive else { return }
         removePlan()
         interrupted = BenchmarkSnapshotStore.load(from: directory)
     }
