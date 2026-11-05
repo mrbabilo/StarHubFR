@@ -188,4 +188,30 @@ extension SessionEnvironmentStoreTests {
         #expect(pairs.first?.bothActive == false)
         #expect(ContentPatcherLoadTargets.conflictPairs(pairs) == [ModConflictPair("Active", "Paused/Pack")])
     }
+
+    /// X146 — l'index arrive après le recalcul de `healthIssues` : il doit
+    /// prévenir une fois ses paires posées, sinon le conflit prévu reste hors
+    /// du badge et de l'accueil jusqu'au prochain événement.
+    @Test func loadIndexTellsWhenItsPairsAreIn() async throws {
+        let root = try makeTemp("Mods")
+        for folder in ["First", "Second"] {
+            let url = root.appendingPathComponent(folder).appendingPathComponent("content.json")
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try #"{"Changes": [{"Action": "Load", "Target": "Portraits/Haley"}]}"#
+                .write(to: url, atomically: true, encoding: .utf8)
+        }
+        let mods = ["First", "Second"].map {
+            ModItem(uniqueId: "", name: $0, folderName: $0, version: "", author: "", description: "",
+                    nexusUrl: "", nexusModId: "", isEnabled: true, dependencies: [])
+        }
+        let index = ContentPatcherLoadIndex()
+
+        let seen: Int = await withCheckedContinuation { done in
+            index.onRefreshed = { done.resume(returning: index.pairs.count) }
+            index.refresh(mods: mods, gameDir: root.deletingLastPathComponent().path)
+        }
+
+        #expect(seen == 1)
+    }
 }

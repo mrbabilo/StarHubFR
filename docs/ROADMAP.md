@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-04 (dernière version publiée : v1.72.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-05 (dernière version publiée : v1.73.0).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -82,12 +82,12 @@ les chantiers, **§7** pour la dette technique.
 
 Ce ne sont pas des fonctionnalités : ce sont des choses cassées ou dégradées.
 
-Les X1–X138 et X140–X145 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
+Les X1–X138 et X140–X146 vivent à l'archive, indexés au §11. X120–X127 (audit du delta du 2026-10-09, `docs/archive/audits-code/audit-delta-2026-10-09.md`)
 ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Quarantaine vide sous son badge) aussi, livré en v1.61.1 ;
 **X129**, **X130** et **X131** (rejeté en vérif écran de X129) livrés le 2026-10-10.
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
 **X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
-**X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05.
+**X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05 ; **X146** (conflits prévus absents du badge, audit du ViewModel) le même jour.
 **Un correctif ouvert**, né d'un mod tiers (décompilation du 2026-11-02,
 [`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)) :
 
@@ -1886,6 +1886,7 @@ suffixe (`H-T5b`, pas `H-T5B`).
 | **X103** | 2026-09-09 | *Question de conception, sortie de la grille de revue des écritures (F2)* — supprimer un mod est définitif (`removeItem` direct, confirmé aux trois points d'entrée) là où les sauvegardes vont à la corbeille et le réparateur quarantaine ; l'archive Nexus est effacée après install — l'uninstall Vortex, lui, reste réversible (archive conservée). À trancher : quarantaine des mods supprimés, rétention des archives ? — **cadré en §8.1 puis tranché B le jour même, livré** : corbeille `Mods/_Trash_*` (type Core `ModTrash`, 15 tests, marqueur qui distingue la corbeille de la quarantaine du réparateur — même préfixe), « Remettre » en désactivé, purge explicite à l'écran Entretien, zéro purge automatique ; l'option C (rétention des archives Nexus) reste une suite possible |
 | **Bilan+Release** | 2026-09-09 | *Demande de l'auteur* — le popup post-mise-à-jour (écran de succès interne de la feuille d'installation) était petit, figé, pauvre ; et l'app ne savait pas qu'une nouvelle release d'elle-même sortait. **Livré le jour même** : fenêtre de bilan dédiée et redimensionnable (`InstallReportWindow`, scène `installReport`), résumé chiffré en tête (`InstallReportSummary`, Core — les renommages suggérés sortent du compte à traduire), « Voir la fiche » sans refermer (canal `reportDetailFocus`, décidé par MainView qui seule lit `currentTab`), dépôt multiple chaîné depuis le bilan (file migrée en VM, `InstallDropQueue` en Core) ; et le check de release GitHub (`AppReleasePolicy` en Core, réutilise `NexusUpdateChecker.compare` et `UpdateCheckPolicy`), alerte en sheet au lancement accrochée à `onReveal` (leçon X65), priorité aux feuilles fonctionnelles, état + vérification manuelle en À propos, clés `starhubFR.` namespacées. L'accusé de récupération de fichiers reste dans la feuille — un message, pas un bilan. Spec + plan : `docs/superpowers/` (gitignorés) |
 | **X104** | 2026-09-09 | Déposer une traduction Nexus laissait son dossier `StarHubFR-download-<UUID>` vide en tmp — le `defer` n'effaçait que le fichier, quand le flux des mods passe par `discardDownloaded` (fichier + dossier) à la fermeture de la feuille ; **corrigé en séance** : `discardDownloaded` au `defer` — l'archive y vient toujours du téléchargeur, le geste est sûr sans condition (`MainView:onDismiss` déjà au pattern) |
+| **X146** | 2026-11-05 | `healthIssues` en cache depuis F3 lisait l'index Content Patcher avant son arrivée : un conflit prévu restait hors du badge et de l'accueil jusqu'à l'événement suivant. L'index prévient quand ses paires changent (`onRefreshed`) |
 | **X145** | 2026-11-05 | Notes de Keybind Sheet dans `assets/catalog.json`, fichier livré : vérifié, rien à corriger. Le tri A1-T11 le garde comme retouche quand le journal porte la référence ; sans référence, la version neuve le remplace et l'ancien reste dans la sauvegarde d'installation |
 | **X144** | 2026-11-05 | Une mise à jour renaissait quand le libellé de la page dépasse le manifeste (Taum's Inventory Hotkeys : même archive réinstallée trois fois). `NexusFallbackCheck.rows` lit le fichier posé dans le journal (`ModHistory.installedFile`) |
 | **X138** | 2026-11-04 | Une partie modifiée par l'app perdait ses modifications avec PureBinarySave. L'app écarte les `.bin` après écriture, refuse et explique quand le `.bin` porte la partie, lit la partie dans le `.bin` pendant le talon, et alerte quand un `.bin` retarde sur sa partie (`PureBinarySave+File`) |

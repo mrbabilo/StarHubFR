@@ -15,6 +15,9 @@ final class ContentPatcherLoadIndex {
     private(set) var pairs: [ContentPatcherLoadTargets.Pair] = []
     @ObservationIgnored private var cache: [String: Cached] = [:]
     @ObservationIgnored private var generation = 0
+    /// X146 — les paires arrivent après le scan : qui garde un résultat tiré
+    /// d'elles (`healthIssues`) le recalcule ici, quand elles ont changé.
+    @ObservationIgnored var onRefreshed: (() -> Void)?
 
     struct Cached: Sendable {
         let modified: Date
@@ -35,7 +38,9 @@ final class ContentPatcherLoadIndex {
             await MainActor.run {
                 guard run == self.generation else { return }
                 self.cache = fresh
+                guard self.pairs != pairs else { return }
                 self.pairs = pairs
+                self.onRefreshed?()
             }
         }
     }

@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Un conflit prévu entre deux mods actifs apparaît désormais tout de suite dans le badge et sur l'accueil.** Après la mise à jour d'un mod, l'alerte pouvait n'arriver qu'à l'action suivante, alors que la page des conflits l'affichait déjà.
+
 ## [1.73.0] - 2026-11-05
 
 ### Added

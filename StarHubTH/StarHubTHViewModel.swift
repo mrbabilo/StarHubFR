@@ -366,7 +366,7 @@ final class StarHubTHViewModel {
 
     /// Résout `healthIssues` depuis l'état courant. À appeler sur main, à
     /// chaque fois qu'une entrée bouge (scan, journal, verdicts, liste noire,
-    /// langue). Non `private` : un entonnoir vit hors du VM
+    /// langue, index Content Patcher). Non `private` : un entonnoir vit hors du VM
     /// (`PerformanceView` publie ses toggles de diagnostic par `setMods`
     /// direct) — ne pas l'appeler depuis un rendu.
     func recomputeHealthIssues() {
@@ -1595,9 +1595,9 @@ final class StarHubTHViewModel {
         // (appelée par `persistCategories`/`persistModIds`) ; sans elle, une
         // catégorie épinglée laisserait des lignes périmées.
         nexusMetadata.setOnInvalidate { [weak self] in self?.invalidateCategoryCache() }
-        // F3 — `healthIssues` est mis en cache : un changement de langue doit
-        // relocaliser ses titres, et `setLanguage` vit dans le store.
+        // F3 — `healthIssues` en cache : la langue (titres) et l'index Content Patcher, posé après le scan (X146).
         localization.onLanguageChange = { [weak self] in self?.recomputeHealthIssues() }
+        contentPatcherLoadIndex.onRefreshed = { [weak self] in self?.recomputeHealthIssues() }
         // L'historique d'erreurs ne se rebâtit pas : une panne d'écriture ne se
         // verrait qu'au lancement suivant, par une perte.
         errorHistory.setOnWriteFailure { [weak self] in

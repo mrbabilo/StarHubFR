@@ -3818,6 +3818,15 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X146** ✅ *(livré le 2026-11-05, audit du ViewModel)* — **Les conflits
+      prévus manquaient au badge et à l'accueil.** F3 (`e2046e27`) a mis
+      `healthIssues` en cache ; `recomputeHealthIssues()` lit
+      `contentPatcherLoadIndex.conflictPairs`, que le scan reconstruit en tâche
+      détachée après le recalcul, et rien ne relançait celui-ci. Cas visé : un mod
+      actif mis à jour réclame un asset d'un autre mod actif. Une bascule n'était
+      pas touchée : les paires gardent les mods en pause. L'index appelle
+      maintenant `onRefreshed` quand ses paires changent (test
+      `loadIndexTellsWhenItsPairsAreIn`).
 - [x] **X145** ✅ *(vérifié le 2026-11-05, sans correctif)* — **Les notes de Keybind
       Sheet vivent dans un fichier livré.** Le mod réécrit `assets/catalog.json`.
       Mesure sur le parc : son empreinte diffère de celle du journal, qui porte
