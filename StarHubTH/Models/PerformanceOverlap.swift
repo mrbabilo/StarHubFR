@@ -9,7 +9,7 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; dernière remesure le 2026-11-04 : UltraSmooth 2.7.5, delta
+/// (ilspycmd ; dernière remesure le 2026-11-05 : UltraSmooth 2.7.6, delta
 /// depuis 2.7.2 sans paire nouvelle — `docs/SOURCES.md` ; celle du 2026-11-02
 /// portait UltraSmooth 2.7.2, Radiance 2.4.5, Stardropium 0.3.0 — détail dans
 /// `docs/audit-ultrasmooth-2.7.2.md` ; la précédente, du 2026-10-19, portait
@@ -90,7 +90,7 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.7.5",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.7.6",
                                             assemblyName: "UltraSmooth")
     private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.3.0",
                                             assemblyName: "Stardropium")

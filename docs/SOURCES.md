@@ -1268,7 +1268,7 @@ parc : UltraSmooth 2.7.6 en pause, Modern Config Menu 2.4.1, sonde 0.9.34.
 
 | Source | Écart | Décision |
 |---|---|---|
-| `mod/ultrasmooth` | 2.7.5 → **2.7.6** | journal lu : correctif d'entrée sur écrans à haute fréquence (clic droit en rafale sur une rangée de machines, culture mangée par erreur), anti-rebond de 80 ms sur le dépôt en machine et de 250 ms contre le repas. Patches **non relus** : le catalogue des recouvrements reste mesuré sur 2.7.5 |
+| `mod/ultrasmooth` | 2.7.5 → **2.7.6** | journal lu : correctif d'entrée sur écrans à haute fréquence (clic droit en rafale sur une rangée de machines, culture mangée par erreur), anti-rebond de 80 ms sur le dépôt en machine et de 250 ms contre le repas. **Décompilée**, comparée à la 2.7.5 : 217 appels `Patch` contre 216. Seule cible neuve : `Game1.didPlayerJustRightClick`, préfixe de `ZeroLagInputEngine`. Le dépôt en machine, déjà patché, gagne un postfix. Aucun des cinq autres mods du catalogue ne cite ces méthodes : paires inchangées, catalogue passé à 2.7.6 |
 | `JuniGrid` | `4d1d936` → `e305f62` | version 1.3.0 : téléchargement par blocs avec reprise et md5, connexion Nexus dans l'app, écriture atomique, nettoyage des fichiers d'une ancienne installation. Son blocage des retours de version vise son propre installateur, pas les mods. Rien à reprendre pour l'instant |
 | `save-editor` | `pushed_at` seul | aucun nouveau commit sur la branche par défaut (dernier : `584cdf0`, boutons d'emplacement de partie) |
 | `fork/StarHubFR` | `d0e2911` → `7e33ec9` | nos propres commits |

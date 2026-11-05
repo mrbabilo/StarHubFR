@@ -21,7 +21,7 @@ where the exact log format was verified.
 
 ### Changed
 
-- **Le catalogue des recouvrements est à jour pour UltraSmooth 2.7.5.** Les deux nouveaux patches de ce mod ne recoupent aucun autre mod de performance : les paires restent les mêmes.
+- **Le catalogue des recouvrements est à jour pour UltraSmooth 2.7.6.** Les nouveaux patches de ce mod ne recoupent aucun autre mod de performance : les paires restent les mêmes.
 
 ### Fixed
 
