@@ -197,7 +197,7 @@ C'est la version qui fait de StarHubFR autre chose qu'un Stardrop macOS.
 
 > ✅ **Les 22 items de ce lot sont livrés** (C4-T13 le 2026-10-02, C4-T19 à C4-T22 le 2026-11-02, C4-T18 le 2026-11-05). Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
 >
-> **À vérifier à l'écran** : l'éditeur rangé comme le menu du jeu (C4-T19) et le repli sur l'archive des captures (C4-T20). La lecture de MCM est prouvée par la capture du 2026-11-03 (sonde 0.9.31, MCM 2.3.4, PureBinarySave : 15 réglages, 4 sections, 15 aides). Restent à confirmer en jeu la lecture sous MCM 2.4.x, les raccourcis de la sonde 0.9.32 et les valeurs par défaut de la 0.9.33 (C4-T18), avec le nombre de mods couverts.
+> **À vérifier à l'écran** : le repli sur l'archive des captures (C4-T20). La capture du 2026-11-05 (sonde 0.9.33, MCM 2.4.1) prouve la lecture de MCM (PureBinarySave : 15 réglages, 4 sections, 15 aides), les raccourcis (84 comparés à `config.json` sur 107, aucun écart) et les valeurs par défaut de C4-T18 : 39 mods sur 47. Les 8 autres sont SMAPI, 6 packs de contenu et Convenient Inventory, dont les clés de `config.json` ne suivent pas ses champs en mémoire. L'auteur a validé à l'écran le 2026-11-05 le badge « Modifié » de C4-T18, l'éditeur rangé comme le menu (C4-T19), la page de la sonde 0.9.34 dans le menu du jeu et le fermier de la page Parties au réveil (X138). L'alerte sur un `.bin` périmé n'a pas eu de cas réel.
 
 - [ ] **C4-T23 — Changements en attente dans l'éditeur** *(idée à peser)*. Idée
       tirée de MLD's Keybind : Annuler, Tout jeter et Appliquer, avec une seule
