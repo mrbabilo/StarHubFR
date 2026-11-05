@@ -23,6 +23,7 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Les options de la sonde apparaissent enfin dans le menu de configuration du jeu.** La sonde se trompait sur l'API de GMCM et renonçait sans le dire : ses trois réglages n'y ont jamais figuré. Il faut la sonde 0.9.34.
 - **Une mise à jour ne renaît plus quand la page Nexus numérote autrement que le mod.** Taum's Inventory Hotkeys, par exemple, dit 1.0.3 dans son manifeste et « 9 » sur sa page : l'app proposait sans fin le fichier déjà installé. Elle le reconnaît maintenant grâce au journal du mod, y compris pour les installations passées.
 - **Avec PureBinarySave, un refus de modifier une partie dit maintenant pourquoi**, au lieu de l'échec générique.
 - **La page Parties ne montre plus un fermier « Unknown » juste après le coucher.** Tant que PureBinarySave n'a pas recopié la partie, l'app la lit dans son fichier `.bin`.

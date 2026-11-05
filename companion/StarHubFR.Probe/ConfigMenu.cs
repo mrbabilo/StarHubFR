@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using StardewModdingAPI;
 
@@ -39,20 +37,22 @@ internal static class ConfigMenu
                 return;
             }
             var apiType = api.GetType();
-            var register = apiType.GetMethod("Register");
-            var addBool = apiType.GetMethods()
-                .FirstOrDefault(m => m.Name == "AddBoolOption" && m.GetParameters().Length == 5);
+            var register = GmcmCall.Find(apiType, "Register", 4);
+            var addBool = GmcmCall.Find(apiType, "AddBoolOption", 5);
             if (register is null || addBool is null)
             {
                 monitor.Log("Menu de configuration indisponible : API GMCM méconnaissable.", LogLevel.Trace);
                 return;
             }
 
-            register.Invoke(api, new object?[]
+            // titleScreenOnly à false : GMCM le met à true par défaut, et ces
+            // options se règlent aussi partie chargée.
+            GmcmCall.Invoke(register, api, new object?[]
             {
                 manifest,
                 (Action)(() => config.Apply(new ModConfig())),
                 (Action)(() => helper.WriteConfig(config)),
+                false,
             });
             AddBool(addBool, api,
                 () => config.MeasureHarmonyPatches,
@@ -77,7 +77,7 @@ internal static class ConfigMenu
     private static void AddBool(MethodInfo addBool, object api,
         Func<bool> get, Action<bool> set, string translationKey)
     {
-        addBool.Invoke(api, new object?[]
+        GmcmCall.Invoke(addBool, api, new object?[]
         {
             Manifest,
             get,

@@ -20,6 +20,7 @@
     <Compile Include="../StarHubFR.Probe/StartupTimeline.cs" Link="StartupTimeline.cs" />
     <Compile Include="../StarHubFR.Probe/ProbeHealth.cs" Link="ProbeHealth.cs" />
     <Compile Include="../StarHubFR.Probe/GmcmExportRule.cs" Link="GmcmExportRule.cs" />
+    <Compile Include="../StarHubFR.Probe/GmcmCall.cs" Link="GmcmCall.cs" />
     <Compile Include="../StarHubFR.Probe/ModConfig.cs" Link="ModConfig.cs" />
     <Compile Include="../StarHubFR.Probe/AutoPilotRule.cs" Link="AutoPilotRule.cs" />
     <Compile Include="../StarHubFR.Probe/MiniStatsRule.cs" Link="MiniStatsRule.cs" />
