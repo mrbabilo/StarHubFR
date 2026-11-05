@@ -12,6 +12,8 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.73.1] - 2026-11-05
+
 ### Fixed
 
 - **« Restaurer (n) » ne compte plus que les éléments réellement restaurés.** Les cases cochées puis masquées par la recherche, ou sans config à restaurer, faussaient le nombre et pouvaient laisser le bouton actif pour rien.

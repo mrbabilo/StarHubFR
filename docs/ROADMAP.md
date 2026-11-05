@@ -5,7 +5,7 @@
 > 1. `docs/archive/recherche-projets-open-source.md` (veille Perplexity : écosystème, comparaisons, risques) ;
 > 2. **la liste de souhaits dictée par l'auteur du projet le 2026-07-30** — *source faisant autorité sur le périmètre*.
 >
-> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-05 (dernière version publiée : v1.73.0).**
+> **Réconciliée avec l'état réel du dépôt au 2026-07-30 (v1.10.0) ; dernière mise à jour le 2026-11-05 (dernière version publiée : v1.73.1).**
 > **Statut** : document de travail. Les identifiants de tâche (`C1-T2`, `B3-T1`…) sont
 > stables et peuvent être cités dans les messages de commit et les futures sessions.
 
@@ -88,6 +88,7 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
 **X132** et **X133** (audit du module Performances) livrés le 2026-10-11 ; **X134** et **X135** (audit du delta « mesure pilotée ») le 2026-10-14 ; **X136** (`config.json` livré jamais modifié, gardé à la mise à jour) le même jour ; **X137** (recherche du lot ZIP de traduction) le 2026-10-18.
 **X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
 **X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05 ; **X146** (conflits prévus absents du badge, audit du ViewModel) **X147** (réouverture de la fenêtre pendant une mesure, audit de `StarHubTHApp`) **X148** (magasins oubliés par le renommage), **X149** et **X150** (`check_sources.py`, `release.py`), **X151** à **X153** (sonde : retour au titre, sauvegarde introuvable, aide des mini-stats), **X154** (partie de la mesure « après »), **X155** (⌘O depuis une fiche) et **X156** (`.rar` sur le Dock) le même jour.
+**Vérifiés par l'auteur le 2026-11-05**, à l'écran et en jeu : X146 à X148, X151 à X155, sonde 0.9.37. X156 reste à confirmer sur un Mac sans The Unarchiver, VLC ni Simple Comic.
 **Un correctif ouvert**, né d'un mod tiers (décompilation du 2026-11-02,
 [`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)) :
 
