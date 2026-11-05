@@ -59,6 +59,38 @@ public sealed class ComparableGuards
     }
 }
 
+/// <summary>
+/// L'auto-chargement de la sauvegarde du plan : 5 s à l'écran titre (300 ticks,
+/// comme le benchmark), **une tentative par plan et par lancement**. Une
+/// sauvegarde introuvable ne se retente pas à chaque tick. Revenir au titre
+/// dépense aussi la tentative (`Spend`) : le joueur a quitté la partie, la
+/// suivante se charge à la main.
+/// </summary>
+public sealed class GuidedAutoLoad
+{
+    public const int TitleTicks = 300;
+
+    private int titleTicks;
+    private string? spentPlan;
+
+    /// <summary>`planId` : le plan qui porte une sauvegarde, `null` sinon.
+    /// Vrai au seul tick où charger.</summary>
+    public bool Tick(string? planId, bool onTitle, bool worldReady)
+    {
+        if (!onTitle) { titleTicks = 0; return false; }
+        if (planId is null || worldReady || planId == spentPlan) return false;
+        if (++titleTicks < TitleTicks) return false;
+        Spend(planId);
+        return true;
+    }
+
+    public void Spend(string planId)
+    {
+        spentPlan = planId;
+        titleTicks = 0;
+    }
+}
+
 public enum GuidedOutcome { Running, Stable, Noisy }
 
 /// <summary>

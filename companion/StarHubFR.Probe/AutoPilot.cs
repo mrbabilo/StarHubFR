@@ -5,8 +5,8 @@ using StardewValley;
 
 namespace StarHubFR.Probe;
 
-/// <summary>P1 — l'exécutant en jeu du plan piloté : warp unique au monde
-/// prêt, saut de nuit à minuit, sortie propre à la mesure close (retour au
+/// <summary>P1 — l'exécutant en jeu du plan piloté : un warp par partie au
+/// monde prêt, saut de nuit à minuit, sortie propre à la mesure close (retour au
 /// titre puis fermeture du processus — le garde-fou coupe au bout de 10 s).
 /// Ne touche jamais `Mods/` (invariant D4).</summary>
 internal static class AutoPilot
@@ -15,6 +15,8 @@ internal static class AutoPilot
     private static bool exiting;
     private static DateTime exitAskedAt = DateTime.MinValue;
 
+    /// <summary>Après `Guided.RefreshPlan` : revenu au titre, le plan n'est
+    /// repris qu'à ce moment.</summary>
     public static void OnSaveLoaded()
     {
         if (!AutoPilotRule.ShouldWarp(warped, Guided.Active?.AutoPilot == true)) return;
@@ -44,11 +46,13 @@ internal static class AutoPilot
             Environment.Exit(0);   // garde-fou : le titre n'a pas rendu la main
     }
 
-    /// <summary>Sur ReturnedToTitle : la mesure est close et écrite — le
-    /// processus peut partir.</summary>
+    /// <summary>Sur ReturnedToTitle : la mesure est close et écrite, le
+    /// processus peut partir. Sinon le joueur a quitté en cours de route : la
+    /// partie qu'il rechargera repart du lieu cible.</summary>
     public static void OnReturnedToTitle()
     {
         if (exiting) Environment.Exit(0);
+        warped = false;
     }
 
     /// <summary>Copie de SetTimeCommand.SafelySetTime (ConsoleCommands.dll,

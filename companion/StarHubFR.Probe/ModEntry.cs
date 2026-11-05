@@ -60,12 +60,12 @@ public sealed class ModEntry : Mod
         // n'était appelé qu'au `SaveLoaded` — trop tard d'un chargement.
         Guided.RefreshPlan();
         GuidedBanner.Initialize(helper);
-        // P1 : le pilotage — warp au monde prêt, nuit, sortie (plan AutoPilot).
-        helper.Events.GameLoop.SaveLoaded += (_, _) => AutoPilot.OnSaveLoaded();
+        // P1 : le pilotage — nuit, sortie (plan AutoPilot) ; le warp part du
+        // `SaveLoaded` plus bas, une fois le plan relu.
         helper.Events.GameLoop.UpdateTicked += (_, _) => AutoPilot.OnTick();
         helper.Events.GameLoop.ReturnedToTitle += (_, _) => AutoPilot.OnReturnedToTitle();
-        // P1 T5 : mini-stats opt-in, dessinées après le bandeau guidé, coin
-        // opposé (inscrites après GuidedBanner pour cet ordre).
+        // P1 T5 : mini-stats opt-in, dessinées sous le bandeau guidé (inscrites
+        // après GuidedBanner pour lire son bas à la même trame).
         MiniStats.Initialize(helper);
         helper.Events.GameLoop.UpdateTicked += (_, _) => MiniStats.OnTicked(config.ShowMiniStats);
         // Avant Loads.Initialize : l'enregistrement de lancement lit Benchmark.RunId.
@@ -111,6 +111,7 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.SaveLoaded += (_, _) =>
         {
             Guided.RefreshPlan();
+            AutoPilot.OnSaveLoaded();
             HarmonyMap.Write(helper, Monitor, "SaveLoaded");
             PatchCosts.WrapNew("SaveLoaded");
             // Les mods s'inscrivent à GMCM pendant GameLaunched : au

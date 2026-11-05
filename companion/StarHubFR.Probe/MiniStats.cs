@@ -8,7 +8,7 @@ namespace StarHubFR.Probe;
 
 /// <summary>P1 T5 — opt-in : FPS de la dernière seconde, P50/P99 des trames
 /// de la minute en cours (fenêtre de `FrameTimings`, 0 à 60 s), jeu de
-/// travail du processus — coin haut droit, rafraîchi à la seconde. Observation
+/// travail du processus — en haut à gauche, rafraîchi à la seconde. Observation
 /// instantanée : ne partage pas le compteur « minutes gardées » (la mesure
 /// close vit son propre rythme, 30–35 s de décalage connu).
 ///
@@ -23,7 +23,7 @@ internal static class MiniStats
     private static string text = "";
 
     /// <summary>Deux événements que `GuidedBanner` utilise déjà : dessiné
-    /// après lui, coin opposé.</summary>
+    /// après lui, juste dessous.</summary>
     public static void Initialize(IModHelper helper)
     {
         helper.Events.Display.RenderedHud += (_, e) =>

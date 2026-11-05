@@ -3818,6 +3818,24 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X153** ✅ *(livré le 2026-11-05, audit de la sonde)* — **L'aide des
+      mini-stats était fausse deux fois.** Elle annonçait le coin haut droit et
+      un effet au prochain lancement, restes d'avant le déplacement du
+      2026-10-14. `ModEntry` relit `config.ShowMiniStats` à chaque tick : l'effet
+      est immédiat. Sonde 0.9.35.
+- [x] **X152** ✅ *(livré le 2026-11-05, audit de la sonde)* — **« Une seule
+      tentative » n'en était pas une.** `AutoLoad.Try` rend `false` si la
+      sauvegarde manque, et `titleTicks` restait au-dessus du seuil : un essai et
+      un `Warn` par tick tant que le jeu restait au titre. `GuidedAutoLoad`, pur
+      et testé, dépense la tentative avant l'appel.
+- [x] **X151** ✅ *(livré le 2026-11-05, audit de la sonde)* — **Le retour au
+      titre relançait la partie.** `Abandon` remettait `planStamp` à zéro, la
+      fenêtre suivante relisait le plan, `Start` réarmait l'auto-chargement :
+      environ 65 s après le retour, sans demande. Le pilotage repartait sans warp,
+      `warped` n'étant jamais remis à faux, et le bandeau restait sur « en route
+      vers… ». `Abandon` dépense la tentative, `OnReturnedToTitle` réarme le warp
+      et `OnSaveLoaded` passe après `RefreshPlan`, sinon il voyait un plan encore
+      absent. Constat tiré du code, non reproduit en jeu.
 - [x] **X150** ✅ *(livré le 2026-11-05, audit des scripts)* — **`release.py`
       taguait sans le numéro de build.** `bump_build_number` modifie `Info.plist`,
       rien ne le commitait, puis la réponse `y` posait `git tag -s` sur `HEAD` : tag

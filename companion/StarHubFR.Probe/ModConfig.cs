@@ -22,7 +22,8 @@ public sealed class ModConfig
 
     /// <summary>
     /// P1 T5 : mini-stats en jeu (FPS, P50/P99 sur 60 s, jeu de travail du
-    /// processus), coin haut droit, une fois par seconde. Opt-in : le coût
+    /// processus), en haut à gauche, une fois par seconde. Relue à chaque tick :
+    /// le menu de configuration agit tout de suite. Opt-in : le coût
     /// d'observation se mesure en comparant deux sessions, avec et sans.
     /// </summary>
     public bool ShowMiniStats { get; set; } = false;

@@ -45,10 +45,7 @@ internal static class Guided
     private static bool patchesSeen;
     /// <summary>Posé par le relevé d'inventaire, qui tourne en tâche de fond.</summary>
     private static int configChanged;
-    /// <summary>Auto-chargement de la sauvegarde du plan : 5 s à l'écran
-    /// titre (300 ticks, comme le benchmark), une seule tentative.</summary>
-    private static int titleTicks;
-    private static bool autoLoaded;
+    private static readonly GuidedAutoLoad AutoLoads = new();
 
     internal static Plan? Active { get; private set; }
     internal static GuidedRule? Rule { get; private set; }
@@ -91,14 +88,10 @@ internal static class Guided
         }
         // Sauvegarde choisie dans la feuille : chargée seule à l'écran titre,
         // le geste du benchmark. Sans elle, le joueur clique comme toujours.
-        if (Active?.SaveName is { } saveName && !autoLoaded && !Context.IsWorldReady
-            && Game1.activeClickableMenu is TitleMenu)
+        if (AutoLoads.Tick(Active?.SaveName is null ? null : Active.Id,
+                           Game1.activeClickableMenu is TitleMenu, Context.IsWorldReady))
         {
-            if (++titleTicks >= 300) autoLoaded = AutoLoad.Try(saveName, Monitor!, "Mesure guidée");
-        }
-        else if (Game1.activeClickableMenu is not TitleMenu)
-        {
-            titleTicks = 0;
+            AutoLoad.Try(Active!.SaveName!, Monitor!, "Mesure guidée");
         }
     }
 
@@ -164,8 +157,13 @@ internal static class Guided
         }
     }
 
-    /// <summary>Retour à l'écran titre : la mesure en cours est abandonnée, le plan reste.</summary>
-    public static void Abandon() => Abandon(keepStamp: false);
+    /// <summary>Retour à l'écran titre : la mesure en cours est abandonnée, le
+    /// plan reste pour la prochaine partie, que le joueur charge lui-même.</summary>
+    public static void Abandon()
+    {
+        if (Active is { } plan) AutoLoads.Spend(plan.Id);
+        Abandon(keepStamp: false);
+    }
 
     /// <summary>
     /// Fermeture du jeu : **en premier** dans `ProcessExit`, sans aucun journal
@@ -203,8 +201,6 @@ internal static class Guided
         LastIqrSharePercent = 0;
         RefusedKey = null;
         targetTicks = 0;
-        titleTicks = 0;
-        autoLoaded = false;
         patchesSeen = false;
         Interlocked.Exchange(ref configChanged, 0);
         if (Context.IsSplitScreen) Refuse("refused.splitscreen");

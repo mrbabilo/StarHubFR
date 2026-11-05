@@ -11,8 +11,9 @@ namespace StarHubFR.Probe;
 /// l'API est résolue par réflexion sur l'objet rendu par
 /// `IModRegistry.GetApi(string)` (référence d'assembly refusée — la sonde ne
 /// déclare aucune dépendance, et GMCM absent = aucun menu, jamais une
-/// panne). Effet des options : au **prochain lancement** du jeu (la config
-/// est lue à l'`Entry`, dit dans les descriptions).
+/// panne). Effet des options : au **prochain lancement** du jeu pour les deux
+/// mesures, lues à l'`Entry` ; tout de suite pour les mini-stats, relues à
+/// chaque tick (dit dans les descriptions).
 ///
 /// Le miroir lecture/défauts vit dans `ProbeConfigMirror` (testé) ; ce
 /// fichier ne porte que le câblage GMCM, hors test.
