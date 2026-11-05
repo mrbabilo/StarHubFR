@@ -3818,6 +3818,13 @@ Tout ce qui suit était resté en place dans `ROADMAP.md` après livraison — 1
 ### 4. Correctifs identifiés (suite)
 
 
+- [x] **X154** ✅ *(livré le 2026-11-05, audit des vues)* — **La mesure « après »
+      oubliait la ferme.** Le brouillon reprenait le lieu de la mesure « avant »,
+      pas sa sauvegarde, et la feuille prenait `saves.first`, trié par
+      `playerName`. Rien n'alertait : `otherSave` ne sert qu'aux chargements. La
+      ligne de mesure ne porte pas la sauvegarde : `GuidedPilotSaveChoice`
+      remonte de la mesure à sa session par `store.sides`, puis à `loads.jsonl`.
+      Le choix reste modifiable. Constat tiré du code, non reproduit à l'écran.
 - [x] **X153** ✅ *(livré le 2026-11-05, audit de la sonde)* — **L'aide des
       mini-stats était fausse deux fois.** Elle annonçait le coin haut droit et
       un effet au prochain lancement, restes d'avant le déplacement du

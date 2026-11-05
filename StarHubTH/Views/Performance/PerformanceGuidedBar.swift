@@ -99,7 +99,10 @@ struct PerformanceGuidedBar: View {
                     piloted = false
                     draft = GuidedPlanDraft(name: defaultName(), role: .after,
                                             location: GuidedProtocol.safeLocation(before.location),
-                                            pairedWith: before.id)
+                                            pairedWith: before.id,
+                                            saveName: GuidedPilotSaveChoice.save(
+                                                after: before, sides: store.sides, loads: store.loads,
+                                                available: viewModel.saves.map(\.folderName)))
                 }
                 .clickableCursor()
                 .disabled(startBlocked)
@@ -288,6 +291,7 @@ struct PerformanceGuidedSheet: View {
         self.viewModel = viewModel
         self.localization = localization
         _draft = State(initialValue: draft)
+        _saveFolder = State(initialValue: draft.saveName ?? "")
         self.canLaunch = canLaunch
         self.piloted = piloted
         self.onConfirm = onConfirm
@@ -355,9 +359,11 @@ struct PerformanceGuidedSheet: View {
             if saveFolder.isEmpty { saveFolder = viewModel.saves.first?.folderName ?? "" }
         }
         .onChange(of: viewModel.saves) { _, saves in
-            if saves.first(where: { $0.folderName == saveFolder }) == nil {
-                saveFolder = saves.first?.folderName ?? ""
-            }
+            let names = saves.map(\.folderName)
+            guard !names.contains(saveFolder) else { return }
+            // La ferme proposée d'abord : une liste vide le temps de la
+            // relecture ne doit pas la faire oublier.
+            saveFolder = draft.saveName.flatMap { names.contains($0) ? $0 : nil } ?? names.first ?? ""
         }
     }
 

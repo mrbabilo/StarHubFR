@@ -13,4 +13,12 @@ public enum GuidedPilotSaveChoice {
         }
         return available.first
     }
+
+    /// X154 — la mesure « après » rejoue la ferme de sa mesure « avant » : la
+    /// sauvegarde n'est pas dans la ligne de mesure, seule sa session la relie
+    /// à `loads.jsonl`. Sans ce lien, deux fermes se comparaient sans alerte.
+    public static func save(after before: ProbeMeasurement, sides: [ProbeSide], loads: [ProbeLoadRecord],
+                            available: [String]) -> String? {
+        save(session: sides.first { $0.measurement?.id == before.id }?.session, loads: loads, available: available)
+    }
 }
