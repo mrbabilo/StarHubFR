@@ -29,7 +29,7 @@ Le **[guide utilisateur](GUIDE.md)** accompagne le premier lancement et chaque u
 ## Pourquoi StarHubFR
 
 *   🇫🇷 **En français de bout en bout** — interface, erreurs et diagnostics, avec bascule instantanée vers l'anglais.
-*   🩺 **Il explique ce qui ne va pas** — il lit le journal SMAPI à votre place et dit quoi faire, en clair.
+*   🩺 **Il explique ce qui ne va pas** — il lit le journal SMAPI à votre place et vous indique clairement quoi faire.
 *   ✍️ **Vous traduisez les mods dans l'app** — un éditeur clé par clé écrit le `fr.json` sans casser les marqueurs du jeu.
 *   🍎 **Vraiment natif** — Swift et SwiftUI, sans couche web, utilisable avec VoiceOver.
 *   🧩 **Fait pour les grosses collections** — conçu et testé sur des installations de plusieurs centaines de mods (SVE et compagnie).
@@ -46,22 +46,22 @@ Quand le jeu plante ou qu'un mod refuse de se charger, StarHubFR transforme le j
 *   **Des conseils, pas du jargon** — « installez telle dépendance », « ce mod est installé en double », « ce mod ne prend pas en charge votre version du jeu ». Chaque conseil s'accompagne d'un bouton : installer la dépendance, ouvrir la fiche du mod ou lancer la recherche du mod responsable.
 *   **L'état de santé en un coup d'œil** — versions de SMAPI et du jeu, mods chargés, ignorés ou en échec avec leur raison, dépendances manquantes.
 *   **Les mods à surveiller** — ceux qui modifient le code du jeu ou vos sauvegardes, ceux qui produisent le plus d'erreurs, avec ce que cela implique.
-*   **Les fausses alertes mises à part** — GOG Galaxy, intégration optionnelle absente, mod compagnon manquant : le message est cité, un bouton mène à ses lignes, et le mod n'est plus accusé à tort.
-*   **Un journal qui se lit** — lignes répétitives repliées, regroupement par mod (les plus problématiques en tête), badge si le journal date d'avant votre session.
-*   **Les erreurs suivies version par version** — la fiche d'un mod dit si sa nouvelle version se comporte moins bien que la précédente.
-*   **Tous vos raccourcis et leurs conflits** — chaque touche des mods actifs, cherchable par mod, réglage ou touche ; à la capture, l'éditeur de config dit si un autre mod l'utilise déjà. Les boutons qui rejouent les touches d'autres mods (Taum's Inventory Hotkeys) ne comptent pas comme des conflits, et ceux qui ne déclenchent plus rien sont signalés.
-*   **Un plan pour démêler les raccourcis** — les conflits passent sur des touches libres, rangées par famille : lettres pour l'action, chiffres pour l'information, touches F pour le reste. Chaque ligne se décoche, les config.json touchés sont sauvegardés avant écriture et « Annuler le plan » les restaure.
-*   **Les conflits prévus avant de jouer** — deux mods qui chargent le même asset en exclusif sont signalés, et l'activation (seule, groupée ou par profil) prévient en nommant l'asset.
-*   **Retrouver le mod fautif** — quand rien ne désigne de coupable, l'app met vos mods en pause par moitiés et pose une question par étape. Une dizaine d'essais suffisent ; tout se remet en un clic.
+*   **Les fausses alertes mises à part** — GOG Galaxy, intégration optionnelle absente, mod compagnon manquant : le message est cité, un bouton affiche les lignes concernées, et le mod n'est plus accusé à tort.
+*   **Un journal lisible** — lignes répétitives repliées, regroupement par mod (les plus problématiques en tête), badge si le journal date d'avant votre session.
+*   **Les erreurs suivies version par version** — la fiche d'un mod indique si sa nouvelle version se comporte moins bien que la précédente.
+*   **Tous vos raccourcis et leurs conflits** — chaque touche des mods actifs, cherchable par mod, réglage ou touche ; quand vous saisissez une touche, l'éditeur de config indique si un autre mod l'utilise déjà. Les boutons qui rejouent les touches d'autres mods (Taum's Inventory Hotkeys) ne comptent pas comme des conflits, et ceux qui ne déclenchent plus rien sont signalés.
+*   **Un plan pour démêler les raccourcis** — les raccourcis en conflit sont déplacés vers des touches libres, rangées par famille : lettres pour l'action, chiffres pour l'information, touches F pour le reste. Chaque ligne peut être décochée, les config.json concernés sont sauvegardés avant écriture et « Annuler le plan » les restaure.
+*   **Les conflits prévus avant de jouer** — deux mods qui chargent le même asset en exclusif sont signalés, et l'activation (seule, groupée ou par profil) affiche un avertissement avec le nom de l'asset.
+*   **Retrouver le mod fautif** — quand rien ne désigne de coupable, l'app met vos mods en pause par moitiés et pose une question par étape. Une dizaine d'essais suffisent, et un clic remet tout en place.
 *   **Un clic vers la solution** — depuis un conflit, un recouvrement ou une alerte, vous ouvrez directement la fiche du mod concerné, sur l'onglet où se trouve la correction.
 
 ### ⏱️ Performances
 
-La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu pendant que vous jouez. L'onglet *Performances* compare deux moments et dit ce qui a changé.
+La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu pendant que vous jouez. L'onglet *Performances* compare deux moments et indique ce qui a changé.
 
 *   **Temps de chargement** — lancement et chargement de partie, comparés à l'état précédent de votre parc, avec les mods qui pèsent le plus.
 *   **Benchmark automatique** — l'app enchaîne seule plusieurs lancements en alternant les deux états, puis remet votre parc comme avant.
-*   **Mesure guidée en un clic** — la sonde conduit la partie (lieu, nuit, sortie propre) avant puis après un changement, et l'app rend le comparatif A/B ; vous gardez le changement ou revenez au parc d'avant, même après une interruption.
+*   **Mesure guidée en un clic** — la sonde conduit la partie (lieu, nuit, sortie propre) avant puis après un changement, et l'app présente le comparatif A/B ; vous gardez le changement ou revenez au parc d'avant, même après une interruption.
 *   **Fluidité et mémoire** — temps d'image, saccades, mémoire du processus et textures par mod, minute par minute, avec ce qui sépare deux sessions (mods, versions, réglages, scène).
 *   **Pas de verdict au hasard** — un écart ne compte qu'au-delà du bruit mesuré entre vos propres sessions ; sinon il reste gris.
 *   **Diagnostics guidés et réversibles** — pour Stardew Loading Optimizer et Stardropium, l'app installe si besoin, active les mesures le temps d'une partie, puis restaure réglages et mods, même après une interruption.
@@ -70,37 +70,37 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 ### 📦 Installation et organisation
 
 *   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) sur la fenêtre, depuis n'importe quelle page — structure détectée (mod seul ou pack), format reconnu à ses octets, limites de sécurité (500 Mo d'archive, 2 Go décompressés), conflits et dépendances manquantes annoncés.
-*   **Le contenu d'un autre mod s'installe au bon endroit** — un fichier pour un framework (un sac *ItemBags*, par exemple) est placé dans son mod hôte, chemin montré et fichier existant sauvegardé d'abord.
+*   **Le contenu d'un autre mod s'installe au bon endroit** — un fichier pour un framework (un sac *ItemBags*, par exemple) est placé dans son mod hôte : l'app affiche le chemin et sauvegarde d'abord le fichier existant.
 *   **Activer sans déplacer de fichiers** — un mod, une sélection (clic, ⌘, ⇧, ⌘A, puis Espace) ou tous à la fois. Les mods livrés avec SMAPI restent actifs.
-*   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation nomme les mods actifs qui en dépendent. Refusé jeu ouvert.
+*   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation indique les mods actifs qui en dépendent. Impossible quand le jeu est ouvert.
 *   **Profils** — plusieurs ensembles de mods, un clic pour passer de l'un à l'autre. Vous pouvez voir ce qu'un profil changerait avant de l'activer ; une pastille signale un profil appliqué à moitié ou interrompu, avec la marche à suivre.
-*   **Revenir à un état d'avant** — l'app enregistre l'état de vos mods avant chaque activation groupée, recherche ou benchmark ; un clic suffit pour y revenir.
-*   **Groupes à soi** — « Regrouper par » vos groupes ou par catégorie : bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, tout un groupe activé ou mis en pause d'un geste. Un profil décrit un état, un groupe un rangement.
-*   **Une liste qui se trie** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, Désactivés, **Problèmes** et **Mises à jour**.
-*   **Approbations Nexus** — le pouce de chaque mod donne son nombre d'approbations et approuve d'un clic.
+*   **Revenir à un état antérieur** — l'app enregistre l'état de vos mods avant chaque activation groupée, recherche ou benchmark ; un clic suffit pour y revenir.
+*   **Vos propres groupes** — « Regrouper par » vos groupes ou par catégorie : bandeaux repliables, « Ranger dans » sur une ligne ou une sélection, tout un groupe activé ou mis en pause en une seule action. Un profil décrit un état, un groupe un rangement.
+*   **Une liste facile à trier** — catégories déduites du manifeste, filtres (configurables, « à écarter », non catégorisés…), tris par nom, auteur, approbations ou mise à jour la plus ancienne ; cadrages Tous, Activés, Désactivés, **Problèmes** et **Mises à jour**.
+*   **Approbations Nexus** — le pouce de chaque mod affiche son nombre d'approbations, et un clic suffit pour approuver.
 *   **Marque « à écarter »** — un mod à retirer de la circulation sans le désinstaller : grisé, regroupé par un filtre, importable dans un profil.
 
 ### 🔄 Mises à jour et téléchargements
 
 *   **Vérification sans compte** via [smapi.io](https://smapi.io/), à partir des manifestes. Un bouton « Arrêter » interrompt la vérification à tout moment.
-*   **Si smapi.io tombe** — l'app le dit et propose de vérifier directement sur Nexus : un tri sans clé ne revérifie que les pages modifiées, quelques dizaines de requêtes au lieu de plusieurs milliers.
-*   **Les mods sans verdict, expliqués** — ceux que ni smapi.io ni Nexus n'ont pu juger, chacun avec sa raison (aucun identifiant, page masquée ou supprimée…). Un identifiant saisi à la main remplace une clé cassée du manifeste.
-*   **Chaque mod dit qu'il a une mise à jour** — pastille « ↑ version » sur sa ligne et bandeau sur sa fiche. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus. Les mises à jour des mods en pause sont regroupées à part.
-*   **« Je l'ai déjà »** — pour l'auteur qui publie sans changer la version de son manifeste : la ligne enregistre la version réellement installée, puis disparaît.
+*   **Si smapi.io est en panne** — l'app vous prévient et propose de vérifier directement sur Nexus : un tri sans clé ne revérifie que les pages modifiées, quelques dizaines de requêtes au lieu de plusieurs milliers.
+*   **Une explication pour les mods sans verdict** — ceux que ni smapi.io ni Nexus n'ont pu juger, chacun avec sa raison (aucun identifiant, page masquée ou supprimée…). Un identifiant saisi à la main remplace une clé cassée du manifeste.
+*   **Des mises à jour bien visibles** — pastille « ↑ version » sur sa ligne et bandeau sur sa fiche. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus. Les mises à jour des mods en pause sont regroupées à part.
+*   **« Je l'ai déjà »** — pour l'auteur qui publie sans changer la version de son manifeste : un clic enregistre la version réellement installée et retire la ligne.
 *   **Téléchargement dans l'app** — direct avec un compte Premium, ou par le lien `nxm://` avec un compte gratuit. La clé API reste dans le trousseau macOS.
 *   **Ce qu'une mise à jour change** — options de config ajoutées ou retirées, textes à traduire, traductions écartées ; les clés renommées sont reportées, jamais écrasées. L'aperçu prévient aussi quand des mods actifs lisent le code interne du mod remplacé.
 
 ### 🧭 Découvrir
 
 *   **Trois vitrines Nexus** — tendances, mises à jour récentes et sélection française, mises en cache 24 h.
-*   **Ce que vous avez déjà se voit** — pastille « Installé » et filtre pour les masquer, avec le nombre masqué.
+*   **Vos mods déjà installés sont repérés** — pastille « Installé » et filtre pour les masquer, avec le nombre masqué.
 *   **Catégories et recherche** — 26 catégories filtrées côté serveur, recherche par nom avec le total réel.
 *   **Fiche éclair** — description, version, approbations, puis **Installer** (Premium) ou **Ouvrir sur Nexus**.
-*   **Jamais muette** — sans clé, quota atteint ou panne réseau, chaque état dit ce qui se passe et propose l'action qui le lève.
+*   **Toujours une explication** — sans clé, quota atteint ou panne réseau, l'app explique ce qui se passe et propose une solution.
 
 ### 📖 Fiche de mod
 
-*   **Six onglets** — Aperçu, Santé, Dépendances, Traduction, Historique, Gestion. La fiche s'ouvre directement sur l'onglet utile : Dépendances pour une dépendance manquante, Historique pour une mise à jour.
+*   **Six onglets** — Aperçu, Santé, Dépendances, Traduction, Historique, Gestion. La fiche affiche directement l'onglet utile : Dépendances pour une dépendance manquante, Historique pour une mise à jour.
 *   **La compatibilité d'abord** — le verdict de smapi.io et ce qu'en dit l'auteur, réunis dans une carte.
 *   **Santé** — un verdict et huit vérifications (liste noire SMAPI, chargement, smapi.io, journal, incompatibilités, raccourcis, doublons, page Nexus), avec « non vérifié » quand la donnée manque.
 *   **Dépendances** — ce qui est à régler apparaît en premier, avec un bouton « Activer » ou « Installer », suivi de l'arbre complet, replié par niveau, plus les mods dont celui-ci lit le code interne sans le déclarer.
@@ -111,18 +111,18 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et sert d'éditeur.
 
-*   **Anglais à gauche, français à droite**, clé par clé ; un mod sans `fr.json` en reçoit un au premier enregistrement.
+*   **Anglais à gauche, français à droite**, clé par clé ; s'il n'existe pas, le `fr.json` est créé au premier enregistrement.
 *   **Une IA locale propose le brouillon** — un modèle qui tourne sur votre Mac (Ollama, LM Studio), par clé ou par lots, marqué « À relire ». Rien ne quitte la machine.
 *   **Le glossaire vient du jeu** — plus de mille noms d'objets, personnages et lieux, lus dans votre installation et imposés au modèle.
 *   **Les marqueurs du jeu protégés** — affichés en couleur, insérés d'un clic ; un enregistrement qui en perd un est refusé.
 *   **Le vrai taux de traduction** — 100 % seulement si toutes les clés sont faites ; clés vides, absentes ou obsolètes listées à part.
-*   **Page « Traductions FR »** — les traductions publiées sur Nexus pour vos mods, les mises à jour de celles installées, et « À finir » pour les traductions commencées. Un résultat erroné s'écarte d'un clic sur le pouce vers le bas ; un badge dans la barre latérale indique les traductions en attente.
+*   **Page « Traductions FR »** — les traductions publiées sur Nexus pour vos mods, les mises à jour de celles installées, et « À finir » pour les traductions commencées. Un clic sur le pouce vers le bas écarte un résultat erroné ; un badge dans la barre latérale indique les traductions en attente.
 *   **À plusieurs** — export d'un lot ZIP pour un traducteur, fusion clé par clé à son retour.
 *   **Mode focus** — bandeaux et barre latérale masqués (Échap pour sortir).
 
 ### ⚙️ Configuration et sauvegardes
 
-*   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod. Quand le mod se décrit au menu du jeu (GMCM ou Modern Config Menu), l'éditeur reprend ce menu : mêmes noms, mêmes sections, même ordre, l'aide sous chaque réglage, et il s'en souvient quand le mod est en pause. Les clés d'API et mots de passe restent masqués.
+*   **Éditeur de config** — arborescence de réglages typés avec recherche, ou JSON brut validé en direct ; listes déroulantes avec les libellés traduits du mod. Quand le mod déclare ses réglages au menu du jeu (GMCM ou Modern Config Menu), l'éditeur reprend ce menu : mêmes noms, mêmes sections, même ordre, l'aide sous chaque réglage. Il conserve ces informations quand le mod est en pause. Les clés d'API et mots de passe restent masqués.
 *   **Sauvegardes des mods** — avant chaque écrasement, plus vos `config.json` et `fr.json`, et les fichiers qu'une mise à jour a emportés. Les configurations sont classées par mod et peuvent être comparées avant restauration ; une sauvegarde supprimée va dans la Corbeille du Mac.
 *   **Entretien** — l'espace disque occupé par StarHubFR, et « Libérer de la place » en une seule action (en conservant 1, 3 ou 5 sauvegardes par mod).
 *   **Parties** — détail, copie, suppression, et retouche de l'argent ou des statistiques ; avec PureBinarySave, la retouche est bien celle que le jeu charge.
@@ -130,7 +130,7 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 
 ### 🎮 Au quotidien
 
-*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; si une opération a été interrompue, l'accueil le signale et propose « Tout remettre comme avant » ; il propose aussi la mise à jour de la sonde quand l'app en livre une plus récente.
+*   **Un accueil qui va à l'essentiel** — compteurs utiles et **Lancer le jeu** (⌘R), en Vanilla ou via SMAPI ; si une opération a été interrompue, l'accueil le signale et propose « Tout remettre comme avant » ; il propose aussi la mise à jour de la sonde quand l'app en contient une plus récente.
 *   **Journaux en temps réel** — sortie SMAPI et StarHubFR, filtrables par source et par niveau.
 *   **Les mods dont l'app a besoin** — listés dans les réglages, avec leur rôle, leur état et leur lien d'installation.
 *   **Accessible et lisible** — VoiceOver annonce chaque bouton, toute l'app s'utilise au clavier, et la liste des mods s'adapte aux fenêtres étroites.
@@ -172,7 +172,7 @@ Chaque fiche a un onglet **Traduction** qui montre l'état réel du français et
 
 1. Téléchargez la dernière version sur la page [Releases](../../releases).
 2. Décompressez l'archive et glissez `StarHubFR.app` dans Applications.
-3. Au premier lancement, macOS peut bloquer l'app, qui n'est pas notarisée : ouvrez **Réglages Système › Confidentialité et sécurité**, puis **Ouvrir quand même**. Si macOS refuse encore, ou dit l'app « endommagée », levez la quarantaine avec Sentinel (ci-dessous).
+3. Au premier lancement, macOS peut bloquer l'app, qui n'est pas notarisée : ouvrez **Réglages Système › Confidentialité et sécurité**, puis **Ouvrir quand même**. Si macOS refuse encore, ou indique que l'app est « endommagée », levez la quarantaine avec Sentinel (ci-dessous).
 4. L'app cherche le jeu ; s'il n'est pas trouvé, désignez l'application du jeu elle-même (`Stardew Valley.app`) : le dossier `Mods/` est trouvé à partir de là.
 
 Pour passer à une nouvelle version, quittez complètement l'app (⌘Q) avant de remplacer le bundle.
@@ -183,7 +183,7 @@ L'app est signée par un certificat propre au projet (« StarHubFR Signature »)
 
 #### Lever la quarantaine avec Sentinel
 
-macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), d'Alin Lupascu, retire cette marque en un geste.
+macOS marque d'une « quarantaine » toute app téléchargée, et refuse d'ouvrir celles qui ne sont pas notarisées par Apple, ce qui est le cas de StarHubFR. [**Sentinel**](https://itsalin.com/appInfo/?id=sentinel) ([GitHub](https://github.com/alienator88/Sentinel)), d'Alin Lupascu, retire cette marque en une seule action.
 
 1. Installez Sentinel (macOS 13 ou ultérieur) :
    - avec [Homebrew](https://brew.sh) : `brew install --cask alienator88-sentinel` ;
@@ -213,7 +213,7 @@ python3 release.py     # archive de release dans bundles/
 
 Il n'y a pas de projet Xcode : `build_app.py` compile toutes les sources, et `Package.swift` ne décrit que le cœur testé.
 
-La carte du code est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Un bug se signale depuis l'app : menu **Aide › Signaler un bug sur GitHub**, ou la coccinelle en bas de la barre latérale ; le formulaire s'ouvre avec les versions déjà remplies. Pour proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Une faille de sécurité se signale en privé : [SECURITY.md](SECURITY.md).
+La carte du code est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Pour signaler un bug, passez par l'app : menu **Aide › Signaler un bug sur GitHub**, ou la coccinelle en bas de la barre latérale ; le formulaire s'ouvre avec les versions déjà remplies. Pour proposer une idée ou une pull request : [CONTRIBUTING.md](CONTRIBUTING.md). Pour une faille de sécurité, procédez en privé : [SECURITY.md](SECURITY.md).
 
 <p align="center">
   <img src="assets/banners/credits_banner.png" alt="Crédits et Licence" width="300">
@@ -251,7 +251,7 @@ StarHubFR s'appuie sur le travail de nombreux projets. La liste complète — AP
 
 *   [**Generic Mod Config Menu**](https://www.nexusmods.com/stardewvalley/mods/5098) par **spacechase0** et [**Modern Config Menu**](https://www.nexusmods.com/stardewvalley/mods/49437) par **palmhacker13** — ce que les mods déclarent de leurs réglages, et le menu en jeu de la sonde.
 *   [**stardew-save-editor**](https://github.com/colecrouter/stardew-save-editor) par **colecrouter** — référence pour lire et modifier les sauvegardes.
-*   **Newtonsoft.Json** (MIT), tel qu'embarqué par le jeu et exécuté sous Mono — l'oracle de ce que SMAPI accepte vraiment comme JSON.
+*   **Newtonsoft.Json** (MIT), tel qu'embarqué par le jeu et exécuté sous Mono — la référence de ce que SMAPI accepte vraiment comme JSON.
 
 **Performances**
 

@@ -12,50 +12,52 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
-### Changed
-
-- **Le catalogue des recouvrements suit UltraSmooth 2.7.5.** Ses deux nouveaux patches ne recoupent aucun autre mod de performance : les paires ne changent pas.
+## [1.73.0] - 2026-11-05
 
 ### Added
 
-- **L'éditeur connaît les valeurs par défaut des mods C#.** Un réglage changé porte le badge « Modifié » et un bouton pour revenir à sa valeur d'origine, comme c'était déjà le cas pour les packs de contenu. Il faut la sonde 0.9.33 et une partie chargée, et le mod doit s'inscrire à GMCM ou à Modern Config Menu.
-- **Une alerte quand un fichier `.bin` de PureBinarySave retarde sur sa partie.** Des jours joués sans le mod disparaîtraient au prochain chargement avec lui, car il charge son `.bin` dès qu'il existe. L'alerte nomme les parties, dit le retard en jours de jeu, et son bouton met ces `.bin` à la Corbeille. Elle est critique si le mod est actif, simple avertissement s'il est en pause.
+- **L'éditeur tient compte des valeurs par défaut des mods C#.** Un réglage modifié s'accompagne du badge « Modifié » et d'un bouton qui rétablit sa valeur d'origine, comme pour les packs de contenu. Il faut pour cela la sonde 0.9.33, une partie chargée et un mod inscrit à GMCM ou à Modern Config Menu.
+- **Une alerte quand le fichier `.bin` de PureBinarySave est en retard sur la partie.** Comme le mod charge ce fichier dès qu'il existe, les jours joués sans lui seraient perdus au prochain chargement. L'alerte indique les parties concernées et le retard en jours de jeu, et un bouton permet de mettre ces fichiers à la Corbeille. Elle est critique si le mod est actif, et devient un simple avertissement s'il est en pause.
+
+### Changed
+
+- **Le catalogue des recouvrements est à jour pour UltraSmooth 2.7.5.** Les deux nouveaux patches de ce mod ne recoupent aucun autre mod de performance : les paires restent les mêmes.
 
 ### Fixed
 
-- **Les options de la sonde apparaissent enfin dans le menu de configuration du jeu.** La sonde se trompait sur l'API de GMCM et renonçait sans le dire : ses trois réglages n'y ont jamais figuré. Il faut la sonde 0.9.34.
-- **Une mise à jour ne renaît plus quand la page Nexus numérote autrement que le mod.** Taum's Inventory Hotkeys, par exemple, dit 1.0.3 dans son manifeste et « 9 » sur sa page : l'app proposait sans fin le fichier déjà installé. Elle le reconnaît maintenant grâce au journal du mod, y compris pour les installations passées.
-- **Avec PureBinarySave, un refus de modifier une partie dit maintenant pourquoi**, au lieu de l'échec générique.
+- **Les options de la sonde apparaissent enfin dans le menu de configuration du jeu.** À cause d'une erreur sur l'API de GMCM, la sonde abandonnait sans rien signaler, et ses trois réglages n'y ont jamais figuré. La correction arrive avec la sonde 0.9.34.
+- **Une mise à jour déjà installée n'est plus proposée à nouveau quand la page Nexus et le mod n'ont pas la même numérotation.** Taum's Inventory Hotkeys, par exemple, indique 1.0.3 dans son manifeste et « 9 » sur sa page : l'app proposait sans cesse le fichier déjà installé. Elle le reconnaît désormais grâce au journal du mod, y compris pour les installations passées.
+- **Avec PureBinarySave, quand l'app refuse de modifier une partie, elle en donne désormais la raison**, au lieu d'un message d'échec générique.
 - **La page Parties ne montre plus un fermier « Unknown » juste après le coucher.** Tant que PureBinarySave n'a pas recopié la partie, l'app la lit dans son fichier `.bin`.
-- **Retirer les mods absents d'une partie ne ramène plus en arrière une partie gardée par PureBinarySave.** Si son `.bin` est plus récent, l'app refuse au lieu de l'écarter.
-- **Une copie de partie ne garde plus les fichiers `.bin` de l'original**, qui ne servaient plus.
-- **L'éditeur retrouve le nom et l'aide des raccourcis à plusieurs touches inscrits à Modern Config Menu.** La sonde n'en lisait que la première touche : la valeur ne concordait plus avec `config.json`, et l'app écartait le réglage. Sonde 0.9.32 ; chargez une partie une fois pour que les textes arrivent.
+- **Retirer les mods absents d'une partie ne ramène plus en arrière une partie gardée par PureBinarySave.** Si le `.bin` est plus récent que la partie, l'app refuse l'opération au lieu de le mettre à la Corbeille.
+- **Une copie de partie ne reprend plus les fichiers `.bin` de l'original**, devenus inutiles.
+- **L'éditeur affiche désormais le nom et l'aide des raccourcis à plusieurs touches inscrits à Modern Config Menu.** La sonde n'en lisait que la première touche : la valeur ne correspondait plus à `config.json`, et l'app ignorait le réglage. Il faut la sonde 0.9.32 ; chargez une partie une fois pour que les textes apparaissent.
 
 ## [1.72.0] - 2026-11-03
 
 ### Added
 
 - **L'éditeur de configuration reprend la présentation du menu du jeu** (GMCM ou Modern Config Menu) : mêmes sections, même ordre, l'aide sous chaque réglage ; ce que le menu ne montre pas reste à la fin. L'app garde la dernière description de chaque mod : un mod en pause, ou absent de la dernière partie chargée, garde ses libellés et sa présentation.
-- **L'accueil propose la mise à jour de la sonde** dès que l'app en livre une version plus récente que celle du dossier Mods, avec la même confirmation que l'onglet Performances.
+- **L'accueil propose la mise à jour de la sonde** dès que l'app en contient une version plus récente que celle du dossier Mods, avec la même confirmation que l'onglet Performances.
 - **Signaler un bug sur GitHub depuis l'app** (menu Aide, ou le bouton coccinelle en bas de la barre latérale, à côté des Réglages, du journal et des raccourcis). Le formulaire de bug du dépôt s'ouvre dans le navigateur, avec la version de StarHubFR, celle de macOS et le processeur déjà remplis. Rien d'autre n'est envoyé : vous relisez le formulaire avant de l'envoyer.
-- **Les boutons de Taum's Inventory Hotkeys ne passent plus pour des conflits.** Ses boutons rejouent les raccourcis d'autres mods : l'analyse des raccourcis les sort des collisions et le dit en pied de page. Elle signale aussi un bouton qui ne déclenche plus rien, parce qu'aucun mod actif n'utilise sa touche. Ses propres commandes, lues seulement sur ses boutons de l'inventaire, ne sont plus en conflit avec les contrôles du jeu.
-- **Les clés d'API et mots de passe sont masqués dans l'éditeur de configuration.** Keybind Sheet, par exemple, garde ses clés de traduction en clair dans son `config.json`. L'onglet JSON brut les montre encore.
+- **Les boutons de Taum's Inventory Hotkeys ne passent plus pour des conflits.** Ses boutons rejouent les raccourcis d'autres mods : l'analyse des raccourcis les exclut des collisions et l'indique en pied de page. Elle signale aussi un bouton qui ne déclenche plus rien, parce qu'aucun mod actif n'utilise sa touche. Ses propres commandes, lues seulement sur ses boutons de l'inventaire, ne sont plus en conflit avec les contrôles du jeu.
+- **Les clés d'API et mots de passe sont masqués dans l'éditeur de configuration.** Keybind Sheet, par exemple, garde ses clés de traduction en clair dans son `config.json`. Elles restent visibles dans l'onglet JSON brut.
 
 ### Fixed
 
-- **L'éditeur de configuration affiche le nom et l'aide des réglages de PureBinarySave, d'UltraSmooth et de la sonde.** Quand Modern Config Menu est installé, PureBinarySave et UltraSmooth s'y décrivent au lieu de GMCM, et la sonde ne lisait que GMCM : l'éditeur ne montrait que leurs noms de champs. La sonde 0.9.31 lit les deux menus. Ses propres réglages avaient bien leurs textes, en français comme en anglais, mais sous des noms qui ne correspondaient pas à ceux de son `config.json`. Mettez la sonde à jour (depuis l'accueil ou l'onglet Performances), puis chargez une partie une fois : les textes sont ceux que les mods déclarent en jeu, en anglais pour PureBinarySave et UltraSmooth.
-- **Le catalogue des recouvrements suit UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.
+- **L'éditeur de configuration affiche le nom et l'aide des réglages de PureBinarySave, d'UltraSmooth et de la sonde.** Quand Modern Config Menu est installé, PureBinarySave et UltraSmooth y déclarent leurs réglages plutôt que dans GMCM, et la sonde ne lisait que GMCM : l'éditeur ne montrait que leurs noms de champs. La sonde 0.9.31 lit les deux menus. Ses propres réglages avaient bien leurs textes, en français comme en anglais, mais sous des noms qui ne correspondaient pas à ceux de son `config.json`. Mettez la sonde à jour (depuis l'accueil ou l'onglet Performances), puis chargez une partie une fois : les textes sont ceux que les mods déclarent en jeu, en anglais pour PureBinarySave et UltraSmooth.
+- **Le catalogue des recouvrements est à jour pour UltraSmooth 2.7.2 et Radiance 2.4.5.** Radiance patche désormais l'éclairage des lampes et des fenêtres, déjà patché par UltraSmooth et Stardropium : deux méthodes de plus dans sa paire avec UltraSmooth, une dans celle avec Stardropium. PureBinarySave, le nouveau mod de sauvegarde de l'auteur d'UltraSmooth, n'entre dans aucune paire.
 - **Les modifications de l'app ne se perdent plus quand PureBinarySave est actif.** Ce mod charge sa copie `.bin` de la partie dès qu'elle existe, sans regarder le fichier que l'app venait de modifier. Après une modification de l'app (éditeur de partie, inventaire, retrait des mods absents, copie de partie), les fichiers `.bin` de la partie partent à la Corbeille, et le mod les recrée depuis la partie modifiée. L'app refuse de modifier une partie dont la seule copie complète est le `.bin`.
-- **Une alerte critique quand PureBinarySave, avant sa version 1.0.8, tourne sans SpaceCore.** Dans cette configuration, sur Mac, le mod a été vu ne jamais mettre à jour son `.bin` : chaque chargement ramenait la partie au jour où il l'avait convertie. L'auteur l'a corrigé en 1.0.8 : à partir de cette version, l'alerte ne s'affiche plus.
-- **Les erreurs répétées comptent de nouveau toutes avec UltraSmooth.** UltraSmooth remplace dans le journal SMAPI les lignes identiques au-delà de cinq par une ligne de résumé : l'app la lisait comme une entrée à part, imputée à un mod « Optimizer », et ne comptait l'erreur que cinq fois. Le résumé rend maintenant ses répétitions à l'erreur qu'il cite.
-- **La sonde signale UltraSmooth comme incompatible avec ses mesures.** Son étalement du changement d'heure, actif par défaut, appelle lui-même les mods à la place de SMAPI : la sonde ne les chronomètre plus, et leur coût passe au compte d'UltraSmooth. L'alerte conseille d'éteindre cette option pendant les mesures, et s'écarte comme toute paire.
-- **Restaurer des configurations pendant que le jeu tourne est signalé.** Un mod chargé réécrit son `config.json` au prochain enregistrement de ses réglages et défait la restauration. La confirmation nomme maintenant les mods actifs concernés, comme le fait déjà l'éditeur de configuration.
+- **Une alerte critique quand PureBinarySave, avant sa version 1.0.8, tourne sans SpaceCore.** Dans cette configuration, sur Mac, on a constaté que le mod ne mettait jamais à jour son `.bin` : chaque chargement ramenait la partie au jour où il l'avait convertie. L'auteur l'a corrigé en 1.0.8 : à partir de cette version, l'alerte ne s'affiche plus.
+- **Toutes les erreurs répétées sont de nouveau comptées avec UltraSmooth.** UltraSmooth remplace dans le journal SMAPI les lignes identiques au-delà de cinq par une ligne de résumé : l'app la lisait comme une entrée à part, imputée à un mod « Optimizer », et ne comptait l'erreur que cinq fois. Les répétitions annoncées par ce résumé sont désormais ajoutées à l'erreur qu'il cite.
+- **La sonde signale UltraSmooth comme incompatible avec ses mesures.** Son étalement du changement d'heure, actif par défaut, appelle lui-même les mods à la place de SMAPI : la sonde ne les chronomètre plus, et leur coût passe au compte d'UltraSmooth. L'alerte conseille de désactiver cette option pendant les mesures, et peut être écartée comme n'importe quelle paire.
+- **L'app prévient quand vous restaurez des configurations pendant que le jeu tourne.** Un mod chargé réécrit son `config.json` au prochain enregistrement de ses réglages, ce qui annule la restauration. La confirmation indique désormais les mods actifs concernés, comme dans l'éditeur de configuration.
 
 ## [1.71.1] - 2026-10-19
 
 ### Fixed
 
-- **Le catalogue des recouvrements suit UltraSmooth 2.6.2, Stardropium 0.3.0 et Radiance 2.3.4.** L'ancien relevé manquait les méthodes que ces mods trouvent par leur nom ou en parcourant les types du jeu : Stardropium et UltraSmooth en partagent vingt, dont deux sur l'écriture de la partie.
+- **Le catalogue des recouvrements est à jour pour UltraSmooth 2.6.2, Stardropium 0.3.0 et Radiance 2.3.4.** L'ancien relevé laissait de côté les méthodes que ces mods trouvent par leur nom ou en parcourant les types du jeu : Stardropium et UltraSmooth en partagent vingt, dont deux sur l'écriture de la partie.
 
 ## [1.71.0] - 2026-10-19
 
@@ -66,22 +68,22 @@ where the exact log format was verified.
 
 ### Changed
 
-- **VoiceOver et clavier mieux servis.** Les sélecteurs à onglets et les boutons à icône seule annoncent ce qu'ils font, et Échap ferme désormais six fenêtres qui n'avaient aucune issue au clavier.
-- **Un vocabulaire français unifié.** L'app vouvoie partout, dit « en pause » pour un mod que le jeu ne charge pas, et réserve « sauvegarde » aux copies : une partie du jeu s'appelle désormais une partie, page Parties comprise.
+- **Meilleure prise en charge de VoiceOver et du clavier.** VoiceOver annonce désormais le rôle des sélecteurs à onglets et des boutons à icône seule, et Échap ferme six fenêtres impossibles à quitter au clavier.
+- **Un vocabulaire français unifié.** L'app vouvoie partout, emploie « en pause » pour un mod que le jeu ne charge pas, et réserve « sauvegarde » aux copies : une partie du jeu s'appelle désormais une partie, page Parties comprise.
 - **Fiches sans illustration plus lisibles.** Sans image, ou si elle ne se charge pas, la fiche d'un mod affiche un fond coloré au lieu d'une bande grise vide.
-- **Les dernières rangées denses restent lisibles en fenêtre étroite.** Fichiers récupérables, traductions, mises à jour écartées ou en veille replient leurs actions. Dans toute l'app, un nom, un chemin ou un message coupé montre son texte entier au survol.
-- **Filtres de mods et carte Sonde plus clairs.** Une liste vide nomme désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
-- **Entretien et quarantaine plus souples en fenêtre étroite.** Archives Nexus, événements de corbeille et éléments à examiner replient leurs actions sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
+- **Les dernières rangées denses restent lisibles en fenêtre étroite.** Les actions des fichiers récupérables, des traductions et des mises à jour écartées ou en veille sont repliées. Dans toute l'app, le survol affiche en entier un nom, un chemin ou un message coupé.
+- **Filtres de mods et carte Sonde plus clairs.** Une liste vide indique désormais le filtre en cause et permet de réinitialiser le cadrage ; dans Performances, une action Sonde n'est plus répétée dans deux cartes.
+- **Entretien et quarantaine plus souples en fenêtre étroite.** Dans les archives Nexus, les événements de corbeille et les éléments à examiner, les actions sont repliées sans écraser les noms, dates ni chemins ; les résumés de quarantaine restent entiers.
 - **Fiche mod et sauvegardes plus lisibles en fenêtre étroite.** Les métadonnées d'un mod, les cartes d'historique et les lignes d'inventaire se réorganisent sans tasser leurs libellés ni couper les noms d'objets.
 - **Diff et éditeur de traduction plus souples en fenêtre étroite.** Filtres, actions, marques du jeu et termes du glossaire passent proprement à la ligne ; recherche et validation gardent leur place sans tronquer les libellés.
-- **Diagnostic, mods en pause et mises à jour restent lisibles en fenêtre étroite.** La Santé partage désormais l'ascenseur de sa page, les lignes en pause ne sont plus entièrement estompées, et les actions d'une mise à jour passent sous son nom quand la largeur manque.
-- **Barre latérale plus fluide sur Mises à jour et Entretien.** Ces deux pages ne remesurent plus leurs longues listes hors écran à chaque image de l'animation ; défilement, replis et réglages restent inchangés.
+- **Diagnostic, mods en pause et mises à jour restent lisibles en fenêtre étroite.** La Santé défile désormais avec le reste de sa page, les lignes en pause ne sont plus entièrement estompées, et les actions d'une mise à jour passent sous son nom quand la largeur manque.
+- **Barre latérale plus fluide sur Mises à jour et Entretien.** L'app ne remesure plus leurs longues listes hors écran à chaque image de l'animation ; défilement, replis et réglages restent inchangés.
 - **Une identité visuelle plus nette, en clair comme en sombre.** Les cartes adoptent des fonds neutres, celles des mods se détachent mieux, et la Quarantaine garde son repère violet.
-- **Navigation plus compacte et complète.** Diagnostic suit désormais Alertes et prend ⌘9 ; Réglages reste épinglé au pied de la barre latérale. Les libellés longs gagnent une version courte dans la barre, le menu Aller montre les 14 destinations et la palette les retrouve sous les deux noms. Le badge Alertes devient rouge dès qu'une alerte est critique.
-- **Accueil : « À régler » et « Récemment installés » sous les tuiles.** Les cinq alertes les plus graves y sont nommées, chacune mène à l'endroit où elle se règle ; les cinq derniers mods installés ouvrent leur fiche sur l'Aperçu.
-- **Parties : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Passer d'un segment à l'autre ne perd pas une modification en cours.
+- **Navigation plus compacte et complète.** Diagnostic vient désormais après Alertes, avec le raccourci ⌘9 ; Réglages reste épinglé au pied de la barre latérale. Les libellés longs ont une version courte dans la barre, le menu Aller affiche les 14 destinations et la palette les trouve sous les deux noms. Le badge Alertes devient rouge dès qu'une alerte est critique.
+- **Accueil : « À régler » et « Récemment installés » sous les tuiles.** Les cinq alertes les plus graves y figurent, et un clic conduit à l'endroit où les régler ; un clic sur l'un des cinq derniers mods installés ouvre sa fiche sur l'Aperçu.
+- **Parties : une page par partie, en trois segments.** Détails pour modifier la partie, Mods pour voir ce qu'elle doit aux mods (en pause ou disparus) et Historique pour ses sauvegardes de secours. Une modification en cours est conservée quand vous passez d'un segment à l'autre.
 - **Parties : un seul menu d'actions par partie.** Le menu « … » de la rangée et le clic droit, sur la rangée comme sur la carte, proposent la même liste dans le même ordre : Modifier, Historique, Dupliquer, Ouvrir le dossier, Supprimer.
-- **Palette (⌘K) : trois actions et l'accès direct aux parties.** « Vérifier les mises à jour », « Installer des mods… » et « Lancer le jeu » s'y tapent comme une page ; une frappe courte ouvre toujours d'abord le mod qui correspond. ↩ sur une partie ouvre sa page.
+- **Palette (⌘K) : trois actions et l'accès direct aux parties.** Vous pouvez y saisir « Vérifier les mises à jour », « Installer des mods… » ou « Lancer le jeu » comme un nom de page ; une saisie courte ouvre toujours d'abord le mod correspondant. ↩ sur une partie ouvre sa page.
 - **Palette (⌘K) : ↩ sur un profil affiche son aperçu** sans rien activer ; ⌘↩ l'active. Le rappel figure sous le nom du profil.
 - **Mise à jour des mods : le badge ne compte que les mods actifs.** La tuile de l'Accueil aussi ; l'en-tête de la page indique « 1 mise à jour en attente · 5 en pause ».
 - **Alertes et Santé à jour dès la fermeture du jeu**, quelle que soit la page affichée : l'app relit le journal SMAPI sans attendre le retour à l'Accueil.
