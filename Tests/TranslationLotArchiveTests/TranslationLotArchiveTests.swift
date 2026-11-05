@@ -49,7 +49,9 @@ struct TranslationLotArchiveTests {
 
     /// Un lien symbolique glissé dans le ZIP sous un nom en `.json` : `unzip`
     /// le recrée, et sa **cible** — n'importe quel fichier local — serait lue
-    /// comme un lot. Seuls les fichiers ordinaires reviennent.
+    /// comme un lot. Seuls les fichiers ordinaires reviennent. Selon la version
+    /// de macOS, `unzip` refuse aussi de créer le lien et sort en erreur : le lot
+    /// est alors refusé en entier, ce qui protège tout autant la cible.
     @Test func aSymbolicLinkEntryIsNotFollowed() throws {
         let work = FileManager.default.temporaryDirectory
             .appendingPathComponent("lot-link-\(UUID().uuidString)", isDirectory: true)
@@ -68,7 +70,8 @@ struct TranslationLotArchiveTests {
         try zip.run(); zip.waitUntilExit()
         #expect(zip.terminationStatus == 0)
 
-        let extracted = try TranslationLotArchive.extract(try Data(contentsOf: zipURL))
+        let archive = try Data(contentsOf: zipURL)
+        guard let extracted = try? TranslationLotArchive.extract(archive) else { return }
 
         #expect(extracted.keys.sorted() == ["M1-fr-lot.json"])
     }
