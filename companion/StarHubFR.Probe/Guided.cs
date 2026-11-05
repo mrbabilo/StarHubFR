@@ -113,6 +113,9 @@ internal static class Guided
             if (Rule is { Outcome: GuidedOutcome.Running } rule)
             {
                 if (RefusedKey is not null) { /* refusé (écran partagé) : aucune minute ne compte */ }
+                // `Start` tourne dès l'`Entry`, partie pas encore chargée : c'est
+                // ici que l'écran partagé se voit, avant la première minute.
+                else if (Context.IsSplitScreen) Refuse("refused.splitscreen");
                 else if (!FrameTimings.TicksCounted) Refuse("refused.noticks");
                 else
                 {

@@ -14,8 +14,10 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Sauvegardes de configuration : message corrigé quand la recherche ne trouve rien.** La page annonçait qu'il n'y avait aucune sauvegarde, alors qu'elles étaient seulement écartées par la recherche.
+- **Une mesure guidée est de nouveau refusée en écran partagé.** La sonde 0.9.36 le vérifie partie chargée : avant, elle ne regardait qu'au lancement du jeu, trop tôt pour le voir.
 - **La mesure « après » propose désormais la partie de la mesure « avant ».** La feuille présélectionnait le premier fermier de la liste : sans y prendre garde, on comparait deux fermes différentes, et rien ne le signalait.
-- **Revenir à l'écran titre pendant une mesure guidée ne relance plus la partie toute seule.** Environ une minute plus tard, la sauvegarde choisie se rechargeait, même si vous parcouriez le menu de chargement. Le plan reste disponible et la mesure repart quand vous chargez vous-même une partie ; pour une mesure pilotée, le jeu vous amène alors au bon endroit. La correction arrive avec la sonde 0.9.35.
+- **Revenir à l'écran titre pendant une mesure guidée ne relance plus la partie toute seule.** Environ une minute plus tard, la sauvegarde choisie se rechargeait, même si vous parcouriez le menu de chargement. Le plan reste disponible et la mesure repart quand vous chargez vous-même une partie ; pour une mesure pilotée, le jeu vous amène alors au bon endroit. La correction arrive avec la sonde 0.9.36.
 - **Le journal SMAPI ne se remplit plus quand la sauvegarde d'une mesure guidée est introuvable.** Si la partie avait été renommée ou supprimée, la sonde recommençait à chaque image et ajoutait une soixantaine de lignes par seconde. Elle n'essaie plus qu'une fois.
 - **L'aide des mini-stats est corrigée.** Dans le menu de configuration du jeu, elle les plaçait en haut à droite et annonçait un effet au prochain lancement, alors qu'elles s'affichent en haut à gauche dès l'enregistrement.
 - **Renommer le dossier d'un mod ne fait plus oublier vos choix.** La famille de touches corrigée, les résultats de traduction écartés et les verdicts sur les conflits suivent désormais le mod.

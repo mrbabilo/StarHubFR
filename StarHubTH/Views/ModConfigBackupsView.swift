@@ -166,7 +166,10 @@ struct ModConfigBackupsView: View {
         VStack(spacing: 16) {
             Spacer()
             IconTile(icon: "archivebox", tint: AppDesign.Color.accent, size: 64)
-            Text(localization.L(L10n.ModConfigBackups.noBackups))
+            // Des sauvegardes existent, la recherche les écarte : ne pas dire qu'il n'y en a aucune.
+            let needle = search.trimmingCharacters(in: .whitespacesAndNewlines)
+            Text(backups.isEmpty || needle.isEmpty ? localization.L(L10n.ModConfigBackups.noBackups)
+                                                   : String(format: localization.L(L10n.ModInstall.backupsNoMatch), needle))
                 .multilineTextAlignment(.center).font(AppDesign.Font.rowTitle).foregroundColor(.secondary)
             Spacer()
         }

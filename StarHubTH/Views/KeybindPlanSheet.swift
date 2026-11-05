@@ -285,8 +285,6 @@ struct KeybindPlanSheet: View {
                 })
     }
 
-    /// Lit ce qui ne se lit pas dans `body` : le jeu (processus) et
-    /// l'annulation possible (liste des sauvegardes sur disque).
     /// Raccourcis écrits = déplacements soumis dont le mod n'est pas sauté.
     private func appliedSummary(_ result: KeybindPlanService.AppliedResult) -> String {
         let skippedMods = Set(result.skipped.map(\.folderName))
@@ -307,6 +305,8 @@ struct KeybindPlanSheet: View {
         submittedMoves.first { $0.modID == folderName }?.modName ?? folderName
     }
 
+    /// Lit ce qui ne se lit pas dans `body` : le jeu (processus) et
+    /// l'annulation possible (liste des sauvegardes sur disque).
     private func refreshEnvironment() {
         gameRunning = viewModel.isGameRunning()
         canUndo = service.canUndo

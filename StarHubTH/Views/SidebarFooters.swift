@@ -3,27 +3,6 @@ import SwiftUI
 // Pieds de la barre latérale, sortis de `SidebarComponents` (plafond de
 // taille, audit UX 2026-10-16, I-T26).
 
-// MARK: - Poids du parc (B2-T2)
-
-/// Ce que pèsent les mods, en pied de barre latérale.
-///
-/// Mesuré sur le parc réel le 2026-08-24 : **16,84 Go de mods, dont 12,71 Go
-/// en pause** — 746 dossiers sur 863 — pour 30 Go libres. C'est ce rapport-là
-/// que la barre montre, et c'est pour lui qu'elle existe : le total seul ne
-/// dit pas que les trois quarts de la place sont immobilisés par des mods
-/// désactivés, alors qu'une barre coupée aux trois quarts le dit sans qu'on
-/// lise un chiffre.
-///
-/// **La barre ne compte que les mods** (100 % = le total mesuré), partagée
-/// entre actifs et en pause. La place libre reste du texte : `mods + libre`
-/// ne forme pas un tout — il y a ~450 Go d'autre chose sur ce volume — et un
-/// troisième segment énoncerait une proportion fausse.
-///
-/// Ses deux couleurs sont celles des barres d'accent de la liste des mods
-/// (vert pour un mod actif, gris pour un mod en pause) : le pied de barre
-/// résume la liste, il doit en parler la langue.
-///
-/// Rien ne s'affiche tant qu'aucun jeu n'est désigné : « 0 octet » serait faux.
 /// Le téléchargement Nexus en cours, en pied de barre latérale (B2-T1).
 ///
 /// Ce qu'il remplace : un `ProgressView()` indéterminé sur une seule ligne de
@@ -153,6 +132,27 @@ struct NexusDownloadFooter: View {
     }
 }
 
+// MARK: - Poids du parc (B2-T2)
+
+/// Ce que pèsent les mods, en pied de barre latérale.
+///
+/// Mesuré sur le parc réel le 2026-08-24 : **16,84 Go de mods, dont 12,71 Go
+/// en pause** — 746 dossiers sur 863 — pour 30 Go libres. C'est ce rapport-là
+/// que la barre montre, et c'est pour lui qu'elle existe : le total seul ne
+/// dit pas que les trois quarts de la place sont immobilisés par des mods
+/// désactivés, alors qu'une barre coupée aux trois quarts le dit sans qu'on
+/// lise un chiffre.
+///
+/// **La barre ne compte que les mods** (100 % = le total mesuré), partagée
+/// entre actifs et en pause. La place libre reste du texte : `mods + libre`
+/// ne forme pas un tout — il y a ~450 Go d'autre chose sur ce volume — et un
+/// troisième segment énoncerait une proportion fausse.
+///
+/// Ses deux couleurs sont celles des barres d'accent de la liste des mods
+/// (vert pour un mod actif, gris pour un mod en pause) : le pied de barre
+/// résume la liste, il doit en parler la langue.
+///
+/// Rien ne s'affiche tant qu'aucun jeu n'est désigné : « 0 octet » serait faux.
 struct ModsWeightFooter: View {
     var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore

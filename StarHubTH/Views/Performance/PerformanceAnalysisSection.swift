@@ -103,8 +103,9 @@ struct PerformanceAnalysisSection: View {
         case .disableMod(let modId):
             action(String(format: localization.L(L10n.Performance.recDisable), name(modId)),
                    button: L10n.Performance.actionPause,
+                   // Déjà en pause : le bouton n'aurait rien à faire.
                    gesture: ProbePerformanceActions.target(modId: modId, in: mods)
-                       .map { PendingAction.pause($0, thenMeasure: nil) })
+                       .flatMap { $0.isEnabled ? PendingAction.pause($0, thenMeasure: nil) : nil })
             if let mod = ProbePerformanceActions.target(modId: modId, in: mods), mod.isEnabled {
                 Button(localization.L(L10n.Performance.benchmarkThisMod)) { onBenchmark(mod.folderName) }
                     .clickableCursor().disabled(viewModel.benchmark.isActive)
