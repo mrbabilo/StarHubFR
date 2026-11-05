@@ -3,7 +3,7 @@
     D5-A : tests hors jeu de GuidedRule.cs, inclus par lien. Pas de
     ProjectReference : elle tirerait ModBuildConfig et le chemin du jeu.
     Hors de companion/StarHubFR.Probe/ : le SDK compilerait sinon ces
-    tests dans le mod. La CI ne le lance pas (dotnet absent du runner).
+    tests dans le mod. La CI le lance sur Linux (job probe-tests).
   -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -24,6 +24,7 @@
     <Compile Include="../StarHubFR.Probe/ModConfig.cs" Link="ModConfig.cs" />
     <Compile Include="../StarHubFR.Probe/AutoPilotRule.cs" Link="AutoPilotRule.cs" />
     <Compile Include="../StarHubFR.Probe/MiniStatsRule.cs" Link="MiniStatsRule.cs" />
+    <Compile Include="../StarHubFR.Probe/InventoryRules.cs" Link="InventoryRules.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

@@ -75,3 +75,20 @@ jobs:
 
       - name: Check coding standards
         run: python3 check_standards.py
+
+  # Les tests de la sonde ne compilent que ses règles, liées fichier par
+  # fichier : ni le jeu ni macOS. Linux, donc pas d'attente de runner macOS.
+  probe-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Run probe tests
+        run: dotnet test companion/StarHubFR.Probe.Tests
