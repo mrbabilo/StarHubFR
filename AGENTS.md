@@ -229,3 +229,18 @@ Auto-Clarity: drop caveman for security warnings, irreversible actions, user con
 
 Boundaries: code/commits/PRs written normal.
 <!-- caveman-end -->
+
+
+## Mémoire agent (mise à jour : 2026-11-10)
+
+Contexte global, valable pour tous les projets de David :
+
+- OpenCode est l'agent principal : 6 serveurs MCP globaux (context7, deepwiki, github — auth PAT via variable d'environnement, playwright, chrome-devtools, notion) et 18 skills globaux dans ~/.agents/skills. Les conventions de ce projet priment sur les skills génériques.
+- Préférences : travail en français ; recommandations vérifiées (installations, étoiles, réputation de la source, scans de sécurité) avant d'installer un outil ; jamais de secret en clair dans les fichiers de config (variables d'environnement uniquement, syntaxe {env:VAR}) ; diagnostic de la cause avant de corriger.
+- GitHub : compte mrbabilo. Clones locaux : /Volumes/BABILODONNEES/GitHub.
+- Mémoire complète : page Notion « Mémoire agent — OpenCode (David) » — https://app.notion.com/p/4149fa0959e381cd944dfe54e3838b9d
+
+### Ce projet
+- Gestionnaire de mods Stardew Valley (Swift, Swift Package Manager, cible StarHubTHCore, macOS 14+ — cohérent avec Info.plist LSMinimumSystemVersion). 6 suites de tests SPM.
+- Copie locale de StarHubFR (dépôt public github.com/mrbabilo/StarHubFR) — garder les deux noms en tête lors des échanges.
+- Skills dédiés : swift-expert (ingénierie), swiftui-design-skill (esthétique des vues).
