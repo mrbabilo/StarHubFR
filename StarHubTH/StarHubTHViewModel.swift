@@ -2108,7 +2108,11 @@ final class StarHubTHViewModel {
         let conflicts = ContentPatcherConflicts.read(from: conflictEntries)
         // F6-T3 — même lecteur d'en-tête que les Journaux (`SmapiLogParser`).
         let uniqueErrors = SmapiLogParser.smapiErrors(in: logContent)
-        
+        // Incompatibilités déclarées par un mod dans le journal SMAPI :
+        // on les transforme en paires de mods, résolues au retour sur le fil
+        // principal (le parc n'est pas lisible en arrière-plan).
+        let incompatiblePairsRaw = SmapiLogParser.incompatibleModPairs(in: logContent)
+
         DispatchQueue.main.async {
             // Même lecture, publiées ensemble par le store (tri par nom).
             self.smapiHealth.apply(diagnostics: smapiDiag, logDate: smapiDate,
@@ -2126,6 +2130,26 @@ final class StarHubTHViewModel {
                 for err in newAlerts {
                     self.log(err, level: .warning)
                 }
+            }
+            // Déclare comme incompatibilités persistantes les paires détectées
+            // par SMAPI, quand les deux mods sont installés et qu'aucun verdict
+            // n'existe encore (on ne réécrit pas une décision de l'utilisateur).
+            var declaredAny = false
+            for (nameA, uniqueIdB) in incompatiblePairsRaw {
+                guard let modA = self.resolveModFolder(forLoggedName: nameA) else { continue }
+                let modB = self.mods.flattenedMods.first(where: {
+                    $0.uniqueId.caseInsensitiveCompare(uniqueIdB) == .orderedSame
+                }) ?? self.resolveModFolder(forLoggedName: uniqueIdB)
+                guard let b = modB else { continue }
+                let pair = ModConflictPair(modA.folderName, b.folderName)
+                if self.modConflictVerdicts.verdict(for: pair) == nil {
+                    self.modConflictVerdicts.declare(pair, note: "\(nameA): Incompatible Mod Detected: \(uniqueIdB).", at: Date())
+                    declaredAny = true
+                }
+            }
+            if declaredAny {
+                self.saveConflictVerdicts()
+                self.recomputeHealthIssues()
             }
         }
     }

@@ -102,6 +102,30 @@ public struct SmapiDiagnostics: Sendable {
         }
     }
 
+    /// Une incompatibilité qu'un mod déclare lui-même dans le journal
+    /// (« <Mod A> refuse de se charger en présence de <B> »).
+    ///
+    /// Les deux côtés ne sont pas écrits de la même façon : `mod` est le nom
+    /// journalisé de A — crochet de source (« [ERROR Mastery Extended] ») ou
+    /// préfixe du message —, `other` est en général l'`UniqueID` de B
+    /// (« TimBukTwo.SkillMasteryPrestige »). Le résolveur de fiche connaît
+    /// les deux formes ; c'est aussi pour ça que cette paire ne passe PAS par
+    /// `failed`, qui ne porte qu'un nom.
+    public struct IncompatiblePair: Identifiable, Sendable {
+        public let id = UUID()
+        /// Le mod qui refuse de se charger.
+        public let mod: String
+        /// Celui en présence duquel il refuse (nom ou uniqueId).
+        public let other: String
+        /// La ligne brute, preuve à l'écran.
+        public let sample: String
+        public init(mod: String, other: String, sample: String) {
+            self.mod = mod
+            self.other = other
+            self.sample = sample
+        }
+    }
+
     public var smapiVersion: String?
     public var gameVersion: String?
     public var modsLoaded: Int?
@@ -117,6 +141,8 @@ public struct SmapiDiagnostics: Sendable {
     public var consoleMods: [String] = []
     /// Mods with a missing required dependency (promoted from failed/skipped).
     public var missingDeps: [MissingDep] = []
+    /// Incompatibilités déclarées par un mod lui-même (une par paire).
+    public var incompatibleMods: [IncompatiblePair] = []
     /// Mods that logged the most ERROR lines (context attribution), top 5.
     public var topErrorMods: [ModCount] = []
     /// Known-harmless errors, explained to the player rather than hidden.
@@ -134,6 +160,7 @@ public struct SmapiDiagnostics: Sendable {
             && brokenMods.isEmpty && missingDeps.isEmpty && topErrorMods.isEmpty
             && patchedMods.isEmpty && saveSerializerMods.isEmpty && consoleMods.isEmpty
             && benignNotices.isEmpty && recurringWarnings.isEmpty
+            && incompatibleMods.isEmpty
     }
 
     /// Issues to FIX (drive the card's healthy/unhealthy state). Only clear
@@ -142,7 +169,8 @@ public struct SmapiDiagnostics: Sendable {
     /// and `topErrorMods` are shown as details but not double-counted here, so
     /// a normal large modlist doesn't make the card perpetually "unhealthy".
     public var problemCount: Int {
-        skipped.count + failed.count + externalConflicts.count + brokenMods.count
+        skipped.count + failed.count + externalConflicts.count
+            + brokenMods.count + incompatibleMods.count
     }
 
     /// Parse a raw SMAPI log. Tolerant by design: never throws, silently
@@ -245,6 +273,17 @@ public struct SmapiDiagnostics: Sendable {
                    let dep = missingDependency(in: body) {
                     d.missingDeps.append(.init(mod: mod, missing: dep))
                 }
+            }
+
+            // Incompatibilités déclarées par un mod lui-même
+            // (« Incompatible Mod Detected: <autre>. <Mod> will not load. ») :
+            // un vrai problème de chargement, pas une erreur bénigne. Une seule
+            // entrée par paire : `HealthIssueResolver` construit l'id d'alerte
+            // sur le couple — un doublon ferait deux `HealthIssue` de même
+            // identité, collision `ForEach`.
+            if let pair = incompatibleIssue(line: raw, body: body),
+               !d.incompatibleMods.contains(where: { $0.mod == pair.mod && $0.other == pair.other }) {
+                d.incompatibleMods.append(pair)
             }
 
             // External conflicts.
@@ -412,6 +451,43 @@ public struct SmapiDiagnostics: Sendable {
         guard let from = body.range(of: "(from Mods/") else { return nil }
         let before = body[..<from.lowerBound].trimmingCharacters(in: .whitespaces)
         return before.isEmpty ? nil : before
+    }
+
+    /// Incompatibilité déclarée par un mod (« Incompatible Mod Detected:
+    /// <autre>. <Mod> will not load. »). Le nom du mod qui refuse de se
+    /// charger est rarement dans le message : SMAPI l'écrit au crochet de
+    /// source (« [ERROR Mastery Extended] … ») — `contextMod` le lit —, et le
+    /// préfixe du message n'est qu'un repli (certaines écritures le portent :
+    /// « <Mod>: Incompatible Mod Detected: … »). Sans nom lisible, `nil` :
+    /// jamais la phrase elle-même comme nom de mod.
+    private static func incompatibleIssue(line: String,
+                                          body: String) -> IncompatiblePair? {
+        let low = body.lowercased()
+        guard low.contains("incompatible mod detected") else { return nil }
+        // Le nom du mod : crochet de source d'abord (exclut déjà SMAPI/game).
+        var mod = contextMod(of: line)
+        if mod == nil {
+            // Repli : préfixe du message avant le premier deux-points, mais
+            // JAMAIS la phrase-clé elle-même — sans préfixe réel, c'est elle
+            // qui sortirait, et le titre de l'alerte devenait
+            // « Incompatible Mod Detected » (relevé sur le journal réel).
+            if let candidate = modPrefix(of: body, before: ":"),
+               !candidate.lowercased().contains("incompatible mod detected") {
+                mod = candidate
+            }
+        }
+        guard let mod else { return nil }
+        // L'autre mod : l'uniqueId écrit juste après la phrase-clé, sans
+        // espaces, débarrassé du point final de la phrase. La plage se cherche
+        // DANS `body` : un `range` rendu par `low` ne vaut que pour `low`, et
+        // `lowercased()` peut changer la longueur en octets.
+        guard let range = body.range(of: "incompatible mod detected",
+                                     options: [.literal, .caseInsensitive]) else { return nil }
+        let after = body[range.upperBound...].drop(while: { $0 == ":" || $0.isWhitespace })
+        let token = after.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+        let other = token.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        guard !other.isEmpty else { return nil }
+        return IncompatiblePair(mod: mod, other: other, sample: evidence(from: body))
     }
 
     private static func parenContent(of string: String) -> String? {

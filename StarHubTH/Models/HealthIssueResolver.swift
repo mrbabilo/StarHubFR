@@ -91,6 +91,19 @@ public enum HealthIssueResolver {
                                       title: name, detail: nil,
                                       actions: [.openMod(query: name)]))
         }
+        // Incompatibilités déclarées par un mod lui-même : DEUX fiches, celle
+        // du mod qui refuse de se charger et celle de l'autre (souvent cité
+        // par uniqueId — le résolveur connaît ce rang). Deux `.openMod`
+        // d'affilée : la vue bascule d'elle-même sur le menu à deux fiches
+        // (même forme que les conflits « A · B »).
+        for pair in d.incompatibleMods {
+            issues.append(HealthIssue(id: "smapi-incompat-\(pair.mod)-\(pair.other)",
+                                      severity: .critical, source: .smapi,
+                                      title: "\(pair.mod) · \(pair.other)",
+                                      detail: pair.sample,
+                                      actions: [.openMod(query: pair.mod),
+                                                .openMod(query: pair.other)]))
+        }
         for notice in d.benignNotices {
             issues.append(HealthIssue(id: "smapi-benign-\(notice.kind.rawValue)-\(notice.mod ?? "-")",
                                       severity: .info, source: .smapi,

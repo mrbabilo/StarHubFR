@@ -12,6 +12,10 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Added
+
+- **Les incompatibilités déclarées par un mod se voient.** Quand SMAPI journalise « Incompatible Mod Detected » — un mod refuse de se charger en présence d'un autre —, « Alertes système » affiche la ligne avec les deux mods concernés, chacun ouvrant sa fiche ; la paire est aussi déclarée comme incompatibilité sur les fiches, avec le message du journal pour preuve. Une paire que vous avez vous-même écartée n'est jamais réécrite.
+
 ## [1.73.1] - 2026-11-05
 
 ### Fixed

@@ -33,7 +33,14 @@ public enum ModFocusResolver {
         }
 
         let all = mods.flattenedMods + mods
-        return all.first { $0.name == needle }
+        // L'uniqueId ensuite : le journal de SMAPI le cite parfois entier
+        // (« Incompatible Mod Detected: TimBukTwo.SkillMasteryPrestige. »),
+        // sans qu'aucun autre rang ne le retrouve. Exact et sans ambiguïté
+        // par construction (SMAPI le compare sans la casse), il ne vole rien
+        // aux rangs qui suivent — un uniqueId ne ressemble ni à un nom de
+        // dossier ni à un nom de manifeste.
+        return all.first { $0.uniqueId.caseInsensitiveCompare(needle) == .orderedSame }
+            ?? all.first { $0.name == needle }
             // Puis le nom tel que SMAPI l'écrit (crochets en parenthèses) —
             // APRÈS le nom exact : « (TTG) Wallet Tools » est un vrai nom de
             // manifeste, et doit gagner sur un « [TTG] Wallet Tools » voisin.
@@ -60,6 +67,7 @@ public enum ModFocusResolver {
         if let byFolder = mods.first(where: { $0.folderName == needle }) { return byFolder }
         let all = mods.flattenedMods + mods
         let tiers: [(ModItem) -> Bool] = [
+            { $0.uniqueId.caseInsensitiveCompare(needle) == .orderedSame },
             { $0.name == needle }, { loggedForm(of: $0.name) == needle },
             { $0.folderName == needle }, { $0.name.localizedCaseInsensitiveContains(needle) },
         ]
