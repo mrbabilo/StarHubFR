@@ -61,7 +61,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 *   **Temps de chargement** — lancement et chargement de partie, comparés à l'état précédent de votre parc, avec les mods qui pèsent le plus.
 *   **Benchmark automatique** — l'app enchaîne seule plusieurs lancements en alternant les deux états, puis remet votre parc comme avant.
-*   **Mesure guidée en un clic** — la sonde conduit la partie (lieu, nuit, sortie propre) avant puis après un changement, et l'app présente le comparatif A/B ; vous gardez le changement ou revenez au parc d'avant, même après une interruption.
+*   **Mesure guidée en un clic** — la sonde conduit la partie (lieu, nuit, sortie propre) avant puis après un changement, et l'app présente le comparatif A/B ; vous gardez le changement ou revenez au parc d'avant, même après une interruption. UltraSmooth, qui fausserait la mesure, est réglé le temps de la partie puis remis comme avant.
 *   **Fluidité et mémoire** — temps d'image, saccades, mémoire du processus et textures par mod, minute par minute, avec ce qui sépare deux sessions (mods, versions, réglages, scène).
 *   **Pas de verdict au hasard** — un écart ne compte qu'au-delà du bruit mesuré entre vos propres sessions ; sinon il reste gris.
 *   **Diagnostics guidés et réversibles** — pour Stardew Loading Optimizer et Stardropium, l'app installe si besoin, active les mesures le temps d'une partie, puis restaure réglages et mods, même après une interruption.
@@ -69,7 +69,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 
 ### 📦 Installation et organisation
 
-*   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) sur la fenêtre, depuis n'importe quelle page — structure détectée (mod seul ou pack), format reconnu à ses octets, limites de sécurité (500 Mo d'archive, 2 Go décompressés), conflits et dépendances manquantes annoncés.
+*   **Glisser-déposer une archive** (`.zip`, `.7z`, `.rar`) sur la fenêtre, depuis n'importe quelle page — structure détectée (mod seul ou pack), format reconnu à ses octets, limites de sécurité (500 Mo d'archive, 2 Go décompressés), conflits, dépendances manquantes et versions trop anciennes pour vos mods annoncés.
 *   **Le contenu d'un autre mod s'installe au bon endroit** — un fichier pour un framework (un sac *ItemBags*, par exemple) est placé dans son mod hôte : l'app affiche le chemin et sauvegarde d'abord le fichier existant.
 *   **Activer sans déplacer de fichiers** — un mod, une sélection (clic, ⌘, ⇧, ⌘A, puis Espace) ou tous à la fois. Les mods livrés avec SMAPI restent actifs.
 *   **Corbeille d'une sélection** — un seul lot, restaurable en bloc ; la confirmation indique les mods actifs qui en dépendent. Impossible quand le jeu est ouvert.
@@ -87,7 +87,7 @@ La sonde StarHubFR, un petit mod SMAPI installé à votre demande, mesure le jeu
 *   **Une explication pour les mods sans verdict** — ceux que ni smapi.io ni Nexus n'ont pu juger, chacun avec sa raison (aucun identifiant, page masquée ou supprimée…). Un identifiant saisi à la main remplace une clé cassée du manifeste.
 *   **Des mises à jour bien visibles** — pastille « ↑ version » sur sa ligne et bandeau sur sa fiche. La correspondance se fait par identifiant de manifeste, jamais par identifiant Nexus. Les mises à jour des mods en pause sont regroupées à part.
 *   **« Je l'ai déjà »** — pour l'auteur qui publie sans changer la version de son manifeste : un clic enregistre la version réellement installée et retire la ligne.
-*   **Téléchargement dans l'app** — direct avec un compte Premium, ou par le lien `nxm://` avec un compte gratuit. La clé API reste dans le trousseau macOS.
+*   **Téléchargement dans l'app** — direct avec un compte Premium, ou par le lien `nxm://` avec un compte gratuit. L'archive reçue est vérifiée contre l'empreinte publiée par Nexus, et la clé API reste dans le trousseau macOS.
 *   **Ce qu'une mise à jour change** — options de config ajoutées ou retirées, textes à traduire, traductions écartées ; les clés renommées sont reportées, jamais écrasées. L'aperçu prévient aussi quand des mods actifs lisent le code interne du mod remplacé.
 
 ### 🧭 Découvrir

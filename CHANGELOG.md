@@ -12,20 +12,22 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+## [1.74.0] - 2026-11-11
+
 ### Added
 
 - **Les téléchargements Nexus sont vérifiés avant l'installation.** L'archive reçue est comparée à l'empreinte que Nexus publie pour ce fichier : un téléchargement incomplet ou altéré est jeté au lieu d'être installé, et l'app vous invite à le relancer. Les fichiers anciens, pour lesquels Nexus ne publie pas d'empreinte, s'installent comme avant.
-- **L'installation prévient quand une archive est trop ancienne pour vos mods.** Si un mod actif exige une version minimale d'un mod que l'archive livre plus ancien, la feuille d'installation le dit, avant que SMAPI ne refuse ce mod au lancement, et propose de chercher une version plus récente sur Nexus. Le cas se présente surtout avec un mod repris par un autre auteur sous le même identifiant : StardewUI, par exemple, dont la page d'origine s'arrête à la 0.6.1 alors que plusieurs mods réclament la version reprise.
-- **Les incompatibilités déclarées par un mod se voient.** Quand SMAPI journalise « Incompatible Mod Detected » — un mod refuse de se charger en présence d'un autre —, « Alertes système » affiche la ligne avec les deux mods concernés, chacun ouvrant sa fiche ; la paire est aussi déclarée comme incompatibilité sur les fiches, avec le message du journal pour preuve. Une paire que vous avez vous-même écartée n'est jamais réécrite.
+- **L'installation prévient quand une archive est trop ancienne pour vos mods.** Quand un mod actif exige d'un autre mod une version plus récente que celle de l'archive, la feuille d'installation le signale avant que SMAPI ne refuse ce mod au lancement, et propose de chercher la bonne version sur Nexus. Le cas se présente surtout avec un mod repris par un autre auteur sous le même identifiant : StardewUI, par exemple, dont la page d'origine s'arrête à la 0.6.1 alors que plusieurs mods réclament la version reprise.
+- **Les incompatibilités déclarées par un mod se voient.** Quand un mod refuse de se charger en présence d'un autre (« Incompatible Mod Detected » dans le journal SMAPI), « Alertes système » affiche la ligne avec les deux mods concernés, et chacun ouvre sa fiche ; la paire est aussi déclarée comme incompatibilité sur les fiches, avec le message du journal pour preuve. Une paire que vous avez vous-même écartée n'est jamais réécrite.
 
 ### Changed
 
-- **Les mesures de la sonde règlent UltraSmooth elles-mêmes.** UltraSmooth fait à son rythme le travail du changement d'heure et des lieux hors écran, ce qui fausse ce que la sonde attribue à chaque mod. Pendant une mesure guidée, pilotée ou une série de benchmark, l'app coupe ces deux options et remet le fichier d'origine à la sortie du jeu, même après un plantage. Elle ne touche à rien si les options expérimentales d'UltraSmooth sont actives, et ne réécrit pas sa config si elle a été modifiée pendant la mesure : dans les deux cas, elle le dit.
+- **Les mesures de la sonde règlent UltraSmooth elles-mêmes.** Deux options d'UltraSmooth lui font traiter à son rythme le changement d'heure et les lieux hors écran, ce qui fausse ce que la sonde attribue à chaque mod. Pendant une mesure guidée, pilotée ou une série de benchmark, l'app les coupe et remet la config d'origine à la sortie du jeu, même après un plantage. Elle ne touche à rien si les options expérimentales d'UltraSmooth sont actives, et ne réécrit pas sa config si elle a été modifiée pendant la mesure : dans les deux cas, elle le dit.
 
 ### Fixed
 
-- **Les erreurs d'UltraSmooth ne passent plus inaperçues.** Depuis sa version 2.8.0, UltraSmooth rattrape certaines de ses erreurs et ne les écrit qu'une fois, parmi les lignes de détail du journal SMAPI. L'app les ignorait : elles manquaient aux Alertes, à l'historique d'erreurs du mod et à son badge dans la liste, et pouvaient même être retirées du journal affiché. Elles comptent de nouveau comme des erreurs, et les Journaux précisent sous chacune pourquoi elle diffère du fichier brut.
-- **« Nettoyer les anciens fichiers » dit quand Nexus ne répond plus.** Nexus ne fournit plus le contenu de ses fichiers les plus anciens. Le nettoyage proposait alors une liste plus courte sans prévenir, et pouvait affirmer qu'une version n'existait pas sur Nexus. Il le dit désormais, et retrouvera seul ces fichiers si Nexus les sert de nouveau.
+- **Les erreurs d'UltraSmooth ne passent plus inaperçues.** Depuis sa version 2.8.0, UltraSmooth rattrape certaines de ses erreurs et ne les écrit qu'une fois, parmi les lignes de détail du journal SMAPI. L'app les ignorait : elles manquaient aux Alertes, à l'historique d'erreurs du mod et à son badge dans la liste, et pouvaient même être retirées du journal affiché. Elles comptent désormais comme des erreurs, et les Journaux expliquent sous chacune pourquoi son niveau n'est pas celui du fichier brut.
+- **« Nettoyer les anciens fichiers » signale ce que Nexus ne fournit plus.** Nexus ne fournit plus le contenu de ses fichiers les plus anciens. Le nettoyage proposait alors une liste plus courte sans prévenir, et pouvait affirmer qu'une version n'existait pas sur Nexus. Il le dit désormais, et retrouvera seul ces fichiers si Nexus les fournit de nouveau.
 
 ## [1.73.1] - 2026-11-05
 
