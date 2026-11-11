@@ -12,6 +12,11 @@ where the exact log format was verified.
 
 ## [Unreleased]
 
+### Fixed
+
+- **UltraSmooth retrouve ses réglages après une mesure, même si SMAPI a réécrit sa config.** SMAPI réécrit le `config.json` d'UltraSmooth à chaque lancement du jeu : il retire les commentaires, remet les réglages dans son ordre et ajoute ceux qui manquent. L'app prenait ce fichier réécrit pour une modification faite pendant la mesure : elle n'osait pas le remettre, l'annonçait à tort, et les deux options restaient coupées. Elle compare maintenant les réglages eux-mêmes, et ne laisse le fichier en l'état que si vous avez réellement changé un réglage pendant la partie.
+- **Les incompatibilités déclarées par un mod sont lues d'une seule façon.** Les Alertes et les fiches des mods s'appuyaient sur deux lectures différentes du journal SMAPI : une même ligne pouvait apparaître dans les Alertes sans jamais être signalée sur les fiches. Il n'en reste qu'une, et seules les vraies erreurs comptent ; un simple avertissement ne déclare plus d'incompatibilité. Le journal n'est plus relu une seconde fois pour cela.
+
 ## [1.74.0] - 2026-11-11
 
 ### Added

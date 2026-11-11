@@ -75,10 +75,35 @@ public enum UltraSmoothMeasureSetting {
         case changedMeanwhile
     }
 
+    /// Jugé sur le **contenu**, pas sur les octets : SMAPI relit et réécrit
+    /// `config.json` à chaque lancement (`ModHelper.ReadConfig` appelle
+    /// `WriteConfig`, « create file or fill in missing fields » ; UltraSmooth
+    /// le lit dans `Entry`). Commentaires retirés, clés remises dans l'ordre de
+    /// la classe, champs manquants ajoutés : rien de cela n'est une
+    /// modification du joueur. Comparés aux octets, ces fichiers passaient pour
+    /// « modifiés pendant la mesure », et les deux options restaient coupées.
     public static func restorePlan(current: String?, snapshot: Snapshot) -> RestorePlan {
         if current == snapshot.writtenText { return .restore }
         if current == snapshot.originalText { return .alreadyOriginal }
+        guard let current, let found = object(current) else { return .changedMeanwhile }
+        if let written = object(snapshot.writtenText), carries(found, written) { return .restore }
+        // Original sans l'une des clés (défaut `true`) : la retrouver coupée
+        // n'est pas « revenu à l'original ».
+        if let original = object(snapshot.originalText), carries(found, original),
+           keys.allSatisfy({ bool(original, $0) == false || bool(found, $0) != false }) {
+            return .alreadyOriginal
+        }
         return .changedMeanwhile
+    }
+
+    /// `found` porte-t-il chaque valeur que `expected` déclare ? Clés sans la
+    /// casse, comme Newtonsoft ; un champ **en plus** (rempli par SMAPI, ou
+    /// ajouté par une version neuve du mod) ne compte pas.
+    static func carries(_ found: [String: Any], _ expected: [String: Any]) -> Bool {
+        expected.allSatisfy { entry in
+            guard let actual = value(found, entry.key) else { return false }
+            return (actual as AnyObject).isEqual(entry.value as AnyObject)
+        }
     }
 
     // MARK: - Instantané
@@ -136,10 +161,11 @@ public enum UltraSmoothMeasureSetting {
               let snapshotURL = snapshotURL(in: stateDirectory)
         else { return .notNeeded }
         let current = read(target)
-        // Une mesure précédente de la série a déjà réglé ce fichier, tel quel :
-        // ne rien réécrire, seulement dater ce lancement.
+        // Une mesure précédente de la série a déjà réglé ce fichier (que SMAPI
+        // a pu réécrire depuis) : ne rien réécrire, seulement dater ce
+        // lancement — sinon la sortie suivante tenterait une remise à tort.
         if var snapshot = loadSnapshot(snapshotURL), snapshot.configPath == target.path,
-           current == snapshot.writtenText {
+           restorePlan(current: current, snapshot: snapshot) == .restore {
             snapshot.lastAppliedAt = now
             do { try saveSnapshot(snapshot, to: snapshotURL) } catch { return .failed(error.localizedDescription) }
             return .applied

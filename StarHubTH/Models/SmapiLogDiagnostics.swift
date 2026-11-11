@@ -280,8 +280,9 @@ public struct SmapiDiagnostics: Sendable {
             // un vrai problème de chargement, pas une erreur bénigne. Une seule
             // entrée par paire : `HealthIssueResolver` construit l'id d'alerte
             // sur le couple — un doublon ferait deux `HealthIssue` de même
-            // identité, collision `ForEach`.
-            if let pair = incompatibleIssue(line: raw, body: body),
+            // identité, collision `ForEach`. Filtre sur `lowBody` d'abord : la
+            // phrase est absente de presque tous les journaux.
+            if lowBody.contains(incompatiblePhrase), let pair = incompatibleIssue(line: raw),
                !d.incompatibleMods.contains(where: { $0.mod == pair.mod && $0.other == pair.other }) {
                 d.incompatibleMods.append(pair)
             }
@@ -453,41 +454,36 @@ public struct SmapiDiagnostics: Sendable {
         return before.isEmpty ? nil : before
     }
 
+    static let incompatiblePhrase = "incompatible mod detected"
+
     /// Incompatibilité déclarée par un mod (« Incompatible Mod Detected:
-    /// <autre>. <Mod> will not load. »). Le nom du mod qui refuse de se
-    /// charger est rarement dans le message : SMAPI l'écrit au crochet de
-    /// source (« [ERROR Mastery Extended] … ») — `contextMod` le lit —, et le
-    /// préfixe du message n'est qu'un repli (certaines écritures le portent :
-    /// « <Mod>: Incompatible Mod Detected: … »). Sans nom lisible, `nil` :
-    /// jamais la phrase elle-même comme nom de mod.
-    private static func incompatibleIssue(line: String,
-                                          body: String) -> IncompatiblePair? {
-        let low = body.lowercased()
-        guard low.contains("incompatible mod detected") else { return nil }
-        // Le nom du mod : crochet de source d'abord (exclut déjà SMAPI/game).
-        var mod = contextMod(of: line)
-        if mod == nil {
-            // Repli : préfixe du message avant le premier deux-points, mais
-            // JAMAIS la phrase-clé elle-même — sans préfixe réel, c'est elle
-            // qui sortirait, et le titre de l'alerte devenait
-            // « Incompatible Mod Detected » (relevé sur le journal réel).
-            if let candidate = modPrefix(of: body, before: ":"),
-               !candidate.lowercased().contains("incompatible mod detected") {
-                mod = candidate
-            }
+    /// <autre>. <Mod> will not load. »). **Seul lecteur de la phrase** : les
+    /// Alertes, et les paires que le ViewModel déclare sur les fiches (un
+    /// second lecteur aux autres règles relisait le journal jusqu'au
+    /// 2026-11-11). Niveau ERROR seulement ; le mod au crochet de source, ou
+    /// en préfixe du message sous le crochet SMAPI — jamais la phrase ;
+    /// l'autre juste après « : », sans le point final. Sinon `nil`.
+    private static func incompatibleIssue(line: String) -> IncompatiblePair? {
+        guard let head = SmapiLogParser.header(of: line), head.level == .error else { return nil }
+        let message = head.message
+        let mod: String
+        if let source = head.source, source != "SMAPI", source != "game" {
+            mod = source
+        } else {
+            guard let candidate = modPrefix(of: message, before: ":"),
+                  !candidate.lowercased().contains(incompatiblePhrase) else { return nil }
+            mod = candidate
         }
-        guard let mod else { return nil }
-        // L'autre mod : l'uniqueId écrit juste après la phrase-clé, sans
-        // espaces, débarrassé du point final de la phrase. La plage se cherche
-        // DANS `body` : un `range` rendu par `low` ne vaut que pour `low`, et
-        // `lowercased()` peut changer la longueur en octets.
-        guard let range = body.range(of: "incompatible mod detected",
-                                     options: [.literal, .caseInsensitive]) else { return nil }
-        let after = body[range.upperBound...].drop(while: { $0 == ":" || $0.isWhitespace })
-        let token = after.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+        // Plage cherchée DANS `message` : celle de `lowercased()` ne vaudrait
+        // que pour elle (« İ » y devient deux caractères).
+        guard let range = message.range(of: incompatiblePhrase, options: [.literal, .caseInsensitive])
+        else { return nil }
+        let after = message[range.upperBound...].trimmingCharacters(in: .whitespaces)
+        guard after.hasPrefix(":") else { return nil }
+        let token = after.dropFirst().split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
         let other = token.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         guard !other.isEmpty else { return nil }
-        return IncompatiblePair(mod: mod, other: other, sample: evidence(from: body))
+        return IncompatiblePair(mod: mod, other: other, sample: evidence(from: message))
     }
 
     private static func parenContent(of string: String) -> String? {

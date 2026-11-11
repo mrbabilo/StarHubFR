@@ -141,59 +141,6 @@ public enum SmapiLogParser {
         return (parts.first ?? "—", lvl, source, message)
     }
 
-    /// Les paires de mods qu'un mod déclare incompatibles dans le journal
-    /// SMAPI (« <Mod A>: Incompatible Mod Detected: <UniqueId B>. <Mod A>
-    /// will not load. »). Rendu en `(nom journalisé de A, uniqueId de B)`.
-    /// Pure, testable.
-    public static func incompatibleModPairs(in text: String) -> [(String, String)] {
-        var result: [(String, String)] = []
-        var seen = Set<String>()
-        for line in text.components(separatedBy: .newlines) {
-            // La source porte le nom du mod quand c'est LUI qui journalise
-            // (« [ERROR Mastery Extended] Incompatible Mod Detected: … ») ;
-            // SMAPI relayant sous son propre crochet reste accepté (le nom
-            // est alors en préfixe du message).
-            guard let header = header(of: line), header.level == .error else { continue }
-            let message = header.message
-            // Aiguille en minuscules sur `low` (pré-filtre bon marché), puis
-            // plage cherchée DANS `message` : un `range` rendu par `low` ne
-            // vaut que pour `low`, et `lowercased()` peut changer la longueur
-            // en octets (ex. « İ » → deux caractères) — les indices seraient
-            // alors invalides dans `message`.
-            let low = message.lowercased()
-            guard low.contains("incompatible mod detected") else { continue }
-            let modA: String
-            if let source = header.source, source != "SMAPI", source != "game" {
-                modA = source
-            } else {
-                // Préfixe du message, JAMAIS la phrase-clé elle-même (sans
-                // préfixe réel, c'est elle qui sortirait avant le
-                // deux-points).
-                guard let colon = message.firstIndex(of: ":") else { continue }
-                let candidate = message[..<colon].trimmingCharacters(in: .whitespaces)
-                guard !candidate.isEmpty,
-                      !candidate.lowercased().contains("incompatible mod detected") else { continue }
-                modA = candidate
-            }
-            guard let range = message.range(of: "incompatible mod detected",
-                                            options: [.literal, .caseInsensitive]) else { continue }
-            let after = message[range.upperBound...].trimmingCharacters(in: .whitespaces)
-            // after = ": TimBukTwo.SkillMasteryPrestige. Mastery Extended will not load."
-            guard after.hasPrefix(":") else { continue }
-            let rest = after.dropFirst().trimmingCharacters(in: .whitespaces)
-            // Premier token sans espace = l'uniqueId ; les points de bord
-            // (le point final de la phrase) ne lui appartiennent pas.
-            let token = rest.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
-            let cleanedB = token.trimmingCharacters(in: CharacterSet(charactersIn: "."))
-            guard !cleanedB.isEmpty else { continue }
-            let key = "\(modA)|\(cleanedB)"
-            if seen.insert(key).inserted {
-                result.append((modA, cleanedB))
-            }
-        }
-        return result
-    }
-
     /// Les erreurs que SMAPI écrit **sous sa propre source** — les alertes du
     /// volet santé. Une ligne par erreur (les traces de continuation restent
     /// aux Journaux), sans doublon, `limit` au plus. Écartés : l'en-tête et
