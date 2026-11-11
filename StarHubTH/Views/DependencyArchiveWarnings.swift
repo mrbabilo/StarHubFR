@@ -19,13 +19,31 @@ struct DependencyArchiveWarnings: View {
     /// hors de ce cas.
     let expectedIds: [String]?
 
+    /// Le verdict des versions minimales parcourt tout le parc : calculé une
+    /// fois par état du parc (`ScanStore.modsRevision`) et par contenu
+    /// d'archive, pas à chaque rendu de la feuille. Référence non observée : la remplir dans `body` ne
+    /// redemande pas de rendu.
+    private final class UnmetCache {
+        var key: String?
+        var value: [DependencyVersionCheck.Unmet] = []
+    }
+    @State private var cache = UnmetCache()
+
+    private var unmet: [DependencyVersionCheck.Unmet] {
+        let detected = detectedMods.map { ($0.uniqueId, $0.manifest.name, $0.manifest.version) }
+        let key = "\(viewModel.scanStore.modsRevision)|" + detected.map { "\($0.0)@\($0.2)" }.joined(separator: ",")
+        if cache.key != key {
+            cache.value = DependencyVersionCheck.unmet(detected: detected, mods: viewModel.scanStore.mods)
+            cache.key = key
+        }
+        return cache.value
+    }
+
     var body: some View {
         let missing = expectedIds.map {
             MissingDependencies.absent(expected: $0, in: detectedMods.map(\.uniqueId))
         } ?? []
-        let unmet = DependencyVersionCheck.unmet(
-            detected: detectedMods.map { ($0.uniqueId, $0.manifest.name, $0.manifest.version) },
-            mods: viewModel.scanStore.mods)
+        let unmet = unmet
         if !missing.isEmpty || !unmet.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 if !missing.isEmpty {

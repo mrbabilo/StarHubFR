@@ -45,6 +45,17 @@ import Foundation
         #expect(notified == 2)
     }
 
+    /// Chaque pose fait avancer la révision, même identique : une vue qui
+    /// garde un calcul de tout le parc (`DependencyArchiveWarnings`) le refait.
+    @Test func chaquePoseAvanceLaRevision() {
+        let s = ScanStore()
+        let parc = [makeMod("Automate")]
+        #expect(s.modsRevision == 0)
+        s.setMods(parc)
+        s.setMods(parc)
+        #expect(s.modsRevision == 2)
+    }
+
     @Test func setDuplicateIndexPose() {
         let s = ScanStore()
         s.setDuplicateIndex(ModDuplicateIndex(folders: ["swim": ["Swim", ".Swim"]],

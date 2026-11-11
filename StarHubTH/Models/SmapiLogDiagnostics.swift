@@ -112,7 +112,7 @@ public struct SmapiDiagnostics: Sendable {
     /// les deux formes ; c'est aussi pour ça que cette paire ne passe PAS par
     /// `failed`, qui ne porte qu'un nom.
     public struct IncompatiblePair: Identifiable, Sendable {
-        public let id = UUID()
+        public var id: String { mod + "|" + other }   // stable : la clé qui dédoublonne
         /// Le mod qui refuse de se charger.
         public let mod: String
         /// Celui en présence duquel il refuse (nom ou uniqueId).

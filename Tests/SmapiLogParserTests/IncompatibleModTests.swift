@@ -90,6 +90,13 @@ struct IncompatibleModTests {
         #expect(d.problemCount == 1)
     }
 
+    /// L'identifiant ne change pas d'une lecture du journal à l'autre.
+    @Test func theIdIsStableAcrossReads() {
+        let first = SmapiDiagnostics.parse(logContent: Self.line).incompatibleMods.map(\.id)
+        #expect(first == ["Mastery Extended|TimBukTwo.SkillMasteryPrestige"])
+        #expect(SmapiDiagnostics.parse(logContent: Self.line).incompatibleMods.map(\.id) == first)
+    }
+
     /// Une ligne répétée ne produit qu'une entrée : l'id d'alerte
     /// (`smapi-incompat-…`) serait sinon dupliqué, collision `ForEach`.
     @Test func repeatedLineCountsOnceInDiagnostics() {

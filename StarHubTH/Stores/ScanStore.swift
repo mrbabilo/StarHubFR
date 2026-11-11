@@ -26,6 +26,10 @@ final class ScanStore {
     /// Le parc installé, prêt à afficher (ordre alphabétique de liste posé
     /// par le scanner). Écrit par `setMods` — pose + notification.
     private(set) var mods: [ModItem] = []
+    /// Avance à chaque `setMods` : une vue qui dérive un calcul de tout le
+    /// parc le garde tant qu'elle ne bouge pas (`DependencyArchiveWarnings`),
+    /// sans comparer les mods un à un.
+    private(set) var modsRevision = 0
     /// X109 — le scan qui a posé `mods` a-t-il pu lire `Mods/` ? Faux, une
     /// liste vide ne dit rien du disque : rien ne doit l'adopter.
     private(set) var modsFolderWasReadable = true
@@ -77,6 +81,7 @@ final class ScanStore {
     /// place restent : le scan qui suit les remplace.
     func setMods(_ newMods: [ModItem], modsFolderWasReadable: Bool = true, gameDir: String? = nil) {
         mods = newMods
+        modsRevision &+= 1
         self.modsFolderWasReadable = modsFolderWasReadable
         if let gameDir, !gameDir.isEmpty { folderStamps = FolderStamps.read(gameDir: gameDir) }
         onModsChanged?(mods)
