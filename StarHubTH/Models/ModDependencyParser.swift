@@ -15,31 +15,49 @@ enum ModDependencyParser {
     static func parse(manifest json: [String: Any]) -> [ModDependency] {
         var result: [ModDependency] = []
 
-        func add(_ rawId: String, required: Bool) {
+        func add(_ rawId: String, required: Bool, minimum: String?) {
             let id = rawId.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !id.isEmpty else { return }
             let key = id.lowercased()
             if let idx = result.firstIndex(where: { $0.uniqueId.lowercased() == key }) {
-                if required && !result[idx].isRequired {
-                    result[idx] = ModDependency(uniqueId: result[idx].uniqueId, isRequired: true)
-                }
+                // Déclarée deux fois : requise l'emporte, la plus haute version
+                // minimale aussi — c'est celle que SMAPI fera respecter.
+                result[idx] = ModDependency(uniqueId: result[idx].uniqueId,
+                                            isRequired: required || result[idx].isRequired,
+                                            minimumVersion: higherMinimum(result[idx].minimumVersion, minimum))
                 return
             }
-            result.append(ModDependency(uniqueId: id, isRequired: required))
+            result.append(ModDependency(uniqueId: id, isRequired: required, minimumVersion: minimum))
         }
 
         if let deps = json.caseInsensitiveValue(forKey: "Dependencies") as? [[String: Any]] {
             for dep in deps {
                 if let depId = dep.caseInsensitiveValue(forKey: "UniqueID") as? String {
-                    add(depId, required: isRequired(dep.caseInsensitiveValue(forKey: "IsRequired")))
+                    add(depId, required: isRequired(dep.caseInsensitiveValue(forKey: "IsRequired")),
+                        minimum: minimumVersion(dep.caseInsensitiveValue(forKey: "MinimumVersion")))
                 }
             }
         }
         if let cpf = json.caseInsensitiveValue(forKey: "ContentPackFor") as? [String: Any],
            let cpfId = cpf.caseInsensitiveValue(forKey: "UniqueID") as? String {
-            add(cpfId, required: true)
+            add(cpfId, required: true, minimum: minimumVersion(cpf.caseInsensitiveValue(forKey: "MinimumVersion")))
         }
         return result
+    }
+
+    /// `MinimumVersion` en texte (`"0.6.4-unofficial-mushymato.0"`) ; vide,
+    /// absent ou d'un autre type : pas d'exigence.
+    static func minimumVersion(_ value: Any?) -> String? {
+        guard let text = (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else { return nil }
+        return text
+    }
+
+    /// La plus exigeante de deux versions minimales (`nil` : aucune).
+    static func higherMinimum(_ a: String?, _ b: String?) -> String? {
+        guard let a else { return b }
+        guard let b else { return a }
+        return NexusUpdateChecker.compare(a, b) == .orderedAscending ? b : a
     }
 
     /// `IsRequired` tel que SMAPI le lit (Newtonsoft) : un booléen, ou un

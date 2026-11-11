@@ -203,6 +203,25 @@ public enum NexusFileManifestFetcher {
                        legacyUnreadable: result.legacyMissed)
     }
 
+    /// Le manifeste récent d'**un** fichier, pour vérifier une archive qu'on
+    /// vient de télécharger (`NexusArchiveIntegrity`) : la liste `modFiles`,
+    /// puis ce seul manifeste — pas ceux de toute la page. `nil` quand il n'y
+    /// a rien à comparer : fichier au format ancien, absent de la liste,
+    /// manifeste 404, réseau ou délai.
+    public static func manifest(modId: Int, fileId: Int, cacheDirectory: URL?, deadline: Date,
+                                now: Date = Date(), transport: @escaping Transport = liveTransport) -> NexusFileManifest? {
+        guard now < deadline, let body = modFilesBody(modId: modId),
+              let request = NexusRequestBuilder.makeGraphQLRequest(body: body, apiKey: nil) else { return nil }
+        let listing = transport(request)
+        guard listing.status == 200, let data = listing.body, let files = decodeModFiles(data),
+              let file = files.first(where: { $0.fileId == fileId }), file.isRecentFormat else { return nil }
+        guard case .found(let manifest) = read(cacheName: cacheName(uri: file.uri), url: manifestURL(uri: file.uri),
+                                               fileDate: file.date, cacheDirectory: cacheDirectory,
+                                               deadline: deadline, now: now, transport: transport,
+                                               decode: NexusFileManifest.decode) else { return nil }
+        return manifest
+    }
+
     private enum Read<Value> {
         case found(Value)
         /// Pas de manifeste chez Nexus (404) : rien à apprendre.

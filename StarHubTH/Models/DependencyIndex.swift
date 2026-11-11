@@ -87,9 +87,10 @@ struct DependencyIndex {
             for dep in child.dependencies {
                 let key = dep.uniqueId.lowercased()
                 if let idx = merged.firstIndex(where: { $0.uniqueId.lowercased() == key }) {
-                    if dep.isRequired && !merged[idx].isRequired {
-                        merged[idx] = ModDependency(uniqueId: merged[idx].uniqueId, isRequired: true)
-                    }
+                    merged[idx] = ModDependency(uniqueId: merged[idx].uniqueId,
+                                                isRequired: dep.isRequired || merged[idx].isRequired,
+                                                minimumVersion: ModDependencyParser.higherMinimum(
+                                                    merged[idx].minimumVersion, dep.minimumVersion))
                 } else {
                     merged.append(dep)
                 }

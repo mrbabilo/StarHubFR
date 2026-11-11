@@ -3,10 +3,14 @@ import Foundation
 public struct ModDependency: Equatable, Sendable {
     public let uniqueId: String
     public let isRequired: Bool
+    /// `MinimumVersion` du manifeste : SMAPI refuse de charger le mod si la
+    /// dépendance présente est plus ancienne. `nil` : pas d'exigence.
+    public let minimumVersion: String?
 
-    public init(uniqueId: String, isRequired: Bool) {
+    public init(uniqueId: String, isRequired: Bool, minimumVersion: String? = nil) {
         self.uniqueId = uniqueId
         self.isRequired = isRequired
+        self.minimumVersion = minimumVersion
     }
 }
 

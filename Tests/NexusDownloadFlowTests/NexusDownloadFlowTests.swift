@@ -97,6 +97,7 @@ struct NexusDownloadFlowTests {
         #expect(NexusDownloadFlow.message(for: .linkExpired) == .plain("vm_nexus_dl_link_expired"))
         #expect(NexusDownloadFlow.message(for: .rateLimited) == .plain("vm_nexus_dl_rate_limited"))
         #expect(NexusDownloadFlow.message(for: .cancelled) == .plain("vm_nexus_dl_cancelled_error"))
+        #expect(NexusDownloadFlow.message(for: .archiveMismatch) == .plain("vm_nexus_dl_archive_mismatch"))
         #expect(NexusDownloadFlow.message(for: .serverError(503))
                 == .withInt("vm_nexus_dl_server_error", 503))
         #expect(NexusDownloadFlow.message(for: .requestFailed("hôte introuvable"))

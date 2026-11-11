@@ -18,6 +18,10 @@ enum NexusDownloadError: Error, LocalizedError, Equatable {
     /// L'utilisateur a annulé. Ce n'est pas une panne : l'appelant doit s'en
     /// taire plutôt que d'ouvrir une alerte sur un geste volontaire.
     case cancelled
+    /// L'archive reçue ne correspond pas à l'empreinte que Nexus publie pour
+    /// ce fichier (`NexusArchiveIntegrity`) : transfert tronqué ou altéré.
+    /// L'archive est jetée, rien n'est installé.
+    case archiveMismatch
     /// Reserved for genuine OS/URLSession failures; `%@` is the OS-localized
     /// `error.localizedDescription`, never a hand-written English string.
     case requestFailed(String)

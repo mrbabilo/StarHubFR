@@ -640,6 +640,8 @@
 "mod_config_backups_restored" = "Sauvegarde restaurée avec succès.";
 "mod_config_backups_size" = "Taille";
 "mod_config_backups_title" = "Sauvegardes de configuration";
+"mod_install_dependency_too_old" = "%1$@ exige %2$@ en version %3$@ au moins, mais cette archive contient la %4$@ : SMAPI refusera de charger %1$@. La version qui convient est peut-être publiée sur une autre page (reprise par un autre auteur).";
+"mod_install_dependency_too_old_search" = "Chercher une version plus récente sur Nexus";
 "mod_install_analyzing" = "Analyse de l'archive…";
 "mod_install_archive_contains" = "L'archive contient : %@";
 "mod_install_backup_overwrite" = "Sauvegarder l'existant, puis écraser";
@@ -1750,6 +1752,7 @@
 "vm_launching_vanilla" = "Lancement de Stardew Valley (Vanilla)…";
 "vm_manifest_version_fixed" = "Le manifest de %@ déclare la version %@, alors que Nexus propose déjà %@.";
 "vm_manifest_version_skipped" = "Version du manifest de %@ inchangée (%@).";
+"vm_nexus_dl_archive_mismatch" = "L'archive reçue ne correspond pas au fichier publié sur Nexus : le téléchargement est incomplet ou a été altéré en route. Rien n'a été installé. Relancez le téléchargement.";
 "vm_nexus_dl_auth_failed" = "Échec de l'authentification Nexus — vérifiez votre clé API dans les Réglages.";
 "vm_nexus_dl_bad_link" = "Lien de téléchargement Nexus invalide.";
 "vm_nexus_dl_busy" = "Un téléchargement Nexus est déjà en attente. Terminez l'installation en cours avant d'en lancer un autre.";

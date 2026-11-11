@@ -66,6 +66,7 @@ enum NexusDownloadFlow {
         case .authFailed:             return .plain("vm_nexus_dl_auth_failed")
         case .linkExpired:            return .plain("vm_nexus_dl_link_expired")
         case .rateLimited:            return .plain("vm_nexus_dl_rate_limited")
+        case .archiveMismatch:        return .plain("vm_nexus_dl_archive_mismatch")
         // Ne devrait jamais s'afficher : les appelants traitent `.cancelled`
         // avant d'en arriver là, une alerte sur un geste volontaire étant du
         // bruit. Le cas existe pour que le switch reste exhaustif — c'est lui

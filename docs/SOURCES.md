@@ -1294,12 +1294,21 @@ UltraSmooth 2.8.4 et PureBinarySave 1.0.10 **actifs**, Radiance 2.4.7 et Stardro
 | `mod/ultrasmooth` | 2.7.6 → **2.8.4** (journal lu de 2.7.9 à 2.8.4) | **décompilée**, comparée à la 2.7.6 : 217 → 228 appels `Patch`. Neuf : l'horloge (`Game1.UpdateGameClock`, `Game1.Update`), le co-op (`Multiplayer.UpdateEarly/Late`, `Farmer.UpdateIfOtherPlayer`), et le module Content Patcher, déjà présent, s'étend (`UpdateContext`, `OnTimeChanged`, `LoadSourceImage`). Retiré : `Game1.didPlayerJustRightClick`. `EnableLocationTimeSlicing` passe à **`true` par défaut** : l'étalement des lieux hors écran prolonge X139 (déduit, non mesuré). **Catalogue A5-T7 : une paire change** — `ClockTickOptimizer`, sans garde, patche désormais `GameLocation.timeUpdate`, conditionnelle jusqu'ici : Stardropium × UltraSmooth passe à 21 méthodes partagées. Les 42 autres méthodes du catalogue sont toutes encore patchées. **Recouvrement neuf hors catalogue** : `GameContentHelper.InvalidateCache` (SMAPI), patchée aussi par PureBinarySave 1.0.10 (actif, `EnableCpBatching` vrai) — deux prédicats d'invalidation composés, une méthode commune, sous le seuil. **Le « rate-limited error logging » de la 2.8.0 est `ErrorOnce`** : 44 sites qui écrivent une fois par session, **en TRACE** — ces exceptions ne comptent plus dans les Alertes ni l'historique d'erreurs. Littéral des résumés inchangé : **X140 tient**. `measuredVersion` à 2.8.4 ; Radiance re-décompilée en 2.4.7 (cibles identiques), passée à 2.4.7. Détail : [`audit-ultrasmooth-2.8.4.md`](audit-ultrasmooth-2.8.4.md) |
 | `mod/radiance` | 2.4.5 → **2.4.7** | journal lu : 2.4.6 corrige des shaders (Clear Glasses), 2.4.7 corrige une régression **Android** — hors de nos relevés. Re-décompilée pour la remesure du catalogue (ci-dessus) |
 | `mod/hotkey-hub` | 0.1.0 → **0.1.2** (lu jusqu'à 0.1.0) | journal lu : vue clavier, fixes d'affichage, et le dédoublonnage manuel/scanné d'une même fonction (deux enregistrements comptaient comme conflit). En pause sur le parc, rien à prendre pour KeybindScanner aujourd'hui — le pattern à revoir quand le chantier raccourcis rouvrira |
-| `JuniGrid` | v1.2.9 → **v1.3.2**, 3 releases | relevé pour ses idées, rien de repris : nul sur le code |
-| `Stardrop` | v1.10.4 → **v1.11.0** | concurrent audité : nul sur le code |
+| `JuniGrid` | v1.2.9 → **v1.3.2** (v1.3.3 le lendemain) | notes de version lues (v1.3.0 à v1.3.3, GPL-3.0 : idées seulement). **Repris en idée : la vérification d'intégrité des téléchargements** (leur contrôle md5 par morceau) → `NexusArchiveIntegrity`, contre l'empreinte d'archive du manifeste Nexus du fichier téléchargé ; mesurée sans fausse alerte sur 224 archives du parc. **Relevé, à décider : les « packs de remplacement »** (archives sans manifeste copiées dans le dossier d'un autre mod, gardées en copie et reposées après une mise à jour de l'hôte) — ce que l'app fait déjà pour les traductions françaises seulement. **Signalé par eux, vérifié chez nous** : la dépendance d'un fork qui garde l'`UniqueID` de l'original (StardewUI Continued) — voir la note sous ce tableau. Écarté : contournement Cloudflare et 12 connexions (leur téléchargement Windows par le site), catégories |
+| `Stardrop` | v1.10.4 → **v1.11.0** | notes lues : alerte quand la vérification des mises à jour échoue (chez nous depuis la 1.60), `UpdateKeys` Nexus sans casse (déjà le cas, vérifié dans `NexusFallbackCheck`, `SmapiUpdateRequest`, `ZipModInfo`), thèmes. Rien à reprendre |
 | `Stardrop-NativeMac` | commits seuls | suivi passif |
-| `save-editor` | 23 commits | suivis divers, rien d'exposé chez nous |
+| `save-editor` | ~30 commits | travaux de leur V2, non publiés : historique annuler/rétablir, **météo du lendemain** et arrosage par la pluie. Notre éditeur ne touche pas à la météo : idée relevée, de confort ; l'annuler compte peu, nos sauvegardes avant écriture font retour arrière |
 | `gmcm-source` | `pushed_at` seul | aucun commit dans le dossier suivi |
 | `fork/StarHubFR` | v1.72.0 → v1.73.1, commit `f6cd99e` | nos propres publications (les incompatibilités déclarées par un mod) |
+
+**Dépendance d'un fork au même `UniqueID` (vérifié le 2026-11-11).** L'annuaire des
+dépendances manquantes ne lit que le dump Pathoschild : `focustense.StardewUI` y mène
+à la page 28870, l'original abandonné, dont le dernier fichier principal est la 0.6.1.
+Le parc a le fork `0.6.4-unofficial-mushymato.1` (page 43861, même `UniqueID`), et deux
+mods exigent ≥ 0.6.3/0.6.4-unofficial. Si StardewUI manquait, « Installer la
+dépendance » poserait la 0.6.1 et SMAPI refuserait ces deux mods : l'app ne lit pas
+`MinimumVersion`. Le dump n'a qu'un identifiant en double (`none`) : l'écrasement
+« la dernière entrée gagne » ne mord pas en pratique.
 
 
 ## 6. Mods du jeu observés — la convention `config.*`

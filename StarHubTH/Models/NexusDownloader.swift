@@ -91,7 +91,28 @@ struct NexusDownloader {
             },
             onProgress: onProgress,
             completion: { result in
-                completion(result.map { NexusDownloadOutcome(zip: $0, resolvedFile: resolved.file) })
+                // Le fichier réellement téléchargé : celui du lien nxm, ou le
+                // MAIN résolu (lu à la complétion, X9).
+                guard case .success(let zip) = result, let downloadedFileId = fileId ?? resolved.file?.fileId else {
+                    completion(result.map { NexusDownloadOutcome(zip: $0, resolvedFile: resolved.file) })
+                    return
+                }
+                // Archive vérifiée contre l'empreinte publiée par Nexus
+                // (`NexusArchiveIntegrity`). File de fond : la vérification lit
+                // le réseau de façon synchrone, et bloquer la file de
+                // `URLSession` en attendant une autre de ses réponses risquerait
+                // l'interblocage ; un `Task` est exclu (sémaphore, CI du
+                // 2026-09-28).
+                DispatchQueue.global(qos: .userInitiated).async {
+                    if NexusArchiveIntegrity.check(archive: zip, modId: modId, fileId: downloadedFileId) == .mismatch {
+                        do { try FileManager.default.removeItem(at: zip) } catch {
+                            // Le dossier temporaire sera vidé par le système.
+                        }
+                        completion(.failure(.archiveMismatch))
+                        return
+                    }
+                    completion(.success(NexusDownloadOutcome(zip: zip, resolvedFile: resolved.file)))
+                }
             })
 
         guard let apiKey = NexusUpdateChecker.shared.apiKey(), !apiKey.isEmpty else {
