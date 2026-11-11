@@ -64,7 +64,8 @@ public enum LegacyCleanupSession {
             deposits: deposits, nexusIncomplete: nexus.incomplete,
             installedVersionFileIds: Set(nexus.listed.filter {
                 NexusUpdateChecker.compare($0.version, mod.version) == .orderedSame
-            }.map(\.fileId)))
+            }.map(\.fileId)),
+            legacyUnreadable: nexus.legacyUnreadable)
     }
 
     public struct ApplyResult: Equatable, Sendable {

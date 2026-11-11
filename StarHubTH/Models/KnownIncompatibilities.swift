@@ -14,7 +14,10 @@ public enum KnownIncompatibilities {
     /// UltraSmooth (`EnableTimeChangedPacing`, actif par défaut) déclenche
     /// lui-même les gestionnaires `TimeChanged` hors de `ManagedEvent.Raise`,
     /// là où la sonde mesure : leur coût passe au compte d'UltraSmooth. Déduit
-    /// de la 2.7.2 décompilée (X139), pas encore vu dans une capture.
+    /// de la 2.7.2 décompilée (X139), pas encore vu dans une capture. Depuis
+    /// la 2.8.x, `EnableLocationTimeSlicing` (actif par défaut) étale aussi les
+    /// lieux hors écran. Les mesures de l'app coupent les deux le temps du jeu
+    /// (`UltraSmoothMeasureSetting`) ; la paire reste signalée hors mesure.
     static let rules: [(first: String, second: String, reasonKey: String)] = [
         ("mrbabilo.StarHubFR.Probe", "SinZ.Profiler", "conflicts_known_probe_profiler"),
         ("mrbabilo.StarHubFR.Probe", "palmhacker13.UltraSmooth", "conflicts_known_probe_ultrasmooth"),

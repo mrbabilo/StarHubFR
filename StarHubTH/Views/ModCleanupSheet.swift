@@ -16,6 +16,7 @@ struct ModCleanupSheet: View {
     private enum Phase {
         case analyzing
         case noReference
+        case legacyUnreadable
         case ready(LegacyFileCleanup.Plan)
         case applying
         case finished(String)
@@ -56,11 +57,16 @@ struct ModCleanupSheet: View {
             progress(localization.L(L10n.ModCleanup.applying))
         case .noReference:
             message(String(format: localization.L(L10n.ModCleanup.noReference), mod.version))
+        case .legacyUnreadable:
+            message(String(format: localization.L(L10n.ModCleanup.legacyNoReference), mod.version))
         case .finished(let text):
             message(text)
         case .ready(let plan):
             if plan.candidates.isEmpty {
-                message(localization.L(L10n.ModCleanup.nothing))
+                // Liste vide avec l'historique ancien illisible : « rien à
+                // nettoyer » serait affirmé sans avoir pu regarder.
+                message(localization.L(L10n.ModCleanup.nothing)
+                        + (plan.legacyUnreadable ? "\n\n" + localization.L(L10n.ModCleanup.legacyUnreadable) : ""))
             } else {
                 candidateList(plan)
             }
@@ -94,6 +100,14 @@ struct ModCleanupSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 } else if plan.nexusIncomplete {
                     Text(localization.L(L10n.ModCleanup.nexusIncomplete))
+                        .font(AppDesign.Font.footnote)
+                        .foregroundColor(AppDesign.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                // Indépendant des deux avis ci-dessus : une autre cause, qui
+                // peut s'y ajouter.
+                if plan.legacyUnreadable {
+                    Text(localization.L(L10n.ModCleanup.legacyUnreadable))
                         .font(AppDesign.Font.footnote)
                         .foregroundColor(AppDesign.Color.warning)
                         .fixedSize(horizontal: false, vertical: true)
@@ -220,6 +234,8 @@ struct ModCleanupSheet: View {
                 switch outcome {
                 case .noReference:
                     phase = .noReference
+                case .legacyUnreadable:
+                    phase = .legacyUnreadable
                 case .plan(let plan):
                     selection = plan.preselectsIdentical
                         ? Set(plan.candidates.filter { $0.certainty == .identical }.map(\.path)) : []

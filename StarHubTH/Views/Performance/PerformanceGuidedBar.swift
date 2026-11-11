@@ -194,6 +194,12 @@ struct PerformanceGuidedBar: View {
         UserDefaults.standard.string(forKey: UDKey.launchProfile) ?? "SMAPI"
     }
 
+    /// UltraSmooth réglé pour la mesure, puis le jeu ; un refus s'affiche ici.
+    private func launchMeasure() {
+        message = UltraSmoothMeasureLive.beforeMeasure(viewModel)
+        viewModel.launchGame()
+    }
+
     private func prepare(_ final: GuidedPlanDraft, launch: Bool) {
         do {
             try store.prepare(final)
@@ -212,10 +218,10 @@ struct PerformanceGuidedBar: View {
                         message = localization.L(L10n.Performance.guidedProfileApplyFailed)
                         return
                     }
-                    viewModel.launchGame()
+                    launchMeasure()
                 }
             } else {
-                viewModel.launchGame()
+                launchMeasure()
             }
         } catch {
             message = String(format: localization.L(L10n.Performance.guidedWriteFailed), error.localizedDescription)

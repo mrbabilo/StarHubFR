@@ -220,6 +220,7 @@ final class BenchmarkRunner {
                 await finish(.failed(.launch), snapshot: snapshot)
                 return
             }
+            UltraSmoothMeasureLive.beforeMeasure(viewModel)   // à chaque lancement de la série
             guard viewModel.launchGame(honoringCloseAfterLaunch: false, fromBenchmark: true) else {
                 await finish(.failed(.launch), snapshot: snapshot)
                 return

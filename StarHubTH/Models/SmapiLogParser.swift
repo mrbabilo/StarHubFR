@@ -129,8 +129,16 @@ public enum SmapiLogParser {
         let message = msgStart < line.endIndex
             ? String(line[msgStart...]).trimmingCharacters(in: .whitespaces)
             : ""
-        return (parts.first ?? "—", level(from: parts.count >= 2 ? parts[1] : ""),
-                parts.count >= 3 ? parts[2...].joined(separator: " ") : nil, message)
+        let rawLevel = parts.count >= 2 ? parts[1] : ""
+        let source = parts.count >= 3 ? parts[2...].joined(separator: " ") : nil
+        // Une erreur qu'UltraSmooth écrit en TRACE est une erreur
+        // (`LoggedOnceError`). Relevée ICI, au seul lecteur du format : les
+        // Journaux, l'historique par mod, la bissection et le résumé des
+        // lignes dupliquées (`UltraSmoothSummary.repeats` compare les
+        // niveaux) voient tous le même.
+        let lvl = LoggedOnceError.isError(rawLevel: rawLevel, source: source, message: message)
+            ? LogLevel.error : level(from: rawLevel)
+        return (parts.first ?? "—", lvl, source, message)
     }
 
     /// Les paires de mods qu'un mod déclare incompatibles dans le journal
@@ -240,7 +248,11 @@ public enum SmapiLogParser {
         func repeats(_ entry: LogEntry) -> Bool {
             guard let quoted = SmapiLogParser.header(of: quotedLine) else { return false }
             let source = quoted.source == "SMAPI" || quoted.source == "game" ? nil : quoted.source
-            return quoted.timestamp == entry.timestamp && quoted.level == entry.level
+            // Citation tronquée à 80 : la formule de `LoggedOnceError` peut y
+            // manquer, la citation reste TRACE quand l'entrée a été relevée.
+            let sameLevel = quoted.level == entry.level
+                || (quoted.level == .trace && LoggedOnceError.isPromoted(entry))
+            return quoted.timestamp == entry.timestamp && sameLevel
                 && (source == nil || source == entry.modName)
                 && entry.message.hasPrefix(quoted.message)
         }

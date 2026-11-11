@@ -81,6 +81,23 @@ struct LegacyFileCleanupTests {
         #expect(outcome == .noReference)
     }
 
+    /// Relevé du 2026-11-11 : sans référence parce que l'historique ancien ne
+    /// se lit plus, la feuille ne doit pas dire « ni au journal ni sur Nexus ».
+    @Test func withoutReferenceBecauseTheOldHistoryIsUnreadableTheCauseIsSaid() throws {
+        let outcome = Cleanup.plan(installed: .init(hashes: ["old.png": "a"]),
+                                   index: AuthorFileIndex(versions: []), legacy: [],
+                                   installedVersion: "3.1.0", deposits: [], nexusIncomplete: false,
+                                   legacyUnreadable: true)
+        #expect(outcome == .legacyUnreadable)
+        // Avec une référence, le plan existe et porte la réserve.
+        let result = try plan(Cleanup.plan(installed: .init(hashes: ["manifest.json": "m", "old.png": "o"]),
+                                           index: AuthorFileIndex(versions: [author(["manifest.json": "m"], "1.0.0", 2)]),
+                                           legacy: [], installedVersion: "1.0.0", deposits: [],
+                                           nexusIncomplete: false, legacyUnreadable: true))
+        #expect(result.legacyUnreadable)
+        #expect(!result.nexusIncomplete)
+    }
+
     @Test func aFileOfTheInstalledVersionIsNeverProposedEvenRetouched() throws {
         let result = try run(installed: ["manifest.json": "m", "a.png": "retouched", "old.png": "o"],
                              versions: [author(["manifest.json": "m", "a.png": "a"], "1.0.0", 2),

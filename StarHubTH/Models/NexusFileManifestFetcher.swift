@@ -67,6 +67,14 @@ public enum NexusFileManifestFetcher {
         /// nettoyage vérifie que la référence couvre chaque fichier de la
         /// version installée.
         public var listed: [ModFile] = []
+        /// Au moins un fichier au format ancien, **encore listé** par Nexus,
+        /// n'a pas de manifeste lisible (404). Depuis octobre 2026,
+        /// `file-metadata.nexusmods.com` répond 404 aux fichiers toujours en
+        /// ligne (ItemBags 3.1.0, relevé du 2026-11-11) : ce n'est plus « ce
+        /// fichier n'a pas de manifeste », c'est « l'historique ancien ne se lit
+        /// plus ». Le nettoyage le dit au lieu de présenter une liste courte
+        /// comme complète.
+        public var legacyUnreadable = false
     }
 
     /// Délai par mod, et plafond de requêtes simultanées. Les mods d'une
@@ -159,15 +167,18 @@ public enum NexusFileManifestFetcher {
             while let index = next.take(below: jobs.count) {
                 let file = jobs[index].file
                 if jobs[index].isLegacy {
+                    // Sans marque `.missing` : un 404 de l'hôte ancien n'est plus
+                    // une réponse sur le fichier, et une marque crue pour toujours
+                    // (fichier de plus de 30 jours) survivrait au retour de l'hôte.
                     switch read(cacheName: "legacy_" + cacheName(uri: file.uri),
                                 url: legacyManifestURL(modId: modId, uri: file.uri),
                                 fileDate: file.date, cacheDirectory: cacheDirectory,
                                 deadline: deadline, now: now, transport: transport,
-                                decode: NexusLegacyFileManifest.decode) {
+                                decode: NexusLegacyFileManifest.decode, recordsMissing: false) {
                     case .found(let manifest):
                         collector.addLegacy(.init(fileId: file.fileId, version: file.version, manifest: manifest))
                     case .none:
-                        break
+                        collector.legacyMiss()
                     case .failed:
                         collector.miss()
                     }
@@ -188,7 +199,8 @@ public enum NexusFileManifestFetcher {
         }
         let result = collector.result
         return Outcome(files: result.found.sorted { $0.fileId > $1.fileId }, incomplete: result.missed,
-                       legacy: result.legacy.sorted { $0.fileId > $1.fileId }, listed: files)
+                       legacy: result.legacy.sorted { $0.fileId > $1.fileId }, listed: files,
+                       legacyUnreadable: result.legacyMissed)
     }
 
     private enum Read<Value> {
@@ -202,12 +214,14 @@ public enum NexusFileManifestFetcher {
     /// Un manifeste, du cache ou du réseau. Le cache n'est écrit **qu'une fois
     /// décodé** — un 200 illisible (page HTML) ne remplace rien — et un 404
     /// laisse une marque `.missing`, crue selon `trustsMissingMarker`.
+    /// - Parameter recordsMissing: `false` pour le format ancien — ni marque
+    ///   écrite sur un 404, ni marque crue (voir `Outcome.legacyUnreadable`).
     private static func read<Value>(cacheName: String, url: URL?, fileDate: Int?, cacheDirectory: URL?,
                                     deadline: Date, now: Date, transport: Transport,
-                                    decode: (Data) -> Value?) -> Read<Value> {
+                                    decode: (Data) -> Value?, recordsMissing: Bool = true) -> Read<Value> {
         let fm = FileManager.default
         let cached = cacheDirectory?.appendingPathComponent(cacheName + ".json")
-        let missing = cacheDirectory?.appendingPathComponent(cacheName + ".missing")
+        let missing = recordsMissing ? cacheDirectory?.appendingPathComponent(cacheName + ".missing") : nil
         if let cached, let data = fm.contents(atPath: cached.path), let value = decode(data) {
             return .found(value)
         }
@@ -291,12 +305,14 @@ public enum NexusFileManifestFetcher {
         private var found: [AuthorFileIndex.NexusFile] = []
         private var legacy: [LegacyFile] = []
         private var missed = false
+        private var legacyMissed = false
 
         func add(_ file: AuthorFileIndex.NexusFile) { lock.withLock { found.append(file) } }
         func addLegacy(_ file: LegacyFile) { lock.withLock { legacy.append(file) } }
         func miss() { lock.withLock { missed = true } }
-        var result: (found: [AuthorFileIndex.NexusFile], legacy: [LegacyFile], missed: Bool) {
-            lock.withLock { (found, legacy, missed) }
+        func legacyMiss() { lock.withLock { legacyMissed = true } }
+        var result: (found: [AuthorFileIndex.NexusFile], legacy: [LegacyFile], missed: Bool, legacyMissed: Bool) {
+            lock.withLock { (found, legacy, missed, legacyMissed) }
         }
     }
 

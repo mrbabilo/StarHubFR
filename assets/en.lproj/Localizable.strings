@@ -339,6 +339,8 @@
 "mod_cleanup_no_reference" = "Version %@ is neither in the history nor on Nexus: what it ships is unknown, so nothing is proposed.";
 "mod_cleanup_nothing" = "No files from older versions in this folder.";
 "mod_cleanup_nexus_incomplete" = "Nexus history incomplete (network): the list may be shorter.";
+"mod_cleanup_legacy_unreadable" = "Nexus no longer serves the contents of its oldest files: files the author removed in those versions can't be identified, so the list may be shorter.";
+"mod_cleanup_legacy_no_reference" = "Version %@ isn't in the local history, and Nexus no longer serves the contents of its older files: what it ships is unknown, so nothing is offered.";
 "mod_cleanup_unverified" = "Part of what the installed version ships could not be read from Nexus (network, missing manifest): nothing is checked in advance, review each file.";
 "mod_cleanup_identical" = "Identical to an older version (%d)";
 "mod_cleanup_identical_hint" = "Same bytes as an author's file, not in the installed version.";
@@ -410,6 +412,7 @@
 "keybinds_title" = "Keyboard shortcuts";
 "keybinds_unassigned_value" = "unassigned";
 "keybinds_unrecognized_header" = "Unrecognized shortcuts (%lld)";
+"logs_logged_once_note" = "UltraSmooth writes this error among its detail lines (TRACE), and only once per session: the app counts it as an error.";
 "logs_alert_logged" = "SMAPI reported %lld alert(s). See the System Alerts section above.";
 "logs_auto_scroll_hint" = "Auto-scroll to bottom";
 "logs_back_to_all_logs" = "Back to all logs";
@@ -1922,6 +1925,14 @@
 "settings_text_size_large" = "Large";
 "settings_text_size_extra_large" = "Extra large";
 "settings_footer_display" = "Applies to all of the app's text.";
+"perf_us_measure_applied" = "UltraSmooth: time-change and off-screen location spreading is turned off for the measurement. The original settings come back when the game exits.";
+"perf_us_measure_refused_experimental" = "UltraSmooth was not adjusted for the measurement: its experimental options are on and would turn spreading back on at load. The probe will misattribute part of the costs.";
+"perf_us_measure_refused_schema" = "UltraSmooth was not adjusted for the measurement: its config predates version 2.8, and it would turn spreading back on at first load. Launch the game once with UltraSmooth up to date, then measure.";
+"perf_us_measure_refused_unreadable" = "UltraSmooth was not adjusted for the measurement: its config.json could not be read. The probe will misattribute part of the costs.";
+"perf_us_measure_failed" = "UltraSmooth was not adjusted for the measurement (%@). The probe will misattribute part of the costs.";
+"perf_us_measure_restored" = "UltraSmooth: original settings restored after the measurement.";
+"perf_us_measure_changed" = "UltraSmooth's config.json was changed during the measurement, so the app left it as is. EnableTimeChangedPacing and EnableLocationTimeSlicing may still be false: check them in its config.";
+"perf_us_measure_restore_failed" = "UltraSmooth's original settings could not be restored (%@). The app will retry the next time the game exits.";
 "perf_overlaps_title" = "Performance mods doing the same work";
 "perf_overlaps_intro" = "These active pairs patch the same methods, or each other's code. That is not an incompatibility: such patches often stack harmlessly, but one mod may redo or cancel the other's work. If something looks wrong, pause one of the two.";
 "perf_overlaps_none" = "No active pair of performance mods overlaps.";
@@ -1939,7 +1950,7 @@
 "conflicts_predicted_dormant" = "Predicted · paused";
 "conflicts_predicted_detail" = "Both load %@ exclusively: Content Patcher will apply neither.";
 "conflicts_known_probe_profiler" = "Both time the same frame hooks: each adds its own cost to what the other measures, and the recorded frame times are inflated. Pause Profiler while the probe measures.";
-"conflicts_known_probe_ultrasmooth" = "UltraSmooth runs the mods' time-change handlers itself (its EnableTimeChangedPacing option, on by default): the probe no longer times them, and their cost shows up under UltraSmooth. Turn that option off in UltraSmooth's config while the probe measures.";
+"conflicts_known_probe_ultrasmooth" = "UltraSmooth runs the time-change and off-screen location work itself, at its own pace (EnableTimeChangedPacing and EnableLocationTimeSlicing): the probe then charges part of those costs to UltraSmooth. During a guided or piloted measurement or a benchmark series, the app turns both options off and restores them when the game exits, unless UltraSmooth's experimental options are on.";
 "logs_segment_performance" = "Performance";
 "perf_no_probe" = "No data from the StarHubFR probe: install it from the “Probe” card at the top of the page, then play a session.";
 "perf_need_two" = "Two probe sessions are needed to compare.";

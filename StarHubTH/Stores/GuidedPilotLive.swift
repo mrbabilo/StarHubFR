@@ -90,7 +90,12 @@ enum GuidedPilotLive {
             activateGame: { bringGameToFront() },
             // `fromBenchmark` : lancement sans modale ni refus « série en
             // cours » — c'est la série qui lance.
-            launchGame: { [weak viewModel] in viewModel?.launchGame(honoringCloseAfterLaunch: false, fromBenchmark: true) ?? false },
+            // UltraSmooth réglé pour la mesure à chaque lancement de côté.
+            launchGame: { [weak viewModel] in
+                guard let viewModel else { return false }
+                UltraSmoothMeasureLive.beforeMeasure(viewModel)
+                return viewModel.launchGame(honoringCloseAfterLaunch: false, fromBenchmark: true)
+            },
             applyLaunchProfile: { [weak viewModel] id in
                 guard let viewModel else { return false }
                 let ids = viewModel.modProfiles.first { $0.id == id }?.enabledModIds ?? []

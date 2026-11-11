@@ -339,6 +339,8 @@
 "mod_cleanup_no_reference" = "La version %@ n'est ni au journal ni sur Nexus : on ne sait pas ce qu'elle livre, rien n'est proposé.";
 "mod_cleanup_nothing" = "Aucun fichier d'ancienne version dans ce dossier.";
 "mod_cleanup_nexus_incomplete" = "Historique Nexus incomplet (réseau) : la liste peut être plus courte.";
+"mod_cleanup_legacy_unreadable" = "Nexus ne fournit plus le contenu de ses fichiers les plus anciens : les fichiers retirés par l'auteur dans ces versions ne peuvent pas être repérés, la liste peut être plus courte.";
+"mod_cleanup_legacy_no_reference" = "La version %@ n'est pas au journal, et Nexus ne fournit plus le contenu de ses fichiers anciens : on ne sait pas ce qu'elle livre, rien n'est proposé.";
 "mod_cleanup_unverified" = "Une partie de ce que livre la version installée n'a pas pu être lue sur Nexus (réseau, manifeste absent) : rien n'est coché d'avance, vérifiez chaque fichier.";
 "mod_cleanup_identical" = "Identiques à une ancienne version (%d)";
 "mod_cleanup_identical_hint" = "Mêmes octets qu'un fichier de l'auteur, absent de la version installée.";
@@ -410,6 +412,7 @@
 "keybinds_title" = "Raccourcis clavier";
 "keybinds_unassigned_value" = "non assigné";
 "keybinds_unrecognized_header" = "Raccourcis non reconnus (%lld)";
+"logs_logged_once_note" = "UltraSmooth écrit cette erreur parmi les lignes de détail (TRACE), et une seule fois par partie : l'app la compte comme une erreur.";
 "logs_alert_logged" = "SMAPI a signalé %lld alerte(s). Consultez la section Alertes système ci-dessus.";
 "logs_auto_scroll_hint" = "Défilement auto vers le bas";
 "logs_back_to_all_logs" = "Revenir à tous les journaux";
@@ -1922,6 +1925,14 @@
 "settings_text_size_large" = "Grande";
 "settings_text_size_extra_large" = "Très grande";
 "settings_footer_display" = "S'applique à tous les textes de l'app.";
+"perf_us_measure_applied" = "UltraSmooth : l'étalement du changement d'heure et des lieux hors écran est coupé le temps de la mesure. Les réglages d'origine reviennent à la sortie du jeu.";
+"perf_us_measure_refused_experimental" = "UltraSmooth n'a pas été réglé pour la mesure : ses options expérimentales sont actives et rallumeraient l'étalement au chargement. La sonde attribuera mal une partie des coûts.";
+"perf_us_measure_refused_schema" = "UltraSmooth n'a pas été réglé pour la mesure : sa config date d'avant la version 2.8, et il rallumerait l'étalement au premier chargement. Lancez une fois le jeu avec UltraSmooth à jour, puis mesurez.";
+"perf_us_measure_refused_unreadable" = "UltraSmooth n'a pas été réglé pour la mesure : son config.json n'a pas pu être lu. La sonde attribuera mal une partie des coûts.";
+"perf_us_measure_failed" = "UltraSmooth n'a pas été réglé pour la mesure (%@). La sonde attribuera mal une partie des coûts.";
+"perf_us_measure_restored" = "UltraSmooth : réglages d'origine rétablis après la mesure.";
+"perf_us_measure_changed" = "Le config.json d'UltraSmooth a été modifié pendant la mesure, l'app ne l'a donc pas remis en l'état. EnableTimeChangedPacing et EnableLocationTimeSlicing sont peut-être restés à false : vérifiez-les dans sa config.";
+"perf_us_measure_restore_failed" = "Les réglages d'origine d'UltraSmooth n'ont pas pu être rétablis (%@). L'app réessaiera à la prochaine sortie du jeu.";
 "perf_overlaps_title" = "Mods de performance qui font le même travail";
 "perf_overlaps_intro" = "Ces paires actives patchent les mêmes méthodes, ou le code l'une de l'autre. Ce n'est pas une incompatibilité : ces patches s'empilent souvent sans dommage, mais un mod peut refaire ou annuler le travail de l'autre. Si quelque chose cloche, mettez l'un des deux en pause.";
 "perf_overlaps_none" = "Aucune paire de mods de performance actifs ne se recouvre.";
@@ -1939,7 +1950,7 @@
 "conflicts_predicted_dormant" = "Prévu · en pause";
 "conflicts_predicted_detail" = "Les deux chargent %@ en exclusif : Content Patcher n'appliquera ni l'un ni l'autre.";
 "conflicts_known_probe_profiler" = "Les deux chronomètrent les mêmes points de la trame : chacun ajoute son coût à ce que l'autre mesure, et les temps relevés sont gonflés. Mettez Profiler en pause pendant les mesures de la sonde.";
-"conflicts_known_probe_ultrasmooth" = "UltraSmooth appelle lui-même les mods qui réagissent au changement d'heure (son option EnableTimeChangedPacing, active par défaut) : la sonde ne les chronomètre plus, et leur coût est mis au compte d'UltraSmooth. Désactivez cette option dans la config d'UltraSmooth pendant les mesures de la sonde.";
+"conflicts_known_probe_ultrasmooth" = "UltraSmooth fait lui-même le travail du changement d'heure et des lieux hors écran, à son rythme (options EnableTimeChangedPacing et EnableLocationTimeSlicing) : la sonde met alors une partie de ces coûts au compte d'UltraSmooth. Pendant une mesure guidée, pilotée ou une série de benchmark, l'app coupe ces deux options et les rétablit à la sortie du jeu, sauf si les options expérimentales d'UltraSmooth sont actives.";
 "logs_segment_performance" = "Performances";
 "perf_no_probe" = "Aucune donnée de la sonde StarHubFR : installez-la depuis la carte « Sonde » en haut de la page, puis jouez une session.";
 "perf_need_two" = "Il faut deux sessions de la sonde pour comparer.";

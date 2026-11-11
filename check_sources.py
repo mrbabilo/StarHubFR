@@ -332,8 +332,17 @@ def probe_nexus_file_manifests(spec):
     status, body = _get(spec["url"])
     doc = json.loads(body)
     files = doc.get("files", [])
-    legacy_status, legacy_body = _get(spec["legacy_url"])
-    legacy = json.loads(legacy_body)
+    # Relevé du 2026-11-11 : l'hôte ancien rend 404 sur un fichier toujours
+    # listé par Nexus (ItemBags 3.1.0). Laissé en exception, ce 404 faisait
+    # passer toute la sonde pour « injoignable » — format récent compris, qui
+    # répond — et taisait une rupture de contrat. C'est une valeur relevée :
+    # 200 → 404 est un écart, que l'app dit désormais elle-même
+    # (`NexusFileManifestFetcher.Outcome.legacyUnreadable`).
+    try:
+        legacy_status, legacy_body = _get(spec["legacy_url"])
+        legacy = json.loads(legacy_body)
+    except urllib.error.HTTPError as e:
+        legacy_status, legacy = e.code, {}
 
     def children(node):
         for child in node.get("children", []):

@@ -9,9 +9,10 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; dernière remesure le 2026-11-05 : UltraSmooth 2.7.6, delta
-/// depuis 2.7.2 sans paire nouvelle — `docs/SOURCES.md` ; celle du 2026-11-02
-/// portait UltraSmooth 2.7.2, Radiance 2.4.5, Stardropium 0.3.0 — détail dans
+/// (ilspycmd ; dernière remesure le 2026-11-11 : UltraSmooth 2.8.4 et Radiance
+/// 2.4.7, delta sans paire nouvelle — `docs/audit-ultrasmooth-2.8.4.md` ; le
+/// 2026-11-05 portait UltraSmooth 2.7.6, celui du 2026-11-02 UltraSmooth 2.7.2,
+/// Radiance 2.4.5, Stardropium 0.3.0 — détail dans
 /// `docs/audit-ultrasmooth-2.7.2.md` ; la précédente, du 2026-10-19, portait
 /// 2.6.2 / 2.3.4 / 0.3.0, la première, du 2026-09-26, 2.4.1 / 2.2.1 /
 /// 0.2.0-beta) :
@@ -90,11 +91,16 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.7.6",
+    // Remesure 2026-11-11 (audit-ultrasmooth-2.8.4.md) : les 43 méthodes du
+    // catalogue côté UltraSmooth sont toutes encore patchées en 2.8.4 ; une
+    // seule change de statut, `GameLocation.timeUpdate` avec Stardropium
+    // (conditionnelle → par défaut). Radiance re-décompilée en 2.4.7 : mêmes
+    // cibles qu'en 2.4.5.
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.8.4",
                                             assemblyName: "UltraSmooth")
     private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.3.0",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.4.5",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.4.7",
                                          assemblyName: "SDV-Radiance")
     private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "3.0.3",
                                                  assemblyName: "StardewOptimizer")
@@ -128,14 +134,20 @@ extension PerformanceOverlap {
             sharedMethods: ["ArgUtility.SplitBySpaceAndGet", "Bush.draw", "FarmAnimal.draw",
                             "FishingRod.distanceToLand", "FruitTree.draw", "Furniture.draw",
                             "Game1.getTimeOfDayString", "GameLocation.passTimeForObjects",
+                            "GameLocation.timeUpdate",
                             "Grass.draw", "HoeDirt.draw", "ItemQueryResolver.TryResolve",
                             "LightSource.Draw", "ModEntry+Utility.GetTilesByProperty", "NPC.update",
                             "PathFindController.findPathForNPCSchedules",
                             "SaveGame+<getSaveEnumerator>d__94.MoveNext",
                             "SaveGamePatcher.FindAndRemoveModNodes", "TMXExtensions.SetFlip",
                             "TMXExtensions.SetRotationValue", "Tree.draw"],
-            conditionalMethods: ["GameLocation.timeUpdate"],
-            conditionalOption: "EnableExperimentalFeatures"),
+            // UltraSmooth 2.8.4 : `ClockTickOptimizer` (seul garde `EnableMod`)
+            // pose un préfixe sur `timeUpdate`, qui n'était patchée que derrière
+            // `EnableExperimentalFeatures` jusqu'en 2.7.6. Elle passe aux
+            // méthodes par défaut : deux règles d'omission sur le même passage
+            // de 10 minutes, comme `passTimeForObjects`.
+            conditionalMethods: [],
+            conditionalOption: nil),
         PerformanceOverlap(
             first: radiance, second: ultraSmooth,
             // `SpriteBatch.Draw` : neuve côté UltraSmooth 2.4.15 ; `Object.draw`

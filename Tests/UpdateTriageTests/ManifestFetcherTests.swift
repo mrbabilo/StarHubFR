@@ -154,16 +154,35 @@ struct ManifestFetcherTests {
         #expect(Fetcher.legacyManifestURL(modId: 1, uri: "") == nil)
     }
 
-    @Test func aLegacy404IsCachedAndAnUnreadableOneIsNot() throws {
+    /// Relevé du 2026-11-11 : l'hôte ancien rend 404 sur des fichiers encore
+    /// listés par Nexus. Un 404 ancien n'est plus « rien à apprendre » : il
+    /// lève `legacyUnreadable`, ne laisse aucune marque (elle serait crue pour
+    /// toujours sur un fichier de 2020) et sera redemandé — si l'hôte revient,
+    /// tout revient.
+    @Test func aLegacy404IsReportedAndNeverCachedAndAnUnreadableOneIsNot() throws {
         let cache = try tempDirectory()
         defer { try? FileManager.default.removeItem(at: cache) }
         let missing = FakeNexus(manifests: ["000000000001": manifest("Mod/a.png", "AA"),
                                             "000000000002": manifest("Mod/a.png", "BB"),
                                             "zip.json": .init(body: Data("{}".utf8), status: 404)])
-        #expect(!fetchLegacy(missing, cache: cache).incomplete)
+        let outcome = fetchLegacy(missing, cache: cache)
+        #expect(!outcome.incomplete, "le réseau a répondu : ce n'est pas une panne")
+        #expect(outcome.legacyUnreadable)
+        #expect(try !FileManager.default.contentsOfDirectory(atPath: cache.path).contains { $0.hasPrefix("legacy_") })
         let again = FakeNexus(manifests: missing.manifests)
         _ = fetchLegacy(again, cache: cache)
-        #expect(!again.requested.contains { $0.hasSuffix("zip.json") })   // 404 cru (fichier de 2020)
+        #expect(again.requested.contains { $0.hasSuffix("zip.json") }, "redemandé, pas cru")
+        // Une ancienne marque, posée avant le correctif, n'est plus crue non plus.
+        let marker = cache.appendingPathComponent("legacy_" + Fetcher.cacheName(uri: "Old Mod 0.9-123-0-9-1580000000.zip") + ".missing")
+        try Data().write(to: marker)
+        let third = FakeNexus(manifests: missing.manifests)
+        _ = fetchLegacy(third, cache: cache)
+        #expect(third.requested.contains { $0.hasSuffix("zip.json") })
+        // Un manifeste ancien lisible ne lève rien.
+        #expect(!fetchLegacy(FakeNexus(manifests: ["000000000001": manifest("Mod/a.png", "AA"),
+                                                   "000000000002": manifest("Mod/a.png", "BB"),
+                                                   "zip.json": legacyTree(["Mod/old.png"])]),
+                             cache: nil).legacyUnreadable)
 
         let cache2 = try tempDirectory()
         defer { try? FileManager.default.removeItem(at: cache2) }

@@ -69,6 +69,10 @@ public enum LegacyFileCleanup {
         public let reference: ReferenceSource
         /// La lecture Nexus n'a pas abouti : la liste peut être plus courte.
         public let nexusIncomplete: Bool
+        /// Des versions au format ancien sont listées par Nexus mais leur
+        /// manifeste ne se lit plus (`NexusFileManifestFetcher.Outcome.legacyUnreadable`) :
+        /// la liste peut être plus courte, pour une autre raison que le réseau.
+        public var legacyUnreadable = false
         /// Les fantômes identiques sont cochés d'office. `false` quand la
         /// référence Nexus est peut-être partielle — un fichier de la version
         /// installée non lu (réseau, 404, archive non rattachée) ferait passer
@@ -79,6 +83,10 @@ public enum LegacyFileCleanup {
 
     public enum Outcome: Equatable, Sendable {
         case noReference
+        /// Pas de référence **parce que** l'historique ancien ne se lit plus :
+        /// la version est peut-être sur Nexus, mais son contenu est illisible.
+        /// Distinct de `noReference`, qui dirait « ni au journal ni sur Nexus ».
+        case legacyUnreadable
         case plan(Plan)
     }
 
@@ -94,7 +102,8 @@ public enum LegacyFileCleanup {
     public static func plan(installed: ModFolderHasher.Listing, index: AuthorFileIndex,
                             legacy: [LegacyVersion], installedVersion: String,
                             deposits: Set<String>, nexusIncomplete: Bool,
-                            installedVersionFileIds: Set<Int> = []) -> Outcome {
+                            installedVersionFileIds: Set<Int> = [],
+                            legacyUnreadable: Bool = false) -> Outcome {
         func isInstalledVersion(_ version: String) -> Bool {
             NexusUpdateChecker.compare(version, installedVersion) == .orderedSame
         }
@@ -114,7 +123,9 @@ public enum LegacyFileCleanup {
             source = reference.isLocal ? .localHistory : .nexusRecent
             bound = reference.isLocal ? .max : (sameRecentIds + sameLegacy.map(\.fileId)).max() ?? 0
         } else {
-            guard let newest = sameLegacy.map(\.fileId).max() else { return .noReference }
+            guard let newest = sameLegacy.map(\.fileId).max() else {
+                return legacyUnreadable ? .legacyUnreadable : .noReference
+            }
             referenceKeys = []
             source = .nexusLegacy
             bound = newest
@@ -160,7 +171,7 @@ public enum LegacyFileCleanup {
         }
         return .plan(Plan(candidates: candidates.sorted { $0.path < $1.path },
                           reference: source, nexusIncomplete: nexusIncomplete,
-                          preselectsIdentical: preselects))
+                          legacyUnreadable: legacyUnreadable, preselectsIdentical: preselects))
     }
 
     /// Les sous-dossiers qui portent leur propre `manifest.json` : d'autres

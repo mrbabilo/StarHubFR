@@ -311,7 +311,7 @@ public struct SmapiDiagnostics: Sendable {
             // Per-mod ERROR counts and WARN tallies (context attribution;
             // SMAPI/game excluded), from one split of the header.
             if benign == nil, let head = header(of: raw), let mod = head.mod {
-                if head.level == "ERROR" { errorCounts[mod, default: 0] += 1 }
+                if head.level == "ERROR" || LoggedOnceError.isError(rawLevel: head.level, source: mod, message: body) { errorCounts[mod, default: 0] += 1 }
                 if head.level == "WARN" { warnings.add(mod: warningMod(context: mod, body: body), body: body) }
             }
 

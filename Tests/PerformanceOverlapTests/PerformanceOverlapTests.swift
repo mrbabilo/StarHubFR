@@ -93,8 +93,8 @@ struct PerformanceOverlapTests {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.7.6")
-        #expect(measured("phuicmt.SDVRadiance") == "2.4.5")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.8.4")
+        #expect(measured("phuicmt.SDVRadiance") == "2.4.7")
         #expect(measured("Arshia1381.Stardropium") == "0.3.0")
         #expect(measured("baiyu.StardewOptimizer") == "3.0.3")
     }
@@ -112,7 +112,7 @@ struct PerformanceOverlapTests {
                   "ModEntry+Utility.GetTilesByProperty"] {
             #expect(dropUS.sharedMethods.contains(m))
         }
-        #expect(dropUS.sharedMethods.count == 20)
+        #expect(dropUS.sharedMethods.count == 21)
         let radUS = try #require(PerformanceOverlap.catalog.first {
             $0.key == "palmhacker13.ultrasmooth|phuicmt.sdvradiance"
         })
@@ -129,15 +129,18 @@ struct PerformanceOverlapTests {
 
     /// `GameLocation.passTimeForObjects` est patchée **par défaut** des deux
     /// côtés : UltraSmooth par `ClockTickOptimizer` depuis 2.4.9 (seul garde
-    /// `EnableMod`), Stardropium par `TenMinuteClockOptimizationModule`. Seule
-    /// `timeUpdate` reste derrière l'option expérimentale d'UltraSmooth.
+    /// `EnableMod`), Stardropium par `TenMinuteClockOptimizationModule`.
+    /// Depuis UltraSmooth 2.8.4, `timeUpdate` suit le même chemin : le même
+    /// `ClockTickOptimizer` la patche, sans l'option expérimentale qui la
+    /// gardait jusqu'en 2.7.6.
     @Test func passTimeForObjectsEstPartageeParDefaut() throws {
         let pair = try #require(PerformanceOverlap.catalog.first {
             $0.key == "arshia1381.stardropium|palmhacker13.ultrasmooth"
         })
         #expect(pair.sharedMethods.contains("GameLocation.passTimeForObjects"))
-        #expect(pair.conditionalMethods == ["GameLocation.timeUpdate"])
-        #expect(pair.conditionalOption == "EnableExperimentalFeatures")
+        #expect(pair.sharedMethods.contains("GameLocation.timeUpdate"))
+        #expect(pair.conditionalMethods.isEmpty)
+        #expect(pair.conditionalOption == nil)
     }
 
     @Test func stardewOptimizerRecouvreUltraSmoothEtStardropium() throws {

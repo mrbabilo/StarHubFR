@@ -26,7 +26,15 @@ struct GameExitRefresh: ViewModifier {
     var viewModel: StarHubTHViewModel
 
     func body(content: Content) -> some View {
-        content.onReceive(GameExit.publisher) {
+        content
+        // Reprise après un plantage : réglages d'UltraSmooth restés coupés par
+        // une mesure. Deux minutes de marge : la fenêtre peut réapparaître
+        // entre le réglage d'une mesure et le démarrage du jeu.
+        .onAppear { UltraSmoothMeasureLive.afterGameExit(viewModel, exitedAt: Date().addingTimeInterval(-120)) }
+        .onReceive(GameExit.publisher) {
+            // Le publieur arrive 3 s après la sortie : une mesure relancée
+            // depuis garde ses réglages (`lastAppliedAt` plus récent).
+            UltraSmoothMeasureLive.afterGameExit(viewModel, exitedAt: Date().addingTimeInterval(-3))
             // P5-7 — le journal de la session close, quelle que soit la page :
             // sans cela, Alertes et Santé gardaient celui d'avant jusqu'au
             // prochain rescan. La recherche du mod responsable et la mesure
