@@ -235,7 +235,7 @@ Boundaries: code/commits/PRs written normal.
 
 Contexte global, valable pour tous les projets de David :
 
-- OpenCode est l'agent principal : 6 serveurs MCP globaux (context7, deepwiki, github — auth PAT via variable d'environnement, playwright, chrome-devtools, notion) et 18 skills globaux dans ~/.agents/skills. Les conventions de ce projet priment sur les skills génériques.
+- OpenCode est l'agent principal : 6 serveurs MCP globaux (context7, deepwiki, github — auth PAT via variable d'environnement, playwright, chrome-devtools, notion) et 24 skills globaux dans ~/.agents/skills (usage dans ce projet : section « Skills à utiliser »). Les conventions de ce projet priment sur les skills génériques.
 - Préférences : travail en français ; recommandations vérifiées (installations, étoiles, réputation de la source, scans de sécurité) avant d'installer un outil ; jamais de secret en clair dans les fichiers de config (variables d'environnement uniquement, syntaxe {env:VAR}) ; diagnostic de la cause avant de corriger.
 - GitHub : compte mrbabilo. Clones locaux : /Volumes/BABILODONNEES/GitHub.
 - Mémoire complète : page Notion « Mémoire agent — OpenCode (David) » — https://app.notion.com/p/4149fa0959e381cd944dfe54e3838b9d
@@ -243,4 +243,13 @@ Contexte global, valable pour tous les projets de David :
 ### Ce projet
 - Gestionnaire de mods Stardew Valley (Swift, Swift Package Manager, cible StarHubTHCore, macOS 14+ — cohérent avec Info.plist LSMinimumSystemVersion). 6 suites de tests SPM.
 - Copie locale de StarHubFR (dépôt public github.com/mrbabilo/StarHubFR) — garder les deux noms en tête lors des échanges.
-- Skills dédiés : swift-expert (ingénierie), swiftui-design-skill (esthétique des vues).
+
+## Skills à utiliser
+
+Noms des skills : OpenCode les lit dans `~/.agents/skills`. Claude Code les voit dans `~/.claude/skills`, sauf `brainstorming`, `writing-plans`, `test-driven-development` et `systematic-debugging`, qu'il appelle `superpowers:<nom>`. « Claude Code seul » marque un skill de plugin absent d'OpenCode. Les règles de ce fichier priment sur celles d'un skill.
+
+- Méthode : `brainstorming` avant une fonction nouvelle, `writing-plans` avant un chantier en plusieurs étapes, `systematic-debugging` avant de corriger un bug, `test-driven-development` pour le code couvert par des tests.
+- Skills du dépôt (`.claude/skills/`, copiés dans `.agents/skills/`) : `build-app`, `localization`, `release`, `audit-code`, `audit-ux`, `caveman-learn`. Quand les lancer : voir `CLAUDE.md`.
+- `check-sources` : tout changement d'une source externe (API appelée, dump téléchargé, code repris), avec le cliquet `check_sources.py`.
+- `swift-expert` : ingénierie Swift (concurrence, SPM, tests).
+- `swiftui-design-skill` : esthétique des vues SwiftUI, dans les contraintes de la section 6.
