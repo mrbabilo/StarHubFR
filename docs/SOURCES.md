@@ -572,6 +572,18 @@ Journaux estampillés « lus » le jour même : les quatre mods ci-dessus, plus
 ces trois-là **n'ont publié aucun journal** (contrôlé par `--fetch-changelogs`,
 rien à lire).
 
+**Deltas décompilés le soir même** (le parc portait déjà les quatre
+versions) : [`audit-ultrasmooth-2.9.6.md`](audit-ultrasmooth-2.9.6.md).
+Catalogue A5-T7 : cibles de patch d'UltraSmooth 2.9.6 et de Radiance 2.5.1
+**identiques** à 2.9.2 / 2.4.9, aucune paire ne bouge, versions passées dans
+`PerformanceOverlap.swift`. Radiance : la ligne `Stutter:` (niveau TRACE,
+seuil 50 ms, une ligne par 10 s au plus, trois segments facultatifs) est
+relevée pour D2. PureBinarySave 2.0.8 : `MobileCompatibilityMode` et
+`NotifyOnXmlMirrorComplete`, garde X138 intacte. Modern Config Menu 2.5.2 :
+API inchangée, une clé `VirtualKeyboardSize` ; sur le parc, son `fr.json`
+a **43 clés de retard** (180 sur 223) et celui d'UltraSmooth **127** (230
+sur 351 `config.*`).
+
 ### Ce que Stardrop a livré depuis notre audit
 
 Notre audit date du **2026-07-31** ; Stardrop a poussé jusqu'au **2026-09-01**

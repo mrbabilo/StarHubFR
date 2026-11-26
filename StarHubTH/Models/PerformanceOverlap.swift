@@ -9,8 +9,10 @@ import Foundation
 /// sur un parc sain apprend à l'ignorer.
 ///
 /// La table est tenue à la main, chaque paire **mesurée par décompilation**
-/// (ilspycmd ; dernière remesure le 2026-11-18 : UltraSmooth 2.9.2 et Radiance
-/// 2.4.9, delta sans paire nouvelle ni retirée — toutes les cibles du
+/// (ilspycmd ; dernière remesure le 2026-11-26 : UltraSmooth 2.9.6 et Radiance
+/// 2.5.1, cibles de patch identiques à 2.9.2 / 2.4.9 —
+/// `docs/audit-ultrasmooth-2.9.6.md` ; celle du 2026-11-18 : UltraSmooth 2.9.2
+/// et Radiance 2.4.9, delta sans paire nouvelle ni retirée — toutes les cibles du
 /// catalogue sont encore posées, et le seul recouvrement littéral nouveau
 /// (`XnaDisplayDevice.m_tileSheetTextures`) est une **lecture de champ** chez
 /// les deux, pas un patch ; UltraSmooth 2.9.x a en revanche **retiré** son
@@ -96,6 +98,9 @@ public struct PerformanceOverlap: Equatable, Sendable {
 }
 
 extension PerformanceOverlap {
+    // Remesure 2026-11-26 (audit-ultrasmooth-2.9.6.md) : UltraSmooth 2.9.6 et
+    // Radiance 2.5.1, 396 et 108 cibles nommées identiques aux versions
+    // précédentes ; aucune paire ne bouge.
     // Remesure 2026-11-18 (audit-ultrasmooth-2.9.2.md) : UltraSmooth 2.9.2 et
     // Radiance 2.4.9 décompilées (avec Stardropium 0.3.0 re-décompilé — la
     // passe du 2026-11-02 avait échoué et reposait sur la carte de la sonde).
@@ -108,11 +113,11 @@ extension PerformanceOverlap {
     // d'un nouveau préfixe sur `Condition.UpdateContext` et les internes
     // d'énumérateurs — méthodes internes de Content Patcher, hors jeu, hors
     // catalogue (aucun autre mod du catalogue ne les touche).
-    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.9.2",
+    private static let ultraSmooth = Member(uniqueId: "palmhacker13.UltraSmooth", measuredVersion: "2.9.6",
                                             assemblyName: "UltraSmooth")
     private static let stardropium = Member(uniqueId: "Arshia1381.Stardropium", measuredVersion: "0.3.0",
                                             assemblyName: "Stardropium")
-    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.4.9",
+    private static let radiance = Member(uniqueId: "phuicmt.SDVRadiance", measuredVersion: "2.5.1",
                                          assemblyName: "SDV-Radiance")
     private static let stardewOptimizer = Member(uniqueId: "baiyu.StardewOptimizer", measuredVersion: "3.0.3",
                                                  assemblyName: "StardewOptimizer")

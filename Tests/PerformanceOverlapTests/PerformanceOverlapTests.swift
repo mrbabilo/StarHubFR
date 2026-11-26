@@ -92,8 +92,8 @@ struct PerformanceOverlapTests {
             PerformanceOverlap.catalog.flatMap { [$0.first, $0.second] }
                 .first { $0.uniqueId == id }?.measuredVersion
         }
-        #expect(measured("palmhacker13.UltraSmooth") == "2.9.2")
-        #expect(measured("phuicmt.SDVRadiance") == "2.4.9")
+        #expect(measured("palmhacker13.UltraSmooth") == "2.9.6")
+        #expect(measured("phuicmt.SDVRadiance") == "2.5.1")
         #expect(measured("Arshia1381.Stardropium") == "0.3.0")
         #expect(measured("baiyu.StardewOptimizer") == "3.0.3")
     }
