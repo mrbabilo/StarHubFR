@@ -742,13 +742,21 @@ SOURCES = [
      "nexusId": 56037,
      "role": "traductions et réglages des mods gardés à travers les mises à "
              "jour (NatrollEXE, « Valley Keepsake », 1.0.0, paru le "
-             "2026-11-25, catégorie Modding Tools) : backup, recherche de "
-             "traductions manquantes, restauration — concurrent direct de "
-             "l'axe C et du couple config.json + fr.json que l'install garde "
-             "à la mise à jour. Quatre fichiers 1.0.0 du même jour, sans "
-             "journal ni dépôt relevé ; UniqueID inconnu (archive non lue) : "
-             "smapi.io résout par la seule clé Nexus. Pas sur le parc au "
-             "relevé du 2026-11-26",
+             "2026-11-25) : bibliothèque miroir des i18n hors Mods/, "
+             "appariement par score, garde anti-écrasement, restauration de "
+             "config.json — en réalité un OUTIL Windows autonome (WinForms, "
+             ".NET auto-contenu de 116 Mo), pas un mod SMAPI : smapi.io "
+             "résout sa version par la seule clé Nexus. Décompilé le "
+             "2026-11-26 (mécaniques dans ~/Outils/analyses/"
+             "valleykeepsake-1.0.0/mecaniques.md) ; aucun appel smapi.io ni "
+             "Nexus dans son code, mises à jour par l'API GitHub de son "
+             "dépôt. Pas sur le parc",
+     "used_by": "docs/SOURCES.md §5"},
+
+    {"key": "mod/valley-keepsake-src", "kind": "repo", "repo": "SheilaEXE/Valley-Keepsake",
+     "role": "dépôt public de Valley Keepsake (aucune licence déclarée) — "
+             "l'outil interroge ses releases pour se mettre à jour ; suivi "
+             "de l'activité du projet",
      "used_by": "docs/SOURCES.md §5"},
 
     {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,

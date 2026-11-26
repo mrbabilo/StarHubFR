@@ -271,6 +271,15 @@
     "name": null,
     "version": "1.0.0"
   },
+  "mod/valley-keepsake-src": {
+    "archived": false,
+    "default_branch": "master",
+    "last_commit": "962e809",
+    "last_commit_at": "2026-11-25T20:21:49Z",
+    "pushed_at": "2026-11-25T20:21:51Z",
+    "release": "v1.0.0",
+    "released_at": "2026-10-04T16:29:22Z"
+  },
   "nexus/api-v1": {
     "bytes": 53,
     "http": 401
