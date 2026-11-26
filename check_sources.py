@@ -738,6 +738,19 @@ SOURCES = [
              "Hazel.TranslationHub.Data. En pause sur le parc (les deux dossiers)",
      "used_by": "docs/SOURCES.md §5"},
 
+    {"key": "mod/valley-keepsake", "kind": "smapi-mod", "probe": probe_smapi_mod,
+     "nexusId": 56037,
+     "role": "traductions et réglages des mods gardés à travers les mises à "
+             "jour (NatrollEXE, « Valley Keepsake », 1.0.0, paru le "
+             "2026-11-25, catégorie Modding Tools) : backup, recherche de "
+             "traductions manquantes, restauration — concurrent direct de "
+             "l'axe C et du couple config.json + fr.json que l'install garde "
+             "à la mise à jour. Quatre fichiers 1.0.0 du même jour, sans "
+             "journal ni dépôt relevé ; UniqueID inconnu (archive non lue) : "
+             "smapi.io résout par la seule clé Nexus. Pas sur le parc au "
+             "relevé du 2026-11-26",
+     "used_by": "docs/SOURCES.md §5"},
+
     {"key": "mod/savesaver", "kind": "smapi-mod", "probe": probe_smapi_mod,
      "nexusId": 52709, "uniqueId": "Sky.SaveSaver",
      "role": "sanitation de sauvegardes au chargement (types orphelins, "

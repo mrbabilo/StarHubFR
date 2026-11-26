@@ -266,6 +266,11 @@
     "name": null,
     "version": "2.9.2"
   },
+  "mod/valley-keepsake": {
+    "gitHubRepo": null,
+    "name": null,
+    "version": "1.0.0"
+  },
   "nexus/api-v1": {
     "bytes": 53,
     "http": 401
