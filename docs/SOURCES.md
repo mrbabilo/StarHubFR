@@ -548,6 +548,29 @@ découpage Update/Draw/Present/GC — à accepter par le parseur D2 quand le
 chantier D2 rouvrira. Catalogue A5-T7 remesuré : aucune paire ne change,
 versions passées à 2.9.2 / 2.4.9 dans `PerformanceOverlap.swift`.
 
+### Relevé du 2026-11-26 — sept écarts, deux concurrents inscrits
+
+Relevé lancé à la demande de l'auteur, huit jours après celui du 18 novembre.
+Journaux lus par `--fetch-changelogs` (notes de release des dépôts par l'API
+GitHub). Deux sources inscrites le jour même à leur état courant, sans écart :
+`MoonValley` (gestionnaire concurrent Windows, §5) et `mod/valley-keepsake` +
+`mod/valley-keepsake-src` (outil de traductions décompilé le jour même, §5).
+
+| Source | Écart | Décision |
+|---|---|---|
+| `fork/StarHubFR` | dernier commit poussé 5bbbed4 → d0806d3 (nos C7-T2 du 2026-11-19) | nous-mêmes ; `--update` |
+| `JuniGrid` | v1.3.5 → **v1.3.7** (trois releases du 21 au 24 nov., journaux en chinois lus) : **ajout d'une gestion de sauvegardes**, bascule de mods qui vidait les catégories corrigée, erreurs réseau/mandateur dites clairement et auto-guéries, chemin `Saves` déplacé par `mklink` enfin respecté | le concurrent WebView2 empiète à son tour sur les sauvegardes — idées relevables, rien à porter ; §5 reste la carte |
+| `mod/modern-config-menu` | 2.4.3 → **2.5.2** : refonte UI complète, rampe d'échelle 150 → 250 %, clavier virtuel de rebind, navigation manette | corpus de l'éditeur (115 clés) à remesurer quand le parc passera en 2.5.x ; aucune clé annoncée hors la borne d'échelle (2.4.4) |
+| `mod/pure-binary-save` | 2.0.6 → **2.0.8** : 2.0.7 mode sûr mobile/émulateur (**nouvelle clé config**), 2.0.8 notification HUD de fin d'écriture XML (**nouvelle clé**, off par défaut) | la garde X138/AutoHeal **non touchée** au journal ; deux clés qui rejoindront le corpus à la mise à jour du parc, delta à décompiler depuis le parc comme les précédents |
+| `mod/radiance` | 2.4.9 → **2.5.1** : 2.5.0 refait le menu F6 (recherche par mots vus, « Measure this machine » ~30 s) et **écrit les à-coups ≥ 50 ms au journal SMAPI** (durée, lieu, part de Radiance et de son module, GC) ; 2.5.1 borne le « wide glow » aux lampes de nuit | surface de journal neuve pour le chantier **D2** — le parseur devra accepter ces lignes ; en pause sur le parc, delta à décompiler au moment de sa mise à jour |
+| `mod/ultrasmooth` | 2.9.2 → **2.9.6** : gel au coucher en co-op sur écrans rapides, préchauffe SpaceCore au menu de chargement, compat Clear Monocle, fondus qui attendent les dialogues (scènes de voyage Downtown Zuzu), conditions CP plus fidèles aux cas limites | `us_trace` inchangé au journal ; conditions revues → **catalogue A5-T7 à remesurer sur la 2.9.6** (actif sur le parc), delta à décompiler depuis le parc |
+| `save-editor` | 5 commits (23–24 nov.) : panneaux V2 routés via SvelteKit, export en Effect avec retour de récupération, session qui survit au teardown, calendrier documenté | notre crédit §3 reste exact (référence d'idées dans `SaveManager`) ; refonte web, rien à reprendre de suite |
+
+Journaux estampillés « lus » le jour même : les quatre mods ci-dessus, plus
+`global-settings` 1.0.0, `translation-hub` 0.6.1 et `valley-keepsake` 1.0.0 —
+ces trois-là **n'ont publié aucun journal** (contrôlé par `--fetch-changelogs`,
+rien à lire).
+
 ### Ce que Stardrop a livré depuis notre audit
 
 Notre audit date du **2026-07-31** ; Stardrop a poussé jusqu'au **2026-09-01**

@@ -2,11 +2,11 @@
   "JuniGrid": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "fe90d75",
-    "last_commit_at": "2026-11-17T11:56:50Z",
-    "pushed_at": "2026-11-17T11:56:52Z",
-    "release": "v1.3.5",
-    "released_at": "2026-11-17T11:46:35Z"
+    "last_commit": "cbc1bfd",
+    "last_commit_at": "2026-11-24T11:57:58Z",
+    "pushed_at": "2026-11-24T12:04:17Z",
+    "release": "v1.3.7",
+    "released_at": "2026-11-24T12:03:31Z"
   },
   "MoonValley": {
     "archived": false,
@@ -86,9 +86,9 @@
   "fork/StarHubFR": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "5bbbed4",
-    "last_commit_at": "2026-11-18T19:03:47Z",
-    "pushed_at": "2026-11-18T19:05:23Z",
+    "last_commit": "d0806d3",
+    "last_commit_at": "2026-11-19T19:23:56Z",
+    "pushed_at": "2026-11-19T19:23:59Z",
     "release": "v1.74.1",
     "released_at": "2026-11-11T23:01:49Z"
   },
@@ -134,6 +134,7 @@
     "version": "1.5.0"
   },
   "mod/global-settings": {
+    "changelog_reviewed": "1.0.0",
     "gitHubRepo": null,
     "name": null,
     "version": "1.0.0"
@@ -181,10 +182,10 @@
     "version": "0.2.0"
   },
   "mod/modern-config-menu": {
-    "changelog_reviewed": "2.4.3",
+    "changelog_reviewed": "2.5.2",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.3"
+    "version": "2.5.2"
   },
   "mod/profile-manager": {
     "gitHubRepo": null,
@@ -198,16 +199,16 @@
     "version": "2.0.0"
   },
   "mod/pure-binary-save": {
-    "changelog_reviewed": "2.0.6",
+    "changelog_reviewed": "2.0.8",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.0.6"
+    "version": "2.0.8"
   },
   "mod/radiance": {
-    "changelog_reviewed": "2.4.9",
+    "changelog_reviewed": "2.5.1",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.4.9"
+    "version": "2.5.1"
   },
   "mod/save-launcher": {
     "gitHubRepo": null,
@@ -250,6 +251,7 @@
     "version": null
   },
   "mod/translation-hub": {
+    "changelog_reviewed": "0.6.1",
     "gitHubRepo": null,
     "name": null,
     "version": "0.6.1"
@@ -261,12 +263,13 @@
     "version": "1.8.3"
   },
   "mod/ultrasmooth": {
-    "changelog_reviewed": "2.9.2",
+    "changelog_reviewed": "2.9.6",
     "gitHubRepo": null,
     "name": null,
-    "version": "2.9.2"
+    "version": "2.9.6"
   },
   "mod/valley-keepsake": {
+    "changelog_reviewed": "1.0.0",
     "gitHubRepo": null,
     "name": null,
     "version": "1.0.0"
@@ -321,9 +324,9 @@
   "save-editor": {
     "archived": false,
     "default_branch": "main",
-    "last_commit": "74a6e44",
-    "last_commit_at": "2026-11-15T07:05:36Z",
-    "pushed_at": "2026-11-16T22:47:36Z"
+    "last_commit": "af312d7",
+    "last_commit_at": "2026-11-24T22:17:58Z",
+    "pushed_at": "2026-11-24T22:19:10Z"
   },
   "smapi.io/contrat": {
     "cles_metadata": [
