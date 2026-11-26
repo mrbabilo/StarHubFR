@@ -515,6 +515,14 @@ SOURCES = [
              "ses idées se relèvent, son code ne se reprend pas sans trancher",
      "used_by": "docs/SOURCES.md §5"},
 
+    {"key": "MoonValley", "kind": "repo", "repo": "Vargking/MoonValley",
+     "role": "gestionnaire concurrent (WinUI 3, Windows x64, .NET 10) — "
+             "bibliothèque de mods avec profils, éditeur visuel de sauvegardes "
+             "et atelier de mods sans code ; paru le 2026-11-24, aucune "
+             "licence déclarée : ses idées se relèvent, son code ne se "
+             "reprend pas",
+     "used_by": "docs/SOURCES.md §5"},
+
     {"key": "i18n-translator", "kind": "repo", "repo": "Nana1873/stardew-i18n-translator",
      "role": "référence du hub de traduction : jetons protégés, garanties d'écriture",
      "used_by": "docs/ (spec du hub FR), TranslationTokenCheck, TranslationDocument"},

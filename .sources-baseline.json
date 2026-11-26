@@ -8,6 +8,15 @@
     "release": "v1.3.5",
     "released_at": "2026-11-17T11:46:35Z"
   },
+  "MoonValley": {
+    "archived": false,
+    "default_branch": "main",
+    "last_commit": "7ae334f",
+    "last_commit_at": "2026-11-22T05:27:40Z",
+    "pushed_at": "2026-11-24T10:20:13Z",
+    "release": "Windows-x64",
+    "released_at": "2026-11-24T10:20:13Z"
+  },
   "SMAPI": {
     "archived": false,
     "default_branch": "develop",
