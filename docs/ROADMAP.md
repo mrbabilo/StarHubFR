@@ -742,6 +742,69 @@ miroir GitHub chinois, la bibliothèque de traductions pt-BR d'abord.
 
 ---
 
+### Éditeur de sauvegardes complet — **Axe B6** · **à cadrer** *(demandé le 2026-11-27)*
+
+Demande de l'auteur : **toutes** les fonctions de l'éditeur de MoonValley
+dans le nôtre ([audit de leur code](SOURCES.md), notes hors dépôt
+`~/Outils/analyses/moonvalley/mecaniques.md` §4 et §8), **et** les parties
+PureBinarySave prises en compte et éditables. Idées seulement : MoonValley
+n'a pas de licence, tout se réécrit. Cadrage en cours (design, puis plan) :
+**ordre des lots à trancher avec l'auteur**, rien de codé.
+
+À garder quoi qu'il arrive : pas de plafond de taille (le leur, 32 Mio,
+refuse la partie de 37,5 Mo de l'auteur), marque d'octets rendue (X21),
+garde X138, backup avant écriture, lecture et écriture sans perte
+(`.nodePreserveAll`, X157), et les trois verrous de B5-T1.
+
+- [ ] **B6-T1 — Modèle de la partie en mémoire.** Aujourd'hui `updateSave`
+      remplace du texte par expressions régulières dans 36 Mo et seul
+      l'inventaire passe par un arbre XML. Toutes les fonctions suivantes
+      demandent un arbre chargé une fois, modifié, puis écrit d'un coup avec
+      contrôle d'empreinte (B5-T1). Socle des autres items. · **L**
+- [ ] **B6-T2 — Parties PureBinarySave éditables.** Vérifier d'abord que le
+      format du `.bin` relevé sur la 1.0.10 (en-tête `PPBS` + XML en Brotli,
+      `PureBinarySave+File.swift`) vaut encore en 2.0.8 — la 2.x embarque
+      MessagePack. Puis : XML complet = éditer le XML et écarter le `.bin`
+      (la garde `.bin.sync` du mod re-migre) ; XML réduit à un talon (refusé
+      aujourd'hui par X138) = reconstruire le XML complet depuis le `.bin`,
+      l'éditer, écarter le `.bin`. · **M**
+- [ ] **B6-T3 — Vue d'ensemble complète.** En plus de nos champs : santé et
+      énergie actuelles, niveaux et points d'expérience des six métiers,
+      date de la partie (jour, saison, année), argent total gagné ; fermier
+      choisi parmi joueur principal et invités ; `SaveGameInfo` tenu à jour
+      (X158). · **M**
+- [ ] **B6-T4 — Lecteur de données du jeu (XNB).** Objets, gros objets,
+      quêtes, lieux, habitants, courrier, événements, lus dans le jeu
+      installé et dans sa langue ; nous ne lisons aujourd'hui que des
+      dictionnaires de textes (`XnbStringDictionaryReader`). Socle des
+      catalogues. · **L**
+- [ ] **B6-T5 — Images du jeu pour les catalogues.** Lecture des textures
+      XNB (compressions LZX et LZ4) pour afficher les objets et les
+      portraits. Le plus gros morceau ; à peser contre un catalogue sans
+      images. · **XL**
+- [ ] **B6-T6 — Sac avec catalogue illustré.** Ajouter ou remplacer un
+      objet en le choisissant (parties 1.6 et plus), quantité, qualité,
+      copier, supprimer ; outils, armes, anneaux, bottes, chemises. Dépend
+      de B6-T4 (et B6-T5 pour les images). · **M**
+- [ ] **B6-T7 — Relations.** Points d'amitié par habitant (250 par cœur),
+      statut ami / fiancé / marié, création d'une relation absente ;
+      prévenir qu'un divorce ne s'annule pas. Prolonge notre changement de
+      conjoint. · **M**
+- [ ] **B6-T8 — Quêtes, collections, courrier, événements.** Journal des
+      quêtes (création typée, récompense, jours restants, statut), poissons
+      pêchés, artefacts, minéraux, objets expédiés, recettes connues et
+      cuisinées, courrier reçu et à venir, événements vus ; choix dans les
+      catalogues de B6-T4. · **L**
+- [ ] **B6-T9 — Carte de la ferme.** Objets posés, meubles, arbres,
+      cultures, sol labouré, chemins, bâtiments : ajouter, remplacer,
+      supprimer, annuler et refaire ; refus pour ce qui renvoie ailleurs
+      (contenus de coffres, aquariums, lits hors de la ferme). · **XL**
+- [ ] **B6-T10 — Éditeur libre de tous les champs.** Arbre de la partie
+      parcouru et cherché (nom de champ, valeur, attribut), `modData` des
+      mods compris, valeurs numériques vérifiées avant écriture. · **M**
+
+---
+
 ### Découverte de nouveaux mods — **Axe G** · livré en **v1.25.0**
 
 > ✅ **Les 3 items de ce lot sont livrés.** Leur récit et leurs mesures vivent dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 dit lesquels.
