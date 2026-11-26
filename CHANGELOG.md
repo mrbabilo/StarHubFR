@@ -33,6 +33,17 @@ where the exact log format was verified.
   tracking** (the registry accepts an id-less declaration carrying the pack
   folder), and the card says so before the click.
 
+### Fixed
+
+- **Editing a save's inventory no longer erases quest text (X157)**: the
+  save was re-parsed in a "tidy" mode that silently dropped every element
+  whose name starts with an underscore — on a real 37 MB save, the title,
+  description and objective of all 33 quests in the journal, plus two map
+  fields — and squeezed whitespace inside texts such as letters. The file
+  is now read and written as-is, and no longer re-indented (it grew from
+  36 to 90 MB). Saves edited before this fix keep their pre-edit backup
+  next to them.
+
 ## [1.74.1] - 2026-11-12
 
 ### Fixed

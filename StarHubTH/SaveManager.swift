@@ -1109,8 +1109,8 @@ public final class SaveManager: @unchecked Sendable {
         guard PureBinarySave.allowsEditing(info.fileURL), backupSave(info: info) else { return false }
         
         let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
-        guard let data = try? Data(contentsOf: info.fileURL),
-              let document = try? XMLDocument(data: data, options: .documentTidyXML),
+        guard let data = try? Data(contentsOf: info.fileURL),  // jamais `.documentTidyXML` : il effaçait les `_questTitle`… (X157)
+              let document = try? XMLDocument(data: data, options: [.nodePreserveAll]),
               let root = document.rootElement() else {
             return false
         }
@@ -1151,7 +1151,7 @@ public final class SaveManager: @unchecked Sendable {
         }
         
         do {
-            let updatedXMLData = document.xmlData(options: .nodePrettyPrint)
+            let updatedXMLData = document.xmlData(options: [.nodePreserveAll])  // sans réindenter : 36 → 90 Mo (X157)
             try PureBinarySave.write(Self.bytes(updatedXMLData, preservingBOM: hadBOM),
                                      to: info.fileURL)
             return true

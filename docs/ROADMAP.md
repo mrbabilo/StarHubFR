@@ -115,7 +115,10 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
 2026-11-26 (`SaveManager.swift`, `SaveEditorView.swift`), mesurés sur une
 copie de la partie « Zofia » de l'auteur, rien écrit dans `Saves/` :
 
-- [ ] **X157 — Modifier l'inventaire efface 101 éléments de la partie.**
+- [x] **X157 — Modifier l'inventaire efface 101 éléments de la partie.**
+      ✅ *Corrigé le 2026-11-27* : lecture et écriture en `[.nodePreserveAll]`,
+      `SaveInventoryRoundTripTests` (3 tests, rouges avant, verts après) ;
+      reste à valider en jeu sur une partie réelle.
       `updateInventory` (`SaveManager.swift` L.1113) analyse la partie avec
       `XMLDocument(…, options: .documentTidyXML)` puis la réécrit en entier :
       le mode « tidy » **supprime tout élément dont le nom commence par `_`**
