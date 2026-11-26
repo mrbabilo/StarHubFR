@@ -292,6 +292,33 @@ des manifestes). Une pastille qui ne s'allumerait jamais : **C6-T1 n'est pas liv
       « ce que cette traduction ne couvrira pas » **avant** d'écrire. À peser
       avec C3-T2 (décision au cas).
 
+- [ ] **C7-T4 — Association par score avec écart minimal** *(idée à peser —
+      [Valley Keepsake](SOURCES.md), relevée le 2026-11-26)*. Leur
+      appariement traduction → mod installé note chaque candidat (chemin
+      identique 250, nom normalisé 100, dernier segment d'`UniqueID` 92,
+      inclusion 78/72, jetons communs ≤ 65) et ne présélectionne que si le
+      meilleur score atteint 90 **et** devance le deuxième d'au moins 15
+      points ; sinon « à confirmer ». Pour nous : ajouter l'écart au premier
+      candidat comme condition de C7-T1 (aujourd'hui seuil absolu de
+      recouvrement ≥ 0,70) et le dernier segment d'`UniqueID` comme indice
+      faible. Mesurer sur les 586 traductions du parc avant de toucher au
+      seuil.
+- [ ] **C7-T5 — Traductions absentes ou incomplètes, avec le nombre de clés**
+      *(idée à peser — Valley Keepsake + constat du parc du 2026-11-26)*. Leur
+      liste « traductions manquantes » est un simple filtre disque (un
+      `i18n/` sans le fichier de la langue cible). Constat chez nous : le
+      `fr.json` de Modern Config Menu 2.5.2 couvre 180 clés sur 223, celui
+      d'UltraSmooth 2.9.6 230 sur 351 (`docs/audit-ultrasmooth-2.9.6.md`).
+      **D'abord** vérifier à l'écran ce que le hub montre pour ces deux mods ;
+      s'il ne dit pas « incomplète, N clés manquantes », l'ajouter. Recoupe
+      C7-T3 (clés manquantes avant écriture).
+- [ ] **C7-T6 — Compléter seulement les clés manquantes** *(idée à peser —
+      même constat)*. Quand une traduction posée a pris du retard sur son
+      `default.json`, proposer de traduire les seules clés absentes (moteur
+      de traduction existant, jetons vérifiés par `TranslationTokenCheck`)
+      sans toucher aux clés déjà traduites, avec backup et diff comme toute
+      écriture du hub. Dépend de C7-T5.
+
 **Risques** : c'est la version la plus exposée à la perte de données utilisateur (écriture
 dans les fichiers des mods). Aucune écriture sans backup préalable ni diff affiché.
 **Critère de succès** : traduire un mod moyen de bout en bout sans quitter StarHubFR, et
@@ -522,6 +549,18 @@ le journal réel le 2026-09-04.
       preuve par code, aucune vérification en jeu à coût raisonnable (pas de
       commande GSQ, seuls usages du parc hors rafale par trame). Restent la
       session de jeu de l'auteur puis le dépôt des signalements.
+- [ ] **D2-T7** — Lire les lignes `Stutter:` de Radiance 2.5.x *(relevé le
+      2026-11-26, [audit](audit-ultrasmooth-2.9.6.md))*. Une ligne par à-coup
+      ≥ 50 ms (66,7 ms sur le chemin de l'économiseur), au niveau **TRACE**,
+      au plus une toutes les 10 s : durée, lieu, heure de jeu, part de
+      Radiance (trois modules au plus), reste du jeu (soustraction, pas
+      mesure), collectes GC et lignes tues — trois segments facultatifs.
+      Idée : regrouper par lieu (« la Ferme : 12 à-coups, Radiance 8 % »)
+      dans le rapport de performance. **Contrainte** : lire le fichier
+      entier, comme la carte de santé — la liste de `LogStore` jette les
+      TRACE les plus anciennes au-delà du plafond (`LogBudget`), donc les
+      à-coups du début de session. Parseur tolérant : forme changée = ligne
+      ignorée et comptée, jamais un chiffre inventé. · **S**
 
 **Risques** : mêmes que D1 — formats de sortie de mods tiers, parseurs tolérants,
 **ne jamais inventer de chiffre**. La ventilation fine « ce mod coûte X ms »
@@ -610,6 +649,56 @@ lus sur le parc réel, sans décompiler ni lire un journal.
 #### D6 — Mesure pilotée et benchmark contextualisé
 
 > ✅ **D6 est livré** (v1.63.0) **et validé à l'écran le 2026-10-16.** Son récit vit dans [`roadmap-archive.md`](roadmap-archive.md) ; l'index du §11 le dit.
+
+---
+
+### Idées de MoonValley et Valley Keepsake — à peser *(relevées le 2026-11-26)*
+
+Deux concurrents décompilés ou lus le 2026-11-26 (notes de mécaniques hors
+dépôt, [`SOURCES.md`](SOURCES.md) §5), **sans licence** tous deux : les
+idées se relèvent, le code jamais. Rien d'engagé ; chaque item se mesure ou
+se vérifie avant de se coder.
+
+- [ ] **B5-T1 — Écriture d'une partie sous quatre verrous** *(MoonValley)*.
+      Leur éditeur refuse si le jeu tourne, compare l'empreinte SHA-256 du
+      fichier entre l'ouverture et l'écriture (refus s'il a bougé), copie tout
+      `Saves/` juste avant, puis remplace atomiquement ; la restauration est
+      journalisée et reprise au démarrage si elle a été interrompue. Chez
+      nous : jeu lancé et partie périmée (`isSaveStale`) déjà refusés,
+      backup avant écriture déjà fait (`SaveCleanupStore`). À vérifier :
+      empreinte avant/après (contre la seule date), et reprise d'une
+      restauration interrompue. Recoupe X138.
+- [ ] **B5-T2 — Proposer `NotifyOnXmlMirrorComplete` de PureBinarySave**
+      *(décompilé le 2026-11-26)*. La 2.0.8 sait afficher un message en jeu
+      quand la copie XML de fond est écrite (faux par défaut). L'alerte X138
+      pourrait la suggérer : le joueur saurait quand la partie peut être
+      modifiée sans risque. Lecture seule de la clé, écriture seulement sur
+      geste explicite via l'éditeur de config.
+- [ ] **B5-T3 — Lancer avec un dossier de mods par profil
+      (`SMAPI_MODS_PATH`)** *(MoonValley)*. Ils ne touchent jamais au
+      `Mods/` du jeu : un dossier par combinaison de mods, construit par
+      copie, et SMAPI lancé avec la variable d'environnement qui pointe
+      dessus. **D'abord** vérifier dans la documentation et les sources de
+      SMAPI que la variable vaut sur macOS (non prouvé par leur code,
+      Windows seul). Si oui : complément au renommage à point (lancement de
+      test, profil isolé), pas remplacement. Coût : espace disque d'une copie
+      par combinaison, purge à prévoir (absente chez eux). · **L**
+- [ ] **B5-T4 — Partager un profil sans clés privées** *(MoonValley)*. Leur
+      export de profil ne garde que les clés de mise à jour des plateformes
+      publiques ; l'import rapproche par empreinte et liste les manquants,
+      sans rien télécharger. À peser seulement si un export de profil
+      partageable est engagé.
+- [ ] **A6-T1 — Vérification des dépendances avant lancement, en bloquant /
+      non bloquant** *(MoonValley)*. Leur graphe avant lancement distingue
+      « présente mais désactivée » et « absente », compare les versions
+      minimales, détecte cycles et doublons, et refuse le lancement sur un
+      problème bloquant. Chez nous l'essentiel existe déjà
+      (`DependencyIndex` sépare désactivée et absente, `DependencyTree`
+      voit les cycles) : reste à peser la **classification bloquant / non
+      bloquant** au moment du lancement.
+
+**Écartés** : leur atelier de règles sans code, leur lecteur XNB, leur
+miroir GitHub chinois, la bibliothèque de traductions pt-BR d'abord.
 
 ---
 
