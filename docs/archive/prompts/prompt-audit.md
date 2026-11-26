@@ -9,6 +9,8 @@
 > Remesurée 2026-10-09 : ViewModel remonté à 7 926 lignes (cliquet relevé par 27 commits en une semaine), 608 `.swift`, 4 371 `@Test`, X120–X127 trouvés puis corrigés le jour même (`docs/archive/audits-code/audit-delta-2026-10-09.md`).
 >
 > Remesurée 2026-11-05 : ViewModel à 7 843 lignes, 776 `.swift`, 4 877 `@Test`, 64 fichiers dans `Stores/`. Ce prompt vit sous `docs/archive/prompts/`. X146–X148 trouvés puis corrigés le jour même.
+>
+> Remesurée 2026-11-26 (audit de l'éditeur de sauvegardes) : ViewModel à 8 108 lignes, 795 `.swift`, 4 962 `@Test`, 68 fichiers dans `Stores/`. X157 et X158 ouverts. Le corps du prompt garde les chiffres du 2026-11-05.
 
 ---
 

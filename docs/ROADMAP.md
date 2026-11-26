@@ -89,7 +89,7 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
 **X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
 **X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05 ; **X146** (conflits prévus absents du badge, audit du ViewModel) **X147** (réouverture de la fenêtre pendant une mesure, audit de `StarHubTHApp`) **X148** (magasins oubliés par le renommage), **X149** et **X150** (`check_sources.py`, `release.py`), **X151** à **X153** (sonde : retour au titre, sauvegarde introuvable, aide des mini-stats), **X154** (partie de la mesure « après »), **X155** (⌘O depuis une fiche) et **X156** (`.rar` sur le Dock) le même jour.
 **Vérifiés par l'auteur le 2026-11-05**, à l'écran et en jeu : X146 à X148, X151 à X155, sonde 0.9.37. X156 reste à confirmer sur un Mac sans The Unarchiver, VLC ni Simple Comic.
-**Un correctif ouvert**, né d'un mod tiers (décompilation du 2026-11-02,
+**Trois correctifs ouverts.** Le premier, né d'un mod tiers (décompilation du 2026-11-02,
 [`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)) :
 
 - [ ] **X139 — La sonde ne voit plus le coût du changement d'heure avec
@@ -110,6 +110,35 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
       **Relevé le 2026-11-18 sur la 2.9.2 décompilée** : l'option reste vraie
       par défaut et un correctif 2.8.x empêche une copie de configuration de
       l'éteindre — [`audit-ultrasmooth-2.9.2.md`](audit-ultrasmooth-2.9.2.md).
+
+**Deux correctifs ouverts** par l'audit de l'éditeur de sauvegardes du
+2026-11-26 (`SaveManager.swift`, `SaveEditorView.swift`), mesurés sur une
+copie de la partie « Zofia » de l'auteur, rien écrit dans `Saves/` :
+
+- [ ] **X157 — Modifier l'inventaire efface 101 éléments de la partie.**
+      `updateInventory` (`SaveManager.swift` L.1113) analyse la partie avec
+      `XMLDocument(…, options: .documentTidyXML)` puis la réécrit en entier :
+      le mode « tidy » **supprime tout élément dont le nom commence par `_`**
+      et resserre les espaces des textes. Mesuré en repassant le sac sans
+      rien changer : `_questTitle`, `_questDescription` et
+      `_currentObjective` des **33 quêtes** du journal disparaissent (dont
+      « La Quête de la Mystérieuse Dame » de Cornucopia), plus
+      `_plankPosition` et `_plankDirection` d'un lieu ; une lettre perd ses
+      retours à la ligne ; `.nodePrettyPrint` fait passer le fichier de 36 à
+      90 Mo. Effet en jeu d'une quête sans titre non vérifié ; le backup pris
+      avant écriture permet de revenir. **Correctif vérifié sur la même
+      copie** : lire et écrire avec `[.nodePreserveAll]` — 0 écart sur les
+      1 644 859 éléments, taille d'origine à 9 Ko près (`standalone="yes"`
+      ajouté à la déclaration). Test rouge d'abord dans
+      `Tests/SaveManagerTests` (une partie avec `<_questTitle>`, aller-retour
+      par `updateInventory`, l'élément doit rester). · **S**
+- [ ] **X158 — Une partie éditée garde son ancien nom à l'écran de
+      chargement du jeu.** `updateSave` (L.570) n'écrit que le fichier
+      principal, pas `SaveGameInfo`, que lit l'écran de chargement : nom,
+      ferme et argent changés y restent anciens jusqu'à la prochaine
+      sauvegarde du jeu. La duplication (`modifyInternalSaveNames`) traite
+      déjà les deux fichiers. Démontré par le code, à confirmer à l'écran du
+      jeu. · **S**
 
 ---
 
