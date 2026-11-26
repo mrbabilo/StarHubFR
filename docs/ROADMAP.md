@@ -700,6 +700,14 @@ se vérifie avant de se coder.
       backup avant écriture déjà fait (`SaveCleanupStore`). À vérifier :
       empreinte avant/après (contre la seule date), et reprise d'une
       restauration interrompue. Recoupe X138.
+      **Précisé le 2026-11-27** par l'audit de leur code
+      (`~/Outils/analyses/moonvalley/mecaniques.md` §8) — trois écarts nets :
+      (1) empreinte SHA-256 relue **juste avant** le remplacement (nous : date
+      seule, au clic) ; (2) jeu fermé **revérifié** au même moment (nous : dans
+      la vue seulement) ; (3) restauration **journalisée et reprise** au
+      démarrage — chez nous une coupure laisse la partie dans
+      `<partie>_RESTORING_TEMP`, que la restauration suivante supprime (le
+      backup pris avant restauration garde les données).
 - [ ] **B5-T2 — Proposer `NotifyOnXmlMirrorComplete` de PureBinarySave**
       *(décompilé le 2026-11-26)*. La 2.0.8 sait afficher un message en jeu
       quand la copie XML de fond est écrite (faux par défaut). L'alerte X138
