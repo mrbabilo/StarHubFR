@@ -8,6 +8,7 @@ Déplacé d'`AGENTS.md` §2 le 2026-11-14 (allègement) : le pourquoi et les dé
 - Si `xcode-select -p` pointe sur Command Line Tools : échec `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found` — pas erreur de code. Préfixer `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 - Valide **parité clés** `en.json`/`fr.json` (build en erreur sinon).
 - Génère `assets/*.lproj/Localizable.strings` + `compile_commands.json` (racine, gitignoré : alimente SourceKit-LSP sur *tous* fichiers ; seul : `python3 build_app.py --gen-compile-commands`).
+- Lancer build et tests depuis `/Volumes/BABILODONNEES/GitHub/StarHubTH`, jamais via le lien `~/Documents/Github` : le même dépôt vu par deux chemins remplit `.build/module-cache` deux fois, et le build échoue (`module 'Darwin' is defined in both …`, signal 11). Remède : vider `.build/module-cache` — la recompilation complète des tests suit (~40 min). Vu le 2026-11-26.
 
 ## Tests SPM
 
