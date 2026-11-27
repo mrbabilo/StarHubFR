@@ -29,6 +29,11 @@ Déplacé d'`AGENTS.md` §2 le 2026-11-14 (allègement) : le pourquoi et les dé
   si compteur **augmente** (code viole massivement ces règles aujourd'hui).
   Baisser puis `--update` pour resserrer ; ajout délibéré = `--update`
   explicite, visible au diff. `--skip-standards` débloque build ponctuel.
+  Compteurs qui sautent le plus souvent : `print_calls` et `try_optional`.
+  Dans un code neuf, traiter l'échec par `do`/`catch` sans `print` (commentaire
+  qui dit pourquoi l'échec est sans conséquence), et compenser chaque ligne
+  ajoutée à un fichier de plus de 400 lignes. Vu sur `SaveManager.swift` le
+  2026-11-27 (X158).
   **Taille** verrouillée **par fichier** (clés `file:<chemin>`, une par
   fichier > 400 lignes) : les deux sommes se compensaient entre fichiers,
   ~16 000 lignes de marge muette au ViewModel (mesuré 2026-09-11 —

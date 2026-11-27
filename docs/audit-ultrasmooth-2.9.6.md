@@ -86,6 +86,26 @@ fenêtres et particules plus détaillées dans `radiance_report`.
 La garde `.bin.sync` et le chemin AutoHeal vérifiés le 2026-11-18 ne sont
 **pas touchés** par le delta : le scénario X138 reste traité en amont.
 
+### Format des fichiers `.bin`, relevé sur le parc le 2026-11-27
+
+Lecture seule, partie `TEST_453239247` (fichiers du 2026-11-20 ; la version du
+mod qui les a écrits n'est pas connue). Préalable à B6-T2.
+
+- **`<partie>.bin` et `SaveGameInfo.bin`** : en-tête de 28 octets — `PPBS`,
+  version 1 (uint32), taille du XML décompressé (uint32), taille compressée
+  (uint32), puis 12 octets non identifiés (empreinte et date probables). Le
+  reste est du Brotli : décompressé, il est identique octet pour octet au XML
+  voisin (`cmp`), marque d'octets comprise.
+- **`<fichier>.bin.sync`** : 16 octets — 8 octets qui ressemblent à une date,
+  puis la taille du XML (uint64). C'est la garde qui fait re-migrer le mod
+  quand le XML change hors de lui : à réécrire avec un `.bin` modifié.
+- **`<partie>.official_fr.assets.bin`** (en-tête `CABP`) et
+  **`<partie>.official_fr.maps.bin`** (`CMBP`) : caches de contenu traduit, pas
+  la partie. À conserver dans un backup ou une restauration, jamais à éditer.
+
+Reste à décoder avant d'écrire un `.bin` : les 12 octets de fin d'en-tête et
+les 8 premiers du `.bin.sync` (lecture statique de la 2.0.8).
+
 ## Modern Config Menu 2.5.2 — traduction française en retard
 
 API publique (`ModConfigMenuApi`) inchangée : la lecture des menus par la
