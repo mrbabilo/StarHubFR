@@ -173,17 +173,8 @@ struct SaveEditorView: View {
     let save: SaveGameInfo
     @Binding var currentTab: SidebarDestination
     
-    @State private var name: String
-    @State private var farm: String
-    @State private var fav: String
-    @State private var moneyStr: String
-    @State private var maxHealthStr: String
-    @State private var maxStaminaStr: String
-    @State private var goldenWalnutsStr: String
-    @State private var qiGemsStr: String
-    @State private var clubCoinsStr: String
-    @State private var totalMoneyEarnedStr: String
-    @State private var spouse: String   // empty = single
+    /// Le formulaire, converti en fiche au moment d'écrire (`SaveFarmerDraft`).
+    @State private var draft: SaveFarmerDraft
     
     /// All NPC names that can be married in Stardew Valley (vanilla)
     static let marriableNPCs: [String] = [
@@ -230,17 +221,7 @@ struct SaveEditorView: View {
         self.localization = localization
         self.vm = vm
         self.save = save
-        _name = State(initialValue: save.playerName)
-        _farm = State(initialValue: save.farmName)
-        _fav = State(initialValue: save.favoriteThing)
-        _moneyStr = State(initialValue: "\(save.money)")
-        _maxHealthStr = State(initialValue: "\(save.maxHealth)")
-        _maxStaminaStr = State(initialValue: "\(save.maxStamina)")
-        _goldenWalnutsStr = State(initialValue: "\(save.goldenWalnuts)")
-        _qiGemsStr = State(initialValue: "\(save.qiGems)")
-        _clubCoinsStr = State(initialValue: "\(save.clubCoins)")
-        _totalMoneyEarnedStr = State(initialValue: "\(save.totalMoneyEarned)")
-        _spouse = State(initialValue: save.spouse)
+        _draft = State(initialValue: SaveFarmerDraft(save))
         
         let note = vm.getNote(for: save.folderName)
         _noteTag = State(initialValue: note.tag)
@@ -359,14 +340,14 @@ struct SaveEditorView: View {
                 }
                 
                 Section(localization.L(L10n.Saves.characterInfo)) {
-                    TextField(localization.L(L10n.Saves.characterName), text: $name)
-                    TextField(localization.L(L10n.Saves.farmName), text: $farm)
-                    TextField(localization.L(L10n.Saves.favoriteThing), text: $fav)
+                    TextField(localization.L(L10n.Saves.characterName), text: $draft.name)
+                    TextField(localization.L(L10n.Saves.farmName), text: $draft.farmName)
+                    TextField(localization.L(L10n.Saves.favoriteThing), text: $draft.favoriteThing)
                 }
                 
                 // MARK: Relationship Section
                 Section(localization.L(L10n.Saves.relationshipSection)) {
-                    Picker(localization.L(L10n.Saves.spouseLabel), selection: $spouse) {
+                    Picker(localization.L(L10n.Saves.spouseLabel), selection: $draft.spouse) {
                         Text(localization.L(L10n.Saves.spouseNone)).tag("")
                         ForEach(SaveEditorView.marriableNPCs, id: \.self) { npc in
                             Text(npc).tag(npc)
@@ -375,7 +356,7 @@ struct SaveEditorView: View {
                     .pickerStyle(.menu)
                     
                     // Show warning only when changing away from existing spouse
-                    if !save.spouse.isEmpty && spouse != save.spouse {
+                    if !save.spouse.isEmpty && draft.spouse != save.spouse {
                         Text(localization.L(L10n.Saves.spouseWarning))
                             .font(.caption)
                             .foregroundColor(.orange)
@@ -383,17 +364,14 @@ struct SaveEditorView: View {
                 }
                 
                 Section(localization.L(L10n.Saves.resources)) {
-                    TextField(localization.L(L10n.Saves.money), text: $moneyStr)
-                    TextField(localization.L(L10n.Saves.totalMoneyEarned), text: $totalMoneyEarnedStr)
-                    TextField(localization.L(L10n.Saves.casinoCoins), text: $clubCoinsStr)
-                    TextField(localization.L(L10n.Saves.goldenWalnuts), text: $goldenWalnutsStr)
-                    TextField(localization.L(L10n.Saves.qiGems), text: $qiGemsStr)
+                    TextField(localization.L(L10n.Saves.money), text: $draft.money)
+                    TextField(localization.L(L10n.Saves.totalMoneyEarned), text: $draft.totalMoneyEarned)
+                    TextField(localization.L(L10n.Saves.casinoCoins), text: $draft.clubCoins)
+                    TextField(localization.L(L10n.Saves.goldenWalnuts), text: $draft.goldenWalnuts)
+                    TextField(localization.L(L10n.Saves.qiGems), text: $draft.qiGems)
                 }
                 
-                Section(localization.L(L10n.Saves.characterStats)) {
-                    TextField(localization.L(L10n.Saves.maxHealth), text: $maxHealthStr)
-                    TextField(localization.L(L10n.Saves.maxStamina), text: $maxStaminaStr)
-                }
+                SaveEditorStatsSections(localization: localization, save: save, draft: $draft)
                 
                 Section(localization.L(L10n.Saves.inventoryEditor)) {
                     // Le binding sous-indexé exige un chemin écrivable :
@@ -531,15 +509,7 @@ struct SaveEditorView: View {
     /// Writes the form's current field values to the save file. Go through
     /// `confirmedOrWarn` rather than calling this directly.
     private func performSave() {
-        let newMoney = Int(moneyStr) ?? save.money
-        let newTotalMoneyEarned = Int(totalMoneyEarnedStr) ?? save.totalMoneyEarned
-        let newHealth = Int(maxHealthStr) ?? save.maxHealth
-        let newStam = Int(maxStaminaStr) ?? save.maxStamina
-        let newWalnuts = Int(goldenWalnutsStr) ?? save.goldenWalnuts
-        let newQi = Int(qiGemsStr) ?? save.qiGems
-        let newClub = Int(clubCoinsStr) ?? save.clubCoins
-
         vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
-        vm.editSave(info: save, newName: name, newFarm: farm, newFav: fav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newHealth, newMaxStamina: newStam, newGoldenWalnuts: newWalnuts, newQiGems: newQi, newClubCoins: newClub, newSpouse: spouse)
+        vm.editSave(info: save, sheet: draft.sheet(for: save))
     }
 }

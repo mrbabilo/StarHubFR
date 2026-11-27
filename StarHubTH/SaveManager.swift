@@ -89,130 +89,6 @@ public struct SaveHairColor: Hashable, Sendable {
     public static let `default` = SaveHairColor(r: 90, g: 73, b: 38)
 }
 
-/// `Sendable` explicite (P5-L6) : emporté hors de l'acteur principal par
-/// les opérations lourdes.
-public struct SaveGameInfo: Identifiable, Equatable, Hashable, Sendable {
-    public var id: String { folderName }
-    public let folderName: String
-    public let fileURL: URL
-    public let lastModified: Date
-
-    public var playerName: String
-    public var farmName: String
-    public var favoriteThing: String
-    public var money: Int
-    public var spouse: String   // empty string = single (no <spouse> tag)
-
-    // Advanced Stats
-    public var maxHealth: Int
-    public var maxStamina: Int
-    public var goldenWalnuts: Int
-    public var qiGems: Int
-    public var clubCoins: Int
-    public var totalMoneyEarned: Int
-
-    public var year: Int
-    public var season: Int
-    public var day: Int
-    public var whichFarm: Int
-    public var hairStyle: Int = 0
-    public var hairColor: SaveHairColor = .default
-    public var skinIndex: Int = 0
-    public var modFarmName: String? = nil
-    /// Sexe du fermier, lu sur l'enfant **direct** de `<player>` (la première
-    /// occurrence du fichier est un objet ou un monstre : 41 à 294 par save).
-    /// `Undefined`/absent = fermier.
-    public var isFemale: Bool = false
-
-    public init(
-        folderName: String,
-        fileURL: URL,
-        lastModified: Date,
-        playerName: String,
-        farmName: String,
-        favoriteThing: String,
-        money: Int,
-        spouse: String,
-        maxHealth: Int,
-        maxStamina: Int,
-        goldenWalnuts: Int,
-        qiGems: Int,
-        clubCoins: Int,
-        totalMoneyEarned: Int,
-        year: Int,
-        season: Int,
-        day: Int,
-        whichFarm: Int,
-        hairStyle: Int = 0,
-        hairColor: SaveHairColor = .default,
-        skinIndex: Int = 0,
-        modFarmName: String? = nil,
-        isFemale: Bool = false
-    ) {
-        self.folderName = folderName
-        self.fileURL = fileURL
-        self.lastModified = lastModified
-        self.playerName = playerName
-        self.farmName = farmName
-        self.favoriteThing = favoriteThing
-        self.money = money
-        self.spouse = spouse
-        self.maxHealth = maxHealth
-        self.maxStamina = maxStamina
-        self.goldenWalnuts = goldenWalnuts
-        self.qiGems = qiGems
-        self.clubCoins = clubCoins
-        self.totalMoneyEarned = totalMoneyEarned
-        self.year = year
-        self.season = season
-        self.day = day
-        self.whichFarm = whichFarm
-        self.hairStyle = hairStyle
-        self.hairColor = hairColor
-        self.skinIndex = skinIndex
-        self.modFarmName = modFarmName
-        self.isFemale = isFemale
-    }
-
-    var farmTypeName: String {
-        switch whichFarm {
-        case 0: return L10n.Saves.farmTypeStandard
-        case 1: return L10n.Saves.farmTypeRiverland
-        case 2: return L10n.Saves.farmTypeForest
-        case 3: return L10n.Saves.farmTypeHilltop
-        case 4: return L10n.Saves.farmTypeWilderness
-        case 5: return L10n.Saves.farmTypeFourCorners
-        case 6: return L10n.Saves.farmTypeBeach
-        case 7: return L10n.Saves.farmTypeMeadowlands
-        default: return L10n.Saves.farmTypeMod
-        }
-    }
-
-    static func farmIcon(for whichFarm: Int) -> String {
-        switch whichFarm {
-        case 0: return "leaf.fill"
-        case 1: return "water.waves"
-        case 2: return "tree.fill"
-        case 3: return "mountain.2.fill"
-        case 4: return "moon.stars.fill"
-        case 5: return "square.grid.2x2.fill"
-        case 6: return "sun.max.fill"
-        case 7: return "pawprint.fill"
-        // Ferme de mod reconnue (`SaveFarmType`) : pas de point d'interrogation.
-        default: return "house.fill"
-        }
-    }
-    
-    var seasonName: String {
-        switch season {
-        case 0: return L10n.Saves.spring
-        case 1: return L10n.Saves.summer
-        case 2: return L10n.Saves.fall
-        case 3: return L10n.Saves.winter
-        default: return L10n.Saves.spring
-        }
-    }
-}
 
 /// `@unchecked` : `parseCache` (état d'instance) pris sous
 /// `parseCacheLock` à ses trois accès ; `regexCache` sous
@@ -415,7 +291,11 @@ public final class SaveManager: @unchecked Sendable {
             hairColor: hairColor,
             skinIndex: skinIndex,
             modFarmName: modFarmName,
-            isFemale: isFemale
+            isFemale: isFemale,
+            health: player["health"].flatMap(Int.init),
+            // `<stamina>` est un réel côté jeu (`270`, parfois `269.5`).
+            stamina: player["stamina"].flatMap(Double.init).map { Int($0) },
+            skills: SaveSkills.skills(levels: player, xml: content)
         )
         if let stamp {
             remember(parsed, path: url.path, folderName: folderName,
@@ -535,30 +415,33 @@ public final class SaveManager: @unchecked Sendable {
     
     /// `writeFarmerSheet`, réussite seulement.
     func updateSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) -> Bool {
-        do {
-            try writeFarmerSheet(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
-            return true
-        } catch { return false }
+        let sheet = SaveFarmerSheet(name: newName, farmName: newFarm, favoriteThing: newFav, money: newMoney,
+                                    totalMoneyEarned: newTotalMoneyEarned, maxHealth: newMaxHealth, maxStamina: newMaxStamina,
+                                    goldenWalnuts: newGoldenWalnuts, qiGems: newQiGems, clubCoins: newClubCoins, spouse: newSpouse)
+        return SaveDocument.Failure.of { try writeFarmerSheet(info: info, sheet: sheet) } == nil
     }
 
     /// Écrit la fiche du fermier en une passe sur l'arbre de la partie
     /// (B6-T1). Refus — rien d'écrit — : X138, jeu lancé, partie modifiée
     /// pendant l'opération, backup raté.
-    func writeFarmerSheet(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) throws(SaveDocument.Failure) {
+    func writeFarmerSheet(info: SaveGameInfo, sheet: SaveFarmerSheet) throws(SaveDocument.Failure) {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let save = try SaveDocument(contentsOf: info.fileURL)
         // Champs du fermier, recopiés aussi dans `SaveGameInfo` après l'écriture (X158).
-        let farmerFields = [("name", newName), ("farmName", newFarm), ("favoriteThing", newFav), ("money", "\(newMoney)"),
-                            ("totalMoneyEarned", "\(newTotalMoneyEarned)"), ("maxHealth", "\(newMaxHealth)"),
-                            ("maxStamina", "\(newMaxStamina)"), ("qiGems", "\(newQiGems)"), ("clubCoins", "\(newClubCoins)")]
+        let farmerFields = [("name", sheet.name), ("farmName", sheet.farmName), ("favoriteThing", sheet.favoriteThing),
+                            ("money", "\(sheet.money)"), ("totalMoneyEarned", "\(sheet.totalMoneyEarned)"),
+                            ("maxHealth", "\(sheet.maxHealth)"), ("maxStamina", "\(sheet.maxStamina)"),
+                            ("qiGems", "\(sheet.qiGems)"), ("clubCoins", "\(sheet.clubCoins)")]
+            + [("health", sheet.health), ("stamina", sheet.stamina)].compactMap { tag, value in value.map { (tag, "\($0)") } }
         for (tag, value) in farmerFields { save.setFarmerField(tag, to: value) }
-        save.setFarmerField("goldenWalnuts", to: "\(newGoldenWalnuts)")  // hors `<player>`
+        save.setFarmerField("goldenWalnuts", to: "\(sheet.goldenWalnuts)")  // hors `<player>`
+        if let points = sheet.experience { save.setExperience(points) }
         let oldSpouse = info.spouse
-        save.setSpouse(newSpouse)
-        if !oldSpouse.isEmpty && newSpouse != oldSpouse { save.demoteSpouse(oldSpouse) }
+        save.setSpouse(sheet.spouse)
+        if !oldSpouse.isEmpty && sheet.spouse != oldSpouse { save.demoteSpouse(oldSpouse) }
         // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit 2026-08-05).
-        if !newSpouse.isEmpty && newSpouse != oldSpouse { save.promoteSpouse(newSpouse) }
+        if !sheet.spouse.isEmpty && sheet.spouse != oldSpouse { save.promoteSpouse(sheet.spouse) }
         try save.write(isGameRunning: isGameRunning, backup: { backupSave(info: info) })
         syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields)
     }

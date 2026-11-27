@@ -1490,6 +1490,17 @@
 "saves_list_view_hint" = "View as list";
 "saves_max_health" = "Max Health";
 "saves_max_stamina" = "Max Stamina";
+"saves_current_health" = "Current Health";
+"saves_current_stamina" = "Current Stamina";
+"saves_skills_section" = "Skills";
+"saves_skills_help" = "Edit the experience points: the level follows them. A level gained this way offers its profession when the farmer goes to bed, as in play. Lowering points does not take back a profession already chosen.";
+"saves_skill_level_format" = "Lv %d";
+"saves_skill_farming" = "Farming";
+"saves_skill_fishing" = "Fishing";
+"saves_skill_foraging" = "Foraging";
+"saves_skill_mining" = "Mining";
+"saves_skill_combat" = "Combat";
+"saves_skill_luck" = "Luck";
 "saves_money" = "Money (G)";
 "saves_new_character_name" = "New Character Name";
 "saves_new_farm_name" = "New Farm Name";

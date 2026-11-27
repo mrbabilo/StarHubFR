@@ -802,6 +802,16 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       date de la partie (jour, saison, année), argent total gagné ; fermier
       choisi parmi joueur principal et invités ; `SaveGameInfo` tenu à jour
       (X158). · **M**
+      **Avancement 2026-11-27** : santé et endurance actuelles éditables
+      (bornées au maximum), six compétences (points éditables, niveau qui
+      suit les seuils du jeu, niveau gagné mis dans `<newLevels>` pour que
+      le jeu propose le métier au coucher ; niveau de mod au-delà de 10
+      gardé) ; date déjà affichée dans l'en-tête, **non éditée** (`daysPlayed`,
+      fêtes et cultures resteraient sur l'ancienne date) ; argent total déjà
+      éditable. Formulaire porté par `SaveFarmerDraft`, testé en Core.
+      **Reste** : choisir le fermier parmi les invités — aucune partie
+      multijoueur sur le parc pour relever la forme de `farmhands`.
+      **Non vérifié** à l'écran ni en jeu (menu de métier au coucher).
 - [ ] **B6-T4 — Lecteur de données du jeu (XNB).** Objets, gros objets,
       quêtes, lieux, habitants, courrier, événements, lus dans le jeu
       installé et dans sa langue ; nous ne lisons aujourd'hui que des

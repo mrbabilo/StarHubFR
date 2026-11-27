@@ -14,6 +14,12 @@ where the exact log format was verified.
 
 ### Added
 
+- **Farmer's current stats and skills in the save editor (B6-T3)**: current
+  health and stamina (capped at their maximum) and the six skills —
+  edit the experience points, the level follows the game's thresholds and a
+  level gained this way offers its profession at bedtime, as in play. A modded
+  level above 10 is kept.
+
 - **Saves kept by PureBinarySave can be edited (B6-T2)**: when the real save
   sits in the mod's `.bin` — the XML reduced to a placeholder at bedtime, or
   older than the `.bin` — the editor now reads the `.bin`, writes the edited

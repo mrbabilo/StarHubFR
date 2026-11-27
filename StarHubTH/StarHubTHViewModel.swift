@@ -5890,14 +5890,14 @@ final class StarHubTHViewModel {
         return currentModified > info.lastModified
     }
 
-    func editSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) {
+    func editSave(info: SaveGameInfo, sheet: SaveFarmerSheet) {
         // Même verrou que `duplicateSave`/`deleteSave` : deux
         // lecture-modification-écriture entrelacées perdent des changements
         // (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
         // Full save XML rewrite, off main.
         DispatchQueue.global(qos: .userInitiated).async {
-            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeFarmerSheet(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse) }
+            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeFarmerSheet(info: info, sheet: sheet) }
             DispatchQueue.main.async {
                 self.savesStore.endOperation()
                 if let failure {

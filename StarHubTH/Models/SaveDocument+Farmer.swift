@@ -104,4 +104,32 @@ extension SaveDocument {
         date.addChild(XMLElement(name: "Season", stringValue: Self.seasonsByIndex[seasonIndex]))
         parent.insertChild(date, at: status.index + 1)
     }
+
+    /// Points d'expérience des compétences (ordre de `SaveSkills.levelTags`),
+    /// et niveau qui les suit : le jeu ne recalcule un niveau qu'en franchissant
+    /// un seuil, des points posés sans niveau ne le feraient jamais monter. Un
+    /// niveau gagné est ajouté à `<newLevels>` (`Point` compétence, niveau) :
+    /// le jeu propose alors son métier au coucher, comme pour un gain joué.
+    /// Un niveau au-delà de 10 (compétence de mod) n'est pas ramené à 10.
+    func setExperience(_ points: [Int]) {
+        guard let player, let list = player.elements(forName: "experiencePoints").first else { return }
+        let slots = list.elements(forName: "int")
+        let newLevels = player.elements(forName: "newLevels").first
+        for (index, value) in points.enumerated() where index < min(slots.count, SaveSkills.levelTags.count) {
+            guard Int(slots[index].stringValue ?? "") != value else { continue }
+            slots[index].stringValue = "\(value)"
+            guard let levelNode = player.elements(forName: SaveSkills.levelTags[index]).first else { continue }
+            let old = Int(levelNode.stringValue ?? "") ?? 0
+            let derived = SaveSkills.level(forExperience: value)
+            guard derived != old, !(old > 10 && derived == 10) else { continue }
+            levelNode.stringValue = "\(derived)"
+            guard derived > old, index != SaveSkills.luckIndex, let newLevels else { continue }
+            for level in (old + 1)...derived {
+                let point = XMLElement(name: "Point")
+                point.addChild(XMLElement(name: "X", stringValue: "\(index)"))
+                point.addChild(XMLElement(name: "Y", stringValue: "\(level)"))
+                newLevels.addChild(point)
+            }
+        }
+    }
 }

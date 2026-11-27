@@ -190,10 +190,9 @@ import Testing
         let manager = SaveManager(isGameRunning: { true })
 
         #expect(throws: SaveDocument.Failure.gameRunning) {
-            try manager.writeFarmerSheet(
-                info: info, newName: "Autre", newFarm: "Ferme", newFav: "", newMoney: 1,
-                newTotalMoneyEarned: 0, newMaxHealth: 100, newMaxStamina: 270,
-                newGoldenWalnuts: 0, newQiGems: 0, newClubCoins: 0, newSpouse: "")
+            try manager.writeFarmerSheet(info: info, sheet: SaveFarmerSheet(
+                name: "Autre", farmName: "Ferme", favoriteThing: "", money: 1, totalMoneyEarned: 0,
+                maxHealth: 100, maxStamina: 270, goldenWalnuts: 0, qiGems: 0, clubCoins: 0, spouse: ""))
         }
         #expect(text(info.fileURL) == xml)
     }
