@@ -371,7 +371,9 @@ final class NavigationStore {
 
     func setEditingSave(_ save: SaveGameInfo?) {
         if save != nil { saveSegment = .details }
-        if let save, editSession?.save.id == save.id { return }  // déjà ouverte : ni relecture, ni saisie perdue
+        // Déjà ouverte, lue, et à jour ou saisie en cours : ni relecture, ni saisie perdue.
+        if let save, let open = editSession, open.save.id == save.id, open.loaded != nil,
+           open.changeCount > 0 || open.save.lastModified == save.lastModified { return }
         let session = save.map { SaveEditSession(save: $0) }
         editSession = session
         guard let session, let load = loadContents else { return }

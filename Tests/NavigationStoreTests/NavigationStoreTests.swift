@@ -316,10 +316,41 @@ import Foundation
         #expect(s.editSession?.inventory == read.inventory)
     }
 
+    @Test func reopeningAfterAFailedReadLoadsAgain() {
+        let reads = ReadCounter(result: nil)
+        let s = NavigationStore(loadContents: reads.loader)
+        let save = makeSave("Farm_A")
+        s.setEditingSave(save)
+        s.setEditingSave(save)
+        #expect(reads.calls == 2)
+    }
+
+    @Test func reopeningANewerSaveWithoutEditsReloads() {
+        let reads = ReadCounter(result: contents("Pomme"))
+        let s = NavigationStore(loadContents: reads.loader)
+        s.setEditingSave(makeSave("Farm_A"))
+        let first = s.editSession
+        s.setEditingSave(makeSave("Farm_A", modified: 10))
+        #expect(reads.calls == 2)
+        #expect(s.editSession !== first)
+        #expect(s.editSession?.save.lastModified == Date(timeIntervalSince1970: 10))
+    }
+
+    @Test func reopeningANewerSaveWithEditsKeepsThem() {
+        let reads = ReadCounter(result: contents("Pomme"))
+        let s = NavigationStore(loadContents: reads.loader)
+        s.setEditingSave(makeSave("Farm_A"))
+        let session = s.editSession
+        session?.draft.money = "1"
+        s.setEditingSave(makeSave("Farm_A", modified: 10))
+        #expect(s.editSession === session)
+        #expect(reads.calls == 1)
+    }
+
     @Test func reopeningTheOpenSaveKeepsItsEdits() {
         let save = makeSave("Farm_A")
-        var loadCalls = 0
-        let s = NavigationStore(loadContents: { _, _ in loadCalls += 1 })
+        let reads = ReadCounter(result: contents("Pomme"))
+        let s = NavigationStore(loadContents: reads.loader)
         s.setEditingSave(save)
         let session = s.editSession
         session?.draft.money = "1"
@@ -328,7 +359,7 @@ import Foundation
         #expect(s.editSession === session)
         #expect(s.editSession?.draft.money == "1")
         #expect(s.saveSegment == .details)
-        #expect(loadCalls == 1)
+        #expect(reads.calls == 1)
     }
 
     @Test func fermerLaSauvegardeVideSansCharger() {
@@ -364,11 +395,25 @@ import Foundation
                 languages: ["en"])
     }
 
-    private func makeSave(_ folderName: String) -> SaveGameInfo {
+    /// Compte les lectures demandées et rend un résultat fixe, sur l'acteur (le store appelle depuis main).
+    private final class ReadCounter: @unchecked Sendable {
+        var calls = 0
+        let result: SaveContents?
+        init(result: SaveContents?) { self.result = result }
+        var loader: SaveContents.Loader {
+            { [self] _, done in
+                calls += 1
+                let read = result
+                MainActor.assumeIsolated { done(read) }
+            }
+        }
+    }
+
+    private func makeSave(_ folderName: String, modified: Double = 0) -> SaveGameInfo {
         SaveGameInfo(
             folderName: folderName,
             fileURL: URL(fileURLWithPath: "/tmp/\(folderName)"),
-            lastModified: Date(timeIntervalSince1970: 0),
+            lastModified: Date(timeIntervalSince1970: modified),
             playerName: "P", farmName: "F", favoriteThing: "T",
             money: 500, spouse: "", maxHealth: 100, maxStamina: 270,
             goldenWalnuts: 0, qiGems: 0, clubCoins: 0, totalMoneyEarned: 0,
