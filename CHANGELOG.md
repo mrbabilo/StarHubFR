@@ -44,6 +44,13 @@ where the exact log format was verified.
   36 to 90 MB). Saves edited before this fix keep their pre-edit backup
   next to them.
 
+- **An edited save shows its new name on the game's load screen (X158)**:
+  the editor only wrote the main save file, while the load screen reads
+  `SaveGameInfo` — the farmer's name, farm name and money stayed old there
+  until the game saved again. Every field the editor changes (except golden
+  walnuts, which belong to the farm) is now copied into `SaveGameInfo` too,
+  keeping its byte-order mark.
+
 ## [1.74.1] - 2026-11-12
 
 ### Fixed

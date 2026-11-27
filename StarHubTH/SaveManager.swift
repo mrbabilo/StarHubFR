@@ -474,18 +474,15 @@ public final class SaveManager: @unchecked Sendable {
     private func updateSpouseInPlayer(newSpouse: String, in xml: String) -> String {
         let spousePattern = "<spouse>[^<]*</spouse>"
         guard let regex = try? NSRegularExpression(pattern: spousePattern, options: []) else { return xml }
-        
         // Find <player> block range
         guard let playerStartRange = xml.range(of: "<player>"),
               let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
             // Fallback: operate on whole file
             return replaceOrRemoveSpouseTag(newSpouse: newSpouse, in: xml, using: regex)
         }
-        
         let beforePlayer = String(xml[..<playerStartRange.lowerBound])
         let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
         let afterPlayer  = String(xml[playerEndRange.upperBound...])
-        
         let updatedPlayer = replaceOrRemoveSpouseTag(newSpouse: newSpouse, in: playerBlock, using: regex)
         return beforePlayer + updatedPlayer + afterPlayer
     }
@@ -493,7 +490,6 @@ public final class SaveManager: @unchecked Sendable {
     private func replaceOrRemoveSpouseTag(newSpouse: String, in block: String, using regex: NSRegularExpression) -> String {
         let nsBlock = block as NSString
         let fullRange = NSRange(location: 0, length: nsBlock.length)
-        
         if newSpouse.isEmpty {
             // Remove the <spouse>...</spouse> tag entirely
             return regex.stringByReplacingMatches(in: block, options: [], range: fullRange, withTemplate: "")
@@ -575,22 +571,13 @@ public final class SaveManager: @unchecked Sendable {
         // Marque relevée **avant** la lecture, qui la consomme.
         let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
         guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
-        
-        // Replace values using regex
-        content = replaceFirstTagInPlayer(tag: "name", with: newName, in: content)
-        content = replaceFirstTagInPlayer(tag: "farmName", with: newFarm, in: content)
-        content = replaceFirstTagInPlayer(tag: "favoriteThing", with: newFav, in: content)
-        content = replaceFirstTagInPlayer(tag: "money", with: "\(newMoney)", in: content)
-        content = replaceFirstTagInPlayer(tag: "totalMoneyEarned", with: "\(newTotalMoneyEarned)", in: content)
-
-        content = replaceFirstTagInPlayer(tag: "maxHealth", with: "\(newMaxHealth)", in: content)
-        content = replaceFirstTagInPlayer(tag: "maxStamina", with: "\(newMaxStamina)", in: content)
-        content = replaceFirstTagInPlayer(tag: "goldenWalnuts", with: "\(newGoldenWalnuts)", in: content)
-        content = replaceFirstTagInPlayer(tag: "qiGems", with: "\(newQiGems)", in: content)
-        content = replaceFirstTagInPlayer(tag: "clubCoins", with: "\(newClubCoins)", in: content)
-        
+        // Champs du fermier, recopiés aussi dans `SaveGameInfo` après l'écriture (X158).
+        let farmerFields = [("name", newName), ("farmName", newFarm), ("favoriteThing", newFav), ("money", "\(newMoney)"),
+                            ("totalMoneyEarned", "\(newTotalMoneyEarned)"), ("maxHealth", "\(newMaxHealth)"),
+                            ("maxStamina", "\(newMaxStamina)"), ("qiGems", "\(newQiGems)"), ("clubCoins", "\(newClubCoins)")]
+        for (tag, value) in farmerFields { content = replaceFirstTagInPlayer(tag: tag, with: value, in: content) }
+        content = replaceFirstTagInPlayer(tag: "goldenWalnuts", with: "\(newGoldenWalnuts)", in: content)  // hors `<player>`
         let oldSpouse = info.spouse   // NPC name before the edit
-        
         // Spouse: update or remove tag inside <player> block
         content = updateSpouseInPlayer(newSpouse: newSpouse, in: content)
         
@@ -609,6 +596,7 @@ public final class SaveManager: @unchecked Sendable {
             guard let payload = content.data(using: .utf8) else { return false }
             try PureBinarySave.write(Self.bytes(payload, preservingBOM: hadBOM),
                                      to: info.fileURL)
+            syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields)
             return true
         } catch {
             print("Failed to write updated save: \(error)")
@@ -616,6 +604,18 @@ public final class SaveManager: @unchecked Sendable {
         }
     }
     
+    /// X158 — l'écran de chargement lit `SaveGameInfo` (racine `<Farmer>`). Champ absent laissé tel quel ; échec non
+    /// bloquant : la partie est écrite, et le jeu réécrit ce fichier à sa prochaine sauvegarde.
+    private func syncSaveGameInfo(in folder: URL, fields: [(String, String)]) {
+        let url = folder.appendingPathComponent("SaveGameInfo")
+        let hadBOM = Self.fileStartsWithBOM(at: url)
+        do {  // fichier absent ou illisible : rien à recopier
+            var content = try String(contentsOf: url, encoding: .utf8)
+            for (tag, value) in fields { content = SavePlayerFields.replacingRootChild(tag, with: value, in: content) ?? content }
+            try PureBinarySave.write(Self.bytes(Data(content.utf8), preservingBOM: hadBOM), to: url)
+        } catch { return }
+    }
+
     /// Demotes a former spouse: `Status` Married → Friendly, `WeddingDate`
     /// removed. Scoped to `<player>` (and `<friendshipData>`), so farmhands and
     /// unrelated `<string>Npc</string>` are untouched.

@@ -41,8 +41,26 @@ public enum SavePlayerFields {
     public static func replacingDirectChild(
         _ name: String, with value: String, in xml: String
     ) -> String? {
+        guard let block = playerBlock(in: xml) else { return nil }
+        return replacingChild(name, with: value, in: xml, block: block)
+    }
+
+    /// Remplace la valeur de l'enfant direct `name` de la **racine** du
+    /// document. Sert à `SaveGameInfo`, que lit l'écran de chargement du jeu :
+    /// un `<Farmer>` seul, sans bloc `<player>` (X158).
+    /// - Returns: le XML modifié, ou `nil` si la racine ne porte pas ce champ.
+    public static func replacingRootChild(
+        _ name: String, with value: String, in xml: String
+    ) -> String? {
+        guard let block = rootBlock(in: xml) else { return nil }
+        return replacingChild(name, with: value, in: xml, block: block)
+    }
+
+    private static func replacingChild(
+        _ name: String, with value: String, in xml: String, block: Substring
+    ) -> String? {
         var found: Range<String.Index>?
-        forEachDirectChild(in: xml) { candidate, valueRange in
+        forEachDirectChild(of: block) { candidate, valueRange in
             guard candidate == name else { return true }
             found = valueRange
             return false  // premier enfant direct portant ce nom : on s'arrête
@@ -51,6 +69,19 @@ public enum SavePlayerFields {
         var modified = xml
         modified.replaceSubrange(range, with: XMLEntities.escape(value))
         return modified
+    }
+
+    /// L'élément racine et la suite du document (déclaration `<?xml…?>` et
+    /// commentaires exclus). `nil` si le document n'a pas d'élément.
+    static func rootBlock(in xml: String) -> Substring? {
+        var index = xml.startIndex
+        while let open = xml[index...].firstIndex(of: "<") {
+            let next = xml.index(after: open)
+            guard next < xml.endIndex else { return nil }
+            if xml[next] != "?" && xml[next] != "!" { return xml[open...] }
+            index = next
+        }
+        return nil
     }
 
     /// Le bloc `<player>…</player>`, bornes comprises. `nil` si absent.
@@ -63,7 +94,7 @@ public enum SavePlayerFields {
 
     // MARK: - Balayage
 
-    /// Parcourt les enfants directs de `<player>` en une passe, en donnant à
+    /// Parcourt les enfants directs de `block` (`<player>` ou la racine) en une passe, en donnant à
     /// `visit` le nom de la balise et l'intervalle de sa **valeur** (hors
     /// balises). `visit` renvoie `false` pour interrompre le parcours.
     ///
@@ -77,6 +108,13 @@ public enum SavePlayerFields {
         _ visit: (String, Range<String.Index>) -> Bool
     ) {
         guard let block = playerBlock(in: xml) else { return }
+        forEachDirectChild(of: block, visit)
+    }
+
+    private static func forEachDirectChild(
+        of block: Substring,
+        _ visit: (String, Range<String.Index>) -> Bool
+    ) {
         var depth = 0
         var pendingName: String?
         var pendingValueStart: String.Index?

@@ -89,7 +89,7 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
 **X140** (le résumé de lignes répétées d'UltraSmooth lu comme une entrée du journal), **X141** (restauration de configs jeu ouvert) et **X142** (réglages sans libellés avec Modern Config Menu) livrés le 2026-11-02 ; **X143** (raccourcis MCM réduits à leur première touche) le 2026-11-04.
 **X138** (parties modifiées et PureBinarySave) clos le 2026-11-04 ; **X144** (mise à jour qui renaît) et **X145** (notes de Keybind Sheet, vérifié sans correctif) le 2026-11-05 ; **X146** (conflits prévus absents du badge, audit du ViewModel) **X147** (réouverture de la fenêtre pendant une mesure, audit de `StarHubTHApp`) **X148** (magasins oubliés par le renommage), **X149** et **X150** (`check_sources.py`, `release.py`), **X151** à **X153** (sonde : retour au titre, sauvegarde introuvable, aide des mini-stats), **X154** (partie de la mesure « après »), **X155** (⌘O depuis une fiche) et **X156** (`.rar` sur le Dock) le même jour.
 **Vérifiés par l'auteur le 2026-11-05**, à l'écran et en jeu : X146 à X148, X151 à X155, sonde 0.9.37. X156 reste à confirmer sur un Mac sans The Unarchiver, VLC ni Simple Comic.
-**Trois correctifs ouverts.** Le premier, né d'un mod tiers (décompilation du 2026-11-02,
+**Un correctif ouvert**, né d'un mod tiers (décompilation du 2026-11-02,
 [`audit-ultrasmooth-2.7.2.md`](audit-ultrasmooth-2.7.2.md)) :
 
 - [ ] **X139 — La sonde ne voit plus le coût du changement d'heure avec
@@ -111,7 +111,7 @@ ont été corrigés le jour même et sont partis à l'archive ; **X128** (page Q
       par défaut et un correctif 2.8.x empêche une copie de configuration de
       l'éteindre — [`audit-ultrasmooth-2.9.2.md`](audit-ultrasmooth-2.9.2.md).
 
-**Deux correctifs ouverts** par l'audit de l'éditeur de sauvegardes du
+**Deux correctifs** issus de l'audit de l'éditeur de sauvegardes du
 2026-11-26 (`SaveManager.swift`, `SaveEditorView.swift`), mesurés sur une
 copie de la partie « Zofia » de l'auteur, rien écrit dans `Saves/` :
 
@@ -135,8 +135,13 @@ copie de la partie « Zofia » de l'auteur, rien écrit dans `Saves/` :
       ajouté à la déclaration). Test rouge d'abord dans
       `Tests/SaveManagerTests` (une partie avec `<_questTitle>`, aller-retour
       par `updateInventory`, l'élément doit rester). · **S**
-- [ ] **X158 — Une partie éditée garde son ancien nom à l'écran de
-      chargement du jeu.** `updateSave` (L.570) n'écrit que le fichier
+- [x] **X158 — Une partie éditée garde son ancien nom à l'écran de
+      chargement du jeu.**
+      ✅ *Corrigé le 2026-11-27* : `updateSave` recopie les champs du
+      fermier dans `SaveGameInfo` (enfants directs de `<Farmer>`,
+      `SavePlayerFields.replacingRootChild`, marque d'octets rendue) ;
+      `SaveGameInfoSyncTests` (rouge avant, vert après). Reste à voir à
+      l'écran du jeu. `updateSave` (L.570) n'écrit que le fichier
       principal, pas `SaveGameInfo`, que lit l'écran de chargement : nom,
       ferme et argent changés y restent anciens jusqu'à la prochaine
       sauvegarde du jeu. La duplication (`modifyInternalSaveNames`) traite
