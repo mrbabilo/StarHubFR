@@ -14,6 +14,12 @@ struct SaveDetailView: View {
     @ObservedObject var localization: LocalizationStore
     let save: SaveGameInfo
     @Binding var currentTab: SidebarDestination
+    /// Une seule alerte pour la page (patron de `SaveEditorConfirmation`) : l'écriture sur une
+    /// partie modifiée sur disque, ou la fermeture avec des modifications non enregistrées.
+    @State private var confirmation: Confirmation?
+    @State private var pendingSaveAction: (() -> Void)?
+
+    private enum Confirmation { case staleEdit, discardChanges }
 
     var body: some View {
         let navigation = viewModel.navigationStore
@@ -36,10 +42,9 @@ struct SaveDetailView: View {
                 if let session = navigation.editSession {
                     shown(.details, navigation.saveSegment) {
                         SaveEditorView(vm: viewModel, localization: localization, session: session,
-                                       currentTab: $currentTab)
+                                       currentTab: $currentTab,
+                                       onClose: { close(session) })
                     }
-                }
-                if let session = navigation.editSession {
                     shown(.chests, navigation.saveSegment) {
                         SaveChestsView(session: session, localization: localization)
                     }
@@ -49,8 +54,90 @@ struct SaveDetailView: View {
                     SaveTimelineView(vm: viewModel, localization: localization, save: save)
                 }
             }
+            if let session = navigation.editSession { footer(session) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .alert(confirmationTitle,
+               isPresented: Binding(get: { confirmation != nil },
+                                    set: { if !$0 { confirmation = nil; pendingSaveAction = nil } }),
+               presenting: confirmation) { pending in
+            switch pending {
+            case .staleEdit:
+                Button(localization.L(L10n.Saves.overwriteAnyway), role: .destructive) {
+                    pendingSaveAction?()
+                    pendingSaveAction = nil
+                }
+            case .discardChanges:
+                Button(localization.L(L10n.Saves.discardChanges), role: .destructive) {
+                    viewModel.navigationStore.setEditingSave(nil)
+                }
+            }
+            Button(localization.L(L10n.Saves.cancel), role: .cancel) { pendingSaveAction = nil }
+        } message: { pending in
+            switch pending {
+            case .staleEdit: Text(localization.L(L10n.Saves.confirmStaleEditMsg))
+            case .discardChanges: Text(localization.L(L10n.Saves.discardChangesMsg))
+            }
+        }
+    }
+
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .staleEdit: return localization.L(L10n.Saves.confirmStaleEdit)
+        case .discardChanges: return localization.L(L10n.Saves.discardChangesTitle)
+        case nil: return ""
+        }
+    }
+
+    /// Le pied commun aux segments : le seul « Enregistrer les modifications (n) » de la page, et
+    /// son seul ⌘S. Il reste hors de `shown`, donc jamais désactivé avec un segment caché.
+    private func footer(_ session: SaveEditSession) -> some View {
+        let count = session.changeCount
+        return VStack(spacing: 0) {
+            Divider()
+            HStack {
+                Text(localization.L(L10n.Saves.backupNote))
+                    .font(AppDesign.Font.footnote)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button(count == 0 ? localization.L(L10n.Saves.saveChanges)
+                       : String(format: localization.L(L10n.Saves.saveChangesCount), count)) {
+                    confirmedOrWarn { performSave(session, overwriteNewer: $0) }
+                }
+                .keyboardShortcut("s", modifiers: .command)
+                .buttonStyle(.borderedProminent).focusRing()
+                .disabled(count == 0)  // un second clic pendant l'écriture : refusé par `beginOperation`
+            }
+            .padding(AppDesign.Spacing.lg)
+        }
+    }
+
+    /// Fermer la page ; des modifications non enregistrées demandent confirmation.
+    private func close(_ session: SaveEditSession) {
+        if session.changeCount > 0 { confirmation = .discardChanges }
+        else { viewModel.navigationStore.setEditingSave(nil) }
+    }
+
+    /// Every write path of the page goes through here. Save changed on disk since opening:
+    /// deferred until the user confirms the overwrite (`action` gets `true`). Game running: no
+    /// confirmation, the write itself refuses and says so (B5-T1).
+    private func confirmedOrWarn(_ action: @escaping (_ overwriteNewer: Bool) -> Void) {
+        if viewModel.isSaveStale(save) {
+            pendingSaveAction = { action(true) }
+            confirmation = .staleEdit
+        } else {
+            action(false)
+        }
+    }
+
+    /// Une écriture pour la fiche et le sac, seulement s'ils ont changé ; la note de l'app à part.
+    private func performSave(_ session: SaveEditSession, overwriteNewer: Bool) {
+        viewModel.setNote(for: save.folderName, tag: session.noteTag, note: session.noteText)
+        let edits = session.pendingEdits()
+        guard edits.sheet != nil || edits.items != nil else { return viewModel.navigationStore.setEditingSave(nil) }
+        viewModel.saveEdits(info: save, sheet: edits.sheet, items: edits.items,
+                            expected: session.expectedStamp(overwriteNewer: overwriteNewer))
     }
 
     /// Les mods en pause qui ont laissé du contenu dans la partie, et les mods

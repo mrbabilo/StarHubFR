@@ -161,12 +161,8 @@ private struct SaveHeroBand: View {
 /// `.alert`. Deux alertes sur la même vue ne se présentent pas toutes les deux
 /// — leçon payée sur `SaveTimelineView` le 2026-09-02, dans les deux sens.
 private enum SaveEditorConfirmation {
-    /// Écriture sur une partie modifiée sur disque, ou pendant que le jeu tourne.
-    case staleEdit
     /// Envoi du dossier de la partie à la corbeille.
     case deleteSave
-    /// Fermeture avec des modifications non enregistrées.
-    case discardChanges
 }
 
 struct SaveEditorView: View {
@@ -176,7 +172,9 @@ struct SaveEditorView: View {
     @Bindable var session: SaveEditSession
     let save: SaveGameInfo
     @Binding var currentTab: SidebarDestination
-    
+    /// Fermer la page : la garde « modifications non enregistrées » est celle de `SaveDetailView`.
+    let onClose: () -> Void
+
     /// All NPC names that can be married in Stardew Valley (vanilla)
     static let marriableNPCs: [String] = [
         "Abigail", "Alex", "Elliott", "Emily", "Harvey",
@@ -186,7 +184,6 @@ struct SaveEditorView: View {
     
     @State private var iconPath: String
     @State private var confirmation: SaveEditorConfirmation?
-    @State private var pendingSaveAction: (() -> Void)?
 
     /// Sous-titre enrichi du hero (H-T5b D2) : la date de jeu concaténée au
     /// nom de ferme résolu (vanille ou mod). Calculé une fois dans `init` car
@@ -215,7 +212,8 @@ struct SaveEditorView: View {
     ]
     
     init(vm: StarHubTHViewModel, localization: LocalizationStore, session: SaveEditSession,
-         currentTab: Binding<SidebarDestination>) {
+         currentTab: Binding<SidebarDestination>, onClose: @escaping () -> Void) {
+        self.onClose = onClose
         _currentTab = currentTab
         self.localization = localization
         self.vm = vm
@@ -239,7 +237,7 @@ struct SaveEditorView: View {
                          dayLine: heroDayLine,
                          farmName: heroFarmName,
                          closeHelp: localization.L(L10n.Saves.cancel),
-                         onClose: { changeCount > 0 ? (confirmation = .discardChanges) : navigation.setEditingSave(nil) },
+                         onClose: onClose,
                          whichFarm: save.whichFarm,
                          iconPath: iconPath,
                          isFemale: save.isFemale,
@@ -389,88 +387,30 @@ struct SaveEditorView: View {
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
-            
-            Divider()
-            
-            // Footer
-            HStack {
-                Text(localization.L(L10n.Saves.backupNote))
-                    .font(AppDesign.Font.footnote)
-                    .foregroundColor(.secondary)
-                Spacer()
-                
-                Button(changeCount == 0 ? localization.L(L10n.Saves.saveChanges)
-                       : String(format: localization.L(L10n.Saves.saveChangesCount), changeCount)) {
-                    confirmedOrWarn { performSave(overwriteNewer: $0) }
-                }
-                .keyboardShortcut("s", modifiers: .command)
-                .buttonStyle(.borderedProminent).focusRing()
-                .disabled(changeCount == 0)  // un second clic pendant l'écriture : refusé par `beginOperation`
-            }
-            .padding(AppDesign.Spacing.lg)
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .alert(editorConfirmationTitle,
                isPresented: Binding(get: { confirmation != nil },
-                                    set: { if !$0 { confirmation = nil; pendingSaveAction = nil } }),
+                                    set: { if !$0 { confirmation = nil } }),
                presenting: confirmation) { pending in
             switch pending {
-            case .staleEdit:
-                Button(localization.L(L10n.Saves.overwriteAnyway), role: .destructive) {
-                    pendingSaveAction?()
-                    pendingSaveAction = nil
-                }
             case .deleteSave:
                 Button(localization.L(L10n.Saves.deleteSave), role: .destructive) {
                     Task { await vm.deleteSave(info: save) }
                 }
-            case .discardChanges:
-                Button(localization.L(L10n.Saves.discardChanges), role: .destructive) {
-                    navigation.setEditingSave(nil)
-                }
             }
-            Button(localization.L(L10n.Saves.cancel), role: .cancel) { pendingSaveAction = nil }
+            Button(localization.L(L10n.Saves.cancel), role: .cancel) {}
         } message: { pending in
             switch pending {
-            case .staleEdit: Text(localization.L(L10n.Saves.confirmStaleEditMsg))
             case .deleteSave: Text(localization.L(L10n.Saves.confirmDeleteSaveMsg))
-            case .discardChanges: Text(localization.L(L10n.Saves.discardChangesMsg))
             }
         }
     }
 
     private var editorConfirmationTitle: String {
         switch confirmation {
-        case .staleEdit: return localization.L(L10n.Saves.confirmStaleEdit)
         case .deleteSave: return localization.L(L10n.Saves.confirmDeleteSave)
-        case .discardChanges: return localization.L(L10n.Saves.discardChangesTitle)
         case nil: return ""
         }
-    }
-
-    /// Every write path of this editor (field edits, inventory) goes through
-    /// here. Save changed on disk since opening: deferred until the user
-    /// confirms the overwrite (`action` gets `true`). Game running: no
-    /// confirmation, the write itself refuses and says so (B5-T1).
-    private func confirmedOrWarn(_ action: @escaping (_ overwriteNewer: Bool) -> Void) {
-        if vm.isSaveStale(save) {
-            pendingSaveAction = { action(true) }
-            confirmation = .staleEdit
-        } else {
-            action(false)
-        }
-    }
-
-    private var navigation: NavigationStore { vm.navigationStore }
-
-    private var changeCount: Int { session.changeCount }
-
-    /// Une écriture pour la fiche et le sac, seulement s'ils ont changé ; la
-    /// note de l'app à part. Passer par `confirmedOrWarn`.
-    private func performSave(overwriteNewer: Bool) {
-        vm.setNote(for: save.folderName, tag: session.noteTag, note: session.noteText)
-        let edits = session.pendingEdits()
-        guard edits.sheet != nil || edits.items != nil else { return navigation.setEditingSave(nil) }
-        vm.saveEdits(info: save, sheet: edits.sheet, items: edits.items, expected: session.expectedStamp(overwriteNewer: overwriteNewer))
     }
 }

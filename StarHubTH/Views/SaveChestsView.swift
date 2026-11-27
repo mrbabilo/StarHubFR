@@ -17,7 +17,8 @@ struct SaveChestsView: View {
 
     var body: some View {
         let groups = SaveChestListing.groups(session.chests, matching: query)
-        VStack(spacing: 0) {
+        let visibleIds = Set(groups.flatMap(\.chests).map(\.id))
+        return VStack(spacing: 0) {
             searchField
             Divider()
             if groups.isEmpty {
@@ -38,6 +39,10 @@ struct SaveChestsView: View {
                     detail(groups.flatMap(\.chests).first { $0.id == selectedId })
                 }
             }
+        }
+        // Une recherche qui masque le coffre choisi lâche aussi la sélection.
+        .onChange(of: visibleIds) { _, ids in
+            if let id = selectedId, !ids.contains(id) { selectedId = nil }
         }
     }
 
@@ -65,6 +70,11 @@ struct SaveChestsView: View {
         }
     }
 
+    private func readOnlyKey(_ chest: SaveChest) -> String {
+        if case .modInventory = chest.kind { return L10n.Saves.chestReadOnly }
+        return L10n.Saves.chestNotEditable
+    }
+
     @ViewBuilder
     private func detail(_ chest: SaveChest?) -> some View {
         if let chest {
@@ -74,7 +84,7 @@ struct SaveChestsView: View {
                 Text(String(format: localization.L(L10n.Saves.chestSlots), chest.slotCount, chest.occupiedCount))
                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 if !chest.isEditable {
-                    Label(localization.L(L10n.Saves.chestReadOnly), systemImage: "lock")
+                    Label(localization.L(readOnlyKey(chest)), systemImage: "lock")
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 }
                 Divider()

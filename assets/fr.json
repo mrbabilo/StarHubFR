@@ -2895,6 +2895,7 @@
   "saves_chests_search": "Chercher un objet…",
   "saves_chests_shared": "Inventaires partagés",
   "saves_chest_read_only": "Géré par un mod : lecture seule",
+  "saves_chest_not_editable": "Lecture seule",
   "saves_chest_slots": "%lld cases, %lld occupées",
   "saves_chest_fridge": "Réfrigérateur",
   "saves_chest_junimo": "Coffre des Junimos",

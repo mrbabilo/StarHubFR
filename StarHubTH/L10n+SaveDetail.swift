@@ -11,6 +11,7 @@ extension L10n.Saves {
     static let chestsSearch = "saves_chests_search"
     static let chestsShared = "saves_chests_shared"
     static let chestReadOnly = "saves_chest_read_only"
+    static let chestNotEditable = "saves_chest_not_editable"
     static let chestSlots = "saves_chest_slots"
     static let chestFridge = "saves_chest_fridge"
     static let chestJunimo = "saves_chest_junimo"
