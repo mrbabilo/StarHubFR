@@ -317,6 +317,8 @@ let package = Package(
                 "Models/LzxdDecoder.swift",
                 "Models/XnbContainer.swift",
                 "Models/XnbStringDictionaryReader.swift",
+                "Models/XnbSchema.swift",
+                "Models/XnbTypedReader.swift",
                 "Models/GlossaryBuilder.swift",
                 "Models/Glossary.swift",
                 "Models/GlossaryStore.swift",
