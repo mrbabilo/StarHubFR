@@ -34,12 +34,11 @@ extension PureBinarySave {
     /// Le texte de la partie : le XML, ou le `.bin` quand le XML n'est qu'un
     /// talon. Pendant cette fenêtre, la page Parties lisait un fermier
     /// « Unknown ».
+    /// Aussi quand le `.bin` est plus récent que le XML de plus de 3 s : c'est
+    /// lui que l'éditeur modifiera (B6-T2), l'écran doit montrer la même partie.
     static func readableText(of mainSave: URL) -> String? {
+        if let inner = binaryTruth(of: mainSave) { return String(data: inner, encoding: .utf8) }
         guard let data = FileManager.default.contents(atPath: mainSave.path) else { return nil }
-        if !isCompleteSave(data), let file = FileManager.default.contents(atPath: binaryFiles(of: mainSave)[0].path),
-           let inner = decoded(file), isCompleteSave(inner) {
-            return String(data: inner, encoding: .utf8)
-        }
         return String(data: data, encoding: .utf8)
     }
 

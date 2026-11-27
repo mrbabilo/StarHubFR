@@ -781,7 +781,7 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       messages propres (`saves_write_changed_on_disk`,
       `saves_write_game_running`) ; l'éditeur ne se ferme qu'après une
       écriture réussie. **Non vérifié en jeu.**
-- [ ] **B6-T2 — Parties PureBinarySave éditables.** Format vérifié en 2.0.8
+- [x] **B6-T2 — Parties PureBinarySave éditables.** Format vérifié en 2.0.8
       le 2026-11-27 (`docs/audit-ultrasmooth-2.9.6.md`) : la partie reste un
       XML en Brotli sous l'en-tête `PPBS` de la 1.0.10
       (`PureBinarySave+File.swift`, qui ne contrôle pas encore l'Adler-32) ;
@@ -789,6 +789,14 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       (la garde `.bin.sync` du mod re-migre) ; XML réduit à un talon (refusé
       aujourd'hui par X138) = reconstruire le XML complet depuis le `.bin`,
       l'éditer, écarter le `.bin`. · **M**
+      **Livré le 2026-11-27** (`PureBinarySave+Editing.swift`) : partie vraie
+      lue dans le `.bin` (talon, ou `.bin` plus récent de plus de 3 s), écrite
+      en XML complet, `.bin` à la Corbeille ; `SaveGameInfo` recopié de son
+      `.bin` quand il le faut, refus si l'écran de chargement serait perdu ;
+      empreinte d'écriture étendue au `.bin` ; la page Parties montre la même
+      version. L'app n'écrit jamais de `.bin`. Refus X138 gardé pour un `.bin`
+      illisible, la copie et le nettoyage. **Non vérifié en jeu** (charger
+      une partie éditée depuis son `.bin`, mod actif).
 - [ ] **B6-T3 — Vue d'ensemble complète.** En plus de nos champs : santé et
       énergie actuelles, niveaux et points d'expérience des six métiers,
       date de la partie (jour, saison, année), argent total gagné ; fermier

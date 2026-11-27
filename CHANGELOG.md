@@ -14,6 +14,15 @@ where the exact log format was verified.
 
 ### Added
 
+- **Saves kept by PureBinarySave can be edited (B6-T2)**: when the real save
+  sits in the mod's `.bin` — the XML reduced to a placeholder at bedtime, or
+  older than the `.bin` — the editor now reads the `.bin`, writes the edited
+  save back as a full XML and moves the `.bin` files to the Trash; the mod
+  rebuilds its binary from the XML at next launch. The load screen's
+  `SaveGameInfo` is restored from its own `.bin` when needed, and the write
+  is refused if it could not be. The Saves page shows that same version. The
+  app never writes a `.bin`; an unreadable one still blocks editing (X138).
+
 - **Duplicate guard before overwriting a translation (C7-T2)**: installing a
   French translation for a mod that already carries one now asks
   Replace/Keep first, naming what exists — the app-installed translation,

@@ -21,19 +21,27 @@ import Foundation
 ///
 /// Non `Sendable` : un document vit dans la tâche qui l'a ouvert.
 final class SaveDocument {
-    /// Empreinte d'une partie sur disque : SHA-256 de ses octets et taille.
+    /// Empreinte d'une partie sur disque : SHA-256 du XML puis de son `.bin`
+    /// s'il existe (B6-T2 : la partie peut être lue dans lui), taille totale.
     struct Stamp: Equatable, Sendable {
         let sha256: String
         let size: Int
 
-        init(of data: Data) {
-            sha256 = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-            size = data.count
+        init(of xml: Data, bin: Data? = nil) {
+            var hasher = SHA256()
+            hasher.update(data: xml)
+            if let bin { hasher.update(data: bin) }
+            sha256 = hasher.finalize().map { String(format: "%02x", $0) }.joined()
+            size = xml.count + (bin?.count ?? 0)
         }
 
-        /// Empreinte du fichier tel qu'il est maintenant, `nil` s'il est illisible.
+        /// Empreinte de la partie telle qu'elle est maintenant, `nil` si son XML est illisible.
         static func current(of url: URL) -> Stamp? {
-            do { return Stamp(of: try Data(contentsOf: url)) } catch { return nil }
+            do { return Stamp(of: try Data(contentsOf: url), bin: binary(of: url)) } catch { return nil }
+        }
+
+        static func binary(of url: URL) -> Data? {
+            FileManager.default.contents(atPath: PureBinarySave.binaryFiles(of: url)[0].path)
         }
     }
 
@@ -53,19 +61,27 @@ final class SaveDocument {
     /// Empreinte des octets lus à l'ouverture.
     let stamp: Stamp
     let document: XMLDocument
+    /// La partie vient du `.bin` de PureBinarySave (B6-T2) : l'écriture pose
+    /// un XML complet et écarte les `.bin`.
+    let fromBinary: Bool
     private let hadBOM: Bool
 
-    /// Lit et analyse la partie. Le fichier n'est lu qu'une fois : l'empreinte
-    /// vient des mêmes octets que l'arbre.
+    /// Lit et analyse la partie : le XML, ou le `.bin` quand il porte la
+    /// version vraie. Chaque fichier n'est lu qu'une fois : l'empreinte vient
+    /// des mêmes octets que l'arbre.
     init(contentsOf url: URL) throws(Failure) {
-        let data: Data
-        do { data = try Data(contentsOf: url) } catch { throw .unreadable }
+        let xml: Data
+        do { xml = try Data(contentsOf: url) } catch { throw .unreadable }
+        let bin = Stamp.binary(of: url)
+        let truth = bin.flatMap { PureBinarySave.binaryTruth(of: url, bin: $0) }
+        let data = truth ?? xml
         let parsed: XMLDocument
         do { parsed = try XMLDocument(data: data, options: [.nodePreserveAll]) } catch { throw .malformed }
         guard parsed.rootElement() != nil else { throw .malformed }
         self.url = url
-        self.stamp = Stamp(of: data)
+        self.stamp = Stamp(of: xml, bin: bin)
         self.document = parsed
+        self.fromBinary = truth != nil
         self.hadBOM = data.starts(with: SaveManager.utf8BOM)
     }
 
@@ -92,10 +108,14 @@ final class SaveDocument {
     ///     l'ouverture de l'écran.
     ///   - backup: copie de la partie, appelée après les contrôles et avant
     ///     l'écriture ; `false` annule l'écriture.
+    ///   - setAside: ce qui écarte les `.bin` après l'écriture (la Corbeille).
     func write(expected: Stamp? = nil,
                isGameRunning: () -> Bool = { false },
-               backup: () -> Bool) throws(Failure) {
-        if let key = PureBinarySave.refusalKey(for: url) { throw .binaryOnly(key) }
+               backup: () -> Bool,
+               setAside: (URL) throws -> Void = PureBinarySave.trash) throws(Failure) {
+        // Refus X138 seulement pour une partie lue dans son XML alors que le
+        // `.bin` porte la vraie : un `.bin` illisible ne s'édite pas.
+        if !fromBinary, let key = PureBinarySave.refusalKey(for: url) { throw .binaryOnly(key) }
         guard !isGameRunning() else { throw .gameRunning }
         try requireUnchanged(expected)
         guard backup() else { throw .backupFailed }
@@ -103,7 +123,10 @@ final class SaveDocument {
         // Le backup a pris du temps : relu une dernière fois, au plus près du
         // remplacement.
         try requireUnchanged(expected)
-        do { try PureBinarySave.write(payload, to: url) } catch { throw .writeFailed }
+        do {
+            if fromBinary { try PureBinarySave.restoreLoadScreen(in: url.deletingLastPathComponent()) }
+            try PureBinarySave.write(payload, to: url, setAside: setAside)
+        } catch { throw .writeFailed }
     }
 
     private func requireUnchanged(_ expected: Stamp?) throws(Failure) {

@@ -31,7 +31,11 @@ public enum PureBinarySave {
     /// Une partie complète, racine `SaveGame`. Au coucher, le mod ne laisse
     /// dans le XML qu'un talon (racine `PureBinarySave`, moins de 500 octets) :
     /// mêmes critères que sa propre réparation au lancement.
-    public static func isCompleteSave(_ data: Data) -> Bool {
+    public static func isCompleteSave(_ data: Data) -> Bool { isComplete(data, root: "SaveGame") }
+
+    /// Assez long pour ne pas être un talon, et de racine `root` (`SaveGame`
+    /// pour une partie, `Farmer` pour `SaveGameInfo`).
+    static func isComplete(_ data: Data, root: String) -> Bool {
         guard data.count >= 500 else { return false }
         let head = String(decoding: data.prefix(4096), as: UTF8.self)
         var rest = Substring(head)
@@ -39,7 +43,7 @@ public enum PureBinarySave {
             rest = rest[rest.index(after: open)...]
             guard let first = rest.first, first != "?", first != "!" else { continue }
             let name = rest.prefix { !$0.isWhitespace && $0 != ">" && $0 != "/" }
-            return name == "SaveGame"
+            return name == root
         }
         return false
     }
@@ -56,11 +60,7 @@ public enum PureBinarySave {
         guard FileManager.default.fileExists(atPath: bin.path) else { return nil }
         guard let data = FileManager.default.contents(atPath: mainSave.path), isCompleteSave(data)
         else { return refusalStubKey }
-        func date(_ url: URL) -> Date? {
-            do { return try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date }
-            catch { return nil }
-        }
-        guard let xmlDate = date(mainSave), let binDate = date(bin) else { return refusalNewerKey }
+        guard let xmlDate = modificationDate(mainSave), let binDate = modificationDate(bin) else { return refusalNewerKey }
         return binDate.timeIntervalSince(xmlDate) <= 3 ? nil : refusalNewerKey
     }
 
