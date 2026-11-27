@@ -1,16 +1,18 @@
 import Foundation
 
-/// Le conteneur d'un `.xnb` (format XNA, version 5) : en-tête, décompression
-/// LZX, liste des readers déclarés et ressources partagées. Commun à tous les
-/// lecteurs de contenu typé (`XnbStringDictionaryReader`, catalogue
-/// d'objets…) ; ce type ne sait rien du contenu de l'objet racine.
-///
-/// Les erreurs sont celles de `XnbStringDictionaryReader.ReadError` : le
-/// lecteur historique en reste le seul nom public, sa sortie est inchangée.
-///
-/// Layout, framing LZX et encodage : voir `XnbStringDictionaryReader`.
+// Les erreurs du conteneur sont celles de `XnbStringDictionaryReader.ReadError` :
+// le lecteur historique en reste le seul nom public, sa sortie est inchangée.
 private typealias ReadError = XnbStringDictionaryReader.ReadError
 
+/// Le conteneur d'un `.xnb` (format XNA, version 5) : en-tête, décompression
+/// LZX, liste des readers déclarés et ressources partagées. Commun à tous les
+/// lecteurs de contenu typé (`XnbStringDictionaryReader`, `XnbTypedReader`) ;
+/// ce type ne sait rien du contenu de l'objet racine.
+///
+/// Layout : en-tête de 10 octets (`XNB`, plateforme, version, drapeaux,
+/// taille totale `u32` LE), puis — après décompression LZX éventuelle — le
+/// compte 7-bit des readers, chacun nom + version `u32`, le compte 7-bit des
+/// ressources partagées et l'objet racine. Framing LZX : `decompressLZX`.
 public enum XnbContainer {
     /// Plafonds hérités de la référence (spec §4).
     private static let maxTypeReaders = 64
@@ -128,8 +130,6 @@ public enum XnbContainer {
         }
         return out
     }
-
-
 }
 
 /// Curseur de lecture sur le contenu décompressé d'un `.xnb`.
