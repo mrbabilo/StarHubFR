@@ -320,6 +320,7 @@ let package = Package(
                 "Models/XnbSchema.swift",
                 "Models/XnbTypedReader.swift",
                 "Models/XnbSchemas+Objects.swift",
+                "Models/GameCatalog.swift",
                 "Models/GlossaryBuilder.swift",
                 "Models/Glossary.swift",
                 "Models/GlossaryStore.swift",
