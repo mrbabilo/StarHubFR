@@ -50,7 +50,7 @@ import Testing
         let info = try makeSave(in: env)
         let manager = SaveManager()
 
-        let items = try #require(manager.fetchInventory(for: info))
+        let items = try #require(manager.fetchContents(for: info)?.inventory)
         #expect(manager.updateInventory(info: info, items: items))
 
         let written = text(of: info.fileURL)
@@ -66,7 +66,7 @@ import Testing
         let info = try makeSave(in: env)
         let manager = SaveManager()
 
-        let items = try #require(manager.fetchInventory(for: info))
+        let items = try #require(manager.fetchContents(for: info)?.inventory)
         #expect(manager.updateInventory(info: info, items: items))
 
         let reread = try XMLDocument(contentsOf: info.fileURL, options: [.nodePreserveAll])
@@ -81,11 +81,11 @@ import Testing
         let before = try Data(contentsOf: info.fileURL).count
         let manager = SaveManager()
 
-        var items = try #require(manager.fetchInventory(for: info))
+        var items = try #require(manager.fetchContents(for: info)?.inventory)
         items[0] = InventoryItem(slotIndex: 0, itemId: "24", name: "Parsnip", stack: 7, isObject: true)
         #expect(manager.updateInventory(info: info, items: items))
 
-        #expect(manager.fetchInventory(for: info)?.first?.stack == 7)
+        #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 7)
         // Pas de réindentation : la taille reste celle de l'original, à la
         // déclaration XML près.
         let after = try Data(contentsOf: info.fileURL).count

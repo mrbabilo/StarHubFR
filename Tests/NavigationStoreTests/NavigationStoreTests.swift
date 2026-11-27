@@ -247,25 +247,28 @@ import Foundation
         #expect(closed == 1)
     }
 
-    // MARK: - Poses à effet : l'inventaire de sauvegarde
+    // MARK: - Poses à effet : la session d'édition d'une partie
 
-    @Test func poserUneSauvegardeVideLinventairePuisCharge() {
-        let items = [InventoryItem(slotIndex: 0, itemId: "0", name: "Pomme",
-                                   stack: 3, isObject: false)]
+    private func contents(_ name: String, stack: Int = 1) -> SaveContents {
+        SaveContents(inventory: [InventoryItem(slotIndex: 0, itemId: "0", name: name, stack: stack, isObject: false)],
+                     stamp: SaveDocument.Stamp(of: Data(name.utf8)))
+    }
+
+    @Test func poserUneSauvegardeOuvreUneSessionVidePuisCharge() {
         let save = makeSave("Farm_A")
-        var pendingDone: (([InventoryItem]) -> Void)?
-        let s = NavigationStore(loadInventory: { asked, done in
+        var pendingDone: (@MainActor @Sendable (SaveContents?) -> Void)?
+        let s = NavigationStore(loadContents: { asked, done in
             #expect(asked.id == save.id)
             pendingDone = done
         })
-        s.inventoryToEdit = [InventoryItem(slotIndex: 1, itemId: "1", name: "Vieux",
-                                           stack: 99, isObject: false)]
         s.setEditingSave(save)
-        // Avant la fin de la lecture : vide — jamais le contenu de la
+        // Avant la fin de la lecture : sac vide — jamais celui de la
         // sauvegarde précédente.
-        #expect(s.inventoryToEdit.isEmpty)
-        pendingDone?(items)
-        #expect(s.inventoryToEdit == items)
+        #expect(s.editSession?.inventory.isEmpty == true)
+        let read = contents("Pomme", stack: 3)
+        pendingDone?(read)
+        #expect(s.editSession?.inventory == read.inventory)
+        #expect(s.editSession?.loaded?.stamp == read.stamp)
         #expect(s.editingSave?.id == "Farm_A")
     }
 
@@ -275,8 +278,8 @@ import Foundation
     @Test func linventairePerimeEstEcarter() {
         let a = makeSave("Farm_A")
         let b = makeSave("Farm_B")
-        var dones: [(id: String, done: ([InventoryItem]) -> Void)] = []
-        let s = NavigationStore(loadInventory: { asked, done in
+        var dones: [(id: String, done: @MainActor @Sendable (SaveContents?) -> Void)] = []
+        let s = NavigationStore(loadContents: { asked, done in
             dones.append((asked.id, done))
         })
         s.setEditingSave(a)
@@ -287,21 +290,19 @@ import Foundation
             Issue.record("la lecture de A n'a jamais été lancée")
             return
         }
-        lateDone([InventoryItem(slotIndex: 0, itemId: "0", name: "DeA",
-                                stack: 1, isObject: false)])
-        #expect(s.inventoryToEdit.isEmpty)
+        lateDone(contents("DeA"))
+        #expect(s.editSession?.inventory.isEmpty == true)
+        #expect(s.editSession?.loaded == nil)
         #expect(s.editingSave?.id == "Farm_B")
     }
 
     /// Le cas voisin : la lecture de la sauvegarde **affichée** atterrit —
     /// un garde trop large écarterait aussi celle-là.
     @Test func linventaireFraisAtterrit() {
-        let items = [InventoryItem(slotIndex: 0, itemId: "0", name: "DeB",
-                                   stack: 2, isObject: false)]
         let a = makeSave("Farm_A")
         let b = makeSave("Farm_B")
-        var dones: [(id: String, done: ([InventoryItem]) -> Void)] = []
-        let s = NavigationStore(loadInventory: { asked, done in
+        var dones: [(id: String, done: @MainActor @Sendable (SaveContents?) -> Void)] = []
+        let s = NavigationStore(loadContents: { asked, done in
             dones.append((asked.id, done))
         })
         s.setEditingSave(a)
@@ -310,23 +311,23 @@ import Foundation
             Issue.record("la lecture de B n'a jamais été lancée")
             return
         }
-        doneB(items)
-        #expect(s.inventoryToEdit == items)
+        let read = contents("DeB", stack: 2)
+        doneB(read)
+        #expect(s.editSession?.inventory == read.inventory)
     }
 
     @Test func fermerLaSauvegardeVideSansCharger() {
         var loadCalls = 0
-        let s = NavigationStore(loadInventory: { _, _ in loadCalls += 1 })
+        let s = NavigationStore(loadContents: { _, _ in loadCalls += 1 })
         s.setEditingSave(makeSave("Farm_A"))
-        // Un inventaire affiché au moment de la fermeture : poser nil doit
-        // le vider — sinon l'éditeur fermé laisse un inventaire orphelin
-        // prêt à être montré pour la prochaine sauvegarde, avant son
-        // propre chargement.
-        s.inventoryToEdit = [InventoryItem(slotIndex: 0, itemId: "0", name: "X",
-                                           stack: 1, isObject: false)]
+        // Une session ouverte au moment de la fermeture : poser nil doit
+        // la retirer — sinon l'éditeur fermé laisse un sac orphelin prêt à
+        // être montré pour la prochaine sauvegarde, avant son propre
+        // chargement.
+        s.editSession?.inventory = contents("X").inventory
         s.setEditingSave(nil)
         #expect(s.editingSave == nil)
-        #expect(s.inventoryToEdit.isEmpty)
+        #expect(s.editSession == nil)
         #expect(loadCalls == 1)
     }
 

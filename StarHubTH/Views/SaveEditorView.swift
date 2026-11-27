@@ -172,13 +172,10 @@ private enum SaveEditorConfirmation {
 struct SaveEditorView: View {
      @Bindable var vm: StarHubTHViewModel
     @ObservedObject var localization: LocalizationStore
+    /// Formulaire, sac et note : gardés par `NavigationStore`, pas par la vue (A0).
+    @Bindable var session: SaveEditSession
     let save: SaveGameInfo
     @Binding var currentTab: SidebarDestination
-    
-    /// Le formulaire, converti en fiche au moment d'écrire (`SaveFarmerDraft`).
-    @State private var draft: SaveFarmerDraft
-    /// Le sac tel que lu (premier chargement), pour compter ses cases modifiées.
-    @State private var inventoryBaseline: [InventoryItem]?
     
     /// All NPC names that can be married in Stardew Valley (vanilla)
     static let marriableNPCs: [String] = [
@@ -187,8 +184,6 @@ struct SaveEditorView: View {
         "Sebastian", "Shane"
     ]
     
-    @State private var noteTag: String
-    @State private var noteText: String
     @State private var iconPath: String
     @State private var confirmation: SaveEditorConfirmation?
     @State private var pendingSaveAction: (() -> Void)?
@@ -219,17 +214,15 @@ struct SaveEditorView: View {
         ("preset:ant",    "ant.fill",                L10n.Saves.avatarPresetAnt),
     ]
     
-    init(vm: StarHubTHViewModel, localization: LocalizationStore, save: SaveGameInfo,
+    init(vm: StarHubTHViewModel, localization: LocalizationStore, session: SaveEditSession,
          currentTab: Binding<SidebarDestination>) {
         _currentTab = currentTab
         self.localization = localization
         self.vm = vm
+        self.session = session
+        let save = session.save
         self.save = save
-        _draft = State(initialValue: SaveFarmerDraft(save))
-        
         let note = vm.getNote(for: save.folderName)
-        _noteTag = State(initialValue: note.tag)
-        _noteText = State(initialValue: note.note)
         _iconPath = State(initialValue: note.customIconPath ?? "")
 
         let displayName = SaveFarmNameResolver.resolve(save, resolver: localization)
@@ -291,7 +284,7 @@ struct SaveEditorView: View {
                                         Button(action: {
                                             iconPath = key
                                             SaveNotesStore.shared.setNote(for: save.folderName,
-                                                tag: noteTag, note: noteText, customIconPath: key)
+                                                tag: session.noteTag, note: session.noteText, customIconPath: key)
                                         }) {
                                             ZStack {
                                                 Circle()
@@ -322,7 +315,7 @@ struct SaveEditorView: View {
                                 Button(localization.L(L10n.Saves.avatarReset)) {
                                     iconPath = ""
                                     SaveNotesStore.shared.setNote(for: save.folderName,
-                                        tag: noteTag, note: noteText, customIconPath: nil)
+                                        tag: session.noteTag, note: session.noteText, customIconPath: nil)
                                 }
                                 .buttonStyle(.plain).focusRing()
                                 .foregroundColor(.secondary)
@@ -333,25 +326,25 @@ struct SaveEditorView: View {
                 }
                 
                 Section(localization.L(L10n.Saves.notes)) {
-                    Picker(localization.L(L10n.Saves.tag), selection: $noteTag) {
+                    Picker(localization.L(L10n.Saves.tag), selection: $session.noteTag) {
                         ForEach(availableTags, id: \.self) { tag in
                             Text(tag.isEmpty ? localization.L(L10n.Saves.tagNone) : tag).tag(tag)
                         }
                     }
                     .pickerStyle(.menu)
                     
-                    TextField(localization.L(L10n.Saves.saveNote), text: $noteText)
+                    TextField(localization.L(L10n.Saves.saveNote), text: $session.noteText)
                 }
                 
                 Section(localization.L(L10n.Saves.characterInfo)) {
-                    TextField(localization.L(L10n.Saves.characterName), text: $draft.name)
-                    TextField(localization.L(L10n.Saves.farmName), text: $draft.farmName)
-                    TextField(localization.L(L10n.Saves.favoriteThing), text: $draft.favoriteThing)
+                    TextField(localization.L(L10n.Saves.characterName), text: $session.draft.name)
+                    TextField(localization.L(L10n.Saves.farmName), text: $session.draft.farmName)
+                    TextField(localization.L(L10n.Saves.favoriteThing), text: $session.draft.favoriteThing)
                 }
                 
                 // MARK: Relationship Section
                 Section(localization.L(L10n.Saves.relationshipSection)) {
-                    Picker(localization.L(L10n.Saves.spouseLabel), selection: $draft.spouse) {
+                    Picker(localization.L(L10n.Saves.spouseLabel), selection: $session.draft.spouse) {
                         Text(localization.L(L10n.Saves.spouseNone)).tag("")
                         ForEach(SaveEditorView.marriableNPCs, id: \.self) { npc in
                             Text(npc).tag(npc)
@@ -360,7 +353,7 @@ struct SaveEditorView: View {
                     .pickerStyle(.menu)
                     
                     // Show warning only when changing away from existing spouse
-                    if !save.spouse.isEmpty && draft.spouse != save.spouse {
+                    if !save.spouse.isEmpty && session.draft.spouse != save.spouse {
                         Text(localization.L(L10n.Saves.spouseWarning))
                             .font(.caption)
                             .foregroundColor(.orange)
@@ -368,16 +361,16 @@ struct SaveEditorView: View {
                 }
                 
                 Section(localization.L(L10n.Saves.resources)) {
-                    TextField(localization.L(L10n.Saves.money), text: $draft.money)
-                    TextField(localization.L(L10n.Saves.totalMoneyEarned), text: $draft.totalMoneyEarned)
-                    TextField(localization.L(L10n.Saves.casinoCoins), text: $draft.clubCoins)
-                    TextField(localization.L(L10n.Saves.goldenWalnuts), text: $draft.goldenWalnuts)
-                    TextField(localization.L(L10n.Saves.qiGems), text: $draft.qiGems)
+                    TextField(localization.L(L10n.Saves.money), text: $session.draft.money)
+                    TextField(localization.L(L10n.Saves.totalMoneyEarned), text: $session.draft.totalMoneyEarned)
+                    TextField(localization.L(L10n.Saves.casinoCoins), text: $session.draft.clubCoins)
+                    TextField(localization.L(L10n.Saves.goldenWalnuts), text: $session.draft.goldenWalnuts)
+                    TextField(localization.L(L10n.Saves.qiGems), text: $session.draft.qiGems)
                 }
                 
-                SaveEditorStatsSections(localization: localization, save: save, draft: $draft)
+                SaveEditorStatsSections(localization: localization, save: save, draft: $session.draft)
                 
-                SaveEditorInventorySection(viewModel: vm, localization: localization)
+                SaveEditorInventorySection(session: session, localization: localization)
                 
                 Section(localization.L(L10n.Saves.saveManagement)) {
                     HStack {
@@ -415,9 +408,6 @@ struct SaveEditorView: View {
                 .disabled(changeCount == 0)  // un second clic pendant l'écriture : refusé par `beginOperation`
             }
             .padding(AppDesign.Spacing.lg)
-            .onChange(of: navigation.inventoryToEdit) { _, items in
-                if inventoryBaseline == nil, !items.isEmpty { inventoryBaseline = items }
-            }
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .alert(editorConfirmationTitle,
@@ -473,23 +463,14 @@ struct SaveEditorView: View {
 
     private var navigation: NavigationStore { vm.navigationStore }
 
-    /// Modifications non enregistrées : champs de la fiche, cases du sac, étiquette et note.
-    private var changeCount: Int {
-        let note = vm.getNote(for: save.folderName)
-        let slots = inventoryBaseline.map { InventoryItem.changedSlots(navigation.inventoryToEdit, from: $0) } ?? 0
-        return draft.changedFields(from: SaveFarmerDraft(save)) + slots
-            + (noteTag == note.tag ? 0 : 1) + (noteText == note.note ? 0 : 1)
-    }
+    private var changeCount: Int { session.changeCount }
 
     /// Une écriture pour la fiche et le sac, seulement s'ils ont changé ; la
     /// note de l'app à part. Passer par `confirmedOrWarn`.
     private func performSave(overwriteNewer: Bool) {
-        vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
-        let sheet = draft.changedFields(from: SaveFarmerDraft(save)) > 0 ? draft.sheet(for: save) : nil
-        let items = inventoryBaseline.flatMap {
-            InventoryItem.changedSlots(navigation.inventoryToEdit, from: $0) > 0 ? navigation.inventoryToEdit : nil
-        }
-        guard sheet != nil || items != nil else { return navigation.setEditingSave(nil) }
-        vm.saveEdits(info: save, sheet: sheet, items: items, overwriteNewer: overwriteNewer)
+        vm.setNote(for: save.folderName, tag: session.noteTag, note: session.noteText)
+        let edits = session.pendingEdits()
+        guard edits.sheet != nil || edits.items != nil else { return navigation.setEditingSave(nil) }
+        vm.saveEdits(info: save, sheet: edits.sheet, items: edits.items, overwriteNewer: overwriteNewer)
     }
 }

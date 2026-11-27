@@ -143,7 +143,7 @@ import Testing
         defer { env.cleanup() }
         let info = try makeSave(env)
         let manager = SaveManager()
-        var items = try #require(manager.fetchInventory(for: info))
+        var items = try #require(manager.fetchContents(for: info)?.inventory)
         items[0].stack = 7
         let newer = xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>")
         try Data(newer.utf8).write(to: info.fileURL)
@@ -157,13 +157,13 @@ import Testing
         defer { env.cleanup() }
         let info = try makeSave(env)
         let manager = SaveManager()
-        var items = try #require(manager.fetchInventory(for: info))
+        var items = try #require(manager.fetchContents(for: info)?.inventory)
 
         items[0].stack = 7
         #expect(manager.updateInventory(info: info, items: items))
         items[0].stack = 8
         #expect(manager.updateInventory(info: info, items: items))
-        #expect(manager.fetchInventory(for: info)?.first?.stack == 8)
+        #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 8)
     }
     /// La fiche du fermier passe par l'arbre : champ édité, quête intacte, et
     /// une valeur à caractère XML échappée une seule fois.
@@ -203,7 +203,7 @@ import Testing
         defer { env.cleanup() }
         let info = try makeSave(env)
         let manager = SaveManager(isGameRunning: { false })
-        var items = try #require(manager.fetchInventory(for: info))
+        var items = try #require(manager.fetchContents(for: info)?.inventory)
         items[0].stack = 7
         try Data(xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>").utf8).write(to: info.fileURL)
 
@@ -211,7 +211,7 @@ import Testing
             try manager.writeInventory(info: info, items: items, overwriteNewer: false)
         }
         try manager.writeInventory(info: info, items: items, overwriteNewer: true)
-        #expect(manager.fetchInventory(for: info)?.first?.stack == 7)
+        #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 7)
     }
 
     @Test func refusalsCarryTheirOwnMessage() {

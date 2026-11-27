@@ -94,7 +94,7 @@ import Testing
         let info = try makeSave(in: env, named: "Inventaire", withBOM: true)
 
         let manager = SaveManager()
-        let items = manager.fetchInventory(for: info) ?? []
+        let items = manager.fetchContents(for: info)?.inventory ?? []
         #expect(manager.updateInventory(info: info, items: items))
         #expect(firstBytes(of: info.fileURL) == Self.bom)
     }

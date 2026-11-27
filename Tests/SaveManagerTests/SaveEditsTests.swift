@@ -23,7 +23,7 @@ import Testing
         let info = try env.makeSave(named: "Edits_1", content: xml)
         let manager = SaveManager(isGameRunning: { false })
         let save = try #require(manager.parseSaveFile(url: info.fileURL, folderName: "Edits_1"))
-        var items = try #require(manager.fetchInventory(for: save))
+        var items = try #require(manager.fetchContents(for: save)?.inventory)
         items[0].stack = 9
         var draft = SaveFarmerDraft(save)
         draft.money = "4321"
@@ -41,7 +41,7 @@ import Testing
         defer { env.cleanup() }
         let info = try env.makeSave(named: "Edits_2", content: xml)
         let manager = SaveManager(isGameRunning: { false })
-        var items = try #require(manager.fetchInventory(for: info))
+        var items = try #require(manager.fetchContents(for: info)?.inventory)
         items[0].stack = 9
         let newer = xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>")
         try Data(newer.utf8).write(to: info.fileURL)

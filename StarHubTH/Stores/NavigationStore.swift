@@ -16,7 +16,7 @@ import Observation
 /// `@MainActor` (P5-L6) : c'est l'état de navigation que les vues lisent et
 /// que le ViewModel écrit — même raison que `SaveNotesStore` et
 /// `GameEnvironmentStore`. L'isolation est ce qui rend légale la complétion
-/// `@Sendable` de `loadInventory`, dont le chargement, lui, tourne au fond.
+/// `@Sendable` de `loadContents`, dont le chargement, lui, tourne au fond.
 @MainActor
 final class NavigationStore {
 
@@ -271,15 +271,14 @@ final class NavigationStore {
     /// espions.
     @ObservationIgnored private(set) var onModDetailOpen: ((ModItem) -> Void)?
     @ObservationIgnored private(set) var onConfigEditorClosed: (() -> Void)?
-    @ObservationIgnored private(set) var loadInventory:
-        (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)?
+    @ObservationIgnored private(set) var loadContents: SaveContents.Loader?
 
     init(onModDetailOpen: ((ModItem) -> Void)? = nil,
          onConfigEditorClosed: (() -> Void)? = nil,
-         loadInventory: (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)? = nil) {
+         loadContents: SaveContents.Loader? = nil) {
         self.onModDetailOpen = onModDetailOpen
         self.onConfigEditorClosed = onConfigEditorClosed
-        self.loadInventory = loadInventory
+        self.loadContents = loadContents
     }
 
     /// Câblage **après construction** — la voie de l'app : le ViewModel est
@@ -288,10 +287,10 @@ final class NavigationStore {
     /// tests passent plutôt les espions à l'`init`.)
     func wireEffects(onModDetailOpen: ((ModItem) -> Void)?,
                      onConfigEditorClosed: (() -> Void)?,
-                     loadInventory: (@Sendable (SaveGameInfo, @escaping @MainActor @Sendable ([InventoryItem]) -> Void) -> Void)?) {
+                     loadContents: SaveContents.Loader?) {
         self.onModDetailOpen = onModDetailOpen
         self.onConfigEditorClosed = onConfigEditorClosed
-        self.loadInventory = loadInventory
+        self.loadContents = loadContents
     }
 
     /// Non-nil = the detail pane is showing this mod. Le poser déclenche le
@@ -324,21 +323,15 @@ final class NavigationStore {
         onConfigEditorClosed?()
     }
 
-    /// La sauvegarde dont l'éditeur d'inventaire est ouvert, et l'inventaire
-    /// qu'elle affiche. Poser une sauvegarde **vide l'inventaire d'abord** —
-    /// l'éditeur ne doit jamais montrer celui de la sauvegarde précédente
-    /// pendant le chargement — puis lance la lecture par `loadInventory`
-    /// (l'app la câble hors fil principal : un gros fichier de sauvegarde ne
-    /// doit pas geler l'interface). Le résultat n'atterrit que si la
-    /// sauvegarde affichée est toujours celle demandée — garde anti-course
-    /// par `id`, l'utilisateur peut changer de cible pendant que le fichier
-    /// se lit. `nil` vide sans charger.
-    private(set) var editingSave: SaveGameInfo?
-    /// Publique en écriture : `SavesView` lie les `stack` par binding
-    /// sous-indexé (`$vm.navigationStore.inventoryToEdit[index].stack`) — la mutation passe
-    /// par le set de la façade, sans règle à préserver ici (le vidage vit
-    /// dans `setEditingSave`).
-    var inventoryToEdit: [InventoryItem] = []
+    /// La partie ouverte et sa session d'édition (A0) : poser une partie
+    /// ouvre une session **neuve** — jamais le sac de la précédente pendant
+    /// le chargement — puis lance la lecture par `loadContents` (hors fil
+    /// principal : un gros fichier ne doit pas geler l'interface). Le
+    /// résultat n'atterrit que dans la session qui l'a demandée — garde
+    /// anti-course, l'utilisateur peut changer de cible pendant la lecture.
+    /// `nil` ferme sans charger.
+    private(set) var editSession: SaveEditSession?
+    var editingSave: SaveGameInfo? { editSession?.save }
 
     /// Le segment affiché par la page « Sauvegardes des mods » (I-T8). Vit
     /// ici plutôt qu'en `@State` : `MainView` reconstruit la page à chaque
@@ -377,20 +370,18 @@ final class NavigationStore {
     var pendingSettingsSection: SettingsSection?
 
     func setEditingSave(_ save: SaveGameInfo?) {
-        editingSave = save
         if save != nil { saveSegment = .details }
-        inventoryToEdit = []
-        guard let save, let load = loadInventory else { return }
-        let requestedId = save.id
+        let session = save.map { SaveEditSession(save: $0) }
+        editSession = session
+        guard let session, let load = loadContents else { return }
         // La complétion est `@MainActor @Sendable` (P5-L6) : le chargement
         // part au fond, mais sa remise reste **synchrone sur l'acteur**.
-        // Un hop `Task` la différerait d'un tour — or le garde sur
-        // `requestedId`, qui refuse un inventaire arrivé après un changement
-        // de sauvegarde, doit lire l'état au moment exact de l'écriture.
-        // Deux tests du store épinglent cette synchronicité.
-        load(save) { [weak self] items in
-            guard let self, self.editingSave?.id == requestedId else { return }
-            self.inventoryToEdit = items
+        // Un hop `Task` la différerait d'un tour — or la garde, qui refuse
+        // une lecture arrivée après un changement de partie, doit lire l'état
+        // au moment exact de l'écriture. Les tests du store l'épinglent.
+        load(session.save) { [weak self] contents in
+            guard let self, self.editSession === session, let contents else { return }
+            session.load(contents)
         }
     }
 }

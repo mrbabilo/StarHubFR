@@ -1545,15 +1545,15 @@ final class StarHubTHViewModel {
             self?.log(message, level: .warning)
         }
         // Navigation (P8) : plomberie des poses à effet — fiche, rescan
-        // raccourcis (X66), inventaire hors fil principal (~40 Mo).
+        // raccourcis (X66), contenu de la partie hors fil principal (~40 Mo).
         navigationStore.wireEffects(
             onModDetailOpen: { [weak self] in self?.loadModDetail(for: $0) },
             onConfigEditorClosed: { [weak self] in self?.rescanKeybindsAfterConfigWrite() },
-            loadInventory: { save, done in
+            loadContents: { save, done in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let items = SaveManager.shared.fetchInventory(for: save) ?? []
+                    let contents = SaveManager.shared.fetchContents(for: save)
                     // `done` est `@MainActor` : `assumeIsolated` évite un second saut.
-                    DispatchQueue.main.async { MainActor.assumeIsolated { done(items) } }
+                    DispatchQueue.main.async { MainActor.assumeIsolated { done(contents) } }
                 }
             })
         // Scan (domaine 8) : poser le parc enchaîne cache de catégories Nexus,

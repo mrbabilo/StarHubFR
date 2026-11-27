@@ -33,8 +33,11 @@ struct SaveDetailView: View {
             .zIndex(2)
             Divider()
             ZStack {
-                shown(.details, navigation.saveSegment) {
-                    SaveEditorView(vm: viewModel, localization: localization, save: save, currentTab: $currentTab)
+                if let session = navigation.editSession {
+                    shown(.details, navigation.saveSegment) {
+                        SaveEditorView(vm: viewModel, localization: localization, session: session,
+                                       currentTab: $currentTab)
+                    }
                 }
                 shown(.mods, navigation.saveSegment) { modsSegment }
                 shown(.history, navigation.saveSegment) {

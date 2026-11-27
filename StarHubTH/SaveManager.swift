@@ -718,12 +718,12 @@ public final class SaveManager: @unchecked Sendable {
         inventoryStampsLock.unlock()
     }
 
-    func fetchInventory(for info: SaveGameInfo) -> [InventoryItem]? {
-        // Même lecture que l'écriture (`.nodePreserveAll`) : l'arbre montré est
-        // celui qui sera écrit, et son empreinte garde l'écriture.
+    func fetchContents(for info: SaveGameInfo) -> SaveContents? {
+        // Une lecture, une empreinte (A0) ; même lecture que l'écriture
+        // (`.nodePreserveAll`) : l'arbre montré est celui qui sera écrit.
         guard let save = try? SaveDocument(contentsOf: info.fileURL), let items = save.inventory() else { return nil }
         rememberInventoryStamp(save.stamp, for: info.fileURL)
-        return items
+        return SaveContents(inventory: items, stamp: save.stamp)
     }
 
     /// `writeInventory`, réussite seulement.
@@ -732,7 +732,7 @@ public final class SaveManager: @unchecked Sendable {
     }
 
     /// Écrit le sac. Refusé — rien d'écrit — si la partie a changé depuis la
-    /// dernière lecture de l'inventaire (`fetchInventory`), sauf
+    /// dernière lecture de l'inventaire (`fetchContents`), sauf
     /// `overwriteNewer` (l'utilisateur a confirmé l'écrasement) ; et toujours :
     /// X138, jeu lancé, partie modifiée pendant l'opération, backup raté.
     func writeInventory(info: SaveGameInfo, items: [InventoryItem], overwriteNewer: Bool) throws(SaveDocument.Failure) {
