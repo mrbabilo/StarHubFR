@@ -111,3 +111,25 @@ final class SaveDocument {
         guard now == stamp, expected.map({ $0 == now }) ?? true else { throw .changedOnDisk }
     }
 }
+
+extension SaveDocument.Failure {
+    /// Une erreur reçue d'un `catch` hors contexte typé (fermeture) : le refus
+    /// lui-même, sinon un échec d'écriture.
+    init(_ error: any Error) { self = error as? SaveDocument.Failure ?? .writeFailed }
+
+    /// `nil` si `body` réussit, sinon son refus.
+    static func of(_ body: () throws -> Void) -> Self? {
+        do { try body(); return nil } catch { return Self(error) }
+    }
+
+    /// Clé L10n du message montré après un refus ; `fallback` pour les échecs
+    /// sans message propre (lecture, backup, écriture).
+    func messageKey(fallback: String) -> String {
+        switch self {
+        case .binaryOnly(let key): return key
+        case .changedOnDisk: return L10n.Saves.writeChangedOnDisk
+        case .gameRunning: return L10n.Saves.writeGameRunning
+        case .unreadable, .malformed, .backupFailed, .writeFailed: return fallback
+        }
+    }
+}

@@ -222,6 +222,8 @@ enum L10n {
         static let confirmStaleEdit     = "saves_confirm_stale_edit"
         static let confirmStaleEditMsg  = "saves_confirm_stale_edit_msg"
         static let overwriteAnyway      = "saves_overwrite_anyway"
+        static let writeChangedOnDisk   = "saves_write_changed_on_disk"
+        static let writeGameRunning     = "saves_write_game_running"
         static let sortLastPlayed       = "saves_sort_last_played"
         static let sortName             = "saves_sort_name"
         static let sortMoney            = "saves_sort_money"

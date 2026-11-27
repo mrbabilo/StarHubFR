@@ -441,7 +441,7 @@ struct SaveEditorView: View {
                     }
                     
                     Button(localization.L(L10n.Saves.saveInventory)) {
-                        confirmedOrWarn(vm.saveInventory)
+                        confirmedOrWarn { vm.saveInventory(overwriteNewer: $0) }
                     }
                     .buttonStyle(.borderedProminent).focusRing()
                     .padding(.top, 8)
@@ -475,7 +475,7 @@ struct SaveEditorView: View {
                 Spacer()
                 
                 Button(localization.L(L10n.Saves.saveChanges)) {
-                    confirmedOrWarn(performSave)
+                    confirmedOrWarn { _ in performSave() }
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(BorderedProminentButtonStyle()).focusRing()
@@ -515,17 +515,16 @@ struct SaveEditorView: View {
         }
     }
 
-    /// Runs `action` immediately, unless the save may have changed on disk
-    /// or Stardew Valley appears to be running — in which case `action` is
-    /// deferred until the user confirms through the warning alert. Shared by
-    /// every write path in this editor (field edits, inventory) so none of
-    /// them can silently overwrite newer progress or race the game's autosave.
-    private func confirmedOrWarn(_ action: @escaping () -> Void) {
-        if vm.isSaveStale(save) || vm.isGameRunning() {
-            pendingSaveAction = action
+    /// Every write path of this editor (field edits, inventory) goes through
+    /// here. Save changed on disk since opening: deferred until the user
+    /// confirms the overwrite (`action` gets `true`). Game running: no
+    /// confirmation, the write itself refuses and says so (B5-T1).
+    private func confirmedOrWarn(_ action: @escaping (_ overwriteNewer: Bool) -> Void) {
+        if vm.isSaveStale(save) {
+            pendingSaveAction = { action(true) }
             confirmation = .staleEdit
         } else {
-            action()
+            action(false)
         }
     }
 
@@ -542,6 +541,5 @@ struct SaveEditorView: View {
 
         vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
         vm.editSave(info: save, newName: name, newFarm: farm, newFav: fav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newHealth, newMaxStamina: newStam, newGoldenWalnuts: newWalnuts, newQiGems: newQi, newClubCoins: newClub, newSpouse: spouse)
-        vm.navigationStore.setEditingSave(nil)
     }
 }

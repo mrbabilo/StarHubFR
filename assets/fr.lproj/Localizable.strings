@@ -1525,6 +1525,8 @@
 "saves_cleanup_game_running" = "Stardew Valley est en cours d'exécution. Sa sauvegarde automatique peut réécrire la partie et annuler ce nettoyage — fermez le jeu d'abord.";
 "saves_open_folder" = "Ouvrir le dossier";
 "saves_overwrite_anyway" = "Écraser quand même";
+"saves_write_changed_on_disk" = "La partie a changé sur le disque pendant l'enregistrement (le jeu l'a peut-être sauvegardée). Rien n'a été écrit : rouvrez la partie pour repartir de sa dernière version.";
+"saves_write_game_running" = "Stardew Valley est lancé : sa sauvegarde automatique annulerait la modification, ou la modification abîmerait la partie en cours. Rien n'a été écrit — fermez le jeu, puis enregistrez à nouveau.";
 "saves_qi_gems" = "Gemmes de Qi";
 "saves_relationship_section" = "Relation";
 "saves_relative_days_ago" = "Il y a %lld jours";

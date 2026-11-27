@@ -1525,6 +1525,8 @@
 "saves_cleanup_game_running" = "Stardew Valley is running. Its autosave can rewrite this save and undo the cleanup — close the game first.";
 "saves_open_folder" = "Open Folder";
 "saves_overwrite_anyway" = "Overwrite Anyway";
+"saves_write_changed_on_disk" = "The save changed on disk while saving (the game may have saved it). Nothing was written: reopen the save to start from its latest version.";
+"saves_write_game_running" = "Stardew Valley is running: its autosave would undo the change, or the change would break the game in progress. Nothing was written — close the game, then save again.";
 "saves_qi_gems" = "Qi Gems";
 "saves_relationship_section" = "Relationship";
 "saves_relative_days_ago" = "%lld days ago";

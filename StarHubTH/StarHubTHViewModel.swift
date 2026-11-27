@@ -5897,37 +5897,36 @@ final class StarHubTHViewModel {
         guard savesStore.beginOperation() else { return }
         // Full save XML rewrite, off main.
         DispatchQueue.global(qos: .userInitiated).async {
-            let success = SaveManager.shared.updateSave(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse)
+            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeFarmerSheet(info: info, newName: newName, newFarm: newFarm, newFav: newFav, newMoney: newMoney, newTotalMoneyEarned: newTotalMoneyEarned, newMaxHealth: newMaxHealth, newMaxStamina: newMaxStamina, newGoldenWalnuts: newGoldenWalnuts, newQiGems: newQiGems, newClubCoins: newClubCoins, newSpouse: newSpouse) }
             DispatchQueue.main.async {
                 self.savesStore.endOperation()
-                if success {
-                    self.reloadSaves()
-                    self.showModal(message: self.localization.L(L10n.VM.saveSuccess))
+                if let failure {
+                    self.showModal(message: self.localization.L(failure.messageKey(fallback: L10n.VM.saveError)))
                 } else {
-                    self.showModal(message: self.localization.L(PureBinarySave.refusalKey(for: info.fileURL) ?? L10n.VM.saveError))
+                    self.reloadSaves()
+                    self.navigationStore.setEditingSave(nil)  // fermé sur réussite seulement : un refus garde la saisie
+                    self.showModal(message: self.localization.L(L10n.VM.saveSuccess))
                 }
             }
         }
     }
 
-    func saveInventory() {
+    func saveInventory(overwriteNewer: Bool = false) {
         guard let save = navigationStore.editingSave else { return }
         let items = navigationStore.inventoryToEdit
         // Même verrou qu'`editSave` (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
         // Same as `editSave`: off main.
         DispatchQueue.global(qos: .userInitiated).async {
-            let success = SaveManager.shared.updateInventory(info: save, items: items)
-            let refetched = success ? SaveManager.shared.fetchInventory(for: save) : nil
+            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeInventory(info: save, items: items, overwriteNewer: overwriteNewer) }
+            let refetched = failure == nil ? SaveManager.shared.fetchInventory(for: save) : nil
             DispatchQueue.main.async {
                 self.savesStore.endOperation()
-                if success {
-                    self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
-                    if let refetched = refetched {
-                        self.navigationStore.inventoryToEdit = refetched
-                    }
+                if let failure {
+                    self.showModal(message: self.localization.L(failure.messageKey(fallback: L10n.Saves.inventoryError)))
                 } else {
-                    self.showModal(message: self.localization.L(PureBinarySave.refusalKey(for: save.fileURL) ?? L10n.Saves.inventoryError))
+                    self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
+                    if let refetched { self.navigationStore.inventoryToEdit = refetched }
                 }
             }
         }

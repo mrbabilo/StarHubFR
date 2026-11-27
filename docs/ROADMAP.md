@@ -761,7 +761,7 @@ refuse la partie de 37,5 Mo de l'auteur), marque d'octets rendue (X21),
 garde X138, backup avant écriture, lecture et écriture sans perte
 (`.nodePreserveAll`, X157), et les trois verrous de B5-T1.
 
-- [ ] **B6-T1 — Modèle de la partie en mémoire.** Aujourd'hui `updateSave`
+- [x] **B6-T1 — Modèle de la partie en mémoire.** Aujourd'hui `updateSave`
       remplace du texte par expressions régulières dans 36 Mo et seul
       l'inventaire passe par un arbre XML. Toutes les fonctions suivantes
       demandent un arbre chargé une fois, modifié, puis écrit d'un coup avec
@@ -774,11 +774,13 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       juste avant remplacement, refus X138, backup, marque d'octets). Le sac
       y passe (`SaveDocument+Inventory.swift`, 10 tests), puis la fiche du
       fermier et le mariage (`SaveDocument+Farmer.swift` : `updateSave` sans
-      regex, `SaveManager.swift` 1 163 → 845 lignes). **Reste** : jeu lancé revérifié à
-      l'écriture (paramètre prêt, non branché : `isGameRunning` du ViewModel
-      est `@MainActor`, l'écriture tourne hors main) ; message de refus
-      propre à « partie modifiée depuis l'ouverture » (aujourd'hui l'erreur
-      générique du sac).
+      regex, `SaveManager.swift` 1 163 → 845 lignes). Puis (même jour) : jeu lancé
+      revérifié **au moment d'écrire** (`SaveManager.gameIsRunning`, lu hors
+      main) — plus de bouton « écraser quand même » dans ce cas ; partie
+      modifiée depuis l'ouverture : l'écrasement confirmé passe, sinon refus ;
+      messages propres (`saves_write_changed_on_disk`,
+      `saves_write_game_running`) ; l'éditeur ne se ferme qu'après une
+      écriture réussie. **Non vérifié en jeu.**
 - [ ] **B6-T2 — Parties PureBinarySave éditables.** Format vérifié en 2.0.8
       le 2026-11-27 (`docs/audit-ultrasmooth-2.9.6.md`) : la partie reste un
       XML en Brotli sous l'en-tête `PPBS` de la 1.0.10

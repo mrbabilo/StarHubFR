@@ -182,4 +182,45 @@ import Testing
         #expect(written.contains("<money>4321</money>"))
         #expect(written.contains("<_questTitle>La Quête</_questTitle>"))
     }
+    /// Jeu lancé au moment d'écrire : refus, même sans écran pour le dire.
+    @Test func farmerSheetRefusedWhileTheGameRuns() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let info = try makeSave(env)
+        let manager = SaveManager(isGameRunning: { true })
+
+        #expect(throws: SaveDocument.Failure.gameRunning) {
+            try manager.writeFarmerSheet(
+                info: info, newName: "Autre", newFarm: "Ferme", newFav: "", newMoney: 1,
+                newTotalMoneyEarned: 0, newMaxHealth: 100, newMaxStamina: 270,
+                newGoldenWalnuts: 0, newQiGems: 0, newClubCoins: 0, newSpouse: "")
+        }
+        #expect(text(info.fileURL) == xml)
+    }
+
+    /// Écrasement confirmé à l'écran : la lecture d'écran ne bloque plus.
+    @Test func confirmedOverwriteWritesTheInventory() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let info = try makeSave(env)
+        let manager = SaveManager(isGameRunning: { false })
+        var items = try #require(manager.fetchInventory(for: info))
+        items[0].stack = 7
+        try Data(xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>").utf8).write(to: info.fileURL)
+
+        #expect(throws: SaveDocument.Failure.changedOnDisk) {
+            try manager.writeInventory(info: info, items: items, overwriteNewer: false)
+        }
+        try manager.writeInventory(info: info, items: items, overwriteNewer: true)
+        #expect(manager.fetchInventory(for: info)?.first?.stack == 7)
+    }
+
+    @Test func refusalsCarryTheirOwnMessage() {
+        #expect(SaveDocument.Failure.changedOnDisk.messageKey(fallback: "x") == L10n.Saves.writeChangedOnDisk)
+        #expect(SaveDocument.Failure.gameRunning.messageKey(fallback: "x") == L10n.Saves.writeGameRunning)
+        #expect(SaveDocument.Failure.binaryOnly("cle").messageKey(fallback: "x") == "cle")
+        #expect(SaveDocument.Failure.backupFailed.messageKey(fallback: "x") == "x")
+        #expect(SaveDocument.Failure.of { throw CocoaError(.fileWriteUnknown) } == .writeFailed)
+        #expect(SaveDocument.Failure.of {} == nil)
+    }
 }

@@ -40,7 +40,11 @@ where the exact log format was verified.
   refused — nothing touched, not even the backup — when the file changed on
   disk since the inventory was shown (SHA-256 of the bytes, checked again
   right before the replacement). Before, a game autosave between opening the
-  editor and clicking Save was silently reverted.
+  editor and clicking Save was silently reverted. Confirming "overwrite
+  anyway" still works when the save changed since opening; while Stardew
+  Valley is running the write is refused outright (no overwrite option), each
+  refusal with its own message, and the editor now stays open so nothing
+  typed is lost.
 
 - **Editing a save's inventory no longer erases quest text (X157)**: the
   save was re-parsed in a "tidy" mode that silently dropped every element
