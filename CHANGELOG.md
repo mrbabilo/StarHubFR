@@ -35,6 +35,13 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **Saving the inventory never overwrites newer progress (B6-T1)**: the save
+  is now read once into a tree and written in one go, and the write is
+  refused — nothing touched, not even the backup — when the file changed on
+  disk since the inventory was shown (SHA-256 of the bytes, checked again
+  right before the replacement). Before, a game autosave between opening the
+  editor and clicking Save was silently reverted.
+
 - **Editing a save's inventory no longer erases quest text (X157)**: the
   save was re-parsed in a "tidy" mode that silently dropped every element
   whose name starts with an underscore — on a real 37 MB save, the title,

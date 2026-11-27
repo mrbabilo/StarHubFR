@@ -1061,102 +1061,47 @@ public final class SaveManager: @unchecked Sendable {
     }
     // MARK: - Inventory Editing
     
-    func fetchInventory(for info: SaveGameInfo) -> [InventoryItem]? {
-        guard let data = try? Data(contentsOf: info.fileURL),
-              let document = try? XMLDocument(data: data, options: .documentTidyXML),
-              let root = document.rootElement() else {
-            return nil
-        }
-        
-        var inventory: [InventoryItem] = []
-        
-        // Find /SaveGame/player/items
-        let player = root.elements(forName: "player").first
-        let itemsElement = player?.elements(forName: "items").first
-        
-        guard let itemsNode = itemsElement else { return nil }
-        
-        let itemNodes = itemsNode.elements(forName: "Item")
-        
-        for (index, itemNode) in itemNodes.enumerated() {
-            let xsiType = itemNode.attribute(forName: "xsi:type")?.stringValue ?? ""
-            
-            if xsiType == "Object" {
-                let name = itemNode.elements(forName: "name").first?.stringValue ?? "Unknown"
-                let itemId = itemNode.elements(forName: "itemId").first?.stringValue ?? "Unknown"
-                let stack = Int(itemNode.elements(forName: "stack").first?.stringValue ?? "1") ?? 1
-                
-                inventory.append(InventoryItem(slotIndex: index, itemId: itemId, name: name, stack: stack, isObject: true))
-            } else if itemNode.attribute(forName: "xsi:nil")?.stringValue == "true" {
-                // Empty slot
-                inventory.append(InventoryItem.empty(slot: index))
-            } else {
-                // Other items like weapons, rings, etc.
-                let name = itemNode.elements(forName: "name").first?.stringValue ?? xsiType
-                let itemId = itemNode.elements(forName: "itemId").first?.stringValue ?? ""
-                let displayName = name.isEmpty ? (xsiType.isEmpty ? "Unknown Item" : xsiType) : name
-                inventory.append(InventoryItem(slotIndex: index, itemId: itemId, name: displayName, stack: 1, isObject: false))
-            }
-        }
-        
-        return inventory
+    /// Empreinte de la dernière lecture de l'inventaire, par partie : l'écriture
+    /// refuse un fichier qui a changé depuis que l'écran l'a montré (B6-T1,
+    /// B5-T1). Verrou dédié : lecture et écriture tournent hors main.
+    private var inventoryStamps: [URL: SaveDocument.Stamp] = [:]
+    private let inventoryStampsLock = NSLock()
+
+    private func inventoryStamp(for url: URL) -> SaveDocument.Stamp? {
+        inventoryStampsLock.lock()
+        defer { inventoryStampsLock.unlock() }
+        return inventoryStamps[url]
     }
-    
+
+    private func rememberInventoryStamp(_ stamp: SaveDocument.Stamp, for url: URL) {
+        inventoryStampsLock.lock()
+        inventoryStamps[url] = stamp
+        inventoryStampsLock.unlock()
+    }
+
+    func fetchInventory(for info: SaveGameInfo) -> [InventoryItem]? {
+        // Même lecture que l'écriture (`.nodePreserveAll`) : l'arbre montré est
+        // celui qui sera écrit, et son empreinte garde l'écriture.
+        guard let save = try? SaveDocument(contentsOf: info.fileURL), let items = save.inventory() else { return nil }
+        rememberInventoryStamp(save.stamp, for: info.fileURL)
+        return items
+    }
+
+    /// Écrit le sac. Refusé — rien d'écrit — si la partie a changé depuis la
+    /// dernière lecture de l'inventaire (`fetchInventory`), si le `.bin` porte
+    /// la seule copie complète (X138) ou si le backup échoue.
     func updateInventory(info: SaveGameInfo, items: [InventoryItem]) -> Bool {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
-        // Backup first ; une partie dont le `.bin` porte la seule copie complète : refusée (X138).
-        guard PureBinarySave.allowsEditing(info.fileURL), backupSave(info: info) else { return false }
-        
-        let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
-        guard let data = try? Data(contentsOf: info.fileURL),  // jamais `.documentTidyXML` : il effaçait les `_questTitle`… (X157)
-              let document = try? XMLDocument(data: data, options: [.nodePreserveAll]),
-              let root = document.rootElement() else {
-            return false
-        }
-        
-        // Find /SaveGame/player/items
-        guard let player = root.elements(forName: "player").first,
-              let itemsElement = player.elements(forName: "items").first else {
-            return false
-        }
-        
-        let itemNodes = itemsElement.elements(forName: "Item")
-        
-        for updatedItem in items {
-            guard updatedItem.slotIndex >= 0 && updatedItem.slotIndex < itemNodes.count else { continue }
-            let nodeToUpdate = itemNodes[updatedItem.slotIndex]
-            
-            // Only update if it's an Object
-            if updatedItem.isObject {
-                // Stack
-                if let stackNode = nodeToUpdate.elements(forName: "stack").first {
-                    stackNode.stringValue = "\(updatedItem.stack)"
-                } else {
-                    let newStack = XMLElement(name: "stack", stringValue: "\(updatedItem.stack)")
-                    nodeToUpdate.addChild(newStack)
-                }
-                
-                // Item ID (if needed, but usually we just update stack for safety)
-                if let idNode = nodeToUpdate.elements(forName: "itemId").first {
-                    idNode.stringValue = updatedItem.itemId
-                }
-            } else if updatedItem.name.isEmpty {
-                // Delete the item (make it an empty slot)
-                nodeToUpdate.setChildren(nil)
-                if let nilAttr = XMLNode.attribute(withName: "xsi:nil", stringValue: "true") as? XMLNode {
-                    nodeToUpdate.attributes = [nilAttr]
-                }
-            }
-        }
-        
+        guard let save = try? SaveDocument(contentsOf: info.fileURL), save.applyInventory(items) else { return false }
         do {
-            let updatedXMLData = document.xmlData(options: [.nodePreserveAll])  // sans réindenter : 36 → 90 Mo (X157)
-            try PureBinarySave.write(Self.bytes(updatedXMLData, preservingBOM: hadBOM),
-                                     to: info.fileURL)
+            try save.write(expected: inventoryStamp(for: info.fileURL), backup: { backupSave(info: info) })
+            if let written = SaveDocument.Stamp.current(of: info.fileURL) {
+                rememberInventoryStamp(written, for: info.fileURL)
+            }
             return true
         } catch {
-            print("Failed to save updated inventory XML: \(error)")
+            print("Inventory not written: \(error)")
             return false
         }
     }

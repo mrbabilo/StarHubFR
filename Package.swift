@@ -392,6 +392,8 @@ let package = Package(
                 "Models/KeybindPlanWriter.swift",
                 "Models/MacKeyCodeMap.swift",
                 "Models/SavePlayerFields.swift",
+                "Models/SaveDocument.swift",
+                "Models/SaveDocument+Inventory.swift",
                 "Models/SaveHeroPortrait.swift",
                 "Models/SaveGameFields.swift",
                 "SaveFarmerPalette.swift",

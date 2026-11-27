@@ -766,6 +766,18 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       l'inventaire passe par un arbre XML. Toutes les fonctions suivantes
       demandent un arbre chargé une fois, modifié, puis écrit d'un coup avec
       contrôle d'empreinte (B5-T1). Socle des autres items. · **L**
+      **Avancement 2026-11-27** : `Models/SaveDocument.swift` livré — lecture
+      unique en `XMLDocument` (`.nodePreserveAll` ; mesuré sur deux vraies
+      parties : seule la forme des éléments vides et `standalone="yes"`
+      changent, 1,6 s par sens sur 37,5 Mo), écriture sous garde (empreinte
+      SHA-256 de l'ouverture et de la lecture d'écran relue avant backup et
+      juste avant remplacement, refus X138, backup, marque d'octets). Le sac
+      y passe (`SaveDocument+Inventory.swift`, 10 tests). **Reste** :
+      `updateSave` encore en remplacements de texte ; jeu lancé revérifié à
+      l'écriture (paramètre prêt, non branché : `isGameRunning` du ViewModel
+      est `@MainActor`, l'écriture tourne hors main) ; message de refus
+      propre à « partie modifiée depuis l'ouverture » (aujourd'hui l'erreur
+      générique du sac).
 - [ ] **B6-T2 — Parties PureBinarySave éditables.** Format vérifié en 2.0.8
       le 2026-11-27 (`docs/audit-ultrasmooth-2.9.6.md`) : la partie reste un
       XML en Brotli sous l'en-tête `PPBS` de la 1.0.10
