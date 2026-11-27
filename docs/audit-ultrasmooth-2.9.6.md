@@ -91,20 +91,48 @@ La garde `.bin.sync` et le chemin AutoHeal vérifiés le 2026-11-18 ne sont
 Lecture seule, partie `TEST_453239247` (fichiers du 2026-11-20 ; la version du
 mod qui les a écrits n'est pas connue). Préalable à B6-T2.
 
-- **`<partie>.bin` et `SaveGameInfo.bin`** : en-tête de 28 octets — `PPBS`,
-  version 1 (uint32), taille du XML décompressé (uint32), taille compressée
-  (uint32), puis 12 octets non identifiés (empreinte et date probables). Le
-  reste est du Brotli : décompressé, il est identique octet pour octet au XML
-  voisin (`cmp`), marque d'octets comprise.
-- **`<fichier>.bin.sync`** : 16 octets — 8 octets qui ressemblent à une date,
-  puis la taille du XML (uint64). C'est la garde qui fait re-migrer le mod
-  quand le XML change hors de lui : à réécrire avec un `.bin` modifié.
+- **`<partie>.bin` et `SaveGameInfo.bin`** : en-tête de 28 octets, tous
+  les entiers en petit-boutiste :
+
+  | Décalage | Taille | Champ |
+  |---|---|---|
+  | 0 | 4 | signature `PPBS` (uint32 0x53425050) |
+  | 4 | 2 | version du format (uint16), 1 ; refusé au-delà |
+  | 6 | 2 | drapeaux (uint16), 0 partout ; écrit à 0 par la 2.0.8 |
+  | 8 | 4 | taille du XML décompressé (int32) |
+  | 12 | 4 | taille du flux Brotli (int32) |
+  | 16 | 4 | Adler-32 du XML décompressé (uint32) |
+  | 20 | 8 | date d'écriture, ticks .NET UTC (int64, centaines de ns depuis l'an 1) |
+
+  Le reste est du Brotli : décompressé, il est identique octet pour octet au
+  XML voisin (`cmp`), marque d'octets comprise. Vérifié le 2026-11-27 sur les
+  deux fichiers de la partie : l'Adler-32 de l'en-tête égale celui du XML
+  voisin, la date tombe à moins d'1 ms de la date de modification du `.bin`.
+  À la lecture, le mod refuse le fichier si la signature, la version, la
+  taille décompressée ou l'Adler-32 ne concordent pas, puis essaie le
+  `.bin.bak` (partie plus ancienne).
+- **`<fichier>.bin.sync`** : 16 octets — date de modification du XML voisin
+  (ticks .NET UTC, int64), puis sa taille (int64). Les deux à zéro marquent
+  un XML encore à écrire (copie XML différée). Fichier écrit par
+  renommage d'un `.sync.tmp`.
+- **Garde au chargement** (hors mode « disque pur ») : si la date du XML
+  s'écarte de plus de 2 s de celle du `.bin.sync`, ou si sa taille diffère,
+  et que le XML est bien formé, le mod efface le `.bin`, son `.bin.sync` et
+  les caches `*.assets.bin` / `*.maps.bin`, puis charge le XML et refait le
+  binaire. Un XML absent, de moins de 500 octets ou mal formé est au
+  contraire **reconstruit depuis le `.bin`** (AutoHeal) : une édition ratée
+  du XML est alors écrasée par l'ancienne partie.
 - **`<partie>.official_fr.assets.bin`** (en-tête `CABP`) et
   **`<partie>.official_fr.maps.bin`** (`CMBP`) : caches de contenu traduit, pas
   la partie. À conserver dans un backup ou une restauration, jamais à éditer.
 
-Reste à décoder avant d'écrire un `.bin` : les 12 octets de fin d'en-tête et
-les 8 premiers du `.bin.sync` (lecture statique de la 2.0.8).
+Conséquence pour B6-T2 : une partie dont le XML est complet s'édite par le
+XML seul, la garde fait le reste. Le `.bin` n'est à écrire que si le XML
+manque ou n'est qu'un bouchon (mode « disque pur », copie XML différée) :
+en-tête ci-dessus avec un Adler-32 et une date neufs, Brotli du XML, puis un
+`.bin.sync` à la date et à la taille du XML écrit. Lu dans la 2.0.8
+(`~/Outils/analyses/purebinarysave-2.0.8/`, lecture statique) ; à
+revérifier à chaque version du mod.
 
 ## Modern Config Menu 2.5.2 — traduction française en retard
 

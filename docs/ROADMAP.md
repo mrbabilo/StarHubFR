@@ -766,10 +766,11 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       l'inventaire passe par un arbre XML. Toutes les fonctions suivantes
       demandent un arbre chargé une fois, modifié, puis écrit d'un coup avec
       contrôle d'empreinte (B5-T1). Socle des autres items. · **L**
-- [ ] **B6-T2 — Parties PureBinarySave éditables.** Vérifier d'abord que le
-      format du `.bin` relevé sur la 1.0.10 (en-tête `PPBS` + XML en Brotli,
-      `PureBinarySave+File.swift`) vaut encore en 2.0.8 — la 2.x embarque
-      MessagePack. Puis : XML complet = éditer le XML et écarter le `.bin`
+- [ ] **B6-T2 — Parties PureBinarySave éditables.** Format vérifié en 2.0.8
+      le 2026-11-27 (`docs/audit-ultrasmooth-2.9.6.md`) : la partie reste un
+      XML en Brotli sous l'en-tête `PPBS` de la 1.0.10
+      (`PureBinarySave+File.swift`, qui ne contrôle pas encore l'Adler-32) ;
+      les 28 octets et le `.bin.sync` sont décodés. Puis : XML complet = éditer le XML et écarter le `.bin`
       (la garde `.bin.sync` du mod re-migre) ; XML réduit à un talon (refusé
       aujourd'hui par X138) = reconstruire le XML complet depuis le `.bin`,
       l'éditer, écarter le `.bin`. · **M**
