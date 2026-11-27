@@ -35,8 +35,8 @@ where the exact log format was verified.
 
 ### Fixed
 
-- **Saving the inventory never overwrites newer progress (B6-T1)**: the save
-  is now read once into a tree and written in one go, and the write is
+- **Saving the inventory or the farmer sheet never overwrites newer progress
+  (B6-T1)**: the save is now read once into a tree and written in one go, and the write is
   refused — nothing touched, not even the backup — when the file changed on
   disk since the inventory was shown (SHA-256 of the bytes, checked again
   right before the replacement). Before, a game autosave between opening the

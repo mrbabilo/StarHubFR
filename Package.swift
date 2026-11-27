@@ -394,6 +394,7 @@ let package = Package(
                 "Models/SavePlayerFields.swift",
                 "Models/SaveDocument.swift",
                 "Models/SaveDocument+Inventory.swift",
+                "Models/SaveDocument+Farmer.swift",
                 "Models/SaveHeroPortrait.swift",
                 "Models/SaveGameFields.swift",
                 "SaveFarmerPalette.swift",

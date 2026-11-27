@@ -772,8 +772,9 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       changent, 1,6 s par sens sur 37,5 Mo), écriture sous garde (empreinte
       SHA-256 de l'ouverture et de la lecture d'écran relue avant backup et
       juste avant remplacement, refus X138, backup, marque d'octets). Le sac
-      y passe (`SaveDocument+Inventory.swift`, 10 tests). **Reste** :
-      `updateSave` encore en remplacements de texte ; jeu lancé revérifié à
+      y passe (`SaveDocument+Inventory.swift`, 10 tests), puis la fiche du
+      fermier et le mariage (`SaveDocument+Farmer.swift` : `updateSave` sans
+      regex, `SaveManager.swift` 1 163 → 845 lignes). **Reste** : jeu lancé revérifié à
       l'écriture (paramètre prêt, non branché : `isGameRunning` du ViewModel
       est `@MainActor`, l'écriture tourne hors main) ; message de refus
       propre à « partie modifiée depuis l'ouverture » (aujourd'hui l'erreur

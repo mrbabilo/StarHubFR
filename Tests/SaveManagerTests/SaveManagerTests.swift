@@ -206,8 +206,10 @@ struct TestEnvironment {
 
         let written = try String(contentsOf: info.fileURL, encoding: .utf8)
         #expect(written.contains("<name>Bérénice</name>"))
-        // L'objet d'inventaire reste intact, vide comme il l'était.
-        #expect(written.contains("<Item><name></name></Item>"))
+        // L'objet d'inventaire reste intact, vide comme il l'était. L'écriture
+        // passe par l'arbre XML (B6-T1), qui note un élément vide `<name/>` :
+        // même valeur pour le jeu.
+        #expect(written.contains("<Item><name></name></Item>") || written.contains("<Item><name/></Item>"))
         #expect(written.contains("<Item><name>Houe</name></Item>"))
     }
 

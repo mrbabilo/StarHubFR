@@ -165,4 +165,21 @@ import Testing
         #expect(manager.updateInventory(info: info, items: items))
         #expect(manager.fetchInventory(for: info)?.first?.stack == 8)
     }
+    /// La fiche du fermier passe par l'arbre : champ édité, quête intacte, et
+    /// une valeur à caractère XML échappée une seule fois.
+    @Test func farmerSheetGoesThroughTheTree() throws {
+        let env = TestEnvironment()
+        defer { env.cleanup() }
+        let info = try makeSave(env)
+
+        #expect(SaveManager().updateSave(
+            info: info, newName: "D&D", newFarm: "Ferme", newFav: "", newMoney: 4321,
+            newTotalMoneyEarned: 0, newMaxHealth: 100, newMaxStamina: 270,
+            newGoldenWalnuts: 0, newQiGems: 0, newClubCoins: 0, newSpouse: ""))
+
+        let written = text(info.fileURL)
+        #expect(written.contains("<name>D&amp;D</name>"))
+        #expect(written.contains("<money>4321</money>"))
+        #expect(written.contains("<_questTitle>La Quête</_questTitle>"))
+    }
 }

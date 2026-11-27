@@ -470,52 +470,6 @@ public final class SaveManager: @unchecked Sendable {
         return extractTag(tag: "spouse", from: playerBlock)
     }
     
-    /// Sets <spouse> in <player>, or removes it when empty.
-    private func updateSpouseInPlayer(newSpouse: String, in xml: String) -> String {
-        let spousePattern = "<spouse>[^<]*</spouse>"
-        guard let regex = try? NSRegularExpression(pattern: spousePattern, options: []) else { return xml }
-        // Find <player> block range
-        guard let playerStartRange = xml.range(of: "<player>"),
-              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
-            // Fallback: operate on whole file
-            return replaceOrRemoveSpouseTag(newSpouse: newSpouse, in: xml, using: regex)
-        }
-        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
-        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
-        let afterPlayer  = String(xml[playerEndRange.upperBound...])
-        let updatedPlayer = replaceOrRemoveSpouseTag(newSpouse: newSpouse, in: playerBlock, using: regex)
-        return beforePlayer + updatedPlayer + afterPlayer
-    }
-    
-    private func replaceOrRemoveSpouseTag(newSpouse: String, in block: String, using regex: NSRegularExpression) -> String {
-        let nsBlock = block as NSString
-        let fullRange = NSRange(location: 0, length: nsBlock.length)
-        if newSpouse.isEmpty {
-            // Remove the <spouse>...</spouse> tag entirely
-            return regex.stringByReplacingMatches(in: block, options: [], range: fullRange, withTemplate: "")
-        } else {
-            // Échapper le nom du conjoint (peut contenir des caractères XML).
-            let escapedSpouse = XMLEntities.escape(newSpouse)
-            let replacement = "<spouse>\(escapedSpouse)</spouse>"
-            let firstMatch = regex.firstMatch(in: block, options: [], range: fullRange)
-            if firstMatch != nil {
-                // Tag exists — replace it
-                return regex.stringByReplacingMatches(in: block, options: [], range: firstMatch!.range, withTemplate: replacement)
-            } else {
-                // Tag doesn't exist — insert after <name>...</name>
-                let namePattern = "(<name>[^<]*</name>)"
-                guard let nameRegex = try? NSRegularExpression(pattern: namePattern, options: []),
-                      let nameMatch = nameRegex.firstMatch(in: block, options: [], range: fullRange),
-                      let nameRange = Range(nameMatch.range, in: block) else {
-                    return block  // cannot insert safely
-                }
-                var modified = block
-                modified.insert(contentsOf: "<spouse>\(escapedSpouse)</spouse>", at: nameRange.upperBound)
-                return modified
-            }
-        }
-    }
-    
     /// Marque UTF-8 (`EF BB BF`) : **Stardew en écrit une** (38/38 fichiers
     /// du jeu). Lecture et écriture Swift la perdent : on la rend comme on l'a
     /// prise.
@@ -563,45 +517,31 @@ public final class SaveManager: @unchecked Sendable {
         }
     }
     
+    /// Écrit la fiche du fermier en une passe sur l'arbre de la partie
+    /// (B6-T1) : refus X138, partie modifiée pendant l'opération, backup raté.
     func updateSave(info: SaveGameInfo, newName: String, newFarm: String, newFav: String, newMoney: Int, newTotalMoneyEarned: Int, newMaxHealth: Int, newMaxStamina: Int, newGoldenWalnuts: Int, newQiGems: Int, newClubCoins: Int, newSpouse: String) -> Bool {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
-        guard PureBinarySave.allowsEditing(info.fileURL), backupSave(info: info) else { return false }
-
-        // Marque relevée **avant** la lecture, qui la consomme.
-        let hadBOM = Self.fileStartsWithBOM(at: info.fileURL)
-        guard var content = try? String(contentsOf: info.fileURL, encoding: .utf8) else { return false }
+        guard let save = try? SaveDocument(contentsOf: info.fileURL) else { return false }
         // Champs du fermier, recopiés aussi dans `SaveGameInfo` après l'écriture (X158).
         let farmerFields = [("name", newName), ("farmName", newFarm), ("favoriteThing", newFav), ("money", "\(newMoney)"),
                             ("totalMoneyEarned", "\(newTotalMoneyEarned)"), ("maxHealth", "\(newMaxHealth)"),
                             ("maxStamina", "\(newMaxStamina)"), ("qiGems", "\(newQiGems)"), ("clubCoins", "\(newClubCoins)")]
-        for (tag, value) in farmerFields { content = replaceFirstTagInPlayer(tag: tag, with: value, in: content) }
-        content = replaceFirstTagInPlayer(tag: "goldenWalnuts", with: "\(newGoldenWalnuts)", in: content)  // hors `<player>`
-        let oldSpouse = info.spouse   // NPC name before the edit
-        // Spouse: update or remove tag inside <player> block
-        content = updateSpouseInPlayer(newSpouse: newSpouse, in: content)
-        
-        // Old spouse: fix their friendship entry (home and schedule).
-        if !oldSpouse.isEmpty && newSpouse != oldSpouse {
-            content = cleanDivorceNPCFriendship(npcName: oldSpouse, in: content)
-        }
-
-        // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit
-        // 2026-08-05).
-        if !newSpouse.isEmpty && newSpouse != oldSpouse {
-            content = promoteMarriageNPCFriendship(npcName: newSpouse, in: content)
-        }
-        
+        for (tag, value) in farmerFields { save.setFarmerField(tag, to: value) }
+        save.setFarmerField("goldenWalnuts", to: "\(newGoldenWalnuts)")  // hors `<player>`
+        let oldSpouse = info.spouse
+        save.setSpouse(newSpouse)
+        if !oldSpouse.isEmpty && newSpouse != oldSpouse { save.demoteSpouse(oldSpouse) }
+        // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit 2026-08-05).
+        if !newSpouse.isEmpty && newSpouse != oldSpouse { save.promoteSpouse(newSpouse) }
         do {
-            guard let payload = content.data(using: .utf8) else { return false }
-            try PureBinarySave.write(Self.bytes(payload, preservingBOM: hadBOM),
-                                     to: info.fileURL)
-            syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields)
-            return true
+            try save.write(backup: { backupSave(info: info) })
         } catch {
-            print("Failed to write updated save: \(error)")
+            print("Save not written: \(error)")
             return false
         }
+        syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields)
+        return true
     }
     
     /// X158 — l'écran de chargement lit `SaveGameInfo` (racine `<Farmer>`). Champ absent laissé tel quel ; échec non
@@ -614,209 +554,6 @@ public final class SaveManager: @unchecked Sendable {
             for (tag, value) in fields { content = SavePlayerFields.replacingRootChild(tag, with: value, in: content) ?? content }
             try PureBinarySave.write(Self.bytes(Data(content.utf8), preservingBOM: hadBOM), to: url)
         } catch { return }
-    }
-
-    /// Demotes a former spouse: `Status` Married → Friendly, `WeddingDate`
-    /// removed. Scoped to `<player>` (and `<friendshipData>`), so farmhands and
-    /// unrelated `<string>Npc</string>` are untouched.
-    private func cleanDivorceNPCFriendship(npcName: String, in xml: String) -> String {
-        guard let playerStartRange = xml.range(of: "<player>"),
-              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
-            print("[Divorce] Could not find <player> block")
-            return xml
-        }
-
-        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
-        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
-        let afterPlayer  = String(xml[playerEndRange.upperBound...])
-
-        let updatedPlayerBlock = cleanDivorceNPCFriendshipInScope(npcName: npcName, in: playerBlock)
-        return beforePlayer + updatedPlayerBlock + afterPlayer
-    }
-
-    /// Narrows to `<friendshipData>` when present.
-    private func cleanDivorceNPCFriendshipInScope(npcName: String, in xml: String) -> String {
-        guard let fdStartRange = xml.range(of: "<friendshipData>"),
-              let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
-            // friendshipData tag not found under this name in this save version — operate on the player block itself.
-            return cleanDivorceNPCFriendshipEntry(npcName: npcName, in: xml)
-        }
-
-        let before = String(xml[..<fdStartRange.lowerBound])
-        let fdBlock = String(xml[fdStartRange.lowerBound..<fdEndRange.upperBound])
-        let after  = String(xml[fdEndRange.upperBound...])
-
-        return before + cleanDivorceNPCFriendshipEntry(npcName: npcName, in: fdBlock) + after
-    }
-
-    /// Edits the `<item>` keyed by `npcName`.
-    private func cleanDivorceNPCFriendshipEntry(npcName: String, in xml: String) -> String {
-        // <item><key><string>Npc</string></key><value><Friendship>…
-        let keyMarker = "<string>\(npcName)</string>"
-        guard let keyRange = xml.range(of: keyMarker) else {
-            print("[Divorce] Could not find friendship entry for \(npcName)")
-            return xml
-        }
-
-        // Find the enclosing <item>...</item> that contains this key
-        let beforeKey = String(xml[..<keyRange.lowerBound])
-        guard let itemStart = beforeKey.range(of: "<item>", options: .backwards) else {
-            print("[Divorce] Could not find <item> before key for \(npcName)")
-            return xml
-        }
-
-        let itemStartIdx = itemStart.lowerBound
-        guard let itemEnd = xml.range(of: "</item>", range: keyRange.upperBound..<xml.endIndex) else {
-            print("[Divorce] Could not find </item> after key for \(npcName)")
-            return xml
-        }
-
-        let itemEndIdx = itemEnd.upperBound
-
-        let beforeItem = String(xml[..<itemStartIdx])
-        var itemBlock  = String(xml[itemStartIdx..<itemEndIdx])
-        let afterItem  = String(xml[itemEndIdx...])
-
-        // 1. Change <Status>Married</Status> → <Status>Friendly</Status>
-        itemBlock = itemBlock.replacingOccurrences(of: "<Status>Married</Status>", with: "<Status>Friendly</Status>")
-
-        // 2. Remove the <WeddingDate> block.
-        if let wdRegex = try? NSRegularExpression(pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators) {
-            let nsBlock = itemBlock as NSString
-            itemBlock = wdRegex.stringByReplacingMatches(
-                in: itemBlock, options: [],
-                range: NSRange(location: 0, length: nsBlock.length),
-                withTemplate: ""
-            )
-        }
-
-        return beforeItem + itemBlock + afterItem
-    }
-
-    // MARK: Marriage — promotion du nouveau conjoint
-
-    /// Index de saison du save = enum `Season` du jeu (mesuré) :
-    /// Spring=0, Summer=1, Fall=2, Winter=3.
-    private static let seasonsByIndex = ["spring", "summer", "fall", "winter"]
-
-    /// Promotes the new spouse: `Status` → Married + `WeddingDate` at the
-    /// current in-game date (`WorldDate`: `Year`, `DayOfMonth`, season
-    /// **string** — measured on the 1.6.15 assemblies). No friendship entry:
-    /// nothing invented.
-    private func promoteMarriageNPCFriendship(npcName: String, in xml: String) -> String {
-        // Date courante du fermier (mesuré : enfants directs de <player>).
-        guard let year = extractTag(tag: "yearForSaveGame", from: xml), !year.isEmpty,
-              let day = extractTag(tag: "dayOfMonthForSaveGame", from: xml), !day.isEmpty,
-              let seasonRaw = extractTag(tag: "seasonForSaveGame", from: xml),
-              let seasonIndex = Int(seasonRaw),
-              Self.seasonsByIndex.indices.contains(seasonIndex) else {
-            print("[Marriage] Could not read the current in-game date — new spouse not promoted")
-            return xml
-        }
-        let weddingDate = "<WeddingDate><Year>\(year)</Year>"
-                        + "<DayOfMonth>\(day)</DayOfMonth>"
-                        + "<Season>\(Self.seasonsByIndex[seasonIndex])</Season></WeddingDate>"
-
-        guard let playerStartRange = xml.range(of: "<player>"),
-              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
-            print("[Marriage] Could not find <player> block")
-            return xml
-        }
-
-        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
-        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
-        let afterPlayer  = String(xml[playerEndRange.upperBound...])
-
-        let updatedPlayerBlock = promoteNPCFriendshipInScope(npcName: npcName, in: playerBlock, weddingDate: weddingDate)
-        return beforePlayer + updatedPlayerBlock + afterPlayer
-    }
-
-    /// Même resserrement que la démotion.
-    private func promoteNPCFriendshipInScope(npcName: String, in xml: String, weddingDate: String) -> String {
-        guard let fdStartRange = xml.range(of: "<friendshipData>"),
-              let fdEndRange = xml.range(of: "</friendshipData>", range: fdStartRange.upperBound..<xml.endIndex) else {
-            return promoteNPCFriendshipEntry(npcName: npcName, in: xml, weddingDate: weddingDate)
-        }
-
-        let before = String(xml[..<fdStartRange.lowerBound])
-        let fdBlock  = String(xml[fdStartRange.lowerBound..<fdEndRange.upperBound])
-        let after  = String(xml[fdEndRange.upperBound...])
-
-        return before + promoteNPCFriendshipEntry(npcName: npcName, in: fdBlock, weddingDate: weddingDate) + after
-    }
-
-    /// Motifs constants, `try!` (idiome du dépôt).
-    private static let statusTagRegex = try! NSRegularExpression(pattern: "<Status>[^<]*</Status>")
-    private static let weddingDateTagRegex = try! NSRegularExpression(
-        pattern: "<WeddingDate>.*?</WeddingDate>", options: .dotMatchesLineSeparators)
-
-    /// Edits the `<item>` keyed by `npcName`: Married + WeddingDate.
-    private func promoteNPCFriendshipEntry(npcName: String, in xml: String, weddingDate: String) -> String {
-        let keyMarker = "<string>\(npcName)</string>"
-        guard let keyRange = xml.range(of: keyMarker) else {
-            print("[Marriage] Could not find friendship entry for \(npcName)")
-            return xml
-        }
-
-        let beforeKey = String(xml[..<keyRange.lowerBound])
-        guard let itemStart = beforeKey.range(of: "<item>", options: .backwards) else {
-            print("[Marriage] Could not find <item> before key for \(npcName)")
-            return xml
-        }
-        guard let itemEnd = xml.range(of: "</item>", range: keyRange.upperBound..<xml.endIndex) else {
-            print("[Marriage] Could not find </item> after key for \(npcName)")
-            return xml
-        }
-
-        let beforeItem = String(xml[..<itemStart.lowerBound])
-        var itemBlock  = String(xml[itemStart.lowerBound..<itemEnd.upperBound])
-        let afterItem  = String(xml[itemEnd.upperBound...])
-
-        // Statut → Married ; ancienne WeddingDate retirée, la neuve insérée
-        // après le statut.
-        let nsBlock = itemBlock as NSString
-        let fullRange = NSRange(location: 0, length: nsBlock.length)
-        itemBlock = Self.statusTagRegex.stringByReplacingMatches(
-            in: itemBlock, options: [], range: fullRange,
-            withTemplate: "<Status>Married</Status>")
-        itemBlock = Self.weddingDateTagRegex.stringByReplacingMatches(
-            in: itemBlock, options: [], range: fullRange,
-            withTemplate: "")
-        if let statusRange = itemBlock.range(of: "<Status>Married</Status>") {
-            itemBlock.insert(contentsOf: weddingDate, at: statusRange.upperBound)
-        } else {
-            print("[Marriage] Could not find <Status> in the friendship entry for \(npcName)")
-        }
-
-        return beforeItem + itemBlock + afterItem
-    }
-
-
-    /// Like replaceFirstTag, scoped to <player> (not an NPC's or farmhand's
-    /// tag). Falls back to the whole file when absent from <player>
-    /// (goldenWalnuts is farm-wide).
-    private func replaceFirstTagInPlayer(tag: String, with value: String, in xml: String) -> String {
-        guard let playerStartRange = xml.range(of: "<player>"),
-              let playerEndRange = xml.range(of: "</player>", range: playerStartRange.upperBound..<xml.endIndex) else {
-            return replaceFirstTag(tag: tag, with: value, in: xml)
-        }
-
-        let beforePlayer = String(xml[..<playerStartRange.lowerBound])
-        let playerBlock  = String(xml[playerStartRange.lowerBound..<playerEndRange.upperBound])
-        let afterPlayer  = String(xml[playerEndRange.upperBound...])
-
-        // Enfant **direct** de `<player>` : `<maxHealth>` la première vaut 24
-        // (un monstre), pas 150.
-        if let updated = SavePlayerFields.replacingDirectChild(tag, with: value, in: xml) {
-            return updated
-        }
-
-        guard playerBlock.contains("<\(tag)>") else {
-            return replaceFirstTag(tag: tag, with: value, in: xml)
-        }
-
-        let updatedPlayer = replaceFirstTag(tag: tag, with: value, in: playerBlock)
-        return beforePlayer + updatedPlayer + afterPlayer
     }
 
     private func replaceFirstTag(tag: String, with value: String, in xml: String) -> String {
