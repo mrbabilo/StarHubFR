@@ -5891,7 +5891,7 @@ final class StarHubTHViewModel {
     }
 
     /// Fiche et sac en une écriture (`nil` = non modifié) ; l'éditeur se ferme sur réussite seulement.
-    func saveEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?, overwriteNewer: Bool) {
+    func saveEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?, expected: SaveDocument.Stamp?) {
         // Même verrou que `duplicateSave`/`deleteSave` : deux
         // lecture-modification-écriture entrelacées perdent des changements
         // (audit 2026-08-05).
@@ -5899,7 +5899,7 @@ final class StarHubTHViewModel {
         // Full save XML rewrite, off main.
         DispatchQueue.global(qos: .userInitiated).async {
             let failure = SaveDocument.Failure.of {
-                try SaveManager.shared.writeEdits(info: info, sheet: sheet, items: items, overwriteNewer: overwriteNewer)
+                try SaveManager.shared.writeEdits(info: info, sheet: sheet, items: items, expected: expected)
             }
             DispatchQueue.main.async {
                 self.savesStore.endOperation()

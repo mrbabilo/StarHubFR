@@ -14,6 +14,13 @@ import Testing
         <stack>3</stack></Item></items></player></SaveGame>
         """
 
+    /// Les lectures demandées au store, et leur remise, gardées pour les rendre à la main.
+    /// Classe, pas variable capturée : la fermeture du chargeur est `@Sendable`.
+    private final class ReadSpy: @unchecked Sendable {
+        var dones: [(id: String, done: @MainActor @Sendable (SaveContents?) -> Void)] = []
+        var loader: SaveContents.Loader { { [self] asked, done in dones.append((asked.id, done)) } }
+    }
+
     private func save(_ folder: String) -> SaveGameInfo {
         makeTestSave(folderName: "A0_\(folder)_\(UUID().uuidString)", fileURL: URL(fileURLWithPath: "/tmp/\(folder)"))
     }
@@ -49,10 +56,10 @@ import Testing
     }
 
     @Test func switchingSegmentsKeepsTheEdits() {
-        var pending: (@MainActor @Sendable (SaveContents?) -> Void)?
-        let navigation = NavigationStore(loadContents: { _, done in pending = done })
+        let reads = ReadSpy()
+        let navigation = NavigationStore(loadContents: reads.loader)
         navigation.setEditingSave(save("segments"))
-        pending?(Self.contents())
+        reads.dones.first?.done(Self.contents())
         let session = navigation.editSession
         session?.draft.money = "1"
         session?.inventory[0].stack = 4
@@ -63,8 +70,8 @@ import Testing
     }
 
     @Test func aSecondSaveOpenedDropsTheFirstSession() {
-        var dones: [(id: String, done: @MainActor @Sendable (SaveContents?) -> Void)] = []
-        let navigation = NavigationStore(loadContents: { asked, done in dones.append((asked.id, done)) })
+        let reads = ReadSpy()
+        let navigation = NavigationStore(loadContents: reads.loader)
         let first = save("first"), second = save("second")
         navigation.setEditingSave(first)
         navigation.editSession?.draft.money = "1"
@@ -72,9 +79,18 @@ import Testing
         #expect(navigation.editingSave?.id == second.id)
         #expect(navigation.editSession?.changeCount == 0)
         // La lecture de la première, arrivée en retard, n'atterrit pas.
-        dones.first { $0.id == first.id }?.done(Self.contents())
+        reads.dones.first { $0.id == first.id }?.done(Self.contents())
         #expect(navigation.editSession?.loaded == nil)
         #expect(navigation.editSession?.inventory.isEmpty == true)
+    }
+
+    @Test func expectedStampIsAskedOnlyForBagEditsWithoutConfirmedOverwrite() {
+        let session = SaveEditSession(save: save("stamp"), notes: SaveNotesStore())
+        session.load(Self.contents())
+        #expect(session.expectedStamp(overwriteNewer: false) == nil)
+        session.inventory[0].stack = 9
+        #expect(session.expectedStamp(overwriteNewer: false) == session.loaded?.stamp)
+        #expect(session.expectedStamp(overwriteNewer: true) == nil)
     }
 
     @Test func theStampComesFromTheSameReadAsTheContents() throws {
@@ -93,7 +109,7 @@ import Testing
         #expect(contents.stamp != SaveDocument.Stamp.current(of: info.fileURL))
         contents.inventory[0].stack = 9
         #expect(throws: SaveDocument.Failure.changedOnDisk) {
-            try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, overwriteNewer: false)
+            try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, expected: contents.stamp)
         }
     }
 }

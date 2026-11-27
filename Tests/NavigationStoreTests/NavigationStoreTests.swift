@@ -316,6 +316,21 @@ import Foundation
         #expect(s.editSession?.inventory == read.inventory)
     }
 
+    @Test func reopeningTheOpenSaveKeepsItsEdits() {
+        let save = makeSave("Farm_A")
+        var loadCalls = 0
+        let s = NavigationStore(loadContents: { _, _ in loadCalls += 1 })
+        s.setEditingSave(save)
+        let session = s.editSession
+        session?.draft.money = "1"
+        s.saveSegment = .history
+        s.setEditingSave(save)
+        #expect(s.editSession === session)
+        #expect(s.editSession?.draft.money == "1")
+        #expect(s.saveSegment == .details)
+        #expect(loadCalls == 1)
+    }
+
     @Test func fermerLaSauvegardeVideSansCharger() {
         var loadCalls = 0
         let s = NavigationStore(loadContents: { _, _ in loadCalls += 1 })

@@ -18,6 +18,8 @@ final class SaveEditSession {
     var noteText: String
     /// Le sac édité ; vide jusqu'à l'arrivée de la lecture.
     var inventory: [InventoryItem] = []
+    /// Les coffres lus avec le sac (A1) ; lecture seule jusqu'à l'écran des coffres.
+    var chests: [SaveChest] = []
     /// La lecture d'origine ; `nil` tant qu'elle n'est pas arrivée, ou si elle a échoué.
     private(set) var loaded: SaveContents?
     /// Lue à chaque décompte, pas figée : le choix d'un avatar enregistre la
@@ -37,6 +39,13 @@ final class SaveEditSession {
     func load(_ contents: SaveContents) {
         loaded = contents
         inventory = contents.inventory
+        chests = contents.chests
+    }
+
+    /// L'empreinte que l'écriture doit retrouver : celle de la lecture, dès que le
+    /// sac est modifié, sauf écrasement confirmé.
+    func expectedStamp(overwriteNewer: Bool) -> SaveDocument.Stamp? {
+        overwriteNewer || changedSlots == 0 ? nil : loaded?.stamp
     }
 
     /// Modifications non enregistrées : champs de la fiche, cases du sac, étiquette et note.

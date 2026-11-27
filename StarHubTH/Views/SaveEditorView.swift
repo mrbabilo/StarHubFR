@@ -471,6 +471,6 @@ struct SaveEditorView: View {
         vm.setNote(for: save.folderName, tag: session.noteTag, note: session.noteText)
         let edits = session.pendingEdits()
         guard edits.sheet != nil || edits.items != nil else { return navigation.setEditingSave(nil) }
-        vm.saveEdits(info: save, sheet: edits.sheet, items: edits.items, overwriteNewer: overwriteNewer)
+        vm.saveEdits(info: save, sheet: edits.sheet, items: edits.items, expected: session.expectedStamp(overwriteNewer: overwriteNewer))
     }
 }

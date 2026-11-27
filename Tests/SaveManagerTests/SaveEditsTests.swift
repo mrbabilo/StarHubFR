@@ -28,7 +28,7 @@ import Testing
         var draft = SaveFarmerDraft(save)
         draft.money = "4321"
 
-        try manager.writeEdits(info: save, sheet: draft.sheet(for: save), items: items, overwriteNewer: false)
+        try manager.writeEdits(info: save, sheet: draft.sheet(for: save), items: items, expected: nil)
 
         let written = try String(contentsOf: info.fileURL, encoding: .utf8)
         #expect(written.contains("<money>4321</money>"))
@@ -41,13 +41,14 @@ import Testing
         defer { env.cleanup() }
         let info = try env.makeSave(named: "Edits_2", content: xml)
         let manager = SaveManager(isGameRunning: { false })
-        var items = try #require(manager.fetchContents(for: info)?.inventory)
+        let read = try #require(manager.fetchContents(for: info))
+        var items = read.inventory
         items[0].stack = 9
         let newer = xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>")
         try Data(newer.utf8).write(to: info.fileURL)
 
         #expect(throws: SaveDocument.Failure.changedOnDisk) {
-            try manager.writeEdits(info: info, sheet: nil, items: items, overwriteNewer: false)
+            try manager.writeEdits(info: info, sheet: nil, items: items, expected: read.stamp)
         }
         #expect(try String(contentsOf: info.fileURL, encoding: .utf8) == newer)
     }

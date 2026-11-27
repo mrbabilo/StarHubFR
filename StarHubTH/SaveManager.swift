@@ -423,26 +423,22 @@ public final class SaveManager: @unchecked Sendable {
 
     /// Écrit la fiche du fermier (`writeEdits` sans le sac).
     func writeFarmerSheet(info: SaveGameInfo, sheet: SaveFarmerSheet) throws(SaveDocument.Failure) {
-        try writeEdits(info: info, sheet: sheet, items: nil, overwriteNewer: false)
+        try writeEdits(info: info, sheet: sheet, items: nil, expected: nil)
     }
 
     /// Fiche du fermier et sac en **une** écriture, un backup (audit UX
     /// 2026-11-27, F1 : deux boutons perdaient la moitié non enregistrée).
     /// `nil` = non modifié. Refus — rien d'écrit — : X138, jeu lancé, partie
-    /// modifiée pendant l'opération, backup raté ; et, pour le sac, partie
-    /// modifiée depuis sa lecture, sauf `overwriteNewer` (écrasement confirmé).
+    /// modifiée pendant l'opération, backup raté ; et, si `expected` est donné
+    /// (l'empreinte de la lecture de l'écran), partie modifiée depuis cette lecture.
     func writeEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?,
-                    overwriteNewer: Bool) throws(SaveDocument.Failure) {
+                    expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let save = try SaveDocument(contentsOf: info.fileURL)
         let farmerFields = sheet.map { save.apply($0, oldSpouse: info.spouse) } ?? []
         if let items, !save.applyInventory(items) { throw .malformed }
-        let expected = items == nil || overwriteNewer ? nil : inventoryStamp(for: info.fileURL)
         try save.write(expected: expected, isGameRunning: isGameRunning, backup: { backupSave(info: info) })
-        if items != nil, let written = SaveDocument.Stamp.current(of: info.fileURL) {
-            rememberInventoryStamp(written, for: info.fileURL)
-        }
         if !farmerFields.isEmpty { syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields) }
     }
 
@@ -700,42 +696,23 @@ public final class SaveManager: @unchecked Sendable {
     }
     // MARK: - Inventory Editing
     
-    /// Empreinte de la dernière lecture de l'inventaire, par partie : l'écriture
-    /// refuse un fichier qui a changé depuis que l'écran l'a montré (B6-T1,
-    /// B5-T1). Verrou dédié : lecture et écriture tournent hors main.
-    private var inventoryStamps: [URL: SaveDocument.Stamp] = [:]
-    private let inventoryStampsLock = NSLock()
-
-    private func inventoryStamp(for url: URL) -> SaveDocument.Stamp? {
-        inventoryStampsLock.lock()
-        defer { inventoryStampsLock.unlock() }
-        return inventoryStamps[url]
-    }
-
-    private func rememberInventoryStamp(_ stamp: SaveDocument.Stamp, for url: URL) {
-        inventoryStampsLock.lock()
-        inventoryStamps[url] = stamp
-        inventoryStampsLock.unlock()
-    }
-
     func fetchContents(for info: SaveGameInfo) -> SaveContents? {
         // Une lecture, une empreinte (A0) ; même lecture que l'écriture
         // (`.nodePreserveAll`) : l'arbre montré est celui qui sera écrit.
         guard let save = try? SaveDocument(contentsOf: info.fileURL), let items = save.inventory() else { return nil }
-        rememberInventoryStamp(save.stamp, for: info.fileURL)
-        return SaveContents(inventory: items, stamp: save.stamp)
+        return SaveContents(inventory: items, chests: save.chests(), stamp: save.stamp)
     }
 
     /// `writeInventory`, réussite seulement.
-    func updateInventory(info: SaveGameInfo, items: [InventoryItem], overwriteNewer: Bool = false) -> Bool {
-        do { try writeInventory(info: info, items: items, overwriteNewer: overwriteNewer); return true } catch { return false }
+    func updateInventory(info: SaveGameInfo, items: [InventoryItem], expected: SaveDocument.Stamp? = nil) -> Bool {
+        do { try writeInventory(info: info, items: items, expected: expected); return true } catch { return false }
     }
 
     /// Écrit le sac. Refusé — rien d'écrit — si la partie a changé depuis la
-    /// dernière lecture de l'inventaire (`fetchContents`), sauf
-    /// `overwriteNewer` (l'utilisateur a confirmé l'écrasement) ; et toujours :
-    /// X138, jeu lancé, partie modifiée pendant l'opération, backup raté.
-    func writeInventory(info: SaveGameInfo, items: [InventoryItem], overwriteNewer: Bool) throws(SaveDocument.Failure) {
-        try writeEdits(info: info, sheet: nil, items: items, overwriteNewer: overwriteNewer)
+    /// lecture `expected` (celle de `fetchContents`), `nil` = écrasement
+    /// confirmé ; et toujours : X138, jeu lancé, partie modifiée pendant
+    /// l'opération, backup raté.
+    func writeInventory(info: SaveGameInfo, items: [InventoryItem], expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
+        try writeEdits(info: info, sheet: nil, items: items, expected: expected)
     }
 }
