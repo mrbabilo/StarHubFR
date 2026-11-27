@@ -421,31 +421,31 @@ public final class SaveManager: @unchecked Sendable {
         return SaveDocument.Failure.of { try writeFarmerSheet(info: info, sheet: sheet) } == nil
     }
 
-    /// Écrit la fiche du fermier en une passe sur l'arbre de la partie
-    /// (B6-T1). Refus — rien d'écrit — : X138, jeu lancé, partie modifiée
-    /// pendant l'opération, backup raté.
+    /// Écrit la fiche du fermier (`writeEdits` sans le sac).
     func writeFarmerSheet(info: SaveGameInfo, sheet: SaveFarmerSheet) throws(SaveDocument.Failure) {
+        try writeEdits(info: info, sheet: sheet, items: nil, overwriteNewer: false)
+    }
+
+    /// Fiche du fermier et sac en **une** écriture, un backup (audit UX
+    /// 2026-11-27, F1 : deux boutons perdaient la moitié non enregistrée).
+    /// `nil` = non modifié. Refus — rien d'écrit — : X138, jeu lancé, partie
+    /// modifiée pendant l'opération, backup raté ; et, pour le sac, partie
+    /// modifiée depuis sa lecture, sauf `overwriteNewer` (écrasement confirmé).
+    func writeEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?,
+                    overwriteNewer: Bool) throws(SaveDocument.Failure) {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let save = try SaveDocument(contentsOf: info.fileURL)
-        // Champs du fermier, recopiés aussi dans `SaveGameInfo` après l'écriture (X158).
-        let farmerFields = [("name", sheet.name), ("farmName", sheet.farmName), ("favoriteThing", sheet.favoriteThing),
-                            ("money", "\(sheet.money)"), ("totalMoneyEarned", "\(sheet.totalMoneyEarned)"),
-                            ("maxHealth", "\(sheet.maxHealth)"), ("maxStamina", "\(sheet.maxStamina)"),
-                            ("qiGems", "\(sheet.qiGems)"), ("clubCoins", "\(sheet.clubCoins)")]
-            + [("health", sheet.health), ("stamina", sheet.stamina)].compactMap { tag, value in value.map { (tag, "\($0)") } }
-        for (tag, value) in farmerFields { save.setFarmerField(tag, to: value) }
-        save.setFarmerField("goldenWalnuts", to: "\(sheet.goldenWalnuts)")  // hors `<player>`
-        if let points = sheet.experience { save.setExperience(points) }
-        let oldSpouse = info.spouse
-        save.setSpouse(sheet.spouse)
-        if !oldSpouse.isEmpty && sheet.spouse != oldSpouse { save.demoteSpouse(oldSpouse) }
-        // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit 2026-08-05).
-        if !sheet.spouse.isEmpty && sheet.spouse != oldSpouse { save.promoteSpouse(sheet.spouse) }
-        try save.write(isGameRunning: isGameRunning, backup: { backupSave(info: info) })
-        syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields)
+        let farmerFields = sheet.map { save.apply($0, oldSpouse: info.spouse) } ?? []
+        if let items, !save.applyInventory(items) { throw .malformed }
+        let expected = items == nil || overwriteNewer ? nil : inventoryStamp(for: info.fileURL)
+        try save.write(expected: expected, isGameRunning: isGameRunning, backup: { backupSave(info: info) })
+        if items != nil, let written = SaveDocument.Stamp.current(of: info.fileURL) {
+            rememberInventoryStamp(written, for: info.fileURL)
+        }
+        if !farmerFields.isEmpty { syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields) }
     }
-    
+
     /// X158 — l'écran de chargement lit `SaveGameInfo` (racine `<Farmer>`). Champ absent laissé tel quel ; échec non
     /// bloquant : la partie est écrite, et le jeu réécrit ce fichier à sa prochaine sauvegarde.
     private func syncSaveGameInfo(in folder: URL, fields: [(String, String)]) {
@@ -736,14 +736,6 @@ public final class SaveManager: @unchecked Sendable {
     /// `overwriteNewer` (l'utilisateur a confirmé l'écrasement) ; et toujours :
     /// X138, jeu lancé, partie modifiée pendant l'opération, backup raté.
     func writeInventory(info: SaveGameInfo, items: [InventoryItem], overwriteNewer: Bool) throws(SaveDocument.Failure) {
-        // Invalidation en tête : un échec partiel a pu toucher le disque.
-        invalidateParseCache()
-        let save = try SaveDocument(contentsOf: info.fileURL)
-        guard save.applyInventory(items) else { throw .malformed }
-        try save.write(expected: overwriteNewer ? nil : inventoryStamp(for: info.fileURL),
-                       isGameRunning: isGameRunning, backup: { backupSave(info: info) })
-        if let written = SaveDocument.Stamp.current(of: info.fileURL) {
-            rememberInventoryStamp(written, for: info.fileURL)
-        }
+        try writeEdits(info: info, sheet: nil, items: items, overwriteNewer: overwriteNewer)
     }
 }

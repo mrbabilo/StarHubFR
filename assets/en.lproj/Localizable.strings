@@ -1482,14 +1482,16 @@
 "saves_grid_view_hint" = "View as grid";
 "saves_hero_farm_help_format" = "Farm type: %@";
 "saves_inventory_editor" = "Inventory Editor";
-"saves_inventory_error" = "Error saving inventory";
-"saves_inventory_success" = "Inventory saved successfully!";
 "saves_item_id" = "Item ID";
 "saves_item_quantity" = "Quantity";
 "saves_last_played" = "Last played on %@";
 "saves_list_view_hint" = "View as list";
 "saves_max_health" = "Max Health";
 "saves_max_stamina" = "Max Stamina";
+"saves_save_changes_count" = "Save Changes (%d)";
+"saves_discard_changes" = "Discard Changes";
+"saves_discard_changes_title" = "Discard unsaved changes?";
+"saves_discard_changes_msg" = "Nothing has been written to the save yet. Closing now drops what you changed in this editor.";
 "saves_current_health" = "Current Health";
 "saves_current_stamina" = "Current Stamina";
 "saves_skills_section" = "Skills";
@@ -1551,7 +1553,6 @@
 "saves_resources" = "Resources";
 "saves_restore" = "Restore";
 "saves_save_changes" = "Save Changes";
-"saves_save_inventory" = "Save Inventory";
 "saves_save_management" = "Save Management";
 "saves_save_note" = "Type notes for this save…";
 "saves_saves" = "Game Saves";

@@ -165,6 +165,8 @@ private enum SaveEditorConfirmation {
     case staleEdit
     /// Envoi du dossier de la partie à la corbeille.
     case deleteSave
+    /// Fermeture avec des modifications non enregistrées.
+    case discardChanges
 }
 
 struct SaveEditorView: View {
@@ -175,6 +177,8 @@ struct SaveEditorView: View {
     
     /// Le formulaire, converti en fiche au moment d'écrire (`SaveFarmerDraft`).
     @State private var draft: SaveFarmerDraft
+    /// Le sac tel que lu (premier chargement), pour compter ses cases modifiées.
+    @State private var inventoryBaseline: [InventoryItem]?
     
     /// All NPC names that can be married in Stardew Valley (vanilla)
     static let marriableNPCs: [String] = [
@@ -242,7 +246,7 @@ struct SaveEditorView: View {
                          dayLine: heroDayLine,
                          farmName: heroFarmName,
                          closeHelp: localization.L(L10n.Saves.cancel),
-                         onClose: { vm.navigationStore.setEditingSave(nil) },
+                         onClose: { changeCount > 0 ? (confirmation = .discardChanges) : navigation.setEditingSave(nil) },
                          whichFarm: save.whichFarm,
                          iconPath: iconPath,
                          isFemale: save.isFemale,
@@ -373,57 +377,7 @@ struct SaveEditorView: View {
                 
                 SaveEditorStatsSections(localization: localization, save: save, draft: $draft)
                 
-                Section(localization.L(L10n.Saves.inventoryEditor)) {
-                    // Le binding sous-indexé exige un chemin écrivable :
-                    // `vm.navigationStore` est un `let`, la projection
-                    // `@Bindable` fournit la vue écrivable du store.
-                    @Bindable var navigationStore = vm.navigationStore
-                    ForEach(navigationStore.inventoryToEdit.indices, id: \.self) { index in
-                        let item = navigationStore.inventoryToEdit[index]
-                        if item.isObject {
-                            SplitRow(spacing: AppDesign.Spacing.sm) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                    Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
-                                        .font(AppDesign.Font.caption).foregroundColor(.secondary)
-                                }
-                            } trailing: {
-                                Text(localization.L(L10n.Saves.itemQuantity))
-                                TextField("", value: $navigationStore.inventoryToEdit[index].stack,
-                                          formatter: NumberFormatter())
-                                    .frame(width: 60).textFieldStyle(.roundedBorder)
-                                Button(role: .destructive, action: {
-                                    navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
-                                }) { Image(systemName: "trash").foregroundColor(.red) }
-                                .buttonStyle(.plain).focusRing()
-                                .iconHelp(localization.L(L10n.Saves.clearSlotHint))
-                            }
-                        } else if !item.name.isEmpty {
-                            SplitRow(spacing: AppDesign.Spacing.sm) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                    if !item.itemId.isEmpty {
-                                        Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
-                                            .font(AppDesign.Font.caption).foregroundColor(.secondary)
-                                    }
-                                }
-                            } trailing: {
-                                Text(localization.L(L10n.Saves.nonObject)).foregroundColor(.secondary)
-                                Button(role: .destructive, action: {
-                                    navigationStore.inventoryToEdit[index] = InventoryItem.empty(slot: index)
-                                }) { Image(systemName: "trash").foregroundColor(.red) }
-                                .buttonStyle(.plain).focusRing()
-                                .iconHelp(localization.L(L10n.Saves.clearSlotHint))
-                            }
-                        }
-                    }
-                    
-                    Button(localization.L(L10n.Saves.saveInventory)) {
-                        confirmedOrWarn { vm.saveInventory(overwriteNewer: $0) }
-                    }
-                    .buttonStyle(.borderedProminent).focusRing()
-                    .padding(.top, 8)
-                }
+                SaveEditorInventorySection(viewModel: vm, localization: localization)
                 
                 Section(localization.L(L10n.Saves.saveManagement)) {
                     HStack {
@@ -452,13 +406,18 @@ struct SaveEditorView: View {
                     .foregroundColor(.secondary)
                 Spacer()
                 
-                Button(localization.L(L10n.Saves.saveChanges)) {
-                    confirmedOrWarn { _ in performSave() }
+                Button(changeCount == 0 ? localization.L(L10n.Saves.saveChanges)
+                       : String(format: localization.L(L10n.Saves.saveChangesCount), changeCount)) {
+                    confirmedOrWarn { performSave(overwriteNewer: $0) }
                 }
-                .keyboardShortcut(.defaultAction)
-                .buttonStyle(BorderedProminentButtonStyle()).focusRing()
+                .keyboardShortcut("s", modifiers: .command)
+                .buttonStyle(.borderedProminent).focusRing()
+                .disabled(changeCount == 0)  // un second clic pendant l'écriture : refusé par `beginOperation`
             }
-            .padding(20)
+            .padding(AppDesign.Spacing.lg)
+            .onChange(of: navigation.inventoryToEdit) { _, items in
+                if inventoryBaseline == nil, !items.isEmpty { inventoryBaseline = items }
+            }
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .alert(editorConfirmationTitle,
@@ -475,12 +434,17 @@ struct SaveEditorView: View {
                 Button(localization.L(L10n.Saves.deleteSave), role: .destructive) {
                     Task { await vm.deleteSave(info: save) }
                 }
+            case .discardChanges:
+                Button(localization.L(L10n.Saves.discardChanges), role: .destructive) {
+                    navigation.setEditingSave(nil)
+                }
             }
             Button(localization.L(L10n.Saves.cancel), role: .cancel) { pendingSaveAction = nil }
         } message: { pending in
             switch pending {
             case .staleEdit: Text(localization.L(L10n.Saves.confirmStaleEditMsg))
             case .deleteSave: Text(localization.L(L10n.Saves.confirmDeleteSaveMsg))
+            case .discardChanges: Text(localization.L(L10n.Saves.discardChangesMsg))
             }
         }
     }
@@ -489,6 +453,7 @@ struct SaveEditorView: View {
         switch confirmation {
         case .staleEdit: return localization.L(L10n.Saves.confirmStaleEdit)
         case .deleteSave: return localization.L(L10n.Saves.confirmDeleteSave)
+        case .discardChanges: return localization.L(L10n.Saves.discardChangesTitle)
         case nil: return ""
         }
     }
@@ -506,10 +471,25 @@ struct SaveEditorView: View {
         }
     }
 
-    /// Writes the form's current field values to the save file. Go through
-    /// `confirmedOrWarn` rather than calling this directly.
-    private func performSave() {
+    private var navigation: NavigationStore { vm.navigationStore }
+
+    /// Modifications non enregistrées : champs de la fiche, cases du sac, étiquette et note.
+    private var changeCount: Int {
+        let note = vm.getNote(for: save.folderName)
+        let slots = inventoryBaseline.map { InventoryItem.changedSlots(navigation.inventoryToEdit, from: $0) } ?? 0
+        return draft.changedFields(from: SaveFarmerDraft(save)) + slots
+            + (noteTag == note.tag ? 0 : 1) + (noteText == note.note ? 0 : 1)
+    }
+
+    /// Une écriture pour la fiche et le sac, seulement s'ils ont changé ; la
+    /// note de l'app à part. Passer par `confirmedOrWarn`.
+    private func performSave(overwriteNewer: Bool) {
         vm.setNote(for: save.folderName, tag: noteTag, note: noteText)
-        vm.editSave(info: save, sheet: draft.sheet(for: save))
+        let sheet = draft.changedFields(from: SaveFarmerDraft(save)) > 0 ? draft.sheet(for: save) : nil
+        let items = inventoryBaseline.flatMap {
+            InventoryItem.changedSlots(navigation.inventoryToEdit, from: $0) > 0 ? navigation.inventoryToEdit : nil
+        }
+        guard sheet != nil || items != nil else { return navigation.setEditingSave(nil) }
+        vm.saveEdits(info: save, sheet: sheet, items: items, overwriteNewer: overwriteNewer)
     }
 }

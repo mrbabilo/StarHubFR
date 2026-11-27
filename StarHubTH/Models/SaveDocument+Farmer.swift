@@ -132,4 +132,21 @@ extension SaveDocument {
             }
         }
     }
+
+    /// Pose la fiche dans l'arbre ; rend les champs à recopier dans `SaveGameInfo` (X158).
+    func apply(_ sheet: SaveFarmerSheet, oldSpouse: String) -> [(String, String)] {
+        let farmerFields = [("name", sheet.name), ("farmName", sheet.farmName), ("favoriteThing", sheet.favoriteThing),
+                            ("money", "\(sheet.money)"), ("totalMoneyEarned", "\(sheet.totalMoneyEarned)"),
+                            ("maxHealth", "\(sheet.maxHealth)"), ("maxStamina", "\(sheet.maxStamina)"),
+                            ("qiGems", "\(sheet.qiGems)"), ("clubCoins", "\(sheet.clubCoins)")]
+            + [("health", sheet.health), ("stamina", sheet.stamina)].compactMap { tag, value in value.map { (tag, "\($0)") } }
+        for (tag, value) in farmerFields { setFarmerField(tag, to: value) }
+        setFarmerField("goldenWalnuts", to: "\(sheet.goldenWalnuts)")  // hors `<player>`
+        if let points = sheet.experience { setExperience(points) }
+        setSpouse(sheet.spouse)
+        if !oldSpouse.isEmpty && sheet.spouse != oldSpouse { demoteSpouse(oldSpouse) }
+        // Nouveau conjoint promu : sinon « marié » contre « Friendly » (audit 2026-08-05).
+        if !sheet.spouse.isEmpty && sheet.spouse != oldSpouse { promoteSpouse(sheet.spouse) }
+        return farmerFields
+    }
 }

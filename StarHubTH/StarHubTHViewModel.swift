@@ -5890,14 +5890,17 @@ final class StarHubTHViewModel {
         return currentModified > info.lastModified
     }
 
-    func editSave(info: SaveGameInfo, sheet: SaveFarmerSheet) {
+    /// Fiche et sac en une écriture (`nil` = non modifié) ; l'éditeur se ferme sur réussite seulement.
+    func saveEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?, overwriteNewer: Bool) {
         // Même verrou que `duplicateSave`/`deleteSave` : deux
         // lecture-modification-écriture entrelacées perdent des changements
         // (audit 2026-08-05).
         guard savesStore.beginOperation() else { return }
         // Full save XML rewrite, off main.
         DispatchQueue.global(qos: .userInitiated).async {
-            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeFarmerSheet(info: info, sheet: sheet) }
+            let failure = SaveDocument.Failure.of {
+                try SaveManager.shared.writeEdits(info: info, sheet: sheet, items: items, overwriteNewer: overwriteNewer)
+            }
             DispatchQueue.main.async {
                 self.savesStore.endOperation()
                 if let failure {
@@ -5911,26 +5914,6 @@ final class StarHubTHViewModel {
         }
     }
 
-    func saveInventory(overwriteNewer: Bool = false) {
-        guard let save = navigationStore.editingSave else { return }
-        let items = navigationStore.inventoryToEdit
-        // Même verrou qu'`editSave` (audit 2026-08-05).
-        guard savesStore.beginOperation() else { return }
-        // Same as `editSave`: off main.
-        DispatchQueue.global(qos: .userInitiated).async {
-            let failure = SaveDocument.Failure.of { try SaveManager.shared.writeInventory(info: save, items: items, overwriteNewer: overwriteNewer) }
-            let refetched = failure == nil ? SaveManager.shared.fetchInventory(for: save) : nil
-            DispatchQueue.main.async {
-                self.savesStore.endOperation()
-                if let failure {
-                    self.showModal(message: self.localization.L(failure.messageKey(fallback: L10n.Saves.inventoryError)))
-                } else {
-                    self.showModal(message: self.localization.L(L10n.Saves.inventorySuccess))
-                    if let refetched { self.navigationStore.inventoryToEdit = refetched }
-                }
-            }
-        }
-    }
     /// Envoie la sauvegarde à la corbeille, **hors fil principal** (dizaines
     /// de Mo). Seul le `Task.detached` quitte main.
     @MainActor

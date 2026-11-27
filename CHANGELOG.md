@@ -50,6 +50,13 @@ where the exact log format was verified.
 
 ### Fixed
 
+- **The save editor no longer loses half of your edits**: the farmer sheet
+  and the backpack had two separate Save buttons, and saving one dropped
+  what was typed in the other; closing the editor dropped everything
+  silently. There is now one "Save Changes (n)" button (⌘S), enabled only
+  when something changed, writing sheet and backpack together with a single
+  backup; closing with unsaved changes asks first.
+
 - **Saving the inventory or the farmer sheet never overwrites newer progress
   (B6-T1)**: the save is now read once into a tree and written in one go, and the write is
   refused — nothing touched, not even the backup — when the file changed on

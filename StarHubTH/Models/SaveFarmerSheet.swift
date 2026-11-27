@@ -81,3 +81,23 @@ struct SaveFarmerDraft: Equatable {
             experience: points == save.skills.map(\.experience) || points.isEmpty ? nil : points)
     }
 }
+
+extension SaveFarmerDraft {
+    /// Champs du formulaire qui diffèrent de `initial` : le compteur du bouton
+    /// « Enregistrer », et la garde à la fermeture (audit UX 2026-11-27).
+    func changedFields(from initial: SaveFarmerDraft) -> Int {
+        zip(fieldValues, initial.fieldValues).filter { $0 != $1 }.count
+    }
+
+    private var fieldValues: [String] {
+        [name, farmName, favoriteThing, spouse, money, totalMoneyEarned, maxHealth, maxStamina,
+         goldenWalnuts, qiGems, clubCoins, health, stamina] + experience
+    }
+}
+
+extension InventoryItem {
+    /// Cases du sac modifiées depuis leur lecture.
+    static func changedSlots(_ edited: [InventoryItem], from loaded: [InventoryItem]) -> Int {
+        zip(edited, loaded).filter { $0 != $1 }.count
+    }
+}
