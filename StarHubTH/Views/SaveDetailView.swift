@@ -39,6 +39,11 @@ struct SaveDetailView: View {
                                        currentTab: $currentTab)
                     }
                 }
+                if let session = navigation.editSession {
+                    shown(.chests, navigation.saveSegment) {
+                        SaveChestsView(session: session, localization: localization)
+                    }
+                }
                 shown(.mods, navigation.saveSegment) { modsSegment }
                 shown(.history, navigation.saveSegment) {
                     SaveTimelineView(vm: viewModel, localization: localization, save: save)
@@ -83,6 +88,7 @@ struct SaveDetailView: View {
     private func label(_ segment: SaveSegment) -> String {
         switch segment {
         case .details: return localization.L(L10n.Saves.segmentDetails)
+        case .chests:  return localization.L(L10n.Saves.segmentChests)
         case .mods:    return localization.L(L10n.Saves.segmentMods)
         case .history: return localization.L(L10n.Saves.timeline)
         }

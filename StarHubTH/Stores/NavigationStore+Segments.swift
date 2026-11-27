@@ -19,9 +19,9 @@ enum DiagnosticsSegment: CaseIterable, Sendable {
     case health, journal, performance
 }
 
-/// R6 — les trois segments de la page d'une partie.
+/// R6 — les segments de la page d'une partie (A2 : « Coffres », en lecture).
 enum SaveSegment: CaseIterable, Sendable {
-    case details, mods, history
+    case details, chests, mods, history
 }
 
 extension NavigationStore {

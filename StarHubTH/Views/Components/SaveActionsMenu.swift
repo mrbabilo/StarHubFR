@@ -17,6 +17,9 @@ struct SaveActionItems: View {
         Button { navigation.openSave(save, segment: .details) } label: {
             Label(localization.L(L10n.Saves.edit), systemImage: "pencil")
         }
+        Button { navigation.openSave(save, segment: .chests) } label: {
+            Label(localization.L(L10n.Saves.segmentChests), systemImage: "archivebox")
+        }
         Button { navigation.openSave(save, segment: .mods) } label: {
             Label(localization.L(L10n.Saves.segmentModsAction), systemImage: "shippingbox")
         }

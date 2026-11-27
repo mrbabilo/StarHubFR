@@ -1,0 +1,55 @@
+import Foundation
+
+/// Les coffres d'une partie rangés par lieu, pour l'écran « Coffres » (A2).
+struct SaveChestGroup: Identifiable, Equatable, Sendable {
+    /// Le lieu ; vide pour les inventaires globaux (Junimos, mods).
+    let location: String
+    let chests: [SaveChest]
+    var id: String { location }
+}
+
+enum SaveChestListing {
+    /// Les coffres par lieu, dans l'ordre de la partie, les inventaires globaux en dernier.
+    /// `query` : un morceau de nom d'objet, sans égard à la casse ni aux accents ;
+    /// ne restent que les coffres qui le contiennent. Vide = tout.
+    static func groups(_ chests: [SaveChest], matching query: String = "") -> [SaveChestGroup] {
+        let needle = fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
+        var order: [String] = []
+        var byLocation: [String: [SaveChest]] = [:]
+        for chest in chests where needle.isEmpty || chest.items.contains(where: { fold($0.name).contains(needle) }) {
+            if byLocation[chest.location] == nil { order.append(chest.location) }
+            byLocation[chest.location, default: []].append(chest)
+        }
+        let sorted = order.filter { !$0.isEmpty } + order.filter(\.isEmpty)
+        return sorted.map { SaveChestGroup(location: $0, chests: byLocation[$0] ?? []) }
+    }
+
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+    }
+}
+
+extension SaveChest {
+    /// Les mots que la vue fournit déjà traduits.
+    struct Labels: Equatable, Sendable {
+        let chest: String
+        let fridge: String
+        let junimo: String
+    }
+
+    /// Le nom montré : le nom de la partie quand il dit quelque chose, sinon le libellé du type.
+    func displayName(_ labels: Labels) -> String {
+        switch kind {
+        case .placed: name.isEmpty || name == "Chest" ? labels.chest : name
+        case .fridge: labels.fridge
+        case .junimo: labels.junimo
+        case .buildingChest(let building, let chest): "\(building) · \(chest.isEmpty || chest == "Chest" ? labels.chest : chest)"
+        case .modInventory(let key): key
+        }
+    }
+
+    /// Nombre de cases du contenant.
+    var slotCount: Int { items.count }
+    /// Cases qui portent un objet.
+    var occupiedCount: Int { items.filter { !$0.name.isEmpty }.count }
+}

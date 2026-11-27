@@ -398,6 +398,7 @@ let package = Package(
                 "Models/SaveDocument+Inventory.swift",
                 "Models/SaveDocument+Chests.swift",
                 "Models/SaveChest.swift",
+                "Models/SaveChestListing.swift",
                 "Models/SaveDocument+Farmer.swift",
                 "Models/PureBinarySave+Editing.swift",
                 "Models/SaveSkills.swift",
