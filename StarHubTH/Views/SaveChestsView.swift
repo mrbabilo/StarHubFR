@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// A2 — les coffres de la partie, en lecture : la liste par lieu à gauche, le
-/// contenu du coffre choisi à droite. Données de `SaveEditSession.chests` (une
-/// seule lecture par partie ouverte) ; aucune écriture avant A4.
+/// A2 — les coffres de la partie : la liste par lieu à gauche, le contenu du
+/// coffre choisi à droite. Données de `SaveEditSession.chests` (une seule
+/// lecture par partie ouverte). A4 : un coffre éditable se modifie comme le sac
+/// (quantité, case vidée) et s'enregistre par le bouton du pied, avec le reste.
 struct SaveChestsView: View {
-    let session: SaveEditSession
+    @Bindable var session: SaveEditSession
     @ObservedObject var localization: LocalizationStore
     @State private var query = ""
     @State private var selectedId: String?
@@ -70,9 +71,26 @@ struct SaveChestsView: View {
         }
     }
 
-    private func readOnlyKey(_ chest: SaveChest) -> String {
-        if case .modInventory = chest.kind { return L10n.Saves.chestReadOnly }
-        return L10n.Saves.chestNotEditable
+    /// Une case d'un coffre éditable, patron de `SaveEditorInventorySection` : quantité d'un
+    /// objet, et case vidée pour tout objet.
+    private func editableRow(chest index: Int, slot: Int) -> some View {
+        let item = session.chests[index].items[slot]
+        return SplitRow(spacing: AppDesign.Spacing.sm) {
+            Text(item.name)
+        } trailing: {
+            if item.isObject {
+                Text(localization.L(L10n.Saves.itemQuantity))
+                TextField("", value: $session.chests[index].items[slot].stack, formatter: NumberFormatter())
+                    .frame(width: 60).textFieldStyle(.roundedBorder)
+            } else {
+                Text(localization.L(L10n.Saves.nonObject)).foregroundColor(.secondary)
+            }
+            Button(role: .destructive, action: {
+                session.chests[index].items[slot] = InventoryItem.empty(slot: slot)
+            }) { Image(systemName: "trash").foregroundStyle(AppDesign.Color.error) }
+            .buttonStyle(.plain).focusRing()
+            .iconHelp(localization.L(L10n.Saves.clearSlotHint))
+        }
     }
 
     @ViewBuilder
@@ -84,12 +102,16 @@ struct SaveChestsView: View {
                 Text(String(format: localization.L(L10n.Saves.chestSlots), chest.slotCount, chest.occupiedCount))
                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 if !chest.isEditable {
-                    Label(localization.L(readOnlyKey(chest)), systemImage: "lock")
+                    Label(localization.L(chest.readOnlyKey), systemImage: "lock")
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)
                 }
                 Divider()
                 if held.isEmpty {
                     Text(localization.L(L10n.Saves.chestAllEmpty)).foregroundColor(.secondary)
+                } else if chest.isEditable, let index = session.chests.firstIndex(where: { $0.id == chest.id }) {
+                    List(chest.items.indices.filter { !chest.items[$0].name.isEmpty }, id: \.self) { slot in
+                        editableRow(chest: index, slot: slot)
+                    }
                 } else {
                     List(held) { item in
                         SplitRow(spacing: AppDesign.Spacing.sm) {

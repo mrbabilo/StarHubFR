@@ -43,6 +43,11 @@ import Testing
         #expect(Self.make("b", in: "Farm", kind: .buildingChest(building: "Mill", chest: "Output")).displayName(labels) == "Mill · Output")
     }
 
+    @Test func readOnlyLabelFollowsTheKind() {
+        #expect(Self.make("m", in: "", kind: .modInventory(key: "M")).readOnlyKey == L10n.Saves.chestReadOnly)
+        #expect(Self.make("b", in: "Farm", kind: .buildingChest(building: "Mod.Office", chest: "In")).readOnlyKey == L10n.Saves.chestNotEditable)
+    }
+
     @Test func slotCountsSeparateOccupiedFromEmpty() {
         let held = Self.make("a", in: "Farm", items: [Self.item("Bois"), .empty(slot: 1), Self.item("Pierre", slot: 2)])
         #expect(held.slotCount == 3)

@@ -20,12 +20,17 @@ extension SaveDocument {
     /// Tous les contenants lisibles, dans l'ordre du fichier ; chaque `id` est unique.
     func chests() -> [SaveChest] { chestEntries().map(\.chest) }
 
-    /// Remplace les cases du contenant `id`. `false` — rien changé — si l'`id`
-    /// est inconnu ou le contenant en lecture seule.
-    func applyChestItems(_ items: [InventoryItem], toChest id: String) -> Bool {
-        guard let entry = chestEntries().first(where: { $0.chest.id == id }), entry.chest.isEditable,
-              let container = entry.container else { return false }
-        Self.apply(items, to: container.elements(forName: "Item"))
+    /// Remplace les cases de chaque contenant donné (`id` → cases), en une
+    /// lecture de l'arbre. `false` — rien changé, pas même les autres — si un
+    /// `id` est inconnu ou son contenant en lecture seule.
+    func applyChestItems(_ edits: [String: [InventoryItem]]) -> Bool {
+        let byId = Dictionary(chestEntries().map { ($0.chest.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var targets: [(items: [InventoryItem], container: XMLElement)] = []
+        for (id, items) in edits {
+            guard let entry = byId[id], entry.chest.isEditable, let container = entry.container else { return false }
+            targets.append((items, container))
+        }
+        for target in targets { Self.apply(target.items, to: target.container.elements(forName: "Item")) }
         return true
     }
 
@@ -51,7 +56,7 @@ extension SaveDocument {
                 let tile = Self.tile(of: entry.elements(forName: "key").first?.elements(forName: "Vector2").first)
                 add(id: "\(location)@\(tile.x),\(tile.y)", location: location, x: tile.x, y: tile.y,
                     name: chest.elements(forName: "name").first?.stringValue ?? "Chest", kind: .placed,
-                    container: chest.elements(forName: "items").first)
+                    container: chest.elements(forName: "items").first, editable: !Self.pointsAtSharedInventory(chest))
             }
             if let fridge = place.elements(forName: "fridge").first {
                 add(id: "\(location)#fridge", location: location, x: 0, y: 0, name: "Fridge", kind: .fridge,
@@ -65,7 +70,7 @@ extension SaveDocument {
                     let name = chest.elements(forName: "name").first?.stringValue ?? "Chest"
                     add(id: "\(location)@\(x),\(y)#bc:\(name)", location: location, x: x, y: y, name: name,
                         kind: .buildingChest(building: type, chest: name), container: chest.elements(forName: "items").first,
-                        editable: Self.vanillaBuildings.contains(type))
+                        editable: Self.vanillaBuildings.contains(type) && !Self.pointsAtSharedInventory(chest))
                 }
                 if let indoors = building.elements(forName: "indoors").first {
                     let inside = indoors.elements(forName: "uniqueName").first?.stringValue
@@ -86,6 +91,13 @@ extension SaveDocument {
                 container: entry.elements(forName: "value").first?.elements(forName: "ArrayOfItem").first, editable: junimo)
         }
         return entries
+    }
+
+    /// Coffre Junimo posé, ou coffre relié à un `globalInventoryId` : le jeu
+    /// lit l'inventaire partagé, pas ses `<items>` ; les écrire ne servirait à rien.
+    private static func pointsAtSharedInventory(_ chest: XMLElement) -> Bool {
+        chest.elements(forName: "specialChestType").first?.stringValue == "JunimoChest"
+            || !(chest.elements(forName: "globalInventoryId").first?.stringValue ?? "").isEmpty
     }
 
     private static func tile(of vector: XMLElement?) -> (x: Int, y: Int) {

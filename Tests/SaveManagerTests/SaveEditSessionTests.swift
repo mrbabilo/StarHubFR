@@ -93,6 +93,39 @@ import Testing
         #expect(session.expectedStamp(overwriteNewer: true) == nil)
     }
 
+    nonisolated private static func chest(_ id: String, stack: Int) -> SaveChest {
+        SaveChest(id: id, location: "Farm", tileX: 0, tileY: 0, name: "Chest", kind: .placed,
+                  items: [InventoryItem(slotIndex: 0, itemId: "388", name: "Wood", stack: stack, isObject: true),
+                          InventoryItem.empty(slot: 1)],
+                  isEditable: true)
+    }
+
+    @Test func chestSlotsAreCountedByChestIdAndWrittenOnlyWhenChanged() throws {
+        let session = SaveEditSession(save: save("chests"), notes: SaveNotesStore())
+        var contents = Self.contents()
+        contents.chests = [Self.chest("Farm@1,1", stack: 5), Self.chest("Farm@2,2", stack: 8)]
+        session.load(contents)
+        #expect(session.pendingEdits().chests == nil)
+        #expect(session.expectedStamp(overwriteNewer: false) == nil)
+
+        // Matched by id, not by position: reordering changes nothing.
+        session.chests.reverse()
+        #expect(session.changeCount == 0)
+        #expect(session.pendingEdits().chests == nil)
+
+        let index = try #require(session.chests.firstIndex { $0.id == "Farm@2,2" })
+        session.chests[index].items[0].stack = 3
+        session.chests[index].items[1] = InventoryItem.empty(slot: 1)
+        #expect(session.changeCount == 2)
+        let edits = session.pendingEdits()
+        #expect(edits.items == nil && edits.sheet == nil)
+        #expect(edits.chests.map { Array($0.keys) } == ["Farm@2,2"])
+        #expect(edits.chests?["Farm@2,2"]?.first?.stack == 3)
+        // Coffre seul modifié : l'écriture garde l'empreinte de la lecture.
+        #expect(session.expectedStamp(overwriteNewer: false) == session.loaded?.stamp)
+        #expect(session.expectedStamp(overwriteNewer: true) == nil)
+    }
+
     @Test func theStampComesFromTheSameReadAsTheContents() throws {
         let env = TestEnvironment()
         defer { env.cleanup() }
@@ -109,7 +142,7 @@ import Testing
         #expect(contents.stamp != SaveDocument.Stamp.current(of: info.fileURL))
         contents.inventory[0].stack = 9
         #expect(throws: SaveDocument.Failure.changedOnDisk) {
-            try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, expected: contents.stamp)
+            try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, chests: nil, expected: contents.stamp)
         }
     }
 }

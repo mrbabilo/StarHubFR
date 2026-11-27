@@ -14,6 +14,14 @@ where the exact log format was verified.
 
 ### Added
 
+- **Chest contents in the save editor (A4)**: the save page's Chests segment
+  lists placed chests, fridges, building chests and the Junimo inventory by
+  location; quantities can be changed and slots emptied, saved with the
+  farmer sheet and the bag by the single “Save changes (n)” button — one
+  write, one backup, refused if the save changed since it was opened. Mod
+  inventories, mod buildings' chests and chests pointing at a shared
+  inventory (placed Junimo chests) stay read-only.
+
 - **Farmer's current stats and skills in the save editor (B6-T3)**: current
   health and stamina (capped at their maximum) and the six skills —
   edit the experience points, the level follows the game's thresholds and a

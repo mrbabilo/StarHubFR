@@ -48,6 +48,12 @@ extension SaveChest {
         }
     }
 
+    /// Le libellé d'un contenant en lecture seule : inventaire de mod, ou contenant non modifiable.
+    var readOnlyKey: String {
+        if case .modInventory = kind { return L10n.Saves.chestReadOnly }
+        return L10n.Saves.chestNotEditable
+    }
+
     /// Nombre de cases du contenant.
     var slotCount: Int { items.count }
     /// Cases qui portent un objet.

@@ -301,6 +301,7 @@ let package = Package(
                 "Models/ModListFilters.swift",
                 "Models/XMLEntities.swift",
                 "L10n.swift",
+                "L10n+SaveDetail.swift",
                 "L10nResolver.swift",
                 "AppDesignCore.swift",
                 "ContrastChecker.swift",

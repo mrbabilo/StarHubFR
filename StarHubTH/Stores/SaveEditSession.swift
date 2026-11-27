@@ -18,7 +18,7 @@ final class SaveEditSession {
     var noteText: String
     /// Le sac édité ; vide jusqu'à l'arrivée de la lecture.
     var inventory: [InventoryItem] = []
-    /// Les coffres lus avec le sac (A1) ; lecture seule jusqu'à l'écran des coffres.
+    /// Les coffres lus avec le sac (A1), édités par l'écran des coffres (A4) ; même référence que le sac.
     var chests: [SaveChest] = []
     /// La lecture d'origine ; `nil` tant qu'elle n'est pas arrivée, ou si elle a échoué.
     private(set) var loaded: SaveContents?
@@ -43,25 +43,39 @@ final class SaveEditSession {
     }
 
     /// L'empreinte que l'écriture doit retrouver : celle de la lecture, dès que le
-    /// sac est modifié, sauf écrasement confirmé.
+    /// sac ou un coffre est modifié, sauf écrasement confirmé.
     func expectedStamp(overwriteNewer: Bool) -> SaveDocument.Stamp? {
-        overwriteNewer || changedSlots == 0 ? nil : loaded?.stamp
+        overwriteNewer || changedSlots + changedChestSlots == 0 ? nil : loaded?.stamp
     }
 
-    /// Modifications non enregistrées : champs de la fiche, cases du sac, étiquette et note.
+    /// Modifications non enregistrées : champs de la fiche, cases du sac et des coffres, étiquette et note.
     var changeCount: Int {
         let note = notes.note(for: save.folderName)
-        return draft.changedFields(from: SaveFarmerDraft(save)) + changedSlots
+        return draft.changedFields(from: SaveFarmerDraft(save)) + changedSlots + changedChestSlots
             + (noteTag == note.tag ? 0 : 1) + (noteText == note.note ? 0 : 1)
     }
 
     /// Ce que l'écriture doit porter (`nil` = non modifié) ; la note de l'app s'enregistre à part.
-    func pendingEdits() -> (sheet: SaveFarmerSheet?, items: [InventoryItem]?) {
+    /// `chests` : les seuls coffres modifiés, par `id`.
+    func pendingEdits() -> (sheet: SaveFarmerSheet?, items: [InventoryItem]?, chests: [String: [InventoryItem]]?) {
         let sheet = draft.changedFields(from: SaveFarmerDraft(save)) > 0 ? draft.sheet(for: save) : nil
-        return (sheet, changedSlots > 0 ? inventory : nil)
+        let changed = chestChanges.filter { $0.count > 0 }
+        let chests = changed.isEmpty ? nil : Dictionary(changed.map { ($0.chest.id, $0.chest.items) }, uniquingKeysWith: { a, _ in a })
+        return (sheet, changedSlots > 0 ? inventory : nil, chests)
     }
 
     private var changedSlots: Int {
         loaded.map { InventoryItem.changedSlots(inventory, from: $0.inventory) } ?? 0
+    }
+
+    private var changedChestSlots: Int { chestChanges.reduce(0) { $0 + $1.count } }
+
+    /// Chaque coffre édité et ses cases modifiées, rapproché de sa lecture par `id`, jamais par position.
+    private var chestChanges: [(chest: SaveChest, count: Int)] {
+        guard let loaded else { return [] }
+        let read = Dictionary(loaded.chests.map { ($0.id, $0.items) }, uniquingKeysWith: { a, _ in a })
+        return chests.compactMap { chest in
+            read[chest.id].map { (chest, InventoryItem.changedSlots(chest.items, from: $0)) }
+        }
     }
 }

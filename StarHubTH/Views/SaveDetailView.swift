@@ -131,12 +131,14 @@ struct SaveDetailView: View {
         }
     }
 
-    /// Une écriture pour la fiche et le sac, seulement s'ils ont changé ; la note de l'app à part.
+    /// Une écriture pour la fiche, le sac et les coffres, seulement s'ils ont changé ; la note de l'app à part.
     private func performSave(_ session: SaveEditSession, overwriteNewer: Bool) {
         viewModel.setNote(for: save.folderName, tag: session.noteTag, note: session.noteText)
         let edits = session.pendingEdits()
-        guard edits.sheet != nil || edits.items != nil else { return viewModel.navigationStore.setEditingSave(nil) }
-        viewModel.saveEdits(info: save, sheet: edits.sheet, items: edits.items,
+        guard edits.sheet != nil || edits.items != nil || edits.chests != nil else {
+            return viewModel.navigationStore.setEditingSave(nil)
+        }
+        viewModel.saveEdits(info: save, sheet: edits.sheet, items: edits.items, chests: edits.chests,
                             expected: session.expectedStamp(overwriteNewer: overwriteNewer))
     }
 

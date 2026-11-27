@@ -46,10 +46,10 @@ import Testing
         </globalInventories></SaveGame>
         """
 
-    private func document() throws -> SaveDocument {
+    private func document(_ xml: String = Self.xml) throws -> SaveDocument {
         let env = TestEnvironment()
         defer { env.cleanup() }
-        let info = try env.makeSave(named: "A1_\(UUID().uuidString)", content: Self.xml)
+        let info = try env.makeSave(named: "A1_\(UUID().uuidString)", content: xml)
         return try SaveDocument(contentsOf: info.fileURL)
     }
 
@@ -105,7 +105,7 @@ import Testing
         let before = save.chests()
         var items = try #require(before.first { $0.id == "Farm@10,20" }?.items)
         items[1].stack = 9
-        #expect(save.applyChestItems(items, toChest: "Farm@10,20"))
+        #expect(save.applyChestItems(["Farm@10,20": items]))
         let after = save.chests()
         #expect(after.first { $0.id == "Farm@10,20" }?.items[1].stack == 9)
         // `InventoryItem` porte un `UUID` par lecture : on compare le contenu.
@@ -123,8 +123,73 @@ import Testing
         let items = try #require(save.chests().first { $0.id == "global:Mod.Thing.temp" }?.items)
         var edited = items
         edited[0].stack = 99
-        #expect(!save.applyChestItems(edited, toChest: "global:Mod.Thing.temp"))
-        #expect(!save.applyChestItems(edited, toChest: "Nowhere@1,1"))
+        #expect(!save.applyChestItems(["global:Mod.Thing.temp": edited]))
+        #expect(!save.applyChestItems(["Nowhere@1,1": edited]))
         #expect(save.chests().first { $0.id == "global:Mod.Thing.temp" }?.items.first?.stack == 2)
+    }
+
+    @Test func severalChestsAreAppliedTogetherOrNotAtAll() throws {
+        let save = try document()
+        let chests = save.chests()
+        var farm = try #require(chests.first { $0.id == "Farm@10,20" }?.items)
+        farm[1].stack = 9
+        var fridge = try #require(chests.first { $0.id == "FarmHouse#fridge" }?.items)
+        fridge[0].stack = 1
+        // Un id inconnu dans le lot : rien n'est posé, pas même les coffres valides.
+        #expect(!save.applyChestItems(["Farm@10,20": farm, "Nowhere@1,1": farm]))
+        #expect(save.chests().first { $0.id == "Farm@10,20" }?.items[1].stack == 2)
+        #expect(save.applyChestItems(["Farm@10,20": farm, "FarmHouse#fridge": fridge]))
+        let after = save.chests()
+        #expect(after.first { $0.id == "Farm@10,20" }?.items[1].stack == 9)
+        #expect(after.first { $0.id == "FarmHouse#fridge" }?.items[0].stack == 1)
+    }
+
+    /// A4 — un coffre qui pointe vers un inventaire partagé (Junimo posé,
+    /// `globalInventoryId`) : ses `<items>` ne sont pas ceux que le jeu lit.
+    @Test func chestsPointingAtASharedInventoryAreReadOnly() throws {
+        let junimo = Self.chest("Chest", x: 1, y: 1, items: Self.item("Stone", id: "390", stack: 7))
+            .replacingOccurrences(of: "<items>", with: "<specialChestType>JunimoChest</specialChestType><items>")
+        let global = Self.chest("Chest", x: 2, y: 2)
+            .replacingOccurrences(of: "<items>", with: "<globalInventoryId>Mod.Shared</globalInventoryId><items>")
+        let blankGlobal = Self.chest("Chest", x: 3, y: 3)
+            .replacingOccurrences(of: "<items>", with: "<globalInventoryId /><items>")
+        let xml = """
+            <?xml version="1.0" encoding="utf-8"?><SaveGame xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\
+            <locations><GameLocation><name>Farm</name><objects>\
+            \(Self.placed(junimo, x: 1, y: 1))\(Self.placed(global, x: 2, y: 2))\(Self.placed(blankGlobal, x: 3, y: 3))\
+            </objects></GameLocation></locations></SaveGame>
+            """
+        let save = try document(xml)
+        let chests = save.chests()
+        #expect(chests.first { $0.id == "Farm@1,1" }?.isEditable == false)
+        #expect(chests.first { $0.id == "Farm@2,2" }?.isEditable == false)
+        #expect(chests.first { $0.id == "Farm@3,3" }?.isEditable == true)
+        var stone = try #require(chests.first { $0.id == "Farm@1,1" }?.items)
+        stone[0].stack = 99
+        #expect(!save.applyChestItems(["Farm@1,1": stone]))
+    }
+
+    /// Deux coffres de même nom sur une même tuile : le suffixe `~2` suit
+    /// l'ordre du fichier, le même à chaque lecture.
+    @Test func duplicateChestIdsAreStableAcrossReads() throws {
+        let input = Self.chest("Input", x: 0, y: 0, items: Self.item("Wheat", id: "262", stack: 4), tag: "Chest")
+        let second = Self.chest("Input", x: 0, y: 0, items: Self.item("Wheat", id: "262", stack: 6), tag: "Chest")
+        let xml = """
+            <?xml version="1.0" encoding="utf-8"?><SaveGame xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\
+            <locations><GameLocation><name>Farm</name><objects /><buildings>\
+            \(Self.building("Mill", x: 7, y: 8, chests: [input]))\(Self.building("Mill", x: 7, y: 8, chests: [second]))\
+            </buildings></GameLocation></locations></SaveGame>
+            """
+        let first = try document(xml).chests()
+        let again = try document(xml).chests()
+        #expect(first.map(\.id) == ["Farm@7,8#bc:Input", "Farm@7,8#bc:Input~2"])
+        #expect(again.map(\.id) == first.map(\.id))
+        #expect(again.map { $0.items.first?.stack } == [4, 6])
+
+        let save = try document(xml)
+        var items = try #require(save.chests().last?.items)
+        items[0].stack = 1
+        #expect(save.applyChestItems(["Farm@7,8#bc:Input~2": items]))
+        #expect(save.chests().map { $0.items.first?.stack } == [4, 1])
     }
 }

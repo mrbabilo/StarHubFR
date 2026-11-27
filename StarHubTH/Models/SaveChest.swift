@@ -1,6 +1,6 @@
 import Foundation
 
-/// Un contenant de la partie dont on peut lire (et plus tard modifier) les cases : coffre posé,
+/// Un contenant de la partie dont on lit et modifie les cases : coffre posé,
 /// réfrigérateur, coffre de bâtiment ou inventaire global (A1).
 struct SaveChest: Identifiable, Equatable, Sendable {
     enum Kind: Equatable, Sendable {
@@ -20,6 +20,8 @@ struct SaveChest: Identifiable, Equatable, Sendable {
     let tileY: Int
     let name: String
     let kind: Kind
-    let items: [InventoryItem]
+    /// Les cases ; l’écran des coffres les modifie dans `SaveEditSession.chests` (A4).
+    var items: [InventoryItem]
+    /// `false` : lu, jamais écrit (mod, inventaire partagé).
     let isEditable: Bool
 }
