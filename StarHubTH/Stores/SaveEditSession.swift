@@ -22,6 +22,11 @@ final class SaveEditSession {
     var chests: [SaveChest] = []
     /// La lecture d'origine ; `nil` tant qu'elle n'est pas arrivée, ou si elle a échoué.
     private(set) var loaded: SaveContents?
+    /// B4 — les noms des objets dans la langue du jeu, lus une fois par session ;
+    /// `nil` tant qu'ils ne sont pas arrivés, ou si la lecture a échoué (`catalogProblem`).
+    private(set) var catalog: GameCatalog?
+    private(set) var catalogProblem: CatalogProblem?
+    private var catalogRequested = false
     /// Lue à chaque décompte, pas figée : le choix d'un avatar enregistre la
     /// note en cours, qui cesse alors de compter.
     private let notes: SaveNotesStore
@@ -40,6 +45,23 @@ final class SaveEditSession {
         loaded = contents
         inventory = contents.inventory
         chests = contents.chests
+    }
+
+    /// Lit le catalogue une seule fois, hors du fil principal ; le résultat est
+    /// posé ici, sur l'acteur principal. Un second appel ne relit rien.
+    func loadCatalog(_ loader: @escaping @Sendable () -> Result<GameCatalog, CatalogProblem>) async {
+        guard !catalogRequested else { return }
+        catalogRequested = true
+        switch await Task.detached(priority: .utility, operation: loader).value {
+        case .success(let loaded): catalog = loaded
+        case .failure(let problem): catalogProblem = problem
+        }
+    }
+
+    /// Le nom affiché d'une case : celui du jeu s'il le connaît, sinon celui de
+    /// la partie. Affichage seulement, jamais écrit.
+    func displayName(_ item: InventoryItem) -> String {
+        catalog?.entry(for: item)?.displayName ?? item.name
     }
 
     /// L'empreinte que l'écriture doit retrouver : celle de la lecture, dès que le

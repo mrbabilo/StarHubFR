@@ -58,6 +58,12 @@ struct SaveDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .controlBackgroundColor))
+        // B4 — les noms du jeu, une lecture par session, hors du fil principal.
+        .task(id: navigation.editSession.map(ObjectIdentifier.init)) {
+            guard let session = navigation.editSession else { return }
+            let gameDir = viewModel.gameDir, language = localization.currentLanguage
+            await session.loadCatalog { GameCatalog.load(gameDir: gameDir, appLanguage: language) }
+        }
         .alert(confirmationTitle,
                isPresented: Binding(get: { confirmation != nil },
                                     set: { if !$0 { confirmation = nil; pendingSaveAction = nil } }),

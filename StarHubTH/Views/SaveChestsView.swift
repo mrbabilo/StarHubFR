@@ -76,7 +76,7 @@ struct SaveChestsView: View {
     private func editableRow(chest index: Int, slot: Int) -> some View {
         let item = session.chests[index].items[slot]
         return SplitRow(spacing: AppDesign.Spacing.sm) {
-            Text(item.name)
+            Text(session.displayName(item))
         } trailing: {
             if item.isObject {
                 Text(localization.L(L10n.Saves.itemQuantity))
@@ -115,7 +115,7 @@ struct SaveChestsView: View {
                 } else {
                     List(held) { item in
                         SplitRow(spacing: AppDesign.Spacing.sm) {
-                            Text(item.name)
+                            Text(session.displayName(item))
                         } trailing: {
                             if item.isObject { Text("× \(item.stack)").foregroundColor(.secondary) }
                         }

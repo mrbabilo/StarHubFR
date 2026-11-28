@@ -2902,6 +2902,8 @@
   "saves_chest_default": "Coffre",
   "saves_chest_pick": "Choisissez un coffre",
   "saves_chest_all_empty": "Vide",
+  "saves_catalog_game_not_found": "Dossier du jeu introuvable : les objets gardent le nom enregistré dans la partie.",
+  "saves_catalog_unreadable": "Liste des objets du jeu illisible (%@) : les objets gardent le nom enregistré dans la partie.",
   "save_action_mods": "Mods de cette partie",
   "a11y_install_conflict_choice": "Si le mod est déjà installé",
   "a11y_detail_tabs": "Rubrique de la fiche",

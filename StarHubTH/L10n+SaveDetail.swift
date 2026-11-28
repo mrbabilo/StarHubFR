@@ -18,6 +18,9 @@ extension L10n.Saves {
     static let chestDefault = "saves_chest_default"
     static let chestPick = "saves_chest_pick"
     static let chestAllEmpty = "saves_chest_all_empty"
+    /// B4 — les noms du jeu indisponibles, ligne au-dessus du sac.
+    static let catalogGameNotFound = "saves_catalog_game_not_found"
+    static let catalogUnreadable = "saves_catalog_unreadable"
     /// Le nombre de sauvegardes de l'historique, au pluriel juste (`plural`).
     static let timelineBackupCount = "saves_timeline_backup_count"
 }

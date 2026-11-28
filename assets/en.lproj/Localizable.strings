@@ -2902,6 +2902,8 @@
 "saves_chest_default" = "Chest";
 "saves_chest_pick" = "Pick a chest";
 "saves_chest_all_empty" = "Empty";
+"saves_catalog_game_not_found" = "Game folder not found: items show the name stored in the save.";
+"saves_catalog_unreadable" = "Couldn’t read the game’s item list (%@): items show the name stored in the save.";
 "save_action_mods" = "This save's mods";
 "a11y_install_conflict_choice" = "If the mod is already installed";
 "a11y_detail_tabs" = "Mod page section";

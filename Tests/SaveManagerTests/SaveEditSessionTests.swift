@@ -145,4 +145,20 @@ import Testing
             try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, chests: nil, expected: contents.stamp)
         }
     }
+    /// B4 — le catalogue du jeu se lit une fois par session et ne change que
+    /// le nom affiché.
+    @Test func theCatalogIsLoadedOnceAndOnlyRenamesForDisplay() async {
+        let session = SaveEditSession(save: save("catalog"), notes: SaveNotesStore())
+        session.load(Self.contents())
+        #expect(session.displayName(session.inventory[0]) == "Parsnip")
+        let objects = XnbValue.dictionary([XnbPair(key: .string("24"), value: .object([
+            "Name": .string("Parsnip"), "DisplayName": .string("Panais"), "Category": .int(-75)]))])
+        let catalog = GameCatalog.build(objects: objects, bigCraftables: .dictionary([]), language: "fr") { _ in nil }
+        await session.loadCatalog { .success(catalog) }
+        await session.loadCatalog { .failure(.gameNotFound) }
+        #expect(session.displayName(session.inventory[0]) == "Panais")
+        #expect(session.catalogProblem == nil)
+        #expect(session.inventory[0].name == "Parsnip")
+        #expect(session.changeCount == 0)
+    }
 }

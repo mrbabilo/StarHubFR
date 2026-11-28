@@ -14,6 +14,14 @@ where the exact log format was verified.
 
 ### Added
 
+- **Game item names in the save editor's bag and chests (B4)**: items now
+  show the name the game itself displays, in the game's language (read from
+  the installed game's files, `startup_preferences` language, else the app's) —
+  “Panais” instead of “Parsnip”. Placed big objects are looked up in their own
+  table (a stored Chest is not the Tuna). Weapons, tools and mod items keep
+  the save's name; if the game folder can't be found or read, one line above
+  the bag says so. Display only: names are never written into the save.
+
 - **Chest contents in the save editor (A4)**: the save page's Chests segment
   lists placed chests, fridges, building chests and the Junimo inventory by
   location; quantities can be changed and slots emptied, saved with the

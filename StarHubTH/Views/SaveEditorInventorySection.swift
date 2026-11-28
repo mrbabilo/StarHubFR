@@ -8,12 +8,16 @@ struct SaveEditorInventorySection: View {
 
     var body: some View {
         Section(localization.L(L10n.Saves.inventoryEditor)) {
+            if let problem = session.catalogProblem {
+                Label(catalogLine(problem), systemImage: "exclamationmark.triangle")
+                    .font(AppDesign.Font.caption).foregroundColor(.secondary)
+            }
             ForEach(session.inventory.indices, id: \.self) { index in
                 let item = session.inventory[index]
                 if item.isObject {
                     SplitRow(spacing: AppDesign.Spacing.sm) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.name)
+                            Text(session.displayName(item))
                             Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
                                 .font(AppDesign.Font.caption).foregroundColor(.secondary)
                         }
@@ -31,7 +35,7 @@ struct SaveEditorInventorySection: View {
                 } else if !item.name.isEmpty {
                     SplitRow(spacing: AppDesign.Spacing.sm) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.name)
+                            Text(session.displayName(item))
                             if !item.itemId.isEmpty {
                                 Text("\(localization.L(L10n.Saves.itemId)): \(item.itemId)")
                                     .font(AppDesign.Font.caption).foregroundColor(.secondary)
@@ -47,6 +51,14 @@ struct SaveEditorInventorySection: View {
                     }
                 }
             }
+        }
+    }
+
+    /// B4 — pourquoi les noms du jeu manquent, en une ligne.
+    private func catalogLine(_ problem: CatalogProblem) -> String {
+        switch problem {
+        case .gameNotFound: localization.L(L10n.Saves.catalogGameNotFound)
+        case .unreadable(let detail): String(format: localization.L(L10n.Saves.catalogUnreadable), detail)
         }
     }
 }
