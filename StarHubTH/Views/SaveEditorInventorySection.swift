@@ -20,8 +20,7 @@ struct SaveEditorInventorySection: View {
     var body: some View {
         Section(localization.L(L10n.Saves.inventoryEditor)) {
             if let problem = session.catalogProblem {
-                Label(catalogLine(problem), systemImage: "exclamationmark.triangle")
-                    .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                SaveCatalogProblemLine(problem: problem, localization: localization)
             }
             ForEach(session.inventory.indices, id: \.self) { index in
                 let item = session.inventory[index]
@@ -65,11 +64,22 @@ struct SaveEditorInventorySection: View {
         }
     }
 
-    /// B4 — pourquoi les noms du jeu manquent, en une ligne.
-    private func catalogLine(_ problem: CatalogProblem) -> String {
+}
+
+/// B4 — pourquoi les noms du jeu manquent, en une ligne, au-dessus du sac et des coffres.
+struct SaveCatalogProblemLine: View {
+    let problem: CatalogProblem
+    @ObservedObject var localization: LocalizationStore
+
+    var body: some View {
+        Label(text, systemImage: "exclamationmark.triangle")
+            .font(AppDesign.Font.caption).foregroundColor(.secondary)
+    }
+
+    private var text: String {
         switch problem {
         case .gameNotFound: localization.L(L10n.Saves.catalogGameNotFound)
-        case .unreadable(let detail): String(format: localization.L(L10n.Saves.catalogUnreadable), detail)
+        case .unreadable(let file): String(format: localization.L(L10n.Saves.catalogUnreadable), file)
         }
     }
 }

@@ -46,7 +46,8 @@ struct GameCatalog: Sendable {
             let url = gameContent.appendingPathComponent("Data/\(name).xnb")
             guard let data = FileManager.default.contents(atPath: url.path) else { return .failure(.gameNotFound) }
             do { return .success(try XnbTypedReader.read(data, root: schema)) }
-            catch { return .failure(.unreadable("Data/\(name): \(error)")) }
+            // Le nom du fichier seulement : la ligne s'affiche telle quelle à l'utilisateur.
+            catch { return .failure(.unreadable("Data/\(name).xnb")) }
         }
         let objects: XnbValue, bigCraftables: XnbValue
         switch (table("Objects", .objects), table("BigCraftables", .bigCraftables)) {

@@ -21,6 +21,12 @@ struct SaveChestsView: View {
         let visibleIds = Set(groups.flatMap(\.chests).map(\.id))
         return VStack(spacing: 0) {
             searchField
+            if let problem = session.catalogProblem {
+                SaveCatalogProblemLine(problem: problem, localization: localization)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, AppDesign.Spacing.xl)
+                    .padding(.bottom, AppDesign.Spacing.sm)
+            }
             Divider()
             if groups.isEmpty {
                 Text(localization.L(session.chests.isEmpty ? L10n.Saves.chestsEmpty : L10n.Saves.chestsNoMatch))
