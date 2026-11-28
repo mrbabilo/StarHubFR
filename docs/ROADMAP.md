@@ -817,6 +817,13 @@ garde X138, backup avant écriture, lecture et écriture sans perte
       installé et dans sa langue ; nous ne lisons aujourd'hui que des
       dictionnaires de textes (`XnbStringDictionaryReader`). Socle des
       catalogues. · **L**
+      **Avancement 2026-11-28** : lecteur typé guidé par schéma
+      (`XnbTypedReader`), schémas `ObjectData` et `BigCraftableData` ;
+      catalogue des objets et gros objets (`GameCatalog`), noms dans la
+      langue du jeu, affichés dans le sac et dans les coffres — coffres lus
+      et édités dans la page d'une partie. Affichage seulement, jamais écrit.
+      **Reste** : quêtes, lieux, habitants, courrier, événements ; les icônes
+      des objets (plans C et D : textures, données Content Patcher des mods).
 - [ ] **B6-T5 — Images du jeu pour les catalogues.** Lecture des textures
       XNB (compressions LZX et LZ4) pour afficher les objets et les
       portraits. Le plus gros morceau ; à peser contre un catalogue sans
