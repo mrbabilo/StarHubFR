@@ -33,6 +33,16 @@ import Testing
         #expect(SaveChestListing.groups(chests, matching: "").flatMap(\.chests).count == 3)
     }
 
+    /// B4 — la recherche porte sur le nom montré (celui du jeu), pas sur le nom interne.
+    @Test func searchMatchesTheDisplayedNameNotTheInternalOne() {
+        let chests = [Self.make("a", in: "Farm", items: [Self.item("Parsnip")]),
+                      Self.make("b", in: "Farm", items: [Self.item("Wood")])]
+        let shown: (InventoryItem) -> String = { $0.name == "Parsnip" ? "Panais" : $0.name }
+        #expect(SaveChestListing.groups(chests, matching: "panais", name: shown).flatMap(\.chests).map(\.id) == ["a"])
+        #expect(SaveChestListing.groups(chests, matching: "Parsnip", name: shown).isEmpty)
+        #expect(SaveChestListing.groups(chests, matching: "wood", name: shown).flatMap(\.chests).map(\.id) == ["b"])
+    }
+
     @Test func displayNamesFollowTheKind() {
         let labels = Self.labels
         #expect(Self.make("a", in: "Farm").displayName(labels) == "Coffre")

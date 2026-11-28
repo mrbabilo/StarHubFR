@@ -17,7 +17,7 @@ struct SaveChestsView: View {
     }
 
     var body: some View {
-        let groups = SaveChestListing.groups(session.chests, matching: query)
+        let groups = SaveChestListing.groups(session.chests, matching: query, name: session.displayName)
         let visibleIds = Set(groups.flatMap(\.chests).map(\.id))
         return VStack(spacing: 0) {
             searchField

@@ -11,12 +11,14 @@ struct SaveChestGroup: Identifiable, Equatable, Sendable {
 enum SaveChestListing {
     /// Les coffres par lieu, dans l'ordre de la partie, les inventaires globaux en dernier.
     /// `query` : un morceau de nom d'objet, sans égard à la casse ni aux accents ;
-    /// ne restent que les coffres qui le contiennent. Vide = tout.
-    static func groups(_ chests: [SaveChest], matching query: String = "") -> [SaveChestGroup] {
+    /// ne restent que les coffres qui le contiennent. Vide = tout. `name` : le nom
+    /// cherché, celui que la vue montre (B4 : le nom du jeu, `SaveEditSession.displayName`).
+    static func groups(_ chests: [SaveChest], matching query: String = "",
+                       name: (InventoryItem) -> String = \.name) -> [SaveChestGroup] {
         let needle = fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
         var order: [String] = []
         var byLocation: [String: [SaveChest]] = [:]
-        for chest in chests where needle.isEmpty || chest.items.contains(where: { fold($0.name).contains(needle) }) {
+        for chest in chests where needle.isEmpty || chest.items.contains(where: { fold(name($0)).contains(needle) }) {
             if byLocation[chest.location] == nil { order.append(chest.location) }
             byLocation[chest.location, default: []].append(chest)
         }
