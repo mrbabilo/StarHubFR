@@ -53,14 +53,16 @@ extension SaveDocument {
         }
     }
 
+    /// Quantité (au moins 1 : 0 ou moins ne s'écrit pas) et identifiant d'un objet, case vidée pour un objet sans nom.
     static func apply(_ items: [InventoryItem], to nodes: [XMLElement]) {
         for item in items where nodes.indices.contains(item.slotIndex) {
             let node = nodes[item.slotIndex]
             if item.isObject {
-                if let stack = node.elements(forName: "stack").first {
-                    stack.stringValue = "\(item.stack)"
+                let stack = "\(max(1, item.stack))"
+                if let element = node.elements(forName: "stack").first {
+                    element.stringValue = stack
                 } else {
-                    node.addChild(XMLElement(name: "stack", stringValue: "\(item.stack)"))
+                    node.addChild(XMLElement(name: "stack", stringValue: stack))
                 }
                 node.elements(forName: "itemId").first?.stringValue = item.itemId
             } else if item.name.isEmpty {

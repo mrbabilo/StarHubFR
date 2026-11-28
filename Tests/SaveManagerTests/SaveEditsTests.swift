@@ -250,6 +250,29 @@ import Testing
         }
     }
 
+    /// Revue finale, Important 2 — une quantité de 0 ou moins s'écrit 1, au sac comme au coffre.
+    @Test func quantitiesBelowOneAreWrittenAsOne() throws {
+        for (index, quantity) in [0, -5].enumerated() {
+            let env = TestEnvironment()
+            defer { env.cleanup() }
+            let info = try env.makeSave(named: "Edits_Clamp_\(index)", content: chestXML)
+            let manager = SaveManager(isGameRunning: { false })
+            let read = try #require(manager.fetchContents(for: info))
+            var items = read.inventory
+            items[0].stack = quantity
+            let woodRead = try #require(read.chests.first { $0.id == "Farm@1,2" }?.items)
+            var wood = woodRead
+            wood[0].stack = quantity
+
+            try manager.writeEdits(info: info, sheet: nil, items: SlotEdit.changes(items, from: read.inventory),
+                                   chests: ["Farm@1,2": SlotEdit.changes(wood, from: woodRead)], expected: read.stamp)
+
+            let written = try #require(manager.fetchContents(for: info))
+            #expect(written.inventory.first?.stack == 1)
+            #expect(written.chests.first { $0.id == "Farm@1,2" }?.items.first?.stack == 1)
+        }
+    }
+
     @Test func changesAreCountedFieldBySlotBySlot() {
         let save = makeTestSave(folderName: "C", fileURL: URL(fileURLWithPath: "/tmp/C"))
         let initial = SaveFarmerDraft(save)

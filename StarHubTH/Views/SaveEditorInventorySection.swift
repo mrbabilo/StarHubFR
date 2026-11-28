@@ -1,5 +1,16 @@
 import SwiftUI
 
+/// Le format des quantités du sac et des coffres : entier, au moins 1 (l'écriture borne aussi).
+/// Créé une fois, pas à chaque rendu.
+enum SlotQuantityFormat {
+    @MainActor static let formatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.minimum = 1
+        formatter.allowsFloats = false
+        return formatter
+    }()
+}
+
 /// Le sac du fermier dans l'éditeur. Pas de bouton à lui : il s'enregistre
 /// avec la fiche, par le bouton du pied (audit UX 2026-11-27, F1).
 struct SaveEditorInventorySection: View {
@@ -24,7 +35,7 @@ struct SaveEditorInventorySection: View {
                     } trailing: {
                         Text(localization.L(L10n.Saves.itemQuantity))
                         TextField("", value: $session.inventory[index].stack,
-                                  formatter: NumberFormatter())
+                                  formatter: SlotQuantityFormat.formatter)
                             .frame(width: 60).textFieldStyle(.roundedBorder)
                         Button(role: .destructive, action: {
                             session.inventory[index] = InventoryItem.empty(slot: index)

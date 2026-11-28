@@ -80,7 +80,7 @@ struct SaveChestsView: View {
         } trailing: {
             if item.isObject {
                 Text(localization.L(L10n.Saves.itemQuantity))
-                TextField("", value: $session.chests[index].items[slot].stack, formatter: NumberFormatter())
+                TextField("", value: $session.chests[index].items[slot].stack, formatter: SlotQuantityFormat.formatter)
                     .frame(width: 60).textFieldStyle(.roundedBorder)
             } else {
                 Text(localization.L(L10n.Saves.nonObject)).foregroundColor(.secondary)
