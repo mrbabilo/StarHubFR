@@ -12,7 +12,9 @@ extension L10n.Saves {
     static let chestsShared = "saves_chests_shared"
     static let chestReadOnly = "saves_chest_read_only"
     static let chestNotEditable = "saves_chest_not_editable"
-    static let chestSlots = "saves_chest_slots"
+    /// Cases et cases occupées d'un coffre, chacune au pluriel juste (`plural`).
+    static let chestSlotCount = "saves_chest_slot_count"
+    static let chestUsedCount = "saves_chest_used_count"
     static let chestFridge = "saves_chest_fridge"
     static let chestJunimo = "saves_chest_junimo"
     static let chestDefault = "saves_chest_default"

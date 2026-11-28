@@ -72,9 +72,14 @@ struct SaveChestsView: View {
     private func row(_ chest: SaveChest) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(chest.displayName(labels)).lineLimit(1)
-            Text(String(format: localization.L(L10n.Saves.chestSlots), chest.slotCount, chest.occupiedCount))
-                .font(AppDesign.Font.caption).foregroundColor(.secondary)
+            Text(slotsLine(chest)).font(AppDesign.Font.caption).foregroundColor(.secondary)
         }
+    }
+
+    /// « 36 cases, 1 occupée » : chaque nombre à son pluriel.
+    private func slotsLine(_ chest: SaveChest) -> String {
+        localization.plural(L10n.Saves.chestSlotCount, chest.slotCount) + ", "
+            + localization.plural(L10n.Saves.chestUsedCount, chest.occupiedCount)
     }
 
     /// Une case d'un coffre éditable, patron de `SaveEditorInventorySection` : quantité d'un
@@ -105,8 +110,7 @@ struct SaveChestsView: View {
             let held = chest.items.filter { !$0.name.isEmpty }
             VStack(alignment: .leading, spacing: AppDesign.Spacing.sm) {
                 Text(chest.displayName(labels)).font(.headline)
-                Text(String(format: localization.L(L10n.Saves.chestSlots), chest.slotCount, chest.occupiedCount))
-                    .font(AppDesign.Font.caption).foregroundColor(.secondary)
+                Text(slotsLine(chest)).font(AppDesign.Font.caption).foregroundColor(.secondary)
                 if !chest.isEditable {
                     Label(localization.L(chest.readOnlyKey), systemImage: "lock")
                         .font(AppDesign.Font.caption).foregroundColor(.secondary)

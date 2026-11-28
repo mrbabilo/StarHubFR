@@ -2896,7 +2896,10 @@
 "saves_chests_shared" = "Shared inventories";
 "saves_chest_read_only" = "Managed by a mod: read-only";
 "saves_chest_not_editable" = "Read-only";
-"saves_chest_slots" = "%lld slots, %lld used";
+"saves_chest_slot_count" = "%lld slots";
+"saves_chest_slot_count_one" = "1 slot";
+"saves_chest_used_count" = "%lld used";
+"saves_chest_used_count_one" = "1 used";
 "saves_chest_fridge" = "Fridge";
 "saves_chest_junimo" = "Junimo chest";
 "saves_chest_default" = "Chest";
