@@ -98,6 +98,23 @@ extension SaveFarmerDraft {
 extension InventoryItem {
     /// Cases du sac modifiées depuis leur lecture.
     static func changedSlots(_ edited: [InventoryItem], from loaded: [InventoryItem]) -> Int {
-        zip(edited, loaded).filter { $0 != $1 }.count
+        SlotEdit.changes(edited, from: loaded).count
+    }
+
+    /// Même contenu que `other` : objet ou non, case vide ou non, même `itemId`, même nom (la quantité peut différer).
+    func holdsSameItem(as other: InventoryItem) -> Bool {
+        isObject == other.isObject && itemId == other.itemId && name == other.name
+    }
+}
+
+/// Une case modifiée, avec sa lecture : l'écriture vérifie que la partie porte
+/// encore l'objet lu avant de poser la nouvelle valeur (revue finale, Important 1).
+struct SlotEdit: Equatable {
+    let read: InventoryItem
+    let edited: InventoryItem
+
+    /// Les seules cases qui diffèrent de leur lecture, rapprochées par position.
+    static func changes(_ edited: [InventoryItem], from loaded: [InventoryItem]) -> [SlotEdit] {
+        zip(edited, loaded).filter { $0 != $1 }.map { SlotEdit(read: $1, edited: $0) }
     }
 }

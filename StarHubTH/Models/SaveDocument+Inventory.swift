@@ -13,12 +13,25 @@ extension SaveDocument {
         itemNodes.map(Self.slots)
     }
 
-    /// Pose les cases données dans l'arbre : quantité et identifiant d'un objet,
-    /// case vidée pour un objet sans nom. `false` si la partie n'a pas de sac.
-    func applyInventory(_ items: [InventoryItem]) -> Bool {
-        guard let nodes = itemNodes else { return false }
-        Self.apply(items, to: nodes)
-        return true
+    /// Pose les cases modifiées du sac et des coffres (`id` → cases), tout ou rien. Chaque case doit
+    /// encore porter l'objet lu (`holdsSameItem`) — sinon, ou si un coffre lu a disparu, la partie a
+    /// changé depuis la lecture : `.changedOnDisk`, même après un écrasement confirmé. Pas de sac,
+    /// coffre en lecture seule : `.malformed`. Rien n'est posé tant que tout n'est pas vérifié.
+    func applySlots(bag: [SlotEdit]?, chests: [String: [SlotEdit]]?) throws(Failure) {
+        var targets: [(edits: [SlotEdit], nodes: [XMLElement])] = []
+        if let bag {
+            guard let nodes = itemNodes else { throw .malformed }
+            targets.append((bag, nodes))
+        }
+        if let chests { targets += try chestTargets(chests) }
+        for target in targets {
+            let now = Self.slots(target.nodes)
+            for edit in target.edits {
+                guard now.indices.contains(edit.read.slotIndex), now[edit.read.slotIndex].holdsSameItem(as: edit.read)
+                else { throw .changedOnDisk }
+            }
+        }
+        for target in targets { Self.apply(target.edits.map(\.edited), to: target.nodes) }
     }
 
     /// Une case par nœud `<Item>` (`<items>` d'un sac ou d'un coffre, `ArrayOfItem` d'un inventaire global).

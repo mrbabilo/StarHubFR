@@ -95,7 +95,7 @@ import Testing
 
         let manager = SaveManager()
         let items = manager.fetchContents(for: info)?.inventory ?? []
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: items, expected: nil))
         #expect(firstBytes(of: info.fileURL) == Self.bom)
     }
 

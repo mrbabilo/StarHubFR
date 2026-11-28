@@ -426,17 +426,17 @@ public final class SaveManager: @unchecked Sendable {
         try writeEdits(info: info, sheet: sheet, items: nil, chests: nil, expected: nil)
     }
 
-    /// Fiche du fermier, sac et coffres (`id` → cases) en **une** écriture, un backup (audit UX 2026-11-27, F1).
-    /// `nil` = non modifié. Refus — rien d'écrit — : X138, jeu lancé, partie modifiée pendant l'opération,
-    /// backup raté, coffre inconnu ou en lecture seule (`.malformed`) ; et, si `expected` est donné
-    /// (l'empreinte de la lecture de l'écran), partie modifiée depuis cette lecture.
-    func writeEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?,
-                    chests: [String: [InventoryItem]]?, expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
+    /// Fiche du fermier, cases modifiées du sac et des coffres (`id` → cases) en **une** écriture, un backup
+    /// (audit UX 2026-11-27, F1). `nil` = non modifié. Refus — rien d'écrit — : X138, jeu lancé, partie modifiée
+    /// pendant l'opération, backup raté, coffre en lecture seule (`.malformed`), case qui ne porte plus l'objet
+    /// lu ou coffre disparu (`applySlots`) ; et, si `expected` est donné, partie modifiée depuis cette lecture.
+    func writeEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [SlotEdit]?,
+                    chests: [String: [SlotEdit]]?, expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
         // Invalidation en tête : un échec partiel a pu toucher le disque.
         invalidateParseCache()
         let save = try SaveDocument(contentsOf: info.fileURL)
         let farmerFields = sheet.map { save.apply($0, oldSpouse: info.spouse) } ?? []
-        guard items.map(save.applyInventory) ?? true, chests.map(save.applyChestItems) ?? true else { throw .malformed }
+        try save.applySlots(bag: items, chests: chests)
         try save.write(expected: expected, isGameRunning: isGameRunning, backup: { backupSave(info: info) })
         if !farmerFields.isEmpty { syncSaveGameInfo(in: info.fileURL.deletingLastPathComponent(), fields: farmerFields) }
     }
@@ -703,15 +703,15 @@ public final class SaveManager: @unchecked Sendable {
     }
 
     /// `writeInventory`, réussite seulement.
-    func updateInventory(info: SaveGameInfo, items: [InventoryItem], expected: SaveDocument.Stamp? = nil) -> Bool {
-        do { try writeInventory(info: info, items: items, expected: expected); return true } catch { return false }
+    func updateInventory(info: SaveGameInfo, items: [InventoryItem], from read: [InventoryItem],
+                         expected: SaveDocument.Stamp?) -> Bool {
+        do { try writeInventory(info: info, items: items, from: read, expected: expected); return true } catch { return false }
     }
 
-    /// Écrit le sac. Refusé — rien d'écrit — si la partie a changé depuis la
-    /// lecture `expected` (celle de `fetchContents`), `nil` = écrasement
-    /// confirmé ; et toujours : X138, jeu lancé, partie modifiée pendant
-    /// l'opération, backup raté.
-    func writeInventory(info: SaveGameInfo, items: [InventoryItem], expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
-        try writeEdits(info: info, sheet: nil, items: items, chests: nil, expected: expected)
+    /// Les cases du sac qui diffèrent de `read` (lecture de `fetchContents`), par `writeEdits` et ses refus ;
+    /// `expected` : l'empreinte de cette lecture, `nil` = écrasement confirmé (les cases restent vérifiées).
+    func writeInventory(info: SaveGameInfo, items: [InventoryItem], from read: [InventoryItem],
+                        expected: SaveDocument.Stamp?) throws(SaveDocument.Failure) {
+        try writeEdits(info: info, sheet: nil, items: SlotEdit.changes(items, from: read), chests: nil, expected: expected)
     }
 }

@@ -51,7 +51,7 @@ import Testing
         let manager = SaveManager()
 
         let items = try #require(manager.fetchContents(for: info)?.inventory)
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: items, expected: nil))
 
         let written = text(of: info.fileURL)
         #expect(written.contains("<_questTitle>La Quête de la Mystérieuse Dame</_questTitle>"))
@@ -67,7 +67,7 @@ import Testing
         let manager = SaveManager()
 
         let items = try #require(manager.fetchContents(for: info)?.inventory)
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: items, expected: nil))
 
         let reread = try XMLDocument(contentsOf: info.fileURL, options: [.nodePreserveAll])
         let strings = try reread.nodes(forXPath: "//mailbox/string").map { $0.stringValue ?? "" }
@@ -81,9 +81,10 @@ import Testing
         let before = try Data(contentsOf: info.fileURL).count
         let manager = SaveManager()
 
-        var items = try #require(manager.fetchContents(for: info)?.inventory)
+        let read = try #require(manager.fetchContents(for: info)?.inventory)
+        var items = read
         items[0] = InventoryItem(slotIndex: 0, itemId: "24", name: "Parsnip", stack: 7, isObject: true)
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: read, expected: nil))
 
         #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 7)
         // Pas de réindentation : la taille reste celle de l'original, à la

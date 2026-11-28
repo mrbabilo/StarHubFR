@@ -52,7 +52,8 @@ import Testing
 
         let edits = session.pendingEdits()
         #expect(edits.sheet?.money == 4321)
-        #expect(edits.items?.first?.stack == 9)
+        #expect(edits.items?.first?.edited.stack == 9)
+        #expect(edits.items?.first?.read.stack == 3)
     }
 
     @Test func switchingSegmentsKeepsTheEdits() {
@@ -120,7 +121,7 @@ import Testing
         let edits = session.pendingEdits()
         #expect(edits.items == nil && edits.sheet == nil)
         #expect(edits.chests.map { Array($0.keys) } == ["Farm@2,2"])
-        #expect(edits.chests?["Farm@2,2"]?.first?.stack == 3)
+        #expect(edits.chests?["Farm@2,2"]?.map(\.edited.stack) == [3, 0])
         // Coffre seul modifié : l'écriture garde l'empreinte de la lecture.
         #expect(session.expectedStamp(overwriteNewer: false) == session.loaded?.stamp)
         #expect(session.expectedStamp(overwriteNewer: true) == nil)
@@ -140,9 +141,11 @@ import Testing
         let newer = xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>")
         try Data(newer.utf8).write(to: info.fileURL)
         #expect(contents.stamp != SaveDocument.Stamp.current(of: info.fileURL))
+        let read = contents.inventory
         contents.inventory[0].stack = 9
         #expect(throws: SaveDocument.Failure.changedOnDisk) {
-            try manager.writeEdits(info: info, sheet: nil, items: contents.inventory, chests: nil, expected: contents.stamp)
+            try manager.writeEdits(info: info, sheet: nil, items: SlotEdit.changes(contents.inventory, from: read),
+                                   chests: nil, expected: contents.stamp)
         }
     }
     /// B4 — le catalogue du jeu se lit une fois par session et ne change que

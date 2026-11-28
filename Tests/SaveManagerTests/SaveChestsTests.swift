@@ -103,9 +103,10 @@ import Testing
     @Test func applyChestItemsChangesOnlyThatChest() throws {
         let save = try document()
         let before = save.chests()
-        var items = try #require(before.first { $0.id == "Farm@10,20" }?.items)
+        let read = try #require(before.first { $0.id == "Farm@10,20" }?.items)
+        var items = read
         items[1].stack = 9
-        #expect(save.applyChestItems(["Farm@10,20": items]))
+        try save.applySlots(bag: nil, chests: ["Farm@10,20": SlotEdit.changes(items, from: read)])
         let after = save.chests()
         #expect(after.first { $0.id == "Farm@10,20" }?.items[1].stack == 9)
         // `InventoryItem` porte un `UUID` par lecture : on compare le contenu.
@@ -123,22 +124,29 @@ import Testing
         let items = try #require(save.chests().first { $0.id == "global:Mod.Thing.temp" }?.items)
         var edited = items
         edited[0].stack = 99
-        #expect(!save.applyChestItems(["global:Mod.Thing.temp": edited]))
-        #expect(!save.applyChestItems(["Nowhere@1,1": edited]))
+        let edits = SlotEdit.changes(edited, from: items)
+        #expect(throws: SaveDocument.Failure.malformed) { try save.applySlots(bag: nil, chests: ["global:Mod.Thing.temp": edits]) }
+        // Un coffre lu qui a disparu : la partie a changé.
+        #expect(throws: SaveDocument.Failure.changedOnDisk) { try save.applySlots(bag: nil, chests: ["Nowhere@1,1": edits]) }
         #expect(save.chests().first { $0.id == "global:Mod.Thing.temp" }?.items.first?.stack == 2)
     }
 
     @Test func severalChestsAreAppliedTogetherOrNotAtAll() throws {
         let save = try document()
         let chests = save.chests()
-        var farm = try #require(chests.first { $0.id == "Farm@10,20" }?.items)
+        let farmRead = try #require(chests.first { $0.id == "Farm@10,20" }?.items)
+        var farm = farmRead
         farm[1].stack = 9
-        var fridge = try #require(chests.first { $0.id == "FarmHouse#fridge" }?.items)
+        let fridgeRead = try #require(chests.first { $0.id == "FarmHouse#fridge" }?.items)
+        var fridge = fridgeRead
         fridge[0].stack = 1
+        let farmEdits = SlotEdit.changes(farm, from: farmRead)
         // Un id inconnu dans le lot : rien n'est posé, pas même les coffres valides.
-        #expect(!save.applyChestItems(["Farm@10,20": farm, "Nowhere@1,1": farm]))
+        #expect(throws: SaveDocument.Failure.changedOnDisk) {
+            try save.applySlots(bag: nil, chests: ["Farm@10,20": farmEdits, "Nowhere@1,1": farmEdits])
+        }
         #expect(save.chests().first { $0.id == "Farm@10,20" }?.items[1].stack == 2)
-        #expect(save.applyChestItems(["Farm@10,20": farm, "FarmHouse#fridge": fridge]))
+        try save.applySlots(bag: nil, chests: ["Farm@10,20": farmEdits, "FarmHouse#fridge": SlotEdit.changes(fridge, from: fridgeRead)])
         let after = save.chests()
         #expect(after.first { $0.id == "Farm@10,20" }?.items[1].stack == 9)
         #expect(after.first { $0.id == "FarmHouse#fridge" }?.items[0].stack == 1)
@@ -164,9 +172,12 @@ import Testing
         #expect(chests.first { $0.id == "Farm@1,1" }?.isEditable == false)
         #expect(chests.first { $0.id == "Farm@2,2" }?.isEditable == false)
         #expect(chests.first { $0.id == "Farm@3,3" }?.isEditable == true)
-        var stone = try #require(chests.first { $0.id == "Farm@1,1" }?.items)
+        let stoneRead = try #require(chests.first { $0.id == "Farm@1,1" }?.items)
+        var stone = stoneRead
         stone[0].stack = 99
-        #expect(!save.applyChestItems(["Farm@1,1": stone]))
+        #expect(throws: SaveDocument.Failure.malformed) {
+            try save.applySlots(bag: nil, chests: ["Farm@1,1": SlotEdit.changes(stone, from: stoneRead)])
+        }
     }
 
     /// Deux coffres de même nom sur une même tuile : le suffixe `~2` suit
@@ -187,9 +198,10 @@ import Testing
         #expect(again.map { $0.items.first?.stack } == [4, 6])
 
         let save = try document(xml)
-        var items = try #require(save.chests().last?.items)
+        let read = try #require(save.chests().last?.items)
+        var items = read
         items[0].stack = 1
-        #expect(save.applyChestItems(["Farm@7,8#bc:Input~2": items]))
+        try save.applySlots(bag: nil, chests: ["Farm@7,8#bc:Input~2": SlotEdit.changes(items, from: read)])
         #expect(save.chests().map { $0.items.first?.stack } == [4, 1])
     }
 }

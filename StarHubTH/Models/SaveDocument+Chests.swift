@@ -20,18 +20,17 @@ extension SaveDocument {
     /// Tous les contenants lisibles, dans l'ordre du fichier ; chaque `id` est unique.
     func chests() -> [SaveChest] { chestEntries().map(\.chest) }
 
-    /// Remplace les cases de chaque contenant donné (`id` → cases), en une
-    /// lecture de l'arbre. `false` — rien changé, pas même les autres — si un
-    /// `id` est inconnu ou son contenant en lecture seule.
-    func applyChestItems(_ edits: [String: [InventoryItem]]) -> Bool {
+    /// Les nœuds des cases de chaque contenant donné (`id` → cases), en une lecture de
+    /// l'arbre, pour `applySlots`. `id` disparu : `.changedOnDisk` ; en lecture seule : `.malformed`.
+    func chestTargets(_ edits: [String: [SlotEdit]]) throws(Failure) -> [(edits: [SlotEdit], nodes: [XMLElement])] {
         let byId = Dictionary(chestEntries().map { ($0.chest.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var targets: [(items: [InventoryItem], container: XMLElement)] = []
-        for (id, items) in edits {
-            guard let entry = byId[id], entry.chest.isEditable, let container = entry.container else { return false }
-            targets.append((items, container))
+        var targets: [(edits: [SlotEdit], nodes: [XMLElement])] = []
+        for (id, slots) in edits {
+            guard let entry = byId[id] else { throw .changedOnDisk }
+            guard entry.chest.isEditable, let container = entry.container else { throw .malformed }
+            targets.append((slots, container.elements(forName: "Item")))
         }
-        for target in targets { Self.apply(target.items, to: target.container.elements(forName: "Item")) }
-        return true
+        return targets
     }
 
     private func chestEntries() -> [ChestEntry] {

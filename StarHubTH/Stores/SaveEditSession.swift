@@ -78,26 +78,30 @@ final class SaveEditSession {
     }
 
     /// Ce que l'écriture doit porter (`nil` = non modifié) ; la note de l'app s'enregistre à part.
+    /// Les seules cases modifiées, avec leur lecture : même après un écrasement confirmé, une case
+    /// que la partie plus récente a changée est refusée (`SaveDocument.applySlots`).
     /// `chests` : les seuls coffres modifiés, par `id`.
-    func pendingEdits() -> (sheet: SaveFarmerSheet?, items: [InventoryItem]?, chests: [String: [InventoryItem]]?) {
+    func pendingEdits() -> (sheet: SaveFarmerSheet?, items: [SlotEdit]?, chests: [String: [SlotEdit]]?) {
         let sheet = draft.changedFields(from: SaveFarmerDraft(save)) > 0 ? draft.sheet(for: save) : nil
-        let changed = chestChanges.filter { $0.count > 0 }
-        let chests = changed.isEmpty ? nil : Dictionary(changed.map { ($0.chest.id, $0.chest.items) }, uniquingKeysWith: { a, _ in a })
-        return (sheet, changedSlots > 0 ? inventory : nil, chests)
+        let changed = chestChanges.filter { !$0.edits.isEmpty }
+        let chests = changed.isEmpty ? nil : Dictionary(changed.map { ($0.id, $0.edits) }, uniquingKeysWith: { a, _ in a })
+        return (sheet, bagChanges.isEmpty ? nil : bagChanges, chests)
     }
 
-    private var changedSlots: Int {
-        loaded.map { InventoryItem.changedSlots(inventory, from: $0.inventory) } ?? 0
+    private var bagChanges: [SlotEdit] {
+        loaded.map { SlotEdit.changes(inventory, from: $0.inventory) } ?? []
     }
 
-    private var changedChestSlots: Int { chestChanges.reduce(0) { $0 + $1.count } }
+    private var changedSlots: Int { bagChanges.count }
+
+    private var changedChestSlots: Int { chestChanges.reduce(0) { $0 + $1.edits.count } }
 
     /// Chaque coffre édité et ses cases modifiées, rapproché de sa lecture par `id`, jamais par position.
-    private var chestChanges: [(chest: SaveChest, count: Int)] {
+    private var chestChanges: [(id: String, edits: [SlotEdit])] {
         guard let loaded else { return [] }
         let read = Dictionary(loaded.chests.map { ($0.id, $0.items) }, uniquingKeysWith: { a, _ in a })
         return chests.compactMap { chest in
-            read[chest.id].map { (chest, InventoryItem.changedSlots(chest.items, from: $0)) }
+            read[chest.id].map { (chest.id, SlotEdit.changes(chest.items, from: $0)) }
         }
     }
 }

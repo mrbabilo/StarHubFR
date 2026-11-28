@@ -149,7 +149,7 @@ import Testing
         let newer = xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>")
         try Data(newer.utf8).write(to: info.fileURL)
 
-        #expect(!manager.updateInventory(info: info, items: items, expected: read.stamp))
+        #expect(!manager.updateInventory(info: info, items: items, from: read.inventory, expected: read.stamp))
         #expect(text(info.fileURL) == newer)
     }
 
@@ -158,12 +158,13 @@ import Testing
         defer { env.cleanup() }
         let info = try makeSave(env)
         let manager = SaveManager()
-        var items = try #require(manager.fetchContents(for: info)?.inventory)
+        let read = try #require(manager.fetchContents(for: info)?.inventory)
+        var items = read
 
         items[0].stack = 7
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: read, expected: nil))
         items[0].stack = 8
-        #expect(manager.updateInventory(info: info, items: items))
+        #expect(manager.updateInventory(info: info, items: items, from: read, expected: nil))
         #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 8)
     }
     /// La fiche du fermier passe par l'arbre : champ édité, quête intacte, et
@@ -210,9 +211,9 @@ import Testing
         try Data(xml.replacingOccurrences(of: "<money>100</money>", with: "<money>5000</money>").utf8).write(to: info.fileURL)
 
         #expect(throws: SaveDocument.Failure.changedOnDisk) {
-            try manager.writeInventory(info: info, items: items, expected: read.stamp)
+            try manager.writeInventory(info: info, items: items, from: read.inventory, expected: read.stamp)
         }
-        try manager.writeInventory(info: info, items: items, expected: nil)
+        try manager.writeInventory(info: info, items: items, from: read.inventory, expected: nil)
         #expect(manager.fetchContents(for: info)?.inventory.first?.stack == 7)
     }
 

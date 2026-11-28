@@ -5891,7 +5891,7 @@ final class StarHubTHViewModel {
     }
 
     /// Fiche, sac et coffres en une écriture (`nil` = non modifié) ; l'éditeur se ferme sur réussite seulement.
-    func saveEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [InventoryItem]?, chests: [String: [InventoryItem]]?,
+    func saveEdits(info: SaveGameInfo, sheet: SaveFarmerSheet?, items: [SlotEdit]?, chests: [String: [SlotEdit]]?,
                    expected: SaveDocument.Stamp?) {
         // Même verrou que `duplicateSave`/`deleteSave` : deux lecture-modification-écriture
         // entrelacées perdent des changements (audit 2026-08-05).
